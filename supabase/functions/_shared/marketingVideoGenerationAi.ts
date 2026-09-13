@@ -1,0 +1,348 @@
+/**
+ * Veo 3.1 video generation for the Marketing Studio Generate tab (Phase 2).
+ *
+ * Request/response envelope verified against Google's current Veo REST reference
+ * (ai.google.dev/gemini-api/docs/veo, 2026-09):
+ *   POST models/{model}:predictLongRunning
+ *     { instances:[{ prompt, referenceImages?:[{ image:{inlineData}, referenceType:'asset' }] }],
+ *       parameters:{ aspectRatio, resolution, durationSeconds, personGeneration, negativePrompt? } }
+ *   GET {operationName}
+ *     { done, response?: { generateVideoResponse: { generatedSamples: [{ video: { uri } }] } },
+ *       error?: { message } }
+ *
+ * Up to 3 `referenceImages` steer the subject/style; there is no multi-shot "starting
+ * frame" support here (that would be the separate singular `image` field — a Phase 3
+ * feature, not used yet).
+ *
+ * Two entry points:
+ *   startMarketingVideoJob       — submits to :predictLongRunning, stores the operation name
+ *   pollAndFinalizeMarketingVideoJob — polls Google, and on done:true runs the full
+ *                                      finalize sequence (claim CAS -> download -> upload
+ *                                      -> completion CAS -> bill). Both the poller endpoint
+ *                                      and the cron sweeper call this same function so the
+ *                                      double-finalize guard lives in exactly one place.
+ */
+
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+
+import {
+  type AiVideoModelConfig,
+  geminiOperationUrl,
+  geminiPredictLongRunningUrl,
+} from './aiModelRouter.ts';
+import {
+  getGeminiApiKeys,
+  nextGeminiKeyStartIndex,
+  providerError,
+  shouldTryNextProvider,
+} from './aiGeminiKeys.ts';
+import { recordAiUsage } from './aiUsageService.ts';
+import {
+  bumpMarketingVideoJobPoll,
+  claimMarketingGenerationJobBilling,
+  claimMarketingGenerationJobForFinalize,
+  completeMarketingGenerationJob,
+  failMarketingGenerationJob,
+  getMarketingGenerationJob,
+  markMarketingVideoJobProcessing,
+  recordMarketingGenerationJobUsage,
+  type MarketingGenerationJobRow,
+} from './marketingGenerationJobs.ts';
+import {
+  extensionForVisualMime,
+  fetchGeneratedVideoBytes,
+  marketingGenerationStoragePath,
+  uploadGenerationBytes,
+} from './marketingGenerationStorage.ts';
+import type { ReferenceInlineData } from './marketingImageGenerationAi.ts';
+
+export class GenerationSafetyError extends Error {
+  readonly code = 'safety_blocked';
+
+  constructor(message = 'That prompt was blocked. Try rephrasing.') {
+    super(message);
+    this.name = 'GenerationSafetyError';
+  }
+}
+
+export class GenerationProviderError extends Error {
+  readonly code = 'provider_error';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'GenerationProviderError';
+  }
+}
+
+export function isGenerationSafetyError(error: unknown): error is GenerationSafetyError {
+  return error instanceof GenerationSafetyError;
+}
+
+/**
+ * `personGeneration: 'allow_adult'` is sent unconditionally — required in EU/UK/CH/MENA,
+ * harmless elsewhere, and we cannot reliably infer the caller's region server-side.
+ */
+const PERSON_GENERATION = 'allow_adult';
+
+export type StartMarketingVideoJobInput = {
+  config: AiVideoModelConfig;
+  prompt: string;
+  negativePrompt?: string | null;
+  aspectRatio: string;
+  resolution: '720p' | '1080p';
+  durationSeconds: number;
+  references: ReferenceInlineData[];
+};
+
+/** Submits the job to Veo and stores the returned long-running operation name. */
+export async function startMarketingVideoJob(
+  sb: SupabaseClient,
+  jobId: string,
+  input: StartMarketingVideoJobInput
+): Promise<MarketingGenerationJobRow> {
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) {
+    throw new GenerationProviderError('Video generation is not configured');
+  }
+
+  const body = {
+    instances: [
+      {
+        prompt: input.prompt,
+        ...(input.references.length > 0
+          ? {
+              referenceImages: input.references.map((reference) => ({
+                image: { inlineData: reference },
+                referenceType: 'asset',
+              })),
+            }
+          : {}),
+      },
+    ],
+    parameters: {
+      aspectRatio: input.aspectRatio,
+      resolution: input.resolution,
+      durationSeconds: String(input.durationSeconds),
+      personGeneration: PERSON_GENERATION,
+      ...(input.negativePrompt ? { negativePrompt: input.negativePrompt } : {}),
+    },
+  };
+
+  const url = geminiPredictLongRunningUrl(input.config.model);
+  const start = nextGeminiKeyStartIndex(keys.length);
+  let lastError = 'Video generation could not be started';
+
+  for (let attempt = 0; attempt < keys.length; attempt += 1) {
+    const key = keys[(start + attempt) % keys.length]!;
+    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = null;
+      }
+      lastError = providerError(parsed, `Video generation failed to start (${res.status})`);
+      if (shouldTryNextProvider(res.status) && attempt < keys.length - 1) continue;
+      throw new GenerationProviderError(lastError);
+    }
+
+    const json = (await res.json()) as { name?: string };
+    if (!json.name) {
+      throw new GenerationProviderError('The model did not return an operation to track');
+    }
+
+    const updated = await markMarketingVideoJobProcessing(sb, jobId, json.name);
+    if (!updated) {
+      throw new GenerationProviderError('Job could not be marked as processing');
+    }
+    return updated;
+  }
+
+  throw new GenerationProviderError(lastError);
+}
+
+type GoogleOperationResponse = {
+  done?: boolean;
+  error?: { message?: string };
+  response?: {
+    generateVideoResponse?: {
+      generatedSamples?: Array<{ video?: { uri?: string } }>;
+      raiMediaFilteredCount?: number;
+    };
+  };
+};
+
+async function fetchOperationStatus(
+  operationName: string,
+  apiKey: string
+): Promise<GoogleOperationResponse> {
+  const res = await fetch(geminiOperationUrl(operationName), {
+    headers: { 'x-goog-api-key': apiKey },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = null;
+    }
+    throw new GenerationProviderError(
+      providerError(parsed, `Could not check generation status (${res.status})`)
+    );
+  }
+  return (await res.json()) as GoogleOperationResponse;
+}
+
+export type PollAndFinalizeOutcome =
+  | { kind: 'still_processing'; job: MarketingGenerationJobRow }
+  | { kind: 'operation_failed'; job: MarketingGenerationJobRow | null }
+  /** Another poller or the sweeper already claimed this job — caller should not log anything. */
+  | { kind: 'claimed_by_other'; job: MarketingGenerationJobRow | null }
+  /** Claim won, but the download/upload failed or a competing claim reclaimed it first — the
+   *  job is left at `finalizing` (or already reclaimed to `processing`); sweeper pass 1/2 retry. */
+  | { kind: 'not_finalized'; job: MarketingGenerationJobRow | null }
+  | { kind: 'completed'; job: MarketingGenerationJobRow; creditsConsumed: number };
+
+/**
+ * Polls Google for one job and, when the operation is done, runs the full finalize
+ * sequence. Both `get-marketing-generation-job` (has a live request/user) and
+ * `marketing-generation-sweeper` (cron, no user) call this same function — the
+ * double-finalize CAS guard therefore lives in exactly one place. Callers use the
+ * returned `kind` only to decide what (if anything) to activity-log; this function
+ * never touches the activity log itself since it doesn't know its caller's actor context.
+ */
+export async function pollAndFinalizeMarketingVideoJob(
+  sb: SupabaseClient,
+  job: MarketingGenerationJobRow
+): Promise<PollAndFinalizeOutcome> {
+  const keys = getGeminiApiKeys();
+  const apiKey = keys[0];
+  const operationName = job.provider_operation_name as string | null;
+  if (!apiKey || !operationName) {
+    return { kind: 'still_processing', job };
+  }
+
+  const status = await fetchOperationStatus(operationName, apiKey);
+
+  if (!status.done) {
+    const nextPollCount = Number(job.provider_poll_count ?? 0) + 1;
+    await bumpMarketingVideoJobPoll(sb, String(job.id), nextPollCount);
+    return { kind: 'still_processing', job: { ...job, provider_poll_count: nextPollCount } };
+  }
+
+  if (status.error || !status.response?.generateVideoResponse?.generatedSamples?.length) {
+    const blocked = Number(status.response?.generateVideoResponse?.raiMediaFilteredCount ?? 0) > 0;
+    const errorCode = blocked ? 'safety_blocked' : 'provider_error';
+    const message = blocked
+      ? 'That prompt was blocked. Try rephrasing.'
+      : (status.error?.message ?? 'Video generation failed');
+    const failed = await failMarketingGenerationJob(sb, String(job.id), errorCode, message);
+    return { kind: 'operation_failed', job: failed };
+  }
+
+  const videoUri = status.response.generateVideoResponse.generatedSamples[0]?.video?.uri;
+  if (!videoUri) {
+    const failed = await failMarketingGenerationJob(
+      sb,
+      String(job.id),
+      'provider_error',
+      'The model did not return a video to download'
+    );
+    return { kind: 'operation_failed', job: failed };
+  }
+
+  // Compare-and-swap #1: only the winner may download, upload, and eventually bill.
+  const claimToken = crypto.randomUUID();
+  const claimed = await claimMarketingGenerationJobForFinalize(sb, String(job.id), claimToken);
+  if (!claimed) {
+    const current = await getMarketingGenerationJob(sb, String(job.id));
+    return { kind: 'claimed_by_other', job: current };
+  }
+
+  let bytes: Uint8Array;
+  let mimeType: string;
+  try {
+    const downloaded = await fetchGeneratedVideoBytes(videoUri, apiKey);
+    bytes = downloaded.bytes;
+    mimeType = downloaded.mimeType;
+  } catch (err) {
+    // Leave the row at `finalizing` — sweeper pass 1 reclaims it after 2 minutes and
+    // pass 2 retries the download. We won the claim but did not finish, so no charge yet.
+    console.error('[marketingVideoGenerationAi] download failed:', (err as Error).message);
+    return { kind: 'not_finalized', job: claimed };
+  }
+
+  const storagePath = marketingGenerationStoragePath(
+    String(claimed.property_id),
+    String(claimed.id),
+    extensionForVisualMime(mimeType)
+  );
+  let outputUrl: string;
+  try {
+    outputUrl = await uploadGenerationBytes(sb, storagePath, bytes, mimeType);
+  } catch (err) {
+    console.error('[marketingVideoGenerationAi] upload failed:', (err as Error).message);
+    return { kind: 'not_finalized', job: claimed };
+  }
+
+  // The cost was already computed correctly at request time (assertValidVideoOptions +
+  // estimateGenerationCostUsd, against the real resolved model config) and stored on the
+  // job row — reuse it rather than reconstructing a model config here.
+  const estimatedCostUsd = Number(claimed.estimated_cost_usd ?? 0);
+
+  // Compare-and-swap #2: completion. Zero rows means the claim was reclaimed mid-flight
+  // (sweeper pass 1 fired between our claim and here) — skip billing entirely.
+  const completed = await completeMarketingGenerationJob(
+    sb,
+    String(claimed.id),
+    'finalizing',
+    {
+      outputStoragePath: storagePath,
+      outputUrl,
+      outputMimeType: mimeType,
+      outputBytes: bytes.byteLength,
+      estimatedCostUsd,
+    },
+    claimToken
+  );
+  if (!completed) {
+    return { kind: 'not_finalized', job: claimed };
+  }
+
+  // Claim billing before calling recordAiUsage, not after — the sweeper's billing-
+  // repair pass can otherwise race a crash between recordAiUsage succeeding and the
+  // stamp below, double-billing. See claimMarketingGenerationJobBilling's doc comment.
+  let creditsConsumed = 0;
+  if (await claimMarketingGenerationJobBilling(sb, String(completed.id))) {
+    const usage = await recordAiUsage({
+      organizationId: String(completed.organization_id),
+      propertyId: String(completed.property_id),
+      feature: 'marketing_video_generate',
+      provider: 'gemini',
+      model: String(completed.model),
+      durationSeconds: Number(completed.duration_seconds ?? 0),
+      estimatedCostUsd,
+      actorUserId: (completed.triggered_by as string | null) ?? null,
+      actorType: 'staff',
+    });
+    creditsConsumed = usage.creditsConsumed;
+    await recordMarketingGenerationJobUsage(sb, String(completed.id), {
+      creditsConsumed: usage.creditsConsumed,
+      usageEventId: usage.usageEventId,
+    });
+  }
+
+  return {
+    kind: 'completed',
+    job: { ...completed, credits_consumed: creditsConsumed },
+    creditsConsumed,
+  };
+}
