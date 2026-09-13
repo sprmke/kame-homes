@@ -23,6 +23,10 @@ export type PlanFeatures = {
   aiDashboardAssistant: boolean;
   aiReceptionist: boolean;
   aiMarketingGeneration: boolean;
+  /** Prompt + reference photos in, a finished AI image out (Marketing Studio Generate tab). */
+  aiMarketingImageGeneration: boolean;
+  /** Prompt + reference photos in, a finished AI video out (Marketing Studio Generate tab, Phase 2). */
+  aiMarketingVideoGeneration: boolean;
   aiChatAutoReply: boolean;
   fullyManagedByPlatform: boolean;
   financeReporting: boolean;
@@ -61,6 +65,8 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   aiDashboardAssistant: false,
   aiReceptionist: false,
   aiMarketingGeneration: false,
+  aiMarketingImageGeneration: false,
+  aiMarketingVideoGeneration: false,
   aiChatAutoReply: false,
   fullyManagedByPlatform: false,
   financeReporting: false,
@@ -157,6 +163,8 @@ export const PLAN_FEATURE_LABELS: Record<keyof PlanFeatures, string> = {
   aiDashboardAssistant: 'AI dashboard assistant',
   aiReceptionist: 'AI receptionist',
   aiMarketingGeneration: 'AI content generation',
+  aiMarketingImageGeneration: 'AI image generation',
+  aiMarketingVideoGeneration: 'AI video generation',
   aiChatAutoReply: 'AI chat auto-reply',
   fullyManagedByPlatform: 'Full-service property management',
   financeReporting: 'Finance reporting & export',

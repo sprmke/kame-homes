@@ -6,6 +6,8 @@ import {
   hasUpgradeModalOpener,
 } from '@/features/dashboard/plans/lib/upgradeModalBridge';
 
+import { friendlyToastError, isTechnicalToastMessage } from '@/lib/feedback/toastMessages';
+
 /** Thrown when an edge function returns 429 + upgradeHook. */
 export class AiQuotaExceededClientError extends Error {
   readonly upgradeHook = true;
@@ -25,9 +27,15 @@ type ToastAiQuotaOptions = {
 };
 
 /** Surfaces upgrade CTA when edge functions return upgradeHook. */
+/** Surfaces upgrade CTA when edge functions return upgradeHook. */
 export function toastAiQuotaExceeded(message?: string, options?: ToastAiQuotaOptions): void {
-  const isCreditMessage = /credit/i.test(message ?? '');
-  toast.error(message ?? 'AI usage limit reached', {
+  const raw = message ?? 'AI usage limit reached';
+  if (isTechnicalToastMessage(raw)) {
+    toast.error(friendlyToastError(raw, 'This is busy right now. Try again in a moment.'));
+    return;
+  }
+  const isCreditMessage = /credit/i.test(raw);
+  toast.error(raw, {
     action: {
       label: isCreditMessage ? 'Buy credits' : 'Upgrade',
       onClick: () => {
@@ -101,5 +109,5 @@ export function handleAiMutationError(error: Error): void {
     toastAiQuotaExceeded(error.message, { feature: error.feature ?? 'aiMarketingGeneration' });
     return;
   }
-  toast.error(error.message || 'Request failed');
+  toast.error(friendlyToastError(error, 'Request failed'));
 }

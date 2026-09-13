@@ -17,6 +17,7 @@ export function useMarketingPermissions() {
     canDeleteTemplate: hasPropertyPermission(permissions, 'marketing.templates:delete'),
     canManageTemplates: hasMarketingTemplateManageAccess(permissions),
     canGenerate: hasPropertyPermission(permissions, 'marketing.generate:add'),
+    canGenerateVideo: hasPropertyPermission(permissions, 'marketing.generate.video:add'),
     canPublish: hasPropertyPermission(permissions, 'marketing.publish:add'),
   };
 }

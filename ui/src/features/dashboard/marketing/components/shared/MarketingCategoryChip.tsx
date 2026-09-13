@@ -1,14 +1,6 @@
-import { MoreHorizontal } from 'lucide-react';
-
 import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -38,35 +30,17 @@ export function MarketingCategoryChip({ label, selected, onClick, menuItems, cla
         <span className="truncate">{label}</span>
       </button>
       {hasMenu ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'bg-background absolute right-0.5 top-0.5 size-5 min-h-[20px] min-w-[20px] rounded border shadow-sm',
-                'opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within/chip:opacity-100 group-hover/chip:opacity-100',
-                selected && 'opacity-100'
-              )}
-              aria-label={`${label} options`}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <MoreHorizontal className="size-2.5" aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-w-[min(calc(100vw-24px),16rem)]">
-            {menuItems.map((item) => (
-              <DropdownMenuItem
-                key={item.id}
-                className={cn(item.destructive && 'text-destructive focus:text-destructive')}
-                onClick={item.onSelect}
-              >
-                {item.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <MarketingOverflowMenu
+          label={`${label} options`}
+          menuItems={menuItems}
+          icon="horizontal"
+          triggerClassName={cn(
+            'bg-background absolute right-0.5 top-0.5 size-5 min-h-[20px] min-w-[20px] rounded border shadow-sm',
+            'opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within/chip:opacity-100 group-hover/chip:opacity-100',
+            selected && 'opacity-100'
+          )}
+          onTriggerClick={(event) => event.stopPropagation()}
+        />
       ) : null}
     </div>
   );

@@ -1,14 +1,10 @@
 import { useState, type ReactNode } from 'react';
 
-import { ChevronDown, MoreVertical, Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
+
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export type MarketingSidebarMenuItem = {
@@ -61,30 +57,11 @@ export function MarketingSidebarSection({
             </Button>
           ) : null}
           {menuItems && menuItems.length > 0 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground size-8 min-h-[36px] min-w-[36px] shrink-0"
-                  aria-label={`${title} options`}
-                >
-                  <MoreVertical className="size-3.5" aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-w-[min(calc(100vw-24px),16rem)]">
-                {menuItems.map((item) => (
-                  <DropdownMenuItem
-                    key={item.id}
-                    className={cn(item.destructive && 'text-destructive focus:text-destructive')}
-                    onClick={item.onSelect}
-                  >
-                    {item.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <MarketingOverflowMenu
+              label={`${title} options`}
+              menuItems={menuItems}
+              triggerClassName="size-8 min-h-[36px] min-w-[36px] shrink-0 text-muted-foreground hover:text-foreground"
+            />
           ) : null}
         </div>
         {children}
@@ -124,30 +101,11 @@ export function MarketingSidebarSection({
           </Button>
         ) : null}
         {menuItems && menuItems.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground size-8 min-h-[36px] min-w-[36px] shrink-0"
-                aria-label={`${title} options`}
-              >
-                <MoreVertical className="size-3.5" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-w-[min(calc(100vw-24px),16rem)]">
-              {menuItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.id}
-                  className={cn(item.destructive && 'text-destructive focus:text-destructive')}
-                  onClick={item.onSelect}
-                >
-                  {item.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <MarketingOverflowMenu
+            label={`${title} options`}
+            menuItems={menuItems}
+            triggerClassName="size-8 min-h-[36px] min-w-[36px] shrink-0 text-muted-foreground hover:text-foreground"
+          />
         ) : null}
       </div>
       {open ? children : null}

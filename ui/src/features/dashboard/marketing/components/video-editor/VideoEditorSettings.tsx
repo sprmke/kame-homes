@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Clapperboard, Film, Layers, MoreVertical, Music } from 'lucide-react';
+import { Clapperboard, Film, Layers, Music } from 'lucide-react';
 
 import { StyleSection } from '@/features/dashboard/marketing/components/calendar-builder/components/panels/StyleSection';
 import {
@@ -33,13 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 import { Input } from '@/components/ui/input';
 
 type Props = {
@@ -123,27 +117,18 @@ export function VideoEditorSettings({
 
   const deleteMenu =
     savedTemplateId && onDeleteSavedTemplate ? (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="min-h-[44px] min-w-[44px]"
-            aria-label="Template options"
-          >
-            <MoreVertical className="size-4" aria-hidden />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="max-w-[min(calc(100vw-24px),16rem)]">
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <MarketingOverflowMenu
+        label="Template options"
+        menuItems={[
+          {
+            id: 'delete',
+            label: 'Delete',
+            destructive: true,
+            onSelect: () => setDeleteOpen(true),
+          },
+        ]}
+        triggerClassName="min-h-[44px] min-w-[44px]"
+      />
     ) : null;
 
   return (

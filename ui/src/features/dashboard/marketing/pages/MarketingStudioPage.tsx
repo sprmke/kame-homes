@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { MarketingCalendarSection } from '@/features/dashboard/marketing/components/calendar-builder/MarketingCalendarSection';
 import type { DesignExportPayload } from '@/features/dashboard/marketing/components/design-editor/DesignEditor';
 import {
@@ -31,6 +31,11 @@ const DesignEditor = lazy(() =>
 const VideoEditor = lazy(() =>
   import('@/features/dashboard/marketing/components/video-editor/VideoEditor').then((m) => ({
     default: m.VideoEditor,
+  }))
+);
+const AiStudioSection = lazy(() =>
+  import('@/features/dashboard/marketing/components/ai-studio/AiStudioSection').then((m) => ({
+    default: m.AiStudioSection,
   }))
 );
 
@@ -69,6 +74,10 @@ export function MarketingStudioPage() {
     openPublishWithBlob(payload.blob, 'video', payload.templateId);
   };
 
+  const handleGeneratePublish = (payload: { blob: Blob; mediaType: 'image' | 'video' }) => {
+    openPublishWithBlob(payload.blob, payload.mediaType, 'ai-generated');
+  };
+
   return (
     <>
       <SlidingTabs value={tab} onValueChange={setTab}>
@@ -92,6 +101,12 @@ export function MarketingStudioPage() {
               <SlidingTabsContent value="video" className="mt-0 flex min-h-0 flex-1 flex-col">
                 <Suspense fallback={<StudioTabFallback />}>
                   <VideoEditor onPublish={handleVideoPublish} />
+                </Suspense>
+              </SlidingTabsContent>
+
+              <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
+                <Suspense fallback={<StudioTabFallback />}>
+                  <AiStudioSection onPublish={handleGeneratePublish} />
                 </Suspense>
               </SlidingTabsContent>
             </MarketingStudioShell>

@@ -1,8 +1,9 @@
 import { type SyntheticEvent } from 'react';
 
-import { Check, MoreHorizontal, Settings2 } from 'lucide-react';
+import { Check, Settings2 } from 'lucide-react';
 
 import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 import { useVisibleThumbnailRequest } from '@/features/dashboard/marketing/hooks/useVisibleThumbnailRequest';
 import {
   marketingFormatMeta,
@@ -13,13 +14,6 @@ import {
 import { PlanGateWatermarkPattern } from '@/features/dashboard/plans/components/PlanGateWatermarkPattern';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -99,9 +93,9 @@ function TemplatePreviewFrame({
       className={cn(
         'relative mx-auto overflow-hidden rounded-lg transition-all duration-200',
         'bg-gradient-to-br from-neutral-900/[0.06] via-neutral-900/[0.04] to-neutral-900/[0.02]',
-        'ring-border/60 shadow-sm ring-1',
-        selected && 'ring-primary shadow-md ring-2',
-        !selected && 'group-hover:ring-primary/35 group-hover:shadow'
+        'shadow-sm ring-1 ring-border/60',
+        selected && 'shadow-md ring-2 ring-primary',
+        !selected && 'group-hover:shadow group-hover:ring-primary/35'
       )}
       style={previewFrameStyle(frame)}
       aria-busy={thumbnailLoading || !thumbnailUrl}
@@ -128,8 +122,8 @@ function TemplatePreviewFrame({
       ) : null}
 
       {selected ? (
-        <span className="bg-primary absolute left-1 top-1 z-10 flex size-5 items-center justify-center rounded-full shadow-sm">
-          <Check className="text-primary-foreground size-3" strokeWidth={3} aria-hidden />
+        <span className="absolute left-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-primary shadow-sm">
+          <Check className="size-3 text-primary-foreground" strokeWidth={3} aria-hidden />
         </span>
       ) : null}
     </div>
@@ -191,37 +185,19 @@ export function MarketingTemplateCard({
             }}
             aria-label={`Customize ${name}`}
             title="Settings"
-            className="bg-card/95 text-foreground flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md shadow-sm backdrop-blur-sm transition-colors hover:bg-white sm:min-h-[32px] sm:min-w-[32px]"
+            className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md bg-card/95 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-white sm:min-h-[32px] sm:min-w-[32px]"
           >
             <Settings2 className="size-3.5" aria-hidden />
           </button>
         ) : null}
         {menuItems && menuItems.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="bg-card/90 size-7 min-h-[28px] min-w-[28px] rounded-md shadow-sm backdrop-blur-sm"
-                aria-label={`${name} options`}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <MoreHorizontal className="size-3.5" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-w-[min(calc(100vw-24px),16rem)]">
-              {menuItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.id}
-                  className={cn(item.destructive && 'text-destructive focus:text-destructive')}
-                  onClick={item.onSelect}
-                >
-                  {item.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <MarketingOverflowMenu
+            label={`${name} options`}
+            menuItems={menuItems}
+            icon="horizontal"
+            triggerClassName="size-7 min-h-[28px] min-w-[28px] rounded-md bg-card/90 shadow-sm backdrop-blur-sm"
+            onTriggerClick={(event) => event.stopPropagation()}
+          />
         ) : null}
       </div>
     ) : null;
@@ -250,8 +226,8 @@ export function MarketingTemplateCard({
             className={cn(
               'relative shrink-0 overflow-hidden rounded-md',
               'bg-gradient-to-br from-neutral-900/[0.06] to-neutral-900/[0.02]',
-              'ring-border/60 ring-1',
-              selected && 'ring-primary ring-2'
+              'ring-1 ring-border/60',
+              selected && 'ring-2 ring-primary'
             )}
             style={rowThumbStyle}
             aria-busy={thumbnailLoading || !thumbnailUrl}
@@ -272,7 +248,7 @@ export function MarketingTemplateCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn('truncate text-xs font-medium', selected && 'text-primary')}>{name}</p>
-            {meta ? <p className="text-muted-foreground truncate text-[10px]">{meta}</p> : null}
+            {meta ? <p className="truncate text-[10px] text-muted-foreground">{meta}</p> : null}
           </div>
         </button>
         {actionBar}
@@ -312,7 +288,7 @@ export function MarketingTemplateCard({
           </p>
           {meta ? (
             <p
-              className="text-muted-foreground mt-0.5 line-clamp-1 text-center text-[10px]"
+              className="mt-0.5 line-clamp-1 text-center text-[10px] text-muted-foreground"
               aria-label={meta}
               title={meta}
             >

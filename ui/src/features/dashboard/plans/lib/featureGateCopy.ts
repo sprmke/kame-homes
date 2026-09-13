@@ -23,6 +23,18 @@ export const FEATURE_GATE_COPY: Record<PlanFeatureKey, FeatureGateCopy> = {
     description: 'Generating captions and design copy with AI is available on Business and above.',
     ctaLabel: 'View plans',
   },
+  aiMarketingImageGeneration: {
+    title: 'AI image generation',
+    description:
+      'Turning a prompt and your own photos into a finished image is available on Pro and above.',
+    ctaLabel: 'View plans',
+  },
+  aiMarketingVideoGeneration: {
+    title: 'AI video generation',
+    description:
+      'Turning a prompt and your own photos into a finished video is available on Business and above.',
+    ctaLabel: 'View plans',
+  },
   aiMonthlyCreditAllowance: {
     title: 'AI credits',
     description: 'Higher monthly AI allowance on paid plans. Upgrade for more credits.',

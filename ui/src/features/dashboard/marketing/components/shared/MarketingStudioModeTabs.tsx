@@ -1,3 +1,5 @@
+import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
+
 import { SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
 
 export function MarketingStudioModeTabs() {
@@ -6,6 +8,10 @@ export function MarketingStudioModeTabs() {
       <SlidingTabsTrigger value="calendar">Calendar</SlidingTabsTrigger>
       <SlidingTabsTrigger value="design">Design</SlidingTabsTrigger>
       <SlidingTabsTrigger value="video">Video</SlidingTabsTrigger>
+      <SlidingTabsTrigger value="generate">
+        Generate
+        <TierBadge feature="aiMarketingImageGeneration" className="ml-1.5" />
+      </SlidingTabsTrigger>
     </SlidingTabsList>
   );
 }

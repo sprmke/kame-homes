@@ -196,7 +196,8 @@ export const PLAN_TIER_CARD_GAINS: Record<string, string[]> = {
     'Smart AI Pricing',
     'Copy property settings',
     'Analytics & AI performance review',
-    '1,000 AI credits per month',
+    'AI image generation',
+    '5,000 AI credits per month',
   ],
   pro: [
     'Up to 10 team members',
@@ -207,10 +208,11 @@ export const PLAN_TIER_CARD_GAINS: Record<string, string[]> = {
     'AI receptionist',
     'AI chat auto-reply',
     'Meta (Facebook/Instagram) chat channel',
-    '10,000 AI credits per month',
+    'AI video generation',
+    '25,000 AI credits per month',
   ],
   managed: [
-    '30,000 AI credits per month',
+    '60,000 AI credits per month',
     "We'll manage everything, from bookings to operations, marketing, chat, reminders, etc",
     'Ideal for hosts with limited time',
     'Full transparency on bookings and finance',
@@ -312,6 +314,8 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
 
   boolRow('marketingStudio', 'Content Studio', 'marketing'),
   boolRow('aiMarketingGeneration', 'AI content generation', 'marketing'),
+  boolRow('aiMarketingImageGeneration', 'AI image generation', 'marketing'),
+  boolRow('aiMarketingVideoGeneration', 'AI video generation', 'marketing'),
   {
     key: 'marketingPublishLimitPerGroup',
     label: 'Publish in Meta platforms',

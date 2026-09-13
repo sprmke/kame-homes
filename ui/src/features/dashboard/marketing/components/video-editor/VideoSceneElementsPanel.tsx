@@ -33,13 +33,8 @@ import {
 } from '@/features/dashboard/marketing/lib/video/videoSceneLayers';
 import type { VideoTypographyContext } from '@/features/dashboard/marketing/lib/video/videoTemplateTypography';
 
+import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type SceneChangeHandler = (scene: VideoScene) => void;
@@ -223,8 +218,17 @@ function AddElementMenu({
   fullWidth?: boolean;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <ResponsiveOverflowMenu
+      label="Add element"
+      sheetTitle="Add element"
+      actionGroups={[
+        options.map((option) => ({
+          key: option.kind,
+          label: option.label,
+          onSelect: () => onAdd(option.kind),
+        })),
+      ]}
+      trigger={
         <Button
           type="button"
           variant="outline"
@@ -235,15 +239,8 @@ function AddElementMenu({
           <Plus className="size-4" aria-hidden />
           Add element
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" className="max-w-[min(calc(100vw-24px),14rem)]">
-        {options.map((option) => (
-          <DropdownMenuItem key={option.kind} onClick={() => onAdd(option.kind)}>
-            {option.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }
 
@@ -353,7 +350,7 @@ function LayerRow({
               }
               rows={4}
               aria-label={label}
-              className="border-input bg-card placeholder:text-muted-foreground field-focus flex min-h-[88px] w-full rounded-md border px-3 py-2 text-sm"
+              className="field-focus border-input bg-card placeholder:text-muted-foreground flex min-h-[88px] w-full rounded-md border px-3 py-2 text-sm"
             />
           ) : layer.kind === 'text' || layer.kind === 'cta' ? (
             <VideoTextStyleControls
