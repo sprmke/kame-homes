@@ -8,20 +8,18 @@ import { toast } from 'sonner';
 import { AiPerformanceReviewCard } from '@/features/dashboard/analytics/components/AiPerformanceReviewCard';
 import { AnalyticsEmptyState } from '@/features/dashboard/analytics/components/AnalyticsEmptyState';
 import { AnalyticsKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsKpiStrip';
+import { AnalyticsOverviewSection } from '@/features/dashboard/analytics/components/AnalyticsOverviewSection';
 import {
   AnalyticsSectionTabs,
   type AnalyticsSection,
 } from '@/features/dashboard/analytics/components/AnalyticsSectionTabs';
+import { AnalyticsStateStrip } from '@/features/dashboard/analytics/components/AnalyticsStateStrip';
 import { AnalyticsTeaserKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsTeaserKpiStrip';
-import { BenchmarkCard } from '@/features/dashboard/analytics/components/BenchmarkCard';
 import { BookingPaceCard } from '@/features/dashboard/analytics/components/BookingPaceCard';
 import { ChannelMixCard } from '@/features/dashboard/analytics/components/ChannelMixCard';
 import { GuestInsightsCard } from '@/features/dashboard/analytics/components/GuestInsightsCard';
 import { LeadTimeLosCard } from '@/features/dashboard/analytics/components/LeadTimeLosCard';
-import { NextNinetyDaysCard } from '@/features/dashboard/analytics/components/NextNinetyDaysCard';
-import { OccupancyRateTrendCard } from '@/features/dashboard/analytics/components/OccupancyRateTrendCard';
 import { PlaybookList } from '@/features/dashboard/analytics/components/PlaybookList';
-import { PublicPagePerformanceCard } from '@/features/dashboard/analytics/components/PublicPagePerformanceCard';
 import { useAnalyticsAiReview } from '@/features/dashboard/analytics/hooks/useAnalyticsAiReview';
 import { usePropertyAnalyticsSummary } from '@/features/dashboard/analytics/hooks/usePropertyAnalyticsSummary';
 import {
@@ -179,7 +177,6 @@ export function PropertyAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
-      subtitle="How this property is performing, and what to do next"
       badge={<TierBadge feature="analyticsInsights" />}
       heroTrailing={heroActions}
       overlap={overlapControls}
@@ -213,28 +210,22 @@ export function PropertyAnalyticsPage() {
           </>
         ) : (
           <>
-            <AnalyticsKpiStrip kpis={data.kpis} />
+            <AnalyticsStateStrip state={data.stateAssessment} />
+            <AnalyticsKpiStrip kpis={data.kpis} period={data.period} />
             <AnalyticsSectionTabs section={section} onSectionChange={setSection} />
 
             {section === 'overview' ? (
-              <div className={SECTION_GAP}>
-                <NextNinetyDaysCard forward={data.forward} pickup={data.pickup} />
-                {data.benchmark.available ? (
-                  <BenchmarkCard
-                    benchmark={data.benchmark}
-                    ownOccupancyRatePct={data.kpis.occupancyRate.value}
-                  />
-                ) : null}
-                <PublicPagePerformanceCard publicPage={data.publicPage} />
-              </div>
+              <AnalyticsOverviewSection
+                bundle={data}
+                orgSlug={orgContext?.orgSlug ?? ''}
+                propertySlug={orgContext?.propertySlug ?? ''}
+                onOpenReview={() => setSection('ai-review')}
+              />
             ) : null}
 
             {section === 'trends' ? (
               <div className={SECTION_GAP}>
-                <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-2 lg:gap-4">
-                  <OccupancyRateTrendCard trend={data.trend} />
-                  <BookingPaceCard pace={data.bookingPace} />
-                </div>
+                <BookingPaceCard pace={data.bookingPace} />
                 <LeadTimeLosCard
                   lengthOfStay={data.distributions.lengthOfStay}
                   leadTime={data.distributions.leadTime}

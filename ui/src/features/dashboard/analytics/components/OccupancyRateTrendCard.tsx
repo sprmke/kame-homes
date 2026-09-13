@@ -36,6 +36,7 @@ type Metric = 'occupancy' | 'revenue';
 
 type Props = {
   trend: AnalyticsTrendPoint[];
+  title?: string;
   className?: string;
 };
 
@@ -78,7 +79,7 @@ function TrendTooltip({
   );
 }
 
-export function OccupancyRateTrendCard({ trend, className }: Props) {
+export function OccupancyRateTrendCard({ trend, title = 'Occupancy & revenue', className }: Props) {
   const [metric, setMetric] = useState<Metric>('occupancy');
   const isBelowMd = useIsBelowMd();
   const stroke = metric === 'occupancy' ? CHART_INFO_COLOR : CHART_INCOME_COLOR;
@@ -111,8 +112,7 @@ export function OccupancyRateTrendCard({ trend, className }: Props) {
     >
       <AdminSurfaceCardHeader
         icon={TrendingUp}
-        title="Occupancy & revenue"
-        description="How full you were and what you earned, over the selected period"
+        title={title}
         iconClassName="bg-muted/80"
         action={
           <SegmentedControl

@@ -43,3 +43,11 @@ export function writeAnalyticsPeriodParams(
   p.set('to', period.to);
   return p;
 }
+
+/** Inclusive calendar days in `from`..`to` (YYYY-MM-DD). Mirrors edge `daysInclusive`. */
+export function inclusiveDayCount(from: string, to: string): number {
+  const start = new Date(`${from}T12:00:00`);
+  const end = new Date(`${to}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}

@@ -20,12 +20,7 @@ export function PublicPagePerformanceCard({ publicPage, className }: Props) {
         className
       )}
     >
-      <AdminSurfaceCardHeader
-        icon={Eye}
-        title="Listing page visits"
-        description="Traffic to your public listing page in the selected period"
-        iconClassName="bg-muted/80"
-      />
+      <AdminSurfaceCardHeader icon={Eye} title="Listing visits" iconClassName="bg-muted/80" />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex gap-6">
@@ -36,7 +31,7 @@ export function PublicPagePerformanceCard({ publicPage, className }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs font-medium">Unique visitors</p>
+            <p className="text-muted-foreground text-xs font-medium">Visitors</p>
             <p className="text-foreground mt-1 text-2xl font-bold tabular-nums">
               {publicPage.uniqueVisitors}
             </p>
@@ -60,7 +55,7 @@ export function PublicPagePerformanceCard({ publicPage, className }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-sm">No visits recorded yet</p>
+            <p className="text-muted-foreground text-sm">No referrers yet</p>
           )}
         </div>
       </div>

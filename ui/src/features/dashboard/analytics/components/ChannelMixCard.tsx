@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 type Props = {
   channelMix: AnalyticsDistributions['channelMix'];
+  compact?: boolean;
   className?: string;
 };
 
@@ -25,7 +26,7 @@ const CHANNEL_COLORS = [
   '#14b8a6',
 ];
 
-export function ChannelMixCard({ channelMix, className }: Props) {
+export function ChannelMixCard({ channelMix, compact = false, className }: Props) {
   const total = useMemo(() => channelMix.reduce((sum, item) => sum + item.count, 0), [channelMix]);
 
   const chartData = useMemo(
@@ -52,11 +53,16 @@ export function ChannelMixCard({ channelMix, className }: Props) {
       <AdminSurfaceCardHeader
         icon={PieChartIcon}
         title="Where bookings come from"
-        description="Reservations by source in the selected period"
+        description={compact ? undefined : 'Reservations by source in the selected period'}
         iconClassName="bg-muted/80"
       />
 
-      <div className="relative flex min-h-[220px] flex-1 items-center justify-center sm:min-h-[260px]">
+      <div
+        className={cn(
+          'relative flex flex-1 items-center justify-center',
+          compact ? 'min-h-[160px] sm:min-h-[180px]' : 'min-h-[220px] sm:min-h-[260px]'
+        )}
+      >
         {chartData.length > 0 ? (
           <>
             <ResponsiveContainer width="100%" height="100%">

@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 import { Link, useParams } from 'react-router-dom';
 
 import { CalendarClock } from 'lucide-react';
@@ -18,42 +16,13 @@ type Props = {
   className?: string;
 };
 
-function MetricCell({
-  label,
-  metric,
-  metricLabel,
-  value,
-  detail,
-  className,
-}: {
-  label: string;
-  metric: 'occupancyOnBooks' | 'revenueOnBooks' | 'pickup';
-  metricLabel: string;
-  value: ReactNode;
-  detail?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex min-w-0 flex-col gap-2', className)}>
-      <div className="flex items-center gap-0.5">
-        <p className="text-muted-foreground text-xs font-medium">{label}</p>
-        <MetricInfoDot metric={metric} label={metricLabel} />
-      </div>
-      <div className="text-foreground text-2xl font-bold tabular-nums">{value}</div>
-      {detail ? (
-        <div className="text-muted-foreground text-xs leading-relaxed">{detail}</div>
-      ) : null}
-    </div>
-  );
-}
-
 export function NextNinetyDaysCard({ forward, pickup, className }: Props) {
   const { orgSlug = '', propertySlug = '' } = useParams<{
     orgSlug: string;
     propertySlug: string;
   }>();
   const clamped = Math.max(0, Math.min(100, forward.occupancyOnBooks));
-  const openNights = forward.nightsAvailable - forward.nightsBooked;
+  const openNights = Math.max(0, forward.nightsAvailable - forward.nightsBooked);
 
   return (
     <section
@@ -68,59 +37,60 @@ export function NextNinetyDaysCard({ forward, pickup, className }: Props) {
         iconClassName="bg-muted/80"
       />
 
-      <div className="sm:divide-border mt-1 grid gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x">
-        <MetricCell
-          label="Booked nights"
-          metric="occupancyOnBooks"
-          metricLabel="booked nights"
-          value={`${clamped}%`}
-          className="sm:pr-6"
-          detail={
-            <div className="space-y-2">
-              <div className="bg-muted h-1.5 w-full max-w-[10rem] overflow-hidden rounded-full">
-                <div
-                  className="bg-primary h-full rounded-full transition-[width] duration-500"
-                  style={{ width: `${clamped}%` }}
-                />
-              </div>
-              <p>
-                {forward.nightsBooked} of {forward.nightsAvailable} nights reserved
-              </p>
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex items-center gap-0.5">
+              <p className="text-muted-foreground text-xs font-medium">Booked nights</p>
+              <MetricInfoDot metric="occupancyOnBooks" label="booked nights" />
             </div>
-          }
-        />
+            <p className="text-foreground text-2xl font-bold tabular-nums">{clamped}%</p>
+          </div>
+          <div className="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
+            <div
+              className="bg-primary h-full rounded-full transition-[width] duration-500"
+              style={{ width: `${clamped}%` }}
+            />
+          </div>
+          <p className="text-muted-foreground mt-1.5 text-xs">
+            {forward.nightsBooked} of {forward.nightsAvailable} nights reserved
+          </p>
+        </div>
 
-        <MetricCell
-          label="Confirmed revenue"
-          metric="revenueOnBooks"
-          metricLabel="confirmed revenue"
-          value={formatMoney(forward.revenueOnBooks)}
-          className="sm:px-6"
-          detail={
-            openNights > 0 ? (
-              <p>
-                {openNights} open night{openNights === 1 ? '' : 's'} left ·{' '}
-                <Link
-                  to={propertySectionPath(orgSlug, propertySlug, 'pricing')}
-                  className="text-primary font-medium hover:underline"
-                >
-                  Adjust pricing
-                </Link>
-              </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-0.5">
+              <p className="text-muted-foreground text-xs font-medium">Confirmed revenue</p>
+              <MetricInfoDot metric="revenueOnBooks" label="confirmed revenue" />
+            </div>
+            <p className="text-foreground mt-1 text-lg font-bold tabular-nums sm:text-xl">
+              {formatMoney(forward.revenueOnBooks)}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <p className="text-muted-foreground text-xs font-medium">Open nights</p>
+            <p className="text-foreground mt-1 text-lg font-bold tabular-nums sm:text-xl">
+              {openNights}
+            </p>
+            {openNights > 0 ? (
+              <Link
+                to={propertySectionPath(orgSlug, propertySlug, 'pricing')}
+                className="text-primary mt-0.5 inline-flex min-h-[44px] items-center text-xs font-medium hover:underline lg:min-h-0"
+              >
+                Adjust pricing
+              </Link>
             ) : (
-              <p>All nights in this window are booked</p>
-            )
-          }
-        />
+              <p className="text-muted-foreground mt-1 text-xs">All nights booked</p>
+            )}
+          </div>
+        </div>
 
-        <MetricCell
-          label="Last 7 days"
-          metric="pickup"
-          metricLabel="new bookings"
-          value={pickup.last7Days}
-          className="sm:pl-6"
-          detail={<p>{pickup.last30Days} new in the last 30 days</p>}
-        />
+        <p className="text-muted-foreground text-xs">
+          <span className="text-foreground font-medium tabular-nums">{pickup.last7Days}</span>
+          {' new in the last 7 days · '}
+          <span className="tabular-nums">{pickup.last30Days}</span>
+          {' in the last 30'}
+        </p>
       </div>
     </section>
   );
