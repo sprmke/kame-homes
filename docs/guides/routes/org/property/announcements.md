@@ -5,11 +5,11 @@ tags: [guides, routes, org, property, announcements]
 updated: 2026-09-05
 ---
 
-# Property Announcements
+# Property Announcements (deep-link fallback)
 
 Route: `/org/:orgSlug/property/:propertySlug/announcements` (+ `/announcements/:announcementId` detail)
 
-Legacy redirect: `/org/:orgSlug/property/:propertySlug/help-support/announcements` → dedicated route above.
+**No sidebar entry** — org hub members use [Org Announcements](../announcements.md). This route remains for property-only team members and bookmarks. `/help-support/announcements` from any scope redirects to org `/announcements`.
 
 > **Status:** Documented
 
@@ -24,7 +24,7 @@ Legacy redirect: `/org/:orgSlug/property/:propertySlug/help-support/announcement
 
 ## Overview
 
-Property team members open **Announcements** from the sidebar (above Help & Support) to read platform maintenance, product updates, and development notices scoped to their org and linked buildings. Notices appear **only** on this archive (and detail) — other dashboard pages do not show a top banner. A **red dot** on **Announcements** (sidebar and **More** menu) appears while any notice is unread — same indicator pattern as Settings issues. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. Visible to **every** non–plan-limited property team member (same baseline as Help & Support). Suspended orgs may still open Announcements.
+Property-only team members can open this deep-link route to read platform maintenance, product updates, and development notices scoped to their property's linked development. Org hub members use the org **Announcements** sidebar instead. Notices appear **only** on this archive (and detail) — other dashboard pages do not show a top banner. A **red dot** on **Announcements** (sidebar and **More** menu) appears while any notice is unread — same indicator pattern as Settings issues. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. Visible to **every** non–plan-limited property team member (same baseline as Help & Support). Suspended orgs may still open Announcements.
 
 ## Host-facing knowledge
 
@@ -33,7 +33,7 @@ This is where you read official notices from Kame Homes — scheduled maintenanc
 **Common host questions**
 
 - Q: Where do I find announcements?
-  A: Open **Announcements** in the sidebar (or **More** on phone). A red dot means you still have unread notices.
+  A: Open **Announcements** from the org sidebar (or **More** on phone). A red dot means you still have unread notices.
 - Q: What does the red dot on Announcements mean?
   A: You have at least one unread notice. Open each notice to clear the unread state. Editing a notice can mark it unread again.
 - Q: Can I hide an announcement?

@@ -2,7 +2,7 @@
 title: 'Finance — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-26
+updated: 2026-09-10
 ---
 
 # Finance — operator guide
@@ -197,6 +197,12 @@ Legacy stored `finance:edit` expands to all transaction + export leaves. Parking
 | Hooks               | `ui/src/features/dashboard/finance/hooks/useFinanceSummary.ts`, `ui/src/features/dashboard/finance/hooks/useFinanceBookings.ts`, `ui/src/features/dashboard/finance/hooks/useFinanceLineItems.ts`, `ui/src/features/dashboard/finance/hooks/useFinanceApi.ts` |
 | Edge                | `supabase/functions/finance-summary/`, `supabase/functions/finance-bookings/`, `supabase/functions/finance-line-items/`, `supabase/functions/finance-export/`                                                                                                 |
 | Shared services     | `supabase/functions/_shared/{financeService,financeAssetScope,financeHttp,telegramFinance}.ts`                                                                                                                                                                |
+
+---
+
+## Entry activity history
+
+The **Edit transaction** modal (`FinanceTransactionModals`) embeds `<EntityActivityHistory targetType="finance_entry" targetId={editingItem.id} />` below the form — the recent `finance.entry_created` / `_updated` events for that line item (`list-activity-log`). Read-only; only shown when editing an existing entry.
 
 ---
 

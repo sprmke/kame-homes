@@ -13,12 +13,13 @@ Route: `/properties/:propertySlug/calendar`
 
 ## Progress overview
 
-| Section        | E2E save | Validation | Docs       | Notes                                   |
-| -------------- | -------- | ---------- | ---------- | --------------------------------------- |
-| Date selection | ✅       | ✅         | Documented | Overlap + past-date rules               |
-| Proceed → form | ✅       | ✅         | Documented | Guest-auth gate, preserves query params |
-| Property scope | ✅       | ✅         | Documented | Slug from URL path segment              |
-| Legacy `/`     | —        | —          | Documented | `/?property=` → property calendar       |
+| Section        | E2E save | Validation | Docs       | Notes                                                 |
+| -------------- | -------- | ---------- | ---------- | ----------------------------------------------------- |
+| Date selection | ✅       | ✅         | Documented | Overlap + past-date rules                             |
+| Proceed → form | ✅       | ✅         | Documented | Guest-auth gate, preserves query params               |
+| Property scope | ✅       | ✅         | Documented | Slug from URL path segment                            |
+| Legacy `/`     | —        | —          | Documented | `/?property=` → property calendar                     |
+| Mobile shell   | —        | —          | Documented | `MainLayout` bottom tabs (Property/Calendar/Messages) |
 
 ---
 
@@ -33,6 +34,8 @@ Guests browse and select dates freely without signing in; authentication is only
 **Layout:** Calendar route uses a narrower **`MainLayout`** card (**`max-w-xl`**, vs **`max-w-3xl`** on form/success). Calendar, date summary, and proceed button share a centered **`max-w-[33rem]`** column so the grid size stays fixed while the outer card loses excess horizontal whitespace.
 
 **Proceed to Booking Form:** enabled once both dates are picked. Calls **`requireGuestAuth`** first — if the guest doesn't have an active session, `GuestAuthModal` opens (email OTP or Google/Facebook); once authenticated, navigation resumes automatically via the stored `resume` intent. Navigates to **`/properties/:propertySlug/form`** with **`checkInDate`** / **`checkOutDate`** query params, preserving legitimate params (e.g. `source`). Deprecated keys (`dev`, `testing`, submit-form control flags) are stripped on load and on navigate.
+
+**Mobile shell (2026-09-10):** `MainLayout` renders a persistent phone/tablet `BottomTabBar` (Property/Calendar/Messages) via `GuestPublicLayout` — no dominant single action here, so the tab bar stays visible (unlike `/form`, which claims the band with `ContextualActionBar`).
 
 **Share links:** Admin **`guestCalendarPath(slug)`** → **`/properties/<slug>/calendar`**.
 

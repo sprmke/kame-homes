@@ -35,6 +35,10 @@
       {
         "command": ".cursor/hooks/session-docs-sync-reminder.sh",
         "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/session-mobile-native-ui-reminder.sh",
+        "timeout": 5
       }
     ],
     "afterFileEdit": [
@@ -48,6 +52,10 @@
       },
       {
         "command": ".cursor/hooks/remind-docs-on-code-edit.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/remind-mobile-native-on-ui-edit.sh",
         "timeout": 5
       }
     ],

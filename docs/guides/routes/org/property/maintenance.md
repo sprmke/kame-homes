@@ -2,7 +2,7 @@
 title: 'Maintenance — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-26
+updated: 2026-09-10
 ---
 
 # Maintenance — operator guide
@@ -102,6 +102,12 @@ Legacy stored `maintenance:edit` expands to all reminder + export leaves.
 | Filters / sort helpers | `ui/src/features/dashboard/maintenance/lib/maintenanceReminders.ts`                                                                                                     |
 | Reminders list         | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersTab.tsx`                                                                                          |
 | API                    | `maintenance-summary`, `maintenance-items`                                                                                                                              |
+
+---
+
+## Reminder activity history
+
+The **Edit reminder** modal (`MaintenanceRemindersTab`) embeds `<EntityActivityHistory targetType="maintenance_item" targetId={editing.id} />` below the form — the recent `maintenance.task_created` / `_updated` events for that item (`list-activity-log`). Read-only; only shown when editing an existing reminder.
 
 ---
 

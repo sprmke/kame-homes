@@ -138,10 +138,30 @@ password / token / full account number into `metadata`.
 | Parking ops         | `parking.status_changed` · `parking.claimed` · `parking.declined` · `parking.cancelled` **D** · `parking.request_submitted`                                                        |
 | Team & RBAC         | `team.invite_sent` · `team.invite_revoked` **D** · `team.member_role_changed` · `team.member_permissions_changed` · `team.member_removed` **D** · `team.custom_role_deleted` **D** |
 | Lifecycle           | `org.updated` · `org.deleted` **D** · `property.created` · `property.deleted` **D** · `parking.created` · `parking.deleted` **D**                                                  |
+| Settings            | `settings.updated` (+ `metadata.area`) · `settings.template_saved` · `settings.template_deleted` **D** · `public_pages.config_saved` · `public_pages.published`                    |
+| Pricing             | `pricing.rates_updated` · `pricing.dates_blocked` · `pricing.dates_unblocked` · `pricing.smart_config_changed` · `pricing.smart_applied`                                           |
+| Finance / maint.    | `finance.entry_created` · `finance.entry_updated` · `finance.entry_deleted` **D** · `finance.report_exported` · `maintenance.task_created` · `maintenance.task_deleted` **D**      |
+| Plans & billing     | `billing.checkout_started` · `billing.plan_downgraded` **D** · `billing.plan_overridden_by_platform` (super-admin mirror)                                                          |
+| Verification        | `verification.submitted` · `verification.approved` · `verification.rejected` **D** (approve/reject are super-admin → org-scoped mirror rows)                                       |
+| Integrations        | `integrations.connected` · `integrations.disconnected` **D** · `integrations.config_changed` (calendar sync, voice receptionist, Meta inbox)                                       |
+| Marketing / inbox   | `marketing.template_saved` · `marketing.template_deleted` **D** · `marketing.published_to_meta` (warning) · `marketing.external_review_moderated` · `inbox.settings_changed`       |
+| AI controls         | `ai.assistant_toggled` · `ai.config_changed`                                                                                                                                       |
+| Guest / public      | `guest.sd_form_submitted` · `guest.review_submitted` · `guest.voucher_claimed` · `guest.pay_parking_submitted`                                                                     |
 | Security            | `security.denied_destructive_action` (destructive denials only)                                                                                                                    |
 | System / cron       | `system.cron_run` (one summary row per run)                                                                                                                                        |
 
 `D` = `severity: destructive`.
+
+### Thin helpers (prefer these when the access context fits)
+
+| Helper                                                         | Use from                                                                                                                                                               |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `_shared/activityLog.ts#logActivity`                           | Any handler with a full `OrgAccessContext` / `PropertyAccessContext` / `ParkingTeamAccessContext`.                                                                     |
+| `_shared/teamActivity.ts#logTeamActivity`                      | `*-team-{members,invitations,custom-roles}` handlers.                                                                                                                  |
+| `_shared/assetActivity.ts#logAssetActivity`                    | Property/parking-scoped handlers whose resolver returns only `{ kind, id }` (finance, pricing, settings, templates). Resolves the org id from the property/parking id. |
+| `_shared/parkingActivity.ts#logParkingStatusChange`            | Any parking status write (no orchestrator).                                                                                                                            |
+| `_shared/guestActivity.ts#logGuestActivity`                    | Public / guest-facing handlers — resolves the org from the booking's `property_id` / `parking_id`, masks the guest actor.                                              |
+| `superAdminAudit.ts#logSuperAdminAction` `mirrorToOrgActivity` | Curated super-admin actions that change one org's state — pass `{ organizationId, action, ... }` to also land an org-scoped row.                                       |
 
 ## Related
 

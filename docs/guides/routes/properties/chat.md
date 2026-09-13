@@ -47,7 +47,7 @@ Guests message you from a property listing before they book. They start in a cha
 
 ## Entry (property detail) — primary
 
-1. **Contact host** on **`ListingHostCard`** → **`GuestAuthModal`** if signed out, then centered **`ContactHostSheet`** chat modal.
+1. **Contact host** on **`ListingHostCard`** → **`GuestAuthModal`** if signed out, then **`ContactHostSheet`** chat modal (`ResponsiveModal`: centered on `lg+`, bottom sheet below `lg` — **2026-09-10:** was previously always a raw centered `Dialog` despite the "Sheet" name; the parking equivalent, `ParkingChatSheet`, had the same bug and got the same fix).
 2. **First inquiry:** if no prior messages with this host on this property, **`BookingCalendarModal`** is required before the first send.
 3. **Return visit:** existing thread loads via **`guest-web-chat-resume`** — dates optional; chat history shows immediately.
 4. Guest composes message → **Send** → thread stays in modal. If the thread is empty, five phase-aware FAQ starter cards appear above the composer (same card UI as the host AI assistant, questions only — no Actions switcher). Phase is **pre_booking** before dates, **inquiry** after dates are set, **ongoing** once any message exists. Tapping a card sends that question. On a first inquiry without dates, tapping a starter fills the message and opens the date picker; after dates are saved the question sends automatically.

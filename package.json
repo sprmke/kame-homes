@@ -57,6 +57,7 @@
     "seed:monaco-2612-media": "./scripts/dev/run-with-ui-dev-env.sh ./scripts/dev/bunx --bun supabase@latest db query --local -f scripts/dev/seed-monaco-2612-mock-media.sql",
     "seed:marketing-guest-reviews": "./scripts/dev/run-with-ui-dev-env.sh ./scripts/dev/bunx --bun supabase@latest db query --local -f scripts/dev/seed-marketing-guest-reviews.sql",
     "seed:host-announcements": "./scripts/dev/run-with-ui-dev-env.sh ./scripts/dev/bunx --bun supabase@latest db query --local -f scripts/dev/seed-host-announcements.sql",
+    "seed:analytics-demo": "./scripts/dev/run-with-ui-dev-env.sh ./scripts/dev/bunx --bun supabase@latest db query --local -f scripts/dev/seed-analytics-demo-data.sql",
     "sync:prod-data": "./scripts/data/sync-prod-public-data-to-local.sh",
     "sync:prod-data:restore": "RESTORE_ONLY=1 ./scripts/data/sync-prod-public-data-to-local.sh",
     "sync:ai-knowledge-base": "bun scripts/sync-ai-knowledge-base.ts",
@@ -111,7 +112,8 @@
     "env:status": "./scripts/dev/check-linked-project.sh",
     "env:reorganize": "bun scripts/dev/reorganize-env-files.mjs",
     "env:sync:dev": "bun scripts/dev/sync-dev-env.mjs",
-    "env:sync:vercel:dev": "bun scripts/dev/sync-vercel-dev-env.mjs"
+    "env:sync:vercel:dev": "bun scripts/dev/sync-vercel-dev-env.mjs",
+    "env:sync:all": "bun scripts/dev/sync-all-env.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
@@ -119,7 +121,6 @@
     "@commitlint/types": "^19.8.0",
     "@playwright/cli": "^0.1.17",
     "@playwright/test": "^1.62.1",
-    "@supabase/supabase-js": "^2.49.1",
     "concurrently": "^8.2.2",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
@@ -128,6 +129,8 @@
     "sharp": "^0.35.4"
   },
   "dependencies": {
-    "posthog-node": "^5.51.6"
+    "@supabase/supabase-js": "^2.49.1",
+    "posthog-node": "^5.51.6",
+    "vercel": "^59.15.1"
   }
 }

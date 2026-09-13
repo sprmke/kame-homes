@@ -26,7 +26,7 @@ The parking marketplace is **code-complete for a single guest to search, match, 
 | 6 — behavioral ranking & trust/safety | 📋 not started        | non-refundable banner split out & shipped ([#140](https://github.com/sprmke/kame-homes/issues/140)); ranking engine itself needs live Phase 2/5 data first (by design) |
 | 7 — property-booking migration        | ✅ done               | none                                                                                                                                                                   |
 | 8 — direct-booking link               | 🚧 shipped, held open | mobile pass unverified; real PayMongo unverified (same as 3/5)                                                                                                         |
-| Parking↔property parity (org plans)   | 🚧 shipped, held open | interim ungate still live, no real org entitlement path                                                                                                                |
+| Parking↔property parity (org plans)   | ✅ done (2026-09-09)  | `requireOrgFeature`/`useOrgPlan` real org entitlement checks replaced the interim ungate for Telegram + AI assistant                                                   |
 | Automated test coverage               | ⚠️ stale              | Playwright suite predates Phases 2–7 entirely                                                                                                                          |
 
 ---
@@ -75,9 +75,9 @@ Each of these was a conscious scope cut in its phase doc, not an oversight. List
 
 ---
 
-## Org-plan / entitlement gap (blocks a clean parking-only org)
+## Org-plan / entitlement gap — RESOLVED 2026-09-09
 
-From [`parking-property-parity.md`](../in-progress/parking-property-parity.md): an organization with **parking listings and zero properties** has no real entitlement resolution path today. `PARKING_INTERIM_UNGATED_FEATURES` in `useFeatureGate.ts` is a stopgap that ungates Telegram notifications and the AI dashboard assistant for parking-only orgs rather than actually checking a subscription. This must be replaced with a genuine `resolveOrgEntitlements(organizationId)` (buildable now on top of `getActiveOrgSubscription`, per that doc) before onboarding a real host who has **only** parking, no property — otherwise every parking-only host gets those features free indefinitely with no billing hook, which is a real revenue leak once parking payments are live and other tiers matter.
+From [`parking-property-parity.md`](../in-progress/parking-property-parity.md): an organization with **parking listings and zero properties** used to have no real entitlement resolution path — `PARKING_INTERIM_UNGATED_FEATURES` in `useFeatureGate.ts` was a stopgap that ungated Telegram notifications and the AI dashboard assistant for parking-only orgs rather than actually checking a subscription (a real revenue leak once parking payments and other tiers matter). Fixed: new `requireOrgFeature(organizationId, feature)` (server, `_shared/planEntitlements.ts`, built on the already-existing `resolveOrgEntitlements`/`getActiveOrgSubscription`) and the client's existing `useOrgPlan`/`deriveOrgEntitlementsFromPlan` path (no property proxy either way) now gate parking's Telegram enable and AI assistant on the org's real plan, same as any org-only page.
 
 ---
 
@@ -116,7 +116,7 @@ Use this as the actual go/no-go gate — check every box before opening parking 
 - [ ] Sandbox `PAYMONGO_SECRET_KEY`/`PAYMONGO_WEBHOOK_SECRET` configured in at least the dev environment; one real end-to-end payment (checkout → webhook → endorsement) completed and verified.
 - [ ] Admin manual refund/override path built (currently deferred — see above).
 - [x] Non-refundable policy copy shipped at pre-payment/payment-success/status-page — [#140](https://github.com/sprmke/kame-homes/issues/140), 2026-08-26.
-- [ ] `resolveOrgEntitlements(organizationId)` ships and `PARKING_INTERIM_UNGATED_FEATURES` is removed, **or** the free-ride is explicitly accepted for the pilot scope (open question #7).
+- [x] `resolveOrgEntitlements(organizationId)` ships (via `requireOrgFeature`) and `PARKING_INTERIM_UNGATED_FEATURES` is removed — done 2026-09-09.
 - [ ] Phase 5's mobile (375px) walkthrough of the status-page blocks + chat sheet completed.
 - [ ] At minimum a scripted smoke pass (ideally Playwright) covers payment→endorsement→chat happy path and cancel/expire/decline unhappy paths.
 - [x] IP/device throttle on the direct-link landing surface (`get-public-parking`) shipped 2026-08-26; the direct-link submit path itself was kept guest-authenticated (never went unauthenticated), so no separate throttle was needed there.

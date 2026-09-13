@@ -1,9 +1,9 @@
 ---
-stage: in-progress
+stage: for-testing
 title: 'Org Activity & Audit Log — every team action across org, property, and parking'
 status: in-progress
 tags: [in-progress, audit-log, activity-log, org, property, parking, rbac, governance]
-updated: 2026-09-08
+updated: 2026-09-10
 ---
 
 # Org Activity & Audit Log
@@ -17,7 +17,7 @@ updated: 2026-09-08
 - [x] `supabase/functions/list-activity-log/index.ts` + `config.toml` entries (`list-activity-log`, `activity-log-export` placeholder) — keyset pagination, listing-scoped visibility via `resolveAssignedListingIdsForOrgUser`.
 - [x] `ui/src/features/dashboard/activity/lib/activityCatalog.ts` — client mirror (exhaustive category → icon / label, severity meta, `ActivityEvent` DTO). `tsc` + lint clean.
 - [x] Governance: `.agent/skills/audit-logging/SKILL.md` (+ `.cursor`/`.claude` symlinks), `.cursor/rules/audit-logging.mdc` (`alwaysApply: true`), `opencode.json` instruction, `CLAUDE.md` section + table row + "before done" checklist line, `.cursor/rules/README.md` / `.claude/README.md` rows, `documentation-maintenance` (`.mdc` + skill) checklist line, `supabase-edge-functions.mdc` contract line. `check:ai-tooling-sync` → OK.
-- [ ] **Deferred:** dedicated `org.activity:view` / `:export` + `property.activity:view` / `:export` RBAC leaves + seeded-template data migration. v1 `list-activity-log` gates on `accessKind` (owner / org-admin / platform-admin see all; listing-scoped members see their listings) — no new leaf. Adding the leaves is an isolated follow-up (touches the 1.5k-line team-permission catalogs).
+- [ ] **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)): dedicated `org.activity:view` / `:export` + `property.activity:view` / `:export` RBAC leaves + seeded-template data migration. v1 `list-activity-log` gates on `accessKind` (owner / org-admin / platform-admin see all; listing-scoped members see their listings) — no new leaf. Adding the leaves touches the 1.5k-line team-permission catalogs.
 
 **Phase 1 — High-value emitters: DONE.**
 
@@ -43,15 +43,15 @@ updated: 2026-09-08
 - [x] Integrations: `calendar-sync-settings` (addFeed → connected, updateFeed → config_changed, removeFeed → disconnected **D**, setExportEnabled ×2 → config_changed), `voice-receptionist-settings` (`integrations.config_changed`), `meta-inbox-oauth-complete` (`integrations.connected`), `meta-inbox-disconnect` (`integrations.disconnected` **D**).
 - [x] Templates / public pages: `property-templates-settings` (create / reset / edit-custom / edit-builtin → `settings.template_saved`; delete → `settings.template_deleted` **D**), `custom-pages-settings` (`settings.template_saved`), `public-page-configs` (`public_pages.config_saved` / `.published`).
 - [x] Marketing / inbox / AI: `marketing-templates` (save / delete **D**), `publish-to-meta` (`marketing.published_to_meta` warning), `moderate-external-review` (`marketing.external_review_moderated`, super-admin actor), `social-inbox-settings` (`inbox.settings_changed`), `dashboard-assistant-settings` (`ai.assistant_toggled` / `ai.config_changed`).
-- [ ] **Deferred (low-value `notice` tier):** `upload-app-settings-asset` / `upload-org-settings-asset` / `upload-parking-settings-asset` (`settings.asset_uploaded`), `telegram-*-settings` ×8 (`integrations.config_changed`), `ai-platform-*` super-admin quota overrides, `marketing-music`, `smart-pricing-cron` autopilot summary (rolls into the Phase 3 cron-summary row), `settings-verification` OTP `security.*` events. The always-on `audit-logging` rule forces any _new_ change to these to emit.
+- [ ] **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)) **(low-value `notice` tier):** `upload-app-settings-asset` / `upload-org-settings-asset` / `upload-parking-settings-asset` (`settings.asset_uploaded`), `telegram-*-settings` ×8 (`integrations.config_changed`), `ai-platform-*` super-admin quota overrides, `marketing-music`, `smart-pricing-cron` autopilot summary, `settings-verification` OTP `security.*` events. The always-on `audit-logging` rule forces any _new_ change to these to emit.
 
 **Phase 3 — Public & system emitters: MOSTLY DONE (2026-09-07).**
 
 - [x] New thin helper `supabase/functions/_shared/guestActivity.ts#logGuestActivity` — resolves the org root from a booking's `property_id` / `parking_id`, builds a masked `public_form` + `guest` actor, one row, never throws.
-- [x] Guest/public: `submit-sd-form` (`guest.sd_form_submitted`, alongside the orchestrator's `booking.status_changed`), `submit-guest-review` (`guest.review_submitted`), `claim-sd-voucher` (`guest.voucher_claimed` — only on a fresh award, not idempotent re-reads), `submit-pay-parking` (`guest.pay_parking_submitted`). Catalog also carries `guest.support_ticket_filed` / `guest.profile_updated` (handlers not yet wired — support tickets + guest-portal profile).
+- [x] Guest/public: `submit-sd-form` (`guest.sd_form_submitted`, alongside the orchestrator's `booking.status_changed`), `submit-guest-review` (`guest.review_submitted`), `claim-sd-voucher` (`guest.voucher_claimed` — only on a fresh award, not idempotent re-reads), `submit-pay-parking` (`guest.pay_parking_submitted`). Catalog also carries `guest.support_ticket_filed` / `guest.profile_updated` — handlers deferred to backlog pending a scoping decision (host-channel support tickets aren't org-state mutations; guest-portal profiles are global to the guest identity, not one org). See [`../planned/activity-log-followups.md`](../planned/activity-log-followups.md).
 - [x] Curated super-admin → org mirror: `superAdminAudit.ts#logSuperAdminAction` gained an **opt-in** `mirrorToOrgActivity` param (org id + activity action + target + metadata). Wired in `org-subscriptions-admin` POST → `billing.plan_overridden_by_platform`. `approve-org-verification` / `reject-org-verification` use a direct `logActivity` call for the same effect (`verification.approved` / `.rejected`). Generic auto-mirroring of every super-admin action was **deliberately not done** — most target platform entities with no org root.
 - [x] `AFTER DELETE` belt-and-braces net: migration `20261306150200_activity_log_delete_net_trigger.sql` — `trg_activity_log_delete_net_{org,property,parking}` on the three top-level tenant tables, same `WHEN` end-user-JWT guard as the `guest_submissions` trigger (service-role cascade deletes skipped; they self-log). Child tables intentionally excluded to avoid cascade fan-out. Applied + verified on local.
-- [ ] **Not done:** per-run `system.cron_run` summary rows (crons currently rely on the orchestrator / service emitters they call — every cron-driven transition already lands a `booking.status_changed` row per Q7); webhook receipt rows inside the `paymongo-webhook` / `meta-inbox-webhook` dedupe guards (billing state changes are covered app-side by checkout / downgrade / plan-override; a raw "webhook received" row is low value); support-ticket + guest-portal-profile handlers.
+- [ ] **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)): per-run `system.cron_run` summary rows (every cron-driven transition already lands a `booking.status_changed` row per Q7 — nothing missing, just nicer roll-ups); raw "webhook received" rows inside the `paymongo-webhook` / `meta-inbox-webhook` dedupe guards (billing state changes already covered app-side by checkout / downgrade / plan-override); support-ticket + guest-portal-profile handlers (scoping decision needed — see above).
 
 **Phase 4 — UI: DONE (core).**
 
@@ -61,11 +61,22 @@ updated: 2026-09-08
 - [x] `<EntityActivityHistory targetType="booking" targetId={booking.id} />` embedded on the booking detail Overview tab.
 - [x] Route guides: `docs/guides/routes/org/activity.md` + `.../org/property/activity.md` + `.../org/parking/activity.md` + 3 README rows. `docs/architecture/routing.md` + `edge-functions.md` + `data-model.md` + `PROJECT.md` updated.
 - [x] `activity-log-export` CSV edge fn (owner / admin only, bounded 20k rows / 90-day default) + `config.toml` entry + `downloadActivityLogCsv` client + **Export CSV** button on `ActivityLogPage`.
-- [ ] **Open:** `<EntityActivityHistory>` also on settings pages / team member detail / finance & maintenance item detail; `/admin/orgs/:orgSlug` super-admin Activity tab toggle (org `activity_log` vs `super_admin_audit_events`); virtualization for very long feeds; realtime append (Phase 5).
+- [x] **Phase 4 tail (2026-09-10):** `<EntityActivityHistory>` embedded on org / property / parking **Settings → Activity** sections (`targetType="settings"`, scoped id), the org **Manage Member** dialog (`targetType="member"`), and the finance / maintenance edit modals (`finance_entry` / `maintenance_item`) — plus a `heading` prop so it sits headless inside an `AdminSection`. `/admin/orgs/:orgSlug` → Activity now has a **Platform actions / Org activity** toggle (`SuperAdminOrgActivitySection` + `useSuperAdminOrgActivity` → `list-activity-log?orgId=`; super-admin resolves as `platform_admin`). `ActivityLogPage` feed **virtualized** past ~30 rows with `@tanstack/react-virtual` (`useWindowVirtualizer`, dynamic measure); shorter feeds render plainly.
 
-**Phases 5–6: roadmap** — realtime channel + optional PostToolUse hook (Phase 5); monthly partitioning + `pg_cron` retention + `activityLogExport` / `activityLogRetentionDays` plan entitlements (Phase 6).
+**Phase 5 — realtime: DONE (2026-09-10).**
 
-**Open product questions still unanswered** (recommended defaults in [Open questions](#open-questions)): plan gating (Q1), guest-chat volume (Q2), `guest_submissions` diff fidelity — v1 stores changed **column names only**, no values (Q3), super-admin mirroring (Q4), IP capture — v1 **stores `ip_prefix` + `user_agent`** (Q5), `update-booking` edge fn vs trigger-only (Q6), `booking.status_changed` volume — v1 logs **every** transition incl. cron advances (Q7).
+- [x] Migration `20261315120000_activity_log_realtime_broadcast.sql` — `AFTER INSERT` trigger `activity_log_broadcast()` → `realtime.send({ids + scope + category + severity + created_at}, 'activity', 'activity:org:<org>', private := true)`. Fully guarded (`to_regprocedure` presence check + `EXCEPTION WHEN OTHERS` → `RETURN NEW`) so it can never fail or slow the append-only write. **No row content** (summary / changes / metadata / actor) is broadcast. RLS policy `activity_log_broadcast_read` on `realtime.messages` + SECURITY DEFINER helper `user_can_read_activity_broadcast(topic)` (parses the topic uuid, reuses `user_can_access_org_notifications` — org owner / active `organization_members`). Validated locally: INSERT still commits with the trigger live; policy created; `realtime.send` present.
+- [x] Client `useActivityRealtime(orgId)` — one private Broadcast channel per org, mounted once in `NotificationsProvider` (next to `useNotificationsRealtime`), debounce-invalidates `[ACTIVITY_LOG_KEY]` so every mounted `ActivityLogPage` / `EntityActivityHistory` refetches through the scoped edge read path.
+- [x] **PostToolUse hook — deliberately not shipped.** The plan says "ship the hook only if the rule proves insufficient." The always-on `audit-logging` rule + skill + `CLAUDE.md` section (Phase 0) have governed every change since and are sufficient; a per-edit shell reminder would be noise. Revisit only if coverage regressions appear.
+
+**Phase 6 — retention + plan gate: DONE (2026-09-10). Partitioning: roadmap (by design).**
+
+- [x] Migration `20261315120200_activity_log_retention_cron.sql` — `platform_settings.activity_log_retention_months` (default 24, `CHECK >= 6`); `purge_activity_log(p_retention_months, p_max_rows)` (SECURITY DEFINER — `set_config('activity_log.allow_purge','on',true)` then bounded 5k-batch `DELETE`s past the window, returns the count); `sync_activity_log_retention_cron_job()` monthly pg_cron (`0 18 1 * *` UTC = 02:00 Manila on the 2nd) → new `activity-log-retention-cron` edge fn (`serveCronPost`, optional `ACTIVITY_LOG_RETENTION_CRON_SECRET`). Validated locally: `purge_activity_log(6,1000)` deleted a 40-month-old row, kept a fresh one; a plain `DELETE` still raises `activity_log is append-only`.
+- [x] `activityLogExport` plan feature — `_shared/planFeatures.ts` + client mirror + `featureGateCopy.ts` + `EditPricingPlanDialog` toggle list; seed migration `20261315120100_activity_log_plan_feature.sql` (`false` on `free`, `true` on `starter` / `commission` / `growth` / `pro` / `managed` / `business_plus` — same shape as `financeReporting`). Server: `requireOrgFeature(org.id, 'activityLogExport')` + `catchPlanFeatureError` in `activity-log-export` (platform admins bypass). Client: `ActivityLogPage` Export CSV → `useFeatureGate('activityLogExport')`; Free opens `openUpgradeModal('activityLogExport')`. In-app viewing stays ungated on every plan.
+- [x] **`activityLogRetentionDays` (per-plan queryable window) — dropped (2026-09-10).** Q1 resolved: platform-wide `activity_log_retention_months` + the retention cron already bound data; a Free-tier window cap wasn't worth the plan-catalog churn.
+- [ ] **Monthly range partitioning — deferred to backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)). The composite `PRIMARY KEY (id, created_at)` was chosen so this is not a table rewrite. Migration path in `docs/archive/operations/migration-runbook.md` § 11c.1. Maintenance-window job + load test when volume warrants; BRIN + btree + the retention cron carry it until then.
+
+**Open product questions — all RESOLVED 2026-09-10** (see [Open questions](#open-questions--resolved-2026-09-10)): Q1 plan gating (`activityLogExport` = Starter+, no per-plan window), Q2 guest chat omitted, Q3 diff = column names only, Q4 curated mirror + read-time toggle, Q5 `ip_prefix` + `user_agent` kept, Q6 trigger-only (no `update-booking`), Q7 log every transition.
 
 A single, append-only **activity log** that records every meaningful action taken across an organization — by team members, the org owner, super-admins acting on the org, the AI dashboard assistant, guests on public pages, cron jobs, and inbound webhooks — surfaced as an **Activity** timeline at org, property, and parking scope. The org owner and permitted team members can see who did what, when, from where, and (for edits) exactly what changed, with destructive actions (deletes, cancellations, refunds, member removals) called out.
 
@@ -502,12 +513,24 @@ Denied **destructive** attempts (permission/plan gate rejects a delete/cancel/re
 - `docs/archive/operations/migration-runbook.md` — retention / partition ops.
 - `docs/workflow/planned/README.md` — index row (added in this write).
 
-## Open questions
+## Open questions — RESOLVED 2026-09-10
 
-1. **Plans gating:** ship in-app viewing fully free with `activityLogExport` = Starter+ and retention window Free 90d / Starter 12mo / Pro 24mo (recommended), or leave everything ungated?
-2. **Guest chat volume:** record a thread-level `guest.chat_started` only, or omit guest web-chat from the log entirely?
-3. **`guest_submissions` diff fidelity:** the Phase-1 trigger logs an allow-listed column diff. Confirm the allow-list (guest identity, dates/times, unit, fees, pets, decor flag, doc URLs) — anything sensitive to add or drop?
-4. **Super-admin mirroring:** mirror a curated subset of `super_admin_audit_events` into `activity_log` when org-resolvable (recommended, one timeline for owners), or keep the org Activity tab a UI-level union of the two tables?
-5. **IP capture:** store `ip_prefix` (`/24`) + `user_agent` (recommended, configurable), or omit client metadata for privacy?
-6. **`update-booking` edge function:** keep booking-detail edits as direct RLS writes with the DB trigger as the audit path (ships now), or additionally route `useUpdateBooking` through a new `update-booking` edge function for app-layer parity with every other module (larger change — autosave + PWA offline outbox)? The trigger ships either way; this decides whether a follow-up ticket is opened.
-7. **`booking.status_changed` volume:** every workflow edge (including automated cron advances and no-op document sub-steps) writes a row. Log all, or only manual + destructive transitions and let cron advances roll into the cron summary row?
+All seven ratified with the recommended default; no code change beyond what already shipped. Later reversals are cheap (flip a plan feature / adjust an allow-list).
+
+1. **Plans gating — DECIDED:** in-app viewing fully free; `activityLogExport` = Starter+ (**shipped**). Per-plan queryable window (`activityLogRetentionDays`) **dropped** — platform-wide `activity_log_retention_months` (24) + the retention cron already bound data lifecycle; a Free-tier window cap wasn't worth the catalog churn.
+2. **Guest chat volume — DECIDED:** omit guest web-chat from the log entirely (no `guest.chat_started`). High volume, low accountability value; the thread itself is the record.
+3. **`guest_submissions` diff fidelity — DECIDED:** keep the allow-listed **changed-column-names-only** diff (no from/to values). Privacy-preserving; the allow-list stands (guest identity, dates/times, unit, fees, pets, decor flag, doc URLs; `status` + workflow columns excluded).
+4. **Super-admin mirroring — DECIDED:** curated opt-in mirror (plan overrides, verification decisions) stays; the `/admin/orgs/:slug` **Org activity** toggle (Phase 4 tail) covers the rest as a read-time view. No generic auto-mirror.
+5. **IP capture — DECIDED:** keep `ip_prefix` (`/24` v4 / `/48` v6) + trimmed `user_agent`. Never the full address.
+6. **`update-booking` edge function — DECIDED:** keep booking-detail edits as direct RLS writes with the `guest_submissions` trigger as the audit path. Not opening an `update-booking` follow-up for this plan — the trigger covers the audit need; app-layer parity is a separate concern if ever pursued.
+7. **`booking.status_changed` volume — DECIDED:** log **every** transition, including cron auto-advances. The retention cron + the documented partitioning path handle volume; completeness matters more than row count for an audit trail.
+
+## Deferred to backlog — [`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)
+
+Split out 2026-09-10 so the core plan can close. None block the feature; the always-on `audit-logging` rule keeps coverage from rotting.
+
+- Dedicated `org.activity:view` / `:export` + `property.activity:*` RBAC leaves + seeded-template data migration.
+- `system.cron_run` per-run summary rows (~8 crons) — every cron-driven transition already lands a `booking.status_changed` row, so nothing is missing from the feed.
+- Low-value `notice`-tier emitters: `upload-*-settings-asset` ×3, `telegram-*-settings` ×8, `ai-platform-*` quota overrides, `marketing-music`, `settings-verification` OTP `security.*`.
+- `guest.support_ticket_filed` / `guest.profile_updated` handlers — **needs a scoping decision first** (host-channel support tickets aren't an org-state mutation; guest-portal profiles are global to the guest identity, not one org). Catalog entries exist; handlers intentionally unwired until that's answered.
+- Monthly range partitioning — maintenance-window job + load test; migration path in `docs/archive/operations/migration-runbook.md` § 11c.1.

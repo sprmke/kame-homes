@@ -2,7 +2,7 @@
 title: 'Property Settings — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-04
+updated: 2026-09-10
 ---
 
 # Property Settings — operator guide
@@ -13,25 +13,26 @@ Route: `/org/:orgSlug/property/:propertySlug/settings`
 
 ## Progress overview
 
-| Section            | E2E save | Validation | Docs | Notes                                                                                 |
-| ------------------ | -------- | ---------- | ---- | ------------------------------------------------------------------------------------- |
-| Basic Information  | Done     | Done       | Done | Required fields marked with *; save blocked until complete                            |
-| Property Details   | Done     | Done       | Done | Azure North residence defaults + limits                                               |
-| Photos & Videos    | Done     | Done       | Done | Gallery via `upload-property-media` / listing editor                                  |
-| Amenities          | Done     | Done       | Done | Compact card + Manage modal (`PropertyAmenitiesManageDialog`)                         |
-| House Rules        | Done     | Done       | Done | Compact card + Manage modal (`PropertyHouseRulesManageDialog`)                        |
-| Cancellation       | Done     | Done       | Done | Guest preview on card + Manage modal (full policy form)                               |
-| Guest Form         | Done     | Done       | Done | Pet / parking / decor + preferred parking + complimentary own parking + Cleaning Time |
-| Location           | Done     | Done       | Done | Compact address + Manage modal (picker + Save / discard)                              |
-| Socials            | Done     | Done       | Done | Facebook / Airbnb / Instagram / TikTok (org inherit)                                  |
-| Reviews & vouchers | Done     | Done       | Done | External reviews + next-stay voucher config                                           |
-| Payment            | Done     | Done       | Done | Compact method rows + Manage modal (account/QR editor)                                |
-| Building Forms     | Done     | Done       | Done | Shared GAF + pet PDF fields                                                           |
-| Email automations  | Done     | Done       | Done | Recipients + timing inline; Automated sends via Manage modal                          |
-| Integrations       | Done     | Done       | Done | Telegram + AI optional; GAF/pet via Resend inbound                                    |
-| Voice Receptionist | Done     | Done       | Done | Hidden unless `aiReceptionist` (Business+); saves with page Save Changes              |
-| AI Overrides       | Done     | Done       | Done | Hidden unless plan has AI credits (`aiMonthlyCreditAllowance` > 0)                    |
-| Danger Zone        | Done     | Done       | Done | Archive + delete with confirmations                                                   |
+| Section            | E2E save  | Validation | Docs | Notes                                                                                  |
+| ------------------ | --------- | ---------- | ---- | -------------------------------------------------------------------------------------- |
+| Basic Information  | Done      | Done       | Done | Required fields marked with *; save blocked until complete                             |
+| Property Details   | Done      | Done       | Done | Azure North residence defaults + limits                                                |
+| Photos & Videos    | Done      | Done       | Done | Gallery via `upload-property-media` / listing editor                                   |
+| Amenities          | Done      | Done       | Done | Compact card + Manage modal (`PropertyAmenitiesManageDialog`)                          |
+| House Rules        | Done      | Done       | Done | Compact card + Manage modal (`PropertyHouseRulesManageDialog`)                         |
+| Cancellation       | Done      | Done       | Done | Guest preview on card + Manage modal (full policy form)                                |
+| Guest Form         | Done      | Done       | Done | Pet / parking / decor + preferred parking + complimentary own parking + Cleaning Time  |
+| Location           | Done      | Done       | Done | Compact address + Manage modal (picker + Save / discard)                               |
+| Socials            | Done      | Done       | Done | Facebook / Airbnb / Instagram / TikTok (org inherit)                                   |
+| Reviews & vouchers | Done      | Done       | Done | External reviews + next-stay voucher config                                            |
+| Payment            | Done      | Done       | Done | Compact method rows + Manage modal (account/QR editor)                                 |
+| Building Forms     | Done      | Done       | Done | Shared GAF + pet PDF fields                                                            |
+| Email automations  | Done      | Done       | Done | Recipients + timing inline; Automated sends via Manage modal                           |
+| Integrations       | Done      | Done       | Done | Telegram + AI optional; GAF/pet via Resend inbound                                     |
+| Voice Receptionist | Done      | Done       | Done | Hidden unless `aiReceptionist` (Business+); saves with page Save Changes               |
+| AI Overrides       | Done      | Done       | Done | Hidden unless plan has AI credits (`aiMonthlyCreditAllowance` > 0)                     |
+| Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full property activity feed (`ActivityLogPanel`) |
+| Danger Zone        | Done      | Done       | Done | Archive + delete with confirmations                                                    |
 
 > **Also editable in Page Editor:** Photos & Videos, Brand color, Description, Amenities, House Rules, Cancellation, and Socials (URLs only) — same fields, same storage. **External reviews and vouchers** are Settings-only (**Reviews & vouchers**).
 
@@ -440,6 +441,12 @@ open until the guest dismisses them (no forced auto-close).
 **Guest UX polish (Phase 6):** **6.1–6.4 shipped** (speech VAD; rich bubbles; leaner prompts;
 booth UI; premium human concierge portrait). Admin settings fields above are unchanged. Plan:
 [[2026-07-30-ai-voice-receptionist|AI Voice Receptionist — Implementation Plan]] § Phase 6.
+
+---
+
+## Activity
+
+Read-only. Summary: "Who did what on this property." **Manage** opens a large modal with the full property-scoped activity feed (search, filters, infinite scroll, detail sheet, CSV export for owner / org-admin). Legacy `/org/:orgSlug/property/:propertySlug/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path.
 
 ---
 

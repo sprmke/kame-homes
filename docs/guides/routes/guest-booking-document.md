@@ -13,7 +13,7 @@ Route: `/properties/:propertySlug/document?token=<opaque>&doc=gaf|pet`
 
 ## Purpose
 
-Redirect-only page: resolves a durable, guest-safe share token to a fresh signed Storage URL for one of a booking's private approved-document PDFs (**Approved GAF** or **Approved Pet Form**), then `window.location.replace()`s to it. No content of its own renders beyond a loading skeleton — mirrors [[stay-guide|Guest stay guide]]'s token-gated pattern but with no rendered brochure and no stay-dated validity window.
+Redirect-only page: resolves a durable, guest-safe share token to a fresh signed Storage URL for one of a booking's private approved-document PDFs (**Approved GAF** or **Approved Pet Form**), then `window.location.replace()`s to it. No content of its own renders beyond a loading skeleton — mirrors [[stay-guide|Guest stay guide]]'s token-gated pattern but with no rendered brochure and no stay-dated validity window. It renders outside every app shell (no `MainLayout`/`MarketingLayoutShell`, no bottom nav) — deliberately, since the guest never lingers here. **2026-09-10:** its two states (unavailable message, loading skeleton) previously used hardcoded hex colors instead of semantic tokens; fixed to `bg-background`/`text-foreground`/`border-border`/`bg-muted` for theme consistency.
 
 Shared from the **Guest Inbox** composer's Share picker (see [[inbox|Property Guest Inbox]] → Behavior → Share resources) or, in future, the booking Files tab.
 

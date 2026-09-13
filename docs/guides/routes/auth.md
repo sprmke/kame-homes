@@ -18,15 +18,16 @@ Routes:
 
 ## Progress overview
 
-| Section                | E2E save | Validation | Docs       | Notes                                                                                   |
-| ---------------------- | -------- | ---------- | ---------- | --------------------------------------------------------------------------------------- |
-| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant) |
-| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                           |
-| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                       |
-| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                     |
-| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                          |
-| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)              |
-| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                 |
+| Section                | E2E save | Validation | Docs       | Notes                                                                                                                                                |
+| ---------------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant)                                                              |
+| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                                                                                        |
+| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                                                                                    |
+| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                                                                                  |
+| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                                                                                       |
+| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)                                                                           |
+| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                                                                              |
+| Mobile shell           | —        | —          | Documented | No bottom tab bar by default — `AuthLayout` is its own top-level route, not nested in `MarketingLayoutShell` (verified 2026-09-10, not just assumed) |
 
 ---
 
@@ -47,7 +48,7 @@ Guests can browse listings and pick dates without signing in. Opening **`/proper
 6. **Save property (heart)** — any listing card, list row, or detail gallery Save button → `GuestAuthModal` when anonymous; persists to `guest_saved_properties` after login (OAuth resume via `save_property` intent)
 7. **Contact (`/contact`)** — category card → `requireGuestAuth` → `GuestAuthModal`, then **`NewTicketModal`** (OAuth resume navigates back with `?category=`)
 
-Marketing **Become a host?** on explore pages runs the global mode-switch curtain to **`/for-hosts`**. On explore pages, signed-in guests with host org access see **Dashboard** in the avatar menu under **Host** — that link runs the same mode-switch curtain, then lands on the last org dashboard (or **`/dashboard`**). When already in host mode (e.g. **`/for-hosts`** avatar menu), **Dashboard** navigates directly with no curtain. On `/for-hosts`, the pill CTA is **Explore** (back to guest mode); signed-in hosts use the avatar menu for **Dashboard**, signed-out hosts see **Sign In** → **`/for-hosts/login`**. On explore pages, signed-in guests see the avatar menu (**`/account/*`** — profile, stays, wishlist, messages, see **[[profile|Guest account — operator guide]]**), signed-out guests now see a real **Sign In** link → **`/for-guests/login`**.
+Marketing **Become a host?** on explore pages runs the global mode-switch curtain to **`/for-hosts`**. On explore pages, signed-in guests always see **Dashboard** in the avatar menu under **Host** (not gated on org membership) — that link runs the same mode-switch curtain, then lands on **`/org`** (the hub redirects to an org the caller can access, or onboarding if none). Phone/tablet uses the same **Dashboard** row in the marketing **More** sheet. When already in host mode (e.g. **`/for-hosts`** avatar menu), **Dashboard** navigates directly with no curtain. On `/for-hosts`, the pill CTA is **Explore** (back to guest mode); signed-in hosts use the avatar menu for **Dashboard**, signed-out hosts see **Sign In** → **`/for-hosts/login`**. On explore pages, signed-in guests see the avatar menu (**`/account/*`** — profile, stays, wishlist, messages, see **[[profile|Guest account — operator guide]]**), signed-out guests now see a real **Sign In** link → **`/for-guests/login`**.
 
 On the **host dashboard**, the sidebar footer account menu shows the same avatar resolution as explore (saved profile photo → Google OAuth photo → initials). The trigger keeps name and email; the open menu shows only mode switch, **Profile**, and **Sign out** (no duplicate identity block). **Profile** opens a modal with the same edit form as **`/account/profile`**; saves go to **`guest-profile`** and update explore + dashboard immediately.
 
@@ -64,7 +65,7 @@ Resume after OAuth (guest): `sessionStorage` (`guestAuthResume.ts`) restores nav
 
 ### Host sign-in
 
-**Layout (lg+, host routes):** 50/50 split — left **`HostWorkspaceSidePanel`** (`variant="auth"`) shared with onboarding: solid **`bg-primary`**, **`MarketingBrandLogo`**, headline + description, compact **`HostDashboardTourPlayer`** (expand modal). No footer links on the panel. Guest auth routes keep the legacy gradient branding panel with feature cards.
+**Layout (lg+, host routes):** 50/50 split — left **`HostWorkspaceSidePanel`** (`variant="auth"`) shared with onboarding: solid **`bg-primary`**, **`MarketingBrandLogo`**, headline + description, compact **`HostDashboardTourPlayer`** (expand modal — the tour film is theme-aware and follows the viewer's light/dark choice; see `for-hosts.md` § Dark mode). No footer links on the panel. Guest auth routes keep the legacy gradient branding panel with feature cards.
 
 1. User enters their email (OTP) or clicks **Continue with Google** on `/for-hosts/login` or `/for-hosts/register`.
 2. Either path lands a normal Supabase Auth session — `useAdminSession` treats any session as signed-in regardless of which method was used.

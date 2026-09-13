@@ -1,5 +1,5 @@
 ---
-description: Mobile-first, responsive UI standards for every screen and component in this project. Apply to all new UI work in ui/src/**.
+description: Mobile-first, responsive UI standards for every screen and component in this project. Apply to all new UI work in ui/src/**. Full gate: mobile-native-ui.mdc (always-on).
 globs:
   - 'ui/src/**/*.tsx'
   - 'ui/src/**/*.ts'
@@ -8,7 +8,9 @@ alwaysApply: false
 
 # Mobile-first responsive UI — agent reference
 
-Every UI component in this project must work correctly at **375 px** (iPhone SE), **390 px** (iPhone 15), **768 px** (iPad), **1024 px** (laptop), and **1440 px** (desktop). Design mobile first; use Tailwind breakpoints to scale up, not down.
+**Always-on gate:** `.cursor/rules/mobile-native-ui.mdc` (every session). This file is the full spec when editing `ui/src/**`.
+
+Every UI component must work correctly at **375 px** (iPhone SE), **390 px** (iPhone 15), **768 px** (iPad), **1024 px** (laptop), and **1440 px** (desktop). Design mobile first; use Tailwind breakpoints to scale up, not down.
 
 ## 1. Breakpoint strategy
 
@@ -67,6 +69,15 @@ Desktop (lg+):
 - **Brand hero on a bespoke page:** a page that can't use `AdminMobilePage` (own workflow-first layout / own desktop header — e.g. property `BookingDetailPage`) can still render `<MobileBrandHero className="md:hidden" flush collapseProgress={useMobileHeroCollapseProgress(heroRef, isBelowMd)} />` directly. Mark its content root `data-page-brand-hero` — a scoped `@media (max-width:767px)` rule in `index.css` then drops the `AdminLayout` fallback topbar + shell gutter below `md` (tablet/desktop keep the plain topbar). Re-add the phone gutter with `max-md:px-3.5 max-md:pt-3`. The hero owns the page `h1`, so demote any in-body page heading to `h2`.
 - Content language: `surface-card` floats on mobile (`shadow-native`, borderless); use `native-cta`, `native-page-canvas`, `native-stagger`, `native-press` for mockup-aligned density.
 - Modals: **never render a centered desktop-style `Dialog` on mobile — anywhere (dashboard or guest).** Every modal uses `ResponsiveModal` (`ui/src/components/ui/responsive-modal.tsx`): centered `Dialog` on `lg+`, bottom sheet below `lg`. Guest-facing modals go through `GuestDialogShell` (which wraps `ResponsiveModal`). **General dashboard Save/Cancel form modals** use `AdminDialogShell` (`ui/src/components/AdminDialogShell.tsx`) — fixed title, scrollable body, fixed actions. Do not wrap custom wizards, approval reviews, lightboxes, or `AlertDialog` confirms in it. Do not import `@/components/ui/dialog` directly in feature code (only `responsive-modal` / `GuestDialogShell` / `AdminDialogShell` re-expose it). Sticky header/footer + body scroll → `sheetLayout="split"` (never `overflow-hidden` alone without a `min-h-0 flex-1 overflow-y-auto` body). Sheets size with `h-[min(92dvh,max-content)]` so tall content scrolls instead of clipping. Exceptions: `AlertDialog` for OS-style destructive confirms, and full-screen media/document lightboxes (`modal-scrim-lightbox`) that already fill the viewport.
+
+## 2b. Layout — guest-facing marketing, booking flow, and account
+
+Mirrors the admin shell's bottom-nav/`ContextualActionBar` pattern (§2), adapted per guest surface. All guest bottom bars share the same `ui/src/components/mobile/` primitives (`BottomBarSlotProvider`, `BottomTabBar`, `ContextualActionBar`, `bottomTabBarOffsetClassName`) — never a bespoke hand-rolled `fixed inset-x-0 bottom-0` bar.
+
+- **Marketing site** (`MarketingLayoutShell`, everything under `/`, `/properties`, `/parkings`, `/developments`, `/for-hosts*`, `/account/*`, legal/about/contact/support): `MarketingLayoutShell` wraps its `Outlet` in `BottomBarSlotProvider`; `MarketingBottomNav.tsx` renders a 5-tab `BottomTabBar` (Explore, Properties, Parkings — active-matches `/developments` too, Account, More) that is mode-aware (guest/Explore vs host/`for-hosts` mode swaps the Account tab's resolved href and the More sheet's sign-in link via `getAuthAudienceFromPath`/`getAppModeFromPath`). `MarketingMoreSheet.tsx` holds secondary links (For hosts/Company/Legal groups from the same source as `MarketingFooter`), `ThemeToggle`, the reused `ModeSwitcher`, **Dashboard** when signed in, and sign out. `MarketingNav.tsx`'s top header stays fixed but is logo-only on phone (nav links/CTA/account are `lg:flex`-gated) — the hamburger + full-screen `AnimatePresence` overlay it used to render on `<lg` is retired entirely; do not resurrect it.
+- **Guest account section** (`/account/*`, nested inside the marketing shell above): keeps its **own top** `GuestAccountMobileNav` strip (`sticky top-16 z-30 lg:hidden`, `SlidingActivePill`) for Profile/Stays/Vouchers/Favorites/Tickets — **do not** turn this into a second bottom `BottomTabBar`. `/account/*` already renders the marketing-wide bottom tab bar above; a second bottom bar for the account sub-section would stack two bottom navs on one screen (`avoid-mixed-patterns` / `bottom-nav-top-level`). This mirrors how admin's Settings sub-nav stays top-level chrome rather than becoming a second dock.
+- **Property/parking operational flow** (`MainLayout`, `/properties/:slug/{calendar,messages,form,success,sd-form,guest-review,parking/:id}`): `MainLayout` takes optional `bottomTabs`/`bottomTabsActiveKey` props — when passed (property routes only), it wraps in the same `BottomBarSlotProvider` + `BottomTabBar` (Property/Calendar/Messages, 3 items). A wizard step with one dominant Back/Continue/Submit action (`GuestFormStepNavigation`'s `mobileVariant="floating"`, or a page's own `useIsBelowLg()` + `ContextualActionBar` wrap) auto-hides the tab bar for that route via the shared slot — exactly the admin edit-form pattern. Screens with no single dominant action (`guest-review`, `sd-form` steps 1–2, the legacy `parking/:bookingId` redirect stub) correctly keep the tab bar visible; don't force a `ContextualActionBar` onto them. Single-purpose pages reached outside this shell (`PayParkingPage` standalone route, `ParkingRequestStatusPage`, `ParkingFormPage`) omit `bottomTabs` entirely — no tab bar, no siblings to switch between. A component whose nav renders in more than one context (`GuestFormStepNavigation` in the modal `GuestBookingFormModal` vs. the standalone `/form` route; `ParkingRegistrationForm` in `ParkingBookingFormModal` vs. `ParkingFormPage`) takes an explicit `mobileVariant`/similar prop so the modal-embedded render stays a plain inline row — a page-level fixed `ContextualActionBar` would fight the modal's own sheet chrome.
+- **Auth pages** (`AuthLayout`, `/for-hosts/login`, `/for-hosts/register`, `/for-guests/login`, `/for-guests/register`): registered as their own top-level route array, never nested inside `MarketingLayoutShell` — **no bottom tab bar by default** (linear trust-flow convention). Keep the existing mobile top bar (logo + `ThemeToggle`, `lg:hidden`) rather than adding one.
 
 ## 3. Touch targets
 
@@ -141,7 +152,7 @@ Hide non-critical columns on small screens:
 
 - Search input: always full-width (`w-full`).
 - Filter button strips: `overflow-x-auto` horizontal scroll on mobile — never wrap into multiple rows.
-- Dropdown panels: position absolute, `max-h-[60vh] overflow-y-auto`, with a max-width of `min(90vw, 320px)` to avoid viewport overflow.
+- Dropdown panels: on `max-lg`, prefer `MobileChoiceSheet` / `ResponsiveOverflowMenu` over floating `DropdownMenu` panels. Desktop keeps `DropdownMenu`. Position absolute panels on desktop: `max-h-[60vh] overflow-y-auto`, with a max-width of `min(90vw, 320px)` to avoid viewport overflow.
 - Input height: `h-10` (40 px) minimum — touch friendly. `Input`, `Select` (`SelectTrigger`), and `Textarea` primitives all self-align to `h-10` / `px-3` **on mobile** (`max-lg:`) so a form column of mixed controls lines up; desktop keeps the wider `Select` `h-11` / `px-4`. Don't re-add per-call-site `h-10` overrides just to compensate.
 - Modal / sheet titles: `ResponsiveModalTitle` renders the same scale in sheet mode (phone/tablet) as `DialogTitle` on desktop — `text-base font-bold tracking-tight sm:text-lg`. Don't hard-code `text-lg` as the mobile base on a modal title.
 
@@ -165,7 +176,7 @@ Never use `px-6` or larger without a mobile fallback like `px-4`.
 ## 9. Modals and dropdowns
 
 - **No centered modal on mobile (app-wide):** every modal — confirms, forms, pickers, detail panels, guest booking/calendar modals — uses `ResponsiveModal` (centered `Dialog` on `lg+`, bottom sheet below `lg`); guest modals via `GuestDialogShell`; general dashboard form modals via `AdminDialogShell`. Never import `@/components/ui/dialog` directly in feature code. Sticky chrome → `sheetLayout="split"` + `min-h-0 flex-1 overflow-y-auto` body. Only `AlertDialog` (OS-style destructive confirm) and full-screen media/document lightboxes stay non-sheet. Avoid full-screen `fixed inset-0` sheets unless intentionally a full-page flow.
-- Dropdowns: on mobile, dropdown panels must never overflow the viewport. Apply `max-w-[calc(100vw-24px)]` as a safety net.
+- Dropdowns / overflow menus: on `max-lg`, use `MobileChoiceSheet` or `ResponsiveOverflowMenu` (`ui/src/components/mobile/ResponsiveOverflowMenu.tsx`) instead of floating `DropdownMenu` panels. Marketing menus can use `MarketingOverflowMenu`. Desktop keeps `DropdownMenu`. If a legacy dropdown remains on mobile, apply `max-w-[calc(100vw-24px)]` as a safety net.
 - Use `z-50` for overlays, `z-40` for sticky headers and the bottom tab / contextual bar.
 
 ## 10. Don'ts

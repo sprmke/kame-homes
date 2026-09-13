@@ -228,7 +228,7 @@ Required migrations: `20260717120000_receipt_ai_validation_columns.sql`, `202607
 
 ## 9. Operational notes
 
-- **Gemini outages (503 / rate limits):** Verdict columns stay empty; booking detail shows an error toast with the API message. Refresh the page to retry backfill, or re-upload the receipt.
+- **Gemini outages (503 / rate limits):** Verdict columns stay empty; booking detail shows a short error toast (never the raw API dump). Refresh the page to retry backfill, or re-upload the receipt.
 - **Legacy `skipped` rows from API errors:** If a booking already has `dp_receipt_ai_verdict = 'skipped'` from before this change, clear those columns in SQL once, then reopen the booking or re-upload.
 - **Replacing a receipt:** Uploading a new image re-runs validation and overwrites the previous verdict/summary.
 - **Included parking:** Checking **Included from downpayment receipt** clears `parking_payment_receipt_url` and parking AI columns on the next parking transition that sets `parking_fee_included_in_downpayment` to true.

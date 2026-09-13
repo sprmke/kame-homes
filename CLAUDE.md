@@ -47,7 +47,7 @@ Dev/staging setup guide: **`docs/archive/operations/dev-staging-environment.md`*
 
 **Dual-track (multi-tenant WIP):** Live = `main` + [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) + LEGACY `zftt…`. Multi-tenant = [`kame-homes`](https://vercel.com/kame-works/kame-homes) + `fwor…`. Inventory: `docs/architecture/deployment.md`.
 
-CI (`.github/workflows/ci.yml`): type-check, lint, check:filenames, Vitest, Deno `_shared` + handler tests, Playwright `@smoke`, build. Develop CD adds Playwright `@ci`. See `docs/guides/testing/README.md`.
+CI (`.github/workflows/ci.yml`): type-check, lint, check:filenames, build — no test step (none exist yet, see Conventions).
 
 Root `bun run *:supabase` wrappers source `ui/.env.development` before invoking the Supabase CLI (needed for `GOOGLE_CLIENT_*` to resolve) — prefer them over a global `supabase` CLI (easy to leave outdated, breaks Postgres 17 migrations) or `cd ui && bun run dev` directly.
 
@@ -117,7 +117,7 @@ Prefer `serveAdmin`/`servePublic`/`serveCronPost` (`_shared/serveEdge.ts`) over 
 - **Naming**: `PascalCase.tsx` components/pages, `useX.ts` hooks, `camelCase.ts` lib/schema, `kebab-case/index.ts` edge functions, shadcn stays `kebab-case.tsx`. Named exports only. Full rules: `.cursor/rules/naming-conventions.mdc`.
 - **Secrets**: local edge secrets in `supabase/.env.local` (gitignored); never commit or log credentials/tokens/PII.
 - **Testing**: Vitest (UI unit, Node env), Deno test (`_shared/*_test.ts`, `functions/tests/*.test.ts`), Playwright mocked E2E (`ui/e2e/features/`). Commands: `bun run test`, `test:edge`, `test:edge:handlers`, `test:e2e:smoke`, `test:e2e:ci`, `bun run ci:quality`. Skill **`testing`**, rule **`.cursor/rules/testing.mdc`**. Playwright MCP is for exploration only, not CI.
-- **Mobile**: every screen works at 375/768/1024px+, 44×44px touch targets — always-on on the Cursor side (`mobile-responsive.mdc`); pull in the `mobile-responsive` skill on the Claude Code side for any UI task.
+- **Mobile**: every screen works at 375/768/1024px+, native bottom sheets/nav on phone — **always-on** `.cursor/rules/mobile-native-ui.mdc` + glob spec `mobile-responsive.mdc`; **invoke `mobile-responsive` skill** on every UI task (Claude Code / OpenCode).
 - **Copy**: prefer no extra UI prose (`ui-minimal-copy.mdc` / `minimal-ui-copy`). When text is required, keep it short, plain, and production-grade with no AI tells and no em dashes (`human-copy.mdc` / skill `human-copy`). Claude Code: invoke `human-copy` on string changes.
 
 ## Known sharp edges
@@ -145,8 +145,9 @@ Whenever you implement or materially change behavior (features, routes, validati
 
 1. Invoke / follow the **`documentation-maintenance`** skill (write checklist).
 2. If any page, section, or route UX changed → also invoke **`route-guides`** (no exceptions).
-3. If the change mutates org / property / parking state (edge write, workflow transition, cron, webhook, direct-write surface, or a guest/public action worth recording) → invoke **`audit-logging`**: emit an `activity_log` event or write `activity-log: N/A — <why>`.
-4. Confirm the matching files below were updated, or explicitly note why the change is docs-exempt (typo / rename-only).
+3. If any UI in `ui/src/**` changed → invoke **`mobile-responsive`** skill (native mobile gate: bottom sheets, bottom nav, density).
+4. If the change mutates org / property / parking state (edge write, workflow transition, cron, webhook, direct-write surface, or a guest/public action worth recording) → invoke **`audit-logging`**: emit an `activity_log` event or write `activity-log: N/A — <why>`.
+5. Confirm the matching files below were updated, or explicitly note why the change is docs-exempt (typo / rename-only).
 
 SessionStart and PostToolUse hooks also inject this reminder — do not ignore them.
 
@@ -154,6 +155,7 @@ SessionStart and PostToolUse hooks also inject this reminder — do not ignore t
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Architecture, routes, env vars, API, data model                                                    | `docs/PROJECT.md`                                                                                                                                                                                                                                                                                                               |
 | **Page/section behavior, save flows, validation, per-route UX**                                    | **`docs/guides/routes/*.md`** — invoke the `route-guides` skill for **every** route/page/section change, no exceptions. Mirrors a **second, separate** always-on Cursor rule (`.cursor/rules/route-guides.mdc`) — read it for the full route→file mapping, per-page section checklist, and Host-facing-knowledge writing rules. |
+| **UI layout, modals, menus, navigation** in `ui/src/**`                                            | Invoke **`mobile-responsive`** skill; follow **`mobile-native-ui.mdc`** (always-on) + **`mobile-responsive.mdc`**                                                                                                                                                                                                               |
 | **Pricing plans / tier catalog / `planPresentation` / entitlements**                               | **`/for-hosts/pricing`** (live via `list-public-pricing-plans` + shared `planPresentation.ts`) **and** **`docs/architecture/plans-feature-matrix.md`** + host Plans route guides (`org/plans.md` — the only in-app Plans page, billing is org-level only; `for-hosts.md`)                                                       |
 | **New host feature (Plans and/or Team RBAC)**                                                      | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A in the same change                                                                                                                                                                                        |
 | **New / changed mutating capability (edge write, transition, cron, webhook, guest/public action)** | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event via `_shared/activityLog.ts`, or mark `activity-log: N/A — <why>`, in the same change                                                                                                                                |

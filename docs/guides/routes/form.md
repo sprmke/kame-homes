@@ -21,10 +21,13 @@ Route: `/properties/:propertySlug/form` (legacy `/form?property=<slug>` redirect
 | Cleaning buffer      | ✅       | Client + Server | Documented | Custom `TimePicker` hard-blocks same-day turnover conflicts |
 | Dev controls         | ✅       | —               | Documented | Non-prod only; FormData flags                               |
 | Legacy URL strip     | ✅       | —               | Documented | `dev` / `testing` / flags / `from=airbnb`                   |
+| Mobile shell         | —        | —               | Documented | Back/Continue/Submit floats via `ContextualActionBar`       |
 
 ---
 
 ## Overview
+
+**Mobile shell (2026-09-10):** the standalone route's Back/Continue/Submit row (`GuestFormStepNavigation`, `mobileVariant="floating"`) claims the shared bottom band via `ContextualActionBar` below `lg`, auto-hiding the marketing/property `BottomTabBar` while a step is active. The `GuestBookingFormModal`-embedded render (`embed?.onNavChange` set) keeps its plain inline row — a fixed bar would fight the modal's own sheet chrome.
 
 The guest booking form, scoped to **`/properties/:propertySlug/form`**. Full-page renders use **`MainLayout`** (brand-color band + **`GuestOperationalHeader`**, overlapping logo via **`GuestFormBrandHeader`**, and **`GuestStayContextBar`** when `checkInDate` / `checkOutDate` are in the URL). Opening the page while anonymous shows **`GuestAuthModal`** immediately (skeleton until signed in — same pattern as **`/messages`**). The same **`GuestForm`** component also embeds in **`GuestBookingFormModal`** on the property detail page when guests tap **Reserve** (seeded dates via `embed` props — no navigation to `/form`, no shell chrome; auth already ran before the modal opens). Admin **New booking** on the property bookings list links here via `guestFormPath(propertySlug)` or embeds with `skipAuthGate`. Guests can also reopen an existing submission with **`?bookingId=`** (deep links from host emails or booking status flows) to edit it while it's still `PENDING_REVIEW` (still requires a guest session).
 

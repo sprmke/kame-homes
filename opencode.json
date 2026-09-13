@@ -14,6 +14,7 @@
     ".cursor/rules/plans-and-permissions.mdc",
     ".cursor/rules/audit-logging.mdc",
     ".cursor/rules/testing.mdc",
+    ".cursor/rules/mobile-native-ui.mdc",
     "DESIGN.md"
   ],
   "skills": {

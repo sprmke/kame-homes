@@ -2,14 +2,14 @@
 title: 'Guest landing — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-08-17
+updated: 2026-09-11
 ---
 
 # Guest landing — operator guide
 
 Route: `/`
 
-> **Status:** Documented — guest explore landing. Featured stays load from `list-public-properties`. Destination tiles and some hero samples can still be editorial.
+> **Status:** Documented — **Phase 1 (UI only)**. Redesigned guest explore landing; mock data; no public API yet.
 
 ## Progress overview
 
@@ -18,16 +18,19 @@ Route: `/`
 | Hero + search    | —        | —          | Documented | Search-first; optional dates                          |
 | Interactive hero | —        | —          | Documented | Canvas + stacked stay cards (theme-aware)             |
 | Stay categories  | —        | —          | Documented | Quick-filter chips → `/properties`                    |
-| Featured stays   | —        | —          | Documented | Live `list-public-properties` (hide if empty)         |
+| Featured stays   | —        | —          | Documented | Horizontal scroll carousel                            |
 | Destinations     | —        | —          | Documented | 3 editorial destination tiles                         |
 | Social proof     | —        | —          | Documented | Single review + trust stats                           |
 | Preview redesign | —        | —          | Documented | `/explore-preview` — cinematic redesign, pending swap |
+| Mobile shell     | —        | —          | Documented | `MarketingLayoutShell` bottom tabs — see below        |
 
 ---
 
 ## Overview
 
 Public **guest explore home**. Wrapped in **`MarketingLayoutShell`** (nav, footer, theme toggle). Operational booking calendar lives at **`/properties/:propertySlug/calendar`**.
+
+**Mobile shell (2026-09-10):** `MarketingLayoutShell` renders a 5-tab `BottomTabBar` (Explore/Properties/Parkings/Account/More, via `MarketingBottomNav.tsx`) on phone/tablet, replacing the old hamburger + full-screen overlay menu. **More** opens `MarketingMoreSheet` (For hosts/Company/Legal links, theme toggle, `ModeSwitcher`, **Dashboard** when signed in, sign out). Top header stays fixed but is logo-only below `lg` — nav links/CTA/account move into the tab bar + sheet. This shell applies uniformly across every route under `MarketingLayoutShell` (this landing page, `/for-hosts*`, `/properties*`, `/parkings*`, `/developments*`, `/services`, `/about`, `/contact`, `/support`, legal pages, `/account/*`) — see [for-hosts.md](./for-hosts.md) and the `mobile-responsive` skill/rule §2b for the full pattern rather than repeating it on every page.
 
 **Legacy compat:** `/?property=<slug>` redirects to **`/properties/<slug>/calendar`**.
 
@@ -50,24 +53,26 @@ This is the main guest homepage: search, featured stays, and destination tiles t
 **Common host questions**
 
 - Q: Will my listing appear on the home page automatically?
-  A: Published homes can appear in Featured stays. The section hides when the catalog is empty.
+  A: Not yet. Featured cards still use sample data until the public catalog is connected to live published properties.
 - Q: How do guests get from here to my property?
   A: They search or tap a destination, browse the homes catalog, open your listing, then reserve or contact you from there.
 - Q: Where does "Become a host?" take someone?
   A: It switches to host mode and the host marketing page, then sign-in. It doesn't go straight into your dashboard.
+- Q: How do I get back to the host dashboard from explore?
+  A: Open the avatar menu (desktop) or **More** (phone) and tap **Dashboard**.
 
 ---
 
 ## Sections
 
-| Section        | Component             | Behavior                               |
-| -------------- | --------------------- | -------------------------------------- |
-| Hero           | `GuestHero`           | Split layout: search + category chips  |
-| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack   |
-| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties` |
-| Featured stays | `FeaturedProperties`  | Live catalog carousel; hidden if empty |
-| Destinations   | `PopularDestinations` | 3 large editorial tiles                |
-| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote        |
+| Section        | Component             | Behavior                                                                                                                                                       |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up |
+| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack                                                                                                                           |
+| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                         |
+| Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                      |
+| Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                        |
+| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote                                                                                                                                |
 
 Removed from home (still in codebase for reuse): `HowItWorks`, `Testimonials`, `TrustIndicators`, `FeaturedDevelopments`.
 
@@ -98,15 +103,6 @@ Sections: `ExploreHero`, `ExploreTrustRibbon`, `ExploreFeaturedStays`, `ExploreD
 | Canvas  | `ui/src/features/guest/marketing/guest-landing/components/HeroCanvas.tsx`    |
 | Layout  | `ui/src/features/guest/marketing/shared/components/MarketingLayoutShell.tsx` |
 | Routes  | `ui/src/features/guest/marketing/routes/index.tsx`                           |
-
----
-
-## Testing
-
-| Layer | Path / spec                                                                    | Manual |
-| ----- | ------------------------------------------------------------------------------ | ------ |
-| E2E   | `ui/e2e/features/public/publicPagesSmoke.spec.ts` hero load (`@smoke` / `@ci`) | —      |
-| N/A   | Featured carousel wired to live API                                            | —      |
 
 ---
 

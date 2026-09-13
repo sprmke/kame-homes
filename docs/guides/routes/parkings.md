@@ -27,6 +27,7 @@ Routes:
 | Reserve slot    | —        | —          | Documented | **`useParkingReserve`** → in-place **`ParkingBookingFormModal`** (guest-auth gated)                     |
 | Parking form    | Done     | Done       | Documented | Guest-authenticated submit (`submit-parking-booking-request`); zero-candidate 422                       |
 | Request status  | —        | —          | Documented | Polling status page (`get-parking-booking-status`, 4s interval); ranked batched search + pay-to-confirm |
+| Mobile shell    | —        | —          | Documented | `MarketingLayoutShell` bottom tabs; Reserve/chat → `ContextualActionBar`/`ResponsiveModal`              |
 
 ---
 
@@ -63,7 +64,9 @@ Guests browse standalone parking slots by city or building, open a slot detail p
 
 ## List (`/parkings`)
 
-**`ParkingsListPage`** — hero search, collapsible **`ParkingFilters`** sidebar (location type, tower, price; **closed by default** on desktop — use **Show Filters** in the toolbar), sticky **`ParkingToolbar`** sort, location-grouped carousels via **`ParkingsByLocation`**. Filters/sort from URL; tower options from API facets. When Tower is shown but has no options, the section shows **None**.
+**`ParkingsListPage`** — hero search, collapsible **`ParkingFilters`** sidebar (location type, tower, price; **closed by default** on desktop — use **Show Filters** in the toolbar), **`ParkingToolbar`** sort (sticky from `lg` up; on mobile it scrolls with the page so it never collides with the sticky **Filters & Sort** bar), location-grouped carousels via **`ParkingsByLocation`**. Filters/sort from URL; tower options from API facets. When Tower is shown but has no options, the section shows **None**.
+
+- **Mobile filters:** the **`ParkingFilters`** sheet opens as a bottom sheet (flex column, `z-[100]`/`z-[101]` so it clears the scroll-morph search bar). Header and the **Show results** / **Clear all** footer are pinned; only the option list scrolls; the footer carries a safe-area inset.
 
 - **Scale behavior:** `list-public-parkings` reads lean candidates in deterministic 1,000-row ranges, computes availability/Nearby/totals/facets before page slicing, and fails closed above 20,000 rows instead of silently truncating totals. Default unfiltered `/parkings` additionally uses `list-public-place-groups?family=parkings` for six city rows with eight previews each; **Show more places** appends later groups. Filtered browse stays on `list-public-parkings`. When map bbox params are present (e.g. `/search` parkings map tab), facets are computed from the **visible map pool** before location/tower/price filters.
 - Each row title: **Parking in {city}** → **View all** → `/parkings/in/:location`
@@ -97,11 +100,11 @@ Route is registered at the marketing shell level (no dynamic slug conflict).
 - Overview: **`ParkingOverview`** — parking type badge, title, **`ListingPlaceMeta`** (development · tower · level), inline dimension + check-in/out row (length / width / clearance · in/out times), **`ListingHostCard`** (**Contact Host** opens guest web chat sheet), description (**About this parking**). Brand color tints accents via **`ParkingPublicBrandShell`**. Pricing lives in **`BookingCard`** only.
 - Features: **`PropertyAmenities`** when `features[]` is non-empty
 - Location: **`PropertyLocation`** when `parkings.settings` has address or map pin (`get-public-parking` returns `address`, `city`, `province`, `country`, `latitude`, `longitude`, `placeId`)
-- Mobile: sticky **Reserve** bar opens calendar modal when dates missing; **Continue** in the calendar proceeds to the booking form modal when dates are complete
+- Mobile: floating **Reserve** bar (`ContextualActionBar`, claims the shared bottom band from the marketing tab bar while open) opens calendar modal when dates missing; **Continue** in the calendar proceeds to the booking form modal when dates are complete
 
 ### Reserve (in-place modal)
 
-Tapping **Reserve** with dates selected — desktop **`BookingCard`** or the mobile sticky bar — no longer navigates to `/parkings/:parkingSlug/form`. Instead **`useParkingReserve`**'s `onOpenForm` callback (wired from `ParkingDetailPage`) opens **`ParkingBookingFormModal`** right on the detail page, mirroring **`GuestBookingFormModal`** on the property flow. The booking calendar modal's **Continue** action closes the calendar and opens the same form modal (auth/resume identical to **Reserve**):
+Tapping **Reserve** with dates selected — desktop **`BookingCard`** or the mobile floating bar — no longer navigates to `/parkings/:parkingSlug/form`. Instead **`useParkingReserve`**'s `onOpenForm` callback (wired from `ParkingDetailPage`) opens **`ParkingBookingFormModal`** right on the detail page, mirroring **`GuestBookingFormModal`** on the property flow. The booking calendar modal's **Continue** action closes the calendar and opens the same form modal (auth/resume identical to **Reserve**):
 
 - Guest-auth gated via `requireGuestAuth` with a `parking_booking_form_modal` resume entry (`guestAuthResume.ts`) — an unauthenticated guest is sent through sign-in and returned to `/parkings/:parkingSlug?reserveForm=open[&checkInDate=&checkOutDate=]`, which `ParkingDetailPage` reads once authenticated to reopen the modal (same `reserveForm=open` param convention as `guestPropertyReserveFormOpenPath`, via the parking-specific `guestParkingReserveFormOpenPath`)
 - Renders the same **`ParkingRegistrationForm`** wizard as the standalone form page, inside **`GuestDialogShell`** (title **Request parking**)
@@ -121,6 +124,8 @@ Tapping **Reserve** with dates selected — desktop **`BookingCard`** or the mob
 3. **Vehicle** — vehicle type (car/motorcycle), plate number, brand/model, color, notes
 
 Validated with a dedicated Zod schema (`parkingRegistrationSchema.ts`), not RHF `register()` with no rules like the generic form-builder fields. Placeholders reuse the shared **`FORM_PLACEHOLDERS`** constants (`ui/src/lib/constants/formPlaceholders.ts`) for parity with the main guest form.
+
+**Mobile step nav (2026-09-10)** — `ParkingRegistrationForm` takes a `mobileVariant: 'modal' | 'page'` prop. This standalone page passes `'page'`, so `GuestFormStepNavigation` floats the Back/Continue/Submit row via `ContextualActionBar` on phone/tablet (matching property `/form`). `ParkingBookingFormModal`'s in-page-modal render keeps `'modal'` (default) — a plain inline row, since a fixed page-level bar would fight the modal's own bottom-sheet chrome.
 
 **Auth gate:** `/parkings/:slug/form` and Reserve require guest sign-in before the request UI is usable (`requireGuestAuth` — same pattern as property guest form).
 
@@ -211,7 +216,7 @@ Security / access notes:
 | Shared stepper          | `ui/src/components/parking/ParkingFlowStepper.tsx`                                                                                                                                                                                               |
 | Host search visual      | `ui/src/components/parking/ParkingHostSearchVisual.tsx`                                                                                                                                                                                          |
 | Stay chooser / confirm  | `ParkingStayChooser.tsx`, `ParkingLinkedStayConfirm.tsx`, `parkingRequestEntryCopy.ts`                                                                                                                                                           |
-| Chat sheet              | `ui/src/features/guest/marketing/parkings/components/ParkingChatSheet.tsx`                                                                                                                                                                       |
+| Chat sheet              | `ui/src/features/guest/marketing/parkings/components/ParkingChatSheet.tsx` — on `ResponsiveModal`/`GuestDialogShell`-style primitives as of 2026-09-10 (was raw `Dialog` despite the "Sheet" name; same fix as `ContactHostSheet`)               |
 | Linkable-stays lookup   | `ui/src/features/guest/marketing/parkings/hooks/useLinkableParkingBookings.ts`, `supabase/functions/list-linkable-property-bookings/index.ts`, `supabase/functions/_shared/parkingPropertyLink.ts`                                               |
 | Endorsement send        | `supabase/functions/_shared/parkingEndorsementEmail.ts`, `supabase/functions/request-parking-endorsement/index.ts`                                                                                                                               |
 | Public detail           | `supabase/functions/get-public-parking/index.ts`                                                                                                                                                                                                 |

@@ -50,7 +50,7 @@ serveAdmin('my-function', async (req, user) => {
 import { callEdgeFunction, getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 ```
 
-Refreshes session before edge calls; signs out on expired user.
+Reuses the cached session JWT. Refreshes only when the access token is near expiry (single-flight). Signs out on a dead session, not on Auth 429s.
 
 ## Guest routes
 

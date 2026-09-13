@@ -13,11 +13,12 @@ Route: `/properties/:propertySlug/success?bookingId=` (legacy `/success?property
 
 ## Progress overview
 
-| Section          | E2E save | Validation | Docs       | Notes                            |
-| ---------------- | -------- | ---------- | ---------- | -------------------------------- |
-| Booking summary  | —        | —          | Documented | Read-only; from `navigate` state |
-| Brand header     | ✅       | —          | Documented | `get-guest-payment-info` logo    |
-| Guard / redirect | ✅       | —          | Documented | Requires `bookingId`             |
+| Section          | E2E save | Validation | Docs       | Notes                                                           |
+| ---------------- | -------- | ---------- | ---------- | --------------------------------------------------------------- |
+| Booking summary  | —        | —          | Documented | Read-only; from `navigate` state                                |
+| Brand header     | ✅       | —          | Documented | `get-guest-payment-info` logo                                   |
+| Guard / redirect | ✅       | —          | Documented | Requires `bookingId`                                            |
+| Mobile shell     | —        | —          | Documented | `MainLayout` bottom tab bar reappears here (no dominant action) |
 
 ---
 

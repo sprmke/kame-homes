@@ -50,7 +50,7 @@ Team RBAC: `_shared/propertyTeamPermissions.ts`, `_shared/orgTeamPermissions.ts`
 ## UI
 
 - `RequireAdmin.tsx` — session hydrate, allow-list UX, sign-out on reject.
-- `callEdgeFunction` refreshes session before admin calls.
+- `callEdgeFunction` reuses the cached JWT (`getSessionJwt`); refreshes only when the access token is near expiry. Do not refresh on every edge call (Auth 429 → logout).
 - Property context: `usePropertyIdParam`, `scopedFunctionsUrl`, route params `orgSlug` / `propertySlug`.
 
 ## Guest PII

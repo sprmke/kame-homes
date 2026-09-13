@@ -2,7 +2,7 @@
 title: 'Guest account — operator guide'
 status: active
 tags: [guides, routes, account]
-updated: 2026-08-26
+updated: 2026-09-11
 ---
 
 # Guest account — operator guide
@@ -20,20 +20,20 @@ Routes (authenticated explore mode):
 
 ## Progress overview
 
-| Section    | E2E save | Validation      | Docs       | Notes                                                                               |
-| ---------- | -------- | --------------- | ---------- | ----------------------------------------------------------------------------------- |
-| Nav avatar | —        | —               | Documented | Explore: guest menu (Host + Explore groups when org access); host: Dashboard avatar |
-| Profile    | ✅       | Client + server | Documented | `guest-profile` + avatar upload; PH mobile phone; Google Places location            |
-| Stays      | ✅       | —               | Documented | Cross-property web chat hub (`guest-messages`)                                      |
-| Vouchers   | ✅       | —               | Documented | Next-stay wallet — [vouchers.md](./vouchers.md)                                     |
-| Favorites  | ✅       | —               | Documented | `guest_saved_properties`                                                            |
-| Tickets    | ✅       | Server          | Documented | Explore Contact tickets — [tickets.md](./tickets.md)                                |
+| Section    | E2E save | Validation      | Docs       | Notes                                                                        |
+| ---------- | -------- | --------------- | ---------- | ---------------------------------------------------------------------------- |
+| Nav avatar | —        | —               | Documented | Explore: guest menu always includes Host → Dashboard; host: Dashboard avatar |
+| Profile    | ✅       | Client + server | Documented | `guest-profile` + avatar upload; PH mobile phone; Google Places location     |
+| Stays      | ✅       | —               | Documented | Cross-property web chat hub (`guest-messages`)                               |
+| Vouchers   | ✅       | —               | Documented | Next-stay wallet — [vouchers.md](./vouchers.md)                              |
+| Favorites  | ✅       | —               | Documented | `guest_saved_properties`                                                     |
+| Tickets    | ✅       | Server          | Documented | Explore Contact tickets — [tickets.md](./tickets.md)                         |
 
 ---
 
 ## Overview
 
-Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown links to account pages. Guests who also own or belong to a host organization see a **Host** section with **Dashboard** above the **Explore** links (Profile · Stays · Vouchers · Favorites · Tickets). **Dashboard** from explore runs the global mode-switch curtain, then opens the org dashboard; from host marketing (`/for-hosts`) it navigates directly. Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
+Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown always has a **Host** section with **Dashboard** above the **Explore** links (Profile · Stays · Vouchers · Favorites · Tickets). **Dashboard** from explore runs the global mode-switch curtain, then opens **`/org`** (the hub redirects to an org the caller can access, or onboarding if none). From host marketing (`/for-hosts`) it navigates directly. On phone/tablet the same **Dashboard** row lives in the marketing **More** sheet (the header avatar is `lg+` only). Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
 
 **Host marketing (`/for-hosts`):** signed-in hosts see the same pill + avatar pattern — **Explore** switches to guest mode; avatar menu opens **Dashboard**. Signed-out hosts see **Explore** + **Sign In**.
 
@@ -51,6 +51,8 @@ Guests manage their own display name, bio, phone, location, and photo from their
   A: No, that's guest-managed. If a booking has the wrong contact info, edit the booking itself rather than the guest's account profile.
 - Q: Does updating their profile change their existing bookings?
   A: No. Profile info (name, bio, phone, location, photo) is separate from booking details already submitted.
+- Q: How do I open the host dashboard while browsing as a guest?
+  A: Open the avatar menu and tap Dashboard. On a phone, open More and tap Dashboard.
 
 ---
 
@@ -59,10 +61,10 @@ Guests manage their own display name, bio, phone, location, and photo from their
 Explore account routes use a **dashboard-style sidebar** (not horizontal tabs):
 
 - Desktop: sticky card sidebar with avatar, vertical nav + sliding active pill, log out
-- Mobile: one marketing header menu (explore links) + **horizontal account nav strip** below the header — no second drawer or hamburger
+- Mobile: the site-wide `MarketingBottomNav` bottom tab bar (Explore/Properties/Parkings/Account/More) plus a **top** `GuestAccountMobileNav` strip (`sticky top-16`, `lg:hidden`) below the marketing header for the account sub-nav — deliberately kept as a top strip rather than a second bottom tab bar (two bottom bars stacked on one screen is an anti-pattern; see `mobile-responsive` skill §2b)
 - Content sits below the fixed marketing nav (`pt-16 lg:pt-20`) so page titles no longer clash with the site header
 
-Sub-nav: Profile · Stays · Favorites · Tickets (log out in sidebar footer)
+Sub-nav: Profile · Stays · Vouchers · Favorites · Tickets (log out in sidebar footer). **2026-09-10:** the mobile strip's grid was `grid-cols-3` (only fit 3 of the 5 items, wrapping unevenly) — fixed to `grid-cols-5`.
 
 ---
 

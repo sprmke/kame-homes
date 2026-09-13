@@ -51,17 +51,17 @@ Read matching **route guides** and `docs/PROJECT.md` / architecture docs for tha
 
 Load domain rules/skills **when the surface touches them** (do not skip):
 
-| Surface                       | Read / invoke                                     |
-| ----------------------------- | ------------------------------------------------- |
-| Booking status / emails / cal | `.cursor/rules/booking-workflow.mdc`              |
-| Admin / org / property auth   | `admin-auth.mdc`, `security.mdc`, `supabase-auth` |
-| New host capability           | `plans-and-permissions` skill                     |
-| Host dashboard writes         | `ai-assistant-parity.mdc`                         |
-| Page / section UX             | `route-guides` + matching `docs/guides/routes/*`  |
-| Edge handlers                 | `supabase-edge-functions.mdc`                     |
-| Multi-tenant scoping          | `multi-tenancy` skill                             |
-| Mobile UI                     | `mobile-responsive`                               |
-| Docs / API / env              | `documentation-maintenance`                       |
+| Surface                       | Read / invoke                                            |
+| ----------------------------- | -------------------------------------------------------- |
+| Booking status / emails / cal | `.cursor/rules/booking-workflow.mdc`                     |
+| Admin / org / property auth   | `admin-auth.mdc`, `security.mdc`, `supabase-auth`        |
+| New host capability           | `plans-and-permissions` skill                            |
+| Host dashboard writes         | `ai-assistant-parity.mdc`                                |
+| Page / section UX             | `route-guides` + matching `docs/guides/routes/*`         |
+| Edge handlers                 | `supabase-edge-functions.mdc`                            |
+| Multi-tenant scoping          | `multi-tenancy` skill                                    |
+| Mobile UI                     | `mobile-responsive` (+ always-on `mobile-native-ui.mdc`) |
+| Docs / API / env              | `documentation-maintenance`                              |
 
 ## 2. Checklist (work top → bottom)
 

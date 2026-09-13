@@ -1,14 +1,14 @@
 ---
-stage: in-progress
+stage: done
 title: 'Marketing 5: Refine & Finalize Marketing Module'
 status: in-progress
 tags: [planning, marketing, templates, performance, publishing]
-updated: 2026-08-31
+updated: 2026-09-09
 ---
 
 # Marketing 5: Refine & Finalize Marketing Module
 
-**Status:** In progress — performance/rendering bugs and several AI-generation/publishing correctness bugs fixed. Feature gaps remain in Meta publishing (Facebook Stories/video, Instagram scheduling) — see [Remaining gaps](#remaining-gaps).
+**Status:** Done (2026-09-09) — scope was the reported performance / rendering bugs, the AI-generation correctness + safety fixes, and the Instagram video publish race; all shipped and doc-synced. The Meta publishing **feature gaps** (Facebook Stories/video, Instagram scheduling, `scheduledAt` UI, permalink, retry, Reels picker) were never in this plan's scope and are split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md). Manual QA per the testing guide below still recommended before relying on the fixes in production.
 
 ## Context
 
@@ -50,21 +50,11 @@ No implementation plan was written before work started (jumped straight to diagn
 - Shared **`MarketingAiGeneratePanel`** stepper aligned with **Import with AI**: segmented progress bar, step title + description in body, Back/Next/Generate footer.
 - Look suggestion **Templates** use square realistic mini previews; per-step **Next** validation; route guide updated.
 
-## Remaining gaps
+## Remaining gaps — deferred
 
-Found via code audit, not yet fixed — flagging so they don't get silently dropped:
+Found via a broader "is publishing production-ready" code audit; **not in this plan's scope** (the reported bugs were lag, broken thumbnails, click-to-play). Split to a dedicated backlog item so they are tracked separately:
 
-| Gap                                            | Where                                         | Notes                                                                                                                                                                                         |
-| ---------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Facebook Stories unsupported                   | `publish-to-meta/index.ts`                    | Explicit 400 — `resolvePublishType` returns `null` for `platform=facebook, postType=story`. Already documented in `docs/guides/routes/org/property/marketing.md`.                             |
-| Facebook video unsupported                     | `publish-to-meta/index.ts:161-163`            | Explicit 400 `'Facebook video publishing is not supported in v1'`. Already documented.                                                                                                        |
-| Instagram scheduling doesn't actually schedule | `publish-to-meta/index.ts:212-221`            | A future-dated IG request is stored as `pending` with no cron/scheduler to publish it later — a host who schedules sees nothing happen. Already flagged in the route guide as a known v1 gap. |
-| `scheduledAt` never sent from the UI           | `marketingPublishApi.ts`, `PublishDialog.tsx` | Even where the backend does support scheduling (Facebook), `PublishDialog` never collects or sends a `scheduledAt` — no date/time picker exists in the dialog. Not previously documented.     |
-| No publish confirmation / permalink shown      | `PublishDialog.tsx`, `PublishHistory.tsx`     | Success only shows a toast; the resulting `metaPostId` is captured by the API type but never rendered, so a host can't click through to verify the live post.                                 |
-| No retry from Publish History                  | `PublishHistory.tsx`                          | Failed publishes show `errorMessage` but there's no retry action.                                                                                                                             |
-| Instagram Reels unreachable from the UI        | `PublishDialog.tsx`                           | Backend supports `instagram_reel`, but the dialog only offers Post/Story — Reels is dead code from the client's perspective.                                                                  |
-
-None of these were in scope of the reported bugs (lag, broken thumbnails, click-to-play) — they surfaced from a broader "is publishing production-ready" audit. Recommend a follow-up plan if the host-facing scheduling/confirmation gaps matter for launch.
+→ [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Facebook Stories/video, Instagram scheduling (no cron), `scheduledAt` never sent from `PublishDialog`, no publish confirmation / permalink, no retry from Publish History, Instagram Reels unreachable from the UI.
 
 ## Testing guide
 
@@ -135,8 +125,8 @@ Requires a connected Facebook Page + Instagram account (Guest Inbox → connect)
 
 - `docs/guides/routes/org/property/marketing.md` — noted the Instagram video publish status-poll fix under Publish to Meta.
 
-## Next steps to close this out
+## Close-out (2026-09-09)
 
-1. Decide whether the Meta publishing gaps (scheduling UI, publish confirmation/permalink, Reels reachability) are in scope for this task or a separate follow-up.
-2. Manual QA pass per the testing guide above, in the running app with a connected Meta test account.
-3. Move to `docs/workflow/done/` once either (a) the gaps above are addressed, or (b) they're explicitly deferred to a new backlog item and this doc's scope is narrowed to "bug fixes" (already complete).
+1. Meta publishing feature gaps deferred → [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md); this doc's scope narrowed to the bug-fix slice, which is complete.
+2. Manual QA pass per the testing guide above still recommended in the running app with a connected Meta test account before relying on the fixes in production.
+3. Moved to `docs/workflow/done/`.

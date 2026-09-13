@@ -163,5 +163,5 @@ No new table. Design autosave stores `designJson.sourceReviewId` (+ binding fiel
 ## Related
 
 - Guest reviews shipped: [`guest-review-module-refinement.md`](./guest-review-module-refinement.md)
-- Marketing refinement (perf): [`../in-progress/marketing-module-refinement.md`](../in-progress/marketing-module-refinement.md)
+- Marketing refinement (perf): [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md)
 - Intake sibling (page theming): _Marketing — edit guest review page design_ in `_to-plan.md`

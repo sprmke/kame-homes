@@ -16,6 +16,14 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  POSTHOG_UI_TO_EDGE,
+  UI_SHARED_KEYS,
+  readEnvFile,
+  setAlways,
+  setIfMissing,
+  writeSectionedEnvSync,
+} from './env-sync-lib.mjs';
 
 const ROOT = join(import.meta.dir, '../..');
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -78,6 +86,9 @@ const DEV_EDGE_FROM_LOCAL = [
   'CALENDAR_SYNC_CRON_SECRET',
   'SMART_PRICING_CRON_SECRET',
   'SUPERHOST_ASSESSMENT_CRON_SECRET',
+  'ANALYTICS_AI_REVIEW_CRON_SECRET',
+  'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
+  'ACTIVITY_LOG_RETENTION_CRON_SECRET',
 ];
 
 /** Never push to hosted DEV from local-only ngrok / override paths. */
@@ -103,92 +114,135 @@ const LEGACY_REMOTE_UNSET = [
   'GOOGLE_SPREADSHEET_ID',
 ];
 
-/** @param {string} raw */
-function parseEnvFile(raw) {
-  /** @type {Map<string, string>} */
-  const map = new Map();
-  for (const line of raw.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1);
-    if (
-      (value.startsWith("'") && value.endsWith("'")) ||
-      (value.startsWith('"') && value.endsWith('"'))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (key) map.set(key, value);
-  }
-  return map;
-}
+/** Copied from .env.local → .env.dev.local with setAlways (not only when missing). */
+const EDGE_ALWAYS_FROM_LOCAL = new Set([
+  'TURNSTILE_SECRET_KEY',
+  'POSTHOG_API_KEY',
+  'POSTHOG_HOST',
+]);
 
-/** @param {string} path */
-function readEnv(path) {
-  if (!existsSync(path)) return new Map();
-  return parseEnvFile(readFileSync(path, 'utf8'));
-}
+const UI_SECTIONS_HOSTED = [
+  { title: 'App', keys: ['VITE_NODE_ENV'] },
+  {
+    title: 'Supabase',
+    keys: ['VITE_SUPABASE_URL', 'VITE_API_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_PROJECT_URL'],
+  },
+  { title: 'Admin UI', keys: ['VITE_SUPER_ADMIN_EMAILS'] },
+  {
+    title: 'Platform branding (UI only)',
+    keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
+  },
+  { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
+  { title: 'Observability', keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'] },
+  { title: 'PWA', keys: ['VITE_VAPID_PUBLIC_KEY'] },
+  { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
+];
 
-/** @param {Map<string, string>} map @param {string} key @param {string} value */
-function setIfMissing(map, key, value) {
-  const cur = map.get(key)?.trim();
-  if (!cur && value) {
-    map.set(key, value);
-    return 'added';
-  }
-  return null;
-}
+/** Propagate shared UI keys across development env files (ui/.env stays PostHog-only). */
+function mergeUiShared() {
+  const uiRootPath = join(ROOT, 'ui/.env');
+  const uiDevPath = join(ROOT, 'ui/.env.development');
+  const uiHostedPath = join(ROOT, 'ui/.env.development.dev');
 
-/** @param {Map<string, string>} map @param {string} key @param {string} value */
-function setAlways(map, key, value) {
-  if (!value) return null;
-  const prev = map.get(key);
-  if (prev === value) return null;
-  map.set(key, value);
-  return prev === undefined ? 'added' : 'updated';
-}
+  const uiRoot = readEnvFile(uiRootPath);
+  const uiDev = readEnvFile(uiDevPath);
+  const uiHosted = readEnvFile(uiHostedPath);
+  const changes = [];
 
-/**
- * @param {string} path
- * @param {{ title: string; keys: string[] }[]} sections
- * @param {Map<string, string>} values
- */
-function writeSectionedEnv(path, sections, values) {
-  const used = new Set();
-  const lines = [];
-  for (const section of sections) {
-    const entries = section.keys
-      .map((key) => ({ key, value: values.get(key) }))
-      .filter((e) => e.value !== undefined && e.value !== '');
-    if (entries.length === 0) continue;
-    lines.push('', `# ${section.title}`);
-    for (const { key, value } of entries) {
-      used.add(key);
-      const needsQuotes = /[\s#"'\\]/.test(value) || value.includes(',');
-      lines.push(needsQuotes ? `${key}='${value.replace(/'/g, "'\\''")}'` : `${key}=${value}`);
+  const posthogKeys = ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'];
+  for (const key of posthogKeys) {
+    const canonical =
+      uiRoot.get(key)?.trim() || uiDev.get(key)?.trim() || uiHosted.get(key)?.trim() || '';
+    if (!canonical) continue;
+    for (const [label, map] of [
+      ['ui/.env', uiRoot],
+      ['ui/.env.development', uiDev],
+      ['ui/.env.development.dev', uiHosted],
+    ]) {
+      const r = setAlways(map, key, canonical);
+      if (r) changes.push(`${label}: ${r} ${key}`);
     }
   }
-  const extras = [...values.keys()].filter((k) => !used.has(k)).sort();
-  if (extras.length > 0) {
-    lines.push('', '# Other');
-    for (const key of extras) {
-      const value = values.get(key) ?? '';
-      const needsQuotes = /[\s#"'\\]/.test(value) || value.includes(',');
-      lines.push(needsQuotes ? `${key}='${value.replace(/'/g, "'\\''")}'` : `${key}=${value}`);
+
+  const devOnlyKeys = UI_SHARED_KEYS.filter((k) => !posthogKeys.includes(k));
+  for (const key of devOnlyKeys) {
+    const canonical =
+      uiDev.get(key)?.trim() || uiHosted.get(key)?.trim() || uiRoot.get(key)?.trim() || '';
+    if (!canonical) continue;
+    for (const [label, map] of [
+      ['ui/.env.development', uiDev],
+      ['ui/.env.development.dev', uiHosted],
+    ]) {
+      const r = setAlways(map, key, canonical);
+      if (r) changes.push(`${label}: ${r} ${key}`);
     }
   }
-  const body = `${lines.join('\n').replace(/^\n+/, '')}\n`;
-  if (!DRY_RUN) writeFileSync(path, body, 'utf8');
-  return body;
+
+  if (!SKIP_LOCAL && !DRY_RUN) {
+    if (existsSync(uiRootPath)) {
+      writeSectionedEnvSync(
+        uiRootPath,
+        [{ title: 'Observability (all modes)', keys: posthogKeys }],
+        uiRoot,
+        DRY_RUN
+      );
+    }
+    if (existsSync(uiHostedPath)) {
+      writeSectionedEnvSync(uiHostedPath, UI_SECTIONS_HOSTED, uiHosted, DRY_RUN);
+    }
+  }
+
+  console.log(`mergeUiShared: ${changes.length} field(s) aligned`);
+  for (const c of changes) console.log(`  - ${c}`);
+}
+
+/** Mirror VITE_POSTHOG_* → POSTHOG_* on supabase/.env.local (mergeDevLocal copies to .env.dev.local). */
+function syncPosthogToEdge() {
+  const uiRoot = readEnvFile(join(ROOT, 'ui/.env'));
+  const uiDev = readEnvFile(join(ROOT, 'ui/.env.development'));
+  const posthogKey =
+    uiRoot.get('VITE_POSTHOG_KEY')?.trim() || uiDev.get('VITE_POSTHOG_KEY')?.trim() || '';
+  const posthogHost =
+    uiRoot.get('VITE_POSTHOG_HOST')?.trim() || uiDev.get('VITE_POSTHOG_HOST')?.trim() || '';
+  if (!posthogKey && !posthogHost) return;
+
+  const localPath = join(ROOT, 'supabase/.env.local');
+  if (!existsSync(localPath)) return;
+  const map = readEnvFile(localPath);
+  const changes = [];
+  if (posthogKey) {
+    const r = setAlways(map, POSTHOG_UI_TO_EDGE.VITE_POSTHOG_KEY, posthogKey);
+    if (r) changes.push(`${r} POSTHOG_API_KEY`);
+  }
+  if (posthogHost) {
+    const r = setAlways(map, POSTHOG_UI_TO_EDGE.VITE_POSTHOG_HOST, posthogHost);
+    if (r) changes.push(`${r} POSTHOG_HOST`);
+  }
+  if (changes.length) {
+    console.log('syncPosthogToEdge (supabase/.env.local):');
+    for (const c of changes) console.log(`  - ${c}`);
+  }
+  // Patch .env.local in place; mergeDevLocal + reorganize finish formatting.
+  if (!SKIP_LOCAL && !DRY_RUN && changes.length > 0) {
+    let raw = readFileSync(localPath, 'utf8');
+    for (const [k, v] of [
+      ['POSTHOG_API_KEY', posthogKey],
+      ['POSTHOG_HOST', posthogHost],
+    ]) {
+      if (!v) continue;
+      if (new RegExp(`^${k}=`, 'm').test(raw)) {
+        raw = raw.replace(new RegExp(`^${k}=.*$`, 'm'), `${k}=${v}`);
+      }
+    }
+    writeFileSync(localPath, raw);
+  }
 }
 
 function mergeDevLocal() {
   const localPath = join(ROOT, 'supabase/.env.local');
   const devPath = join(ROOT, 'supabase/.env.dev.local');
-  const local = readEnv(localPath);
-  const dev = readEnv(devPath);
+  const local = readEnvFile(localPath);
+  const dev = readEnvFile(devPath);
 
   const changes = [];
 
@@ -213,7 +267,9 @@ function mergeDevLocal() {
   for (const key of DEV_EDGE_FROM_LOCAL) {
     const fromLocal = local.get(key)?.trim();
     if (!fromLocal) continue;
-    const r = setIfMissing(dev, key, fromLocal);
+    const r = EDGE_ALWAYS_FROM_LOCAL.has(key)
+      ? setAlways(dev, key, fromLocal)
+      : setIfMissing(dev, key, fromLocal);
     if (r) changes.push(`${r} ${key} from .env.local`);
   }
 
@@ -291,12 +347,15 @@ function mergeDevLocal() {
         'CALENDAR_SYNC_CRON_SECRET',
         'SMART_PRICING_CRON_SECRET',
         'SUPERHOST_ASSESSMENT_CRON_SECRET',
+        'ANALYTICS_AI_REVIEW_CRON_SECRET',
+        'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
+        'ACTIVITY_LOG_RETENTION_CRON_SECRET',
       ],
     },
   ];
 
   if (!SKIP_LOCAL) {
-    writeSectionedEnv(devPath, sections, dev);
+    writeSectionedEnvSync(devPath, sections, dev, DRY_RUN);
     console.log(
       `${DRY_RUN ? 'would update' : 'updated'} supabase/.env.dev.local (${changes.length} field changes)`
     );
@@ -310,37 +369,29 @@ function mergeUiDev() {
   const uiDevPath = join(ROOT, 'ui/.env.development');
   const uiHostedPath = join(ROOT, 'ui/.env.development.dev');
   const uiRoot = join(ROOT, 'ui/.env');
-  const local = readEnv(uiDevPath);
-  const hosted = readEnv(uiHostedPath);
-  const shared = readEnv(uiRoot);
+  const local = readEnvFile(uiDevPath);
+  const hosted = readEnvFile(uiHostedPath);
+  const shared = readEnvFile(uiRoot);
   const changes = [];
 
   setAlways(hosted, 'VITE_NODE_ENV', 'development');
   setAlways(hosted, 'VITE_SUPABASE_URL', `${DEV_SUPABASE_URL}/functions/v1`);
   setAlways(hosted, 'VITE_API_URL', `${DEV_SUPABASE_URL}/functions/v1`);
 
-  for (const key of [
-    'VITE_SUPABASE_ANON_KEY',
-    'VITE_SUPER_ADMIN_EMAILS',
-    'VITE_GOOGLE_MAPS_API_KEY',
-    'VITE_PLATFORM_APP_NAME',
-    'VITE_PLATFORM_CONTACT_EMAIL',
-    'VITE_VAPID_PUBLIC_KEY',
-    'VITE_TURNSTILE_SITE_KEY',
-  ]) {
-    const src = local.get(key)?.trim() || shared.get(key)?.trim();
+  for (const key of UI_SHARED_KEYS) {
+    const src = shared.get(key)?.trim() || local.get(key)?.trim() || hosted.get(key)?.trim();
     if (!src) continue;
-    // Prefer existing hosted anon key if already set (must match fwor…)
-    if (key === 'VITE_SUPABASE_ANON_KEY' && hosted.get(key)?.trim()) continue;
-    const r = setIfMissing(hosted, key, src);
+    const r = setAlways(hosted, key, src);
     if (r) changes.push(`${r} ${key}`);
   }
 
-  for (const key of ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST']) {
-    const src = shared.get(key)?.trim() || local.get(key)?.trim();
-    if (!src) continue;
-    const r = setIfMissing(hosted, key, src);
-    if (r) changes.push(`${r} ${key}`);
+  // Prefer existing hosted anon key (must match fwor…)
+  if (!hosted.get('VITE_SUPABASE_ANON_KEY')?.trim()) {
+    const anon = local.get('VITE_SUPABASE_ANON_KEY')?.trim();
+    if (anon) {
+      const r = setAlways(hosted, 'VITE_SUPABASE_ANON_KEY', anon);
+      if (r) changes.push(`${r} VITE_SUPABASE_ANON_KEY`);
+    }
   }
 
   // Align super-admin list with local when local is richer
@@ -350,25 +401,8 @@ function mergeUiDev() {
     if (r) changes.push(`${r} VITE_SUPER_ADMIN_EMAILS (from local list)`);
   }
 
-  const sections = [
-    { title: 'App', keys: ['VITE_NODE_ENV'] },
-    {
-      title: 'Supabase',
-      keys: ['VITE_SUPABASE_URL', 'VITE_API_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_PROJECT_URL'],
-    },
-    { title: 'Admin UI', keys: ['VITE_SUPER_ADMIN_EMAILS'] },
-    {
-      title: 'Platform branding (UI only)',
-      keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
-    },
-    { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
-    { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
-    { title: 'Observability', keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'] },
-    { title: 'PWA', keys: ['VITE_VAPID_PUBLIC_KEY'] },
-  ];
-
   if (!SKIP_LOCAL) {
-    writeSectionedEnv(uiHostedPath, sections, hosted);
+    writeSectionedEnvSync(uiHostedPath, UI_SECTIONS_HOSTED, hosted, DRY_RUN);
     console.log(
       `${DRY_RUN ? 'would update' : 'updated'} ui/.env.development.dev (${changes.length} field changes)`
     );
@@ -425,19 +459,38 @@ function pushSupabaseSecrets(dev) {
     process.exit(setRes.status ?? 1);
   }
 
-  const unsetRes = spawnSync('supabase', ['secrets', 'unset', ...LEGACY_REMOTE_UNSET], {
+  const listRes = spawnSync('supabase', ['secrets', 'list', '--output', 'json'], {
     cwd: ROOT,
     encoding: 'utf8',
   });
-  console.log(unsetRes.stdout || '');
-  if (unsetRes.status !== 0) {
-    console.warn(unsetRes.stderr || 'secrets unset had errors (some may already be gone)');
+  let toUnset = LEGACY_REMOTE_UNSET;
+  if (listRes.status === 0 && listRes.stdout) {
+    try {
+      const remote = new Set(JSON.parse(listRes.stdout).map((row) => row.name));
+      toUnset = LEGACY_REMOTE_UNSET.filter((name) => remote.has(name));
+    } catch {
+      // keep full list
+    }
+  }
+  if (toUnset.length > 0) {
+    const unsetRes = spawnSync('supabase', ['secrets', 'unset', '--yes', ...toUnset], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
+    console.log(unsetRes.stdout || '');
+    if (unsetRes.status !== 0) {
+      console.warn(unsetRes.stderr || 'secrets unset had errors (some may already be gone)');
+    }
+  } else {
+    console.log('no legacy Supabase secrets to unset');
   }
 
   console.log('Supabase DEV secrets synced.');
 }
 
 console.log(`sync-dev-env ${DRY_RUN ? '(dry-run)' : ''}`);
+mergeUiShared();
+syncPosthogToEdge();
 const dev = mergeDevLocal();
 mergeUiDev();
 

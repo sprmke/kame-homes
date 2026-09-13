@@ -34,7 +34,7 @@ Deep links:
 
 Hub for **in-app activity** (same org-wide feed as the bell) and **Telegram** alerts for this parking slot.
 
-**Plan gating (interim):** Parking routes temporarily skip property-plan checks for **Telegram Chat enable** and the **AI dashboard assistant** until org-level subscription entitlements ship ([`pricing-portfolio-bundling.md`](../../../workflow/planned/pricing-portfolio-bundling.md)). Replace with org entitlement checks when that project lands.
+**Plan gating:** **Telegram Chat enable** and the **AI dashboard assistant** gate on the org's own live subscription (or Free default) — `requireOrgFeature`/`resolveOrgEntitlements` server-side, `useFeatureGate`/`useOrgPlan` client-side — same as any org-only page, no property involved. Closed 2026-09-09; see [`parking-property-parity.md`](../../../workflow/in-progress/parking-property-parity.md).
 
 ### This device (PWA)
 

@@ -1,27 +1,22 @@
 #!/usr/bin/env bun
 /**
- * Push UI hosted-dev env vars to Vercel project `kame-homes` (Preview + Development).
+ * Push UI hosted-dev env vars to Vercel project `kame-homes`.
  *
- * Requires a valid Vercel CLI session: `npx vercel login --github --oob`
+ * Requires `vercel login` on an account with access to kame-works/kame-homes.
  *
  * Usage:
  *   bun scripts/dev/sync-vercel-dev-env.mjs [--dry-run] [--production-too]
  *
- * Default scopes: preview + development (multi-tenant DEV / dev.kamehomes.space).
- * Pass --production-too only when intentionally mirroring the same values to Production
- * (not recommended until mt-prod cutover).
+ * Default targets: preview + development. Pass --production-too to include Production.
  */
 
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadVercelAuth, readEnvFile, vercelUpsertEnv } from './env-sync-lib.mjs';
 
 const ROOT = join(import.meta.dir, '../..');
 const DRY_RUN = process.argv.includes('--dry-run');
 const INCLUDE_PRODUCTION = process.argv.includes('--production-too');
-
-const PROJECT = 'kame-homes';
-const SCOPE = 'kame-works';
 
 const UI_KEYS = [
   'VITE_NODE_ENV',
@@ -40,43 +35,12 @@ const UI_KEYS = [
   'POSTHOG_PROJECT_ID',
 ];
 
-/** @param {string} raw */
-function parseEnvFile(raw) {
-  /** @type {Map<string, string>} */
-  const map = new Map();
-  for (const line of raw.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1);
-    if (
-      (value.startsWith("'") && value.endsWith("'")) ||
-      (value.startsWith('"') && value.endsWith('"'))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (key) map.set(key, value);
-  }
-  return map;
-}
-
-function vercel(args) {
-  return spawnSync('npx', ['--yes', 'vercel@41.7.8', ...args], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-}
-
-const who = vercel(['whoami']);
-if (who.status !== 0) {
-  console.error('Vercel CLI not authenticated.');
-  console.error('Run: npx vercel@41.7.8 login --github --oob');
-  console.error(who.stderr || who.stdout);
+const auth = loadVercelAuth(ROOT);
+if (!auth) {
+  console.error('Vercel CLI not authenticated or .vercel/project.json missing.');
+  console.error('Run: npx vercel@latest login');
   process.exit(1);
 }
-console.log(`Vercel user: ${(who.stdout || '').trim()}`);
 
 const hostedPath = join(ROOT, 'ui/.env.development.dev');
 const rootPath = join(ROOT, 'ui/.env');
@@ -85,8 +49,8 @@ if (!existsSync(hostedPath)) {
   process.exit(1);
 }
 
-const hosted = parseEnvFile(readFileSync(hostedPath, 'utf8'));
-const shared = existsSync(rootPath) ? parseEnvFile(readFileSync(rootPath, 'utf8')) : new Map();
+const hosted = readEnvFile(hostedPath);
+const shared = readEnvFile(rootPath);
 
 const values = new Map();
 for (const key of UI_KEYS) {
@@ -97,38 +61,28 @@ for (const key of UI_KEYS) {
 const targets = ['preview', 'development'];
 if (INCLUDE_PRODUCTION) targets.push('production');
 
-console.log(`Setting ${values.size} vars on ${PROJECT} (${targets.join(', ')})`);
+console.log(
+  `Vercel sync → ${auth.projectName} (${targets.join(', ')}): ${values.size} key(s)${DRY_RUN ? ' [dry-run]' : ''}`
+);
 
+if (DRY_RUN) {
+  for (const [key] of values) console.log(`  would set ${key}`);
+  process.exit(0);
+}
+
+let ok = 0;
+let fail = 0;
 for (const [key, value] of values) {
-  for (const env of targets) {
-    const args = [
-      'env',
-      'add',
-      key,
-      env,
-      '--force',
-      '--scope',
-      SCOPE,
-      '--yes',
-    ];
-    // vercel env add reads value from stdin when not interactive
-    if (DRY_RUN) {
-      console.log(`dry-run: vercel env add ${key} ${env}`);
-      continue;
-    }
-    const res = spawnSync('npx', ['--yes', 'vercel@41.7.8', ...args], {
-      cwd: ROOT,
-      encoding: 'utf8',
-      input: `${value}\n`,
-      env: { ...process.env, VERCEL_ORG_ID: undefined },
-    });
-    if (res.status !== 0) {
-      // Fallback: some CLI versions want `vercel env add NAME` then environment prompt
-      console.warn(`warn ${key}@${env}: ${(res.stderr || res.stdout || '').trim().slice(0, 200)}`);
-    } else {
-      console.log(`set ${key} → ${env}`);
-    }
+  const result = await vercelUpsertEnv(auth, key, value, targets);
+  if (result.ok) {
+    ok += 1;
+    console.log(`OK ${key} (${result.status})`);
+  } else {
+    fail += 1;
+    const err = result.payload?.error ?? result.payload;
+    console.error(`FAIL ${key} (${result.status})`, err);
   }
 }
 
-console.log(DRY_RUN ? 'dry-run complete' : 'Vercel env sync attempted. Verify in Dashboard → kame-homes → Settings → Environment Variables.');
+console.log(`\n${ok} ok, ${fail} failed. Verify: npx vercel@latest env ls`);
+if (fail > 0) process.exit(1);

@@ -13,7 +13,9 @@
     "eslint-plugin-react-hooks",
     "eslint-plugin-react-refresh",
     "eslint-plugin-unicorn",
-    "remotion"
+    "remotion",
+    "immer",
+    "posthog-node"
   ],
   "ignoreUnresolvedImports": ["pdfjs-dist/build/pdf.worker.min.mjs?url"],
   "ignoreExports": [
@@ -50,5 +52,5 @@
       "exports": ["*"]
     }
   ],
-  "entry": ["scripts/dev/*.mjs", "scripts/docs/*.mjs", "commitlint.config.js"]
+  "entry": ["scripts/dev/*.mjs", "scripts/docs/*.mjs", "scripts/pwa/*.mjs", "commitlint.config.js"]
 }

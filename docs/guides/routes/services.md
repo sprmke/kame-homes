@@ -13,7 +13,7 @@ Route: `/services`
 
 ## Overview
 
-Public preview for future guest services. Uses `MarketingLayoutShell` and the same listing search and scroll morph as `/properties` and `/developments`.
+Public preview for future guest services. Uses `MarketingLayoutShell` and the same listing search and scroll morph as `/properties` and `/developments`. Mobile shell: `MarketingLayoutShell` bottom tabs — see [index-landing.md](./index-landing.md) § Mobile shell.
 
 ---
 

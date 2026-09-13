@@ -2,7 +2,7 @@
 title: 'Organization Team — operator guide'
 status: active
 tags: [guides, routes, org, team]
-updated: 2026-09-04
+updated: 2026-09-10
 ---
 
 # Organization Team — operator guide
@@ -203,6 +203,12 @@ Migration: `supabase/migrations/20261209130000_org_team_granular_permissions.sql
 | Route            | `ui/src/features/dashboard/routes/index.tsx`                                                                                                   |
 | Sidebar          | `ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts` — Org → Team                                                                       |
 | Accept page      | `ui/src/features/dashboard/team/pages/AcceptInvitePage.tsx`                                                                                    |
+
+---
+
+## Member activity history
+
+The **Manage Member** dialog (`OrgManageMemberDialog`) embeds `<EntityActivityHistory targetType="member" targetId={member.id} />` below the role / listing-access controls — the recent `team.member_*` / `team.invite_accepted` events for that member, read from `list-activity-log`. Read-only; "Show more" expands. Full org team history is on the [Activity](./activity.md) page.
 
 ---
 

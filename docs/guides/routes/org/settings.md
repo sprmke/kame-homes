@@ -2,7 +2,7 @@
 title: 'Organization Settings — operator guide'
 status: active
 tags: [guides, routes, org, settings]
-updated: 2026-09-04
+updated: 2026-09-10
 ---
 
 # Organization Settings — operator guide
@@ -20,6 +20,7 @@ Route: `/org/:orgSlug/settings`
 | Trust                  | Read-only | Server       | Done | Earned Superhost badge progress (four criteria, next assessment) — no save path                                  |
 | AI platform            | Yes       | Server       | Done | Per-org usage quotas and enabled features; read-only when platform AI off                                        |
 | AI dashboard assistant | Yes       | Server       | Done | Opt-in + quotas; chat starters, file attach, per-page pin + Search all modules, canvas Open/Back, history delete |
+| Activity               | Read-only | n/a          | Done | Summary row + **Manage** → modal with full org activity feed (`ActivityLogPanel`)                                |
 | Danger zone            | Partial   | Slug confirm | Done | Delete when no bookings; finance/maintenance can block; see § Danger zone                                        |
 
 ---
@@ -166,6 +167,10 @@ Save path: section-local **Save assistant settings** → `PATCH dashboard-assist
 When **Assistant enabled** is on, the section also shows read-only usage for this month: messages, write actions, and **credits consumed** (from `ai_dashboard_assistant_usage_daily.credits_consumed`, reconciled with platform AI metering). Opt-in via `GET dashboard-assistant-settings?includeUsage=true`.
 
 **Chat panel** (not this page): floating sparkles button → slide-over (`sm:max-w-xl` chat-only; wider when canvas is open). Empty chat centers a **Questions / Actions** mode switch (5 randomized prompt cards from `assistantSuggestions.ts`). Tap sends the prompt. While the assistant is working, a left-aligned message bubble with sparkles and bouncing dots appears in the thread (not a floating “Thinking…” line). Composer text is full-width and left-aligned; it grows up to 10 lines, then scrolls. Attach, context pin, and send sit on a row under the text. Paperclip (JPEG/PNG/WebP/PDF, max 3 × 4 MB) + **context pin hub** (`ChatComposerContextHub` — bookmark icon opens module list, drill into items, **Back** returns to modules; current-page module labeled **This page**; max 8 chips) + **Search all modules…** / **Cmd/Ctrl+K** command palette (`ChatContextCommandPalette`, same two-step drill-down) + **mic (speech-to-text**, Chrome/Safari/Edge on HTTPS — tap to start/stop, appends to existing text, stops on send) + send. Pins travel as `attachedContext[]` and do not overwrite the current page's `pageContext`. Asking for a booking file (approved GAF, receipt, ID) shows a preview card from the Files tab, not only a status summary. A booking journey or a table with more than 8 rows shows **Open** → `ChatCanvasOverlay` (split at `lg` / replace below). Suggested chips fill the composer. History (clock) lists your chats grouped by day, with search, wrapping titles, and delete (confirm).
+
+### Activity
+
+Read-only. Summary: "Who did what across your organization." **Manage** opens a large modal (`ActivitySettingsSection` → `ActivityLogPanel`) with the full org-wide activity feed: search, destructive filter, category/date filters, infinite scroll, detail sheet, and CSV export (owner / org-admin, `activityLogExport` plan gate). Legacy `/org/:orgSlug/activity` redirects here with `?open=activity` so the modal opens automatically. See [activity.md](./activity.md). No save path.
 
 ### Danger zone — delete organization
 

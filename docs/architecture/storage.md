@@ -52,4 +52,13 @@ Backfill of already-stored images is **out of scope** (originals are not retaine
 
 **Import uploads (Smart AI Data Importer):** **`import-uploads`** — private bucket, **`text/csv`** only, 15 MB file limit. Created in **`20261007120000_import_batches.sql`**. Objects at `{orgId}/{batchId}/{filename}`; written by **`import-parse-file`**, deleted by **`import-cancel`**. Service-role policy only — no guest or anon access.
 
+**Marketing AI generation (Generate tab):** no new bucket — two prefixes inside the existing public **`property-media`** bucket (50 MB, `image/*` + `video/*` + `audio/*`), so no bucket migration and no `config.toml` change.
+
+| Prefix                                       | Written by                               | Retention                                                                                     |
+| -------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `marketing-ai-refs/{propertyId}/{uuid}{ext}` | `upload-marketing-generation-reference`  | Pruned 90 days after `COALESCE(last_used_at, created_at)` (sweeper pass, Phase 2)             |
+| `marketing-ai/{propertyId}/{jobId}{ext}`     | `generate-marketing-media` (and sweeper) | **Never auto-pruned** — host assets that may be live on Meta; pruning would break the gallery |
+
+Outputs are keyed by **job id**, and the upload is `upsert: true`, so a retried finalize overwrites rather than orphaning a duplicate — the upload step is idempotent by construction. References are magic-byte sniffed (`_shared/marketingGenerationStorage.ts#sniffVisualMime`) and rejected when the sniffed family disagrees with the declared mime, before anything reaches a public bucket.
+
 **AI dashboard assistant attachments:** **`ai-assistant-attachments`** — private bucket, JPEG/PNG/WebP/PDF, 4 MB. Created in **`20261019120000_ai_assistant_attachments.sql`**. Objects at `{orgId}/{userId}/{conversationId}/{uuid}-{filename}`; written by **`dashboard-assistant-chat`**. Metadata on **`ai_dashboard_assistant_messages.attachments`** (`[{ name, mimeType, size, path }]`). Service-role policy only — bytes are not stored in Postgres and are not logged. **`DELETE dashboard-assistant-conversations?conversation_id=`** removes that conversation's folder (best-effort) before cascading the DB row.

@@ -45,7 +45,7 @@ flowchart LR
   EF --> R
 ```
 
-- **UI**: React 18, Vite, React Router, React Hook Form + Zod, Tailwind, Radix/shadcn-style components, Sonner toasts.
+- **UI**: React 18, Vite, React Router, React Hook Form + Zod, Tailwind, Radix/shadcn-style components, Sonner toasts (error and warning copy is sanitized to short host-facing lines).
 - **Backend**: Supabase Edge Functions under `supabase/functions/` (no separate Node API package).
 - **Local dev**: `dev.sh` runs **`scripts/dev/run-with-ui-dev-env.sh`** before **`supabase start`**, then **`scripts/dev/build-local-functions-env.sh`** + **`supabase functions serve`** so `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` from **`ui/.env.development`** are in the shell when the CLI resolves `config.toml` `env(...)`. Edge secrets come from a merged **`supabase/.temp/functions-serve.env`**. Then `cd ui && bun run dev`. **Package manager:** **Bun** (`bun install`, `bun run …`). **UI-only (no Docker):** `./dev.sh --ui-only` or `SKIP_SUPABASE=1 ./dev.sh` — point `ui/.env.development` at a hosted Supabase project. Do not start a second `supabase functions serve` in parallel (Docker edge-runtime name conflict). **`bun run dev:api`** uses the same merged env file.
 - **502 on `/functions/v1/*` (Kong “Bad Gateway”)**: Usually Kong is still targeting an old **Docker edge-runtime** IP after **`bun run db:reset`** or a partial restart while `./dev.sh` is running. **`bun run stop:supabase`** then **`./dev.sh`** resyncs Kong with the host `functions serve` process. Confirm with `docker logs supabase_kong_<project> 2>&1 | tail -20` — look for `Host is unreachable` toward `172.x.x.x:8081`.

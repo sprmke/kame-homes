@@ -42,7 +42,7 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 **Backups:** `.env-backups/<date>/` (gitignored). Re-format after edits: `bun run env:reorganize` (`scripts/dev/reorganize-env-files.mjs`).
 
-**Hosted multi-tenant DEV sync:** `bun run env:sync:dev` merges shared secrets from `supabase/.env.local` → `supabase/.env.dev.local`, aligns `ui/.env.development.dev`, pushes Edge secrets to the linked DEV project (`fwor…`), and unsets legacy Google/Gmail Calendar/Sheets secrets. Does **not** touch Vercel or LEGACY prod. Vercel Preview vars for `kame-homes`: `bun scripts/dev/sync-vercel-dev-env.mjs` (requires `vercel login`).
+**Keep env files in sync:** `bun run env:sync:all` — reorganize → merge UI (`ui/.env` ↔ `.env.development` ↔ `.env.development.dev`) + PostHog → Edge (`VITE_POSTHOG_*` → `POSTHOG_*`) → `supabase/.env.dev.local` → push Supabase DEV secrets → Vercel `kame-homes`. Subcommands: `env:reorganize`, `env:sync:dev` (local + Supabase only), `env:sync:vercel:dev` (Vercel only; requires `vercel login` on `kame-works`). Does **not** touch LEGACY prod.
 
 **Format:** Short `# Section` headers; optional vars commented in `*.example` only. Operator settings (email, payment, Telegram) live in DB — not env. Contact email is **UI-only** (`VITE_PLATFORM_CONTACT_EMAIL`) — never put `PLATFORM_CONTACT_EMAIL` in Edge env.
 
@@ -161,12 +161,13 @@ When invoking `supabase functions serve` manually, `./dev.sh` / `bun run dev:api
 
 #### AI
 
-| Variable                                                    | Notes                                                                                                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GEMINI_API_KEYS`                                           | Comma-separated (local/dev rotation)                                                                                                                                                                                                                                                                                                           |
-| `GEMINI_API_KEY`                                            | Single key — **required for production**                                                                                                                                                                                                                                                                                                       |
-| `GROQ_API_KEY`                                              | Fallback when Gemini fails                                                                                                                                                                                                                                                                                                                     |
-| `GEMINI_MODEL_OVERRIDE_<FEATURE>` / `GEMINI_MODEL_OVERRIDE` | Optional. Overrides the model id from `_shared/aiModelRouter.ts` (e.g. `GEMINI_MODEL_OVERRIDE_DASHBOARD_ASSISTANT=gemini-3.5-flash-lite`). Pricing metadata unchanged. Local/dev when free-tier quota is exhausted on the default model. After changing: rebuild via `scripts/dev/build-local-functions-env.sh` and restart `functions serve`. |
+| Variable                                                                      | Notes                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GEMINI_API_KEYS`                                                             | Comma-separated (local/dev rotation)                                                                                                                                                                                                                                                                                                           |
+| `GEMINI_API_KEY`                                                              | Single key — **required for production**                                                                                                                                                                                                                                                                                                       |
+| `GROQ_API_KEY`                                                                | Fallback when Gemini fails                                                                                                                                                                                                                                                                                                                     |
+| `GEMINI_MODEL_OVERRIDE_<FEATURE>` / `GEMINI_MODEL_OVERRIDE`                   | Optional. Overrides the model id from `_shared/aiModelRouter.ts` (e.g. `GEMINI_MODEL_OVERRIDE_DASHBOARD_ASSISTANT=gemini-3.5-flash-lite`). Pricing metadata unchanged. Local/dev when free-tier quota is exhausted on the default model. After changing: rebuild via `scripts/dev/build-local-functions-env.sh` and restart `functions serve`. |
+| `GEMINI_MODEL_OVERRIDE_MARKETING_IMAGE_<TIER>` / `..._MARKETING_VIDEO_<TIER>` | Optional. `<TIER>` is `DRAFT` \| `STANDARD` \| `PREMIUM`. Overrides the media-generation model id from `MARKETING_IMAGE_MODELS` / `MARKETING_VIDEO_MODELS` in `_shared/aiModelRouter.ts`. Pricing metadata unchanged — the credit table still charges the tier's published rate, so use this only for local/dev model swaps.                   |
 
 #### Meta (Guest Inbox + Marketing publish)
 
@@ -227,6 +228,7 @@ When set, matching cron endpoints require the corresponding header. See **`docs/
 
 | Variable                                     | Header                                         |
 | -------------------------------------------- | ---------------------------------------------- |
+| `SD_REFUND_CRON_SECRET`                      | `X-Sd-Refund-Cron-Secret`                      |
 | `TELEGRAM_CRON_SECRET`                       | `X-Telegram-Cron-Secret`                       |
 | `TELEGRAM_STAFF_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                       |
 | `TELEGRAM_ADMIN_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                       |
@@ -240,10 +242,18 @@ When set, matching cron endpoints require the corresponding header. See **`docs/
 | `PLATFORM_BILLING_CRON_SECRET`               | `X-Platform-Billing-Cron-Secret`               |
 | `CALENDAR_SYNC_CRON_SECRET`                  | `X-Calendar-Sync-Cron-Secret`                  |
 | `SMART_PRICING_CRON_SECRET`                  | `X-Smart-Pricing-Cron-Secret`                  |
+| `SUPERHOST_ASSESSMENT_CRON_SECRET`           | `X-Superhost-Assessment-Cron-Secret`           |
+| `ANALYTICS_AI_REVIEW_CRON_SECRET`            | `X-Analytics-Ai-Review-Cron-Secret`            |
+| `PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET`      | `X-Property-Page-Views-Prune-Cron-Secret`      |
+| `ACTIVITY_LOG_RETENTION_CRON_SECRET`         | `X-Activity-Log-Retention-Cron-Secret`         |
 
 **Telegram bot tokens + chat IDs:** per-property/parking DB tables — **not** env. Only `*_CRON_SECRET` vars remain env-only.
 
 **Calendar sync (`calendarSync`, Pro+):** `CALENDAR_SYNC_CRON_SECRET` gates the global `calendar-sync-cron` sweep only (scoped "Sync now" is JWT-gated). `CALENDAR_SYNC_MIN_INTERVAL_MINUTES` (default `30`) is the per-feed minimum poll gap. Feed `.ics` URLs are stored encrypted with the existing `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY` (via `_shared/secretsCrypto.ts`), never a new key.
+
+**Marketing AI image generation (`aiMarketingImageGeneration`, Pro+):** no new env var. Reuses the platform `GEMINI_API_KEYS` / `GEMINI_API_KEY` and the shared `ai_platform_*` quota/credit system (feature `marketing_image_generate`), on the same `generativelanguage.googleapis.com/v1beta` host as every other Gemini call. Per-property tuning (`enabled`, `monthly_credit_cap`) lives in `ai_platform_property_settings.feature_configs`, not env.
+
+**Marketing AI video generation (`aiMarketingVideoGeneration`, Business+, Phase 2):** reuses the same Gemini keys (Veo lives on the same API host). One new optional edge secret **`MARKETING_GENERATION_CRON_SECRET`** + Vault key `marketing_generation_cron_secret` gate the `marketing-generation-sweeper` cron (fail-open locally when unset, fail-closed once `ENVIRONMENT=production`, per `_shared/cronSecretGate.ts`). After a hosted deploy, run `SELECT public.sync_marketing_generation_cron_job();` once to (re)register the 1-minute pg_cron job.
 
 **Smart Pricing (`smartPricing`, Pro+):** `SMART_PRICING_CRON_SECRET` (optional) gates the global `smart-pricing-cron` autopilot sweep. All other Smart Pricing tuning lives in `property_smart_pricing_settings` (per property, host-editable), not env. The optional AI rationale pass reuses the platform `GEMINI_API_KEYS` and the shared `ai_platform_*` quota/credit system (feature `smart_pricing`) — no new AI env var.
 

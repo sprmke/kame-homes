@@ -66,6 +66,8 @@ URL params: `?from=YYYY-MM-DD&to=YYYY-MM-DD`.
 | **Total Properties** | `propertyCount`                | Shown when the org has **no** parking listings                                         |
 | **Total Listings**   | `propertyCount + parkingCount` | Shown when `parkingCount > 0`; footer shows `N properties · M parking`                 |
 
+KPI icon wells are muted. Colored icon wells remain on the Finance and Bookings pages only.
+
 ---
 
 ## Board layout (`lg+`)

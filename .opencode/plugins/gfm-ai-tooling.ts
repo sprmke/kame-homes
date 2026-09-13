@@ -186,6 +186,17 @@ function collectSessionContext(root: string): string {
 
   chunks.push(
     [
+      'MOBILE-NATIVE UI (mandatory for ui/src/**): Preserve native app look on phone — bottom sheets',
+      '(ResponsiveModal, MobileChoiceSheet, ResponsiveOverflowMenu), bottom nav (BottomTabBar / ContextualActionBar),',
+      'no centered Dialog or floating DropdownMenu on max-lg.',
+      'Invoke mobile-responsive skill before shipping UI.',
+      'Gate: .cursor/rules/mobile-native-ui.mdc · Spec: mobile-responsive.mdc ·',
+      'Inventory: docs/workflow/for-testing/mobile-native-redesign.md.',
+    ].join(' ')
+  );
+
+  chunks.push(
+    [
       'OpenCode project tooling (this repo)',
       '',
       '- Rules: CLAUDE.md (auto) + always-on `.cursor/rules/*.mdc` via opencode.json instructions',
@@ -304,6 +315,16 @@ export default async function GfmAiToolingPlugin(ctx: PluginInput) {
       const { additionalContext: docsCtx } = permissionFromHook(parseHookJson(docs.stdout));
       if (docsCtx) {
         output.output = `${output.output || ''}\n\n[${docsCtx}]`;
+      }
+
+      const mobile = runHookScript(
+        root,
+        '.claude/hooks/remind-mobile-native-on-ui-edit.sh',
+        JSON.stringify({ tool_input: { file_path: filePath } })
+      );
+      const { additionalContext: mobileCtx } = permissionFromHook(parseHookJson(mobile.stdout));
+      if (mobileCtx) {
+        output.output = `${output.output || ''}\n\n[${mobileCtx}]`;
       }
     },
   };

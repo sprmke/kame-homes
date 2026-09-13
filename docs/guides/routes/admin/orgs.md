@@ -2,7 +2,7 @@
 title: 'Super Admin — Organizations & Organization hub — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-05 (org hub header redesign)
+updated: 2026-09-10 (Activity tab: platform-actions / org-activity toggle)
 ---
 
 # Super Admin — Organizations & Organization hub
@@ -21,17 +21,17 @@ Routes:
 
 ## Progress overview
 
-| Section             | E2E save | Validation | Docs | Notes                                                                                        |
-| ------------------- | -------- | ---------- | ---- | -------------------------------------------------------------------------------------------- |
-| Organizations index | n/a      | —          | Done | Search + per-page; server summary cards; table (≥lg) / card list. Rows open the hub.         |
-| Hub · Overview      | n/a      | —          | Done | KPI cards + subscription / verification / open-work summary cards                            |
-| Hub · Subscription  | Done     | client     | Done | Assign/override plan via `org-subscriptions-admin` POST (covers every org property)          |
-| Hub · Listings      | n/a      | —          | Done | Properties + parkings grids (`useProperties` / `useParkings`); cards deep-link to tenant     |
-| Hub · Approvals     | Done     | —          | Done | `list-super-admin-approvals?organizationId=` + the 3 shared review dialogs                   |
-| Hub · AI credits    | Done     | client     | Done | `AiCreditWalletCard` prefilled with the org id                                               |
-| Hub · Support       | Done     | —          | Done | `list-support-tickets-admin?org_id=` + shared ticket detail dialog                           |
-| Hub · Activity      | n/a      | —          | Done | `list-super-admin-audit?targetType=organization&targetId=` — every logged action on this org |
-| Hub · Settings      | n/a      | —          | Done | Read-only identity + deep links to the org's own Team / Settings / Plans pages               |
+| Section             | E2E save | Validation | Docs | Notes                                                                                                                                                                    |
+| ------------------- | -------- | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Organizations index | n/a      | —          | Done | Search + per-page; server summary cards; table (≥lg) / card list. Rows open the hub.                                                                                     |
+| Hub · Overview      | n/a      | —          | Done | KPI cards + subscription / verification / open-work summary cards                                                                                                        |
+| Hub · Subscription  | Done     | client     | Done | Assign/override plan via `org-subscriptions-admin` POST (covers every org property)                                                                                      |
+| Hub · Listings      | n/a      | —          | Done | Properties + parkings grids (`useProperties` / `useParkings`); cards deep-link to tenant                                                                                 |
+| Hub · Approvals     | Done     | —          | Done | `list-super-admin-approvals?organizationId=` + the 3 shared review dialogs                                                                                               |
+| Hub · AI credits    | Done     | client     | Done | `AiCreditWalletCard` prefilled with the org id                                                                                                                           |
+| Hub · Support       | Done     | —          | Done | `list-support-tickets-admin?org_id=` + shared ticket detail dialog                                                                                                       |
+| Hub · Activity      | n/a      | —          | Done | Toggle: **Platform actions** (`list-super-admin-audit?targetType=organization&targetId=`) / **Org activity** (`list-activity-log?orgId=` — the org's own `activity_log`) |
+| Hub · Settings      | n/a      | —          | Done | Read-only identity + deep links to the org's own Team / Settings / Plans pages                                                                                           |
 
 ---
 
@@ -80,6 +80,11 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
 - **Subscription** section assigns a plan with no `propertyIds` → server default = every property
   the org owns. It invalidates `['super-admin','org-detail',slug]` on success so the header/plan
   badge refresh.
+- **Activity** section (`SuperAdminOrgActivitySection`) has a two-tab toggle. **Platform actions**
+  (default) is the unchanged `super_admin_audit_events` view for this org. **Org activity** calls
+  `list-activity-log` with an explicit `orgId` (`useSuperAdminOrgActivity`) — a super-admin
+  resolves as `platform_admin` in `verifyOrgAccess`, so every row is visible — and renders the
+  shared `ActivityRow` / `ActivityDetailSheet` with a "Load more" keyset button.
 
 ---
 

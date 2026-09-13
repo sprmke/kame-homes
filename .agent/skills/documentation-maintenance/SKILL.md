@@ -27,19 +27,20 @@ This skill is the Claude Code / skill-picker equivalent of Cursor’s always-on 
 
 ## What to update
 
-| Change                                                 | Update                                                                                                                                 |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Architecture, routes, env, API, data model, deployment | **`docs/PROJECT.md`**                                                                                                                  |
-| Page / section behavior, save flows, validation        | **`docs/guides/routes/*`** — invoke **`route-guides`** skill (no exceptions)                                                           |
-| Pricing plans / tier catalog / entitlements            | **`/for-hosts/pricing`** (live) + **`docs/architecture/plans-feature-matrix.md`** + Plans route guides                                 |
-| **New host feature (Plans and/or Team RBAC)**          | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A                  |
-| **New / changed mutating capability**                  | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event or mark `activity-log: N/A` |
-| Booking status / transitions / side-effects            | **`.cursor/rules/booking-workflow.mdc`**                                                                                               |
-| Admin auth / allow list / new admin endpoints          | **`.cursor/rules/admin-auth.mdc`**                                                                                                     |
-| Edge JWT/CORS / serve conventions                      | **`.cursor/rules/supabase-edge-functions.mdc`**                                                                                        |
-| Migration / backfill runbooks                          | **`docs/archive/operations/migration-runbook.md`**                                                                                     |
-| Booking-flow redesign decisions                        | **`docs/archive/planning/NEW_FLOW_PLAN.md`**                                                                                           |
-| Shipped / cancelled backlog                            | GitHub Issues + **`docs/README.md`** (+ archive under `docs/archive/todos/shipped/`)                                                   |
+| Change                                                  | Update                                                                                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture, routes, env, API, data model, deployment  | **`docs/PROJECT.md`**                                                                                                                  |
+| Page / section behavior, save flows, validation         | **`docs/guides/routes/*`** — invoke **`route-guides`** skill (no exceptions)                                                           |
+| **UI layout, modals, menus, navigation** in `ui/src/**` | Invoke **`mobile-responsive`** skill; follow **`mobile-native-ui.mdc`** + **`mobile-responsive.mdc`**                                  |
+| Pricing plans / tier catalog / entitlements             | **`/for-hosts/pricing`** (live) + **`docs/architecture/plans-feature-matrix.md`** + Plans route guides                                 |
+| **New host feature (Plans and/or Team RBAC)**           | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A                  |
+| **New / changed mutating capability**                   | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event or mark `activity-log: N/A` |
+| Booking status / transitions / side-effects             | **`.cursor/rules/booking-workflow.mdc`**                                                                                               |
+| Admin auth / allow list / new admin endpoints           | **`.cursor/rules/admin-auth.mdc`**                                                                                                     |
+| Edge JWT/CORS / serve conventions                       | **`.cursor/rules/supabase-edge-functions.mdc`**                                                                                        |
+| Migration / backfill runbooks                           | **`docs/archive/operations/migration-runbook.md`**                                                                                     |
+| Booking-flow redesign decisions                         | **`docs/archive/planning/NEW_FLOW_PLAN.md`**                                                                                           |
+| Shipped / cancelled backlog                             | GitHub Issues + **`docs/README.md`** (+ archive under `docs/archive/todos/shipped/`)                                                   |
 
 Canonical detail: **`.cursor/rules/documentation-maintenance.mdc`** · route mapping: **`.cursor/rules/route-guides.mdc`** · always-loaded Claude copy: **`CLAUDE.md`** § Docs are the source of truth.
 
@@ -59,6 +60,7 @@ Canonical detail: **`.cursor/rules/documentation-maintenance.mdc`** · route map
 - [ ] Plans/pricing surfaces updated if entitlements or tier presentation changed
 - [ ] **`plans-and-permissions`** decided (implemented or explicit N/A) for any new host capability
 - [ ] **`audit-logging`** decided — `activity_log` event emitted (or explicit `activity-log: N/A — <why>`) for any mutating change
+- [ ] **`mobile-responsive`** invoked and §11 checklist passed for any UI change in `ui/src/**`
 - [ ] No “docs later” left for the user
 
 ## Related

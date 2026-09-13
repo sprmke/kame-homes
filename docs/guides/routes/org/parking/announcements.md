@@ -5,17 +5,17 @@ tags: [guides, routes, org, parking, announcements]
 updated: 2026-09-05
 ---
 
-# Parking Announcements
+# Parking Announcements (deep-link fallback)
 
 Route: `/org/:orgSlug/parking/:parkingSlug/announcements`
 
-Legacy redirect: `/org/:orgSlug/parking/:parkingSlug/help-support/announcements` → dedicated route above.
+**No sidebar entry** — org hub members use [Org Announcements](../announcements.md). This route remains for parking team deep links and bookmarks.
 
 > **Status:** Documented
 
 ## Overview
 
-Identical feature to [Property Announcements](../property/announcements.md), mounted for a parking slot instead of a property. Visible to every parking team member (`bookings:view` baseline). Notices appear only on this archive — no top-of-page banner on other dashboard pages.
+Same UI as [Property Announcements](../property/announcements.md), scoped to the parking slot's linked development. Org hub members use the org **Announcements** sidebar instead.
 
 ## Host-facing knowledge
 

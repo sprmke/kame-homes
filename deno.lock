@@ -212,7 +212,8 @@
         "npm:posthog-node@^5.51.6",
         "npm:prettier-plugin-tailwindcss@~0.6.11",
         "npm:prettier@^3.5.3",
-        "npm:sharp@~0.35.4"
+        "npm:sharp@~0.35.4",
+        "npm:vercel@^59.15.1"
       ],
       "overrides": {
         "react": "19.2.4",

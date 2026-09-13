@@ -37,7 +37,7 @@ This dashboard is the home screen for one parking slot. It's the same layout you
 | Section          | Property equivalent                                        | Parking notes                                                                                                                     |
 | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Header           | Dashboard title + date filter + View Property              | Title **Dashboard**; subtitle includes slot display name; **View Parking** opens public detail `/parkings/:parkingSlug` (new tab) |
-| KPI cards        | Total Revenue, Total Bookings, Occupancy, Avg Nightly Rate | **Total Reservations** label instead of Total Bookings                                                                            |
+| KPI cards        | Total Revenue, Total Bookings, Occupancy, Avg Nightly Rate | **Total Reservations** label instead of Total Bookings. Icon wells muted (same as property dashboard).                            |
 | Chart + calendar | `DashboardFinanceCalendarSection`                          | `ParkingDashboardCalendarSection` — live booking calendar when data exists                                                        |
 
 ---

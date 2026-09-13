@@ -28,7 +28,7 @@ const UI_SECTIONS = [
     keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
   },
   { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
-  { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
+  { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'] },
   {
     title: 'Observability',
     keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST', 'POSTHOG_PERSONAL_API_KEY', 'POSTHOG_PROJECT_ID'],
@@ -125,6 +125,9 @@ const EDGE_SECTIONS = [
       'CALENDAR_SYNC_MIN_INTERVAL_MINUTES',
       'SMART_PRICING_CRON_SECRET',
       'SUPERHOST_ASSESSMENT_CRON_SECRET',
+      'ANALYTICS_AI_REVIEW_CRON_SECRET',
+      'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
+      'ACTIVITY_LOG_RETENTION_CRON_SECRET',
     ],
   },
 ];
@@ -169,7 +172,12 @@ const SCHEMAS = {
     sections: [
       {
         title: 'Observability (all modes)',
-        keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'],
+        keys: [
+          'VITE_POSTHOG_KEY',
+          'VITE_POSTHOG_HOST',
+          'POSTHOG_PERSONAL_API_KEY',
+          'POSTHOG_PROJECT_ID',
+        ],
       },
     ],
   },

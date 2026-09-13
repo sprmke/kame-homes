@@ -2,7 +2,7 @@
 title: 'Marketing — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-01
+updated: 2026-09-13
 ---
 
 # Marketing — operator guide
@@ -17,7 +17,7 @@ Legacy redirect: `/marketing` → `…/property/:propertySlug/marketing` (Conten
 
 ## Overview
 
-Property-scoped **Marketing Content Studio**: build availability calendars, social graphics, and short promo videos, then download or publish to connected Facebook Pages and Instagram. Telegram marketing alerts live on **Notifications**, not this page.
+Property-scoped **Marketing Content Studio**: build availability calendars, social graphics, and short promo videos, or **generate a finished image from a prompt plus your own photos**, then download or publish to connected Facebook Pages and Instagram. Telegram marketing alerts live on **Notifications**, not this page.
 
 Saved marketing designs are bulk-copyable via org **Properties → Copy settings** (publication history is not).
 
@@ -25,7 +25,7 @@ Saved marketing designs are bulk-copyable via org **Properties → Copy settings
 
 ## Host-facing knowledge
 
-Marketing Content Studio is where you create promotional content for this property: availability calendars, social graphics, and short videos. You can download what you make or publish it straight to your connected Facebook and Instagram accounts. Marketing Telegram alerts live in a separate place, under Notifications.
+Marketing Content Studio is where you create promotional content for this property: availability calendars, social graphics, short videos, and AI-generated photos. You can download what you make or publish it straight to your connected Facebook and Instagram accounts. Marketing Telegram alerts live in a separate place, under Notifications.
 
 **Common host questions**
 
@@ -41,6 +41,22 @@ Marketing Content Studio is where you create promotional content for this proper
   A: Yes. On the Design tab, use **Generate with AI**: pick a category, write your message first, then choose a look. You'll get Instagram Post, Story, and Facebook Post versions, all editable afterward.
 - Q: Can AI create a video clip for me?
   A: Yes. On the Video tab, use **Generate with AI** the same way: category and message first, then look, length, and motion. It generates Instagram Story, Post, and Landscape versions you can fine-tune afterward.
+- Q: What is the **Generate** tab for?
+  A: It makes a new photo or (on Business+) a short video from a description. Type what you want, drop in photos of the unit if you have them, pick a shape, and tap Generate. Results appear on the right. Quality and size live under Advanced.
+- Q: How is Generate different from the AI buttons on the other tabs?
+  A: The other tabs use AI to build you an editable template — a calendar layout, a design you can move things around in, a video timeline. Generate produces the finished picture or clip itself. There is nothing to edit afterwards, you either use it or generate another one.
+- Q: Does Generate use my AI credits?
+  A: Yes. The cost is on the Generate button before you run it. Draft and Standard change the price; your monthly allowance depends on your plan.
+- Q: Which plan do I need?
+  A: Pro and above for images. Business and above for video. On lower plans the tab shows which plan unlocks it.
+- Q: What happens to images I already made if I downgrade?
+  A: You keep them. The gallery, downloads and publishing all keep working; you just cannot generate new ones until you upgrade again.
+- Q: My prompt was blocked. What now?
+  A: Some subjects are refused. Rephrase and try again. You are not charged for a blocked request.
+- Q: Generate failed. What now?
+  A: You'll see a short message. Wait a moment and try again.
+- Q: Can I generate videos?
+  A: Yes on Business and above. Switch to Video, describe the motion, add up to three photos, pick a shape, then Generate. Resolution and length are under Advanced.
 - Q: What does the **Property colors** look template do?
   A: It’s the first Look template. When your property has gallery photos, it samples those colors (same as Blank calendar defaults). If there are no photos, it uses your brand color. Change photos and the preview updates; Generate uses those colors.
 - Q: Why did Blank calendar change color after I updated photos?
@@ -56,13 +72,14 @@ Property-scoped **Marketing Content Studio**: build availability calendars, soci
 
 ### Content Studio tabs
 
-**Calendar / Design / Video** mode tabs sit **inline in each builder top bar** (between the builder title and Download/Publish actions) — not on a separate page row.
+**Calendar / Design / Video / Generate** mode tabs sit **inline in each builder top bar** (between the builder title and Download/Publish actions) — not on a separate page row. The **Generate** trigger carries a `TierBadge` for `aiMarketingImageGeneration` when the property is below Pro.
 
 | Tab      | Builder chrome                                                                                                                                                                                               | Canvas / fields                                                                                                                                                                                                                                                                 |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Calendar | **Calendar Builder** top bar — **mode tabs**, autosave status **or Save Template**, Download PNG, Publish; **Templates** sidebar (**Custom** first, then designer categories)                                | **Live Preview** sub-header — Undo/Redo/Reset + month nav, zoom (**100%** = fit pane, up to **200%**); preview pane uses a **white** (`bg-card`) workspace in light theme so the canvas stands off the gray page shell                                                          |
 | Design   | **Design Builder** top bar — **mode tabs**, **autosave status**, Download PNG, Publish; **Templates** sidebar (Format / Category / Templates); **Reviews** list under Templates when category is **Reviews** | OpenPolotno canvas on a **white** workspace in light theme (same `bg-card` treatment as Calendar/Video); campaign presets including **Reviews**, toolbar **Undo / Redo / Reset** (reset reloads the current brand-tinted preset default; confirmation modal) + element controls |
 | Video    | **Video Builder** top bar — **mode tabs**, **autosave status**, Download MP4, Publish; **Templates** sidebar (Format / Category / Templates); **Reviews** list under Templates when category is **Reviews**  | **Live Preview** sub-header — Undo / Redo / Reset + Remotion player on a **white** workspace in light theme + scene timeline                                                                                                                                                    |
+| Generate | No builder chrome — control rail + results stage                                                                                                                                                             | **Primary:** Image/Video · Prompt · photo drop zone · Shape chips · Generate (credits on button). **Advanced:** Quality / Size (image) or Resolution / Length (video). Generating: aurora stage. Gallery: Download / Publish / Delete                                           |
 
 **Mobile layout (`max-lg`):** all three editors run **full-bleed** on phone/tablet. The Studio card is an explicit viewport-derived height (`calc(100dvh − 20rem)`) whose bottom stops just **above two stacked floating docks**: the editor's own **`MarketingEditorMobileToolbar`** pill and, directly beneath it, the **app bottom tab bar** — which stays visible so the user can still navigate between pages while an editor is open (the dock does **not** claim the bottom-bar slot). The desktop **Templates / settings sidebar becomes a bottom sheet** (`MarketingEditorMobilePanel`, opened from the panel toggle); **picking a template in that sheet auto-closes it** back to the canvas (the "Customize" actions keep it open, since they switch to the settings view). The editor dock carries: **panel toggle** (Templates / Settings / Scene) · inline **zoom −/+** (Calendar, Video) · a **⋯ overflow sheet** for Undo/Redo, Fit, Fullscreen, Reset, Generate with AI, Download, Publish. Overflow-sheet rows for the paid actions (**Generate with AI**, **Download**, **Publish**) carry the same `TierBadge` as their desktop buttons, so the required plan is visible on mobile too. The builder top bar keeps only autosave status on mobile. **Calendar** replaces the desktop right-floated month pill with a **full-width `‹ September 2026 ›` month bar** at the top of the canvas (44px arrow targets, full month name); its **fullscreen preview** header wraps and its icon buttons meet the 44px target. **Design (Polotno)** keeps its own left icon rail (68px, labels wrap so "Elements"/"Background" are never clipped; `overflow-x: hidden` kills a stray scrollbar); its **undo / redo / reset are dropped from the Blueprint toolbar** (`hideHistory`) and live in the **⋯ overflow sheet** like Calendar, so the toolbar collapses to nothing until an element is selected and its contextual controls appear. Its section panel (Text / Elements / Uploads / Background / Layers) docks as a slide-up sheet above the toolbar. **Video** compacts the playback controls to a single row (no time readout — it's on the scrubber + timeline) and drops the timeline's format/clip-count line, so the preview frame claims the freed vertical space; it also drops the desktop width caps, uses smaller timeline clip frames, shows the per-clip delete only on the selected clip, and captures touch pan only when zoomed in. Full editing parity — no "use a larger screen" fallback. Desktop (`lg+`) layout is unchanged.
 
@@ -171,21 +188,71 @@ Or use **`platform`** + **`postType`** (`post` | `story`) instead of **`publishT
 
 **Meta OAuth:** all inbox + publishing scopes are requested on connect. Configure Meta app **use cases** first — see **[[meta-app-review|Meta app setup — Guest Inbox + Marketing Content Studio]]** (scope → use case table). If OAuth fails with **Invalid Scopes**, add the missing use cases there before reconnecting. Optional: `META_OAUTH_EXCLUDE_PUBLISHING_SCOPES=1` for inbox-only connect.
 
+### Generate tab (AI image generation)
+
+A prompt plus the host's own reference photos in, a finished image out. Unlike the other three tabs this produces the asset itself rather than a template the editors compile, so it shares none of their canvas / timeline state and none of their autosave.
+
+**Composer** (results-first: control rail left, gallery/stage right on `lg+`)
+
+Primary path: **Image / Video** → **Prompt** → **Photos** (full drop zone) → **Shape** (visual chips) → **Generate · N credits**. Starter chips prefill the prompt while empty.
+
+**Advanced** (collapsed; summary shows Quality · Size/Length):
+
+| Field   | Values                                                | Notes                                                          |
+| ------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| Prompt  | free text, 1-1000 chars                               | Required. Two starter chips while empty.                       |
+| Photos  | 0-14 images (10 on Standard); drop zone + Library     | JPEG / PNG / WebP / HEIC, 10 MB each. Reusable per property.   |
+| Shape   | Square / Portrait / Story / Landscape (visual chips)  | Always visible. Video: Story/Reel or Landscape only.           |
+| Quality | **Draft** (34 credits) · **Standard** (45, default)   | Premium exists server-side but is not offered in the composer. |
+| Size    | Standard `1K` (default) · Small · Large · Extra large | Draft locks to `1K`.                                           |
+
+**Video** (Business+): Video opens the upgrade modal when the plan lacks it; RBAC without `marketing.generate.video:add` disables Video. Advanced then shows **Resolution** (720p default) and **Length** (6s / 8s). Photos cap at 3.
+
+Credits live on the Generate button (client mirror of the server price table; parity unit-tested). Video credits: Draft 300-640, Standard 600-2,400 depending on resolution/length.
+
+**Generating stage.** While the POST is pending or a job is in flight, the results pane shows `AiStudioGeneratingStage` (aurora + orbit ring + cycling status) instead of a bare spinner. In-flight image cards reuse that stage; video cards keep the Queued → Rendering → Saving ladder.
+
+**Save path**
+
+1. Host picks files → `prepareUpload` (lazy image optimizer) → `POST upload-marketing-generation-reference` (multipart).
+2. Server sniffs magic bytes, rejects a declared/actual type mismatch, enforces 10 MB (image) / 50 MB (video), uploads to `property-media` at `marketing-ai-refs/{propertyId}/{uuid}{ext}` and inserts a `marketing_generation_references` row.
+3. Host clicks **Generate** → `POST generate-marketing-media`, gated on property scope → the matching leaf (`marketing.generate:add` for images, `marketing.generate.video:add` for video) + plan feature → rate limit (20/5min image, 5/5min video) → option validation → `assertOrgAndPropertyAiQuota` → `assertMarketingGenerationBudget` → insert job row.
+4. **Image** runs **inline** (5-15s, same pattern as `generate-marketing-template`): the bytes land at `marketing-ai/{propertyId}/{jobId}{ext}`, the job flips to `completed`, `recordAiUsage` bills real token counts (`cost_basis = 'tokens'`), `marketing.image_generated` is written, and the completed row comes back in the same response.
+5. **Video** submits to Veo's `:predictLongRunning` and returns immediately with the job at `processing` (`marketing.video_generation_started` logged) — the client then polls `get-marketing-generation-job` every 3s. That endpoint re-polls Veo itself once at least 10s has passed since the last check; when Veo reports done, it downloads the clip (the download needs Google's API key header, so it must happen server-side), uploads it, bills by duration (`cost_basis = 'duration'`), and logs `marketing.video_generated`. If the host closes the tab, the **`marketing-generation-sweeper`** cron (every minute) finishes the same sequence independently, so the render is never lost — Google keeps the file for only 2 days.
+6. On failure the row is written `failed` with an error code and a **short host-facing message** (never the raw provider dump). The toast and the job card show that same line. Safety blocks are **not** charged; a video that times out after 45 minutes is also not charged.
+
+**Budget controls** (`_shared/marketingGenerationBudget.ts`), applied after the standard AI quota gate:
+
+| Control               | Limit                                                                          | Response                                       |
+| --------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Concurrency           | 2 in flight per property, 5 per org                                            | 429 `retryable: true` — a wait, not an upgrade |
+| In-flight reservation | month-to-date + in-flight `estimated_credits` + this job vs allowance + wallet | 429 `upgradeHook: true`                        |
+| Per-feature sub-cap   | 60% of the org's monthly allowance per media feature (super-admin overridable) | 429 `upgradeHook: true`                        |
+
+The job table doubles as the hold ledger — anything `pending` / `processing` / `finalizing` counts as reserved — so there is no separate hold table and no compensating release on failure paths.
+
+**Gallery.** `marketing-generations` GET, keyset paged 24 at a time on `(created_at, id)`, newest first, images and videos together. Each card offers Download, **Publish**, and Delete. In-flight image cards poll every 1s and show `AiStudioGeneratingStage`; in-flight video cards poll every 3s with the Queued → Rendering → Saving ladder. Either stops polling on a terminal status or after 8 minutes without movement. A finished video over 8 MB shows a warning chip.
+
+**Downgrade behavior.** The client mirrors the server split: `AiStudioSection` gates the **composer only** (`useFeatureGate('aiMarketingImageGeneration')` → an inline upgrade prompt in the composer panel), never the gallery. The two read endpoints gate on `marketing:view` with **no plan-feature argument**, so a downgraded org keeps the gallery, the poller, downloads and publishing.
+
+**Activity log.** A successful generation writes **`marketing.image_generated`** (info; metadata carries model, quality tier, aspect ratio, size, reference count, credits) and deleting a generated asset writes **`marketing.generated_asset_deleted`** (destructive). Reference upload / delete is **activity-log: N/A** — a staging artifact for a generation, not a host-meaningful action; the generation that consumes it records `reference_count`.
+
 ### Permissions
 
 Property-team RBAC (Phase 7). Route guard: **`marketing:view`**. Org owner, org Admin, and platform admin keep implicit full access.
 
-| Leaf id                                         | Gates                                                                               |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `marketing:view`                                | Nav + Content Studio shell; template list/history read; guest reviews sidebar list  |
-| `marketing.content:add` / `:edit`               | Builder edits, autosave, Download PNG/MP4 (incl. review-seeded Design/Video drafts) |
-| `marketing.templates:add` / `:edit` / `:delete` | Save/rename/move/remove custom templates                                            |
-| `marketing.generate:add`                        | Generate with AI (all builders)                                                     |
-| `marketing.publish:add`                         | Publish to Meta                                                                     |
+| Leaf id                                         | Gates                                                                                                                                                 |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `marketing:view`                                | Nav + Content Studio shell; template list/history read; guest reviews sidebar list                                                                    |
+| `marketing.content:add` / `:edit`               | Builder edits, autosave, Download PNG/MP4 (incl. review-seeded Design/Video drafts)                                                                   |
+| `marketing.templates:add` / `:edit` / `:delete` | Save/rename/move/remove custom templates                                                                                                              |
+| `marketing.generate:add`                        | Generate with AI (all builders); Generate tab composer, reference upload, delete                                                                      |
+| `marketing.generate.video:add`                  | Generate tab **video** branch only — separate from the (cheaper) image leaf so an owner can allow images without authorizing 800+ credit video clicks |
+| `marketing.publish:add`                         | Publish to Meta                                                                                                                                       |
 
 **Seeded templates:** Full Access and Operations include all Marketing leaves; Read Only does not.
 
-**Plan gating (inner, after permission):** see sections above — `marketingStudio`, `aiMarketingGeneration`, `customTemplates`, and publish limit via `marketingPublishLimitPerGroup`. Permission = visibility; plan = actionability (D16).
+**Plan gating (inner, after permission):** see sections above — `marketingStudio`, `aiMarketingGeneration`, `aiMarketingImageGeneration` (Generate tab images, Pro+), `aiMarketingVideoGeneration` (Generate tab video, Business+), `customTemplates`, and publish limit via `marketingPublishLimitPerGroup`. Permission = visibility; plan = actionability (D16). The Generate tab's **read** paths deliberately carry no plan gate — see the view-past-output note above.
 
 ## Telegram marketing (legacy module)
 
@@ -240,27 +307,36 @@ See [notifications.md](./notifications.md) for the unified page layout and save 
 | Save-custom-template gate        | `ui/src/features/dashboard/marketing/components/shared/SaveMarketingTemplateButton.tsx` (`customTemplates`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Template picker watermark        | `MarketingTemplateCard.tsx` — compact `PlanGateWatermarkPattern` when not entitled to `marketingStudio` (no blur)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | OAuth scopes                     | `supabase/functions/_shared/metaInboxConfig.ts` (`META_PUBLISHING_SCOPES`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Generate tab UI                  | `ui/src/features/dashboard/marketing/components/ai-studio/` — `AiStudioSection` (tab root, image whole-composer gate + video inline gate), `AiStudioComposer` (prompt + aspect picker + Generate with credits), `AiStudioAspectPicker`, `AiStudioReferenceUploader` (drop zone), `AiStudioOptionsBar` / `AiStudioVideoOptionsBar` (Advanced: quality/size or resolution/length), `AiStudioGeneratingStage` (aurora loading), `AiStudioVideoProgress` (video ladder), `AiStudioResultsGrid`, `AiStudioJobCard`, `AiStudioEmptyState`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Generate tab hooks               | `hooks/useGenerateMarketingMedia.ts`, `useMarketingGenerationJob.ts` (poller), `useMarketingGenerations.ts` (gallery + delete), `useMarketingGenerationReferences.ts`, `useMarketingGenerationApi.ts` (429 branching: quota vs retryable)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Generate tab lib                 | `lib/marketingGenerationPricing.ts` (client price mirror + parity test), `marketingGenerationOptions.ts`, `marketingGenerationProgress.ts`, `marketingGenerationTypes.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| AI media generation edge         | `supabase/functions/generate-marketing-media/` (image + video branches), `get-marketing-generation-job/` (+ inline Veo re-poll), `marketing-generations/`, `upload-marketing-generation-reference/`, `marketing-generation-sweeper/` (cron)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| AI media generation shared       | `_shared/marketingGenerationPricing.ts` (+ `_test.ts`), `marketingGenerationModels` tables in `_shared/aiModelRouter.ts`, `marketingImageGenerationAi.ts`, `marketingVideoGenerationAi.ts`, `marketingGenerationSweeper.ts`, `marketingGenerationStorage.ts`, `marketingGenerationBudget.ts`, `marketingGenerationJobs.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Migration                        | `supabase/migrations/20260917120000_marketing_studio.sql`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ## Progress overview
 
-| Section                                  | Status     |
-| ---------------------------------------- | ---------- |
-| DB tables + grants                       | Documented |
-| `marketing-templates` CRUD               | Documented |
-| `generate-marketing-caption`             | Documented |
-| `generate-marketing-template` (calendar) | Documented |
-| `generate-marketing-template` (design)   | Documented |
-| `generate-marketing-template` (video)    | Documented |
-| `publish-to-meta`                        | Documented |
-| Content Studio UI                        | Documented |
+| Section                                  | Status                           |
+| ---------------------------------------- | -------------------------------- |
+| DB tables + grants                       | Documented                       |
+| `marketing-templates` CRUD               | Documented                       |
+| `generate-marketing-caption`             | Documented                       |
+| `generate-marketing-template` (calendar) | Documented                       |
+| `generate-marketing-template` (design)   | Documented                       |
+| `generate-marketing-template` (video)    | Documented                       |
+| `publish-to-meta`                        | Documented                       |
+| Content Studio UI                        | Documented                       |
+| Generate tab (AI images)                 | Documented                       |
+| Generate tab (AI video)                  | Code-complete, not live-verified |
 
 ---
 
 ## Testing
 
-| Layer | Path / spec                                                      | Manual                       |
-| ----- | ---------------------------------------------------------------- | ---------------------------- |
-| Unit  | Caption validators in marketing lib when touched                 | —                            |
-| E2E   | `ui/e2e/features/marketing/marketingStudioSmoke.spec.ts` (`@ci`) | Meta publish, Polotno canvas |
-| N/A   | —                                                                | Meta OAuth manual            |
+| Layer | Path / spec                                                                                                                                                                                        | Manual                                                                                                                                                                                                                                   |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit  | Caption validators and marketing generation pricing tests                                                                                                                                          | —                                                                                                                                                                                                                                        |
+| E2E   | `ui/e2e/features/marketing/marketingStudioSmoke.spec.ts` (`@ci`)                                                                                                                                   | Meta publish, Polotno canvas                                                                                                                                                                                                             |
+| E2E   | `ui/e2e/features/marketing/marketingAiGenerate.spec.ts` (`@ci`) — Generate tab composer on Pro+, and the view-past-output rule (gallery + Download stay visible with the composer gated below Pro) | Real Veo/Gemini generation quality, file upload                                                                                                                                                                                          |
+| N/A   | —                                                                                                                                                                                                  | Real Veo video generation (async, minutes, real cost — not exercised; the finalize/CAS/billing chain is code-reviewed against Google's live REST reference but not proven end-to-end), closed-tab sweeper finalize, double-finalize race |
+| N/A   | —                                                                                                                                                                                                  | Meta OAuth manual                                                                                                                                                                                                                        |

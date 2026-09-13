@@ -16,6 +16,8 @@ alwaysApply: true
 
 **Material new UX** (new routes/flows, auth, checkout, payments, messaging, onboarding — not polish/bugs): run `competitive-ux-research` skill. See `.cursor/rules/competitive-ux-research.mdc`.
 
+**Any UI change** in `ui/src/**`: follow **`.cursor/rules/mobile-native-ui.mdc`** (always-on) and invoke **`mobile-responsive`** skill before shipping (bottom sheets, bottom nav, native density).
+
 ## Stack (authoritative)
 
 - **UI**: Vite + React 18 + React Router 6 + Tailwind + RHF + Zod (`ui/`)

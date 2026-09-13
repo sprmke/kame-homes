@@ -20,13 +20,14 @@ Routes:
 
 ## Progress overview
 
-| Section            | E2E save | Validation | Docs       | Notes                                                                                 |
-| ------------------ | -------- | ---------- | ---------- | ------------------------------------------------------------------------------------- |
-| Developments list  | —        | —          | Documented | Live `list-public-developments`; URL-driven filters + facets                          |
-| Location browse    | —        | —          | Documented | Properties grouped by development                                                     |
-| Development detail | —        | —          | Documented | Hero, amenities, unit + parking previews                                              |
-| Properties in dev  | —        | —          | Documented | Links to `/properties/:slug`                                                          |
-| Parking flow       | —        | —          | Documented | Slot list at `…/parking`; Reserve links to `/parkings/:slug` when `detailSlug` is set |
+| Section            | E2E save | Validation | Docs       | Notes                                                                                          |
+| ------------------ | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| Developments list  | —        | —          | Documented | Live `list-public-developments`; URL-driven filters + facets                                   |
+| Location browse    | —        | —          | Documented | Properties grouped by development                                                              |
+| Development detail | —        | —          | Documented | Hero, amenities, unit + parking previews                                                       |
+| Properties in dev  | —        | —          | Documented | Links to `/properties/:slug`                                                                   |
+| Parking flow       | —        | —          | Documented | Slot list at `…/parking`; Reserve links to `/parkings/:slug` when `detailSlug` is set          |
+| Mobile shell       | —        | —          | Documented | `MarketingLayoutShell` bottom tabs — see [index-landing.md](./index-landing.md) § Mobile shell |
 
 ---
 
@@ -73,7 +74,8 @@ On scroll, **`ListingHeroSearch`** morphs into the fixed header center (same beh
 - Loads **`list-public-developments?locationSlug=…`** and **`list-public-properties?locationSlug=…`**.
 - **Grid (default):** **`PropertiesByDevelopment`** — one carousel row per development; title → **`/developments/:slug`**.
 - **List:** flat property list for units matched in those developments (falls back to place-scoped properties).
-- Toolbar count is **properties** (not developments).
+- Toolbar count is **properties** (not developments). Below `sm` the `DevelopmentsToolbar` stacks: count on row one, sort + view-mode right-aligned on row two, so the count is never clipped.
+- Mobile `DevelopmentsFilters` sheet: flex column (`z-[100]`/`z-[101]`, above the scroll-morph search bar), pinned header + **Show results** / **Clear all** footer with a safe-area inset, scrolling list between.
 - Same scroll search morph as `/developments` (`listingScrollSearchPaths` matches `/developments/in/*`).
 - Unknown / empty location → redirect to **`/developments`**. Error: **Try again**.
 

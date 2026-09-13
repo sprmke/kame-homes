@@ -13,14 +13,15 @@ Route: `/properties/:propertySlug/sd-form?bookingId=` (legacy `/sd-form?property
 
 ## Progress overview
 
-| Section        | E2E save | Validation | Docs       | Notes                                                                                                         |
-| -------------- | -------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| Brand shell    | ✅       | —          | Documented | `MainLayout` + `GuestFormBrandHeader` via `get-guest-payment-info`                                            |
-| Step 1 Review  | ✅       | ✅ Zod     | Documented | Shared `GuestReviewStarRating` + `GuestReviewFeedbackPills` via `SdFormReviewSection` → `submit-guest-review` |
-| Step 2 Voucher | ✅       | Server     | Documented | `claim-sd-voucher`; idempotent                                                                                |
-| Step 3 Refund  | ✅       | ✅ Zod     | Documented | `submit-sd-form` → workflow transition                                                                        |
-| Balance gate   | ✅       | Server     | Documented | `awaiting_balance_settlement` polling                                                                         |
-| Airbnb variant | ✅       | —          | Documented | Standalone `/guest-review` route                                                                              |
+| Section        | E2E save | Validation | Docs       | Notes                                                                                                                    |
+| -------------- | -------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Brand shell    | ✅       | —          | Documented | `MainLayout` + `GuestFormBrandHeader` via `get-guest-payment-info`                                                       |
+| Step 1 Review  | ✅       | ✅ Zod     | Documented | Shared `GuestReviewStarRating` + `GuestReviewFeedbackPills` via `SdFormReviewSection` → `submit-guest-review`            |
+| Step 2 Voucher | ✅       | Server     | Documented | `claim-sd-voucher`; idempotent                                                                                           |
+| Step 3 Refund  | ✅       | ✅ Zod     | Documented | `submit-sd-form` → workflow transition                                                                                   |
+| Balance gate   | ✅       | Server     | Documented | `awaiting_balance_settlement` polling                                                                                    |
+| Airbnb variant | ✅       | —          | Documented | Standalone `/guest-review` route                                                                                         |
+| Mobile shell   | —        | —          | Documented | Step 3 Back/Submit floats via `ContextualActionBar`; steps 1–2 keep the `MainLayout` tab bar (no single dominant action) |
 
 ---
 
@@ -90,6 +91,8 @@ Skipped when the property has **`vouchers_enabled = false`** (guest goes review 
 ---
 
 ## Step 3 — Refund details
+
+**Mobile shell (2026-09-10):** Back / **Submit security deposit refund** (`SdRefundStepTwoActions`) floats via `ContextualActionBar` below `lg`, matching `/form`. Steps 1–2 (review, voucher reveal) have no single dominant action, so the `MainLayout` tab bar stays visible there.
 
 ### Fields
 

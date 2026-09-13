@@ -2,7 +2,7 @@
 title: 'Parking settings — operator guide'
 status: active
 tags: [guides, routes, org, parking]
-updated: 2026-09-04
+updated: 2026-09-10
 ---
 
 # Parking settings — operator guide
@@ -13,18 +13,19 @@ Route: `/org/:orgSlug/parking/:parkingSlug/settings`
 
 ## Progress overview
 
-| Section            | E2E save | Validation | Docs | Notes                                                 |
-| ------------------ | -------- | ---------- | ---- | ----------------------------------------------------- |
-| Basic Information  | Done     | Done       | Done | Parking type/residence/tower/level/slot are read-only |
-| Photos             | Done     | Done       | Done | Single cover photo required                           |
-| Parking Details    | Done     | Done       | Done | Check-in/out required; dimensions optional            |
-| Amenities          | Done     | Done       | Done | At least 1 amenity required                           |
-| Location           | Done     | Done       | Done | Address + map pin required                            |
-| Payment            | Done     | Done       | Done | Server-enforced; QR via upload only                   |
-| Email              | Done     | N/A        | Done | Reservation / confirmed / no-host automation toggles  |
-| Booking Automation | Done     | N/A        | Done | Auto-accept top match toggle (Phase 5)                |
-| Integrations       | Done     | N/A        | Done | Telegram + AI optional; status/shortcuts only         |
-| Danger Zone        | Done     | N/A        | Done | Archive, restore, delete with confirmation            |
+| Section            | E2E save  | Validation | Docs | Notes                                                                                 |
+| ------------------ | --------- | ---------- | ---- | ------------------------------------------------------------------------------------- |
+| Basic Information  | Done      | Done       | Done | Parking type/residence/tower/level/slot are read-only                                 |
+| Photos             | Done      | Done       | Done | Single cover photo required                                                           |
+| Parking Details    | Done      | Done       | Done | Check-in/out required; dimensions optional                                            |
+| Amenities          | Done      | Done       | Done | At least 1 amenity required                                                           |
+| Location           | Done      | Done       | Done | Address + map pin required                                                            |
+| Payment            | Done      | Done       | Done | Server-enforced; QR via upload only                                                   |
+| Email              | Done      | N/A        | Done | Reservation / confirmed / no-host automation toggles                                  |
+| Booking Automation | Done      | N/A        | Done | Auto-accept top match toggle (Phase 5)                                                |
+| Integrations       | Done      | N/A        | Done | Telegram + AI optional; status/shortcuts only                                         |
+| Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full parking activity feed (`ActivityLogPanel`) |
+| Danger Zone        | Done      | N/A        | Done | Archive, restore, delete with confirmation                                            |
 
 ## Overview
 
@@ -87,6 +88,7 @@ Logic: `ui/src/features/dashboard/parking/lib/parkingSettingsCompletion.ts`, `ui
 | Email              | `parking_settings.automation_toggles` — reservation request, guest confirmed, no-host-available (default **on**)                                                                                                                             |
 | Booking Automation | `parking_settings.automation_toggles.autoAcceptTopMatch` — auto-accepts the top-ranked candidate on the initial dispatch batch instead of waiting for a manual Accept tap (default **off**); guest still has to pay before endorsement fires |
 | Integrations       | `PropertyIntegrationsPanel` (`telegramLayout="parking"`) — Google status (flags), single **Parking** Telegram channel → notifications page, AI services (platform env)                                                                       |
+| Activity           | Read-only summary + **Manage** → modal with full parking-scoped feed (`ActivityLogPanel`). Legacy `/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path.                                       |
 | Danger zone        | **`PATCH update-parking`** `{ status: ACTIVE \| INACTIVE }` archive/restore; **`DELETE delete-parking`** permanent delete                                                                                                                    |
 
 ### Basic info fields

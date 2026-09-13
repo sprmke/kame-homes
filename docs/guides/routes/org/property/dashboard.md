@@ -115,7 +115,7 @@ Empty state when there are no pending reminders in the period. Card still shows 
 | **Occupancy Rate**       | `kpis.occupancyRate`  | Percent, with point-change vs the previous equal-length period                                       |
 | **Average Nightly Rate** | `kpis.avgNightlyRate` | PHP average rate across occupied nights in range                                                     |
 
-All four show a trend indicator vs. the previous equal-length period, powered by `DashboardTrendStatCard`.
+All four show a trend indicator vs. the previous equal-length period, powered by `DashboardTrendStatCard`. KPI icon wells are muted. Colored icon wells remain on the Finance and Bookings pages only.
 
 ---
 

@@ -96,6 +96,11 @@ test-results/
 # ignored files on disk when switching branches (only tracked files are updated).
 ui/screen-tmp/*
 !ui/screen-tmp/.gitkeep
+# Stray screenshots dumped at repo root by Playwright / design QA — never belong in git
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
 .worktrees/
 .superpowers/
 .impeccable/

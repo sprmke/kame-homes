@@ -1,0 +1,47 @@
+---
+description: Mandatory mobile-native UI gate for any new or changed UI in ui/src. Bottom sheets, bottom nav, native density, shared mobile primitives.
+alwaysApply: true
+---
+
+# Mobile-native UI gate (always-on)
+
+Every **UI change** in `ui/src/**` must preserve the **native app** mobile experience from the mobile-native redesign, not a shrunk desktop layout.
+
+## When this applies
+
+- New or changed pages, components, modals, menus, toolbars, forms, cards, tables, empty states
+- Layout, spacing, typography, or navigation on any screen
+- **Skip:** backend/edge/SQL with no UI; internal renames with no layout/component change
+
+## Before implementing (mandatory)
+
+1. **Load the full spec:** `.cursor/rules/mobile-responsive.mdc` (auto on `ui/src/**` in Cursor) or invoke the **`mobile-responsive`** skill (Claude Code / OpenCode; not auto-loaded there).
+2. **Design mobile first** at 375px, then scale with `sm:` / `md:` / `lg:`.
+3. **Reuse shared primitives** in `ui/src/components/mobile/` and `ResponsiveModal`. Do not hand-roll fixed bottom bars, hamburger drawers, or centered phone modals.
+
+| Need                            | Use                                                           |
+| ------------------------------- | ------------------------------------------------------------- |
+| Modal / form                    | `ResponsiveModal` (+ `GuestDialogShell` / `AdminDialogShell`) |
+| Option list / picker            | `MobileChoiceSheet` + `MobileChoiceItem`                      |
+| Overflow ⋯ menu                 | `ResponsiveOverflowMenu` (marketing: `MarketingOverflowMenu`) |
+| Bottom nav                      | `BottomTabBar` + `BottomBarSlotProvider`                      |
+| Dominant Save / Back / Continue | `ContextualActionBar`                                         |
+| Admin page                      | `AdminMobilePage` + `MobileBrandHero`                         |
+| List filters on phone           | `AdminListRefineSheet`                                        |
+| Hero trailing actions           | `MobileHeroActionMenu` (one ··· max, not a row of icons)      |
+
+## Hard rules below `lg` (`max-lg`)
+
+- **No centered `Dialog`** for forms, pickers, or confirms. Use bottom sheets via `ResponsiveModal`. Exceptions: `AlertDialog`, full-screen media/document lightboxes, full-screen video tour.
+- **No floating `DropdownMenu` panels** for option lists or overflow actions. Use `MobileChoiceSheet` / `ResponsiveOverflowMenu`.
+- **One bottom nav layer.** Tab bar or `ContextualActionBar`, never both stacked. No second bottom tab bar on `/account/*` (top strip only). No hamburger drawer.
+- **Touch targets** ≥ 44×44px. Hero icons may use invisible hit pads (`MobileHeroActionButton`).
+- **Tab clearance:** `bottomTabBarOffsetClassName()` on the document scrollport or inner fill-main scrollport (not both wrongly).
+
+## Before claiming UI work done
+
+- [ ] §11 checklist in `mobile-responsive.mdc` / skill (375px + 768px, no horizontal scroll, sheets not dropdowns on phone)
+- [ ] Modals and menus open as **bottom sheets** on phone
+- [ ] Route guide updated if page UX changed (`route-guides` skill)
+
+Inventory: `docs/workflow/for-testing/mobile-native-redesign.md`.
