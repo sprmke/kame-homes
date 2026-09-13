@@ -62,7 +62,6 @@ import { handleAiMutationError, isAiQuotaError } from '@/features/dashboard/org/
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
-
 import { ChatComposerContextBar } from '@/components/chat/ChatComposerContextBar';
 import {
   ChatMessageActionItem,
@@ -71,6 +70,7 @@ import {
 import { ChatMessageBubble } from '@/components/chat/ChatMessageBubble';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import { ChatThreadSearchPanel, ChatThreadSearchTrigger } from '@/components/chat/ChatThreadSearch';
+import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -82,6 +82,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { CHAT_ATTACHMENT_ACCEPT, CHAT_MAX_ATTACHMENTS } from '@/lib/chat/chatAttachments';
 import { isChatActionEligibilityError } from '@/lib/chat/chatMessageActions';
 import {
@@ -188,6 +189,8 @@ export function InboxConversationView({
   const [draftAiFlagged, setDraftAiFlagged] = useState(false);
   const [useHumanAgentTag, setUseHumanAgentTag] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<InboxAttachmentPreview | null>(null);
+  const [quickReplyOpen, setQuickReplyOpen] = useState(false);
+  const isMobileLayout = useIsBelowLg();
   const { canUse: canUseQuickReplies, isLoading: quickRepliesLoading } =
     useFeatureGate('quickReplies');
   const { open: openUpgradeModal } = useUpgradeModal();
@@ -228,6 +231,34 @@ export function InboxConversationView({
     if (!conversation) return [];
     return templatesForConversationPlatform(templates, conversation.platform);
   }, [templates, conversation?.platform]);
+
+  const applyQuickReply = useCallback(
+    (template: InboxTemplate) => {
+      if (!conversation) return;
+      if (!canUseQuickReplies) {
+        if (!quickRepliesLoading) openUpgradeModal('quickReplies');
+        return;
+      }
+      setDraft(
+        applyInboxQuickReplyMerge(
+          template.body_text,
+          quickReplyMergeContext ?? {
+            conversation,
+            booking: matchedBooking,
+          }
+        )
+      );
+      setDraftFromAi(false);
+    },
+    [
+      canUseQuickReplies,
+      conversation,
+      matchedBooking,
+      openUpgradeModal,
+      quickRepliesLoading,
+      quickReplyMergeContext,
+    ]
+  );
 
   const pinnedSnippets = useMemo(
     () => readInboxPinnedSnippets(orgContext?.property.settings),
@@ -339,7 +370,7 @@ export function InboxConversationView({
 
   if (!conversation) {
     return (
-      <div className="bg-muted/20 text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-muted/20 text-muted-foreground">
         <MessageSquare className="size-8 opacity-40" aria-hidden />
         <p className="text-sm">Select a conversation</p>
       </div>
@@ -468,7 +499,7 @@ export function InboxConversationView({
   };
 
   return (
-    <div className="bg-muted/20 flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
       <InboxMediaPreviewDialog
         attachment={previewAttachment}
         open={!!previewAttachment}
@@ -492,7 +523,7 @@ export function InboxConversationView({
         />
       ) : null}
 
-      <div className="border-border bg-card flex shrink-0 items-center gap-3 border-b px-3 py-3 sm:px-4">
+      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-3 sm:px-4">
         {onBack && (
           <Button
             type="button"
@@ -508,7 +539,7 @@ export function InboxConversationView({
         <PlatformLogo platform={conversation.platform} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{name}</p>
-          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2 text-[11px]">
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <span>{platformLabel(conversation.platform)}</span>
             {isWeb && conversation.inquiry_check_in && conversation.inquiry_check_out ? (
               <>
@@ -524,7 +555,7 @@ export function InboxConversationView({
             {windowLabel && conversation.conversation_type === 'dm' && (
               <>
                 <span aria-hidden>·</span>
-                <span className={windowOpen ? undefined : 'text-destructive font-medium'}>
+                <span className={windowOpen ? undefined : 'font-medium text-destructive'}>
                   {windowLabel}
                 </span>
               </>
@@ -536,7 +567,7 @@ export function InboxConversationView({
             href={conversation.linked_post_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary flex min-h-[44px] shrink-0 items-center self-center px-1 text-xs font-medium underline-offset-2 hover:underline"
+            className="flex min-h-[44px] shrink-0 items-center self-center px-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
           >
             View conversation
           </a>
@@ -600,7 +631,7 @@ export function InboxConversationView({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground h-10 min-h-[44px]"
+                  className="h-10 min-h-[44px] text-muted-foreground"
                   disabled={loadingOlder}
                   onClick={onLoadOlder}
                 >
@@ -735,7 +766,7 @@ export function InboxConversationView({
                           </div>
                           {!hasText ? (
                             <time
-                              className="text-muted-foreground px-1 text-[11px] tabular-nums"
+                              className="px-1 text-[11px] tabular-nums text-muted-foreground"
                               dateTime={msg.sent_at}
                             >
                               {formatChatBubbleTime(msg.sent_at)}
@@ -749,8 +780,8 @@ export function InboxConversationView({
               />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
-                <MessageSquare className="text-muted-foreground/50 mb-3 size-8" aria-hidden />
-                <p className="text-muted-foreground text-sm">No messages yet</p>
+                <MessageSquare className="mb-3 size-8 text-muted-foreground/50" aria-hidden />
+                <p className="text-sm text-muted-foreground">No messages yet</p>
               </div>
             )}
           </div>
@@ -758,14 +789,14 @@ export function InboxConversationView({
       </div>
 
       {canReply && (
-        <div className="border-border bg-card shrink-0 border-t p-3 sm:p-4">
+        <div className="shrink-0 border-t border-border bg-card p-3 sm:p-4">
           {isWeb && peerTyping ? (
-            <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
+            <p className="mb-2 px-1 text-xs text-muted-foreground" aria-live="polite">
               Guest is typing…
             </p>
           ) : null}
           {channelDisconnected ? (
-            <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
+            <p className="mb-2 px-1 text-xs text-muted-foreground" aria-live="polite">
               This channel is disconnected — reconnect Meta to reply.
             </p>
           ) : null}
@@ -778,10 +809,10 @@ export function InboxConversationView({
                 aria-label="Send as a support follow-up"
               />
               <span className="min-w-0 text-xs">
-                <span className="text-foreground block font-medium">
+                <span className="block font-medium text-foreground">
                   Reply window closed — send as a support follow-up
                 </span>
-                <span className="text-muted-foreground mt-0.5 block">
+                <span className="mt-0.5 block text-muted-foreground">
                   Non-promotional only. This uses Meta&apos;s 7-day `HUMAN_AGENT` tag.
                 </span>
               </span>
@@ -789,8 +820,8 @@ export function InboxConversationView({
           ) : null}
           <div
             className={cn(
-              'border-border/80 bg-background overflow-hidden rounded-xl border shadow-sm transition-shadow',
-              'focus-within:border-primary/40 focus-within:ring-primary/10 focus-within:ring-2'
+              'overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm transition-shadow',
+              'focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10'
             )}
           >
             {composerMode.kind === 'reply' ? (
@@ -807,17 +838,17 @@ export function InboxConversationView({
               />
             ) : null}
             {draftFromAi && draft.trim().length > 0 && composerMode.kind === 'compose' && (
-              <div className="border-border/60 flex items-center gap-1.5 border-b px-3.5 py-2 text-[11px] font-medium text-violet-600 dark:text-violet-400">
+              <div className="flex items-center gap-1.5 border-b border-border/60 px-3.5 py-2 text-[11px] font-medium text-violet-600 dark:text-violet-400">
                 <Sparkles className="size-3.5 shrink-0" aria-hidden />
                 {draftAiFlagged ? 'AI declined to answer' : 'Suggested by AI'}
               </div>
             )}
             {pendingAttachments.length > 0 ? (
-              <div className="border-border/60 flex flex-wrap gap-1.5 border-b px-3.5 py-2">
+              <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3.5 py-2">
                 {pendingAttachments.map((att, index) => (
                   <div
                     key={`${att.url}-${index}`}
-                    className="bg-muted flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs"
+                    className="flex max-w-full items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs"
                   >
                     <span className="min-w-0 truncate">
                       {att.label ?? (att.kind === 'image' ? 'Image' : 'File')}
@@ -869,7 +900,7 @@ export function InboxConversationView({
                 }
               }}
             />
-            <div className="border-border/60 flex items-center justify-between gap-2 border-t px-2 py-1.5">
+            <div className="flex items-center justify-between gap-2 border-t border-border/60 px-2 py-1.5">
               <TooltipProvider delayDuration={300}>
                 <div className="flex min-w-0 flex-1 items-center gap-1">
                   {isWeb && onUploadAttachment && composerMode.kind !== 'edit' ? (
@@ -887,7 +918,7 @@ export function InboxConversationView({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-foreground size-10 min-h-[44px] min-w-[44px]"
+                            className="size-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
                             disabled={
                               channelDisconnected ||
                               isBusy ||
@@ -907,55 +938,80 @@ export function InboxConversationView({
                       </Tooltip>
                     </>
                   ) : null}
-                  {visibleTemplates.length > 0 && (
-                    <DropdownMenu>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenuTrigger asChild>
+                  {visibleTemplates.length > 0 &&
+                    (isMobileLayout ? (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="text-muted-foreground hover:text-foreground size-10"
+                              className="size-10 text-muted-foreground hover:text-foreground"
                               disabled={channelDisconnected}
                               aria-label="Insert quick reply"
+                              aria-haspopup="dialog"
+                              aria-expanded={quickReplyOpen}
+                              onClick={() => setQuickReplyOpen(true)}
                             >
                               <Zap className="size-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Quick reply</TooltipContent>
-                      </Tooltip>
-                      <DropdownMenuContent
-                        align="start"
-                        className="z-[110] max-w-[min(90vw,320px)]"
-                      >
-                        {visibleTemplates.map((t) => (
-                          <DropdownMenuItem
-                            key={t.id}
-                            onClick={() => {
-                              if (!canUseQuickReplies) {
-                                if (!quickRepliesLoading) openUpgradeModal('quickReplies');
-                                return;
-                              }
-                              setDraft(
-                                applyInboxQuickReplyMerge(
-                                  t.body_text,
-                                  quickReplyMergeContext ?? {
-                                    conversation,
-                                    booking: matchedBooking,
-                                  }
-                                )
-                              );
-                              setDraftFromAi(false);
-                            }}
-                          >
-                            <span className="font-medium">{t.title}</span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Quick reply</TooltipContent>
+                        </Tooltip>
+                        <MobileChoiceSheet
+                          open={quickReplyOpen}
+                          onOpenChange={setQuickReplyOpen}
+                          title="Quick reply"
+                        >
+                          <div role="listbox" aria-label="Quick reply">
+                            {visibleTemplates.map((template) => (
+                              <MobileChoiceItem
+                                key={template.id}
+                                label={template.title}
+                                onSelect={() => {
+                                  applyQuickReply(template);
+                                  setQuickReplyOpen(false);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </MobileChoiceSheet>
+                      </>
+                    ) : (
+                      <DropdownMenu>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-10 text-muted-foreground hover:text-foreground"
+                                disabled={channelDisconnected}
+                                aria-label="Insert quick reply"
+                              >
+                                <Zap className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Quick reply</TooltipContent>
+                        </Tooltip>
+                        <DropdownMenuContent
+                          align="start"
+                          className="z-[110] max-w-[min(90vw,320px)]"
+                        >
+                          {visibleTemplates.map((template) => (
+                            <DropdownMenuItem
+                              key={template.id}
+                              onClick={() => applyQuickReply(template)}
+                            >
+                              <span className="font-medium">{template.title}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ))}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

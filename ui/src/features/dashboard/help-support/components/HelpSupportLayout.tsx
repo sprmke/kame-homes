@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { HelpSectionIntro } from '@/features/dashboard/help-support/components/HelpSectionIntro';
 import { HelpSupportModuleNav } from '@/features/dashboard/help-support/components/HelpSupportModuleNav';
 import {

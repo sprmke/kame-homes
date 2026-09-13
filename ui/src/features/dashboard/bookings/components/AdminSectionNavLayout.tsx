@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { SectionNavIssueDot } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
@@ -461,7 +461,7 @@ export function AdminSectionNavLayout({
               <Card>
                 <CardContent
                   data-section-nav-scroll
-                  className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain p-2"
+                  className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain p-2 sm:p-2"
                 >
                   <SectionNavList />
                 </CardContent>

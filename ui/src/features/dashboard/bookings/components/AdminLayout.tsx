@@ -1,14 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -44,6 +34,10 @@ import {
   resolveBottomTabActiveKey,
   splitAdminBottomNav,
 } from '@/features/dashboard/bookings/lib/adminBottomNav';
+import {
+  AdminLayoutFillMainActiveContext,
+  AdminLayoutFillMainContext,
+} from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { adminPageTransitionKey } from '@/features/dashboard/bookings/lib/adminPageTransitionKey';
 import {
   buildOrgNavSections,
@@ -197,27 +191,6 @@ type Props = {
   /** Fill main column height (inbox-style layouts). */
   fillMain?: boolean;
 };
-
-const AdminLayoutFillMainContext = createContext<((fill: boolean) => void) | null>(null);
-const AdminLayoutFillMainActiveContext = createContext(false);
-
-/** Opt into full-height main column (e.g. inbox) when AdminLayout wraps the route shell.
- *  Multiple callers are ref-counted so cleanup from one page does not clear another's claim.
- */
-export function useAdminLayoutFillMain(enabled: boolean) {
-  const setFillMain = useContext(AdminLayoutFillMainContext);
-
-  useLayoutEffect(() => {
-    if (!enabled || !setFillMain) return;
-    setFillMain(true);
-    return () => setFillMain(false);
-  }, [enabled, setFillMain]);
-}
-
-/** True when a descendant has opted into fill-main (Settings / Notifications / Inbox). */
-export function useAdminLayoutIsFillMain(): boolean {
-  return useContext(AdminLayoutFillMainActiveContext);
-}
 
 export function AdminLayout({ children, fillMain: fillMainProp = false }: Props) {
   const [fillMainOptIn, setFillMainOptIn] = useState(false);

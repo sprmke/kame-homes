@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { InboxConversationView } from '@/features/dashboard/inbox/components/InboxConversationView';
 import {
   InboxManageModals,

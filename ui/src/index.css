@@ -457,6 +457,85 @@
     background-size: 200% 100%;
   }
 
+  /* Marketing AI Generate — loading stage */
+  @keyframes ai-gen-aurora {
+    0%,
+    100% {
+      transform: translate3d(-8%, -6%, 0) scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translate3d(10%, 8%, 0) scale(1.12);
+      opacity: 0.85;
+    }
+  }
+
+  @keyframes ai-gen-orb {
+    0%,
+    100% {
+      transform: scale(0.92);
+      opacity: 0.45;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes ai-gen-ring {
+    0% {
+      stroke-dashoffset: 220;
+      transform: rotate(0deg);
+    }
+    100% {
+      stroke-dashoffset: 60;
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes ai-gen-spark {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: translateY(0) scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-6px) scale(1.05);
+    }
+  }
+
+  @keyframes ai-gen-shimmer-sweep {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .animate-ai-gen-aurora {
+    animation: ai-gen-aurora 8s ease-in-out infinite;
+  }
+
+  .animate-ai-gen-orb {
+    animation: ai-gen-orb 3.2s ease-in-out infinite;
+  }
+
+  .animate-ai-gen-ring {
+    animation: ai-gen-ring 2.4s linear infinite;
+    transform-origin: center;
+  }
+
+  .animate-ai-gen-spark {
+    animation: ai-gen-spark 2s ease-in-out infinite;
+  }
+
+  .animate-ai-gen-shimmer {
+    background-size: 200% 100%;
+    animation: ai-gen-shimmer-sweep 2.2s ease-in-out infinite;
+  }
+
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
@@ -1382,6 +1461,11 @@
     .animate-fade-in,
     .animate-fade-in-up,
     .animate-float,
+    .animate-ai-gen-aurora,
+    .animate-ai-gen-orb,
+    .animate-ai-gen-ring,
+    .animate-ai-gen-spark,
+    .animate-ai-gen-shimmer,
     .animate-notification-bell-nudge,
     .animate-notification-badge-pulse,
     .animate-setup-guide-check-in,
@@ -2608,4 +2692,25 @@ html.guest-embed-preview *::-webkit-scrollbar {
       animation: none;
     }
   }
+}
+
+/* Cloudflare Turnstile — full-bleed with form controls (see TurnstileWidget.tsx). */
+.turnstile-host {
+  width: 100%;
+  padding-inline: 0;
+  margin-inline: 0;
+}
+
+.turnstile-host [data-testid='turnstile-widget'] {
+  padding-inline: 0;
+  margin-inline: 0;
+}
+
+.turnstile-host [data-testid='turnstile-widget'] > div,
+.turnstile-host [data-testid='turnstile-widget'] iframe {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
 }

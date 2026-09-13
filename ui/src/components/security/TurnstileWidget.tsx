@@ -10,6 +10,39 @@ import {
   type TurnstileApi,
 } from './turnstileLoader';
 
+const TURNSTILE_CHALLENGE_HEIGHT_PX = 65;
+
+/** Stretch Cloudflare's injected shell to the form column (flexible often stays ~300px). */
+function fitTurnstileToHost(host: HTMLElement, mount: HTMLElement): void {
+  const injected = mount.firstElementChild as HTMLElement | null;
+  const iframe = mount.querySelector('iframe');
+  if (!injected || !iframe) return;
+
+  const hostWidth = host.clientWidth;
+  if (hostWidth <= 0) return;
+
+  mount.style.width = '100%';
+  mount.style.padding = '0';
+  mount.style.margin = '0';
+  injected.style.setProperty('width', '100%', 'important');
+  injected.style.setProperty('max-width', '100%', 'important');
+  injected.style.margin = '0';
+  injected.style.padding = '0';
+  iframe.style.setProperty('width', '100%', 'important');
+  iframe.style.setProperty('max-width', '100%', 'important');
+  iframe.style.display = 'block';
+  injected.style.transform = '';
+
+  const renderedWidth = iframe.getBoundingClientRect().width;
+  if (renderedWidth > 0 && renderedWidth < hostWidth - 1) {
+    const scale = hostWidth / renderedWidth;
+    injected.style.transformOrigin = 'left center';
+    injected.style.transform = `scaleX(${scale})`;
+  }
+
+  mount.style.minHeight = `${TURNSTILE_CHALLENGE_HEIGHT_PX}px`;
+}
+
 export type TurnstileWidgetHandle = {
   /** Discard the current token and request a fresh challenge. */
   reset: () => void;
@@ -47,6 +80,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
   ref
 ) {
   const { resolvedTheme } = useTheme();
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const apiRef = useRef<TurnstileApi | null>(null);
@@ -143,15 +177,29 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
               cbRef.current.onVerify('');
             },
           });
+          const syncLayout = () => {
+            const host = hostRef.current;
+            const mount = containerRef.current;
+            if (!host || !mount) return;
+            fitTurnstileToHost(host, mount);
+            setHasChallenge(mount.getBoundingClientRect().height > 4);
+          };
+
           // If Turnstile decides to show an interactive challenge it injects an
-          // iframe with height > 0; reserve space only then.
-          const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-              setHasChallenge(entry.contentRect.height > 4);
-            }
-          });
-          observer.observe(containerRef.current);
-          cleanupObserverRef.current = () => observer.disconnect();
+          // iframe with height > 0; keep it full-bleed with the form column.
+          const resizeObserver = new ResizeObserver(() => syncLayout());
+          if (hostRef.current) resizeObserver.observe(hostRef.current);
+          resizeObserver.observe(containerRef.current);
+
+          const mutationObserver = new MutationObserver(() => syncLayout());
+          mutationObserver.observe(containerRef.current, { childList: true, subtree: true });
+
+          requestAnimationFrame(() => requestAnimationFrame(syncLayout));
+
+          cleanupObserverRef.current = () => {
+            resizeObserver.disconnect();
+            mutationObserver.disconnect();
+          };
         } catch (err) {
           cbRef.current.onError?.(err);
           setToken('');
@@ -184,14 +232,14 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
   if (!isTurnstileConfigured()) return null;
 
   return (
-    <div className={cn('flex flex-col items-center gap-1.5', className)}>
+    <div ref={hostRef} className={cn('turnstile-host w-full', className)}>
       <div
         ref={containerRef}
         data-testid="turnstile-widget"
         aria-hidden={!hasChallenge}
         className={cn(
-          'flex justify-center transition-[min-height]',
-          hasChallenge ? 'min-h-[65px]' : 'min-h-0'
+          'w-full transition-[min-height]',
+          hasChallenge ? 'min-h-[65px] overflow-hidden rounded-xl' : 'min-h-0 overflow-hidden p-0'
         )}
       />
       {/* Announce only the interactive-challenge case; the invisible pass is silent. */}

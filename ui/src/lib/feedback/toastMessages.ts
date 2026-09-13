@@ -1,4 +1,6 @@
-import { toast } from 'sonner';
+import { toast, type ExternalToast } from 'sonner';
+
+const GENERIC_TOAST_ERROR = 'Something went wrong. Try again.';
 
 /** Shared Telegram bot + group verify shape (marketing, staff, admin, finance). */
 export type TelegramVerifyDto = {
@@ -76,16 +78,68 @@ export function showTelegramVerifyToast(
   }
 }
 
-/** Map raw errors to short, operator-friendly copy. */
-export function friendlyToastError(
-  error: unknown,
-  fallback = 'Something went wrong. Try again.'
-): string {
-  if (!(error instanceof Error)) return fallback;
-  const message = error.message.trim();
-  if (!message) return fallback;
+function messageFromUnknown(error: unknown): string {
+  if (typeof error === 'string') return error.trim();
+  if (error instanceof Error) return error.message.trim();
+  return '';
+}
 
-  const lower = message.toLowerCase();
+/** True when copy looks like a provider dump, stack, URL, or HTTP jargon. */
+export function isTechnicalToastMessage(message: string): boolean {
+  const text = message.trim();
+  if (!text) return false;
+  const lower = text.toLowerCase();
+
+  if (text.length > 140) return true;
+  if (/https?:\/\//i.test(text)) return true;
+  if (/\b[\w.-]+\.(com|dev|io|ai|google)\b/i.test(text)) return true;
+  if (/\b(gemini-|veo-|gpt-|claude-|llama-)/i.test(text)) return true;
+  if (
+    /\b(googleapis|generativelanguage|resource_exhausted|quota exceeded|free_tier|rate[- ]limits?|retry in \d)/i.test(
+      text
+    )
+  ) {
+    return true;
+  }
+  if (/\b(api[_ ]?key|x-goog|token_count|input_token|output_token)\b/i.test(text)) return true;
+  if (/\b(status|http)\s*[:=]?\s*\d{3}\b/i.test(text)) return true;
+  if (/\(\d{3}\)/.test(text)) return true;
+  if (/[{}[\]]/.test(text) && /[:"]/.test(text)) return true;
+  if (/\bat\s+\S+\s+\(/.test(text)) return true;
+  if (/\.(ts|js|tsx)(:\d+)/i.test(text)) return true;
+  if (/\b(enoent|econnreset|pgrst|postgres|sqlstate|typeerror|referenceerror)\b/i.test(lower)) {
+    return true;
+  }
+  if (/\b(deno\.|node:|supabase\/functions|stack trace)\b/i.test(lower)) return true;
+  if (/\b(getme|getchat|chat_id|codepoint|payload|cron sync)\b/i.test(lower)) return true;
+  if (/^[a-z][a-z0-9_]+$/.test(text)) return true;
+  if (/^(unauthorized|forbidden|bad request|internal server error|not found)(:|\s|$)/i.test(text)) {
+    return true;
+  }
+  if (/\bmethod\s+[a-z]+\s+not allowed\b/i.test(text)) return true;
+  return false;
+}
+
+function isProviderBusyMessage(lower: string): boolean {
+  return (
+    /\b(quota exceeded|resource_exhausted|free_tier|rate[- ]limits?|retry in \d)/i.test(lower) ||
+    lower.includes('generativelanguage') ||
+    lower.includes('googleapis.com')
+  );
+}
+
+/**
+ * Host-facing toast copy. Known cases get a specific line; anything technical
+ * becomes a short fallback so provider dumps never reach the UI.
+ */
+export function sanitizeToastMessage(
+  message: string | null | undefined,
+  fallback = GENERIC_TOAST_ERROR
+): string {
+  const text = (message ?? '').trim();
+  if (!text) return fallback;
+
+  const lower = text.toLowerCase();
 
   if (
     lower.includes('no active session') ||
@@ -102,29 +156,71 @@ export function friendlyToastError(
     return 'Network error. Check your connection';
   }
   if (
-    lower.includes('unauthorized') ||
-    lower.includes('forbidden') ||
-    lower.includes('not allowed')
+    lower === 'you do not have permission to do that' ||
+    lower.includes('you do not have permission') ||
+    lower.includes('not allowed to') ||
+    lower === 'not allowed'
   ) {
     return 'You do not have permission to do that';
   }
-  if (
-    lower.includes('getme') ||
-    lower.includes('getchat') ||
-    lower.includes('chat_id') ||
-    lower.includes('codepoint') ||
-    lower.includes('payload') ||
-    lower.includes('cron sync')
-  ) {
+  if (isProviderBusyMessage(lower)) {
+    return 'This is busy right now. Try again in a moment.';
+  }
+  if (lower.includes('timed out') || lower.includes('timeout') || lower.includes('took too long')) {
+    return text.length <= 140 && !isTechnicalToastMessage(text)
+      ? text
+      : 'This took too long. Try again.';
+  }
+  if (lower.includes('not configured')) {
+    return 'This is temporarily unavailable.';
+  }
+  if (isTechnicalToastMessage(text)) {
     return fallback;
   }
-  if (/^[a-z][a-z0-9_]+$/.test(message)) {
-    return fallback;
-  }
-  if (message.length > 140) {
-    return fallback;
-  }
-  return message;
+  return text;
+}
+
+/** Map raw errors to short, operator-friendly copy. */
+export function friendlyToastError(error: unknown, fallback = GENERIC_TOAST_ERROR): string {
+  return sanitizeToastMessage(messageFromUnknown(error), fallback);
+}
+
+type ToastMessage = Parameters<typeof toast.error>[0];
+
+function sanitizeToastTitle(message: ToastMessage): ToastMessage {
+  if (typeof message !== 'string') return message;
+  return sanitizeToastMessage(message);
+}
+
+function sanitizeToastOptions(data: ExternalToast | undefined): ExternalToast | undefined {
+  if (!data || typeof data.description !== 'string') return data;
+  if (!isTechnicalToastMessage(data.description)) return data;
+  const next = { ...data };
+  delete next.description;
+  return next;
+}
+
+let friendlyToastsInstalled = false;
+
+/**
+ * Intercepts every `toast.error` / `toast.warning` so raw API dumps cannot leak,
+ * even when a call site passes `error.message` directly.
+ */
+export function installFriendlyToasts(): void {
+  if (friendlyToastsInstalled) return;
+  friendlyToastsInstalled = true;
+
+  const originalError = toast.error.bind(toast);
+  const originalWarning = toast.warning.bind(toast);
+
+  toast.error = ((message: ToastMessage, data?: ExternalToast) =>
+    originalError(sanitizeToastTitle(message), sanitizeToastOptions(data))) as typeof toast.error;
+
+  toast.warning = ((message: ToastMessage, data?: ExternalToast) =>
+    originalWarning(
+      sanitizeToastTitle(message),
+      sanitizeToastOptions(data)
+    )) as typeof toast.warning;
 }
 
 export function telegramScheduleSyncError(

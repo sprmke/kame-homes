@@ -1,6 +1,9 @@
 import { Toaster } from 'sonner';
 
 import { useTheme } from '@/components/theme/ThemeProvider';
+import { installFriendlyToasts } from '@/lib/feedback/toastMessages';
+
+installFriendlyToasts();
 
 export function ThemedToaster() {
   const { resolvedTheme } = useTheme();
