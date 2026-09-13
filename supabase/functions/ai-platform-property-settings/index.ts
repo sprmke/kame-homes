@@ -11,6 +11,12 @@ import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { logAssetActivity } from '../_shared/assetActivity.ts';
+import {
+  getMarketingGenerationOverrides,
+  parsePositiveIntOrNull,
+  patchMarketingGenerationOverrides,
+} from '../_shared/marketingGenerationFeatureConfig.ts';
 
 serveAuthenticated('ai-platform-property-settings', async (req, user) => {
   const permission = req.method === 'GET' ? 'settings:view' : 'settings.aiOverrides:edit';
@@ -18,7 +24,8 @@ serveAuthenticated('ai-platform-property-settings', async (req, user) => {
 
   if (req.method === 'GET') {
     const data = await getAiPlatformPropertySettings(property.id, property.organization_id);
-    return jsonSuccess(req, data);
+    const generation = await getMarketingGenerationOverrides(property.id, property.organization_id);
+    return jsonSuccess(req, { ...data, ...generation });
   }
 
   if (req.method === 'PATCH') {
@@ -63,7 +70,36 @@ serveAuthenticated('ai-platform-property-settings', async (req, user) => {
         dailyCost !== undefined ? (dailyCost === null ? null : dailyCost) : undefined,
       updatedBy: user.id,
     });
-    return jsonSuccess(req, data);
+
+    const imageCap = parsePositiveIntOrNull(body.imageMonthlyCreditCap, 'imageMonthlyCreditCap');
+    if (!imageCap.ok) return jsonError(req, imageCap.error, 400);
+    const videoCap = parsePositiveIntOrNull(body.videoMonthlyCreditCap, 'videoMonthlyCreditCap');
+    if (!videoCap.ok) return jsonError(req, videoCap.error, 400);
+
+    let generation = await getMarketingGenerationOverrides(property.id, property.organization_id);
+    if (imageCap.value !== undefined || videoCap.value !== undefined) {
+      generation = await patchMarketingGenerationOverrides({
+        propertyId: property.id,
+        organizationId: property.organization_id,
+        patch: {
+          imageMonthlyCreditCap: imageCap.value,
+          videoMonthlyCreditCap: videoCap.value,
+        },
+        updatedBy: user.id,
+      });
+      await logAssetActivity({
+        req,
+        user,
+        action: 'settings.updated',
+        propertyId: property.id,
+        organizationId: property.organization_id,
+        targetType: 'settings',
+        targetId: property.id,
+        metadata: { area: 'AI generation caps' },
+      });
+    }
+
+    return jsonSuccess(req, { ...data, ...generation });
   }
 
   return jsonError(req, 'Method not allowed', 405);

@@ -59,7 +59,7 @@ skip_nonce_check = false
 #     in Dashboard → Authentication → Attack Protection (or via config-as-code).
 # The UI always sends `options.captchaToken`; GoTrue ignores it while disabled.
 [auth.captcha]
-enabled = false
+enabled = true
 provider = "turnstile"
 secret = "env(TURNSTILE_SECRET_KEY)"
 
@@ -910,6 +910,21 @@ verify_jwt = false
 [functions.generate-marketing-template]
 verify_jwt = false
 
+[functions.generate-marketing-media]
+verify_jwt = false
+
+[functions.get-marketing-generation-job]
+verify_jwt = false
+
+[functions.marketing-generations]
+verify_jwt = false
+
+[functions.upload-marketing-generation-reference]
+verify_jwt = false
+
+[functions.marketing-generation-sweeper]
+verify_jwt = false
+
 [functions.marketing-music]
 verify_jwt = false
 
@@ -983,6 +998,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.ai-platform-property-settings]
+verify_jwt = false
+
+[functions.ai-platform-generation-overrides]
 verify_jwt = false
 
 [functions.ai-platform-credit-wallet]
