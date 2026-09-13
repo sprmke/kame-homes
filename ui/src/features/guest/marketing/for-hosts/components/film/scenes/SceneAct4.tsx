@@ -62,7 +62,9 @@ export function GuestInboxScene() {
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold',
-                autoOn ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                autoOn
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
               )}
               style={reveal(frame, 90)}
             >
@@ -74,11 +76,11 @@ export function GuestInboxScene() {
         />
 
         <div
-          className="grid h-[492px] grid-cols-[0.68fr_1.4fr] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="grid h-[492px] grid-cols-[0.68fr_1.4fr] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
           style={reveal(frame, 8)}
         >
-          <div className="border-r border-slate-200 p-3">
-            <div className="mb-3 rounded-xl bg-slate-100 px-3 py-2 text-[10px] text-slate-500">
+          <div className="border-r border-slate-200 p-3 dark:border-slate-700">
+            <div className="mb-3 rounded-xl bg-slate-100 px-3 py-2 text-[10px] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               Search conversations
             </div>
             {[
@@ -89,23 +91,32 @@ export function GuestInboxScene() {
             ].map(([initials, name, message, time, channel, active]) => (
               <div
                 key={String(name)}
-                className={cn('mb-1 flex gap-2.5 rounded-xl p-2.5', active && 'bg-teal-50')}
+                className={cn(
+                  'mb-1 flex gap-2.5 rounded-xl p-2.5',
+                  active && 'bg-teal-50 dark:bg-teal-500/15'
+                )}
               >
                 <span
                   className={cn(
                     'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
-                    active ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                    active
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                   )}
                 >
                   {String(initials)}
                 </span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-[11px] font-bold text-slate-700">{String(name)}</p>
-                    <span className="ml-auto text-[8px] text-slate-400">{String(time)}</span>
+                    <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                      {String(name)}
+                    </p>
+                    <span className="ml-auto text-[8px] text-slate-400 dark:text-slate-500">
+                      {String(time)}
+                    </span>
                   </div>
-                  <p className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-slate-500">
-                    <span className="rounded bg-slate-100 px-1 text-[7px] font-bold uppercase text-slate-500">
+                  <p className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-slate-500 dark:text-slate-400">
+                    <span className="rounded bg-slate-100 px-1 text-[7px] font-bold uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                       {String(channel)}
                     </span>
                     {String(message)}
@@ -115,16 +126,20 @@ export function GuestInboxScene() {
             ))}
           </div>
 
-          <div className="flex min-w-0 flex-col bg-slate-50/60">
-            <div className="flex h-14 items-center border-b border-slate-200 bg-white px-5">
+          <div className="flex min-w-0 flex-col bg-slate-50/60 dark:bg-slate-950/40">
+            <div className="flex h-14 items-center border-b border-slate-200 bg-white px-5 dark:border-slate-700 dark:bg-slate-900">
               <div>
                 <p className="text-[13px] font-black">Ana Reyes</p>
-                <p className="text-[9px] text-slate-500">Web chat · Monaco 2604</p>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400">
+                  Web chat · Monaco 2604
+                </p>
               </div>
               <span
                 className={cn(
                   'ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-bold',
-                  autoOn ? 'bg-teal-50 text-teal-700' : 'bg-emerald-50 text-emerald-700'
+                  autoOn
+                    ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300'
+                    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                 )}
               >
                 <span
@@ -139,7 +154,7 @@ export function GuestInboxScene() {
 
             <div className="flex-1 space-y-2.5 p-5">
               <div
-                className="max-w-[62%] rounded-2xl rounded-bl-md bg-white p-3 text-[11px] leading-relaxed shadow-sm"
+                className="max-w-[62%] rounded-2xl rounded-bl-md bg-white p-3 text-[11px] leading-relaxed shadow-sm dark:bg-slate-900"
                 style={reveal(frame, 16)}
               >
                 Hi! Our flight lands early — any chance of checking in before 2 PM?
@@ -147,10 +162,10 @@ export function GuestInboxScene() {
 
               {!sent ? (
                 <div className="ml-auto max-w-[80%]" style={reveal(frame, 40)}>
-                  <div className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-600">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">
                     <Sparkles className="h-3 w-3" /> AI suggested reply
                   </div>
-                  <div className="rounded-2xl border border-teal-200 bg-teal-50 p-3 text-[11px] leading-relaxed text-teal-950 shadow-sm">
+                  <div className="rounded-2xl border border-teal-200 bg-teal-50 p-3 text-[11px] leading-relaxed text-teal-950 shadow-sm dark:border-teal-500/30 dark:bg-teal-500/15 dark:text-teal-100">
                     {suggestTyped}
                     {frame < 126 ? (
                       <span
@@ -160,7 +175,7 @@ export function GuestInboxScene() {
                     ) : null}
                   </div>
                   <div className="mt-1.5 flex justify-end gap-1.5">
-                    <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold text-slate-500">
+                    <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                       Edit
                     </span>
                     <span className="rounded-md bg-teal-600 px-2 py-1 text-[9px] font-bold text-white">
@@ -179,7 +194,7 @@ export function GuestInboxScene() {
 
               {secondMsg ? (
                 <div
-                  className="max-w-[52%] rounded-2xl rounded-bl-md bg-white p-3 text-[11px] leading-relaxed shadow-sm"
+                  className="max-w-[52%] rounded-2xl rounded-bl-md bg-white p-3 text-[11px] leading-relaxed shadow-sm dark:bg-slate-900"
                   style={reveal(frame, 176)}
                 >
                   Perfect. Also — what’s the Wi-Fi?
@@ -188,7 +203,7 @@ export function GuestInboxScene() {
 
               {frame >= 194 ? (
                 <div className="ml-auto max-w-[80%]" style={reveal(frame, 194)}>
-                  <div className="mb-1.5 flex items-center justify-end gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-600">
+                  <div className="mb-1.5 flex items-center justify-end gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">
                     <Zap className="h-3 w-3" /> Auto-replied · 0.8s
                   </div>
                   <div className="rounded-2xl rounded-br-md bg-teal-600 p-3 text-[11px] leading-relaxed text-white shadow-sm">
@@ -204,8 +219,8 @@ export function GuestInboxScene() {
               ) : null}
             </div>
 
-            <div className="m-4 flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-500">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+            <div className="m-4 flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                 <Plus className="h-3.5 w-3.5" />
               </span>
               {autoOn
@@ -282,16 +297,20 @@ export function AiReceptionistScene() {
 
         <div className="grid grid-cols-[0.72fr_1.6fr] gap-4">
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 8)}
           >
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
                 <Sparkles className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[12px] font-black text-slate-800">Voice Receptionist</p>
-                <p className="text-[10px] text-slate-400">Settings · Monaco 2604</p>
+                <p className="text-[12px] font-black text-slate-800 dark:text-slate-100">
+                  Voice Receptionist
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  Settings · Monaco 2604
+                </p>
               </div>
               <span className="ml-auto flex h-5 w-9 items-center rounded-full bg-teal-500 px-0.5">
                 <span className="ml-auto h-4 w-4 rounded-full bg-white shadow" />
@@ -304,14 +323,16 @@ export function AiReceptionistScene() {
                 ['Reachable from', 'Stay guide & chat'],
               ].map(([label, value], index) => (
                 <div key={label} style={reveal(frame, 16 + index * 6, 6)}>
-                  <p className="mb-1 text-[9px] font-semibold text-slate-400">{label}</p>
-                  <div className="truncate rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-700">
+                  <p className="mb-1 text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                    {label}
+                  </p>
+                  <div className="truncate rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
                     {value}
                   </div>
                 </div>
               ))}
               <div
-                className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-[10px] font-semibold text-teal-700"
+                className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-[10px] font-semibold text-teal-700 dark:bg-teal-500/15 dark:text-teal-300"
                 style={reveal(frame, 40, 6)}
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -319,7 +340,7 @@ export function AiReceptionistScene() {
               </div>
               {frame > 250 ? (
                 <div
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-semibold text-slate-500"
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:text-slate-400"
                   style={reveal(frame, 252, 6)}
                 >
                   <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -330,24 +351,27 @@ export function AiReceptionistScene() {
           </div>
 
           <div
-            className="flex flex-col items-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="flex flex-col items-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 16)}
           >
-            <div className="flex w-full items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-2.5">
-              <span className="w-12 text-[10px] font-bold tabular-nums text-slate-400">
+            <div className="flex w-full items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+              <span className="w-12 text-[10px] font-bold tabular-nums text-slate-400 dark:text-slate-500">
                 {countdown}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-600">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-600 dark:text-teal-300">
                 {status}
               </span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 dark:text-slate-500">
                 <PhoneOff className="h-4 w-4" />
               </span>
             </div>
 
             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-4">
               <div className="relative h-[212px] w-[212px]" style={reveal(frame, 20, 6)}>
-                <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full text-teal-500">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="absolute inset-0 h-full w-full text-teal-500 dark:text-teal-400"
+                >
                   <circle
                     cx="50"
                     cy="50"
@@ -385,8 +409,12 @@ export function AiReceptionistScene() {
               </div>
 
               <div className="text-center" style={reveal(frame, 26, 6)}>
-                <p className="text-[12px] font-black text-slate-800">Kame · Receptionist</p>
-                <p className="text-[9px] text-slate-400">Live voice · Monaco 2604 stay guide</p>
+                <p className="text-[12px] font-black text-slate-800 dark:text-slate-100">
+                  Kame · Receptionist
+                </p>
+                <p className="text-[9px] text-slate-400 dark:text-slate-500">
+                  Live voice · Monaco 2604 stay guide
+                </p>
               </div>
 
               <div className="flex h-6 items-end gap-[3px]">
@@ -414,7 +442,7 @@ export function AiReceptionistScene() {
                 </div>
                 {frame >= 112 ? (
                   <div
-                    className="w-fit max-w-[90%] self-start rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-[11px] leading-snug text-slate-700"
+                    className="w-fit max-w-[90%] self-start rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-[11px] leading-snug text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                     style={reveal(frame, 112)}
                   >
                     {kameTyped}
@@ -429,8 +457,8 @@ export function AiReceptionistScene() {
               </div>
             </div>
 
-            <div className="flex w-full items-center justify-center gap-3 border-t border-slate-100 bg-white px-5 py-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-teal-500/40 text-slate-600">
+            <div className="flex w-full items-center justify-center gap-3 border-t border-slate-100 bg-white px-5 py-2.5 dark:border-slate-800 dark:bg-slate-900">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-teal-500/40 text-slate-600 dark:text-slate-300">
                 <Mic className="h-4 w-4" />
               </span>
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-500 text-white">
@@ -483,12 +511,12 @@ export function MarketingStudioScene() {
         />
 
         <div
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
           style={reveal(frame, 8)}
         >
           {/* Builder top bar */}
-          <div className="flex items-center gap-2 border-b border-slate-100 bg-white px-4 py-2.5">
-            <span className="text-[11px] font-black text-slate-800">
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-white px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900">
+            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100">
               {STUDIO_MODES[mode].label} Builder
             </span>
             <div className="ml-3 flex items-center gap-1">
@@ -497,7 +525,7 @@ export function MarketingStudioScene() {
                   key={m.label}
                   className={cn(
                     'flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-bold',
-                    index === mode ? 'bg-teal-600 text-white' : 'text-slate-400'
+                    index === mode ? 'bg-teal-600 text-white' : 'text-slate-400 dark:text-slate-500'
                   )}
                 >
                   <m.icon className="h-3.5 w-3.5" />
@@ -509,19 +537,23 @@ export function MarketingStudioScene() {
               <span
                 className={cn(
                   'flex items-center gap-1.5 rounded-md px-2 py-1 text-[9px] font-bold',
-                  saveStage === 2 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  saveStage === 2
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 {saveStage === 2 ? <Check className="h-3 w-3" /> : null}
                 {saveLabel}
               </span>
-              <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold text-slate-600">
+              <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                 Download {mode === 2 ? 'MP4' : 'PNG'}
               </span>
               <span
                 className={cn(
                   'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[9px] font-black',
-                  publishOn ? 'bg-teal-600 text-white' : 'bg-slate-900 text-white'
+                  publishOn
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                 )}
               >
                 {publishOn ? <Check className="h-3 w-3" /> : <Send className="h-3 w-3" />}
@@ -533,17 +565,17 @@ export function MarketingStudioScene() {
 
           <div className="grid h-[392px] grid-cols-[0.66fr_1.7fr_0.64fr]">
             {/* Templates sidebar */}
-            <div className="flex flex-col border-r border-slate-100 bg-slate-50/60 p-3">
-              <div className="mb-2.5 flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[9px] font-bold text-teal-700">
+            <div className="flex flex-col border-r border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800">
+              <div className="mb-2.5 flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[9px] font-bold text-teal-700 dark:bg-teal-500/15 dark:text-teal-300">
                 <Wand2 className="h-3 w-3" /> Generate with AI <TierBadge tier="Business" />
               </div>
-              <p className="mb-1.5 px-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="mb-1.5 px-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Custom
               </p>
-              <div className="mb-2 flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 py-2 text-[9px] font-bold text-slate-400">
+              <div className="mb-2 flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 py-2 text-[9px] font-bold text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
                 <Plus className="h-3 w-3" /> Save template
               </div>
-              <p className="mb-1.5 px-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="mb-1.5 px-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Templates
               </p>
               <div className="space-y-1.5">
@@ -553,8 +585,8 @@ export function MarketingStudioScene() {
                     className={cn(
                       'flex items-center gap-2 rounded-lg border px-2 py-1.5',
                       i === activeTpl
-                        ? 'border-teal-400 bg-white shadow-sm'
-                        : 'border-slate-200 bg-white'
+                        ? 'border-teal-400 bg-white shadow-sm dark:border-teal-500/50 dark:bg-slate-900'
+                        : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
                     )}
                   >
                     <span
@@ -567,19 +599,21 @@ export function MarketingStudioScene() {
                             : 'bg-gradient-to-br from-indigo-200 to-slate-200'
                       )}
                     />
-                    <span className="truncate text-[9px] font-bold text-slate-600">{name}</span>
+                    <span className="truncate text-[9px] font-bold text-slate-600 dark:text-slate-300">
+                      {name}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Canvas — a white "Live Preview" workspace that swaps per mode */}
-            <div className="flex flex-col bg-slate-100/70">
-              <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-1.5 text-[8px] font-bold text-slate-400">
+            <div className="flex flex-col bg-slate-100/70 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-1.5 text-[8px] font-bold text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
                 <span className="flex items-center gap-1.5">
                   <RotateCcw className="h-2.5 w-2.5" /> Undo · Redo · Reset
                 </span>
-                <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-slate-500">
+                <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                   100%
                 </span>
               </div>
@@ -646,7 +680,7 @@ export function MarketingStudioScene() {
                       <span className="absolute left-3 top-3 rounded bg-black/40 px-2 py-0.5 text-[8px] font-bold text-white">
                         00:04 / 00:12
                       </span>
-                      <span className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-teal-700">
+                      <span className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-teal-700 dark:text-teal-300">
                         <Play className="h-4 w-4 fill-current" />
                       </span>
                       <span className="absolute inset-x-4 bottom-3 text-[11px] font-black text-white/95">
@@ -660,8 +694,8 @@ export function MarketingStudioScene() {
                           className={cn(
                             'flex h-9 flex-1 flex-col items-center justify-center rounded border text-[7px] font-bold',
                             i === 1
-                              ? 'border-teal-400 bg-teal-50 text-teal-700'
-                              : 'border-slate-200 bg-white text-slate-400'
+                              ? 'border-teal-400 bg-teal-50 text-teal-700 dark:border-teal-500/50 dark:bg-teal-500/15 dark:text-teal-300'
+                              : 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'
                           )}
                         >
                           <span
@@ -669,7 +703,7 @@ export function MarketingStudioScene() {
                               'mb-0.5 h-3 w-full rounded-sm',
                               i % 2
                                 ? 'bg-gradient-to-br from-teal-200 to-emerald-100'
-                                : 'bg-slate-200'
+                                : 'bg-slate-200 dark:bg-slate-700'
                             )}
                           />
                           {label}
@@ -682,8 +716,8 @@ export function MarketingStudioScene() {
             </div>
 
             {/* Publish panel */}
-            <div className="border-l border-slate-100 p-3">
-              <p className="mb-2 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="border-l border-slate-100 p-3 dark:border-slate-800">
+              <p className="mb-2 text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Publish to
               </p>
               <div className="space-y-1.5">
@@ -693,12 +727,14 @@ export function MarketingStudioScene() {
                 ].map(([label, Icon]) => (
                   <div
                     key={String(label)}
-                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5"
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900"
                   >
                     {typeof Icon === 'function' ? (
-                      <Icon className="h-3.5 w-3.5 text-teal-600" />
+                      <Icon className="h-3.5 w-3.5 text-teal-600 dark:text-teal-300" />
                     ) : null}
-                    <span className="text-[9px] font-semibold text-slate-700">{String(label)}</span>
+                    <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-200">
+                      {String(label)}
+                    </span>
                     <Check className="ml-auto h-3.5 w-3.5 text-emerald-500" />
                   </div>
                 ))}
@@ -709,16 +745,18 @@ export function MarketingStudioScene() {
                     key={t}
                     className={cn(
                       'flex-1 rounded-md px-2 py-1 text-center text-[8px] font-bold',
-                      i === 0 ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                      i === 0
+                        ? 'bg-teal-600 text-white'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                     )}
                   >
                     {t}
                   </span>
                 ))}
               </div>
-              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-2">
+              <div className="mt-2 rounded-lg border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
                 <div className="aspect-[4/3] rounded bg-gradient-to-br from-teal-500/25 to-emerald-500/15" />
-                <p className="mt-1.5 flex items-center gap-1 text-[8px] font-semibold text-teal-600">
+                <p className="mt-1.5 flex items-center gap-1 text-[8px] font-semibold text-teal-600 dark:text-teal-300">
                   <Wand2 className="h-2.5 w-2.5" /> Caption drafted by AI
                 </p>
               </div>
@@ -760,7 +798,9 @@ export function PublicPagesScene() {
             <span
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold',
-                saved ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                saved
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
               )}
               style={reveal(frame, 90)}
             >
@@ -778,7 +818,7 @@ export function PublicPagesScene() {
                 'rounded-lg px-3 py-1.5 text-[10px] font-bold',
                 index === tab
                   ? 'bg-teal-600 text-white'
-                  : 'border border-slate-200 bg-white text-slate-500'
+                  : 'border border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400'
               )}
             >
               {label}
@@ -789,10 +829,10 @@ export function PublicPagesScene() {
         <div className="mt-3 grid h-[452px] grid-cols-[0.5fr_1fr_1.15fr] gap-3">
           {/* Section list */}
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 10)}
           >
-            <p className="mb-2 px-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="mb-2 px-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Sections
             </p>
             {sections.map((s, index) => (
@@ -800,13 +840,15 @@ export function PublicPagesScene() {
                 key={s}
                 className={cn(
                   'mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[10px] font-bold',
-                  index === activeSection ? 'bg-teal-50 text-teal-700' : 'text-slate-500'
+                  index === activeSection
+                    ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300'
+                    : 'text-slate-500 dark:text-slate-400'
                 )}
               >
                 <span
                   className={cn(
                     'h-1.5 w-1.5 rounded-full',
-                    index === activeSection ? 'bg-teal-500' : 'bg-slate-300'
+                    index === activeSection ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'
                   )}
                 />
                 {s}
@@ -816,10 +858,10 @@ export function PublicPagesScene() {
 
           {/* Edit form */}
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 16)}
           >
-            <p className="text-[11px] font-black text-slate-800">
+            <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">
               {tab === 2 ? 'Showcase template' : sections[activeSection]}
             </p>
             {tab === 2 ? (
@@ -830,14 +872,14 @@ export function PublicPagesScene() {
                     className={cn(
                       'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-[10px] font-bold',
                       index === activeTemplate
-                        ? 'border-teal-400 bg-teal-50 text-teal-700'
-                        : 'border-slate-200 text-slate-500'
+                        ? 'border-teal-400 bg-teal-50 text-teal-700 dark:border-teal-500/50 dark:bg-teal-500/15 dark:text-teal-300'
+                        : 'border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400'
                     )}
                   >
                     <span
                       className={cn(
                         'h-3 w-3 rounded-sm',
-                        index === activeTemplate ? 'bg-teal-500' : 'bg-slate-200'
+                        index === activeTemplate ? 'bg-teal-500' : 'bg-slate-200 dark:bg-slate-700'
                       )}
                     />
                     {label}
@@ -847,14 +889,18 @@ export function PublicPagesScene() {
             ) : (
               <div className="mt-3 space-y-3">
                 <div>
-                  <p className="mb-1 text-[9px] font-semibold text-slate-400">Headline</p>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[10px] font-semibold text-slate-700">
+                  <p className="mb-1 text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                    Headline
+                  </p>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[10px] font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200">
                     Monaco 2604 — Azure North
                   </div>
                 </div>
                 <div>
-                  <p className="mb-1 text-[9px] font-semibold text-slate-400">Description</p>
-                  <div className="min-h-[64px] rounded-lg border border-teal-300 bg-white px-2.5 py-2 text-[10px] leading-relaxed text-slate-700">
+                  <p className="mb-1 text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                    Description
+                  </p>
+                  <div className="min-h-[64px] rounded-lg border border-teal-300 bg-white px-2.5 py-2 text-[10px] leading-relaxed text-slate-700 dark:border-teal-500/40 dark:bg-slate-900 dark:text-slate-200">
                     {descTyped}
                     {frame >= 46 && frame < 134 ? (
                       <span
@@ -868,7 +914,7 @@ export function PublicPagesScene() {
                   {['Pool', 'Wi-Fi 300M', 'Parking', 'Skyline view'].map((a) => (
                     <span
                       key={a}
-                      className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[8px] font-bold text-slate-500"
+                      className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[8px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400"
                     >
                       {a}
                     </span>
@@ -880,14 +926,14 @@ export function PublicPagesScene() {
 
           {/* Live preview */}
           <div
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 22)}
           >
-            <div className="flex h-7 items-center gap-2 border-b border-slate-100 bg-slate-50 px-3">
-              <span className="flex items-center gap-1 text-[9px] font-bold text-slate-500">
+            <div className="flex h-7 items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 dark:border-slate-800 dark:bg-slate-800/50">
+              <span className="flex items-center gap-1 text-[9px] font-bold text-slate-500 dark:text-slate-400">
                 <Globe className="h-3 w-3" /> Live preview
               </span>
-              <span className="ml-auto rounded bg-white px-1.5 py-0.5 text-[8px] font-semibold text-teal-600 shadow-sm">
+              <span className="ml-auto rounded bg-white px-1.5 py-0.5 text-[8px] font-semibold text-teal-600 shadow-sm dark:bg-slate-900 dark:text-teal-300">
                 Open ↗
               </span>
             </div>
@@ -904,15 +950,17 @@ export function PublicPagesScene() {
                         : 'bg-gradient-to-br from-teal-500/30 via-slate-200 to-slate-100'
                 )}
               />
-              <p className="mt-3 text-[14px] font-black tracking-tight text-slate-900">
+              <p className="mt-3 text-[14px] font-black tracking-tight text-slate-900 dark:text-slate-50">
                 Monaco 2604 — Azure North
               </p>
-              <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{descTyped}</p>
+              <p className="mt-1 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+                {descTyped}
+              </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {['Pool', 'Wi-Fi 300M', 'Parking'].map((label) => (
                   <div
                     key={label}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[9px] font-bold text-slate-600"
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[9px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300"
                   >
                     {label}
                   </div>
@@ -958,7 +1006,9 @@ export function TemplatesScene() {
               <span
                 className={cn(
                   'rounded-md px-2 py-1 text-[9px] font-bold',
-                  !showPreview ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                  !showPreview
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 Edit
@@ -966,7 +1016,9 @@ export function TemplatesScene() {
               <span
                 className={cn(
                   'rounded-md px-2 py-1 text-[9px] font-bold',
-                  showPreview ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                  showPreview
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 Preview
@@ -979,7 +1031,7 @@ export function TemplatesScene() {
           <div className="space-y-3">
             {groups.map((group) => (
               <div key={group.heading}>
-                <p className="mb-1.5 px-1 text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="mb-1.5 px-1 text-[8px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {group.heading} templates
                 </p>
                 <div className="space-y-1.5">
@@ -990,18 +1042,24 @@ export function TemplatesScene() {
                       <div
                         key={title}
                         className={cn(
-                          'flex items-center gap-2 rounded-xl border bg-white p-2.5 shadow-sm',
-                          isActive ? 'border-teal-400' : 'border-slate-200'
+                          'flex items-center gap-2 rounded-xl border bg-white p-2.5 shadow-sm dark:bg-slate-900',
+                          isActive
+                            ? 'border-teal-400 dark:border-teal-500/50'
+                            : 'border-slate-200 dark:border-slate-700'
                         )}
                         style={reveal(frame, 10 + flatIndex * 8)}
                       >
                         <FileText
                           className={cn(
                             'h-3.5 w-3.5',
-                            isActive ? 'text-teal-600' : 'text-slate-400'
+                            isActive
+                              ? 'text-teal-600 dark:text-teal-300'
+                              : 'text-slate-400 dark:text-slate-500'
                           )}
                         />
-                        <p className="text-[11px] font-bold text-slate-700">{title}</p>
+                        <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                          {title}
+                        </p>
                         {group.heading === 'Email' ? (
                           <span className="ml-auto">
                             <TierBadge tier="Starter" />
@@ -1016,18 +1074,22 @@ export function TemplatesScene() {
           </div>
 
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 20)}
           >
             <div className="flex items-center gap-2">
-              <p className="text-[11px] font-black text-slate-800">Ready for check-in</p>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500">
+              <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">
+                Ready for check-in
+              </p>
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                 Email
               </span>
               <span
                 className={cn(
                   'ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[9px] font-bold',
-                  resetPulse ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  resetPulse
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 <RotateCcw className="h-3 w-3" /> Reset to default
@@ -1035,31 +1097,37 @@ export function TemplatesScene() {
             </div>
 
             {showPreview ? (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-inner">
-                <p className="text-[13px] font-black text-slate-900">Your stay is ready 🎉</p>
-                <p className="mt-2 text-[10px] leading-relaxed text-slate-600">
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-inner dark:border-slate-700 dark:bg-slate-900">
+                <p className="text-[13px] font-black text-slate-900 dark:text-slate-50">
+                  Your stay is ready 🎉
+                </p>
+                <p className="mt-2 text-[10px] leading-relaxed text-slate-600 dark:text-slate-300">
                   Hi Ana, your check-in for Monaco 2604 is confirmed for Aug 14 at 2:00 PM. Your
                   door code and directions are in the stay guide below.
                 </p>
-                <div className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-[10px] font-bold text-teal-700">
+                <div className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-[10px] font-bold text-teal-700 dark:bg-teal-500/15 dark:text-teal-300">
                   Open stay guide →
                 </div>
-                <p className="mt-3 text-[9px] text-slate-400">- The Monaco 2604 team</p>
+                <p className="mt-3 text-[9px] text-slate-400 dark:text-slate-500">
+                  - The Monaco 2604 team
+                </p>
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-[12px] font-black text-slate-800">Your stay is ready 🎉</p>
-                <p className="mt-2 text-[10px] leading-relaxed text-slate-600">
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-[12px] font-black text-slate-800 dark:text-slate-100">
+                  Your stay is ready 🎉
+                </p>
+                <p className="mt-2 text-[10px] leading-relaxed text-slate-600 dark:text-slate-300">
                   Hi{' '}
-                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700">
+                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700 dark:bg-teal-500/20 dark:text-teal-200">
                     {'{{guest_name}}'}
                   </span>
                   , your check-in for{' '}
-                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700">
+                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700 dark:bg-teal-500/20 dark:text-teal-200">
                     {'{{property_name}}'}
                   </span>{' '}
                   is confirmed for{' '}
-                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700">
+                  <span className="rounded bg-teal-100 px-1 font-bold text-teal-700 dark:bg-teal-500/20 dark:text-teal-200">
                     {'{{check_in_date}}'}
                   </span>
                   .
@@ -1069,7 +1137,7 @@ export function TemplatesScene() {
                     (token) => (
                       <span
                         key={token}
-                        className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[8px] font-bold text-slate-500"
+                        className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[8px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                       >
                         {token}
                       </span>

@@ -1,15 +1,17 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { Mic, MoreVertical, Search } from 'lucide-react';
 
 import { ChatThreadSearchPanel } from '@/components/chat/ChatThreadSearch';
 import { GuestChatAwaitingReplyBadge } from '@/components/chat/GuestChatAwaitingReplyBadge';
+import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { isAwaitingHostReply } from '@/lib/chat/chatReplyStatus';
 import type { ChatThreadSearchController } from '@/lib/chat/useChatThreadSearch';
 import { cn } from '@/lib/utils';
@@ -32,6 +34,64 @@ type HeaderProps = {
 const headerIconButtonClass =
   'text-muted-foreground hover:text-foreground hover:bg-muted/50 inline-flex size-10 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full transition-colors';
 
+function ChatOptionsItems({
+  variant,
+  searchEnabled,
+  onStartVoiceSession,
+  onSearch,
+}: {
+  variant: 'sheet' | 'menu';
+  searchEnabled: boolean;
+  onStartVoiceSession?: () => void;
+  onSearch: () => void;
+}) {
+  if (variant === 'sheet') {
+    return (
+      <>
+        {onStartVoiceSession ? (
+          <MobileChoiceItem
+            label="Talk to receptionist"
+            icon={<Mic className="size-5" aria-hidden />}
+            onSelect={onStartVoiceSession}
+          />
+        ) : null}
+        {searchEnabled ? (
+          <MobileChoiceItem
+            label="Search"
+            icon={<Search className="size-5" aria-hidden />}
+            onSelect={onSearch}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {onStartVoiceSession ? (
+        <DropdownMenuItem
+          onSelect={() => {
+            window.setTimeout(() => onStartVoiceSession(), 0);
+          }}
+        >
+          <Mic className="size-4" aria-hidden />
+          Talk to receptionist
+        </DropdownMenuItem>
+      ) : null}
+      {searchEnabled ? (
+        <DropdownMenuItem
+          onSelect={() => {
+            onSearch();
+          }}
+        >
+          <Search className="size-4" aria-hidden />
+          Search
+        </DropdownMenuItem>
+      ) : null}
+    </>
+  );
+}
+
 /** Guest chat identity row — options menu inline with host info. */
 export function GuestChatHeaderBar({
   leading,
@@ -45,57 +105,82 @@ export function GuestChatHeaderBar({
   trailing,
   className,
 }: HeaderProps) {
+  const isMobileLayout = useIsBelowLg();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const awaitingReply = isAwaitingHostReply(replyStatus);
   const showMenu = searchEnabled || !!onStartVoiceSession;
+
+  const openSearch = () => {
+    threadSearch.openSearch();
+  };
+
+  const menuTrigger = (
+    <button
+      type="button"
+      className={headerIconButtonClass}
+      aria-label="Chat options"
+      aria-expanded={sheetOpen}
+      aria-haspopup={isMobileLayout ? 'dialog' : 'menu'}
+      onClick={isMobileLayout ? () => setSheetOpen(true) : undefined}
+    >
+      <MoreVertical className="size-5" aria-hidden />
+    </button>
+  );
 
   return (
     <div className={cn('flex min-w-0 flex-nowrap items-center gap-2 sm:gap-2.5', className)}>
       {leading}
       {avatar}
       <div className="min-w-0 flex-1 overflow-hidden">
-        <p className="text-foreground truncate text-sm font-semibold leading-tight">{title}</p>
+        <p className="truncate text-sm font-semibold leading-tight text-foreground">{title}</p>
         {subtitle ? (
-          <p className="text-muted-foreground truncate text-xs leading-tight">{subtitle}</p>
+          <p className="truncate text-xs leading-tight text-muted-foreground">{subtitle}</p>
         ) : null}
         {awaitingReply ? <GuestChatAwaitingReplyBadge className="mt-0.5" /> : null}
       </div>
       {showMenu ? (
-        <DropdownMenu modal>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className={headerIconButtonClass} aria-label="Chat options">
-              <MoreVertical className="size-5" aria-hidden />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            sideOffset={6}
-            className="z-[110] min-w-[9rem]"
-            onCloseAutoFocus={(event) => event.preventDefault()}
-          >
-            {onStartVoiceSession ? (
-              <DropdownMenuItem
-                onSelect={() => {
-                  // Defer opening voice — Radix menu dismiss + focus restore can race
-                  // the same tick as the panel mount.
-                  window.setTimeout(() => onStartVoiceSession(), 0);
-                }}
-              >
-                <Mic className="size-4" aria-hidden />
-                Talk to receptionist
-              </DropdownMenuItem>
-            ) : null}
-            {searchEnabled ? (
-              <DropdownMenuItem
-                onSelect={() => {
-                  threadSearch.openSearch();
-                }}
-              >
-                <Search className="size-4" aria-hidden />
-                Search
-              </DropdownMenuItem>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        isMobileLayout ? (
+          <>
+            {menuTrigger}
+            <MobileChoiceSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Chat options">
+              <div role="listbox" aria-label="Chat options">
+                <ChatOptionsItems
+                  variant="sheet"
+                  searchEnabled={searchEnabled}
+                  onStartVoiceSession={
+                    onStartVoiceSession
+                      ? () => {
+                          setSheetOpen(false);
+                          window.setTimeout(() => onStartVoiceSession(), 0);
+                        }
+                      : undefined
+                  }
+                  onSearch={() => {
+                    setSheetOpen(false);
+                    openSearch();
+                  }}
+                />
+              </div>
+            </MobileChoiceSheet>
+          </>
+        ) : (
+          <DropdownMenu modal>
+            <DropdownMenuTrigger asChild>{menuTrigger}</DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              sideOffset={6}
+              className="z-[110] min-w-[9rem]"
+              onCloseAutoFocus={(event) => event.preventDefault()}
+            >
+              <ChatOptionsItems
+                variant="menu"
+                searchEnabled={searchEnabled}
+                onStartVoiceSession={onStartVoiceSession}
+                onSearch={openSearch}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
       ) : null}
       {trailing}
     </div>

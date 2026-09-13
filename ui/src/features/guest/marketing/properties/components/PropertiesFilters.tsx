@@ -428,7 +428,7 @@ export function PropertiesFilters({
             animate={motionProps.fadeAnimate}
             exit={motionProps.fadeExit}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-[100] bg-black/50 lg:hidden"
           />
 
           <motion.div
@@ -436,16 +436,16 @@ export function PropertiesFilters({
             animate={motionProps.sheetAnimate}
             exit={motionProps.sheetExit}
             transition={motionProps.sheetTransition}
-            className="bg-card fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-hidden rounded-t-3xl lg:hidden"
+            className="bg-card fixed inset-x-0 bottom-0 z-[101] flex max-h-[85vh] flex-col overflow-hidden rounded-t-3xl lg:hidden"
             role="dialog"
             aria-modal="true"
             aria-label={sheetTitle}
           >
-            <div className="flex justify-center py-3">
+            <div className="flex shrink-0 justify-center py-3">
               <div className="bg-muted-foreground/30 h-1.5 w-12 rounded-full" />
             </div>
 
-            <div className="border-border flex items-center justify-between border-b px-6 pb-4">
+            <div className="border-border flex shrink-0 items-center justify-between border-b px-6 pb-4">
               <div>
                 <h3 className="text-foreground text-lg font-semibold">{sheetTitle}</h3>
                 {activeFiltersCount > 0 && (
@@ -464,9 +464,9 @@ export function PropertiesFilters({
               </button>
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto p-6">{filterContent}</div>
+            <div className="flex-1 overflow-y-auto p-6">{filterContent}</div>
 
-            <div className="border-border border-t p-4">
+            <div className="border-border shrink-0 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex gap-3">
                 {hasActiveFilters && (
                   <Button

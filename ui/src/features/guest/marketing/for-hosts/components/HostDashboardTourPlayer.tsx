@@ -266,7 +266,7 @@ export function HostDashboardTourPlayer({
   ) => (
     <div
       className={cn(
-        'relative shrink-0 overflow-hidden bg-slate-950',
+        'relative shrink-0 overflow-hidden bg-[#f4f7f8] dark:bg-slate-950',
         options.roundedClass ?? (compact ? 'rounded-lg' : 'rounded-[1rem] sm:rounded-[1.4rem]')
       )}
     >
@@ -296,7 +296,7 @@ export function HostDashboardTourPlayer({
         acknowledgeRemotionLicense
         style={{ width: '100%', aspectRatio: '16 / 9', display: 'block' }}
       />
-      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10" />
+      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-950/10 dark:ring-white/10" />
       {chapterNav === 'minimal' ? (
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-black/35"
@@ -315,7 +315,7 @@ export function HostDashboardTourPlayer({
       {options.showExpand && canExpandPreview && !previewOpen ? (
         <button
           type="button"
-          className="focus-visible:ring-primary/40 absolute right-0 top-0 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/50 bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur-md transition-[background-color,color,box-shadow] hover:bg-white hover:text-slate-900 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent"
+          className="focus-visible:ring-primary/40 absolute right-0 top-0 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/50 bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur-md transition-[background-color,color,box-shadow] hover:bg-white hover:text-slate-900 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
           onClick={openPreview}
           aria-label="Expand workspace preview"
         >

@@ -41,7 +41,7 @@ export function PropertiesToolbar({
 }: PropertiesToolbarProps) {
   return (
     <div className="border-border bg-background shrink-0 border-b">
-      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6">
+      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Button
             variant="outline"
@@ -62,13 +62,13 @@ export function PropertiesToolbar({
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <div className="relative flex items-center gap-2">
             <ArrowUpDown className="text-muted-foreground hidden h-4 w-4 sm:block" aria-hidden />
             <Select value={sortBy} onValueChange={onSortChange}>
               <SelectTrigger
                 aria-label="Sort properties"
-                className="h-11 min-h-[44px] w-auto max-w-[11rem] gap-2 px-3 py-2 text-sm sm:max-w-none"
+                className="h-11 min-h-[44px] w-auto gap-2 px-3 py-2 text-sm"
               >
                 <SelectValue />
               </SelectTrigger>

@@ -54,7 +54,7 @@ export function PortfolioScene() {
       <PushIn>
         <div className="mb-4 flex items-end justify-between" style={reveal(frame)}>
           <div>
-            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600">
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-300">
               Organization workspace
             </p>
             <h2 className="text-[25px] font-extrabold tracking-tight">
@@ -118,23 +118,23 @@ export function PortfolioScene() {
         </div>
 
         <SurfaceCard title="Listings performance" style={reveal(frame, 74)} className="mt-4">
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {listings.map((listing, index) => (
               <div
                 key={listing.name}
                 className="flex items-center gap-3 py-2.5"
                 style={reveal(frame, 88 + index * 16, 8)}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 dark:bg-teal-500/15 text-teal-600 dark:text-teal-300">
                   <listing.kind className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-800">{listing.name}</p>
-                  <p className="text-[10px] text-slate-400">{listing.meta}</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{listing.name}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">{listing.meta}</p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-xs font-black text-slate-800">{listing.revenue}</p>
-                  <p className="text-[10px] text-slate-400">{listing.occ} occupied</p>
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-100">{listing.revenue}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">{listing.occ} occupied</p>
                 </div>
               </div>
             ))}
@@ -170,12 +170,12 @@ export function CommandCenterScene() {
       <PushIn>
         <div className="mb-2.5 flex items-end justify-between" style={reveal(frame)}>
           <div>
-            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600">
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-300">
               Property command center
             </p>
             <h2 className="text-[22px] font-extrabold tracking-tight">See the whole operation</h2>
           </div>
-          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+          <span className="rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
             This month
           </span>
         </div>
@@ -223,7 +223,7 @@ export function CommandCenterScene() {
               ].map(([label, sub, tone], index) => (
                 <div
                   key={label}
-                  className="flex items-center gap-2.5 rounded-xl bg-slate-50 p-2.5"
+                  className="flex items-center gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-2.5"
                   style={reveal(frame, 52 + index * 7, 6)}
                 >
                   <span
@@ -237,8 +237,8 @@ export function CommandCenterScene() {
                     )}
                   />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-700">{label}</p>
-                    <p className="truncate text-[10px] text-slate-400">{sub}</p>
+                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{label}</p>
+                    <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">{sub}</p>
                   </div>
                 </div>
               ))}

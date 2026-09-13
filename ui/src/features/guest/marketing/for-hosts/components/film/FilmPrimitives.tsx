@@ -168,8 +168,7 @@ export function Cursor({
       <svg width="22" height="22" viewBox="0 0 24 24" className="drop-shadow-md">
         <path
           d="M4 2l7 18 2.5-7.5L21 10 4 2z"
-          fill="#0f172a"
-          stroke="#fff"
+          className="fill-[#0f172a] stroke-white dark:fill-white dark:stroke-slate-950"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
@@ -197,10 +196,12 @@ export function SceneHeading({
   return (
     <div className="mb-4 flex items-end justify-between gap-4" style={reveal(frame)}>
       <div>
-        <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600">
+        <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400">
           {eyebrow}
         </p>
-        <h2 className="text-[25px] font-extrabold tracking-tight text-slate-950">{title}</h2>
+        <h2 className="text-[25px] font-extrabold tracking-tight text-slate-950 dark:text-slate-50">
+          {title}
+        </h2>
       </div>
       {action}
     </div>
@@ -227,7 +228,7 @@ export function SceneOutro({ text }: { text: string }) {
       className="pointer-events-none absolute inset-x-0 bottom-5 z-30 flex justify-center"
       style={{ opacity: p, transform: `translate3d(0, ${(1 - p) * 8}px, 0)` }}
     >
-      <div className="flex items-center gap-2 rounded-full border border-teal-200 bg-white/95 px-4 py-2 text-[11px] font-bold text-slate-700 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-2 rounded-full border border-teal-200 bg-white/95 px-4 py-2 text-[11px] font-bold text-slate-700 shadow-lg backdrop-blur-sm dark:border-teal-500/30 dark:bg-slate-900/95 dark:text-slate-200">
         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-600 text-white">
           <Check className="h-2.5 w-2.5" />
         </span>
@@ -253,24 +254,24 @@ export function KpiCard({
   style?: CSSProperties;
 }) {
   const tone = {
-    emerald: 'bg-emerald-50 text-emerald-700',
-    rose: 'bg-rose-50 text-rose-700',
-    slate: 'bg-slate-100 text-slate-600',
-    teal: 'bg-teal-50 text-teal-700',
+    emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+    teal: 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300',
   }[deltaTone];
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200 bg-white shadow-sm',
+        'rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900',
         dense ? 'p-3' : 'p-4'
       )}
       style={style}
     >
-      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
+      <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{label}</p>
       <div className={cn('flex items-end justify-between gap-2', dense ? 'mt-1' : 'mt-2')}>
         <p
           className={cn(
-            'font-black tracking-tight text-slate-950',
+            'font-black tracking-tight text-slate-950 dark:text-slate-50',
             dense ? 'text-[19px]' : 'text-[22px]'
           )}
         >
@@ -303,20 +304,25 @@ export function SurfaceCard({
 }) {
   return (
     <div
-      className={cn('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm', className)}
+      className={cn(
+        'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900',
+        className
+      )}
       style={style}
     >
       {title ? (
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             {Icon ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
                 <Icon className="h-[17px] w-[17px]" />
               </span>
             ) : null}
             <div>
-              <p className="text-sm font-bold text-slate-800">{title}</p>
-              {subtitle ? <p className="text-[11px] text-slate-400">{subtitle}</p> : null}
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{title}</p>
+              {subtitle ? (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">{subtitle}</p>
+              ) : null}
             </div>
           </div>
           {action}
@@ -329,7 +335,7 @@ export function SurfaceCard({
 
 export function TierBadge({ tier }: { tier: 'Starter' | 'Pro' | 'Business' | 'Managed' }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
       <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
       {tier}
     </span>
@@ -344,12 +350,12 @@ export function StatusPill({
   tone?: 'slate' | 'amber' | 'emerald' | 'teal' | 'rose' | 'sky';
 }) {
   const tones = {
-    slate: 'bg-slate-100 text-slate-600',
-    amber: 'bg-amber-50 text-amber-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    teal: 'bg-teal-50 text-teal-700',
-    rose: 'bg-rose-50 text-rose-700',
-    sky: 'bg-sky-50 text-sky-700',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+    emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+    teal: 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300',
+    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+    sky: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
   }[tone];
   return (
     <span className={cn('w-fit rounded-full px-2 py-1 text-[9px] font-bold', tones)}>{label}</span>
@@ -364,7 +370,7 @@ export function BarChart({
   highlightFrom,
   height = 200,
   accent = 'bg-teal-500',
-  muted = 'bg-teal-200',
+  muted = 'bg-teal-200 dark:bg-teal-500/25',
 }: {
   data: number[];
   frame: number;
@@ -377,7 +383,7 @@ export function BarChart({
   const max = Math.max(...data, 1);
   return (
     <div
-      className="flex items-end gap-2 border-b border-l border-slate-100 px-2"
+      className="flex items-end gap-2 border-b border-l border-slate-100 px-2 dark:border-slate-800"
       style={{ height }}
     >
       {data.map((value, index) => {
@@ -515,8 +521,8 @@ export function Donut({
         })}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[15px] font-black text-slate-900">{total}</span>
-        <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">
+        <span className="text-[15px] font-black text-slate-900 dark:text-slate-50">{total}</span>
+        <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Total
         </span>
       </div>
@@ -549,7 +555,10 @@ export function MiniMonthCalendar({
   return (
     <div className="grid grid-cols-7 gap-1">
       {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-        <div key={day} className="pb-1 text-center text-[8px] font-bold uppercase text-slate-400">
+        <div
+          key={day}
+          className="pb-1 text-center text-[8px] font-bold uppercase text-slate-400 dark:text-slate-500"
+        >
           {day}
         </div>
       ))}
@@ -573,16 +582,16 @@ export function MiniMonthCalendar({
             className={cn(
               'relative overflow-hidden rounded-lg border',
               isBlocked
-                ? 'border-slate-200 bg-[repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9_4px,#e2e8f0_4px,#e2e8f0_8px)]'
+                ? 'border-slate-200 bg-[repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9_4px,#e2e8f0_4px,#e2e8f0_8px)] dark:border-slate-700 dark:bg-[repeating-linear-gradient(45deg,#1e293b,#1e293b_4px,#334155_4px,#334155_8px)]'
                 : isBooked
-                  ? 'border-teal-100 bg-teal-50/40'
+                  ? 'border-teal-100 bg-teal-50/40 dark:border-teal-500/30 dark:bg-teal-500/10'
                   : isHot
-                    ? 'border-teal-400 bg-teal-50 shadow-sm'
-                    : 'border-slate-100 bg-white'
+                    ? 'border-teal-400 bg-teal-50 shadow-sm dark:bg-teal-500/15'
+                    : 'border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900'
             )}
             style={{ height: cellHeight, opacity: appear }}
           >
-            <span className="absolute left-1.5 top-1 text-[8px] font-bold text-slate-500">
+            <span className="absolute left-1.5 top-1 text-[8px] font-bold text-slate-500 dark:text-slate-400">
               {date}
             </span>
             {isBooked ? (
@@ -595,20 +604,20 @@ export function MiniMonthCalendar({
                 <span className="truncate">{isBookedRun ? '' : 'Kyle S.'}</span>
               </span>
             ) : isBlocked ? (
-              <span className="absolute inset-x-1 bottom-1 rounded bg-white/70 px-1 text-center text-[7px] font-bold text-slate-400">
+              <span className="absolute inset-x-1 bottom-1 rounded bg-white/70 px-1 text-center text-[7px] font-bold text-slate-400 dark:bg-slate-900/70 dark:text-slate-500">
                 Blocked
               </span>
             ) : showPrices ? (
               <span
                 className={cn(
                   'absolute inset-x-1 bottom-1 text-[9px] font-black',
-                  isHot ? 'text-teal-700' : 'text-slate-600'
+                  isHot ? 'text-teal-700 dark:text-teal-300' : 'text-slate-600 dark:text-slate-300'
                 )}
               >
                 {price(date)}
               </span>
             ) : isHot ? (
-              <span className="absolute inset-x-1 bottom-1 rounded bg-teal-500/15 px-1 text-center text-[7px] font-bold text-teal-700">
+              <span className="absolute inset-x-1 bottom-1 rounded bg-teal-500/15 px-1 text-center text-[7px] font-bold text-teal-700 dark:text-teal-300">
                 Rate set
               </span>
             ) : null}
@@ -631,12 +640,14 @@ export function PhoneFrame({
 }) {
   return (
     <div
-      className="h-[470px] w-[248px] rounded-[38px] border-[6px] border-slate-200 bg-slate-100 p-3 shadow-2xl ring-1 ring-slate-300/60"
+      className="h-[470px] w-[248px] rounded-[38px] border-[6px] border-slate-200 bg-slate-100 p-3 shadow-2xl ring-1 ring-slate-300/60 dark:border-slate-700 dark:bg-slate-800 dark:ring-slate-700/60"
       style={style}
     >
-      <div className="mx-auto mb-4 h-3.5 w-16 rounded-full bg-slate-300" />
+      <div className="mx-auto mb-4 h-3.5 w-16 rounded-full bg-slate-300 dark:bg-slate-600" />
       {label ? (
-        <p className="px-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="px-2 text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          {label}
+        </p>
       ) : null}
       <div className="mt-3 space-y-3">{children}</div>
     </div>
@@ -656,15 +667,17 @@ export function Toast({
 }) {
   return (
     <div
-      className="flex w-[280px] items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl"
+      className="flex w-[280px] items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
       style={style}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0">
-        <p className="text-[11px] font-black text-slate-800">{title}</p>
-        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{body}</p>
+        <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">{title}</p>
+        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+          {body}
+        </p>
       </div>
     </div>
   );

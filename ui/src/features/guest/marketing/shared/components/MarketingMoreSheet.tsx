@@ -1,6 +1,8 @@
+import type { MouseEvent } from 'react';
+
 import { Link, useLocation } from 'react-router-dom';
 
-import { LogOut } from 'lucide-react';
+import { LayoutDashboard, LogOut } from 'lucide-react';
 
 import { useGuestSignOut } from '@/features/guest/account/hooks/useGuestSignOut';
 import {
@@ -10,6 +12,7 @@ import {
 import { getAppModeFromPath } from '@/features/guest/auth/config/mode-switch';
 import { useGuestSession } from '@/features/guest/auth/hooks/useGuestSession';
 import { ModeSwitcher } from '@/features/guest/marketing/shared/components/ModeSwitcher';
+import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 
@@ -61,12 +64,21 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
   const { pathname } = useLocation();
   const { status: guestStatus } = useGuestSession();
   const { status: adminStatus, signOut: hostSignOut } = useAdminSession();
+  const { switchMode, isTransitioning } = useModeSwitchTransition();
   const guestSignOut = useGuestSignOut();
   const isGuestSignedIn = guestStatus === 'authenticated';
   const isHostSignedIn = adminStatus === 'admin';
   const isSignedIn = isGuestSignedIn || isHostSignedIn;
   const isExploreMode = getAppModeFromPath(pathname) !== 'host';
   const signInHref = isExploreMode ? getGuestLoginCta().href : getHostMarketingNavCta(false).href;
+  const dashboardHref = getHostMarketingNavCta(true).href;
+
+  const handleDashboardClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    onOpenChange(false);
+    if (!isExploreMode || isTransitioning) return;
+    event.preventDefault();
+    switchMode('host', { destination: dashboardHref });
+  };
 
   const handleSignOut = async () => {
     onOpenChange(false);
@@ -128,6 +140,22 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
             <ThemeToggle variant="outline" size="icon" className="shrink-0" />
             <ModeSwitcher className="min-w-0 flex-1" />
           </div>
+
+          {isSignedIn ? (
+            <Link
+              to={dashboardHref}
+              onClick={handleDashboardClick}
+              className={cn(
+                'border-border bg-muted/40 text-foreground',
+                'hover:bg-muted/70 active:bg-muted',
+                'flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors',
+                isTransitioning && 'pointer-events-none opacity-60'
+              )}
+            >
+              <LayoutDashboard className="size-4 shrink-0" aria-hidden />
+              Dashboard
+            </Link>
+          ) : null}
 
           {isSignedIn ? (
             <button

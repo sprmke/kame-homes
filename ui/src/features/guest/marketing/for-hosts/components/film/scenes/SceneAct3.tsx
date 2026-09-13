@@ -38,21 +38,21 @@ export function PricingScene() {
 
         <div className="grid grid-cols-[1.5fr_0.62fr] gap-4">
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-sm"
             style={reveal(frame, 8)}
           >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-[12px] font-black text-slate-800">Monaco 2604</p>
-                <p className="text-[10px] text-slate-400">Nightly rates &amp; availability</p>
+                <p className="text-[12px] font-black text-slate-800 dark:text-slate-100">Monaco 2604</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">Nightly rates &amp; availability</p>
               </div>
-              <div className="flex gap-3 text-[9px] font-semibold text-slate-500">
+              <div className="flex gap-3 text-[9px] font-semibold text-slate-500 dark:text-slate-400">
                 <span>
                   <i className="mr-1 inline-block h-2 w-2 rounded-full bg-teal-500" />
                   Selected
                 </span>
                 <span>
-                  <i className="mr-1 inline-block h-2 w-2 rounded-full bg-slate-300" />
+                  <i className="mr-1 inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
                   Booked
                 </span>
               </div>
@@ -67,8 +67,8 @@ export function PricingScene() {
           </div>
 
           <div className="space-y-3" style={reveal(frame, 22)}>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-[11px] font-black text-slate-800">Rate settings</p>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+              <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">Rate settings</p>
               <div className="mt-3 space-y-3">
                 {[
                   ['Weekday', '₱2,799'],
@@ -76,8 +76,8 @@ export function PricingScene() {
                   ['Holiday premium', '+18%'],
                 ].map(([label, value]) => (
                   <div key={label}>
-                    <p className="mb-1 text-[9px] font-semibold text-slate-400">{label}</p>
-                    <div className="rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-700">
+                    <p className="mb-1 text-[9px] font-semibold text-slate-400 dark:text-slate-500">{label}</p>
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-200">
                       {value}
                     </div>
                   </div>
@@ -117,7 +117,7 @@ export function FinanceScene() {
           frame={frame}
           action={
             <span
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-600"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300"
               style={reveal(frame, 90)}
             >
               <Download className="h-3.5 w-3.5" /> Export report <TierBadge tier="Starter" />
@@ -177,7 +177,7 @@ export function FinanceScene() {
         </div>
 
         <SurfaceCard title="Recent activity" style={reveal(frame, 70)} className="mt-3 p-4">
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {[
               ['Monaco 2604 · Kyle', 'Stay income', '+₱18,500', false],
               ['Electricity', 'Utilities · recurring', '−₱3,820', true],
@@ -192,8 +192,8 @@ export function FinanceScene() {
                   className={cn(
                     'mr-3 flex h-7 w-7 items-center justify-center rounded-lg',
                     String(amount).startsWith('+')
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-slate-100 text-slate-500'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   )}
                 >
                   {recurring ? (
@@ -203,18 +203,18 @@ export function FinanceScene() {
                   )}
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-700">{String(name)}</p>
-                  <p className="text-[9px] text-slate-400">{String(category)}</p>
+                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{String(name)}</p>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500">{String(category)}</p>
                 </div>
                 {recurring ? (
-                  <span className="ml-3 flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-[8px] font-bold text-teal-600">
+                  <span className="ml-3 flex items-center gap-1 rounded-md bg-teal-50 dark:bg-teal-500/15 px-1.5 py-0.5 text-[8px] font-bold text-teal-600 dark:text-teal-300">
                     <Bell className="h-2.5 w-2.5" /> Reminder
                   </span>
                 ) : null}
                 <span
                   className={cn(
                     'ml-auto text-[11px] font-black',
-                    String(amount).startsWith('+') ? 'text-emerald-600' : 'text-slate-700'
+                    String(amount).startsWith('+') ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
                   )}
                 >
                   {String(amount)}
@@ -248,7 +248,7 @@ export function MaintenanceScene() {
           frame={frame}
           action={
             <span
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-600"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300"
               style={reveal(frame, 90)}
             >
               <Download className="h-3.5 w-3.5" /> Export report <TierBadge tier="Starter" />
@@ -269,10 +269,10 @@ export function MaintenanceScene() {
 
         <div className="mt-3.5 grid grid-cols-[1fr_0.46fr] gap-4">
           <div
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
             style={reveal(frame, 28)}
           >
-            <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr] border-b border-slate-100 px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr] border-b border-slate-100 dark:border-slate-800 px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               <span>Task</span>
               <span>Category</span>
               <span>Schedule</span>
@@ -283,26 +283,26 @@ export function MaintenanceScene() {
               return (
                 <div
                   key={task}
-                  className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr] items-center border-b border-slate-100 px-4 py-3"
+                  className="grid grid-cols-[1.5fr_0.8fr_0.8fr_0.6fr] items-center border-b border-slate-100 dark:border-slate-800 px-4 py-3"
                   style={reveal(frame, 40 + index * 16, 6)}
                 >
                   <div className="flex items-center gap-2.5">
                     <span
                       className={cn(
                         'flex h-8 w-8 items-center justify-center rounded-xl',
-                        done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                        done ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                       )}
                     >
                       {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                     </span>
                     <span
-                      className={cn('text-[11px] font-bold', done && 'text-slate-400 line-through')}
+                      className={cn('text-[11px] font-bold', done && 'text-slate-400 dark:text-slate-500 line-through')}
                     >
                       {task}
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-slate-500">{category}</span>
-                  <span className="text-[10px] text-slate-500">{schedule}</span>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{category}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{schedule}</span>
                   <StatusPill
                     label={done ? 'Done' : status}
                     tone={done ? 'emerald' : status === 'Due' ? 'amber' : 'slate'}
@@ -314,28 +314,28 @@ export function MaintenanceScene() {
 
           <div className="space-y-3">
             <SurfaceCard title="This month" style={reveal(frame, 44)}>
-              <p className="text-[32px] font-black tracking-tight text-slate-900">
+              <p className="text-[32px] font-black tracking-tight text-slate-900 dark:text-slate-50">
                 {countTo(frame, 12, 50)}
               </p>
-              <p className="text-[10px] text-slate-400">scheduled tasks</p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">scheduled tasks</p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
                   className="h-full rounded-full bg-teal-500"
                   style={{ width: `${grow(frame, 10, 76, 60, 156)}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-[9px] font-semibold text-slate-400">9 completed</p>
+              <p className="mt-1.5 text-[9px] font-semibold text-slate-400 dark:text-slate-500">9 completed</p>
             </SurfaceCard>
             <div
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
               style={reveal(frame, 132)}
             >
-              <div className="flex items-center gap-2 text-teal-600">
+              <div className="flex items-center gap-2 text-teal-600 dark:text-teal-300">
                 <Bell className="h-3.5 w-3.5" />
                 <span className="text-[9px] font-bold uppercase tracking-wider">Reminder sent</span>
               </div>
-              <p className="mt-2 text-[12px] font-black text-slate-800">AC filter due · Unit 4B</p>
-              <p className="mt-0.5 text-[9px] text-slate-500">Maintenance team · Telegram</p>
+              <p className="mt-2 text-[12px] font-black text-slate-800 dark:text-slate-100">AC filter due · Unit 4B</p>
+              <p className="mt-0.5 text-[9px] text-slate-500 dark:text-slate-400">Maintenance team · Telegram</p>
             </div>
           </div>
         </div>

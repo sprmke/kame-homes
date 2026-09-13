@@ -17,8 +17,6 @@ import { getAppModeFromPath } from '@/features/guest/auth/config/mode-switch';
 import { useGuestSession } from '@/features/guest/auth/hooks/useGuestSession';
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 
-import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,7 +33,6 @@ export function GuestAccountMenu() {
   const { pathname } = useLocation();
   const { status, session } = useGuestSession();
   const { data: profile } = useGuestProfile({ enabled: status === 'authenticated' });
-  const { data: orgsData } = useOrganizations({ enabled: status === 'authenticated' });
   const { switchMode, isTransitioning } = useModeSwitchTransition();
   const signOut = useGuestSignOut();
   const currentMode = getAppModeFromPath(pathname);
@@ -47,7 +44,6 @@ export function GuestAccountMenu() {
   const displayName = resolveGuestDisplayName(session, profile);
   const avatarUrl = resolveGuestAvatarUrl(session, profile);
   const initials = guestInitials(displayName);
-  const hasHostAccess = (orgsData?.organizations?.length ?? 0) > 0;
   const dashboardHref = getHostMarketingNavCta(true).href;
 
   const handleSignOut = async () => {
@@ -76,21 +72,17 @@ export function GuestAccountMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[60] w-52">
-        {hasHostAccess ? (
-          <>
-            <DropdownMenuLabel className="!text-[10px]">Host</DropdownMenuLabel>
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild disabled={isTransitioning}>
-                <Link to={dashboardHref} onClick={handleDashboardClick}>
-                  <LayoutDashboard aria-hidden />
-                  Dashboard
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="!text-[10px]">Explore</DropdownMenuLabel>
-          </>
-        ) : null}
+        <DropdownMenuLabel className="!text-[10px]">Host</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem asChild disabled={isTransitioning}>
+            <Link to={dashboardHref} onClick={handleDashboardClick}>
+              <LayoutDashboard aria-hidden />
+              Dashboard
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="!text-[10px]">Explore</DropdownMenuLabel>
         <DropdownMenuGroup>
           {GUEST_ACCOUNT_NAV_ITEMS.map((item) => {
             const Icon = item.Icon;

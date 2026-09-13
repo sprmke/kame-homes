@@ -78,30 +78,38 @@ export function TeamScene() {
           ].map(([label, value], index) => (
             <div
               key={label}
-              className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
               style={reveal(frame, 8 + index * 6)}
             >
-              <p className="text-[10px] font-semibold text-slate-500">{label}</p>
-              <p className="mt-1 text-[19px] font-black text-slate-900">{value}</p>
+              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                {label}
+              </p>
+              <p className="mt-1 text-[19px] font-black text-slate-900 dark:text-slate-50">
+                {value}
+              </p>
             </div>
           ))}
         </div>
 
         <div className="mt-3.5 grid grid-cols-[1.2fr_1fr] gap-4">
           <SurfaceCard title="Members" style={reveal(frame, 26)}>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {members.map(([initials, name, role, detail], index) => (
                 <div
                   key={name}
                   className="flex items-center gap-3 py-2.5"
                   style={reveal(frame, 42 + index * 16, 6)}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     {initials}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-700">{name}</p>
-                    <p className="truncate text-[9px] text-slate-400">{detail}</p>
+                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                      {name}
+                    </p>
+                    <p className="truncate text-[9px] text-slate-400 dark:text-slate-500">
+                      {detail}
+                    </p>
                   </div>
                   <StatusPill
                     label={role}
@@ -110,12 +118,16 @@ export function TeamScene() {
                 </div>
               ))}
               <div className="flex items-center gap-3 py-2.5" style={reveal(frame, 90, 6)}>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-[10px] font-bold text-amber-600">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-[10px] font-bold text-amber-600 dark:bg-amber-500/15 dark:text-amber-300">
                   DR
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-bold text-slate-700">dana@… · invited</p>
-                  <p className="text-[9px] text-slate-400">Link valid for 7 days</p>
+                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                    dana@… · invited
+                  </p>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500">
+                    Link valid for 7 days
+                  </p>
                 </div>
                 <StatusPill label="Pending" tone="amber" />
               </div>
@@ -125,14 +137,14 @@ export function TeamScene() {
           <SurfaceCard
             title="Roles & permissions"
             action={
-              <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[9px] font-bold text-slate-500">
+              <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[9px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                 <Plus className="h-3 w-3" /> New role <TierBadge tier="Starter" />
               </span>
             }
             style={reveal(frame, 40)}
           >
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr] bg-slate-50 px-3 py-2 text-[8px] font-bold uppercase tracking-wide text-slate-400">
+            <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr] bg-slate-50 px-3 py-2 text-[8px] font-bold uppercase tracking-wide text-slate-400 dark:bg-slate-800/50 dark:text-slate-500">
                 <span>Capability</span>
                 <span className="text-center">Full</span>
                 <span className="text-center">Ops</span>
@@ -148,17 +160,19 @@ export function TeamScene() {
                   key={String(label)}
                   className={cn(
                     'grid grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr] items-center px-3 py-2 text-[9px]',
-                    index === roleRow ? 'bg-teal-50/60' : 'bg-white'
+                    index === roleRow ? 'bg-teal-50/60' : 'bg-white dark:bg-slate-900'
                   )}
                   style={reveal(frame, 100 + index * 14, 5)}
                 >
-                  <span className="font-bold text-slate-600">{String(label)}</span>
+                  <span className="font-bold text-slate-600 dark:text-slate-300">
+                    {String(label)}
+                  </span>
                   {[full, ops, read].map((on, cellIndex) => (
                     <span key={cellIndex} className="flex justify-center">
                       {on ? (
-                        <Check className="h-3.5 w-3.5 text-teal-600" />
+                        <Check className="h-3.5 w-3.5 text-teal-600 dark:text-teal-300" />
                       ) : (
-                        <span className="h-1 w-1 rounded-full bg-slate-300" />
+                        <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                       )}
                     </span>
                   ))}
@@ -203,22 +217,24 @@ export function NotificationsScene() {
               return (
                 <div
                   key={label}
-                  className="flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+                  className="flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                   style={reveal(frame, 8 + index * 13, 10)}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-black text-slate-800">{label}</p>
-                    <p className="text-[9px] text-slate-500">
+                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">
+                      {label}
+                    </p>
+                    <p className="text-[9px] text-slate-500 dark:text-slate-400">
                       {on ? `Connected · ${detail}` : 'Scan for chats →'}
                     </p>
                   </div>
                   <div
                     className={cn(
                       'ml-auto flex h-5 w-9 items-center rounded-full px-0.5',
-                      on ? 'bg-teal-500' : 'bg-slate-200'
+                      on ? 'bg-teal-500' : 'bg-slate-200 dark:bg-slate-700'
                     )}
                   >
                     <span
@@ -232,13 +248,15 @@ export function NotificationsScene() {
 
           <div className="relative flex items-start justify-center">
             <PhoneFrame style={reveal(frame, 24)}>
-              <div className="-mx-1 mb-1 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-sm">
+              <div className="-mx-1 mb-1 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-sm dark:bg-slate-900">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-white">
                   <BellRing className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black text-slate-800">Azure North Ops</p>
-                  <p className="text-[8px] text-slate-400">Kame alerts bot</p>
+                  <p className="text-[10px] font-black text-slate-800 dark:text-slate-100">
+                    Azure North Ops
+                  </p>
+                  <p className="text-[8px] text-slate-400 dark:text-slate-500">Kame alerts bot</p>
                 </div>
               </div>
               {[
@@ -273,20 +291,26 @@ export function NotificationsScene() {
               ].map(({ tag, title, detail, icon: Icon, delay }) => (
                 <div
                   key={title}
-                  className="rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-900 shadow-sm"
+                  className="rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
                   style={reveal(frame, delay, 20)}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-teal-50 text-teal-600">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
                       <Icon className="h-2.5 w-2.5" />
                     </span>
-                    <span className="rounded bg-slate-100 px-1 text-[6px] font-bold text-slate-500">
+                    <span className="rounded bg-slate-100 px-1 text-[6px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                       {tag}
                     </span>
-                    <span className="ml-auto text-[7px] font-semibold text-slate-400">now</span>
+                    <span className="ml-auto text-[7px] font-semibold text-slate-400 dark:text-slate-500">
+                      now
+                    </span>
                   </div>
-                  <p className="mt-1 text-[9px] font-black text-slate-800">{title}</p>
-                  <p className="mt-0.5 text-[8px] leading-relaxed text-slate-500">{detail}</p>
+                  <p className="mt-1 text-[9px] font-black text-slate-800 dark:text-slate-100">
+                    {title}
+                  </p>
+                  <p className="mt-0.5 text-[8px] leading-relaxed text-slate-500 dark:text-slate-400">
+                    {detail}
+                  </p>
                 </div>
               ))}
             </PhoneFrame>
@@ -337,19 +361,26 @@ export function PlansBillingScene() {
               key={name}
               className={cn(
                 'rounded-2xl border p-3.5 shadow-sm',
-                current ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white'
+                current
+                  ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-500/15'
+                  : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
               )}
               style={reveal(frame, 14 + index * 6)}
             >
-              <p className="text-[11px] font-black text-slate-800">{name}</p>
-              <p className="mt-1 text-[16px] font-black text-slate-900">
+              <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">{name}</p>
+              <p className="mt-1 text-[16px] font-black text-slate-900 dark:text-slate-50">
                 {price}
-                <span className="text-[8px] font-semibold text-slate-400"> /prop/mo</span>
+                <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500">
+                  {' '}
+                  /prop/mo
+                </span>
               </p>
               <span
                 className={cn(
                   'mt-2 inline-block rounded-md px-1.5 py-0.5 text-[8px] font-bold',
-                  current ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                  current
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 {current ? 'Current' : 'Choose'}
@@ -370,11 +401,15 @@ export function PlansBillingScene() {
               ].map(([label, tier], index) => (
                 <div
                   key={label}
-                  className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5"
+                  className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 dark:bg-slate-800/50"
                   style={reveal(frame, 62 + index * 12, 5)}
                 >
-                  <span className="text-[10px] font-semibold text-slate-600">{label}</span>
-                  <span className="text-[9px] font-bold text-teal-600">{tier}</span>
+                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                    {label}
+                  </span>
+                  <span className="text-[9px] font-bold text-teal-600 dark:text-teal-300">
+                    {tier}
+                  </span>
                 </div>
               ))}
             </div>
@@ -384,29 +419,37 @@ export function PlansBillingScene() {
             <div
               className={cn(
                 'rounded-2xl border p-4 shadow-sm',
-                reviewOn ? 'border-teal-400 bg-white' : 'border-slate-200 bg-white'
+                reviewOn
+                  ? 'border-teal-400 bg-white dark:border-teal-500/50 dark:bg-slate-900'
+                  : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
               )}
               style={reveal(frame, 104)}
             >
-              <p className="text-[11px] font-black text-slate-800">Review · Free → Pro</p>
-              <div className="mt-2 space-y-1 text-[9px] text-slate-500">
+              <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">
+                Review · Free → Pro
+              </p>
+              <div className="mt-2 space-y-1 text-[9px] text-slate-500 dark:text-slate-400">
                 <div className="flex justify-between">
                   <span>Pro · 3 properties</span>
-                  <span className="font-bold text-slate-700">₱2,397</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200">₱2,397</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Volume discount</span>
-                  <span className="font-bold text-emerald-600">−₱180</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-300">−₱180</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-100 pt-1">
-                  <span className="font-bold text-slate-700">Due today (prorated)</span>
-                  <span className="font-black text-slate-900">₱1,472</span>
+                <div className="flex justify-between border-t border-slate-100 pt-1 dark:border-slate-800">
+                  <span className="font-bold text-slate-700 dark:text-slate-200">
+                    Due today (prorated)
+                  </span>
+                  <span className="font-black text-slate-900 dark:text-slate-50">₱1,472</span>
                 </div>
               </div>
               <div
                 className={cn(
                   'mt-3 flex h-8 items-center justify-center rounded-lg text-[10px] font-black',
-                  reviewOn ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'
+                  reviewOn
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
                 )}
               >
                 Continue to payment
@@ -414,15 +457,19 @@ export function PlansBillingScene() {
             </div>
 
             <div
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"
+              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
               style={reveal(frame, 182)}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
                 <Shield className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[11px] font-black text-slate-800">Verified listing</p>
-                <p className="text-[9px] text-slate-500">Ownership & contract approved</p>
+                <p className="text-[11px] font-black text-slate-800 dark:text-slate-100">
+                  Verified listing
+                </p>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400">
+                  Ownership & contract approved
+                </p>
               </div>
               <Check className="ml-auto h-4 w-4 text-emerald-500" />
             </div>
@@ -461,18 +508,22 @@ export function AiAssistantScene() {
 
         <div className="grid grid-cols-[1.35fr_1fr] gap-4">
           <div
-            className="flex h-[460px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="flex h-[460px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
             style={reveal(frame, 8)}
           >
-            <div className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-white">
                 <Bot className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[12px] font-black text-slate-800">Dashboard assistant</p>
-                <p className="text-[9px] text-slate-400">Answers from your live data</p>
+                <p className="text-[12px] font-black text-slate-800 dark:text-slate-100">
+                  Dashboard assistant
+                </p>
+                <p className="text-[9px] text-slate-400 dark:text-slate-500">
+                  Answers from your live data
+                </p>
               </div>
-              <span className="ml-auto flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[8px] font-bold text-slate-500">
+              <span className="ml-auto flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[8px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                 <Paperclip className="h-2.5 w-2.5" /> Monaco 2604
               </span>
             </div>
@@ -485,7 +536,7 @@ export function AiAssistantScene() {
                 How’s profit this month, and which listing is doing best?
               </div>
               <div className="max-w-[92%]" style={reveal(frame, 46)}>
-                <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-slate-50 p-3.5 text-[11px] leading-relaxed text-slate-700">
+                <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-slate-50 p-3.5 text-[11px] leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200">
                   {typed}
                   {frame < 190 ? (
                     <span
@@ -511,7 +562,7 @@ export function AiAssistantScene() {
                   {['Open Finance', 'Compare listings', 'Export report'].map((chip) => (
                     <span
                       key={chip}
-                      className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[8px] font-bold text-teal-700"
+                      className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[8px] font-bold text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/15 dark:text-teal-300"
                     >
                       {chip}
                     </span>
@@ -520,7 +571,7 @@ export function AiAssistantScene() {
               </div>
             </div>
 
-            <div className="m-4 flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-400">
+            <div className="m-4 flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3 text-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
               Ask about bookings, revenue, guests, tasks…
               <span className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg bg-teal-600 text-white">
                 <Send className="h-3.5 w-3.5" />
@@ -534,13 +585,15 @@ export function AiAssistantScene() {
                 {abilities.map(([label, Icon, delay]) => (
                   <div
                     key={label}
-                    className="flex items-center gap-2.5 rounded-xl bg-slate-50 p-2.5"
+                    className="flex items-center gap-2.5 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800/50"
                     style={reveal(frame, delay, 6)}
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-teal-600 shadow-sm">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-teal-600 shadow-sm dark:bg-slate-900 dark:text-teal-300">
                       <Icon className="h-3.5 w-3.5" />
                     </span>
-                    <p className="text-[10px] font-semibold text-slate-600">{label}</p>
+                    <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                      {label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -595,20 +648,26 @@ export function HelpSupportScene() {
               key={label}
               className={cn(
                 'rounded-2xl border p-3 shadow-sm',
-                index === activeCard ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white'
+                index === activeCard
+                  ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-500/15'
+                  : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'
               )}
               style={reveal(frame, 12 + index * 6)}
             >
               <span
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-lg',
-                  index === activeCard ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'
+                  index === activeCard
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                 )}
               >
                 <Icon className="h-4 w-4" />
               </span>
-              <p className="mt-2 text-[11px] font-black text-slate-800">{label}</p>
-              <p className="text-[8px] text-slate-400">{sub}</p>
+              <p className="mt-2 text-[11px] font-black text-slate-800 dark:text-slate-100">
+                {label}
+              </p>
+              <p className="text-[8px] text-slate-400 dark:text-slate-500">{sub}</p>
             </div>
           ))}
         </div>
@@ -619,7 +678,7 @@ export function HelpSupportScene() {
             subtitle="A walkthrough for every page"
             style={reveal(frame, 40)}
           >
-            <div className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[10px] text-slate-400">
+            <div className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500">
               <Search className="h-3.5 w-3.5" /> Search 40+ guides
             </div>
             <div className="mt-2.5 space-y-1.5">
@@ -632,10 +691,10 @@ export function HelpSupportScene() {
               ).map(([doc, Icon], index) => (
                 <div
                   key={doc}
-                  className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[10px] font-semibold text-slate-600"
+                  className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[10px] font-semibold text-slate-600 dark:bg-slate-800/50 dark:text-slate-300"
                   style={reveal(frame, 66 + index * 12, 5)}
                 >
-                  <Icon className="h-3 w-3 text-teal-500" /> {doc}
+                  <Icon className="h-3 w-3 text-teal-500 dark:text-teal-400" /> {doc}
                 </div>
               ))}
             </div>
@@ -654,11 +713,11 @@ export function HelpSupportScene() {
               ].map(([subject, status, tone], index) => (
                 <div
                   key={subject}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                   style={reveal(frame, 80 + index * 14, 5)}
                 >
-                  <Ticket className="h-3.5 w-3.5 text-slate-400" />
-                  <p className="min-w-0 flex-1 truncate text-[10px] font-bold text-slate-700">
+                  <Ticket className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                  <p className="min-w-0 flex-1 truncate text-[10px] font-bold text-slate-700 dark:text-slate-200">
                     {subject}
                   </p>
                   <StatusPill label={status} tone={tone as 'amber' | 'sky' | 'emerald'} />

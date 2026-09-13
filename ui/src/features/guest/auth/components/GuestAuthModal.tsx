@@ -8,10 +8,15 @@ import { useGuestAuthActions } from '@/features/guest/auth/hooks/useGuestAuthAct
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useCaptchaToken } from '@/components/security/useCaptchaToken';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SpinnerIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from '@/components/ui/responsive-modal';
 import { cn } from '@/lib/utils';
 
 type Step = 'email' | 'otp';
@@ -95,18 +100,21 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
   const busy = isSending || isVerifying || isSigningInWithGoogle;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 p-0 sm:max-w-[min(calc(100vw-1.5rem),26rem)]">
-        <DialogHeader className="border-border/60 space-y-4 border-b px-4 pb-4 pt-5 text-center sm:px-6">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalContent
+        sheetLayout="split"
+        className="gap-0 p-0 sm:max-w-[min(calc(100vw-1.5rem),26rem)]"
+      >
+        <ResponsiveModalHeader className="border-border/60 space-y-4 border-b px-4 pb-4 pt-5 text-center sm:px-6">
           <div className="from-primary to-primary/80 mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br shadow-md">
             <span className="text-lg font-bold text-white">K</span>
           </div>
-          <DialogTitle className="text-center text-lg font-bold sm:text-xl">
+          <ResponsiveModalTitle className="text-center text-lg font-bold sm:text-xl">
             {step === 'email' ? 'Log in or sign up' : 'Confirm your email'}
-          </DialogTitle>
-        </DialogHeader>
+          </ResponsiveModalTitle>
+        </ResponsiveModalHeader>
 
-        <div className="space-y-4 px-4 py-5 sm:px-6">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
           {step === 'otp' && (
             <button
               type="button"
@@ -218,7 +226,7 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
             </button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

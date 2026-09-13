@@ -40,7 +40,7 @@ export function HostDashboardFilm({ narrationMuted }: HostDashboardFilmProps) {
   const { fps } = useVideoConfig();
 
   return (
-    <AbsoluteFill className="bg-slate-950">
+    <AbsoluteFill className="bg-[#f4f7f8] dark:bg-slate-950">
       <TransitionSeries>
         {hostTourChapters.map((chapter, index) => {
           const Scene = filmScenes[index] ?? filmScenes[0];

@@ -56,7 +56,7 @@ export function GuestHero() {
               transition={{ duration: 0.45, delay: 0.16 }}
               className="mt-5"
             >
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+              <div className="scrollbar-hide -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
                 {stayCategories.map((category) => (
                   <button
                     key={category.id}
@@ -64,7 +64,7 @@ export function GuestHero() {
                     onClick={() => goToCategory(category.query)}
                     className={cn(
                       'border-border bg-muted/50 text-foreground hover:border-primary/40 hover:bg-primary/10',
-                      'min-h-[44px] shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors'
+                      'min-h-[44px] shrink-0 snap-start whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors'
                     )}
                   >
                     {category.label}
