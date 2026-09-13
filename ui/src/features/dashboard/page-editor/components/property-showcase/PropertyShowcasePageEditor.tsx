@@ -16,7 +16,7 @@ import {
   type ShowcaseTemplateKey,
 } from '@/features/guest/marketing/showcase/types/showcase';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';

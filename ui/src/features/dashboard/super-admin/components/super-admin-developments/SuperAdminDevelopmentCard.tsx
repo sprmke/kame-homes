@@ -7,15 +7,11 @@ import { superAdminDevelopmentCardModel } from '@/features/dashboard/super-admin
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 import type { Development } from '@/features/dashboard/super-admin/types/development';
 
-import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  ResponsiveOverflowMenu,
+  type ResponsiveOverflowAction,
+} from '@/components/mobile/ResponsiveOverflowMenu';
+import { Button } from '@/components/ui/button';
 import { listingStatusBadgeClasses, listingStatusDotClasses } from '@/lib/statusToneColors';
 
 const CARD_CLASS =
@@ -45,31 +41,34 @@ function DevelopmentActionsMenu({
   development: Development;
   settingsHref: string;
 }) {
+  const navigate = useNavigate();
   const model = superAdminDevelopmentCardModel(development);
+  const actions: ResponsiveOverflowAction[] = [
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: <Settings className="size-4 shrink-0" aria-hidden />,
+      onSelect: () => navigate(settingsHref),
+    },
+  ];
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <ResponsiveOverflowMenu
+      label={`Actions for ${model.title}`}
+      sheetTitle={model.title}
+      actionGroups={[actions]}
+      dropdownContentClassName="w-52"
+      trigger={
         <Button
           type="button"
           variant="secondary"
           size="icon"
           className="bg-background/90 size-8 shadow-sm backdrop-blur-sm"
-          aria-label={`Actions for ${model.title}`}
         >
           <MoreHorizontal className="size-4" aria-hidden />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>{model.title}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={settingsHref}>
-            <Settings className="size-4" aria-hidden />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }
 

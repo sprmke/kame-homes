@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { toast } from 'sonner';
 
-import { useSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
-import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideStepBody';
+import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
+import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
 import { useSetupGuideStateWrite } from '@/features/dashboard/setup-guide/hooks/useSetupGuideStateWrite';
 import {
   defaultOrgInviteForm,

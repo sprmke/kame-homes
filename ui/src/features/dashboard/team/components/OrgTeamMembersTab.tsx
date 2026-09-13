@@ -23,17 +23,11 @@ import {
 } from '@/features/dashboard/team/lib/teamMemberContact';
 import type { CustomOrgRole, OrgTeamMember } from '@/features/dashboard/team/types/orgTeam';
 
+import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -215,51 +209,63 @@ export function OrgTeamMembersTab({
 
                 {canEditContact || (!member.isOwner && canManage) ? (
                   <div className="flex shrink-0 items-center justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <ResponsiveOverflowMenu
+                      label={`Manage ${member.name}`}
+                      sheetTitle={`Manage ${member.name}`}
+                      actionGroups={[
+                        [
+                          ...(canEditContact
+                            ? [
+                                {
+                                  key: 'member-details',
+                                  label: 'Member details',
+                                  onSelect: () => {
+                                    window.setTimeout(() => onEditContact(member), 0);
+                                  },
+                                },
+                              ]
+                            : []),
+                          ...(!member.isOwner && canManage
+                            ? [
+                                {
+                                  key: 'toggle-status',
+                                  label: isActive ? 'Deactivate' : 'Activate',
+                                  onSelect: () => onToggleStatus(member),
+                                },
+                              ]
+                            : []),
+                        ],
+                        ...(!member.isOwner && canManage
+                          ? [
+                              [
+                                {
+                                  key: 'remove',
+                                  label: 'Remove from Organization',
+                                  destructive: true,
+                                  onSelect: () => {
+                                    window.setTimeout(() => onRemove(member), 0);
+                                  },
+                                },
+                              ],
+                            ]
+                          : []),
+                      ]}
+                      trigger={
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
                           className={cn(
                             'admin-overflow-trigger',
-                            'sm:border-input sm:bg-card sm:hover:bg-accent sm:text-foreground sm:h-8 sm:w-auto sm:gap-1.5 sm:rounded-lg sm:border sm:px-3'
+                            'lg:border-input lg:bg-card lg:text-foreground lg:hover:bg-accent lg:h-8 lg:w-auto lg:gap-1.5 lg:rounded-lg lg:border lg:px-3'
                           )}
-                          aria-label={`Manage ${member.name}`}
                         >
-                          <MoreHorizontal className="size-3.5 sm:hidden" aria-hidden />
-                          <span className="hidden text-xs font-semibold sm:inline">Manage</span>
-                          <ChevronDown className="hidden size-3.5 sm:inline" aria-hidden />
+                          <MoreHorizontal className="size-3.5 lg:hidden" aria-hidden />
+                          <span className="hidden text-xs font-semibold lg:inline">Manage</span>
+                          <ChevronDown className="hidden size-3.5 lg:inline" aria-hidden />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canEditContact ? (
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              window.setTimeout(() => onEditContact(member), 0);
-                            }}
-                          >
-                            Member details
-                          </DropdownMenuItem>
-                        ) : null}
-                        {!member.isOwner && canManage ? (
-                          <>
-                            <DropdownMenuItem onClick={() => onToggleStatus(member)}>
-                              {isActive ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onSelect={() => {
-                                window.setTimeout(() => onRemove(member), 0);
-                              }}
-                            >
-                              Remove from Organization
-                            </DropdownMenuItem>
-                          </>
-                        ) : null}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      }
+                    />
                   </div>
                 ) : null}
               </div>

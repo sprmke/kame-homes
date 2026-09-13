@@ -17,12 +17,12 @@ import {
 import { extractLeadingSectionHeading } from '@/features/guest/stay-guide/lib/stayGuideContent';
 import { StayGuidePage } from '@/features/guest/stay-guide/pages/StayGuidePage';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
 import {
   usePropertyTemplateMutations,
   usePropertyTemplates,
   type PropertyTemplateDto,
 } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { normalizeBlockLevelPlaceholdersInHtml } from '@/features/dashboard/bookings/lib/normalizeBlockLevelPlaceholders';
 import { applyPropertyTemplatePlaceholders } from '@/features/dashboard/bookings/lib/propertyTemplatePlaceholders';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';

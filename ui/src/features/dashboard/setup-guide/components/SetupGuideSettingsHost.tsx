@@ -10,7 +10,7 @@ import {
 } from '@/features/dashboard/org/components/RequireParkingContext';
 import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
-import { useSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
+import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 
 import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
 

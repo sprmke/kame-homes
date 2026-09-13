@@ -1,20 +1,14 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { useLocation, useParams } from 'react-router-dom';
 
 import { isSuperAdminPath } from '@/features/dashboard/bookings/lib/adminSidebarNav';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
-import type { Organization } from '@/features/dashboard/org/types';
+import {
+  SetupGuideContext,
+  type SetupGuideContextValue,
+} from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import { SetupGuideOverlay } from '@/features/dashboard/setup-guide/components/SetupGuideOverlay';
 import { useSetupGuideProgressForOrgSlug } from '@/features/dashboard/setup-guide/hooks/useSetupGuideProgress';
 import { useSetupGuideStateWrite } from '@/features/dashboard/setup-guide/hooks/useSetupGuideStateWrite';
@@ -26,41 +20,6 @@ import {
   isSetupGuideSessionSnoozed,
   setSetupGuideSessionSnoozed,
 } from '@/features/dashboard/setup-guide/lib/setupGuideState';
-import type {
-  SetupGuidePersistedState,
-  SetupGuideProgressResult,
-  SetupGuideStep,
-} from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
-
-export type SetupGuideContextValue = {
-  org: Organization | null;
-  steps: SetupGuideStep[];
-  progress: SetupGuideProgressResult;
-  persisted: SetupGuidePersistedState;
-  open: boolean;
-  activeStepId: string | null;
-  openGuide: (stepId?: string | null) => void;
-  closeGuide: (opts?: { dismiss?: boolean }) => void;
-  goToStep: (stepId: string) => void;
-  goNext: () => void;
-  goBack: () => void;
-  skipCurrent: () => void;
-  requiredRemaining: number;
-};
-
-const SetupGuideContext = createContext<SetupGuideContextValue | null>(null);
-
-export function useSetupGuide(): SetupGuideContextValue {
-  const ctx = useContext(SetupGuideContext);
-  if (!ctx) {
-    throw new Error('useSetupGuide must be used within SetupGuideProvider');
-  }
-  return ctx;
-}
-
-export function useOptionalSetupGuide(): SetupGuideContextValue | null {
-  return useContext(SetupGuideContext);
-}
 
 export function SetupGuideProvider({ children }: { children: ReactNode }) {
   const location = useLocation();

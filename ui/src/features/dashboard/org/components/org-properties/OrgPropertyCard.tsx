@@ -22,15 +22,11 @@ import {
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import type { Property } from '@/features/dashboard/org/types';
 
-import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  ResponsiveOverflowMenu,
+  type ResponsiveOverflowAction,
+} from '@/components/mobile/ResponsiveOverflowMenu';
+import { Button } from '@/components/ui/button';
 
 const ORG_PROPERTY_CARD_CLASS =
   'relative block rounded-xl border border-border/50 bg-card text-card-foreground shadow-card overflow-hidden transition-[box-shadow,border-color] duration-200 hover:border-primary/30 hover:shadow-lg dark:border-[hsl(0_0%_100%_/_0.06)]';
@@ -138,58 +134,67 @@ function OrgPropertyActionsMenu({
   guestHref: string;
   onCopySettings?: () => void;
 }) {
+  const navigate = useNavigate();
   const model = orgPropertyCardModel(property);
 
+  const primaryActions: ResponsiveOverflowAction[] = [
+    {
+      key: 'dashboard',
+      label: 'Open dashboard',
+      icon: <Calendar className="size-4 shrink-0" aria-hidden />,
+      onSelect: () => navigate(dashboardHref),
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: <Settings className="size-4 shrink-0" aria-hidden />,
+      onSelect: () => navigate(settingsHref),
+    },
+    {
+      key: 'guest-calendar',
+      label: 'Guest calendar',
+      icon: <ExternalLink className="size-4 shrink-0" aria-hidden />,
+      onSelect: () => window.open(guestHref, '_blank', 'noopener,noreferrer'),
+    },
+    {
+      key: 'copy-link',
+      label: 'Copy guest link',
+      icon: <Copy className="size-4 shrink-0" aria-hidden />,
+      onSelect: () => {
+        void copyGuestLink(property.slug);
+      },
+    },
+  ];
+
+  const copySettingsAction: ResponsiveOverflowAction[] = onCopySettings
+    ? [
+        {
+          key: 'copy-settings',
+          label: 'Copy settings',
+          icon: <CopyPlus className="size-4 shrink-0" aria-hidden />,
+          onSelect: onCopySettings,
+        },
+      ]
+    : [];
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <ResponsiveOverflowMenu
+      label={`Actions for ${model.title}`}
+      sheetTitle={model.title}
+      sheetDescription="Property actions"
+      actionGroups={[primaryActions, copySettingsAction]}
+      dropdownContentClassName="w-52"
+      trigger={
         <Button
           type="button"
           variant="secondary"
           size="icon"
           className="bg-background/90 size-8 shadow-sm backdrop-blur-sm"
-          aria-label={`Actions for ${model.title}`}
         >
           <MoreHorizontal className="size-4" aria-hidden />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>{model.title}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={dashboardHref}>
-            <Calendar className="size-4" aria-hidden />
-            Open dashboard
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to={settingsHref}>
-            <Settings className="size-4" aria-hidden />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={guestHref} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="size-4" aria-hidden />
-            Guest calendar
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            void copyGuestLink(property.slug);
-          }}
-        >
-          <Copy className="size-4" aria-hidden />
-          Copy guest link
-        </DropdownMenuItem>
-        {onCopySettings ? (
-          <DropdownMenuItem onSelect={onCopySettings}>
-            <CopyPlus className="size-4" aria-hidden />
-            Copy settings
-          </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }
 
@@ -239,7 +244,7 @@ export function OrgPropertyCard({
 
       <div className="pointer-events-none relative z-[2] space-y-2.5 p-3 sm:space-y-3 sm:p-4">
         <div className="min-w-0 space-y-1">
-          <p className="text-foreground group-hover:text-primary lg:text-md line-clamp-1 text-sm font-semibold transition-colors sm:text-base">
+          <p className="lg:text-md text-foreground group-hover:text-primary line-clamp-1 text-sm font-semibold transition-colors sm:text-base">
             {model.title}
           </p>
           {model.subtitle ? (

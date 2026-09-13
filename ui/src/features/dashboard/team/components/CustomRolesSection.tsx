@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Copy, Edit3, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Copy, Edit3, Plus, Trash2 } from 'lucide-react';
 
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { orgListingScopeSummary } from '@/features/dashboard/team/lib/orgRoleListingScope';
@@ -16,16 +16,10 @@ import { getTeamScopeConfig, type TeamScope } from '@/features/dashboard/team/li
 import type { CustomOrgRole } from '@/features/dashboard/team/types/orgTeam';
 import type { CustomPropertyRole } from '@/features/dashboard/team/types/propertyTeam';
 
+import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -56,10 +50,10 @@ function RoleGroup({
     <section className={cn('space-y-2', className)}>
       <div className="flex min-h-8 items-center justify-between gap-2 px-1 sm:px-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {title}
           </h3>
-          <span className="text-muted-foreground/80 text-xs tabular-nums">{count}</span>
+          <span className="text-xs tabular-nums text-muted-foreground/80">{count}</span>
         </div>
         {action}
       </div>
@@ -83,7 +77,7 @@ function BuiltinRoleRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <p className="shrink-0 text-sm font-medium">{label}</p>
-          <p className="text-muted-foreground text-xs leading-snug sm:truncate sm:text-sm">
+          <p className="text-xs leading-snug text-muted-foreground sm:truncate sm:text-sm">
             {description}
           </p>
         </div>
@@ -119,7 +113,7 @@ function RoleRow({
       : null;
 
   return (
-    <div className="hover:bg-muted/40 flex items-center gap-3 rounded-lg px-1 py-2.5 sm:px-2">
+    <div className="flex items-center gap-3 rounded-lg px-1 py-2.5 hover:bg-muted/40 sm:px-2">
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <p className="truncate text-sm font-medium">{role.name}</p>
@@ -129,7 +123,7 @@ function RoleRow({
             </Badge>
           ) : null}
         </div>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-xs text-muted-foreground">
           {role.permissions.length} permission
           {role.permissions.length === 1 ? '' : 's'}
           {listingLine ? ` · ${listingLine}` : null}
@@ -137,43 +131,44 @@ function RoleRow({
       </div>
       {canManage ? (
         <div className="flex shrink-0 items-center gap-0.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="admin-overflow-trigger"
-                aria-label={`Actions for ${role.name}`}
-              >
-                <MoreHorizontal className="size-3.5" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[10rem]">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit3 className="mr-2 size-4" aria-hidden />
-                Edit
-              </DropdownMenuItem>
-              {onDuplicate ? (
-                <DropdownMenuItem onClick={onDuplicate}>
-                  <Copy className="mr-2 size-4" aria-hidden />
-                  Duplicate
-                </DropdownMenuItem>
-              ) : null}
-              {!isDefault ? (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={onDelete}
-                    disabled={!canDelete}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 size-4" aria-hidden />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ResponsiveOverflowMenu
+            label={`Actions for ${role.name}`}
+            sheetTitle={role.name}
+            actionGroups={[
+              [
+                {
+                  key: 'edit',
+                  label: 'Edit',
+                  icon: <Edit3 className="size-4 shrink-0" aria-hidden />,
+                  onSelect: onEdit,
+                },
+                ...(onDuplicate
+                  ? [
+                      {
+                        key: 'duplicate',
+                        label: 'Duplicate',
+                        icon: <Copy className="size-4 shrink-0" aria-hidden />,
+                        onSelect: onDuplicate,
+                      },
+                    ]
+                  : []),
+              ],
+              ...(!isDefault
+                ? [
+                    [
+                      {
+                        key: 'delete',
+                        label: 'Delete',
+                        icon: <Trash2 className="size-4 shrink-0" aria-hidden />,
+                        destructive: true,
+                        disabled: !canDelete,
+                        onSelect: onDelete,
+                      },
+                    ],
+                  ]
+                : []),
+            ]}
+          />
         </div>
       ) : null}
     </div>
@@ -220,7 +215,7 @@ export function CustomRolesSection({
         {usesTemplates ? (
           <>
             <RoleGroup title="Default" count={defaultRoles.length}>
-              <ul className="border-border divide-border divide-y rounded-lg border">
+              <ul className="divide-y divide-border rounded-lg border border-border">
                 {defaultRoles.map((role) => (
                   <li key={role.id} className="px-1 sm:px-1.5">
                     <RoleRow
@@ -247,7 +242,7 @@ export function CustomRolesSection({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground min-h-[44px] shrink-0"
+                      className="min-h-[44px] shrink-0 text-muted-foreground"
                       onClick={onCreate}
                     >
                       <Plus className="mr-1.5 size-4" aria-hidden />
@@ -258,8 +253,8 @@ export function CustomRolesSection({
               }
             >
               {customOnly.length === 0 ? (
-                <div className="border-border bg-muted/30 flex flex-col items-start gap-3 rounded-lg border border-dashed px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                  <p className="text-muted-foreground text-sm">
+                <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                  <p className="text-sm text-muted-foreground">
                     Duplicate a default role, or create your own.
                   </p>
                   {canManage ? (
@@ -277,7 +272,7 @@ export function CustomRolesSection({
                   ) : null}
                 </div>
               ) : (
-                <ul className="border-border divide-border divide-y rounded-lg border">
+                <ul className="divide-y divide-border rounded-lg border border-border">
                   {customOnly.map((role) => (
                     <li key={role.id} className="px-1 sm:px-1.5">
                       <RoleRow

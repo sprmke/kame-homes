@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { ListChecks } from 'lucide-react';
 
 import { SectionNavIssueDot } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
-import { useOptionalSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
+import { useOptionalSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import {
   getSetupGuideRequiredRemaining,
   hasSetupGuideIssues,

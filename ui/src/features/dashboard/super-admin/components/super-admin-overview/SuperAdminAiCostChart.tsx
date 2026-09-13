@@ -24,6 +24,8 @@ const FEATURE_LABELS: Record<string, string> = {
   inbox_auto_reply: 'Inbox auto-reply',
   marketing_caption: 'Marketing caption',
   marketing_template: 'Marketing template',
+  marketing_image_generate: 'Marketing image',
+  marketing_video_generate: 'Marketing video',
   import_column_map: 'Import mapping',
   voice_polish: 'Voice polish',
   voice_receptionist: 'Voice receptionist',

@@ -37,8 +37,8 @@ import {
   pricingFormHasFeeChanges,
   type PricingFormBaseline,
 } from '@/features/dashboard/pricing/lib/pricingSave';
-import { useSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
-import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideStepBody';
+import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
+import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
 import { useSetupGuideStateWrite } from '@/features/dashboard/setup-guide/hooks/useSetupGuideStateWrite';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';

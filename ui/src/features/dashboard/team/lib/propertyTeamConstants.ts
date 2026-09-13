@@ -244,6 +244,13 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
     icon: Megaphone,
   },
   {
+    id: 'marketing.generate.video:add',
+    name: 'Generate AI video',
+    description: 'AI video generation on the Generate tab (separate from cheaper image generation)',
+    category: 'Marketing',
+    icon: Megaphone,
+  },
+  {
     id: 'marketing.publish:add',
     name: 'Publish to Meta',
     description: 'Publish to Facebook or Instagram',
@@ -655,6 +662,7 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<string, string[]> = {
     'marketing.templates:edit',
     'marketing.templates:delete',
     'marketing.generate:add',
+    'marketing.generate.video:add',
     'marketing.publish:add',
     'analytics:view',
   ],

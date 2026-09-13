@@ -1,13 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback } from 'react';
 
 import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import {
@@ -41,6 +32,7 @@ import {
   SetupGuideParkingPricingEmbed,
   SetupGuidePropertyPricingEmbed,
 } from '@/features/dashboard/setup-guide/components/SetupGuidePricingEmbed';
+import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
 import {
   SetupGuideParkingHost,
   SetupGuidePropertyHost,
@@ -51,48 +43,6 @@ import type { SetupGuideStep } from '@/features/dashboard/setup-guide/lib/setupG
 
 import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Textarea } from '@/components/ui/textarea';
-
-export type SetupGuideSaveHandler = (() => Promise<boolean>) | null;
-
-const SetupGuideSaveContext = createContext<{
-  registerSave: (handler: SetupGuideSaveHandler) => void;
-} | null>(null);
-
-export function SetupGuideSaveProvider({
-  children,
-  registerSave,
-}: {
-  children: ReactNode;
-  registerSave: (handler: SetupGuideSaveHandler) => void;
-}) {
-  const value = useMemo(() => ({ registerSave }), [registerSave]);
-  return <SetupGuideSaveContext.Provider value={value}>{children}</SetupGuideSaveContext.Provider>;
-}
-
-export function useRegisterStepSave(handler: SetupGuideSaveHandler) {
-  const ctx = useContext(SetupGuideSaveContext);
-  useEffect(() => {
-    ctx?.registerSave(handler);
-    return () => ctx?.registerSave(null);
-  }, [ctx, handler]);
-}
-
-export function useSetupGuideSaveBridge() {
-  const handlerRef = useRef<SetupGuideSaveHandler>(null);
-  const [hasSave, setHasSave] = useState(false);
-
-  const registerSave = useCallback((handler: SetupGuideSaveHandler) => {
-    handlerRef.current = handler;
-    setHasSave(Boolean(handler));
-  }, []);
-
-  const runSave = useCallback(async () => {
-    if (!handlerRef.current) return true;
-    return handlerRef.current();
-  }, []);
-
-  return { registerSave, runSave, hasSave };
-}
 
 function WelcomeStepBody() {
   useRegisterStepSave(null);

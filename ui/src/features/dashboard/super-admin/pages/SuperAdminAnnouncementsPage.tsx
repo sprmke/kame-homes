@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ChevronDown, Landmark, Megaphone, Plus } from 'lucide-react';
 
@@ -29,6 +29,7 @@ import {
 } from '@/features/dashboard/super-admin/lib/superAdminAnnouncementFilters';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -51,6 +52,77 @@ function AnnouncementsEmptyState({ filtered }: { filtered: boolean }) {
       icon={Megaphone}
       title={filtered ? 'No announcements match your filters' : 'No announcements yet'}
     />
+  );
+}
+
+function AddAnnouncementActions({ onCreatePlatform }: { onCreatePlatform: () => void }) {
+  const isMobileLayout = useIsBelowLg();
+  const navigate = useNavigate();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const trigger = (
+    <Button type="button" size="sm" className="min-h-[44px] gap-1.5">
+      <Plus className="size-4" aria-hidden />
+      Add announcement
+      <ChevronDown className="size-4 opacity-70" aria-hidden />
+    </Button>
+  );
+
+  if (isMobileLayout) {
+    return (
+      <>
+        <Button
+          type="button"
+          size="sm"
+          className="min-h-[44px] gap-1.5"
+          aria-expanded={sheetOpen}
+          aria-haspopup="dialog"
+          onClick={() => setSheetOpen(true)}
+        >
+          <Plus className="size-4" aria-hidden />
+          Add announcement
+          <ChevronDown className="size-4 opacity-70" aria-hidden />
+        </Button>
+        <MobileChoiceSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Add announcement">
+          <div role="listbox" aria-label="Add announcement">
+            <MobileChoiceItem
+              label="Platform announcement"
+              icon={<Megaphone className="size-5" aria-hidden />}
+              onSelect={() => {
+                onCreatePlatform();
+                setSheetOpen(false);
+              }}
+            />
+            <MobileChoiceItem
+              label="Development announcement"
+              icon={<Landmark className="size-5" aria-hidden />}
+              onSelect={() => {
+                setSheetOpen(false);
+                navigate(superAdminPaths.developments);
+              }}
+            />
+          </div>
+        </MobileChoiceSheet>
+      </>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onCreatePlatform}>
+          <Megaphone className="size-4" aria-hidden />
+          Platform announcement
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to={superAdminPaths.developments}>
+            <Landmark className="size-4" aria-hidden />
+            Development announcement
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -141,27 +213,7 @@ export function SuperAdminAnnouncementsPage() {
             title="Announcements"
             subtitle="Platform-wide notices shown to every signed-in host."
             actions={
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" size="sm" className="min-h-[44px] gap-1.5">
-                    <Plus className="size-4" aria-hidden />
-                    Add announcement
-                    <ChevronDown className="size-4 opacity-70" aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setDialogState({ mode: 'create' })}>
-                    <Megaphone className="size-4" aria-hidden />
-                    Platform announcement
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={superAdminPaths.developments}>
-                      <Landmark className="size-4" aria-hidden />
-                      Development announcement
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AddAnnouncementActions onCreatePlatform={() => setDialogState({ mode: 'create' })} />
             }
           />
 

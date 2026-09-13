@@ -9,13 +9,13 @@ import { PropertyDetailPage } from '@/features/guest/marketing/pages/PropertyDet
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 import type { PropertyLandingSectionConfig } from '@/features/guest/marketing/properties/types/publicProperty';
 
-import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/components/AdminLayout';
 import {
   appSettingsToFormValues,
   useAppSettings,
   useUpdateAppSettings,
   type AppSettingsFormValues,
 } from '@/features/dashboard/bookings/hooks/useAppSettings';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { PropertySettingsBrandColorPreview } from '@/features/dashboard/org/components/property-settings/PropertySettingsBrandColorPreview';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';

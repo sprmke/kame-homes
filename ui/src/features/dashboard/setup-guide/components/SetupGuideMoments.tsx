@@ -9,7 +9,7 @@ import {
   Users,
 } from 'lucide-react';
 
-import { useSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
+import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import type { SetupGuideStepProgress } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
 import { cn } from '@/lib/utils';

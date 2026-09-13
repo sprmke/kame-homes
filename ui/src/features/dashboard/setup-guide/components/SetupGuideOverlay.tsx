@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 
 import { Building2, Car, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { useSetupGuide } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
+import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import {
   SetupGuideSaveProvider,
-  SetupGuideStepBody,
   useSetupGuideSaveBridge,
-} from '@/features/dashboard/setup-guide/components/SetupGuideStepBody';
+} from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
+import { SetupGuideStepBody } from '@/features/dashboard/setup-guide/components/SetupGuideStepBody';
 import { setupGuideStepShortTitle } from '@/features/dashboard/setup-guide/lib/setupGuideSteps';
 import type {
   SetupGuideStep,

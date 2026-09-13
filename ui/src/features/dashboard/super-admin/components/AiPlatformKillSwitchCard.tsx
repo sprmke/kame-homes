@@ -17,6 +17,8 @@ const AI_FEATURE_TOGGLES = [
   { ids: ['inbox_auto_reply'], label: 'Inbox auto-reply' },
   { ids: ['marketing_caption'], label: 'Marketing captions' },
   { ids: ['marketing_template'], label: 'Marketing templates' },
+  { ids: ['marketing_image_generate'], label: 'Marketing image generation' },
+  { ids: ['marketing_video_generate'], label: 'Marketing video generation' },
   { ids: ['import_column_map'], label: 'Import column mapping' },
   { ids: ['voice_polish'], label: 'Voice polish' },
   { ids: ['ai_integration_verify'], label: 'Integration verify' },
