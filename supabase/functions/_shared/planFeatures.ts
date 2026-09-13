@@ -26,6 +26,10 @@ export type PlanFeatures = {
   aiDashboardAssistant: boolean;
   aiReceptionist: boolean;
   aiMarketingGeneration: boolean;
+  /** Prompt + reference photos in, a finished AI image out (Marketing Studio Generate tab). */
+  aiMarketingImageGeneration: boolean;
+  /** Prompt + reference photos in, a finished AI video out (Marketing Studio Generate tab, Phase 2). */
+  aiMarketingVideoGeneration: boolean;
   aiChatAutoReply: boolean;
   fullyManagedByPlatform: boolean;
   financeReporting: boolean;
@@ -64,6 +68,8 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   aiDashboardAssistant: false,
   aiReceptionist: false,
   aiMarketingGeneration: false,
+  aiMarketingImageGeneration: false,
+  aiMarketingVideoGeneration: false,
   aiChatAutoReply: false,
   fullyManagedByPlatform: false,
   financeReporting: false,
@@ -110,6 +116,9 @@ export function parsePlanFeatures(raw: unknown): PlanFeatures {
       ? (obj.teamManagement as Record<string, unknown>)
       : {};
 
+  const marketingStudio = asBool(obj.marketingStudio, base.marketingStudio);
+  const aiMarketingGeneration = asBool(obj.aiMarketingGeneration, base.aiMarketingGeneration);
+
   return {
     automatedBookingFlow: asBool(obj.automatedBookingFlow, base.automatedBookingFlow),
     verifiedBadgeEligible: asBool(obj.verifiedBadgeEligible, base.verifiedBadgeEligible),
@@ -130,12 +139,26 @@ export function parsePlanFeatures(raw: unknown): PlanFeatures {
       Number.isFinite(obj.aiMonthlyCreditAllowance)
         ? obj.aiMonthlyCreditAllowance
         : base.aiMonthlyCreditAllowance,
-    marketingStudio: asBool(obj.marketingStudio, base.marketingStudio),
+    marketingStudio,
     customPages: asBool(obj.customPages, base.customPages),
     propertyShowcase: asBool(obj.propertyShowcase, base.propertyShowcase),
     aiDashboardAssistant: asBool(obj.aiDashboardAssistant, base.aiDashboardAssistant),
     aiReceptionist: asBool(obj.aiReceptionist, base.aiReceptionist),
-    aiMarketingGeneration: asBool(obj.aiMarketingGeneration, base.aiMarketingGeneration),
+    aiMarketingGeneration,
+    // Pre-20261316120400 plans only had `marketingStudio` at the same tier (growth+).
+    aiMarketingImageGeneration: asBool(
+      obj.aiMarketingImageGeneration,
+      obj.aiMarketingImageGeneration === undefined
+        ? marketingStudio
+        : base.aiMarketingImageGeneration
+    ),
+    // Pre-20261316120500 plans only had `aiMarketingGeneration` at the same tier (pro+).
+    aiMarketingVideoGeneration: asBool(
+      obj.aiMarketingVideoGeneration,
+      obj.aiMarketingVideoGeneration === undefined
+        ? aiMarketingGeneration
+        : base.aiMarketingVideoGeneration
+    ),
     aiChatAutoReply: asBool(obj.aiChatAutoReply, base.aiChatAutoReply),
     fullyManagedByPlatform: asBool(obj.fullyManagedByPlatform, base.fullyManagedByPlatform),
     financeReporting: asBool(obj.financeReporting, base.financeReporting),

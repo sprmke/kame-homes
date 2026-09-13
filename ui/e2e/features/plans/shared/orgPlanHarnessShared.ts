@@ -28,6 +28,7 @@ export function emptyPlanFeatures() {
     aiValidations: false,
     aiMonthlyCreditAllowance: 0,
     marketingStudio: false,
+    aiMarketingImageGeneration: false,
     customPages: false,
     propertyShowcase: false,
     aiDashboardAssistant: false,
@@ -93,6 +94,7 @@ function growthFeatures() {
   return {
     ...starterFeatures(),
     marketingStudio: true,
+    aiMarketingImageGeneration: true,
     aiValidations: true,
     propertyShowcase: true,
     calendarSync: true,

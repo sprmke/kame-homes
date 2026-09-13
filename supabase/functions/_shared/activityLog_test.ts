@@ -196,6 +196,24 @@ Deno.test('every catalog entry has a valid shape + renders a non-empty summary',
   }
 });
 
+Deno.test('marketing generation actions are catalogued', () => {
+  const generated = ACTIVITY_ACTION_CATALOG['marketing.image_generated'];
+  assertEquals(generated.category, 'marketing');
+  assertEquals(generated.targetType, 'marketing_generation');
+  assertStringIncludes(
+    generated.summary({
+      actorName: 'Alex',
+      targetLabel: 'Kame Suites',
+      metadata: { credits: 45 },
+      changeCount: 0,
+    }),
+    '45 credits'
+  );
+
+  const deleted = ACTIVITY_ACTION_CATALOG['marketing.generated_asset_deleted'];
+  assertEquals(deleted.severity, 'destructive');
+});
+
 Deno.test(
   'logActivity / logActivityBatch — never throw when the client cannot be built',
   async () => {

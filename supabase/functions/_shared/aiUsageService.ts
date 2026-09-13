@@ -491,7 +491,10 @@ async function sumMonthCostUsd(organizationId: string): Promise<number> {
   return Math.round(total * 1_000_000) / 1_000_000;
 }
 
-async function sumMonthCreditsConsumed(organizationId: string): Promise<number> {
+/** Exported for marketingGenerationBudget.ts — the two must never independently re-derive
+ *  "org credits consumed this month" (that's exactly the kind of drift a shared quota
+ *  system exists to prevent). */
+export async function sumMonthCreditsConsumed(organizationId: string): Promise<number> {
   const sb = db();
   const { data, error } = await sb
     .from('ai_platform_usage_daily')
@@ -864,7 +867,7 @@ export async function assertPropertyAiQuotaOptional(
 
 export async function recordAiUsage(
   input: RecordAiUsageInput
-): Promise<{ creditsConsumed: number }> {
+): Promise<{ creditsConsumed: number; usageEventId: string | null }> {
   const config = getModelConfig(input.feature);
   const inputTokens = Math.max(0, input.inputTokens ?? 0);
   const outputTokens = Math.max(0, input.outputTokens ?? 0);
@@ -1036,13 +1039,13 @@ export async function recordAiUsage(
     }
   }
 
-  return { creditsConsumed };
+  return { creditsConsumed, usageEventId: (eventRow?.id as string | undefined) ?? null };
 }
 
 export async function recordAiUsageOptional(
   organizationId: string | null | undefined,
   input: Omit<RecordAiUsageInput, 'organizationId'>
-): Promise<{ creditsConsumed: number } | null> {
+): Promise<{ creditsConsumed: number; usageEventId: string | null } | null> {
   if (!organizationId) return null;
   return recordAiUsage({ ...input, organizationId });
 }

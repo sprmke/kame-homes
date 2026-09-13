@@ -695,6 +695,34 @@ export const ACTIVITY_ACTION_CATALOG = {
         'a listing'
       )}`,
   },
+  'marketing.image_generated': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_generation',
+    summary: (c) =>
+      `${c.actorName} generated an AI image for ${label(c, 'a listing')}` +
+      (num(c.metadata, 'credits') ? ` (${num(c.metadata, 'credits')} credits)` : ''),
+  },
+  'marketing.generated_asset_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'marketing_generation',
+    summary: (c) => `${c.actorName} deleted a generated AI asset for ${label(c, 'a listing')}`,
+  },
+  'marketing.video_generation_started': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_generation',
+    summary: (c) => `${c.actorName} started an AI video generation for ${label(c, 'a listing')}`,
+  },
+  'marketing.video_generated': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_generation',
+    summary: (c) =>
+      `${c.actorName} generated an AI video for ${label(c, 'a listing')}` +
+      (num(c.metadata, 'credits') ? ` (${num(c.metadata, 'credits')} credits)` : ''),
+  },
   'marketing.external_review_moderated': {
     category: 'marketing',
     severity: 'notice',

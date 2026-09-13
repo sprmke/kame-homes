@@ -22,6 +22,11 @@ export type PropertyTeamRbacMockOpts = {
   multiProperty?: boolean;
   /** Org hub pages: owner org-access + org-settings PATCH. */
   orgHub?: boolean;
+  /** Generate tab: seed the gallery with one completed AI image job. */
+  marketingGenerationSeeded?: boolean;
+  /** Force the video plan gate independently of freePlan (default: !freePlan). Lets a test
+   *  simulate a Pro-tier org that has images but not video, without a new template. */
+  videoPlanAllowed?: boolean;
 };
 
 const SUPABASE_AUTH_STORAGE_KEY = 'sb-127-auth-token';
@@ -70,6 +75,7 @@ export const FULL_ACCESS_PERMISSIONS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
+  'marketing.generate.video:add',
   'marketing.publish:add',
   'notifications:view',
   'notifications.chat:edit',
@@ -126,6 +132,7 @@ export const OPERATIONS_PERMISSIONS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
+  'marketing.generate.video:add',
   'marketing.publish:add',
 ] as const;
 
@@ -424,7 +431,11 @@ function orgPlanPayload(multiProperty = false) {
   };
 }
 
-function entitlementsPayload(freePlan = false, assistantEnabled = false) {
+function entitlementsPayload(
+  freePlan = false,
+  assistantEnabled = false,
+  videoPlanAllowed = !freePlan
+) {
   return {
     automatedBookingFlow: !freePlan,
     verifiedBadgeEligible: false,
@@ -436,6 +447,8 @@ function entitlementsPayload(freePlan = false, assistantEnabled = false) {
     aiValidations: false,
     aiMonthlyCreditAllowance: 0,
     marketingStudio: true,
+    aiMarketingImageGeneration: !freePlan,
+    aiMarketingVideoGeneration: videoPlanAllowed,
     customPages: true,
     aiDashboardAssistant: assistantEnabled,
     aiReceptionist: false,
@@ -854,6 +867,42 @@ export async function installTeamMemberSession(page: Page) {
   }, teamMemberSessionStoragePayload());
 }
 
+function marketingGenerationJobFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'mgj-e2e-001',
+    organizationId: 'org-team-e2e-001',
+    propertyId: TEAM_E2E_PROPERTY_ID,
+    mediaType: 'image',
+    jobStatus: 'completed',
+    prompt: 'E2E fixture: sunset shot of the rooftop pool deck',
+    negativePrompt: null,
+    model: 'gemini-3.1-flash-image',
+    qualityTier: 'standard',
+    aspectRatio: '1:1',
+    imageSize: '1K',
+    resolution: null,
+    durationSeconds: null,
+    referenceUrls: [],
+    // 1x1 transparent PNG data URI — avoids a real network fetch for the gallery's
+    // <img src>, keeping this a fully mocked (offline) test.
+    outputUrl:
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    outputMimeType: 'image/png',
+    outputBytes: 512_000,
+    outputWidth: 1024,
+    outputHeight: 1024,
+    estimatedCredits: 45,
+    creditsConsumed: 45,
+    errorCode: null,
+    errorMessage: null,
+    expiresAt: null,
+    completedAt: '2026-09-12T08:00:00.000Z',
+    createdAt: '2026-09-12T08:00:00.000Z',
+    updatedAt: '2026-09-12T08:00:00.000Z',
+    ...overrides,
+  };
+}
+
 export async function installPropertyTeamRbacMocks(
   page: Page,
   template: TeamRbacTemplate,
@@ -862,9 +911,13 @@ export async function installPropertyTeamRbacMocks(
   const permissions = permissionsForTemplate(template);
   const freePlan = Boolean(opts?.freePlan);
   const assistantEnabled = Boolean(opts?.assistantEnabled);
+  const videoPlanAllowed = opts?.videoPlanAllowed ?? !freePlan;
   const multiProperty = Boolean(opts?.multiProperty);
   const orgHub = Boolean(opts?.orgHub);
   let orgSettingsState = orgSettingsPayload();
+  let marketingGenerationJobs = opts?.marketingGenerationSeeded
+    ? [marketingGenerationJobFixture()]
+    : [];
   await installTeamMemberSession(page);
 
   await page.route('**/functions/v1/**', async (route) => {
@@ -887,7 +940,7 @@ export async function installPropertyTeamRbacMocks(
       case 'property-entitlements':
         await fulfillJson(route, {
           success: true,
-          data: entitlementsPayload(freePlan, assistantEnabled),
+          data: entitlementsPayload(freePlan, assistantEnabled, videoPlanAllowed),
         });
         return;
       case 'dashboard-stats':
@@ -1125,6 +1178,60 @@ export async function installPropertyTeamRbacMocks(
         return;
       case 'telegram-maintenance-settings':
         await fulfillJson(route, { success: true, data: telegramMaintenanceSettingsPayload() });
+        return;
+      case 'marketing-generations':
+        if (route.request().method() === 'DELETE') {
+          const body = (route.request().postDataJSON() ?? {}) as { jobId?: string };
+          marketingGenerationJobs = marketingGenerationJobs.filter((job) => job.id !== body.jobId);
+          await fulfillJson(route, { success: true, data: { jobId: body.jobId } });
+          return;
+        }
+        await fulfillJson(route, {
+          success: true,
+          data: { jobs: marketingGenerationJobs, nextCursor: null },
+        });
+        return;
+      case 'generate-marketing-media': {
+        const job = marketingGenerationJobFixture({
+          id: `mgj-e2e-${marketingGenerationJobs.length + 1}`,
+        });
+        marketingGenerationJobs = [job, ...marketingGenerationJobs];
+        await fulfillJson(route, { success: true, data: { job } });
+        return;
+      }
+      case 'get-marketing-generation-job': {
+        const jobId = url.searchParams.get('jobId');
+        const job = marketingGenerationJobs.find((item) => item.id === jobId) ?? marketingGenerationJobFixture();
+        await fulfillJson(route, { success: true, data: { job } });
+        return;
+      }
+      case 'upload-marketing-generation-reference':
+        if (route.request().method() === 'DELETE') {
+          await fulfillJson(route, { success: true, data: { referenceId: 'ref-e2e-001' } });
+          return;
+        }
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            reference: {
+              id: 'ref-e2e-001',
+              organization_id: 'org-team-e2e-001',
+              property_id: TEAM_E2E_PROPERTY_ID,
+              media_type: 'image',
+              storage_path: `marketing-ai-refs/${TEAM_E2E_PROPERTY_ID}/ref-e2e-001.jpg`,
+              public_url:
+                'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+              mime_type: 'image/jpeg',
+              file_name: 'balcony.jpg',
+              byte_size: 204_800,
+              width: 1200,
+              height: 1200,
+              duration_seconds: null,
+              last_used_at: null,
+              created_at: '2026-09-12T08:00:00.000Z',
+            },
+          },
+        });
         return;
       default:
         await fulfillJson(route, { success: true, data: {} });

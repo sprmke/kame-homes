@@ -7,6 +7,10 @@ import {
   getAiPlatformPropertySettings,
   upsertAiPlatformPropertySettings,
 } from './aiUsageService.ts';
+import {
+  getMarketingGenerationOverrides,
+  patchMarketingGenerationOverrides,
+} from './marketingGenerationFeatureConfig.ts';
 import { updateCustomPageTemplate, type CustomPageType } from './customPages.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { mergePropertyAutomationToggles } from './propertyAutomationToggles.ts';
@@ -659,6 +663,10 @@ const aiOverridesGroup: CloneGroup = {
       sourceCtx.propertyId,
       sourceCtx.organizationId
     );
+    const generation = await getMarketingGenerationOverrides(
+      sourceCtx.propertyId,
+      sourceCtx.organizationId
+    );
     return {
       enabled: settings.enabled,
       dailyCallLimit: settings.dailyCallLimit,
@@ -666,6 +674,8 @@ const aiOverridesGroup: CloneGroup = {
       dailyCostUsdLimit: settings.dailyCostUsdLimit,
       dailyCreditLimit: settings.dailyCreditLimit,
       monthlyCreditLimit: settings.monthlyCreditLimit,
+      imageMonthlyCreditCap: generation.imageMonthlyCreditCap,
+      videoMonthlyCreditCap: generation.videoMonthlyCreditCap,
     };
   },
   sanitize(payload) {
@@ -676,11 +686,17 @@ const aiOverridesGroup: CloneGroup = {
       targetCtx.propertyId,
       targetCtx.organizationId
     );
+    const generation = await getMarketingGenerationOverrides(
+      targetCtx.propertyId,
+      targetCtx.organizationId
+    );
     return (
       settings.enabled === false ||
       settings.dailyCallLimit != null ||
       settings.monthlyCallLimit != null ||
-      settings.dailyCostUsdLimit != null
+      settings.dailyCostUsdLimit != null ||
+      generation.imageMonthlyCreditCap != null ||
+      generation.videoMonthlyCreditCap != null
     );
   },
   async write(payload, targetCtx, options) {
@@ -695,6 +711,15 @@ const aiOverridesGroup: CloneGroup = {
       dailyCostUsdLimit: payload.dailyCostUsdLimit as number | null | undefined,
       dailyCreditLimit: payload.dailyCreditLimit as number | null | undefined,
       monthlyCreditLimit: payload.monthlyCreditLimit as number | null | undefined,
+      updatedBy: actorUserId,
+    });
+    await patchMarketingGenerationOverrides({
+      propertyId: targetCtx.propertyId,
+      organizationId: targetCtx.organizationId,
+      patch: {
+        imageMonthlyCreditCap: (payload.imageMonthlyCreditCap as number | null | undefined) ?? null,
+        videoMonthlyCreditCap: (payload.videoMonthlyCreditCap as number | null | undefined) ?? null,
+      },
       updatedBy: actorUserId,
     });
   },

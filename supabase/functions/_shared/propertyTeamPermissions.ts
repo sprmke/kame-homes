@@ -51,6 +51,7 @@ export const TEAM_PERMISSION_IDS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
+  'marketing.generate.video:add',
   'marketing.publish:add',
   'notifications:view',
   'notifications.chat:edit',
