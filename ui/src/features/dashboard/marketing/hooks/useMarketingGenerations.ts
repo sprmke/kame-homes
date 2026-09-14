@@ -17,6 +17,8 @@ const PAGE_SIZE = 24;
 type GenerationsPage = {
   jobs: MarketingGenerationJob[];
   nextCursor: string | null;
+  allowPremiumImage?: boolean;
+  allowPremiumVideo?: boolean;
 };
 
 async function fetchMarketingGenerations(
@@ -51,14 +53,11 @@ export function useDeleteMarketingGeneration() {
 
   return useMutation({
     mutationFn: (jobId: string) =>
-      generationFetch<{ jobId: string }>(
-        scopedFunctionsUrl('marketing-generations', propertyId),
-        {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId }),
-        }
-      ),
+      generationFetch<{ jobId: string }>(scopedFunctionsUrl('marketing-generations', propertyId), {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      }),
     onSuccess: () => {
       toast.success('Deleted');
       void qc.invalidateQueries({ queryKey: [MARKETING_GENERATIONS_QUERY_KEY, propertyId] });

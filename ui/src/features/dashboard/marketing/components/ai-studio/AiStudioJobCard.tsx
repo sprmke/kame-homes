@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Download, Loader2, Send, Trash2, AlertTriangle } from 'lucide-react';
+import { Download, Loader2, Send, Trash2, AlertTriangle, ImagePlus, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
@@ -22,10 +22,23 @@ type Props = {
   job: MarketingGenerationJob;
   canPublish: boolean;
   canDelete: boolean;
+  canGenerate?: boolean;
   onPublish: (payload: { blob: Blob; mediaType: 'image' | 'video' }) => void;
+  onRetry?: (job: MarketingGenerationJob) => void;
+  onUseAsPhoto?: (job: MarketingGenerationJob) => void;
+  usingAsPhoto?: boolean;
 };
 
-export function AiStudioJobCard({ job: initialJob, canPublish, canDelete, onPublish }: Props) {
+export function AiStudioJobCard({
+  job: initialJob,
+  canPublish,
+  canDelete,
+  canGenerate = false,
+  onPublish,
+  onRetry,
+  onUseAsPhoto,
+  usingAsPhoto = false,
+}: Props) {
   const live = useMarketingGenerationJob(isGenerationInFlight(initialJob) ? initialJob.id : null);
   const job = live.data ?? initialJob;
 
@@ -35,6 +48,13 @@ export function AiStudioJobCard({ job: initialJob, canPublish, canDelete, onPubl
   const inFlight = isGenerationInFlight(job);
   const oversizedForReels =
     job.mediaType === 'video' && (job.outputBytes ?? 0) > META_REELS_SIZE_WARNING_BYTES;
+  const showRetry = canGenerate && !inFlight && Boolean(onRetry);
+  const showUseAsPhoto =
+    canGenerate &&
+    !inFlight &&
+    job.mediaType === 'image' &&
+    Boolean(job.outputUrl) &&
+    Boolean(onUseAsPhoto);
 
   const handlePublish = async () => {
     if (!job.outputUrl) return;
@@ -124,6 +144,40 @@ export function AiStudioJobCard({ job: initialJob, canPublish, canDelete, onPubl
                   <Send className="size-4" />
                 )}
                 Publish
+              </Button>
+            )}
+          </div>
+        )}
+
+        {(showRetry || showUseAsPhoto) && (
+          <div className="flex flex-wrap gap-1.5">
+            {showRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-[44px] flex-1"
+                onClick={() => onRetry?.(job)}
+              >
+                <RotateCcw className="size-4" />
+                Retry
+              </Button>
+            )}
+            {showUseAsPhoto && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-[44px] flex-1"
+                disabled={usingAsPhoto}
+                onClick={() => onUseAsPhoto?.(job)}
+              >
+                {usingAsPhoto ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="size-4" />
+                )}
+                Use photo
               </Button>
             )}
           </div>

@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
+
+import { toast } from 'sonner';
 
 import { AiStudioComposer } from '@/features/dashboard/marketing/components/ai-studio/AiStudioComposer';
 import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
@@ -6,8 +8,21 @@ import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/componen
 import { AiStudioResultsGrid } from '@/features/dashboard/marketing/components/ai-studio/AiStudioResultsGrid';
 import { useGenerateMarketingMedia } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
 import { useMarketingGenerations } from '@/features/dashboard/marketing/hooks/useMarketingGenerations';
+import {
+  useMarketingGenerationReferences,
+  useUploadMarketingGenerationReference,
+} from '@/features/dashboard/marketing/hooks/useMarketingGenerationReferences';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
+import {
+  composerValuesFromJob,
+  fileNameForGeneratedReference,
+  type AiStudioComposerDraft,
+} from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
 import { isGenerationInFlight } from '@/features/dashboard/marketing/lib/marketingGenerationProgress';
+import type {
+  MarketingGenerationJob,
+  MarketingGenerationReference,
+} from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
 import { PlanGatedText } from '@/features/dashboard/plans/components/PlanUpgradeLink';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
@@ -33,15 +48,70 @@ export function AiStudioSection({ onPublish }: Props) {
   const { allowed: videoAllowed, isLoading: videoGateLoading } = useFeatureGate(VIDEO_FEATURE);
   const generate = useGenerateMarketingMedia();
   const generations = useMarketingGenerations();
+  const libraryQuery = useMarketingGenerationReferences();
+  const uploadReference = useUploadMarketingGenerationReference();
+
+  const [draft, setDraft] = useState<AiStudioComposerDraft | null>(null);
+  const [pendingReference, setPendingReference] = useState<{
+    id: number;
+    reference: MarketingGenerationReference;
+  } | null>(null);
+  const [usingAsPhotoJobId, setUsingAsPhotoJobId] = useState<string | null>(null);
+  const draftSeq = useRef(0);
+  const photoSeq = useRef(0);
 
   const jobs = useMemo(
     () => generations.data?.pages.flatMap((page) => page.jobs) ?? [],
     [generations.data]
   );
+  const allowPremiumImage = Boolean(generations.data?.pages[0]?.allowPremiumImage);
+  const allowPremiumVideo = Boolean(generations.data?.pages[0]?.allowPremiumVideo);
+  const library = libraryQuery.data ?? [];
+  const videoPlanAllowed = videoGateLoading ? true : videoAllowed;
 
   const pendingMediaType = generate.variables?.mediaType ?? 'image';
   const hasInFlightJob = jobs.some((job) => isGenerationInFlight(job) && !job.outputUrl);
   const showPendingCard = generate.isPending && !hasInFlightJob;
+
+  const scrollToComposer = () => {
+    document.getElementById('ai-studio-composer')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
+  const handleRetry = (job: MarketingGenerationJob) => {
+    draftSeq.current += 1;
+    setDraft({
+      id: draftSeq.current,
+      values: composerValuesFromJob(job, library, {
+        allowPremium: job.mediaType === 'video' ? allowPremiumVideo : allowPremiumImage,
+        allowHighResolution: videoPlanAllowed,
+      }),
+    });
+    scrollToComposer();
+  };
+
+  const handleUseAsPhoto = async (job: MarketingGenerationJob) => {
+    if (!job.outputUrl || job.mediaType !== 'image') return;
+    setUsingAsPhotoJobId(job.id);
+    try {
+      const response = await fetch(job.outputUrl);
+      if (!response.ok) throw new Error('Could not load the generated file');
+      const blob = await response.blob();
+      const file = new File([blob], fileNameForGeneratedReference(job), {
+        type: blob.type || job.outputMimeType || 'image/jpeg',
+      });
+      const reference = await uploadReference.mutateAsync(file);
+      photoSeq.current += 1;
+      setPendingReference({ id: photoSeq.current, reference });
+      scrollToComposer();
+    } catch (error) {
+      toast.error((error as Error).message || 'Could not use that photo');
+    } finally {
+      setUsingAsPhotoJobId(null);
+    }
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 sm:p-4 lg:flex-row lg:gap-6 lg:overflow-hidden lg:p-6">
@@ -58,7 +128,11 @@ export function AiStudioSection({ onPublish }: Props) {
                 isGenerating={generate.isPending}
                 disabled={!canGenerate || imageGateLoading}
                 canGenerateVideo={canGenerateVideo}
-                videoAllowed={videoGateLoading ? true : videoAllowed}
+                videoAllowed={videoPlanAllowed}
+                allowPremiumImage={allowPremiumImage}
+                allowPremiumVideo={allowPremiumVideo}
+                draft={draft}
+                pendingReference={pendingReference}
               />
               {!canGenerate && (
                 <p className="text-muted-foreground mt-3 text-xs">
@@ -81,7 +155,11 @@ export function AiStudioSection({ onPublish }: Props) {
           onLoadMore={() => void generations.fetchNextPage()}
           canPublish={canPublish}
           canDelete={canGenerate}
+          canGenerate={Boolean(canGenerate && (imageGateLoading || imageAllowed))}
           onPublish={onPublish}
+          onRetry={handleRetry}
+          onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
+          usingAsPhotoJobId={usingAsPhotoJobId}
           pendingStage={
             showPendingCard ? (
               <AiStudioGeneratingStage variant="card" mediaType={pendingMediaType} />

@@ -1,7 +1,7 @@
 import {
   VIDEO_DURATION_LABELS,
   VIDEO_RESOLUTION_LABELS,
-  VIDEO_TIER_OPTIONS,
+  videoTierOptions,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import type {
   VideoDuration,
@@ -26,8 +26,9 @@ type Props = {
   onResolutionChange: (resolution: VideoResolution) => void;
   durationSeconds: VideoDuration;
   onDurationSecondsChange: (durationSeconds: VideoDuration) => void;
-  /** 1080p is a Business+/managed-tier super-admin override, not offered by default. */
+  /** 1080p is offered on Business+ (the same plan that unlocks video). */
   allowHighResolution?: boolean;
+  allowPremium?: boolean;
   disabled?: boolean;
 };
 
@@ -40,8 +41,10 @@ export function AiStudioVideoOptionsBar({
   durationSeconds,
   onDurationSecondsChange,
   allowHighResolution = false,
+  allowPremium = false,
   disabled,
 }: Props) {
+  const tiers = videoTierOptions(allowPremium);
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
@@ -52,7 +55,7 @@ export function AiStudioVideoOptionsBar({
           size="dense"
           fullWidth
           aria-label="Quality"
-          options={VIDEO_TIER_OPTIONS.map((option) => ({
+          options={tiers.map((option) => ({
             value: option.value,
             label: option.label,
             ariaLabel: `${option.label}. ${option.hint}`,

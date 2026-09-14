@@ -19,7 +19,7 @@ export function useMarketingGenerationReferences() {
     queryFn: () =>
       generationFetch<{ references: MarketingGenerationReference[] }>(
         scopedFunctionsUrl('upload-marketing-generation-reference', propertyId)
-      ).then((data) => data.references),
+      ).then((data) => data.references ?? []),
     staleTime: 30_000,
   });
 }

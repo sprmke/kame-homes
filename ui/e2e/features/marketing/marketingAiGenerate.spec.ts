@@ -48,6 +48,8 @@ test.describe('@ci marketing AI generate tab', () => {
     await page.getByRole('button', { name: /Advanced/ }).click();
     await expect(page.getByText('Resolution', { exact: true })).toBeVisible();
     await expect(page.getByText('Length', { exact: true })).toBeVisible();
+    await page.getByLabel('Resolution').click();
+    await expect(page.getByRole('option', { name: /High \(1080p\)/ })).toBeVisible();
   });
 
   test('below Business, Video opens upgrade and Image stays usable', async ({ page }) => {
@@ -91,5 +93,42 @@ test.describe('@ci marketing AI generate tab', () => {
 
     await expect(page.getByText(SEEDED_PROMPT)).toBeVisible();
     await expect(page.getByRole('link', { name: /download/i })).toBeVisible();
+  });
+
+  test('Retry copies the generation back into the composer', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
+    await page.goto(teamRbacPaths.marketing);
+    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('tab', { name: 'Generate' }).click();
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect(page.getByLabel('Prompt')).toHaveValue(SEEDED_PROMPT);
+  });
+
+  test('Library drawer lists saved photos', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
+    await page.goto(teamRbacPaths.marketing);
+    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('tab', { name: 'Generate' }).click();
+    await page.getByRole('button', { name: 'Library' }).click();
+    await expect(page.getByRole('dialog', { name: 'Library' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Use balcony\.jpg/i })).toBeVisible();
+  });
+
+  test('Use photo adds the generation to Photos', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
+    await page.goto(teamRbacPaths.marketing);
+    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('tab', { name: 'Generate' }).click();
+    await page.getByRole('button', { name: 'Use photo' }).click();
+    await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible();
   });
 });

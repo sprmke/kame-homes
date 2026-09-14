@@ -14,7 +14,11 @@ type Props = {
   onLoadMore: () => void;
   canPublish: boolean;
   canDelete: boolean;
+  canGenerate?: boolean;
   onPublish: (payload: { blob: Blob; mediaType: 'image' | 'video' }) => void;
+  onRetry?: (job: MarketingGenerationJob) => void;
+  onUseAsPhoto?: (job: MarketingGenerationJob) => void;
+  usingAsPhotoJobId?: string | null;
   emptyState: ReactNode;
   /** Optimistic generating card while the POST is in flight (before the job row exists). */
   pendingStage?: ReactNode;
@@ -28,7 +32,11 @@ export function AiStudioResultsGrid({
   onLoadMore,
   canPublish,
   canDelete,
+  canGenerate = false,
   onPublish,
+  onRetry,
+  onUseAsPhoto,
+  usingAsPhotoJobId = null,
   emptyState,
   pendingStage,
 }: Props) {
@@ -60,7 +68,11 @@ export function AiStudioResultsGrid({
             job={job}
             canPublish={canPublish}
             canDelete={canDelete}
+            canGenerate={canGenerate}
             onPublish={onPublish}
+            onRetry={onRetry}
+            onUseAsPhoto={onUseAsPhoto}
+            usingAsPhoto={usingAsPhotoJobId === job.id}
           />
         ))}
       </div>

@@ -1,21 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { AiStudioAspectPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioAspectPicker';
 import { AiStudioOptionsBar } from '@/features/dashboard/marketing/components/ai-studio/AiStudioOptionsBar';
 import { AiStudioReferenceUploader } from '@/features/dashboard/marketing/components/ai-studio/AiStudioReferenceUploader';
 import { AiStudioVideoOptionsBar } from '@/features/dashboard/marketing/components/ai-studio/AiStudioVideoOptionsBar';
 import type { GenerateMarketingMediaPayload } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
+import type { AiStudioComposerDraft } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
 import {
   IMAGE_PROMPT_STARTERS,
   IMAGE_SIZE_LABELS,
-  IMAGE_TIER_OPTIONS,
   VIDEO_DURATION_LABELS,
   VIDEO_MAX_REFERENCES,
   VIDEO_PROMPT_STARTERS,
-  VIDEO_TIER_OPTIONS,
+  imageTierOptions,
   maxReferencesForTier,
+  videoTierOptions,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   DEFAULT_IMAGE_ASPECT_RATIO,
@@ -51,6 +53,10 @@ type Props = {
   disabled?: boolean;
   canGenerateVideo: boolean;
   videoAllowed: boolean;
+  allowPremiumImage?: boolean;
+  allowPremiumVideo?: boolean;
+  draft?: AiStudioComposerDraft | null;
+  pendingReference?: { id: number; reference: MarketingGenerationReference } | null;
 };
 
 /**
@@ -64,6 +70,10 @@ export function AiStudioComposer({
   disabled,
   canGenerateVideo,
   videoAllowed,
+  allowPremiumImage = false,
+  allowPremiumVideo = false,
+  draft,
+  pendingReference,
 }: Props) {
   const { open: openUpgradeModal } = useUpgradeModal();
   const [mediaType, setMediaType] = useState<MarketingGenerationMediaType>('image');
@@ -79,12 +89,56 @@ export function AiStudioComposer({
   const videoPermissionBlocked = !canGenerateVideo;
   const videoPlanBlocked = !videoAllowed;
   const isVideo = mediaType === 'video';
+  const allowPremium = isVideo ? allowPremiumVideo : allowPremiumImage;
   const maxReferences = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(tier);
   const maxPromptChars = isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS;
   const promptStarters = isVideo ? VIDEO_PROMPT_STARTERS : IMAGE_PROMPT_STARTERS;
   const promptPlaceholder = isVideo
     ? 'Slow pan across the living room at golden hour'
     : 'Balcony at golden hour with the skyline behind it';
+  const qualityOptions = isVideo ? videoTierOptions(allowPremium) : imageTierOptions(allowPremium);
+
+  const draftId = draft?.id;
+  useEffect(() => {
+    if (!draft) return;
+    const values = draft.values;
+    setMediaType(values.mediaType);
+    setPrompt(values.prompt);
+    setTier(values.qualityTier);
+    setAspectRatio(values.aspectRatio);
+    setImageSize(values.imageSize);
+    setResolution(values.resolution);
+    setDurationSeconds(values.durationSeconds);
+    setReferences(values.references);
+    setAdvancedOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- draft.id is the apply key
+  }, [draftId]);
+
+  const pendingReferenceId = pendingReference?.id;
+  useEffect(() => {
+    if (pendingReferenceId == null || !pendingReference) return;
+    const incoming = pendingReference.reference;
+    const cap = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(tier);
+    let blocked = false;
+    setReferences((current) => {
+      if (current.some((row) => row.id === incoming.id)) return current;
+      if (current.length >= cap) {
+        blocked = true;
+        return current;
+      }
+      return [...current, incoming];
+    });
+    if (blocked) toast.error('Remove a photo first');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pendingReference.id is the apply key
+  }, [pendingReferenceId]);
+
+  useEffect(() => {
+    if (!allowPremium && tier === 'premium') setTier(DEFAULT_TIER);
+  }, [allowPremium, tier]);
+
+  useEffect(() => {
+    if (!videoAllowed && resolution === '1080p') setResolution(DEFAULT_VIDEO_RESOLUTION);
+  }, [videoAllowed, resolution]);
 
   const credits = useMemo(() => {
     if (isVideo) {
@@ -95,12 +149,12 @@ export function AiStudioComposer({
 
   const advancedSummary = useMemo(() => {
     if (isVideo) {
-      const quality = VIDEO_TIER_OPTIONS.find((option) => option.value === tier)?.label ?? tier;
+      const quality = qualityOptions.find((option) => option.value === tier)?.label ?? tier;
       return `${quality} · ${VIDEO_DURATION_LABELS[durationSeconds]}`;
     }
-    const quality = IMAGE_TIER_OPTIONS.find((option) => option.value === tier)?.label ?? tier;
+    const quality = qualityOptions.find((option) => option.value === tier)?.label ?? tier;
     return `${quality} · ${IMAGE_SIZE_LABELS[imageSize]}`;
-  }, [isVideo, tier, durationSeconds, imageSize]);
+  }, [isVideo, qualityOptions, tier, durationSeconds, imageSize]);
 
   const applyMediaType = (next: MarketingGenerationMediaType) => {
     setMediaType(next);
@@ -140,6 +194,7 @@ export function AiStudioComposer({
 
   return (
     <form
+      id="ai-studio-composer"
       className="flex flex-col gap-5"
       onSubmit={(event) => {
         event.preventDefault();
@@ -265,6 +320,8 @@ export function AiStudioComposer({
               onResolutionChange={setResolution}
               durationSeconds={durationSeconds}
               onDurationSecondsChange={setDurationSeconds}
+              allowHighResolution={videoAllowed}
+              allowPremium={allowPremium}
               disabled={disabled || isGenerating}
             />
           ) : (
@@ -273,6 +330,7 @@ export function AiStudioComposer({
               onTierChange={handleTierChange}
               imageSize={imageSize}
               onImageSizeChange={setImageSize}
+              allowPremium={allowPremium}
               disabled={disabled || isGenerating}
             />
           )}

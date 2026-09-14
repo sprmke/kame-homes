@@ -130,7 +130,7 @@ export function AiStudioReferenceUploader({
           type="button"
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground h-9 px-2"
+          className="text-muted-foreground hover:text-foreground min-h-[44px] px-2"
           disabled={disabled}
           onClick={() => setLibraryOpen(true)}
         >

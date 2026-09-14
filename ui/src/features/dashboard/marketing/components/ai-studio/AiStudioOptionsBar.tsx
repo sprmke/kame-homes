@@ -1,7 +1,7 @@
 import {
   IMAGE_SIZE_LABELS,
-  IMAGE_TIER_OPTIONS,
   imageSizeOptions,
+  imageTierOptions,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import type { ImageSize } from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
 import type { MarketingGenerationTier } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
@@ -21,6 +21,7 @@ type Props = {
   onTierChange: (tier: MarketingGenerationTier) => void;
   imageSize: ImageSize;
   onImageSizeChange: (imageSize: ImageSize) => void;
+  allowPremium?: boolean;
   disabled?: boolean;
 };
 
@@ -30,9 +31,11 @@ export function AiStudioOptionsBar({
   onTierChange,
   imageSize,
   onImageSizeChange,
+  allowPremium = false,
   disabled,
 }: Props) {
   const sizes = imageSizeOptions(tier);
+  const tiers = imageTierOptions(allowPremium);
 
   return (
     <div className="space-y-3">
@@ -44,7 +47,7 @@ export function AiStudioOptionsBar({
           size="dense"
           fullWidth
           aria-label="Quality"
-          options={IMAGE_TIER_OPTIONS.map((option) => ({
+          options={tiers.map((option) => ({
             value: option.value,
             label: option.label,
             ariaLabel: `${option.label}. ${option.hint}`,
