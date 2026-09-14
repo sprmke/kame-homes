@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Search } from 'lucide-react';
+
 
 import { InboxFilterBar } from '@/features/dashboard/inbox/components/InboxFilterBar';
 import { InboxThreadListEmpty } from '@/features/dashboard/inbox/components/InboxThreadListEmpty';
@@ -14,6 +16,11 @@ import type {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Below this, plain rendering is simpler and cheaper than virtualizing (mirrors
+// ActivityFeedList's threshold for the same tradeoff).
+const VIRTUALIZE_THRESHOLD = 30;
+const ESTIMATED_ROW_PX = 88;
 
 function InboxThreadRowSkeleton({ opacity = 1 }: { opacity?: number }) {
   return (
@@ -91,6 +98,15 @@ export function InboxThreadList({
   const loadingMoreRef = useRef(loadingMore);
   loadingMoreRef.current = loadingMore;
 
+  const virtualize = conversations.length >= VIRTUALIZE_THRESHOLD;
+  const virtualizer = useVirtualizer({
+    count: virtualize ? conversations.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_PX,
+    overscan: 10,
+    getItemKey: (index) => conversations[index]?.id ?? index,
+  });
+
   const handleLoadMore = useCallback(() => {
     if (!onLoadMore || loadingMoreRef.current) return;
     onLoadMore();
@@ -152,15 +168,43 @@ export function InboxThreadList({
           />
         ) : (
           <div className="py-1">
-            {conversations.map((c) => (
-              <InboxThreadRow
-                key={c.id}
-                conversation={c}
-                selected={c.id === selectedId}
-                showPlatform={platformFilter === 'all'}
-                onSelect={() => onSelect(c.id)}
-              />
-            ))}
+            {virtualize ? (
+              <div
+                className="relative w-full"
+                style={{ height: `${virtualizer.getTotalSize()}px` }}
+              >
+                {virtualizer.getVirtualItems().map((item) => {
+                  const c = conversations[item.index];
+                  if (!c) return null;
+                  return (
+                    <div
+                      key={item.key}
+                      data-index={item.index}
+                      ref={virtualizer.measureElement}
+                      className="absolute left-0 top-0 w-full"
+                      style={{ transform: `translateY(${item.start}px)` }}
+                    >
+                      <InboxThreadRow
+                        conversation={c}
+                        selected={c.id === selectedId}
+                        showPlatform={platformFilter === 'all'}
+                        onSelect={() => onSelect(c.id)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              conversations.map((c) => (
+                <InboxThreadRow
+                  key={c.id}
+                  conversation={c}
+                  selected={c.id === selectedId}
+                  showPlatform={platformFilter === 'all'}
+                  onSelect={() => onSelect(c.id)}
+                />
+              ))
+            )}
             {(hasMore || (loadingMore && !canLoadOlderFromMeta)) && (
               <div ref={sentinelRef} role="status" aria-live="polite" aria-busy={loadingMore}>
                 {loadingMore ? (

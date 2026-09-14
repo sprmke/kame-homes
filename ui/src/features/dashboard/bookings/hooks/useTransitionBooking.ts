@@ -6,7 +6,10 @@ import {
   BOOKING_QUERY_KEY,
   bookingDetailQueryKey,
 } from '@/features/dashboard/bookings/hooks/useBooking';
-import { BOOKINGS_QUERY_KEY } from '@/features/dashboard/bookings/hooks/useBookings';
+import {
+  invalidateBookingsListForProperty,
+  patchBookingsListRow,
+} from '@/features/dashboard/bookings/hooks/useBookings';
 import type { BookingStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 import type { BookingWorkflowEmailKind } from '@/features/dashboard/bookings/lib/bookingWorkflowEmail';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
@@ -134,6 +137,29 @@ export function useTransitionBooking() {
 
   return useMutation({
     mutationFn: (input: TransitionInput) => callTransitionBooking(input, propertyId),
+    onMutate: async (variables) => {
+      const detailKey = bookingDetailQueryKey(variables.bookingId, propertyId);
+      await qc.cancelQueries({ queryKey: detailKey });
+
+      const previousDetail = qc.getQueryData<BookingRow | null>(detailKey);
+      if (previousDetail) {
+        qc.setQueryData(detailKey, { ...previousDetail, status: variables.toStatus });
+      }
+      patchBookingsListRow(qc, propertyId, variables.bookingId, { status: variables.toStatus });
+
+      return { previousDetail };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previousDetail) {
+        qc.setQueryData(
+          bookingDetailQueryKey(variables.bookingId, propertyId),
+          context.previousDetail
+        );
+        patchBookingsListRow(qc, propertyId, variables.bookingId, {
+          status: context.previousDetail.status,
+        });
+      }
+    },
     onSuccess: async (data, variables) => {
       // Write session hint before cache updates so Automation Triggers can expand
       // when Free-plan skips land and eligible Send kinds appear on the new status.
@@ -146,7 +172,7 @@ export function useTransitionBooking() {
         qc.setQueryData(bookingDetailQueryKey(variables.bookingId, propertyId), data.booking);
       }
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(variables.bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }
@@ -179,7 +205,7 @@ export function useCancelBooking() {
     },
     onSuccess: async (_data, variables) => {
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(variables.bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }
@@ -237,7 +263,7 @@ export function useRunSdRefundCron(bookingId?: string) {
     onSuccess: async () => {
       if (!bookingId) return;
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }
@@ -276,7 +302,7 @@ export function useResendSdRefundFormEmail(bookingId?: string) {
     onSuccess: async () => {
       if (!bookingId) return;
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }
@@ -316,7 +342,7 @@ export function useSendBookingWorkflowEmail(bookingId?: string) {
     onSuccess: async () => {
       if (!bookingId) return;
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }
@@ -367,7 +393,7 @@ export function useIssueGuestStayGuideToken(bookingId?: string) {
         }
       );
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
-      await qc.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+      await invalidateBookingsListForProperty(qc, propertyId);
     },
   });
 }

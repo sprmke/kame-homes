@@ -54,8 +54,8 @@ async function refreshFinanceLineItemCaches(
   query?: FinanceQuery
 ) {
   const tasks: Promise<unknown>[] = [
-    qc.invalidateQueries({ queryKey: FINANCE_LINE_ITEMS_KEY }),
-    qc.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY }),
+    qc.invalidateQueries({ queryKey: [...FINANCE_LINE_ITEMS_KEY, scopeKey] }),
+    qc.invalidateQueries({ queryKey: [...FINANCE_SUMMARY_KEY, scopeKey] }),
   ];
   if (query) {
     tasks.push(
@@ -192,7 +192,7 @@ export function useRecurringSeriesMutations(seriesId: string | null, query: Fina
   const refresh = async () => {
     await Promise.all([
       refreshFinanceLineItemCaches(qc, scopeKey, query),
-      qc.invalidateQueries({ queryKey: FINANCE_RECURRING_SERIES_KEY }),
+      qc.invalidateQueries({ queryKey: [...FINANCE_RECURRING_SERIES_KEY, scopeKey] }),
     ]);
   };
 

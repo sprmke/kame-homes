@@ -1,10 +1,20 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Navigate, Route } from 'react-router-dom';
 
-import { CustomPagesPage } from '@/features/dashboard/custom-pages/pages/CustomPagesPage';
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
-import { PageEditorPage } from '@/features/dashboard/page-editor/pages/PageEditorPage';
+
+const CustomPagesPage = lazy(() =>
+  import('@/features/dashboard/custom-pages/pages/CustomPagesPage').then((m) => ({
+    default: m.CustomPagesPage,
+  }))
+);
+const PageEditorPage = lazy(() =>
+  import('@/features/dashboard/page-editor/pages/PageEditorPage').then((m) => ({
+    default: m.PageEditorPage,
+  }))
+);
 
 /**
  * Public Pages (gallery + Page Editor for listing / Stay Guide / Showcase) is

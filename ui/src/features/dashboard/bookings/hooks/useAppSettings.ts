@@ -1,4 +1,7 @@
+import { useParams } from 'react-router-dom';
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 
 import type { DocumentRequirement } from '@/features/dashboard/bookings/lib/documentRequirements';
 import { legacyGcashQrForPaymentMethods } from '@/features/dashboard/lib/storedMediaDisplay';
@@ -252,6 +255,7 @@ export function useAppSettings() {
 export function useUpdateAppSettings() {
   const qc = useQueryClient();
   const propertyId = usePropertyIdParam();
+  const { propertySlug } = useParams<{ propertySlug?: string }>();
   return useMutation({
     mutationFn: async (patch: AppSettingsPatchBody): Promise<AppSettingsDto> => {
       const jwt = await getAdminJwt();
@@ -275,7 +279,7 @@ export function useUpdateAppSettings() {
     },
     onSuccess: (data) => {
       qc.setQueryData(['app-settings', propertyId], data);
-      qc.invalidateQueries({ queryKey: ['guest-payment-info'] });
+      qc.invalidateQueries({ queryKey: ['guest-payment-info', propertySlug ?? null] });
     },
   });
 }
@@ -313,6 +317,7 @@ export type AppSettingsImageField = 'gcashQrImageUrl' | 'gafUnitOwnerSignatureUr
 export function useClearAppSettingsImage() {
   const qc = useQueryClient();
   const propertyId = usePropertyIdParam();
+  const { propertySlug } = useParams<{ propertySlug?: string }>();
   return useMutation({
     mutationFn: async (field: AppSettingsImageField) => {
       const jwt = await getAdminJwt();
@@ -337,7 +342,7 @@ export function useClearAppSettingsImage() {
     onSuccess: (data, field) => {
       qc.setQueryData(['app-settings', propertyId], data);
       if (field === 'gcashQrImageUrl') {
-        qc.invalidateQueries({ queryKey: ['guest-payment-info'] });
+        qc.invalidateQueries({ queryKey: ['guest-payment-info', propertySlug ?? null] });
       }
     },
   });

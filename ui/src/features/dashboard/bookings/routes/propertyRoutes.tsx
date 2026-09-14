@@ -1,14 +1,36 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
 
 import { NotificationModuleRedirect } from '@/features/dashboard/bookings/components/NotificationModuleRedirect';
-import { AdminSettingsPage } from '@/features/dashboard/bookings/pages/AdminSettingsPage';
-import { BookingDetailPage } from '@/features/dashboard/bookings/pages/BookingDetailPage';
-import { BookingsListPage } from '@/features/dashboard/bookings/pages/BookingsListPage';
-import { NotificationsPage } from '@/features/dashboard/bookings/pages/NotificationsPage';
-import { TemplatesPage } from '@/features/dashboard/bookings/pages/TemplatesPage';
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
+
+const AdminSettingsPage = lazy(() =>
+  import('@/features/dashboard/bookings/pages/AdminSettingsPage').then((m) => ({
+    default: m.AdminSettingsPage,
+  }))
+);
+const BookingDetailPage = lazy(() =>
+  import('@/features/dashboard/bookings/pages/BookingDetailPage').then((m) => ({
+    default: m.BookingDetailPage,
+  }))
+);
+const BookingsListPage = lazy(() =>
+  import('@/features/dashboard/bookings/pages/BookingsListPage').then((m) => ({
+    default: m.BookingsListPage,
+  }))
+);
+const NotificationsPage = lazy(() =>
+  import('@/features/dashboard/bookings/pages/NotificationsPage').then((m) => ({
+    default: m.NotificationsPage,
+  }))
+);
+const TemplatesPage = lazy(() =>
+  import('@/features/dashboard/bookings/pages/TemplatesPage').then((m) => ({
+    default: m.TemplatesPage,
+  }))
+);
 
 export function adminPropertyRoutes(propertyRoute: PropertyRouteFn): ReactNode {
   return (

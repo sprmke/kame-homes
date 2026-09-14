@@ -1,14 +1,11 @@
+import { useRef } from 'react';
+
 import { Check, ChevronDown } from 'lucide-react';
 
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { useAdminToolbarMenuOpen } from '@/components/navigation/AdminToolbarMenuScope';
 import { type AdminViewToggleOption } from '@/components/navigation/AdminViewToggle';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useDismissOnOutsideClick } from '@/hooks/useDismissOnOutsideClick';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +28,7 @@ export function AdminListViewMenu<T extends string>({
   ariaLabel = 'Choose list view',
 }: Props<T>) {
   const [open, setOpen] = useAdminToolbarMenuOpen();
+  const ref = useRef<HTMLDivElement>(null);
   const isMobileLayout = useIsBelowLg();
   const visible = hideValues.length
     ? options.filter((option) => !hideValues.includes(option.value))
@@ -38,17 +36,19 @@ export function AdminListViewMenu<T extends string>({
   const current = visible.find((option) => option.value === value) ?? visible[0];
   const CurrentIcon = current?.Icon;
 
+  useDismissOnOutsideClick(ref, open && !isMobileLayout, () => setOpen(false));
+
   const trigger = (
     <button
       type="button"
       aria-label={ariaLabel}
       aria-expanded={open}
-      aria-haspopup={isMobileLayout ? 'dialog' : 'menu'}
+      aria-haspopup={isMobileLayout ? 'dialog' : 'listbox'}
       onClick={() => setOpen((next) => !next)}
       className={cn(
-        'inline-flex h-10 min-h-[44px] min-w-0 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[13px] font-semibold text-foreground',
-        'transition-colors hover:bg-muted/60',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        'border-border bg-card text-foreground inline-flex h-10 min-h-[44px] min-w-0 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold',
+        'hover:bg-muted/60 transition-colors',
+        'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
         className
       )}
     >
@@ -56,7 +56,7 @@ export function AdminListViewMenu<T extends string>({
       <span className="truncate">{current?.label ?? 'View'}</span>
       <ChevronDown
         className={cn(
-          'size-3.5 shrink-0 text-muted-foreground transition-transform',
+          'text-muted-foreground size-3.5 shrink-0 transition-transform',
           open && 'rotate-180'
         )}
         aria-hidden
@@ -92,26 +92,41 @@ export function AdminListViewMenu<T extends string>({
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[10.5rem]">
-        {visible.map(({ value: optionValue, label, Icon }) => {
-          const selected = optionValue === value;
-          return (
-            <DropdownMenuItem
-              key={optionValue}
-              onSelect={() => onChange(optionValue)}
-              className="gap-2"
-              aria-checked={selected}
-              role="menuitemradio"
-            >
-              <Icon className="size-3.5 shrink-0" aria-hidden />
-              <span className="flex-1">{label}</span>
-              {selected ? <Check className="size-3.5 shrink-0 text-primary" aria-hidden /> : null}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div ref={ref} className="relative min-w-0">
+      {trigger}
+      {open ? (
+        <div
+          role="listbox"
+          aria-label={ariaLabel}
+          className="border-border/50 bg-popover text-popover-foreground shadow-elevated-lg dark:border-border/20 absolute right-0 z-50 mt-1.5 min-w-[10.5rem] overflow-hidden rounded-xl border p-1.5"
+        >
+          {visible.map(({ value: optionValue, label, Icon }) => {
+            const selected = optionValue === value;
+            return (
+              <button
+                key={optionValue}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={cn(
+                  'flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors',
+                  selected
+                    ? 'bg-muted/50 text-foreground font-semibold'
+                    : 'text-foreground/80 hover:bg-muted/50 font-medium'
+                )}
+                onClick={() => {
+                  onChange(optionValue);
+                  setOpen(false);
+                }}
+              >
+                <Icon className="size-3.5 shrink-0" aria-hidden />
+                <span className="flex-1 text-left">{label}</span>
+                {selected ? <Check className="text-primary size-3.5 shrink-0" aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }

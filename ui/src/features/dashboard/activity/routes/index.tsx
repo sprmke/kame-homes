@@ -1,9 +1,15 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
 
-import { ActivityLogRedirect } from '@/features/dashboard/activity/pages/ActivityLogRedirect';
 import type { ParkingRouteFn, PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
+
+const ActivityLogRedirect = lazy(() =>
+  import('@/features/dashboard/activity/pages/ActivityLogRedirect').then((m) => ({
+    default: m.ActivityLogRedirect,
+  }))
+);
 
 export function activityPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
   return (

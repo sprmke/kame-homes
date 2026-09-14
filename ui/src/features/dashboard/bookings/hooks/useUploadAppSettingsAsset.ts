@@ -2,7 +2,10 @@
  * useUploadAppSettingsAsset — upload operator assets from Settings.
  */
 
+import { useParams } from 'react-router-dom';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 
 import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -45,6 +48,7 @@ const ASSET_PRESET: Record<AppSettingsAssetType, OptimizePreset> = {
 export function useUploadAppSettingsAsset() {
   const qc = useQueryClient();
   const propertyId = usePropertyIdParam();
+  const { propertySlug } = useParams<{ propertySlug?: string }>();
 
   return useMutation({
     mutationFn: async ({
@@ -116,7 +120,7 @@ export function useUploadAppSettingsAsset() {
       }
       if (variables.assetType === 'gcash_qr') return;
       void qc.invalidateQueries({ queryKey: ['app-settings', propertyId] });
-      void qc.invalidateQueries({ queryKey: ['guest-payment-info'] });
+      void qc.invalidateQueries({ queryKey: ['guest-payment-info', propertySlug ?? null] });
     },
   });
 }

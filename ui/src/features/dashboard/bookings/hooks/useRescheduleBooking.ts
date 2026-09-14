@@ -24,11 +24,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { countParkingNights } from '@/features/guest/pay-parking/lib/payParkingHelpers';
 
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+
 import { supabase } from '@/lib/supabase/client';
 import { toGuestSubmissionDate } from '@/utils/format/dates';
 
 import { BOOKING_QUERY_KEY } from './useBooking';
 import { invalidateBookingAiReviewQueries } from './useBookingAiReview';
+import { invalidateBookingsListForProperty } from './useBookings';
 import {
   pendingDocumentsClearCompletionsJsonbPatch,
   pendingDocumentsClearPatchForGuestEditRevert,
@@ -51,6 +54,7 @@ type MutationArgs = {
 
 export function useRescheduleBooking() {
   const qc = useQueryClient();
+  const propertyId = usePropertyIdParam();
 
   return useMutation({
     mutationFn: async ({
@@ -86,7 +90,7 @@ export function useRescheduleBooking() {
 
     onSuccess: async (updated, { bookingId }) => {
       qc.setQueryData(BOOKING_QUERY_KEY(bookingId), updated);
-      await qc.invalidateQueries({ queryKey: ['bookings'] });
+      await invalidateBookingsListForProperty(qc, propertyId);
       await invalidateBookingAiReviewQueries(qc, bookingId);
     },
   });

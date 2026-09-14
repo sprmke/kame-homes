@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+
 
 import { ChevronUp, ChevronLeft, ChevronRight, LogOut, User } from 'lucide-react';
 
@@ -92,7 +101,6 @@ import {
   subscribeParkingSettingsIssues,
 } from '@/features/dashboard/parking/lib/parkingSettingsIssuesStore';
 import { UpgradeModalProvider } from '@/features/dashboard/plans/components/UpgradeModalProvider';
-import { PostHogAdminScopeSync } from '@/lib/posthog/PostHogAdminScopeSync';
 import { SetupGuideProvider } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
 import { SetupGuideSidebarEntry } from '@/features/dashboard/setup-guide/components/SetupGuideSidebarEntry';
 import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
@@ -104,6 +112,7 @@ import { BottomBarSlotProvider } from '@/components/mobile/BottomBarSlot';
 import { BottomTabBar } from '@/components/mobile/BottomTabBar';
 import { MobileAppShell } from '@/components/mobile/ContextualActionBar';
 import { PageTransition } from '@/components/mobile/PageTransition';
+import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
 import { useSlidingActivePill } from '@/hooks/useSlidingActivePill';
@@ -115,6 +124,7 @@ import {
   propertyDashboardPageTitle,
   usePageTitle,
 } from '@/lib/pageTitle';
+import { PostHogAdminScopeSync } from '@/lib/posthog/PostHogAdminScopeSync';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_COLLAPSED_KEY = 'kame-admin-sidebar-collapsed';
@@ -222,7 +232,9 @@ export function AdminLayout({ children, fillMain: fillMainProp = false }: Props)
 export function AdminLayoutOutlet() {
   return (
     <AdminLayout>
-      <Outlet />
+      <Suspense fallback={<SectionLoadingFallback />}>
+        <Outlet />
+      </Suspense>
     </AdminLayout>
   );
 }

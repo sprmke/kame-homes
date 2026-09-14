@@ -47,7 +47,7 @@ function HostAnnouncementListRow({
         'group flex items-center gap-3 px-4 py-4 transition-colors sm:gap-4 sm:px-5 sm:py-[1.125rem]',
         'hover:bg-muted/50 focus-visible:bg-muted/50',
         'focus-visible:ring-ring/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
-        unread ? 'bg-background' : 'bg-muted/25'
+        unread ? 'bg-primary/5 dark:bg-primary/10' : 'bg-transparent'
       )}
     >
       <span

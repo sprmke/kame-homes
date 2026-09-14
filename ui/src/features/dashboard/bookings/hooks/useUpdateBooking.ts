@@ -20,11 +20,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { SdBank } from '@/features/guest/sd-form/lib/sdFormSchema';
 
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+
 import { supabase } from '@/lib/supabase/client';
 import { toGuestSubmissionDate, toGuestSubmissionTime } from '@/utils/format/dates';
 
+
 import { BOOKING_QUERY_KEY } from './useBooking';
 import { invalidateBookingAiReviewQueries } from './useBookingAiReview';
+import { invalidateBookingsListForProperty } from './useBookings';
 import {
   pendingDocumentsClearCompletionsJsonbPatch,
   pendingDocumentsClearPatchForGuestEditRevert,
@@ -165,6 +169,7 @@ type MutationArgs = {
 
 export function useUpdateBooking() {
   const qc = useQueryClient();
+  const propertyId = usePropertyIdParam();
 
   return useMutation({
     mutationFn: async ({
@@ -231,7 +236,7 @@ export function useUpdateBooking() {
 
     onSuccess: async (updated, { bookingId }) => {
       qc.setQueryData(BOOKING_QUERY_KEY(bookingId), updated);
-      await qc.invalidateQueries({ queryKey: ['bookings'] });
+      await invalidateBookingsListForProperty(qc, propertyId);
       await invalidateBookingAiReviewQueries(qc, bookingId);
     },
   });

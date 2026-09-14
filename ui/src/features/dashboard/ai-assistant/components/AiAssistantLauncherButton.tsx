@@ -1,11 +1,20 @@
+import { lazy, Suspense, useState } from 'react';
+
 import { Sparkles } from 'lucide-react';
 
-import { AiAssistantPanel } from '@/features/dashboard/ai-assistant/components/AiAssistantPanel';
 import { useAiAssistantAccess } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantAccess';
 import { isAiAssistantFabVisible } from '@/features/dashboard/ai-assistant/lib/assistantFabLayout';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
 import { cn } from '@/lib/utils';
+
+// Chat composer/thread/canvas/history are a heavy subtree mounted in every dashboard
+// page via AdminLayout — lazy-load and defer the fetch until the panel is first opened.
+const AiAssistantPanel = lazy(() =>
+  import('@/features/dashboard/ai-assistant/components/AiAssistantPanel').then((m) => ({
+    default: m.AiAssistantPanel,
+  }))
+);
 
 type Props = {
   open: boolean;
@@ -18,6 +27,8 @@ type Props = {
 export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }: Props) {
   const propertyId = usePropertyIdParam();
   const { accessible, settings, planGate } = useAiAssistantAccess(propertyId);
+  // Defer the panel's import until the admin actually opens it at least once.
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(open);
 
   if (!isAiAssistantFabVisible(accessible, settings, planGate.allowed)) return null;
 
@@ -29,7 +40,10 @@ export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }
       {showFab ? (
         <button
           type="button"
-          onClick={() => onOpenChange(true)}
+          onClick={() => {
+            setHasOpenedOnce(true);
+            onOpenChange(true);
+          }}
           aria-label="Open AI assistant"
           aria-expanded={open}
           aria-haspopup="dialog"
@@ -45,7 +59,18 @@ export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }
           <Sparkles className="h-5 w-5" aria-hidden />
         </button>
       ) : null}
-      <AiAssistantPanel open={open} onOpenChange={onOpenChange} readOnly={readOnly} />
+      {(hasOpenedOnce || open) && (
+        <Suspense fallback={null}>
+          <AiAssistantPanel
+            open={open}
+            onOpenChange={(next) => {
+              if (next) setHasOpenedOnce(true);
+              onOpenChange(next);
+            }}
+            readOnly={readOnly}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

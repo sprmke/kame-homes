@@ -35,12 +35,52 @@ import {
 import { readE2EAdminAccessToken } from '@/lib/e2e/adminSession';
 import { supabase } from '@/lib/supabase/client';
 
+import type { Query, QueryClient } from '@tanstack/react-query';
+
 export const BOOKINGS_QUERY_KEY = ['bookings'] as const;
 
 type BookingsResult = {
   rows: BookingRow[];
   total: number;
 };
+
+/** Query key layout: `['bookings', scope, orgSlug, orgId, propertyId, parkingId, query]` (see `useBookings` below). */
+const BOOKINGS_PROPERTY_ID_KEY_INDEX = 4;
+
+/**
+ * Matches cached bookings-list queries for a single property, instead of every cached
+ * org/property/parking/filter/page combo. Falls back to matching all bookings-list queries
+ * when `propertyId` is unknown (mutation ran outside a property-scoped route) so callers
+ * never silently under-invalidate.
+ */
+function bookingsListPredicate(propertyId: string | null) {
+  return (query: Query) => {
+    if (query.queryKey[0] !== BOOKINGS_QUERY_KEY[0]) return false;
+    if (!propertyId) return true;
+    return query.queryKey[BOOKINGS_PROPERTY_ID_KEY_INDEX] === propertyId;
+  };
+}
+
+/** Scoped replacement for `invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY })`. */
+export function invalidateBookingsListForProperty(qc: QueryClient, propertyId: string | null) {
+  return qc.invalidateQueries({ predicate: bookingsListPredicate(propertyId) });
+}
+
+/** Optimistically patches the matching row (by booking id) across all cached list pages for this property. */
+export function patchBookingsListRow(
+  qc: QueryClient,
+  propertyId: string | null,
+  bookingId: string,
+  patch: Partial<BookingRow>
+) {
+  qc.setQueriesData<BookingsResult>({ predicate: bookingsListPredicate(propertyId) }, (old) => {
+    if (!old || !Array.isArray(old.rows)) return old;
+    return {
+      ...old,
+      rows: old.rows.map((row) => (row.id === bookingId ? { ...row, ...patch } : row)),
+    };
+  });
+}
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 

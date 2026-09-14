@@ -1,13 +1,27 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
 
 import { helpSupportAnnouncementsRedirectRoute } from '@/features/dashboard/announcements/routes';
 import { HelpSupportLayout } from '@/features/dashboard/help-support/components/HelpSupportLayout';
-import { HelpDocumentationPage } from '@/features/dashboard/help-support/pages/HelpDocumentationPage';
-import { HelpSupportOverviewPage } from '@/features/dashboard/help-support/pages/HelpSupportOverviewPage';
-import { TicketsWorkspacePage } from '@/features/dashboard/help-support/pages/TicketsWorkspacePage';
 import type { ParkingRouteFn, PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
+
+const HelpDocumentationPage = lazy(() =>
+  import('@/features/dashboard/help-support/pages/HelpDocumentationPage').then((m) => ({
+    default: m.HelpDocumentationPage,
+  }))
+);
+const HelpSupportOverviewPage = lazy(() =>
+  import('@/features/dashboard/help-support/pages/HelpSupportOverviewPage').then((m) => ({
+    default: m.HelpSupportOverviewPage,
+  }))
+);
+const TicketsWorkspacePage = lazy(() =>
+  import('@/features/dashboard/help-support/pages/TicketsWorkspacePage').then((m) => ({
+    default: m.TicketsWorkspacePage,
+  }))
+);
 
 function helpSupportNestedRoutes(): ReactNode {
   return (

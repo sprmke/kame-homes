@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Navigate, Outlet, Route } from 'react-router-dom';
@@ -6,14 +7,23 @@ import {
   hostAnnouncementsPathFromHelpSupport,
   useHasHostAnnouncementsArchiveScope,
 } from '@/features/dashboard/announcements/lib/hostAnnouncementsPaths';
-import { HostAnnouncementDetailPage } from '@/features/dashboard/announcements/pages/HostAnnouncementDetailPage';
-import { HostAnnouncementsListPage } from '@/features/dashboard/announcements/pages/HostAnnouncementsListPage';
 import { useHelpSupportBasePath } from '@/features/dashboard/help-support/lib/helpSupportPaths';
 import type {
   OrgRouteFn,
   ParkingRouteFn,
   PropertyRouteFn,
 } from '@/features/dashboard/org/routes/guards';
+
+const HostAnnouncementDetailPage = lazy(() =>
+  import('@/features/dashboard/announcements/pages/HostAnnouncementDetailPage').then((m) => ({
+    default: m.HostAnnouncementDetailPage,
+  }))
+);
+const HostAnnouncementsListPage = lazy(() =>
+  import('@/features/dashboard/announcements/pages/HostAnnouncementsListPage').then((m) => ({
+    default: m.HostAnnouncementsListPage,
+  }))
+);
 
 function HelpSupportAnnouncementsRedirect() {
   const helpSupportPath = useHelpSupportBasePath();
