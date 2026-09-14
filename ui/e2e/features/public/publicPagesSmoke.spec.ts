@@ -62,7 +62,7 @@ test.describe('@smoke @ci public marketing pages', () => {
       { name: 'search-listings', body: mockSearchListingsBody },
     ]);
     await page.goto('/search');
-    await expect(page.getByText('Search destinations')).toBeVisible({
+    await expect(page.getByRole('heading', { name: 'No matches' })).toBeVisible({
       timeout: 15_000,
     });
   });

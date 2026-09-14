@@ -1,9 +1,8 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
 
-import { ActivityLogRedirect } from '@/features/dashboard/activity/pages/ActivityLogRedirect';
-import { OrgAnalyticsPage } from '@/features/dashboard/analytics/pages/OrgAnalyticsPage';
 import { hostAnnouncementsOrgRoute } from '@/features/dashboard/announcements/routes';
 import { HelpSupportLayout } from '@/features/dashboard/help-support/components/HelpSupportLayout';
 import { helpSupportOrgNestedRoutes } from '@/features/dashboard/help-support/routes';
@@ -12,18 +11,65 @@ import { LegacyAdminRedirect } from '@/features/dashboard/org/components/LegacyA
 import { OrgAdminShell } from '@/features/dashboard/org/components/OrgAdminShell';
 import { ParkingAdminShell } from '@/features/dashboard/org/components/ParkingAdminShell';
 import { PropertyAdminShell } from '@/features/dashboard/org/components/PropertyAdminShell';
-import { HostVerificationRejectedRoutePage } from '@/features/dashboard/org/pages/HostVerificationRejectedRoutePage';
-import { OnboardingPage } from '@/features/dashboard/org/pages/OnboardingPage';
-import { OrgBookingsPage } from '@/features/dashboard/org/pages/OrgBookingsPage';
-import { OrgDashboardPage } from '@/features/dashboard/org/pages/OrgDashboardPage';
-import { OrgParkingsPage } from '@/features/dashboard/org/pages/OrgParkingsPage';
-import { OrgPropertiesPage } from '@/features/dashboard/org/pages/OrgPropertiesPage';
-import { OrgSelectorPage } from '@/features/dashboard/org/pages/OrgSelectorPage';
-import { OrgSettingsPage } from '@/features/dashboard/org/pages/OrgSettingsPage';
 import type { OrgRouteFn } from '@/features/dashboard/org/routes/guards';
 import { RequireOrgFeature } from '@/features/dashboard/plans/components/RequireOrgFeature';
-import { OrgPlansPage } from '@/features/dashboard/plans/pages/OrgPlansPage';
-import { OrgTeamPage } from '@/features/dashboard/team/pages/OrgTeamPage';
+
+const ActivityLogRedirect = lazy(() =>
+  import('@/features/dashboard/activity/pages/ActivityLogRedirect').then((m) => ({
+    default: m.ActivityLogRedirect,
+  }))
+);
+const OrgAnalyticsPage = lazy(() =>
+  import('@/features/dashboard/analytics/pages/OrgAnalyticsPage').then((m) => ({
+    default: m.OrgAnalyticsPage,
+  }))
+);
+const HostVerificationRejectedRoutePage = lazy(() =>
+  import('@/features/dashboard/org/pages/HostVerificationRejectedRoutePage').then((m) => ({
+    default: m.HostVerificationRejectedRoutePage,
+  }))
+);
+const OnboardingPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OnboardingPage').then((m) => ({
+    default: m.OnboardingPage,
+  }))
+);
+const OrgBookingsPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgBookingsPage').then((m) => ({
+    default: m.OrgBookingsPage,
+  }))
+);
+const OrgDashboardPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgDashboardPage').then((m) => ({
+    default: m.OrgDashboardPage,
+  }))
+);
+const OrgParkingsPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgParkingsPage').then((m) => ({
+    default: m.OrgParkingsPage,
+  }))
+);
+const OrgPropertiesPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgPropertiesPage').then((m) => ({
+    default: m.OrgPropertiesPage,
+  }))
+);
+const OrgSelectorPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgSelectorPage').then((m) => ({
+    default: m.OrgSelectorPage,
+  }))
+);
+const OrgSettingsPage = lazy(() =>
+  import('@/features/dashboard/org/pages/OrgSettingsPage').then((m) => ({
+    default: m.OrgSettingsPage,
+  }))
+);
+const OrgPlansPage = lazy(() =>
+  import('@/features/dashboard/plans/pages/OrgPlansPage').then((m) => ({ default: m.OrgPlansPage }))
+);
+const OrgTeamPage = lazy(() =>
+  import('@/features/dashboard/team/pages/OrgTeamPage').then((m) => ({ default: m.OrgTeamPage }))
+);
 
 export const orgOnboardingRoutes: ReactNode = (
   <>

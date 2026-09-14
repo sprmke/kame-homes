@@ -23,6 +23,8 @@ type Draft = {
   dailyCallLimit: string;
   monthlyCallLimit: string;
   dailyCostUsdLimit: string;
+  imageMonthlyCreditCap: string;
+  videoMonthlyCreditCap: string;
 };
 
 function settingsToDraft(settings: AiPlatformPropertySettingsDto): Draft {
@@ -31,6 +33,10 @@ function settingsToDraft(settings: AiPlatformPropertySettingsDto): Draft {
     dailyCallLimit: settings.dailyCallLimit == null ? '' : String(settings.dailyCallLimit),
     monthlyCallLimit: settings.monthlyCallLimit == null ? '' : String(settings.monthlyCallLimit),
     dailyCostUsdLimit: settings.dailyCostUsdLimit == null ? '' : String(settings.dailyCostUsdLimit),
+    imageMonthlyCreditCap:
+      settings.imageMonthlyCreditCap == null ? '' : String(settings.imageMonthlyCreditCap),
+    videoMonthlyCreditCap:
+      settings.videoMonthlyCreditCap == null ? '' : String(settings.videoMonthlyCreditCap),
   };
 }
 
@@ -57,7 +63,9 @@ export function PropertyAiPlatformSection() {
       ? draft.enabled !== baseline.enabled ||
         draft.dailyCallLimit !== baseline.dailyCallLimit ||
         draft.monthlyCallLimit !== baseline.monthlyCallLimit ||
-        draft.dailyCostUsdLimit !== baseline.dailyCostUsdLimit
+        draft.dailyCostUsdLimit !== baseline.dailyCostUsdLimit ||
+        draft.imageMonthlyCreditCap !== baseline.imageMonthlyCreditCap ||
+        draft.videoMonthlyCreditCap !== baseline.videoMonthlyCreditCap
       : false;
 
   const handleSave = () => {
@@ -66,6 +74,10 @@ export function PropertyAiPlatformSection() {
     const monthlyCallLimit = draft.monthlyCallLimit === '' ? null : Number(draft.monthlyCallLimit);
     const dailyCostUsdLimit =
       draft.dailyCostUsdLimit === '' ? null : Number(draft.dailyCostUsdLimit);
+    const imageMonthlyCreditCap =
+      draft.imageMonthlyCreditCap === '' ? null : Number(draft.imageMonthlyCreditCap);
+    const videoMonthlyCreditCap =
+      draft.videoMonthlyCreditCap === '' ? null : Number(draft.videoMonthlyCreditCap);
 
     if (
       dailyCallLimit != null &&
@@ -90,6 +102,24 @@ export function PropertyAiPlatformSection() {
       toast.error('Daily cost limit must be a positive number or blank');
       return;
     }
+    if (
+      imageMonthlyCreditCap != null &&
+      (!Number.isFinite(imageMonthlyCreditCap) ||
+        imageMonthlyCreditCap <= 0 ||
+        !Number.isInteger(imageMonthlyCreditCap))
+    ) {
+      toast.error('Image credit cap must be a positive integer or blank');
+      return;
+    }
+    if (
+      videoMonthlyCreditCap != null &&
+      (!Number.isFinite(videoMonthlyCreditCap) ||
+        videoMonthlyCreditCap <= 0 ||
+        !Number.isInteger(videoMonthlyCreditCap))
+    ) {
+      toast.error('Video credit cap must be a positive integer or blank');
+      return;
+    }
 
     update.mutate(
       {
@@ -97,6 +127,8 @@ export function PropertyAiPlatformSection() {
         dailyCallLimit,
         monthlyCallLimit,
         dailyCostUsdLimit,
+        imageMonthlyCreditCap,
+        videoMonthlyCreditCap,
       },
       {
         onSuccess: (saved) => {
@@ -191,6 +223,37 @@ export function PropertyAiPlatformSection() {
                 )
               }
               aria-label="Daily AI cost USD limit override"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">Image monthly credits (blank = 60%)</span>
+            <Input
+              inputMode="numeric"
+              value={draft.imageMonthlyCreditCap}
+              disabled={readOnly}
+              onChange={(e) =>
+                setDraft((current) =>
+                  current ? { ...current, imageMonthlyCreditCap: e.target.value } : current
+                )
+              }
+              aria-label="Image monthly credit cap"
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">Video monthly credits (blank = 60%)</span>
+            <Input
+              inputMode="numeric"
+              value={draft.videoMonthlyCreditCap}
+              disabled={readOnly}
+              onChange={(e) =>
+                setDraft((current) =>
+                  current ? { ...current, videoMonthlyCreditCap: e.target.value } : current
+                )
+              }
+              aria-label="Video monthly credit cap"
             />
           </label>
         </div>

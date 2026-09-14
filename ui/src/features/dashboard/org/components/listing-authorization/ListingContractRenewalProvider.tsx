@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -14,7 +16,6 @@ import { useLocation, useParams } from 'react-router-dom';
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 import { isOrgAdminPath } from '@/features/dashboard/bookings/lib/adminSidebarNav';
 import { ListingContractRenewalModal } from '@/features/dashboard/org/components/listing-authorization/ListingContractRenewalModal';
-import { ListingVerificationModal } from '@/features/dashboard/org/components/listing-authorization/ListingVerificationModal';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
@@ -35,6 +36,14 @@ import {
   readOrgRenewalAutoShownThisLogin,
 } from '@/features/dashboard/org/lib/listingContractRenewalSession';
 import { todayManilaYmd } from '@/features/dashboard/org/lib/orgVerification';
+
+// Pulls in submitted-doc previews (pdfjs-dist) — this provider is mounted eagerly by
+// AdminLayout, so defer the import until the modal actually opens.
+const ListingVerificationModal = lazy(() =>
+  import('@/features/dashboard/org/components/listing-authorization/ListingVerificationModal').then(
+    (m) => ({ default: m.ListingVerificationModal })
+  )
+);
 
 type ListingContractRenewalContextValue = {
   setListingVerificationModalOpen: (open: boolean) => void;
@@ -216,17 +225,19 @@ export function ListingContractRenewalProvider({ children }: ProviderProps) {
             lifecycle={activeCandidate.lifecycle}
             onSubmitRenewal={openVerificationFromRenewal}
           />
-          <ListingVerificationModal
-            open={renewalVerificationOpen}
-            onOpenChange={setRenewalVerificationOpen}
-            orgId={org.id}
-            orgSlug={org.slug}
-            listingKind={activeCandidate.listingKind}
-            listingId={activeCandidate.listingId}
-            listingName={activeCandidate.listingName}
-            listingSettings={activeCandidate.listingSettings}
-            isOwner
-          />
+          <Suspense fallback={null}>
+            <ListingVerificationModal
+              open={renewalVerificationOpen}
+              onOpenChange={setRenewalVerificationOpen}
+              orgId={org.id}
+              orgSlug={org.slug}
+              listingKind={activeCandidate.listingKind}
+              listingId={activeCandidate.listingId}
+              listingName={activeCandidate.listingName}
+              listingSettings={activeCandidate.listingSettings}
+              isOwner
+            />
+          </Suspense>
         </>
       ) : null}
     </ListingContractRenewalContext.Provider>

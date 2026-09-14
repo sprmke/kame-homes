@@ -78,6 +78,9 @@ export function useOrgSettings() {
       return json.data;
     },
     enabled: Boolean(orgSlug || orgId),
+    // The save mutation already writes exact fresh data into this cache — no need to
+    // refetch on every mount/focus for data that only changes via that same form.
+    staleTime: 5 * 60_000,
   });
 }
 

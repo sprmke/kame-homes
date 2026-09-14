@@ -390,7 +390,8 @@ function telegramGlobalSettingsPayload() {
 }
 
 function orgPlanPayload(multiProperty = false) {
-  const businessPlan = PLANS_E2E_CATALOG.find((plan) => plan.id === PLAN_PRO) ?? PLANS_E2E_CATALOG[3]!;
+  const businessPlan =
+    PLANS_E2E_CATALOG.find((plan) => plan.id === PLAN_PRO) ?? PLANS_E2E_CATALOG[3]!;
   const planProperties = [
     {
       id: TEAM_E2E_PROPERTY_ID,
@@ -735,11 +736,7 @@ function aiPlatformUsagePayload() {
 }
 
 function propertyTemplatesSettingsPayload() {
-  const template = (
-    templateKey: string,
-    name: string,
-    category: 'standard' | 'email'
-  ) => ({
+  const template = (templateKey: string, name: string, category: 'standard' | 'email') => ({
     templateKey,
     name,
     category,
@@ -804,10 +801,7 @@ function listActivityLogPayload() {
   return { events: [] as Array<Record<string, unknown>>, nextCursor: null };
 }
 
-function copyPropertySettingsResponse(body: {
-  dryRun?: boolean;
-  targetPropertyIds?: string[];
-}) {
+function copyPropertySettingsResponse(body: { dryRun?: boolean; targetPropertyIds?: string[] }) {
   const targetIds = body.targetPropertyIds ?? [];
   const dryRun = Boolean(body.dryRun);
   return {
@@ -867,6 +861,26 @@ export async function installTeamMemberSession(page: Page) {
   }, teamMemberSessionStoragePayload());
 }
 
+function marketingGenerationReferenceFixture() {
+  return {
+    id: 'ref-e2e-001',
+    organization_id: 'org-team-e2e-001',
+    property_id: TEAM_E2E_PROPERTY_ID,
+    media_type: 'image',
+    storage_path: `marketing-ai-refs/${TEAM_E2E_PROPERTY_ID}/ref-e2e-001.jpg`,
+    public_url:
+      'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+    mime_type: 'image/jpeg',
+    file_name: 'balcony.jpg',
+    byte_size: 204_800,
+    width: 1200,
+    height: 1200,
+    duration_seconds: null,
+    last_used_at: null,
+    created_at: '2026-09-12T08:00:00.000Z',
+  };
+}
+
 function marketingGenerationJobFixture(overrides: Record<string, unknown> = {}) {
   return {
     id: 'mgj-e2e-001',
@@ -883,6 +897,7 @@ function marketingGenerationJobFixture(overrides: Record<string, unknown> = {}) 
     resolution: null,
     durationSeconds: null,
     referenceUrls: [],
+    referencePaths: [],
     // 1x1 transparent PNG data URI — avoids a real network fetch for the gallery's
     // <img src>, keeping this a fully mocked (offline) test.
     outputUrl:
@@ -917,6 +932,9 @@ export async function installPropertyTeamRbacMocks(
   let orgSettingsState = orgSettingsPayload();
   let marketingGenerationJobs = opts?.marketingGenerationSeeded
     ? [marketingGenerationJobFixture()]
+    : [];
+  let marketingGenerationReferences = opts?.marketingGenerationSeeded
+    ? [marketingGenerationReferenceFixture()]
     : [];
   await installTeamMemberSession(page);
 
@@ -1188,7 +1206,12 @@ export async function installPropertyTeamRbacMocks(
         }
         await fulfillJson(route, {
           success: true,
-          data: { jobs: marketingGenerationJobs, nextCursor: null },
+          data: {
+            jobs: marketingGenerationJobs,
+            nextCursor: null,
+            allowPremiumImage: false,
+            allowPremiumVideo: false,
+          },
         });
         return;
       case 'generate-marketing-media': {
@@ -1201,7 +1224,9 @@ export async function installPropertyTeamRbacMocks(
       }
       case 'get-marketing-generation-job': {
         const jobId = url.searchParams.get('jobId');
-        const job = marketingGenerationJobs.find((item) => item.id === jobId) ?? marketingGenerationJobFixture();
+        const job =
+          marketingGenerationJobs.find((item) => item.id === jobId) ??
+          marketingGenerationJobFixture();
         await fulfillJson(route, { success: true, data: { job } });
         return;
       }
@@ -1210,28 +1235,21 @@ export async function installPropertyTeamRbacMocks(
           await fulfillJson(route, { success: true, data: { referenceId: 'ref-e2e-001' } });
           return;
         }
-        await fulfillJson(route, {
-          success: true,
-          data: {
-            reference: {
-              id: 'ref-e2e-001',
-              organization_id: 'org-team-e2e-001',
-              property_id: TEAM_E2E_PROPERTY_ID,
-              media_type: 'image',
-              storage_path: `marketing-ai-refs/${TEAM_E2E_PROPERTY_ID}/ref-e2e-001.jpg`,
-              public_url:
-                'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
-              mime_type: 'image/jpeg',
-              file_name: 'balcony.jpg',
-              byte_size: 204_800,
-              width: 1200,
-              height: 1200,
-              duration_seconds: null,
-              last_used_at: null,
-              created_at: '2026-09-12T08:00:00.000Z',
-            },
-          },
-        });
+        if (route.request().method() === 'GET') {
+          await fulfillJson(route, {
+            success: true,
+            data: { references: marketingGenerationReferences },
+          });
+          return;
+        }
+        {
+          const reference = marketingGenerationReferenceFixture();
+          marketingGenerationReferences = [
+            reference,
+            ...marketingGenerationReferences.filter((row) => row.id !== reference.id),
+          ];
+          await fulfillJson(route, { success: true, data: { reference } });
+        }
         return;
       default:
         await fulfillJson(route, { success: true, data: {} });

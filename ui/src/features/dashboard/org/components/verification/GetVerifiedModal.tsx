@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 
 import { useLocation, useParams } from 'react-router-dom';
 
@@ -16,7 +16,6 @@ import { OnboardingProofUpload } from '@/features/dashboard/org/components/onboa
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { RecommendedBadgePreview } from '@/features/dashboard/org/components/verification/RecommendedBadgePreview';
 import { VerificationChecklist } from '@/features/dashboard/org/components/verification/VerificationChecklist';
-import { VerificationTier1SubmittedDocs } from '@/features/dashboard/org/components/verification/VerificationTier1SubmittedDocs';
 import {
   defaultVerificationStepIndex,
   VerificationTierProgress,
@@ -72,6 +71,15 @@ import { PLATFORM_APP_NAME, platformProductLabel } from '@/lib/platformBranding'
 import { cn } from '@/lib/utils';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+// Pulls in a PDF-rendering chain (pdfjs-dist) — this file is imported eagerly by the
+// dashboard shell (`AdminLayout.tsx` via `GetVerifiedSidebarCta`), so keep pdfjs-dist
+// out of the main bundle by deferring this specific import until the modal opens.
+const VerificationTier1SubmittedDocs = lazy(() =>
+  import('@/features/dashboard/org/components/verification/VerificationTier1SubmittedDocs').then(
+    (m) => ({ default: m.VerificationTier1SubmittedDocs })
+  )
+);
 
 type ProofSlot = {
   file: File | null;
@@ -259,12 +267,14 @@ function VerifiedTierStepPanel({
   const isChangesResubmit = changesResubmit && rejectionKind === 'changes';
   const submittedDocsSection =
     showSubmittedDocs && orgId ? (
-      <VerificationTier1SubmittedDocs
-        orgId={orgId}
-        enabled={Boolean(modalOpen)}
-        items={checklist}
-        tierStatus={tier.status}
-      />
+      <Suspense fallback={null}>
+        <VerificationTier1SubmittedDocs
+          orgId={orgId}
+          enabled={Boolean(modalOpen)}
+          items={checklist}
+          tierStatus={tier.status}
+        />
+      </Suspense>
     ) : null;
 
   if (isChangesResubmit) {
@@ -419,13 +429,15 @@ function RecommendedTierSubmittedDocs({
         ) : null}
       </div>
 
-      <VerificationTier1SubmittedDocs
-        orgId={orgId}
-        enabled={modalOpen}
-        items={checklist}
-        tierStatus={tierStatus}
-        tier="recommended"
-      />
+      <Suspense fallback={null}>
+        <VerificationTier1SubmittedDocs
+          orgId={orgId}
+          enabled={modalOpen}
+          items={checklist}
+          tierStatus={tierStatus}
+          tier="recommended"
+        />
+      </Suspense>
     </section>
   );
 }

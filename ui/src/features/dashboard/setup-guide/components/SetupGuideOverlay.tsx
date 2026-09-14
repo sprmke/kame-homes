@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 
 import { Building2, Car, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -7,7 +7,6 @@ import {
   SetupGuideSaveProvider,
   useSetupGuideSaveBridge,
 } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
-import { SetupGuideStepBody } from '@/features/dashboard/setup-guide/components/SetupGuideStepBody';
 import { setupGuideStepShortTitle } from '@/features/dashboard/setup-guide/lib/setupGuideSteps';
 import type {
   SetupGuideStep,
@@ -15,6 +14,7 @@ import type {
 } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
 import { ParkingFlowStepper } from '@/components/parking/ParkingFlowStepper';
+import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -99,6 +99,15 @@ function firstIncompleteStepId(entries: SetupGuideStepProgress[]): string {
 function showFooterSkip(kind: SetupGuideStep['kind'] | undefined): boolean {
   return kind === 'org.verification' || kind === 'org.recommended' || kind === 'org.team';
 }
+
+// Step bodies pull in full settings-section forms (including Building Forms PDF preview,
+// which drags in pdf-lib) — this overlay is mounted app-wide by SetupGuideProvider, so
+// defer the import until a step actually renders instead of shipping it in the main bundle.
+const SetupGuideStepBody = lazy(() =>
+  import('@/features/dashboard/setup-guide/components/SetupGuideStepBody').then((m) => ({
+    default: m.SetupGuideStepBody,
+  }))
+);
 
 function sectionHeading(type: SetupGuideStep['group']['type']): string | null {
   switch (type) {
@@ -208,7 +217,9 @@ export function SetupGuideOverlay() {
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-3 sm:px-5 sm:py-4">
               <div key={activeStep?.id ?? 'setup'} className="motion-safe:animate-setup-guide-pane">
                 <SetupGuideSaveProvider registerSave={registerSave}>
-                  <SetupGuideStepBody step={activeStep} />
+                  <Suspense fallback={<SectionLoadingFallback />}>
+                    <SetupGuideStepBody step={activeStep} />
+                  </Suspense>
                 </SetupGuideSaveProvider>
               </div>
             </div>

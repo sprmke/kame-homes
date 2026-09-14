@@ -1,9 +1,15 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Navigate, Route } from 'react-router-dom';
 
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
-import { PropertyPricingPage } from '@/features/dashboard/pricing/pages/PropertyPricingPage';
+
+const PropertyPricingPage = lazy(() =>
+  import('@/features/dashboard/pricing/pages/PropertyPricingPage').then((m) => ({
+    default: m.PropertyPricingPage,
+  }))
+);
 
 export function pricingPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
   return (

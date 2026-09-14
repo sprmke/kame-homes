@@ -1,16 +1,50 @@
+import { lazy } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
 
-import { ParkingInboxPage } from '@/features/dashboard/inbox/pages/ParkingInboxPage';
 import type { ParkingRouteFn } from '@/features/dashboard/org/routes/guards';
-import { ParkingBookingDetailPage } from '@/features/dashboard/parking/pages/ParkingBookingDetailPage';
-import { ParkingBookingsPage } from '@/features/dashboard/parking/pages/ParkingBookingsPage';
-import { ParkingDashboardPage } from '@/features/dashboard/parking/pages/ParkingDashboardPage';
-import { ParkingFinancePage } from '@/features/dashboard/parking/pages/ParkingFinancePage';
-import { ParkingNotificationsPage } from '@/features/dashboard/parking/pages/ParkingNotificationsPage';
-import { ParkingPricingPage } from '@/features/dashboard/parking/pages/ParkingPricingPage';
-import { ParkingSettingsPage } from '@/features/dashboard/parking/pages/ParkingSettingsPage';
+
+const ParkingInboxPage = lazy(() =>
+  import('@/features/dashboard/inbox/pages/ParkingInboxPage').then((m) => ({
+    default: m.ParkingInboxPage,
+  }))
+);
+const ParkingBookingDetailPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingBookingDetailPage').then((m) => ({
+    default: m.ParkingBookingDetailPage,
+  }))
+);
+const ParkingBookingsPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingBookingsPage').then((m) => ({
+    default: m.ParkingBookingsPage,
+  }))
+);
+const ParkingDashboardPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingDashboardPage').then((m) => ({
+    default: m.ParkingDashboardPage,
+  }))
+);
+const ParkingFinancePage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingFinancePage').then((m) => ({
+    default: m.ParkingFinancePage,
+  }))
+);
+const ParkingNotificationsPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingNotificationsPage').then((m) => ({
+    default: m.ParkingNotificationsPage,
+  }))
+);
+const ParkingPricingPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingPricingPage').then((m) => ({
+    default: m.ParkingPricingPage,
+  }))
+);
+const ParkingSettingsPage = lazy(() =>
+  import('@/features/dashboard/parking/pages/ParkingSettingsPage').then((m) => ({
+    default: m.ParkingSettingsPage,
+  }))
+);
 
 export function parkingAdminRoutes(parkingRoute: ParkingRouteFn): ReactNode {
   return (

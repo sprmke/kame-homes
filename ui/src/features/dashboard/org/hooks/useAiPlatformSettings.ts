@@ -142,6 +142,10 @@ export type AiPlatformPropertySettingsDto = {
   dailyCallLimit: number | null;
   monthlyCallLimit: number | null;
   dailyCostUsdLimit: number | null;
+  imageMonthlyCreditCap: number | null;
+  videoMonthlyCreditCap: number | null;
+  allowPremiumImage: boolean;
+  allowPremiumVideo: boolean;
   updatedAt: string | null;
 };
 
@@ -169,6 +173,8 @@ export function useUpdateAiPlatformPropertySettings() {
       dailyCallLimit?: number | null;
       monthlyCallLimit?: number | null;
       dailyCostUsdLimit?: number | null;
+      imageMonthlyCreditCap?: number | null;
+      videoMonthlyCreditCap?: number | null;
     }) =>
       fetchOrgAi<AiPlatformPropertySettingsDto>(
         scopedFunctionsUrl('/ai-platform-property-settings', propertyId),

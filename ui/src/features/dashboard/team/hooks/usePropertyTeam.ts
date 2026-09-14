@@ -52,6 +52,8 @@ export function usePropertyTeam() {
       return loadPropertyTeam(propertyId);
     },
     enabled: Boolean(propertyId),
+    // Membership/roles change infrequently; mutations already invalidate this exact key.
+    staleTime: 60_000,
   });
 }
 

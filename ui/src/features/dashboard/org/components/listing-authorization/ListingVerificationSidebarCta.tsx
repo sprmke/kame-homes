@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
 import { Home } from 'lucide-react';
 
 import { useListingContractRenewalContext } from '@/features/dashboard/org/components/listing-authorization/ListingContractRenewalProvider';
-import { ListingVerificationModal } from '@/features/dashboard/org/components/listing-authorization/ListingVerificationModal';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import {
@@ -16,6 +15,14 @@ import { LISTING_VERIFICATION_SIDEBAR_SUBLABEL } from '@/features/dashboard/org/
 import { listingVerificationSidebarLabel } from '@/features/dashboard/org/lib/listingVerificationTiers';
 
 import { cn } from '@/lib/utils';
+
+// Pulls in submitted-doc previews (pdfjs-dist) — this CTA is mounted eagerly by
+// AdminLayout, so defer the import until the modal actually opens.
+const ListingVerificationModal = lazy(() =>
+  import('@/features/dashboard/org/components/listing-authorization/ListingVerificationModal').then(
+    (m) => ({ default: m.ListingVerificationModal })
+  )
+);
 
 const OPEN_QUERY = 'listingVerification';
 
@@ -66,17 +73,19 @@ export function ListingVerificationSidebarCta({ collapsed, variant = 'sidebar' }
   const label = listingVerificationSidebarLabel(authorization);
 
   const modal = (
-    <ListingVerificationModal
-      open={open}
-      onOpenChange={setVerificationOpen}
-      orgId={org.id}
-      orgSlug={org.slug}
-      listingKind={listingKind}
-      listingId={listing.id}
-      listingName={listing.name}
-      listingSettings={listing.settings}
-      isOwner={isOwner}
-    />
+    <Suspense fallback={null}>
+      <ListingVerificationModal
+        open={open}
+        onOpenChange={setVerificationOpen}
+        orgId={org.id}
+        orgSlug={org.slug}
+        listingKind={listingKind}
+        listingId={listing.id}
+        listingName={listing.name}
+        listingSettings={listing.settings}
+        isOwner={isOwner}
+      />
+    </Suspense>
   );
 
   if (variant === 'icon') {

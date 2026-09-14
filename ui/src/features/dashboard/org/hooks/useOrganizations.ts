@@ -7,6 +7,9 @@ import type { Organization, Property } from '@/features/dashboard/org/types';
 
 export const ORGANIZATIONS_QUERY_KEY = ['organizations'] as const;
 
+/** Org/property membership rarely changes mid-session — avoid refetching on every mount/focus. */
+const ORG_STRUCTURE_STALE_TIME = 5 * 60_000;
+
 type UseOrganizationsOptions = {
   enabled?: boolean;
 };
@@ -16,6 +19,7 @@ export function useOrganizations(options?: UseOrganizationsOptions) {
     queryKey: ORGANIZATIONS_QUERY_KEY,
     queryFn: () => callEdgeFunction<{ organizations: Organization[] }>('list-organizations'),
     enabled: options?.enabled ?? true,
+    staleTime: ORG_STRUCTURE_STALE_TIME,
   });
 }
 
@@ -27,6 +31,7 @@ export function useProperties(orgSlug: string | undefined) {
       callEdgeFunction<{ properties: Property[] }>(
         `list-properties?orgSlug=${encodeURIComponent(orgSlug!)}`
       ),
+    staleTime: ORG_STRUCTURE_STALE_TIME,
   });
 }
 
@@ -39,6 +44,7 @@ export function useAllOrgProperties(organizations: Organization[]) {
         callEdgeFunction<{ properties: Property[] }>(
           `list-properties?orgSlug=${encodeURIComponent(org.slug)}`
         ),
+      staleTime: ORG_STRUCTURE_STALE_TIME,
     })),
   });
 

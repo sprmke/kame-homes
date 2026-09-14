@@ -76,6 +76,8 @@ export function useOrgTeam(orgId: string | null) {
       return loadOrgTeam(orgSlug, orgId);
     },
     enabled: Boolean(orgSlug && orgId),
+    // Membership/roles change infrequently; mutations already invalidate this exact key.
+    staleTime: 60_000,
   });
 }
 
