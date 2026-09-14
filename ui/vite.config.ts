@@ -170,8 +170,8 @@ function gfmPwaPlugin(): Plugin[] {
     },
     manifest: {
       id: '/?app',
-      name: 'Stays — Property Management',
-      short_name: 'Stays',
+      name: 'Kame Homes',
+      short_name: 'Kame Homes',
       description:
         'Manage bookings, guest messages, pricing and your property operations from one place.',
       lang: 'en',

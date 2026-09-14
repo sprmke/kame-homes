@@ -4,6 +4,7 @@ import { Download, Share, X } from 'lucide-react';
 
 import { aboveBottomTabBarOverlayClassName } from '@/components/mobile/BottomTabBar';
 import { useDisplayMode } from '@/hooks/useDisplayMode';
+import { PLATFORM_APP_NAME } from '@/lib/platformBranding';
 import { getPwaCapabilities } from '@/lib/pwa/capabilities';
 import { canPromptInstall, promptInstall, subscribeInstallPrompt } from '@/lib/pwa/installPrompt';
 import { cn } from '@/lib/utils';
@@ -57,7 +58,7 @@ export function InstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Install app"
+      aria-label={`Install ${PLATFORM_APP_NAME}`}
       className={cn(
         /* Above BottomTabBar (z-40); below Sheet/Dialog overlays (z-50 / z-100). */
         'fixed inset-x-0 z-[45] flex justify-center px-3',
@@ -70,7 +71,9 @@ export function InstallPrompt() {
           <Download className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground text-[13px] font-semibold leading-tight">Install Stays</p>
+          <p className="text-foreground text-[13px] font-semibold leading-tight">
+            Install {PLATFORM_APP_NAME}
+          </p>
           {canPrompt ? (
             <p className="text-muted-foreground text-[11px] leading-snug">
               Add it to your device for a full-screen app with notifications.

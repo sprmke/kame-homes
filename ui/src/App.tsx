@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { GuestAuthProvider } from '@/features/guest/auth/context/GuestAuthContext';
@@ -5,11 +7,13 @@ import { GuestEmbedPreviewEffect } from '@/features/guest/components/GuestEmbedP
 import { SavedPropertiesSync } from '@/features/guest/marketing/properties/components/SavedPropertiesSync';
 import { ModeSwitchTransitionProvider } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 
+import { PlatformMaintenanceBanner } from '@/components/platform/PlatformMaintenanceBanner';
 import { PwaProvider } from '@/components/pwa/PwaProvider';
 import { PwaQueryPersistence } from '@/components/pwa/PwaQueryPersistence';
+import { PageLoadingFallback } from '@/components/routing/RouteFallback';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-import { PlatformMaintenanceBanner } from '@/components/platform/PlatformMaintenanceBanner';
+
 import { AppRoutes } from '@/routes';
 
 // Conservative defaults: short stale time so admins see fresh data, but refetch on window focus
@@ -36,7 +40,9 @@ function App() {
             <SavedPropertiesSync />
             <PwaProvider />
             <PlatformMaintenanceBanner />
-            <AppRoutes />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AppRoutes />
+            </Suspense>
           </ModeSwitchTransitionProvider>
         </GuestAuthProvider>
       </TooltipProvider>

@@ -1,14 +1,15 @@
 /**
  * Env-driven platform product branding — never hardcode a host org name here.
- * Deployments set `VITE_PLATFORM_APP_NAME` / `VITE_PLATFORM_CONTACT_EMAIL` when the
- * marketing site and legal pages need an operator label.
+ * Default product name is Kame Homes. Deployments may set `VITE_PLATFORM_APP_NAME`
+ * / `VITE_PLATFORM_CONTACT_EMAIL` for a different operator label.
  */
 
-const envAppName = import.meta.env.VITE_PLATFORM_APP_NAME?.trim();
+import { resolvePlatformAppName } from '@/lib/platformAppName';
+
 const envContactEmail = import.meta.env.VITE_PLATFORM_CONTACT_EMAIL?.trim();
 
-/** Optional operator/product name for app-level marketing & legal chrome. */
-export const PLATFORM_APP_NAME = envAppName || '';
+/** Product name for marketing, legal, tab titles, PWA install copy, and super-admin chrome. */
+export const PLATFORM_APP_NAME = resolvePlatformAppName(import.meta.env.VITE_PLATFORM_APP_NAME);
 
 /** Support / legal contact — falls back to a placeholder when unset. */
 export const PLATFORM_CONTACT_EMAIL = envContactEmail || 'support@example.com';

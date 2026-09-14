@@ -37,7 +37,19 @@ export function PwaProvider() {
   const { pendingCount, syncing } = useOfflineSync();
   const [killed, setKilled] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const swUpdatePollIdRef = useRef<number | null>(null);
   const queryClient = useQueryClient();
+
+  // Belt-and-suspenders: clear the SW-update poll interval on unmount even though
+  // this component is meant to mount once near the app root.
+  useEffect(() => {
+    return () => {
+      if (swUpdatePollIdRef.current != null) {
+        window.clearInterval(swUpdatePollIdRef.current);
+        swUpdatePollIdRef.current = null;
+      }
+    };
+  }, []);
 
   // Offline write queue — listeners for online/foreground/background-sync + an
   // initial drain.
@@ -53,8 +65,11 @@ export function PwaProvider() {
       if (!registration) return;
       registrationRef.current = registration;
       setSwRegistration(registration);
-      // Poll for a freshly deployed SW while the app stays open.
-      window.setInterval(() => {
+      // Poll for a freshly deployed SW while the app stays open. Clear any prior
+      // interval first — `onRegisteredSW` can fire more than once (React Strict
+      // Mode double-invoke, or a rare re-registration) and would otherwise stack.
+      if (swUpdatePollIdRef.current != null) window.clearInterval(swUpdatePollIdRef.current);
+      swUpdatePollIdRef.current = window.setInterval(() => {
         registration.update().catch(() => {});
       }, SW_UPDATE_POLL_MS);
     },

@@ -20,6 +20,10 @@ export const RUNTIME_CACHES = {
   images: `${CACHE_PREFIX}images`,
   static: `${CACHE_PREFIX}static`,
   api: `${CACHE_PREFIX}api`,
+  // Separate from `api` — Workbox's ExpirationPlugin tracks max-age per cache
+  // *name*, so a short-lived policy (booking status) must not share a cache
+  // with the longer-lived general API allowlist.
+  bookingStatus: `${CACHE_PREFIX}booking-status`,
 } as const;
 
 /** IndexedDB used by the offline outbox (Phase 4) — named here so logout purge

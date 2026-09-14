@@ -220,12 +220,38 @@ registerRoute(
   })
 );
 
+// Booking status is the one read view an operator actively acts on (check-in/out,
+// document review) — never let a flaky-but-connected network silently serve a
+// multi-day-old status via the NetworkFirst fallback. Registered before the general
+// allowlist below so it wins the route match for these two function names.
+const BOOKING_STATUS_FUNCTION_RE = /\/functions\/v1\/(get-booking|list-bookings)(?:[/?]|$)/;
+
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && BOOKING_STATUS_FUNCTION_RE.test(url.pathname),
+  new NetworkFirst({
+    cacheName: RUNTIME_CACHES.bookingStatus,
+    networkTimeoutSeconds: 6,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({
+        maxEntries: 200,
+        // Minutes, not days — this is an offline/flaky-network fallback only, not a
+        // read view the app should ever silently serve as if it were current.
+        maxAgeSeconds: 60 * 10,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
 // Allowlisted read-only Edge Function GETs — NetworkFirst with a short timeout so
 // the app stays live but can fall back to the last good copy offline. The
 // allowlist itself is enforced app-side (`@/lib/pwa/offlineQueryAllowlist`); here
-// we just cache any GET to a function whose name looks read-only.
+// we just cache any GET to a function whose name looks read-only. Booking status
+// is excluded (see `BOOKING_STATUS_FUNCTION_RE` above) — it gets a much shorter
+// max age since staleness there is operationally misleading, not just cosmetic.
 const READONLY_FUNCTION_RE =
-  /\/functions\/v1\/(get-|list-|dashboard-stats|finance-summary|finance-bookings|finance-line-items|maintenance-items|maintenance-summary|notifications-list|social-inbox-threads|social-inbox-messages|org-settings|property-templates-settings|parking-settings|guest-trips|guest-messages|guest-profile)/;
+  /\/functions\/v1\/(?!(?:get-booking|list-bookings)(?:[/?]|$))(get-|list-|dashboard-stats|finance-summary|finance-bookings|finance-line-items|maintenance-items|maintenance-summary|notifications-list|social-inbox-threads|social-inbox-messages|org-settings|property-templates-settings|parking-settings|guest-trips|guest-messages|guest-profile)/;
 
 registerRoute(
   ({ url, request }) => request.method === 'GET' && READONLY_FUNCTION_RE.test(url.pathname),
