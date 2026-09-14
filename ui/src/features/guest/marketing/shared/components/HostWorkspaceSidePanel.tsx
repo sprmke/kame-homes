@@ -46,7 +46,7 @@ export function HostWorkspaceSidePanel({ variant, className }: HostWorkspaceSide
     >
       <Link
         to="/for-hosts"
-        className="group absolute left-6 top-8 z-20 min-h-[44px] rounded-lg outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80 xl:left-10 xl:top-10"
+        className="group absolute left-4 top-4 z-20 min-h-[44px] rounded-lg outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/80"
       >
         <MarketingBrandLogo
           tone="onPrimary"

@@ -13,9 +13,25 @@ import {
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
 
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const CARD_SCROLL_AMOUNT = 304;
+const SKELETON_CARD_COUNT = 4;
+
+/** Matches the loaded card's footprint so the section doesn't jump height once data arrives. */
+function FeaturedPropertyCardSkeleton() {
+  return (
+    <div className="w-[min(78vw,300px)] shrink-0 sm:w-[280px] lg:w-[300px]" aria-hidden>
+      <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+      <div className="mt-3 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3.5 w-1/2" />
+        <Skeleton className="h-3.5 w-1/3" />
+      </div>
+    </div>
+  );
+}
 
 export function FeaturedProperties() {
   const ref = useRef<HTMLElement>(null);
@@ -116,45 +132,54 @@ export function FeaturedProperties() {
             className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-5 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            {stays.map((stay, index) => (
-              <motion.article
-                key={stay.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.4, delay: index * 0.06 }}
-                className="w-[min(78vw,300px)] shrink-0 snap-start sm:w-[280px] lg:w-[300px]"
-              >
-                <Link to={`/properties/${stay.slug}`} className="group block">
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-                    <Image
-                      src={stay.images[0] ?? ''}
-                      alt={stay.name}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-foreground line-clamp-1 font-semibold">{stay.name}</h3>
-                      {stay.rating != null && stay.rating > 0 && (
-                        <span className="text-foreground flex shrink-0 items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden />
-                          {stay.rating}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {stay.location}
-                      {stay.guests > 0 ? ` · ${stay.guests} guests` : ''}
-                    </p>
-                    <p className="text-foreground text-sm">
-                      <span className="font-semibold">₱{stay.price.toLocaleString()}</span>
-                      <span className="text-muted-foreground"> / night</span>
-                    </p>
-                  </div>
-                </Link>
-              </motion.article>
-            ))}
+            {featuredQuery.isLoading
+              ? Array.from({ length: SKELETON_CARD_COUNT }).map((_, i) => (
+                  <FeaturedPropertyCardSkeleton key={i} />
+                ))
+              : stays.map((stay, index) => (
+                  <motion.article
+                    key={stay.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.4, delay: index * 0.06 }}
+                    className="w-[min(78vw,300px)] shrink-0 snap-start sm:w-[280px] lg:w-[300px]"
+                  >
+                    <Link to={`/properties/${stay.slug}`} className="group block">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+                        <Image
+                          src={stay.images[0] ?? ''}
+                          alt={stay.name}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-foreground line-clamp-1 font-semibold">
+                            {stay.name}
+                          </h3>
+                          {stay.rating != null && stay.rating > 0 && (
+                            <span className="text-foreground flex shrink-0 items-center gap-1 text-sm">
+                              <Star
+                                className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                                aria-hidden
+                              />
+                              {stay.rating}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-muted-foreground text-sm">
+                          {stay.location}
+                          {stay.guests > 0 ? ` · ${stay.guests} guests` : ''}
+                        </p>
+                        <p className="text-foreground text-sm">
+                          <span className="font-semibold">₱{stay.price.toLocaleString()}</span>
+                          <span className="text-muted-foreground"> / night</span>
+                        </p>
+                      </div>
+                    </Link>
+                  </motion.article>
+                ))}
           </div>
         </div>
 

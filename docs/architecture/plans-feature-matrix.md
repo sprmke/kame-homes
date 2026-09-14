@@ -146,9 +146,9 @@ Client gate: `AiStudioSection` gates the **composer only** via `useFeatureGate('
 
 Team RBAC reuses **`marketing.generate:add`** — no new permission leaf in Phase 1. Phase 2 (shipped) adds **`marketing.generate.video:add`** — see the dedicated section below.
 
-**`aiMonthlyCreditAllowance` raised in the same migration** — growth 1,000 → **5,000**, pro 10,000 → **25,000**, managed 30,000 → **60,000**, business_plus 20,000 → **50,000** (the same 2.5x as Business). The old figures were sized when every AI feature was text-only (a caption is ~1 credit); at 45 credits an image, Pro's 1,000 was ~22 images a month shared with Inbox, the Dashboard Assistant and receipt validation. At `credit_unit_usd = 0.001` these are also the **hard ceiling on Google spend per org per month** (the wallet gate makes overrun impossible without a purchased top-up): Pro $5, Business $25, Portfolio $50, Managed $60 — against list prices of PHP 499 / 1,499 / 2,999 / 3,499. Those are ceilings at full burn, not expected spend, but they are worth revisiting against real burn data before Phase 2 ships video.
+**`aiMonthlyCreditAllowance` raised in the same migration** — growth 1,000 → **5,000**, pro 10,000 → **25,000**, managed 30,000 → **60,000**, business_plus 20,000 → **50,000** (the same 2.5x as Business). Phase 3 **did not change** these figures; they stay until live burn data exists. At `credit_unit_usd = 0.001` these are also the **hard ceiling on Google spend per org per month** (the wallet gate makes overrun impossible without a purchased top-up): Pro $5, Business $25, Portfolio $50, Managed $60.
 
-Compare-matrix row + tier-card bullet: `PLAN_FEATURE_ROWS` (`marketing` group) + `PLAN_TIER_CARD_GAINS.growth` in `planPresentation.ts`; copy in `featureGateCopy.ts`. Plan: [`../workflow/in-progress/marketing-ai-asset-generation.md`](../workflow/in-progress/marketing-ai-asset-generation.md).
+Compare-matrix row + tier-card bullet: `PLAN_FEATURE_ROWS` (`marketing` group) + `PLAN_TIER_CARD_GAINS.growth` in `planPresentation.ts`; copy in `featureGateCopy.ts`. Plan: [`../workflow/done/marketing-ai-asset-generation.md`](../workflow/done/marketing-ai-asset-generation.md).
 
 ### `aiMarketingVideoGeneration` (Marketing Studio Generate tab, video — `20261316120500_marketing_generation_video_plan_feature.sql`)
 
@@ -164,7 +164,7 @@ View-past-output rule applies identically — `get-marketing-generation-job` and
 
 Two new activity actions: `marketing.video_generation_started` (submit) and `marketing.video_generated` (finalize — logged by whichever of the poller or the cron sweeper wins the finalize race, with a `cron` actor in the sweeper's case).
 
-Plan: [`../workflow/in-progress/marketing-ai-asset-generation.md`](../workflow/in-progress/marketing-ai-asset-generation.md) (Phase 2).
+Plan: [`../workflow/done/marketing-ai-asset-generation.md`](../workflow/done/marketing-ai-asset-generation.md) (Phase 2).
 
 ---
 

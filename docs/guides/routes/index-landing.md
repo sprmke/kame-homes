@@ -30,6 +30,8 @@ Route: `/`
 
 Public **guest explore home**. Wrapped in **`MarketingLayoutShell`** (nav, footer, theme toggle). Operational booking calendar lives at **`/properties/:propertySlug/calendar`**.
 
+**Browser tab title:** `Kame Homes - Home`. The HTML fallback before React hydrates is `Kame Homes` (never `Stays`).
+
 **Mobile shell (2026-09-10):** `MarketingLayoutShell` renders a 5-tab `BottomTabBar` (Explore/Properties/Parkings/Account/More, via `MarketingBottomNav.tsx`) on phone/tablet, replacing the old hamburger + full-screen overlay menu. **More** opens `MarketingMoreSheet` (For hosts/Company/Legal links, theme toggle, `ModeSwitcher`, **Dashboard** when signed in, sign out). Top header stays fixed but is logo-only below `lg` — nav links/CTA/account move into the tab bar + sheet. This shell applies uniformly across every route under `MarketingLayoutShell` (this landing page, `/for-hosts*`, `/properties*`, `/parkings*`, `/developments*`, `/services`, `/about`, `/contact`, `/support`, legal pages, `/account/*`) — see [for-hosts.md](./for-hosts.md) and the `mobile-responsive` skill/rule §2b for the full pattern rather than repeating it on every page.
 
 **Legacy compat:** `/?property=<slug>` redirects to **`/properties/<slug>/calendar`**.

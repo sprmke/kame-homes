@@ -80,6 +80,8 @@ Property Settings is where you complete operational setup: basic info, capacity,
   A: Under **Reviews & vouchers**, open **Manage** on Next-stay vouchers. Turn them on, pick a **reveal style** (Reel, Wheel, or Flip), choose which discounts to include (5% through free stay), and set a **Weight** for each — higher weight = more often. **Odds** update automatically; you do not need the weights to add to 100. Use the nightly rate select (weekday / weekend / custom) to see about how much each prize saves. Guests who leave a review can claim one of those discounts. Apply the code manually on their next booking — automatic redemption is not built yet.
 - Q: Can I copy settings from another property onto this one?
   A: Yes. Use **Copy from…** on this Settings page (when you have at least two properties), or **Copy settings** on the org Properties page. Pick the source property and which groups to copy. Payment methods are not copied.
+- Q: What do Image / Video monthly credits do?
+  A: They cap how many AI Generate credits this property can spend on images or video this month. Leave blank to use 60% of the org allowance. Premium quality is not set here.
 
 ---
 
@@ -395,14 +397,18 @@ Per-property overrides for the platform AI usage limits. NULL limits inherit the
 
 **Plan gating:** Hidden from the secondary settings nav and the settings card unless the property plan includes AI credits (`aiMonthlyCreditAllowance` > 0 — Growth/Pro and above). Free and Starter do not show this section.
 
-| Field                | Column                 | Notes                                              |
-| -------------------- | ---------------------- | -------------------------------------------------- |
-| Enable               | `enabled`              | Master per-property AI toggle; also gated globally |
-| Daily call limit     | `daily_call_limit`     | Blank = inherit from organization                  |
-| Monthly call limit   | `monthly_call_limit`   | Blank = inherit from organization                  |
-| Daily cost USD limit | `daily_cost_usd_limit` | Blank = inherit from organization                  |
+| Field                    | Storage                                                       | Notes                                              |
+| ------------------------ | ------------------------------------------------------------- | -------------------------------------------------- |
+| Enable                   | `enabled`                                                     | Master per-property AI toggle; also gated globally |
+| Daily call limit         | `daily_call_limit`                                            | Blank = inherit from organization                  |
+| Monthly call limit       | `monthly_call_limit`                                          | Blank = inherit from organization                  |
+| Daily cost USD limit     | `daily_cost_usd_limit`                                        | Blank = inherit from organization                  |
+| Image monthly credit cap | `feature_configs.marketing_image_generate.monthly_credit_cap` | Blank = 60% of org monthly allowance               |
+| Video monthly credit cap | `feature_configs.marketing_video_generate.monthly_credit_cap` | Blank = 60% of org monthly allowance               |
 
-Save path: section-local **Save** button → `PATCH ai-platform-property-settings?property_id=` (`settings.aiOverrides:edit` + plan `aiMonthlyCreditAllowance`). Hook: `useAiPlatformPropertySettings.ts` (added to `useAiPlatformSettings.ts`). UI: `PropertyAiPlatformSection.tsx`.
+Hosts cannot enable Premium. Super-admin sets `allow_premium_tier` from the org hub **AI credits** card (`ai-platform-generation-overrides`).
+
+Save path: section-local **Save** button → `PATCH ai-platform-property-settings?property_id=` (`settings.aiOverrides:edit` + plan `aiMonthlyCreditAllowance`). Cap changes log `settings.updated` with `area: 'AI generation caps'`. Hook: `useAiPlatformPropertySettings.ts` (added to `useAiPlatformSettings.ts`). UI: `PropertyAiPlatformSection.tsx`.
 
 ---
 

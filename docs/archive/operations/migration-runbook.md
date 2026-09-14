@@ -513,7 +513,7 @@ Notes:
 
 ### 11d Marketing AI asset generation — Phase 1 (images), September 2026
 
-Plan: [`../../workflow/in-progress/marketing-ai-asset-generation.md`](../../workflow/in-progress/marketing-ai-asset-generation.md)
+Plan: [`../../workflow/done/marketing-ai-asset-generation.md`](../../workflow/done/marketing-ai-asset-generation.md)
 
 | File                                                        | Purpose                                                                                                                                                                                                                                                                                                                                                              | Reversible?                                                                                                            |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -538,6 +538,18 @@ Plan: [`../../workflow/in-progress/marketing-ai-asset-generation.md`](../../work
 - **New optional edge secret `MARKETING_GENERATION_CRON_SECRET`** (+ Vault key `marketing_generation_cron_secret`) — see `scheduled-jobs-and-testing.md` §1.
 - After a hosted deploy: `SELECT public.sync_marketing_generation_cron_job();` once to register the cron job, then confirm the Vault secret exists.
 - Verify after applying: `SELECT code, features->>'aiMarketingVideoGeneration' FROM pricing_plans ORDER BY sort_order;`
+
+### 11f Duplicate version repair (local CLI), September 2026
+
+Five never-applied files shared a version prefix with an already-recorded migration, so `bun run db:migrate` stopped. SQL was **copied unchanged** to unique timestamps; the colliding filenames were removed. Applied files were not edited.
+
+| New file                                                   | Original colliding version (already recorded name stayed) |
+| ---------------------------------------------------------- | --------------------------------------------------------- |
+| `20261316120700_azure_north_pool_defaults.sql`             | `20261231150000` (`org_role_listing_scope`)               |
+| `20261316120800_restore_platform_host_settings.sql`        | `20261231152000` (`drop_org_import_permission`)           |
+| `20261316120900_platform_host_settings_rls_fix.sql`        | `20261231140100` (`org_team_template_role_ids`)           |
+| `20261316121000_guest_doc_storage_service_role_writes.sql` | `20261310120000` (`analytics_review_notification_type`)   |
+| `20261316121100_dashboard_assistant_expire_cron.sql`       | `20261311120000` (`analytics_ai_review_cron`)             |
 
 ---
 

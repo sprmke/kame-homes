@@ -28,6 +28,7 @@ export function MarketingImage({
         alt={alt}
         className={cn('absolute inset-0 h-full w-full', className)}
         loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
         decoding="async"
       />
     );
@@ -41,6 +42,7 @@ export function MarketingImage({
       height={height}
       className={className}
       loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : undefined}
       decoding="async"
     />
   );

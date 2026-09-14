@@ -1,6 +1,12 @@
+import { lazy } from 'react';
+
 import { Route } from 'react-router-dom';
 
-import { PayParkingPage } from '@/features/guest/pay-parking/pages/PayParkingPage';
+const PayParkingPage = lazy(() =>
+  import('@/features/guest/pay-parking/pages/PayParkingPage').then((m) => ({
+    default: m.PayParkingPage,
+  }))
+);
 
 /** Public pay-parking form — guests and admins (no auth required). */
 export const payParkingRoutes = [

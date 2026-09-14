@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,7 @@ import {
 
 import { BottomBarSlotProvider } from '@/components/mobile/BottomBarSlot';
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
+import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { useFavicon } from '@/lib/favicon';
 import { APP_TITLE, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
@@ -78,10 +79,16 @@ export function MarketingLayoutShell() {
       )}
     >
       {!isFormPage && <MarketingNav />}
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      {!isFormPage && <MarketingFooter />}
+      {/* Footer committed together with the route content (not as an eager sibling) —
+          otherwise it paints at its "nothing loaded yet" position first and gets
+          shoved down once the lazy page chunk resolves, which is a large,
+          highly-visible layout shift (CLS) on first load. */}
+      <Suspense fallback={<SectionLoadingFallback />}>
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        {!isFormPage && <MarketingFooter />}
+      </Suspense>
     </div>
   );
 

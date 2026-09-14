@@ -1,3 +1,5 @@
+import { lazy } from 'react';
+
 import { Navigate, Route } from 'react-router-dom';
 
 import { GuestAccountLayout } from '@/features/guest/account/components/GuestAccountLayout';
@@ -7,12 +9,37 @@ import {
   GUEST_ACCOUNT_PROFILE_PATH,
   GUEST_ACCOUNT_STAYS_PATH,
 } from '@/features/guest/account/lib/guestAccountPaths';
-import { GuestAccountIndexPage } from '@/features/guest/account/pages/GuestAccountIndexPage';
-import { GuestMessagesPage } from '@/features/guest/account/pages/GuestMessagesPage';
-import { GuestProfilePage } from '@/features/guest/account/pages/GuestProfilePage';
-import { GuestTicketsPage } from '@/features/guest/account/pages/GuestTicketsPage';
-import { GuestVouchersPage } from '@/features/guest/account/pages/GuestVouchersPage';
-import { GuestWishlistPage } from '@/features/guest/account/pages/GuestWishlistPage';
+
+const GuestAccountIndexPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestAccountIndexPage').then((m) => ({
+    default: m.GuestAccountIndexPage,
+  }))
+);
+const GuestMessagesPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestMessagesPage').then((m) => ({
+    default: m.GuestMessagesPage,
+  }))
+);
+const GuestProfilePage = lazy(() =>
+  import('@/features/guest/account/pages/GuestProfilePage').then((m) => ({
+    default: m.GuestProfilePage,
+  }))
+);
+const GuestTicketsPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestTicketsPage').then((m) => ({
+    default: m.GuestTicketsPage,
+  }))
+);
+const GuestVouchersPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestVouchersPage').then((m) => ({
+    default: m.GuestVouchersPage,
+  }))
+);
+const GuestWishlistPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestWishlistPage').then((m) => ({
+    default: m.GuestWishlistPage,
+  }))
+);
 
 export const guestAccountRoutes = [
   <Route

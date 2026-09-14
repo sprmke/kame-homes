@@ -118,7 +118,8 @@ its first line. GET/HEAD/OPTIONS always pass; a missing/expired sudo token retur
 - **Gated functions:** `org-subscriptions-admin`, `platform-payment-settings`,
   `platform-parking-settings`, `parking-payouts`, `ai-platform-credit-wallet`,
   `ai-platform-global-settings`, `dashboard-assistant-global-settings`, `pricing-plans`,
-  `platform-settings`, `update-platform-host-settings`, `decide-contract-consideration`.
+  `platform-settings`, `update-platform-host-settings`, `decide-contract-consideration`,
+  `ai-platform-generation-overrides`.
   Add a row to `GATED_SUPER_ADMIN_ACTIONS` + the guard call to gate a new one.
 - Not gated: support tickets, Help Center FAQ CRUD (low risk). The `serveAuthenticated`
   approval-queue functions (`approve-org-verification`, `approve-listing-authorization`, …)

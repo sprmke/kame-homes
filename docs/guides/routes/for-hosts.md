@@ -2,7 +2,7 @@
 title: 'For hosts — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-09-01
+updated: 2026-09-14
 ---
 
 # For hosts — operator guide
@@ -29,6 +29,8 @@ Route: `/for-hosts` · `/for-hosts/pricing` · `/for-hosts/preview` (ground-up r
 
 Host acquisition landing (PMA `(marketing)/for-hosts`). The page opens with the platform value proposition and an in-browser, video-like dashboard tour, then capability stats, host onboarding steps, and host reviews.
 
+**Browser tab title:** `Kame Homes - For Hosts` (`/for-hosts/pricing` is `Kame Homes - Pricing`). HTML fallback is `Kame Homes`.
+
 **Pricing** lives on **`/for-hosts/pricing`**. It loads the **active subscription** `pricing_plans` catalog via **`list-public-pricing-plans`** (same ladder as property Plans — Free, Starter, Pro, Business, Managed; excludes **Commission** and org-only **Business Plus**) and renders the shared **`PlanTierRail`** + **`PlanFeatureMatrix`** from `planPresentation.ts` (discounted prices, promo badges, incremental feature bullets). Plan CTAs go to **`/for-hosts/login`**; **Managed** goes to **`/contact?category=business_inquiry&subject=Managed%20plan%20inquiry`** (same ticket flow as Help & Support). Footer **Pricing** and host-mode nav **Pricing** link here. Legacy **`/for-hosts#pricing`** redirects to the pricing page.
 
 **Keep in sync:** when you change `pricing_plans` seeds/super-admin catalog prices or `planPresentation.ts` copy (including entitlements such as **`marketingStudio`** — Content Studio edit & download is **Pro+** as of `20261210120200`; **`marketingPublishLimitPerGroup`** — Publish in Meta platforms is **Business+** as of `20261210120400`; **`propertyShowcase`** — Showcase templates **Pro+**; **`customPages`** — Public Pages gallery & editor explore-open on Free+ (`20261212120000`); **`publicPagesAutosave`** — save/autosave **Pro+** as of `20261210120000`; **`calendarSync`** — Airbnb two-way iCal sync **Pro+** as of `20261213120300`; **`smartPricing`** — Smart Pricing (AI dynamic nightly rates) **Pro+** as of `20261305120200`), verify this page — see **`docs/architecture/plans-feature-matrix.md`** § Public marketing page and **`.cursor/rules/documentation-maintenance.mdc`**.
@@ -41,7 +43,7 @@ The ~2m 54s tour uses Remotion Player and **19 variable-length chapters** (8–1
 
 Host-mode navigation replaces the explore links with **Features**, **How It Works**, **Reviews** (anchors on `/for-hosts`; from other host marketing routes they link back to `/for-hosts#…`), and **Pricing** → **`/for-hosts/pricing`**. Anchor targets use smooth scrolling unless reduced motion is enabled. Host marketing routes under **`/for-hosts/*`** share host-mode chrome but only the landing page defines the Features / How It Works / Reviews sections.
 
-**CTA difference from PMA:** When signed out, host marketing shows solid **Explore** (mode switch) + outlined **Sign In** → **`/for-hosts/login`**. When signed in, **Explore** + avatar menu (**Dashboard** → **`/org`**, then the hub opens an organization you can access; log out). Explore marketing keeps **Become a host?** + guest avatar when signed in.
+**CTA difference from PMA:** When signed out, host marketing shows solid **Explore** (mode switch) + outlined **Sign In** → **`/for-hosts/login`**. The solid pill is brand primary (teal) in light and dark, on both the transparent and scrolled header. When signed in, **Explore** + avatar menu (**Dashboard** → **`/org`**, then the hub opens an organization you can access; log out). Explore marketing keeps **Become a host?** + guest avatar when signed in. Same primary fill.
 
 **Mode switch:** One global curtain (`ModeSwitchTransitionProvider` in `App.tsx`) covers every explore ↔ host crossing so the overlay survives layout remounts:
 

@@ -189,7 +189,7 @@ Staged, from hardening Phase 2:
 Buckets: `payment-receipts`, `valid-ids`, `pet-vaccinations`, `pet-images`, `parking-endorsements`.
 
 - [x] Key-shape audit tooling: `bun scripts/media/storage-audit.ts --key-shapes` (run on hosted dev after V-1).
-- [x] Phase 1 migration: drop anon **writes** on five PII buckets (`20261310120000_guest_doc_storage_service_role_writes.sql`).
+- [x] Phase 1 migration: drop anon **writes** on five PII buckets (`20261316121000_guest_doc_storage_service_role_writes.sql`).
 - [x] Phase 2: private buckets + signed URLs (`20261310120100_guest_doc_storage_private_reads.sql`, `_shared/storageSignedUrl.ts`, `get-form` signs asset fields, `get-booking-asset-url` + UI `storageUrls.ts` extended).
 
 #### 2.3 Cron fail-closed

@@ -59,6 +59,9 @@ export function ListingGallery({
         fill
         className="object-cover transition-transform duration-500 group-hover:scale-110"
         sizes={sizes}
+        // Every layout's first tile (index 0) is the above-the-fold hero — load it
+        // eagerly so it doesn't sit behind the gallery's own lazy-loading gate.
+        priority={index === 0}
       />
       <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
       {showOverlay && overlayContent}

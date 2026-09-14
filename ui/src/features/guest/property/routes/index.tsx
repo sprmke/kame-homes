@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, useEffect, useMemo, useState } from 'react';
 
 import { Navigate, Route, useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import { CalendarDays, Home, MessageCircle } from 'lucide-react';
 
-import { GuestBookingDocumentPage } from '@/features/guest/booking-documents/pages/GuestBookingDocumentPage';
-import { CalendarPage } from '@/features/guest/calendar/pages/CalendarPage';
-import { PropertyChatPage } from '@/features/guest/chat/pages/PropertyChatPage';
 import { GuestForm } from '@/features/guest/form/components/GuestForm';
 import { GuestFormSuccess } from '@/features/guest/form/components/GuestFormSuccess';
 import { useGuestPaymentInfo } from '@/features/guest/form/hooks/useGuestPaymentInfo';
@@ -27,17 +24,49 @@ import {
   guestReviewPath,
   guestSuccessPath,
 } from '@/features/guest/lib/guestPublicPaths';
-import { PropertyShowcasePage } from '@/features/guest/marketing/showcase/pages/PropertyShowcasePage';
 import { fetchPayParking } from '@/features/guest/pay-parking/lib/api';
-import { PayParkingPage } from '@/features/guest/pay-parking/pages/PayParkingPage';
-import { GuestReviewPage } from '@/features/guest/sd-form/pages/GuestReviewPage';
-import { SdFormPage } from '@/features/guest/sd-form/pages/SdFormPage';
-import { StayGuidePage } from '@/features/guest/stay-guide/pages/StayGuidePage';
 
 import type { BottomTabItem } from '@/components/mobile/BottomTabBar';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useFavicon } from '@/lib/favicon';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
+
+const GuestBookingDocumentPage = lazy(() =>
+  import('@/features/guest/booking-documents/pages/GuestBookingDocumentPage').then((m) => ({
+    default: m.GuestBookingDocumentPage,
+  }))
+);
+const CalendarPage = lazy(() =>
+  import('@/features/guest/calendar/pages/CalendarPage').then((m) => ({ default: m.CalendarPage }))
+);
+const PropertyChatPage = lazy(() =>
+  import('@/features/guest/chat/pages/PropertyChatPage').then((m) => ({
+    default: m.PropertyChatPage,
+  }))
+);
+const PropertyShowcasePage = lazy(() =>
+  import('@/features/guest/marketing/showcase/pages/PropertyShowcasePage').then((m) => ({
+    default: m.PropertyShowcasePage,
+  }))
+);
+const PayParkingPage = lazy(() =>
+  import('@/features/guest/pay-parking/pages/PayParkingPage').then((m) => ({
+    default: m.PayParkingPage,
+  }))
+);
+const GuestReviewPage = lazy(() =>
+  import('@/features/guest/sd-form/pages/GuestReviewPage').then((m) => ({
+    default: m.GuestReviewPage,
+  }))
+);
+const SdFormPage = lazy(() =>
+  import('@/features/guest/sd-form/pages/SdFormPage').then((m) => ({ default: m.SdFormPage }))
+);
+const StayGuidePage = lazy(() =>
+  import('@/features/guest/stay-guide/pages/StayGuidePage').then((m) => ({
+    default: m.StayGuidePage,
+  }))
+);
 
 function resolvePropertyPublicPageName(pathname: string): string {
   if (pathname.includes('/parking/')) return 'Pay Parking';

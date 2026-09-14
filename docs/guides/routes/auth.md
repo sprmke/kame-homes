@@ -2,7 +2,7 @@
 title: 'Guest & host auth — operator guide'
 status: active
 tags: [guides, routes, auth]
-updated: 2026-09-07
+updated: 2026-09-14
 ---
 
 # Guest & host auth — operator guide
@@ -65,11 +65,11 @@ Resume after OAuth (guest): `sessionStorage` (`guestAuthResume.ts`) restores nav
 
 ### Host sign-in
 
-**Layout (lg+, host routes):** 50/50 split — left **`HostWorkspaceSidePanel`** (`variant="auth"`) shared with onboarding: solid **`bg-primary`**, **`MarketingBrandLogo`**, headline + description, compact **`HostDashboardTourPlayer`** (expand modal — the tour film is theme-aware and follows the viewer's light/dark choice; see `for-hosts.md` § Dark mode). No footer links on the panel. Guest auth routes keep the legacy gradient branding panel with feature cards.
+**Layout (lg+, host routes):** 50/50 split — left **`HostWorkspaceSidePanel`** (`variant="auth"`) shared with onboarding: solid **`bg-primary`**, **`MarketingBrandLogo`** inset `p-4` (same top-left as **`MarketingNav`**), headline + description, compact **`HostDashboardTourPlayer`** (expand modal — the tour film is theme-aware and follows the viewer's light/dark choice; see `for-hosts.md` § Dark mode). No footer links on the panel. Guest auth routes keep the legacy gradient branding panel with feature cards.
 
 1. User enters their email (OTP) or clicks **Continue with Google** on `/for-hosts/login` or `/for-hosts/register`.
 2. Either path lands a normal Supabase Auth session — `useAdminSession` treats any session as signed-in regardless of which method was used.
-3. On success, **`useHostGoogleAuth`** (name unchanged, now also drives OTP) + **`resolvePostSignInPath`** routes to onboarding **only when the email has no usable org**. Login, register, and a `?redirect=/onboarding` deep link all call `list-organizations` first: existing owners/members go to their workspace; hard-rejected hosts go to **`/verification-rejected`**. One email = one Auth user = at most one usable owned organization.
+3. On success, **`useHostGoogleAuth`** (name unchanged, now also drives OTP) + **`resolvePostSignInPath`** routes to onboarding **only when the email has no usable org**. Login, register, and a `?redirect=/onboarding` deep link all call `list-organizations` first: existing owners/members go to their workspace; hard-rejected hosts go to **`/verification-rejected`**. One email = one Auth user = at most one usable owned organization. If that call fails in the browser as `TypeError: Failed to fetch` / `net::ERR_FAILED` (often wrapped by PostHog session replay), it is a CORS preflight miss, not a bad Google session. `_shared/cors.ts` must allow the page origin (including `http://127.0.0.1:*`) and PostHog tracing headers. Local: restart `functions serve`. Hosted dev: deploy functions (`bun run deploy:supabase:dev`).
 
 Guards send unauthenticated hosts to **`hostLoginPath(currentPath)`**.
 
@@ -95,6 +95,8 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
   A: Yes — open the account menu at the bottom of the sidebar and choose **Profile**. It is the same info as the guest account profile on explore.
 - Q: I already set up a host account with this email. Why am I not sent through setup again?
   A: Each email is one host account. Sign-in opens your existing workspace. You cannot create a second organization with the same email.
+- Q: I signed in with Google but the page says it could not load my workspace.
+  A: Refresh and try again. Sign-in worked; the workspace list did not load.
 
 ---
 
@@ -138,11 +140,11 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
 
 ## Testing
 
-| Layer | Path / spec                                                                                   | Manual                           |
-| ----- | --------------------------------------------------------------------------------------------- | -------------------------------- |
-| Unit  | OTP/reserved-name validators when touched                                                     | —                                |
-| E2E   | `ui/e2e/features/auth/authPagesSmoke.spec.ts`, `authRedirectSmoke.spec.ts` (`@smoke` / `@ci`) | Google OAuth, real email OTP     |
-| N/A   | —                                                                                             | Turnstile live, Facebook removed |
+| Layer | Path / spec                                                                                            | Manual                           |
+| ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Unit  | OTP/reserved-name validators when touched; `_shared/cors_test.ts` (PostHog tracing + loopback origins) | —                                |
+| E2E   | `ui/e2e/features/auth/authPagesSmoke.spec.ts`, `authRedirectSmoke.spec.ts` (`@smoke` / `@ci`)          | Google OAuth, real email OTP     |
+| N/A   | —                                                                                                      | Turnstile live, Facebook removed |
 
 ---
 

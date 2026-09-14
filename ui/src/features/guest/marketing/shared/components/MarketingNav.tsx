@@ -68,11 +68,7 @@ export function MarketingNav() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const ctaButtonClassName = cn(
-    'rounded-full px-6',
-    !headerSolid &&
-      'bg-background text-foreground hover:bg-muted dark:bg-white dark:text-black dark:hover:bg-white/90'
-  );
+  const ctaButtonClassName = 'rounded-full px-6';
   const hostSignInButtonClassName = cn(
     'rounded-full border-2 bg-transparent px-6 shadow-none',
     headerSolid
@@ -145,7 +141,7 @@ export function MarketingNav() {
 
   const modeCta = isExploreMode ? (
     <Button
-      variant={headerSolid ? 'default' : 'secondary'}
+      variant="default"
       className={ctaButtonClassName}
       disabled={modeSwitch.isTransitioning}
       onClick={handleBecomeHost}
@@ -154,7 +150,7 @@ export function MarketingNav() {
     </Button>
   ) : (
     <Button
-      variant={headerSolid ? 'default' : 'secondary'}
+      variant="default"
       className={ctaButtonClassName}
       disabled={modeSwitch.isTransitioning}
       onClick={handleExploreMode}

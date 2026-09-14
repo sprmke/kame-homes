@@ -28,7 +28,7 @@ Routes:
 | Hub · Subscription  | Done     | client     | Done | Assign/override plan via `org-subscriptions-admin` POST (covers every org property)                                                                                      |
 | Hub · Listings      | n/a      | —          | Done | Properties + parkings grids (`useProperties` / `useParkings`); cards deep-link to tenant                                                                                 |
 | Hub · Approvals     | Done     | —          | Done | `list-super-admin-approvals?organizationId=` + the 3 shared review dialogs                                                                                               |
-| Hub · AI credits    | Done     | client     | Done | `AiCreditWalletCard` prefilled with the org id                                                                                                                           |
+| Hub · AI credits    | Done     | client     | Done | Wallet card + **Generate caps** (`SuperAdminGenerationOverridesCard`: per-property sub-caps + Premium hatch)                                                             |
 | Hub · Support       | Done     | —          | Done | `list-support-tickets-admin?org_id=` + shared ticket detail dialog                                                                                                       |
 | Hub · Activity      | n/a      | —          | Done | Toggle: **Platform actions** (`list-super-admin-audit?targetType=organization&targetId=`) / **Org activity** (`list-activity-log?orgId=` — the org's own `activity_log`) |
 | Hub · Settings      | n/a      | —          | Done | Read-only identity + deep links to the org's own Team / Settings / Plans pages                                                                                           |
@@ -80,6 +80,7 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
 - **Subscription** section assigns a plan with no `propertyIds` → server default = every property
   the org owns. It invalidates `['super-admin','org-detail',slug]` on success so the header/plan
   badge refresh.
+- **AI credits** section: wallet card plus **Generate caps** (per-property monthly image/video credit caps and Premium hatch). Cap PATCH is OTP-gated.
 - **Activity** section (`SuperAdminOrgActivitySection`) has a two-tab toggle. **Platform actions**
   (default) is the unchanged `super_admin_audit_events` view for this org. **Org activity** calls
   `list-activity-log` with an explicit `orgId` (`useSuperAdminOrgActivity`) — a super-admin
@@ -90,14 +91,15 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
 
 ## API reference
 
-| Method   | Endpoint                                            | Notes                                                           |
-| -------- | --------------------------------------------------- | --------------------------------------------------------------- |
-| GET      | `list-organizations-admin`                          | `?q=`, `?plan=`, `?page=`, `?limit=`, `?summary=true`           |
-| GET      | `get-organization-admin?slug=` / `?organizationId=` | Org identity + owner + counts + plan + verification + open work |
-| POST     | `org-subscriptions-admin`                           | `{ organizationId, planId, note? }` — assign/override plan      |
-| GET      | `list-super-admin-approvals?organizationId=`        | Org-scoped approvals queue                                      |
-| GET      | `list-support-tickets-admin?org_id=`                | Org-scoped support tickets                                      |
-| GET/POST | `ai-platform-credit-wallet?org_id=`                 | Wallet balance / ledger / manual adjustment                     |
+| Method    | Endpoint                                            | Notes                                                                                                          |
+| --------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| GET       | `list-organizations-admin`                          | `?q=`, `?plan=`, `?page=`, `?limit=`, `?summary=true`                                                          |
+| GET       | `get-organization-admin?slug=` / `?organizationId=` | Org identity + owner + counts + plan + verification + open work                                                |
+| POST      | `org-subscriptions-admin`                           | `{ organizationId, planId, note? }` — assign/override plan                                                     |
+| GET       | `list-super-admin-approvals?organizationId=`        | Org-scoped approvals queue                                                                                     |
+| GET       | `list-support-tickets-admin?org_id=`                | Org-scoped support tickets                                                                                     |
+| GET/POST  | `ai-platform-credit-wallet?org_id=`                 | Wallet balance / ledger / manual adjustment                                                                    |
+| GET/PATCH | `ai-platform-generation-overrides?org_id=`          | Per-property Generate credit caps + Premium image/video hatch. PATCH is OTP-gated (`ai_generation_overrides`). |
 
 ---
 
@@ -110,6 +112,7 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
 | Hub header       | `ui/src/features/dashboard/super-admin/components/shared/SuperAdminDetailHeader.tsx` (shared with Host detail)                                                                                         |
 | Hub context      | `ui/src/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext.ts`                                                                                                            |
 | Sections         | `ui/src/features/dashboard/super-admin/pages/SuperAdminOrg{Overview,Subscription,Listings,Approvals,Ai,Support,Activity,Settings}Section.tsx` — plain content components, rendered inline by the shell |
+| Generate caps    | `SuperAdminGenerationOverridesCard.tsx` + `useAiPlatformGenerationOverrides.ts` · edge `ai-platform-generation-overrides`                                                                              |
 | Layout           | `ui/src/features/dashboard/bookings/components/AdminSectionNavLayout.tsx` (shared with Property/Org/Development Settings)                                                                              |
 | Hooks            | `ui/src/features/dashboard/super-admin/hooks/useSuperAdminOrgs.ts`                                                                                                                                     |
 | Edge functions   | `supabase/functions/{list-organizations-admin,get-organization-admin}/index.ts`                                                                                                                        |

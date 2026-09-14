@@ -47,7 +47,7 @@ Four **StatCard**s in a 2×2 / four-column grid: **Active** (total count), **Act
 
 ## Archive feed
 
-Active notices from **`list-host-announcements`**, merged for this property's org and linked development. Grouped under **Platform** and each development name. Each group is one **panel** with `divide-y` rows (no double borders). Rows are **clickable** — unread rows use a white/background fill, semibold title, and a small red unread dot **inline beside the title**; read rows use a super-light gray fill and medium weight (no primary tint). Opening detail marks the notice read (localStorage per org). Up to **five** rows per page; **Previous** / **Next** chevrons in the section header.
+Active notices from **`list-host-announcements`**, merged for this property's org and linked development. Grouped under **Platform** and each development name. Each group is one **panel** with `divide-y` rows (no double borders). Rows are **clickable** — unread rows use a light primary tint (`bg-primary/5`), semibold title, and a small red unread dot **inline beside the title**; read rows use a transparent fill and medium weight. Opening detail marks the notice read (localStorage per org). Up to **five** rows per page; **Previous** / **Next** chevrons in the section header.
 
 **Detail** (`/announcements/:announcementId`): same page title and subtitle as the list, **stat cards** then **Back** then a **`surface-card`** detail panel (status header · severity marker · title · body · optional link button). Opening the page marks that notice as read.
 

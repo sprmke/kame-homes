@@ -58,6 +58,7 @@ mutating branch of these `serveSuperAdmin` functions (GET/OPTIONS always pass):
 | `platform-settings`                   | `platform_settings`                   | signups, maintenance mode, default plan, rate-limit ceiling                 |
 | `update-platform-host-settings`       | `platform_host_settings`              | platform host announcements (broadcast blast radius)                        |
 | `decide-contract-consideration`       | `contract_consideration`              | grant / deny listing contract                                               |
+| `ai-platform-generation-overrides`    | `ai_generation_overrides`             | per-property Generate credit caps + Premium image/video hatch               |
 
 **Not gated** (low-risk, keeps support flow fast, trivial to add later via the registry):
 support tickets (`reply-support-ticket-admin`, `update-support-ticket-status`), Help Center
@@ -89,7 +90,7 @@ out of scope for v1.
 - `supabase/functions/_shared/cors.ts` — allow `x-superadmin-otp` request header.
 - `supabase/config.toml` — register `super-admin-verification` (`verify_jwt = false` +
   email `static_files`).
-- The 11 gated functions above — add the guard.
+- The 12 gated functions above — add the guard.
 - `ui/src/features/dashboard/org/lib/edgeClient.ts` — sudo-token storage helpers,
   `registerSuperAdminStepUp`, 401-`SUPERADMIN_OTP_REQUIRED` catch + single retry, attach
   `x-superadmin-otp`.

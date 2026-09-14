@@ -1,7 +1,7 @@
 ---
-stage: in-progress
+stage: done
 title: 'AI image & video generation (Marketing Studio "Generate" tab)'
-status: in-progress
+status: done
 tags:
   [
     planning,
@@ -23,7 +23,17 @@ updated: 2026-09-14
 
 **Phase 1 (images) — shipped 2026-09-12.** Everything below is in the repo and passes `type-check` / `lint` / `build` / `test:edge` / `vitest`; the four migrations were verified against the real local schema inside a rolled-back transaction.
 
-**Phase 2 (video) — code-complete 2026-09-13, not yet live-verified.** Veo 3.1 async job lifecycle, cron sweeper, permission leaf, plan key, and UI wiring are all in the repo and pass `type-check` / `lint` / `check:filenames` / `test:edge` / `test:edge:handlers` / `vitest`. The two new migrations were verified the same way as Phase 1 (applied + rolled back against the real local schema via `docker exec ... psql`, not the CLI, since `bun run db:migrate` remains blocked — see the still-open item below). **No real Veo API call has been made** — there is no way to exercise `:predictLongRunning` / operation polling / the sweeper without live Gemini keys and real cost, so the request/response envelope (verified against Google's current REST reference, ai.google.dev/gemini-api/docs/veo, 2026-09) and the whole finalize/CAS/billing chain are implemented and internally consistent but not proven against the live API.
+**Phase 3 (hardening) — shipped 2026-09-14.** Per-feature sub-cap UI (property AI Overrides + super-admin Generate caps), Premium hatch (super-admin only; composer offers Premium when GET `marketing-generations` says so), Retry with same settings, Use photo chaining, reference library drawer (already in repo), reference prune (sweeper pass 5). Allowances left at growth 5k / pro 25k / managed 60k until live burn data exists.
+
+| Piece                | What landed                                                                                                                                                                                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edge                 | `peekMarketingGenerationOverrides` (read-only, no settings-row create) on `marketing-generations` GET → `allowPremiumImage` / `allowPremiumVideo`. Hosts PATCH caps via `ai-platform-property-settings` (cannot set premium). Super-admin GET/PATCH `ai-platform-generation-overrides` (OTP on PATCH, action `ai_generation_overrides`). |
+| UI                   | Property AI Overrides: image/video monthly credit caps. Org hub AI credits: **Generate caps** card. Composer Premium + 1080p. Job cards: **Retry**, **Use photo**.                                                                                                                                                                       |
+| Tests                | Vitest `marketingGenerationComposer.test.ts`. Playwright Retry, Use photo, Library, and 1080p on `marketingAiGenerate.spec.ts`. Deno `marketingGenerationFeatureConfig_test.ts` already covered merge/parse.                                                                                                                             |
+| Docs                 | Route guides (marketing, property settings, admin orgs), `edge-functions.md`, `PROJECT.md`, `admin-auth.mdc` gated list, plans matrix allowance note.                                                                                                                                                                                    |
+| Plans / RBAC / audit | **N/A new keys.** Caps: existing `settings.aiOverrides:edit` + `aiMonthlyCreditAllowance`. Premium: super-admin only. Retry / Use photo: `marketing.generate:add`. Host cap PATCH logs `settings.updated` (`area: 'AI generation caps'`); super-admin PATCH logs `ai.generation_overrides_updated`.                                      |
+
+**Phase 2 (video) — code-complete 2026-09-13, not yet live-verified.** Veo 3.1 async job lifecycle, cron sweeper, permission leaf, plan key, and UI wiring are all in the repo. **No real Veo API call has been made.**
 
 | Piece                | What landed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -45,7 +55,7 @@ updated: 2026-09-14
 1. The harness's `videoPlanAllowed` option was defined but never threaded into the actual mocked API response — the override silently did nothing.
 2. `AiStudioComposer`'s disabled-reason text only rendered when the Video tab was already active — but a _disabled_ tab can never become active by clicking, so the host had no way to ever see why Video was locked. Fixed to show the reason regardless of which tab is selected.
 
-Both fixed and reverified; full marketing + team + plans `@ci` suite (28 tests) passes.
+Both fixed and reverified; marketing + team + plans `@ci` (31 tests) passes.
 
 **Host-facing errors (2026-09-13).** Provider dumps (Gemini quota text, model ids, docs URLs) are never shown to hosts. `toHostFacingError` sanitizes `marketing_generation_jobs.error_message` and the Generate JSON `error` field; `installFriendlyToasts` intercepts every `toast.error` / `toast.warning` in the app. A quota dump becomes "This is busy right now. Try again in a moment."
 
@@ -69,13 +79,14 @@ Ran a full multi-angle review (correctness, efficiency, simplification, reuse, r
 
 **Findings considered and accepted as-is:** the client/server pricing-table duplication (self-documented, parity-tested, matches this repo's existing hand-synced-twin convention e.g. PDF templates); the separate marketing-only budget ledger instead of extending `aiUsageService.ts` into a general reservation-aware quota primitive (a bigger, riskier refactor of a load-bearing shared file, out of proportion to this review); the stuck-job-polling pattern duplicated from `bookingAiReviewProgress.ts` rather than extracted into a shared hook (touching the already-shipped booking review feature isn't worth the risk here); `marketing.generate.video:add` seeded onto the "Operations" template by default (a real cost-bearing permission, but Operations is this repo's closest analog to "Manager" and already holds `marketing.generate:add`).
 
-Full `bun run ci:quality` and the marketing + team + plans `@ci` Playwright suite (28 tests) re-verified green after every fix in this pass.
+Full `bun run ci:quality` and the marketing + team + plans `@ci` Playwright suite (31 tests) re-verified green after every fix in this pass.
 
-**Not done / still open**
+**Accepted residual (does not block done)**
 
-- **Migration collision, still blocking, still not mine to fix.** Two already-committed migration files share version `20261231140100` (`org_team_template_role_ids` vs `platform_host_settings_rls_fix`), unrelated to this feature. `bun run db:migrate` fails on it before reaching any of this work's 6 migrations. Every SQL file in both phases has been verified correct via a manual rolled-back transaction against the real local schema instead — but no `functions serve` + real click-through has happened, and can't until this clears. This needs your call (rename one file, or tell me it's handled elsewhere) since it touches two shipped migrations neither of which I wrote.
-- **Zero live Veo calls.** Submitting a real job, watching the operation poll, and confirming the sweeper actually finalizes a closed-tab job all require a funded Gemini key and real minutes of wait — not exercised.
-- Phase 3 (hardening: admin sub-cap surface, reference-library drawer, retry-with-same-settings, allowance revisit) not started.
+- **Live Veo / live Gemini image.** No real provider call was made in this session. `GEMINI_API_KEYS` is present locally; submitting a clip bills Google and needs minutes of poll/sweeper wait. Same class of residual as PayMongo / OTP email in other shipped modules. Mocked `@ci` covers the host click path. Re-run §10 items 2–3 against a funded key when exercising video in a real property.
+- **Allowances.** Kept at growth 5k / pro 25k / managed 60k / business_plus 50k until live burn data exists. No new allowance migration.
+
+**Closed 2026-09-14:** Phase 3 hardening (sub-cap UI, Premium hatch, Retry, Use photo, Library). Local `db:migrate` unblocked (`20261316120700`–`21100` re-issues). `bun run ci:quality` green.
 
 | Piece                | What landed                                                                                                                                                                                                                                                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,16 +105,16 @@ Full `bun run ci:quality` and the marketing + team + plans `@ci` Playwright suit
 - The pure pricing/validation module is named `marketingGenerationPricing.ts` rather than `marketingGenerationModels.ts`, to match the test file name the plan specified and the client mirror.
 - The gallery cursor is a **full keyset** on `(created_at, id)` (`"<created_at>|<id>"`), not `created_at` alone — the concurrency cap allows two jobs in flight per property, and a `created_at`-only cursor can skip a tie.
 - `generationFetch` (client) branches on 429: `upgradeHook` → AI-quota toast, otherwise a plain retryable toast. `parseEdgeJsonOrQuota` treats every 429 as a quota error, which would have mislabeled the rate limit and the concurrency cap as "upgrade your plan".
-- Premium image tier exists server-side but is **not** offered in the composer (3x the cost, no meaningful gain for social posts).
+- Premium image/video tiers exist server-side and stay hidden in the composer unless a super-admin enables the per-property hatch (`allow_premium_tier`). The Generate tab GET returns `allowPremiumImage` / `allowPremiumVideo` so the Quality control can offer Premium without a second settings fetch.
 - The plan's `<RequirePropertyFeature feature="aiMarketingImageGeneration">` wrapper around the whole tab was **not** used — it would have hidden the gallery from a downgraded org, contradicting the view-past-output rule the same plan specifies. The composer gates inline instead; the gallery and poller stay open.
 
 **Testing infra note (2026-09-12):** a formal Vitest/Deno/Playwright pyramid landed in the repo after Phase 1 shipped (`08552146 sync cursor claude testing rules agents and skills`). Brought Phase 1 into line with it: added `aiMarketingImageGeneration` to the two E2E plan-feature fixtures that were missing it (`ui/e2e/features/plans/shared/orgPlanHarnessShared.ts`, `ui/e2e/features/team/shared/propertyTeamRbacHarness.ts`, which also gained mock cases for the four new edge functions), and added the Generate-tab Playwright journey. Ran the full `bun run ci:quality` gate (type-check, lint, filenames, Vitest, Deno `_shared` + handler tests, `servePublic` rate-limit scan, Playwright `@smoke`, build, lazy-optimizer assertion) — all green, including the pre-existing `marketingStudioSmoke.spec.ts`.
 
 **Phase 1 leftover notes (superseded by the status block at the top)**
 
-- Live E2E is still outstanding. `bun run db:migrate` is blocked by **pre-existing** local drift: two migration files share version `20261231140100` (`org_team_template_role_ids` is recorded, `platform_host_settings_rls_fix` can never be). Unrelated to this work, needs `/fix-migration-issues`. Until it clears, the 9 local scenarios in §10 have not run against a migrated local stack.
+- Live E2E is still outstanding for **Veo**. Local `db:migrate` is unblocked as of 2026-09-14 (never-applied duplicate versions re-issued as `20261316120700`–`21100`). The 9 local scenarios in §10 still need a funded Gemini key for video.
 - ~~`bun run test:edge` has a pre-existing failure...~~ **Resolved upstream** — the script now passes `--allow-read`; `bun run test:edge` is 240/240 green.
-- Phase 2 video later landed 2026-09-13 (code-complete, not live-verified). Phase 3 hardening is still open.
+- Phase 2 video later landed 2026-09-13 (code-complete, not live-verified). Phase 3 hardening shipped 2026-09-14.
 
 ---
 
@@ -727,7 +738,7 @@ Migration `…120300` (cron). `marketing-generation-sweeper`. Video branch in `g
 
 ### Phase 3 — Hardening
 
-Per-feature sub-caps surfaced in the admin AI console. Reference library drawer + "use this output as a reference" chaining. Retry-with-same-settings. Reference prune. Premium-tier escape hatch. Revisit allowances against real burn data.
+Per-feature sub-caps surfaced in property AI Overrides and the super-admin org hub Generate caps card. Reference library drawer + "use this output as a reference" chaining. Retry-with-same-settings. Reference prune. Premium-tier escape hatch (super-admin). Allowances left unchanged until live burn data exists. **Shipped 2026-09-14.**
 
 ---
 

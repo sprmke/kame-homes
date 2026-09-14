@@ -1,15 +1,22 @@
-import { type MouseEvent } from 'react';
+import { lazy, Suspense, type MouseEvent } from 'react';
 
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
 import { Calendar, Home, Search, ShieldCheck, Star } from 'lucide-react';
 
-import { HostWorkspaceSidePanel } from '@/features/guest/marketing/shared/components/HostWorkspaceSidePanel';
 import { MarketingBrandLogo } from '@/features/guest/marketing/shared/components/MarketingBrandLogo';
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { platformCopyrightLine } from '@/lib/platformBranding';
+
+// Pulls in Remotion (video tour rendering) — this shell is imported eagerly by the
+// guest auth route tree, so keep the heavy player out of the main bundle.
+const HostWorkspaceSidePanel = lazy(() =>
+  import('@/features/guest/marketing/shared/components/HostWorkspaceSidePanel').then((m) => ({
+    default: m.HostWorkspaceSidePanel,
+  }))
+);
 
 const HOST_AUTH_PREFIX = '/for-hosts/';
 
@@ -122,7 +129,9 @@ export function AuthLayout() {
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       {isHostMode ? (
-        <HostWorkspaceSidePanel variant="auth" />
+        <Suspense fallback={<div className="hidden lg:block" />}>
+          <HostWorkspaceSidePanel variant="auth" />
+        </Suspense>
       ) : (
         <div className="relative hidden flex-col overflow-hidden lg:flex">
           <div className="absolute inset-0 bg-gradient-to-br from-teal-400 via-teal-500 to-cyan-500" />

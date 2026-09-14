@@ -2,6 +2,8 @@
 
 Canonical formats live in `.cursor/rules/page-titles.mdc`. This sheet lists every route and the title it should show.
 
+The HTML fallback (`ui/index.html` `<title>`, `application-name`, `apple-mobile-web-app-title`) is **Kame Homes**. Do not use `Stays` as the product/app title. Guest account nav **Stays** is a page name (`Kame Homes - Stays`), not the app name.
+
 ## Format matrix
 
 | Scope                    | Title format                              | Example                               |
