@@ -170,11 +170,10 @@ export function parsePositiveIntOrNull(
   return { ok: true, value: cap };
 }
 
-export async function getMarketingGenerationOverrides(
-  propertyId: string,
-  organizationId: string
+/** Read-only. Does not create a settings row — safe on marketing:view GETs. */
+export async function peekMarketingGenerationOverrides(
+  propertyId: string
 ): Promise<MarketingGenerationOverrides> {
-  await ensureAiPlatformPropertySettingsRow(propertyId, organizationId);
   const sb = db();
   const { data, error } = await sb
     .from('ai_platform_property_settings')
@@ -183,6 +182,14 @@ export async function getMarketingGenerationOverrides(
     .maybeSingle();
   if (error) throw new Error(error.message);
   return parseMarketingGenerationOverrides(data?.feature_configs);
+}
+
+export async function getMarketingGenerationOverrides(
+  propertyId: string,
+  organizationId: string
+): Promise<MarketingGenerationOverrides> {
+  await ensureAiPlatformPropertySettingsRow(propertyId, organizationId);
+  return peekMarketingGenerationOverrides(propertyId);
 }
 
 export async function patchMarketingGenerationOverrides(input: {

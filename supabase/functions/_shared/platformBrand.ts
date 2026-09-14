@@ -1,8 +1,17 @@
-/** Platform product brand — not a specific host org or residence. */
-const envAppName = Deno.env.get('PLATFORM_APP_NAME')?.trim();
+/** Keep in sync with `ui/src/lib/platformAppName.ts`. */
+export const DEFAULT_PLATFORM_APP_NAME = 'Kame Homes';
+const RETIRED_PLATFORM_APP_NAMES = new Set(['stays']);
 
-/** Optional operator/product name for email shells and public chrome. */
-export const PLATFORM_BRAND_NAME = envAppName || '';
+export function resolvePlatformAppName(raw: string | null | undefined): string {
+  const value = raw?.trim() ?? '';
+  if (!value || RETIRED_PLATFORM_APP_NAMES.has(value.toLowerCase())) {
+    return DEFAULT_PLATFORM_APP_NAME;
+  }
+  return value;
+}
+
+/** Platform product brand — not a specific host org or residence. */
+export const PLATFORM_BRAND_NAME = resolvePlatformAppName(Deno.env.get('PLATFORM_APP_NAME'));
 
 /** True when a label is the old single-tenant brand (optionally with Azure North). */
 export function isLegacyKameHomeBrand(label: string | null | undefined): boolean {

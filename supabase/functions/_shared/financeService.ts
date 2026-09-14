@@ -181,10 +181,26 @@ function getSupabase() {
   );
 }
 
-async function fetchAllBookingsForFinance(propertyId?: string): Promise<Record<string, unknown>[]> {
+/**
+ * Pushes the two status filters that `filterBookings` would otherwise apply in JS down
+ * into SQL — safe because both are exact `status` equality checks with no date-format
+ * parsing involved (unlike the `from`/`to` period filters, which stay client-side since
+ * `check_in_date`/`check_out_date` are `MM-DD-YYYY` text and would sort incorrectly under
+ * a plain SQL `>=`/`<=` comparison). Cuts rows transferred for the common case where
+ * cancelled bookings are excluded, without changing which rows the caller sees.
+ */
+async function fetchAllBookingsForFinance(
+  propertyId: string | undefined,
+  statusFilter: { includeCancelled: boolean; completedOnly: boolean }
+): Promise<Record<string, unknown>[]> {
   const supabase = getSupabase();
   let query = supabase.from('guest_submissions').select('*');
   if (propertyId) query = query.eq('property_id', propertyId);
+  if (statusFilter.completedOnly) {
+    query = query.eq('status', 'COMPLETED');
+  } else if (!statusFilter.includeCancelled) {
+    query = query.neq('status', 'CANCELLED');
+  }
   const { data, error } = await query;
   if (error) throw new Error(`finance bookings query failed: ${error.message}`);
   return (data ?? []) as Record<string, unknown>[];
@@ -451,7 +467,12 @@ export async function computeFinanceSummary(params: {
   completedOnly: boolean;
   q?: string;
 }): Promise<FinanceSummaryResult> {
-  const all = params.parkingId ? [] : await fetchAllBookingsForFinance(params.propertyId);
+  const all = params.parkingId
+    ? []
+    : await fetchAllBookingsForFinance(params.propertyId, {
+        includeCancelled: params.includeCancelled,
+        completedOnly: params.completedOnly,
+      });
   const stayRows = filterBookings(all, params);
   const stays = summarizeStays(stayRows);
   const operatingItems = await listOperatingLineItems({
@@ -563,7 +584,10 @@ export async function listFinanceBookings(params: {
   limit: number;
   sort: 'check_in_date:asc' | 'check_in_date:desc' | 'host_net:desc' | 'host_net:asc';
 }): Promise<{ rows: FinanceBookingRow[]; total: number }> {
-  const all = await fetchAllBookingsForFinance(params.propertyId);
+  const all = await fetchAllBookingsForFinance(params.propertyId, {
+    includeCancelled: params.includeCancelled,
+    completedOnly: params.completedOnly,
+  });
   let filtered = filterBookings(all, params);
 
   filtered.sort((a, b) => {

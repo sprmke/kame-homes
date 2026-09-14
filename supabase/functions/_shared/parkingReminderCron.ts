@@ -9,11 +9,11 @@
  */
 
 import {
-import { verifyCronSecret } from './cronSecretGate.ts';
   calendarDaysBetween,
   manilaTodayYmd,
   normalizeBookingDateToYmd,
 } from './calendarAvailabilityManila.ts';
+import { verifyCronSecret } from './cronSecretGate.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
 import { isParkingLinkableStatus } from './parkingPropertyLink.ts';
@@ -143,21 +143,25 @@ export async function runParkingReminderSweep(): Promise<{
   failed: number;
 }> {
   const candidates = await loadUnlinkedCandidates();
+
+  // Each candidate is an independent guest/email/DB-row — safe to send concurrently.
+  // `resolveAppSettings`/`loadPropertyEmailBranding` already cache per property_id
+  // in-process, so repeat properties across candidates don't add extra round trips.
+  const results = await Promise.allSettled(candidates.map((row) => sendReminderEmail(row)));
+
   let sent = 0;
   let failed = 0;
-
-  for (const row of candidates) {
-    try {
-      await sendReminderEmail(row);
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
       sent += 1;
-    } catch (err) {
-      failed += 1;
-      console.error(
-        `[parkingReminderCron] reminder failed for booking ${row.id}:`,
-        err instanceof Error ? err.message : err
-      );
+      return;
     }
-  }
+    failed += 1;
+    console.error(
+      `[parkingReminderCron] reminder failed for booking ${candidates[index].id}:`,
+      result.reason instanceof Error ? result.reason.message : result.reason
+    );
+  });
 
   return { sent, failed };
 }

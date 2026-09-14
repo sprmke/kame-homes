@@ -812,53 +812,62 @@ export class WorkflowOrchestrator {
 
     if (shouldGenerateRequestPdfs) {
       const fd = buildGuestFormData(updatedBooking);
-      if (shouldGenerateGafRequestPdf) {
-        try {
-          gafPdfBuffer = await generatePDF(fd, propertyId);
-        } catch (err) {
-          console.error('[orchestrator] GAF PDF generation failed:', err);
-          throw new Error(
-            `GAF request PDF could not be generated. Ensure templates/guest-form-template.pdf exists in Storage. ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
-        }
-      }
-      if (shouldGeneratePetRequestPdf) {
-        try {
-          petPdfBuffer = await generatePetPDF(fd, propertyId);
-        } catch (err) {
-          console.error('[orchestrator] Pet request PDF generation failed:', err);
-          throw new Error(
-            `Pet request PDF could not be generated. Ensure templates/pet-form-template.pdf exists in Storage. ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
-        }
-      }
+      // GAF and pet PDFs are independent — generate them concurrently instead of
+      // sequentially (each keeps its own descriptive error message on failure).
+      const [gafResult, petResult] = await Promise.all([
+        shouldGenerateGafRequestPdf
+          ? generatePDF(fd, propertyId).catch((err) => {
+              console.error('[orchestrator] GAF PDF generation failed:', err);
+              throw new Error(
+                `GAF request PDF could not be generated. Ensure templates/guest-form-template.pdf exists in Storage. ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
+            })
+          : Promise.resolve(null),
+        shouldGeneratePetRequestPdf
+          ? generatePetPDF(fd, propertyId).catch((err) => {
+              console.error('[orchestrator] Pet request PDF generation failed:', err);
+              throw new Error(
+                `Pet request PDF could not be generated. Ensure templates/pet-form-template.pdf exists in Storage. ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
+            })
+          : Promise.resolve(null),
+      ]);
+      gafPdfBuffer = gafResult;
+      petPdfBuffer = petResult;
+
       if (flag(devControls, 'saveToDatabase')) {
-        const pdfFields: Record<string, unknown> = {};
         const pdfPropertyId = String(updatedBooking.property_id ?? '').trim() || undefined;
-        if (shouldGenerateGafRequestPdf) {
-          if (!gafPdfBuffer) {
-            throw new Error('GAF request PDF buffer is empty after generation.');
-          }
-          pdfFields.gaf_request_pdf_url = await UploadService.uploadPdfBytes(
-            'approved-gafs',
-            bookingAssetStorageKey(pdfPropertyId, bookingId, 'gaf-request.pdf'),
-            gafPdfBuffer
-          );
+        if (shouldGenerateGafRequestPdf && !gafPdfBuffer) {
+          throw new Error('GAF request PDF buffer is empty after generation.');
         }
-        if (shouldGeneratePetRequestPdf) {
-          if (!petPdfBuffer) {
-            throw new Error('Pet request PDF buffer is empty after generation.');
-          }
-          pdfFields.pet_request_pdf_url = await UploadService.uploadPdfBytes(
-            'approved-pet-forms',
-            bookingAssetStorageKey(pdfPropertyId, bookingId, 'pet-request.pdf'),
-            petPdfBuffer
-          );
+        if (shouldGeneratePetRequestPdf && !petPdfBuffer) {
+          throw new Error('Pet request PDF buffer is empty after generation.');
         }
+        // Independent uploads to different buckets — also safe to run concurrently.
+        const [gafUrl, petUrl] = await Promise.all([
+          shouldGenerateGafRequestPdf
+            ? UploadService.uploadPdfBytes(
+                'approved-gafs',
+                bookingAssetStorageKey(pdfPropertyId, bookingId, 'gaf-request.pdf'),
+                gafPdfBuffer!
+              )
+            : Promise.resolve(null),
+          shouldGeneratePetRequestPdf
+            ? UploadService.uploadPdfBytes(
+                'approved-pet-forms',
+                bookingAssetStorageKey(pdfPropertyId, bookingId, 'pet-request.pdf'),
+                petPdfBuffer!
+              )
+            : Promise.resolve(null),
+        ]);
+
+        const pdfFields: Record<string, unknown> = {};
+        if (gafUrl) pdfFields.gaf_request_pdf_url = gafUrl;
+        if (petUrl) pdfFields.pet_request_pdf_url = petUrl;
         if (Object.keys(pdfFields).length > 0) {
           await DatabaseService.setWorkflowFields(bookingId, pdfFields);
           Object.assign(updatedBooking, pdfFields);

@@ -3,10 +3,10 @@
  */
 
 import {
-import { verifyCronSecret } from './cronSecretGate.ts';
   listConnectedFacebookMetaPagesForHealthcheck,
   reconcileMetaConnectionWebhook,
 } from './metaInboxWebhookHealth.ts';
+import { verifyCronSecret } from './cronSecretGate.ts';
 
 export function verifyMetaInboxWebhookHealthcheckCronSecret(req: Request): boolean {
   return verifyCronSecret(req, {
