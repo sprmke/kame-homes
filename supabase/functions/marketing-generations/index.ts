@@ -17,6 +17,7 @@ import {
   MARKETING_GENERATION_JOB_COLUMNS,
   toMarketingGenerationJobDto,
 } from '../_shared/marketingGenerationJobs.ts';
+import { peekMarketingGenerationOverrides } from '../_shared/marketingGenerationFeatureConfig.ts';
 import { removeGenerationObjects } from '../_shared/marketingGenerationStorage.ts';
 
 const MAX_LIMIT = 50;
@@ -126,9 +127,14 @@ serveAuthenticated('marketing-generations', async (req) => {
   const rows = data ?? [];
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
+  const overrides = await peekMarketingGenerationOverrides(propertyId);
 
   return jsonSuccess(req, {
     jobs: page.map(toMarketingGenerationJobDto),
-    nextCursor: hasMore ? `${page[page.length - 1]?.created_at}|${page[page.length - 1]?.id}` : null,
+    nextCursor: hasMore
+      ? `${page[page.length - 1]?.created_at}|${page[page.length - 1]?.id}`
+      : null,
+    allowPremiumImage: overrides.allowPremiumImage,
+    allowPremiumVideo: overrides.allowPremiumVideo,
   });
 });

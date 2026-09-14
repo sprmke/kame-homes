@@ -40,23 +40,34 @@ serveAuthenticated('ai-platform-property-settings', async (req, user) => {
     if (body.enabled !== undefined && typeof body.enabled !== 'boolean') {
       return jsonError(req, 'enabled must be a boolean when provided', 400);
     }
-    const daily = body.dailyCallLimit !== undefined ? Number(body.dailyCallLimit) : undefined;
-    const monthly = body.monthlyCallLimit !== undefined ? Number(body.monthlyCallLimit) : undefined;
+    const daily =
+      body.dailyCallLimit === undefined
+        ? undefined
+        : body.dailyCallLimit === null || body.dailyCallLimit === ''
+          ? null
+          : Number(body.dailyCallLimit);
+    const monthly =
+      body.monthlyCallLimit === undefined
+        ? undefined
+        : body.monthlyCallLimit === null || body.monthlyCallLimit === ''
+          ? null
+          : Number(body.monthlyCallLimit);
     const dailyCost =
-      body.dailyCostUsdLimit !== undefined ? Number(body.dailyCostUsdLimit) : undefined;
-    if (
-      daily !== undefined &&
-      (!Number.isFinite(daily) || daily <= 0 || !Number.isInteger(daily))
-    ) {
+      body.dailyCostUsdLimit === undefined
+        ? undefined
+        : body.dailyCostUsdLimit === null || body.dailyCostUsdLimit === ''
+          ? null
+          : Number(body.dailyCostUsdLimit);
+    if (daily != null && (!Number.isFinite(daily) || daily <= 0 || !Number.isInteger(daily))) {
       return jsonError(req, 'dailyCallLimit must be a positive integer', 400);
     }
     if (
-      monthly !== undefined &&
+      monthly != null &&
       (!Number.isFinite(monthly) || monthly <= 0 || !Number.isInteger(monthly))
     ) {
       return jsonError(req, 'monthlyCallLimit must be a positive integer', 400);
     }
-    if (dailyCost !== undefined && (!Number.isFinite(dailyCost) || dailyCost <= 0)) {
+    if (dailyCost != null && (!Number.isFinite(dailyCost) || dailyCost <= 0)) {
       return jsonError(req, 'dailyCostUsdLimit must be a positive number', 400);
     }
 
@@ -64,10 +75,9 @@ serveAuthenticated('ai-platform-property-settings', async (req, user) => {
       propertyId: property.id,
       organizationId: property.organization_id,
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-      dailyCallLimit: daily !== undefined ? (daily === null ? null : daily) : undefined,
-      monthlyCallLimit: monthly !== undefined ? (monthly === null ? null : monthly) : undefined,
-      dailyCostUsdLimit:
-        dailyCost !== undefined ? (dailyCost === null ? null : dailyCost) : undefined,
+      dailyCallLimit: daily,
+      monthlyCallLimit: monthly,
+      dailyCostUsdLimit: dailyCost,
       updatedBy: user.id,
     });
 

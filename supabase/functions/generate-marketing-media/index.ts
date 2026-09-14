@@ -66,7 +66,7 @@ import {
 import { startMarketingVideoJob } from '../_shared/marketingVideoGenerationAi.ts';
 import {
   allowPremiumForFeature,
-  getMarketingGenerationOverrides,
+  peekMarketingGenerationOverrides,
   MARKETING_IMAGE_GENERATE_FEATURE,
   MARKETING_VIDEO_GENERATE_FEATURE,
 } from '../_shared/marketingGenerationFeatureConfig.ts';
@@ -244,7 +244,6 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
   const premiumBlocked = await rejectPremiumIfDisabled(
     req,
     propertyId,
-    organizationId,
     MARKETING_IMAGE_GENERATE_FEATURE,
     options.tier
   );
@@ -430,7 +429,6 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
   const premiumBlocked = await rejectPremiumIfDisabled(
     req,
     propertyId,
-    organizationId,
     MARKETING_VIDEO_GENERATE_FEATURE,
     options.tier
   );
@@ -575,12 +573,11 @@ async function checkQuotaAndBudget(
 async function rejectPremiumIfDisabled(
   req: Request,
   propertyId: string,
-  organizationId: string,
   feature: typeof MARKETING_IMAGE_GENERATE_FEATURE | typeof MARKETING_VIDEO_GENERATE_FEATURE,
   tier: string
 ): Promise<Response | null> {
   if (tier !== 'premium') return null;
-  const overrides = await getMarketingGenerationOverrides(propertyId, organizationId);
+  const overrides = await peekMarketingGenerationOverrides(propertyId);
   if (allowPremiumForFeature(overrides, feature)) return null;
   return jsonError(req, 'Premium quality is not enabled for this property', 403);
 }
