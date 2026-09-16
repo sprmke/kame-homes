@@ -8,7 +8,7 @@
     "dev": "vite",
     "dev:hosted": "vite --mode development.dev",
     "dev:local-env": "vite --mode development.local",
-    "build": "tsc && tsc -p src/pwa/tsconfig.json && vite build && node ../scripts/pwa/check-precache-budget.mjs",
+    "build": "tsc && tsc -p src/pwa/tsconfig.json && vite build && node ../scripts/performance/check-initial-bundle-budget.mjs && node ../scripts/pwa/check-precache-budget.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit && tsc -p src/pwa/tsconfig.json",

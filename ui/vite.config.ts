@@ -260,6 +260,51 @@ export default defineConfig({
     // 'hidden' still generates + uploads maps but omits the sourceMappingURL
     // comment from shipped JS, so they aren't publicly fetchable.
     sourcemap: posthogSourceMapsEnabled ? 'hidden' : false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'query-vendor': [
+            '@tanstack/query-async-storage-persister',
+            '@tanstack/query-persist-client-core',
+            '@tanstack/react-query',
+            '@tanstack/react-query-persist-client',
+          ],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'motion-vendor': ['framer-motion'],
+          'icons-vendor': ['lucide-react'],
+          'forms-vendor': ['@hookform/resolvers', 'react-hook-form', 'zod'],
+          'date-vendor': ['date-fns', 'dayjs', 'react-day-picker'],
+          'observability-vendor': ['@posthog/react', 'posthog-js'],
+          'ui-vendor': [
+            'class-variance-authority',
+            'clsx',
+            'cmdk',
+            'embla-carousel-react',
+            'sonner',
+            'tailwind-merge',
+          ],
+          'radix-vendor': [
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+          ],
+        },
+      },
+    },
   },
   resolve: {
     alias: {
