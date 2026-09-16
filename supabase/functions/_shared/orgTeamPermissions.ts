@@ -61,6 +61,8 @@ export const LEGACY_ORG_PERMISSION_IDS = [
 ] as const;
 
 export type OrgPermissionId = (typeof ORG_PERMISSION_IDS)[number];
+/** Canonical or legacy colon ids accepted by server RBAC helpers. */
+export type OrgPermissionParam = OrgPermissionId | (typeof LEGACY_ORG_PERMISSION_IDS)[number];
 
 const ORG_PERMISSION_ID_SET = new Set<string>([
   ...ORG_PERMISSION_IDS,

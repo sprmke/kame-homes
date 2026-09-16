@@ -4,7 +4,7 @@
  * system — billing is org-level only, see planEntitlements.ts.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   createPaymongoCheckoutSession,

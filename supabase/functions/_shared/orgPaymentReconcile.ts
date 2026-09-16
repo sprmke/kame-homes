@@ -2,7 +2,7 @@
  * Reconcile pending org_payment_transactions against PayMongo when webhooks were missed.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   getPaymongoProviderPaymentState,

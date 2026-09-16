@@ -2,7 +2,7 @@
  * Org team listing assignment — materialize property_members / parking_members from org invites.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import {
   assertValidRoleId as assertValidPropertyRoleId,

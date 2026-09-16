@@ -1,6 +1,6 @@
 /** Seeded org hub template names — server mirror of ui/.../orgTeamTemplates.ts */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { ORG_PERMISSION_IDS, type OrgPermissionId } from './orgTeamPermissions.ts';
 

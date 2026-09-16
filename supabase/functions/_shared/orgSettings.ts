@@ -2,7 +2,7 @@
  * Organization-scoped operator settings (`org_settings` table).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { DEFAULT_EMAIL_LOGO_URL } from './renderEmailHtml.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';

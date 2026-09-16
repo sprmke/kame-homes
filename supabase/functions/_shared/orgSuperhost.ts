@@ -3,7 +3,7 @@
  * Keep in sync with `ui/src/features/dashboard/org/lib/orgSuperhost.ts`.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 export type OrgSuperhostCriterionSnapshot = {
   value: number;

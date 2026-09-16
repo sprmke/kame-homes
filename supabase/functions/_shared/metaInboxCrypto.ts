@@ -3,6 +3,8 @@
  * Key: META_INBOX_TOKEN_ENCRYPTION_KEY — 32 bytes as hex (64 chars) or standard base64.
  */
 
+import { webCryptoRawKey } from './webCryptoKey.ts';
+
 function decodeEncryptionKey(raw: string): Uint8Array {
   const t = raw.trim();
   if (/^[0-9a-fA-F]{64}$/.test(t)) {
@@ -27,7 +29,10 @@ function decodeEncryptionKey(raw: string): Uint8Array {
 
 async function importAesKey(rawKey: string): Promise<CryptoKey> {
   const material = decodeEncryptionKey(rawKey);
-  return crypto.subtle.importKey('raw', material, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return crypto.subtle.importKey('raw', webCryptoRawKey(material), 'AES-GCM', false, [
+    'encrypt',
+    'decrypt',
+  ]);
 }
 
 function toBase64Url(bytes: Uint8Array): string {

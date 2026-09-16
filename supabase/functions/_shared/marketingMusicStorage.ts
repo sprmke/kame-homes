@@ -2,7 +2,7 @@
  * Marketing video background audio — property-media storage (not gallery settings.media).
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
 import { formatPublicUrl } from './utils.ts';
