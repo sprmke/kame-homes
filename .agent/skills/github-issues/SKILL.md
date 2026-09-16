@@ -19,7 +19,7 @@ disable-model-invocation: false
 1. Epic index: **`docs/README.md`** (Product backlog — parent issues #101–#119).
 2. Fetch issue: `bun scripts/dev/gh-issue.mjs view --github N`
 3. Read `docs/guides/routes/` when the issue touches a page.
-4. Never add Cursor co-author trailers (`git-commits.mdc`).
+4. Never add co-author trailers or AI attribution in commits/PRs (`git-commits.mdc`, `git-commits` skill).
 
 ## Commands
 

@@ -32,9 +32,10 @@ Large backlogs are committed over **many days**: repeat `/batch-commit N` until 
 
 ## Hard rules
 
-Follow **`.cursor/rules/git-commits.mdc`**:
+Follow **`.cursor/rules/git-commits.mdc`** and invoke **`git-commits`** skill if unsure:
 
-- Never `Co-authored-by: Cursor` or mention Cursor/AI
+- Never `Co-authored-by` / `Co-Authored-By` trailers (any co-author, including Claude/Cursor)
+- Never mention Cursor/Claude/AI in commit or PR text
 - Never change git config or pass `--author`
 - **Only commit when the user explicitly asks**
 - **Never commit** secrets (`.env`, `.env.local`, credentials JSON, keys)
