@@ -311,7 +311,14 @@ function assertParkingPaymentReceiptIfRequired(
   if (!receipt) {
     throw new Error('Upload a parking payment receipt before completing parking');
   }
-  if (booking && receiptVerdictBlocksAdminTransition(booking.parking_receipt_ai_verdict)) {
+  if (
+    booking &&
+    receiptVerdictBlocksAdminTransition(
+      typeof booking.parking_receipt_ai_verdict === 'string'
+        ? booking.parking_receipt_ai_verdict
+        : null
+    )
+  ) {
     throw new Error(
       'Parking payment receipt failed AI validation. Upload a valid payment screenshot before completing parking.'
     );
@@ -713,7 +720,11 @@ export class WorkflowOrchestrator {
         totalDue !== null &&
         guestBalancePaymentReceiptRequired(totalDue) &&
         settlement.receiptUrl &&
-        receiptVerdictBlocksAdminTransition(booking.balance_receipt_ai_verdict)
+        receiptVerdictBlocksAdminTransition(
+          typeof booking.balance_receipt_ai_verdict === 'string'
+            ? booking.balance_receipt_ai_verdict
+            : null
+        )
       ) {
         throw new Error(
           'Balance payment receipt failed AI validation. Upload a valid payment screenshot before advancing.'

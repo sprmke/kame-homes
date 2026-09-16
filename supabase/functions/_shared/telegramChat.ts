@@ -2,12 +2,13 @@
  * Guest Chat Telegram alerts — notify hosts on every inbound web chat message.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { DatabaseService } from './databaseService.ts';
 import { DEFAULT_PUBLIC_GUEST_APP_ORIGIN } from './publicAppOrigin.ts';
 import type { NormalizedInboxAttachment } from './inboxAttachments.ts';
 import { normalizeTelegramTemplateText } from './telegramTemplateNormalize.ts';
 import type { TelegramAssetScopeRef } from './propertyTelegramCredentials.ts';
+import type { SocialConversationRow, SocialPlatform } from './socialInboxTypes.ts';
 
 export type TelegramChatSettings = {
   id: number;

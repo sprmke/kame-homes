@@ -7,7 +7,8 @@
  * settings flow in `settingsVerification.ts` but platform-scoped (no org/property).
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
+import { webCryptoRawKey } from './webCryptoKey.ts';
 
 import { jsonResponse } from './httpResponse.ts';
 import type { AuthenticatedUser } from './orgAuth.ts';
@@ -73,10 +74,13 @@ function hmacSecret(): Uint8Array {
 }
 
 async function importHmacKey(): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', hmacSecret(), { name: 'HMAC', hash: 'SHA-256' }, false, [
-    'sign',
-    'verify',
-  ]);
+  return crypto.subtle.importKey(
+    'raw',
+    webCryptoRawKey(hmacSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
 }
 
 function base64UrlEncode(bytes: Uint8Array): string {

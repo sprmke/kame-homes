@@ -1,4 +1,4 @@
-import dayjs from 'https://esm.sh/dayjs@1.11.10';
+import dayjs from 'dayjs';
 import { formatTime, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
 import { computeGuestCounts } from './guestCounts.ts';
 
@@ -190,6 +190,7 @@ export interface GuestSubmission {
 
   // ── Pet fee ───────────────────────────────────────────────────────────────
   pet_fee?: number | null;
+  guest_additional_fee?: number | null;
 
   // ── Approved PDF URLs (written by Gmail listener) ─────────────────────────
   approved_gaf_pdf_url?: string | null;
@@ -218,6 +219,16 @@ export interface GuestSubmission {
 
   /** Multi-tenancy — scopes app_settings / integrations for this booking. */
   property_id?: string | null;
+  guest_user_id?: string | null;
+  guest_form_token?: string | null;
+  guest_form_completed_at?: string | null;
+  external_source?: string | null;
+  external_uid?: string | null;
+  external_feed_id?: string | null;
+  external_raw?: unknown;
+  imported_from_batch_id?: string | null;
+  document_requirement_completions?: unknown;
+  [key: string]: unknown;
 }
 
 // Helper function to convert string to boolean

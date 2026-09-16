@@ -2,7 +2,7 @@
  * Maintenance operating Telegram due-date reminders.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
 import { listAllPropertyIds } from './propertyCron.ts';
@@ -388,13 +388,23 @@ export async function sendMaintenanceDraftPreview(
   };
 }
 
+export type MaintenanceDueRemindersResult = {
+  sent: number;
+  matched: number;
+  skipped?: boolean;
+  reason?: string;
+  today?: string;
+  errors?: string[];
+  properties?: Array<MaintenanceDueRemindersResult & { propertyId: string }>;
+};
+
 export async function runMaintenanceDueReminders(options?: {
   force?: boolean;
   propertyId?: string;
-}) {
+}): Promise<MaintenanceDueRemindersResult> {
   if (!options?.propertyId) {
     const propertyIds = await listAllPropertyIds();
-    const properties = [];
+    const properties: Array<MaintenanceDueRemindersResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       properties.push({
         propertyId,

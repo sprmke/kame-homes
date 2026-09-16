@@ -1,5 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { formatPublicUrl } from './utils.ts';
+import { createClient } from './supabaseJs.ts';
+import { copyBytes, formatPublicUrl } from './utils.ts';
 import { prefixPropertyStorageKey } from './bookingStoragePaths.ts';
 
 /**
@@ -25,10 +25,17 @@ function sanitizeStorageFileName(fileName: string): string {
 }
 
 export class UploadService {
-  private static supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  private static client: ReturnType<typeof createClient> | null = null;
+
+  private static get supabase() {
+    if (!this.client) {
+      this.client = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+    }
+    return this.client;
+  }
 
   static async uploadPaymentReceipt(
     file: File | null,
@@ -147,7 +154,7 @@ export class UploadService {
     objectPath: string,
     bytes: Uint8Array
   ): Promise<string> {
-    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const blob = new Blob([copyBytes(bytes)], { type: 'application/pdf' });
     const { error } = await this.supabase.storage.from(bucket).upload(objectPath, blob, {
       contentType: 'application/pdf',
       upsert: true,

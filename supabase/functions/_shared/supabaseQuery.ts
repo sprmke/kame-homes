@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 type FilterQuery = {
   eq: (column: string, value: string | number) => FilterQuery;
@@ -15,12 +15,12 @@ export function applyAssetScopeFilter<T extends FilterQuery>(
   legacyId = 1
 ): T {
   if (scope?.parkingId) {
-    return query.eq('parking_id', scope.parkingId);
+    return query.eq('parking_id', scope.parkingId) as T;
   }
   if (scope?.propertyId) {
-    return query.eq('property_id', scope.propertyId);
+    return query.eq('property_id', scope.propertyId) as T;
   }
-  return query.eq('id', legacyId);
+  return query.eq('id', legacyId) as T;
 }
 
 export function applyPropertyOrLegacySingletonFilter<T extends FilterQuery>(
@@ -32,7 +32,8 @@ export function applyPropertyOrLegacySingletonFilter<T extends FilterQuery>(
 }
 
 export type RpcObjectResult<T extends Record<string, unknown>> =
-  ({ ok: false; error: string } & Partial<T>) | T;
+  | { ok: false; error: string }
+  | T;
 
 export async function callRpcObject<T extends Record<string, unknown>>(
   supabase: SupabaseClient,

@@ -18,8 +18,8 @@ Deno.test('computeBalance — booking rate minus down payment', () => {
 });
 
 Deno.test('flag — defaults true when dev control omitted', () => {
-  assertEquals(flag({}, 'sendEmail'), true);
-  assertEquals(flag({ sendEmail: false }, 'sendEmail'), false);
+  assertEquals(flag({}, 'generatePdf'), true);
+  assertEquals(flag({ generatePdf: false }, 'generatePdf'), false);
 });
 
 Deno.test('resolveDocTarget — maps legacy PENDING_GAF to gaf requirement id', () => {

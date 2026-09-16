@@ -2,7 +2,7 @@
  * Superhost earn / lose owner notification emails.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import { buildEmailCtaHtml, renderBrandedEmailShell } from './brandedEmailShell.ts';
