@@ -173,6 +173,22 @@ export function marketingGenerationStoragePath(
   return `marketing-ai/${propertyId}/${safeJobId}${safeExt}`;
 }
 
+/**
+ * Design canvas uploads (collage photos + anything dropped through Polotno's own
+ * Upload panel) — a dedicated prefix with no auto-prune and no gallery mutation,
+ * so a throwaway canvas asset never appears on the public property listing and a
+ * saved design's images never expire out from under it.
+ */
+export function marketingUploadStoragePath(
+  propertyId: string,
+  fileKey: string,
+  ext: string
+): string {
+  const safeExt = ext.startsWith('.') ? ext : `.${ext}`;
+  const safeKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `marketing-uploads/${propertyId}/${safeKey}${safeExt}`;
+}
+
 /** Upsert so a reclaimed retry overwrites the same object instead of orphaning one. */
 export async function uploadGenerationBytes(
   supabase: SupabaseClient,

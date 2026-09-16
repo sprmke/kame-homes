@@ -925,6 +925,9 @@ verify_jwt = false
 [functions.upload-marketing-generation-reference]
 verify_jwt = false
 
+[functions.upload-marketing-asset]
+verify_jwt = false
+
 [functions.marketing-generation-sweeper]
 verify_jwt = false
 
