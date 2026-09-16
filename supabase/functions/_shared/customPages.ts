@@ -3,7 +3,7 @@
  * Rows are lazily created on first read, mirroring property_template_contents's default-fallback pattern.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 
 export type CustomPageType = 'stay_guide' | 'property_showcase';
 

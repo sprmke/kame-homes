@@ -3,7 +3,7 @@
  * Keep response shape in sync with `ui/src/features/dashboard/lib/types.ts`.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import {
   bookingRateForDisplay,
   computeBookingFinancials,

@@ -2,7 +2,7 @@
  * Owner emails for Unit handoff Phase B contract-expiry milestones.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { buildEmailCtaHtml, renderBrandedEmailShell } from './brandedEmailShell.ts';
 import { loadAuthUserProfile } from './authUserProfile.ts';

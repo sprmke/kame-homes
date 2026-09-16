@@ -2,7 +2,7 @@
  * Shared GCash QR staging upload (does not commit payment_methods — OTP/settings token required).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
 

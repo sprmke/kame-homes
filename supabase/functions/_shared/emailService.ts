@@ -3,7 +3,8 @@ import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
 import { buildGuestStayGuideUrl } from './guestStayGuide.ts';
 import { buildApprovalInboundAddress } from './approvalInboundAddress.ts';
 import { resolvePropertySlugById } from './propertyScope.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
+import type { GuestFormData, GuestSubmission } from './types.ts';
 import {
   buildBookingLinkCtaHtml,
   buildBookingAcknowledgementFlowSectionHtml,
@@ -555,7 +556,7 @@ export async function sendPetEmail(
   );
 
   const emailContent = await renderPropertyTemplateSendEmail({
-    propertyId,
+    propertyId: propertyId ?? undefined,
     templateKey: 'email-pet-request',
     emailTitle: isUpdate ? 'Pet Registration Request (Updated)' : 'Pet Registration Request',
     placeholderVars: vars,

@@ -2,7 +2,7 @@
  * Finance aggregations and finance_line_items CRUD.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { computeBookingFinancials, financeDisplayNet } from './bookingFinance.ts';
 import { checkInDateToIso } from './bookingsListSort.ts';
 import {

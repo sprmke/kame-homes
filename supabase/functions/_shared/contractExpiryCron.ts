@@ -7,7 +7,7 @@
  * siblings in the same org are untouched.
  */
 
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient, type SupabaseClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 
 import { manilaTodayYmd } from './calendarAvailabilityManila.ts';

@@ -3,7 +3,7 @@
  * Team members (property team manager, then org owner) are the source of truth.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 import type { AppSettingsResolved } from './appSettings.ts';
 import { formatPhilippineMobileDisplay } from './fieldValidation.ts';
 import { DEFAULT_FACEBOOK_PAGE_URL } from './orgSocialLinks.ts';

@@ -10,7 +10,7 @@ import {
 } from './financeService.ts';
 import type { FinancePeriodBasis } from './financePeriodFilter.ts';
 import { isCancelledBooking, passesFinancePeriodFilter } from './financePeriodFilter.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 function escapeCsvCell(value: string | number | null | undefined): string {
   const s = value === null || value === undefined ? '' : String(value);

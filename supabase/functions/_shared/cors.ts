@@ -3,15 +3,12 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173', // Vite preview
   'http://localhost:54321', // Supabase local development
   'https://guest-form-management-ui.vercel.app', // Legacy Vercel deploy
+  'https://kame-homes.vercel.app', // Multi-tenant Vercel project origin
   'https://kamehomes.space', // Legacy production SPA
   'https://www.kamehomes.space',
   'https://dev.kamehomes.space', // Multi-tenant dev SPA (docs/workflow/in-progress/ci-cd-environments)
   'https://app.kamehomes.space', // Multi-tenant prod SPA (reserved ahead of cutover)
 ];
-
-// Vercel preview deployments use a per-branch/per-PR subdomain of *.vercel.app —
-// allow the whole family rather than hardcoding every preview URL.
-const ALLOWED_ORIGIN_SUFFIXES = ['.vercel.app'];
 
 const DEFAULT_ORIGIN = 'https://www.kamehomes.space';
 
@@ -46,10 +43,17 @@ function isLoopbackOrigin(origin: string): boolean {
   return host === 'localhost' || host === '127.0.0.1' || host === '::1';
 }
 
+function configuredAllowedOrigins(): string[] {
+  return (Deno.env.get('CORS_ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 export function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   if (isLoopbackOrigin(origin)) return true;
-  return ALLOWED_ORIGIN_SUFFIXES.some((suffix) => origin.endsWith(suffix));
+  return configuredAllowedOrigins().includes(origin);
 }
 
 export const corsHeaders = (req: Request) => {
