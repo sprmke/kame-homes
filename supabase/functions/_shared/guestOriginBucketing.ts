@@ -1,53 +1,125 @@
 /**
  * Free-text guest origin bucketing — no lat/lng/city column exists on guest_submissions today,
  * so this is a ranked list built from keyword matching, not a map.
+ * PH labels use "City, Province" when a city match exists; province-only when that is all we know.
  * Mirror on UI: none needed — server always returns the bucketed distribution.
  */
 
-/** Ordered so more specific matches win before broader ones (e.g. a district before its city). */
+/** Ordered so more specific matches win before broader ones (city before province catch-all). */
 const PH_LOCATION_KEYWORDS: Array<{ label: string; keywords: string[] }> = [
+  // Metro Manila
   {
-    label: 'Manila',
-    keywords: [
-      'manila',
-      'quezon city',
-      'qc',
-      'makati',
-      'taguig',
-      'pasig',
-      'mandaluyong',
-      'paranaque',
-      'parañaque',
-      'pasay',
-      'muntinlupa',
-      'marikina',
-      'caloocan',
-      'malabon',
-      'navotas',
-      'valenzuela',
-      'las pinas',
-      'las piñas',
-      'san juan',
-      'metro manila',
-      'ncr',
-    ],
+    label: 'Quezon City, Metro Manila',
+    keywords: ['quezon city', 'qc'],
   },
-  { label: 'Cebu', keywords: ['cebu', 'mandaue', 'lapu-lapu', 'lapu lapu', 'talisay city'] },
-  { label: 'Davao', keywords: ['davao'] },
-  { label: 'Iloilo', keywords: ['iloilo'] },
-  { label: 'Baguio', keywords: ['baguio'] },
-  { label: 'Bulacan', keywords: ['bulacan', 'malolos', 'san jose del monte'] },
-  { label: 'Cavite', keywords: ['cavite', 'dasmarinas', 'dasmariñas', 'bacoor', 'imus'] },
-  { label: 'Laguna', keywords: ['laguna', 'santa rosa', 'calamba', 'los banos', 'los baños'] },
-  { label: 'Pampanga', keywords: ['pampanga', 'angeles city', 'clark'] },
-  { label: 'Rizal', keywords: ['rizal', 'antipolo', 'cainta'] },
+  { label: 'Makati, Metro Manila', keywords: ['makati'] },
+  {
+    label: 'Taguig, Metro Manila',
+    keywords: ['taguig', 'bgc', 'bonifacio global'],
+  },
+  { label: 'Pasig, Metro Manila', keywords: ['pasig'] },
+  { label: 'Mandaluyong, Metro Manila', keywords: ['mandaluyong'] },
+  {
+    label: 'Parañaque, Metro Manila',
+    keywords: ['paranaque', 'parañaque'],
+  },
+  { label: 'Pasay, Metro Manila', keywords: ['pasay'] },
+  { label: 'Muntinlupa, Metro Manila', keywords: ['muntinlupa'] },
+  { label: 'Marikina, Metro Manila', keywords: ['marikina'] },
+  { label: 'Caloocan, Metro Manila', keywords: ['caloocan'] },
+  { label: 'Malabon, Metro Manila', keywords: ['malabon'] },
+  { label: 'Navotas, Metro Manila', keywords: ['navotas'] },
+  { label: 'Valenzuela, Metro Manila', keywords: ['valenzuela'] },
+  {
+    label: 'Las Piñas, Metro Manila',
+    keywords: ['las pinas', 'las piñas'],
+  },
+  { label: 'San Juan, Metro Manila', keywords: ['san juan'] },
+  {
+    label: 'Manila, Metro Manila',
+    keywords: ['manila', 'metro manila', 'ncr'],
+  },
+
+  // Cebu
+  { label: 'Mandaue, Cebu', keywords: ['mandaue'] },
+  {
+    label: 'Lapu-Lapu, Cebu',
+    keywords: ['lapu-lapu', 'lapu lapu'],
+  },
+  { label: 'Talisay, Cebu', keywords: ['talisay city'] },
+  { label: 'Cebu City, Cebu', keywords: ['cebu city', 'cebu'] },
+
+  // Davao
+  { label: 'Davao City, Davao del Sur', keywords: ['davao'] },
+
+  // Iloilo / Baguio / Bacolod
+  { label: 'Iloilo City, Iloilo', keywords: ['iloilo'] },
+  { label: 'Baguio, Benguet', keywords: ['baguio'] },
+  {
+    label: 'Bacolod, Negros Occidental',
+    keywords: ['bacolod', 'negros occidental'],
+  },
+
+  // Bulacan
+  { label: 'Malolos, Bulacan', keywords: ['malolos'] },
+  {
+    label: 'San Jose del Monte, Bulacan',
+    keywords: ['san jose del monte'],
+  },
+  { label: 'Bulacan', keywords: ['bulacan'] },
+
+  // Cavite
+  {
+    label: 'Dasmariñas, Cavite',
+    keywords: ['dasmarinas', 'dasmariñas'],
+  },
+  { label: 'Bacoor, Cavite', keywords: ['bacoor'] },
+  { label: 'Imus, Cavite', keywords: ['imus'] },
+  { label: 'Cavite', keywords: ['cavite'] },
+
+  // Laguna
+  { label: 'Santa Rosa, Laguna', keywords: ['santa rosa'] },
+  { label: 'Calamba, Laguna', keywords: ['calamba'] },
+  {
+    label: 'Los Baños, Laguna',
+    keywords: ['los banos', 'los baños'],
+  },
+  { label: 'Laguna', keywords: ['laguna'] },
+
+  // Pampanga
+  { label: 'Angeles, Pampanga', keywords: ['angeles city'] },
+  { label: 'Clark, Pampanga', keywords: ['clark'] },
+  { label: 'Pampanga', keywords: ['pampanga'] },
+
+  // Rizal
+  { label: 'Antipolo, Rizal', keywords: ['antipolo'] },
+  { label: 'Cainta, Rizal', keywords: ['cainta'] },
+  { label: 'Rizal', keywords: ['rizal'] },
+
+  // Batangas / Zambales
   { label: 'Batangas', keywords: ['batangas'] },
-  { label: 'Zambales', keywords: ['zambales', 'subic'] },
-  { label: 'Palawan', keywords: ['palawan', 'puerto princesa', 'el nido', 'coron'] },
-  { label: 'Bacolod', keywords: ['bacolod', 'negros occidental'] },
-  { label: 'Cagayan de Oro', keywords: ['cagayan de oro', 'cdo'] },
-  { label: 'General Santos', keywords: ['general santos', 'gensan'] },
-  { label: 'Zamboanga', keywords: ['zamboanga'] },
+  { label: 'Subic, Zambales', keywords: ['subic'] },
+  { label: 'Zambales', keywords: ['zambales'] },
+
+  // Palawan
+  { label: 'Puerto Princesa, Palawan', keywords: ['puerto princesa'] },
+  { label: 'El Nido, Palawan', keywords: ['el nido'] },
+  { label: 'Coron, Palawan', keywords: ['coron'] },
+  { label: 'Palawan', keywords: ['palawan'] },
+
+  // Mindanao hubs
+  {
+    label: 'Cagayan de Oro, Misamis Oriental',
+    keywords: ['cagayan de oro', 'cdo'],
+  },
+  {
+    label: 'General Santos, South Cotabato',
+    keywords: ['general santos', 'gensan'],
+  },
+  {
+    label: 'Zamboanga City, Zamboanga del Sur',
+    keywords: ['zamboanga'],
+  },
 ];
 
 const COUNTRY_KEYWORDS: Array<{ label: string; keywords: string[] }> = [

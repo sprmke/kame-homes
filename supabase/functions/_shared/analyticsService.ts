@@ -15,7 +15,9 @@ import {
   computeBookingFinancials,
   dashboardNetProfitKpi,
 } from './bookingFinance.ts';
+import { canonicalAnalyticsChannel } from './analyticsChannel.ts';
 import { bucketGuestOrigin } from './guestOriginBucketing.ts';
+import { buildNewBookingsPoints, resolveActivityWindow } from './bookingPace.ts';
 import { resolvePropertyEntitlements } from './planEntitlements.ts';
 import { isFeatureEnabled } from './planFeatures.ts';
 
@@ -154,6 +156,7 @@ export type AnalyticsBundle = {
     channelMix: Array<{ channel: string; count: number; revenue: number }>;
     guestAge: Array<{ bucket: string; count: number }>;
     guestOrigins: Array<{ origin: string; count: number; pct: number }>;
+    partySize: Array<{ bucket: string; count: number }>;
   };
   forward: {
     windowDays: number;
@@ -165,10 +168,11 @@ export type AnalyticsBundle = {
   };
   bookingPace: Array<{
     monthStart: string;
-    cumulativeReservations: number;
-    cumulativeRevenue: number;
-    cumulativeReservationsLastYear: number;
-    cumulativeRevenueLastYear: number;
+    /** New bookings created in this bucket (not cumulative). */
+    reservations: number;
+    revenue: number;
+    reservationsLastYear: number;
+    revenueLastYear: number;
   }>;
   pickup: { last7Days: number; last30Days: number };
   stateAssessment: {
@@ -194,6 +198,7 @@ type NormalizedRow = {
   checkInIso: string;
   checkOutIso: string;
   numberOfNights: number;
+  partySize: number;
   createdAtIso: string;
   guestEmail: string;
   bookingSource: string;
@@ -213,16 +218,20 @@ function normalizeRow(raw: Record<string, unknown>): NormalizedRow {
   ]
     .map((a) => (typeof a === 'number' ? a : Number(a)))
     .filter((a) => Number.isFinite(a) && a > 0);
+  const adults = Number(raw.number_of_adults ?? 0) || 0;
+  const children = Number(raw.number_of_children ?? 0) || 0;
   return {
     raw,
     status: String(raw.status ?? ''),
     checkInIso,
     checkOutIso,
     numberOfNights: Number(raw.number_of_nights ?? 0) || 0,
+    partySize: Math.max(0, adults + children),
     createdAtIso: createdAt ? createdAt.slice(0, 10) : '',
     guestEmail: typeof raw.guest_email === 'string' ? raw.guest_email.trim().toLowerCase() : '',
-    bookingSource:
-      typeof raw.booking_source === 'string' && raw.booking_source ? raw.booking_source : 'Unknown',
+    bookingSource: canonicalAnalyticsChannel(
+      typeof raw.booking_source === 'string' ? raw.booking_source : null
+    ),
     ages,
   };
 }
@@ -347,6 +356,7 @@ export async function computeAnalyticsBundle(
     .select(
       'status, check_in_date, check_out_date, number_of_nights, created_at, guest_email, ' +
         'booking_source, primary_guest_age, guest2_age, guest3_age, guest4_age, guest5_age, ' +
+        'number_of_adults, number_of_children, ' +
         'booking_rate, down_payment, balance, security_deposit, guest_additional_fee, pet_fee, ' +
         'parking_rate_guest, parking_rate_paid, has_pets, need_parking, guest_balance_paid_amount, ' +
         'sd_additional_expense_items, sd_additional_profit_items, sd_additional_expenses, ' +
@@ -388,7 +398,7 @@ export async function computeAnalyticsBundle(
   const trend = buildTrend(inWindow, from, to);
   const distributions = await buildDistributions(inWindow, from, to);
   const forward = buildForward(rows, today, forwardTo, forwardWindowDays);
-  const bookingPace = buildBookingPace(rows, today);
+  const bookingPace = buildBookingPace(rows, from, to, today);
   const pickup = buildPickup(rows, today);
   const stateAssessment = buildStateAssessment(rows, today, currentSnapshot, priorSnapshot);
 
@@ -696,15 +706,29 @@ async function computeResponsivenessKpis(
 
 // ─── trend series ───────────────────────────────────────────────────────────
 
+function trendBucketDayCount(
+  bucketStart: string,
+  from: string,
+  to: string,
+  daily: boolean
+): number {
+  if (daily) return 1;
+  const [y, m] = bucketStart.split('-').map(Number);
+  const monthEnd = new Date(y, m, 0).toISOString().slice(0, 10);
+  const start = bucketStart < from ? from : bucketStart;
+  const end = monthEnd > to ? to : monthEnd;
+  return daysInclusive(start, end);
+}
+
 function buildTrend(rows: NormalizedRow[], from: string, to: string): AnalyticsBundle['trend'] {
   const daily = daysInclusive(from, to) <= 62;
-  const buckets = new Map<string, { nights: number; revenue: number }>();
+  const buckets = new Map<string, { nights: Set<string>; revenueByNight: Map<string, number> }>();
 
   const bucketKey = (iso: string) => (daily ? iso : `${iso.slice(0, 7)}-01`);
 
   let cursor = from;
   while (cursor <= to) {
-    buckets.set(bucketKey(cursor), { nights: 0, revenue: 0 });
+    buckets.set(bucketKey(cursor), { nights: new Set(), revenueByNight: new Map() });
     cursor = addDaysIso(cursor, 1);
   }
 
@@ -721,20 +745,26 @@ function buildTrend(rows: NormalizedRow[], from: string, to: string): AnalyticsB
       const key = bucketKey(iso);
       const bucket = buckets.get(key);
       if (!bucket) continue;
-      bucket.nights += 1;
-      bucket.revenue = roundMoney(bucket.revenue + perNightRate);
+      bucket.nights.add(iso);
+      const prev = bucket.revenueByNight.get(iso) ?? 0;
+      bucket.revenueByNight.set(iso, roundMoney(Math.max(prev, perNightRate)));
     }
   }
 
-  const bucketDayCount = daily ? 1 : 30; // approximate month length for occupancy % denominator
   return [...buckets.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([bucketStart, { nights, revenue }]) => ({
-      bucketStart,
-      occupancyRate: roundMoney((nights / bucketDayCount) * 100),
-      adr: nights > 0 ? roundMoney(revenue / nights) : 0,
-      revenue,
-    }));
+    .map(([bucketStart, { nights, revenueByNight }]) => {
+      const occupied = nights.size;
+      const denom = trendBucketDayCount(bucketStart, from, to, daily);
+      const revenue = [...revenueByNight.values()].reduce((sum, n) => roundMoney(sum + n), 0);
+      const occupancyRate = denom > 0 ? roundMoney(Math.min(100, (occupied / denom) * 100)) : 0;
+      return {
+        bucketStart,
+        occupancyRate,
+        adr: occupied > 0 ? roundMoney(revenue / occupied) : 0,
+        revenue,
+      };
+    });
 }
 
 // ─── distributions ──────────────────────────────────────────────────────────
@@ -754,6 +784,14 @@ const LEAD_TIME_BUCKETS: Array<{ label: string; max: number }> = [
   { label: '15-30 days', max: 30 },
   { label: '31-60 days', max: 60 },
   { label: '61+ days', max: Infinity },
+];
+
+const PARTY_SIZE_BUCKETS: Array<{ label: string; max: number }> = [
+  { label: '1', max: 1 },
+  { label: '2', max: 2 },
+  { label: '3', max: 3 },
+  { label: '4', max: 4 },
+  { label: '5+', max: Infinity },
 ];
 
 const AGE_BUCKETS: Array<{ label: string; min: number; max: number }> = [
@@ -784,6 +822,7 @@ async function buildDistributions(
 
   const losCounts = new Map<string, number>();
   const leadTimeCounts = new Map<string, number>();
+  const partySizeCounts = new Map<string, number>();
   const channelCounts = new Map<string, { count: number; revenue: number }>();
   const ageCounts = new Map<string, number>();
   let unknownAgeGuests = 0;
@@ -792,6 +831,11 @@ async function buildDistributions(
   for (const row of inPeriod) {
     const losBucket = bucketFor(row.numberOfNights, LOS_BUCKETS);
     losCounts.set(losBucket, (losCounts.get(losBucket) ?? 0) + 1);
+
+    if (row.partySize > 0) {
+      const paxBucket = bucketFor(row.partySize, PARTY_SIZE_BUCKETS);
+      partySizeCounts.set(paxBucket, (partySizeCounts.get(paxBucket) ?? 0) + 1);
+    }
 
     if (row.createdAtIso) {
       const lead = daysBetween(row.createdAtIso, row.checkInIso);
@@ -831,6 +875,7 @@ async function buildDistributions(
   return {
     lengthOfStay: [...losCounts.entries()].map(([bucket, count]) => ({ bucket, count })),
     leadTime: [...leadTimeCounts.entries()].map(([bucket, count]) => ({ bucket, count })),
+    partySize: [...partySizeCounts.entries()].map(([bucket, count]) => ({ bucket, count })),
     channelMix: [...channelCounts.entries()].map(([channel, v]) => ({ channel, ...v })),
     guestAge: [...ageCounts.entries()].map(([bucket, count]) => ({ bucket, count })),
     guestOrigins: [...originCounts.entries()]
@@ -893,62 +938,61 @@ function monthStartIso(iso: string): string {
   return `${iso.slice(0, 7)}-01`;
 }
 
-function buildBookingPace(rows: NormalizedRow[], today: string): AnalyticsBundle['bookingPace'] {
-  const months: string[] = [];
-  let cursor = monthStartIso(addDaysIso(today, -60));
-  for (let i = 0; i < 6; i += 1) {
-    months.push(cursor);
-    const [y, m] = cursor.split('-').map(Number);
-    cursor = new Date(y, m, 1).toISOString().slice(0, 10);
-  }
+function monthEndIso(monthStart: string): string {
+  const [y, m] = monthStart.split('-').map(Number);
+  return new Date(y, m, 0).toISOString().slice(0, 10);
+}
 
-  return months.map((monthStart) => {
-    const monthStartLastYear = (() => {
-      const [y, m, d] = monthStart.split('-').map(Number);
-      return new Date(y - 1, m - 1, d, 12).toISOString().slice(0, 10);
-    })();
-    const monthEnd = (() => {
-      const [y, m] = monthStart.split('-').map(Number);
-      return new Date(y, m, 0).toISOString().slice(0, 10);
-    })();
+function addMonthStart(monthStart: string): string {
+  const [y, m] = monthStart.split('-').map(Number);
+  return new Date(y, m, 1).toISOString().slice(0, 10);
+}
 
-    let cumulativeReservations = 0;
-    let cumulativeRevenue = 0;
-    let cumulativeReservationsLastYear = 0;
-    let cumulativeRevenueLastYear = 0;
+function shiftYearIso(iso: string, years: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y + years, m - 1, d, 12).toISOString().slice(0, 10);
+}
 
-    for (const row of rows) {
-      if (CANCELLED.has(row.status) || !row.checkInIso || !row.createdAtIso) continue;
-      const revenue = bookingRateForDisplay(row.raw) ?? 0;
-      if (
-        row.checkInIso >= monthStart &&
-        row.checkInIso <= monthEnd &&
-        row.createdAtIso <= monthEnd
-      ) {
-        cumulativeReservations += 1;
-        cumulativeRevenue = roundMoney(cumulativeRevenue + revenue);
-      }
-      const checkInLastYearBucket = (() => {
-        const [y, m, d] = row.checkInIso.split('-').map(Number);
-        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      })();
-      if (
-        checkInLastYearBucket >= monthStartLastYear &&
-        checkInLastYearBucket.slice(0, 7) === monthStartLastYear.slice(0, 7)
-      ) {
-        cumulativeReservationsLastYear += 1;
-        cumulativeRevenueLastYear = roundMoney(cumulativeRevenueLastYear + revenue);
-      }
-    }
+/**
+ * New bookings created during the selected range (daily or weekly buckets),
+ * vs the same calendar dates last year. Non-cumulative — shows when demand arrived.
+ */
+function buildBookingPace(
+  rows: NormalizedRow[],
+  from: string,
+  to: string,
+  today: string
+): AnalyticsBundle['bookingPace'] {
+  const { rangeFrom, rangeTo } = resolveActivityWindow(from, to, today);
+  const lyFrom = shiftYearIso(rangeFrom, -1);
+  const lyTo = shiftYearIso(rangeTo, -1);
 
-    return {
-      monthStart,
-      cumulativeReservations,
-      cumulativeRevenue,
-      cumulativeReservationsLastYear,
-      cumulativeRevenueLastYear,
-    };
+  const toPaceBooking = (row: NormalizedRow) => ({
+    createdAtIso: row.createdAtIso,
+    revenue: bookingRateForDisplay(row.raw) ?? 0,
   });
+
+  const current = rows
+    .filter(
+      (row) =>
+        !CANCELLED.has(row.status) &&
+        row.createdAtIso &&
+        row.createdAtIso >= rangeFrom &&
+        row.createdAtIso <= rangeTo
+    )
+    .map(toPaceBooking);
+
+  const lastYear = rows
+    .filter(
+      (row) =>
+        !CANCELLED.has(row.status) &&
+        row.createdAtIso &&
+        row.createdAtIso >= lyFrom &&
+        row.createdAtIso <= lyTo
+    )
+    .map(toPaceBooking);
+
+  return buildNewBookingsPoints(current, lastYear, rangeFrom, rangeTo);
 }
 
 function buildPickup(rows: NormalizedRow[], today: string): AnalyticsBundle['pickup'] {
