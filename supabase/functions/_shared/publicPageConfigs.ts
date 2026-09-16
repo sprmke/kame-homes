@@ -3,7 +3,7 @@
  * Host paths lazily create rows; guest render paths read-only with in-memory defaults.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 
 import {
   BRAND_COLOR_PRESET_IDS,

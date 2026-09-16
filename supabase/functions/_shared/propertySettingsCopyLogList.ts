@@ -2,7 +2,7 @@
  * List recent property_settings_copy_log rows for an org (service role).
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 export type PropertySettingsCopyLogRow = {
   id: string;

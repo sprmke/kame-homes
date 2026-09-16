@@ -296,6 +296,15 @@ export function applyPropertyIdFilter<T extends { eq: (col: string, val: string)
   return query.eq('property_id', propertyId);
 }
 
+export function assertBookingBelongsToProperty(
+  bookingPropertyId: string | null,
+  expectedPropertyId: string
+): void {
+  if (bookingPropertyId !== expectedPropertyId) {
+    throw new Error('Booking does not belong to this property');
+  }
+}
+
 /** Ensures a booking row belongs to the resolved property (admin mutations). */
 export async function verifyBookingBelongsToProperty(
   bookingId: string,
@@ -310,7 +319,5 @@ export async function verifyBookingBelongsToProperty(
   if (error || !data) {
     throw new Error('Booking not found');
   }
-  if (data.property_id && data.property_id !== propertyId) {
-    throw new Error('Booking does not belong to this property');
-  }
+  assertBookingBelongsToProperty(data.property_id, propertyId);
 }

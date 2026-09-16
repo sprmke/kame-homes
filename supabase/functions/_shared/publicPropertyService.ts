@@ -68,6 +68,8 @@ export type PublicPropertyDetailDto = {
   placeId: string | null;
   residenceName: string | null;
   towerAndUnit: string | null;
+  tower: string | null;
+  unitNumber: string | null;
   bedrooms: number;
   bathrooms: number;
   floors: number;

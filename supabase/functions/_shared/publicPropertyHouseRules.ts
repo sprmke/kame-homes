@@ -41,8 +41,10 @@ export function resolvePublicHouseRules(
   checkInTime: string,
   checkOutTime: string
 ): PublicHouseRuleDto[] {
-  const customById = new Map(
-    customRules.map((entry) => [entry.id, entry.name.trim()]).filter(([, name]) => name)
+  const customById = new Map<string, string>(
+    customRules
+      .map((entry) => [entry.id, entry.name.trim()] as const)
+      .filter((entry): entry is readonly [string, string] => entry[1].length > 0)
   );
   const resolved: PublicHouseRuleDto[] = [];
   const seen = new Set<string>();

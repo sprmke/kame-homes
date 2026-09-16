@@ -6,7 +6,7 @@
  * A property/parking-only team member gets neither realtime nor push today — a
  * known v1 gap tracked with the realtime one, to be closed together.
  */
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import type { StoredPushSubscription } from './webPushService.ts';
 
