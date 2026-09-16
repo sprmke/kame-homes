@@ -37,8 +37,9 @@ Routes:
 
 ## Access
 
-`RequireSuperAdmin` — email in `SUPER_ADMIN_EMAILS` (server) / `VITE_SUPER_ADMIN_EMAILS` (client
-gate). All hub edge calls go through `serveSuperAdmin` / `verifySuperAdminJwt`. Super admins can
+`RequireSuperAdmin` consumes the server-derived `list-organizations.isSuperAdmin` capability.
+All hub edge calls go through `serveSuperAdmin` / `verifySuperAdminJwt` and independently enforce
+`SUPER_ADMIN_EMAILS`. Super admins can
 also hit the org-scoped endpoints the Listings / Support sections reuse because `orgAuth.ts`
 allows `isSuperAdminEmail` alongside org owners.
 

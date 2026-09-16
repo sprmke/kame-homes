@@ -11,15 +11,16 @@ Sitewide pyramid for Kame Homes. Plan: [`docs/workflow/done/sitewide-automated-t
 
 ## Pyramid
 
-| Layer                      | Command                            | CI                   |
-| -------------------------- | ---------------------------------- | -------------------- |
-| UI unit (Vitest)           | `bun run test`                     | every PR             |
-| Edge unit (Deno `_shared`) | `bun run test:edge`                | every PR             |
-| Edge handlers              | `bun run test:edge:handlers`       | every PR             |
-| Playwright smoke           | `bun run test:e2e:smoke`           | PR + develop         |
-| Playwright CI suite        | `bun run test:e2e:ci`              | develop              |
-| Post-deploy                | `./scripts/deploy/ci-smoke.sh dev` | after develop deploy |
-| Full local parity          | `bun run ci:quality`               | before push          |
+| Layer                           | Command                            | CI                   |
+| ------------------------------- | ---------------------------------- | -------------------- |
+| UI unit (Vitest)                | `bun run test`                     | every PR             |
+| Edge unit (Deno `_shared`)      | `bun run test:edge`                | every PR             |
+| Edge handlers                   | `bun run test:edge:handlers`       | every PR             |
+| Playwright smoke                | `bun run test:e2e:smoke`           | PR + develop         |
+| Playwright phone + tablet smoke | `bun run test:e2e:smoke`           | every PR             |
+| Playwright CI suite             | `bun run test:e2e:ci`              | develop              |
+| Post-deploy                     | `./scripts/deploy/ci-smoke.sh dev` | after develop deploy |
+| Full local parity               | `bun run ci:quality`               | before push          |
 
 ## Layout
 
@@ -33,6 +34,14 @@ docs/guides/testing/
 ```
 
 ## Playwright tags
+
+Vitest intentionally stays Node-only for deterministic helpers, validators, and
+client/server mirrors. Rendered component behavior is covered by mocked
+Playwright journeys so the repo does not maintain a second DOM simulation layer.
+The smoke command runs every `@smoke` journey on desktop, 375×812 phone, and
+768×1024 tablet projects. Primary public, guest-form, booking, and super-admin
+routes assert that the document does not overflow horizontally and that visible
+interactive controls have an accessible name.
 
 | Tag      | Meaning                                    |
 | -------- | ------------------------------------------ |

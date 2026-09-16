@@ -22,7 +22,7 @@ Mocked E2E for super-admin shell routes. **No OTP step-up or real approve/reject
 | ------------------------------------------------------- | ------------------------------------------------- |
 | `ui/e2e/features/admin/shared/adminApprovalsHarness.ts` | Mocks `list-super-admin-approvals` list + summary |
 
-Super-admin UX uses `host@example.com` via `VITE_SUPER_ADMIN_EMAILS` in `playwright.config.ts`.
+Super-admin specs mock `list-organizations.isSuperAdmin` for `host@example.com`; no email allow list is bundled into the test UI.
 
 ## Run
 
