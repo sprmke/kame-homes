@@ -10,7 +10,6 @@ import {
 } from '@/features/dashboard/help-support/lib/helpSupportPaths';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 import { canManageOrgBilling } from '@/features/dashboard/org/lib/orgAccessKind';
-import { CurrentPlanSummary } from '@/features/dashboard/plans/components/CurrentPlanSummary';
 import { PlanBillingPanel } from '@/features/dashboard/plans/components/PlanBillingPanel';
 import { PlanCheckoutConfirmationBanner } from '@/features/dashboard/plans/components/PlanCheckoutConfirmationBanner';
 import { PlanFaqSection } from '@/features/dashboard/plans/components/PlanFaqSection';
@@ -269,25 +268,6 @@ export function OrgPlansPage() {
         </FloatingPanel>
       ) : (
         <div className="native-stagger flex min-w-0 flex-col gap-5 sm:gap-6 lg:gap-8">
-          {currentPlan ? (
-            <CurrentPlanSummary
-              plan={currentPlan}
-              subscription={subscription}
-              canManage={canManageBilling}
-              pendingCheckoutUrl={data?.pendingCheckoutUrl}
-              onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
-              upgradePlan={upgradeTarget}
-              onUpgrade={handleSelectPlan}
-              uncoveredPropertyCount={uncoveredPropertyCount}
-              onCoverUncoveredProperties={
-                subscription && currentPlan && uncoveredPropertyCount > 0
-                  ? () => handleSelectPlan(currentPlan)
-                  : undefined
-              }
-              onManageBilling={() => setActiveTab('billing')}
-            />
-          ) : null}
-
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as PlansTab)}
@@ -334,6 +314,19 @@ export function OrgPlansPage() {
                   plan={currentPlan}
                   subscription={subscription}
                   transactions={data?.transactions ?? []}
+                  canManage={canManageBilling}
+                  pendingCheckoutUrl={data?.pendingCheckoutUrl}
+                  onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
+                  isPaying={createCheckout.isPending}
+                  upgradePlan={upgradeTarget}
+                  onUpgrade={handleSelectPlan}
+                  onManagePlans={() => setActiveTab('plans')}
+                  uncoveredPropertyCount={uncoveredPropertyCount}
+                  onCoverUncoveredProperties={
+                    subscription && currentPlan && uncoveredPropertyCount > 0
+                      ? () => handleSelectPlan(currentPlan)
+                      : undefined
+                  }
                 />
               </section>
             </TabsContent>
