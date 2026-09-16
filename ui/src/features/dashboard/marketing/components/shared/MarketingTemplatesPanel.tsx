@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { CollageStartFromControl } from '@/features/dashboard/marketing/components/design-editor/collage/CollageStartFromControl';
 import { MarketingCategoryChip } from '@/features/dashboard/marketing/components/shared/MarketingCategoryChip';
 import {
   MarketingFormatPicker,
@@ -28,6 +29,7 @@ import {
   type MarketingTemplateRecord,
 } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import { useMarketingTemplateThumbnails } from '@/features/dashboard/marketing/hooks/useMarketingTemplateThumbnails';
+import type { CollageStartFrom } from '@/features/dashboard/marketing/lib/collage/collageTypes';
 import { DESIGN_CUSTOM_SOURCE_PRESET_ID } from '@/features/dashboard/marketing/lib/designAutosave';
 import type { DesignBinding } from '@/features/dashboard/marketing/lib/designCanvasTypes';
 import { isHiddenCategoryId } from '@/features/dashboard/marketing/lib/marketingCatalogHidden';
@@ -35,6 +37,7 @@ import { resolveFormatOptionDimensions } from '@/features/dashboard/marketing/li
 import type { MarketingGuestReview } from '@/features/dashboard/marketing/lib/marketingGuestReview';
 import {
   isDesignCustomTemplate,
+  isSavedCollageTemplate,
   marketingSavedTemplateCategoryId,
   marketingSavedTemplateMatchesFormat,
   marketingVideoSavedCategoryId,
@@ -123,6 +126,11 @@ type Props = {
   captureSaveThumbnail?: () => Promise<string | null>;
   getThumbnailUrl?: (id: string) => string | undefined;
   isThumbnailLoading?: (id: string) => boolean;
+  /** Design-only "Start from" segmented control (Templates / Collage / Blank). */
+  startFrom?: CollageStartFrom;
+  onStartFromChange?: (value: CollageStartFrom) => void;
+  collagePanelSlot?: ReactNode;
+  blankPanelSlot?: ReactNode;
 };
 
 export function MarketingTemplatesPanel({
@@ -154,6 +162,10 @@ export function MarketingTemplatesPanel({
   captureSaveThumbnail,
   getThumbnailUrl: getThumbnailUrlProp,
   isThumbnailLoading: isThumbnailLoadingProp,
+  startFrom,
+  onStartFromChange,
+  collagePanelSlot,
+  blankPanelSlot,
 }: Props) {
   const catalog = useMarketingCatalog(tab);
   const { canGenerate } = useMarketingPermissions();
@@ -509,11 +521,17 @@ export function MarketingTemplatesPanel({
     Boolean(onSelectReview) &&
     ((contentType === 'design' && category === 'reviews') ||
       (contentType === 'video' && category === 'reviews'));
+  const showStartFromControl = contentType === 'design' && Boolean(onStartFromChange);
+  const effectiveStartFrom: CollageStartFrom = startFrom ?? 'templates';
+  const isTemplatesMode = !showStartFromControl || effectiveStartFrom === 'templates';
 
   return (
     <>
       <div className="space-y-4">
-        {onOpenAiGenerate && canGenerate ? (
+        {showStartFromControl && onStartFromChange ? (
+          <CollageStartFromControl value={effectiveStartFrom} onChange={onStartFromChange} />
+        ) : null}
+        {isTemplatesMode && onOpenAiGenerate && canGenerate ? (
           <TierBadgeAnchor feature="aiMarketingGeneration" className="w-full">
             <Button
               type="button"
@@ -529,86 +547,95 @@ export function MarketingTemplatesPanel({
         ) : null}
         <MarketingFormatPicker options={formatOptions} value={format} onChange={onFormatChange} />
 
-        <MarketingSidebarSection
-          title="Category"
-          collapsible={false}
-          onAdd={() => setDialog({ kind: 'add-category' })}
-          addLabel="Add category"
-        >
-          <div className={MARKETING_SIDEBAR_GRID}>
-            {catalog.categories.map((item) => (
-              <MarketingCategoryChip
-                key={item.id}
-                id={item.id}
-                label={item.label}
-                selected={category === item.id}
-                onClick={() => onCategoryChange(item.id)}
-                menuItems={categoryMenuItems(item.id, item.kind)}
-              />
-            ))}
-          </div>
-        </MarketingSidebarSection>
+        {isTemplatesMode ? (
+          <MarketingSidebarSection
+            title="Category"
+            collapsible={false}
+            onAdd={() => setDialog({ kind: 'add-category' })}
+            addLabel="Add category"
+          >
+            <div className={MARKETING_SIDEBAR_GRID}>
+              {catalog.categories.map((item) => (
+                <MarketingCategoryChip
+                  key={item.id}
+                  id={item.id}
+                  label={item.label}
+                  selected={category === item.id}
+                  onClick={() => onCategoryChange(item.id)}
+                  menuItems={categoryMenuItems(item.id, item.kind)}
+                />
+              ))}
+            </div>
+          </MarketingSidebarSection>
+        ) : null}
       </div>
 
-      <MarketingSidebarSection
-        title="Templates"
-        collapsible={false}
-        onAdd={designJsonForSave ? () => setDialog({ kind: 'save-template' }) : undefined}
-        addLabel="Save template"
-      >
-        {hasTemplates ? (
-          <ul className={MARKETING_SIDEBAR_GRID}>
-            {visibleSavedRecords.map((record) => (
-              <li key={record.id} className="min-w-0">
-                <MarketingTemplateCard
-                  name={record.name}
-                  thumbnailUrl={
-                    getThumbnailUrl?.(record.id) ?? getThumbnailUrl?.(`saved:${record.id}`)
-                  }
-                  thumbnailLoading={
-                    isThumbnailLoading?.(record.id) ?? isThumbnailLoading?.(`saved:${record.id}`)
-                  }
-                  onRequestThumbnail={() => requestThumbnail(`saved:${record.id}`)}
-                  thumbnailWidth={formatDims.width}
-                  thumbnailHeight={formatDims.height}
-                  thumbnailOrientation={formatDims.orientation}
-                  selected={selectedSavedId === record.id}
-                  onClick={() => onSelectSaved?.(record)}
-                  menuItems={savedMenuItems(record)}
-                />
-              </li>
-            ))}
-            {visiblePresets.map((template) => {
-              const displayName = catalog.getTemplateLabel(template.id, template.name);
-              const currentCategoryId = catalog.getPresetCategory(template.id, template.category);
-              return (
-                <li key={template.id} className="min-w-0">
+      {isTemplatesMode ? (
+        <MarketingSidebarSection
+          title="Templates"
+          collapsible={false}
+          onAdd={designJsonForSave ? () => setDialog({ kind: 'save-template' }) : undefined}
+          addLabel="Save template"
+        >
+          {hasTemplates ? (
+            <ul className={MARKETING_SIDEBAR_GRID}>
+              {visibleSavedRecords.map((record) => (
+                <li key={record.id} className="min-w-0">
                   <MarketingTemplateCard
-                    name={displayName}
-                    badge={template.badge}
-                    thumbnailUrl={getThumbnailUrl?.(template.id)}
-                    thumbnailLoading={isThumbnailLoading?.(template.id)}
-                    onRequestThumbnail={() => requestThumbnail(template.id)}
+                    name={record.name}
+                    badge={isSavedCollageTemplate(record) ? 'Collage' : undefined}
+                    thumbnailUrl={
+                      getThumbnailUrl?.(record.id) ?? getThumbnailUrl?.(`saved:${record.id}`)
+                    }
+                    thumbnailLoading={
+                      isThumbnailLoading?.(record.id) ?? isThumbnailLoading?.(`saved:${record.id}`)
+                    }
+                    onRequestThumbnail={() => requestThumbnail(`saved:${record.id}`)}
                     thumbnailWidth={formatDims.width}
                     thumbnailHeight={formatDims.height}
                     thumbnailOrientation={formatDims.orientation}
-                    selected={!selectedSavedId && selectedId === template.id}
-                    onClick={() => onSelectPreset(template.id)}
-                    onCustomize={
-                      onCustomizePreset ? () => onCustomizePreset(template.id) : undefined
-                    }
-                    menuItems={presetMenuItems(template.id, displayName, currentCategoryId)}
+                    selected={selectedSavedId === record.id}
+                    onClick={() => onSelectSaved?.(record)}
+                    menuItems={savedMenuItems(record)}
                   />
                 </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-xs">No templates in this category.</p>
-        )}
-      </MarketingSidebarSection>
+              ))}
+              {visiblePresets.map((template) => {
+                const displayName = catalog.getTemplateLabel(template.id, template.name);
+                const currentCategoryId = catalog.getPresetCategory(template.id, template.category);
+                return (
+                  <li key={template.id} className="min-w-0">
+                    <MarketingTemplateCard
+                      name={displayName}
+                      badge={template.badge}
+                      thumbnailUrl={getThumbnailUrl?.(template.id)}
+                      thumbnailLoading={isThumbnailLoading?.(template.id)}
+                      onRequestThumbnail={() => requestThumbnail(template.id)}
+                      thumbnailWidth={formatDims.width}
+                      thumbnailHeight={formatDims.height}
+                      thumbnailOrientation={formatDims.orientation}
+                      selected={!selectedSavedId && selectedId === template.id}
+                      onClick={() => onSelectPreset(template.id)}
+                      onCustomize={
+                        onCustomizePreset ? () => onCustomizePreset(template.id) : undefined
+                      }
+                      menuItems={presetMenuItems(template.id, displayName, currentCategoryId)}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground text-xs">No templates in this category.</p>
+          )}
+        </MarketingSidebarSection>
+      ) : effectiveStartFrom === 'collage' ? (
+        collagePanelSlot
+      ) : (
+        blankPanelSlot
+      )}
 
-      {showGuestReviewsSection && onSelectReview ? (
+      {isTemplatesMode && showGuestReviewsSection && onSelectReview ? (
         <MarketingReviewSidebarSection
           selectedReviewId={selectedReviewId}
           onSelect={onSelectReview}

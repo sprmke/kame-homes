@@ -1,4 +1,5 @@
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
+import { readCollageSettings } from '@/features/dashboard/marketing/lib/collage/collageDocument';
 import { isDesignCustomTemplate } from '@/features/dashboard/marketing/lib/designAutosave';
 import { normalizeVideoCategory } from '@/features/dashboard/marketing/lib/video/videoCategories';
 
@@ -9,6 +10,12 @@ export function marketingSavedTemplateCategoryId(
 ): string | undefined {
   const categoryId = record.designJson.categoryId ?? record.designJson.category;
   return typeof categoryId === 'string' ? categoryId : undefined;
+}
+
+/** A saved design record whose canvas is a collage (`custom.collage` on the Polotno JSON). */
+export function isSavedCollageTemplate(record: MarketingTemplateRecord): boolean {
+  if (record.contentType !== 'design') return false;
+  return readCollageSettings(record.designJson.polotno) != null;
 }
 
 /** Normalize a saved video row’s category into the Video-only catalog. */
