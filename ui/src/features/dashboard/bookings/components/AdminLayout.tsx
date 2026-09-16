@@ -11,7 +11,6 @@ import type { ReactNode } from 'react';
 
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 
-
 import { ChevronUp, ChevronLeft, ChevronRight, LogOut, User } from 'lucide-react';
 
 import { AccountAvatar } from '@/features/guest/account/components/AccountAvatar';
@@ -47,6 +46,7 @@ import {
   AdminLayoutFillMainActiveContext,
   AdminLayoutFillMainContext,
 } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
+import { resolveAdminNavPrefetch } from '@/features/dashboard/bookings/lib/adminNavPrefetch';
 import { adminPageTransitionKey } from '@/features/dashboard/bookings/lib/adminPageTransitionKey';
 import {
   buildOrgNavSections,
@@ -115,6 +115,7 @@ import { PageTransition } from '@/components/mobile/PageTransition';
 import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
+import { prefetchChunkOnce } from '@/hooks/usePrefetchOnIntent';
 import { useSlidingActivePill } from '@/hooks/useSlidingActivePill';
 import { useFavicon } from '@/lib/favicon';
 import {
@@ -855,12 +856,20 @@ function AdminSidebarContent({
                       );
                     }
 
+                    const prefetchLoader = resolveAdminNavPrefetch(href);
+                    const handlePrefetch = prefetchLoader
+                      ? () => prefetchChunkOnce(href, prefetchLoader)
+                      : undefined;
+
                     return (
                       <Link
                         key={href}
                         ref={setItemRef(href)}
                         to={href}
                         onClick={onClose}
+                        onMouseEnter={handlePrefetch}
+                        onFocus={handlePrefetch}
+                        onTouchStart={handlePrefetch}
                         title={collapsed ? label : undefined}
                         aria-current={active ? 'page' : undefined}
                         aria-label={collapsed ? collapsedNavHint : undefined}

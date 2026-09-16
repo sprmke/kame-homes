@@ -56,8 +56,16 @@ for (const f of jsFiles) {
  */
 function staticImportsOf(content) {
   const out = new Set();
-  // Matches `from"./foo.js"` / `from './foo.js'` after an import/export clause.
-  const re = /\bfrom\s*["']\.\/([\w.-]+\.js)["']/g;
+  // Matches both `import{x}from"./foo.js"` (named/namespace) AND the bare
+  // side-effect form `import"./foo.js";` that Rollup emits very heavily for
+  // chunk-to-chunk vendor dependencies (~1500 occurrences in a real build of
+  // this app) — a regex that only matched the `from` form silently treated
+  // every one of those edges as absent. That happened not to change this
+  // detector's verdict against the current build (the bare form only occurs
+  // *inside* already-lazy chunks, which this walk never enters), but it was
+  // a real false-negative risk: a bare-imported forbidden chunk reachable
+  // from the entry's own static graph would have gone undetected.
+  const re = /\bimport\s*(?:[^"'()]*\bfrom\s*)?["']\.\/([\w.-]+\.js)["']/g;
   let m;
   while ((m = re.exec(content))) out.add(m[1]);
   return out;

@@ -92,11 +92,25 @@ Add to CI: fail if `dist/**/*.map` exists after the deploy step, and fail if any
 
 ## Exit gate
 
-- [ ] `minify`, `cssMinify`, `sourcemap: 'hidden'` explicit in `ui/vite.config.ts`.
-- [ ] Deploy asserts zero `.map` files reachable over HTTP on a deployed preview.
-- [ ] Brotli confirmed via `curl -I` on a deployed preview for JS, CSS, JSON, SVG.
-- [ ] No global `@blueprintjs` (or other editor-only) CSS import outside the lazy chunk.
-- [ ] Dynamic-class-name audit complete; safelist documented.
+- [x] `minify`, `cssMinify`, `sourcemap: 'hidden'` explicit in `ui/vite.config.ts`.
+- [ ] Deploy asserts zero `.map` files reachable over HTTP on a deployed preview. (CI guard exists and passes against a local build; not yet run against a real deployed preview)
+- [ ] Brotli confirmed via `curl -I` on a deployed preview for JS, CSS, JSON, SVG. (needs a live deployed preview URL, not available in this session)
+- [x] No global `@blueprintjs` (or other editor-only) CSS import outside the lazy chunk.
+- [x] Dynamic-class-name audit complete; safelist documented.
+
+## Implementation status (2026-09-16)
+
+**Explicit minify/sourcemap config — closed.** `ui/vite.config.ts` pins `minify: 'esbuild'`, `cssMinify: 'esbuild'`, `sourcemap: posthogSourceMapsEnabled ? 'hidden' : false` — a future debugging change can no longer silently ship unminified or with public source maps.
+
+**No-sourcemap CI guard — closed for local builds, not yet proven against a deployed preview.** `scripts/performance/assert-no-sourcemaps.mjs` fails the build if any `.map` file exists in `ui/dist`; wired into `ci.yml` and `scripts/dev/ci-quality-gate.sh`; verified passing against a real build. What's not verified: that Vercel's actual deployed output (CDN, headers, any deploy-time transform) doesn't reintroduce one — needs a real deployed-preview check.
+
+**Brotli — not verified.** No deployed preview URL was available in this session to run `curl -I`. Vercel serves brotli automatically for static assets by default, but the doc explicitly calls this "assumed, never asserted" as the gap to close — still open.
+
+**`@blueprintjs` CSS scope — closed.** Only one `@blueprintjs`-family CSS import exists in the codebase (`polotno-blueprint.css`, imported directly inside `PolotnoDesignStudio.tsx`), and that component is reached exclusively through a `React.lazy()`/dynamic `import()` boundary in `DesignEditor.tsx` (confirmed via grep — its only other reference anywhere is a type-only import, erased at compile time). No global/eager Blueprint CSS exists.
+
+**Dynamic-class-name audit — closed, "none found" confirmed.** Searched for the actual risk pattern (`` `bg-${x}` ``-style partial Tailwind utility interpolation) across all of `ui/src`, not just any template literal in a `className` prop — the handful of template-literal `className`s that exist all interpolate a single whole constant (e.g. `` `${ORG_PROPERTY_CARD_CLASS} group` ``), which Tailwind's JIT scanner sees in full at its definition site and is not a purge risk. No `tailwind.config` safelist exists, which is correct given nothing needs one.
+
+**Considered and reverted: `esbuild.legalComments: 'external'`.** Vendor license banners (lucide-react alone ships ~280) add real inline bytes to `icons-vendor`. Tried moving them out via `legalComments: 'external'` — confirmed via a real build that in this Vite 4 + Rollup + esbuild-minify pipeline, this setting silently **drops** the comments instead of writing the documented `.LEGAL.txt` sidecar file. That is a license-compliance regression, not a safe size win, so it was reverted; banners stay inline (the correct, if slightly heavier, default) until a config that actually externalizes them is found.
 
 ## Docs / Plans / activity-log
 

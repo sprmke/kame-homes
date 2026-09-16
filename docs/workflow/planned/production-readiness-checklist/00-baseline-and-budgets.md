@@ -122,11 +122,23 @@ Wire a `bun run check:budgets` step into `ci.yml` after the existing build step.
 
 ## Exit gate
 
-- [ ] `baselines/<date>.json` committed from a clean `develop` checkout.
-- [ ] Lighthouse median captured for all 9 routes, both locally and on a deployed dev preview.
-- [ ] `pg_stat_statements` enabled on hosted dev, top-50 snapshot committed.
-- [ ] `performance-budgets.json` exists and `bun run check:budgets` runs in `ci.yml`.
-- [ ] One deliberate regression PR proves the guard fails (test the alarm, don't assume it works).
+- [x] `baselines/<date>.json` committed from a clean `develop` checkout.
+- [ ] Lighthouse median captured for all 9 routes, both locally and on a deployed dev preview. (single local run only — see status note)
+- [ ] `pg_stat_statements` enabled on hosted dev, top-50 snapshot committed. (not started — needs hosted-dev credentials/access)
+- [x] `performance-budgets.json` exists and `bun run check:budgets` runs in `ci.yml`.
+- [x] One deliberate regression PR proves the guard fails (test the alarm, don't assume it works).
+
+## Implementation status (2026-09-16)
+
+**Bundle baseline — closed.** `scripts/performance/capture-baseline.mjs` captures per-chunk gzip/brotli sizes + repo-scale metrics; committed as `baselines/2026-09-16-phase00-initial-develop.json` from a clean checkout.
+
+**`performance-budgets.json` + CI wiring — closed.** `bun run check:budgets` (`check-budgets.mjs` + `analyze-chunk-graph.mjs`) runs in `ci.yml` after the build step, in `warnOnly: true` mode.
+
+**Guard-fails test — closed.** Verified by temporarily setting `totalJsGzipKib: 10` and `warnOnly: false`, confirming `[FAIL] Total JS (gzip): 4565.7 KiB (budget 10 KiB)` with exit code 1, then restoring the original file.
+
+**Lighthouse — only partially done, not a median, not on a deployed preview.** `scripts/performance/lighthouse-routes.mjs` exists and ran once successfully against a local `vite preview` (committed as `baselines/2026-09-16-lighthouse-phase00-initial-develop.json`, explicitly labeled `"mode": "local-vite-preview"` with a note pointing at this gap) — a single run, not the 3-run median this doc's own edge-case section requires, and never against a deployed dev preview (no brotli/CDN numbers). Later runs in this sandboxed CLI environment failed with `NO_FCP` (`CVDisplayLinkCreateWithCGDisplay failed` — headless Chrome has no real display server available here); the script now fails fast with a clear diagnostic and retries once instead of silently reporting `n/a`, but the underlying capability is environment-dependent, not fixable from inside this sandbox. Deferred: re-run 3x locally and once against a deployed dev preview from an environment with real headless-Chrome display support (or a real browser, as this review's Playwright MCP testing confirms works here) before treating the Lighthouse numbers as a trustworthy baseline.
+
+**`pg_stat_statements` — not started.** Requires direct hosted-dev Postgres access/credentials not available in this session; deferred to whoever has hosted-dev access.
 
 ## Docs / Plans / activity-log
 

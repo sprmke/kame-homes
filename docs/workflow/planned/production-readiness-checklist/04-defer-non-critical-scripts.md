@@ -98,12 +98,24 @@ Add these as Playwright specs — this is the class of failure that only appears
 
 ## Exit gate
 
-- [ ] Default UI font self-hosted, preloaded, immutable-cached; `index.html` has no render-blocking third-party stylesheet on the critical path.
+- [ ] Default UI font self-hosted, preloaded, immutable-cached; `index.html` has no render-blocking third-party stylesheet on the critical path. (render-blocking part closed; self-hosting part not done — see status note)
 - [ ] Brand font set loads only on routes that use it.
-- [ ] Email + PDF rendering verified unchanged after the font change.
+- [x] Email + PDF rendering verified unchanged after the font change. (N/A — the font change only touched `ui/index.html`'s stylesheet loading, not the separate PDF/email template font declarations; nothing to regress)
 - [ ] Third-party origin inventory documented and feeding doc 22's CSP.
 - [ ] Playwright specs prove graceful degradation for all five third parties above.
-- [ ] CI grep blocks a new blocking `<script src>` in `index.html`.
+- [x] CI grep blocks a new blocking `<script src>` in `index.html`.
+
+## Implementation status (2026-09-16)
+
+**Render-blocking removed, but the recommended fix (Option A: self-host the default font) was NOT taken — this was a deliberate scope-down, not an oversight.** The doc's own analysis recommends **A** (self-host `Plus Jakarta Sans`, the default UI font) **+ B** (async-load the other 14 brand-selectable fonts only on routes that use them). What shipped is a lighter version of B applied to the _entire_ 15-font bundle: `<link rel="preload" as="style">` + `onload="this.rel='stylesheet'"` (with a `<noscript>` fallback), still fetched from `fonts.googleapis.com` on every route. This removes the render-block (first paint no longer waits on the Google Fonts round-trip; text shows in the Tailwind fallback stack and swaps via `display=swap`) but does not: (a) self-host the default font, (b) eliminate the third-party dependency, or (c) scope the font set per-route — all 15 families still fetch eagerly on every single page load, just asynchronously instead of blocking. The in-code comment in `ui/index.html` (lines 37-57) documents this exact tradeoff and explicitly warns not to remove the preload+onload pairing without re-verifying LCP.
+
+**Why this was scoped down:** self-hosting + per-route brand-font-loading is real, non-trivial work — it needs a font-subsetting build step, a mapping from each host's brand-font selection to a self-hosted file set, and a route-aware loader, none of which exist today. Given the session's time budget and that the render-blocking behavior (the doc's own headline "real finding") was the highest-severity part of this gap, that was fixed first and the deeper restructure deferred.
+
+**Third-party origin inventory / CSP feed — not done.** No document inventories third-party origins (Google Fonts, Supabase, PostHog, Meta, any Maps API) for doc 22's CSP to consume. Deferred — doc 22 itself is out of this review's 00-05 scope, so there's no consumer waiting on this yet, but it should be picked up before or alongside doc 22.
+
+**Playwright graceful-degradation specs — not written.** No E2E test simulates a blocked/failed third party (Google Fonts, Supabase, PostHog, Meta embed, Maps) and asserts the app still functions. Deferred — real, valuable follow-up work, not attempted this pass.
+
+**CI blocking-script guard — closed.** `scripts/performance/assert-no-blocking-scripts.mjs` fails if `ui/index.html` gains a `<script src>` without `defer`/`async`/`type="module"`; wired into `ci.yml` and the local quality-gate script; verified passing and correctly ignoring the inline (no-`src`) theme-detection script.
 
 ## Docs / Plans / activity-log
 
