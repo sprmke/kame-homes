@@ -1,0 +1,127 @@
+---
+title: 'Hosting and deployment'
+status: active
+tags: [workflow, planned, production-readiness, deployment, vercel, supabase]
+updated: 2026-09-16
+stage: planned
+kind: plan
+---
+
+# 24 — Hosting & deployment
+
+## Goal
+
+A deploy is boring: reproducible, verified before it reaches users, reversible within minutes, and impossible to run against production by accident.
+
+## Prior art — do not redo
+
+| Shipped                                 | Where                                                                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Dual-track deployment model             | [`ci-cd-environments/`](../../in-progress/ci-cd-environments/README.md) — live `main` + legacy vs multi-tenant `kame-homes` |
+| Dev CD                                  | `.github/workflows/cd-dev.yml`                                                                                              |
+| Pre-prod + prod CD + rollback workflows | `cd-preprod.yml`, `cd-prod.yml`, `cd-rollback.yml`                                                                          |
+| Prod CD gated                           | `CUTOVER_ENABLED` + typed confirm; deploys only after gate + quality + schema-diff artifact + backup + smoke (P1-6)         |
+| Real smoke tests post-deploy            | `ci-smoke.sh` issues real GETs with the anon key (P1-7)                                                                     |
+| Backup before deploy                    | `backup:supabase:dev/:prod`, automatic                                                                                      |
+| Hardened rollback                       | Requires `--fresh-target`, empty public tables, typed project-ref confirm, atomic restore (P0-6)                            |
+| Prod-deploy protection for agents       | `kamewave` unlock + shell hooks (`.cursor/rules/no-prod-deploy.mdc`)                                                        |
+| Env status check                        | `bun run env:status`                                                                                                        |
+| Asset cache headers                     | `ui/vercel.json`                                                                                                            |
+
+This is the **most mature area** of the checklist. The remaining work is the cutover itself and a handful of verification gaps, both already tracked in the CI/CD plan.
+
+## Current state — open items (from the prior plans)
+
+1. **mt-prod does not exist yet.** Phase B (prod Supabase, `main`, `app.kamehomes.space`, legacy data migration) is pending.
+2. **`cd-prod.yml` must stay off** until mt-prod exists and `CUTOVER_ENABLED` is set.
+3. **Rollback has never been rehearsed** against hosted dev (Docker was down during the audit). This is the largest residual risk in the whole folder.
+4. **Dual-track merge hazard** — the multi-tenant tree must not reach live `main`/legacy before cutover.
+
+## Phases
+
+### Phase 24.1 — Environment matrix verification
+
+Confirm, for each of local / hosted dev / pre-prod / prod: Supabase project ref, Vercel project, domain, env var set, secret set, cron schedules, and which branch deploys there. The matrix exists (`docs/archive/operations/ci-cd-environment-matrix.md`) — verify it against reality rather than trusting the doc.
+
+**Edge case:** an env var present in Vercel but missing in Supabase secrets (or vice versa) produces a runtime failure only on the path that uses it, often days later. Add a startup/deploy-time assertion that every required env var is present, failing the deploy rather than the request.
+
+### Phase 24.2 — Rehearse rollback (highest priority)
+
+Against hosted **dev**, not prod:
+
+1. Take a backup.
+2. Deploy a deliberate breaking change.
+3. Run the rollback workflow.
+4. Measure time to recovery; verify data integrity, that Storage objects still match DB rows (doc 20 Phase 20.6), and that the UI works after.
+
+Document the measured RTO. **An unrehearsed rollback is not a rollback** — this converts a documented procedure into a verified capability.
+
+### Phase 24.3 — Deploy ordering and compatibility
+
+The SPA (Vercel) and edge functions (Supabase) deploy independently, so there is always a window where versions are mismatched.
+
+- Define the order: migrations → edge functions → frontend, with every change backward compatible one step (doc 19 Phase 19.4, doc 18 Phase 18.6).
+- Never ship a migration that breaks the currently deployed functions.
+- Never ship a function response change that breaks the currently deployed (or PWA-cached) client.
+
+### Phase 24.4 — Pre-deploy gates
+
+Confirm the prod path enforces, in order: quality gate → migration checks (version + security) → schema diff artifact reviewed → backup → deploy → smoke → (on failure) automatic rollback trigger.
+
+Add a **manual approval** step with the schema diff attached for prod.
+
+### Phase 24.5 — Post-deploy verification
+
+Extend `ci-smoke.sh` beyond public GETs:
+
+- One authenticated read per tier (using a dedicated test account).
+- One safe write path, end to end, that is cleaned up afterward.
+- Asset header assertions (doc 16).
+- PWA version endpoint returns the new build.
+- Cron schedules present and next-run times sane.
+
+**Edge case:** smoke tests that write must be idempotent and clean up, or they pollute the environment. Never run write smoke tests against prod with real-looking data (`?testing=true` pipelines are explicitly forbidden by repo rule — use a dedicated test org instead).
+
+### Phase 24.6 — Cutover plan (Phase B)
+
+Owned by the CI/CD plan; this doc only asserts the prerequisites. Before cutover:
+
+- [ ] Docs 21, 22, 23 exit gates met (the launch blockers).
+- [ ] Rollback rehearsed with a measured RTO.
+- [ ] Load test run (doc 17).
+- [ ] Backup + restore verified including Storage.
+- [ ] Monitoring and alerting live (doc 27).
+- [ ] Legacy data migration rehearsed on a copy.
+- [ ] A documented go/no-go with named owners.
+
+### Phase 24.7 — Zero-downtime and maintenance mode
+
+- `platform_settings.maintenanceMode` exists — verify the whole app honors it, including edge functions, and that it is not served from a long cache (doc 11).
+- For migrations that cannot be zero-downtime, define the maintenance window procedure and guest-facing messaging.
+
+## Edge cases
+
+- **Vercel preview deployments** point at hosted dev Supabase. A preview with production secrets would be a serious leak — verify preview env scoping.
+- **Branch protection**: listed as an operator-blocked item in the prior audit. Confirm `main` and `develop` require passing CI and review.
+- **Migration + function deploy race** — deploying functions before migrations means a function queries a missing column. Enforce order in the workflow, not by convention.
+- **PWA stale clients** after deploy (docs 01, 16) — chunk-error boundary plus update prompt.
+- **Cron schedules live in the hosted DB** (`pg_cron`), not `config.toml`. A fresh project has none until the scheduling migration runs, and they fail closed without Vault secrets (P2-6). Verify after every environment creation.
+- **Secrets are not in the repo**, so a new environment starts non-functional until every secret is set. Maintain a checklist; `bun run env:status` plus the Phase 24.1 assertion covers this.
+- **Rollback does not undo third-party side effects** — emails sent, payments captured, Meta posts published. Rollback restores the database, not the world. Document what is unrecoverable.
+
+## Exit gate
+
+- [ ] Environment matrix verified against live projects; deploy-time env var assertion in place.
+- [ ] Rollback rehearsed on hosted dev with a measured, documented RTO.
+- [ ] Deploy ordering enforced in the workflows.
+- [ ] Prod path has a manual approval with the schema diff attached.
+- [ ] Smoke tests cover authenticated reads, a cleaned-up write, asset headers, PWA version, and cron presence.
+- [ ] Branch protection confirmed on `main` and `develop`.
+- [ ] Preview env scoping verified — no production secrets in previews.
+- [ ] Cutover prerequisite checklist complete with named owners.
+
+## Docs / Plans / activity-log
+
+- **Docs:** `docs/architecture/deployment.md` (mandatory), `docs/archive/operations/ci-cd-environment-matrix.md`, `docs/archive/operations/dev-staging-environment.md`, the CI/CD plan folder.
+- **Plans / Team RBAC:** N/A.
+- **activity-log:** N/A — platform operations, recorded in workflow run history.
