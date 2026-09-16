@@ -37,7 +37,7 @@ Phase 0 is the **`20260501000000`–`20260501000010`** batch: **backup snapshot*
 
 | File                                                    | Purpose                                                                                                                                                                    | Rollback hint                                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `20260501000000_backup_guest_submissions.sql`           | **Idempotent:** creates `guest_submissions_backup_20260501` as `CREATE TABLE … AS TABLE guest_submissions` if missing (data-only copy; comment on table).                  | `DROP TABLE IF EXISTS guest_submissions_backup_20260501;`                                                |
+| `20260501000000_backup_guest_submissions.sql`           | Historical Phase 0 snapshot; removed by `20261316121200_pre_production_security_hardening.sql` because `CREATE TABLE AS` did not inherit RLS.                              | Already removed by the hardening migration.                                                              |
 | `20260501000002_add_workflow_columns.sql`               | Nullable pricing/parking/pet/SD arrays + `status_updated_at`, `settled_at`; partial index on `status_updated_at`.                                                          | Drop columns + index (see §6).                                                                           |
 | `20260501000003_add_approved_pdf_columns.sql`           | Nullable `approved_gaf_pdf_url`, `approved_pet_pdf_url`.                                                                                                                   | `DROP COLUMN …`                                                                                          |
 | `20260501000004_add_is_test_booking.sql`                | **`is_test_booking`** + partial index (historical). **Superseded** by `20260608120000_drop_is_test_booking.sql` on current branch — new installs add then drop the column. | N/A if drop migration applied; else `DROP COLUMN IF EXISTS is_test_booking` (+ index drops with column). |
@@ -120,9 +120,8 @@ Verify:
 -- Expected Phase 0 columns (nullable): booking_rate, down_payment, approved_*_pdf_url,
 -- gaf_request_pdf_url, pet_request_pdf_url, status_updated_at, settled_at, …
 \d guest_submissions
--- Expected backup table exists with same row count at snapshot time:
-SELECT count(*) FROM guest_submissions_backup_20260501;
-SELECT count(*) FROM guest_submissions;
+-- Historical unprotected snapshot must be absent:
+SELECT to_regclass('public.guest_submissions_backup_20260501'); -- NULL
 -- Expected new bucket rows:
 SELECT id, public FROM storage.buckets WHERE id IN
   ('parking-endorsements','approved-gafs','approved-pet-forms','sd-refund-receipts');
@@ -164,7 +163,6 @@ Set or replace these (see template in [`ui/.env.example`](../../ui/.env.example)
 | `VITE_API_URL`              | Same as `VITE_SUPABASE_URL`                                     |
 | `VITE_SUPABASE_ANON_KEY`    | **anon** `eyJ…` from `supabase status`                          |
 | `VITE_SUPABASE_PROJECT_URL` | Optional but clear: `http://127.0.0.1:54321`                    |
-| `# VITE_SUPER_ADMIN_EMAILS` | Optional — platform super-admin UX (`/admin/*`)                 |
 | `GOOGLE_CLIENT_ID`          | OAuth **Web** client ID (not `VITE_*`; not sent to the browser) |
 | `GOOGLE_CLIENT_SECRET`      | Same client’s secret — used by local GoTrue only                |
 
@@ -293,7 +291,7 @@ Rename the **later-added** file to a new unused timestamp (e.g. `…_booking_ai_
 
 ## 6. Rollback
 
-**Automated first option:** `bun run rollback:supabase:prod` restores the most recent `backups/prod/*_data.sql` (or `--schema` too) via `psql`, kamewave-gated with a typed `prod` confirm; `bun run rollback:functions:prod -- <git-ref>` redeploys Edge Functions from an older commit via a throwaway `git worktree`. See `production-deployment.md` §12.
+**Database recovery:** in-place data replay is disabled. Create and link a fresh Supabase replacement project, then run `bun run rollback:supabase:prod -- --fresh-target`. The script verifies that the target has zero `public` tables, requires the full linked project ref as confirmation, and restores schema plus data in one transaction. Production remains kamewave-gated. `bun run rollback:functions:prod -- <git-ref>` redeploys Edge Functions from an older commit via a throwaway `git worktree`. See `production-deployment.md` §12.
 
 This section reverses **only** the Phase 0 batch artifacts from **§1.1** (backup snapshot table, Phase 0 columns, buckets, `processed_emails`, `gmail_listener_state`). It does **not** undo **`status` enum widening**, SD refund columns, or other migrations listed in **§1.3** — for those, use a **dashboard backup restore** or author inverse migrations.
 
@@ -328,11 +326,10 @@ ALTER TABLE guest_submissions DROP COLUMN IF EXISTS security_deposit;
 ALTER TABLE guest_submissions DROP COLUMN IF EXISTS balance;
 ALTER TABLE guest_submissions DROP COLUMN IF EXISTS down_payment;
 ALTER TABLE guest_submissions DROP COLUMN IF EXISTS booking_rate;
--- The backup table can stay — it's only a snapshot and doesn't affect behavior.
 DROP TABLE IF EXISTS guest_submissions_backup_20260501;
 ```
 
-The backup table from step 1 is your insurance — it contains a copy of every `guest_submissions` row as of Phase 0 apply time.
+The legacy snapshot table is removed by `20261316121200_pre_production_security_hardening.sql` because `CREATE TABLE AS` left its guest PII outside RLS. Use the encrypted/platform backup and fresh-project restore path instead.
 
 ---
 
@@ -361,16 +358,15 @@ You do **not** need to change any Supabase _database_ setting for Phase 1.
 
 Host dashboard access uses Google sign-in + org/team RBAC — **no** `VITE_ADMIN_ALLOWED_EMAILS`.
 
-Optional for platform super-admin UX:
+Optional UI override:
 
-- `VITE_SUPER_ADMIN_EMAILS` — comma-separated emails for `/admin/*` and the Admin mode tab (server: `SUPER_ADMIN_EMAILS`).
 - `VITE_SUPABASE_PROJECT_URL` — optional override. Unset, the client derives the project URL by stripping `/functions/v1` from `VITE_SUPABASE_URL`.
 
 **Reference:** placeholder-only templates at [`ui/.env.example`](../../ui/.env.example) and [`supabase/.env.example`](../../supabase/.env.example).
 
 ### 7.3 Allow-list philosophy (important)
 
-**`ADMIN_ALLOWED_EMAILS`** (edge) is enforced by **`verifyAdminJwt`** on legacy-style admin edge functions; org **owners** bypass without being on the list. **`SUPER_ADMIN_EMAILS`** (edge) + **`VITE_SUPER_ADMIN_EMAILS`** (UI) gate platform `/admin/*`. There is no client allow list for host dashboard routes — **`RequireAdmin`** only checks for a signed-in session.
+**`ADMIN_ALLOWED_EMAILS`** (edge) is enforced by **`verifyAdminJwt`** on legacy-style admin edge functions; org **owners** bypass without being on the list. **`SUPER_ADMIN_EMAILS`** stays edge-only; `list-organizations` returns the boolean capability used by the UI to gate `/admin/*`. There is no client allow list for host dashboard routes — **`RequireAdmin`** only checks for a signed-in session.
 
 ### 7.4 Verify locally
 
@@ -551,6 +547,14 @@ Five never-applied files shared a version prefix with an already-recorded migrat
 | `20261316121000_guest_doc_storage_service_role_writes.sql` | `20261310120000` (`analytics_review_notification_type`)   |
 | `20261316121100_dashboard_assistant_expire_cron.sql`       | `20261311120000` (`analytics_ai_review_cron`)             |
 
+### 11g Pre-production security grants, September 2026
+
+| File                                                   | Purpose                                                                                                                                                                                                                                  | Reversible?                                                                                                           |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `20261316121200_pre_production_security_hardening.sql` | Drops `guest_submissions_backup_20260501`. Revokes PUBLIC/anon/authenticated execute on AI wallet + usage RPCs; `service_role` only.                                                                                                     | Yes — restore snapshot from backup if still needed; re-grant execute only if a trusted caller requires it.            |
+| `20261316121300_contract_expiry_cron_schedule.sql`     | `sync_contract_expiry_cron_job()` + `contract-expiry-daily-manila` (`0 1 * * *` UTC). Fails closed without Vault secrets.                                                                                                                | Yes — `SELECT cron.unschedule('contract-expiry-daily-manila'); DROP FUNCTION public.sync_contract_expiry_cron_job();` |
+| `20261316121400_revoke_public_rls_helper_execute.sql`  | Revokes PUBLIC/anon execute on `user_can_access_*` RLS helpers and `activity_log_delete_net`. Drops leftover two-arg `user_can_access_guest_submission(uuid, uuid)` if present. Grants execute to `authenticated` for policy evaluation. | Yes — re-grant execute to the roles that need it.                                                                     |
+
 ---
 
 ## 11. Production configuration & secrets (Supabase, Google, hosting)
@@ -619,14 +623,13 @@ Copy names from **`supabase/.env.example`**. Typical production set:
 
 Set in the **production** build environment (`bun run build` reads **`ui/.env.production`** locally; Vercel uses project **Environment Variables**):
 
-| Variable                        | Purpose                                                           |
-| ------------------------------- | ----------------------------------------------------------------- |
-| **`VITE_NODE_ENV`**             | **`production`** — guest form production behavior.                |
-| **`VITE_SUPABASE_URL`**         | `https://<ref>.supabase.co/functions/v1`                          |
-| **`VITE_API_URL`**              | Same as **`VITE_SUPABASE_URL`**.                                  |
-| **`VITE_SUPABASE_ANON_KEY`**    | Dashboard → **Project Settings → API** → anon **public** key.     |
-| **`VITE_SUPER_ADMIN_EMAILS`**   | Platform super-admin UX; pair with edge **`SUPER_ADMIN_EMAILS`**. |
-| **`VITE_SUPABASE_PROJECT_URL`** | Optional; default derives from **`VITE_SUPABASE_URL`**.           |
+| Variable                        | Purpose                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| **`VITE_NODE_ENV`**             | **`production`** — guest form production behavior.            |
+| **`VITE_SUPABASE_URL`**         | `https://<ref>.supabase.co/functions/v1`                      |
+| **`VITE_API_URL`**              | Same as **`VITE_SUPABASE_URL`**.                              |
+| **`VITE_SUPABASE_ANON_KEY`**    | Dashboard → **Project Settings → API** → anon **public** key. |
+| **`VITE_SUPABASE_PROJECT_URL`** | Optional; default derives from **`VITE_SUPABASE_URL`**.       |
 
 **Note:** **`GOOGLE_CLIENT_ID`** / **`GOOGLE_CLIENT_SECRET`** in **`ui/.env.development`** exist for **local** `supabase start` + **`config.toml`** substitution only. **Hosted** Auth uses **Dashboard** credentials (**§11.2**), not Vite env.
 

@@ -52,7 +52,7 @@ Do not **`supabase db push`** until **§1** backup + **§2** preview feel right.
 | **Pro+** | Dashboard → **Database → Backups** — create or confirm a snapshot; note id / time. |
 | **Free** | Take a logical **data** snapshot (scheduled backups are absent on Free tier).      |
 
-**Automated (preferred):** `bun run backup:supabase:prod` runs `supabase db dump --linked` (schema) and `--data-only` (data) into `backups/prod/<UTC-timestamp>_{schema,data}.sql` (gitignored). It refuses to run unless the linked project actually looks like prod. This also runs automatically as the first step of `bun run deploy:supabase` / `deploy:supabase:db` (skip via `--skip-backup`, not recommended — prints a loud warning).
+**Automated (preferred):** the production backup script captures application schema/data, custom roles, and `auth` / `storage` / `cron` metadata into `backups/prod/` (gitignored). It requires `PROD_DB_URL` for the managed-schema dump and refuses a non-production linked project. The gated production CD workflow runs it before migration apply and retains the artifact for seven days. Supabase Storage object bytes still require the platform Storage backup/export path.
 
 **Manual (fallback / Pro+ Dashboard snapshot) — pick one or both, treat output as PII:**
 
@@ -71,7 +71,7 @@ bunx supabase@latest db dump --linked --data-only -s public --file="${HOME}/back
 
 Never commit dumps; **`supabase_backup_*.sql` / `*.dump`** stay outside git (`~/Backups/` or similar).
 
-_In-repo snapshot table from Phase 0 (`guest_submissions_backup_20260501`) is supplementary — not a substitute for §1._
+The old `guest_submissions_backup_20260501` table was removed because it held guest PII without inherited RLS. It is not a recovery mechanism.
 
 ---
 
@@ -187,13 +187,12 @@ Hosted projects **ignore** `[auth.external.google]` in `config.toml`; configure 
 
 ## 8. UI production environment (hosting build)
 
-| Variable                      | Purpose                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| **`VITE_NODE_ENV`**           | **`production`**                                                           |
-| **`VITE_SUPABASE_URL`**       | `https://<ref>.supabase.co/functions/v1`                                   |
-| **`VITE_API_URL`**            | Same as **`VITE_SUPABASE_URL`**                                            |
-| **`VITE_SUPABASE_ANON_KEY`**  | Dashboard → **Project Settings → API**                                     |
-| **`VITE_SUPER_ADMIN_EMAILS`** | Platform super-admin UX (`/admin/*`); server uses **`SUPER_ADMIN_EMAILS`** |
+| Variable                     | Purpose                                  |
+| ---------------------------- | ---------------------------------------- |
+| **`VITE_NODE_ENV`**          | **`production`**                         |
+| **`VITE_SUPABASE_URL`**      | `https://<ref>.supabase.co/functions/v1` |
+| **`VITE_API_URL`**           | Same as **`VITE_SUPABASE_URL`**          |
+| **`VITE_SUPABASE_ANON_KEY`** | Dashboard → **Project Settings → API**   |
 
 **Not for Vercel prod:** **`GOOGLE_CLIENT_*`** — those power **local** `supabase start` only.
 
@@ -248,7 +247,7 @@ Longer checklist: **`migration-runbook.md` §11.9**.
 
 ## 12. Rollback / incidents
 
-**First option — automated restore:** `bun run rollback:supabase:prod` restores the most recent `backups/prod/*_data.sql` (add `--schema` to also restore the matching `*_schema.sql` first) via `psql` against the linked project. Same `kamewave` gate as prod deploy, plus a typed `prod` confirmation. Dry-run first: `./scripts/deploy/rollback-supabase.sh prod --dry-run`.
+**Database recovery:** never replay a logical dump into the live database. Provision and link a fresh replacement project, then use the rollback script with `--fresh-target`. It refuses a target with any `public` tables, requires the full project ref as confirmation, and restores schema plus data in one transaction. Managed `auth` / `storage` metadata and Storage object bytes follow the separate recovery checklist because blindly replaying them into a provisioned project is unsafe.
 
 **Edge Functions rollback:** `bun run rollback:functions:prod -- <git-ref>` (e.g. `main`) redeploys `supabase/functions/` from an older commit via a throwaway `git worktree` — no need to check out that commit on your machine.
 

@@ -34,13 +34,12 @@ updated: 2026-08-09
 
 **Settings → Environment Variables** — **Preview only:**
 
-| Variable                  | Value                                                   |
-| ------------------------- | ------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1` |
-| `VITE_API_URL`            | same                                                    |
-| `VITE_SUPABASE_ANON_KEY`  | fwor anon key                                           |
-| `VITE_SUPER_ADMIN_EMAILS` | platform team emails (Admin tab + `/admin/*`)           |
-| `VITE_NODE_ENV`           | `development`                                           |
+| Variable                 | Value                                                   |
+| ------------------------ | ------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1` |
+| `VITE_API_URL`           | same                                                    |
+| `VITE_SUPABASE_ANON_KEY` | fwor anon key                                           |
+| `VITE_NODE_ENV`          | `development`                                           |
 
 **Domains:** `dev.kamehomes.space` → Preview → branch **`develop`**.
 
