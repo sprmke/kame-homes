@@ -2,6 +2,10 @@ import { expect, test } from '@playwright/test';
 
 import { seedSupabaseAuthSession } from '../../shared/authSeam';
 import { mockEdgeFunctions } from '../../shared/interceptEdge';
+import {
+  expectNoPageHorizontalOverflow,
+  expectNoUnnamedInteractiveControls,
+} from '../../shared/layoutAssertions';
 
 const mockSuperAdminOverview = {
   success: true,
@@ -38,14 +42,22 @@ const mockSuperAdminOverview = {
   },
 };
 
-test.describe('@ci super admin shell', () => {
+test.describe('@smoke @ci super admin shell', () => {
   test('admin overview renders for mocked super-admin session', async ({ page }) => {
     await seedSupabaseAuthSession(page, 'host');
-    await mockEdgeFunctions(page, [{ name: 'super-admin-overview', body: mockSuperAdminOverview }]);
+    await mockEdgeFunctions(page, [
+      {
+        name: 'list-organizations',
+        body: { success: true, data: { organizations: [], isSuperAdmin: true } },
+      },
+      { name: 'super-admin-overview', body: mockSuperAdminOverview },
+    ]);
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({
       timeout: 20_000,
     });
+    await expectNoPageHorizontalOverflow(page);
+    await expectNoUnnamedInteractiveControls(page);
   });
 
   test('non-super-admin host sees access restricted on /admin', async ({ page }) => {
@@ -57,9 +69,17 @@ test.describe('@ci super admin shell', () => {
       if (session.user) session.user.email = 'not-super-admin@example.com';
       window.localStorage.setItem(key, JSON.stringify(session));
     }, 'sb-127-auth-token');
+    await mockEdgeFunctions(page, [
+      {
+        name: 'list-organizations',
+        body: { success: true, data: { organizations: [], isSuperAdmin: false } },
+      },
+    ]);
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: 'Access restricted' })).toBeVisible({
       timeout: 20_000,
     });
+    await expectNoPageHorizontalOverflow(page);
+    await expectNoUnnamedInteractiveControls(page);
   });
 });

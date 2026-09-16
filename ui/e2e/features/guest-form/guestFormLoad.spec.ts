@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 import { seedSupabaseAuthSession } from '../../shared/authSeam';
+import {
+  expectNoPageHorizontalOverflow,
+  expectNoUnnamedInteractiveControls,
+} from '../../shared/layoutAssertions';
 import { guestFormPath, installGuestFormMocks } from './shared/guestFormHarness';
 
 test.describe('@smoke guest form load', () => {
@@ -11,5 +15,7 @@ test.describe('@smoke guest form load', () => {
     await expect(page.locator('#guest-form-step-heading')).toHaveText('Guest', {
       timeout: 20_000,
     });
+    await expectNoPageHorizontalOverflow(page);
+    await expectNoUnnamedInteractiveControls(page);
   });
 });

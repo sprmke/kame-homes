@@ -1,0 +1,46 @@
+name: Migration Replay
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 20 * * 0'
+
+concurrency:
+  group: migration-replay
+  cancel-in-progress: false
+
+jobs:
+  fresh-local-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOOGLE_CLIENT_ID: migration-replay.invalid
+      GOOGLE_CLIENT_SECRET: migration-replay
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate migration files
+        run: |
+          bash scripts/dev/check-migration-versions.sh
+          bash scripts/dev/check-migration-security.sh
+
+      - name: Start local Supabase
+        run: bun run start:supabase
+
+      - name: Replay every migration from scratch
+        run: bun run db:reset
+
+      - name: Lint replayed database
+        run: ./scripts/dev/bunx --bun supabase@latest db lint --local --level warning --fail-on error
+
+      - name: Stop local Supabase
+        if: always()
+        run: bun run stop:supabase

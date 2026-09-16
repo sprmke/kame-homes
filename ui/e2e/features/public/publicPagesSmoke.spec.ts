@@ -9,6 +9,15 @@ import {
   mockSearchSuggestionsBody,
 } from '../../shared/mockFixtures';
 import { mockEdgeFunctions } from '../../shared/interceptEdge';
+import {
+  expectNoPageHorizontalOverflow,
+  expectNoUnnamedInteractiveControls,
+} from '../../shared/layoutAssertions';
+
+async function expectPublicPageReady(page: Parameters<typeof expectNoPageHorizontalOverflow>[0]) {
+  await expectNoPageHorizontalOverflow(page);
+  await expectNoUnnamedInteractiveControls(page);
+}
 
 test.describe('@smoke @ci public marketing pages', () => {
   test('guest landing loads hero', async ({ page }) => {
@@ -16,6 +25,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await expect(page.getByRole('heading', { name: /Find your next stay/i })).toBeVisible({
       timeout: 20_000,
     });
+    await expectPublicPageReady(page);
   });
 
   test('properties list loads from mock API', async ({ page }) => {
@@ -28,6 +38,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await page.goto('/properties?view=list');
     await listReady;
     await expect(page.getByText('Solea Mactan').first()).toBeVisible({ timeout: 20_000 });
+    await expectPublicPageReady(page);
   });
 
   test('for-hosts landing loads hero', async ({ page }) => {
@@ -35,6 +46,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await expect(page.getByRole('heading', { name: /Run every stay/i })).toBeVisible({
       timeout: 20_000,
     });
+    await expectPublicPageReady(page);
   });
 
   test('for-hosts pricing loads plan cards', async ({ page }) => {
@@ -46,6 +58,7 @@ test.describe('@smoke @ci public marketing pages', () => {
       timeout: 20_000,
     });
     await expect(page.getByRole('heading', { name: 'Free' })).toBeVisible();
+    await expectPublicPageReady(page);
   });
 
   test('property detail page loads from mock API', async ({ page }) => {
@@ -54,6 +67,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await expect(page.getByRole('heading', { name: 'Solea Mactan' })).toBeVisible({
       timeout: 20_000,
     });
+    await expectPublicPageReady(page);
   });
 
   test('search page renders', async ({ page }) => {
@@ -65,6 +79,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await expect(page.getByRole('heading', { name: 'No matches' })).toBeVisible({
       timeout: 15_000,
     });
+    await expectPublicPageReady(page);
   });
 
   test('developments list loads from mock API', async ({ page }) => {
@@ -77,6 +92,7 @@ test.describe('@smoke @ci public marketing pages', () => {
     await page.goto('/developments?view=list');
     await listReady;
     await expect(page.getByText('Solea Residences').first()).toBeVisible({ timeout: 20_000 });
+    await expectPublicPageReady(page);
   });
 
   test('terms page loads', async ({ page }) => {
@@ -84,5 +100,6 @@ test.describe('@smoke @ci public marketing pages', () => {
     await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible({
       timeout: 15_000,
     });
+    await expectPublicPageReady(page);
   });
 });

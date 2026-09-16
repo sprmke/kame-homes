@@ -22,10 +22,12 @@ jobs:
       - name: Cutover gate
         env:
           CUTOVER_ENABLED: ${{ vars.CUTOVER_ENABLED }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
           ACK: ${{ github.event.inputs.acknowledge }}
         run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Production deploys must run from main."
+            exit 1
+          fi
           if [[ "${CUTOVER_ENABLED:-}" != "true" ]]; then
             echo "Cutover not enabled."
             echo "Set repository variable CUTOVER_ENABLED=true only after Phase B (mt-prod release)."
@@ -36,14 +38,33 @@ jobs:
             echo "Workflow input acknowledge must be exactly: CUTover"
             exit 1
           fi
-          if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
-            echo "production environment secrets not configured (SUPABASE_PROJECT_REF)."
-            exit 1
-          fi
-          echo "Cutover gate passed for ref ...${SUPABASE_PROJECT_REF: -4}"
+          echo "Cutover gate passed. Target validation runs inside the protected production environment."
+
+  quality:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bun x playwright install chromium --with-deps
+
+      - name: Production quality gate
+        run: ./scripts/dev/ci-quality-gate.sh --skip-install
 
   deploy:
-    needs: gate
+    needs: quality
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -56,14 +77,53 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Production deploy placeholder
+      - name: Link production project
         env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          ./scripts/dev/bunx --bun supabase@latest link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Capture pre-deploy schema diff
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: ./scripts/dev/bunx --bun supabase@latest db diff --linked > pre-deploy-schema-diff.sql
+
+      - name: Upload schema diff
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-schema-diff-${{ github.sha }}
+          path: pre-deploy-schema-diff.sql
+          retention-days: 30
+
+      - name: Deploy Supabase (MULTI_TENANT_PROD)
+        env:
+          CI: '1'
+          DEPLOY_CONFIRM: prod
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+          MULTI_TENANT_DEV_PROJECT_REF: ${{ secrets.MULTI_TENANT_DEV_PROJECT_REF }}
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+        run: ./scripts/deploy/ci-deploy.sh prod
+
+      - name: Upload pre-deploy backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-backup-${{ github.sha }}
+          path: backups/prod/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Smoke public endpoints
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
-        run: |
-          echo "Production CD scaffold only — mt-prod not created yet."
-          echo "At release: deploy to MULTI_TENANT_PROD after legacy migration."
-          echo "Until then, use local deploy with kamewave + docs/archive/operations/production-deployment.md"
-          if [[ -n "${LEGACY_PROD_PROJECT_REF:-}" && "${SUPABASE_PROJECT_REF}" == "${LEGACY_PROD_PROJECT_REF}" ]]; then
-            echo "WARNING: production SUPABASE_PROJECT_REF equals LEGACY — verify cutover strategy."
-          fi
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
+        run: ./scripts/deploy/ci-smoke.sh prod
