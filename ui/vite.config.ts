@@ -246,6 +246,13 @@ export default defineConfig({
   esbuild: {
     drop: ['debugger'],
     pure: ['console.debug'],
+    // NOT setting `legalComments: 'external'` here even though vendor license
+    // banners add real bytes (lucide-react alone ships ~280 of them): tested
+    // against this Vite 4 + Rollup esbuild-minify pipeline and confirmed it
+    // silently drops the comments entirely instead of writing the documented
+    // `.LEGAL.txt` sidecar — a license-compliance regression, not a safe
+    // bytes-saving win. Leave banners inline (esbuild's default) until a
+    // config is found that actually externalizes them.
   },
   plugins: [
     patchOpenPolotnoHighlighter(),
@@ -310,7 +317,22 @@ export default defineConfig({
             'motion-vendor': ['framer-motion'],
             'icons-vendor': ['lucide-react'],
             'forms-vendor': ['@hookform/resolvers', 'react-hook-form', 'zod'],
-            'date-vendor': ['date-fns', 'dayjs', 'react-day-picker'],
+            // No 'date-vendor' group: date-fns/dayjs/react-day-picker were
+            // previously forced into their own chunk here, but that created a
+            // real circular chunk dependency with react-vendor — dayjs is CJS,
+            // and Rollup hoisted the shared CJS-interop helper it needed into
+            // that date chunk, while react-vendor (via react-router-dom's own
+            // CJS deps) also needs that same helper and imported it back from
+            // date-vendor. date-vendor separately statically imports React
+            // bindings from react-vendor for react-day-picker's hooks. Whichever
+            // chunk executed first therefore saw the other's still-uninitialized
+            // export as `undefined`, crashing the entire app on every route with
+            // "Cannot read properties of undefined (reading 'createContext')" —
+            // verified in a real browser against a production build. Removing
+            // the explicit group lets Rollup's automatic chunking place these
+            // packages without forcing a cross-chunk cycle; the total-KiB
+            // precache budget (scripts/pwa/check-precache-budget.mjs) is the
+            // backstop against any one of them growing unbounded.
             'observability-vendor': ['@posthog/react', 'posthog-js'],
             'ui-vendor': [
               'class-variance-authority',
