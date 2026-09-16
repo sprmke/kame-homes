@@ -26,7 +26,7 @@ export function normalizeBookingDateToYmd(dateStr: string): string | null {
   return null;
 }
 
-function addDaysYmd(ymd: string, deltaDays: number): string {
+export function addDaysYmd(ymd: string, deltaDays: number): string {
   const [y, m, d] = ymd.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
   return dt.toISOString().slice(0, 10);

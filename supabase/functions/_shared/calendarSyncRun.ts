@@ -11,7 +11,7 @@
  * endpoint). Phase 2 adds `guest_submissions` orchestration in this same wrapper.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { resolveAppSettings } from './appSettings.ts';
 import { manilaTodayYmd } from './calendarAvailabilityManila.ts';

@@ -3,7 +3,7 @@
  * GCash QR staging is intentionally excluded from the assistant apply path (OTP-parity Phase 3).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { DatabaseService } from './databaseService.ts';
 import { invalidateAppSettingsCache, loadAppSettingsRow } from './appSettings.ts';
 import {
@@ -12,7 +12,7 @@ import {
   type ExternalReviewAssetUploadType,
 } from './propertyExternalReviews.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
-import { formatPublicUrl } from './utils.ts';
+import { copyBytes, formatPublicUrl } from './utils.ts';
 
 const BUCKET = 'app-settings-assets';
 
@@ -34,7 +34,7 @@ const ASSET_CONFIG = {
   external_review_stay_photo: {
     storagePrefix: 'external-review-stay',
   },
-} as const satisfies Record<string, AssetConfig>;
+} as Record<string, AssetConfig>;
 
 export type AppSettingsApplyAssetType = keyof typeof ASSET_CONFIG;
 
@@ -115,7 +115,7 @@ export async function applyAppSettingsAssetFromBytes(
     );
   }
 
-  const file = new File([input.bytes], input.fileName || 'asset.jpg', { type: mime });
+  const file = new File([copyBytes(input.bytes)], input.fileName || 'asset.jpg', { type: mime });
   assertWithinUploadLimit(file, 'image');
 
   let replacedExisting = false;

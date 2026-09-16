@@ -10,7 +10,7 @@
  * entry_type: 'purchase_credit' instead of 'manual_adjustment').
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 export type AiCreditLedgerEntryType = 'usage_debit' | 'purchase_credit' | 'manual_adjustment';
 

@@ -155,6 +155,7 @@ import {
 } from './propertyExternalReviews.ts';
 import { normalizeVoucherPrizes, type VoucherPrize } from './voucher.ts';
 import { normalizeVoucherRevealStyle, type VoucherRevealStyle } from './voucherRevealStyle.ts';
+import type { GuestFormData } from './types.ts';
 
 export type AppSettingsDto = AppSettingsResolved & {
   /** Property-stored brand hex for admin forms (empty when inheriting org default). */
@@ -206,6 +207,31 @@ export function invalidateAppSettingsCache(propertyId?: string | null): void {
 
 function cacheKey(propertyId?: string | null): string {
   return propertyId ?? 'legacy';
+}
+
+async function loadOrganizationSettingsByPropertyId(
+  propertyId: string
+): Promise<Record<string, unknown> | null> {
+  const sb = createServiceClient();
+  const { data: propertyRow, error: propertyError } = await sb
+    .from('properties')
+    .select('organization_id')
+    .eq('id', propertyId)
+    .maybeSingle();
+  if (propertyError || !propertyRow?.organization_id) return null;
+
+  const { data: organizationRow, error: organizationError } = await sb
+    .from('organizations')
+    .select('settings')
+    .eq('id', propertyRow.organization_id)
+    .maybeSingle();
+  if (organizationError) return null;
+
+  return organizationRow?.settings &&
+    typeof organizationRow.settings === 'object' &&
+    !Array.isArray(organizationRow.settings)
+    ? (organizationRow.settings as Record<string, unknown>)
+    : null;
 }
 
 async function loadSettingsRow(propertyId?: string | null): Promise<AppSettingsRow | null> {
@@ -518,6 +544,7 @@ export async function serializeGuestPaymentInfo(
     gafTowerAndUnitNumber: s.gafTowerAndUnitNumber,
     gafGuestsOnsiteContactPerson: s.gafGuestsOnsiteContactPerson,
     gafOwnerContactNumber: s.gafOwnerContactNumber,
+    gafUnitOwnerSignatureUrl: s.gafUnitOwnerSignatureUrl,
     emailLogoUrl: s.emailLogoUrl,
     brandColor: s.brandColor,
     allowPets: guestForm.allowPets,
@@ -563,10 +590,9 @@ export async function serializeAppSettingsForAdmin(
   const property = pickPropertyFieldsFromRow(row, originBase, residenceName, developmentPmoEmail);
   const branding = pickPropertyBrandingFromRow(row);
 
-  const orgSettingsRaw =
-    orgRow?.settings && typeof orgRow.settings === 'object' && !Array.isArray(orgRow.settings)
-      ? (orgRow.settings as Record<string, unknown>)
-      : null;
+  const orgSettingsRaw = resolvedPropertyId
+    ? await loadOrganizationSettingsByPropertyId(resolvedPropertyId)
+    : null;
   const inheritedBrandColor = resolveOrgBrandColorFromSettings(orgSettingsRaw);
 
   return {
@@ -619,6 +645,11 @@ export async function serializeAppSettingsForAdmin(
       gcashNumber: property.gcashNumber.source,
       gcashQrImageUrl: property.gcashQr.source,
       paymentProvider: property.paymentProvider.source,
+      paymentMethods:
+        trimOrEmpty(row?.payment_provider) ||
+        (Array.isArray(row?.payment_methods) && row.payment_methods.length > 0)
+          ? ('db' as const)
+          : ('default' as const),
       gafUnitOwner: property.gaf.picks.gafUnitOwner.source,
       gafTowerAndUnitNumber: property.gaf.picks.gafTowerAndUnitNumber.source,
       gafGuestsOnsiteContactPerson: property.gaf.picks.gafGuestsOnsiteContactPerson.source,
@@ -723,10 +754,10 @@ export function validateGafContactNumber(raw: string): string | null {
 }
 
 /** Apply operator GAF defaults — server always wins over client-submitted values. */
-export async function applyGafDefaultsToFormData<T extends Record<string, unknown>>(
+export async function applyGafDefaultsToFormData<T extends Partial<GuestFormData>>(
   data: T,
   propertyId?: string | null
-): Promise<T> {
+): Promise<T & Pick<GuestFormData, 'unitOwner' | 'towerAndUnitNumber' | 'ownerOnsiteContactPerson' | 'ownerContactNumber'>> {
   const s = await resolveAppSettings(propertyId);
   return {
     ...data,

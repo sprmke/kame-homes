@@ -4,7 +4,7 @@
  * and storage keys identical across callers.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { syncPricingReviewBalanceReceipt } from './bookingAiReviewService.ts';
 import { bookingAssetStorageKey } from './bookingStoragePaths.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -27,86 +27,20 @@ import {
 import { notifyTelegramAdminBalanceReceiptUploaded } from './telegramAdmin.ts';
 import { assertWithinUploadLimit, type UploadLimitKind } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
+import {
+  BOOKING_ASSET_CONFIG,
+  BOOKING_ASSET_LABELS,
+  type BookingAssetType,
+} from './bookingAssetTypes.ts';
 
-export const BOOKING_ASSET_CONFIG = {
-  parking_endorsement: {
-    bucket: 'parking-endorsements',
-    column: 'parking_endorsement_url',
-  },
-  parking_payment_receipt: {
-    bucket: 'payment-receipts',
-    column: 'parking_payment_receipt_url',
-  },
-  approved_gaf: {
-    bucket: 'approved-gafs',
-    column: 'approved_gaf_pdf_url',
-  },
-  approved_pet: {
-    bucket: 'approved-pet-forms',
-    column: 'approved_pet_pdf_url',
-  },
-  sd_refund_receipt: {
-    bucket: 'sd-refund-receipts',
-    column: 'sd_refund_receipt_url',
-  },
-  guest_balance_payment_receipt: {
-    bucket: 'sd-refund-receipts',
-    column: 'guest_balance_payment_receipt_url',
-  },
-  valid_id: {
-    bucket: 'valid-ids',
-    column: 'valid_id_url',
-  },
-  guest2_valid_id: {
-    bucket: 'valid-ids',
-    column: 'guest2_valid_id_url',
-  },
-  guest3_valid_id: {
-    bucket: 'valid-ids',
-    column: 'guest3_valid_id_url',
-  },
-  guest4_valid_id: {
-    bucket: 'valid-ids',
-    column: 'guest4_valid_id_url',
-  },
-  guest5_valid_id: {
-    bucket: 'valid-ids',
-    column: 'guest5_valid_id_url',
-  },
-  payment_receipt: {
-    bucket: 'payment-receipts',
-    column: 'payment_receipt_url',
-  },
-  pet_vaccination: {
-    bucket: 'pet-vaccinations',
-    column: 'pet_vaccination_url',
-  },
-  pet_image: {
-    bucket: 'pet-images',
-    column: 'pet_image_url',
-  },
-} as const;
-
-export type BookingAssetType = keyof typeof BOOKING_ASSET_CONFIG;
-
-export const BOOKING_ASSET_TYPES = Object.keys(BOOKING_ASSET_CONFIG) as BookingAssetType[];
-
-export const BOOKING_ASSET_LABELS: Record<BookingAssetType, string> = {
-  parking_endorsement: 'Parking endorsement',
-  parking_payment_receipt: 'Parking payment receipt',
-  approved_gaf: 'Approved GAF',
-  approved_pet: 'Approved pet form',
-  sd_refund_receipt: 'SD refund receipt',
-  guest_balance_payment_receipt: 'Guest balance payment receipt',
-  valid_id: 'Valid ID',
-  guest2_valid_id: 'Guest 2 valid ID',
-  guest3_valid_id: 'Guest 3 valid ID',
-  guest4_valid_id: 'Guest 4 valid ID',
-  guest5_valid_id: 'Guest 5 valid ID',
-  payment_receipt: 'Downpayment receipt',
-  pet_vaccination: 'Pet vaccination',
-  pet_image: 'Pet photo',
-};
+export {
+  BOOKING_ASSET_CONFIG,
+  BOOKING_ASSET_LABELS,
+  BOOKING_ASSET_TYPES,
+  bookingAssetPermission,
+  isBookingAssetType,
+  type BookingAssetType,
+} from './bookingAssetTypes.ts';
 
 const PDF_ONLY = new Set(['application/pdf']);
 const IMAGE_OR_PDF = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
@@ -128,46 +62,6 @@ const ASSET_MIME: Record<BookingAssetType, Set<string>> = {
   pet_vaccination: IMAGE_OR_PDF,
   pet_image: IMAGE_ONLY,
 };
-
-export function isBookingAssetType(value: unknown): value is BookingAssetType {
-  return typeof value === 'string' && value in BOOKING_ASSET_CONFIG;
-}
-
-export function bookingAssetPermission(
-  assetType: BookingAssetType
-):
-  | 'bookings.detail.workflow:edit'
-  | 'bookings.detail.guests:edit'
-  | 'bookings.detail.pets:edit'
-  | 'bookings.detail.pricing:edit'
-  | 'bookings.detail.stay:edit' {
-  if (
-    assetType === 'parking_endorsement' ||
-    assetType === 'parking_payment_receipt' ||
-    assetType === 'approved_gaf' ||
-    assetType === 'approved_pet' ||
-    assetType === 'sd_refund_receipt' ||
-    assetType === 'guest_balance_payment_receipt'
-  ) {
-    return 'bookings.detail.workflow:edit';
-  }
-  if (
-    assetType === 'valid_id' ||
-    assetType === 'guest2_valid_id' ||
-    assetType === 'guest3_valid_id' ||
-    assetType === 'guest4_valid_id' ||
-    assetType === 'guest5_valid_id'
-  ) {
-    return 'bookings.detail.guests:edit';
-  }
-  if (assetType === 'pet_vaccination' || assetType === 'pet_image') {
-    return 'bookings.detail.pets:edit';
-  }
-  if (assetType === 'payment_receipt') {
-    return 'bookings.detail.pricing:edit';
-  }
-  return 'bookings.detail.stay:edit';
-}
 
 function isGuestDocRevertAssetType(t: BookingAssetType): boolean {
   return (
@@ -286,7 +180,7 @@ export async function applyBookingAssetFromBytes(
       const aiUsage: AiUsageContext | null = orgId
         ? { organizationId: orgId, propertyId: input.propertyId, actorUserId: input.actorUserId }
         : null;
-      const file = new File([input.bytes], input.fileName, { type: mimeType });
+      const file = new Blob([Uint8Array.from(input.bytes)], { type: mimeType });
       receiptValidation =
         docAiKind === 'valid_id'
           ? await validateValidIdFile(file, aiUsage)

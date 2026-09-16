@@ -5,7 +5,7 @@
  * for its booking; a fresh signed Storage URL is minted server-side on each visit.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 
 import { resolvePropertySlugById } from './propertyScope.ts';
 import { formatPublicUrl } from './utils.ts';
