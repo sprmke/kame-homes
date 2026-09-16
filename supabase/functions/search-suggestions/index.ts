@@ -10,6 +10,7 @@
 
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { pruneExpiredRateLimitBuckets } from '../_shared/publicRateLimit.ts';
 import {
   escapeIlikePattern,

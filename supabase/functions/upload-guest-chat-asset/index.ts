@@ -2,7 +2,7 @@
  * upload-guest-chat-asset — Guest web chat image/PDF upload.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 
 import { assertGuestOwnsWebConversation } from '../_shared/webGuestChatService.ts';
 import type { NormalizedInboxAttachment } from '../_shared/inboxAttachments.ts';
