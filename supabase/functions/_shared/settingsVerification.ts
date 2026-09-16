@@ -3,7 +3,8 @@
  * Keep payment fingerprint logic in sync with `ui/src/features/dashboard/org/lib/settingsVerificationFingerprint.ts`.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
+import { webCryptoRawKey } from './webCryptoKey.ts';
 
 import { formatPaymentAccountNumberDisplay, normalizePaymentProvider } from './paymentProviders.ts';
 import type { PropertyPaymentMethod } from './paymentMethods.ts';
@@ -101,7 +102,7 @@ function verificationHmacKey(): Uint8Array {
 async function importHmacKey(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     'raw',
-    verificationHmacKey(),
+    webCryptoRawKey(verificationHmacKey()),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']

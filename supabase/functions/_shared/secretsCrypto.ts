@@ -27,7 +27,10 @@ function decodeEncryptionKey(raw: string): Uint8Array {
 
 async function importAesKey(rawKey: string): Promise<CryptoKey> {
   const material = decodeEncryptionKey(rawKey);
-  return crypto.subtle.importKey('raw', material, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return crypto.subtle.importKey('raw', new Uint8Array(material), 'AES-GCM', false, [
+    'encrypt',
+    'decrypt',
+  ]);
 }
 
 function toBase64Url(bytes: Uint8Array): string {

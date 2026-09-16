@@ -3,7 +3,7 @@
  * Guest PII buckets (Phase 2) and admin-only buckets share the same signing path.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 import type { GuestFormData } from './types.ts';
 import { formatPublicUrl } from './utils.ts';
 
@@ -101,7 +101,7 @@ export async function signGuestFormDataStorageUrls(
     GUEST_FORM_STORAGE_URL_FIELDS.map(async (field) => {
       const value = out[field];
       if (typeof value === 'string' && value.trim()) {
-        (out as Record<string, string>)[field] = await createSignedStorageUrlIfPrivate(
+        (out as unknown as Record<string, string>)[field] = await createSignedStorageUrlIfPrivate(
           supabase,
           value
         );

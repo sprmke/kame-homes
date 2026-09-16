@@ -6,7 +6,7 @@
 import { generateRecurrenceDates, type RecurrenceInterval } from './financeRecurrence.ts';
 
 type RebuildParams<TRow> = {
-  supabase: ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2.38.4').createClient>;
+  supabase: import('./supabaseJs.ts').SupabaseClient;
   table: 'finance_line_items' | 'maintenance_items';
   dateColumn: 'occurred_on' | 'scheduled_on';
   seriesId: string;

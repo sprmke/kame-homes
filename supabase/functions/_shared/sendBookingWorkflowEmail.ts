@@ -6,7 +6,7 @@
  * Called from `send-booking-workflow-email` edge function.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import {
   sendBookingAcknowledgement,
   sendEmail,

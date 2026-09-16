@@ -9,7 +9,7 @@
  * Rate-limit (429) or server errors on one key immediately try the next.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   getGeminiApiKeys,
@@ -432,8 +432,8 @@ async function callGeminiVision(
     throw error;
   }
 
-  const geminiKeys = getGeminiApiKeysLocal();
-  const groqKey = getGroqApiKeyLocal();
+  const geminiKeys = getGeminiApiKeys();
+  const groqKey = getGroqApiKey();
 
   if (geminiKeys.length === 0 && !groqKey) {
     console.warn(`[${logTag}] No AI API keys configured — skipping`);

@@ -2,7 +2,7 @@
  * Team notice after sensitive settings are saved — branded email shell.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { resolveAppSettings } from './appSettings.ts';
 import { formatResendFromAddress, loadPropertyEmailBranding } from './propertyEmailBranding.ts';
