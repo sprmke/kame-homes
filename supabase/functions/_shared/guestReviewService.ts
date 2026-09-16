@@ -159,8 +159,9 @@ export async function listPublicGuestReviews(
           .filter((m) => m.url)
       : [];
 
-    const feedbackTags = Array.isArray(row.feedback_tags)
-      ? row.feedback_tags.filter((entry): entry is string => typeof entry === 'string')
+    const feedbackTagsRaw = row.feedback_tags;
+    const feedbackTags = Array.isArray(feedbackTagsRaw)
+      ? feedbackTagsRaw.filter((entry: unknown): entry is string => typeof entry === 'string')
       : [];
 
     return {

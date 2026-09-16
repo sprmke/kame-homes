@@ -2,7 +2,7 @@
  * Parse host-uploaded booking import files (CSV + Excel) into header/row maps.
  */
 
-import Papa from 'https://esm.sh/papaparse@5.4.1';
+import Papa from 'papaparse';
 // SheetJS Community — official Deno CDN (see https://docs.sheetjs.com/docs/getting-started/installation/deno/)
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
@@ -37,23 +37,25 @@ function cellToString(value: unknown): string {
 export function parseImportCsvText(text: string): ParsedImportTable {
   // Excel exports often prepend a UTF-8 BOM, which would otherwise ride
   // along on the first header and break column matching.
-  const result = Papa.parse<Record<string, string>>(text.replace(/^\uFEFF/, ''), {
+  const result = Papa.parse(text.replace(/^\uFEFF/, ''), {
     header: true,
     skipEmptyLines: 'greedy',
-    transformHeader: (header) => header.trim(),
+    transformHeader: (header: string) => header.trim(),
   });
 
   // Host spreadsheets routinely carry a note line or a short trailing row, which
   // Papa reports as FieldMismatch while still returning usable data. Those rows
   // surface as fixable rows in preview; only unparseable input aborts the upload.
-  const fatal = result.errors.find((error) => error.type !== 'FieldMismatch');
+  const fatal = result.errors.find((error: { type: string }) => error.type !== 'FieldMismatch');
   if (fatal) {
     throw new Error(
       `CSV parse error${fatal.row != null ? ` on row ${fatal.row + 1}` : ''}: ${fatal.message}`
     );
   }
 
-  const headers = (result.meta.fields ?? []).map((field) => field.trim()).filter(Boolean);
+  const headers = (result.meta.fields ?? [])
+    .map((field: string) => field.trim())
+    .filter(Boolean);
   if (headers.length === 0) {
     throw new Error('File must include a header row');
   }

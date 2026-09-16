@@ -20,7 +20,7 @@
  *                              starving Inbox auto-reply for the rest of the month
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import type { AiFeature } from './aiModelRouter.ts';
 import { getOrgCreditWalletBalance } from './aiCreditLedger.ts';

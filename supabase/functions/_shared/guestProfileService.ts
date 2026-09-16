@@ -2,7 +2,7 @@
  * Guest account profile + booking linkage for signed-in explore users.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import { normalizePhoneDigits, validatePhilippineMobilePhone } from './fieldValidation.ts';

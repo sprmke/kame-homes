@@ -7,7 +7,7 @@
  * state change that precedes a charge goes through one of these functions.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { HOST_FACING_GENERATION_FAILED, toHostFacingError } from './hostFacingError.ts';
 
