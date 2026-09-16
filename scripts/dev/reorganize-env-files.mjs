@@ -27,7 +27,7 @@ const UI_SECTIONS = [
     keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
   },
   { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
-  { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'] },
+  { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
   {
     title: 'Observability',
     keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST', 'POSTHOG_PERSONAL_API_KEY', 'POSTHOG_PROJECT_ID'],
@@ -69,6 +69,14 @@ const EDGE_SECTIONS = [
     keys: ['TURNSTILE_SECRET_KEY', 'CAPTCHA_MODE'],
   },
   {
+    title: 'Guest booking access',
+    keys: [
+      'GUEST_BOOKING_ACCESS_SECRET',
+      'GUEST_BOOKING_ACCESS_ENFORCE',
+      'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
+    ],
+  },
+  {
     title: 'Social fallbacks',
     keys: ['FACEBOOK_REVIEWS_URL', 'AIRBNB_URL', 'INSTAGRAM_URL', 'TIKTOK_URL'],
   },
@@ -80,6 +88,8 @@ const EDGE_SECTIONS = [
       'GROQ_API_KEY',
       'GEMINI_MODEL_OVERRIDE',
       'GEMINI_MODEL_OVERRIDE_DASHBOARD_ASSISTANT',
+      'AI_PLATFORM_DAILY_COST_USD_CAP',
+      'AI_ASSISTANT_ATTACHMENT_RETENTION_DAYS',
     ],
   },
   {
@@ -127,9 +137,13 @@ const EDGE_SECTIONS = [
       'ANALYTICS_AI_REVIEW_CRON_SECRET',
       'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
       'ACTIVITY_LOG_RETENTION_CRON_SECRET',
+      'MARKETING_GENERATION_CRON_SECRET',
     ],
   },
 ];
+
+/** Keys that must never live in UI env files (edge-only). */
+const UI_DENYLIST = new Set(['TURNSTILE_SECRET_KEY', 'CAPTCHA_MODE']);
 
 /** Keys that must never live in edge env files (UI-only or removed). */
 const EDGE_DENYLIST = new Set([
@@ -180,10 +194,15 @@ const SCHEMAS = {
       },
     ],
   },
-  'ui/.env.development': { path: 'ui/.env.development', sections: UI_SECTIONS },
+  'ui/.env.development': {
+    path: 'ui/.env.development',
+    sections: UI_SECTIONS,
+    denylist: UI_DENYLIST,
+  },
   'ui/.env.development.dev': {
     path: 'ui/.env.development.dev',
     sections: UI_SECTIONS.filter((s) => s.title !== 'GoTrue (local only)'),
+    denylist: UI_DENYLIST,
   },
   'ui/.env.production': {
     path: 'ui/.env.production',

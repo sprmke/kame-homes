@@ -87,14 +87,15 @@ Same as Cursor's `.cursor/commands/`; Claude Code commands and skills both creat
 
 Personal Claude Code UI settings live in **`~/.claude/settings.json`**, not in this repo. Current defaults:
 
-| Setting                      | Value                     | What it shows                                                                                        |
-| ---------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `statusLine`                 | `~/.claude/statusline.sh` | 2-line bar: model, effort, git branch, context %, in/out tokens, session cost, duration, rate limits |
-| `showTurnDuration`           | `true`                    | Per-turn timing (e.g. "Cooked for 1m 6s") after responses                                            |
-| `showThinkingSummaries`      | `true`                    | Extended-thinking summaries in **terminal CLI only** (not VS Code extension)                         |
-| `effortLevel`                | `high`                    | Reasoning effort; change mid-session with `/effort`                                                  |
-| `model`                      | `sonnet`                  | Default model; switch with `/model`                                                                  |
-| `terminalProgressBarEnabled` | `true`                    | Progress bar in supported terminals (iTerm2, Ghostty, ConEmu)                                        |
+| Setting                      | Value                                     | What it shows                                                                                                         |
+| ---------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `statusLine`                 | `~/.claude/statusline.sh`                 | 2-line bar: model, effort, git branch, context %, in/out tokens, session cost, duration, rate limits                  |
+| `showTurnDuration`           | `true`                                    | Per-turn timing (e.g. "Cooked for 1m 6s") after responses                                                             |
+| `showThinkingSummaries`      | `true`                                    | Extended-thinking summaries in **terminal CLI only** (not VS Code extension)                                          |
+| `effortLevel`                | `high`                                    | Reasoning effort; change mid-session with `/effort`                                                                   |
+| `model`                      | `sonnet`                                  | Default model; switch with `/model`                                                                                   |
+| `attribution.commit` / `.pr` | `""` (in project `.claude/settings.json`) | Disables Claude Code commit/PR co-author footers; **`.husky/commit-msg`** still strips any trailer that slips through |
+| `terminalProgressBarEnabled` | `true`                                    | Progress bar in supported terminals (iTerm2, Ghostty, ConEmu)                                                         |
 
 **Quick checks:** `/status` (loaded settings + model), `/cost` (token/cost breakdown), `/config` (interactive settings UI). Reload the VS Code extension after changing `model` or `outputStyle`.
 

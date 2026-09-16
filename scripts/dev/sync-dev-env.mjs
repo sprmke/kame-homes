@@ -49,6 +49,9 @@ const DEV_EDGE_FROM_LOCAL = [
   'SUPER_ADMIN_VERIFICATION_SECRET',
   'TURNSTILE_SECRET_KEY',
   'CAPTCHA_MODE',
+  'GUEST_BOOKING_ACCESS_SECRET',
+  'GUEST_BOOKING_ACCESS_ENFORCE',
+  'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
   'FACEBOOK_REVIEWS_URL',
   'AIRBNB_URL',
   'INSTAGRAM_URL',
@@ -56,6 +59,8 @@ const DEV_EDGE_FROM_LOCAL = [
   'GEMINI_API_KEYS',
   'GEMINI_API_KEY',
   'GROQ_API_KEY',
+  'AI_PLATFORM_DAILY_COST_USD_CAP',
+  'AI_ASSISTANT_ATTACHMENT_RETENTION_DAYS',
   'META_APP_ID',
   'META_APP_SECRET',
   'META_INBOX_TOKEN_ENCRYPTION_KEY',
@@ -84,7 +89,9 @@ const DEV_EDGE_FROM_LOCAL = [
   'META_INBOX_WEBHOOK_HEALTHCHECK_CRON_SECRET',
   'PLATFORM_BILLING_CRON_SECRET',
   'CALENDAR_SYNC_CRON_SECRET',
+  'CALENDAR_SYNC_MIN_INTERVAL_MINUTES',
   'SMART_PRICING_CRON_SECRET',
+  'MARKETING_GENERATION_CRON_SECRET',
   'SUPERHOST_ASSESSMENT_CRON_SECRET',
   'ANALYTICS_AI_REVIEW_CRON_SECRET',
   'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
@@ -117,8 +124,15 @@ const LEGACY_REMOTE_UNSET = [
 /** Copied from .env.local → .env.dev.local with setAlways (not only when missing). */
 const EDGE_ALWAYS_FROM_LOCAL = new Set([
   'TURNSTILE_SECRET_KEY',
+  'CAPTCHA_MODE',
   'POSTHOG_API_KEY',
   'POSTHOG_HOST',
+  'PUSH_FANOUT_SECRET',
+  'GUEST_BOOKING_ACCESS_SECRET',
+  'GUEST_BOOKING_ACCESS_ENFORCE',
+  'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
+  'SUPER_ADMIN_VERIFICATION_SECRET',
+  'MARKETING_GENERATION_CRON_SECRET',
 ]);
 
 const UI_SECTIONS_HOSTED = [
@@ -263,6 +277,13 @@ function mergeDevLocal() {
   const rMeta = setAlways(dev, 'META_OAUTH_ALLOWED_RETURN_ORIGINS', metaOrigins);
   if (rMeta) changes.push(`${rMeta} META_OAUTH_ALLOWED_RETURN_ORIGINS`);
 
+  const uiDevPath = join(ROOT, 'ui/.env.development');
+  const viteSuperAdmins = readEnvFile(uiDevPath).get('VITE_SUPER_ADMIN_EMAILS')?.trim();
+  if (viteSuperAdmins) {
+    const rSuper = setAlways(dev, 'SUPER_ADMIN_EMAILS', viteSuperAdmins);
+    if (rSuper) changes.push(`${rSuper} SUPER_ADMIN_EMAILS (from VITE_SUPER_ADMIN_EMAILS)`);
+  }
+
   for (const key of DEV_EDGE_FROM_LOCAL) {
     const fromLocal = local.get(key)?.trim();
     if (!fromLocal) continue;
@@ -307,10 +328,27 @@ function mergeDevLocal() {
     },
     { title: 'Anti-spam', keys: ['TURNSTILE_SECRET_KEY', 'CAPTCHA_MODE'] },
     {
+      title: 'Guest booking access',
+      keys: [
+        'GUEST_BOOKING_ACCESS_SECRET',
+        'GUEST_BOOKING_ACCESS_ENFORCE',
+        'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
+      ],
+    },
+    {
       title: 'Social fallbacks',
       keys: ['FACEBOOK_REVIEWS_URL', 'AIRBNB_URL', 'INSTAGRAM_URL', 'TIKTOK_URL'],
     },
-    { title: 'AI', keys: ['GEMINI_API_KEYS', 'GEMINI_API_KEY', 'GROQ_API_KEY'] },
+    {
+      title: 'AI',
+      keys: [
+        'GEMINI_API_KEYS',
+        'GEMINI_API_KEY',
+        'GROQ_API_KEY',
+        'AI_PLATFORM_DAILY_COST_USD_CAP',
+        'AI_ASSISTANT_ATTACHMENT_RETENTION_DAYS',
+      ],
+    },
     {
       title: 'Meta',
       keys: [
@@ -344,7 +382,9 @@ function mergeDevLocal() {
         'META_INBOX_WEBHOOK_HEALTHCHECK_CRON_SECRET',
         'PLATFORM_BILLING_CRON_SECRET',
         'CALENDAR_SYNC_CRON_SECRET',
+        'CALENDAR_SYNC_MIN_INTERVAL_MINUTES',
         'SMART_PRICING_CRON_SECRET',
+        'MARKETING_GENERATION_CRON_SECRET',
         'SUPERHOST_ASSESSMENT_CRON_SECRET',
         'ANALYTICS_AI_REVIEW_CRON_SECRET',
         'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',

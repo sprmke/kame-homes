@@ -81,7 +81,7 @@ If an issue number is known, include `Fixes #N` or `Relates to #N`.
 
 - Do not target `main` unless the user explicitly asks for a release/cutover PR.
 - Do not `--force` push to shared branches.
-- Do not add Cursor/AI co-author trailers (`git-commits.mdc`).
+- Do not add co-author trailers or AI attribution in commits/PRs (`git-commits.mdc`, `git-commits` skill).
 - Do not run production Supabase deploys.
 
 ## If a PR already exists

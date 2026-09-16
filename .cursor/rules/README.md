@@ -14,7 +14,7 @@ Keep this list **small**. Heavy domain specs use globs.
 | `ui-minimal-copy.mdc`           | No extra UI prose                                                        |
 | `human-copy.mdc`                | Production-grade copy; no AI tells / em dashes                           |
 | `superpowers-opt-in.mdc`        | Superpowers opt-in only (see `/superpowers-*`)                           |
-| `git-commits.mdc`               | No Cursor author/co-author in commits                                    |
+| `git-commits.mdc`               | Human-only commits; no co-author trailers; hook strips AI attribution    |
 | `no-prod-deploy.mdc`            | Block prod Supabase/DB deploys (unlock: **kamewave**)                    |
 | `markitdown-mcp.mdc`            | Convert PDF/Office attachments via MarkItDown MCP                        |
 | `route-guides.mdc`              | Page behavior docs must stay in sync                                     |

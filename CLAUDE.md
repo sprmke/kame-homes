@@ -178,6 +178,6 @@ Full index: `.claude/README.md` (Claude Code) · `.cursor/rules/README.md` (Curs
 - Side effects (email/calendar/sheet) inline in an edge handler — go through `workflowOrchestrator`.
 - Editing a shipped migration under `supabase/migrations/` — add a new one (a hook blocks this on the Claude Code side).
 - `?testing=true` / a test-booking pipeline — use local or staging Supabase.
-- Attributing commits to Cursor/AI tooling — `.cursor/rules/git-commits.mdc`.
+- Co-author trailers or AI commit/PR attribution — `.cursor/rules/git-commits.mdc` and **`git-commits`** skill; `.husky/commit-msg` strips `Co-authored-by` lines automatically.
 - **Production Supabase/DB deploys without unlock** — `.cursor/rules/no-prod-deploy.mdc`. Never run or recommend `deploy:supabase`, `db push`, `functions deploy`, or remote migrations unless the user said **`kamewave`** in the same message. Shell hooks enforce this.
 - Trusting a skill just because it's in the picker — if `property-management-app` (a separate Next.js/tRPC/Drizzle repo) is also open this session, its skills will appear too; ignore them here.
