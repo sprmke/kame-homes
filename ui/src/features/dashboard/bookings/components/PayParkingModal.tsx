@@ -135,8 +135,6 @@ export function PayParkingModal({ booking, open, onOpenChange }: Props) {
         parkingRateGuest: rate,
         parkingCheckInDate: bookingDateToMmDdYyyy(dates.checkIn),
         parkingCheckOutDate: bookingDateToMmDdYyyy(dates.checkOut),
-        bookingStatus: booking.status,
-        parkingCompletedAt: booking.parking_completed_at,
       });
       return true;
     } catch (err) {

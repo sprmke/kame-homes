@@ -67,7 +67,6 @@ Production hosted secrets: Supabase Dashboard → Edge Functions → Secrets. UI
 | `VITE_SUPABASE_ANON_KEY`          | Yes        | Public anon key                                                                                                                                                                                                                                                                                                                                                                                               |
 | `VITE_NODE_ENV`                   | Yes        | `production` toggles guest-form prod behavior                                                                                                                                                                                                                                                                                                                                                                 |
 | `VITE_SUPABASE_PROJECT_URL`       | No         | Override Supabase JS project URL (hybrid `dev:remote-api`)                                                                                                                                                                                                                                                                                                                                                    |
-| `VITE_SUPER_ADMIN_EMAILS`         | No         | Comma-separated — `/admin/*` UX only; server uses `SUPER_ADMIN_EMAILS`                                                                                                                                                                                                                                                                                                                                        |
 | `VITE_GOOGLE_MAPS_API_KEY`        | No         | Property Settings location picker                                                                                                                                                                                                                                                                                                                                                                             |
 | `VITE_POSTHOG_KEY`                | No         | PostHog project API key — error tracking, product analytics, session replay, feature flags. Unset → `ui/src/lib/posthog/client.ts` no-ops (no `posthog.init`)                                                                                                                                                                                                                                                 |
 | `VITE_POSTHOG_HOST`               | No         | PostHog Cloud region host (dev/preview). Defaults to `https://us.i.posthog.com`; use `https://eu.i.posthog.com` for EU data residency                                                                                                                                                                                                                                                                         |
@@ -105,13 +104,14 @@ When invoking `supabase functions serve` manually, `./dev.sh` / `bun run dev:api
 
 #### Core
 
-| Variable                                 | Notes                                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| `ENVIRONMENT` / `DENO_ENV`               | `development` → `isDevelopment()` in `_shared/utils.ts`                        |
-| `ADMIN_ALLOWED_EMAILS`                   | Legacy platform admin allow list (`verifyAdminJwt`)                            |
-| `SUPER_ADMIN_EMAILS`                     | `/admin/*`, `serveSuperAdmin`                                                  |
-| `PUBLIC_GUEST_APP_ORIGIN`                | Guest email/deep links; legacy `org_settings.public_guest_app_origin` fallback |
-| `PUBLIC_API_URL` / `SUPABASE_PUBLIC_URL` | Public API base for Meta OAuth/webhooks; ngrok local dev                       |
+| Variable                                 | Notes                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `ENVIRONMENT` / `DENO_ENV`               | `development` → `isDevelopment()` in `_shared/utils.ts`                         |
+| `ADMIN_ALLOWED_EMAILS`                   | Legacy platform admin allow list (`verifyAdminJwt`)                             |
+| `SUPER_ADMIN_EMAILS`                     | `/admin/*`, `serveSuperAdmin`                                                   |
+| `PUBLIC_GUEST_APP_ORIGIN`                | Guest email/deep links; legacy `org_settings.public_guest_app_origin` fallback  |
+| `PUBLIC_API_URL` / `SUPABASE_PUBLIC_URL` | Public API base for Meta OAuth/webhooks; ngrok local dev                        |
+| `CORS_ALLOWED_ORIGINS`                   | Exact extra browser origins, comma-separated; use for temporary Vercel previews |
 
 #### Email (Resend)
 

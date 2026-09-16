@@ -67,13 +67,13 @@ export function PlanFeatureMatrix({
       as="section"
       padding="none"
       aria-labelledby="plan-compare-heading"
-      className={cn('overflow-hidden', className)}
+      className={cn('min-w-0 max-w-full overflow-hidden', className)}
     >
       <h2 id="plan-compare-heading" className="sr-only">
         Compare features across plans
       </h2>
 
-      <div className="scrollbar-thin overflow-x-auto">
+      <div className="scrollbar-thin w-full min-w-0 max-w-full overflow-x-auto">
         <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-xs sm:min-w-[44rem] sm:text-sm">
           <caption className="sr-only">
             Feature availability for each subscription tier, with the current plan marked.

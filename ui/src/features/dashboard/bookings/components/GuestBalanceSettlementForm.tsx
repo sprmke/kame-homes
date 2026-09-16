@@ -8,7 +8,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { BookingCompactAssetControl } from '@/features/dashboard/bookings/components/BookingCompactAssetControl';
@@ -28,9 +27,9 @@ import {
   workflowFormEditTitle,
   type WorkflowFormVariant,
 } from '@/features/dashboard/bookings/components/WorkflowFormShell';
-import { BOOKING_QUERY_KEY } from '@/features/dashboard/bookings/hooks/useBooking';
 import type { BookingAssetPreviewHandler } from '@/features/dashboard/bookings/hooks/useBookingAssetPreview';
 import { useClearBookingAsset } from '@/features/dashboard/bookings/hooks/useClearBookingAsset';
+import { useUpdateBooking } from '@/features/dashboard/bookings/hooks/useUpdateBooking';
 import { useUploadBookingAsset } from '@/features/dashboard/bookings/hooks/useUploadBookingAsset';
 import {
   resolveAssetUrlForBrowser,
@@ -42,7 +41,6 @@ import {
 } from '@/features/dashboard/bookings/lib/totalGuestBalance';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
-import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
 
@@ -91,25 +89,9 @@ export function GuestBalanceSettlementForm({
   variant = 'workflow',
   onPreview,
 }: Props) {
-  const qc = useQueryClient();
   const uploadMut = useUploadBookingAsset();
   const clearAssetMut = useClearBookingAsset();
-
-  const savePaidMut = useMutation({
-    mutationFn: async (paid: number) => {
-      const { error } = await supabase
-        .from('guest_submissions')
-        .update({
-          guest_balance_paid_amount: paid,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', booking.id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(booking.id) });
-    },
-  });
+  const savePaidMut = useUpdateBooking();
 
   const totalDue = computeTotalGuestBalance(booking);
   const receiptRequired = totalDue !== null && guestBalancePaymentReceiptRequired(totalDue);
@@ -188,7 +170,11 @@ export function GuestBalanceSettlementForm({
     if (!Number.isNaN(prevNum) && Math.round(prevNum * 100) === paidCents) return;
 
     const t = setTimeout(() => {
-      savePaidMut.mutate(paidCents / 100);
+      savePaidMut.mutate({
+        bookingId: booking.id,
+        currentStatus: booking.status,
+        payload: { guest_balance_paid_amount: paidCents / 100 },
+      });
     }, 600);
     return () => clearTimeout(t);
   }, [
@@ -198,6 +184,7 @@ export function GuestBalanceSettlementForm({
     booking.status,
     booking.guest_balance_paid_amount,
     readOnly,
+    editMode,
   ]);
 
   useEffect(() => {

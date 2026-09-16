@@ -275,9 +275,6 @@ export function BookingDetailPage() {
     try {
       await ensureNeedParking.mutateAsync({
         bookingId: booking.id,
-        bookingStatus: booking.status,
-        parkingCompletedAt: booking.parking_completed_at,
-        alreadyNeedParking: booking.need_parking,
       });
       if (booking.status === 'PENDING_REVIEW') {
         toast.message('Guest can reserve after this booking moves past review');
@@ -333,9 +330,6 @@ export function BookingDetailPage() {
     try {
       await ensureNeedParking.mutateAsync({
         bookingId: booking.id,
-        bookingStatus: booking.status,
-        parkingCompletedAt: booking.parking_completed_at,
-        alreadyNeedParking: booking.need_parking,
       });
       if (booking.status === 'PENDING_REVIEW') {
         toast.message('Guest can reserve after this booking moves past review');

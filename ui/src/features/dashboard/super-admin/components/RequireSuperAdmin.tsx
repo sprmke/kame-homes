@@ -8,9 +8,9 @@ import { hostLoginPath } from '@/features/guest/auth/lib/hostAuthPaths';
 
 import { RequireAdminSignOutButton } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
+import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
 import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { isSuperAdminEmail } from '@/lib/auth/superAdminAllowList';
 
 type Props = {
   children: ReactNode;
@@ -18,9 +18,10 @@ type Props = {
 
 export function RequireSuperAdmin({ children }: Props) {
   const location = useLocation();
-  const { status, email } = useAdminSession();
+  const { status } = useAdminSession();
+  const capabilities = useOrganizations({ enabled: status === 'admin' });
 
-  if (status === 'loading') {
+  if (status === 'loading' || capabilities.isLoading) {
     return <RouteGuardSkeleton fullScreen />;
   }
 
@@ -28,7 +29,7 @@ export function RequireSuperAdmin({ children }: Props) {
     return <Navigate to={hostLoginPath(location.pathname + location.search)} replace />;
   }
 
-  if (!isSuperAdminEmail(email)) {
+  if (capabilities.data?.isSuperAdmin !== true) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4 py-10" role="alert">
         <div className="border-border bg-card w-full max-w-[min(calc(100vw-1.5rem),24rem)] rounded-xl border p-6 text-center">
