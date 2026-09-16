@@ -22,7 +22,6 @@ const UI_SECTIONS = [
       'VITE_SUPABASE_PROJECT_URL',
     ],
   },
-  { title: 'Admin UI', keys: ['VITE_SUPER_ADMIN_EMAILS'] },
   {
     title: 'Platform branding (UI only)',
     keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
@@ -195,7 +194,6 @@ const SCHEMAS = {
         title: 'Platform branding (UI only)',
         keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
       },
-      { title: 'Admin UI', keys: ['VITE_SUPER_ADMIN_EMAILS'] },
       { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
       { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
       {

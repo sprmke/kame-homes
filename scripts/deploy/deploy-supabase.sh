@@ -103,8 +103,13 @@ echo "  Linked project: $LINKED_PROJECT_REF"
 echo "  See docs/archive/operations/production-deployment.md for the full checklist."
 echo "════════════════════════════════════════════════════════════"
 echo ""
-echo "Type prod to confirm deploy to this project:"
-read -r confirm
+if [[ "${CI:-}" == "1" || "${CI:-}" == "true" ]]; then
+  confirm="${DEPLOY_CONFIRM:-}"
+  echo "CI confirmation: DEPLOY_CONFIRM=${confirm:-<unset>}"
+else
+  echo "Type prod to confirm deploy to this project:"
+  read -r confirm
+fi
 if [[ "$confirm" != "prod" ]]; then
   echo "Aborted (expected: prod)."
   exit 1

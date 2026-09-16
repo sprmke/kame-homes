@@ -14,7 +14,6 @@ export const UI_SHARED_KEYS = [
   'VITE_PLATFORM_APP_NAME',
   'VITE_PLATFORM_CONTACT_EMAIL',
   'VITE_VAPID_PUBLIC_KEY',
-  'VITE_SUPER_ADMIN_EMAILS',
 ];
 
 /** UI PostHog project key → Edge server-side PostHog. */
