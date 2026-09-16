@@ -171,6 +171,16 @@ Ran `npx vite-bundle-visualizer` (raw-data mode) against the Phase 1 build and c
 
 - Verified: `tsc --noEmit` clean, `eslint` clean (0 errors), all 138 UI unit tests still pass, `bun run build` + PWA precache budget green, and a live browser check (`for-hosts/login` renders `HostWorkspaceSidePanel`'s tour content correctly from its new lazy chunk; guest landing page unaffected) with no new console errors.
 
+### Phase 1c — stable vendor chunks and enforced budget, done (2026-09-15)
+
+- Added stable Rollup chunks for React/router, TanStack Query, Supabase, Radix,
+  forms, dates, motion, icons, observability, and shared UI utilities.
+- Added `scripts/performance/check-initial-bundle-budget.mjs` to the production
+  build. It reads the built HTML, gzips the real entry and module-preload files,
+  and fails above 500 KiB for the entry or 1.2 MiB for all initial JavaScript.
+- Current production build: **473.9 KiB entry / 854.3 KiB total initial gzip**.
+  The budget and existing PWA precache budget both pass.
+
 ### Phase 2 — done (2026-09-14)
 
 - `useTransitionBooking` (all 6 mutations that used to invalidate the bare `['bookings']` key) now invalidate only the current property's cached list pages via a new `invalidateBookingsListForProperty(qc, propertyId)` helper (`useBookings.ts`) built on a `predicate` matching `queryKey[0] === 'bookings' && queryKey[4] === propertyId` — falls back to the old broad match only if `propertyId` is unexpectedly null, so nothing is ever silently under-invalidated.

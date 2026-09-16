@@ -8,8 +8,8 @@ import { getAppModeFromPath, type AppMode } from '@/features/guest/auth/config/m
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
+import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
-import { isSuperAdminEmail } from '@/lib/auth/superAdminAllowList';
 import { cn } from '@/lib/utils';
 
 import type { LucideIcon } from 'lucide-react';
@@ -34,12 +34,13 @@ const ADMIN_MODE: ModeOption = { value: 'admin', label: 'Admin', Icon: Shield };
 
 export function ModeSwitcher({ className, collapsed = false }: Props) {
   const { pathname } = useLocation();
-  const { email } = useAdminSession();
+  const { status } = useAdminSession();
+  const capabilities = useOrganizations({ enabled: status === 'admin' });
   const mode = getAppModeFromPath(pathname);
   const { switchMode, isTransitioning } = useModeSwitchTransition();
   const modes = useMemo(
-    () => (isSuperAdminEmail(email) ? [...BASE_MODES, ADMIN_MODE] : BASE_MODES),
-    [email]
+    () => (capabilities.data?.isSuperAdmin ? [...BASE_MODES, ADMIN_MODE] : BASE_MODES),
+    [capabilities.data?.isSuperAdmin]
   );
 
   const switchTo = (target: AppMode) => {

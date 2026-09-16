@@ -56,7 +56,7 @@ export function ForHostsPricingPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen w-full max-w-[100vw] overflow-x-hidden">
       <MarketingPublicPageHero
         eyebrow="For Hosts"
         title="Plans that grow with you"
@@ -64,7 +64,7 @@ export function ForHostsPricingPage() {
         blobPosition="right"
       />
 
-      <MarketingPublicPageContent>
+      <MarketingPublicPageContent className="min-w-0 overflow-x-hidden">
         {isLoading ? <PublicPricingSkeleton /> : null}
 
         {isError ? (
@@ -82,7 +82,7 @@ export function ForHostsPricingPage() {
         ) : null}
 
         {!isLoading && !isError && tiers.length > 0 ? (
-          <div className="space-y-12">
+          <div className="min-w-0 space-y-12">
             <PlanTierRail
               tiers={tiers}
               hasCurrentPlan={false}
@@ -90,7 +90,7 @@ export function ForHostsPricingPage() {
               onSelectPlan={handleSelectPlan}
             />
 
-            <section className="space-y-4">
+            <section className="min-w-0 space-y-4">
               <h2 className={cn(planTabSectionTitleClass)}>Compare features</h2>
               <PlanFeatureMatrix
                 tiers={tiers}
