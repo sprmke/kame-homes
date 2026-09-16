@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 
 import { useAppSettings } from '@/features/dashboard/bookings/hooks/useAppSettings';
+import { CollagePanel } from '@/features/dashboard/marketing/components/design-editor/collage/CollagePanel';
 import { KamePolotnoEditor } from '@/features/dashboard/marketing/components/design-editor/polotno/KamePolotnoEditor';
+import { useMarketingUploads } from '@/features/dashboard/marketing/components/design-editor/polotno/useMarketingUploads';
 import {
   MarketingAiGeneratePanel,
   type MarketingAiGenerateInput,
@@ -44,6 +46,13 @@ import {
   type MarketingTemplateRecord,
 } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import { usePolotnoStoreFingerprint } from '@/features/dashboard/marketing/hooks/usePolotnoStoreFingerprint';
+import { readCollageSettings } from '@/features/dashboard/marketing/lib/collage/collageDocument';
+import {
+  applyCollageLayout,
+  getCollageSettings,
+  isStoreInCollageMode,
+} from '@/features/dashboard/marketing/lib/collage/collageStoreOps';
+import type { CollageStartFrom } from '@/features/dashboard/marketing/lib/collage/collageTypes';
 import { applyDesignAiPreferencesToTokens } from '@/features/dashboard/marketing/lib/designAiGenerateOptions';
 import {
   DESIGN_CUSTOM_SOURCE_PRESET_ID,
@@ -83,6 +92,7 @@ import { buildPolotnoCampaignDocument } from '@/features/dashboard/marketing/lib
 import {
   createPolotnoStore,
   exportPolotnoStoreImage,
+  hasUnpersistedBlobSources,
   type PolotnoStore,
 } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 import { pickRandomPropertyPhoto } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
@@ -149,6 +159,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
   const [aiGenerateBusy, setAiGenerateBusy] = useState(false);
   const [selectedReview, setSelectedReview] = useState<MarketingGuestReview | null>(null);
+  const [startFrom, setStartFrom] = useState<CollageStartFrom>('templates');
 
   const propertyId = usePropertyIdParam();
   const queryClient = useQueryClient();
@@ -229,11 +240,13 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
   }, []);
 
   useEffect(() => {
+    // Never steal the canvas from an in-progress collage or blank canvas.
+    if (startFrom !== 'templates') return;
     const first = templates[0];
     if (first && !templates.some((t) => t.id === selectedId)) {
       setSelectedId(first.id);
     }
-  }, [templates, selectedId]);
+  }, [templates, selectedId, startFrom]);
 
   const applyTemplate = useCallback(
     async (templateId: string) => {
@@ -332,9 +345,8 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
         setSavedTemplateId(record.id);
         const baseTemplateId =
           typeof record.designJson.templateId === 'string' ? record.designJson.templateId : '';
-        if (baseTemplateId) {
-          setSelectedId(baseTemplateId);
-        }
+        setSelectedId(baseTemplateId);
+        setStartFrom(readCollageSettings(polotno) != null ? 'collage' : 'templates');
 
         store.loadJSON(polotno);
         store.history.clear();
@@ -361,6 +373,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
   );
 
   useEffect(() => {
+    if (startFrom !== 'templates') return;
     if (skipPresetApplyRef.current) {
       skipPresetApplyRef.current = false;
       return;
@@ -374,9 +387,17 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
 
     appliedDocumentKeyRef.current = applyKey;
     void applyTemplateRef.current(selectedId);
-  }, [selectedId, storeReady, format, templates, savedTemplateId]);
+  }, [selectedId, storeReady, format, templates, savedTemplateId, startFrom]);
 
   const store = storeRef.current;
+
+  // Single upload session shared by Polotno's Upload/Background panels and the
+  // Collage Photos panel, so a session upload appears in both and its
+  // `blob:` → persisted-URL swap only needs to happen once.
+  const uploads = useMarketingUploads(store, {
+    onUploadStart: beginAutoSaveSuspension,
+    onUploadEnd: endAutoSaveSuspension,
+  });
 
   const designFingerprint = usePolotnoStoreFingerprint(store, {
     templateId: selectedId,
@@ -614,6 +635,71 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
     toast.success('Reset to default');
   }, [applyTemplate, selectedId, format, markBaseline]);
 
+  const handleStartBlank = useCallback(() => {
+    const activeStore = storeRef.current;
+    if (!activeStore) return;
+    const { width, height } = DESIGN_FORMAT_DIMENSIONS[format];
+    skipPresetApplyRef.current = true;
+    appliedDocumentKeyRef.current = 'blank';
+    setSavedTemplateId(null);
+    setSelectedId('');
+    activeStore.loadJSON({
+      width,
+      height,
+      schemaVersion: 2,
+      fonts: [],
+      pages: [{ id: 'blank-page', background: '#ffffff', children: [] }],
+    });
+    activeStore.history.clear();
+  }, [format]);
+
+  // Called once by CollagePanel when it turns the current (non-collage) canvas
+  // into a fresh collage document — clears the preset/saved-template identity
+  // so autosave starts a new "custom" row instead of overwriting the old one.
+  const handleCollageStarted = useCallback(() => {
+    skipPresetApplyRef.current = true;
+    appliedDocumentKeyRef.current = 'collage';
+    setSavedTemplateId(null);
+    setSelectedId('');
+  }, []);
+
+  const handleStartFromChange = useCallback(
+    (next: CollageStartFrom) => {
+      if (next === startFrom) return;
+      if (next === 'blank') {
+        handleStartBlank();
+      } else if (next === 'templates') {
+        // Returning from Collage/Blank: re-apply whatever the sidebar still
+        // shows as selected so the canvas matches it again.
+        if (savedTemplateId) {
+          const record = savedTemplatesRef.current.find((item) => item.id === savedTemplateId);
+          if (record) void applySavedTemplate(record);
+        } else if (selectedId) {
+          appliedDocumentKeyRef.current = null;
+          void applyTemplate(selectedId);
+        } else {
+          handleStartBlank();
+        }
+      }
+      setStartFrom(next);
+    },
+    [startFrom, savedTemplateId, selectedId, applySavedTemplate, applyTemplate, handleStartBlank]
+  );
+
+  const handleCollageFormatResize = useCallback(
+    (nextFormat: DesignTemplateFormat, layoutId: string) => {
+      const activeStore = storeRef.current;
+      if (!activeStore) return;
+      const { width, height } = DESIGN_FORMAT_DIMENSIONS[nextFormat];
+      (activeStore as unknown as { setSize: (w: number, h: number) => void }).setSize(
+        width,
+        height
+      );
+      void applyCollageLayout(activeStore, layoutId);
+    },
+    []
+  );
+
   // Capture polotno JSON only when Save runs — avoid store.toJSON() every render.
   const designJsonForSave = useCallback(() => {
     const activeStore = storeRef.current;
@@ -644,6 +730,10 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
     const activeStore = storeRef.current;
     const template = selectedTemplate;
     if (!activeStore || !template) return;
+    if (hasUnpersistedBlobSources(activeStore)) {
+      toast.error('An upload is still saving. Try again in a moment');
+      return;
+    }
     setExporting(true);
     try {
       const blob = await exportPolotnoStoreImage(activeStore);
@@ -680,6 +770,10 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
     const activeStore = storeRef.current;
     const template = selectedTemplate;
     if (!onPublish || !activeStore || !template) return;
+    if (hasUnpersistedBlobSources(activeStore)) {
+      toast.error('An upload is still saving. Try again in a moment');
+      return;
+    }
     setExporting(true);
     try {
       const blob = await exportPolotnoStoreImage(activeStore);
@@ -726,7 +820,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
                   ) : (
                     <Download className="size-4" aria-hidden />
                   )}
-                  Download PNG
+                  Download
                 </Button>
               </TierBadgeAnchor>
             ) : null}
@@ -829,9 +923,16 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
           formatOptions={formatOptions}
           format={format}
           onFormatChange={(value) => {
+            const nextFormat = value as DesignTemplateFormat;
+            if (startFrom === 'collage' && store && isStoreInCollageMode(store)) {
+              // Resize the collage in place instead of clearing it like a preset switch would.
+              handleCollageFormatResize(nextFormat, getCollageSettings(store).layoutId);
+              setFormat(nextFormat);
+              return;
+            }
             setSavedTemplateId(null);
             appliedDocumentKeyRef.current = null;
-            setFormat(value as DesignTemplateFormat);
+            setFormat(nextFormat);
           }}
           category={category}
           onCategoryChange={setCategory}
@@ -869,6 +970,39 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
             if (!activeStore) return null;
             return renderDesignStoreThumbnail(activeStore);
           }}
+          startFrom={startFrom}
+          onStartFromChange={handleStartFromChange}
+          collagePanelSlot={
+            store ? (
+              <CollagePanel
+                store={store}
+                format={format}
+                propertyImages={propertyImageUrls.map((url) => ({
+                  url,
+                  preview: url,
+                  type: 'image' as const,
+                }))}
+                uploads={uploads}
+                onCollageStarted={handleCollageStarted}
+              />
+            ) : null
+          }
+          blankPanelSlot={
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                Blank canvas at the selected format. Add photos, text, and shapes from the canvas
+                toolbar.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] w-full"
+                onClick={handleStartBlank}
+              >
+                Reset to blank
+              </Button>
+            </div>
+          }
         />
       </MarketingEditorSidebar>
 
@@ -894,6 +1028,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
               onResetDesign={handleResetDesign}
               resetDisabled={loadingTemplate || (!selectedId && !savedTemplateId)}
               hideHistory={isBelowLg}
+              sessionMedia={uploads}
             />
           ) : (
             <div
@@ -956,7 +1091,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
             ? [
                 {
                   key: 'download',
-                  label: exporting ? 'Exporting…' : 'Download PNG',
+                  label: exporting ? 'Exporting…' : 'Download',
                   icon: <Download className="size-5" aria-hidden />,
                   trailing: <TierBadge feature="marketingStudio" />,
                   disabled: !storeReady || exporting || loadingTemplate,

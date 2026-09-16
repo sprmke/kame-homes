@@ -21,12 +21,15 @@ import {
   createBackgroundSection,
   createUploadSection,
 } from '@/features/dashboard/marketing/components/design-editor/polotno/PropertyMediaPanels';
+import type { MarketingUploads } from '@/features/dashboard/marketing/components/design-editor/polotno/useMarketingUploads';
 import { usePolotnoOverlayAnchor } from '@/features/dashboard/marketing/components/design-editor/polotno/usePolotnoOverlayAnchor';
 import { usePolotnoOverlayDebug } from '@/features/dashboard/marketing/components/design-editor/polotno/usePolotnoOverlayDebug';
-import { usePolotnoSessionMedia } from '@/features/dashboard/marketing/components/design-editor/polotno/usePolotnoSessionMedia';
+import { useUploadMarketingAsset } from '@/features/dashboard/marketing/hooks/useUploadMarketingAsset';
+import { configurePolotnoUploader } from '@/features/dashboard/marketing/lib/polotno/initPolotno';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 import { polotnoWorkspaceChrome } from '@/features/dashboard/marketing/lib/polotno/polotnoWorkspaceTheme';
 import { propertyMediaItems } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
+
 
 import { useTheme } from '@/components/theme/ThemeProvider';
 
@@ -40,6 +43,8 @@ type Props = {
   resetDisabled?: boolean;
   /** Drop the toolbar's undo/redo/reset group (relocated to the mobile editor dock). */
   hideHistory?: boolean;
+  /** Owned by the caller (`PolotnoDesignStudio`) so the Collage panel shares the same session grid. */
+  sessionMedia: MarketingUploads;
 };
 
 export function KamePolotnoEditor({
@@ -51,6 +56,7 @@ export function KamePolotnoEditor({
   onResetDesign,
   resetDisabled = false,
   hideHistory = false,
+  sessionMedia,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const portalRef = useRef<HTMLDivElement>(null);
@@ -85,7 +91,14 @@ export function KamePolotnoEditor({
   }, []);
 
   const propertyImages = useMemo(() => propertyMediaItems(propertyImageUrls), [propertyImageUrls]);
-  const sessionMedia = usePolotnoSessionMedia();
+  const { mutateAsync: uploadMarketingAsset } = useUploadMarketingAsset();
+
+  useEffect(() => {
+    configurePolotnoUploader(async (file: File) => {
+      const result = await uploadMarketingAsset(file);
+      return result.url;
+    });
+  }, [uploadMarketingAsset]);
 
   const sections = useMemo(
     () => [
@@ -95,14 +108,7 @@ export function KamePolotnoEditor({
       createBackgroundSection(propertyImages, brandColor, sessionMedia),
       createLayersSection(),
     ],
-    [
-      propertyImages,
-      brandColor,
-      logoUrl,
-      sessionMedia.sessionUploads,
-      sessionMedia.isUploading,
-      sessionMedia.appendFiles,
-    ]
+    [propertyImages, brandColor, logoUrl, sessionMedia]
   );
 
   const toolbarComponents = useMemo(

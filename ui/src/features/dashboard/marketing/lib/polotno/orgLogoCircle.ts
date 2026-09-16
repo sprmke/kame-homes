@@ -1,3 +1,4 @@
+import { coverCropForFrame } from '@/features/dashboard/marketing/lib/collage/coverCrop';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 
 /** Center cover-crop so a non-square logo fills a 1×1 frame without letterboxing. */
@@ -5,15 +6,7 @@ export function squareImageCoverCrop(
   naturalWidth: number,
   naturalHeight: number
 ): { cropX: number; cropY: number; cropWidth: number; cropHeight: number } {
-  if (naturalWidth <= 0 || naturalHeight <= 0 || naturalWidth === naturalHeight) {
-    return { cropX: 0, cropY: 0, cropWidth: 1, cropHeight: 1 };
-  }
-  if (naturalWidth > naturalHeight) {
-    const cropWidth = naturalHeight / naturalWidth;
-    return { cropX: (1 - cropWidth) / 2, cropY: 0, cropWidth, cropHeight: 1 };
-  }
-  const cropHeight = naturalWidth / naturalHeight;
-  return { cropX: 0, cropY: (1 - cropHeight) / 2, cropWidth: 1, cropHeight };
+  return coverCropForFrame(naturalWidth, naturalHeight, 1, 1);
 }
 
 export function loadLogoNaturalSize(src: string): Promise<{ width: number; height: number }> {

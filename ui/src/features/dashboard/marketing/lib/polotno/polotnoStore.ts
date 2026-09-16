@@ -38,3 +38,23 @@ export function createPolotnoStore(): PolotnoStore {
   store.history.clear();
   return store;
 }
+
+/**
+ * True if any element on the canvas still points at a `blob:` URL — a session
+ * upload whose persistent-storage swap hasn't landed yet (in flight, or failed).
+ * Exporting one produces a blank frame once the tab closes, so download/publish
+ * must refuse instead.
+ */
+export function hasUnpersistedBlobSources(store: PolotnoStore): boolean {
+  const pages = (store as unknown as { pages?: Array<{ children?: Array<{ src?: string }> }> })
+    .pages;
+  if (!pages?.length) return false;
+  for (const page of pages) {
+    for (const element of page.children ?? []) {
+      if (typeof element.src === 'string' && element.src.startsWith('blob:')) {
+        return true;
+      }
+    }
+  }
+  return false;
+}

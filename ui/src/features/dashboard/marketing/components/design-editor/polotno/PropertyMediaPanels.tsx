@@ -13,8 +13,8 @@ import {
 import { PropertyMediaUploadButton } from '@/features/dashboard/marketing/components/design-editor/polotno/PropertyMediaUploadButton';
 import {
   mergePropertyMediaItems,
-  type PolotnoSessionMedia,
-} from '@/features/dashboard/marketing/components/design-editor/polotno/usePolotnoSessionMedia';
+  type MarketingUploads,
+} from '@/features/dashboard/marketing/components/design-editor/polotno/useMarketingUploads';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 import type { PropertyMediaItem } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 
@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 type PanelProps = {
   store: PolotnoStore;
   propertyImages: PropertyMediaItem[];
-  sessionMedia: PolotnoSessionMedia;
+  sessionMedia: MarketingUploads;
 };
 
 type PropertyMediaGridItem = { url: string; preview: string };
@@ -158,7 +158,7 @@ export const PropertyBackgroundPanel = observer(function PropertyBackgroundPanel
 
 export function createUploadSection(
   propertyImages: PropertyMediaItem[],
-  sessionMedia: PolotnoSessionMedia
+  sessionMedia: MarketingUploads
 ) {
   return {
     name: 'upload',
@@ -184,7 +184,7 @@ export function createUploadSection(
 export function createBackgroundSection(
   propertyImages: PropertyMediaItem[],
   brandColor: string,
-  sessionMedia: PolotnoSessionMedia
+  sessionMedia: MarketingUploads
 ) {
   return {
     name: 'background',
