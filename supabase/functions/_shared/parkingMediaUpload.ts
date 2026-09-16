@@ -2,7 +2,7 @@
  * Shared parking cover photo upload — used by upload-parking-media and AI assistant apply.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';

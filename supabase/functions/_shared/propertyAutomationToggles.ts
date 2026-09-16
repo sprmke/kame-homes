@@ -8,7 +8,7 @@
  * isn't entitled, those keys are forced off regardless of the property's own saved setting.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { isFeatureEnabled } from './planFeatures.ts';
 import { resolvePropertyEntitlements } from './planEntitlements.ts';
 

@@ -2,7 +2,7 @@
  * Property + org labels for workflow email From headers, subjects, and shells.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 import { resolveAppSettings } from './appSettings.ts';
 import { resolvePublicBrandName } from './platformBrand.ts';
 import { getDefaultPropertyId } from './propertyScope.ts';

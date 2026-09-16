@@ -20,7 +20,7 @@ import {
 } from './parkingDimensionDefaults.ts';
 import { formatCheckTime12h } from './publicPropertyService.ts';
 import { isListingRecommendedBadge, resolveListingAuthorization } from './listingAuthorization.ts';
-import type { OrgPermissionId } from './orgTeamPermissions.ts';
+import type { OrgPermissionParam } from './orgTeamPermissions.ts';
 
 export type ParkingAccessContext = OrgAccessContext & {
   parking: ReturnType<typeof serializeParking>;
@@ -119,7 +119,7 @@ export async function resolveAdminParkingId(req: Request): Promise<string> {
 
 export async function resolveScopedParkingAccess(
   req: Request,
-  requiredPermission: OrgPermissionId = 'org:parkings:manage'
+  requiredPermission: OrgPermissionParam = 'org.parkings:manage'
 ): Promise<ParkingAccessContext> {
   const url = new URL(req.url);
   const parkingId = readParkingIdFromUrl(url);
