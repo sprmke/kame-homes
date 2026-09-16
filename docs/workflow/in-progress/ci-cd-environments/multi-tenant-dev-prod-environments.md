@@ -2,7 +2,7 @@
 title: 'Multi-tenant environments — phased plan (dev now · prod at release)'
 status: active
 tags: [workflow, in-progress, deployment, supabase, vercel, multi-tenancy]
-updated: 2026-08-09
+updated: 2026-09-16
 stage: in-progress
 kind: plan
 ---
@@ -131,7 +131,7 @@ Trigger: product ready for **`app.kamehomes.space`** with **isolated prod data**
 
 - [ ] GitHub **`production`** environment → mt-prod ref secrets
 - [ ] Set `CUTOVER_ENABLED=true` only when approved
-- [ ] Wire **`cd-prod.yml`** deploy step (replace placeholder)
+- [x] Wire **`cd-prod.yml`** deploy step (quality, schema diff, backup, strict migration order, functions, real-GET smoke); keep the cutover gate disabled until mt-prod exists
 - [ ] Manual promote: merge to **`main`** + run CD prod when migrations changed
 
 ### B6 — Legacy apex cutover (separate approval)
@@ -143,12 +143,12 @@ Trigger: product ready for **`app.kamehomes.space`** with **isolated prod data**
 
 ## CI/CD summary (current)
 
-| Workflow         | Active now?               | Trigger                     | Target                |
-| ---------------- | ------------------------- | --------------------------- | --------------------- |
-| `ci.yml`         | ✅                        | PR + push `main`, `develop` | Quality               |
-| `cd-dev.yml`     | ✅ (needs GitHub secrets) | push **`develop`**          | **fwor…**             |
-| `cd-prod.yml`    | ❌ gated                  | manual                      | mt-prod — **Phase B** |
-| `cd-preprod.yml` | ❌                        | manual                      | optional              |
+| Workflow         | Active now?               | Trigger                     | Target                               |
+| ---------------- | ------------------------- | --------------------------- | ------------------------------------ |
+| `ci.yml`         | ✅                        | PR + push `main`, `develop` | Quality                              |
+| `cd-dev.yml`     | ✅ (needs GitHub secrets) | push **`develop`**          | **fwor…**                            |
+| `cd-prod.yml`    | ✅ implemented, gated     | manual                      | mt-prod — enable only in **Phase B** |
+| `cd-preprod.yml` | ❌                        | manual                      | optional                             |
 
 ---
 

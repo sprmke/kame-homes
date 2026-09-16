@@ -2,7 +2,7 @@
  * Shared property gallery media upload — used by upload-property-media and AI assistant apply.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { createServiceClient } from './orgAuth.ts';
 import {
   classifyPropertyMediaMime,
@@ -15,7 +15,7 @@ import {
   propertyMediaStoragePath,
   type PropertyMediaRecord,
 } from './propertyMedia.ts';
-import { formatPublicUrl } from './utils.ts';
+import { copyBytes, formatPublicUrl } from './utils.ts';
 
 function extensionForMime(mime: string, fileName: string): string {
   const fromName = fileName.includes('.') ? `.${fileName.split('.').pop()?.toLowerCase()}` : '';
@@ -117,7 +117,7 @@ export async function applyPropertyMediaFromBytes(
     throw new Error('File must be a supported image or video format');
   }
 
-  const file = new File([input.bytes], input.fileName || 'media', { type: mime });
+  const file = new File([copyBytes(input.bytes)], input.fileName || 'media', { type: mime });
   const maxBytes = maxBytesForPropertyMediaType(mediaType);
   if (file.size > maxBytes) {
     const limitMb = Math.round(maxBytes / (1024 * 1024));

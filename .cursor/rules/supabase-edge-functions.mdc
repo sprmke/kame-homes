@@ -13,6 +13,7 @@ alwaysApply: false
 - **CORS**: use `corsHeaders(req)` from `_shared/cors.ts` on every response including errors and OPTIONS preflight.
 - **Supabase admin**: `createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)` inside services; never expose the service role key to the browser.
 - **Production vs local dev**: `Deno.env.get('DENO_DEPLOYMENT_ID')` is set on hosted Supabase Edge; some handlers log or gate optional behavior on it. There is no separate “test booking” pipeline — use a staging project or local Supabase for safe experimentation.
+- **`SECURITY DEFINER` RPCs**: immediately `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated`, then grant only the role(s) that must execute them. Policy helper functions may grant `authenticated` explicitly. A `GRANT ... TO service_role` does not remove Postgres's default `PUBLIC` execute privilege.
 
 ## Email HTML templates (`static_files`)
 

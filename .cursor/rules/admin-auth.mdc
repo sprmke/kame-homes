@@ -33,13 +33,13 @@ Applies whenever a change touches the `/bookings` routes, the new admin-only edg
 
 - **`ADMIN_ALLOWED_EMAILS`** (edge only) — comma-separated emails for `verifyAdminJwt` and `isPlatformAdmin`. Org **owners** can pass `verifyAdminJwt` without being on this list.
 - **`SUPER_ADMIN_EMAILS`** (edge only) — platform `/admin/*` APIs (`serveSuperAdmin`, `list-developments`, …).
-- **`VITE_SUPER_ADMIN_EMAILS`** (UI / Vercel) — client UX gate for the Admin mode tab and `RequireSuperAdmin`; **not** the security boundary.
+- `list-organizations` returns an `isSuperAdmin` boolean after checking `SUPER_ADMIN_EMAILS`; the client uses that capability for the Admin mode tab and `RequireSuperAdmin`.
 - There is **no** `VITE_ADMIN_ALLOWED_EMAILS` — host dashboard access is Google sign-in + org/team RBAC; do not reintroduce a client allow list.
 
 ## 3. Route guards (UI)
 
 - `RequireAdmin.tsx` — loader while session hydrates; redirects to **`/for-hosts/login`** if unsigned. **No client email allow list.**
-- `RequireSuperAdmin.tsx` — checks `VITE_SUPER_ADMIN_EMAILS` (UX only); server enforces `SUPER_ADMIN_EMAILS`.
+- `RequireSuperAdmin.tsx` — checks `list-organizations.isSuperAdmin`; every super-admin API still enforces `SUPER_ADMIN_EMAILS`.
 - Applied to org/property dashboard routes via `RequireAdmin`; `/admin/*` via `RequireSuperAdmin`.
 
 ## 4. Guest form dev controls (`GuestForm.tsx`)
@@ -84,7 +84,6 @@ Server-side `DevControlFlags` in `_shared/workflowOrchestrator.ts` are also used
 | -------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ADMIN_ALLOWED_EMAILS`                 | edge  | `verifyAdminJwt` allow list + `isPlatformAdmin`; org owners bypass.                                                                                                                                                                                                           |
 | `SUPER_ADMIN_EMAILS`                   | edge  | Platform super-admin APIs (`/admin/*`).                                                                                                                                                                                                                                       |
-| `VITE_SUPER_ADMIN_EMAILS`              | UI    | Super-admin UX gate (`ModeSwitcher` Admin tab, `RequireSuperAdmin`).                                                                                                                                                                                                          |
 | `SUPER_ADMIN_VERIFICATION_SECRET`      | edge  | _(Optional)_ HMAC key for the step-up sudo token. Falls back to `SETTINGS_VERIFICATION_SECRET` → `SUPABASE_SERVICE_ROLE_KEY` → a local-dev constant. Reuses `RESEND_API_KEY` + `RESEND_FROM_EMAIL` for the OTP email.                                                         |
 | `PARKING_OWNER_EMAILS`                 | edge  | _(Removed — use **`app_settings.parking_owner_emails`** per property.)                                                                                                                                                                                                        |
 | `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY`     | edge  | 32-byte AES key (64 hex or base64) for encrypting Telegram bot tokens in DB (`propertySecretCrypto.ts`). Legacy env name from Gmail OAuth era.                                                                                                                                |

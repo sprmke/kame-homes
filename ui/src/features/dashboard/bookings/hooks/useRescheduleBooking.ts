@@ -5,8 +5,8 @@
  * Unlike the sensitive-guest-field revert in `useUpdateBooking` (which lands on
  * `PENDING_REVIEW` and runs through the orchestrator on the next Proceed), a
  * reschedule is a deliberate, host-confirmed reset: the modal makes the status
- * change mandatory, so this hook writes it in the same `guest_submissions`
- * patch. It always resets to **Pending Review** so the host re-runs the
+ * change mandatory, so this hook writes it through `update-booking-details`.
+ * It always resets to **Pending Review** so the host re-runs the
  * pricing + document proceed from the top of the pipeline after a date move
  * (see `bookingPipeline`).
  *
@@ -22,20 +22,12 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { countParkingNights } from '@/features/guest/pay-parking/lib/payParkingHelpers';
-
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
-
-import { supabase } from '@/lib/supabase/client';
-import { toGuestSubmissionDate } from '@/utils/format/dates';
 
 import { BOOKING_QUERY_KEY } from './useBooking';
 import { invalidateBookingAiReviewQueries } from './useBookingAiReview';
 import { invalidateBookingsListForProperty } from './useBookings';
-import {
-  pendingDocumentsClearCompletionsJsonbPatch,
-  pendingDocumentsClearPatchForGuestEditRevert,
-} from '../lib/bookingStatus';
+import { callUpdateBookingDetails } from '../lib/updateBookingDetailsApi';
 
 import type { BookingRow } from '../lib/types';
 
@@ -63,29 +55,14 @@ export function useRescheduleBooking() {
       checkOutDate,
       currentDocumentRequirementCompletions,
     }: MutationArgs) => {
-      const nowIso = new Date().toISOString();
-      const patch: Record<string, unknown> = {
-        check_in_date: toGuestSubmissionDate(checkInDate),
-        check_out_date: toGuestSubmissionDate(checkOutDate),
-        number_of_nights: countParkingNights(checkInDate, checkOutDate),
-        ...pendingDocumentsClearPatchForGuestEditRevert(),
-        document_requirement_completions: pendingDocumentsClearCompletionsJsonbPatch(
-          currentDocumentRequirementCompletions
-        ),
-        status: 'PENDING_REVIEW',
-        status_updated_at: nowIso,
-        updated_at: nowIso,
-      };
-
-      const { data, error } = await supabase
-        .from('guest_submissions')
-        .update(patch)
-        .eq('id', bookingId)
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data as BookingRow;
+      const { booking } = await callUpdateBookingDetails(propertyId, {
+        operation: 'reschedule',
+        bookingId,
+        checkInDate,
+        checkOutDate,
+        currentDocumentRequirementCompletions,
+      });
+      return booking as BookingRow;
     },
 
     onSuccess: async (updated, { bookingId }) => {

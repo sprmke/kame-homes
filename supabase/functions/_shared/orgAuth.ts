@@ -8,7 +8,7 @@
  * isPlatformAdmin — ADMIN_ALLOWED_EMAILS superadmin escape hatch
  */
 
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient, type SupabaseClient } from './supabaseJs.ts';
 import { resolveSupabaseServiceRoleKey, resolveSupabaseUrl } from './supabaseRuntimeEnv.ts';
 
 import {
@@ -18,6 +18,7 @@ import {
   isOrgHubMemberRoleId,
   ORG_PROPERTY_MEMBER_PERMISSIONS,
   type OrgPermissionId,
+  type OrgPermissionParam,
 } from './orgTeamPermissions.ts';
 import {
   allParkingTeamPermissions,
@@ -424,7 +425,9 @@ export async function verifyPropertyAccess(
 
   const memberRow = member as PropertyMemberDbRow;
   const permissions = effectiveMemberPermissions({
-    permissions: memberRow.permissions,
+    permissions: Array.isArray(memberRow.permissions)
+      ? memberRow.permissions.filter((p): p is string => typeof p === 'string')
+      : [],
     status: 'active',
   });
 
@@ -612,7 +615,9 @@ export async function verifyParkingTeamAccess(
   const permissions = capParkingStaffMemberPermissions(
     memberRow.role_id,
     effectiveParkingMemberPermissions({
-      permissions: memberRow.permissions,
+      permissions: Array.isArray(memberRow.permissions)
+        ? memberRow.permissions.filter((p): p is string => typeof p === 'string')
+        : [],
       status: 'active',
     })
   );
@@ -785,7 +790,7 @@ async function resolveOrgRow(
 export async function verifyOrgAccess(
   req: Request,
   scope: { orgId?: string; orgSlug?: string },
-  requiredPermission?: OrgPermissionId
+  requiredPermission?: OrgPermissionParam
 ): Promise<OrgAccessContext> {
   const user = await verifyAuthenticatedUser(req);
   const supabase = createServiceClient();

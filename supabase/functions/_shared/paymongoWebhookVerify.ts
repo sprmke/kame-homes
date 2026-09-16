@@ -63,7 +63,7 @@ export async function verifyPaymongoWebhookSignature(
   const nowMs = options?.nowMs ?? Date.now();
   if (Math.abs(nowMs / 1000 - ts) > tolerance) return false;
 
-  const expectedSig = parsed.livemode === false ? parsed.testSig : parsed.liveSig;
+  const expectedSig = options?.livemode === false ? parsed.testSig : parsed.liveSig;
   const fallbackSig = expectedSig ?? parsed.testSig ?? parsed.liveSig;
   if (!fallbackSig) return false;
 

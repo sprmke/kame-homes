@@ -64,5 +64,8 @@ Deno.test('evaluateSdRefundLeadWindow — unparseable checkout', () => {
   });
   assertEquals(result.due, false);
   assertEquals(result.checkoutDt, null);
+  if (result.due || result.checkoutDt !== null) {
+    throw new Error('expected unparseable checkout');
+  }
   assertEquals(result.reason, 'unparseable_checkout_datetime');
 });

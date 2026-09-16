@@ -2,7 +2,7 @@
  * Finance operating Telegram due-date reminders.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
 import { listAllParkingIds, listAllPropertyIds } from './propertyCron.ts';

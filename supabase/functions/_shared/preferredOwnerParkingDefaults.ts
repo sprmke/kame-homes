@@ -3,7 +3,7 @@
  * ACTIVE parkings — default is the earliest-created listing.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { readPreferredOwnerParkingId } from './ownerDefaultParking.ts';
 

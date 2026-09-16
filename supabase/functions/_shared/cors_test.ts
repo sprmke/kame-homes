@@ -22,18 +22,21 @@ Deno.test('isAllowedOrigin echoes Vite 127.0.0.1 as well as localhost', () => {
   }
 });
 
-Deno.test('isAllowedOrigin echoes hosted SPA origins and Vercel previews', () => {
+Deno.test('isAllowedOrigin echoes known hosted SPA origins', () => {
   if (!isAllowedOrigin('https://dev.kamehomes.space')) {
     throw new Error('dev.kamehomes.space should be allowed');
   }
-  if (!isAllowedOrigin('https://kame-homes-git-foo.vercel.app')) {
-    throw new Error('*.vercel.app should be allowed');
+  if (!isAllowedOrigin('https://kame-homes.vercel.app')) {
+    throw new Error('kame-homes.vercel.app should be allowed');
   }
 });
 
 Deno.test('isAllowedOrigin rejects a random third-party origin', () => {
   if (isAllowedOrigin('https://evil-cors-probe.example')) {
     throw new Error('third-party origin must not be allowed');
+  }
+  if (isAllowedOrigin('https://untrusted-preview.vercel.app')) {
+    throw new Error('unlisted Vercel previews must not be allowed');
   }
 });
 

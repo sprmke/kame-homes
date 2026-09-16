@@ -10,6 +10,11 @@ export const ORGANIZATIONS_QUERY_KEY = ['organizations'] as const;
 /** Org/property membership rarely changes mid-session — avoid refetching on every mount/focus. */
 const ORG_STRUCTURE_STALE_TIME = 5 * 60_000;
 
+export type OrganizationsResponse = {
+  organizations: Organization[];
+  isSuperAdmin: boolean;
+};
+
 type UseOrganizationsOptions = {
   enabled?: boolean;
 };
@@ -17,7 +22,7 @@ type UseOrganizationsOptions = {
 export function useOrganizations(options?: UseOrganizationsOptions) {
   return useQuery({
     queryKey: ORGANIZATIONS_QUERY_KEY,
-    queryFn: () => callEdgeFunction<{ organizations: Organization[] }>('list-organizations'),
+    queryFn: () => callEdgeFunction<OrganizationsResponse>('list-organizations'),
     enabled: options?.enabled ?? true,
     staleTime: ORG_STRUCTURE_STALE_TIME,
   });

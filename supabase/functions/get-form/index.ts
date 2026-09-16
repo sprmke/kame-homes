@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { signGuestFormDataStorageUrls } from '../_shared/storageSignedUrl.ts';
 import { canGuestPublicUpdateForm } from '../_shared/statusMachine.ts';

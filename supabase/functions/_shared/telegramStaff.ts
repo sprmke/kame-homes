@@ -3,7 +3,7 @@
  * Sends active today's bookings (check-ins and in-house multi-night stays) + next 3 days to the staff Telegram group.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
 import { listAllPropertyIds, propertyIdFromRow } from './propertyCron.ts';

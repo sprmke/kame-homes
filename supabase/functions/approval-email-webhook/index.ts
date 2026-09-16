@@ -5,7 +5,7 @@
  * Property routing = plus-address `approvals+{slug}@{RESEND_APPROVAL_INBOUND_DOMAIN}`.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import {
   APPROVAL_INTAKE_DEV_CONTROLS,
   findApprovedAttachmentFilename,

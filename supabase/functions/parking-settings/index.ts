@@ -52,7 +52,7 @@ function serializeParkingSettingsRow(
 }
 
 serveAuthenticated('parking-settings', async (req, user) => {
-  const permission = req.method === 'GET' ? 'org:parkings:view' : 'org:parkings:manage';
+  const permission = req.method === 'GET' ? 'org.parkings:view' : 'org.parkings:manage';
   const access = await resolveScopedParkingAccess(req, permission);
   const { parkingRow, org } = access;
   const parkingId = parkingRow.id;

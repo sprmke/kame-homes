@@ -2,7 +2,7 @@
  * Apply a previously awarded next-stay voucher onto a new booking (same property).
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { isPercentOffVoucherCode, isStaycationVoucherCode, voucherPercentFor } from './voucher.ts';
 

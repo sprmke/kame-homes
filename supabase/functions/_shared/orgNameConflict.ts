@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 export const DUPLICATE_ORGANIZATION_NAME_MESSAGE = 'An organization with this name already exists';
 

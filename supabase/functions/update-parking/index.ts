@@ -37,7 +37,7 @@ serveAuthenticated('update-parking', async (req) => {
     headers: req.headers,
   });
 
-  const parkingAccess = await resolveScopedParkingAccess(scopedReq, 'org:parkings:manage');
+  const parkingAccess = await resolveScopedParkingAccess(scopedReq, 'org.parkings:manage');
   const { parkingRow } = parkingAccess;
   const patch: Record<string, unknown> = {};
 

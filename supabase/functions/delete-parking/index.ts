@@ -29,7 +29,7 @@ serveAuthenticated('delete-parking', async (req) => {
     headers: req.headers,
   });
 
-  const access = await resolveScopedParkingAccess(scopedReq, 'org:parkings:manage');
+  const access = await resolveScopedParkingAccess(scopedReq, 'org.parkings:manage');
   const { parkingRow } = access;
   const supabase = createServiceClient();
 

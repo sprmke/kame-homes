@@ -3,7 +3,7 @@
  * Mutates org_subscriptions + org_payment_transactions; never inline in handlers.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   changeOrgSubscription,

@@ -74,7 +74,7 @@ export function MarketingLayoutShell() {
   const page = (
     <div
       className={cn(
-        'relative flex min-h-screen flex-col',
+        'relative flex min-h-screen min-w-0 flex-col overflow-x-hidden',
         !isFormPage && bottomTabBarOffsetClassName()
       )}
     >
@@ -84,7 +84,7 @@ export function MarketingLayoutShell() {
           shoved down once the lazy page chunk resolves, which is a large,
           highly-visible layout shift (CLS) on first load. */}
       <Suspense fallback={<SectionLoadingFallback />}>
-        <main className="flex-1">
+        <main className="min-w-0 flex-1">
           <Outlet />
         </main>
         {!isFormPage && <MarketingFooter />}

@@ -9,7 +9,7 @@
  *   (or RFC Message-Id when email_id is absent).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { getApprovalSenderAllowList } from './appSettings.ts';
 import type { BookingStatus } from './statusMachine.ts';
 

@@ -227,7 +227,7 @@ export function PlanTierRail({
         tabIndex={showPager ? 0 : undefined}
         onKeyDown={onKeyDown}
         className={cn(
-          'min-w-0 overflow-hidden',
+          'w-full min-w-0 overflow-hidden',
           showPager &&
             'focus-visible:ring-ring rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
         )}

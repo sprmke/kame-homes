@@ -23,7 +23,7 @@ export function MarketingPublicPageContent({
     <section
       className={cn('container mx-auto px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20', className)}
     >
-      <div className={cn(narrow && MARKETING_PUBLIC_NARROW_CLASS)}>{children}</div>
+      <div className={cn('min-w-0', narrow && MARKETING_PUBLIC_NARROW_CLASS)}>{children}</div>
     </section>
   );
 }

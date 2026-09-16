@@ -50,11 +50,14 @@ Add **Environment secrets**:
 | ------------------------- | --------------------------------------------------------------------------------------- |
 | `SUPABASE_ACCESS_TOKEN`   | Supabase PAT ([Account → Access Tokens](https://supabase.com/dashboard/account/tokens)) |
 | `SUPABASE_PROJECT_REF`    | `fworvijbrwpyngycotbz`                                                                  |
+| `SUPABASE_DB_PASSWORD`    | Database password used by linked CLI migration commands                                 |
+| `SUPABASE_ANON_KEY`       | Dev project anon key used by post-deploy public endpoint smoke tests                    |
+| `DEV_DB_URL`              | Session-pooler URI used for complete auth/storage/cron backup                           |
 | `LEGACY_PROD_PROJECT_REF` | `zfttdwtceyqszyeyhilc`                                                                  |
 
 **Do not** add these to Vercel — the SPA needs **`VITE_*`** vars on Vercel Preview instead.
 
-Optional: `SUPABASE_DB_URL` for rollback scripts.
+Add environment variable `SMOKE_PROPERTY_SLUG` with a stable active dev property.
 
 ---
 
@@ -69,8 +72,13 @@ Same secret **names**, mt-prod ref:
 | `SUPABASE_PROJECT_REF`    | **MULTI_TENANT_PROD** ref _(not fwor, not zftt)_ |
 | `LEGACY_PROD_PROJECT_REF` | `zfttdwtceyqszyeyhilc`                           |
 | `SUPABASE_ACCESS_TOKEN`   | PAT with access to mt-prod project               |
+| `SUPABASE_DB_PASSWORD`    | mt-prod database password                        |
+| `SUPABASE_ANON_KEY`       | mt-prod anon key for public endpoint smoke tests |
+| `PROD_DB_URL`             | mt-prod session-pooler URI for complete backup   |
 
-Add **Required reviewers** for human promote. Enable `CUTOVER_ENABLED=true` only when approved. Wire `cd-prod.yml` deploy step.
+Add **Required reviewers** for human promote and environment variable
+`SMOKE_PROPERTY_SLUG` with a stable active mt-prod property. Enable
+`CUTOVER_ENABLED=true` only when approved. Wire `cd-prod.yml` deploy step.
 
 **Legacy live cutover** (apex `kamehomes.space`) is a separate step — see [`production-deployment.md`](./production-deployment.md).
 
@@ -80,10 +88,10 @@ Add **Required reviewers** for human promote. Enable `CUTOVER_ENABLED=true` only
 
 Configure in **kame-homes** → Settings → Environment Variables:
 
-| Vercel column  | Git branch (now / at release) | URL                   | Supabase                                                 |
-| -------------- | ----------------------------- | --------------------- | -------------------------------------------------------- |
-| **Preview**    | **`develop`** (now)           | `dev.kamehomes.space` | fwor anon URL + key + optional `VITE_SUPER_ADMIN_EMAILS` |
-| **Production** | **`main`** (at release)       | `app.kamehomes.space` | mt-prod anon URL + key _(Phase B)_                       |
+| Vercel column  | Git branch (now / at release) | URL                   | Supabase                           |
+| -------------- | ----------------------------- | --------------------- | ---------------------------------- |
+| **Preview**    | **`develop`** (now)           | `dev.kamehomes.space` | fwor anon URL + key                |
+| **Production** | **`main`** (at release)       | `app.kamehomes.space` | mt-prod anon URL + key _(Phase B)_ |
 
 See [`multi-tenant-dev-prod-setup.md`](./multi-tenant-dev-prod-setup.md).
 

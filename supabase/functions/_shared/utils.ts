@@ -1,7 +1,14 @@
-import dayjs from 'https://esm.sh/dayjs@1.11.10';
-import customParseFormat from 'https://esm.sh/dayjs@1.11.10/plugin/customParseFormat';
+import dayjs from 'dayjs';
+import customParseFormat from 'npm:dayjs@1.11.10/plugin/customParseFormat.js';
 
 dayjs.extend(customParseFormat);
+
+/** Copy bytes into an ArrayBuffer-backed Uint8Array for Blob/File/upload APIs. */
+export function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return new Uint8Array(buffer);
+}
 
 /**
  * Normalizes MM-DD-YYYY (DB) or YYYY-MM-DD (guest form) to YYYY-MM-DD for APIs.

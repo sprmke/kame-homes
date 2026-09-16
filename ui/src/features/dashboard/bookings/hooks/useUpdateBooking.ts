@@ -1,10 +1,10 @@
 /**
- * useUpdateBooking — mutation to patch guest_submissions directly via Supabase.
+ * useUpdateBooking — mutation to patch guest_submissions via update-booking-details.
  *
- * Used by BookingEditForm. All writes go through the authenticated admin session.
+ * Used by BookingEditForm. All writes go through the authenticated edge endpoint.
  * When `revertToPendingReview` is true and `currentStatus` is in the documents pipeline
  * or Ready for check-in (see `shouldRevertGuestFieldEditsToPendingReview` in
- * `bookingStatus.ts`), this also resets status → PENDING_REVIEW and merges
+ * `bookingStatus.ts`), the server also resets status → PENDING_REVIEW and merges
  * `pendingDocumentsClearPatchForGuestEditRevert` (nested doc completion, approved
  * PDF URLs, parking settlement, guest balance settlement — **not** pricing snapshot
  * fields or request PDF URLs unless PDF fill fields changed) plus
@@ -22,44 +22,12 @@ import type { SdBank } from '@/features/guest/sd-form/lib/sdFormSchema';
 
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
-import { supabase } from '@/lib/supabase/client';
-import { toGuestSubmissionDate, toGuestSubmissionTime } from '@/utils/format/dates';
-
-
 import { BOOKING_QUERY_KEY } from './useBooking';
 import { invalidateBookingAiReviewQueries } from './useBookingAiReview';
 import { invalidateBookingsListForProperty } from './useBookings';
-import {
-  pendingDocumentsClearCompletionsJsonbPatch,
-  pendingDocumentsClearPatchForGuestEditRevert,
-  shouldRevertGuestFieldEditsToPendingReview,
-} from '../lib/bookingStatus';
-import { requestPdfClearPatchForAdminGuestEdit } from '../lib/workflowSensitiveGuestDiff';
+import { callUpdateBookingDetails } from '../lib/updateBookingDetailsApi';
 
-import type { DocumentRequirement } from '../lib/documentRequirements';
 import type { BookingRow } from '../lib/types';
-
-function patchGuestSubmissionForDb(patch: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...patch };
-  if (typeof out.check_in_date === 'string' && out.check_in_date) {
-    out.check_in_date = toGuestSubmissionDate(out.check_in_date);
-  }
-  if (typeof out.check_out_date === 'string' && out.check_out_date) {
-    out.check_out_date = toGuestSubmissionDate(out.check_out_date);
-  }
-  if (typeof out.check_in_time === 'string' && out.check_in_time) {
-    out.check_in_time = toGuestSubmissionTime(out.check_in_time);
-  }
-  if (typeof out.check_out_time === 'string' && out.check_out_time) {
-    out.check_out_time = toGuestSubmissionTime(out.check_out_time);
-  }
-  return out;
-}
-
-function computeBalance(bookingRate?: number | null, downPayment?: number | null): number | null {
-  if (bookingRate == null || downPayment == null) return null;
-  return Math.round((bookingRate - downPayment) * 100) / 100;
-}
 
 export type UpdateBookingPayload = {
   // Guest identity
@@ -164,7 +132,6 @@ type MutationArgs = {
    * PDF fill fields changed. Required when `revertToPendingReview` may apply.
    */
   revertBaselinePayload?: UpdateBookingPayload;
-  documentRequirements?: DocumentRequirement[];
 };
 
 export function useUpdateBooking() {
@@ -179,59 +146,17 @@ export function useUpdateBooking() {
       revertToPendingReview,
       currentDocumentRequirementCompletions,
       revertBaselinePayload,
-      documentRequirements,
     }: MutationArgs) => {
-      let patch: Record<string, unknown> = {
-        ...payload,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (payload.booking_source === 'Airbnb') {
-        patch.down_payment = 0;
-        patch.security_deposit = 0;
-      }
-
-      if (
-        payload.booking_rate != null &&
-        (payload.down_payment != null || payload.booking_source === 'Airbnb') &&
-        payload.balance === undefined
-      ) {
-        patch.balance = computeBalance(
-          payload.booking_rate,
-          payload.booking_source === 'Airbnb' ? 0 : payload.down_payment
-        );
-      }
-
-      patch = patchGuestSubmissionForDb(patch);
-
-      if (revertToPendingReview && shouldRevertGuestFieldEditsToPendingReview(currentStatus)) {
-        Object.assign(patch, pendingDocumentsClearPatchForGuestEditRevert());
-        if (revertBaselinePayload) {
-          Object.assign(
-            patch,
-            requestPdfClearPatchForAdminGuestEdit(
-              revertBaselinePayload,
-              payload,
-              documentRequirements
-            )
-          );
-        }
-        patch.document_requirement_completions = pendingDocumentsClearCompletionsJsonbPatch(
-          currentDocumentRequirementCompletions
-        );
-        patch.status = 'PENDING_REVIEW';
-        patch.status_updated_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('guest_submissions')
-        .update(patch)
-        .eq('id', bookingId)
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data as BookingRow;
+      const { booking } = await callUpdateBookingDetails(propertyId, {
+        operation: 'patch',
+        bookingId,
+        currentStatus,
+        payload,
+        revertToPendingReview: revertToPendingReview ?? false,
+        currentDocumentRequirementCompletions,
+        revertBaselinePayload,
+      });
+      return booking as BookingRow;
     },
 
     onSuccess: async (updated, { bookingId }) => {

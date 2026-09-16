@@ -3,7 +3,7 @@
  * Event-driven (SD form submit) + instant + hourly cron (new booking, pending docs, balance receipt, SD refund).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
 import { manilaTodayYmd, normalizeBookingDateToYmd } from './calendarAvailabilityManila.ts';
@@ -369,8 +369,14 @@ function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, stri
     urgent_notice: buildUrgentNotice(booking.check_in_date),
     check_in_date: formatDateForEmail(ciRaw) || formatDateHumanFull(ciYmd),
     check_out_date: formatDateForEmail(coRaw) || formatDateHumanFull(coYmd),
-    check_in_time: formatTimeForDisplay(booking.check_in_time, DEFAULT_CHECK_IN_TIME),
-    check_out_time: formatTimeForDisplay(booking.check_out_time, DEFAULT_CHECK_OUT_TIME),
+    check_in_time: formatTimeForDisplay(
+      typeof booking.check_in_time === 'string' ? booking.check_in_time : null,
+      DEFAULT_CHECK_IN_TIME
+    ),
+    check_out_time: formatTimeForDisplay(
+      typeof booking.check_out_time === 'string' ? booking.check_out_time : null,
+      DEFAULT_CHECK_OUT_TIME
+    ),
     nights: String(nights),
     pax: String(adults + children),
     need_parking: notifyYesNo(booking.need_parking),
@@ -748,7 +754,7 @@ export async function runAdminHourlyAlerts(opts?: {
     }
     return {
       sent: properties.some((p) => p.sent),
-      mode: properties.some((p) => p.sent) ? 'sent' : 'skipped',
+      mode: properties.some((p) => p.sent) ? 'sent' : 'nothing_due',
       properties,
     };
   }

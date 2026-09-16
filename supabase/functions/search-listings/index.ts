@@ -41,6 +41,7 @@ import {
   type ResolvedSearchIntent,
 } from '../_shared/searchIntents.ts';
 import { loadPublicListingRows } from '../_shared/publicListingRows.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 
 type SearchType = 'all' | 'properties' | 'developments' | 'parkings';

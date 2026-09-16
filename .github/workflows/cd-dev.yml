@@ -41,8 +41,16 @@ jobs:
       - name: Filename conventions
         run: bun run check:filenames
 
+      - name: Migration conventions
+        run: |
+          bash scripts/dev/check-migration-versions.sh
+          bash scripts/dev/check-migration-security.sh
+
       - name: Unit tests (Vitest)
         run: bun run test
+
+      - name: Edge type check (Deno)
+        run: bun run check:edge-types
 
       - name: Edge unit tests (Deno _shared)
         run: bun run test:edge
@@ -98,6 +106,8 @@ jobs:
           DEPLOY_CONFIRM: dev
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
           LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
         run: |
           chmod +x scripts/deploy/ci-deploy.sh scripts/deploy/deploy-supabase-dev.sh
@@ -108,4 +118,6 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
         run: ./scripts/deploy/ci-smoke.sh dev

@@ -2,7 +2,7 @@
  * Shared property template image upload — used by upload-property-template-asset and AI assistant.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import {
   getBuiltinPropertyTemplate,
   isBuiltinPropertyTemplateKey,

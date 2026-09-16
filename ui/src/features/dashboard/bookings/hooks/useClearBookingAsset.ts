@@ -8,9 +8,8 @@ import { BOOKING_QUERY_KEY } from '@/features/dashboard/bookings/hooks/useBookin
 import { invalidateBookingAiReviewQueries } from '@/features/dashboard/bookings/hooks/useBookingAiReview';
 import { BOOKINGS_QUERY_KEY } from '@/features/dashboard/bookings/hooks/useBookings';
 import type { AssetType } from '@/features/dashboard/bookings/hooks/useUploadBookingAsset';
-import { bookingAssetClearPatch } from '@/features/dashboard/bookings/lib/bookingAssetClearPatch';
-
-import { supabase } from '@/lib/supabase/client';
+import { callUpdateBookingDetails } from '@/features/dashboard/bookings/lib/updateBookingDetailsApi';
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
 type ClearArgs = {
   bookingId: string;
@@ -19,18 +18,15 @@ type ClearArgs = {
 
 export function useClearBookingAsset() {
   const qc = useQueryClient();
+  const propertyId = usePropertyIdParam();
 
   return useMutation({
     mutationFn: async ({ bookingId, assetType }: ClearArgs) => {
-      const { error } = await supabase
-        .from('guest_submissions')
-        .update({
-          ...bookingAssetClearPatch(assetType),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', bookingId);
-
-      if (error) throw new Error(error.message);
+      await callUpdateBookingDetails(propertyId, {
+        operation: 'clear_asset',
+        bookingId,
+        assetType,
+      });
     },
     onSuccess: async (_, { bookingId }) => {
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });

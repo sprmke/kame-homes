@@ -8,7 +8,7 @@
  * 4. Deterministic responses can be cached and reused.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   estimateTokenCostUsd,
@@ -591,33 +591,41 @@ export async function getOrgAiUsageBreakdown(organizationId: string): Promise<{
   const today = todayUtcDate();
   const monthStart = monthStartUtcDate();
 
+  type UsageRow = { feature: string | null; estimated_cost_usd: number | null };
+
+  const aggregateUsageByFeature = (rows: UsageRow[]) => {
+    const byFeature = new Map<string, { calls: number; estimatedCostUsd: number }>();
+    for (const row of rows) {
+      const feature = String(row.feature ?? 'unknown');
+      const current = byFeature.get(feature) ?? { calls: 0, estimatedCostUsd: 0 };
+      current.calls += 1;
+      current.estimatedCostUsd += Number(row.estimated_cost_usd ?? 0);
+      byFeature.set(feature, current);
+    }
+    return [...byFeature.entries()].map(([feature, totals]) => ({
+      feature,
+      calls: totals.calls,
+      estimatedCostUsd: totals.estimatedCostUsd,
+    }));
+  };
+
   const { data: todayRows, error: todayError } = await sb
     .from('ai_platform_usage_events')
-    .select('feature, calls:count(*), estimatedCostUsd:estimated_cost_usd.sum()')
+    .select('feature, estimated_cost_usd')
     .eq('organization_id', organizationId)
-    .gte('created_at', today + 'T00:00:00Z')
-    .group('feature');
+    .gte('created_at', today + 'T00:00:00Z');
   if (todayError) throw new Error(todayError.message);
 
   const { data: monthRows, error: monthError } = await sb
     .from('ai_platform_usage_events')
-    .select('feature, calls:count(*), estimatedCostUsd:estimated_cost_usd.sum()')
+    .select('feature, estimated_cost_usd')
     .eq('organization_id', organizationId)
-    .gte('created_at', monthStart + 'T00:00:00Z')
-    .group('feature');
+    .gte('created_at', monthStart + 'T00:00:00Z');
   if (monthError) throw new Error(monthError.message);
 
   return {
-    today: (todayRows ?? []).map((row) => ({
-      feature: String(row.feature),
-      calls: Number((row as { calls?: number }).calls ?? 0),
-      estimatedCostUsd: Number((row as { estimatedCostUsd?: number }).estimatedCostUsd ?? 0),
-    })),
-    month: (monthRows ?? []).map((row) => ({
-      feature: String(row.feature),
-      calls: Number((row as { calls?: number }).calls ?? 0),
-      estimatedCostUsd: Number((row as { estimatedCostUsd?: number }).estimatedCostUsd ?? 0),
-    })),
+    today: aggregateUsageByFeature((todayRows ?? []) as UsageRow[]),
+    month: aggregateUsageByFeature((monthRows ?? []) as UsageRow[]),
   };
 }
 

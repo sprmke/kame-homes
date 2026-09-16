@@ -267,26 +267,13 @@ async function resolveTelegramCredentials(
   return resolvePropertyTelegramCredentials('marketing', scope);
 }
 
-export type TelegramEnvVerifyResult = {
-  credentials: {
-    tokenConfigured: boolean;
-    chatIdRawLength: number;
-    normalizedChatId?: string;
-    normalizeError?: string;
-    /** First Unicode codepoint of trimmed secret (before normalize). ASCII `-` = 45. “Typo minus” from Word is often 8722 (U+2212). */
-    rawLeadingCodePoint?: number;
-    /** True when normalized id starts with ASCII `-`. If you use a supergroup -100… id and this is false, check the dashboard secret. */
-    normalizedStartsWithAsciiMinus?: boolean;
-  };
-  getMe: { ok: boolean; username?: string; error?: string };
-  getChat: { ok: boolean; type?: string; title?: string; username?: string; error?: string };
-};
+export type { TelegramEnvVerifyResult } from './propertyTelegramCredentials.ts';
 
 /** Admin-only: getMe + getChat using saved or draft credentials. */
 export async function verifyTelegramEnv(
   scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null,
   overrides?: { botToken?: string; chatId?: string }
-): Promise<TelegramEnvVerifyResult> {
+): Promise<import('./propertyTelegramCredentials.ts').TelegramEnvVerifyResult> {
   const { verifyPropertyTelegramChannel } = await import('./propertyTelegramCredentials.ts');
   return verifyPropertyTelegramChannel('marketing', scope, overrides);
 }

@@ -2,7 +2,7 @@
  * Superhost quarterly assessment — evaluate org criteria and patch settings.superhost.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 
 import { manilaNowIso, manilaTodayYmd } from './calendarAvailabilityManila.ts';

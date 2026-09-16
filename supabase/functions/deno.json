@@ -1,0 +1,10 @@
+{
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": true
+  },
+  "imports": {
+    "dayjs": "npm:dayjs@1.11.10",
+    "papaparse": "npm:papaparse@5.4.1"
+  }
+}

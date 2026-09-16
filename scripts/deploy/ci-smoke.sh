@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Post-deploy smoke for hosted Supabase (read-only).
-# Usage: ./scripts/deploy/ci-smoke.sh dev
+# Usage: ./scripts/deploy/ci-smoke.sh <dev|prod>
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -11,29 +11,34 @@ SUPABASE=("$ROOT/scripts/dev/bunx" --bun supabase@latest)
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/deploy/ci-smoke.sh dev
+Usage: ./scripts/deploy/ci-smoke.sh <dev|prod>
 
 Environment:
   SUPABASE_ACCESS_TOKEN   Required
-  SUPABASE_PROJECT_REF    Required (must not equal LEGACY_PROD_PROJECT_REF if set)
+  SUPABASE_PROJECT_REF    Required
+  SUPABASE_ANON_KEY       Required
+  SMOKE_PROPERTY_SLUG     Required, active property used for read-only probes
 
 Checks:
-  1. supabase functions list includes submit-form
-  2. Edge gateway responds (HTTP not 000/502)
+  1. Required public functions are deployed
+  2. Real GET requests return successful JSON from the listing, property,
+     availability, and search handlers
 EOF
 }
 
 TARGET="${1:-}"
-if [[ "$TARGET" != "dev" || "${2:-}" == "-h" || "${1:-}" == "--help" ]]; then
+if [[ "$TARGET" != "dev" && "$TARGET" != "prod" || "${2:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
-  [[ "$TARGET" == "dev" ]] || exit 1
+  [[ "$TARGET" == "dev" || "$TARGET" == "prod" ]] || exit 1
   exit 0
 fi
 
 ci_deploy_require_env SUPABASE_ACCESS_TOKEN
 ci_deploy_require_env SUPABASE_PROJECT_REF
+ci_deploy_require_env SUPABASE_ANON_KEY
+ci_deploy_require_env SMOKE_PROPERTY_SLUG
 
-if [[ -n "${LEGACY_PROD_PROJECT_REF:-}" ]]; then
+if [[ "$TARGET" == "dev" && -n "${LEGACY_PROD_PROJECT_REF:-}" ]]; then
   ci_deploy_assert_not_legacy_ref "$SUPABASE_PROJECT_REF" "$LEGACY_PROD_PROJECT_REF"
 fi
 
@@ -48,24 +53,57 @@ export SUPABASE_ACCESS_TOKEN
 
 echo "→ supabase functions list"
 FUNCS="$("${SUPABASE[@]}" functions list 2>/dev/null || true)"
-if ! grep -q "submit-form" <<<"$FUNCS"; then
-  echo "ERROR: submit-form not found in functions list." >&2
-  echo "$FUNCS" >&2
+for fn in list-public-properties get-public-property get-booked-dates search-listings; do
+  if ! rg -q "$fn" <<<"$FUNCS"; then
+    echo "ERROR: $fn not found in functions list." >&2
+    echo "$FUNCS" >&2
+    exit 1
+  fi
+done
+echo "  required public functions present"
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq is required for response-shape assertions." >&2
   exit 1
 fi
-echo "  submit-form present"
 
-# OPTIONS often returns 200/204 when edge runtime is up (no auth required).
-HTTP_CODE="$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "${BASE}/submit-form" || echo "000")"
-echo "→ curl -X OPTIONS ${BASE}/submit-form → HTTP $HTTP_CODE"
-case "$HTTP_CODE" in
-  000 | 502 | 503)
-    echo "ERROR: edge gateway unhealthy (HTTP $HTTP_CODE)." >&2
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+smoke_get() {
+  local label="$1"
+  local path="$2"
+  local assertion="$3"
+  local body_file="$TMP_DIR/${label}.json"
+  local http_code
+
+  http_code="$(
+    curl --silent --show-error --output "$body_file" --write-out "%{http_code}" \
+      --header "apikey: ${SUPABASE_ANON_KEY}" \
+      --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+      "${BASE}/${path}" || printf '000'
+  )"
+  echo "→ GET ${path%%\?*} → HTTP $http_code"
+  if [[ "$http_code" != "200" ]]; then
+    echo "ERROR: $label smoke request failed (HTTP $http_code)." >&2
+    cat "$body_file" >&2 || true
     exit 1
-    ;;
-  *)
-    echo "  edge gateway reachable"
-    ;;
-esac
+  fi
+  if ! jq -e "$assertion" "$body_file" >/dev/null; then
+    echo "ERROR: $label returned an unexpected response shape." >&2
+    cat "$body_file" >&2
+    exit 1
+  fi
+}
+
+SLUG="$(jq -rn --arg value "$SMOKE_PROPERTY_SLUG" '$value|@uri')"
+smoke_get "properties" "list-public-properties?pageSize=1" \
+  '.success == true and (.data | type == "array")'
+smoke_get "property" "get-public-property?property=${SLUG}" \
+  '.success == true and (.data.id | type == "string")'
+smoke_get "availability" "get-booked-dates?property=${SLUG}" \
+  '.success == true'
+smoke_get "search" "search-listings?where=${SLUG}&pageSize=1" \
+  '.success == true'
 
 echo "Smoke OK."

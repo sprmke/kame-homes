@@ -39,6 +39,7 @@ import {
   validateValidIdFile,
   type ReceiptValidationResult,
 } from '../_shared/receiptValidationService.ts';
+import { copyBytes } from '../_shared/utils.ts';
 
 const CORPUS = Deno.env.get('OCR_CORPUS_DIR');
 const DOC_MAX_LONG_EDGE = 3000;
@@ -118,7 +119,7 @@ Deno.test({
         const opt = await reencodeDocument(raw, mime);
         const after = await run(
           new File(
-            [opt.bytes],
+            [copyBytes(opt.bytes)],
             name.replace(/\.\w+$/, opt.mime === 'image/png' ? '.png' : '.jpg'),
             {
               type: opt.mime,

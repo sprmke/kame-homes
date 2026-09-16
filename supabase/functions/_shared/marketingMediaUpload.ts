@@ -2,7 +2,7 @@
  * Upload marketing export bytes (from data URLs) to public property-media storage.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
 import { formatPublicUrl } from './utils.ts';

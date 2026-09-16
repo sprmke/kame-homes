@@ -51,6 +51,14 @@ export async function installAdminApprovalsMocks(page: Page) {
     const endpoint = url.pathname.split('/').pop();
     const isSummary = url.searchParams.get('summary') === 'true';
 
+    if (endpoint === 'list-organizations') {
+      await fulfillJson(route, {
+        success: true,
+        data: { organizations: [], isSuperAdmin: true },
+      });
+      return;
+    }
+
     if (endpoint === 'list-super-admin-approvals') {
       if (isSummary) {
         await fulfillJson(route, { success: true, data: { summary: mockApprovalsSummary } });

@@ -35,7 +35,10 @@ run_step() {
 run_step "type-check" bun run type-check
 run_step "lint (ESLint errors block CD — warnings OK)" bun run lint
 run_step "check:filenames" bun run check:filenames
+run_step "migration versions" bash scripts/dev/check-migration-versions.sh
+run_step "migration security" bash scripts/dev/check-migration-security.sh
 run_step "unit tests (Vitest)" bun run test
+run_step "edge type check (Deno)" bun run check:edge-types
 run_step "edge unit tests (Deno _shared)" bun run test:edge
 run_step "servePublic rate-limit coverage" bash scripts/dev/check-serve-public-rate-limit.sh
 run_step "edge handler tests (Deno)" bun run test:edge:handlers

@@ -3,7 +3,7 @@
  * Never deletes source objects. Per-object failures are reported, not fatal.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { formatPublicUrl } from './utils.ts';
 
 function storageAdmin() {

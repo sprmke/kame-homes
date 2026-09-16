@@ -35,7 +35,7 @@ serveAuthenticated('list-parkings', async (req) => {
   const { user, org, canListAllProperties } = await verifyOrgAccess(
     req,
     { orgId: orgId || undefined, orgSlug: orgSlug || undefined },
-    'org:parkings:view'
+    'org.parkings:view'
   );
 
   const supabase = createServiceClient();

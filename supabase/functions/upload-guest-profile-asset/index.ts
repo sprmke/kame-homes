@@ -2,7 +2,7 @@
  * upload-guest-profile-asset — Authenticated guest avatar upload.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 
 import { patchGuestProfile } from '../_shared/guestProfileService.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';

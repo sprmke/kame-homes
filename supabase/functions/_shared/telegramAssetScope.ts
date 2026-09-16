@@ -54,7 +54,7 @@ export async function resolveTelegramAssetAccess(
   }
 
   if (parkingId) {
-    const permission = req.method === 'GET' ? 'org:parkings:view' : 'org:parkings:manage';
+    const permission = req.method === 'GET' ? 'org.parkings:view' : 'org.parkings:manage';
     const { parkingRow } = await resolveScopedParkingAccess(req, permission);
     return { kind: 'parking', id: parkingRow.id };
   }

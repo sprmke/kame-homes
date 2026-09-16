@@ -2,7 +2,7 @@
  * Shared org team logo upload — used by upload-org-settings-asset and AI assistant apply.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { DatabaseService } from './databaseService.ts';
 import { invalidateAppSettingsCache } from './appSettings.ts';
 import { ensureOrgSettingsRow, invalidateOrgSettingsCache } from './orgSettings.ts';

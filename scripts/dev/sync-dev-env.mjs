@@ -127,7 +127,6 @@ const UI_SECTIONS_HOSTED = [
     title: 'Supabase',
     keys: ['VITE_SUPABASE_URL', 'VITE_API_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_PROJECT_URL'],
   },
-  { title: 'Admin UI', keys: ['VITE_SUPER_ADMIN_EMAILS'] },
   {
     title: 'Platform branding (UI only)',
     keys: ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'],
@@ -392,13 +391,6 @@ function mergeUiDev() {
       const r = setAlways(hosted, 'VITE_SUPABASE_ANON_KEY', anon);
       if (r) changes.push(`${r} VITE_SUPABASE_ANON_KEY`);
     }
-  }
-
-  // Align super-admin list with local when local is richer
-  const localAdmins = local.get('VITE_SUPER_ADMIN_EMAILS')?.trim();
-  if (localAdmins && localAdmins.includes(',')) {
-    const r = setAlways(hosted, 'VITE_SUPER_ADMIN_EMAILS', localAdmins);
-    if (r) changes.push(`${r} VITE_SUPER_ADMIN_EMAILS (from local list)`);
   }
 
   if (!SKIP_LOCAL) {

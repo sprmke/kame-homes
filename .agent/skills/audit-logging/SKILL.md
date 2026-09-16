@@ -34,9 +34,10 @@ Emit an event when your change adds or alters any of:
   (`system.cron_run`), never one row per entity it advanced.
 - A **webhook** handler (PayMongo, Resend inbound, Meta) → emit **inside** the
   provider dedupe guard, after the "already processed" early return.
-- A **direct browser → PostgREST write** with no edge function (today: booking
-  detail edits on `guest_submissions`) → a DB trigger covers it; extend the
-  trigger's column allow-list if you add a user-editable field.
+- A **direct browser → PostgREST write** with no edge function → prefer an
+  authenticated edge function (`update-booking-details` is the booking-detail
+  path). The `guest_submissions` trigger remains defense in depth; extend its
+  column allow-list if a leftover client write adds a user-editable field.
 - A **guest / public** action (form submit, review, voucher claim, support
   ticket) when an `organization_id` is resolvable.
 

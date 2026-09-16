@@ -13,6 +13,7 @@ export const MAX_EXTERNAL_REVIEW_TEXT_LENGTH = 2000;
 export type ExternalReviewSource = 'facebook' | 'airbnb';
 
 export type ExternalReviewModerationStatus = 'pending' | 'approved' | 'rejected';
+export type ExternalReviewModerationDecision = Exclude<ExternalReviewModerationStatus, 'pending'>;
 
 export type PropertyExternalReview = {
   id: string;

@@ -6,6 +6,8 @@
  * Header `svix-signature`: space-separated `v1,<base64sig>` values.
  */
 
+import { webCryptoRawKey } from './webCryptoKey.ts';
+
 const DEFAULT_TOLERANCE_SECONDS = 300;
 
 function decodeWhsec(secret: string): Uint8Array {
@@ -67,7 +69,7 @@ export async function verifyResendWebhookSignature(
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     'raw',
-    keyBytes,
+    webCryptoRawKey(keyBytes),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']

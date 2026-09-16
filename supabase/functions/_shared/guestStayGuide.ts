@@ -2,7 +2,7 @@
  * Guest stay guide — per-booking token, validity window, and template-backed page payload.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from './supabaseJs.ts';
 
 import { resolveAppSettings } from './appSettings.ts';
 import { loadAuthUserProfile } from './authUserProfile.ts';
@@ -249,8 +249,9 @@ export async function resolveGuestStayGuideUrlForProperty(
       };
       if (!isStayGuideAccessActive(withWindow)) continue;
     } else if (!token) {
-      token = await ensureGuestStayGuideToken(booking);
-      if (!token) continue;
+      const issued = await ensureGuestStayGuideToken(booking);
+      if (!issued) continue;
+      token = issued;
     }
 
     const url = await buildGuestStayGuideUrl(booking, token);

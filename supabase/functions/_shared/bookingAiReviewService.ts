@@ -12,7 +12,7 @@
  *   when that section's inputs are unchanged.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import {
   extractGeminiUsage,
@@ -600,8 +600,8 @@ async function callGeminiBatched(
   throw new Error('All AI providers exhausted');
 }
 
-function normalizeDateToYmd(dateStr: string | null | undefined): string {
-  if (!dateStr) return '';
+function normalizeDateToYmd(dateStr: unknown): string {
+  if (dateStr == null || dateStr === '') return '';
   const s = String(dateStr).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {

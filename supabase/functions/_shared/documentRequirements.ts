@@ -3,7 +3,7 @@
  * Override on app_settings; residence-type default on developments.settings.workflowDefaults.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { trimOrEmpty } from './stringUtils.ts';
 
 export type DocumentApprovalSource = 'manual' | 'email-listener' | 'none';

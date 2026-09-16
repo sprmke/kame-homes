@@ -476,7 +476,6 @@ export function BookingEditForm({
       payload,
       revertToPendingReview,
       revertBaselinePayload: savedSensitiveBaseline,
-      documentRequirements,
       currentDocumentRequirementCompletions: (
         booking as { document_requirement_completions?: unknown }
       ).document_requirement_completions,

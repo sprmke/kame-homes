@@ -2,7 +2,7 @@
  * Resolve display name + role for the user changing sensitive settings.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import { isCustomRoleId, isPropertyAdminRoleId } from './propertyTeamPermissions.ts';

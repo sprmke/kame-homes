@@ -35,8 +35,16 @@ jobs:
       - name: Filename conventions
         run: bun run check:filenames
 
+      - name: Migration conventions
+        run: |
+          bash scripts/dev/check-migration-versions.sh
+          bash scripts/dev/check-migration-security.sh
+
       - name: Unit tests (Vitest)
         run: bun run test
+
+      - name: Edge type check (Deno)
+        run: bun run check:edge-types
 
       - name: Edge unit tests (Deno _shared)
         run: bun run test:edge

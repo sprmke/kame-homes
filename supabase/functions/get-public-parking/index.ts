@@ -5,6 +5,7 @@
 
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { loadPublicParkingBySlug, readParkingSlugFromUrl } from '../_shared/parkingScope.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 
 servePublic('get-public-parking', async (req) => {

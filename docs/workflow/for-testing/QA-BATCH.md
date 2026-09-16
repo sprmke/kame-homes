@@ -2,7 +2,7 @@
 title: 'QA batch — for-testing modules'
 status: active
 tags: [workflow, for-testing, qa]
-updated: 2026-09-10
+updated: 2026-09-15
 stage: for-testing
 kind: reference
 ---
@@ -17,16 +17,17 @@ kind: reference
 
 ## Recommended order
 
-| #   | Module                                                                    | Effort  | Blockers                                                                | Done when                                                                        |
-| --- | ------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1   | [Superhost program](./superhost-program.md)                               | ~30 min | None — no deploy config                                                 | [`20-superhost.md`](../qa/property-dashboard/20-superhost.md) passes             |
-| 2   | [Onboarding verification simplify](./onboarding-verification-simplify.md) | ~45 min | Local or dev stack + test org                                           | Plan § Verify passes                                                             |
-| 3   | [Host verification tiers](./host-verification-tiers.md)                   | ~30 min | Same + admin access                                                     | Phase 3 admin-queue checklist passes (search boost stays deferred)               |
-| 4   | [CAPTCHA & anti-spam](./captcha-anti-spam-hardening.md)                   | ~45 min | Cloudflare Turnstile keys per env                                       | Plan § FOR TESTING — pass + fail test keys                                       |
-| 5   | [PWA install / offline / push](./pwa-installable-offline-push.md)         | ~2 h    | Dev Supabase deploy + VAPID secrets + UI rebuild                        | Plan § Manual QA + real-device push                                              |
-| 6   | [Org granular team permissions](./org-granular-team-permissions.md)       | ~45 min | Local or dev stack + org with 2+ listings + invitee email               | Plan § Phase 5 — QA (5 checks) passes                                            |
-| 7   | [Super Admin step-up OTP](./super-admin-step-up-otp.md)                   | ~30 min | Super-admin login + reachable inbox for that email                      | Plan § Manual QA (4 checks) passes                                               |
-| 8   | [Org Activity & Audit Log](./org-activity-audit-log.md)                   | ~60 min | Dev stack + org with 2+ listings + a paid + a Free org + 2 browser tabs | § 8 smoke path passes; then **prod deploy** (`kamewave`) before `/workflow-done` |
+| #   | Module                                                                    | Effort  | Blockers                                                                     | Done when                                                                        |
+| --- | ------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | [Superhost program](./superhost-program.md)                               | ~30 min | None — no deploy config                                                      | [`20-superhost.md`](../qa/property-dashboard/20-superhost.md) passes             |
+| 2   | [Onboarding verification simplify](./onboarding-verification-simplify.md) | ~45 min | Local or dev stack + test org                                                | Plan § Verify passes                                                             |
+| 3   | [Host verification tiers](./host-verification-tiers.md)                   | ~30 min | Same + admin access                                                          | Phase 3 admin-queue checklist passes (search boost stays deferred)               |
+| 4   | [CAPTCHA & anti-spam](./captcha-anti-spam-hardening.md)                   | ~45 min | Cloudflare Turnstile keys per env                                            | Plan § FOR TESTING — pass + fail test keys                                       |
+| 5   | [PWA install / offline / push](./pwa-installable-offline-push.md)         | ~2 h    | Dev Supabase deploy + VAPID secrets + UI rebuild                             | Plan § Manual QA + real-device push                                              |
+| 6   | [Org granular team permissions](./org-granular-team-permissions.md)       | ~45 min | Local or dev stack + org with 2+ listings + invitee email                    | Plan § Phase 5 — QA (5 checks) passes                                            |
+| 7   | [Super Admin step-up OTP](./super-admin-step-up-otp.md)                   | ~30 min | Super-admin login + reachable inbox for that email                           | Plan § Manual QA (4 checks) passes                                               |
+| 8   | [Org Activity & Audit Log](./org-activity-audit-log.md)                   | ~60 min | Dev stack + org with 2+ listings + a paid + a Free org + 2 browser tabs      | § 8 smoke path passes; then **prod deploy** (`kamewave`) before `/workflow-done` |
+| 9   | [Pre-production launch audit](./pre-production-launch-audit.md)           | ~45 min | Hosted **dev** DB URL + backup/rollback scripts; do **not** run prod restore | Residual checks in the plan pass; `cd-prod.yml` stays gated                      |
 
 ---
 
@@ -152,6 +153,19 @@ kind: reference
 - **Retention (optional)** — in SQL: `SELECT public.purge_activity_log(6, 100);` runs without error and only deletes rows older than 6 months; a plain `DELETE FROM activity_log` still raises `activity_log is append-only`.
 
 **Then:** `bun run deploy:supabase` (needs `kamewave`) for migrations `20261315120000` / `120100` / `120200` + the `activity-log-retention-cron` function; provision `ACTIVITY_LOG_RETENTION_CRON_SECRET` + Vault `activity_log_retention_cron_secret` and run `SELECT public.sync_activity_log_retention_cron_job();`.
+
+---
+
+## 9. Pre-production launch audit
+
+**Checklist:** [`./pre-production-launch-audit.md`](./pre-production-launch-audit.md) residual launch risk.
+
+**Smoke path:**
+
+- `bun run check:edge-types` and `bun run test:edge` green on the branch.
+- Mobile Playwright: guest form + `/for-hosts/pricing` at 375px (no page-level horizontal scroll).
+- On hosted **dev** only: take a backup, then a `--fresh-target` restore rehearsal. Do not restore into live production.
+- Confirm `cd-prod.yml` is still gated (`CUTOVER_ENABLED` unset) until mt-prod exists.
 
 ---
 

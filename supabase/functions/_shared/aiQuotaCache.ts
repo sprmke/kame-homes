@@ -4,7 +4,7 @@
  * Entries expire after 1 hour (TTL is enforced at write and by periodic cleanup).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 
 import type { AiFeature } from './aiModelRouter.ts';
 

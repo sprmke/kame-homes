@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  expectNoPageHorizontalOverflow,
+  expectNoUnnamedInteractiveControls,
+} from '../../shared/layoutAssertions';
+import {
   createParkingFlowState,
   installParkingFlowMocks,
 } from '../parking/shared/parkingFlowHarness';
@@ -29,6 +33,8 @@ test.describe('@smoke @ci property booking workflow proceed', () => {
       timeout: 20_000,
     });
     await expect(page.getByText(/Pending Review/i).first()).toBeVisible({ timeout: 15_000 });
+    await expectNoPageHorizontalOverflow(page);
+    await expectNoUnnamedInteractiveControls(page);
   });
 
   test('host can proceed PENDING_REVIEW to PENDING_DOCUMENTS on paid plan', async ({ page }) => {

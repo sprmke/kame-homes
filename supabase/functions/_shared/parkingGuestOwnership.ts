@@ -6,7 +6,7 @@
  * that email. Id match stays the fast path; email match rebinds `guest_auth_user_id`.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from './supabaseJs.ts';
 
 export type ParkingGuestOwnershipBooking = {
   id: string;

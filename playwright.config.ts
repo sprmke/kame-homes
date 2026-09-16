@@ -51,6 +51,25 @@ export default defineConfig({
       },
     },
     {
+      name: 'mobile-chromium-smoke',
+      grep: /@smoke/,
+      grepInvert: /@live|@demo|@flaky/,
+      use: {
+        ...devices['iPhone 13'],
+        browserName: 'chromium',
+        viewport: { width: 375, height: 812 },
+      },
+    },
+    {
+      name: 'tablet-chromium-smoke',
+      grep: /@smoke/,
+      grepInvert: /@live|@demo|@flaky/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 768, height: 1024 },
+      },
+    },
+    {
       name: 'chromium-side-by-side',
       use: {
         ...devices['Desktop Chrome'],
@@ -68,7 +87,6 @@ export default defineConfig({
     timeout: 120_000,
     // PostHog unset in E2E — client no-ops without VITE_POSTHOG_KEY (no network calls).
     env: {
-      VITE_SUPER_ADMIN_EMAILS: 'host@example.com',
       // Guest form auto-fills random dev data when unset; keep E2E deterministic.
       VITE_NODE_ENV: 'production',
     },

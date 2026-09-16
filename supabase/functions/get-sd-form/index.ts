@@ -15,6 +15,7 @@ import { resolveVoucherPrizes } from '../_shared/voucher.ts';
 import { normalizeVoucherRevealStyle } from '../_shared/voucherRevealStyle.ts';
 import { authorizeGuestBookingAccess } from '../_shared/guestBookingAccessToken.ts';
 import { jsonError, jsonResponse, jsonSuccess } from '../_shared/httpResponse.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 
 const NOT_FOUND = {

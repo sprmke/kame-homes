@@ -2,8 +2,8 @@
  * Normalize raw CSV cell values into guest_submissions column conventions.
  */
 
-import dayjs from 'https://esm.sh/dayjs@1.11.10';
-import customParseFormat from 'https://esm.sh/dayjs@1.11.10/plugin/customParseFormat';
+import dayjs from 'dayjs';
+import customParseFormat from 'npm:dayjs@1.11.10/plugin/customParseFormat.js';
 
 import { getBookingImportTargetField } from './importTargetSchemas.ts';
 

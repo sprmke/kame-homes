@@ -4,7 +4,7 @@ status: active
 stage: in-progress
 kind: plan
 tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, multi-tenancy]
-updated: 2026-08-17
+updated: 2026-09-16
 ---
 
 # CI/CD Dual-Track Implementation Plan
@@ -75,7 +75,7 @@ After `develop` carries multi-tenant tip:
 | `.github/workflows/ci.yml`             | Optionally add `develop` to push branches (already has PR)                                                                                                                                                                                                          |
 | `.github/workflows/cd-dev.yml`         | Auto deploy MULTI_TENANT_DEV on `develop`                                                                                                                                                                                                                           |
 | `.github/workflows/cd-preprod.yml`     | Promote to MULTI_TENANT_PREPROD                                                                                                                                                                                                                                     |
-| `.github/workflows/cd-prod.yml`        | Scaffold gated; inactive until cutover secrets exist                                                                                                                                                                                                                |
+| `.github/workflows/cd-prod.yml`        | Full quality, diff, backup, strict deploy, and real-GET smoke pipeline; gated and inactive until cutover secrets exist                                                                                                                                              |
 | `.github/workflows/cd-rollback.yml`    | Dispatch rollback                                                                                                                                                                                                                                                   |
 | `scripts/deploy/*`, new `ci-*.sh`      | CI mode, LEGACY deny-list                                                                                                                                                                                                                                           |
 | `scripts/dev/prod-deploy-guard-lib.sh` | Keep local safety                                                                                                                                                                                                                                                   |
@@ -206,13 +206,12 @@ Use only if Quick verify failed or this was never wired. Estimated time: **45–
 6. Use the environment filter → select **Production** only.
 7. Confirm these exist and point at **LEGACY** (`zftt…`):
 
-| Name                      | Expected shape                                          | Where to verify                                                            |
-| ------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`       | `https://zfttdwtceyqszyeyhilc.supabase.co/functions/v1` | Must contain **`zfttdwtceyqszyeyhilc`**, must end with **`/functions/v1`** |
-| `VITE_API_URL`            | Same string as `VITE_SUPABASE_URL`                      | Character-for-character match                                              |
-| `VITE_SUPABASE_ANON_KEY`  | Long JWT starting with `eyJ…`                           | From Supabase **`zftt…`** → Settings → API → **anon public**               |
-| `VITE_NODE_ENV`           | `production`                                            | Guest form hides dev toggles when production                               |
-| `VITE_SUPER_ADMIN_EMAILS` | Comma-separated platform team emails                    | Admin tab + `/admin/*` UX (server: `SUPER_ADMIN_EMAILS`)                   |
+| Name                     | Expected shape                                          | Where to verify                                                            |
+| ------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`      | `https://zfttdwtceyqszyeyhilc.supabase.co/functions/v1` | Must contain **`zfttdwtceyqszyeyhilc`**, must end with **`/functions/v1`** |
+| `VITE_API_URL`           | Same string as `VITE_SUPABASE_URL`                      | Character-for-character match                                              |
+| `VITE_SUPABASE_ANON_KEY` | Long JWT starting with `eyJ…`                           | From Supabase **`zftt…`** → Settings → API → **anon public**               |
+| `VITE_NODE_ENV`          | `production`                                            | Guest form hides dev toggles when production                               |
 
 8. Open your **live** public URL (the domain real guests use — from **Settings → Domains** on this project).
 9. Browser → **DevTools** → **Network** tab → reload.
@@ -282,15 +281,14 @@ For **each** variable below:
 - Optional: also enable **Preview** ✓ (same values — useful for PR deploys)
 - **Never** enable Production on `guest-form-management-app` for these fwor values
 
-| Key                       | Value (exact)                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------- |
-| `VITE_NODE_ENV`           | `development`                                                                                      |
-| `VITE_SUPABASE_URL`       | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1`                                            |
-| `VITE_API_URL`            | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1` _(must match `VITE_SUPABASE_URL` exactly)_ |
-| `VITE_SUPABASE_ANON_KEY`  | _(paste anon key from Part B)_                                                                     |
-| `VITE_SUPER_ADMIN_EMAILS` | _(platform team emails, comma-separated)_                                                          |
+| Key                      | Value (exact)                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| `VITE_NODE_ENV`          | `development`                                                                                      |
+| `VITE_SUPABASE_URL`      | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1`                                            |
+| `VITE_API_URL`           | `https://fworvijbrwpyngycotbz.supabase.co/functions/v1` _(must match `VITE_SUPABASE_URL` exactly)_ |
+| `VITE_SUPABASE_ANON_KEY` | _(paste anon key from Part B)_                                                                     |
 
-2. After saving all five, the **Production** column on `kame-homes` should list all five keys.
+2. After saving the four values, the **Production** column on `kame-homes` should list all four keys.
 3. **Do not** set `VITE_GOOGLE_MAPS_API_KEY` unless you need maps on staging — optional.
 
 **Why `VITE_NODE_ENV=development` on kame-homes?**  
@@ -451,11 +449,11 @@ Do every row before marking Task 2 done.
 
 **C. Auth (if testing login)**
 
-| #   | Check            | How                                                                    | Pass                                           |
-| --- | ---------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| 7   | Admin login page | `KAME_HOMES_URL/for-hosts/login`                                       | Google button loads                            |
-| 8   | OAuth redirect   | Sign in with allow-listed email                                        | Returns to app without `redirect_uri_mismatch` |
-| 9   | Super admin      | `VITE_SUPER_ADMIN_EMAILS` on Vercel + `SUPER_ADMIN_EMAILS` on Supabase | Admin tab visible; `/admin` loads after login  |
+| #   | Check            | How                              | Pass                                           |
+| --- | ---------------- | -------------------------------- | ---------------------------------------------- |
+| 7   | Admin login page | `KAME_HOMES_URL/for-hosts/login` | Google button loads                            |
+| 8   | OAuth redirect   | Sign in with allow-listed email  | Returns to app without `redirect_uri_mismatch` |
+| 9   | Super admin      | `SUPER_ADMIN_EMAILS` on Supabase | Admin tab visible; `/admin` loads after login  |
 
 **Quick Network tab tip (Chrome):**  
 Reload → filter `fwor` or `zftt` → click any `/functions/v1/` request → **Headers** → Request URL shows which Supabase project the browser uses.
@@ -471,7 +469,7 @@ Reload → filter `fwor` or `zftt` → click any `/functions/v1/` request → **
 | `kame-homes` hits `fwor…` but 404/502 on API | Backend not deployed (Task 3)   | Run `bun run deploy:supabase:dev` on mt branch                                                                                    |
 | Google `redirect_uri_mismatch`               | Redirect URI typo               | GCP redirect must be exactly `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`                                          |
 | Google `origin_mismatch`                     | Missing JS origin               | Add exact `KAME_HOMES_URL` to GCP authorized origins                                                                              |
-| Login works but `/admin` access restricted   | Super admin not configured      | Set `VITE_SUPER_ADMIN_EMAILS` (Vercel Preview) + `SUPER_ADMIN_EMAILS` (Supabase); redeploy Vercel                                 |
+| Login works but `/admin` access restricted   | Super admin not configured      | Set `SUPER_ADMIN_EMAILS` on Supabase; the UI reads the capability from `list-organizations`                                       |
 | Host APIs 403 before org exists              | Not on allow list               | Set `ADMIN_ALLOWED_EMAILS` on Supabase or complete org onboarding (owner bypass)                                                  |
 | Live site broke after Task 2                 | Edited wrong Vercel project     | Revert env changes on **`guest-form-management-app`** only                                                                        |
 | Two deploys on push to same branch           | Both projects watch same branch | Normal if both have same Production Branch — **avoid** pointing both at same branch long-term; legacy should stay **`main` only** |
@@ -762,7 +760,7 @@ Re-run **`bun run deploy:supabase:dev -- --allow-multi-tenancy`** when:
 - [x] Reject `--skip-backup` when `CI=1`.
 - [x] Assert linked/target ref equals expected ref in CI mode.
 - [x] Assert target ref **≠** `LEGACY_PROD_PROJECT_REF` when `--allow-multi-tenancy`.
-- [x] Thin wrappers: `scripts/deploy/ci-deploy.sh`, `ci-smoke.sh`.
+- [x] CI wrappers: `ci-deploy.sh` supports dev + strict mt-prod; `ci-smoke.sh` probes real public GET handlers.
 - [x] `bash -n` on deploy CI scripts.
 
 **Verify:** Guard unit-style asserts for expect/deny ref (shell script tests or documented bash -c checks).
@@ -786,7 +784,7 @@ Runbook: [`docs/archive/operations/github-environments-setup.md`](../../../archi
 
 - [x] `cd-dev.yml`: push `develop` → quality → `ci-deploy.sh dev` → smoke.
 - [x] `cd-preprod.yml`: `workflow_dispatch` → Environment `preproduction`.
-- [x] `cd-prod.yml`: gated scaffold (`CUTOVER_ENABLED` + acknowledge).
+- [x] `cd-prod.yml`: complete gated pipeline (`main` + `CUTOVER_ENABLED` + acknowledge; quality → diff → backup → strict deploy → smoke).
 - [x] `cd-rollback.yml`: dispatch validates env; rollback local in v1.
 - [x] `ci.yml` runs on push/PR including `develop`.
 

@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from './supabaseJs.ts';
 import { GuestFormData, GuestSubmission, transformFormToSubmission } from './types.ts';
 import { applyGafDefaultsToFormData } from './appSettings.ts';
 import { hasBlockedNightsInRange } from './propertyBlockedDates.ts';
@@ -12,6 +12,7 @@ import { UploadService } from './uploadService.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { assertPropertyGuestPartyRules, guestPartySlotsFromFormData } from './guestCounts.ts';
 import { resolveGuestFormSettings } from './guestFormSettings.ts';
+import { getDefaultPropertyId } from './propertyScope.ts';
 import { createNotification } from './notificationService.ts';
 import { bookingNotificationMetadata } from './notificationEnrichment.ts';
 import { resolveOrganizationIdForParking } from './parkingScope.ts';
@@ -170,6 +171,10 @@ export class DatabaseService {
         guest3ValidIdUrl: formatPublicUrl(data.guest3_valid_id_url) || '',
         guest4ValidIdUrl: formatPublicUrl(data.guest4_valid_id_url) || '',
         guest5ValidIdUrl: formatPublicUrl(data.guest5_valid_id_url) || '',
+        unitOwner: data.unit_owner || '',
+        towerAndUnitNumber: data.tower_and_unit_number || '',
+        ownerOnsiteContactPerson: data.owner_onsite_contact_person || '',
+        ownerContactNumber: data.owner_contact_number || '',
       };
 
       console.log('Form data fetched successfully:', formData);
@@ -364,7 +369,8 @@ export class DatabaseService {
       const guest5Name = (formData.get('guest5Name') as string)?.trim() || '';
 
       const partySlots = guestPartySlotsFromFormData(formData);
-      const guestFormSettings = await resolveGuestFormSettings(propertyId);
+      const resolvedPropertyId = propertyId ?? (await getDefaultPropertyId());
+      const guestFormSettings = await resolveGuestFormSettings(resolvedPropertyId);
       assertPropertyGuestPartyRules(partySlots, {
         maxAdults: guestFormSettings.maxAdults,
         maxChildren: guestFormSettings.maxChildren,
@@ -433,7 +439,7 @@ export class DatabaseService {
       ]);
       formData.forEach((value, key) => {
         if (!excludedFormFields.has(key)) {
-          formDataObj[key] = value;
+          (formDataObj as Record<string, FormDataEntryValue>)[key] = value;
         }
       });
 
@@ -470,11 +476,11 @@ export class DatabaseService {
       );
 
       if (propertyId) {
-        (dbData as Record<string, unknown>).property_id = propertyId;
+        (dbData as unknown as Record<string, unknown>).property_id = propertyId;
       }
 
       if (guestUserId) {
-        (dbData as Record<string, unknown>).guest_user_id = guestUserId;
+        (dbData as unknown as Record<string, unknown>).guest_user_id = guestUserId;
       }
 
       // Save or update in database using the booking ID
@@ -488,7 +494,7 @@ export class DatabaseService {
           ) {
             Object.assign(patch, pendingDocumentsClearPatchForGuestEditRevert());
             Object.assign(patch, requestPdfClearPatchForChangedFormFields(revertChangedFormFields));
-            (patch as Record<string, unknown>).document_requirement_completions =
+            (patch as unknown as Record<string, unknown>).document_requirement_completions =
               pendingDocumentsClearCompletionsJsonbPatch(
                 existingBooking.document_requirement_completions
               );
@@ -515,14 +521,16 @@ export class DatabaseService {
       return {
         data: dataWithGafDefaults,
         submissionData,
-        petVaccinationUrl: formatPublicUrl(petVaccinationUrl),
-        petImageUrl: formatPublicUrl(petImageUrl),
+        petVaccinationUrl: petVaccinationUrl ? formatPublicUrl(petVaccinationUrl) : undefined,
+        petImageUrl: petImageUrl ? formatPublicUrl(petImageUrl) : undefined,
         validIdUrl: formatPublicUrl(validIdUrl),
-        paymentReceiptUrl: formatPublicUrl(paymentReceiptUrl),
+        paymentReceiptUrl: paymentReceiptUrl ? formatPublicUrl(paymentReceiptUrl) : '',
       };
     } catch (error) {
       console.error('Error processing form data:', error);
-      throw new Error('Failed to process form data: ' + error.message);
+      throw new Error(
+        'Failed to process form data: ' + (error instanceof Error ? error.message : String(error))
+      );
     }
   }
 
