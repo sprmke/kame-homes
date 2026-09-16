@@ -46,6 +46,8 @@ run_step "playwright smoke (@smoke)" bun run test:e2e:smoke
 run_step "build UI" bun run build
 run_step "assert image optimizer stays lazy (plan §10.6)" \
   node scripts/media/assert-lazy-optimizer.mjs
+run_step "bundle budgets + chunk-graph leak check (production-readiness doc 00/01)" \
+  bun run check:budgets
 
 echo ""
 echo "OK — quality gate passed (safe to push for CI/CD quality job)."

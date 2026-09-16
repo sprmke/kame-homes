@@ -1,0 +1,247 @@
+{
+  "capturedAt": "2026-09-16T10:53:57.219Z",
+  "label": "phase00-initial-develop",
+  "git": {
+    "sha": "133f4c5ed0c35bef496b4ed8de2d3e48c7df92de",
+    "branch": "feature/production-readiness-00-05",
+    "dirty": true
+  },
+  "repoScale": {
+    "uiTsFiles": 2330,
+    "edgeFunctions": 298,
+    "migrations": 346,
+    "uiDependencies": 85,
+    "uiDevDependencies": 23,
+    "rootDependencies": 3,
+    "rootDevDependencies": 13
+  },
+  "bundle": {
+    "totalChunks": 342,
+    "totalJsGzipBytes": 4655066,
+    "totalJsBrotliBytes": 3638715,
+    "totalCssGzipBytes": 99171,
+    "totalCssBrotliBytes": 73615,
+    "entry": {
+      "path": "assets/index-bf00cd3c.js",
+      "type": "js",
+      "rawBytes": 1739018,
+      "gzipBytes": 482974,
+      "brotliBytes": 374686
+    },
+    "initialPayload": {
+      "chunkCount": 11,
+      "totalGzipBytes": 870766,
+      "totalBrotliBytes": 709968,
+      "chunks": [
+        {
+          "path": "assets/index-bf00cd3c.js",
+          "rawBytes": 1739018,
+          "gzipBytes": 482974,
+          "brotliBytes": 374686
+        },
+        {
+          "path": "assets/react-vendor-ddf8ff0d.js",
+          "rawBytes": 34590,
+          "gzipBytes": 12094,
+          "brotliBytes": 10828
+        },
+        {
+          "path": "assets/query-vendor-4512b8e9.js",
+          "rawBytes": 52176,
+          "gzipBytes": 15587,
+          "brotliBytes": 13961
+        },
+        {
+          "path": "assets/observability-vendor-359c211f.js",
+          "rawBytes": 283847,
+          "gzipBytes": 93533,
+          "brotliBytes": 79910
+        },
+        {
+          "path": "assets/ui-vendor-2683ed52.js",
+          "rawBytes": 89569,
+          "gzipBytes": 29379,
+          "brotliBytes": 26338
+        },
+        {
+          "path": "assets/radix-vendor-e406f374.js",
+          "rawBytes": 158488,
+          "gzipBytes": 48544,
+          "brotliBytes": 42251
+        },
+        {
+          "path": "assets/icons-vendor-a393eef4.js",
+          "rawBytes": 113711,
+          "gzipBytes": 20037,
+          "brotliBytes": 16814
+        },
+        {
+          "path": "assets/supabase-vendor-ed15ea3e.js",
+          "rawBytes": 220549,
+          "gzipBytes": 57506,
+          "brotliBytes": 48721
+        },
+        {
+          "path": "assets/date-vendor-0b6e5186.js",
+          "rawBytes": 149947,
+          "gzipBytes": 38781,
+          "brotliBytes": 31713
+        },
+        {
+          "path": "assets/motion-vendor-7bc76eb2.js",
+          "rawBytes": 140753,
+          "gzipBytes": 46921,
+          "brotliBytes": 41778
+        },
+        {
+          "path": "assets/forms-vendor-9a8acfbd.js",
+          "rawBytes": 91418,
+          "gzipBytes": 25410,
+          "brotliBytes": 22968
+        }
+      ]
+    },
+    "largestChunks": [
+      {
+        "path": "assets/MarketingStudioPage-bdeb166d.js",
+        "type": "js",
+        "rawBytes": 2451116,
+        "gzipBytes": 680725,
+        "brotliBytes": 527341
+      },
+      {
+        "path": "assets/PolotnoDesignStudio-21894471.js",
+        "type": "js",
+        "rawBytes": 1691351,
+        "gzipBytes": 488543,
+        "brotliBytes": 185389
+      },
+      {
+        "path": "assets/index-bf00cd3c.js",
+        "type": "js",
+        "rawBytes": 1739018,
+        "gzipBytes": 482974,
+        "brotliBytes": 374686
+      },
+      {
+        "path": "assets/PropertySettingsCard-827d6228.js",
+        "type": "js",
+        "rawBytes": 701062,
+        "gzipBytes": 256132,
+        "brotliBytes": 209172
+      },
+      {
+        "path": "assets/mediabunny-aac-encoder-0d64ac89.js",
+        "type": "js",
+        "rawBytes": 993626,
+        "gzipBytes": 254126,
+        "brotliBytes": 203268
+      },
+      {
+        "path": "assets/usePdfBrandColor-1b9d0db5.js",
+        "type": "js",
+        "rawBytes": 455104,
+        "gzipBytes": 146976,
+        "brotliBytes": 125566
+      },
+      {
+        "path": "assets/mediabunny-mp3-encoder-f1c861c5.js",
+        "type": "js",
+        "rawBytes": 312770,
+        "gzipBytes": 132517,
+        "brotliBytes": 112903
+      },
+      {
+        "path": "assets/RichTextEditor-851e3732.js",
+        "type": "js",
+        "rawBytes": 417201,
+        "gzipBytes": 130289,
+        "brotliBytes": 111341
+      },
+      {
+        "path": "assets/index-f3349ad8.js",
+        "type": "js",
+        "rawBytes": 294241,
+        "gzipBytes": 99274,
+        "brotliBytes": 78807
+      },
+      {
+        "path": "assets/index-d42a26c6.js",
+        "type": "js",
+        "rawBytes": 285618,
+        "gzipBytes": 97090,
+        "brotliBytes": 77798
+      },
+      {
+        "path": "assets/chartStyles-0a00bc66.js",
+        "type": "js",
+        "rawBytes": 359805,
+        "gzipBytes": 94788,
+        "brotliBytes": 78263
+      },
+      {
+        "path": "assets/observability-vendor-359c211f.js",
+        "type": "js",
+        "rawBytes": 283847,
+        "gzipBytes": 93533,
+        "brotliBytes": 79910
+      },
+      {
+        "path": "assets/mediabunny-flac-encoder-bb0f9396.js",
+        "type": "js",
+        "rawBytes": 324188,
+        "gzipBytes": 82661,
+        "brotliBytes": 68508
+      },
+      {
+        "path": "assets/slide-1f0cb89f.js",
+        "type": "js",
+        "rawBytes": 257590,
+        "gzipBytes": 80635,
+        "brotliBytes": 59690
+      },
+      {
+        "path": "assets/index-fca5ed24.css",
+        "type": "css",
+        "rawBytes": 404430,
+        "gzipBytes": 59272,
+        "brotliBytes": 43553
+      },
+      {
+        "path": "assets/supabase-vendor-ed15ea3e.js",
+        "type": "js",
+        "rawBytes": 220549,
+        "gzipBytes": 57506,
+        "brotliBytes": 48721
+      },
+      {
+        "path": "assets/index.es-8ea31948.js",
+        "type": "js",
+        "rawBytes": 150611,
+        "gzipBytes": 51226,
+        "brotliBytes": 45401
+      },
+      {
+        "path": "assets/radix-vendor-e406f374.js",
+        "type": "js",
+        "rawBytes": 158488,
+        "gzipBytes": 48544,
+        "brotliBytes": 42251
+      },
+      {
+        "path": "assets/html2canvas.esm-e0a7d97b.js",
+        "type": "js",
+        "rawBytes": 202309,
+        "gzipBytes": 47398,
+        "brotliBytes": 38787
+      },
+      {
+        "path": "assets/motion-vendor-7bc76eb2.js",
+        "type": "js",
+        "rawBytes": 140753,
+        "gzipBytes": 46921,
+        "brotliBytes": 41778
+      }
+    ]
+  }
+}

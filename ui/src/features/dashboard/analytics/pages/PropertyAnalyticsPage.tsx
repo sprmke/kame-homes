@@ -2,32 +2,37 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
-import { Download, Loader2 } from 'lucide-react';
+import { CalendarRange, Download, Loader2, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiPerformanceReviewCard } from '@/features/dashboard/analytics/components/AiPerformanceReviewCard';
+import { AnalyticsDistributionCard } from '@/features/dashboard/analytics/components/AnalyticsDistributionCard';
 import { AnalyticsEmptyState } from '@/features/dashboard/analytics/components/AnalyticsEmptyState';
+import { AnalyticsGuestSignalsCard } from '@/features/dashboard/analytics/components/AnalyticsGuestSignalsCard';
 import { AnalyticsKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsKpiStrip';
 import { AnalyticsOverviewSection } from '@/features/dashboard/analytics/components/AnalyticsOverviewSection';
 import {
   AnalyticsSectionTabs,
   type AnalyticsSection,
 } from '@/features/dashboard/analytics/components/AnalyticsSectionTabs';
-import { AnalyticsStateStrip } from '@/features/dashboard/analytics/components/AnalyticsStateStrip';
 import { AnalyticsTeaserKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsTeaserKpiStrip';
 import { BookingPaceCard } from '@/features/dashboard/analytics/components/BookingPaceCard';
 import { ChannelMixCard } from '@/features/dashboard/analytics/components/ChannelMixCard';
-import { GuestInsightsCard } from '@/features/dashboard/analytics/components/GuestInsightsCard';
-import { LeadTimeLosCard } from '@/features/dashboard/analytics/components/LeadTimeLosCard';
+import { GuestAgeCard } from '@/features/dashboard/analytics/components/GuestAgeCard';
+import { GuestOriginsCard } from '@/features/dashboard/analytics/components/GuestOriginsCard';
+import { GuestPartySizeCard } from '@/features/dashboard/analytics/components/GuestPartySizeCard';
 import { PlaybookList } from '@/features/dashboard/analytics/components/PlaybookList';
 import { useAnalyticsAiReview } from '@/features/dashboard/analytics/hooks/useAnalyticsAiReview';
 import { usePropertyAnalyticsSummary } from '@/features/dashboard/analytics/hooks/usePropertyAnalyticsSummary';
+import {
+  LEAD_TIME_BUCKET_ORDER,
+  LENGTH_OF_STAY_BUCKET_ORDER,
+} from '@/features/dashboard/analytics/lib/analyticsDistributionRange';
 import {
   defaultAnalyticsPeriod,
   resolveAnalyticsPeriod,
   writeAnalyticsPeriodParams,
 } from '@/features/dashboard/analytics/lib/analyticsPeriod';
-import { downloadAnalyticsReportPdf } from '@/features/dashboard/analytics/lib/exportPdf';
 import { isFullAnalyticsBundle } from '@/features/dashboard/analytics/lib/types';
 import { BookingDateRangeFilter } from '@/features/dashboard/bookings/components/BookingDateRangeFilter';
 import {
@@ -47,6 +52,7 @@ import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton
 import { DashboardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
+import { CHART_INCOME_COLOR, CHART_INFO_COLOR } from '@/lib/charts/chartStyles';
 import { detectPresetFromRange, fromIsoDate, formatDateRangeDisplay } from '@/lib/date/navigation';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { pdfPropertyScope } from '@/lib/pdf/pdfScopeLabel';
@@ -105,6 +111,8 @@ export function PropertyAnalyticsPage() {
     if (!data || !isFullAnalyticsBundle(data)) return;
     setIsExportingPdf(true);
     try {
+      const { downloadAnalyticsReportPdf } =
+        await import('@/features/dashboard/analytics/lib/exportPdf');
       await downloadAnalyticsReportPdf({
         bundle: data,
         aiReview: aiReview ?? null,
@@ -202,44 +210,52 @@ export function PropertyAnalyticsPage() {
                 Unlock the full Analytics dashboard
               </p>
               <p className="text-muted-foreground max-w-md text-sm">
-                Trends, guest insights, forward-looking occupancy, and the AI performance review are
-                available on Pro and above.
+                Trends, guest insights, and the AI performance review are available on Pro and
+                above.
               </p>
               <Button onClick={() => openUpgradeModal('analyticsInsights')}>View plans</Button>
             </div>
           </>
         ) : (
           <>
-            <AnalyticsStateStrip state={data.stateAssessment} />
-            <AnalyticsKpiStrip kpis={data.kpis} period={data.period} />
+            <AnalyticsKpiStrip kpis={data.kpis} />
             <AnalyticsSectionTabs section={section} onSectionChange={setSection} />
 
-            {section === 'overview' ? (
-              <AnalyticsOverviewSection
-                bundle={data}
-                orgSlug={orgContext?.orgSlug ?? ''}
-                propertySlug={orgContext?.propertySlug ?? ''}
-                onOpenReview={() => setSection('ai-review')}
-              />
-            ) : null}
+            {section === 'overview' ? <AnalyticsOverviewSection bundle={data} /> : null}
 
             {section === 'trends' ? (
               <div className={SECTION_GAP}>
                 <BookingPaceCard pace={data.bookingPace} />
-                <LeadTimeLosCard
-                  lengthOfStay={data.distributions.lengthOfStay}
-                  leadTime={data.distributions.leadTime}
-                />
+                <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-3 lg:gap-4">
+                  <AnalyticsDistributionCard
+                    icon={CalendarRange}
+                    title="Lead time"
+                    sectionLabel="Booked this far ahead"
+                    data={data.distributions.leadTime}
+                    bucketOrder={LEAD_TIME_BUCKET_ORDER}
+                    dataKeyLabel="bookings"
+                    color={CHART_INFO_COLOR}
+                  />
+                  <AnalyticsDistributionCard
+                    icon={Moon}
+                    title="Length of stay"
+                    sectionLabel="Nights per stay"
+                    data={data.distributions.lengthOfStay}
+                    bucketOrder={LENGTH_OF_STAY_BUCKET_ORDER}
+                    dataKeyLabel="bookings"
+                    color={CHART_INCOME_COLOR}
+                  />
+                  <AnalyticsGuestSignalsCard kpis={data.kpis} />
+                </div>
               </div>
             ) : null}
 
             {section === 'guests' ? (
               <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-2 lg:gap-4">
                 <ChannelMixCard channelMix={data.distributions.channelMix} />
-                <GuestInsightsCard
-                  guestAge={data.distributions.guestAge}
-                  guestOrigins={data.distributions.guestOrigins}
-                />
+                <GuestAgeCard guestAge={data.distributions.guestAge} />
+                <GuestPartySizeCard partySize={data.distributions.partySize} />
+                <GuestOriginsCard guestOrigins={data.distributions.guestOrigins} />
               </div>
             ) : null}
 

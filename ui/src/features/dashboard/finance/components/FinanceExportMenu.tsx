@@ -8,7 +8,6 @@ import {
   fetchFinanceLineItems,
   fetchFinanceSummary,
 } from '@/features/dashboard/finance/hooks/useFinanceApi';
-import { downloadFinanceReportPdf } from '@/features/dashboard/finance/lib/exportPdf';
 import type {
   FinanceExportType,
   FinanceLineItem,
@@ -106,7 +105,8 @@ export function FinanceExportMenu({
       const needsStays = !isParkingScope && (type === 'stays' || type === 'combined');
       const needsOperating = type === 'operating' || type === 'combined';
 
-      const [summary, stays, operating] = await Promise.all([
+      const [{ downloadFinanceReportPdf }, summary, stays, operating] = await Promise.all([
+        import('@/features/dashboard/finance/lib/exportPdf'),
         cachedSummary ?? fetchFinanceSummary(query, scope),
         needsStays ? fetchAllFinanceBookings(query, scope) : Promise.resolve([]),
         needsOperating

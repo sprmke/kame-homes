@@ -7,7 +7,6 @@ import {
   fetchMaintenanceItems,
   fetchMaintenanceSummary,
 } from '@/features/dashboard/maintenance/hooks/useMaintenanceApi';
-import { downloadMaintenanceReportPdf } from '@/features/dashboard/maintenance/lib/exportPdf';
 import type {
   MaintenanceExportType,
   MaintenanceItem,
@@ -91,7 +90,8 @@ export function MaintenanceExportMenu({
     try {
       const needsItems = type === 'reminders' || type === 'combined';
 
-      const [summary, items] = await Promise.all([
+      const [{ downloadMaintenanceReportPdf }, summary, items] = await Promise.all([
+        import('@/features/dashboard/maintenance/lib/exportPdf'),
         cachedSummary ?? fetchMaintenanceSummary(query, propertyId),
         needsItems
           ? (cachedItems ?? fetchMaintenanceItems(query, { includeDueInRange: true }, propertyId))

@@ -262,46 +262,78 @@ export default defineConfig({
     sourcemap: posthogSourceMapsEnabled ? 'hidden' : false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'query-vendor': [
-            '@tanstack/query-async-storage-persister',
-            '@tanstack/query-persist-client-core',
-            '@tanstack/react-query',
-            '@tanstack/react-query-persist-client',
-          ],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'motion-vendor': ['framer-motion'],
-          'icons-vendor': ['lucide-react'],
-          'forms-vendor': ['@hookform/resolvers', 'react-hook-form', 'zod'],
-          'date-vendor': ['date-fns', 'dayjs', 'react-day-picker'],
-          'observability-vendor': ['@posthog/react', 'posthog-js'],
-          'ui-vendor': [
-            'class-variance-authority',
-            'clsx',
-            'cmdk',
-            'embla-carousel-react',
-            'sonner',
-            'tailwind-merge',
-          ],
-          'radix-vendor': [
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-collapsible',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-progress',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-          ],
+        // Function form so the vendor-group matching below is exact
+        // (`node_modules/<pkg>/`) instead of the substring match a static
+        // object config would do. We deliberately do NOT add manualChunks
+        // rules for first-party lazy-only code (e.g. the PDF export helpers
+        // under ui/src/lib/pdf/) or for editor-only vendor libs
+        // (konva/fabric/openpolotno/@blueprintjs) — those already ship
+        // bundled *inside* their owning lazy chunk (PolotnoDesignStudio-*.js,
+        // or Rollup's automatic shared-chunk splitting for exportPdf.ts).
+        // Naming a chunk via manualChunks makes Vite treat it as commonly-
+        // needed and add a `modulepreload` hint for it in index.html — i.e.
+        // it gets *eagerly* fetched on every page load, which is the opposite
+        // of what a lazy-only chunk needs (verified against a real build,
+        // production-readiness doc 01 Phase 1.2 edge case). Automatic
+        // chunking already gives these stable-enough dedup without that cost;
+        // scripts/pwa/check-precache-budget.mjs's total-KiB budget is the
+        // backstop against one silently growing unbounded.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+
+          const vendorGroups: Record<string, string[]> = {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'query-vendor': [
+              '@tanstack/query-async-storage-persister',
+              '@tanstack/query-persist-client-core',
+              '@tanstack/react-query',
+              '@tanstack/react-query-persist-client',
+            ],
+            'supabase-vendor': ['@supabase/supabase-js'],
+            'motion-vendor': ['framer-motion'],
+            'icons-vendor': ['lucide-react'],
+            'forms-vendor': ['@hookform/resolvers', 'react-hook-form', 'zod'],
+            'date-vendor': ['date-fns', 'dayjs', 'react-day-picker'],
+            'observability-vendor': ['@posthog/react', 'posthog-js'],
+            'ui-vendor': [
+              'class-variance-authority',
+              'clsx',
+              'cmdk',
+              'embla-carousel-react',
+              'sonner',
+              'tailwind-merge',
+            ],
+            'radix-vendor': [
+              '@radix-ui/react-alert-dialog',
+              '@radix-ui/react-avatar',
+              '@radix-ui/react-checkbox',
+              '@radix-ui/react-collapsible',
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-label',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-progress',
+              '@radix-ui/react-radio-group',
+              '@radix-ui/react-scroll-area',
+              '@radix-ui/react-select',
+              '@radix-ui/react-separator',
+              '@radix-ui/react-slot',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-tooltip',
+            ],
+          };
+
+          for (const [chunkName, packages] of Object.entries(vendorGroups)) {
+            for (const pkg of packages) {
+              // Match `node_modules/<pkg>/` exactly — a plain substring test
+              // would wrongly match e.g. `date-fns` against a hypothetical
+              // `date-fns-tz` package.
+              if (id.includes(`node_modules/${pkg}/`) || id.includes(`node_modules/${pkg}\\`)) {
+                return chunkName;
+              }
+            }
+          }
+          return undefined;
         },
       },
     },
