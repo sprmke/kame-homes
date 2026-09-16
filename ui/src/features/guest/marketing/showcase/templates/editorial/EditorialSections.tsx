@@ -1,4 +1,3 @@
-
 import { motion } from 'framer-motion';
 
 import { ShowcaseCanvas } from '@/features/guest/marketing/showcase/components/ShowcaseCanvas';
@@ -116,7 +115,14 @@ function EditorialHero({
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             {images[0] ? (
-              <img src={images[0]} alt="" className="size-full object-cover" fetchPriority="high" />
+              <img
+                src={images[0]}
+                alt=""
+                className="size-full object-cover"
+                loading="eager"
+                fetchPriority="high"
+                decoding="sync"
+              />
             ) : (
               <div className={cn('size-full', placeholders[0])} />
             )}
@@ -128,7 +134,13 @@ function EditorialHero({
             transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
             {images[1] ? (
-              <img src={images[1]} alt="" className="size-full object-cover" />
+              <img
+                src={images[1]}
+                alt=""
+                className="size-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <div className={cn('size-full', placeholders[1])} />
             )}
@@ -140,7 +152,13 @@ function EditorialHero({
             transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
             {images[2] ? (
-              <img src={images[2]} alt="" className="size-full object-cover" />
+              <img
+                src={images[2]}
+                alt=""
+                className="size-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <div className={cn('size-full', placeholders[2])} />
             )}

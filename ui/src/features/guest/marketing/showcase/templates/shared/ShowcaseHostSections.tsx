@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-
 import { ArrowUpRight, Mail, MessageCircle, Phone } from 'lucide-react';
 
 import { HostPublicSocialLinks } from '@/features/guest/marketing/hosts/components/HostPublicSocialLinks';
@@ -43,7 +42,15 @@ function HostAvatar({
   fallbackClassName?: string;
 }) {
   if (src) {
-    return <img src={src} alt="" className={cn('object-cover', className)} />;
+    return (
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className={cn('object-cover', className)}
+      />
+    );
   }
   return (
     <span

@@ -85,3 +85,6 @@ jobs:
 
       - name: No public source maps (production-readiness doc 02)
         run: node scripts/performance/assert-no-sourcemaps.mjs
+
+      - name: No render-blocking scripts in index.html (production-readiness doc 04)
+        run: node scripts/performance/assert-no-blocking-scripts.mjs

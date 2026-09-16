@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-
 import { Sparkles } from 'lucide-react';
 
 import { ShowcaseGalleryCarousel } from '@/features/guest/marketing/showcase/components/ShowcaseGalleryCarousel';
@@ -143,7 +142,14 @@ function HavenHero({ data, section }: { data: ShowcaseData; section: ShowcaseRes
             )}
           >
             {image ? (
-              <img src={image} alt="" fetchPriority="high" className="size-full object-cover" />
+              <img
+                src={image}
+                alt=""
+                loading="eager"
+                fetchPriority="high"
+                decoding="sync"
+                className="size-full object-cover"
+              />
             ) : (
               <div className="from-primary/20 size-full bg-gradient-to-br to-transparent" />
             )}

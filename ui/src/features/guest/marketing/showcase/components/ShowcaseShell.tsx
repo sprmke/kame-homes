@@ -142,6 +142,8 @@ function ShowcaseBrand({
           <img
             src={data.logoUrl!}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover object-center"
             onError={() => setLogoFailed(true)}
           />

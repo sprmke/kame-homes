@@ -194,6 +194,8 @@ export function ShowcaseContactPanel({
               <img
                 src={avatar}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className={cn('size-24 shrink-0 object-cover', avatarClassName, tokens.brandLogoBg)}
               />
             ) : (

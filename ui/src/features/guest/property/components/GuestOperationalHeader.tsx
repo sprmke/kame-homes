@@ -84,6 +84,10 @@ export function GuestOperationalHeader({
             <img
               src={imageUrl}
               alt=""
+              width={44}
+              height={44}
+              loading="lazy"
+              decoding="async"
               className="size-11 shrink-0 rounded-full object-cover shadow-sm ring-2 ring-white/40"
             />
           ) : (

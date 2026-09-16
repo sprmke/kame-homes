@@ -146,6 +146,41 @@ async function main() {
   }
 
   let server = null;
+  let chrome = null;
+  // A killed/interrupted run must not leave an orphaned `vite preview` server
+  // or headless Chrome process behind — both were observed to survive a
+  // plain `kill` of this script's own PID during development of this tool.
+  const cleanup = () => {
+    try {
+      // chrome-launcher's kill() is synchronous (returns undefined, not a
+      // Promise) despite the async-sounding name — no .catch() to chain.
+      chrome?.kill();
+    } catch {
+      // Best-effort cleanup; never let a cleanup failure mask the real error.
+    }
+    // Belt-and-suspenders: chrome-launcher spawns Chrome detached in its own
+    // process group so `.kill()` can (in principle) signal the whole tree,
+    // but this was observed to leave GPU-helper/renderer children alive on
+    // macOS. Chrome is launched with `detached: true`, so its PID is also
+    // its process-group ID — a negative PID signals the whole group.
+    if (chrome?.pid) {
+      try {
+        process.kill(-chrome.pid, 'SIGKILL');
+      } catch {
+        // ESRCH is expected once chrome.kill() already reaped it; ignore.
+      }
+    }
+    server?.stop();
+  };
+  process.once('SIGINT', () => {
+    cleanup();
+    process.exit(130);
+  });
+  process.once('SIGTERM', () => {
+    cleanup();
+    process.exit(143);
+  });
+
   let baseUrl = externalBaseUrl;
   if (!baseUrl) {
     console.log('Starting local `vite preview` server...');
@@ -154,10 +189,44 @@ async function main() {
   }
 
   const chromePath = process.env.CHROME_PATH || undefined;
-  const chrome = await launch({
+  chrome = await launch({
     chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'],
     chromePath,
   });
+
+  // Fail fast with a clear diagnostic rather than silently reporting `n/a`
+  // for all 9 routes: some sandboxed/CI-like environments make headless
+  // Chrome unable to paint anything (Lighthouse raises NO_FCP), and it has
+  // been observed to be *intermittent* rather than a hard permanent failure
+  // in at least one such environment — hence the retry before giving up.
+  // This is an environment limitation, not a bug in this script or the app —
+  // re-run on a machine with normal headless Chrome support (a developer
+  // laptop, or GitHub Actions, which already installs Chromium via
+  // `bun x playwright install chromium`).
+  let sanityOk = false;
+  let lastSanityError = null;
+  for (let attempt = 1; attempt <= 2 && !sanityOk; attempt += 1) {
+    try {
+      const sanity = await runLighthouse(baseUrl, chrome.port);
+      sanityOk = sanity.lcpMs != null || sanity.performanceScore != null;
+      if (!sanityOk) lastSanityError = 'Lighthouse returned no metrics (NO_FCP)';
+    } catch (err) {
+      lastSanityError = err?.message ?? String(err);
+    }
+    if (!sanityOk && attempt === 1) {
+      console.log('  Sanity probe failed, retrying once before giving up...');
+    }
+  }
+  if (!sanityOk) {
+    cleanup();
+    fail(
+      `Headless Chrome could not paint the page after 2 attempts (${lastSanityError}). ` +
+        'This environment likely has no real display server available to Chrome ' +
+        '(seen: "CVDisplayLinkCreateWithCGDisplay failed" / "did not paint any content" on ' +
+        'the machine this script was written on). Re-run on a machine with working headless ' +
+        'Chrome support — see scripts/README.md for the full troubleshooting note.'
+    );
+  }
 
   const results = [];
   try {
@@ -166,10 +235,13 @@ async function main() {
       process.stdout.write(`  Auditing ${route.persona} / ${route.name} (${url})... `);
       try {
         const metrics = await runLighthouse(url, chrome.port);
-        results.push({ ...route, url, metrics, error: null });
+        const hasMetrics = metrics.lcpMs != null && metrics.performanceScore != null;
+        results.push({ ...route, url, metrics, error: hasMetrics ? null : 'Lighthouse returned no metrics (see JSON)' });
+        const fmt = (v, digits = 0) => (v == null ? 'n/a' : v.toFixed(digits));
         console.log(
-          `LCP ${Math.round(metrics.lcpMs ?? -1)}ms, CLS ${(metrics.clsScore ?? -1).toFixed(3)}, ` +
-            `TBT ${Math.round(metrics.tbtMs ?? -1)}ms, score ${Math.round(metrics.performanceScore ?? -1)}`
+          `LCP ${fmt(metrics.lcpMs)}ms, CLS ${fmt(metrics.clsScore, 3)}, ` +
+            `TBT ${fmt(metrics.tbtMs)}ms, score ${fmt(metrics.performanceScore)}` +
+            (hasMetrics ? '' : ' — WARNING: incomplete trace, re-run (see README troubleshooting)')
         );
       } catch (err) {
         results.push({ ...route, url, metrics: null, error: String(err?.message ?? err) });
@@ -177,8 +249,7 @@ async function main() {
       }
     }
   } finally {
-    await chrome.kill();
-    server?.stop();
+    cleanup();
   }
 
   const snapshot = {

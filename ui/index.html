@@ -34,10 +34,42 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Production-readiness doc 04 (defer non-critical scripts): this stylesheet
+      covers every host-selectable brand font (15 families total — public
+      pages / marketing / email branding let a host pick one), so most of it
+      is unused on any single page load. Loading it as a normal blocking
+      `<link rel="stylesheet">` makes it a render-blocking third-party request
+      on *every* route, including the guest booking form.
+
+      Loaded as `preload` + swap-to-stylesheet on `onload` instead: the
+      browser still fetches it immediately (same network priority as before),
+      but no longer blocks first paint on it — text renders in the fallback
+      stack from tailwind.config's `fontFamily` and swaps to the real font
+      once it arrives (`display=swap` already set in the URL, so this does
+      not introduce new FOUT that wasn't already possible on a slow
+      connection). The <noscript> fallback covers the no-JS case.
+
+      Do not remove the `preload`+`onload` combination without re-verifying
+      LCP on `/` and `/properties` — that was the specific measured
+      regression this fixes (see docs/workflow/planned/
+      production-readiness-checklist/04-defer-non-critical-scripts.md).
+    -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Serif:ital@0;1&family=Lora:ital,wght@0,400..700;1,400..700&family=Inter+Tight:wght@300..700&family=Space+Grotesk:wght@300..700&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@200..800&family=Manrope:wght@200..800&family=Sora:wght@300..700&family=Jost:wght@300..600&family=Figtree:wght@300..800&family=Nunito+Sans:ital,wght@0,400..700;1,400..700&display=swap"
-      rel="stylesheet"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Serif:ital@0;1&family=Lora:ital,wght@0,400..700;1,400..700&family=Inter+Tight:wght@300..700&family=Space+Grotesk:wght@300..700&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@200..800&family=Manrope:wght@200..800&family=Sora:wght@300..700&family=Jost:wght@300..600&family=Figtree:wght@300..800&family=Nunito+Sans:ital,wght@0,400..700;1,400..700&display=swap"
+      />
+    </noscript>
     <!-- Favicon — root-absolute paths so nested routes (e.g. /org/.../property/...) resolve correctly -->
     <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />

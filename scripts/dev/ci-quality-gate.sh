@@ -50,6 +50,8 @@ run_step "bundle budgets + chunk-graph leak check (production-readiness doc 00/0
   bun run check:budgets
 run_step "no public source maps (production-readiness doc 02)" \
   node scripts/performance/assert-no-sourcemaps.mjs
+run_step "no render-blocking scripts in index.html (production-readiness doc 04)" \
+  node scripts/performance/assert-no-blocking-scripts.mjs
 
 echo ""
 echo "OK — quality gate passed (safe to push for CI/CD quality job)."

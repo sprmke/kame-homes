@@ -66,6 +66,7 @@ export function GuestFormValidIdUpload({
               <img
                 src={preview || (value && URL.createObjectURL(value))}
                 alt={`${label} preview`}
+                decoding="async"
                 className="h-full w-full object-cover"
                 onError={() => {
                   onImageLoadErrorChange(true);

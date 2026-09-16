@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 
-
 import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
@@ -144,7 +143,9 @@ function AuroraHero({ data, section }: { data: ShowcaseData; section: ShowcaseRe
             src={section.images[0]}
             alt=""
             className="size-full object-cover"
+            loading="eager"
             fetchPriority="high"
+            decoding="sync"
           />
         </motion.div>
       ) : (

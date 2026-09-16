@@ -42,7 +42,13 @@ export function ShowcaseFooter({ data }: { data: ShowcaseData }) {
               <span
                 className={cn('size-12 shrink-0 overflow-hidden rounded-lg', tokens.brandLogoBg)}
               >
-                <img src={data.logoUrl} alt="" className="size-full object-cover object-center" />
+                <img
+                  src={data.logoUrl}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="size-full object-cover object-center"
+                />
               </span>
             ) : null}
             <div className="min-w-0">

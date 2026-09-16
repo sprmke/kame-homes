@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 
-
 import { motion } from 'framer-motion';
 
 import { ShowcaseCanvas } from '@/features/guest/marketing/showcase/components/ShowcaseCanvas';
@@ -111,7 +110,9 @@ function SpotlightHero({
           src={section.images[0]}
           alt=""
           className="absolute inset-0 size-full object-cover opacity-45 transition-[transform,opacity] duration-700 ease-out motion-safe:group-hover:scale-[1.02]"
+          loading="eager"
           fetchPriority="high"
+          decoding="sync"
         />
       ) : null}
       <ShowcaseCanvas variant="grain" paused={canvasOff} className="opacity-70" />
