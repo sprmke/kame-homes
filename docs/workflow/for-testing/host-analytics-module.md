@@ -3,7 +3,7 @@ stage: for-testing
 title: 'Host Analytics module — performance insights + AI coaching'
 status: in-progress
 tags: [planning, planned-modules, analytics, ai, plans, rbac, dashboard]
-updated: 2026-09-10
+updated: 2026-09-15
 ---
 
 # Host Analytics module — performance insights + AI coaching
@@ -48,13 +48,16 @@ remains unbuilt.
 - **Past vs ahead are labeled.** KPI occupancy shows `X of Y nights` for the date range. Next
   90 days is a stacked card (bar + confirmed revenue + open nights), not three equal metrics
   that mixed pickup into a forward window.
-- **State chips restored** above the KPI grid (`AnalyticsStateStrip`): occupancy outlook +
-  unpaid balances when relevant.
-- **Do next** (`AnalyticsNextActionsCard`): up to three CTAs from occupancy/balance (pricing,
-  marketing, collect balances, playbook / AI review).
+- **State chips removed** (2026-09-15): on-screen occupancy-outlook / unpaid-balance pills above
+  the KPI grid retired; `stateAssessment` still powers PDF, AI review, and playbook matching.
+- **Do next** (`AnalyticsNextActionsCard`): removed; former CTA list retired with the overview
+  polish pass.
 - **Empty listing visits omitted** instead of a full zero card. Compact channel mix on Overview
   when the period has bookings.
-- **Page subtitle removed** (the state chips carry the story).
+- **Page subtitle removed** (no duplicate story above the KPI grid).
+- **AI review demo seed** (2026-09-15): `bun run seed:analytics-demo` now inserts a mock latest
+  `property_analytics_reviews` row (`model = analytics-demo`) for monaco-2612 so the AI review
+  tab can be QA'd locally without Gemini or the weekly cron.
 
 ### Overview polish pass (2026-09-10) — host review feedback
 
@@ -276,7 +279,9 @@ booking fields needed. Key columns already present: `check_in_date` / `check_out
 (text `MM-DD-YYYY` → normalize with `_shared/utils.ts`), `number_of_nights`, `booking_rate`,
 `down_payment`, `balance`, `security_deposit`, `guest_additional_fee`, `status`,
 `created_at` (reservation timestamp → lead time + pace), `booking_source` /
-`booking_booking_channel` / `external_source` / `find_us` (channel/source mix),
+`booking_booking_channel` / `external_source` / `find_us` (channel/source mix —
+**Direct** website bookings included; `direct` / `website` aliases canonicalized via
+`_shared/analyticsChannel.ts`),
 `number_of_adults` / `number_of_children`, `status_updated_at`, `settled_at`. Money helpers
 reuse `_shared/bookingFinance.ts`; cancellation logic reuses `_shared/superhostMetrics.ts`
 (incl. the OTA feed-drop exclusion).
