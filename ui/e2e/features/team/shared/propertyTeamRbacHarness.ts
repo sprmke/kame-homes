@@ -1261,13 +1261,51 @@ export async function installPropertyTeamRbacMocks(
   });
 }
 
+const ADMIN_DESKTOP_NAV_MIN_WIDTH = 1024;
+
+function usesCompactAdminNav(page: Page): boolean {
+  const width = page.viewportSize()?.width ?? ADMIN_DESKTOP_NAV_MIN_WIDTH;
+  return width < ADMIN_DESKTOP_NAV_MIN_WIDTH;
+}
+
+export function adminNav(page: Page) {
+  if (usesCompactAdminNav(page)) {
+    return page.getByRole('navigation', { name: 'Admin' });
+  }
+  // Desktop sidebar list lives in <nav aria-label="Main menu"> (aside label is complementary).
+  return page.getByRole('navigation', { name: 'Main menu' });
+}
+
+function moreNav(page: Page) {
+  return page.getByRole('navigation', { name: 'More' });
+}
+
+function adminNavEntry(root: ReturnType<typeof adminNav>, label: string) {
+  return root.getByRole('link', { name: label }).or(root.getByRole('listitem', { name: label }));
+}
+
+async function openAdminMoreSheet(page: Page) {
+  if (await moreNav(page).isVisible()) return;
+  await dismissInstallPromptIfPresent(page);
+  await adminNav(page)
+    .getByRole('listitem', { name: /^More\b/ })
+    .click();
+  await expect(moreNav(page)).toBeVisible({ timeout: 10_000 });
+}
+
+async function dismissInstallPromptIfPresent(page: Page) {
+  const dismiss = page.getByRole('button', { name: 'Dismiss' });
+  if (await dismiss.isVisible().catch(() => false)) {
+    await dismiss.click();
+  }
+}
+
 export async function openPropertyDashboard(page: Page) {
   // Bookings shell — same sidebar as dashboard, fewer page-specific mocks.
   await page.goto(teamRbacPaths.bookings);
+  await dismissInstallPromptIfPresent(page);
   await expect(adminNav(page)).toBeVisible({ timeout: 20_000 });
-  await expect(adminNav(page).getByRole('link', { name: 'Bookings' })).toBeVisible({
-    timeout: 20_000,
-  });
+  await expectNavLinkVisible(page, 'Bookings');
 }
 
 export async function expectOnAllowedPropertySection(page: Page) {
@@ -1278,15 +1316,32 @@ export async function expectOnAllowedPropertySection(page: Page) {
   await expect(adminNav(page)).toBeVisible({ timeout: 20_000 });
 }
 
-export function adminNav(page: Page) {
-  // Desktop sidebar list lives in <nav aria-label="Main menu"> (aside label is complementary).
-  return page.getByRole('navigation', { name: 'Main menu' });
-}
-
 export async function expectNavLinkVisible(page: Page, label: string) {
-  await expect(adminNav(page).getByRole('link', { name: label })).toBeVisible();
+  const root = adminNav(page);
+  if (!usesCompactAdminNav(page)) {
+    await expect(root.getByRole('link', { name: label })).toBeVisible();
+    return;
+  }
+
+  const bottomTab = adminNavEntry(root, label);
+  if ((await bottomTab.count()) > 0) {
+    await expect(bottomTab.first()).toBeVisible();
+    return;
+  }
+
+  await openAdminMoreSheet(page);
+  await expect(moreNav(page).getByRole('link', { name: label })).toBeVisible();
 }
 
 export async function expectNavLinkHidden(page: Page, label: string) {
-  await expect(adminNav(page).getByRole('link', { name: label })).toHaveCount(0);
+  const root = adminNav(page);
+  if (!usesCompactAdminNav(page)) {
+    await expect(root.getByRole('link', { name: label })).toHaveCount(0);
+    return;
+  }
+
+  await expect(adminNavEntry(root, label)).toHaveCount(0);
+
+  await openAdminMoreSheet(page);
+  await expect(moreNav(page).getByRole('link', { name: label })).toHaveCount(0);
 }
