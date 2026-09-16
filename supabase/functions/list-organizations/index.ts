@@ -45,6 +45,7 @@ serveAuthenticated('list-organizations', async (req, user) => {
     }
 
     return jsonSuccess(req, {
+      isSuperAdmin: true,
       organizations: ((data ?? []) as OrgRow[]).map((org) => ({
         ...serializeOrganization(org),
         accessKind: 'platform_admin' as OrgAccessKind,
@@ -184,6 +185,7 @@ serveAuthenticated('list-organizations', async (req, user) => {
   const organizations = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 
   return jsonSuccess(req, {
+    isSuperAdmin: false,
     organizations: organizations.map((org) => ({
       ...serializeOrganization(org),
       accessKind: accessKindForOrg(org.id, ownedIds, orgAdminIds, platformAdmin),

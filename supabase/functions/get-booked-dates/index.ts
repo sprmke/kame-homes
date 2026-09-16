@@ -1,5 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import { jsonError, jsonResponse } from '../_shared/httpResponse.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { loadBlockedRanges } from '../_shared/propertyBlockedDates.ts';
 import { resolvePublicPropertyId } from '../_shared/propertyScope.ts';
 import { servePublic } from '../_shared/serveEdge.ts';

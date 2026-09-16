@@ -39,7 +39,7 @@ serveAuthenticated('create-parking', async (req) => {
     return jsonError(req, 'orgId is required');
   }
 
-  const orgAccess = await verifyOrgAccess(req, { orgId }, 'org:parkings:create');
+  const orgAccess = await verifyOrgAccess(req, { orgId }, 'org.parkings:create');
 
   const parsed = parseParkingSlotFromBody(body);
   if (!parsed.ok) {

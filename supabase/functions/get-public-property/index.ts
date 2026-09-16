@@ -10,6 +10,7 @@ import {
   loadPublicPropertyById,
   loadPublicPropertyBySlug,
 } from '../_shared/publicPropertyService.ts';
+import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { readPropertyIdFromUrl, readPropertySlugFromUrl } from '../_shared/propertyScope.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 

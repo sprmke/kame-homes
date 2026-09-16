@@ -7,7 +7,7 @@
  * Auth: verifyAdminJwt (see admin-auth.mdc §6).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import {
   DEFAULT_SIGNED_URL_TTL_SEC,
   parseStorageObjectUrl,

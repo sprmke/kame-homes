@@ -20,7 +20,7 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
 
 serveAuthenticated('parking-pricing', async (req) => {
-  const permission = req.method === 'GET' ? 'org:parkings:view' : 'org:parkings:manage';
+  const permission = req.method === 'GET' ? 'org.parkings:view' : 'org.parkings:manage';
   const access = await resolveScopedParkingAccess(req, permission);
   const { parkingRow, user } = access;
   const parkingId = parkingRow.id;
