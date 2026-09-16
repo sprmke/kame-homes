@@ -3,6 +3,9 @@
  * Known channels get a canonical name; anything else is de-slugified
  * (`marketing_review_seed` -> `Marketing Review Seed`) so the legend never
  * shows a database value.
+ *
+ * Mirror: `supabase/functions/_shared/analyticsChannel.ts`
+ * Keep both in lockstep — Direct / website aliases must roll up together.
  */
 
 const KNOWN_CHANNEL_LABELS: Record<string, string> = {
@@ -23,10 +26,12 @@ const KNOWN_CHANNEL_LABELS: Record<string, string> = {
   referral: 'Referral',
   walkin: 'Walk-in',
   walk_in: 'Walk-in',
+  tiktok: 'TikTok',
   unknown: 'Unknown',
   '': 'Unknown',
 };
 
+/** Canonical channel key used for mix aggregation + display. */
 export function prettyChannelLabel(raw: string | null | undefined): string {
   const key = (raw ?? '').trim().toLowerCase();
   if (key in KNOWN_CHANNEL_LABELS) return KNOWN_CHANNEL_LABELS[key];

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import type { AnalyticsAiReviewRecord } from '@/features/dashboard/analytics/lib/aiReviewTypes';
+import { collapseTopGuestOrigins } from '@/features/dashboard/analytics/lib/guestOriginsDisplay';
 import type {
   AnalyticsBundle,
   AnalyticsPlaybookArticle,
@@ -52,10 +53,11 @@ function accentForChange(n: number | null): 'positive' | 'negative' | 'neutral' 
 
 function buildKpiItems(bundle: AnalyticsBundle): PdfKpiItem[] {
   const k = bundle.kpis;
+  // Rate KPIs from analytics-summary are already 0–100 (not 0–1 fractions).
   return [
     {
       label: 'Occupancy',
-      value: `${Math.round(k.occupancyRate.value * 100)}%${pct(k.occupancyRate.changePctVsPrior)}`,
+      value: `${Math.round(k.occupancyRate.value)}%${pct(k.occupancyRate.changePctVsPrior)}`,
       accent: accentForChange(k.occupancyRate.changePctVsPrior),
     },
     {
@@ -82,13 +84,13 @@ function buildKpiItems(bundle: AnalyticsBundle): PdfKpiItem[] {
     { label: 'Avg lead time', value: `${Math.round(k.avgLeadTimeDays.value)} days` },
     {
       label: 'Cancellation rate',
-      value: `${Math.round(k.cancellationRate.value * 100)}%`,
+      value: `${Math.round(k.cancellationRate.value)}%`,
       accent: k.cancellationRate.value > 0 ? 'negative' : 'neutral',
     },
     { label: 'Avg rating', value: k.avgRating.value > 0 ? k.avgRating.value.toFixed(1) : '-' },
-    { label: 'Repeat guests', value: `${Math.round(k.repeatGuestRate.value * 100)}%` },
+    { label: 'Repeat guests', value: `${Math.round(k.repeatGuestRate.value)}%` },
     { label: 'Avg response time', value: `${Math.round(k.avgResponseMinutes.value)} min` },
-    { label: '24h response rate', value: `${Math.round(k.responseWithin24hRate.value * 100)}%` },
+    { label: '24h response rate', value: `${Math.round(k.responseWithin24hRate.value)}%` },
   ];
 }
 
@@ -195,7 +197,7 @@ function appendDistributionsSection(doc: jsPDF, y: number, bundle: AnalyticsBund
   const topChannels = [...bundle.distributions.channelMix]
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
-  const topOrigins = bundle.distributions.guestOrigins.slice(0, 6);
+  const topOrigins = collapseTopGuestOrigins(bundle.distributions.guestOrigins);
   const rowCount = Math.max(topChannels.length, topOrigins.length);
   const rows: string[][] = [];
   for (let i = 0; i < rowCount; i += 1) {

@@ -40,6 +40,7 @@ export type AnalyticsDistributions = {
   channelMix: Array<{ channel: string; count: number; revenue: number }>;
   guestAge: Array<{ bucket: string; count: number }>;
   guestOrigins: Array<{ origin: string; count: number; pct: number }>;
+  partySize: Array<{ bucket: string; count: number }>;
 };
 
 export type AnalyticsForward = {
@@ -53,10 +54,11 @@ export type AnalyticsForward = {
 
 export type AnalyticsPaceMonth = {
   monthStart: string;
-  cumulativeReservations: number;
-  cumulativeRevenue: number;
-  cumulativeReservationsLastYear: number;
-  cumulativeRevenueLastYear: number;
+  /** New bookings created in this bucket (not cumulative). */
+  reservations: number;
+  revenue: number;
+  reservationsLastYear: number;
+  revenueLastYear: number;
 };
 
 export type AnalyticsPickup = { last7Days: number; last30Days: number };
