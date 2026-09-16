@@ -59,7 +59,7 @@ skip_nonce_check = false
 #     in Dashboard → Authentication → Attack Protection (or via config-as-code).
 # The UI always sends `options.captchaToken`; GoTrue ignores it while disabled.
 [auth.captcha]
-enabled = true
+enabled = false
 provider = "turnstile"
 secret = "env(TURNSTILE_SECRET_KEY)"
 
@@ -291,6 +291,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-booking-asset-url]
+verify_jwt = false
+
+[functions.update-booking-details]
 verify_jwt = false
 
 [functions.cancel-booking]

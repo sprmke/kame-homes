@@ -3,7 +3,7 @@
  * Host: path under org id. Guest: path under guest/{userId}.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
