@@ -237,6 +237,16 @@ export default defineConfig({
   define: {
     __PWA_BUILD_ID__: JSON.stringify(pwaBuildId),
   },
+  // Strip dev-only code from production output (production-readiness doc 02,
+  // Phase 2.2). Deliberately does NOT drop console.log/warn/error — those are
+  // the only record of a swallowed error in a catch block, and PostHog's
+  // exception capture goes through window.onerror / the React error boundary,
+  // not by intercepting console output, so dropping them would cost real
+  // debuggability for no correctness or bundle-size benefit.
+  esbuild: {
+    drop: ['debugger'],
+    pure: ['console.debug'],
+  },
   plugins: [
     patchOpenPolotnoHighlighter(),
     scopeBlueprintCssPlugin(),
@@ -260,6 +270,13 @@ export default defineConfig({
     // 'hidden' still generates + uploads maps but omits the sourceMappingURL
     // comment from shipped JS, so they aren't publicly fetchable.
     sourcemap: posthogSourceMapsEnabled ? 'hidden' : false,
+    // Explicit (production-readiness doc 02, Phase 2.1) — these already match
+    // Vite 4's defaults, but pinning them means a future debugging change
+    // (e.g. `minify: false`) can never ship to production silently. esbuild
+    // over lightningcss for CSS: no extra native-binary dependency for a
+    // measured-marginal gain (see doc 02 §Phase 2.1).
+    minify: 'esbuild',
+    cssMinify: 'esbuild',
     rollupOptions: {
       output: {
         // Function form so the vendor-group matching below is exact

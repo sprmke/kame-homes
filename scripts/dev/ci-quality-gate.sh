@@ -48,6 +48,8 @@ run_step "assert image optimizer stays lazy (plan §10.6)" \
   node scripts/media/assert-lazy-optimizer.mjs
 run_step "bundle budgets + chunk-graph leak check (production-readiness doc 00/01)" \
   bun run check:budgets
+run_step "no public source maps (production-readiness doc 02)" \
+  node scripts/performance/assert-no-sourcemaps.mjs
 
 echo ""
 echo "OK — quality gate passed (safe to push for CI/CD quality job)."

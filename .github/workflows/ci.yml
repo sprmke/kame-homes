@@ -82,3 +82,6 @@ jobs:
 
       - name: Bundle budgets + chunk-graph leak check (production-readiness doc 00/01)
         run: bun run check:budgets
+
+      - name: No public source maps (production-readiness doc 02)
+        run: node scripts/performance/assert-no-sourcemaps.mjs
