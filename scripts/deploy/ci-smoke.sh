@@ -54,7 +54,7 @@ export SUPABASE_ACCESS_TOKEN
 echo "→ supabase functions list"
 FUNCS="$("${SUPABASE[@]}" functions list 2>/dev/null || true)"
 for fn in list-public-properties get-public-property get-booked-dates search-listings; do
-  if ! rg -q "$fn" <<<"$FUNCS"; then
+  if ! grep -q "$fn" <<<"$FUNCS"; then
     echo "ERROR: $fn not found in functions list." >&2
     echo "$FUNCS" >&2
     exit 1
