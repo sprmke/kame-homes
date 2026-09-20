@@ -30,6 +30,7 @@ import {
   PWA_VERSION_CHECK_INTERVAL_MS,
   PWA_VERSION_URL,
   RUNTIME_CACHES,
+  SW_CACHEABLE_FUNCTIONS,
   SW_MESSAGE,
 } from './shared';
 
@@ -244,25 +245,65 @@ registerRoute(
   })
 );
 
-// Allowlisted read-only Edge Function GETs — NetworkFirst with a short timeout so
-// the app stays live but can fall back to the last good copy offline. The
-// allowlist itself is enforced app-side (`@/lib/pwa/offlineQueryAllowlist`); here
-// we just cache any GET to a function whose name looks read-only. Booking status
-// is excluded (see `BOOKING_STATUS_FUNCTION_RE` above) — it gets a much shorter
-// max age since staleness there is operationally misleading, not just cosmetic.
-const READONLY_FUNCTION_RE =
-  /\/functions\/v1\/(?!(?:get-booking|list-bookings)(?:[/?]|$))(get-|list-|dashboard-stats|finance-summary|finance-bookings|finance-line-items|maintenance-items|maintenance-summary|notifications-list|social-inbox-threads|social-inbox-messages|org-settings|property-templates-settings|parking-settings|guest-trips|guest-messages|guest-profile)/;
+// Allowlisted PUBLIC Edge Function GETs only — NetworkFirst with a short timeout
+// so the app stays live but can fall back to the last good copy offline.
+//
+// `SW_CACHEABLE_FUNCTIONS` (production-readiness doc 11, Phase 11.5) replaced a
+// broad `get-*`/`list-*` prefix regex here. That regex matched every
+// admin/tenant/guest-PII read whose function name happened to start with
+// `get-`/`list-` (bookings, finance, maintenance, notifications, inbox, org
+// settings, guest profile/messages/trips — all server-classified `private,
+// no-store` or `no-store` in `_shared/httpResponse.ts`), caching them for up to
+// 3 days. A 3-day-stale SW cache of tenant/guest PII on a shared or kiosk
+// device is a persistent leak, not just staleness — the SW must never
+// runtime-cache anything in a `no-store` class, full stop. Only the small,
+// explicit, security-reviewed set of genuinely public functions in
+// `SW_CACHEABLE_FUNCTIONS` may be cached here; a new function is never
+// implicitly included by matching a naming pattern.
+const FUNCTION_PATH_RE = /\/functions\/v1\/([^/?]+)/;
+
+function cacheableFunctionName(pathname: string): string | null {
+  const match = FUNCTION_PATH_RE.exec(pathname);
+  const name = match?.[1];
+  return name && SW_CACHEABLE_FUNCTIONS.has(name) ? name : null;
+}
 
 registerRoute(
-  ({ url, request }) => request.method === 'GET' && READONLY_FUNCTION_RE.test(url.pathname),
+  ({ url, request }) => {
+    if (request.method !== 'GET') return false;
+    const name = cacheableFunctionName(url.pathname);
+    if (!name) return false;
+    // Host-only unpublished draft. Server already returns `private, no-store`,
+    // but Workbox caches on status 200 unless we also refuse the URL.
+    if (
+      name === 'get-public-showcase' &&
+      (url.searchParams.get('preview') === '1' || url.searchParams.get('embed') === '1')
+    ) {
+      return false;
+    }
+    return true;
+  },
   new NetworkFirst({
     cacheName: RUNTIME_CACHES.api,
     networkTimeoutSeconds: 6,
     plugins: [
       new CacheableResponsePlugin({ statuses: [200] }),
+      {
+        cacheWillUpdate: async ({ response }: { response: Response }) => {
+          const cacheControl = response.headers.get('Cache-Control') ?? '';
+          if (/\bno-store\b/i.test(cacheControl) || /(^|,)\s*private\b/i.test(cacheControl)) {
+            return null;
+          }
+          return response.status === 200 ? response : null;
+        },
+      },
       new ExpirationPlugin({
+        // Public listing/search data — short-lived like the server's own
+        // `publicDynamic`/`publicAvailability` classes, not the old 3-day TTL.
+        // This is strictly an offline/flaky-network fallback (NetworkFirst,
+        // 6s timeout), not a substitute for a fresh hit.
         maxEntries: 200,
-        maxAgeSeconds: 60 * 60 * 24 * 3,
+        maxAgeSeconds: 60 * 10,
         purgeOnQuotaError: true,
       }),
     ],

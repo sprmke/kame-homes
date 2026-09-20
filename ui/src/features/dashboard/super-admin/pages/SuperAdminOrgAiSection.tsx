@@ -1,6 +1,6 @@
 import { AiCreditWalletCard } from '@/features/dashboard/super-admin/components/AiCreditWalletCard';
-import { SuperAdminGenerationOverridesCard } from '@/features/dashboard/super-admin/components/SuperAdminGenerationOverridesCard';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
+import { SuperAdminGenerationOverridesCard } from '@/features/dashboard/super-admin/components/SuperAdminGenerationOverridesCard';
 
 export function SuperAdminOrgAiSection() {
   const { org } = useSuperAdminOrgContext();

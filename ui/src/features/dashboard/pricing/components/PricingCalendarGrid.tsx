@@ -151,6 +151,9 @@ export function PricingCalendarGrid({
   // Touch range selection: pointer drag (`onDateMouseDown` → `onDateMouseEnter` →
   // `onSelectionEnd`) never fires on touch, so below `lg` we use a two-tap model —
   // first tap anchors, second tap commits the range through the same handlers.
+  // Keyboard users get the identical two-step model on Enter/Space regardless of
+  // breakpoint (see the `event.detail === 0` branch in PricingDayCell's onClick),
+  // since they have no drag gesture either.
   const isBelowLg = useIsBelowLg();
   const [touchAnchor, setTouchAnchor] = useState<Date | null>(null);
 
@@ -244,7 +247,7 @@ export function PricingCalendarGrid({
                         touchMode={isBelowLg}
                         touchArmed={touchAnchor != null && isSameDay(touchAnchor, day)}
                         onTouchSelect={handleTouchSelect}
-                        onCancelTouchAnchor={isBelowLg ? () => setTouchAnchor(null) : undefined}
+                        onCancelTouchAnchor={() => setTouchAnchor(null)}
                         onDateClick={onDateClick}
                         onDateMouseDown={onDateMouseDown}
                         onDateMouseEnter={onDateMouseEnter}
@@ -417,19 +420,22 @@ function PricingDayCell({
         if (touchMode) return;
         if (isInteractive) onDateMouseEnter(day);
       }}
-      onClick={() => {
+      onClick={(event) => {
         if (singleStay) {
           onBookingClick(singleStay);
           return;
         }
         if (overlappingStays) return;
         if (!isInteractive) {
-          // Locked cell while a touch range is armed — clear without layout shift.
+          // Locked cell while a range is armed — clear without layout shift.
           onCancelTouchAnchor?.();
           return;
         }
-        // Touch: two-tap range select (pointer drag doesn't exist on touch).
-        if (touchMode && onTouchSelect) {
+        // Touch has no drag gesture, so it uses a two-tap anchor/commit model.
+        // A native <button> also fires `click` with `detail === 0` when activated
+        // via Enter/Space — keyboard users get no drag gesture either, so route
+        // them through the same anchor/commit model instead of a single-day toggle.
+        if ((touchMode || event.detail === 0) && onTouchSelect) {
           onTouchSelect(day);
           return;
         }
@@ -444,7 +450,7 @@ function PricingDayCell({
           : singleStay
             ? `Open booking for ${bookingListDisplayName(singleStay)}${stayRange ? `, ${stayRange}` : ''}`
             : showPrice
-              ? `${format(day, 'MMMM d')}, ${formatMoneyCompact(price)} per night${isImported ? ', synced from OTA calendar' : isBlocked ? ', blocked' : ''}${hasHoliday ? ', holiday' : ''}${isCustom ? ', custom rate' : ''}${isSmart ? ', Smart Pricing rate' : ''}${touchArmed ? ', range start, tap end date' : ''}`
+              ? `${format(day, 'MMMM d')}, ${formatMoneyCompact(price)} per night${isImported ? ', synced from OTA calendar' : isBlocked ? ', blocked' : ''}${hasHoliday ? ', holiday' : ''}${isCustom ? ', custom rate' : ''}${isSmart ? ', Smart Pricing rate' : ''}${touchArmed ? ', range start, select the end date' : ''}`
               : `${format(day, 'MMMM d')}${isPast ? ', past' : ''}${isImported ? ', synced from OTA calendar' : isBlocked ? ', blocked' : ''}`
       }
     >

@@ -1,5 +1,5 @@
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { setMediaTelemetrySink } from '@/lib/media/mediaTelemetry';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import type { PwaTelemetryEvent } from '@/lib/pwa/pwaTelemetry';
 
 const PWA_EVENT_MAP: Record<PwaTelemetryEvent, Parameters<typeof captureAppEvent>[0]> = {

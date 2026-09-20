@@ -1,8 +1,8 @@
-import type { AppAnalyticsEventName } from '@/lib/posthog/catalog';
-import { buildSharedAnalyticsProperties } from '@/lib/posthog/context';
 import { shouldCaptureProductEvents } from '@/lib/posthog/analyticsMode';
-import { sanitizeAnalyticsProperties } from '@/lib/posthog/sanitize';
+import type { AppAnalyticsEventName } from '@/lib/posthog/catalog';
 import { isPostHogEnabled, posthog } from '@/lib/posthog/client';
+import { buildSharedAnalyticsProperties } from '@/lib/posthog/context';
+import { sanitizeAnalyticsProperties } from '@/lib/posthog/sanitize';
 
 /**
  * Typed product analytics capture. Never throws; strips PII keys; no-ops when disabled.

@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { captureAppEvent } from '@/lib/posthog/capture';
-import { setAnalyticsSignedIn } from '@/lib/posthog/context';
 import { isPostHogEnabled, posthog } from '@/lib/posthog/client';
+import { setAnalyticsSignedIn } from '@/lib/posthog/context';
 import { supabase } from '@/lib/supabase/client';
 
 function authMethodFromUser(user: { app_metadata?: Record<string, unknown> }): string {

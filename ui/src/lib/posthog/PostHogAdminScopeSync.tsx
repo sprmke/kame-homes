@@ -6,8 +6,8 @@ import { useOptionalOrgContext } from '@/features/dashboard/org/components/Requi
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
-import { PostHogContextSync } from '@/lib/posthog/PostHogContextSync';
 import { isPostHogEnabled, posthog } from '@/lib/posthog/client';
+import { PostHogContextSync } from '@/lib/posthog/PostHogContextSync';
 
 /** Resolves org / property / parking UUIDs inside admin shells for group analytics. */
 export function PostHogAdminScopeSync() {
