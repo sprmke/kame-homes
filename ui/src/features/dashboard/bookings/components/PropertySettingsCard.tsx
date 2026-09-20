@@ -61,6 +61,7 @@ import {
 } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
 import { PropertySettingsBrandColorPreview } from '@/features/dashboard/org/components/property-settings/PropertySettingsBrandColorPreview';
 import { PropertySocialsSection } from '@/features/dashboard/org/components/property-settings/PropertySocialsBrandingSection';
+import { PublicPagesCrossLink } from '@/features/dashboard/org/components/property-settings/PublicPagesCrossLink';
 import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useCheckPropertyName } from '@/features/dashboard/org/hooks/useCheckPropertyName';
@@ -1215,6 +1216,7 @@ export function PropertySettingsCard() {
             markFieldInteracted={markFieldInteracted}
             onChange={setOperationalField}
             sectionMessages={settingsCompletion.sectionMessages}
+            headerAction={<PublicPagesCrossLink orgSlug={orgSlug} propertySlug={property.slug} />}
           />
 
           <PropertyGuestRewardsSection

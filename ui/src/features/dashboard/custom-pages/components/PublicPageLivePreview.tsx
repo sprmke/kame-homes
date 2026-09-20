@@ -5,6 +5,7 @@ import { withGuestEmbedPreviewUrl } from '@/features/guest/lib/guestEmbedPreview
 import { PublicPagePreview } from '@/features/dashboard/custom-pages/components/PublicPagePreview';
 import type { PropertyGuestPublicPage } from '@/features/dashboard/property/lib/propertyGuestPublicPages';
 
+import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 /** Desktop guest viewport — thumbnails show listing-style layout, not phone. */
@@ -38,9 +39,29 @@ export function PublicPageLivePreview({ src, pageId, label, propertyName, coverU
   const [shouldLoad, setShouldLoad] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [adminJwt, setAdminJwt] = useState<string | null>(null);
 
   const previewHeight = PREVIEW_HEIGHT[pageId];
-  const iframeSrc = src.includes('embed=1') ? src : withGuestEmbedPreviewUrl(src);
+  const baseSrc = src.includes('embed=1') ? src : withGuestEmbedPreviewUrl(src);
+
+  useEffect(() => {
+    // The showcase draft (Lorem ipsum, stock photos, host contact info) requires
+    // proof of property access server-side — see get-public-showcase's admin_jwt
+    // check. Other page types ignore this param.
+    if (pageId !== 'showcase') return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setAdminJwt(data.session?.access_token ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pageId]);
+
+  const iframeSrc =
+    pageId === 'showcase' && adminJwt
+      ? `${baseSrc}${baseSrc.includes('?') ? '&' : '?'}admin_jwt=${encodeURIComponent(adminJwt)}`
+      : baseSrc;
 
   useEffect(() => {
     const el = containerRef.current;

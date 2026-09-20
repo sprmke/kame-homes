@@ -13,6 +13,7 @@ import { useLinkedParkingBooking } from '@/features/dashboard/bookings/hooks/use
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
 import { parkingStatusProperty } from '@/lib/parking/parkingFlowCopy';
+import { sanitizeEmailSnapshotHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
 
@@ -73,7 +74,9 @@ export function ParkingPanel({
             {endorsementOpen ? (
               <div
                 className="border-border/80 bg-muted/30 mt-2 max-h-64 overflow-y-auto rounded-lg border p-3 text-sm [&_*]:max-w-full"
-                dangerouslySetInnerHTML={{ __html: linked.endorsementEmailSnapshot }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeEmailSnapshotHtml(linked.endorsementEmailSnapshot),
+                }}
               />
             ) : null}
           </BookingDetailRowBlock>

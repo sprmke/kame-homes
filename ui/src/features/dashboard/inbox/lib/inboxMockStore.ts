@@ -38,6 +38,7 @@ export async function mockFetchConnections() {
     metaSyncInProgress: false,
     metaSyncError: null,
     metaHasMore: false,
+    usingOrgMeta: true,
   };
 }
 

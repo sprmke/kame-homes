@@ -42,6 +42,7 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 
 export type InboxPageProps = {
@@ -94,12 +95,8 @@ export function InboxPage({
     return showChannelsTab ? 'all' : 'web';
   });
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  const debouncedSearchInput = useDebouncedValue(searchInput, 300);
+  const search = debouncedSearchInput.trim();
 
   useEffect(() => {
     if (!conversationIdParam) return;
@@ -395,6 +392,7 @@ export function InboxPage({
                 isLoading={messagesLoading && !!selectedId}
                 canReply={canReply}
                 templates={templatesQuery.data ?? []}
+                usingOrgMeta={connectionsData?.usingOrgMeta}
                 onBack={() => setMobileShowConversation(false)}
                 hasOlderMessages={!!hasOlderMessages}
                 loadingOlder={loadingOlderMessages}

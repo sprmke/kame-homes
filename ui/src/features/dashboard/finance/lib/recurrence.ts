@@ -150,8 +150,12 @@ export function recurrenceScheduleUpdateFields(params: {
   });
 
   if (scheduleDirty) {
+    // A repeat interval / end-date change is a series-level property — "this
+    // occurrence only" can't carry it, so fall back to "this and future" rather
+    // than always widening to "all" for a host who explicitly chose the narrower
+    // valid scope.
     return {
-      scope: 'all',
+      scope: params.editScope === 'this' ? 'this_and_future' : params.editScope,
       recurrence_interval: params.recurrenceInterval,
       recurrence_until: params.recurrenceUntil ?? null,
     };

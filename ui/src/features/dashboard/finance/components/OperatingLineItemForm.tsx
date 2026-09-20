@@ -211,8 +211,15 @@ export function OperatingLineItemForm({ formId, initial, seriesRecurrenceUntil, 
   );
 
   useEffect(() => {
-    if (scheduleDirty) setValue('edit_scope', 'all');
-  }, [scheduleDirty, setValue]);
+    // A repeat interval / end-date change is a series-level property — it can't
+    // apply to a single occurrence, so "this occurrence only" stops being a valid
+    // choice. Nudge off it, but still let the host pick this-and-future vs. all
+    // (the picker stays visible below, just scoped to those two options) instead
+    // of silently deciding for them.
+    if (scheduleDirty && getValues('edit_scope') === 'this') {
+      setValue('edit_scope', 'this_and_future');
+    }
+  }, [scheduleDirty, getValues, setValue]);
 
   useEffect(() => {
     if (!telegramReminderEnabled) return;
@@ -347,15 +354,22 @@ export function OperatingLineItemForm({ formId, initial, seriesRecurrenceUntil, 
         </>
       ) : null}
 
-      {isEdit && isRecurringEdit && !scheduleDirty ? (
+      {isEdit && isRecurringEdit ? (
         <fieldset className="space-y-2">
           <legend className="text-overline mb-1.5 block">Apply changes to</legend>
+          {scheduleDirty ? (
+            <p className="text-muted-foreground text-caption -mt-1 mb-1.5">
+              A repeat schedule change can&apos;t apply to one occurrence only.
+            </p>
+          ) : null}
           <Controller
             name="edit_scope"
             control={control}
             render={({ field: { value, onChange } }) => (
               <RadioGroup value={value} onValueChange={onChange} className="space-y-2">
-                {RECURRENCE_SCOPE_OPTIONS.map((opt) => (
+                {RECURRENCE_SCOPE_OPTIONS.filter(
+                  (opt) => !scheduleDirty || opt.value !== 'this'
+                ).map((opt) => (
                   <label
                     key={opt.value}
                     className={cn(

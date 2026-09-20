@@ -134,6 +134,10 @@ type Props = {
   isLoading: boolean;
   canReply: boolean;
   templates: InboxTemplate[];
+  /** Facebook/Instagram threads only — this property has no Page of its own, so
+   *  replies here go through the organization's shared Meta connection (visible
+   *  identically on every other property that also falls back to it). */
+  usingOrgMeta?: boolean;
   onBack?: () => void;
   onSend: (
     text: string,
@@ -165,6 +169,7 @@ export function InboxConversationView({
   isLoading,
   canReply,
   templates,
+  usingOrgMeta = false,
   onBack,
   onSend,
   onUploadAttachment,
@@ -266,6 +271,9 @@ export function InboxConversationView({
   );
 
   const isWeb = conversation?.platform === 'web';
+  const showOrgMetaBadge =
+    usingOrgMeta &&
+    (conversation?.platform === 'facebook' || conversation?.platform === 'instagram');
   const { peerTyping, signalTyping } = useChatTyping(
     conversation?.id ?? null,
     'host',
@@ -370,7 +378,7 @@ export function InboxConversationView({
 
   if (!conversation) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-muted/20 text-muted-foreground">
+      <div className="bg-muted/20 text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
         <MessageSquare className="size-8 opacity-40" aria-hidden />
         <p className="text-sm">Select a conversation</p>
       </div>
@@ -499,7 +507,7 @@ export function InboxConversationView({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
+    <div className="bg-muted/20 flex min-h-0 flex-1 flex-col">
       <InboxMediaPreviewDialog
         attachment={previewAttachment}
         open={!!previewAttachment}
@@ -523,7 +531,7 @@ export function InboxConversationView({
         />
       ) : null}
 
-      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-3 sm:px-4">
+      <div className="border-border bg-card flex shrink-0 items-center gap-3 border-b px-3 py-3 sm:px-4">
         {onBack && (
           <Button
             type="button"
@@ -539,8 +547,24 @@ export function InboxConversationView({
         <PlatformLogo platform={conversation.platform} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{name}</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2 text-[11px]">
             <span>{platformLabel(conversation.platform)}</span>
+            {showOrgMetaBadge ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="bg-muted text-muted-foreground cursor-help rounded px-1.5 py-0.5 text-[10px] font-medium">
+                      Org Meta
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[min(90vw,18rem)] text-xs">
+                    This property has no Facebook Page of its own, so replies use the
+                    organization&rsquo;s shared Meta connection — the same one every other property
+                    without its own Page sees.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
             {isWeb && conversation.inquiry_check_in && conversation.inquiry_check_out ? (
               <>
                 <span aria-hidden>·</span>
@@ -555,7 +579,7 @@ export function InboxConversationView({
             {windowLabel && conversation.conversation_type === 'dm' && (
               <>
                 <span aria-hidden>·</span>
-                <span className={windowOpen ? undefined : 'font-medium text-destructive'}>
+                <span className={windowOpen ? undefined : 'text-destructive font-medium'}>
                   {windowLabel}
                 </span>
               </>
@@ -567,7 +591,7 @@ export function InboxConversationView({
             href={conversation.linked_post_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-[44px] shrink-0 items-center self-center px-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            className="text-primary flex min-h-[44px] shrink-0 items-center self-center px-1 text-xs font-medium underline-offset-2 hover:underline"
           >
             View conversation
           </a>
@@ -631,7 +655,7 @@ export function InboxConversationView({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-10 min-h-[44px] text-muted-foreground"
+                  className="text-muted-foreground h-10 min-h-[44px]"
                   disabled={loadingOlder}
                   onClick={onLoadOlder}
                 >
@@ -766,7 +790,7 @@ export function InboxConversationView({
                           </div>
                           {!hasText ? (
                             <time
-                              className="px-1 text-[11px] tabular-nums text-muted-foreground"
+                              className="text-muted-foreground px-1 text-[11px] tabular-nums"
                               dateTime={msg.sent_at}
                             >
                               {formatChatBubbleTime(msg.sent_at)}
@@ -780,8 +804,8 @@ export function InboxConversationView({
               />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
-                <MessageSquare className="mb-3 size-8 text-muted-foreground/50" aria-hidden />
-                <p className="text-sm text-muted-foreground">No messages yet</p>
+                <MessageSquare className="text-muted-foreground/50 mb-3 size-8" aria-hidden />
+                <p className="text-muted-foreground text-sm">No messages yet</p>
               </div>
             )}
           </div>
@@ -789,14 +813,14 @@ export function InboxConversationView({
       </div>
 
       {canReply && (
-        <div className="shrink-0 border-t border-border bg-card p-3 sm:p-4">
+        <div className="border-border bg-card shrink-0 border-t p-3 sm:p-4">
           {isWeb && peerTyping ? (
-            <p className="mb-2 px-1 text-xs text-muted-foreground" aria-live="polite">
+            <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
               Guest is typing…
             </p>
           ) : null}
           {channelDisconnected ? (
-            <p className="mb-2 px-1 text-xs text-muted-foreground" aria-live="polite">
+            <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
               This channel is disconnected — reconnect Meta to reply.
             </p>
           ) : null}
@@ -809,10 +833,10 @@ export function InboxConversationView({
                 aria-label="Send as a support follow-up"
               />
               <span className="min-w-0 text-xs">
-                <span className="block font-medium text-foreground">
+                <span className="text-foreground block font-medium">
                   Reply window closed — send as a support follow-up
                 </span>
-                <span className="mt-0.5 block text-muted-foreground">
+                <span className="text-muted-foreground mt-0.5 block">
                   Non-promotional only. This uses Meta&apos;s 7-day `HUMAN_AGENT` tag.
                 </span>
               </span>
@@ -820,8 +844,8 @@ export function InboxConversationView({
           ) : null}
           <div
             className={cn(
-              'overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm transition-shadow',
-              'focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10'
+              'border-border/80 bg-background overflow-hidden rounded-xl border shadow-sm transition-shadow',
+              'focus-within:border-primary/40 focus-within:ring-primary/10 focus-within:ring-2'
             )}
           >
             {composerMode.kind === 'reply' ? (
@@ -838,17 +862,17 @@ export function InboxConversationView({
               />
             ) : null}
             {draftFromAi && draft.trim().length > 0 && composerMode.kind === 'compose' && (
-              <div className="flex items-center gap-1.5 border-b border-border/60 px-3.5 py-2 text-[11px] font-medium text-violet-600 dark:text-violet-400">
+              <div className="border-border/60 flex items-center gap-1.5 border-b px-3.5 py-2 text-[11px] font-medium text-violet-600 dark:text-violet-400">
                 <Sparkles className="size-3.5 shrink-0" aria-hidden />
                 {draftAiFlagged ? 'AI declined to answer' : 'Suggested by AI'}
               </div>
             )}
             {pendingAttachments.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3.5 py-2">
+              <div className="border-border/60 flex flex-wrap gap-1.5 border-b px-3.5 py-2">
                 {pendingAttachments.map((att, index) => (
                   <div
                     key={`${att.url}-${index}`}
-                    className="flex max-w-full items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs"
+                    className="bg-muted flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs"
                   >
                     <span className="min-w-0 truncate">
                       {att.label ?? (att.kind === 'image' ? 'Image' : 'File')}
@@ -900,7 +924,7 @@ export function InboxConversationView({
                 }
               }}
             />
-            <div className="flex items-center justify-between gap-2 border-t border-border/60 px-2 py-1.5">
+            <div className="border-border/60 flex items-center justify-between gap-2 border-t px-2 py-1.5">
               <TooltipProvider delayDuration={300}>
                 <div className="flex min-w-0 flex-1 items-center gap-1">
                   {isWeb && onUploadAttachment && composerMode.kind !== 'edit' ? (
@@ -918,7 +942,7 @@ export function InboxConversationView({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="size-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground"
+                            className="text-muted-foreground hover:text-foreground size-10 min-h-[44px] min-w-[44px]"
                             disabled={
                               channelDisconnected ||
                               isBusy ||
@@ -947,7 +971,7 @@ export function InboxConversationView({
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="size-10 text-muted-foreground hover:text-foreground"
+                              className="text-muted-foreground hover:text-foreground size-10"
                               disabled={channelDisconnected}
                               aria-label="Insert quick reply"
                               aria-haspopup="dialog"
@@ -987,7 +1011,7 @@ export function InboxConversationView({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="size-10 text-muted-foreground hover:text-foreground"
+                                className="text-muted-foreground hover:text-foreground size-10"
                                 disabled={channelDisconnected}
                                 aria-label="Insert quick reply"
                               >

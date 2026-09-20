@@ -5,7 +5,6 @@
 import type { ReactNode } from 'react';
 
 import { AlertTriangle } from 'lucide-react';
-import { createPortal } from 'react-dom';
 
 import { statusLabel, type BookingStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 import type {
@@ -15,6 +14,12 @@ import type {
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from '@/components/ui/responsive-modal';
 import { cn } from '@/lib/utils';
 
 /** Opt-in row labels — name the document and who receives it. */
@@ -73,14 +78,23 @@ export function WorkflowConfirmModal({
   isLoading: boolean;
   destructive?: boolean;
 }) {
-  if (typeof document === 'undefined') return null;
-
   const showEmailChoices =
     emailEffects != null && emailEffects.length > 0 && onEmailChoiceChange != null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-3 backdrop-blur-[2px] sm:p-4">
-      <div className="border-border bg-card flex max-h-[min(90dvh,calc(100dvh-1.5rem))] w-full max-w-[min(calc(100vw-1.5rem),28rem)] flex-col overflow-hidden rounded-xl border p-5 shadow-2xl">
+  return (
+    <ResponsiveModal
+      open
+      onOpenChange={(next) => {
+        if (!next && !isLoading) onCancel();
+      }}
+    >
+      <ResponsiveModalContent
+        sheetLayout="split"
+        className="flex max-h-[min(90dvh,calc(100dvh-1.5rem))] w-full max-w-[min(calc(100vw-1.5rem),28rem)] flex-col gap-0 overflow-hidden p-5 sm:max-w-[min(calc(100vw-1.5rem),28rem)]"
+      >
+        <ResponsiveModalHeader className="sr-only">
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           <div className="flex items-start gap-3">
             {destructive && (
@@ -170,8 +184,7 @@ export function WorkflowConfirmModal({
             {isLoading ? 'Processing…' : 'Confirm'}
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
