@@ -30,18 +30,18 @@ This session had working `gh` auth against the real `sprmke/kame-homes` repo and
 
 ## Remaining work to finalize
 
-**Status: partial.** Quality gates and dual-track workflows already existed (not redone). This session closed speed (job split + caching), protection (branch rules + CODEOWNERS + PR template), a real CI correctness bug (Playwright env crash), and worktree hygiene. Still open: measuring the actual PR-feedback wall-clock time against a live run, dependency/secret-scanning/SAST automation, release tagging, and migration replay on PRs.
+**Status: partial.** Quality gates and dual-track workflows already existed (not redone). This session closed speed (job split + caching), protection (branch rules + CODEOWNERS + PR template), a real CI correctness bug (Playwright env crash), worktree hygiene, tracked-tree secret scan, and migration replay on PRs (`migration-replay.yml`). Still open: measuring PR-feedback wall-clock on a green run, SAST, release tagging, and triaging flaky `guestFormSubmit.spec.ts` (past stay dates in harness fixed 2026-09-21).
 
-| #   | Work                                                                                                                                                                                        | Blocker             |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 1   | ~~Wire every new guard from this folder into CI without exceeding the time budget (26.1).~~ **Done** — all guards already present in the new `static-guards` job.                           | —                   |
-| 2   | ~~Split CI into parallel jobs with caching (26.2).~~ **Done** — 5 parallel jobs + fan-in `quality` gate. **Not measured**: actual PR wall-clock time.                                       | Needs a live CI run |
-| 3   | ~~Branch protection + `CODEOWNERS` on `main` and `develop` (26.3).~~ **Done.**                                                                                                              | —                   |
-| 4   | ~~PR template with docs / plans / activity-log checkboxes (26.4).~~ **Done.**                                                                                                               | —                   |
-| 5   | Dependency automation ~~(shipped)~~; **tracked-tree secret scan** in CI (`check-tracked-secrets.sh`, `git grep -I` skips binaries, 2026-09-21). SAST / GitHub Advanced Security still open. | GitHub / tooling    |
-| 6   | Release tagging + changelog; environment version tracking (26.6).                                                                                                                           | Process             |
-| 7   | Migration replay on PRs that touch migrations still open. ~~Prune stale worktrees~~ **done** (~1GB freed); 6 merged remote branches identified, **not deleted**.                            | CI + user go-ahead  |
-| 8   | Zero quarantined-and-forgotten flaky tests. **One found this session** (`guestFormSubmit.spec.ts`, pre-existing, unrelated to the env-crash fix). Cross-check doc 29.                       | Tests               |
+| #   | Work                                                                                                                                                                                        | Blocker                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 1   | ~~Wire every new guard from this folder into CI without exceeding the time budget (26.1).~~ **Done** — all guards already present in the new `static-guards` job.                           | —                             |
+| 2   | ~~Split CI into parallel jobs with caching (26.2).~~ **Done** — 5 parallel jobs + fan-in `quality` gate. **Not measured**: actual PR wall-clock time.                                       | Needs a live CI run           |
+| 3   | ~~Branch protection + `CODEOWNERS` on `main` and `develop` (26.3).~~ **Done.**                                                                                                              | —                             |
+| 4   | ~~PR template with docs / plans / activity-log checkboxes (26.4).~~ **Done.**                                                                                                               | —                             |
+| 5   | Dependency automation ~~(shipped)~~; **tracked-tree secret scan** in CI (`check-tracked-secrets.sh`, `git grep -I` skips binaries, 2026-09-21). SAST / GitHub Advanced Security still open. | GitHub / tooling              |
+| 6   | Release tagging + changelog; environment version tracking (26.6).                                                                                                                           | Process                       |
+| 7   | ~~Migration replay on PRs~~ **done** (`migration-replay.yml`, 2026-09-21). ~~Prune stale worktrees~~ **done** (~1GB freed); 6 merged remote branches identified, **not deleted**.           | User go-ahead (branch delete) |
+| 8   | Zero quarantined-and-forgotten flaky tests. **One found this session** (`guestFormSubmit.spec.ts`, pre-existing, unrelated to the env-crash fix). Cross-check doc 29.                       | Tests                         |
 
 ## Prior art — strong, and recently hardened
 
@@ -150,7 +150,7 @@ The repo has `.worktrees/` with at least two stale worktrees (`docs-obsidian-too
 - [ ] Release tagging + changelog; environment version tracking.
 - [x] Migration replay on PRs touching `supabase/migrations/**` (`migration-replay.yml`, 2026-09-21) plus weekly schedule.
 - [x] Stale worktrees pruned (~1GB). Merged branches identified (6) but not deleted — needs explicit go-ahead for remote deletion.
-- [ ] Zero quarantined-and-forgotten flaky tests. One found this session (`guestFormSubmit.spec.ts`), not yet triaged/fixed.
+- [x] `guestFormSubmit.spec.ts` fixed (static past stay dates in harness; Manila-relative +14/+16 days, 2026-09-21). Re-run full `@smoke` on CI to confirm.
 
 ## Docs / Plans / activity-log
 

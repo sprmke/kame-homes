@@ -2,6 +2,23 @@ import { mockEdgeFunctions } from '../../../shared/interceptEdge';
 
 import type { Page } from '@playwright/test';
 
+function manilaTodayYmd(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+}
+
+function addDaysYmd(ymd: string, days: number): string {
+  const noonManila = new Date(`${ymd}T12:00:00+08:00`);
+  noonManila.setUTCDate(noonManila.getUTCDate() + days);
+  return noonManila.toISOString().slice(0, 10);
+}
+
+/** Future stay window so CI does not fail when URL dates drift into the past (Manila calendar). */
+function defaultStayQueryParams(): { checkInDate: string; checkOutDate: string } {
+  const today = manilaTodayYmd();
+  const checkInDate = addDaysYmd(today, 14);
+  const checkOutDate = addDaysYmd(today, 16);
+  return { checkInDate, checkOutDate };
+}
 
 export const GUEST_FORM_PROPERTY_SLUG = 'solea-mactan';
 
@@ -63,7 +80,8 @@ export async function installGuestFormMocks(page: Page, options: GuestFormMockOp
 }
 
 export function guestFormPath(extraQuery = '') {
-  const base = `/properties/${GUEST_FORM_PROPERTY_SLUG}/form?checkInDate=2026-09-15&checkOutDate=2026-09-17`;
+  const { checkInDate, checkOutDate } = defaultStayQueryParams();
+  const base = `/properties/${GUEST_FORM_PROPERTY_SLUG}/form?checkInDate=${checkInDate}&checkOutDate=${checkOutDate}`;
   return extraQuery ? `${base}&${extraQuery}` : base;
 }
 
