@@ -186,6 +186,24 @@ jobs:
         run: |
           deno test --allow-net --allow-env supabase/functions/tests/adversarialAuthLive.test.ts
 
+      - name: pg_stat_statements snapshot (production-readiness doc 00)
+        continue-on-error: true
+        env:
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          bash scripts/performance/capture-pg-stat-statements.sh hosted-dev-ci
+
+      - name: Upload pg_stat baseline artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pg-stat-statements-hosted-dev
+          path: docs/workflow/planned/production-readiness-checklist/baselines/*-pg-stat-statements-hosted-dev-ci.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Deployed preview headers (production-readiness doc 02/16)
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}

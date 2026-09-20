@@ -124,7 +124,7 @@ Wire a `bun run check:budgets` step into `ci.yml` after the existing build step.
 
 - [x] `baselines/<date>.json` committed from a clean `develop` checkout.
 - [ ] Lighthouse **median** (3 runs per route) on **local** `vite preview` still open. **Deployed dev median done** (2026-09-21 — `baselines/2026-09-20-lighthouse-deployed-dev-median.json`, `--runs=3`).
-- [ ] `pg_stat_statements` enabled on hosted dev, top-50 snapshot committed. (not started — needs hosted-dev dashboard access)
+- [ ] `pg_stat_statements` enabled on hosted dev, top-50 snapshot **committed**. **Partial:** `bun run perf:pg-stat-statements` + cd-dev capture step (artifact `pg-stat-statements-hosted-dev`, 2026-09-21).
 - [x] `performance-budgets.json` exists and `bun run check:budgets` runs in `ci.yml`.
 - [x] One deliberate regression PR proves the guard fails (test the alarm, don't assume it works).
 

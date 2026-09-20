@@ -147,7 +147,7 @@ One-line summary. Details live in each doc's **Remaining work to finalize**.
 
 | #   | What still has to land to close                                                                                                                                              | Typical blocker                |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| 00  | Local Lighthouse 3× median still open; `pg_stat_statements` top-50; budget fail-closed. **Partial:** deployed 3× median + public edge latency on dev (2026-09-21).           | Hosted-dev + display           |
+| 00  | Local Lighthouse 3× median still open; `pg_stat` JSON commit still open. **Partial:** deployed Lighthouse + edge latency; cd-dev captures pg_stat artifact (2026-09-21).     | Hosted-dev + display           |
 | 01  | `ChunkLoadError` specific reload UX; deleted-chunk proof without SW precache; mid-session deploy → `UpdatePrompt`                                                            | Display + preview              |
 | 02  | ~~Deployed brotli/gzip + public `.map`~~ **closed on dev** (`verify:deployed-preview`, 2026-09-21)                                                                           | Re-run on prod cutover         |
 | 03  | ~65 dashboard `<img>` attrs; CLS on 9 routes; image-dimension lint; route guides                                                                                             | Code + doc 00                  |
