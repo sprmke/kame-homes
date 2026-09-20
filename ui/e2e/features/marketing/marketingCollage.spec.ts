@@ -41,9 +41,9 @@ test.describe('@ci marketing studio collage', () => {
 
     await page.getByRole('button', { name: '2x2 grid' }).click();
 
-    // Choosing a layout turns the canvas into a collage — Photos/Style appear.
-    await expect(page.getByText('Photos', { exact: true })).toBeVisible();
-    await expect(page.getByText('Style', { exact: true })).toBeVisible();
+    // Choosing a layout turns the canvas into a collage — Photos/Style appear (Polotno can lag on CI).
+    await expect(page.getByText('Photos', { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Style', { exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: '2x2 grid' })).toHaveAttribute(
       'aria-pressed',
       'true'

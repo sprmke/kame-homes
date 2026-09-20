@@ -52,7 +52,7 @@ Add **Environment secrets**:
 | `SUPABASE_PROJECT_REF`    | `fworvijbrwpyngycotbz`                                                                                                                                                |
 | `SUPABASE_DB_PASSWORD`    | Database password used by linked CLI migration commands                                                                                                               |
 | `SUPABASE_ANON_KEY`       | Dev anon key for post-deploy smoke + adversarial tests. **Optional** if `SUPABASE_ACCESS_TOKEN` can call the Management API (`ci-smoke.sh` resolves anon when unset). |
-| `DEV_DB_URL`              | Session-pooler URI used for complete auth/storage/cron backup                                                                                                         |
+| `DEV_DB_URL`              | Session-pooler URI for backups and cd-dev `pg_stat_statements` capture (production-readiness doc 00). Empty secret skips capture with no artifact.                    |
 | `LEGACY_PROD_PROJECT_REF` | `zfttdwtceyqszyeyhilc`                                                                                                                                                |
 
 **Do not** add these to Vercel — the SPA needs **`VITE_*`** vars on Vercel Preview instead.

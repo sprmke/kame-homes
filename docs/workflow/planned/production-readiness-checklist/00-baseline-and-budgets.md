@@ -156,13 +156,13 @@ Wire a `bun run check:budgets` step into `ci.yml` after the existing build step.
 
 Close this item only when every row is done. Scripts and the first local snapshot already exist; the missing work is **measured evidence**.
 
-| #   | Work                                                                                                                                                                                                      | Blocker                  |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| 1   | Lighthouse 3× median on **local** `vite preview` still open. Deployed dev median **done** (`2026-09-20-lighthouse-deployed-dev-median.json`, 2026-09-21).                                                 | Display + local preview  |
-| 2   | ~~Deployed preview Lighthouse median~~ **closed on dev** (2026-09-21).                                                                                                                                    | —                        |
-| 3   | ~~Public edge p50/p95~~ **partial** — `baselines/2026-09-20-edge-latency-hosted-dev-public-v2.json` (`get-health`, public list/pricing). Host authenticated endpoints still need `SUPABASE_ACCESS_TOKEN`. | Token for auth endpoints |
-| 4   | Snapshot `pg_stat_statements` top-50 on hosted-dev (`bun run perf:pg-stat-statements`, needs `DEV_DB_URL`). Script shipped; snapshot still open without pooler URI.                                       | `DEV_DB_URL` in env      |
-| 5   | After 1–4 have real numbers, decide whether `performance-budgets.json` stays `warnOnly` or flips to fail-closed.                                                                                          | Depends on 1–4           |
+| #   | Work                                                                                                                                                                                                                                     | Blocker                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | Lighthouse 3× median on **local** `vite preview` still open. Deployed dev median **done** (`2026-09-20-lighthouse-deployed-dev-median.json`, 2026-09-21).                                                                                | Display + local preview              |
+| 2   | ~~Deployed preview Lighthouse median~~ **closed on dev** (2026-09-21).                                                                                                                                                                   | —                                    |
+| 3   | ~~Public edge p50/p95~~ **partial** — `baselines/2026-09-20-edge-latency-hosted-dev-public-v2.json` (`get-health`, public list/pricing). Host authenticated endpoints still need `SUPABASE_ACCESS_TOKEN`.                                | Token for auth endpoints             |
+| 4   | Snapshot `pg_stat_statements` top-50 on hosted-dev. **cd-dev step ran** on run `35544063765` (2026-09-21) but **`DEV_DB_URL` GitHub secret empty** — no JSON committed; add secret per `github-environments-setup.md` and re-run deploy. | `DEV_DB_URL` in GitHub `development` |
+| 5   | After 1–4 have real numbers, decide whether `performance-budgets.json` stays `warnOnly` or flips to fail-closed.                                                                                                                         | Depends on 1–4                       |
 
 ## Docs / Plans / activity-log
 

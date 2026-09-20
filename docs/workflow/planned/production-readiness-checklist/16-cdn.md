@@ -28,13 +28,13 @@ Every static byte is served from an edge location with correct cache headers; me
 
 ## Measured before / after
 
-| Metric                                     | Before                  | After                                                                    | Difference                                      |
-| ------------------------------------------ | ----------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
-| `/index.html` Cache-Control                | Implicit / none         | `public, max-age=0, must-revalidate`                                     | Deploys cannot pin a stale HTML → deleted chunk |
-| Unhashed `ui/public` trees                 | No rule                 | Weekly max-age + SWR, not `immutable`                                    | Safe to replace icons/templates                 |
-| Security headers                           | Cache directives only   | HSTS + nosniff + referrer + permissions                                  | Config-complete; CSP still doc 22               |
-| Handler `.upload()` without `cacheControl` | 9 sites (default 3600s) | 0; CI fails a new miss                                                   | Default TTL cannot land again                   |
-| Deployed `curl -I` / Manila latency        | Unmeasured              | `verify:deployed-preview` on dev (2026-09-21); Manila latency still open | Partial on dev                                  |
+| Metric                                     | Before                  | After                                                                                                                          | Difference                                      |
+| ------------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `/index.html` Cache-Control                | Implicit / none         | `public, max-age=0, must-revalidate`                                                                                           | Deploys cannot pin a stale HTML → deleted chunk |
+| Unhashed `ui/public` trees                 | No rule                 | Weekly max-age + SWR, not `immutable`                                                                                          | Safe to replace icons/templates                 |
+| Security headers                           | Cache directives only   | HSTS + nosniff + referrer + permissions                                                                                        | Config-complete; CSP still doc 22               |
+| Handler `.upload()` without `cacheControl` | 9 sites (default 3600s) | 0; CI fails a new miss                                                                                                         | Default TTL cannot land again                   |
+| Deployed `curl -I` / Manila latency        | Unmeasured              | `verify:deployed-preview` on dev (2026-09-21); **cd-dev** deploy job run `35544063765` (2026-09-21); Manila latency still open | Partial on dev                                  |
 
 ## Current state
 
