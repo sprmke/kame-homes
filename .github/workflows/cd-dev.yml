@@ -150,6 +150,10 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -174,6 +178,13 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
         run: ./scripts/deploy/ci-smoke.sh dev
+
+      - name: Adversarial auth smoke (production-readiness doc 21)
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          deno test --allow-net --allow-env supabase/functions/tests/adversarialAuthLive.test.ts
 
       - name: Deployed preview headers (production-readiness doc 02/16)
         env:

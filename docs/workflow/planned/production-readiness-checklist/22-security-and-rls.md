@@ -71,7 +71,7 @@ Not attempted in the 2026-09-18 session — remaining rows 1–3, 7–8 in Remai
 
 - Policy in `ui/vercel.json` → `Content-Security-Policy-Report-Only` (global `/(.*)` headers). Inline theme boot script allowlisted via `sha256-3iYuQTtr8rq0X6H7xzU0ofTgMxCUvnKCZ+fPhxsYb9g=` (must match `ui/index.html`; guarded by `scripts/dev/check-csp-theme-hash.sh` in `ci.yml` / `ci:quality`).
 - Third-party allowlist derived from `docs/architecture/third-party-origins.md` (doc 04 Phase 4.2 feed).
-- Post-deploy check: `PREVIEW_URL=https://dev.kamehomes.space bun run verify:deployed-preview` asserts the header on `index.html` after Vercel deploy.
+- Post-deploy check: `PREVIEW_URL=https://dev.kamehomes.space bun run verify:deployed-preview` asserts the header on `index.html` after Vercel deploy. **Verified 2026-09-21** on `dev.kamehomes.space` (Vercel deploy `6908bc6`, `verify:deployed-preview: OK`, health OK).
 
 **Still open:** switch to enforcing `Content-Security-Policy`, wire reports to a collector, bake on dev then prod; font async `onload` in `index.html` may need a nonce or JS swap before `style-src` tightens.
 

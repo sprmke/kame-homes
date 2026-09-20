@@ -78,6 +78,7 @@
     "perf:lighthouse": "node scripts/performance/lighthouse-routes.mjs",
     "perf:edge-latency": "node scripts/performance/edge-latency-baseline.mjs",
     "verify:deployed-preview": "node scripts/performance/verify-deployed-preview.mjs",
+    "perf:pg-stat-statements": "bash scripts/performance/capture-pg-stat-statements.sh",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --project=chromium-ci --project=mobile-chromium-smoke --project=tablet-chromium-smoke --grep @smoke",
     "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci",
