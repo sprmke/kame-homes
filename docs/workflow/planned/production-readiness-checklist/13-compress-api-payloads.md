@@ -11,7 +11,7 @@ kind: plan
 
 ## Implementation status (2026-09-17)
 
-**Phase 13.1 (verify transport compression): not run — needs a human with hosted-dev access.** This session cannot reach a deployed hosted-dev preview to run the `curl -sI -H 'Accept-Encoding: br, gzip' ...` check the doc calls for. This is a single cheap command, not worth blocking the rest of doc 13 on — **documented here as an outstanding manual step**:
+**Phase 13.1 (verify transport compression): partial on hosted dev (2026-09-21).** `curl -sI -H 'Accept-Encoding: br,gzip'` against `get-health` and `list-public-pricing-plans` on `fwor…` returned `content-encoding: gzip` and `vary: Accept-Encoding, Origin`. No explicit `CompressionStream` in `httpResponse.ts` yet (platform appears to compress JSON). Still outstanding: repeat on a **large** authenticated response (`list-bookings`, `dashboard-stats`) before treating large payloads as covered.
 
 ```bash
 curl -sI -H 'Accept-Encoding: br, gzip' \
@@ -65,13 +65,13 @@ Run this against hosted dev for a representative large response (e.g. `list-book
 
 `select('*')` inventory + CI guard are shipped. Transport proof, field narrowing, and payload budgets are not.
 
-| #   | Work                                                                                                                                                | Blocker             |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 1   | `curl -I` a large hosted-dev endpoint and record `Content-Encoding`. Add function-level compression only if the platform does not already compress. | Hosted-dev          |
-| 2   | Narrow `guest_submissions` selects after a field-usage graph of finance/dashboard consumers. Do not guess columns.                                  | Code (careful)      |
-| 3   | Stream finance CSV if memory or time becomes a problem at large-tenant volume (doc 10 seed).                                                        | Seed + evidence     |
-| 4   | Close or accept-with-reason the `get-form` residual (signed Storage URLs next to guest-editable fields).                                            | Security review     |
-| 5   | Response-size telemetry + top-10 payload budgets in `performance-budgets.json`.                                                                     | Hosted-dev + doc 00 |
+| #   | Work                                                                                                                                                    | Blocker                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | `curl -I` gzip confirmed on small public JSON (2026-09-21). Still need a **large** host endpoint sample; add function-level compression only if absent. | Auth token + large route |
+| 2   | Narrow `guest_submissions` selects after a field-usage graph of finance/dashboard consumers. Do not guess columns.                                      | Code (careful)           |
+| 3   | Stream finance CSV if memory or time becomes a problem at large-tenant volume (doc 10 seed).                                                            | Seed + evidence          |
+| 4   | Close or accept-with-reason the `get-form` residual (signed Storage URLs next to guest-editable fields).                                                | Security review          |
+| 5   | Response-size telemetry + top-10 payload budgets in `performance-budgets.json`.                                                                         | Hosted-dev + doc 00      |
 
 ## Goal
 
@@ -142,7 +142,7 @@ Grep `supabase/functions/**` for `select('*')` and classify every hit. This over
 
 ## Exit gate
 
-- [ ] Transport encoding verified on hosted dev for a large endpoint; explicit compression added only if absent. — **not run this pass, needs hosted-dev access; documented as an outstanding manual step above.**
+- [ ] Transport encoding verified on hosted dev for a **large** endpoint; explicit compression added only if absent. — **partial:** gzip on small public JSON (2026-09-21); large authenticated response still unmeasured.
 - [x] Every `select('*')` in edge functions classified and narrowed or justified. — all 102 files classified (see status section); zero narrowed (the high-value public list endpoints were already narrowed by a prior pass, and the one genuinely wide table, `guest_submissions`, is explicitly deferred with reasons rather than guessed at).
 - [ ] Top 10 endpoints' payload sizes reduced measurably vs the doc-00 baseline. — not attempted; no payload-size measurements were taken this pass (would need Phase 13.1's hosted-dev access, or a local harness not built this pass).
 - [x] Exports stream; SSE stays uncompressed. — SSE confirmed untouched (`no-transform`); finance CSV export confirmed scoped (property + period, doc 10's fix) but still single-shot in-memory, not true streaming — judged acceptable, documented above, not rewritten.

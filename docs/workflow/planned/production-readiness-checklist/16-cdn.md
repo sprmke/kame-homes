@@ -17,24 +17,24 @@ Every static byte is served from an edge location with correct cache headers; me
 
 **Status: partial — headers, Storage cacheControl, config CI, and purge docs shipped (2026-09-18).** Deployed-preview `curl` and Manila latency still need hosted access.
 
-| #   | Work                                                                                                                                                                                                                | Blocker                |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| 1   | Deployed-preview header audit for every asset class (16.1). Do not trust `vercel.json` alone.                                                                                                                       | Hosted preview         |
-| 2   | ~~Set `index.html` to `must-revalidate`; give `ui/public/**` deliberate policies; keep `immutable` only on hashed files (16.2).~~ **Done** — `/index.html` rule + 8 unhashed-asset rules added to `ui/vercel.json`. | —                      |
-| 3   | ~~Verify Storage `cacheControl` at upload~~ **Done** — shared helpers plus the remaining handler-level `.upload()` sites. CI: `check-storage-cache-control.mjs`. Private/signed media stays uncacheable.            | —                      |
-| 4   | ~~Security headers at the edge~~ **Done** — HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. Config CI: `check-vercel-headers.sh`. Full CSP still deferred to doc 22.                       | Doc 22                 |
-| 5   | Measure Manila → Vercel edge and Manila → Supabase region latency; record the regional decision (16.5).                                                                                                             | Hosted + display       |
-| 6   | Post-deploy stale-tab: old tab → new deploy → update prompt, no blank screen (16.6). Cross-check doc 01.                                                                                                            | Two sequential deploys |
+| #   | Work                                                                                                                                                                                                                                           | Blocker                |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | Deployed-preview header audit for every asset class (16.1). **Partial on dev** — `verify:deployed-preview` covers HTML, hashed JS, favicon, `sw.js`, `manifest.webmanifest` (2026-09-21). Full asset-class matrix + Manila latency still open. | Hosted preview         |
+| 2   | ~~Set `index.html` to `must-revalidate`; give `ui/public/**` deliberate policies; keep `immutable` only on hashed files (16.2).~~ **Done** — `/index.html` rule + 8 unhashed-asset rules added to `ui/vercel.json`.                            | —                      |
+| 3   | ~~Verify Storage `cacheControl` at upload~~ **Done** — shared helpers plus the remaining handler-level `.upload()` sites. CI: `check-storage-cache-control.mjs`. Private/signed media stays uncacheable.                                       | —                      |
+| 4   | ~~Security headers at the edge~~ **Done** — HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. Config CI: `check-vercel-headers.sh`. Full CSP still deferred to doc 22.                                                  | Doc 22                 |
+| 5   | Measure Manila → Vercel edge and Manila → Supabase region latency; record the regional decision (16.5).                                                                                                                                        | Hosted + display       |
+| 6   | Post-deploy stale-tab: old tab → new deploy → update prompt, no blank screen (16.6). Cross-check doc 01.                                                                                                                                       | Two sequential deploys |
 
 ## Measured before / after
 
-| Metric                                     | Before                  | After                                   | Difference                                      |
-| ------------------------------------------ | ----------------------- | --------------------------------------- | ----------------------------------------------- |
-| `/index.html` Cache-Control                | Implicit / none         | `public, max-age=0, must-revalidate`    | Deploys cannot pin a stale HTML → deleted chunk |
-| Unhashed `ui/public` trees                 | No rule                 | Weekly max-age + SWR, not `immutable`   | Safe to replace icons/templates                 |
-| Security headers                           | Cache directives only   | HSTS + nosniff + referrer + permissions | Config-complete; CSP still doc 22               |
-| Handler `.upload()` without `cacheControl` | 9 sites (default 3600s) | 0; CI fails a new miss                  | Default TTL cannot land again                   |
-| Deployed `curl -I` / Manila latency        | Unmeasured              | Still unmeasured                        | Hosted-dev                                      |
+| Metric                                     | Before                  | After                                                                    | Difference                                      |
+| ------------------------------------------ | ----------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
+| `/index.html` Cache-Control                | Implicit / none         | `public, max-age=0, must-revalidate`                                     | Deploys cannot pin a stale HTML → deleted chunk |
+| Unhashed `ui/public` trees                 | No rule                 | Weekly max-age + SWR, not `immutable`                                    | Safe to replace icons/templates                 |
+| Security headers                           | Cache directives only   | HSTS + nosniff + referrer + permissions                                  | Config-complete; CSP still doc 22               |
+| Handler `.upload()` without `cacheControl` | 9 sites (default 3600s) | 0; CI fails a new miss                                                   | Default TTL cannot land again                   |
+| Deployed `curl -I` / Manila latency        | Unmeasured              | `verify:deployed-preview` on dev (2026-09-21); Manila latency still open | Partial on dev                                  |
 
 ## Current state
 

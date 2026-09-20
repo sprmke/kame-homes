@@ -89,6 +89,17 @@ if (faviconHead.status === 200) {
       `verify-deployed-preview: favicon has no Content-Encoding (may be small enough to skip compression)`
     );
   }
+  assertIncludes(faviconHead.headers, 'cache-control', 'max-age', 'favicon');
+}
+
+const swHead = await head(`${previewUrl}/sw.js`);
+if (swHead.status === 200) {
+  assertIncludes(swHead.headers, 'cache-control', 'must-revalidate', 'sw.js');
+}
+
+const manifestHead = await head(`${previewUrl}/manifest.webmanifest`);
+if (manifestHead.status === 200) {
+  assertIncludes(manifestHead.headers, 'cache-control', 'must-revalidate', 'manifest.webmanifest');
 }
 
 if (healthUrl) {

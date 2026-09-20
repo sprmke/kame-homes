@@ -49,9 +49,10 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 // required. Query params are minimal placeholders; a 4xx due to a missing
 // required param still measures real latency and is recorded as such.
 const PUBLIC_ENDPOINTS = [
-  { name: 'list-properties', path: '/functions/v1/list-properties' },
-  { name: 'list-parkings', path: '/functions/v1/list-parkings' },
+  { name: 'get-health', path: '/functions/v1/get-health' },
   { name: 'list-public-pricing-plans', path: '/functions/v1/list-public-pricing-plans' },
+  { name: 'list-public-properties', path: '/functions/v1/list-public-properties?page=1&pageSize=5' },
+  { name: 'list-public-parkings', path: '/functions/v1/list-public-parkings?page=1&pageSize=5' },
 ];
 
 // Authenticated endpoints — only exercised when SUPABASE_ACCESS_TOKEN is set.
