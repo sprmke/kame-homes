@@ -150,7 +150,7 @@ The repo has `.worktrees/` with at least two stale worktrees (`docs-obsidian-too
 - [ ] Release tagging + changelog; environment version tracking.
 - [x] Migration replay on PRs touching `supabase/migrations/**` (`migration-replay.yml`, 2026-09-21) plus weekly schedule.
 - [x] Stale worktrees pruned (~1GB). Merged branches identified (6) but not deleted — needs explicit go-ahead for remote deletion.
-- [x] `guestFormSubmit.spec.ts` fixed (static past stay dates in harness; Manila-relative +14/+16 days, 2026-09-21). Re-run full `@smoke` on CI to confirm.
+- [x] `guestFormSubmit.spec.ts` fixed: Manila-relative stay dates (`c8d34bd`); Playwright `webServer` sets `VITE_API_URL` on CI (`guest-form` commit after). Re-run full `@smoke` on CI to confirm.
 
 ## Docs / Plans / activity-log
 

@@ -105,6 +105,12 @@ export default defineConfig({
       // seeds a session via seedSupabaseAuthSession (admin/dashboard smoke tests).
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321/functions/v1',
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+      // Guest form (and other features) POST to `VITE_API_URL`, not `VITE_SUPABASE_URL`.
+      // CI has no `ui/.env`; without this, `fetch(undefined/submit-form)` never hits Playwright mocks.
+      VITE_API_URL:
+        process.env.VITE_API_URL ||
+        process.env.VITE_SUPABASE_URL ||
+        'http://127.0.0.1:54321/functions/v1',
     },
   },
 });

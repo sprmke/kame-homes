@@ -41,7 +41,9 @@ test.describe('@smoke @ci guest form submit', () => {
       timeout: 10_000,
     });
 
-    await page.getByRole('button', { name: 'Submit guest form' }).click();
+    const submit = page.getByRole('button', { name: 'Submit guest form' });
+    await expect(submit).toBeEnabled({ timeout: 10_000 });
+    await submit.click();
     await expect(page.getByText('Booking Confirmed!')).toBeVisible({ timeout: 30_000 });
   });
 });
