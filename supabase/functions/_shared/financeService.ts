@@ -182,16 +182,34 @@ function getSupabase() {
 }
 
 /**
- * Pushes the two status filters that `filterBookings` would otherwise apply in JS down
- * into SQL — safe because both are exact `status` equality checks with no date-format
- * parsing involved (unlike the `from`/`to` period filters, which stay client-side since
- * `check_in_date`/`check_out_date` are `MM-DD-YYYY` text and would sort incorrectly under
- * a plain SQL `>=`/`<=` comparison). Cuts rows transferred for the common case where
- * cancelled bookings are excluded, without changing which rows the caller sees.
+ * Pushes the two status filters, and — when `basis` is `check_in`/`check_out` — the
+ * `from`/`to` period range, down into SQL. The period range uses the generated
+ * `check_in_date_sql`/`check_out_date_sql` columns (real `date`, computed from the
+ * MM-DD-YYYY/YYYY-MM-DD text at write time — see the migration adding them) rather than
+ * comparing the TEXT columns directly, which would sort/compare incorrectly.
+ *
+ * `basis: 'completed'` filters by `settled_at`/`status_updated_at` in JS instead (see
+ * `passesFinancePeriodFilter`) — those are real timestamps already, but which one applies
+ * depends on row-level fallback logic (`settled_at` if present, else `status_updated_at`
+ * only for COMPLETED rows) that isn't a single column to filter on in SQL, so that basis
+ * keeps fetching the full status-filtered set and filtering the period client-side.
+ *
+ * Behavior note for malformed `check_in_date`/`check_out_date` text (neither MM-DD-YYYY
+ * nor YYYY-MM-DD — verified zero such rows in local seed data): `check_in_date_sql`/
+ * `check_out_date_sql` are NULL for those rows, and `NULL >= from` / `NULL <= to` always
+ * evaluate false in Postgres, so this SQL prefilter now unconditionally excludes them
+ * from any `from`/`to`-bounded report. The prior all-JS path instead ran
+ * `checkInDateToIso`, which returns the malformed string unchanged, then compared that
+ * raw string lexically against `from`/`to` — an essentially undefined result (whether a
+ * garbage string like `"invalid-date"` lexically falls inside a `"2026-07-01".."2026-07-31"`
+ * bound is accidental, not meaningful). This SQL exclusion is more defensible than that
+ * lexical-comparison luck, but it is a real behavior change: a period-filtered finance
+ * report's totals can shift for any property with a pre-existing malformed date row.
  */
 async function fetchAllBookingsForFinance(
   propertyId: string | undefined,
-  statusFilter: { includeCancelled: boolean; completedOnly: boolean }
+  statusFilter: { includeCancelled: boolean; completedOnly: boolean },
+  period?: { from: string | null; to: string | null; basis: FinancePeriodBasis }
 ): Promise<Record<string, unknown>[]> {
   const supabase = getSupabase();
   let query = supabase.from('guest_submissions').select('*');
@@ -200,6 +218,11 @@ async function fetchAllBookingsForFinance(
     query = query.eq('status', 'COMPLETED');
   } else if (!statusFilter.includeCancelled) {
     query = query.neq('status', 'CANCELLED');
+  }
+  if (period && period.basis !== 'completed') {
+    const col = period.basis === 'check_out' ? 'check_out_date_sql' : 'check_in_date_sql';
+    if (period.from) query = query.gte(col, period.from);
+    if (period.to) query = query.lte(col, period.to);
   }
   const { data, error } = await query;
   if (error) throw new Error(`finance bookings query failed: ${error.message}`);
@@ -469,10 +492,14 @@ export async function computeFinanceSummary(params: {
 }): Promise<FinanceSummaryResult> {
   const all = params.parkingId
     ? []
-    : await fetchAllBookingsForFinance(params.propertyId, {
-        includeCancelled: params.includeCancelled,
-        completedOnly: params.completedOnly,
-      });
+    : await fetchAllBookingsForFinance(
+        params.propertyId,
+        {
+          includeCancelled: params.includeCancelled,
+          completedOnly: params.completedOnly,
+        },
+        { from: params.from, to: params.to, basis: params.basis }
+      );
   const stayRows = filterBookings(all, params);
   const stays = summarizeStays(stayRows);
   const operatingItems = await listOperatingLineItems({
@@ -584,10 +611,14 @@ export async function listFinanceBookings(params: {
   limit: number;
   sort: 'check_in_date:asc' | 'check_in_date:desc' | 'host_net:desc' | 'host_net:asc';
 }): Promise<{ rows: FinanceBookingRow[]; total: number }> {
-  const all = await fetchAllBookingsForFinance(params.propertyId, {
-    includeCancelled: params.includeCancelled,
-    completedOnly: params.completedOnly,
-  });
+  const all = await fetchAllBookingsForFinance(
+    params.propertyId,
+    {
+      includeCancelled: params.includeCancelled,
+      completedOnly: params.completedOnly,
+    },
+    { from: params.from, to: params.to, basis: params.basis }
+  );
   let filtered = filterBookings(all, params);
 
   filtered.sort((a, b) => {
@@ -783,12 +814,16 @@ export async function updateFinanceLineItem(
 
     if (intervalChanged || untilChanged) {
       const reminderInput = patch.telegramReminder;
+      // 'this' can't carry a series-level schedule change — treat it as the
+      // narrowest valid scope (this and future) instead of always widening to 'all'.
+      const rebuildScope = scope === 'this' ? 'this_and_future' : scope;
       return await rebuildMaterializedRecurrenceSeries({
         supabase,
         table: 'finance_line_items',
         dateColumn: 'occurred_on',
         seriesId,
         anchorId: id,
+        scope: rebuildScope,
         newInterval: intervalCandidate,
         newUntil: untilCandidate,
         mapRow: mapFinanceLineItemRow,

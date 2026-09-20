@@ -432,12 +432,16 @@ export async function updateMaintenanceItem(
 
     if (intervalChanged || untilChanged) {
       const reminderInput = patch.telegramReminder;
+      // 'this' can't carry a series-level schedule change — treat it as the
+      // narrowest valid scope (this and future) instead of always widening to 'all'.
+      const rebuildScope = scope === 'this' ? 'this_and_future' : scope;
       return await rebuildMaterializedRecurrenceSeries({
         supabase,
         table: 'maintenance_items',
         dateColumn: 'scheduled_on',
         seriesId,
         anchorId: id,
+        scope: rebuildScope,
         newInterval: intervalCandidate,
         newUntil: untilCandidate,
         mapRow: mapMaintenanceItemRow,

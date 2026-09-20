@@ -47,6 +47,7 @@ import {
   sanitizeAttachmentToken,
 } from './propertyEmailBranding.ts';
 import { buildEmailCtaHtml, renderBrandedEmailShell } from './brandedEmailShell.ts';
+import { isEmailSuppressed } from './emailSuppression.ts';
 import { PLATFORM_BRAND_NAME } from './platformBrand.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
@@ -784,6 +785,11 @@ export async function sendNewBookingRequestNotify(booking: GuestSubmission) {
 export async function sendBookingAcknowledgement(booking: GuestSubmission) {
   console.log('Sending booking acknowledgement email to guest...');
 
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping booking acknowledgement — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
+  }
+
   const propertyId = resolveEmailPropertyId(booking);
   const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
@@ -862,6 +868,11 @@ export async function sendBookingAcknowledgement(booking: GuestSubmission) {
  */
 export async function sendReadyForCheckin(booking: GuestSubmission) {
   console.log('Sending ready-for-check-in email to guest...');
+
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping ready-for-check-in — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
+  }
 
   const propertyId = resolveEmailPropertyId(booking);
   const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
@@ -1158,6 +1169,11 @@ export async function sendParkingBroadcast(
 export async function sendSdRefundFormRequest(booking: GuestSubmission) {
   console.log('Sending SD refund form request email to guest...');
 
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping SD refund form request — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
+  }
+
   const propertyId = resolveEmailPropertyId(booking);
   const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
@@ -1232,6 +1248,77 @@ export async function sendSdRefundFormRequest(booking: GuestSubmission) {
   }
 
   console.log('SD refund form request email sent successfully');
+  return await res.json();
+}
+
+/**
+ * Manual send of a saved custom template to a booking's guest.
+ * Unlike the fixed workflow email kinds, this is not tied to a booking status
+ * or an automation toggle — an operator picks the booking and sends on demand.
+ */
+export async function sendPropertyCustomTemplateEmail(
+  booking: GuestSubmission,
+  templateKey: string,
+  templateName: string,
+  content: string
+) {
+  console.log(`Sending custom template "${templateKey}" to guest...`);
+
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping custom template send — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
+  }
+
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
+
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey,
+    emailTitle: templateName,
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      settings,
+      {
+        ...guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(guestContact),
+        email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+      },
+      branding
+    ),
+    branding,
+    contentOverride: content,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
+      to: [booking.guest_email],
+      reply_to: EMAIL_REPLY_TO,
+      subject: `${unitLabel} - ${templateName} ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Failed to send custom template email: ${JSON.stringify(err)}`);
+  }
+
+  console.log('Custom template email sent successfully');
   return await res.json();
 }
 
@@ -1330,6 +1417,11 @@ export async function sendSupportTicketReplyNotify(ticket: {
     console.warn(
       '[sendSupportTicketReplyNotify] RESEND_API_KEY or RESEND_FROM_EMAIL missing — skip'
     );
+    return;
+  }
+
+  if (await isEmailSuppressed(ticket.submittedByEmail)) {
+    console.warn('[sendSupportTicketReplyNotify] Skipping — submitter email is suppressed');
     return;
   }
 
@@ -1455,6 +1547,11 @@ export async function sendSupportTicketStatusNotify(ticket: {
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!RESEND_API_KEY || !fromEmail) {
     console.warn('[sendSupportTicketStatusNotify] email env missing — skip');
+    return;
+  }
+
+  if (await isEmailSuppressed(ticket.submittedByEmail)) {
+    console.warn('[sendSupportTicketStatusNotify] Skipping — submitter email is suppressed');
     return;
   }
 

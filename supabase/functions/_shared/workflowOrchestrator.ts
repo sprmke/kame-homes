@@ -36,6 +36,7 @@ import { bookingNotificationMetadata } from './notificationEnrichment.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import { type ActivityActorType, type ActorContext, logActivity } from './activityLog.ts';
 import { capturePostHogEvent } from './posthog.ts';
+import { purgeCacheByScope } from './queryCache.ts';
 import {
   BookingStatus,
   canTransition,
@@ -1091,16 +1092,20 @@ export class WorkflowOrchestrator {
     if (toStatus === 'READY_FOR_CHECKIN' && isForwardToReady && !suppressGuestSideEffects) {
       const organizationId = await resolveNotificationOrgId();
       if (organizationId) {
-        await createNotification({
-          organizationId,
-          propertyId,
-          type: 'booking_ready_for_checkin',
-          title: STATUS_HUMAN_LABEL.READY_FOR_CHECKIN,
-          body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-in.`,
-          bookingId,
-          metadata: bookingNotificationMetadata(updatedBooking),
-          dedupeKey: `${bookingId}:${toStatus}`,
-        });
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_ready_for_checkin',
+            title: STATUS_HUMAN_LABEL.READY_FOR_CHECKIN,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-in.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
+        }
       }
     }
 
@@ -1112,16 +1117,20 @@ export class WorkflowOrchestrator {
     ) {
       const organizationId = await resolveNotificationOrgId();
       if (organizationId) {
-        await createNotification({
-          organizationId,
-          propertyId,
-          type: 'booking_ready_for_checkout',
-          title: STATUS_HUMAN_LABEL.READY_FOR_CHECKOUT,
-          body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-out.`,
-          bookingId,
-          metadata: bookingNotificationMetadata(updatedBooking),
-          dedupeKey: `${bookingId}:${toStatus}`,
-        });
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_ready_for_checkout',
+            title: STATUS_HUMAN_LABEL.READY_FOR_CHECKOUT,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-out.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
+        }
       }
     }
 
@@ -1132,16 +1141,20 @@ export class WorkflowOrchestrator {
     ) {
       const organizationId = await resolveNotificationOrgId();
       if (organizationId) {
-        await createNotification({
-          organizationId,
-          propertyId,
-          type: 'booking_sd_refund_due',
-          title: STATUS_HUMAN_LABEL.PENDING_SD_REFUND,
-          body: `${updatedBooking.primary_guest_name ?? 'A guest'} submitted their SD refund details.`,
-          bookingId,
-          metadata: bookingNotificationMetadata(updatedBooking),
-          dedupeKey: `${bookingId}:${toStatus}`,
-        });
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_sd_refund_due',
+            title: STATUS_HUMAN_LABEL.PENDING_SD_REFUND,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'} submitted their SD refund details.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
+        }
       }
     }
 
@@ -1178,6 +1191,21 @@ export class WorkflowOrchestrator {
         manual,
         actor,
       });
+
+      // ── Cache invalidation (doc 12, Phase 12.5) — routed through the orchestrator's side
+      //    effects rather than sprinkled into callers, same rule as email/calendar/sheet side
+      //    effects. dashboard-stats (_shared/dashboardService.ts, cached via
+      //    _shared/queryCache.ts) reads this property's bookings plus, for an org-scoped
+      //    request, every property/parking in the org — so a transition must purge both the
+      //    property-scoped cache entries and the org-scoped ones. Best-effort: purgeCacheByScope
+      //    never throws, so a purge failure cannot fail the booking transition itself.
+      if (propertyId) {
+        await purgeCacheByScope({ propertyId });
+        const organizationId = await resolveNotificationOrgId();
+        if (organizationId) {
+          await purgeCacheByScope({ orgId: organizationId });
+        }
+      }
     }
 
     return {

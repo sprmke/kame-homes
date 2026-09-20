@@ -177,7 +177,7 @@ export class DatabaseService {
         ownerContactNumber: data.owner_contact_number || '',
       };
 
-      console.log('Form data fetched successfully:', formData);
+      console.log('Form data fetched successfully for booking:', bookingId);
       return formData;
     } catch (error) {
       console.error('Error fetching form data:', error);
@@ -793,6 +793,13 @@ export class DatabaseService {
     // request URI length limits once an org has more than a couple hundred assets.
     // Scoped org admins (`propertyIds` / `parkingIds`) use `.in()` — assignment sets stay small.
     const baseRequests: any[] = [];
+    // Set only inside the `if (parkingId)` branch below, and read only by the SQL
+    // fast-path guard further down (`hasPendingParkingBroadcasts`) — kept at this outer
+    // scope on purpose so that guard can see it, but the two reads must stay in sync
+    // with this branch: if this pre-claim-broadcast lookup ever moves or is removed,
+    // update the guard alongside it, or a parking scope with pending broadcasts could
+    // silently take the fast path and drop those broadcast-only rows from the list.
+    let hasPendingParkingBroadcasts = false;
 
     if (parkingId) {
       // Broadcast pre-claim requests still have parking_id = null — surface this
@@ -803,9 +810,10 @@ export class DatabaseService {
         .eq('parking_id', parkingId)
         .eq('response', 'pending');
       const pendingBookingIds = (pendingBroadcasts ?? []).map((row) => String(row.booking_id));
+      hasPendingParkingBroadcasts = pendingBookingIds.length > 0;
       const request = this.supabase.from('guest_submissions').select('*');
       baseRequests.push(
-        pendingBookingIds.length > 0
+        hasPendingParkingBroadcasts
           ? request.or(`parking_id.eq.${parkingId},id.in.(${pendingBookingIds.join(',')})`)
           : request.eq('parking_id', parkingId)
       );
@@ -890,8 +898,50 @@ export class DatabaseService {
         ].join(',')
       : null;
 
-    const requests = baseRequests.map((base) => {
-      let request = base;
+    // Fast path: a single-property or single-parking scope (not an org-wide union of
+    // property + parking queries, and not a parking scope with pending pre-claim
+    // broadcasts unioned in — both need the in-memory dedup path below) with a simple
+    // sort key (`check_in_date`/`created_at` — NOT the composite `status_priority`
+    // default, which needs a status-priority CASE expression this path doesn't build)
+    // and no check-in date-range filter (`from`/`to`, which — like the sort — depends
+    // on the same MM-DD-YYYY parsing and isn't pushed to SQL here either). Pushes
+    // filtering, sorting, and pagination into one SQL query via the generated
+    // `check_in_date_sql`/`check_out_date_sql` columns (see the migration adding them),
+    // instead of fetching every matching row and paginating in memory. Rebuilds the
+    // query from scratch (rather than reusing `baseRequests[0]`) so `.select()` can be
+    // called once with `{ count: 'exact' }` before any filter narrows the builder type.
+    //
+    // Known divergence for malformed `check_in_date`/`check_out_date` text (neither
+    // MM-DD-YYYY nor YYYY-MM-DD — verified zero such rows in local seed data, but legacy
+    // production data is not guaranteed clean): this fast path's generated SQL columns
+    // are NULL for those rows (sorted to a fixed end via `nullsFirst`), while the
+    // fallback path's `checkInDateToIso` (in `bookingsListSort.ts`) returns the raw
+    // string unchanged, sorting it lexically alongside real ISO dates instead. The same
+    // malformed row can therefore appear in a different position depending on which path
+    // serves the request (e.g. single-property `check_in_date` sort vs. org-wide or
+    // `status_priority` sort). Unifying this would mean changing `checkInDateToIso`'s
+    // fallback behavior, which is also relied on by `analyticsService.ts`,
+    // `dashboardService.ts`, and `importCommitStatus.ts` — out of scope for a pagination
+    // fix; flagged here rather than fixed blind. Not a regression for any row with a
+    // well-formed date, which is the entire local dataset today.
+    const singlePropertyOrParkingScope =
+      (propertyId && !parkingId) || (parkingId && !propertyId && !hasPendingParkingBroadcasts);
+    const SQL_PUSHABLE_SORT_COLUMNS = ['check_in_date', 'created_at'] as const;
+    const [sqlSortCol, sqlSortDir] = sort.split(':') as [string, string];
+    const canPushSortAndPageToSql =
+      singlePropertyOrParkingScope &&
+      !from &&
+      !to &&
+      (SQL_PUSHABLE_SORT_COLUMNS as readonly string[]).includes(sqlSortCol) &&
+      (sqlSortDir === 'asc' || sqlSortDir === 'desc');
+
+    // Shared by both the SQL fast path and the in-memory fallback below — keeps the
+    // two branches' filter semantics from silently drifting apart as this function
+    // is edited (e.g. a new status value, or a change to how hasPets/needParking match).
+    const applyBookingsListFilters = <T extends { or: any; in: any; eq: any; not: any }>(
+      req: T
+    ): T => {
+      let request = req;
       if (bookingKind === 'property') {
         request = request.not('property_id', 'is', null);
       } else if (bookingKind === 'parking') {
@@ -906,8 +956,52 @@ export class DatabaseService {
       if (hasPets === false) request = request.eq('has_pets', false);
       if (needParking === true) request = request.eq('need_parking', true);
       if (needParking === false) request = request.eq('need_parking', false);
-      return request.order('created_at', { ascending: false });
-    });
+      return request;
+    };
+
+    if (canPushSortAndPageToSql) {
+      let request = this.supabase.from('guest_submissions').select('*', { count: 'exact' });
+      request = parkingId
+        ? request.eq('parking_id', parkingId)
+        : request.eq('property_id', propertyId!);
+      request = applyBookingsListFilters(request);
+      // Same AND precedence as the in-memory path: visibility filtering always applies,
+      // independent of an explicit status filter (see matchesDefaultBookingsListVisibility).
+      request = request.neq('status', 'CANCELLED');
+      if (!showCompletedBookings) request = request.neq('status', 'COMPLETED');
+
+      const ascending = sqlSortDir === 'asc';
+      request =
+        sqlSortCol === 'check_in_date'
+          ? request.order('check_in_date_sql', { ascending, nullsFirst: !ascending })
+          : request.order('created_at', { ascending });
+
+      const from_idx = (page - 1) * limit;
+      const { data, error, count } = await request.range(from_idx, from_idx + limit - 1);
+      if (error) throw new Error(`listBookings query failed: ${error.message}`);
+      // `count: 'exact'` should always return a number alongside a successful response;
+      // silently falling back to the current page's length would under-report `total`
+      // and make the admin UI think there's no next page when there is one.
+      if (count == null) throw new Error('listBookings query failed: missing exact count');
+
+      let paged = (data ?? []) as any[];
+      if (includePropertyMeta && paged.length > 0) {
+        paged = await this.enrichBookingsWithPropertyMeta(paged);
+      }
+      if (includeParkingMeta && paged.length > 0) {
+        paged = await this.enrichBookingsWithParkingMeta(paged, parkingId);
+      }
+      paged = paged.map((row) => ({
+        ...row,
+        booking_kind: row.parking_id || parkingId ? 'parking' : 'property',
+      }));
+
+      return { rows: paged, total: count };
+    }
+
+    const requests = baseRequests.map((base) =>
+      applyBookingsListFilters(base).order('created_at', { ascending: false })
+    );
 
     // Fetch all matching rows first (required for MM-DD-YYYY client-side sort)
     // Then paginate in memory. This is acceptable for admin (≤ a few thousand rows).

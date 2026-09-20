@@ -190,16 +190,37 @@ function operatingItemsToCsv(items: FinanceLineItemRow[]): string {
   return rowsToCsv(headers, rows);
 }
 
+/**
+ * Same SQL-pushdown pattern as `fetchAllBookingsForFinance` in financeService.ts (Phase
+ * 10.2): scope by property in SQL rather than fetching every org row and filtering in JS
+ * (that prior version had no `.eq('property_id', …)` on the query at all — it fetched the
+ * whole org's `guest_submissions` table on every stays/combined export, then filtered
+ * `property_id` client-side), and push the `check_in`/`check_out` period range into the
+ * generated `check_in_date_sql`/`check_out_date_sql` columns when applicable. `basis:
+ * 'completed'` still needs the full status-filtered set fetched, since which timestamp
+ * column applies (`settled_at` vs `status_updated_at`) is per-row fallback logic, not a
+ * single column — same divergence documented in financeService.ts.
+ */
 async function staysExportCsv(params: FinanceExportParams): Promise<string> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
-  const { data } = await supabase.from('guest_submissions').select('*');
-  const scoped = params.propertyId
-    ? (data ?? []).filter((row) => row.property_id === params.propertyId)
-    : (data ?? []);
-  const all = scoped as Record<string, unknown>[];
+  let query = supabase.from('guest_submissions').select('*');
+  if (params.propertyId) query = query.eq('property_id', params.propertyId);
+  if (params.completedOnly) {
+    query = query.eq('status', 'COMPLETED');
+  } else if (!params.includeCancelled) {
+    query = query.neq('status', 'CANCELLED');
+  }
+  if (params.basis !== 'completed') {
+    const col = params.basis === 'check_out' ? 'check_out_date_sql' : 'check_in_date_sql';
+    if (params.from) query = query.gte(col, params.from);
+    if (params.to) query = query.lte(col, params.to);
+  }
+  const { data, error } = await query;
+  if (error) throw new Error(`finance stays export query failed: ${error.message}`);
+  const all = (data ?? []) as Record<string, unknown>[];
   const filtered = all.filter((row) => {
     if (!params.includeCancelled && isCancelledBooking(row)) return false;
     if (params.completedOnly && row.status !== 'COMPLETED') return false;

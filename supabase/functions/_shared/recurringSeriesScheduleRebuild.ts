@@ -3,7 +3,11 @@
  * Shared by finance_line_items and maintenance_items update paths.
  */
 
-import { generateRecurrenceDates, type RecurrenceInterval } from './financeRecurrence.ts';
+import {
+  generateRecurrenceDates,
+  type RecurrenceEditScope,
+  type RecurrenceInterval,
+} from './financeRecurrence.ts';
 
 type RebuildParams<TRow> = {
   supabase: import('./supabaseJs.ts').SupabaseClient;
@@ -13,6 +17,15 @@ type RebuildParams<TRow> = {
   anchorId: string;
   newInterval: RecurrenceInterval;
   newUntil: string;
+  /**
+   * `'all'` (default) regenerates the whole series from its original start date.
+   * `'this_and_future'` leaves every row dated before the anchor's own occurrence
+   * completely untouched — including their paid/reconciled/completed state — and
+   * only regenerates from the anchor's date forward. `'this'` is not valid here
+   * (a repeat interval / end date is a series-level property); callers should
+   * upgrade it to `'this_and_future'` before calling.
+   */
+  scope?: RecurrenceEditScope;
   buildRowPatch: (
     existing: Record<string, unknown>,
     dateYmd: string,
@@ -37,6 +50,7 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
     anchorId,
     newInterval,
     newUntil,
+    scope = 'all',
     buildRowPatch,
     mapRow,
     buildInsertRow,
@@ -51,17 +65,37 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
     throw new Error(`fetch ${table} series failed: ${fetchErr.message}`);
   }
 
-  const rows = (existingRows ?? []) as Record<string, unknown>[];
+  const allRows = (existingRows ?? []) as Record<string, unknown>[];
+  if (allRows.length === 0) throw new Error('recurrence_series_not_found');
+
+  const anchorRow = allRows.find((row) => String(row.id) === anchorId);
+  const anchorDate = anchorRow ? String(anchorRow[dateColumn]).slice(0, 10) : null;
+
+  // 'this_and_future' only regenerates the anchor's own date forward — earlier
+  // occurrences (and their paid/reconciled/completed state) are never touched.
+  const regenerateFromAnchorOnly = scope === 'this_and_future' && anchorDate != null;
+  const rows = regenerateFromAnchorOnly
+    ? allRows.filter((row) => String(row[dateColumn]).slice(0, 10) >= anchorDate!)
+    : allRows;
   if (rows.length === 0) throw new Error('recurrence_series_not_found');
 
-  const seriesStart = String(rows[0][dateColumn]).slice(0, 10);
-  const primaryDay = Number(seriesStart.slice(8, 10));
-  const until = newUntil >= seriesStart ? newUntil.slice(0, 10) : seriesStart;
-  const newDates = generateRecurrenceDates(seriesStart, newInterval, until, 500, primaryDay);
+  const regenerateStart = regenerateFromAnchorOnly
+    ? anchorDate!
+    : String(allRows[0][dateColumn]).slice(0, 10);
+  // Only pin the day-of-month to the series' original start when regenerating
+  // the whole series — for 'this_and_future', let it default to the anchor's
+  // own day (generateRecurrenceDates does this when no override is given), so
+  // a monthly/quarterly/etc. cadence keeps stepping from the date the host is
+  // actually looking at instead of snapping back to the series' original day.
+  const primaryDay = regenerateFromAnchorOnly
+    ? undefined
+    : Number(String(allRows[0][dateColumn]).slice(0, 10).slice(8, 10));
+  const until = newUntil >= regenerateStart ? newUntil.slice(0, 10) : regenerateStart;
+  const newDates = generateRecurrenceDates(regenerateStart, newInterval, until, 500, primaryDay);
   if (newDates.length === 0) throw new Error('recurrence_generated_no_dates');
 
   const now = new Date().toISOString();
-  const template = rows[0];
+  const template = allRows[0];
   let anchor: Record<string, unknown> | null = null;
   const idsToDelete: string[] = [];
 

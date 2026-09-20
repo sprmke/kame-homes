@@ -359,6 +359,31 @@ export async function countCustomTemplates(propertyId: string): Promise<number> 
   return count ?? 0;
 }
 
+/** Saved row for a custom template (`custom-*` keys are never built-in). */
+export async function resolveCustomTemplateRow(
+  propertyId: string,
+  templateKey: string
+): Promise<{ content: string; name: string } | null> {
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_contents')
+    .select('content, name')
+    .eq('property_id', propertyId)
+    .eq('template_key', templateKey)
+    .eq('category', 'custom')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[propertyTemplates] resolveCustomTemplateRow:', error);
+    throw new Error('Failed to load custom template content');
+  }
+  if (!data?.content?.trim()) return null;
+
+  return {
+    content: normalizeStoredTemplateContent(String(data.content), templateKey),
+    name: data.name?.trim() || 'Custom template',
+  };
+}
+
 /** Resolved HTML body for a built-in or saved property template. */
 export async function resolvePropertyTemplateContent(
   propertyId: string | undefined,

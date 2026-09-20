@@ -256,7 +256,8 @@ export function buildGuestFormPlaceholderVars(
 
 export async function renderPropertyTemplateSendEmail(input: {
   propertyId: string | undefined;
-  templateKey: PropertyEmailTemplateKey;
+  /** Custom (`custom-*`) keys are only valid together with `contentOverride`. */
+  templateKey: PropertyEmailTemplateKey | (string & {});
   emailTitle: string;
   placeholderVars: Record<string, string>;
   urgentBlock?: string;
