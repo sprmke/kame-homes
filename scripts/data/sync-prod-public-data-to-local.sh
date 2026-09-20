@@ -22,6 +22,7 @@
 #
 # This dumps only the `public` schema (guest_submissions, processed_emails, app_settings, etc.).
 # It does NOT copy Storage objects — URLs in rows still point at prod buckets unless you sync files separately.
+# After restore, guest PII is scrubbed by default (doc 19). Skip with SKIP_PII_SCRUB=1.
 
 set -euo pipefail
 
@@ -341,6 +342,14 @@ if [[ ! -f "$AFTER_RESTORE_SQL" ]]; then
 fi
 echo "==> Normalizing legacy status values + re-adding CHECK (see scripts/data/sql/after-prod-data-restore.sql)"
 docker exec -i "$CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <"$AFTER_RESTORE_SQL"
+
+SCRUB_SQL="$ROOT/scripts/data/sql/scrub-prod-pii-after-restore.sql"
+if [[ "${SKIP_PII_SCRUB:-0}" == "1" ]]; then
+  echo "==> SKIP_PII_SCRUB=1: leaving guest PII as dumped (local only; do not share this DB)"
+elif [[ -f "$SCRUB_SQL" ]]; then
+  echo "==> Scrubbing guest PII in local copy (doc 19). Skip with SKIP_PII_SCRUB=1"
+  docker exec -i "$CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <"$SCRUB_SQL"
+fi
 
 echo "==> Done. Quick counts:"
 docker exec "$CONTAINER" psql -U postgres -d postgres -c \

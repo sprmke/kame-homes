@@ -77,7 +77,7 @@ serveAuthenticated('upload-org-verification-asset', async (req) => {
 
     const { error: uploadError } = await supabase.storage
       .from(ORG_VERIFICATION_BUCKET)
-      .upload(storagePath, file, { upsert: false, contentType: mime });
+      .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
 
     if (uploadError) {
       console.error('[upload-org-verification-asset]', uploadError.message);
