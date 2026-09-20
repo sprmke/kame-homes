@@ -41,6 +41,16 @@ run_step "unit tests (Vitest)" bun run test
 run_step "edge type check (Deno)" bun run check:edge-types
 run_step "edge unit tests (Deno _shared)" bun run test:edge
 run_step "servePublic rate-limit coverage" bash scripts/dev/check-serve-public-rate-limit.sh
+run_step "authenticated wrapper log-only rate check" bash scripts/dev/check-authenticated-rate-limit.sh
+run_step "unbounded query guard" bash scripts/dev/check-unbounded-select.sh
+run_step "cache class guard" bash scripts/dev/check-cache-class.sh
+run_step "select('*') guard" bash scripts/dev/check-select-star.sh
+run_step "public static asset size" bash scripts/dev/check-public-asset-size.sh
+run_step "vercel cache/security headers" bash scripts/dev/check-vercel-headers.sh
+run_step "storage upload cacheControl" node scripts/dev/check-storage-cache-control.mjs
+run_step "edge serve-wrapper allowlist" node scripts/dev/audit-edge-functions.mjs --check
+run_step "auth matrix — zero-authz-signal guard (production-readiness doc 21)" \
+  node scripts/dev/audit-auth-matrix.mjs --check
 run_step "edge handler tests (Deno)" bun run test:edge:handlers
 run_step "playwright smoke (@smoke)" bun run test:e2e:smoke
 run_step "build UI" bun run build
