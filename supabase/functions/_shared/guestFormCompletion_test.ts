@@ -7,6 +7,7 @@
 
 import { assert, assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
+import { addDaysYmd, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import {
   checkCompletionEligibility,
   guestFormCompletionPath,
@@ -14,10 +15,9 @@ import {
 } from './guestFormCompletion.ts';
 import type { GuestSubmission } from './types.ts';
 
-function future(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${d.getFullYear()}`;
+/** Offsets from Manila "today" (matches `isCompletionLinkLive` / `manilaTodayYmd`). */
+function futureManila(days: number): string {
+  return addDaysYmd(manilaTodayYmd(), days);
 }
 
 const base = (over: Partial<GuestSubmission>): GuestSubmission =>
@@ -27,7 +27,7 @@ const base = (over: Partial<GuestSubmission>): GuestSubmission =>
     status: 'PENDING_REVIEW',
     booking_source: 'Airbnb',
     external_source: 'airbnb',
-    check_out_date: future(10),
+    check_out_date: futureManila(10),
     ...over,
   }) as GuestSubmission;
 
@@ -44,10 +44,19 @@ Deno.test('guestFormCompletionPath — includes token + property slug', () => {
 });
 
 Deno.test('isCompletionLinkLive — future checkout ok; past / cancelled not', () => {
-  assert(isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: future(1) }));
-  assert(isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: future(0) }), 'today ok');
-  assert(!isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: future(-1) }), 'past');
-  assert(!isCompletionLinkLive({ status: 'CANCELLED', check_out_date: future(5) }), 'cancelled');
+  assert(isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: futureManila(1) }));
+  assert(
+    isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: futureManila(0) }),
+    'today ok'
+  );
+  assert(
+    !isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: futureManila(-1) }),
+    'past'
+  );
+  assert(
+    !isCompletionLinkLive({ status: 'CANCELLED', check_out_date: futureManila(5) }),
+    'cancelled'
+  );
   assert(!isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: '' }), 'no date');
 });
 
@@ -91,7 +100,7 @@ Deno.test(
 );
 
 Deno.test('checkCompletionEligibility — stay already over rejected', () => {
-  assertEquals(checkCompletionEligibility(base({ check_out_date: future(-2) })), {
+  assertEquals(checkCompletionEligibility(base({ check_out_date: futureManila(-2) })), {
     ok: false,
     reason: 'link_expired',
   });
