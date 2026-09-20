@@ -2,8 +2,8 @@ import { type SyntheticEvent } from 'react';
 
 import { Check, Settings2 } from 'lucide-react';
 
-import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
 import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
+import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
 import { useVisibleThumbnailRequest } from '@/features/dashboard/marketing/hooks/useVisibleThumbnailRequest';
 import {
   marketingFormatMeta,

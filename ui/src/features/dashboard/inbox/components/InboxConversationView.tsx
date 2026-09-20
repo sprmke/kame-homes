@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Link } from 'react-router-dom';
+
 import { BookingCalendarModal } from '@/features/guest/marketing/properties/components/property-detail/BookingCalendarModal';
 
 import { useBookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
@@ -33,6 +35,7 @@ import {
   InboxMessageMediaTile,
 } from '@/features/dashboard/inbox/components/InboxMediaPreviewDialog';
 import { PlatformLogo } from '@/features/dashboard/inbox/components/PlatformLogo';
+import { useInboxCrossPropertyMatch } from '@/features/dashboard/inbox/hooks/useInboxCrossPropertyMatch';
 import { useInboxMatchedBooking } from '@/features/dashboard/inbox/hooks/useInboxMatchedBooking';
 import type { InboxChatAttachment } from '@/features/dashboard/inbox/lib/inboxChatAttachment';
 import { readPropertyCheckInTimes } from '@/features/dashboard/inbox/lib/inboxCheckInPack';
@@ -59,6 +62,7 @@ import {
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { handleAiMutationError, isAiQuotaError } from '@/features/dashboard/org/lib/aiQuotaToast';
+import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
@@ -274,6 +278,11 @@ export function InboxConversationView({
   const showOrgMetaBadge =
     usingOrgMeta &&
     (conversation?.platform === 'facebook' || conversation?.platform === 'instagram');
+  const crossPropertyMatch = useInboxCrossPropertyMatch(conversation, showOrgMetaBadge);
+  const crossPropertyHref =
+    crossPropertyMatch && orgContext
+      ? `${propertySectionPath(orgContext.orgSlug, crossPropertyMatch.propertySlug, 'inbox')}?conversationId=${encodeURIComponent(conversation!.id)}&platform=${conversation!.platform}`
+      : null;
   const { peerTyping, signalTyping } = useChatTyping(
     conversation?.id ?? null,
     'host',
@@ -564,6 +573,17 @@ export function InboxConversationView({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+            ) : null}
+            {crossPropertyMatch && crossPropertyHref ? (
+              <>
+                <span aria-hidden>·</span>
+                <Link
+                  to={crossPropertyHref}
+                  className="text-primary font-medium underline-offset-2 hover:underline"
+                >
+                  Looks like {crossPropertyMatch.propertyName}
+                </Link>
+              </>
             ) : null}
             {isWeb && conversation.inquiry_check_in && conversation.inquiry_check_out ? (
               <>

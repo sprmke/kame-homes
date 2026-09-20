@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { generationErrorMessage } from './marketingGenerationProgress';
+
 import type { MarketingGenerationJob } from './marketingGenerationTypes';
 
 function job(overrides: Partial<MarketingGenerationJob>): MarketingGenerationJob {

@@ -70,9 +70,17 @@ function isPreviewMode(): boolean {
   return params.get('embed') === '1' || params.get('preview') === '1';
 }
 
+/** Host session JWT proving property access — see get-public-showcase's admin_jwt check. */
+function readAdminJwtFromLocation(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('admin_jwt');
+}
+
 async function fetchShowcase(slug: string, preview: boolean): Promise<FetchedShowcase> {
   const params = new URLSearchParams({ property: slug });
   if (preview) params.set('preview', '1');
+  const adminJwt = preview ? readAdminJwtFromLocation() : null;
+  if (adminJwt) params.set('admin_jwt', adminJwt);
   const res = await fetch(`${FUNCTIONS_URL}/get-public-showcase?${params}`, {
     headers: {
       apikey: ANON_KEY,

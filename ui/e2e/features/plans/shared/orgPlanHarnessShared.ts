@@ -97,6 +97,7 @@ function growthFeatures() {
     aiMarketingImageGeneration: true,
     aiValidations: true,
     propertyShowcase: true,
+    publicPagesAutosave: true,
     calendarSync: true,
     smartPricing: true,
     copyPropertySettings: true,

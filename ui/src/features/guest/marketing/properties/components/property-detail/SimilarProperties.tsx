@@ -54,22 +54,26 @@ export function SimilarProperties({ properties, currentPropertyId }: SimilarProp
         {/* Navigation Buttons */}
         <div className="hidden gap-2 sm:flex">
           <Button
+            type="button"
             variant="outline"
             size="icon"
             className="rounded-full"
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
+            aria-label="Previous similar properties"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" aria-hidden />
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="icon"
             className="rounded-full"
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
+            aria-label="Next similar properties"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5" aria-hidden />
           </Button>
         </div>
       </div>

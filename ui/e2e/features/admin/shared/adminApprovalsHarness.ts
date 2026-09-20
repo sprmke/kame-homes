@@ -1,6 +1,7 @@
+import { seedSupabaseAuthSession } from '../../../shared/authSeam';
+
 import type { Page, Route } from '@playwright/test';
 
-import { seedSupabaseAuthSession } from '../../../shared/authSeam';
 
 async function fulfillJson(route: Route, body: unknown) {
   await route.fulfill({

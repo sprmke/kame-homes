@@ -7,11 +7,11 @@ import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
 import { AiStudioResultsGrid } from '@/features/dashboard/marketing/components/ai-studio/AiStudioResultsGrid';
 import { useGenerateMarketingMedia } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
-import { useMarketingGenerations } from '@/features/dashboard/marketing/hooks/useMarketingGenerations';
 import {
   useMarketingGenerationReferences,
   useUploadMarketingGenerationReference,
 } from '@/features/dashboard/marketing/hooks/useMarketingGenerationReferences';
+import { useMarketingGenerations } from '@/features/dashboard/marketing/hooks/useMarketingGenerations';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import {
   composerValuesFromJob,

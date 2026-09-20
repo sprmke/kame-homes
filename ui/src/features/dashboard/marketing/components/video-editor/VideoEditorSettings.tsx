@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Clapperboard, Film, Layers, Music } from 'lucide-react';
 
 import { StyleSection } from '@/features/dashboard/marketing/components/calendar-builder/components/panels/StyleSection';
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 import {
   VideoMusicSettings,
   defaultProjectMusic,
@@ -33,7 +34,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
 import { Input } from '@/components/ui/input';
 
 type Props = {

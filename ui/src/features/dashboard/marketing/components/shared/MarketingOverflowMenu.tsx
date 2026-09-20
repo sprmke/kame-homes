@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 import { MoreHorizontal, MoreVertical } from 'lucide-react';
 
 import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
+
 import {
   ResponsiveOverflowMenu,
   type ResponsiveOverflowAction,

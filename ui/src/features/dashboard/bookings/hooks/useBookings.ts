@@ -142,7 +142,10 @@ async function fetchBookingsFromEdgeFunction(
   return { rows: json.data as BookingRow[], total: json.total as number };
 }
 
-export function useBookings(query: BookingsQuery, options?: { scope?: BookingsListScope }) {
+export function useBookings(
+  query: BookingsQuery,
+  options?: { scope?: BookingsListScope; enabled?: boolean }
+) {
   const propertyId = usePropertyIdParam();
   const parkingId = useParkingIdParam();
   const { orgSlug, orgId } = useOrgScopeKey();
@@ -256,10 +259,12 @@ export function useBookings(query: BookingsQuery, options?: { scope?: BookingsLi
     placeholderData: keepPreviousData,
     staleTime: 15_000,
     enabled:
-      scope === 'property'
-        ? true
-        : scope === 'parking'
-          ? Boolean(parkingId)
-          : Boolean(fetchScope.orgSlug || fetchScope.orgId),
+      options?.enabled === false
+        ? false
+        : scope === 'property'
+          ? true
+          : scope === 'parking'
+            ? Boolean(parkingId)
+            : Boolean(fetchScope.orgSlug || fetchScope.orgId),
   });
 }

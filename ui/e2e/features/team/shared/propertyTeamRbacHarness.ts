@@ -5,6 +5,7 @@
 
 import { expect, type Page, type Route } from '@playwright/test';
 
+import { mockPublicPropertyBody } from '../../../shared/mockFixtures';
 import { PLAN_PRO, PLANS_E2E_CATALOG } from '../../plans/shared/orgPlanHarnessShared';
 
 const ORG_ID = 'org-team-e2e-001';
@@ -27,6 +28,10 @@ export type PropertyTeamRbacMockOpts = {
   /** Force the video plan gate independently of freePlan (default: !freePlan). Lets a test
    *  simulate a Pro-tier org that has images but not video, without a new template. */
   videoPlanAllowed?: boolean;
+  /** Templates page: seed one custom template + one booking (Send to guest flow). */
+  customTemplateSeeded?: boolean;
+  /** Inbox cross-property switcher: seed a booking on the second property (needs multiProperty) matching the mock "Maria Santos" Facebook thread. */
+  crossPropertyBookingSeeded?: boolean;
 };
 
 const SUPABASE_AUTH_STORAGE_KEY = 'sb-127-auth-token';
@@ -389,7 +394,7 @@ function telegramGlobalSettingsPayload() {
   };
 }
 
-function orgPlanPayload(multiProperty = false) {
+function orgPlanPayload(multiProperty = false, freePlan = false) {
   const businessPlan =
     PLANS_E2E_CATALOG.find((plan) => plan.id === PLAN_PRO) ?? PLANS_E2E_CATALOG[3]!;
   const planProperties = [
@@ -411,18 +416,21 @@ function orgPlanPayload(multiProperty = false) {
   return {
     plans: PLANS_E2E_CATALOG,
     properties: planProperties,
-    subscription: {
-      id: 'sub-team-e2e-001',
-      planId: businessPlan.id,
-      planCode: businessPlan.code,
-      planName: businessPlan.name,
-      pricingModel: 'subscription',
-      status: 'active',
-      pricePhpSnapshot: businessPlan.pricePhp,
-      currentPeriodStart: '2026-08-01T00:00:00.000Z',
-      currentPeriodEnd: '2026-09-01T00:00:00.000Z',
-      gracePeriodEndsAt: null,
-    },
+    // No active paid subscription on Free — TierBadge/useOrgPlan fall back to the catalog's default (Free) plan.
+    subscription: freePlan
+      ? null
+      : {
+          id: 'sub-team-e2e-001',
+          planId: businessPlan.id,
+          planCode: businessPlan.code,
+          planName: businessPlan.name,
+          pricingModel: 'subscription',
+          status: 'active',
+          pricePhpSnapshot: businessPlan.pricePhp,
+          currentPeriodStart: '2026-08-01T00:00:00.000Z',
+          currentPeriodEnd: '2026-09-01T00:00:00.000Z',
+          gracePeriodEndsAt: null,
+        },
     assignedPropertyIds: multiProperty
       ? [TEAM_E2E_PROPERTY_ID, TEAM_E2E_PROPERTY_ID_2]
       : [TEAM_E2E_PROPERTY_ID],
@@ -461,7 +469,7 @@ function entitlementsPayload(
     metaChatChannel: true,
     quickReplies: true,
     customTemplates: true,
-    publicPagesAutosave: true,
+    publicPagesAutosave: !freePlan,
     bookingImport: true,
     customRoles: true,
     calendarSync: true,
@@ -735,8 +743,12 @@ function aiPlatformUsagePayload() {
   };
 }
 
-function propertyTemplatesSettingsPayload() {
-  const template = (templateKey: string, name: string, category: 'standard' | 'email') => ({
+function propertyTemplatesSettingsPayload(customTemplateSeeded = false) {
+  const template = (
+    templateKey: string,
+    name: string,
+    category: 'standard' | 'email' | 'custom'
+  ) => ({
     templateKey,
     name,
     category,
@@ -761,8 +773,112 @@ function propertyTemplatesSettingsPayload() {
       template('email-booking-acknowledgement', 'Booking Acknowledgement', 'email'),
       template('email-ready-for-checkin', 'Ready for Check-in', 'email'),
       template('email-sd-refund-form-request', 'SD Refund Form Request', 'email'),
+      ...(customTemplateSeeded ? [template('custom-e2e-001', 'Welcome Note', 'custom')] : []),
     ],
     placeholdersReference: ['{{guestName}}'],
+  };
+}
+
+/**
+ * Minimal Public Pages config row — Page Editor stores only require `sections`
+ * to be an array (their own normalizers fill in the canonical section list).
+ */
+function publicPageConfigPayload(pageType: string | null) {
+  const base = { updatedAt: '2026-01-01T00:00:00.000Z' };
+  if (pageType === 'property_showcase') {
+    return { ...base, pageType, config: { version: 1, published: true, sections: [] } };
+  }
+  if (pageType === 'stay_guide') {
+    return { ...base, pageType, config: { version: 2, published: true, sections: [] } };
+  }
+  return { ...base, pageType: 'property_landing', config: { version: 1, sections: [] } };
+}
+
+/** Minimal booking row for the Templates "Send to guest" picker. */
+function seededBookingRow() {
+  return {
+    id: 'booking-team-e2e-001',
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: null,
+    property_id: TEAM_E2E_PROPERTY_ID,
+    property_name: 'Solea Mactan',
+    property_slug: TEAM_E2E_PROPERTY_SLUG,
+    guest_facebook_name: 'Jane Guest',
+    primary_guest_name: 'Jane Guest',
+    guest_email: 'jane.guest@example.com',
+    guest_phone_number: '+639171234567',
+    guest_address: null,
+    nationality: null,
+    primary_guest_age: null,
+    guest2_name: null,
+    guest2_age: null,
+    guest3_name: null,
+    guest3_age: null,
+    guest4_name: null,
+    guest4_age: null,
+    guest5_name: null,
+    guest5_age: null,
+    guest2_valid_id_url: null,
+    guest3_valid_id_url: null,
+    guest4_valid_id_url: null,
+    guest5_valid_id_url: null,
+    check_in_date: '01-15-2026',
+    check_out_date: '01-18-2026',
+    check_in_time: null,
+    check_out_time: null,
+    number_of_adults: 2,
+    number_of_children: 0,
+    number_of_nights: 3,
+    need_parking: false,
+    car_plate_number: null,
+    car_brand_model: null,
+    car_color: null,
+    parking_endorsement_url: null,
+    status: 'READY_FOR_CHECKIN',
+  };
+}
+
+/** Booking on the second property, guest name matches the mock "Maria Santos" Facebook thread. */
+function seededCrossPropertyBookingRow() {
+  return {
+    id: 'booking-team-e2e-002',
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: null,
+    property_id: TEAM_E2E_PROPERTY_ID_2,
+    property_name: TEAM_E2E_PROPERTY_NAME_2,
+    property_slug: TEAM_E2E_PROPERTY_SLUG_2,
+    guest_facebook_name: 'Maria Santos',
+    primary_guest_name: 'Maria Santos',
+    guest_email: 'maria.santos@example.com',
+    guest_phone_number: '+639171234568',
+    guest_address: null,
+    nationality: null,
+    primary_guest_age: null,
+    guest2_name: null,
+    guest2_age: null,
+    guest3_name: null,
+    guest3_age: null,
+    guest4_name: null,
+    guest4_age: null,
+    guest5_name: null,
+    guest5_age: null,
+    guest2_valid_id_url: null,
+    guest3_valid_id_url: null,
+    guest4_valid_id_url: null,
+    guest5_valid_id_url: null,
+    check_in_date: '03-15-2026',
+    check_out_date: '03-17-2026',
+    check_in_time: null,
+    check_out_time: null,
+    number_of_adults: 2,
+    number_of_children: 0,
+    number_of_nights: 2,
+    need_parking: false,
+    car_plate_number: null,
+    car_brand_model: null,
+    car_color: null,
+    parking_endorsement_url: null,
+    status: 'READY_FOR_CHECKIN',
   };
 }
 
@@ -929,6 +1045,8 @@ export async function installPropertyTeamRbacMocks(
   const videoPlanAllowed = opts?.videoPlanAllowed ?? !freePlan;
   const multiProperty = Boolean(opts?.multiProperty);
   const orgHub = Boolean(opts?.orgHub);
+  const customTemplateSeeded = Boolean(opts?.customTemplateSeeded);
+  const crossPropertyBookingSeeded = Boolean(opts?.crossPropertyBookingSeeded);
   let orgSettingsState = orgSettingsPayload();
   let marketingGenerationJobs = opts?.marketingGenerationSeeded
     ? [marketingGenerationJobFixture()]
@@ -984,7 +1102,7 @@ export async function installPropertyTeamRbacMocks(
         await fulfillJson(route, { success: true, data: orgAccessPayload(orgHub) });
         return;
       case 'org-plan':
-        await fulfillJson(route, { success: true, data: orgPlanPayload(multiProperty) });
+        await fulfillJson(route, { success: true, data: orgPlanPayload(multiProperty, freePlan) });
         return;
       case 'ai-platform-settings':
         await fulfillJson(route, { success: true, data: aiPlatformSettingsPayload() });
@@ -993,7 +1111,26 @@ export async function installPropertyTeamRbacMocks(
         await fulfillJson(route, { success: true, data: aiPlatformUsagePayload() });
         return;
       case 'property-templates-settings':
-        await fulfillJson(route, { success: true, data: propertyTemplatesSettingsPayload() });
+        await fulfillJson(route, {
+          success: true,
+          data: propertyTemplatesSettingsPayload(customTemplateSeeded),
+        });
+        return;
+      case 'send-property-custom-template-email':
+        await fulfillJson(route, {
+          success: true,
+          bookingId: 'booking-team-e2e-001',
+          templateKey: 'custom-e2e-001',
+        });
+        return;
+      case 'public-page-configs':
+        await fulfillJson(route, {
+          success: true,
+          data: publicPageConfigPayload(url.searchParams.get('page_type')),
+        });
+        return;
+      case 'get-public-property':
+        await fulfillJson(route, mockPublicPropertyBody);
         return;
       case 'copy-property-settings': {
         const body = (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
@@ -1010,9 +1147,14 @@ export async function installPropertyTeamRbacMocks(
         });
         return;
       }
-      case 'list-bookings':
-        await fulfillJson(route, { success: true, data: [], total: 0 });
+      case 'list-bookings': {
+        const rows = [
+          ...(customTemplateSeeded ? [seededBookingRow()] : []),
+          ...(crossPropertyBookingSeeded ? [seededCrossPropertyBookingRow()] : []),
+        ];
+        await fulfillJson(route, { success: true, data: rows, total: rows.length });
         return;
+      }
       case 'notifications-list':
         await fulfillJson(route, {
           success: true,
