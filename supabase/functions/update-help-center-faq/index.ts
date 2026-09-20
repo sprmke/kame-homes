@@ -12,8 +12,9 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 
-serveSuperAdmin('update-help-center-faq', async (req) => {
+serveSuperAdmin('update-help-center-faq', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -51,6 +52,14 @@ serveSuperAdmin('update-help-center-faq', async (req) => {
 
   if (error) return jsonError(req, `Failed to update FAQ: ${error.message}`, 500);
   if (!data) return jsonError(req, 'FAQ not found', 404);
+
+  await logSuperAdminAction(user, {
+    action: 'help_center.faq_updated',
+    targetType: 'help_center_faq',
+    targetId: id,
+    summary: 'Updated Help Center FAQ',
+    metadata: { fields: Object.keys(updates) },
+  });
 
   return jsonSuccess(req, { faq: data });
 });

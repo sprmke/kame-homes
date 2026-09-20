@@ -15,6 +15,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
 
 serveSuperAdmin('update-platform-host-settings', async (req, user) => {
@@ -69,6 +70,14 @@ serveSuperAdmin('update-platform-host-settings', async (req, user) => {
     console.error('[update-platform-host-settings]', error.message);
     throw new Error('Failed to update platform host settings');
   }
+
+  await logSuperAdminAction(user, {
+    action: 'platform.host_settings_update',
+    targetType: 'platform',
+    targetId: 'platform_host_settings',
+    summary: 'Updated platform host announcements',
+    metadata: { count: announcements.length },
+  });
 
   return jsonSuccess(req, {
     announcements: data.announcements ?? [],

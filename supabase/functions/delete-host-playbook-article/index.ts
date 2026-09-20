@@ -11,8 +11,9 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 
-serveSuperAdmin('delete-host-playbook-article', async (req) => {
+serveSuperAdmin('delete-host-playbook-article', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -22,6 +23,13 @@ serveSuperAdmin('delete-host-playbook-article', async (req) => {
   const supabase = createServiceClient();
   const { error } = await supabase.from('host_playbook_articles').delete().eq('id', id);
   if (error) return jsonError(req, `Failed to delete article: ${error.message}`, 500);
+
+  await logSuperAdminAction(user, {
+    action: 'host_playbook.article_deleted',
+    targetType: 'host_playbook_article',
+    targetId: id,
+    summary: 'Deleted host playbook article',
+  });
 
   return jsonSuccess(req, { deleted: true });
 });

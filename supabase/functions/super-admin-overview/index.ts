@@ -91,7 +91,8 @@ serveSuperAdmin('super-admin-overview', async (req) => {
     supabase
       .from('ai_platform_usage_daily')
       .select('estimated_cost_usd, usage_date')
-      .gte('usage_date', spendSince.slice(0, 10)),
+      .gte('usage_date', spendSince.slice(0, 10))
+      .limit(50_000),
     supabase
       .from('organizations')
       .select('id, name, slug, created_at')

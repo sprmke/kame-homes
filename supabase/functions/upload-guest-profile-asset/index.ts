@@ -57,7 +57,7 @@ serveAuthenticated('upload-guest-profile-asset', async (req, user) => {
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, { upsert: true, contentType: mime });
+    .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '300' });
 
   if (uploadError) {
     return jsonError(req, `Upload failed: ${uploadError.message}`, 500);

@@ -11,12 +11,13 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { loadSupportTicketNotifyContext } from '../_shared/supportTicketAccess.ts';
 
 const STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
 const PRIORITIES = ['low', 'medium', 'high'];
 
-serveSuperAdmin('update-support-ticket-status', async (req) => {
+serveSuperAdmin('update-support-ticket-status', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -91,6 +92,14 @@ serveSuperAdmin('update-support-ticket-status', async (req) => {
       console.error('[update-support-ticket-status] status notify failed (non-fatal):', notifyErr);
     }
   }
+
+  await logSuperAdminAction(user, {
+    action: 'support.ticket_status_updated',
+    targetType: 'support_ticket',
+    targetId: ticketId,
+    summary: 'Updated support ticket status',
+    metadata: { fields: Object.keys(updates) },
+  });
 
   return jsonSuccess(req, { ticket: data });
 });

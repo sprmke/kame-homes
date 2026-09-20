@@ -25,6 +25,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
 
 serveSuperAdmin('decide-contract-consideration', async (req, user) => {
@@ -157,6 +158,14 @@ serveSuperAdmin('decide-contract-consideration', async (req, user) => {
   }
 
   await saveListingAuthorization(supabase, context, { ...authorization, lifecycle: life });
+
+  await logSuperAdminAction(user, {
+    action: 'listing.contract_consideration_decided',
+    targetType: listingKind,
+    targetId: listingId,
+    summary: `Decided contract consideration (${decision})`,
+    metadata: { listingKind, decision },
+  });
 
   return jsonSuccess(req, {
     listingKind,

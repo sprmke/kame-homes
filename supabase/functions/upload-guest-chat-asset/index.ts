@@ -87,7 +87,7 @@ serveAuthenticated('upload-guest-chat-asset', async (req, user) => {
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime });
+    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
 
   if (uploadError) {
     return jsonError(req, `Upload failed: ${uploadError.message}`, 500);

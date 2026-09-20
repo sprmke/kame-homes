@@ -11,8 +11,9 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 
-serveSuperAdmin('create-help-center-faq', async (req) => {
+serveSuperAdmin('create-help-center-faq', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -44,6 +45,14 @@ serveSuperAdmin('create-help-center-faq', async (req) => {
   if (error) {
     return jsonError(req, `Failed to create FAQ: ${error.message}`, 500);
   }
+
+  await logSuperAdminAction(user, {
+    action: 'help_center.faq_created',
+    targetType: 'help_center_faq',
+    targetId: typeof data.id === 'string' ? data.id : null,
+    summary: 'Created Help Center FAQ',
+    metadata: { category },
+  });
 
   return jsonSuccess(req, { faq: data });
 });

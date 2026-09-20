@@ -12,8 +12,9 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 
-serveSuperAdmin('update-host-playbook-article', async (req) => {
+serveSuperAdmin('update-host-playbook-article', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -57,6 +58,14 @@ serveSuperAdmin('update-host-playbook-article', async (req) => {
 
   if (error) return jsonError(req, `Failed to update article: ${error.message}`, 500);
   if (!data) return jsonError(req, 'Article not found', 404);
+
+  await logSuperAdminAction(user, {
+    action: 'host_playbook.article_updated',
+    targetType: 'host_playbook_article',
+    targetId: id,
+    summary: 'Updated host playbook article',
+    metadata: { fields: Object.keys(updates) },
+  });
 
   return jsonSuccess(req, { article: data });
 });

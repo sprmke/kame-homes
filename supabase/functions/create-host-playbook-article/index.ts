@@ -11,10 +11,11 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-serveSuperAdmin('create-host-playbook-article', async (req) => {
+serveSuperAdmin('create-host-playbook-article', async (req, user) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
 
@@ -63,6 +64,14 @@ serveSuperAdmin('create-host-playbook-article', async (req) => {
       return jsonError(req, `An article with slug "${slug}" already exists`);
     return jsonError(req, `Failed to create article: ${error.message}`, 500);
   }
+
+  await logSuperAdminAction(user, {
+    action: 'host_playbook.article_created',
+    targetType: 'host_playbook_article',
+    targetId: typeof data.id === 'string' ? data.id : null,
+    summary: 'Created host playbook article',
+    metadata: { slug, category },
+  });
 
   return jsonSuccess(req, { article: data });
 });

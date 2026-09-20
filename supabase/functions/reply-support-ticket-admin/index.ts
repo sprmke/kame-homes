@@ -12,6 +12,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import {
   loadSupportTicketNotifyContext,
   touchSupportTicketActivity,
@@ -78,6 +79,13 @@ serveSuperAdmin('reply-support-ticket-admin', async (req, adminUser) => {
   } catch (notifyErr) {
     console.error('[reply-support-ticket-admin] notify email failed (non-fatal):', notifyErr);
   }
+
+  await logSuperAdminAction(adminUser, {
+    action: 'support.ticket_replied',
+    targetType: 'support_ticket',
+    targetId: ticketId,
+    summary: 'Replied to support ticket',
+  });
 
   return jsonSuccess(req, { message: created });
 });
