@@ -2,7 +2,7 @@
 title: 'Property Guest Inbox'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-30
+updated: 2026-09-21
 ---
 
 # Property Guest Inbox
@@ -24,6 +24,10 @@ Route: `/org/:orgSlug/property/:propertySlug/inbox`
 
 Property operators open Guest Inbox scoped to this property. **Web** threads are only those with `property_id` matching this property. **Facebook/Instagram** show threads for the **effective** Meta Page: a property override if connected, otherwise the **org default** Page (full org Page inbox — decision 1A) with a **Using org Meta** badge.
 
+**Org Meta badge + cross-property switcher (shipped):** when a thread falls back to the org connection (Facebook/Instagram only), the open conversation header shows a small **Org Meta** pill with a tooltip explaining the shared-Page fallback (`InboxConversationView`, not just the Channels tab). If that thread also best-effort matches a booking on a **different** property in the org (same match logic as Insert → Booking: unique inquiry-date or guest-name match), a **"Looks like `<property>`"** link appears next to it — clicking deep-links to that property's own Inbox with the same `conversationId` open (Meta conversations are keyed by connection, not property, so the same thread resolves there too). No match found → no link; avoids guessing wrong.
+
+**Plans/RBAC decision (cross-property switcher):** No new `PlanFeatureKey` and no new permission leaf — the link only surfaces data the host's own org membership already grants (their org's bookings across properties they can already see in org-scoped booking lists) and navigates through the normal `propertyRoute()` guard on the destination, so the target property's own RBAC still applies unchanged. N/A for `audit-logging` — read-only navigation, no mutation.
+
 **Manage** (Channels / Quick replies / Automation) lives on the property inbox. There is no org-level Inbox route anymore (`/org/:orgSlug/inbox` redirects to Properties). Quick replies and automation data remain **organization-scoped** (shared across properties); Channels connect/disconnect is scoped as described below.
 
 ## Host-facing knowledge
@@ -33,7 +37,9 @@ This is where you read and reply to guest messages for this property: website ch
 **Common host questions**
 
 - Q: Why do I see a badge saying I'm using the organization's Meta account?
-  A: Your property hasn't connected its own Facebook Page yet, so you're seeing messages from the shared Page inbox. You can connect a property-specific Page under Channels if you want this listing to use its own account.
+  A: Your property hasn't connected its own Facebook Page yet, so you're seeing messages from the shared Page inbox — the same one every other property without its own Page also sees. You can connect a property-specific Page under Channels if you want this listing to use its own account.
+- Q: A message doesn't seem to be about this property — what do I do?
+  A: If it's a shared org Meta thread, open it and check for a **"Looks like `<property>`"** link next to the Org Meta badge. We match the guest's name or stated dates against bookings across your other properties; if it finds a unique match, tap it to jump straight to that property's Inbox with the same conversation open. No link means we couldn't tell — check the guest's message for details or ask which listing they mean.
 - Q: Where do I set quick replies and automation?
   A: On this property Inbox under **Manage** → Quick replies / Automation. Those settings apply across your organization.
 - Q: Why can't I reply to some Facebook or Instagram messages?
@@ -120,6 +126,7 @@ Manage chrome is **leaf-split**: Channels / Quick replies / Automation buttons a
 | Scope                        | `supabase/functions/_shared/metaInboxScope.ts`, `inboxAccess.ts`                                                                                                                                                                                                                                                                                    |
 | Auth                         | `resolveInboxAccess` — property or parking only                                                                                                                                                                                                                                                                                                     |
 | Share picker                 | `ui/src/features/dashboard/inbox/components/InboxInsertMenu.tsx`, `InboxPinnedSnippetsPanel.tsx`, `lib/inboxPinnedSnippets.ts`, `lib/inboxBookingShareRows.ts`, `lib/inboxMatchBooking.ts`, `lib/inboxInsertContent.ts`, `lib/inboxCheckInPack.ts`, `lib/inboxQuickReplyMerge.ts`, `lib/inboxQuickReplyLinks.ts`, `hooks/useInboxMatchedBooking.ts` |
+| Cross-property switcher      | `ui/src/features/dashboard/inbox/hooks/useInboxCrossPropertyMatch.ts` (org-wide `useBookings` + `inboxMatchBooking.ts`), rendered in `InboxConversationView.tsx` header                                                                                                                                                                             |
 | Host chat upload             | `upload-inbox-chat-asset/`, `lib/inboxChatAttachment.ts`                                                                                                                                                                                                                                                                                            |
 | Calendar tap-to-modal        | `ui/src/components/chat/ChatUrlLinkCard.tsx` (`onActivate`), `ChatRichBody.tsx` (`onCalendarLinkClick`), `ChatMessageBubble.tsx`                                                                                                                                                                                                                    |
 | Rich link card titles        | `ui/src/lib/chat/parseChatRichBlocks.ts#urlLinkCardMeta`                                                                                                                                                                                                                                                                                            |
@@ -130,11 +137,11 @@ Manage chrome is **leaf-split**: Channels / Quick replies / Automation buttons a
 
 ## Testing
 
-| Layer | Path / spec                                                  | Manual                |
-| ----- | ------------------------------------------------------------ | --------------------- |
-| Unit  | `supabase/functions/_shared/inboxAiSafetyGuard_test.ts`      | —                     |
-| E2E   | `ui/e2e/features/inbox/inboxThreadListSmoke.spec.ts` (`@ci`) | Meta OAuth, live send |
-| N/A   | —                                                            | Meta connect manual   |
+| Layer | Path / spec                                                                                                                                                                   | Manual                |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Unit  | `supabase/functions/_shared/inboxAiSafetyGuard_test.ts`                                                                                                                       | —                     |
+| E2E   | `ui/e2e/features/inbox/inboxThreadListSmoke.spec.ts` (`@ci`) — "open Facebook thread shows org Meta badge", "cross-property match suggests switching to the matched property" | Meta OAuth, live send |
+| N/A   | —                                                                                                                                                                             | Meta connect manual   |
 
 ## Related
 
