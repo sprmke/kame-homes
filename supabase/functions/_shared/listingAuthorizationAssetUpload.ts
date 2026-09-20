@@ -97,7 +97,7 @@ export async function applyListingAuthorizationAssetFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(LISTING_AUTHORIZATION_BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime });
+    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const next = applyListingAssetPath(context.authorization, input.assetType, storagePath);

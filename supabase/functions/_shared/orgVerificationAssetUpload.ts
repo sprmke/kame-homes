@@ -147,7 +147,7 @@ export async function applyOrgVerificationAssetFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(ORG_VERIFICATION_BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime });
+    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const verification = applyAssetPath(existingVerification, input.assetType, storagePath);

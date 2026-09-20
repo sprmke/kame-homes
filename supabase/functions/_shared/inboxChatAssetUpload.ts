@@ -63,7 +63,11 @@ export async function uploadInboxChatAssetFromBytes(input: {
   const sb = createServiceClient();
   const { error: uploadError } = await sb.storage
     .from(INBOX_CHAT_ATTACHMENT_BUCKET)
-    .upload(storagePath, input.bytes, { upsert: false, contentType: mime });
+    .upload(storagePath, input.bytes, {
+      upsert: false,
+      contentType: mime,
+      cacheControl: '31536000',
+    });
 
   if (uploadError) {
     throw new Error(`Upload failed: ${uploadError.message}`);

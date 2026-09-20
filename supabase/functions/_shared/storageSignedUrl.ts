@@ -76,9 +76,7 @@ export async function createSignedStorageUrlIfPrivate(
     return normalized;
   }
 
-  const { data, error } = await supabase.storage
-    .from(loc.bucket)
-    .createSignedUrl(loc.path, ttlSec);
+  const { data, error } = await supabase.storage.from(loc.bucket).createSignedUrl(loc.path, ttlSec);
 
   if (error || !data?.signedUrl) {
     console.warn(

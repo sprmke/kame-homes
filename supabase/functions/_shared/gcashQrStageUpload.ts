@@ -54,7 +54,7 @@ export async function stageGcashQrFromBytes(input: StageGcashQrInput): Promise<S
 
   const { error: uploadError } = await supabase.storage
     .from(bucket)
-    .upload(storagePath, file, { upsert: true, contentType: mime });
+    .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '31536000' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const {

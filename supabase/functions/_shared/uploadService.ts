@@ -1,4 +1,5 @@
 import { createClient } from './supabaseJs.ts';
+import { assertMimeMatchesBytes } from './sniffMime.ts';
 import { copyBytes, formatPublicUrl } from './utils.ts';
 import { prefixPropertyStorageKey } from './bookingStoragePaths.ts';
 
@@ -131,9 +132,16 @@ export class UploadService {
     // replaces the stored one rather than silently keeping the stale copy. The old
     // check also listed at the root prefix, so it never matched property-scoped
     // (`{propertyId}/…`) keys and every re-upload hit the 409 path.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    assertMimeMatchesBytes(bytes, file.type || '');
+
     const { error: uploadError } = await this.supabase.storage
       .from(bucket)
-      .upload(storageKey, file, { upsert: true });
+      .upload(storageKey, bytes, {
+        upsert: true,
+        cacheControl: '300',
+        contentType: file.type || 'application/octet-stream',
+      });
 
     if (uploadError) {
       console.error(`${bucket} upload error:`, uploadError);
@@ -158,6 +166,7 @@ export class UploadService {
     const { error } = await this.supabase.storage.from(bucket).upload(objectPath, blob, {
       contentType: 'application/pdf',
       upsert: true,
+      cacheControl: '300',
     });
     if (error) {
       console.error(`[UploadService] PDF upload to ${bucket}/${objectPath}:`, error);

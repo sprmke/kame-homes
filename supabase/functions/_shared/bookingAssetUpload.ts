@@ -25,6 +25,7 @@ import {
   shouldRevertGuestFieldEditsToPendingReview,
 } from './statusMachine.ts';
 import { notifyTelegramAdminBalanceReceiptUploaded } from './telegramAdmin.ts';
+import { assertMimeMatchesBytes } from './sniffMime.ts';
 import { assertWithinUploadLimit, type UploadLimitKind } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
 import {
@@ -129,7 +130,7 @@ export async function applyBookingAssetFromBytes(
   input: ApplyBookingAssetInput
 ): Promise<ApplyBookingAssetResult> {
   const logPrefix = input.logPrefix ?? '[bookingAssetUpload]';
-  const mimeType = input.mimeType.trim().toLowerCase();
+  const mimeType = assertMimeMatchesBytes(input.bytes, input.mimeType);
   assertBookingAssetMime(input.assetType, mimeType);
   assertWithinUploadLimit(
     { size: input.bytes.byteLength },
@@ -145,7 +146,7 @@ export async function applyBookingAssetFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(config.bucket)
-    .upload(storagePath, input.bytes, { contentType: mimeType, upsert: true });
+    .upload(storagePath, input.bytes, { contentType: mimeType, upsert: true, cacheControl: '300' });
   if (uploadError) {
     throw new Error(`Upload failed: ${uploadError.message}`);
   }
