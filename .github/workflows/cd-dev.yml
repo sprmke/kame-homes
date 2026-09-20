@@ -174,3 +174,11 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
         run: ./scripts/deploy/ci-smoke.sh dev
+
+      - name: Deployed preview headers (production-readiness doc 02/16)
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          PREVIEW_URL=https://dev.kamehomes.space \
+          HEALTH_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/get-health" \
+          bun run verify:deployed-preview

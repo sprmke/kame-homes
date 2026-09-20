@@ -143,7 +143,8 @@ The repo has `.worktrees/` with at least two stale worktrees (`docs-obsidian-too
 - [x] All new guards from this folder wired in (moved into `static-guards`, which needs no `bun install`).
 - [x] Branch protection + `CODEOWNERS` active on `main` and `develop`.
 - [x] PR template including the repo's mandatory docs/plans/activity-log checkboxes.
-- [ ] Dependency automation active (confirmed shipped by an earlier session). Secret scanning and SAST still open.
+- [x] Pre-commit secret patterns (`check-staged-secrets.sh`). CI tracked-tree scan (`check-tracked-secrets.sh` in `ci.yml`, 2026-09-21).
+- [ ] SAST (CodeQL or equivalent) still open. GitHub Advanced Security org-level scanning not verified here.
 - [ ] Release tagging + changelog; environment version tracking.
 - [ ] Migration replay runs on PRs touching migrations.
 - [x] Stale worktrees pruned (~1GB). Merged branches identified (6) but not deleted — needs explicit go-ahead for remote deletion.

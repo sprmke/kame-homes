@@ -58,6 +58,9 @@ jobs:
       - name: Auth matrix — zero-authz-signal guard (production-readiness doc 21)
         run: node scripts/dev/audit-auth-matrix.mjs --check
 
+      - name: Tracked secret pattern scan (production-readiness doc 26)
+        run: bash scripts/dev/check-tracked-secrets.sh
+
   lint-and-types:
     name: lint-and-types
     runs-on: ubuntu-latest
