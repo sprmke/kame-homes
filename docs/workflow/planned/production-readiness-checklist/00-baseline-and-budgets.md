@@ -123,7 +123,7 @@ Wire a `bun run check:budgets` step into `ci.yml` after the existing build step.
 ## Exit gate
 
 - [x] `baselines/<date>.json` committed from a clean `develop` checkout.
-- [ ] Lighthouse **median** (3 runs per route) captured locally and on deployed dev. (single deployed-dev run committed 2026-09-21 — `baselines/2026-09-20-lighthouse-deployed-dev-single.json`; not a median yet)
+- [ ] Lighthouse **median** (3 runs per route) on **local** `vite preview` still open. **Deployed dev median done** (2026-09-21 — `baselines/2026-09-20-lighthouse-deployed-dev-median.json`, `--runs=3`).
 - [ ] `pg_stat_statements` enabled on hosted dev, top-50 snapshot committed. (not started — needs hosted-dev dashboard access)
 - [x] `performance-budgets.json` exists and `bun run check:budgets` runs in `ci.yml`.
 - [x] One deliberate regression PR proves the guard fails (test the alarm, don't assume it works).
@@ -158,8 +158,8 @@ Close this item only when every row is done. Scripts and the first local snapsho
 
 | #   | Work                                                                                                                                                                                                      | Blocker                    |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| 1   | Run Lighthouse 3 times per route on the 9 baseline routes; commit the **median** to the doc-00 baseline (not a single local run).                                                                         | Display + local preview    |
-| 2   | Repeat that Lighthouse median on a **deployed preview**, not only `vite preview`.                                                                                                                         | Hosted preview URL         |
+| 1   | Lighthouse 3× median on **local** `vite preview` still open. Deployed dev median **done** (`2026-09-20-lighthouse-deployed-dev-median.json`, 2026-09-21).                                                 | Display + local preview    |
+| 2   | ~~Deployed preview Lighthouse median~~ **closed on dev** (2026-09-21).                                                                                                                                    | —                          |
 | 3   | ~~Public edge p50/p95~~ **partial** — `baselines/2026-09-20-edge-latency-hosted-dev-public-v2.json` (`get-health`, public list/pricing). Host authenticated endpoints still need `SUPABASE_ACCESS_TOKEN`. | Token for auth endpoints   |
 | 4   | Snapshot `pg_stat_statements` top-50 on hosted-dev and attach it to the baseline.                                                                                                                         | Hosted-dev dashboard / MCP |
 | 5   | After 1–4 have real numbers, decide whether `performance-budgets.json` stays `warnOnly` or flips to fail-closed.                                                                                          | Depends on 1–4             |

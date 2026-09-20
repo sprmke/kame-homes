@@ -34,7 +34,9 @@ const baselineDir = path.join(
 const args = process.argv.slice(2);
 const baseUrlArg = args.find((a) => a.startsWith('--base-url='));
 const labelArg = args.find((a) => a.startsWith('--label='));
+const runsArg = args.find((a) => a.startsWith('--runs='));
 const label = labelArg ? labelArg.slice('--label='.length) : null;
+const runs = runsArg ? Math.max(1, Number(runsArg.split('=')[1]) || 1) : 1;
 const externalBaseUrl = baseUrlArg ? baseUrlArg.slice('--base-url='.length) : null;
 
 // The route list from plan doc 00, Phase 0.2 — paths verified against the real
@@ -69,6 +71,24 @@ const ROUTES = [
 function fail(msg) {
   console.error(`lighthouse-routes: ${msg}`);
   process.exit(1);
+}
+
+function median(sortedNums) {
+  if (sortedNums.length === 0) return null;
+  const mid = Math.floor(sortedNums.length / 2);
+  if (sortedNums.length % 2 === 1) return sortedNums[mid];
+  return (sortedNums[mid - 1] + sortedNums[mid]) / 2;
+}
+
+function medianMetrics(samples) {
+  const keys = ['performanceScore', 'lcpMs', 'clsScore', 'tbtMs', 'fcpMs', 'speedIndexMs', 'totalByteWeightBytes'];
+  const out = {};
+  for (const key of keys) {
+    const vals = samples.map((s) => s[key]).filter((v) => v != null && Number.isFinite(v));
+    vals.sort((a, b) => a - b);
+    out[key] = vals.length ? median(vals) : null;
+  }
+  return out;
 }
 
 async function waitForServer(url, timeoutMs = 30_000) {
@@ -232,11 +252,24 @@ async function main() {
   try {
     for (const route of ROUTES) {
       const url = `${baseUrl}${route.path}`;
-      process.stdout.write(`  Auditing ${route.persona} / ${route.name} (${url})... `);
+      process.stdout.write(
+        `  Auditing ${route.persona} / ${route.name} (${url})${runs > 1 ? ` [${runs} runs, median]` : ''}... `
+      );
       try {
-        const metrics = await runLighthouse(url, chrome.port);
+        const samples = [];
+        for (let i = 0; i < runs; i += 1) {
+          samples.push(await runLighthouse(url, chrome.port));
+        }
+        const metrics = runs > 1 ? medianMetrics(samples) : samples[0];
         const hasMetrics = metrics.lcpMs != null && metrics.performanceScore != null;
-        results.push({ ...route, url, metrics, error: hasMetrics ? null : 'Lighthouse returned no metrics (see JSON)' });
+        results.push({
+          ...route,
+          url,
+          runs,
+          samples: runs > 1 ? samples : undefined,
+          metrics,
+          error: hasMetrics ? null : 'Lighthouse returned no metrics (see JSON)',
+        });
         const fmt = (v, digits = 0) => (v == null ? 'n/a' : v.toFixed(digits));
         console.log(
           `LCP ${fmt(metrics.lcpMs)}ms, CLS ${fmt(metrics.clsScore, 3)}, ` +
@@ -244,7 +277,7 @@ async function main() {
             (hasMetrics ? '' : ' — WARNING: incomplete trace, re-run (see README troubleshooting)')
         );
       } catch (err) {
-        results.push({ ...route, url, metrics: null, error: String(err?.message ?? err) });
+        results.push({ ...route, url, runs, metrics: null, error: String(err?.message ?? err) });
         console.log(`FAILED (${err?.message ?? err})`);
       }
     }
@@ -255,6 +288,7 @@ async function main() {
   const snapshot = {
     capturedAt: new Date().toISOString(),
     label,
+    runs,
     baseUrl,
     mode: externalBaseUrl ? 'deployed-preview' : 'local-vite-preview',
     note: externalBaseUrl

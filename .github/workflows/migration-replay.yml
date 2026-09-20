@@ -1,6 +1,10 @@
 name: Migration Replay
 
 on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/dev/probe-rls-anon-local.sh'
   workflow_dispatch:
   schedule:
     - cron: '0 20 * * 0'
@@ -40,6 +44,9 @@ jobs:
 
       - name: Lint replayed database
         run: ./scripts/dev/bunx --bun supabase@latest db lint --local --level warning --fail-on error
+
+      - name: Probe RLS deny-by-default as anon (production-readiness doc 22)
+        run: bash scripts/dev/probe-rls-anon-local.sh
 
       - name: Stop local Supabase
         if: always()

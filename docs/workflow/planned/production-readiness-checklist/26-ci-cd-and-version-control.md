@@ -146,7 +146,7 @@ The repo has `.worktrees/` with at least two stale worktrees (`docs-obsidian-too
 - [x] Pre-commit secret patterns (`check-staged-secrets.sh`). CI tracked-tree scan (`check-tracked-secrets.sh` in `ci.yml`, 2026-09-21).
 - [ ] SAST (CodeQL or equivalent) still open. GitHub Advanced Security org-level scanning not verified here.
 - [ ] Release tagging + changelog; environment version tracking.
-- [ ] Migration replay runs on PRs touching migrations.
+- [x] Migration replay on PRs touching `supabase/migrations/**` (`migration-replay.yml`, 2026-09-21) plus weekly schedule.
 - [x] Stale worktrees pruned (~1GB). Merged branches identified (6) but not deleted — needs explicit go-ahead for remote deletion.
 - [ ] Zero quarantined-and-forgotten flaky tests. One found this session (`guestFormSubmit.spec.ts`), not yet triaged/fixed.
 
