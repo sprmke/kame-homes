@@ -109,6 +109,16 @@ export function AnalyticsDonutChart({
     }));
   }, [slices]);
 
+  const chartSummary = useMemo(
+    () =>
+      chartData.length > 0
+        ? `${centerLabel}: ${centerValue}. ${chartData
+            .map((slice) => `${slice.label} ${slice.pct}% (${slice.count})`)
+            .join(', ')}.`
+        : emptyMessage,
+    [chartData, centerLabel, centerValue, emptyMessage]
+  );
+
   return (
     <div
       className={cn(
@@ -116,40 +126,49 @@ export function AnalyticsDonutChart({
         compact ? 'min-h-[160px] sm:min-h-[180px]' : 'min-h-[220px] sm:min-h-[260px]',
         className
       )}
+      role="img"
+      aria-label={chartSummary}
     >
       {chartData.length > 0 ? (
         <>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius="58%"
-                outerRadius="88%"
-                paddingAngle={2.5}
-                dataKey="count"
-                nameKey="label"
-                stroke="hsl(var(--card))"
-                strokeWidth={2}
-                isAnimationActive={false}
-                activeIndex={activeIndex}
-                activeShape={ActiveDonutShape}
-                onMouseEnter={(_, index) => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(undefined)}
-              >
-                {chartData.map((entry) => (
-                  <Cell key={entry.key} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                content={<DonutTooltip />}
-                offset={16}
-                allowEscapeViewBox={{ x: true, y: true }}
-                wrapperStyle={{ zIndex: 40, outline: 'none' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {/* The outer container's role="img" + aria-label already carries the full
+              per-slice summary to assistive tech — role="img" flattens descendant
+              content out of the accessibility tree (same as <img>'s children), so a
+              nested sr-only list here would never actually be announced. The SVG
+              itself is aria-hidden since it's now purely decorative/visual. */}
+          <div className="size-full" aria-hidden>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="58%"
+                  outerRadius="88%"
+                  paddingAngle={2.5}
+                  dataKey="count"
+                  nameKey="label"
+                  stroke="hsl(var(--card))"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                  activeIndex={activeIndex}
+                  activeShape={ActiveDonutShape}
+                  onMouseEnter={(_, index) => setActiveIndex(index)}
+                  onMouseLeave={() => setActiveIndex(undefined)}
+                >
+                  {chartData.map((entry) => (
+                    <Cell key={entry.key} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  content={<DonutTooltip />}
+                  offset={16}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                  wrapperStyle={{ zIndex: 40, outline: 'none' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
 
           <div className="pointer-events-none absolute left-1/2 top-1/2 z-[1] flex w-[45%] max-w-[7.5rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
             <p className="truncate text-center text-base font-bold tabular-nums tracking-tight sm:text-2xl">
