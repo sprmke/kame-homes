@@ -2,7 +2,7 @@
 title: 'Hosting and deployment'
 status: active
 tags: [workflow, planned, production-readiness, deployment, vercel, supabase]
-updated: 2026-09-16
+updated: 2026-09-18
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,38 @@ kind: plan
 ## Goal
 
 A deploy is boring: reproducible, verified before it reaches users, reversible within minutes, and impossible to run against production by accident.
+
+## Remaining work to finalize
+
+**Status: partial — deploy ordering + maintenance-mode verified; branch protection checked via GitHub API (2026-09-18).** Cutover still blocked on 21/22/23. Rollback rehearsal is still the highest residual risk.
+
+| #   | Work                                                                                                                                                       | Blocker       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1   | Verify the environment matrix against live projects; deploy-time env var assertion (24.1).                                                                 | Hosted        |
+| 2   | Rehearse rollback on hosted-dev with a measured RTO (24.2).                                                                                                | Hosted-dev    |
+| 3   | Prod path: manual approval with the schema diff attached (24.4). `kamewave` stays the unlock.                                                              | CI + policy   |
+| 4   | Smoke tests: authenticated reads, a cleaned-up write, asset headers, PWA version, cron presence (24.5).                                                    | CI + hosted   |
+| 5   | Branch protection on `main` and `develop`. **Verified 2026-09-18: neither branch is protected** (`gh api` 404). Operator must enable required CI + review. | GitHub        |
+| 6   | Preview env scoping (no prod secrets).                                                                                                                     | GitHub/Vercel |
+| 7   | Cutover checklist with named owners (24.6). Depends on 17, 21, 22, 23, 27, 30.                                                                             | Those docs    |
+
+## Measured before / after
+
+| Metric                  | Before             | After                                          | Difference             |
+| ----------------------- | ------------------ | ---------------------------------------------- | ---------------------- |
+| Migrations vs functions | Assumed sequential | Confirmed in deploy scripts (db then fn)       | Race closed            |
+| Maintenance mode scope  | Unverified         | 5 new-intake writers + banner; status uncached | Intentional, not a bug |
+| Branch protection       | Unknown            | **Off** on `main` and `develop`                | Operator gap, not code |
+
+## Implementation status (2026-09-18 session)
+
+Docs 21/22/23 are not fully closed yet (see their own status), so this doc's Phase 24.6 cutover checklist still cannot proceed regardless of what's verified here.
+
+**Phase 24.3 — deploy ordering: verified, already correct.** Read `scripts/deploy/ci-deploy.sh` → `deploy-supabase-dev.sh`/`deploy-supabase.sh`: migrations (`supabase db push`) run before `supabase functions deploy` within the same shell function, sequentially, not as separate CI jobs that could race or be reordered. `cd-dev.yml`'s `deploy` job runs both as one step after `needs: quality`. This closes the doc's specific worry ("deploying functions before migrations means a function queries a missing column") — already enforced in the script, not by convention.
+
+**Phase 24.7 — maintenance mode: verified, correct scope, no gap.** `maintenanceModeResponse()` (`_shared/platformSettingsCache.ts`) is checked in exactly 5 functions: `submit-form`, `submit-form-completion`, `submit-sd-form`, `submit-guest-review`, `create-organization` — the new-intake/new-signup write paths. This is intentionally narrower than "block everything," which is correct: a maintenance window should stop new bookings/signups without also locking hosts out of finishing in-progress admin work. `PlatformMaintenanceBanner` renders app-wide as an informational notice (not a hard block), confirming this is the intended design, not an oversight. Confirmed `get-public-platform-status` (the status-check endpoint itself) is excluded from the service worker's cache allowlist (`SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts`) and returns `private` cache headers by explicit code comment — so a lifted maintenance flag is never masked by a stale cached response, closing the doc's own edge case.
+
+Everything else in this doc is genuinely hosted-blocked this session — no `SUPABASE_ACCESS_TOKEN`/Vercel API access, and `mt-prod` does not exist yet per `docs/archive/operations/ci-cd-environment-matrix.md` (confirmed current, re-read this session). **Branch protection was checked via `gh api` this pass: `main` and `develop` are not protected.** Remaining work is the table at the top of this doc.
 
 ## Prior art — do not redo
 
@@ -111,14 +143,14 @@ Owned by the CI/CD plan; this doc only asserts the prerequisites. Before cutover
 
 ## Exit gate
 
-- [ ] Environment matrix verified against live projects; deploy-time env var assertion in place.
-- [ ] Rollback rehearsed on hosted dev with a measured, documented RTO.
-- [ ] Deploy ordering enforced in the workflows.
-- [ ] Prod path has a manual approval with the schema diff attached.
-- [ ] Smoke tests cover authenticated reads, a cleaned-up write, asset headers, PWA version, and cron presence.
-- [ ] Branch protection confirmed on `main` and `develop`.
-- [ ] Preview env scoping verified — no production secrets in previews.
-- [ ] Cutover prerequisite checklist complete with named owners.
+- [ ] Environment matrix verified against live projects; deploy-time env var assertion in place. Not attempted — hosted access needed.
+- [ ] Rollback rehearsed on hosted dev with a measured, documented RTO. Still the largest residual risk in the folder.
+- [x] Deploy ordering enforced in the workflows — verified by reading the deploy scripts (migrations before functions, sequential within one script, not separate racing CI jobs).
+- [ ] Prod path has a manual approval with the schema diff attached. Not verified this session.
+- [ ] Smoke tests cover authenticated reads, a cleaned-up write, asset headers, PWA version, and cron presence. Not attempted — needs hosted.
+- [ ] Branch protection confirmed on `main` and `develop`. **Checked: not enabled.** Operator work.
+- [ ] Preview env scoping verified — no production secrets in previews. Not verified this session.
+- [ ] Cutover prerequisite checklist complete with named owners. Blocked on docs 21/22/23 not being fully closed.
 
 ## Docs / Plans / activity-log
 

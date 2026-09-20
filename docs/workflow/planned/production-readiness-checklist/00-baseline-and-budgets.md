@@ -140,6 +140,30 @@ Wire a `bun run check:budgets` step into `ci.yml` after the existing build step.
 
 **`pg_stat_statements` — not started.** Requires direct hosted-dev Postgres access/credentials not available in this session; deferred to whoever has hosted-dev access.
 
+## Measured before / after
+
+| Metric                              | Before (clean `develop`, 2026-09-16)                    | After this folder                                                                | Difference                       |
+| ----------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------- |
+| Committed bundle snapshot           | None. Later phases could not prove a win.               | `baselines/2026-09-16-phase00-initial-develop.json`                              | First reproducible baseline      |
+| Entry JS                            | 482,974 B gzip / 374,686 B brotli (`index-bf00cd3c.js`) | Same snapshot is the before-number for docs 01–02                                | Measurement exists               |
+| Initial payload                     | 11 chunks, 870,766 B gzip                               | Later 10 chunks after the date-vendor cycle fix (doc 01)                         | See doc 01                       |
+| Total JS                            | 4,655,066 B gzip / 3,638,715 B brotli                   | Guarded by `performance-budgets.json` (`totalJsGzipKib: 4200`, `warnOnly`)       | CI can fail a regression         |
+| Route Lighthouse median             | None                                                    | Script exists; one local run only, not a 3-run median, not on a deployed preview | Partial                          |
+| Edge p50/p95 + `pg_stat_statements` | None                                                    | Scripts exist; hosted-dev run not done                                           | Blocked on credentials           |
+| Budget CI                           | Bundle-bytes only (`check-initial-bundle-budget.mjs`)   | `bun run check:budgets` in `ci.yml` after build                                  | New fail-closed (warn week) gate |
+
+## Remaining work to finalize
+
+Close this item only when every row is done. Scripts and the first local snapshot already exist; the missing work is **measured evidence**.
+
+| #   | Work                                                                                                                              | Blocker                    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| 1   | Run Lighthouse 3 times per route on the 9 baseline routes; commit the **median** to the doc-00 baseline (not a single local run). | Display + local preview    |
+| 2   | Repeat that Lighthouse median on a **deployed preview**, not only `vite preview`.                                                 | Hosted preview URL         |
+| 3   | Capture edge p50/p95 for the public + host read endpoints named in Phase 00.                                                      | Hosted-dev credentials     |
+| 4   | Snapshot `pg_stat_statements` top-50 on hosted-dev and attach it to the baseline.                                                 | Hosted-dev dashboard / MCP |
+| 5   | After 1–4 have real numbers, decide whether `performance-budgets.json` stays `warnOnly` or flips to fail-closed.                  | Depends on 1–4             |
+
 ## Docs / Plans / activity-log
 
 - **Docs:** `scripts/README.md` (new scripts), `docs/PROJECT.md` if new root config files are added.

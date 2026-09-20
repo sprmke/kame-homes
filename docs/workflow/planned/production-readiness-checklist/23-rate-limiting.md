@@ -2,7 +2,7 @@
 title: 'Rate limiting'
 status: active
 tags: [workflow, planned, production-readiness, security, rate-limit, cost]
-updated: 2026-09-16
+updated: 2026-09-18
 stage: planned
 kind: plan
 ---
@@ -10,6 +10,62 @@ kind: plan
 # 23 — Rate limiting
 
 **Launch blocker.** The app exposes anonymous endpoints that cost real money per call (AI, email, SMS-like sends, map loads, payment API calls).
+
+## Remaining work to finalize
+
+**Status: partial — log-only wrapper limiting, 429-retry fix, allowlist justification, limit matrix, fail-open/closed decision, and wrapper CI guard shipped (2026-09-18).** Enforcement still needs traffic.
+
+| #   | Work                                                                                                    | Blocker       |
+| --- | ------------------------------------------------------------------------------------------------------- | ------------- |
+| 1   | ~~Limit matrix for every endpoint class.~~ **Done** — table below (23.1).                               | —             |
+| 2   | Flip wrapper check from log-only to 429, after hosted traffic shows the 120/60s default is safe.        | Hosted (time) |
+| 3   | Cost-weighted limits for AI/email/Meta/maps/payments. Hand to `super-admin-service-cost-monitoring.md`. | Code + doc 25 |
+| 4   | ~~Fail-open vs fail-closed per class.~~ **Done** — recorded in `rateLimit.ts` header + table.           | —             |
+| 5   | Limiter metrics, alerting, super-admin visibility (23.6). Sweep + index already exist.                  | Code + hosted |
+| 6   | ~~CI coverage for authenticated wrappers.~~ **Done** — `check-authenticated-rate-limit.sh`.             | —             |
+
+## Measured before / after
+
+| Metric                            | Before                     | After                                                 | Difference                 |
+| --------------------------------- | -------------------------- | ----------------------------------------------------- | -------------------------- |
+| Authenticated default limit       | None                       | Log-only 120/60s on `serveAdmin`/`serveAuthenticated` | Observability, not 429 yet |
+| Admin TanStack Query retry on 429 | Bare `retry: 1`            | `shouldRetryQuery` never retries 4xx                  | No amplify loop            |
+| Wrapper CI                        | `servePublic` only         | `check-authenticated-rate-limit.sh` in CI             | Cannot drop log-only check |
+| Fail-open/closed                  | Implicit in `rateLimit.ts` | Explicit: public/wrapper open; AI quota closed        | Decision recorded          |
+
+## Implementation status (2026-09-18 session)
+
+**Phase 23.2 — per-user/per-org limiting on authenticated wrappers: shipped, log-only.** `_shared/serveEdge.ts`'s `serveAdmin` and `serveAuthenticated` now call a fire-and-forget `logOnlyRateCheck()` after identity verification, using the existing durable `_shared/rateLimit.ts` primitive (`request_rate_limits` table, already shared/DB-backed — not a new counter system) under a separate `wrapper-default:<logPrefix>` scope so it can never collide or double-count with a handler's own explicit `rateLimitGate` call. Default: 120 requests / 60s per user, deliberately generous per the doc's own warning about bulk-editing hosts and multi-tab polling. **Log-only, not enforced** — never returns a 429, only `console.warn`s when a caller would have exceeded the default, exactly matching the doc's required rollout order ("ship in log-only mode first, then enforce"). `serveSuperAdmin` and `servePublic`/`serveCronPost` were deliberately left out: super-admin is a small trusted set not worth the extra DB round-trip, and the public/cron paths already have their own dedicated limiting.
+
+**Phase 23.4 — response behavior: real gap found and fixed.** The admin dashboard's global TanStack Query client (`ui/src/App.tsx`) had `retry: 1` as a bare number — meaning **every** failed query, including a 429, was retried once automatically. This is exactly the anti-pattern this doc's own edge case calls out ("retrying a rate-limited request immediately amplifies the problem"). Root cause: `adminEdgeFetch.ts`'s `parseAdminEdgeJson` threw a plain `Error` with only the message string, discarding the HTTP status entirely — there was no way for a `retry` predicate to ever detect a 429 even if one had been written. Fixed: added `AdminEdgeFetchError` (carries `status`, `rateLimited`, `retryAfterSec`) and replaced the bare `retry: 1` with a predicate (`shouldRetryQuery`) that never retries any 4xx (429 included) and retries other failures once, same as before. The public/guest-form surface already had this handled separately (`ui/src/lib/security/antiSpamResponse.ts` classifies 429 envelopes and shows proper "try again in Ns" copy) — this closes the same gap on the admin/host side, which had no equivalent.
+
+**Phase 23.5 — allowlist documentation: verified, all six confirmed.** Read each of the six `servePublic` handlers the CI script (`check-serve-public-rate-limit.sh`) allowlists:
+
+| Handler                  | Alternative protection                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `paymongo-webhook`       | `verifyPaymongoWebhookSignature` against `PAYMONGO_WEBHOOK_SECRET`                                         |
+| `approval-email-webhook` | `verifyResendWebhookSignature` (Svix) against `RESEND_INBOUND_WEBHOOK_SECRET`                              |
+| `meta-inbox-webhook`     | `metaWebhookVerifyToken` (GET challenge) + `verifyMetaWebhookSignatureAsync` (POST)                        |
+| `push-fanout`            | Shared secret header (`x-push-fanout-secret`)                                                              |
+| `claim-sd-voucher`       | Guest capability token (`guestBookingAccessTokenFromRequest`) — single-use claim, not IP-limited by design |
+| `submit-guest-review`    | Guest capability token (`guestBookingAccessTokenFromRequest`)                                              |
+
+All six have real, verified alternative protection — no unprotected surface found.
+
+### Limit matrix (23.1) — current code, 2026-09-18
+
+| Class                                          | Key                                     | Limit (as shipped)                                                                          | Fail                                                      | Rationale       |
+| ---------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------- |
+| Public read (listings, search)                 | IP                                      | `platform_settings.public_rate_limit_per_min` default **60/min** (`publicGetRateLimitGate`) | Open                                                      | Scraping        |
+| Public write (booking submit, SD, pay-parking) | IP + CAPTCHA + honeypot                 | Durable `rateLimitGate` via `antiSpamGate`                                                  | Open (limiter); closed on missing CAPTCHA in enforce mode | Spam, cost      |
+| OTP / auth send                                | Email + IP                              | Supabase Auth Turnstile + client `otpRequestGate`                                           | Auth provider                                             | Abuse           |
+| Authenticated read/write (dashboard)           | User                                    | **120 / 60s log-only** wrapper default                                                      | Open (log-only)                                           | Runaway client  |
+| AI endpoints                                   | Org + property quota + platform USD cap | `assertOrgAndPropertyAiQuota`                                                               | **Closed**                                                | Spend           |
+| Upload                                         | User + size ceilings                    | `uploadLimits.ts` + some per-handler `rateLimitGate`                                        | Open                                                      | Storage         |
+| Webhooks (6 allowlisted)                       | Signature + idempotency                 | Unlimited by IP                                                                             | N/A                                                       | Provider bursts |
+| Cron                                           | Secret gate                             | Unlimited                                                                                   | Closed in production if secret unset                      | Already shipped |
+
+Not attempted this session — remaining rows 2, 3, 5 in Remaining work.
 
 ## Prior art — substantial work already shipped
 
@@ -99,18 +155,18 @@ For each of the six allowlisted `servePublic` handlers, record why it is exempt 
 
 ## Exit gate
 
-- [ ] Limit matrix committed covering every endpoint class.
-- [ ] Per-user/per-org limiting applied by default in the authenticated wrappers; shipped log-only first, then enforced.
-- [ ] Limits calibrated against real usage from the doc-00 baseline; no false positives in a normal-use E2E run.
-- [ ] `429` + `Retry-After`; client backs off and never auto-retries a 429.
-- [ ] All six allowlisted handlers documented with their alternative protection.
-- [ ] Fail-open/fail-closed decided and implemented per class.
-- [ ] Limiter metrics + alerting + super-admin visibility live.
-- [ ] Limiter table swept and indexed.
-- [ ] CI coverage script extended to authenticated wrappers.
+- [x] Limit matrix committed covering every endpoint class (table above). Six allowlisted handlers verified.
+- [x] Per-user/per-org limiting applied by default in the authenticated wrappers (`serveAdmin`/`serveAuthenticated`) — shipped log-only. Enforcement decision still pending real traffic data.
+- [ ] Limits calibrated against real usage from the doc-00 baseline; no false positives in a normal-use E2E run. Default (120/60s) is a reasoned starting point, not measured against doc 00's baseline.
+- [x] `429` + `Retry-After` already existed server-side; client now backs off and never auto-retries a 429 — `AdminEdgeFetchError` + `shouldRetryQuery` fixed a real gap where the admin dashboard retried every 429 once.
+- [x] All six allowlisted handlers documented with their alternative protection (table above).
+- [x] Fail-open/fail-closed decided: public + wrapper log-only **open**; AI quota **closed**; cron secret **closed** in production. Recorded in `rateLimit.ts`.
+- [ ] Limiter metrics + alerting + super-admin visibility live. Not built this session.
+- [x] Limiter table swept and indexed (pre-existing: `maybeSweep` + `idx_request_rate_limits_window_start`).
+- [x] CI coverage script extended to authenticated wrappers (`check-authenticated-rate-limit.sh`).
 
 ## Docs / Plans / activity-log
 
 - **Docs:** `docs/architecture/edge-functions.md` (mandatory), `.cursor/rules/supabase-edge-functions.mdc`, `docs/guides/testing/cost-abuse-verification.md`.
-- **Plans / Team RBAC:** rate limits are a plausible plan-tier dimension — invoke `plans-and-permissions` if limits differ by plan.
-- **activity-log:** invoke `audit-logging` — sustained limiting or a manual block/unblock is worth an event.
+- **Plans / Team RBAC:** N/A this pass — wrapper default is the same for every plan. Cost-weighted / per-tier limits belong in the service-cost plan.
+- **activity-log:** N/A — log-only `console.warn`, no block/unblock UI yet.

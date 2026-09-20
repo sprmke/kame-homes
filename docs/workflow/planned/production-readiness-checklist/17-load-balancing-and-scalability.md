@@ -2,7 +2,7 @@
 title: 'Load balancing and scalability'
 status: active
 tags: [workflow, planned, production-readiness, scalability, load-testing]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,29 @@ kind: plan
 ## Goal
 
 Know the app's actual capacity ceiling, know which component hits it first, and have a documented action for each. Prove it with a load test rather than assuming the platform scales.
+
+## Remaining work to finalize
+
+**Status: partial — write-path hardening, runbook, and k6 harness shipped (2026-09-18).** Capacity targets and a measured run remain blocked on hosted-dev + product input.
+
+| #   | Work                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Blocker                         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 1   | Write agreed capacity targets (17.1).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Product / ops                   |
+| 2   | ~~Commit a load-test harness~~ **Done** (`scripts/performance/load-test/`). **Still open:** run the mixed scenario on hosted-dev with the large-tenant seed; mock third parties (17.2).                                                                                                                                                                                                                                                                                                                                             | Hosted-dev + doc 10 seed        |
+| 3   | Name the first component that fails and the concurrency number (17.3).                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Depends on 2                    |
+| 4   | Re-run after 10 / 12 / 14 fixes and record the new ceiling.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Depends on those docs           |
+| 5   | ~~Booking-transition side effects async + idempotent + circuit-broken (17.4).~~ **Partial** — the 3 unguarded `createNotification` calls in `workflowOrchestrator.ts` (the only side effects without try/catch) now wrapped non-fatal, matching the pattern already used for every email/token side effect in the same file. Async job queue for PDF/email (the slow synchronous legs) and a Resend/Meta circuit breaker are real gaps, precisely located, but are an architecture change needing product sign-off — not attempted. | Code (queue is a bigger change) |
+| 6   | Per-module degradation when a third party fails, proven by a test (17.5).                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Code + tests                    |
+| 7   | ~~Scaling runbook: trigger, action, owner, time-to-effect (17.6).~~ **Done** — see Phase 17.6 below.                                                                                                                                                                                                                                                                                                                                                                                                                                | —                               |
+
+## Measured before / after
+
+| Metric                                         | Before                            | After                                                           | Difference                                                          |
+| ---------------------------------------------- | --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Load-test harness                              | None                              | `scripts/performance/load-test/` (k6, public GET, 1 VU default) | Can run against hosted-dev without writing or hitting third parties |
+| Unguarded `createNotification` in orchestrator | 3 calls could fail the transition | Wrapped non-fatal                                               | Matches email/token pattern                                         |
+| Scaling runbook                                | None                              | Trigger / action / owner / time-to-effect                       | 2am action is written down                                          |
+| Measured first-fail component                  | Unknown                           | Still unknown                                                   | Needs hosted-dev + seed                                             |
 
 ## Current state — what "load balancer" means on this stack
 
@@ -98,14 +121,18 @@ Define, per module, what happens when the system is saturated:
 
 ### Phase 17.6 — Scaling runbook
 
-Document trigger → action:
+**Shipped 2026-09-17:**
 
-- DB CPU > 70% sustained → upgrade compute tier / add read replica (and accept the replica-lag consequences in doc 15).
-- Connection saturation → raise pool, or move reads to a replica.
-- Storage egress cost spike → doc 09's responsive delivery + doc 16 caching.
-- Third-party limit → request a quota increase, with the lead time noted.
+| Trigger                                                       | Action                                                                                                                                                                                                                                    | Owner                                | Time-to-effect                                                             |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| DB CPU > 70% sustained (>15 min)                              | Identify top queries via Supabase dashboard/advisors; kill runaway queries; upgrade compute tier (Supabase project settings → Compute add-on)                                                                                             | Project owner (sprmke.dev@gmail.com) | 5–10 min (tier upgrade near-instant, may briefly drain connections)        |
+| Connection pool saturation (PgBouncer at max)                 | Raise pool size in Supabase dashboard (Database → Connection pooling); check for connection leaks in edge functions (missing client reuse, doc 15)                                                                                        | Project owner                        | 2–5 min config change; leak fix is a code deploy (hours)                   |
+| Storage egress cost spike (billing alert)                     | Check `super-admin-service-cost-monitoring.md`; verify responsive image delivery (doc 09) and CDN cache headers (doc 16); throttle the largest media-heavy property's public page if abusive                                              | Project owner                        | Immediate for cache-header fix (deploy); hours for image pipeline retrofit |
+| Third-party rate limit hit (Resend/Meta/PayMongo/Gemini 429s) | Check `super-admin-service-cost-monitoring.md` for current tier limits; request a quota increase (Resend same-day, Meta Graph days, PayMongo needs account-manager contact); throttle non-critical sends (marketing crons) in the interim | Project owner                        | Minutes (internal throttle) to days (provider quota increase)              |
 
-Each trigger needs an owner and an estimated time-to-effect. "Upgrade the tier" is useless at 2am if nobody knows who can authorize it.
+"Upgrade the tier" is useless at 2am if nobody knows who can authorize it — the owner column above is the interim answer until an on-call rotation exists (doc 27/30).
+
+**Cron off-peak audit (2026-09-17):** most crons are Manila off-peak or low-cost sweeps. Two are not: `query-cache-sweep-cron` (10:17am Manila) and `platform-billing-cron` (2pm Manila) both run during business hours — flagged, not yet rescheduled (needs confirming neither has a same-day dependency on that specific hour). `gmail-listener`, `sd-refund-cron`, `calendar-sync-cron` intentionally run all day (operationally required, not a violation). Overlap guards confirmed only on `calendar-sync-cron` and `query-cache-sweep-cron`; `superhost-assessment-cron`, `contract-expiry-cron`, `property-page-views-prune-cron`, `smart-pricing-cron` have no confirmed overlap guard — pre-existing gap, not newly introduced, tracked here for doc 15/19 follow-up.
 
 ### Phase 17.7 — Guard
 
@@ -124,14 +151,14 @@ Each trigger needs an owner and an estimated time-to-effect. "Upgrade the tier" 
 
 ## Exit gate
 
-- [ ] Capacity targets agreed and written down.
-- [ ] Load-test harness committed; mixed-scenario run executed against hosted dev with large-tenant seed data, with all third parties mocked.
-- [ ] First failing component identified with the concurrency number; documented.
+- [ ] Capacity targets agreed and written down. (Blocked — needs product owner.)
+- [ ] Load-test harness committed; mixed-scenario run executed against hosted dev with large-tenant seed data, with all third parties mocked. Harness committed; **run** still blocked on hosted-dev + seed.
+- [ ] First failing component identified with the concurrency number; documented. (Depends on load test.)
 - [ ] Doc 10 / 12 / 14 fixes landed and the test re-run showing a higher ceiling.
-- [ ] Booking-transition side effects async + idempotent + circuit-broken.
+- [ ] Booking-transition side effects async + idempotent + circuit-broken. (Partial — notification try/catch gap closed; queue + circuit breaker deferred, precisely located.)
 - [ ] Degradation behavior defined per module and verified by a test that simulates a failing third party.
-- [ ] Scaling runbook with trigger, action, owner, and time-to-effect.
-- [ ] Peak numbers feeding doc 27 alert thresholds and doc 30 targets.
+- [x] Scaling runbook with trigger, action, owner, and time-to-effect.
+- [ ] Peak numbers feeding doc 27 alert thresholds and doc 30 targets. (Depends on load test.)
 
 ## Docs / Plans / activity-log
 

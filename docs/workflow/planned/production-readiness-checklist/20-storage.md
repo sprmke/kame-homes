@@ -2,7 +2,7 @@
 title: 'Storage'
 status: active
 tags: [workflow, planned, production-readiness, storage, privacy]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,29 @@ kind: plan
 ## Goal
 
 Every uploaded object is in the right bucket with the right privacy, reachable only by those entitled to it, size- and type-validated, lifecycle-managed, and accounted for in cost.
+
+## Remaining work to finalize
+
+**Status: partial — bucket audit, guest-PII magic-byte gate, and SVG reject shipped (2026-09-18).** Path scoping, remaining upload sniffers, orphans, and versioning are still open.
+
+| #   | Work                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Blocker                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| 1   | ~~Bucket inventory; no public bucket contains PII (20.1).~~ **Done** — all 18 buckets tabled; all 5 guest-PII buckets confirmed private; bucket `file_size_limit` ≥ `uploadLimits.ts` ceiling everywhere checked. `GRANT ALL ON storage.buckets TO public` still present in 3 early migrations — flagged, needs hosted-dashboard re-verification (metadata/catalog grant, not object contents).                                                                                                                                                                                                                                                                                            | Hosted re-verify                      |
+| 2   | Every object path encodes tenant scope; access verified from the path (20.2).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Code + tests                          |
+| 3   | Signed-URL TTLs per class; issuance logged for sensitive classes (20.3). **Partial** — `Content-Disposition: attachment` added to the guest-facing approved GAF/Pet PDF share-token path (`bookingDocumentShareToken.ts`, always finished PDFs, never rendered inline). **Deliberately not applied** to `storageSignedUrl.ts`, `get-booking-asset-url`, `get-org-verification-assets`, `get-listing-authorization-assets` — these feed admin/guest UI that renders documents **inline** for review (`BookingDetailAssetPreviewModal.tsx`, `VerificationDocPreview.tsx`, `GuestAvatar.tsx`); forcing download there breaks that UX. A blanket disposition fix is wrong for this bucket set. | Code (needs per-consumer UX decision) |
+| 4   | Magic-byte MIME validation + filename sanitization on every upload path (20.4). **Partial** — `_shared/sniffMime.ts` now gates `uploadService.ts` (guest PII) and `bookingAssetUpload.ts`. Marketing Studio already sniffed. Remaining: org/team logos, support tickets, inbox chat, guest avatar, verification assets.                                                                                                                                                                                                                                                                                                                                                                    | Code — remaining paths                |
+| 5   | ~~SVG handling decided and enforced.~~ **Done for new uploads** — `image/svg+xml` rejected on property gallery (server + client). Existing objects in `property-media` are unchanged. Documents-as-attachments remain per-consumer (row 3).                                                                                                                                                                                                                                                                                                                                                                                                                                                | —                                     |
+| 6   | Orphan reconcile scheduled; deletion propagation for booking / property / org (20.5). **Audited**: `delete-property`/`delete-organization` remove `property-media` objects (best-effort); **no propagation exists for guest-PII buckets** (`valid-ids`, `payment-receipts`, `pet-vaccinations`, `pet-images`, `parking-endorsements`) on booking/property/org deletion — objects orphan indefinitely. No general scheduled orphan reconcile beyond the narrow `marketingGenerationSweeper.ts` domain.                                                                                                                                                                                      | Cron + tests                          |
+| 7   | Storage + egress cost in the service-cost matrix (doc 25); versioning/soft-delete on PII buckets for doc 30 (20.6).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Hosted + docs                         |
+
+## Measured before / after
+
+| Metric                       | Before                     | After                                      | Difference                      |
+| ---------------------------- | -------------------------- | ------------------------------------------ | ------------------------------- |
+| Guest PII upload MIME        | Client `Content-Type` only | Magic-byte match required                  | Spoofed JPEG/PDF rejected       |
+| Booking-asset MIME           | Declared type only         | Same sniff on `applyBookingAssetFromBytes` | Admin + AI confirm paths match  |
+| Public `property-media` SVG  | Allowed + inline           | New uploads rejected                       | XSS vector closed for new files |
+| Guest-PII delete propagation | None                       | Still none                                 | Orphans remain                  |
 
 ## Prior art — do not redo
 
@@ -100,12 +123,12 @@ Database backups do **not** include Storage objects. A restore that brings back 
 
 ## Exit gate
 
-- [ ] Bucket inventory table committed; no public bucket contains PII.
+- [x] Bucket inventory table committed; no public bucket contains PII.
 - [ ] Every object path encodes tenant scope; access verified from the path.
-- [ ] Signed-URL TTLs defined per class; issuance logged for sensitive classes.
-- [ ] Magic-byte MIME validation + filename sanitization on every upload path.
-- [ ] SVG handling decided and enforced; documents served as attachments.
-- [ ] Orphan reconcile scheduled; deletion propagation verified for booking/property/org.
+- [ ] Signed-URL TTLs defined per class; issuance logged for sensitive classes. (Partial — disposition fixed for the one purely-document path; the rest need a per-consumer UX decision, not a blanket fix.)
+- [ ] Magic-byte MIME validation + filename sanitization on every upload path. (Guest PII + booking assets done; other paths remain.)
+- [x] SVG handling decided and enforced on new property-gallery uploads; documents served as attachments remain per-consumer.
+- [ ] Orphan reconcile scheduled; deletion propagation verified for booking/property/org. (Gap found — guest-PII buckets have no propagation on entity deletion.)
 - [ ] Storage + egress cost tracked in the service-cost matrix.
 - [ ] Bucket versioning/soft-delete enabled on PII buckets; restore requirement stated for doc 30.
 

@@ -115,7 +115,28 @@ Add these as Playwright specs — this is the class of failure that only appears
 
 **Playwright graceful-degradation specs — not written.** No E2E test simulates a blocked/failed third party (Google Fonts, Supabase, PostHog, Meta embed, Maps) and asserts the app still functions. Deferred — real, valuable follow-up work, not attempted this pass.
 
+## Measured before / after
+
+| Metric                                  | Before                                                   | After                                                                                 | Difference                                          |
+| --------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Google Fonts stylesheet                 | Render-blocking `<link rel="stylesheet">` on every route | `rel="preload" as="style"` + `onload="this.rel='stylesheet'"` + `<noscript>` fallback | First paint no longer waits on fonts.googleapis.com |
+| Default UI font                         | Plus Jakarta Sans from Google CDN                        | Still Google CDN (self-host files exist only for PDF in `ui/src/assets/fonts`)        | Render-block gone; third-party fetch remains        |
+| Brand font set                          | All 15 families eager                                    | All 15 still eager, just async                                                        | Per-route load deferred                             |
+| Blocking `<script src>` in `index.html` | No guard                                                 | `assert-no-blocking-scripts.mjs` in CI                                                | Regression blocked                                  |
+| Third-party origin inventory / CSP      | None                                                     | Not written (feeds doc 22)                                                            | Open                                                |
+
 **CI blocking-script guard — closed.** `scripts/performance/assert-no-blocking-scripts.mjs` fails if `ui/index.html` gains a `<script src>` without `defer`/`async`/`type="module"`; wired into `ci.yml` and the local quality-gate script; verified passing and correctly ignoring the inline (no-`src`) theme-detection script.
+
+## Remaining work to finalize
+
+Render-blocking Google Fonts CSS is gone; the third-party **fetch** and unused brand families are not.
+
+| #   | Work                                                                                                                                                | Blocker     |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1   | Self-host Plus Jakarta Sans (files already exist for PDF under `ui/src/assets/fonts`) and drop the Google Fonts stylesheet for the default UI font. | Code        |
+| 2   | Load the 15 brand families **per route / per org**, not all 15 on every page.                                                                       | Code        |
+| 3   | Write the third-party origin inventory (fonts, PostHog, maps, Meta, Turnstile, PayMongo) for doc 22 CSP.                                            | Code / docs |
+| 4   | Playwright degradation specs: fonts fail, PostHog blocked, and the app still paints.                                                                | Playwright  |
 
 ## Docs / Plans / activity-log
 

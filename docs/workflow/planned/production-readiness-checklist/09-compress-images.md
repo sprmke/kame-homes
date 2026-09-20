@@ -2,12 +2,50 @@
 title: 'Compress images'
 status: active
 tags: [workflow, planned, production-readiness, media, storage]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
 
 # 09 — Compress images
+
+## Implementation status (2026-09-17)
+
+**Phase 9.6 (CI size guard): done (review pass 2026-09-17).** `scripts/dev/check-public-asset-size.sh` fails images over 512 KiB and other `ui/public` files over 2.5 MiB unless allowlisted. Wired into `ci.yml`, `cd-dev.yml`, and `bun run ci:quality`. Would have caught the 2.27 MB hero banner.
+
+**Phase 9.5 (static assets): done.** Audited `ui/public/**` by file size. Found and removed `ui/public/images/hero-banner.png` — a 2.27 MB, 1554×670 PNG with **zero references anywhere in `ui/src`** (grepped `.tsx`/`.ts`/`.css`/`.html`/`.json`, confirmed dead), shipped in every build for no reason. Everything else in `ui/public` (logo at 1500×1500 for high-DPI, PWA/favicon icon set, the guest-facing GCash QR payment JPEG, avatar art) is sized appropriately for its actual display use — not re-encoded, since none are outliers and re-encoding without a measured before/after risks a visible-quality regression on brand assets for a marginal byte saving.
+
+**Phase 9.2 (responsive delivery via Supabase Storage transforms): explicitly NOT done this pass — deferred, not skipped silently.** Reasons:
+
+1. **Image transformations are a paid Supabase add-on**, and this repo has no config flag or existing usage confirming it is enabled/billed-for on the hosted project (`supabase/config.toml` has no `image_transformation` entry; grepped for any `/render/image/` usage anywhere in `ui/src`/`supabase/functions` — zero hits). Wiring `srcset` against an endpoint that may not be provisioned would silently 404 or fail closed in production.
+2. **The doc's own edge case requires this land alongside cost tracking** ("Restrict to a fixed allowlist of widths... belongs in the service-cost matrix"). That matrix is [`super-admin-service-cost-monitoring.md`](../super-admin-service-cost-monitoring.md) — itself still in `planned`, not built. Shipping a billable, always-on transform feature with no cost guard in front of it is exactly the kind of blind commitment this pass is trying to avoid.
+3. `ui/src/features/guest/marketing/shared/components/MarketingImage.tsx` already declares a `sizes` prop in its interface (unused by every current caller — confirmed via grep) — this is the natural hook point for `srcset` once transforms are confirmed enabled and cost-bounded. Left as-is rather than wired to a fake/unverified endpoint.
+
+**Phase 9.1 (OCR-regression gate for `guest-documents`), 9.3 (AVIF), 9.4 (backfill): not attempted**, per the original scoping decision — each needs either a real fixture set + manual test pass, a live before/after measurement, or production bucket access, none of which are safe to fake or skip in a blind code-only pass. Re-confirmed the gate is still active and intentional in `docs/architecture/storage.md` §7.1 (unchanged from the prior audit).
+
+## Measured before / after
+
+| Metric                             | Before                                     | After                                                                    | Difference                                                      |
+| ---------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `ui/public/images/hero-banner.png` | 2.27 MB, 1554×670, **zero references**     | Deleted                                                                  | **−2.27 MB on every build**                                     |
+| Largest remaining public raster    | Hero banner                                | `avatars/receptionist-turtle-idle.png` (402 KB)                          | Dead PNG gone; talking-avatar MP4 (2.0 MB) is a justified video |
+| Upload pipeline                    | Already shipped (Web Worker, WebP presets) | Unchanged                                                                | Not re-built                                                    |
+| `ui/public` size CI                | None                                       | `scripts/dev/check-public-asset-size.sh` (images 512 KiB, other 2.5 MiB) | A second 2 MB PNG cannot land unnoticed                         |
+| Storage transforms / `srcset`      | Not enabled                                | Still not wired                                                          | Blocked on paid add-on + cost guard                             |
+| `guest-documents` OCR gate         | Still off                                  | Still off                                                                | Highest-risk win remains gated                                  |
+
+## Remaining work to finalize
+
+Dead hero PNG + `ui/public` size CI are shipped. Upload pipeline was already done in a prior plan. Everything that needs **Storage transforms, OCR, or a cost guard** is still open.
+
+| #   | Work                                                                                                                   | Blocker                         |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 1   | Turn on the `guest-documents` OCR size/type gate with real fixtures.                                                   | OCR fixtures + product decision |
+| 2   | Enable Storage image transforms + `srcset` only after the paid add-on and a cost matrix / cap are documented (doc 25). | Paid feature + cost guard       |
+| 3   | AVIF (or next-gen) output in the client pipeline if the cost/quality tradeoff is accepted.                             | Depends on 2 / product          |
+| 4   | Backfill existing Storage objects that are still uncompressed originals.                                               | Hosted Storage + 2              |
+| 5   | Compress / replace remaining email and marketing raster assets that are not in `ui/public`.                            | Asset inventory                 |
+| 6   | `mediaTelemetry` panel (or equivalent) so oversized uploads are visible.                                               | Code                            |
 
 ## Prior art — this item is largely SHIPPED
 

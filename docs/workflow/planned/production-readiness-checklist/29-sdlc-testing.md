@@ -2,7 +2,7 @@
 title: 'SDLC testing'
 status: active
 tags: [workflow, planned, production-readiness, testing, quality]
-updated: 2026-09-16
+updated: 2026-09-19
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,29 @@ kind: plan
 ## Goal
 
 The test suite is trustworthy enough that a green CI run is sufficient confidence to deploy. Coverage is concentrated where failure is most costly, not spread evenly.
+
+## Implementation status (2026-09-19 session)
+
+- **Phase 29.2 — first slice of the table-driven handler harness shipped.** `supabase/functions/tests/authWrapperRejection.test.ts`: a 3×5 table (3 auth verifiers — `verifyAdminJwt`/`verifyAuthenticatedUser`/`verifySuperAdminJwt` — × 5 malformed-auth cases — missing/empty/non-Bearer/empty-Bearer/whitespace-Bearer) = 15 generated tests, all passing, ~5ms total with **zero network calls**. This proves doc 21's static-sweep claim ("missing authentication is structurally impossible for any `serve*`-wrapped function") at runtime instead of by code inspection. **Deliberately does not import `serveEdge.ts` itself** — its wrappers call `serve()` at module scope (binds a port), which is why none of the 7 pre-existing handler tests import it either; traced by hand that every verifier throws before reaching `createServiceClient()` on a bad header, so this is safe without a live Supabase connection. **This is the wrapper level only** — genuine per-function coverage (request shape validation, business-logic branches, per-permission-leaf cases across 300 handlers) is not attempted; doc 29.2's own instruction is that this scale needs a generator/fixture approach as future work, not a single-session sweep. Handler test count: 7 files/20 tests → **8 files/35 tests**.
+- Confirmed `ui/e2e/features/team/shared/propertyTeamRbacHarness.ts` (referenced by this doc as "the pattern already exists — extend it") is a **Playwright UI-level RBAC harness** (nav visibility, route guards), a different layer from an edge-function auth/validation harness — the two don't overlap and neither substitutes for the other; noting this so a future session doesn't assume the UI harness already covers the edge-handler gap.
+- `deno check` clean; `bun run test:edge:handlers` 35/35 passing (1 ignored, pre-existing).
+
+Everything else in this doc (risk-tier coverage targets, contract tests against a real stack, WebKit, large-tenant fixture, flake reduction, manual release checklist, accessibility pass) not attempted this session — genuinely incremental/large scope per the doc's own framing, and several explicitly need a display or seeded infra this session didn't have.
+
+## Remaining work to finalize
+
+**Status: partial.** The testing pyramid and `@smoke` / `@ci` / `@live` tags already exist (not redone). This session shipped the first slice of the table-driven handler harness (wrapper-level auth rejection, 15 tests). Remaining work is risk-tier targets and the rest of the handler / adversarial gaps.
+
+| #   | Work                                                                                                                       | Blocker                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | Risk-tier coverage targets defined and met for the seven high-risk surfaces (29.1).                                        | Process + tests          |
+| 2   | Table-driven handler harness: **wrapper-level auth rejection done** (15 tests); per-function validation still open (29.2). | Tests                    |
+| 3   | Doc 21 adversarial matrix executable and green.                                                                            | Doc 21 + tests           |
+| 4   | Contract tests against a real local stack for the top flows (29.3).                                                        | Local Supabase           |
+| 5   | WebKit for the guest flow; large-tenant fixture; Manila timezone pinned in the test env.                                   | Playwright + doc 10 seed |
+| 6   | Zero long-lived quarantined flaky tests (29.4). **One found this session** (`guestFormSubmit.spec.ts` — doc 26 cross-ref). | Tests                    |
+| 7   | Manual release checklist for items automation cannot cover (29.5).                                                         | Process                  |
+| 8   | Accessibility pass on the primary guest and host flows (29.6).                                                             | Display + a11y           |
 
 ## Prior art — a full testing pass already shipped
 
@@ -102,12 +125,12 @@ Automation cannot cover everything. Maintain:
 ## Exit gate
 
 - [ ] Risk-tier coverage targets defined and met for the seven high-risk surfaces.
-- [ ] Table-driven handler harness covering auth + validation for every mutating edge function.
+- [ ] Table-driven handler harness covering auth + validation for every mutating edge function. **Wrapper-level auth slice done** (15 tests, 3 verifiers × 5 malformed-auth cases); per-function business-logic validation not started.
 - [ ] Doc 21's adversarial matrix executable and green.
 - [ ] Contract tests against a real local stack for the top flows.
 - [ ] WebKit added for the guest flow.
 - [ ] Large-tenant fixture committed; Manila timezone pinned in the test env.
-- [ ] Zero long-lived quarantined flaky tests.
+- [ ] Zero long-lived quarantined flaky tests. One found this session, not yet fixed.
 - [ ] Manual release checklist maintained and used for the items automation cannot cover.
 - [ ] Accessibility pass on the primary guest and host flows.
 

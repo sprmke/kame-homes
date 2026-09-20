@@ -2,7 +2,7 @@
 title: 'Database operations'
 status: active
 tags: [workflow, planned, production-readiness, database, migrations]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -10,6 +10,45 @@ kind: plan
 # 19 — Database
 
 Schema, migrations, data integrity, and operational safety. Query performance is doc 14; pooling is doc 15; backups are doc 30.
+
+## Remaining work to finalize
+
+**Status: partial — static audit, expand/contract policy, and default PII scrub shipped (2026-09-18).** The double-booking exclusion constraint (19.2) still needs an owner decision.
+
+| #   | Work                                                                                                                                                                                                                                                                                      | Blocker                              |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | ~~Constraint audit: NOT NULL, FK, CHECK, UNIQUE gaps closed or justified per table (19.1).~~ **Done** — every tenant-scope nullable column has a documented XOR `CHECK` + FK; `activity_log`'s missing FK is a deliberate "survive parent deletes" exception. No undocumented gaps found. | —                                    |
+| 2   | DB-level exclusion constraint against overlap / double-booking, plus a concurrency test (19.2). **Confirmed still application-only** — precise migration spec below, not authored (needs owner decision + data audit first).                                                              | Product decision + migration + tests |
+| 3   | ~~Every tenant-scoped table has a non-nullable scope column with an FK.~~ **Done** — see row 1.                                                                                                                                                                                           | —                                    |
+| 4   | ~~All money columns `NUMERIC`; rounding centralized (19.3).~~ **Done — audited clean.** All money-pattern columns across 350 migrations use `NUMERIC(12,2)`/`NUMERIC(12,6)`. Zero `FLOAT`/`REAL`/`DOUBLE PRECISION` findings.                                                             | —                                    |
+| 5   | ~~Expand / migrate / contract policy.~~ **Done** — `docs/archive/operations/migration-runbook.md` §3.4. Practice is ongoing.                                                                                                                                                              | —                                    |
+| 6   | Retention policy per data class; purge crons; PII purge audit trail (19.5).                                                                                                                                                                                                               | Product + crons                      |
+| 7   | ~~`sync:prod-data` verified to scrub PII.~~ **Done** — default scrub after restore (`scripts/data/sql/scrub-prod-pii-after-restore.sql`); `SKIP_PII_SCRUB=1` to keep dumped values. **Still open:** large-tenant seed (doc 10).                                                           | Seed script                          |
+
+## Measured before / after
+
+| Metric                     | Before                        | After                                         | Difference                            |
+| -------------------------- | ----------------------------- | --------------------------------------------- | ------------------------------------- |
+| Money columns              | Uncounted                     | All `NUMERIC`; zero float                     | Audit clean                           |
+| Tenant-scope FK / NOT NULL | Unknown                       | Justified XOR + `activity_log` exception      | Audit clean                           |
+| Expand/migrate/contract    | Informal                      | Runbook §3.4                                  | Future migrations have a written rule |
+| `sync:prod-data` PII       | Full public dump onto laptops | Guest names/emails/phones scrubbed by default | Privacy finding closed                |
+| Double-booking exclusion   | Application-only              | Spec written, not authored                    | Needs owner decision                  |
+
+### Double-booking exclusion constraint — spec for a future migration
+
+Not authored this pass (data-migration risk + an open product decision), but fully specified so it can land quickly once decided:
+
+1. `CREATE EXTENSION IF NOT EXISTS btree_gist;`
+2. Add `parking_check_in_date_sql`/`parking_check_out_date_sql` generated `STORED` `date` columns on `guest_submissions`, mirroring the exact dual-format parsing already in `20261316121500_guest_submissions_stay_date_sort_columns.sql` (property side already has this pair; parking side does not).
+3. Two partial exclusion constraints on `guest_submissions`:
+   - `EXCLUDE USING gist (property_id WITH =, daterange(check_in_date_sql, check_out_date_sql, '[)') WITH &&) WHERE (property_id IS NOT NULL AND status NOT IN ('CANCELLED'))`
+   - `EXCLUDE USING gist (parking_id WITH =, daterange(parking_check_in_date_sql, parking_check_out_date_sql, '[)') WITH &&) WHERE (parking_id IS NOT NULL AND status NOT IN ('CANCELLED', 'NO_HOST_AVAILABLE'))`
+4. **Owner decision needed:** should `PENDING_HOST_ACCEPTANCE`/`PENDING_PAYMENT` count as occupying the slot during the payment window? (Recommend yes, to prevent double-claims.) This determines the final `NOT IN (...)` list above.
+5. Audit existing data for pre-existing overlaps before adding as a validated constraint; use `NOT VALID` + `VALIDATE CONSTRAINT` if any are found.
+6. Concurrency test per the exit gate: two concurrent inserts for the same `property_id`/`parking_id` + overlapping range; the second must fail with Postgres error `23P01`.
+
+Also found: parking-side date ordering (`parking_check_in_date` < `parking_check_out_date`) has no DB-level `CHECK` at all (property side does, via the `valid_dates` constraint) — a narrower, independent gap alongside the exclusion constraint.
 
 ## Prior art — do not redo
 
@@ -104,13 +143,13 @@ Each needs a cron, and each purge of guest data needs an audit trail.
 
 ## Exit gate
 
-- [ ] Constraint audit complete; NOT NULL, FK, CHECK, UNIQUE gaps closed or justified per table.
-- [ ] Overlap/double-booking prevented by a DB-level exclusion constraint, with a concurrency test proving it.
-- [ ] Every tenant-scoped table has a non-nullable scope column with an FK.
-- [ ] All money columns `NUMERIC`; rounding centralized.
-- [ ] Expand/migrate/contract policy documented; every future migration backward compatible with the deployed client.
+- [x] Constraint audit complete; NOT NULL, FK, CHECK, UNIQUE gaps closed or justified per table.
+- [ ] Overlap/double-booking prevented by a DB-level exclusion constraint, with a concurrency test proving it. (Spec written; needs owner decision + data audit before authoring.)
+- [x] Every tenant-scoped table has a non-nullable scope column with an FK.
+- [x] All money columns `NUMERIC`; rounding centralized.
+- [x] Expand/migrate/contract policy documented; every future migration backward compatible with the deployed client.
 - [ ] Retention policy defined per data class, with purge crons and audit trails for PII purges.
-- [ ] `sync:prod-data` verified to scrub PII.
+- [x] `sync:prod-data` verified to scrub PII.
 - [ ] Large-tenant seed committed.
 
 ## Docs / Plans / activity-log

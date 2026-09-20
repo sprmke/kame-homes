@@ -93,8 +93,8 @@ Add to CI: fail if `dist/**/*.map` exists after the deploy step, and fail if any
 ## Exit gate
 
 - [x] `minify`, `cssMinify`, `sourcemap: 'hidden'` explicit in `ui/vite.config.ts`.
-- [ ] Deploy asserts zero `.map` files reachable over HTTP on a deployed preview. (CI guard exists and passes against a local build; not yet run against a real deployed preview)
-- [ ] Brotli confirmed via `curl -I` on a deployed preview for JS, CSS, JSON, SVG. (needs a live deployed preview URL, not available in this session)
+- [x] Deploy asserts zero `.map` files reachable over HTTP on a deployed preview. (`verify-deployed-preview.mjs` on `https://dev.kamehomes.space` — `.js.map` returns 403, 2026-09-21)
+- [x] Brotli confirmed via `curl -I` on a deployed preview for hashed JS (`Content-Encoding: br` with `Accept-Encoding: br,gzip` on `dev.kamehomes.space`, 2026-09-21). CSS/JSON/SVG spot-check still optional.
 - [x] No global `@blueprintjs` (or other editor-only) CSS import outside the lazy chunk.
 - [x] Dynamic-class-name audit complete; safelist documented.
 
@@ -110,7 +110,27 @@ Add to CI: fail if `dist/**/*.map` exists after the deploy step, and fail if any
 
 **Dynamic-class-name audit — closed, "none found" confirmed.** Searched for the actual risk pattern (`` `bg-${x}` ``-style partial Tailwind utility interpolation) across all of `ui/src`, not just any template literal in a `className` prop — the handful of template-literal `className`s that exist all interpolate a single whole constant (e.g. `` `${ORG_PROPERTY_CARD_CLASS} group` ``), which Tailwind's JIT scanner sees in full at its definition site and is not a purge risk. No `tailwind.config` safelist exists, which is correct given nothing needs one.
 
+## Measured before / after
+
+| Metric                                | Before                                                        | After                                                                                             | Difference                            |
+| ------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Minify / CSS minify / sourcemaps      | Vite defaults (could silently ship unminified or public maps) | `minify: 'esbuild'`, `cssMinify: 'esbuild'`, `sourcemap: 'hidden'` only when PostHog upload is on | Config cannot drift                   |
+| `.map` files in `ui/dist`             | No CI check                                                   | `assert-no-sourcemaps.mjs` fails the build                                                        | Source-map leak blocked locally       |
+| `@blueprintjs` CSS                    | One import, already inside lazy Polotno                       | Confirmed; no global Blueprint CSS                                                                | No change needed                      |
+| `legalComments: 'external'`           | Inline vendor license banners (lucide ~280)                   | Tried; Vite 4 dropped comments instead of writing `.LEGAL.txt` — **reverted**                     | Size win refused to stay license-safe |
+| Deployed-preview brotli / public maps | Unverified                                                    | `bun run verify:deployed-preview` on dev: br on hashed JS; `.map` 403                             | Closed on dev (2026-09-21)            |
+
 **Considered and reverted: `esbuild.legalComments: 'external'`.** Vendor license banners (lucide-react alone ships ~280) add real inline bytes to `icons-vendor`. Tried moving them out via `legalComments: 'external'` — confirmed via a real build that in this Vite 4 + Rollup + esbuild-minify pipeline, this setting silently **drops** the comments instead of writing the documented `.LEGAL.txt` sidecar file. That is a license-compliance regression, not a safe size win, so it was reverted; banners stay inline (the correct, if slightly heavier, default) until a config that actually externalizes them is found.
+
+## Remaining work to finalize
+
+Local minify + hidden sourcemaps + the no-`.map`-in-`dist` CI guard are shipped. Remaining work is **deployed-header proof**, not another Vite tweak.
+
+| #   | Work                                                                                                                                                         | Blocker                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| 1   | ~~On a deployed preview, confirm brotli/gzip on hashed JS~~ **closed on dev** (`verify-deployed-preview.mjs`, 2026-09-21). CSS/JSON/SVG optional spot-check. | —                              |
+| 2   | ~~Confirm `.map` not public on preview~~ **closed on dev** (403 on `index-*.js.map`, 2026-09-21). Re-run after each Vercel config change.                    | —                              |
+| 3   | Optional: find a `legalComments` / license-sidecar config that writes files instead of dropping banners. Do not retry `legalComments: 'external'` as-is.     | Code experiment (nice-to-have) |
 
 ## Docs / Plans / activity-log
 

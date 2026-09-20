@@ -2,12 +2,55 @@
 title: 'Loading skeletons'
 status: active
 tags: [workflow, planned, production-readiness, ux, perceived-performance]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
 
 # 07 — Loading skeletons 💀
+
+## Implementation status (2026-09-17)
+
+**Confirmed clean:** grepped all of `ui/src` for `isFetching` gating a loading UI — **zero matches**. The doc's "single most common mistake" does not exist in this codebase; every audited consumer already keys off `isLoading`/`isPending`.
+
+**Phase 7.2/7.3 (anti-flash primitive): shipped.**
+
+- `ui/src/hooks/useDelayedLoading.ts` — new hook: does not show `true` until `isLoading` has held for `showAfterMs` (default 180ms), and once shown, holds `true` for at least `minVisibleMs` (default 300ms) even if `isLoading` flips back sooner. Implements both Phase 7.3 rules in one place instead of per-site `setTimeout`s.
+- `ui/src/components/routing/RouteFallback.tsx` (`SectionLoadingFallback`, `PageLoadingFallback` — the Suspense fallbacks used by `App.tsx`, `AdminLayout.tsx`, `SetupGuideOverlay.tsx`, `MarketingLayoutShell.tsx`, `GuestAccountLayout.tsx`) now delay their first paint by 180ms and render `null` until then. **Note:** React unmounts a `Suspense` fallback the instant its child resolves — a fallback component cannot extend its own visibility past that point the way `useDelayedLoading`'s min-visible-duration can, so only the show-delay half of the anti-flash contract applies here; documented in-file. Also added `role="status"`/`aria-live="polite"` with an `aria-label`, and marked the skeleton blocks `aria-hidden`, per the Phase 7.6 accessibility requirement.
+- Spot-checked the pattern on one data-driven consumer, `BookingTable.tsx` (bookings admin list) — gated its existing `BookingsTableSkeleton` behind `useDelayedLoading(isLoading)` instead of raw `isLoading`. Confirmed to already handle all four states (loading/error/empty/data) correctly before this change.
+
+**Code review findings (2026-09-17):**
+
+- **Fixed (reuse):** `RouteFallback.tsx` initially shipped its own local `useShowAfterDelay` hook duplicating `useDelayedLoading`'s show-delay logic in the same pass that added the shared hook. Consolidated: `RouteFallback.tsx` now calls `useDelayedLoading(true, { minVisibleMs: 0 })` — `isLoading: true` because a Suspense fallback has no loading state of its own to observe (its mount IS the loading state), `minVisibleMs: 0` because Suspense unmounts it immediately on resolve regardless, so the min-visible extension would never get a chance to apply. One implementation, not two.
+- **Acknowledged trade-off, not changed:** on a genuinely slow initial load (slow network, cold cache, large lazy chunk — not the fast/cached case this feature targets), the 180ms show-delay means the user sees a blank screen for that window instead of the previous instant spinner/skeleton. This is the documented, intended behavior from Phase 7.3 ("do not render a skeleton for the first ~150-200ms") — 180ms is below the ~200-300ms threshold generally considered the point loading feedback needs to appear to avoid reading as unresponsive, so this is a deliberate, bounded trade-off rather than an oversight. Flagged here so it isn't mistaken for an accidental regression.
+- **Verified, not a regression:** `BookingTable.tsx`'s use of `useDelayedLoading` was checked against pagination clicks specifically — it gates only on TanStack Query's `isLoading` (true-initial-load), not `isFetching`, so a "next page" click (which sets `isFetching` but not `isLoading` once data has loaded once) does not re-trigger the 180ms blank window; the table keeps showing current rows during a page transition, as intended.
+
+**Not attempted this pass — stated explicitly rather than claimed:**
+
+- **Full Phase 7.1 inventory/classification across every async surface** (guest form, calendar, parking, guest portal, finance, maintenance, pricing, inbox, marketing, team, org, analytics, notifications, plans, super-admin — ~2330 files). One pass cannot responsibly hand-classify every surface without risking speculative, unverified changes. The classification table (Surface type → Treatment) already lives in this doc (§Phase 7.1) as the living reference; adopting `useDelayedLoading` at the remaining consumers of `AdminSkeletons`/`GuestPageSkeletons`/`ListingGridSkeleton` is mechanical from here and left as a follow-up, not a defect — the shared hook exists and the one migrated consumer proves the pattern.
+- **Playwright CLS/skeleton-appearance specs (Phase 7.6)** — needs a running browser session under throttling; not produced as a blind code change.
+- **Empty/error/offline audit across all routes (Phase 7.5)** — spot-checked only via `BookingTable.tsx`; a full per-route audit is the same scope problem as Phase 7.1 above.
+
+## Measured before / after
+
+| Metric                         | Before                                 | After                                                    | Difference                                                         |
+| ------------------------------ | -------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Fast-load flash                | Suspense fallbacks painted immediately | `useDelayedLoading` 180 ms show-delay on `RouteFallback` | Cached/fast navigations show no skeleton                           |
+| Bookings table first load      | Skeleton on raw `isLoading`            | Same skeleton, delayed                                   | Pagination still uses `isFetching` / `keepPreviousData` (no blank) |
+| `isFetching` gating a skeleton | Feared as the common bug               | **Zero** matches in `ui/src`                             | Confirmed clean                                                    |
+| Shared delay hook              | Per-site `setTimeout`s                 | `ui/src/hooks/useDelayedLoading.ts`                      | One implementation                                                 |
+| Per-route four-state audit     | Uneven                                 | Only `BookingTable` + Suspense shells                    | Rest deferred                                                      |
+
+## Remaining work to finalize
+
+`useDelayedLoading` + `RouteFallback` + bookings-table delay are shipped. The rest of the app is not classified.
+
+| #   | Work                                                                                                    | Blocker                  |
+| --- | ------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | Classify every async surface (page, sheet, list, form submit) as skeleton / spinner / inline / nothing. | Code audit               |
+| 2   | Adopt the shared primitives on the classified surfaces (not only `BookingTable` + Suspense shells).     | Code                     |
+| 3   | Prove the four states (empty, loading, error, ready) on the 9 baseline routes.                          | Display                  |
+| 4   | Measure CLS / a11y on those routes and update route guides where loading UX changed.                    | Display + `route-guides` |
 
 ## Goal
 

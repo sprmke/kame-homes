@@ -2,7 +2,7 @@
 title: 'Analytics'
 status: active
 tags: [workflow, planned, production-readiness, analytics, posthog]
-updated: 2026-09-16
+updated: 2026-09-19
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,10 @@ kind: plan
 ## Goal
 
 Every product decision is answerable from data, every funnel is instrumented, and analytics costs and privacy obligations are controlled.
+
+## Implementation status (2026-09-19 session)
+
+Confirmed this doc's own assessment is accurate and current: `ui/src/lib/posthog/catalog.ts` already defines event names for most of the "deferred" surfaces this doc lists as still open — `upgrade_modal_shown`/`upgrade_modal_cta_clicked` (plan gates), `finance_entry_saved`, `inbox_reply_sent`/`inbox_ai_suggest_used`, `pricing_rates_saved`/`smart_pricing_applied`, `meta_inbox_connected`/`meta_inbox_disconnected`, `calendar_sync_connected`, `settings_saved`, `public_page_published`, `notification_opened`, `platform_plan_updated`. **What's not verified this session:** whether each is actually fired at every relevant call site (a per-surface audit across ~15 event names × their call sites, not attempted — genuinely incremental work per the doc's own Phase 28.3 framing, not a single sweep). No PostHog operator access this session either (no project/keys), so Phase 28.1's blocking gate is unchanged. Also checked: `captureAppEvent` has no per-event required-property schema to test against (28.6's "test asserting no undefined required property") — properties are untyped `Record<string, unknown>` per call site by design; building that schema is a scope decision, not attempted here.
 
 ## Prior art — this is largely SHIPPED
 
@@ -31,15 +35,22 @@ Every product decision is answerable from data, every funnel is instrumented, an
 
 Also distinct and separate: the [Host Analytics module](../../for-testing/host-analytics-module.md) is a _product feature_ (occupancy/ADR/RevPAR for hosts), not platform analytics. **Do not conflate the two.**
 
-## Remaining work
+## Remaining work to finalize
 
-Per that plan's own deferral list:
+**Status: not started as this folder's plan.** Application event code is largely shipped (do not redo). Remaining work is operator setup, deferred events, and proof. Per the prior plan's deferral list plus this doc's exit gate:
 
-1. **Operator setup** — create `kame-homes-prod` + `kame-homes-nonprod` PostHog projects, set Vercel + Supabase secrets, configure alerts, build the funnels.
-2. **Deferred event coverage** — inbox reply, Meta connect, finance, pricing, calendar sync, settings, public page, notification, super-admin custom events (to be added incrementally as those surfaces change).
-3. **Masked session replay sampling** (that plan's Phase 5).
-4. **`analytics_mode` refresh** from `get-public-app-config` when that endpoint ships.
-5. **Parking payment webhook events**.
+| #   | Work                                                                                                                                                                         | Blocker                 |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 1   | Create `kame-homes-prod` + `kame-homes-nonprod` PostHog projects; set Vercel + Supabase secrets; upload source maps (28.1).                                                  | Operator                |
+| 2   | Answer the eight decision questions from built funnels / insights (28.2).                                                                                                    | Depends on 1            |
+| 3   | Close deferred events: plan gates, finance, inbox, pricing, Meta connect, calendar sync, settings, public page, notifications, super-admin, parking payment webhooks (28.3). | Code, incremental       |
+| 4   | Standing dashboards + alerts with named owners (28.4).                                                                                                                       | Operator                |
+| 5   | PII audit of event properties; replay masking verified on a real booking-form recording (28.5).                                                                              | Operator + display      |
+| 6   | Event volume within quota; sampling where needed; cost in the doc-25 inventory.                                                                                              | Hosted + doc 25         |
+| 7   | Identity stitching: anonymous → signed-in guest. Revenue-critical events server-side.                                                                                        | Code + 1                |
+| 8   | PR template requires events for new features. `analytics_mode` refresh from `get-public-app-config` when that endpoint ships.                                                | Process + that endpoint |
+
+Also still open from the prior plan: masked session replay sampling (its Phase 5).
 
 ## Phases
 

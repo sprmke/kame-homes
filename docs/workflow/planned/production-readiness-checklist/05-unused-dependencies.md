@@ -45,6 +45,28 @@ None of the 19 advisories are exploitable in this app's production deployment to
 
 **Stray tooling note (adjacent, not fixed in this pass):** a tracked `package-lock.json` exists alongside this repo's actual lockfile (`bun.lock`). Worth a follow-up to confirm it is not accidentally used by any tool and remove it if so — out of scope here since it is unrelated to the dependency findings above and removing a tracked file the team may rely on deserves its own verification pass.
 
+## Measured before / after
+
+| Metric                           | Before                                  | After                                    | Difference                                  |
+| -------------------------------- | --------------------------------------- | ---------------------------------------- | ------------------------------------------- |
+| Root `posthog-node`              | Installed, unused (edge pins esm.sh)    | Removed                                  | −1 unused runtime dep                       |
+| Root `vercel`                    | Installed, unused (`npx vercel@latest`) | Removed                                  | −1 unused CLI dep                           |
+| knip                             | Not in the repo                         | `bun run audit:deps` (report-only)       | Repeatable audit, not a CI gate             |
+| `bun audit`                      | 19 advisories untriaged                 | 19 triaged; none reachable in production | Accepted with reasons, not blindly upgraded |
+| `date-fns` + `dayjs`             | Both in use                             | Both remain                              | Consolidation deferred                      |
+| Dead files / dead edge functions | knip ~989 unused-file hits              | Not deleted                              | False-positive rate too high                |
+
+## Remaining work to finalize
+
+Unused-runtime deps (`posthog-node`, `vercel`) and the report-only knip audit are shipped. Do not delete knip's 989 "unused files" without an allowlist.
+
+| #   | Work                                                                                                                       | Blocker                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | Consolidate `date-fns` vs `dayjs` to one date library (or document a permanent dual-use reason).                           | Code (wide, high-regression) |
+| 2   | Commit a `knip.json` / allowlist so unused-file hits are real, then delete confirmed-dead files and unused edge functions. | Code + careful review        |
+| 3   | Promote `bun run audit:deps` (knip) from report-only to a CI gate once the allowlist is stable.                            | Depends on 2                 |
+| 4   | Re-triage `bun audit` before cutover; the 19 accepted advisories are a snapshot, not a forever waiver.                     | Recurring                    |
+
 ## Goal
 
 Every dependency in `ui/package.json` is used, is the only library doing its job, is on a supported version, and has no known vulnerability. Removing one never silently breaks a lazy path.

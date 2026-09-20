@@ -117,7 +117,29 @@ Virtualize any list that can exceed ~100 rows:
 
 **`InboxThreadList` virtualization — already done, predates this review.** `ui/src/features/dashboard/inbox/components/InboxThreadList.tsx` already uses `@tanstack/react-virtual`, switching into virtualized rendering above a 30-conversation threshold (`VIRTUALIZE_THRESHOLD = 30`). This was standing code from earlier work, not something built in this pass — confirmed present and wired correctly, not re-benchmarked against a literal 500-thread fixture at 60fps in this session.
 
+## Measured before / after
+
+| Metric                       | Before                                            | After                                                                                    | Difference                                |
+| ---------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Guest `<img>` loading attrs  | Implicit browser defaults                         | Guest marketing/showcase/form/gallery sites set `loading` / `decoding` / `fetchPriority` | LCP image is eager; below-fold stays lazy |
+| `ListingGallery` first image | No guaranteed priority                            | `priority={index === 0}`                                                                 | One LCP candidate per listing             |
+| Inbox thread list            | Already virtualized above 30 rows (pre-existing)  | Unchanged                                                                                | Confirmed, not re-done                    |
+| Heavy libs in initial graph  | maps / pdfjs / recharts / Remotion / tiptap       | Absent (doc 01 leak detector)                                                            | No change; verified                       |
+| Dashboard `<img>` sites      | 65 remaining findings (`audit-image-loading.mjs`) | Still report-only, not CI-blocking                                                       | Deferred                                  |
+| CLS on 9 baseline routes     | Unmeasured                                        | Still unmeasured (same Lighthouse gap as doc 00)                                         | Open                                      |
+
 **Image-dimension lint rule — not built.** No ESLint rule enforces `width`/`height` (or `aspect-ratio`) on `<img>` in CI; only the report-only `audit-image-loading.mjs` script exists, which is not wired as a CI gate. Deferred — would need either a custom ESLint rule or an existing `jsx-a11y`/`eslint-plugin-react` rule that doesn't already ship in this repo's `eslint.config.js`; worth a small follow-up but out of scope for this review pass to build blind.
+
+## Remaining work to finalize
+
+Guest LCP/lazy attrs and the listing-gallery priority flag are shipped. Dashboard coverage and CLS proof are not.
+
+| #   | Work                                                                                                                                                                                          | Blocker            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | Apply `loading` / `decoding` / `fetchPriority` (or the shared image helper) to the remaining ~65 dashboard `<img>` sites from `audit-image-loading.mjs`.                                      | Code               |
+| 2   | Measure CLS on the 9 baseline routes (doc 00 Lighthouse median) and fix any image-driven shifts.                                                                                              | Display + doc 00   |
+| 3   | Add a CI lint (ESLint or existing jsx-a11y rule) that requires `width`/`height` or `aspect-ratio` on `<img>`. Then promote `audit-image-loading.mjs` from report-only if it still adds value. | Code               |
+| 4   | Update matching route guides if page loading behavior changes (`route-guides`).                                                                                                               | Same change as 1–2 |
 
 ## Docs / Plans / activity-log
 

@@ -2,12 +2,53 @@
 title: 'Debounce input handlers'
 status: active
 tags: [workflow, planned, production-readiness, performance, react]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
 
 # 08 — Debounce input handlers
+
+## Implementation status (2026-09-17)
+
+**Phase 8.2 (shared implementations): shipped.** `ui/src/hooks/useDebouncedCallback.ts` (trailing debounce with `flush()`/`cancel()`, timer cleanup on unmount) and `ui/src/hooks/useThrottledCallback.ts` (leading + trailing `requestAnimationFrame` throttle with `cancel()`) — `useDebouncedValue.ts` already existed. No Vitest coverage added for these: this repo's Vitest config runs `environment: 'node'` with no React Testing Library in the dependency tree (`vitest.config.ts`) — hook/interaction behavior is covered by Playwright per this doc's own Phase 8.6 and the repo's `testing` skill, not Vitest. Confirmed via `bun run lint`/`type-check` instead.
+
+**Phase 8.1/8.3 (audit named surfaces): re-verified against actual code, not assumed from the search box's presence.** The doc's own "Current state" caveat — "a low count is not proof of a defect... local-only filtering of an already-loaded array is fine" — turned out to cover every site initially flagged in this pass's scoping survey:
+
+| Site                                                         | Initial read                             | Actual                                                                                                                                              |
+| ------------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TeamMembersTab.tsx:167`, `OrgTeamMembersTab.tsx`            | looked like an undebounced server search | **Local `useMemo` filter over already-loaded `members`** — correctly un-debounced, left alone                                                       |
+| `InboxQuickRepliesTab.tsx:85`, `PermissionsTreeView.tsx:342` | same                                     | **Local `useMemo` filter over already-loaded `templates`/permission catalog** — left alone                                                          |
+| `InboxThreadList.tsx:142` (`onSearch`)                       | looked raw/undebounced                   | **Already debounced one level up**, in `InboxPage.tsx` via an ad-hoc `useEffect` + `setTimeout(300)` — not undebounced, just not on the shared hook |
+
+**Fixed:** `InboxPage.tsx` — migrated its ad-hoc `setTimeout`-based search debounce onto `useDebouncedValue`, removing one of the three ad-hoc debounce implementations found in the initial survey. Net: identical 300ms behavior, one fewer hand-rolled timer.
+
+**Deliberately left as ad-hoc, not migrated:** `BookingFilters.tsx` (lines ~75-93) and `FinanceLedgerToolbar.tsx` (lines ~50-67) implement a **bidirectional** pattern — a local `draft`/`searchDraft` echoes an externally-controlled `query.q` (can change from outside via URL params or a filter reset) via one effect, while a second effect debounces `draft` back out through `onChange`. `useDebouncedValue`/`useDebouncedCallback` are one-directional (raw value in, debounced value/call out) and do not model the external-resync half of this without restructuring the component. Forcing this onto the shared hook risks a feedback-loop regression (external reset fighting the debounce, or the first-mount-skip guard breaking) for a purely cosmetic "one implementation" win with no functional defect to fix. Both already work correctly today — left alone.
+
+**Not attempted this pass:** a full Phase 8.1 inventory across every `onChange`/`onScroll`/`onResize`/`onDrag` in ~2330 files, Phase 8.4's per-call-site `AbortController`/query-key audit, and Phase 8.6's Playwright request-count specs — each requires either exhaustive manual verification per surface (the same "don't trust the grep, verify the actual behavior" lesson this pass just proved necessary) or a live browser session. The two new hooks are shipped and ready for use as this work continues; no additional consumers were force-migrated without a confirmed defect.
+
+## Measured before / after
+
+| Metric                                  | Before                                                | After                                                                      | Difference                           |
+| --------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
+| Shared debounce/throttle                | `useDebouncedValue` only                              | + `useDebouncedCallback` (`flush`/`cancel`) + `useThrottledCallback` (rAF) | New call sites have one primitive    |
+| Inbox thread search                     | Ad-hoc `useEffect` + `setTimeout(300)` in `InboxPage` | `useDebouncedValue` 300 ms                                                 | Same UX, one fewer hand-rolled timer |
+| Team / permissions / quick-reply search | Looked undebounced                                    | Local `useMemo` over already-loaded arrays                                 | Correctly left alone                 |
+| Bookings / finance search               | Bidirectional draft ↔ URL                             | Left on existing two-effect pattern                                        | No feedback-loop rewrite             |
+| Playwright request-count specs          | None                                                  | None                                                                       | Still open                           |
+
+## Remaining work to finalize
+
+Shared `useDebouncedCallback` / `useThrottledCallback` and the inbox search conversion are shipped. Inventory and proof are not.
+
+| #   | Work                                                                                              | Blocker           |
+| --- | ------------------------------------------------------------------------------------------------- | ----------------- |
+| 1   | Finish the full high-frequency handler inventory (search, resize, scroll, drag, autosave, maps).  | Code audit        |
+| 2   | Replace remaining ad-hoc `setTimeout` debounce with the shared hooks where the inventory says so. | Code              |
+| 3   | Playwright specs that assert request count while typing (inbox, bookings search, public search).  | Playwright        |
+| 4   | IME / composition handling on search fields (do not fire mid-composition).                        | Code + Playwright |
+| 5   | Autosave flush-on-unmount / flush-on-submit tests (`useDebouncedCallback.flush`).                 | Tests             |
+| 6   | Cross-check authenticated write bursts with doc 23 rate limits.                                   | Doc 23            |
 
 ## Goal
 

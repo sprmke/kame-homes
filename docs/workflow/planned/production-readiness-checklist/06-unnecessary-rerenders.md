@@ -2,7 +2,7 @@
 title: 'Unnecessary re-renders'
 status: active
 tags: [workflow, planned, production-readiness, performance, react]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -10,6 +10,45 @@ kind: plan
 # 06 — Unnecessary re-renders ❌
 
 Marked ❌ on the source checklist — treat as **not done**.
+
+## Implementation status (2026-09-17)
+
+**Context providers audited: 37 found, all but one already `useMemo`-wrapped.** The one gap fixed:
+
+- `ui/src/features/guest/auth/context/GuestAuthContext.tsx` — `value` was a fresh object literal every render, on the context wrapping the entire authenticated guest tree. Wrapped in `useMemo` with exact deps; all fields were already stable (primitives or `useCallback`-wrapped functions), so this was a pure win with zero behavior risk.
+
+**Whole-form `useWatch`/`watch()` audited in the two highest-traffic forms:**
+
+- `GuestForm.tsx` had one whole-form `useWatch({ control })` feeding two separate `useEffect`s (guest-count sync needing 10 specific fields; a facebook-name-prefill effect needing 1 field) plus a `canProceed` step-validation memo. Split the two effects onto scoped `useWatch({ control, name: [...] })` subscriptions — narrowing those two was safe because their consumers are fixed, known field lists. **`canProceed`'s whole-form watch was deliberately kept.** `isGuestFormStepComplete`/`getFieldsForGuestFormStep` compute a step's required-field set from already-entered values (step 4's fields depend on `hasPets`, step 2's on `findUs`), so a static narrowed field list would have to re-derive that same conditional logic and risks silently diverging from it — on a guest-facing booking form, that means the "Next" button enabling/disabling incorrectly. Documented in code rather than guessed at.
+- `BookingEditForm.tsx`'s whole-form `useWatch({ control })` was similarly kept broad and documented: `bookingEditPayloadFromValues` (its consumer) reads nearly every field, and this app already has one documented incident of exactly this drift (`compareFormData` silently omitting `petType` — see CLAUDE.md's "Known sharp edges"). Narrowing this watch without a corresponding audit of the payload builder would reintroduce that same bug class. Left broad on purpose.
+- Render-body `form.watch('field')` calls in `GuestForm.tsx` (~35 sites, lines 1786-2436) were surveyed and left as-is: each reads one already-known-cheap field for display formatting only (dates/times), not a correctness-sensitive computation, and rewriting all 35 to `useWatch` individually is a mechanical, high-diff change with no measured re-render cost attributed to them specifically (the `canProceed` whole-form watch is what actually drives the full-component re-render on every keystroke, not these).
+
+**`ui/src/components/ui/form.tsx` (shadcn `FormFieldContext`/`FormItemContext`) — explicitly left alone.** These pass inline `{ name }`/`{ id }` object literals, but the context is scoped to one field, not the whole tree; the cost is negligible and this is a vendored shadcn base primitive used by every form in the app — high blast radius for a change with no measured benefit.
+
+**`eslint-plugin-react-hooks` `exhaustive-deps` — left at `warn`, not flipped to `error`.** The repo currently has **96 existing warnings** (`bun run lint` output, ui/eslint.config.js:43). Flipping to `error` today would fail CI on 96 unrelated sites, each needing individual judgment — the doc's own edge case ("over-memoizing hides staleness bugs... far worse than a re-render") argues against a mechanical bulk-fix. Deferred as a dedicated follow-up: burn down the 96 warnings file-by-file, then flip the rule.
+
+**Deferred, not attempted this pass:** Phase 6.1's React DevTools Profiler traces (8 scenarios) require a live browser session and are a manual-QA step, not something this pass can produce as a code change — recorded here as a gap rather than fabricated. Table-row-level memoization (Phase 6.5) and realtime `setQueryData`-vs-invalidate scoping (Phase 6.3) were surveyed for confirmed defects and none were found; not touched speculatively.
+
+## Measured before / after
+
+| Metric                            | Before                                                      | After                                                  | Difference                                                  |
+| --------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
+| `GuestAuthContext` value          | New object every render (wrapped the whole guest-auth tree) | `useMemo` with stable deps                             | Guest portal no longer re-renders on unrelated parent ticks |
+| Context providers audited         | Unknown                                                     | 37 found; 36 already memoized                          | 1 real gap closed                                           |
+| `GuestForm` whole-form `useWatch` | One watch fed two effects + `canProceed`                    | Two effects scoped; `canProceed` kept broad on purpose | Fewer subscriptions on guest-count / Facebook-name paths    |
+| Profiler traces (8 scenarios)     | None                                                        | Not captured                                           | Still the exit-gate gap                                     |
+| `exhaustive-deps`                 | `warn` (96 warnings)                                        | Still `warn`                                           | Not flipped to error                                        |
+
+## Remaining work to finalize
+
+Three confirmed re-render fixes shipped. The exit gate is **Profiler evidence**, not more `useMemo`.
+
+| #   | Work                                                                                                                                                                            | Blocker            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | Capture React Profiler traces for the 8 scenarios in this doc (guest form typing, bookings table, inbox thread list, finance, calendar, marketing studio, search, admin shell). | Display + Profiler |
+| 2   | From those traces, fix remaining whole-form `useWatch` / context-fanout sites. Do not split contexts speculatively.                                                             | Depends on 1       |
+| 3   | Flip `react-hooks/exhaustive-deps` from `warn` to `error` after the 96 warnings are cleared or allowlisted.                                                                     | Code               |
+| 4   | If Profiler still shows a hot context, split that provider. Only the traces justify the split.                                                                                  | Depends on 1       |
 
 ## Goal
 

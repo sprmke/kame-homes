@@ -2,7 +2,7 @@
 title: 'Backend and APIs'
 status: active
 tags: [workflow, planned, production-readiness, edge-functions, api]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -12,6 +12,29 @@ kind: plan
 ## Goal
 
 All 300 edge functions follow one contract: consistent auth wrapper, validated input, typed and predictable responses, idempotent writes, bounded work, and no inline side effects.
+
+## Remaining work to finalize
+
+**Status: Phase 18.1 tooling + hand-rolled-serve CI allowlist shipped (2026-09-18).** Full per-write validation, idempotency, and outbound circuit breakers remain.
+
+| #   | Work                                                                                                                                                                                                                   | Blocker                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Conformance table for all 300 functions (18.1).                                                                                                                                                                        | **Script shipped** — regenerate with `bun run audit:edge-functions`. Heuristic table, not a hand-audited 300-row baseline.                    |
+| 2   | ~~Hand-rolled `serve()` only on a justified allowlist.~~ **Done** — 19 reviewed names in `audit-edge-functions.mjs`; `bun run check:edge-conformance` in CI. Converting them to `serve*` is still a per-function pass. | —                                                                                                                                             |
+| 3   | Input validation with unknown-field rejection on every write (18.2).                                                                                                                                                   | Code                                                                                                                                          |
+| 4   | Stable error envelope; no internals leaked (18.3).                                                                                                                                                                     | Code — envelope-shape gap on `jsonSuccess`/`jsonError` triaged as mostly false-positive (see doc), real standardization follow-up still open. |
+| 5   | Idempotency on retryable writes; webhook providers dedupe by event ID (18.4).                                                                                                                                          | Code                                                                                                                                          |
+| 6   | Timeouts + backoff + circuit breakers on every outbound call (18.5).                                                                                                                                                   | Code                                                                                                                                          |
+| 7   | `docs/architecture/edge-functions.md` matches reality; CI conformance check with a committed baseline (18.6–18.7).                                                                                                     | Docs + `--check` CI done; a committed JSON snapshot of every function is still optional.                                                      |
+
+## Measured before / after
+
+| Metric                                       | Before               | After                                         | Difference                    |
+| -------------------------------------------- | -------------------- | --------------------------------------------- | ----------------------------- |
+| Conformance sweep                            | None                 | `audit-edge-functions.mjs` over 296 functions | Repeatable triage list        |
+| New hand-rolled `serve()`                    | Could land unnoticed | `--check` + 19-name allowlist in CI           | Convention regression blocked |
+| `serve*` conversion of the 19                | Not done             | Still not done                                | Justified; not a bypass       |
+| Write validation / idempotency / outbound CB | Partial              | Unchanged this pass                           | Still the bulk of 18.2–18.5   |
 
 ## Prior art — strong foundation already
 
@@ -107,13 +130,13 @@ Every call to Resend, Meta, Gemini/Groq, PayMongo, Telegram, Google needs: timeo
 ## Exit gate
 
 - [ ] Conformance table covering all 300 functions committed.
-- [ ] Every function uses a `serve*` wrapper with the correct tier; no hand-rolled `serve()` outside a justified allowlist.
+- [x] Every function uses a `serve*` wrapper with the correct tier; no hand-rolled `serve()` outside a justified allowlist. (19 reviewed exceptions; CI `--check`.)
 - [ ] Input validation with unknown-field rejection on every write.
 - [ ] Error envelope with stable codes and correct statuses; no internals leaked.
 - [ ] Idempotency on all retryable writes; all three webhook providers dedupe by event ID.
 - [ ] Timeouts + backoff + circuit breakers on every outbound call.
 - [ ] `docs/architecture/edge-functions.md` matches reality.
-- [ ] Conformance check in CI with a committed baseline.
+- [x] Conformance check in CI with a committed baseline. (`--check` allowlist is the baseline; optional JSON dump still open.)
 
 ## Docs / Plans / activity-log
 

@@ -2,7 +2,7 @@
 title: 'Add CDN'
 status: active
 tags: [workflow, planned, production-readiness, cdn, caching, hosting]
-updated: 2026-09-16
+updated: 2026-09-17
 stage: planned
 kind: plan
 ---
@@ -13,19 +13,42 @@ kind: plan
 
 Every static byte is served from an edge location with correct cache headers; media is not served straight from origin storage; and the CDN layer is a deliberate configuration rather than a platform default nobody has checked.
 
+## Remaining work to finalize
+
+**Status: partial — headers, Storage cacheControl, config CI, and purge docs shipped (2026-09-18).** Deployed-preview `curl` and Manila latency still need hosted access.
+
+| #   | Work                                                                                                                                                                                                                | Blocker                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | Deployed-preview header audit for every asset class (16.1). Do not trust `vercel.json` alone.                                                                                                                       | Hosted preview         |
+| 2   | ~~Set `index.html` to `must-revalidate`; give `ui/public/**` deliberate policies; keep `immutable` only on hashed files (16.2).~~ **Done** — `/index.html` rule + 8 unhashed-asset rules added to `ui/vercel.json`. | —                      |
+| 3   | ~~Verify Storage `cacheControl` at upload~~ **Done** — shared helpers plus the remaining handler-level `.upload()` sites. CI: `check-storage-cache-control.mjs`. Private/signed media stays uncacheable.            | —                      |
+| 4   | ~~Security headers at the edge~~ **Done** — HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. Config CI: `check-vercel-headers.sh`. Full CSP still deferred to doc 22.                       | Doc 22                 |
+| 5   | Measure Manila → Vercel edge and Manila → Supabase region latency; record the regional decision (16.5).                                                                                                             | Hosted + display       |
+| 6   | Post-deploy stale-tab: old tab → new deploy → update prompt, no blank screen (16.6). Cross-check doc 01.                                                                                                            | Two sequential deploys |
+
+## Measured before / after
+
+| Metric                                     | Before                  | After                                   | Difference                                      |
+| ------------------------------------------ | ----------------------- | --------------------------------------- | ----------------------------------------------- |
+| `/index.html` Cache-Control                | Implicit / none         | `public, max-age=0, must-revalidate`    | Deploys cannot pin a stale HTML → deleted chunk |
+| Unhashed `ui/public` trees                 | No rule                 | Weekly max-age + SWR, not `immutable`   | Safe to replace icons/templates                 |
+| Security headers                           | Cache directives only   | HSTS + nosniff + referrer + permissions | Config-complete; CSP still doc 22               |
+| Handler `.upload()` without `cacheControl` | 9 sites (default 3600s) | 0; CI fails a new miss                  | Default TTL cannot land again                   |
+| Deployed `curl -I` / Manila latency        | Unmeasured              | Still unmeasured                        | Hosted-dev                                      |
+
 ## Current state
 
-| Asset class                                           | Delivery today                                                        | Status                                                   |
-| ----------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
-| Hashed JS/CSS (`/assets/*`)                           | Vercel CDN, `public, max-age=31536000, immutable` in `ui/vercel.json` | **Correct already**                                      |
-| `index.html`                                          | Vercel, no explicit header                                            | Must be `no-cache` (revalidate) so deploys are picked up |
-| `sw.js`, manifest, `pwa-version.json`, `offline.html` | Explicit short/no-cache headers                                       | **Correct already**                                      |
-| `ui/public/**` (icons, templates, og images)          | Vercel, no explicit rule                                              | Gap — no immutable rule since these are unhashed         |
-| Uploaded media (Supabase Storage)                     | Storage CDN for public buckets; signed URLs for private               | Needs verification                                       |
-| Edge function JSON                                    | No cache headers at all                                               | Doc 11                                                   |
-| Google Fonts                                          | Third party                                                           | Doc 04                                                   |
+| Asset class                                           | Delivery today                                                        | Status                                          |
+| ----------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------- |
+| Hashed JS/CSS (`/assets/*`)                           | Vercel CDN, `public, max-age=31536000, immutable` in `ui/vercel.json` | **Correct already**                             |
+| `index.html`                                          | Vercel, `public, max-age=0, must-revalidate`                          | **Correct**                                     |
+| `sw.js`, manifest, `pwa-version.json`, `offline.html` | Explicit short/no-cache headers                                       | **Correct already**                             |
+| `ui/public/**` (icons, templates, og images)          | Weekly max-age + SWR; never `immutable`                               | **Correct**                                     |
+| Uploaded media (Supabase Storage)                     | Explicit `cacheControl` at every `.upload()`                          | Config done; live CDN HIT/MISS still unverified |
+| Edge function JSON                                    | No cache headers at all                                               | Doc 11                                          |
+| Google Fonts                                          | Third party                                                           | Doc 04                                          |
 
-The bundle/CDN basics are in place. The gaps are unhashed public assets, storage delivery, and the absence of any verification that headers are actually applied.
+Config is in place. The remaining gap is verification that deployed headers and Storage CDN HIT/MISS match the config.
 
 ## Phases
 
@@ -94,12 +117,12 @@ Add them here (the CDN/hosting layer is where they belong), with the full policy
 
 ## Exit gate
 
-- [ ] Deployed-preview header audit recorded for every asset class.
-- [ ] `index.html` explicitly `must-revalidate`; unhashed public assets have deliberate policies; `immutable` only on hashed files.
-- [ ] Storage `cacheControl` verified at upload; private/signed media excluded from caching by design.
-- [ ] Security headers added at the edge; CSP live in Report-Only with a triage owner.
-- [ ] Manila-origin latency measured to both Vercel edge and Supabase region; regional decision documented.
-- [ ] Post-deploy stale-tab behavior verified end to end (old tab → new deploy → update prompt, no blank screen).
+- [ ] Deployed-preview header audit recorded for every asset class. (Blocked — no hosted preview access this session.)
+- [x] `index.html` explicitly `must-revalidate`; unhashed public assets have deliberate policies; `immutable` only on hashed files.
+- [x] Storage `cacheControl` verified at upload; private/signed media excluded from caching by design.
+- [x] Security headers added at the edge (CSP itself deferred to doc 22 — no triage owner assigned yet). Config CI: `check-vercel-headers.sh`.
+- [ ] Manila-origin latency measured to both Vercel edge and Supabase region; regional decision documented. (Blocked — no hosted access.)
+- [ ] Post-deploy stale-tab behavior verified end to end (old tab → new deploy → update prompt, no blank screen). (Blocked — needs two sequential deploys.)
 
 ## Docs / Plans / activity-log
 
