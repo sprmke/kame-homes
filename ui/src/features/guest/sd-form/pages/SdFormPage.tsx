@@ -44,7 +44,6 @@ import {
 } from '@/features/guest/sd-form/lib/voucher';
 import { normalizeVoucherRevealStyle } from '@/features/guest/sd-form/lib/voucherRevealStyle';
 
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
 import { ContextualActionBar } from '@/components/mobile/ContextualActionBar';
@@ -62,6 +61,7 @@ import {
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 import { toCapitalCase } from '@/utils/text/formatters';
 import { handleNameInputChange } from '@/utils/text/helpers';

@@ -67,8 +67,8 @@ import type {
 } from '@/features/guest/search/types/search';
 
 import { Button } from '@/components/ui/button';
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 type CategoryId = Exclude<SearchListingsType, 'all'>;
 

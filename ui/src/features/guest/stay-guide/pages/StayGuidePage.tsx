@@ -11,8 +11,8 @@ import {
 } from '@/features/guest/stay-guide/hooks/useGuestStayGuide';
 import { mapStayGuideData } from '@/features/guest/stay-guide/lib/mapStayGuideData';
 
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
 function StayGuideLoading() {

@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '@/lib/sanitizeHtml';
+
 const STAY_GUIDE_RICH_TEXT_CLASS = 'stay-guide-rich-text';
 
 const richTextStyles = `
@@ -104,7 +106,7 @@ export function StayGuideRichContent({ html, className }: StayGuideRichContentPr
       <style>{richTextStyles}</style>
       <div
         className={[STAY_GUIDE_RICH_TEXT_CLASS, className].filter(Boolean).join(' ')}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(html) }}
       />
     </>
   );

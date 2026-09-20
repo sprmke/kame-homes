@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -254,15 +255,26 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
     [status]
   );
 
-  const value: GuestAuthContextValue = {
-    status,
-    email,
-    openAuthModal,
-    requireGuestAuth,
-    formSubmitResumeTick,
-    savePropertyResumeTick,
-    savePropertyResumeSlug,
-  };
+  const value: GuestAuthContextValue = useMemo(
+    () => ({
+      status,
+      email,
+      openAuthModal,
+      requireGuestAuth,
+      formSubmitResumeTick,
+      savePropertyResumeTick,
+      savePropertyResumeSlug,
+    }),
+    [
+      status,
+      email,
+      openAuthModal,
+      requireGuestAuth,
+      formSubmitResumeTick,
+      savePropertyResumeTick,
+      savePropertyResumeSlug,
+    ]
+  );
 
   return (
     <GuestAuthContext.Provider value={value}>

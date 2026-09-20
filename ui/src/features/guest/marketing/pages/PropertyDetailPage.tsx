@@ -45,8 +45,8 @@ import { ContextualActionBar } from '@/components/mobile/ContextualActionBar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 import { parseGuestInquiryDateRange, formatDateToYYYYMMDD } from '@/utils/format/dates';
 

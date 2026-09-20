@@ -103,8 +103,8 @@ export function ParkingFormPage() {
     try {
       const result = await submitRequest.mutateAsync({
         parkingId: data.id,
-        checkInDate: checkInDate || values.checkInDate,
-        checkOutDate: checkOutDate || values.checkOutDate,
+        checkInDate: values.checkInDate || checkInDate,
+        checkOutDate: values.checkOutDate || checkOutDate,
         vehicleType,
         primaryGuestName: values.guestName,
         guestEmail: values.email,

@@ -12,6 +12,8 @@ import {
   toPropertyCard,
 } from '@/features/guest/marketing/properties/lib/propertiesQuery';
 
+import { ListingLocationRowsSkeleton } from '@/components/skeletons/ListingGridSkeleton';
+
 import { DevelopmentParkingRow } from './DevelopmentParkingRow';
 
 import type { Development } from '../types';
@@ -36,7 +38,17 @@ export function DevelopmentAvailableSection({ development }: DevelopmentAvailabl
   const parkingEntries = (parkingsQuery.data?.data ?? []).map(toParkingListEntry);
   const listingsReady = !propertiesQuery.isLoading && !parkingsQuery.isLoading;
 
-  if (!listingsReady || (properties.length === 0 && parkingEntries.length === 0)) return null;
+  if (listingsReady && properties.length === 0 && parkingEntries.length === 0) return null;
+
+  if (!listingsReady) {
+    return (
+      <section className="border-border border-t">
+        <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-8">
+          <ListingLocationRowsSkeleton sectionCount={1} cardsPerSection={4} />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="border-border border-t">

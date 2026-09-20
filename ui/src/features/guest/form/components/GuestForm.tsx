@@ -101,15 +101,7 @@ import {
 } from '@/features/guest/lib/guestPublicPaths';
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 import { GuestStayContextBar } from '@/features/guest/property/components/GuestStayContextBar';
-import {
-  clearGuestFormStartedMarker,
-  guestFormStepAnalyticsName,
-  trackGuestFormAbandoned,
-  trackGuestFormStarted,
-  trackGuestFormStepCompleted,
-  trackGuestFormStepFailed,
-} from '@/lib/posthog/guestFormAnalytics';
-import { setAnalyticsScope } from '@/lib/posthog/context';
+
 
 import {
   computeDefaultBookingRate,
@@ -144,6 +136,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { prepareUpload } from '@/lib/media/prepareUpload';
+import { setAnalyticsScope } from '@/lib/posthog/context';
+import {
+  clearGuestFormStartedMarker,
+  guestFormStepAnalyticsName,
+  trackGuestFormAbandoned,
+  trackGuestFormStarted,
+  trackGuestFormStepCompleted,
+  trackGuestFormStepFailed,
+} from '@/lib/posthog/guestFormAnalytics';
 import { antiSpamErrorMessage, isAntiSpamFailure } from '@/lib/security/antiSpamResponse';
 import { cn } from '@/lib/utils';
 import { generateRandomData, setDummyFile } from '@/utils/dev/mockData';
@@ -1301,6 +1302,31 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     }
   }
 
+  // Scoped subscriptions for the two effects below — narrower than a whole-form
+  // watch so unrelated field edits (e.g. payment step) don't re-run guest-count sync.
+  const guestAgeWatch = useWatch({
+    control: form.control,
+    name: [
+      'primaryGuestName',
+      'primaryGuestAge',
+      'guest2Name',
+      'guest2Age',
+      'guest3Name',
+      'guest3Age',
+      'guest4Name',
+      'guest4Age',
+      'guest5Name',
+      'guest5Age',
+    ],
+  });
+  const guestFacebookNameWatch = useWatch({ control: form.control, name: 'guestFacebookName' });
+
+  // `canProceed` deliberately watches every field: `isGuestFormStepComplete` validates
+  // against a per-step field set that itself depends on already-entered values (e.g. step 4's
+  // required fields change based on `hasPets`, step 2's on `findUs`) — see
+  // `getFieldsForGuestFormStep`. Narrowing this to a static field list would have to
+  // re-derive that same conditional logic and risks silently diverging from it (the "Next"
+  // button staying disabled, or enabling early, on a guest-facing booking form). Kept broad.
   const watchedValues = useWatch({ control: form.control });
 
   // Keep adults/children counts in sync with per-guest ages for downstream consumers.
@@ -1315,16 +1341,16 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     form.setValue('numberOfAdults', Math.max(counts.adults, 1));
     form.setValue('numberOfChildren', counts.children);
   }, [
-    watchedValues?.primaryGuestName,
-    watchedValues?.primaryGuestAge,
-    watchedValues?.guest2Name,
-    watchedValues?.guest2Age,
-    watchedValues?.guest3Name,
-    watchedValues?.guest3Age,
-    watchedValues?.guest4Name,
-    watchedValues?.guest4Age,
-    watchedValues?.guest5Name,
-    watchedValues?.guest5Age,
+    guestAgeWatch?.[0],
+    guestAgeWatch?.[1],
+    guestAgeWatch?.[2],
+    guestAgeWatch?.[3],
+    guestAgeWatch?.[4],
+    guestAgeWatch?.[5],
+    guestAgeWatch?.[6],
+    guestAgeWatch?.[7],
+    guestAgeWatch?.[8],
+    guestAgeWatch?.[9],
     form,
   ]);
 
@@ -1340,7 +1366,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       });
     }
     prevGuestFacebookNameRef.current = facebookName;
-  }, [watchedValues?.guestFacebookName, form]);
+  }, [guestFacebookNameWatch, form]);
 
   const canProceed = useMemo(
     () =>
