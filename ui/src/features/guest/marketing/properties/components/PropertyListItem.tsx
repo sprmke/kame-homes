@@ -152,15 +152,17 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
                   {property.name}
                 </h3>
               </div>
-              <div className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 dark:bg-amber-950/50">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-amber-700 dark:text-amber-400">
-                  {property.rating}
-                </span>
-                <span className="text-sm text-amber-600/80 dark:text-amber-500/80">
-                  ({property.reviews})
-                </span>
-              </div>
+              {property.rating != null && property.reviews != null && (
+                <div className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 dark:bg-amber-950/50">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    {property.rating.toFixed(2)}
+                  </span>
+                  <span className="text-sm text-amber-600/80 dark:text-amber-500/80">
+                    ({property.reviews})
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Location */}

@@ -19,8 +19,8 @@ export interface Property {
   name: string;
   location: string;
   price: number;
-  rating: number;
-  reviews: number;
+  rating?: number | null;
+  reviews?: number | null;
   images: string[];
   type: string;
   guests: number;
@@ -107,10 +107,12 @@ export const PropertyCard = memo(function PropertyCard({
               <h3 className="text-foreground line-clamp-1 text-sm font-semibold">
                 {property.type} in {place}
               </h3>
-              <div className="flex shrink-0 items-center gap-0.5 text-sm">
-                <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-                <span className="font-medium">{property.rating.toFixed(2)}</span>
-              </div>
+              {property.rating != null && property.reviews != null && (
+                <div className="flex shrink-0 items-center gap-0.5 text-sm">
+                  <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+                  <span className="font-medium">{property.rating.toFixed(2)}</span>
+                </div>
+              )}
             </div>
             <p className="text-muted-foreground line-clamp-1 text-sm">{property.name}</p>
             <p className="text-foreground text-sm">
@@ -216,11 +218,13 @@ export const PropertyCard = memo(function PropertyCard({
               <h3 className="text-foreground group-hover:text-primary line-clamp-1 text-sm font-semibold transition-colors lg:text-base">
                 {property.name}
               </h3>
-              <div className="flex shrink-0 items-center gap-1 text-sm">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="text-foreground font-medium">{property.rating}</span>
-                <span className="text-muted-foreground">({property.reviews})</span>
-              </div>
+              {property.rating != null && property.reviews != null && (
+                <div className="flex shrink-0 items-center gap-1 text-sm">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="text-foreground font-medium">{property.rating.toFixed(2)}</span>
+                  <span className="text-muted-foreground">({property.reviews})</span>
+                </div>
+              )}
             </div>
 
             <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs lg:text-sm">

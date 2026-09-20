@@ -68,8 +68,8 @@ export function ParkingBookingFormModal({
     try {
       const result = await submitRequest.mutateAsync({
         parkingId,
-        checkInDate: checkInDate || values.checkInDate,
-        checkOutDate: checkOutDate || values.checkOutDate,
+        checkInDate: values.checkInDate || checkInDate,
+        checkOutDate: values.checkOutDate || checkOutDate,
         vehicleType,
         primaryGuestName: values.guestName,
         guestEmail: values.email,

@@ -59,8 +59,8 @@ interface BookingCardProps {
   securityDeposit?: number | null;
   parkingRate?: number | null;
   petFee?: number | null;
-  rating?: number;
-  reviews?: number;
+  rating?: number | null;
+  reviews?: number | null;
   maxGuests?: number | null;
   maxAdults?: number | null;
   maxChildren?: number | null;
@@ -137,8 +137,8 @@ export function BookingCard({
   securityDeposit = 2000,
   parkingRate: _parkingRate,
   petFee: _petFee,
-  rating = 4.9,
-  reviews = 127,
+  rating,
+  reviews,
   maxGuests = 6,
   maxAdults,
   maxChildren,

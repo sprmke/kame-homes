@@ -96,7 +96,7 @@ export type PublicPropertyListItem = {
   type: string;
   location: string;
   price: number;
-  rating: number;
+  rating: number | null;
   reviews: number;
   images: string[];
   guests: number;

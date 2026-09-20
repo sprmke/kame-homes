@@ -45,8 +45,8 @@ interface PropertyOverviewProps {
   towerAndUnit?: string | null;
   checkInTime?: string;
   checkOutTime?: string;
-  rating?: number;
-  reviews?: number;
+  rating?: number | null;
+  reviews?: number | null;
   isSuperhost?: boolean;
   /** Host-wide badge — shown on the host card. */
   verifiedBadge?: boolean;

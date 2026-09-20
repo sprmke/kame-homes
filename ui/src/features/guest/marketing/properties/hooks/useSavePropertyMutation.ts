@@ -6,6 +6,7 @@ import {
   unsavePropertySlug,
 } from '@/features/guest/marketing/properties/lib/savedPropertiesApi';
 import { savedPropertiesQueryKeys } from '@/features/guest/marketing/properties/lib/savedPropertiesQueryKeys';
+
 import { captureAppEvent } from '@/lib/posthog/capture';
 
 type SavePropertyVariables = {

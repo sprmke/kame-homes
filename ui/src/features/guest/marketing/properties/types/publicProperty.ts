@@ -156,8 +156,8 @@ export type ResolvedPropertyDetail = {
   amenities: string[];
   images: string[];
   media: PublicPropertyMedia[];
-  rating?: number;
-  reviews?: number;
+  rating?: number | null;
+  reviews?: number | null;
   guestReviews?: PublicGuestReview[];
   isSuperhost?: boolean;
   /** Host-wide Recommended badge (org Tier 2). */

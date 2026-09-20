@@ -73,5 +73,7 @@ export function usePublicParkingDetail(slug: string) {
     queryFn: () => fetchPublicParking(slug),
     enabled: Boolean(slug),
     retry: false,
+    // Matches the server's `publicDynamic` class (max-age=60) — see doc 11 Phase 11.6.
+    staleTime: 60_000,
   });
 }

@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { parkingStatusGuest } from '@/lib/parking/parkingFlowCopy';
 import { parkingFlowFadeUp, parkingFlowTransition } from '@/lib/parking/parkingFlowMotion';
+import { sanitizeEmailSnapshotHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
 
 type HostContact = { name: string; email: string; phone: string | null };
@@ -347,7 +348,9 @@ export function ParkingRequestStatusView({ bookingId, data, countdown, isRefetch
             {showEndorsementCopy && data.endorsementEmailSnapshot ? (
               <div
                 className="border-border bg-muted/30 max-h-48 overflow-y-auto rounded-lg border p-3 text-left text-sm [&_*]:max-w-full"
-                dangerouslySetInnerHTML={{ __html: data.endorsementEmailSnapshot }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeEmailSnapshotHtml(data.endorsementEmailSnapshot),
+                }}
               />
             ) : null}
             {data.parkingSlug ? (
