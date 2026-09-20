@@ -2,12 +2,284 @@
 title: 'Edge functions (API surface)'
 status: active
 tags: [architecture, edge-functions]
-updated: 2026-09-15
+updated: 2026-09-17
 ---
 
 # Edge functions (API surface)
 
 Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
+
+---
+
+## Pagination contract
+
+Standard shape for any **new** list-returning edge function (Phase 10.3, [`10-paginate-large-lists.md`](../workflow/planned/production-readiness-checklist/10-paginate-large-lists.md)). Existing endpoints are **not** migrated to this wholesale — that is an explicitly out-of-scope, separate, bigger change. Apply it to new pagination work as it's written; reference implementations: `list-activity-log`, `notifications-list`, and the `listBookings` SQL fast path in `_shared/databaseService.ts`.
+
+**Request** (query params on GET, or body fields on POST):
+
+```ts
+{
+  limit?: number;    // default 25, max 100 — SERVER clamps, never trusts the client value
+  cursor?: string;   // opaque keyset cursor from a prior response's nextCursor; omit for page 1
+  sort?: string;      // e.g. "created_at:desc" — must resolve to a column with a unique tiebreaker
+  filters?: Record<string, unknown>; // endpoint-specific; changing any filter must reset cursor
+}
+```
+
+**Response:**
+
+```ts
+{
+  items: T[];
+  nextCursor: string | null; // null once the last page is reached
+  totalCount?: number;       // optional, expensive — see rule below
+}
+```
+
+Rules:
+
+- **Server clamps the limit.** `Math.min(MAX_LIMIT, Math.max(1, requested || DEFAULT_LIMIT))` — a client asking for `limit=100000` gets `MAX_LIMIT`. This is a denial-of-service control, not a convenience (doc 23).
+- **Keyset (cursor) over offset** for anything large or realtime-fed (bookings, messages, notifications, activity). Offset pagination re-scans and skips/duplicates rows when items are inserted between page fetches, which this app does constantly.
+- **Over-fetch-by-one trick** to detect `hasMore` without a second query: request `limit + 1` rows, and if more than `limit` come back, slice to `limit` and set `nextCursor` from the last row of the sliced page. Both reference implementations use this — see `list-activity-log`'s `.limit(limit + 1)` and the `hasMore`/`page` split in `notifications-list`.
+- **Deterministic ordering.** Every sort must include a unique tiebreaker (typically `id`) alongside the primary sort column, or the cursor is unstable and rows repeat or vanish across pages. `list-activity-log` orders `created_at DESC, id DESC` and encodes both into the cursor.
+- **Cursor encodes `(sort_key, id)`**, not just an offset or a single timestamp — a timestamp alone collides when two rows share it. Example keyset predicate: `created_at.lt.<ts>,and(created_at.eq.<ts>,id.lt.<id>)`.
+- **`totalCount` is optional and expensive.** A `COUNT(*)` over a large filtered set is its own performance problem — prefer "load more" / infinite scroll over numbered pages. Where a count is genuinely required (an admin table with page numbers), use `count: 'exact'` sparingly and consider caching it (doc 12) rather than recomputing on every page fetch.
+- **Filter change resets the cursor.** The client must not reuse a cursor across a filter/sort change — include the filter/sort in the query key so React Query treats it as a fresh query.
+- **Scope is not optional.** Every paginated query must apply its org/property/parking scope in the _same_ query as the pagination — a bound without a scope means page 2 can leak another tenant's rows (cross-check doc 22, the `assertBookingBelongsToProperty` class of bug from the launch audit).
+- **`.range()` is inclusive in PostgREST** — `range(0, 24)` is 25 rows, not 24. Prefer `.limit(n)` over hand-computed `.range()` offsets where the shape above (limit + cursor) already avoids offset math entirely.
+
+Full phase status, the Phase 10.1 audit table, and what's fixed vs. deferred: [`10-paginate-large-lists.md`](../workflow/planned/production-readiness-checklist/10-paginate-large-lists.md).
+
+---
+
+## Payload shape contract
+
+JSON compresses well, so shrinking response _shape_ (doc 13, [`13-compress-api-payloads.md`](../workflow/planned/production-readiness-checklist/13-compress-api-payloads.md)) matters more than transport compression. Rules for any **new** query or endpoint:
+
+- **Never `select('*')` on a wide or tenant-growing table.** Select explicit columns. A table qualifies as "wide" once it accumulates JSONB blobs, many text columns, or per-document AI verdict/summary pairs (`guest_submissions` is the reference example — 80+ columns across 10+ migrations). A small, genuinely narrow config/catalog table (org/property/parking rows, team-member rows, plan catalog, settings tables — row counts in the tens, not thousands) is a lower-priority target; `select('*')` there is tolerated, not encouraged.
+- **A JSONB settings blob belongs on the detail endpoint, not the list endpoint**, unless the list UI actually renders a field from it — check the consumer before deciding either way.
+- **CI enforces this at the boundary, not by line-by-line review**: `scripts/dev/check-select-star.sh` flags any new `select('*')`/`select("*")` in `supabase/functions/**` outside its allowlist — same shape as `check-unbounded-select.sh` and `check-cache-class.sh`. The allowlist is a snapshot of every call site as of doc 13, not a claim that each one is optimal; narrowing one should remove it from the allowlist so the guard protects the win.
+- **Request payloads use a patch shape, not a full-object overwrite**, for anything with a strict column allowlist and RBAC-per-field — `_shared/bookingDetailsPatch.ts`'s `BOOKING_PATCH_ALLOWED_COLUMNS` + `sanitizeBookingPatchPayload` is the reference pattern: an explicit allowlist, per-column validation, per-column permission mapping.
+- **Never base64-encode media in a client-facing JSON body.** Use Storage direct-upload (`_shared/uploadService.ts`'s `File`/multipart pattern) or a signed URL. The one sanctioned exception in this codebase is `_shared/dashboardAssistantAttachments.ts` (AI assistant chat attachments) — small, hard-capped (4 MiB × 3 files), and immediately persisted to Storage rather than stored as base64 anywhere; do not use it as precedent for a general upload path.
+- **BREACH/CRIME awareness**: never place user-reflected free-text alongside a capability/session/CSRF token in the same response body if that response could ever be served compressed to an attacker who can vary the reflected content. `get-form`'s signed Storage URLs alongside guest-editable fields is a documented, reviewed, low-severity instance of this shape (doc 13's Implementation status section) — read that before adding a similar pattern elsewhere.
+- **Exports scope before they stream.** `_shared/financeExport.ts`'s CSV builder is not a true stream (single in-memory string), but is scoped by property + status + SQL-pushed period range (doc 10) rather than fetching a whole tenant's history — that scoping is the load-bearing bound, not the missing streaming. A genuinely unbounded export (whole-org, whole-history) needs either true chunked streaming or a hard row cap (`activity-log-export/index.ts`'s `MAX_ROWS = 20_000` is the reference cap pattern), not just "scope it and call it done."
+
+Full phase status and the Phase 13.2 classification of all 102 `select('*')` call sites: [`13-compress-api-payloads.md`](../workflow/planned/production-readiness-checklist/13-compress-api-payloads.md).
+
+---
+
+## Response caching contract
+
+Every JSON response declares an explicit `Cache-Control` (Phase 11.1, [`11-cache-api-responses.md`](../workflow/planned/production-readiness-checklist/11-cache-api-responses.md)). `_shared/httpResponse.ts`'s `jsonResponse(req, body, status, cacheClass)` / `jsonSuccess(req, data, extra, cacheClass)` take a trailing `CacheClass` argument; **omit it and the response gets `private, no-store`** — the safe, fail-closed default for every admin/tenant/guest-PII-scoped read. Existing call sites are unaffected: the parameter was added as optional/trailing specifically so the ~448 pre-existing call sites across the tree stay source-compatible.
+
+```ts
+import { jsonSuccess, jsonSuccessWithETag } from '../_shared/httpResponse.ts';
+
+// Default — no class needed for admin/tenant/guest reads and all mutations:
+return jsonSuccess(req, data);
+
+// Genuinely public, non-personalized data — pass the class explicitly:
+return jsonSuccess(req, data, undefined, 'publicDynamic');
+
+// Public + stable payload (no timestamp, no signed URL) — ETag + 304 support:
+return jsonSuccessWithETag(req, data, 'publicStatic');
+```
+
+| Class                | `Cache-Control`                                                    | Use for                                                                                         | Example call sites                                                                                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publicStatic`       | `public, max-age=300, s-maxage=3600, stale-while-revalidate=86400` | Plan catalog, vocabularies — changes only on a super-admin edit                                 | `list-public-pricing-plans`, `get-residence-unit-types`                                                                                                                                                                                                     |
+| `publicDynamic`      | `public, max-age=60, s-maxage=300, stale-while-revalidate=600`     | Property/parking listings, detail pages, search results, public host profiles                   | `get-public-property`, `get-public-parking`, `get-public-host`, `get-public-showcase` (published branch), `list-public-properties`, `list-public-parkings`, `list-public-developments`, `list-public-place-groups`, `search-listings`, `search-suggestions` |
+| `publicAvailability` | `public, max-age=30, s-maxage=60`                                  | Calendar availability, pricing — short TTL and **no** SWR; stale availability = double bookings | `get-booked-dates`                                                                                                                                                                                                                                          |
+| `private` (default)  | `private, no-store`                                                | Every admin/host/org/property/parking read; anything with no explicit class                     | Implicit for ~250 remaining functions — see doc 11's Implementation status for what was and wasn't hand-audited                                                                                                                                             |
+| `guestToken`         | `no-store`                                                         | Guest PII / capability-token reads (`get-form`, stay guide, signed-URL issuers)                 | Not separately annotated — already `no-store` via the `private` default; see doc 11                                                                                                                                                                         |
+| `mutation`           | `no-store`                                                         | All POST/PATCH/DELETE                                                                           | Implicit via the default                                                                                                                                                                                                                                    |
+
+Rules:
+
+- **Fail closed.** A call site that forgets to pass a class is `private, no-store`, never guessable-cacheable. `scripts/dev/check-cache-class.sh` (CI-wired) is a two-way guard: every function in its `PUBLIC_CACHE_FILES` allowlist must use a `public*` class somewhere, and no function **outside** that allowlist may use one — catches both "a public endpoint silently regressed to private" and "a `public*` class leaked onto a tenant-scoped response" (a cross-tenant data leak).
+- **`Vary: Origin, Accept-Encoding`** is added automatically to every `public*`-classed response (`_shared/cors.ts` already varies by `Origin` for CORS; `Accept-Encoding` covers gzip/br variants). Never added to `private`/`no-store` responses — nothing stores them, so `Vary` there is meaningless.
+- **ETag (`jsonSuccessWithETag`)** is only for a payload that's stable across requests for the same query. **Never** call it for a payload embedding a timestamp or a freshly signed Storage URL — the ETag changes every request and produces zero `304`s for pure overhead. Use plain `jsonSuccess(..., 'publicDynamic')` for those and skip ETag.
+- **Maintenance mode is the canonical "don't cache this even though it's public" example** — `get-public-platform-status` stays on the `private` default deliberately, even though it's an anon-safe read, because `platform_settings.maintenanceMode` must never be served from a longer-lived cache than the existing 60s in-memory `platformSettingsCache` path.
+- **A `public*` directive on an authenticated/tenant-scoped response is a cross-tenant data leak** — treat every new `public*` call site as a security-reviewed decision (verify: no auth check gates the handler, no per-viewer variation in the payload), not a performance tweak.
+
+Full phase status — what's classified vs. deferred, real bugs found during self-review (the CI guard's `rg`-not-on-`PATH` fallback bug), and the SW allowlist reconciliation: [`11-cache-api-responses.md`](../workflow/planned/production-readiness-checklist/11-cache-api-responses.md).
+
+---
+
+## Logging & correlation IDs contract (doc 27)
+
+`_shared/requestLog.ts#logEvent` emits one JSON shape: `{ts, level, fn, requestId, orgId?, propertyId?, userId?, event, durationMs?, status?, meta?}`. `level` is `error` (needs a human) / `warn` (degraded, self-healing) / `info` (state change) / `debug` (off unless `EDGE_LOG_DEBUG=1`).
+
+- **Wired centrally, not per-function.** `handleEdgeError` (`_shared/httpResponse.ts`) — the one place every `serve*` wrapper in `serveEdge.ts` already routes a caught error through — calls `logEvent` on every failure. This gives all ~300 functions the structured shape without a per-function edit; a handler only calls `logEvent` directly for a mid-request state change worth recording beyond the wrapper's own entry/error line.
+- **Correlation id**: `resolveRequestId(req)` reads a client-sent `x-request-id` header (validated `^[a-zA-Z0-9_-]{1,64}$`, otherwise `crypto.randomUUID()` server-side). Threaded into the structured log, the PostHog exception's `extra.requestId`, and — **only on a 5xx** — the JSON error body's `requestId` field (a 4xx is usually expected client flow; a reference id there is noise). `jsonError(req, message, status, requestId?)` — the 4th param is optional and backward compatible.
+- **Client side (admin surface only):** `ui/src/lib/api/adminEdgeFetch.ts` sends a fresh `x-request-id` on every `adminEdgeFetch`/`assetEdgeFetch` call; `AdminEdgeFetchError.requestId` carries it back on failure. Guest-side fetch call sites do not send this header yet — extending the pattern there is the natural next slice, not done this session.
+- **Never log:** guest names, emails, phone numbers, addresses, ID/document contents, tokens, secrets, full request bodies. Log identifiers (`bookingId`), not the row/object. A PII-in-logs audit of all `console.*` call sites across `supabase/functions/**` found and fixed 3 violations of this rule (2026-09-19) — see doc 27's implementation status for specifics.
+
+---
+
+## Query result cache (`query_cache` table)
+
+Doc 11 above caches the **HTTP response**. `_shared/queryCache.ts` caches the **computation**
+behind it, for a query that's expensive and shared across viewers but not safely publishable via
+`Cache-Control` (doc 12, [`12-cache-expensive-queries.md`](../workflow/planned/production-readiness-checklist/12-cache-expensive-queries.md)). Shape mirrors `_shared/aiQuotaCache.ts`: a
+deterministic key, an explicit TTL column, best-effort reads/writes that never fail the caller.
+
+**Table** `query_cache` (migration `20261316121700_query_cache_table.sql`):
+
+| Column              | Type          | Notes                                                                            |
+| ------------------- | ------------- | -------------------------------------------------------------------------------- |
+| `cache_key`         | `text` PK     | Built by `buildCacheKey()` — schema-versioned, scope-complete, hashed            |
+| `payload`           | `jsonb`       | The cached computation result (or a short-lived `computing` sentinel, see below) |
+| `scope_org_id`      | `uuid null`   | Denormalized for wholesale tenant purge without decoding the key                 |
+| `scope_property_id` | `uuid null`   | Same                                                                             |
+| `scope_parking_id`  | `uuid null`   | Same                                                                             |
+| `computed_at`       | `timestamptz` | Write time                                                                       |
+| `expires_at`        | `timestamptz` | TTL, jittered ±10% per entry at write time                                       |
+| `schema_version`    | `int`         | Bumped in `queryCache.ts` on any payload-shape change — invalidates every key    |
+
+No RLS policy — `service_role` only, same as other service-role-only tables (see this repo's
+"RLS is not the access-control layer today" note). Never queried from a client-side Supabase call.
+
+**Security rule — read before adding a call site:** `buildCacheKey()` takes an explicit
+`permissionScope` argument. A cache key that omits a viewer-permission dimension (e.g. a scoped
+org admin's assigned-listing set vs. an all-listings admin) can serve one viewer's cached response
+to a differently-privileged viewer for the same org/property/parking id — the doc's own "most
+dangerous bug in this doc." Pass `permissionScope: null` only when the endpoint's payload cannot
+vary by viewer for a given scope id (e.g. a single-property request already access-checked
+upstream of the cache read).
+
+**Wired call site:** `dashboard-stats` (`GET /functions/v1/dashboard-stats`) — the admin home
+dashboard aggregate, polled every 60s by every open property/org/parking dashboard tab
+(`ui/src/features/dashboard/{property,org,parking}/hooks/use*DashboardStats.ts`) and backed by
+`_shared/dashboardService.ts#computeDashboardStats`, which does an unbounded `select('*')` on
+`guest_submissions` in every scope branch. Cached 45s TTL (±10% jitter); org-scope requests key on
+the resolved `scopedPropertyIds`/`scopedParkingIds` set via `permissionScope` so a scoped admin
+and an all-listings admin on the same org never share a cache entry.
+
+**Invalidation:** routed through `_shared/workflowOrchestrator.ts` (`purgeCacheByScope`, called
+right after the activity-log/PostHog side effects on every `saveToDatabase` transition) — never
+scattered into individual handlers, per this repo's side-effects-never-inline rule. A transition
+purges both the property-scoped and the resolved org-scoped cache entries.
+
+**Stampede protection (doc 12, Phase 12.4) — v1, honestly scoped:** a short-lived `computing`
+sentinel row acts as a soft lock; a request landing while another is computing the same key falls
+through and computes independently rather than durably waiting (no cross-instance wait/notify
+primitive is used). This is "first request wins, close-together duplicates both compute," not true
+single-flight — documented in `queryCache.ts`'s file header.
+
+**Sweep cron:** `query-cache-sweep-cron`, nightly, deletes expired rows —
+[`scheduled-jobs-and-testing.md`](../archive/operations/scheduled-jobs-and-testing.md).
+
+**Not yet wired:** every other candidate the doc's Phase 12.1 flags by inspection
+(`analyticsService.ts`, `financeService.ts`, `propertyListStats.ts`, `publicSearch.ts`,
+`publicListingFacets.ts`, `superhostMetrics.ts`, `smartPricingEngine.ts`,
+`inboxThreadMetrics.ts`) — see doc 12's Implementation status section for the reasoned-but-
+unmeasured prioritization and what's deferred.
+
+---
+
+## Conformance sweep (doc 18 — Backend & APIs)
+
+Doc 18's Phase 18.1 asks for a conformance table across all ~300 functions: wrapper, auth
+tier, validation, response shape, idempotency, bounded queries, activity log, tests, callers.
+That table is **generated, not hand-maintained** — regenerate it instead of trusting a stale
+copy pasted here:
+
+```bash
+node scripts/dev/audit-edge-functions.mjs             # markdown table + summary to stdout
+node scripts/dev/audit-edge-functions.mjs --csv       # CSV instead of markdown
+node scripts/dev/audit-edge-functions.mjs --gaps-only # only rows with >=1 flagged gap
+node scripts/dev/audit-edge-functions.mjs --check     # CI: fail on new hand-rolled serve()
+# also: bun run audit:edge-functions / bun run check:edge-conformance
+```
+
+The script walks every `supabase/functions/<fn>/index.ts` (skipping `_shared/` and `tests/`)
+and statically flags, via regex/string search: which `serve*` wrapper is used (or hand-rolled
+`serve(`/`Deno.serve(` with no wrapper); whether a validation helper is detected (`zod`,
+`.parse(`, `.safeParse(`); whether `jsonSuccess`/`jsonError` is used; whether
+`_shared/idempotency.ts` is imported; whether a `.select(` call has a matching `.limit(`/`.range(`
+anywhere in the file; and whether `_shared/activityLog.ts` is referenced or an
+`activity-log: N/A` comment is present. **This is a heuristic triage list, not ground truth** —
+every flagged row needs a human look before being treated as a real defect (see findings below).
+
+### Sweep snapshot (2026-09-17)
+
+296 functions audited (of 297 directories; `node_modules` under `supabase/functions/` is a
+package-manager artifact, not a function, and is skipped automatically since it has no
+`index.ts`).
+
+| Wrapper               | Count |
+| --------------------- | ----- |
+| `serveAuthenticated`  | 197   |
+| `serveSuperAdmin`     | 32    |
+| `servePublic`         | 30    |
+| Hand-rolled `serve()` | 19    |
+| `serveCronPost`       | 17    |
+| `serveAdmin`          | 1     |
+
+Heuristic gap counts (each needs individual review — see caveats below before treating any of
+these as a confirmed defect):
+
+- 19 functions with no `serve*` wrapper (hand-rolled `serve()`/`Deno.serve()`).
+- 290 functions with no validation helper detected by the heuristic (see caveat — most
+  validate by hand without `zod`/`.parse(`, which this sweep can't see).
+- 36 functions with no `jsonSuccess`/`jsonError` call detected.
+- 293 functions with no `_shared/idempotency.ts` import (expected — idempotency is only wired
+  for `transition-booking`, `transition-parking-booking`, and `social-inbox-send` today, see
+  the API surface table below).
+- 87 functions with a `.select(` call but no `.limit(`/`.range(` anywhere in the file (doc 10
+  cross-check — a lead for the paginate-large-lists follow-up, not a confirmed unbounded query;
+  many of these are single-row lookups by primary key that don't need bounding).
+- 261 functions with no `_shared/activityLog.ts` reference and no `activity-log: N/A` comment
+  (expected — most reads never need to log; this flags every GET alongside every write, so it
+  over-counts heavily. Doc 18's real ask is that every **mutating** function either logs or
+  justifies N/A, which this heuristic cannot distinguish without knowing which functions write).
+
+**Investigated during this pass — all 19 hand-rolled `serve()` hits turned out to be
+legitimate, not bypasses:**
+
+| Function                                                                                                                                                                                                 | Why it's hand-rolled                                                                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ical-export`                                                                                                                                                                                            | Returns `text/calendar`, not JSON — the `serve*` wrappers assume a JSON response shape.                                                                                                                                                                                          |
+| `meta-inbox-oauth-callback`                                                                                                                                                                              | Returns HTTP redirects (Meta OAuth dance), not JSON.                                                                                                                                                                                                                             |
+| `parking-broadcast-email`                                                                                                                                                                                | Retired stub — always returns 410, no auth surface to wrap.                                                                                                                                                                                                                      |
+| `submit-form`, `submit-form-completion`, `submit-pay-parking`, `submit-sd-form`                                                                                                                          | Public anon writes gated by `antiSpamGate` (heuristics + CAPTCHA + rate limit) inline — a hand-rolled shape that predates `servePublic`, but auth-equivalent, not a bypass.                                                                                                      |
+| `calendar-sync-cron`, `sd-refund-cron`                                                                                                                                                                   | Dual-mode: cron secret gate **or** admin JWT + `resolveScopedPropertyAccess` for the "Sync now" / scoped path — doesn't fit the single-tier `serveCronPost`/`serveAdmin` shape as written.                                                                                       |
+| `superhost-assessment-cron`                                                                                                                                                                              | Dual-mode: cron secret **or** `verifySuperAdminJwt`.                                                                                                                                                                                                                             |
+| `meta-inbox-backfill`                                                                                                                                                                                    | `verifyAuthenticatedUser` called manually inline — functionally equivalent to `serveAuthenticated`, just not migrated.                                                                                                                                                           |
+| `meta-inbox-webhook`                                                                                                                                                                                     | Provider webhook (Meta) — signature/rate-limit verification inline, provider-mandated response shape.                                                                                                                                                                            |
+| `upload-app-settings-asset`, `upload-org-settings-asset`, `upload-development-media`, `upload-parking-media`, `upload-parking-settings-asset`, `upload-property-media`, `upload-property-template-asset` | Multipart file uploads — each calls the correct guard manually (`verifyAdminJwt`, `verifySuperAdminJwt`, `resolveScopedPropertyAccess`, or `resolveScopedParkingAccess`) but predates the wrapper convention, likely because multipart bodies don't flow through `readJsonBody`. |
+
+**None of these were converted in this pass.** Migrating a hand-rolled handler to a `serve*`
+wrapper can change CORS/error-envelope/method-handling behavior in subtle ways (the wrappers
+assume a single auth tier and a JSON body) — that needs per-function review and a handler test
+pass, not a batch edit. Each row above already enforces its own equivalent auth check; the gap
+is convention/consistency, not a security bypass. Flagged for a future individually-reviewed
+pass; not re-litigated by re-running the script.
+
+**`jsonSuccess`/`jsonError` "gap" is mostly a false positive on inspection**: the 36 flagged
+functions split into (a) `serveCronPost` handlers, which get their own success/error envelope
+from the wrapper itself (`_shared/serveEdge.ts`'s `serveCronPost` calls `jsonResponse`/`jsonError`
+internally — a handler using it correctly never calls `jsonSuccess` directly), (b) the three
+non-JSON hand-rolled functions above, and (c) a handful (`list-bookings`, `transition-booking`,
+the `upload-*` functions) that call the lower-level `jsonResponse` directly or hand-build the
+`{ success, data }` shape rather than the `jsonSuccess`/`jsonError` convenience wrappers —
+same envelope shape, different call site. Standardizing those onto `jsonSuccess`/`jsonError`
+is a real, low-risk follow-up but was not done in this pass to keep the change mechanical-only.
+
+**Dead/unused functions (doc 05 cross-check):** doc 05
+([`05-unused-dependencies.md`](../workflow/planned/production-readiness-checklist/05-unused-dependencies.md))
+already looked at this and explicitly deferred it — `knip` doesn't analyze Deno code at all, and
+a trustworthy dead-edge-function list needs a manual pass cross-referencing `supabase/config.toml`,
+`pg_cron` schedules, and provider webhook configs, not a static sweep. Not re-attempted here;
+still open as Phase 5.5 in doc 05 and Phase 18.1's "Callers" column in doc 18.
+
+**Not yet wired into CI** (doc 18 Phase 18.7) — the script is a manual/on-demand tool today,
+same status as `check-serve-public-rate-limit.sh` before it was CI-wired. Wiring it in with a
+committed baseline (fail on regressions, not on the current gap count) is deferred to a future
+pass so the large existing gap count doesn't immediately red-flag CI.
+
+Full phase status, phase-by-phase plan, and exit gate: [`18-backend-and-apis.md`](../workflow/planned/production-readiness-checklist/18-backend-and-apis.md).
 
 ---
 
@@ -212,7 +484,7 @@ The shared `_shared/publicListingRows.ts` loader pages lean candidates in 1,000-
 | `upload-marketing-generation-reference` | GET, POST, DELETE | authenticated JWT + property | Reusable reference library for the Generate tab. **GET** `{ references }` (`marketing:view`). **POST** multipart **`file`** → magic-byte sniff (`sniffVisualMime`; declared/actual mismatch rejected), `UPLOAD_MAX_BYTES` (10 MB image / 50 MB video), stored at `marketing-ai-refs/{propertyId}/{uuid}{ext}` in **`property-media`**, row in `marketing_generation_references`. **DELETE** **`{ referenceId }`** → storage remove + row delete. Rate limit 30/5min per user. POST/DELETE **`marketing.generate:add`** + `aiMarketingImageGeneration`. **`?property_id=`**. **`serveAuthenticated`**. |
 | `upload-marketing-asset` | POST | authenticated JWT + property | Persistent upload for the Design canvas — collage cell photos and anything dropped through Polotno's own Upload panel. Fixes the `blob:`-URL persistence bug (a session-only object URL previously got written into `design_json.polotno` and died on reload). Multipart **`file`** (image only — JPEG/PNG/WebP/HEIC/HEIF, magic-byte sniffed, 10 MB ceiling) → stored at **`marketing-uploads/{propertyId}/{uuid}{ext}`** in **`property-media`** (a dedicated prefix: no gallery mutation, no auto-prune) → **`{ url, storagePath, width, height }`**, no DB row. Rate limit 60/5min per user. **`marketing.templates:add`** + `marketingStudio`. **`?property_id=`**. **`serveAuthenticated`**. Activity log: N/A — staging artifact for a design; the template save that follows is already covered. |
 | `marketing-generation-sweeper` | POST (cron) | `X-Marketing-Generation-Cron-Secret` | 5-pass sweep for in-flight video jobs, hosted `pg_cron` every minute: (1) reclaim `finalizing` rows stuck >2min back to `processing`; (2) re-poll + finalize `processing` video jobs due for a check (>10s since last poll), logging `marketing.video_generated` with a `cron` actor on a win; (3) fail in-flight jobs past `expires_at` (`error_code='timeout'`, no charge); (4) bill `completed` rows whose `usage_recorded_at` is still null after 5 minutes (crash-repair); (5) prune up to 50 unused references older than 90 days. Returns `{ reclaimed, finalized, expired, repaired, pruned }`. Env `MARKETING_GENERATION_CRON_SECRET` (+ Vault key `marketing_generation_cron_secret`); `sync_marketing_generation_cron_job()` rebuilds the cron job. **`serveCronPost`**. |
-| `list-bookings` _(new)_ | GET | admin JWT | Paginated admin list. **Org:** `?org_slug=` / `?org_id=` → property stays **union** parking reservations; optional `?booking_kind=property\|parking`, `?property_id=`. **Parking:** `?parking_id=`. **Property:** `?property_id=` (stays only). Default `sort=status_priority:asc`; search/status/date/pet/parking filters. With **`expand_imported_batch=true`** and **`status=IMPORTED`**, also returns batch-linked rows (future imports at `PENDING_REVIEW`). Rows include `booking_kind`, `property_*`, `parking_*` meta when applicable. |
+| `list-bookings` _(new)_ | GET | admin JWT | Paginated admin list. **Org:** `?org_slug=` / `?org_id=` → property stays **union** parking reservations; optional `?booking_kind=property\|parking`, `?property_id=`. **Parking:** `?parking_id=`. **Property:** `?property_id=` (stays only). Default `sort=status_priority:asc`; search/status/date/pet/parking filters. With **`expand_imported_batch=true`** and **`status=IMPORTED`**, also returns batch-linked rows (future imports at `PENDING_REVIEW`). Rows include `booking_kind`, `property_*`, `parking_*` meta when applicable. **Pagination:** a single-property/single-parking scope with `sort=check_in_date:*\|created_at:*` and no `from`/`to` filter runs one SQL query (`.order()`+`.range()`+exact count) via the generated `check_in_date_sql`/`check_out_date_sql` columns on `guest_submissions`; every other combination (the `status_priority:asc` default, org-wide scope, or a date-range filter) still fetches all matching rows and sorts/paginates in memory — see `_shared/databaseService.ts#listBookings` and [[../workflow/planned/production-readiness-checklist/10-paginate-large-lists.md]]. |
 | `import-parse-file` | POST | admin JWT + `bookings.import:add` | Multipart CSV/Excel upload → private **`import-uploads`** bucket; PapaParse (CSV) or SheetJS (`.xlsx`/`.xls`, first sheet); creates `import_batches` + `import_batch_rows`. Caps: **2,000 rows**, **15 MB**. **`?property_id=`** required. **`serveAuthenticated`**. |
 | `import-ai-map-columns` | POST | admin JWT + `bookings.import:add` | `{ batchId }` — Gemini/Groq column-mapping suggestions → `import_batches.column_mapping`; batch `uploaded` → `mapped`. Graceful no-AI fallback (all columns `unmatched`). **`?property_id=`**. |
 | `import-save-mapping` | POST | admin JWT + `bookings.import:add` | `{ batchId, columnMapping }` — persist user-confirmed header → field map. **`?property_id=`**. |
@@ -324,6 +596,8 @@ Run in the Supabase Dashboard SQL editor (or `psql`). After the guest submits th
 - **CAPTCHA + rate limit + heuristics** (anon writes): `submit-form`, `submit-form-completion`, `submit-sd-form`, `submit-guest-review`, `submit-pay-parking`; `claim-sd-voucher` (CAPTCHA + rate limit, no heuristics — single-tap action). Client widget via `ui/src/components/security/useAntiSpamSubmit.ts`.
 - **Auth OTP**: Supabase Auth native Turnstile on `signInWithOtp` (`config.toml` `[auth.captcha]`; hosted: Dashboard → Authentication → Attack Protection). Client passes `options.captchaToken` from `useCaptchaToken`.
 - **Durable rate limit only** (behind the auth wall, no CAPTCHA): `submit-parking-booking-request` (+ honeypot), `submit-support-ticket` (+ honeypot), `guest-web-chat-start` / `guest-web-chat-resume` / `guest-web-chat-messages` (POST), `upload-guest-profile-asset` / `upload-guest-chat-asset` / `upload-inbox-chat-asset` / `upload-support-ticket-attachment`, `{org,property,parking}-team-invitations` (invite + resend, keyed per user + scope).
+- **Authenticated wrapper default (log-only):** `serveAdmin` / `serveAuthenticated` call `logOnlyRateCheck` (120 req / 60s per user, separate `wrapper-default:` scope). Does not 429 yet. CI: `scripts/dev/check-authenticated-rate-limit.sh`. Public rate-limit **fails open**; AI quota (`assertOrgAndPropertyAiQuota`) **fails closed**.
+- **SSRF:** user-supplied outbound fetches go through `_shared/safeOutboundUrl.ts` (`fetchRemoteAudioBytes`, generated-video download). Calendar iCal fetch has its own hop + private-IP + provider-allowlist loop in `calendarSyncService.ts`. Meta OAuth return origin is allowlisted (`isMetaReturnOriginAllowed`).
 
 **CORS**: `_shared/cors.ts` echoes an allow-listed `Origin` (known hosted SPA domains, exact extra origins from `CORS_ALLOWED_ORIGINS`, and loopback `localhost` / `127.0.0.1` / `::1` on any port). Arbitrary `*.vercel.app` origins are not trusted. Add a temporary preview's exact origin to `CORS_ALLOWED_ORIGINS` when it must call hosted Edge Functions. `Access-Control-Allow-Headers` must include every header the browser actually sends, including PostHog tracing (`x-posthog-distinct-id`, `x-posthog-session-id`, `x-posthog-window-id`) and `idempotency-key`. A missing allow-listed header fails the OPTIONS preflight as `net::ERR_FAILED` / `TypeError: Failed to fetch` — that is what `[useHostGoogleAuth] post-sign-in routing failed` is when `list-organizations` never reaches the handler.
 

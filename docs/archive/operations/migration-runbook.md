@@ -132,6 +132,22 @@ SELECT * FROM gmail_listener_state;
 
 ---
 
+## 3.4 Expand / migrate / contract (production-readiness doc 19)
+
+Every migration must stay backward compatible with the **currently deployed** SPA. Functions and UI deploy separately; a PWA tab can be one version behind.
+
+| Change                     | Safe sequence                                                                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Add NOT NULL column        | Add nullable → backfill → set NOT NULL in a later migration                                                                             |
+| Rename column              | Add new → dual-read (then dual-write) → migrate readers → drop old after a release                                                      |
+| Drop column                | Stop reading in code → wait one production release → drop                                                                               |
+| New index on a large table | `CREATE INDEX CONCURRENTLY` on hosted (see Index deployment procedure). Local migrations may use `IF NOT EXISTS` without `CONCURRENTLY` |
+| Destructive rewrite        | Forward-only note in the migration header; never pair with the client change that requires the new shape in the same release            |
+
+Do not edit a shipped file under `supabase/migrations/`. Long-running DDL is flagged and scheduled (doc 14). Each new migration states a rollback path or `forward-only`.
+
+---
+
 ## 3.5 Develop against **local** Supabase (env + optional prod data)
 
 Use this when you want the UI and edge functions to hit **Docker Postgres on port 54322**, not the hosted project. [[migration-runbook|Migration Runbook — New Booking Flow]] §7.4 historically assumed `.env.development` pointed at prod — switch the vars below when testing migrations and copied prod rows locally.
@@ -286,6 +302,33 @@ ls supabase/migrations/*.sql | sed 's|.*/||' | cut -d_ -f1 | sort | uniq -d
 ```
 
 Rename the **later-added** file to a new unused timestamp (e.g. `…_booking_ai_reviews.sql` → `20261011120001_booking_ai_reviews.sql`), then **`bun run deploy:supabase:dev`** again. On dev, confirm which name is recorded: `SELECT version, name FROM supabase_migrations.schema_migrations WHERE version = '<VERSION>';`
+
+### 5.3 Stuck migration advisory lock
+
+`supabase db push` (and the underlying `migration up`) takes a Postgres **advisory lock** for the duration of the migration run so two concurrent pushes can't race. A migration that fails partway (a `set -e`-style abort, a network drop mid-push, or the CLI process being killed) can leave that lock held even though the CLI process is gone, and the next `db push` attempt then hangs or times out waiting for a lock nothing will ever release.
+
+**Detect it:**
+
+```sql
+-- Run against the target project (DEV_DB_URL / PROD_DB_URL, session-mode connection)
+SELECT pid, mode, granted, query, state, query_start
+FROM pg_locks l
+JOIN pg_stat_activity a USING (pid)
+WHERE l.locktype = 'advisory';
+```
+
+A row with `granted = true` and no live migration actually running (check `query`/`state` — an idle or terminated backend still holding the lock) is the stuck case.
+
+**Clear it:**
+
+```sql
+-- Only after confirming the session is genuinely dead / not an active push:
+SELECT pg_terminate_backend(<pid>);
+```
+
+`pg_terminate_backend` drops the session, which releases every lock (including advisory locks) it held. Do not run this against a `pid` you are not sure is dead — killing a live migration mid-DDL can leave the schema in a partially-applied state, which is a separate, worse problem than the stuck lock itself. If unsure whether a migration is genuinely stuck vs. just slow, wait and re-check `query_start` age before terminating.
+
+This is a role-agnostic Postgres mechanism, unrelated to the `statement_timeout`/`idle_in_transaction_session_timeout` role defaults set in `20261316121600_request_role_statement_timeouts.sql` (doc 15) — those apply to `anon`/`authenticated`/`service_role` (the PostgREST-facing roles), not to the migration/`postgres` role, which must be able to run long DDL.
 
 ---
 
@@ -554,6 +597,35 @@ Five never-applied files shared a version prefix with an already-recorded migrat
 | `20261316121200_pre_production_security_hardening.sql` | Drops `guest_submissions_backup_20260501`. Revokes PUBLIC/anon/authenticated execute on AI wallet + usage RPCs; `service_role` only.                                                                                                     | Yes — restore snapshot from backup if still needed; re-grant execute only if a trusted caller requires it.            |
 | `20261316121300_contract_expiry_cron_schedule.sql`     | `sync_contract_expiry_cron_job()` + `contract-expiry-daily-manila` (`0 1 * * *` UTC). Fails closed without Vault secrets.                                                                                                                | Yes — `SELECT cron.unschedule('contract-expiry-daily-manila'); DROP FUNCTION public.sync_contract_expiry_cron_job();` |
 | `20261316121400_revoke_public_rls_helper_execute.sql`  | Revokes PUBLIC/anon execute on `user_can_access_*` RLS helpers and `activity_log_delete_net`. Drops leftover two-arg `user_can_access_guest_submission(uuid, uuid)` if present. Grants execute to `authenticated` for policy evaluation. | Yes — re-grant execute to the roles that need it.                                                                     |
+
+### 11h Index the database — FK + access-pattern audit (Phase 14.3, September 2026)
+
+Plan: [`docs/workflow/planned/production-readiness-checklist/14-index-the-database.md`](../../workflow/planned/production-readiness-checklist/14-index-the-database.md).
+
+| File                                               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Reversible?                                                                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `20261316121800_fk_and_access_pattern_indexes.sql` | 33 `CREATE INDEX IF NOT EXISTS` on foreign-key columns (and a couple of confirmed access-pattern gaps) across tables that grow with tenant activity — bookings/parking-broadcast, notifications, social inbox, support tickets, AI usage/assistant, payment transactions, import batches, marketing generation, calendar sync events, analytics/smart pricing, guest reviews, telegram notification logs. No table/column changes, indexes only. Uses plain (non-`CONCURRENTLY`) `CREATE INDEX` — see **Index deployment procedure** below before running this against hosted dev/prod. | Yes — `DROP INDEX IF EXISTS <name>;` for any index by name (all names are listed in the migration file itself). |
+
+#### Index deployment procedure (`CONCURRENTLY` + Supabase migrations)
+
+This repo has no prior migration that uses `CREATE INDEX CONCURRENTLY` (checked: grepped every file under `supabase/migrations/` for `CONCURRENTLY` and for any transaction-control override comment/statement — none exist). That matters because:
+
+- `CREATE INDEX CONCURRENTLY` **cannot run inside a transaction block** (Postgres rejects it with `ERROR: CREATE INDEX CONCURRENTLY cannot run inside a transaction block`).
+- The Supabase CLI (`supabase db push` / `db reset` / `migration up`) applies **each migration file inside its own transaction**, with no `config.toml` or CLI flag in this repo's setup to opt a single file out of that wrapping.
+
+So a migration file that contains `CREATE INDEX CONCURRENTLY` **will fail to apply** via the normal `supabase db push` / `bun run deploy:supabase:*` path. There are two ways to add an index safely, and this repo now uses the first for anything landing via the automated pipeline:
+
+**Option A — plain `CREATE INDEX IF NOT EXISTS` (what `20261316121800` uses).** Safe for small-to-medium tables (current hosted dev/prod data volume) because a plain `CREATE INDEX` takes a `SHARE` lock that blocks writes to the table for the duration of the build, which is short when the table is small. This is the default for any index migration in this repo **unless** the target table is known to already be large enough that a blocking lock is a real production risk.
+
+**Option B — manual `CONCURRENTLY` run outside the migration pipeline**, required once a target table is large enough (tens of thousands+ rows, or a hot write path where even a brief lock is unacceptable) that a blocking `SHARE` lock is not acceptable in production:
+
+1. Do **not** add `CREATE INDEX CONCURRENTLY` to a `supabase/migrations/*.sql` file — it will break `db push` for that transaction-wrapped file.
+2. Instead, connect directly to the target database (Dashboard SQL Editor, or `psql` via the **Session pooler** URI — see §3.5.3 above for how to get one) and run the `CREATE INDEX CONCURRENTLY IF NOT EXISTS ...` statement **by itself**, outside any transaction wrapper. The Dashboard SQL Editor and a bare `psql` connection each run a single statement outside an implicit transaction by default — do not wrap it in `BEGIN`/`COMMIT`.
+3. Schedule this for a **low-traffic window** — `CONCURRENTLY` avoids the blocking lock but still consumes I/O and CPU for the duration of the build (can be minutes on a large table), and a failed `CONCURRENTLY` build can leave behind an **invalid** index (`SELECT indexrelid::regclass FROM pg_index WHERE NOT indisvalid;` to check) that must be dropped and retried — never left in place.
+4. After a manual `CONCURRENTLY` run, add a no-op-safe **matching migration file** with plain `CREATE INDEX IF NOT EXISTS` (same name, same definition) so the schema history stays consistent for anyone re-running `db reset` locally or bootstrapping a fresh environment — the `IF NOT EXISTS` guard makes it a no-op against the database where the index already exists, and a real (blocking, but small-table-safe) build on a fresh local/dev database.
+5. Verify: `SELECT indexname, indexdef FROM pg_indexes WHERE indexname = '<name>';` returns the row, and `SELECT indisvalid FROM pg_index WHERE indexrelid = '<name>'::regclass;` is `true`.
+
+**When to promote `20261316121800`'s indexes from Option A to Option B:** if hosted dev/prod `guest_submissions`, `notifications`, `social_messages`, `ai_platform_usage_events`, or `activity_log` have grown large by the time this migration is deployed (check row counts first — `SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 20;`), re-run those specific `CREATE INDEX` statements manually with `CONCURRENTLY` per Option B instead of relying on the migration's plain form, then let the migration's `IF NOT EXISTS` no-op past them on the next deploy.
 
 ---
 

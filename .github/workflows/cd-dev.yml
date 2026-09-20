@@ -29,6 +29,20 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+          restore-keys: deno-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -58,11 +72,50 @@ jobs:
       - name: servePublic rate-limit coverage
         run: bash scripts/dev/check-serve-public-rate-limit.sh
 
+      - name: Authenticated wrapper log-only rate check
+        run: bash scripts/dev/check-authenticated-rate-limit.sh
+
+      - name: Unbounded query guard
+        run: bash scripts/dev/check-unbounded-select.sh
+
+      - name: Cache class guard
+        run: bash scripts/dev/check-cache-class.sh
+
+      - name: select('*') guard
+        run: bash scripts/dev/check-select-star.sh
+
+      - name: Public static asset size
+        run: bash scripts/dev/check-public-asset-size.sh
+
+      - name: Vercel cache and security headers
+        run: bash scripts/dev/check-vercel-headers.sh
+
+      - name: Storage upload cacheControl
+        run: node scripts/dev/check-storage-cache-control.mjs
+
+      - name: Edge function serve-wrapper allowlist
+        run: node scripts/dev/audit-edge-functions.mjs --check
+
+      - name: Auth matrix — zero-authz-signal guard (production-readiness doc 21)
+        run: node scripts/dev/audit-auth-matrix.mjs --check
+
       - name: Edge handler tests (Deno)
         run: bun run test:edge:handlers
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Playwright Chromium
         run: bun x playwright install chromium --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright OS deps only (cache hit)
+        run: bun x playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Playwright smoke (@smoke)
         run: bun run test:e2e:smoke

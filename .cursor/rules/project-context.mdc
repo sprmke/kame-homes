@@ -29,7 +29,7 @@ Stale if a skill mentions Next.js App Router, tRPC, Drizzle, Neon, or AWS S3 for
 
 ## Tooling index
 
-- Rules/skills: **`.cursor/rules/README.md`**
+- Rules/skills: **`.cursor/rules/README.md`** · always-on agent behavior: **`karpathy-guidelines.mdc`** / skill **`karpathy-guidelines`**
 - Claude Code: **`.claude/README.md`** + root **`CLAUDE.md`**
 - OpenCode: **`.opencode/README.md`** + root **`opencode.json`**
 - AI session hygiene / model routing: **`.cursor/rules/ai-usage.mdc`**

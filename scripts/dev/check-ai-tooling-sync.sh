@@ -241,12 +241,16 @@ if [[ -d .agents/skills ]]; then
   done
 fi
 
-# Impeccable hooks (when present)
+# Impeccable hooks (legacy hook.mjs) or vendor CLI (scripts/impeccable)
 if [[ -d .agents/skills/impeccable ]]; then
-  for script in scripts/hook.mjs scripts/hook-before-edit.mjs; do
-    [[ -f ".agents/skills/impeccable/${script}" ]] \
-      || fail ".agents/skills/impeccable/${script} missing"
-  done
+  if [[ -x .agents/skills/impeccable/scripts/impeccable ]]; then
+    :
+  else
+    for script in scripts/hook.mjs scripts/hook-before-edit.mjs; do
+      [[ -f ".agents/skills/impeccable/${script}" ]] \
+        || fail ".agents/skills/impeccable/${script} missing"
+    done
+  fi
 fi
 
 # --- 6. DESIGN.md skill + root design system --------------------------------

@@ -67,12 +67,12 @@
     ],
     "preToolUse": [
       {
-        "command": "[ ! -f \"/Users/michaelmanlulu/.cursor/skills/impeccable/scripts/hook-before-edit.mjs\" ] || node \"/Users/michaelmanlulu/.cursor/skills/impeccable/scripts/hook-before-edit.mjs\"",
+        "command": ".cursor/hooks/guard-shipped-migrations.sh",
+        "matcher": "StrReplace",
         "timeout": 5
       },
       {
-        "command": ".cursor/hooks/guard-shipped-migrations.sh",
-        "matcher": "StrReplace",
+        "command": "[ ! -f \".cursor/skills/impeccable/scripts/impeccable\" ] || \".cursor/skills/impeccable/scripts/impeccable\" hook-before-edit",
         "timeout": 5
       }
     ]

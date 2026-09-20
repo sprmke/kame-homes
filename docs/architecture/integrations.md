@@ -35,6 +35,7 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split. Cross-links: 
 - Admin recovery: **Mark as Complete** (manual PDF upload if the inbound approval never arrived).
 - Runbook: **[[approval-email-inbound|Approval email inbound]]**.
 - Connect Google / Gmail OAuth removed — hosts do not connect Google for production approval intake.
+- **Bounce/complaint suppression:** the same webhook also receives **`email.bounced`** / **`email.complained`** events (already Svix-verified) and upserts every recipient into **`email_suppressions`** (`_shared/emailSuppression.ts`). Guest-lifecycle sends (**booking acknowledgement**, **ready-for-check-in**, **SD refund form request**) call `isEmailSuppressed(booking.guest_email)` first and skip (fail-open on lookup error) rather than repeatedly mailing a dead/complaining address — a spike of those harms Resend domain reputation for every subsequent send. Ops-facing sends (GAF/pet/parking/new-booking-notify) and support-ticket mail are not gated.
 
 ### 9.3 PayMongo (org subscription billing)
 

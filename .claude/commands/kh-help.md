@@ -30,12 +30,13 @@ Show the **Kame Homes teammate commands** (`/kh-*`) and when to use each. For ne
 
 ## Other existing commands (advanced)
 
-| Command                 | Purpose                                      |
-| ----------------------- | -------------------------------------------- |
-| `/github-issue`         | Full issue CLI (view / update / **ship**)    |
-| `/self-review`          | Deep production-readiness review of a module |
-| `/fix-merge-conflicts`  | Help resolve git merge conflicts             |
-| `/fix-migration-issues` | Apply **local** DB migrations only           |
+| Command                        | Purpose                                             |
+| ------------------------------ | --------------------------------------------------- |
+| `/github-issue`                | Full issue CLI (view / update / **ship**)           |
+| `/self-review`                 | Deep production-readiness review of a module        |
+| `/production-readiness-review` | Code review for checklist phases 5–10 before Tier 2 |
+| `/fix-merge-conflicts`         | Help resolve git merge conflicts                    |
+| `/fix-migration-issues`        | Apply **local** DB migrations only                  |
 
 Power-user workflow/docs commands (`/workflow-*`, `/superpowers-*`) are optional — ask a teammate before using them.
 

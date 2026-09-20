@@ -33,7 +33,7 @@ Canonical detail: **`docs/architecture/pwa.md`**. This rule is the invariant che
 
 - **`ui/src/lib/pwa/offlineQueryAllowlist.ts#OFFLINE_PERSIST_KEY_ROOTS` is canonical.** Only add a query-key root here when an operator genuinely needs to _read_ that data offline.
 - Every added root puts operator PII on a possibly shared device, **unencrypted at rest**, cleared only on logout. Keep it tight; prefer read-only views.
-- When you add a root, also add the matching read-only Edge Function name to `READONLY_FUNCTION_RE` in `sw.ts` if it should also runtime-cache.
+- When you add a root, also add the matching Edge Function name to `SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts` if it should also runtime-cache — and only if the server classifies that function `public*` (`httpResponse.ts`). Never add a `private`/`no-store` endpoint.
 
 ## Tenant / identity isolation
 

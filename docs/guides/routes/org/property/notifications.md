@@ -65,6 +65,8 @@ Above the Activity feed (only when the app runs as an installed PWA and/or there
 
 Save **one** BotFather token at the top. It pre-fills each module’s bot token field when you enable that module. You can still type a **different token on any module** — credentials are stored per module in the database.
 
+If the shared token field is empty but a module already has a saved token (e.g. you connected Chat first), the card shows a **"Use the token from `<module>` notifications"** link below the field. Clicking it fills the field with that module's token so **Save and test** can run without retyping it.
+
 **Product guidance:** One bot token handles all module traffic at typical property volume. Use **separate Chat IDs** per module so ops, staff, marketing, and inbox alerts land in the right groups. Use a different bot token per module only when you want separate bot identities or isolated credential rotation.
 
 ### Per-module flow (all six bots)
@@ -191,6 +193,7 @@ Credentials unlock logic: `telegramCredentialsReady()` — saved token **and** c
 | Shared bot token card                              | `…/telegram-notifications/TelegramGlobalBotTokenCard.tsx`                                                                                                                             |
 | Help dialogs                                       | `…/telegram-notifications/TelegramHelpDialog.tsx`, `…/lib/telegramHelpContent.ts`                                                                                                     |
 | Global bot hook + context                          | `…/hooks/useTelegramGlobalBotToken.ts`, `…/TelegramNotificationsGlobalBotContext.tsx`                                                                                                 |
+| Module-token prefill suggestion                    | `…/hooks/useFirstConnectedTelegramModuleToken.ts`                                                                                                                                     |
 | Edge: shared token                                 | `supabase/functions/telegram-global-settings/index.ts`                                                                                                                                |
 | Chat settings card                                 | `ui/src/features/dashboard/bookings/components/TelegramChatSettingsCard.tsx`                                                                                                          |
 | Chat notify (inbound)                              | `supabase/functions/_shared/telegramChat.ts` → `notifyTelegramChatInbound`                                                                                                            |

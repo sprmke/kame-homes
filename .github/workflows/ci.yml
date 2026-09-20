@@ -10,7 +10,82 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
+  # Doc 26 Phase 26.2 — split into parallel jobs so PR feedback stays under the
+  # single-serial-job wall-clock time. Each job is independent (own checkout +
+  # install); a required-check name change means updating branch protection
+  # (.github/CODEOWNERS-adjacent — see docs/workflow/planned/production-readiness-checklist/26-ci-cd-and-version-control.md).
+  static-guards:
+    name: static-guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filename conventions
+        run: bash scripts/dev/check-ui-filename-conventions.sh
+
+      - name: Migration conventions
+        run: |
+          bash scripts/dev/check-migration-versions.sh
+          bash scripts/dev/check-migration-security.sh
+
+      - name: servePublic rate-limit coverage
+        run: bash scripts/dev/check-serve-public-rate-limit.sh
+
+      - name: Authenticated wrapper log-only rate check
+        run: bash scripts/dev/check-authenticated-rate-limit.sh
+
+      - name: Unbounded query guard
+        run: bash scripts/dev/check-unbounded-select.sh
+
+      - name: Cache class guard
+        run: bash scripts/dev/check-cache-class.sh
+
+      - name: select('*') guard
+        run: bash scripts/dev/check-select-star.sh
+
+      - name: Public static asset size
+        run: bash scripts/dev/check-public-asset-size.sh
+
+      - name: Vercel cache and security headers
+        run: bash scripts/dev/check-vercel-headers.sh
+
+      - name: Storage upload cacheControl
+        run: node scripts/dev/check-storage-cache-control.mjs
+
+      - name: Edge function serve-wrapper allowlist
+        run: node scripts/dev/audit-edge-functions.mjs --check
+
+      - name: Auth matrix — zero-authz-signal guard (production-readiness doc 21)
+        run: node scripts/dev/audit-auth-matrix.mjs --check
+
+  lint-and-types:
+    name: lint-and-types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run type-check
+
+      - name: Lint
+        run: bun run lint
+
+  unit-and-edge-tests:
+    name: unit-and-edge-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,22 +98,22 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+          restore-keys: deno-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Type check
-        run: bun run type-check
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Filename conventions
-        run: bun run check:filenames
-
-      - name: Migration conventions
-        run: |
-          bash scripts/dev/check-migration-versions.sh
-          bash scripts/dev/check-migration-security.sh
 
       - name: Unit tests (Vitest)
         run: bun run test
@@ -49,14 +124,43 @@ jobs:
       - name: Edge unit tests (Deno _shared)
         run: bun run test:edge
 
-      - name: servePublic rate-limit coverage
-        run: bash scripts/dev/check-serve-public-rate-limit.sh
-
       - name: Edge handler tests (Deno)
         run: bun run test:edge:handlers
 
+  e2e-smoke:
+    name: e2e-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Playwright Chromium
         run: bun x playwright install chromium --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright OS deps only (cache hit)
+        run: bun x playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Playwright smoke (@smoke)
         run: bun run test:e2e:smoke
@@ -70,6 +174,26 @@ jobs:
             playwright-report/
             test-results/playwright/
           retention-days: 7
+
+  build-and-budgets:
+    name: build-and-budgets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Build UI
         env:
@@ -88,3 +212,25 @@ jobs:
 
       - name: No render-blocking scripts in index.html (production-readiness doc 04)
         run: node scripts/performance/assert-no-blocking-scripts.mjs
+
+  # Single required status check that branch protection gates on — fans in the
+  # parallel jobs above so protection rules don't need updating every time a
+  # job is added/renamed/split further.
+  quality:
+    name: quality
+    if: always()
+    needs:
+      - static-guards
+      - lint-and-types
+      - unit-and-edge-tests
+      - e2e-smoke
+      - build-and-budgets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all required jobs succeeded
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] || [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required jobs passed."

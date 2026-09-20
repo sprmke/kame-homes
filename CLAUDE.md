@@ -14,6 +14,8 @@ Stack: **Vite + React 18 SPA** (`ui/`) + **Supabase Edge Functions** (Deno, `sup
 
 ## AI session hygiene
 
+**Karpathy guidelines (always-on):** **`.cursor/rules/karpathy-guidelines.mdc`** / skill **`karpathy-guidelines`** ([upstream](https://github.com/multica-ai/andrej-karpathy-skills)). Think before coding, simplicity first, surgical changes, goal-driven verification.
+
 See **`.cursor/rules/ai-usage.mdc`** (always-on in Cursor; follow here too):
 
 - **One task ≈ one session** — `/clear` when switching goals; avoid multi-day threads.

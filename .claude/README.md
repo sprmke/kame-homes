@@ -23,13 +23,14 @@ See **`.cursor/rules/README.md` → New developer setup (AI tooling)** for MCP e
 | OpenCode (same goals)         | `opencode.json` + `.opencode/` — see **`.opencode/README.md`**                   |
 | Drift check                   | `bun run check:ai-tooling-sync`                                                  |
 
-Install the **ponytail** marketplace once per machine if you want the plugin commands; the same guidance is always-on in `.cursor/rules/ponytail.mdc`.
+Install the **ponytail** marketplace once per machine if you want the plugin commands (optional; overlaps **karpathy-guidelines**).
 
 ## Always loaded
 
-| File        | Purpose                                                                     |
-| ----------- | --------------------------------------------------------------------------- |
-| `CLAUDE.md` | Stack, commands, architecture, booking workflow, doc-sync rules — repo root |
+| File                                    | Purpose                                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `CLAUDE.md`                             | Stack, commands, architecture, booking workflow, doc-sync rules — repo root                      |
+| `.cursor/rules/karpathy-guidelines.mdc` | Always-on agent behavior (skill **`karpathy-guidelines`**) — invoke on every task in Claude Code |
 
 **Plan mode:** `.cursor/rules/plan-mode.mdc` — finished plans go to `docs/workflow/planned/` (also summarized in `CLAUDE.md` § Plan mode).
 

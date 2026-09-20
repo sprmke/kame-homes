@@ -2,7 +2,7 @@
 title: 'Property Settings — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-10
+updated: 2026-09-20
 ---
 
 # Property Settings — operator guide
@@ -34,7 +34,7 @@ Route: `/org/:orgSlug/property/:propertySlug/settings`
 | Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full property activity feed (`ActivityLogPanel`) |
 | Danger Zone        | Done      | Done       | Done | Archive + delete with confirmations                                                    |
 
-> **Also editable in Page Editor:** Photos & Videos, Brand color, Description, Amenities, House Rules, Cancellation, and Socials (URLs only) — same fields, same storage. **External reviews and vouchers** are Settings-only (**Reviews & vouchers**).
+> **Also editable in Page Editor:** Photos & Videos, Brand color, Description, Amenities, House Rules, Cancellation, and Socials (URLs only) — same fields, same storage. **External reviews and vouchers** are Settings-only (**Reviews & vouchers**). Photos & Videos, Amenities, House Rules, Cancellation, and Socials cards show an **"Also in Public Pages"** link in the card header (`PublicPagesCrossLink`) pointing to the Public Pages → Property live-preview editor for the same data — Basic Information's Brand color / Description fields don't get the card-level link since most of that section is Settings-only.
 
 ---
 
@@ -67,7 +67,7 @@ Property Settings is where you complete operational setup: basic info, capacity,
 - Q: Where is the PMO / documents-approver email set?
   A: On the development in Super Admin (**Developments → Email automations → PMO email**). Property Settings only holds your property/team ops email (alerts, Reply-To, CC on GAF/pet), not the PMO To address.
 - Q: Where do I edit amenities, house rules, or cancellation?
-  A: In **Property Settings** — Amenities, House Rules, and Cancellation use **Manage** for the full editor — or in **Public Pages → Property → Edit** if you want a live preview. Both save the same data.
+  A: In **Property Settings** — Amenities, House Rules, and Cancellation use **Manage** for the full editor — or in **Public Pages → Property → Edit** if you want a live preview. Both save the same data. Each of these cards has an **"Also in Public Pages"** link in the top-right corner so you can jump straight to the live-preview version.
 - Q: Where do I upload listing photos?
   A: **Property Settings → Photos & Videos**, or the listing Page Editor gallery. Photos are shared across the listing, property cards, and Marketing.
 - Q: Where is listing verification?
@@ -194,7 +194,7 @@ Validated on save against residence limits (see Azure North table above). The **
 
 Listing gallery photos/videos. Storage: `properties.settings.media` via `upload-property-media` / `update-property`. Same fields are editable in **Public Pages → Property → Edit** (live preview). Brand color is under **Basic Information** (`app_settings.brand_color`) and also in the listing editor.
 
-Each picked photo is **downscaled + re-encoded to WebP in the browser** (long edge 3840px, quality-first — no visible loss even full-screen on 4K) before upload via `prepareUpload` / `PHOTO_MASTER` preset; the stored file is typically 50–80% smaller. Ceilings: **image 10 MB, video 50 MB** (client rejects over-ceiling with `File must be N MB or smaller`; videos are not transcoded — trim/compress a longer clip first). Architecture: [`storage.md`](../../../architecture/storage.md) §7.1.
+Each picked photo is **downscaled + re-encoded to WebP in the browser** (long edge 3840px, quality-first — no visible loss even full-screen on 4K) before upload via `prepareUpload` / `PHOTO_MASTER` preset; the stored file is typically 50–80% smaller. Ceilings: **image 10 MB, video 50 MB** (client rejects over-ceiling with `File must be N MB or smaller`; videos are not transcoded — trim/compress a longer clip first). **SVG is rejected** (public bucket XSS). Architecture: [`storage.md`](../../../architecture/storage.md) §7.1.
 
 ## Description
 
@@ -519,11 +519,12 @@ Keep UI and edge copies in sync when changing rules.
 
 ## Testing
 
-| Layer | Path / spec                                                                      | Manual                                      |
-| ----- | -------------------------------------------------------------------------------- | ------------------------------------------- |
-| Unit  | Document requirements resolution, cleaning buffer mirrors when changed           | —                                           |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`) | OTP payment method, live Maps, media upload |
-| N/A   | —                                                                                | —                                           |
+| Layer | Path / spec                                                                                                        | Manual                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| Unit  | Document requirements resolution, cleaning buffer mirrors when changed                                             | —                                           |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`)                                   | OTP payment method, live Maps, media upload |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "settings Photos & Videos links to Public Pages" (`@ci`) | Cross-link navigates to `/public-pages`     |
+| N/A   | —                                                                                                                  | —                                           |
 
 ---
 

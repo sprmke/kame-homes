@@ -15,15 +15,16 @@ Personal providers/models live in `~/.config/opencode/opencode.json` — not com
 
 ## What maps where
 
-| Concern          | Canonical source                                    | OpenCode path                                         |
-| ---------------- | --------------------------------------------------- | ----------------------------------------------------- |
-| Project rules    | `CLAUDE.md` + always-on `.cursor/rules/*.mdc`       | Auto `CLAUDE.md` + `opencode.json` → `instructions`   |
-| Team skills      | `.agent/skills/`                                    | `skills.paths` + Claude-compat `.claude/skills/`      |
-| Ecosystem skills | `.agents/skills/` (`skills-lock.json`)              | `skills.paths` + auto `.agents/skills`                |
-| Commands         | `.claude/commands/`                                 | `.opencode/commands/*` → symlinks                     |
-| Subagents        | conceptual parity with `.cursor` / `.claude` agents | `.opencode/agents/*.md`                               |
-| Hooks            | shared scripts in `.claude/hooks/`                  | `.opencode/plugins/gfm-ai-tooling.ts`                 |
-| MCP              | root `.mcp.json`                                    | `opencode.json` → `mcp` (OpenCode local-server shape) |
+| Concern          | Canonical source                                                                    | OpenCode path                                           |
+| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Project rules    | `CLAUDE.md` + always-on `.cursor/rules/*.mdc` (incl. **`karpathy-guidelines.mdc`**) | Auto `CLAUDE.md` + `opencode.json` → `instructions`     |
+| Agent behavior   | skill **`karpathy-guidelines`**                                                     | `.agent/skills/karpathy-guidelines/` via `skills.paths` |
+| Team skills      | `.agent/skills/`                                                                    | `skills.paths` + Claude-compat `.claude/skills/`        |
+| Ecosystem skills | `.agents/skills/` (`skills-lock.json`)                                              | `skills.paths` + auto `.agents/skills`                  |
+| Commands         | `.claude/commands/`                                                                 | `.opencode/commands/*` → symlinks                       |
+| Subagents        | conceptual parity with `.cursor` / `.claude` agents                                 | `.opencode/agents/*.md`                                 |
+| Hooks            | shared scripts in `.claude/hooks/`                                                  | `.opencode/plugins/gfm-ai-tooling.ts`                   |
+| MCP              | root `.mcp.json`                                                                    | `opencode.json` → `mcp` (OpenCode local-server shape)   |
 
 Do **not** create `AGENTS.md` unless you intend it to replace `CLAUDE.md` (OpenCode uses the first of `AGENTS.md` / `CLAUDE.md`).
 

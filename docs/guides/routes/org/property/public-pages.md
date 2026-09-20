@@ -2,7 +2,7 @@
 title: 'Public Pages'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-03
+updated: 2026-09-20
 ---
 
 # Public Pages
@@ -35,7 +35,7 @@ Template choice and page config are bulk-copyable via org **Properties → Copy 
 
 **Explore-open (every plan):** Free / Starter / Commission hosts can open `/public-pages` and the Page Editor for **Showcase**, **Stay Guide**, and **Property**. **Saving** requires **`publicPagesAutosave`** (Pro+). **Live / Open / iframe preview URLs** for Showcase (`propertyShowcase`) and Stay Guide host preview (`publicPagesAutosave`) show a non-dismissible blurred plan-lock overlay when the property is below Pro — including `?preview=1` / `?embed=1`. Page Editor canvas still works via `PreviewOverrideProvider` (no public API). Booking-token Stay Guide emails (`get-guest-stay-guide`) stay open for operational guests.
 
-**Stay Guide** and **Property** (listing) cards use **Edit** → Page Editor (`/public-pages/:pageId/edit`). The listing editor covers gallery, brand color, description, amenities, house rules, cancellation, socials, and optional section visibility (amenities / location / rules / reviews — fixed order; gallery + overview always on) — the same content fields as **Property Settings** (single storage; Settings has no live preview). Stay Guide body copy and section images edit in the Stay Guide Page Editor (**Content**); Templates still has standard body copy without section images.
+**Stay Guide** and **Property** (listing) cards use **Edit** → Page Editor (`/public-pages/:pageId/edit`). The listing editor covers gallery, brand color, description, amenities, house rules, cancellation, socials, and optional section visibility (amenities / location / rules / reviews — fixed order; gallery + overview always on) — the same content fields as **Property Settings** (single storage; Settings has no live preview). Stay Guide body copy and section images edit in the Stay Guide Page Editor (**Content**); Templates still has standard body copy without section images. Property Settings surfaces the reverse direction: its Photos & Videos, Amenities, House Rules, Cancellation, and Socials cards each show an **"Also in Public Pages"** link (`PublicPagesCrossLink`) back to this page.
 
 ## Host-facing knowledge
 
@@ -160,10 +160,11 @@ See **[[stay-guide|Guest stay guide (token-gated brochure)]]** for the `stay-gui
 
 ## Testing
 
-| Layer  | Path / spec                                                                          | Manual                                        |
-| ------ | ------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Unit   | `buildPropertyGuestPublicPages` registry helpers when pure                           | —                                             |
-| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` gallery shell load (`@ci`) | Editor save, showcase live URL, autosave gate |
-| Manual | [`custom-pages-module-manual.md`](../../testing/custom-pages-module-manual.md)       | Full editor + publish                         |
+| Layer  | Path / spec                                                                                                                  | Manual                                        |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Unit   | `buildPropertyGuestPublicPages` registry helpers when pure                                                                   | —                                             |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` gallery shell load (`@ci`)                                         | Editor save, showcase live URL, autosave gate |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "free host sees upgrade badge before editing listing page" (`@ci`) | `TierBadge` visible before any edit on Free   |
+| Manual | [`custom-pages-module-manual.md`](../../testing/custom-pages-module-manual.md)                                               | Full editor + publish                         |
 
 ---

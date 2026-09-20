@@ -5,6 +5,8 @@ alwaysApply: true
 
 # AI usage — session hygiene
 
+**Agent behavior:** follow always-on **`.cursor/rules/karpathy-guidelines.mdc`** (skill **`karpathy-guidelines`**) on every task: assumptions, minimal diffs, no drive-by refactors, verifiable success criteria.
+
 ## Sessions
 
 - **One task ≈ one chat.** New feature, bug, or doc pass → new Cursor Agent / Claude session (`/clear`).

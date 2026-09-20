@@ -48,6 +48,21 @@ Ceilings are a **bypass safety net**, not the mechanism — set generously so a 
 
 Backfill of already-stored images is **out of scope** (originals are not retained; the pre-rollout quality gate is the safeguard). Delivery-time variants (Supabase Image Transformation) are deferred — see the plan §16 Phase 4.
 
+### 7.2 Upload `cacheControl` and signed-URL disposition (production-readiness doc 16 / 20)
+
+Every `.upload()` call site in `supabase/functions/**` now sets an explicit `cacheControl` (shared helpers plus handler-level uploads). CI: `node scripts/dev/check-storage-cache-control.mjs`. Previously several handler sites fell back to the Supabase Storage default (3600s):
+
+- **Content-addressed paths** (`upsert: false`, `crypto.randomUUID()` in the path — org verification, listing authorization, property media, support ticket attachments, AI assistant attachments, inbox chat assets) → `cacheControl: '31536000'` (1 year). The object is never replaced in place, so a long cache is safe.
+- **Replace-in-place paths** (`upsert: true`, fixed slug — org/team logos, app settings assets, GCash QR, marketing exports, property templates, generic `uploadService`/`storageUpload` helpers) → `cacheControl: '300'` (5 min). A long cache here would serve stale bytes after a re-upload to the same key.
+
+**Magic-byte MIME (doc 20):** `_shared/sniffMime.ts` (`assertMimeMatchesBytes`) is required on guest-document uploads (`uploadService.ts`) and booking-asset uploads (`bookingAssetUpload.ts`). Client `Content-Type` that does not match the file bytes is rejected.
+
+**SVG:** `image/svg+xml` is not an allowed property-gallery type (`propertyMedia.ts` server + client). Existing objects already in `property-media` are unchanged; new SVG uploads are rejected.
+
+**Signed-URL `Content-Disposition`**: `_shared/bookingDocumentShareToken.ts` (approved GAF/Pet PDFs, guest-facing durable share links) now passes `{ download: true }` to `createSignedUrl`, since these are always finished PDFs handed to guests as proof and never rendered inline.
+
+Deliberately **not** applied to `_shared/storageSignedUrl.ts` (`createSignedStorageUrlIfPrivate`, used by `get-form`), `get-booking-asset-url`, `get-org-verification-assets`, or `get-listing-authorization-assets`: these feed admin/guest UI that renders images and PDFs **inline** for review (`BookingDetailAssetPreviewModal.tsx`, `VerificationDocPreview.tsx`, `GuestAvatar.tsx`) — forcing `download: true` there would break that preview UX. A blanket disposition policy is wrong for this bucket set; any future change needs a per-consumer UI check first, not a mechanical sweep.
+
 **New-flow buckets (Phase 0):** `parking-endorsements`, `approved-gafs`, `approved-pet-forms`, `sd-refund-receipts`. Guest doc buckets + parking endorsements are private (cost-abuse Phase 2); admin PDF buckets were always private. Defined in `20260501000006`–`20260501000008` + `20261310120000` / `20261310120100`. See [[NEW_FLOW_PLAN|New Booking Flow — Implementation Plan]] §2 and **[[migration-runbook|Migration Runbook — New Booking Flow]] §1.1**.
 
 **Import uploads (Smart AI Data Importer):** **`import-uploads`** — private bucket, **`text/csv`** only, 15 MB file limit. Created in **`20261007120000_import_batches.sql`**. Objects at `{orgId}/{batchId}/{filename}`; written by **`import-parse-file`**, deleted by **`import-cancel`**. Service-role policy only — no guest or anon access.

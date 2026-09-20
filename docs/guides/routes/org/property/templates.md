@@ -2,18 +2,22 @@
 title: 'Property templates'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-25
+updated: 2026-09-20
 ---
 
 # Property templates
 
 Route: `/org/:orgSlug/property/:propertySlug/templates`
 
-> **Status:** Documented — admin UI, DB persistence, and workflow email sends shipped
+> **Status:** Documented — admin UI, DB persistence, workflow email sends, and custom template manual send shipped
 
 ## Purpose
 
-Each template card shows a **title**, **subtitle** (built-in description from the server registry; custom templates use a generic fallback), Edit/Preview tabs, WYSIWYG editor (white `bg-card` surface on light theme), placeholders, and reset-to-default. On phone, Edit/Preview and Placeholders/Reset/Save (and Delete for custom) are **icon-only** so the whole toolbar stays on one row; labels return from `sm` up.
+Each template card shows a **title**, **subtitle** (built-in description from the server registry; custom templates use a generic fallback), Edit/Preview tabs, WYSIWYG editor (white `bg-card` surface on light theme), placeholders, and reset-to-default. On phone, Edit/Preview and Placeholders/Send/Reset/Save (and Delete for custom) are **icon-only** so the whole toolbar stays on one row; labels return from `sm` up.
+
+**Custom templates → Send to guest (shipped):** Custom template cards show a **Send** icon button (next to Placeholders) once the saved content has no unsaved edits. It opens a dialog to search/pick a booking (guest name, date, or status) and sends that exact saved content to the booking's guest email immediately — not tied to booking status or an automation toggle, and no cooldown. Uses the same `renderPropertyTemplateSendEmail` shell as every other template send. Requires `bookings.detail.workflow:edit` (same leaf as the booking-detail manual workflow email resends). Skipped (with a toast) if the guest's email is on the suppression list. Emits `booking.custom_template_sent` to the org activity log on success (`booking` category, `metadata.template_key` / `template_name`).
+
+**Plans/RBAC decision (Send to guest):** No new `PlanFeatureKey` — a custom template only exists on Starter+ (creating one is already gated by `customTemplates`), so the send action inherits that gate transitively; a Free org has no custom template card to send from. No new permission leaf — reuses `bookings.detail.workflow:edit`, the same booking-mutation-adjacent leaf that already gates manual workflow email resends from the booking detail page.
 
 On **phone/tablet**, the page scrolls inside the section layout (`AdminSectionNavLayout` + `AdminMobilePage` flex height chain). Desktop keeps the sticky section sidebar + content scrollport.
 
@@ -44,7 +48,7 @@ Templates is where you customize the text guests and your team receive: stay gui
 - Q: Can I customize email templates on Free?
   A: You can open, edit, and reset them. Saving your changes requires Starter. Standard stay-guide templates can be edited and saved on Free.
 - Q: Do custom templates get sent automatically?
-  A: Not yet. Custom templates are saved for future use, but only the built-in standard and email templates are wired to guest-facing pages and automated sends today.
+  A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand — the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
 - Q: Why is Add Custom Template asking me to upgrade?
   A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy — Save just prompts you to upgrade.
 
@@ -52,19 +56,14 @@ Templates is where you customize the text guests and your team receive: stay gui
 
 ### Shipped
 
-| Layer              | Behavior                                                                                                                                                                                                             |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Admin UI**       | Load, edit, save, reset, custom create/delete, Edit/Preview, placeholders insert, image resize                                                                                                                       |
-| **Persistence**    | `property_template_contents` per `property_id` + `template_key`; optional **`section_image_url`** (standard only — uploaded from Stay Guide Page Editor); built-ins fall back to shipped defaults when no row exists |
-| **API**            | `GET/PATCH property-templates-settings`, `POST property-templates-preview`, `POST upload-property-template-asset` (section + inline images)                                                                          |
-| **Preview**        | Standard: client sample placeholders. Email: same send shell + `buildSampleDynamicSections()` as production                                                                                                          |
-| **Workflow sends** | `emailService.ts` → `renderPropertyTemplateSendEmail()` resolves DB/default body, substitutes plain + dynamic section placeholders, wraps in send shell                                                              |
-
-### Not wired
-
-| Area                 | Behavior                    |
-| -------------------- | --------------------------- |
-| **Custom templates** | Stored only; no send target |
+| Layer                           | Behavior                                                                                                                                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Admin UI**                    | Load, edit, save, reset, custom create/delete, Edit/Preview, placeholders insert, image resize                                                                                                                       |
+| **Persistence**                 | `property_template_contents` per `property_id` + `template_key`; optional **`section_image_url`** (standard only — uploaded from Stay Guide Page Editor); built-ins fall back to shipped defaults when no row exists |
+| **API**                         | `GET/PATCH property-templates-settings`, `POST property-templates-preview`, `POST upload-property-template-asset` (section + inline images)                                                                          |
+| **Preview**                     | Standard: client sample placeholders. Email: same send shell + `buildSampleDynamicSections()` as production                                                                                                          |
+| **Workflow sends**              | `emailService.ts` → `renderPropertyTemplateSendEmail()` resolves DB/default body, substitutes plain + dynamic section placeholders, wraps in send shell                                                              |
+| **Custom template manual send** | `POST send-property-custom-template-email` → `sendPropertyCustomTemplateEmail()` — booking picker dialog, on-demand send, no status/automation gate                                                                  |
 
 ### Standard templates → guest stay guide (shipped)
 
@@ -98,7 +97,7 @@ Static files under `email-templates/*.html` remain for reference; live sends use
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Standard | `house-rules`, `check-in-instructions`, `check-out-instructions`, `parking-reminders`                                                                                                      |
 | Email    | `email-gaf-request`, `email-pet-request`, `email-parking-request`, `email-new-booking-request`, `email-booking-acknowledgement`, `email-ready-for-checkin`, `email-sd-refund-form-request` |
-| Custom   | `custom-{uuid}` — operator-created; **stored for future use**                                                                                                                              |
+| Custom   | `custom-{uuid}` — operator-created; sent on demand to a picked booking's guest via **Send to guest**                                                                                       |
 
 Built-in defaults ship in `propertyTemplates.ts` on the server. Rows in `property_template_contents` override defaults per property.
 
@@ -174,6 +173,9 @@ Table **`property_template_contents`**: `property_id`, `template_key`, `category
 | Settings API                | `supabase/functions/property-templates-settings/index.ts`                                                                                                 |
 | Preview API                 | `supabase/functions/property-templates-preview/index.ts`                                                                                                  |
 | **Send path**               | `supabase/functions/_shared/emailService.ts` → `renderPropertyTemplateSendEmail()`                                                                        |
+| **Custom send dialog**      | `ui/src/features/dashboard/bookings/components/property-templates/SendCustomTemplateDialog.tsx`                                                           |
+| **Custom send hook**        | `ui/src/features/dashboard/bookings/hooks/usePropertyTemplates.ts` → `useSendPropertyCustomTemplateEmail()`                                               |
+| **Custom send API**         | `supabase/functions/send-property-custom-template-email/index.ts` → `sendPropertyCustomTemplateEmail()` (`_shared/emailService.ts`)                       |
 
 ## Dynamic branding (subjects, From, shell)
 
@@ -244,8 +246,9 @@ Implementation: **`guestContactInfo.ts`** (contact resolution), **`propertyTempl
 
 ## Testing
 
-| Layer | Path / spec                                                                       | Manual                   |
-| ----- | --------------------------------------------------------------------------------- | ------------------------ |
-| Unit  | Template placeholder normalization when pure helpers change                       | —                        |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`) | WYSIWYG save, email send |
-| N/A   | —                                                                                 | —                        |
+| Layer | Path / spec                                                                                                   | Manual                                                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Unit  | Template placeholder normalization when pure helpers change                                                   | —                                                                                  |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`)                             | WYSIWYG save, email send; asserts no console "duplicate" TipTap extension warnings |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "custom template sends to a picked booking" (`@ci`) | Send to guest: picker, POST `send-property-custom-template-email`, success toast   |
+| N/A   | —                                                                                                             | —                                                                                  |
