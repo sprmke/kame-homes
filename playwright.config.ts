@@ -13,6 +13,9 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  // 99 @smoke tests × 3 projects were serializing to 45+ min on GHA; parallelize files only.
+  workers: process.env.CI ? 4 : undefined,
+  globalTimeout: process.env.CI ? 45 * 60 * 1000 : undefined,
   reporter: process.env.CI ? [['html'], ['list']] : [['list']],
   outputDir: 'test-results/playwright',
   use: {
@@ -89,6 +92,19 @@ export default defineConfig({
     env: {
       // Guest form auto-fills random dev data when unset; keep E2E deterministic.
       VITE_NODE_ENV: 'production',
+      // ui/src/lib/supabase/client.ts calls createClient() at module load time, which
+      // throws synchronously ("supabaseUrl is required") on an empty string — crashing
+      // the whole SPA before any test can render a page. CI has no ui/.env (gitignored),
+      // so without a placeholder here every @smoke/@ci spec fails identically. Specs that
+      // exercise real Supabase calls mock those calls; this only needs to satisfy the
+      // client constructor, not point at a reachable project.
+      // Host must stay "127.0.0.1" (not e.g. "placeholder.supabase.co") — supabase-js
+      // derives the localStorage session key as `sb-${hostname.split('.')[0]}-auth-token`,
+      // and ui/e2e/shared/ids.ts#SUPABASE_AUTH_STORAGE_KEY hardcodes `sb-127-auth-token`
+      // to match local dev Supabase. A different hostname silently breaks every spec that
+      // seeds a session via seedSupabaseAuthSession (admin/dashboard smoke tests).
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321/functions/v1',
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key',
     },
   },
 });
