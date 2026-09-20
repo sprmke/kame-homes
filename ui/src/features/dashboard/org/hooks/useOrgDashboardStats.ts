@@ -6,9 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useOrgIdParam, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { resolveDashboardPeriod } from '@/features/dashboard/property/lib/dashboardPeriod';
-import { refetchIntervalWhenVisibleMs } from '@/lib/query/refetchWhenVisible';
 import type { DashboardStats } from '@/features/dashboard/property/lib/types';
 
+import { refetchIntervalWhenVisibleMs } from '@/lib/query/refetchWhenVisible';
 import { supabase } from '@/lib/supabase/client';
 
 const ORG_DASHBOARD_STATS_KEY = ['org-dashboard-stats'] as const;

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { SubscriptionUpgradeModal } from '@/features/dashboard/plans/components/SubscriptionUpgradeModal';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 import { registerUpgradeModalOpener } from '@/features/dashboard/plans/lib/upgradeModalBridge';
+
 import { captureAppEvent } from '@/lib/posthog/capture';
 
 type UpgradeModalContextValue = {

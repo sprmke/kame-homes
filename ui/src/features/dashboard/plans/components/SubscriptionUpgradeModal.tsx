@@ -7,13 +7,14 @@ import { PlanReviewDialog } from '@/features/dashboard/plans/components/PlanRevi
 import { useCreateOrgPlanCheckout, useOrgPlan } from '@/features/dashboard/plans/hooks/useOrgPlan';
 import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePropertyEntitlements';
 import { openOrgPlanCheckout } from '@/features/dashboard/plans/lib/openOrgPlanCheckout';
-import { captureAppEvent } from '@/lib/posthog/capture';
 import { isFeatureEnabled, type PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 import {
   resolveEffectiveCurrentPlan,
   resolveEffectiveCurrentPlanId,
   resolveUpgradePlanForFeature,
 } from '@/features/dashboard/plans/lib/planPresentation';
+
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 type Props = {
   open: boolean;

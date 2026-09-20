@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Car, Check, Home, Loader2 } from 'lucide-react';
 
 import { hostLoginPath } from '@/features/guest/auth/lib/hostAuthPaths';
-import { captureAppEvent } from '@/lib/posthog/capture';
+
 
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
@@ -101,6 +101,7 @@ import {
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 import {
   validateFullPersonName,

@@ -6,7 +6,6 @@ import type { PropertyMediaItem } from '@/features/dashboard/org/lib/propertySet
 
 import { UPLOAD_MAX_BYTES } from '@/lib/media/uploadLimits';
 
-
 export const MAX_PROPERTY_IMAGES = 9;
 export const MAX_PROPERTY_VIDEOS = 1;
 
@@ -24,10 +23,12 @@ export type PropertyMediaUploadKind = 'image' | 'video';
 
 export function classifyPropertyMediaFile(file: File): PropertyMediaUploadKind | null {
   const mime = (file.type || '').trim().toLowerCase();
+  if (mime === 'image/svg+xml') return null;
   if (mime.startsWith('image/')) return 'image';
   if (mime.startsWith('video/')) return 'video';
   const name = file.name.toLowerCase();
-  if (/\.(jpe?g|png|webp|gif|heic|heif|bmp|tiff?|avif|svg)$/.test(name)) {
+  if (name.endsWith('.svg')) return null;
+  if (/\.(jpe?g|png|webp|gif|heic|heif|bmp|tiff?|avif)$/.test(name)) {
     return 'image';
   }
   if (/\.(mp4|webm|mov|avi|mkv|ogv|mpeg|mpg)$/.test(name)) return 'video';

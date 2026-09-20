@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { Share2 } from 'lucide-react';
 
@@ -31,6 +31,7 @@ export function PropertySocialsSection({
   onChange,
   sectionMessages,
   embedded = false,
+  headerAction,
 }: {
   data: Pick<AppSettingsDto, 'updatedAt'>;
   draft: Pick<
@@ -47,6 +48,8 @@ export function PropertySocialsSection({
   ) => void;
   sectionMessages: Partial<Record<PropertySettingsSectionId, string>>;
   embedded?: boolean;
+  /** Public Pages cross-link shown in the card header (Settings page only). */
+  headerAction?: ReactNode;
 }) {
   const [socialLinkModes, setSocialLinkModes] = useState<Record<SocialLinkKey, SocialLinkMode>>(
     () => socialLinkModesFromDraft(draft)
@@ -92,7 +95,7 @@ export function PropertySocialsSection({
       {socialsBody}
     </div>
   ) : (
-    <AdminSection id="branding" title="Socials" icon={Share2}>
+    <AdminSection id="branding" title="Socials" icon={Share2} headerAction={headerAction}>
       {propertySettingsSectionBanner('branding', sectionMessages) ? (
         <PropertySettingsSectionAlert
           message={propertySettingsSectionBanner('branding', sectionMessages)!}

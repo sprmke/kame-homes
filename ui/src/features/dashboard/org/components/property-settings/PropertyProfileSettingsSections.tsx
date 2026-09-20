@@ -30,6 +30,8 @@ import {
   PropertySettingsSectionAlert,
   SettingsField,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import { PublicPagesCrossLink } from '@/features/dashboard/org/components/property-settings/PublicPagesCrossLink';
+import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { TowerUnitConflictAlert } from '@/features/dashboard/org/components/TowerUnitConflictAlert';
 import { useResidenceUnitTypes } from '@/features/dashboard/org/hooks/useResidenceUnitTypes';
@@ -163,6 +165,13 @@ export function PropertyProfileMainSections({
   const fieldError = resolveFieldError;
   const lock = (sectionId: PropertySettingsSectionId) =>
     disabled || Boolean(sectionEditLocked[sectionId]);
+
+  /** Shown only on the full Settings page (not Setup Guide's embedded/inline mode). */
+  const orgContext = useOptionalOrgContext();
+  const publicPagesCrossLink =
+    !embedded && orgContext ? (
+      <PublicPagesCrossLink orgSlug={orgContext.orgSlug} propertySlug={orgContext.propertySlug} />
+    ) : null;
 
   const setField = <K extends keyof PropertyProfileDraft>(
     key: K,
@@ -709,6 +718,7 @@ export function PropertyProfileMainSections({
           title="Photos & Videos"
           icon={ImageIcon}
           description="Listing photos and videos."
+          headerAction={publicPagesCrossLink}
         >
           {propertySettingsSectionBanner('media', sectionMessages) ? (
             <PropertySettingsSectionAlert
@@ -731,6 +741,7 @@ export function PropertyProfileMainSections({
           title="Amenities"
           icon={Sparkles}
           description="What's included with the stay."
+          headerAction={publicPagesCrossLink}
         >
           {propertySettingsSectionBanner('amenities', sectionMessages) ? (
             <PropertySettingsSectionAlert
@@ -742,44 +753,46 @@ export function PropertyProfileMainSections({
               open
               onOpenChange={() => undefined}
               inline
-            enabledAmenities={draft.enabledAmenities}
-            customAmenities={draft.customAmenities}
-            newCustomAmenityInputs={newCustomAmenityInputs}
-            onNewCustomAmenityInputChange={onNewCustomAmenityInputChange}
-            onToggleAmenity={toggleAmenity}
-            onAddCustomAmenity={addCustomAmenity}
-            onRemoveCustomAmenity={removeCustomAmenity}
-            disabled={lock('amenities')}
-                      />
+              enabledAmenities={draft.enabledAmenities}
+              customAmenities={draft.customAmenities}
+              newCustomAmenityInputs={newCustomAmenityInputs}
+              onNewCustomAmenityInputChange={onNewCustomAmenityInputChange}
+              onToggleAmenity={toggleAmenity}
+              onAddCustomAmenity={addCustomAmenity}
+              onRemoveCustomAmenity={removeCustomAmenity}
+              disabled={lock('amenities')}
+            />
           ) : (
             <>
-          <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-            <p className="min-w-0 text-xs font-medium sm:text-sm">
-              {draft.enabledAmenities.length} amenities selected
-              {draft.customAmenities.length > 0 ? ` · ${draft.customAmenities.length} custom` : ''}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="settings-action"
-              onClick={() => setAmenitiesManageOpen(true)}
-            >
-              Manage
-            </Button>
-          </div>
-          <PropertyAmenitiesManageDialog
-            open={amenitiesManageOpen}
-            onOpenChange={setAmenitiesManageOpen}
-            enabledAmenities={draft.enabledAmenities}
-            customAmenities={draft.customAmenities}
-            newCustomAmenityInputs={newCustomAmenityInputs}
-            onNewCustomAmenityInputChange={onNewCustomAmenityInputChange}
-            onToggleAmenity={toggleAmenity}
-            onAddCustomAmenity={addCustomAmenity}
-            onRemoveCustomAmenity={removeCustomAmenity}
-            disabled={lock('amenities')}
-          />
+              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
+                <p className="min-w-0 text-xs font-medium sm:text-sm">
+                  {draft.enabledAmenities.length} amenities selected
+                  {draft.customAmenities.length > 0
+                    ? ` · ${draft.customAmenities.length} custom`
+                    : ''}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="settings-action"
+                  onClick={() => setAmenitiesManageOpen(true)}
+                >
+                  Manage
+                </Button>
+              </div>
+              <PropertyAmenitiesManageDialog
+                open={amenitiesManageOpen}
+                onOpenChange={setAmenitiesManageOpen}
+                enabledAmenities={draft.enabledAmenities}
+                customAmenities={draft.customAmenities}
+                newCustomAmenityInputs={newCustomAmenityInputs}
+                onNewCustomAmenityInputChange={onNewCustomAmenityInputChange}
+                onToggleAmenity={toggleAmenity}
+                onAddCustomAmenity={addCustomAmenity}
+                onRemoveCustomAmenity={removeCustomAmenity}
+                disabled={lock('amenities')}
+              />
             </>
           )}
         </AdminSection>
@@ -791,52 +804,53 @@ export function PropertyProfileMainSections({
           title="House Rules"
           icon={ListChecks}
           description="Rules guests see before they book."
+          headerAction={publicPagesCrossLink}
         >
           {embedded ? (
             <PropertyHouseRulesManageDialog
               open
               onOpenChange={() => undefined}
               inline
-            enabledHouseRules={draft.enabledHouseRules}
-            customHouseRules={draft.customHouseRules}
-            newCustomHouseRuleInputs={newCustomHouseRuleInputs}
-            onNewCustomHouseRuleInputChange={onNewCustomHouseRuleInputChange}
-            onToggleHouseRule={toggleHouseRule}
-            onAddCustomHouseRule={addCustomHouseRule}
-            onRemoveCustomHouseRule={removeCustomHouseRule}
-            disabled={lock('house-rules')}
-                      />
+              enabledHouseRules={draft.enabledHouseRules}
+              customHouseRules={draft.customHouseRules}
+              newCustomHouseRuleInputs={newCustomHouseRuleInputs}
+              onNewCustomHouseRuleInputChange={onNewCustomHouseRuleInputChange}
+              onToggleHouseRule={toggleHouseRule}
+              onAddCustomHouseRule={addCustomHouseRule}
+              onRemoveCustomHouseRule={removeCustomHouseRule}
+              disabled={lock('house-rules')}
+            />
           ) : (
             <>
-          <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-            <p className="min-w-0 text-xs font-medium sm:text-sm">
-              {draft.enabledHouseRules.length} rules selected
-              {draft.customHouseRules.length > 0
-                ? ` · ${draft.customHouseRules.length} custom`
-                : ''}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="settings-action"
-              onClick={() => setHouseRulesManageOpen(true)}
-            >
-              Manage
-            </Button>
-          </div>
-          <PropertyHouseRulesManageDialog
-            open={houseRulesManageOpen}
-            onOpenChange={setHouseRulesManageOpen}
-            enabledHouseRules={draft.enabledHouseRules}
-            customHouseRules={draft.customHouseRules}
-            newCustomHouseRuleInputs={newCustomHouseRuleInputs}
-            onNewCustomHouseRuleInputChange={onNewCustomHouseRuleInputChange}
-            onToggleHouseRule={toggleHouseRule}
-            onAddCustomHouseRule={addCustomHouseRule}
-            onRemoveCustomHouseRule={removeCustomHouseRule}
-            disabled={lock('house-rules')}
-          />
+              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
+                <p className="min-w-0 text-xs font-medium sm:text-sm">
+                  {draft.enabledHouseRules.length} rules selected
+                  {draft.customHouseRules.length > 0
+                    ? ` · ${draft.customHouseRules.length} custom`
+                    : ''}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="settings-action"
+                  onClick={() => setHouseRulesManageOpen(true)}
+                >
+                  Manage
+                </Button>
+              </div>
+              <PropertyHouseRulesManageDialog
+                open={houseRulesManageOpen}
+                onOpenChange={setHouseRulesManageOpen}
+                enabledHouseRules={draft.enabledHouseRules}
+                customHouseRules={draft.customHouseRules}
+                newCustomHouseRuleInputs={newCustomHouseRuleInputs}
+                onNewCustomHouseRuleInputChange={onNewCustomHouseRuleInputChange}
+                onToggleHouseRule={toggleHouseRule}
+                onAddCustomHouseRule={addCustomHouseRule}
+                onRemoveCustomHouseRule={removeCustomHouseRule}
+                disabled={lock('house-rules')}
+              />
             </>
           )}
         </AdminSection>
@@ -859,6 +873,7 @@ export function PropertyProfileMainSections({
           resolveFieldError={fieldError}
           markFieldInteracted={markFieldInteracted}
           onChange={(policy) => onChange('cancellationPolicy', policy)}
+          headerAction={publicPagesCrossLink}
         />
       ) : null}
 
@@ -870,7 +885,7 @@ export function PropertyProfileMainSections({
           description="Address and map pin."
         >
           <PropertyLocationSettingsBlock
-          embedded={embedded}
+            embedded={embedded}
             disabled={lock('location')}
             persistPending={locationPersistPending}
             onFieldInteract={markFieldInteracted}

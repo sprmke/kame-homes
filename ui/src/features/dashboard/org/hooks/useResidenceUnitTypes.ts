@@ -27,5 +27,8 @@ export function useResidenceUnitTypes(residenceName: string) {
       }
     },
     placeholderData: () => defaultUnitTypesForResidence(normalized),
+    // Matches the server's `publicStatic` class (max-age=300) — reference-data
+    // vocabulary that only changes on a super-admin development edit. Doc 11 Phase 11.6.
+    staleTime: 5 * 60_000,
   });
 }
