@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
-import Underline from '@tiptap/extension-underline';
 import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -44,6 +42,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { sanitizeRichTextHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
 
 export const PROPERTY_TEMPLATE_RICH_TEXT_CLASS = 'property-template-rich-text';
@@ -822,6 +821,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             heading: { levels: [1, 2, 3] },
             bulletList: { keepMarks: true, keepAttributes: false },
             orderedList: { keepMarks: true, keepAttributes: false },
+            link: { openOnClick: false },
           }),
           Placeholder.configure({
             placeholder,
@@ -841,8 +841,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
               alwaysPreserveAspectRatio: true,
             },
           }),
-          Link.configure({ openOnClick: false }),
-          Underline,
           TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
         content,
@@ -935,7 +933,7 @@ export function RichTextDisplay({
       <style>{richTextStyles}</style>
       <div
         className={cn(PROPERTY_TEMPLATE_RICH_TEXT_CLASS, 'px-3 py-2.5 sm:px-4 sm:py-3', className)}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(html) }}
       />
     </>
   );

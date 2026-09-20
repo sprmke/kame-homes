@@ -21,6 +21,7 @@ import { bookingListDisplayName } from '@/features/dashboard/bookings/lib/bookin
 import type { BookingRow, BookingsSort } from '@/features/dashboard/bookings/lib/types';
 
 import { BookingsTableSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
 
@@ -49,6 +50,7 @@ export function BookingTable({
   resolveBookingHref,
 }: Props) {
   const navigate = useNavigate();
+  const showLoadingSkeleton = useDelayedLoading(isLoading);
 
   const openRow = (row: BookingRow) => {
     navigate(resolveBookingHref ? resolveBookingHref(row) : `/bookings/${row.id}`);
@@ -68,7 +70,10 @@ export function BookingTable({
     );
   }
 
-  if (isLoading) return <BookingsTableSkeleton />;
+  if (isLoading) {
+    if (!showLoadingSkeleton) return null;
+    return <BookingsTableSkeleton />;
+  }
 
   if (rows.length === 0) {
     return (

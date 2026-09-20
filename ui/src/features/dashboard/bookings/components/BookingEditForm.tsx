@@ -291,7 +291,13 @@ export function BookingEditForm({
     defaultValues: bookingToEditFormValues(booking),
   });
 
-  /** `useWatch` subscribes reliably; bare `watch()` here did not always re-render on edits. */
+  /**
+   * `useWatch` subscribes reliably; bare `watch()` here did not always re-render on edits.
+   * Deliberately whole-form: `bookingEditPayloadFromValues`/the sensitive-field diff below
+   * read nearly every field, so a narrower `name` list would have to be kept in exact sync
+   * with that payload shape — the same class of drift as the `compareFormData` /
+   * `petType` sharp edge already documented in CLAUDE.md. Kept broad on purpose.
+   */
   const formSnapshot = useWatch({ control }) as FormValues;
   const watchParking = !!formSnapshot?.need_parking;
   const watchPets = !!formSnapshot?.has_pets;

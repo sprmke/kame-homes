@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { Braces, Eye, Pencil, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Braces, Eye, Pencil, RotateCcw, Save, Send, Trash2 } from 'lucide-react';
 
 import { extractLeadingSectionHeading } from '@/features/guest/stay-guide/lib/stayGuideContent';
 
@@ -11,6 +11,7 @@ import {
   richTextChromeIconButtonClassName,
   type RichTextEditorHandle,
 } from '@/features/dashboard/bookings/components/property-templates/RichTextEditor';
+import { SendCustomTemplateDialog } from '@/features/dashboard/bookings/components/property-templates/SendCustomTemplateDialog';
 import { TemplateSectionImageField } from '@/features/dashboard/bookings/components/property-templates/TemplateSectionImageField';
 import {
   usePropertyTemplatePreview,
@@ -107,6 +108,7 @@ export function PropertyTemplateEditorCard({
   const [resetOpen, setResetOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [placeholdersOpen, setPlaceholdersOpen] = React.useState(false);
+  const [sendOpen, setSendOpen] = React.useState(false);
   const editorRef = React.useRef<RichTextEditorHandle>(null);
   const previewIframeRef = React.useRef<HTMLIFrameElement>(null);
   const { mutateAsync: fetchPreview, isPending: previewPending } = usePropertyTemplatePreview();
@@ -315,6 +317,20 @@ export function PropertyTemplateEditorCard({
                   <Braces className="size-3.5 shrink-0" aria-hidden />
                   <span className="hidden text-xs font-semibold sm:inline">Placeholders</span>
                 </Button>
+                {isCustom && !hasChanges ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    className={editorChromeActionClassName}
+                    onClick={() => setSendOpen(true)}
+                    aria-label="Send to guest"
+                    title="Send to guest"
+                  >
+                    <Send className="size-3.5 shrink-0" aria-hidden />
+                    <span className="hidden text-xs font-semibold sm:inline">Send</span>
+                  </Button>
+                ) : null}
                 {!isCustom && onReset ? (
                   <Button
                     type="button"
@@ -457,6 +473,15 @@ export function PropertyTemplateEditorCard({
           sampleVars={PROPERTY_TEMPLATE_SAMPLE_VARS}
           onInsertToken={handleInsertPlaceholder}
         />
+
+        {isCustom ? (
+          <SendCustomTemplateDialog
+            templateKey={template.templateKey}
+            templateName={template.name}
+            open={sendOpen}
+            onOpenChange={setSendOpen}
+          />
+        ) : null}
       </CardContent>
 
       <ResponsiveModal

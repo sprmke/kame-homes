@@ -31,6 +31,8 @@ export type TelegramMarketingSettingsDto = {
     tokenSource: 'db' | 'none';
     chatIdSource: 'db' | 'none';
     secretsEncryptionConfigured: boolean;
+    botToken?: string | null;
+    chatId?: string | null;
   };
 };
 

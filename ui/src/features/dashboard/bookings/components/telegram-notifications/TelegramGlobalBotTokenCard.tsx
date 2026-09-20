@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { telegramBotTokenPlaceholder } from '@/features/dashboard/bookings/components/telegram-notifications/telegramCredentials';
 import { TelegramSecretInput } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramSecretInput';
+import { useFirstConnectedTelegramModuleToken } from '@/features/dashboard/bookings/hooks/useFirstConnectedTelegramModuleToken';
 import { useTelegramBotDisplayLabel } from '@/features/dashboard/bookings/hooks/useTelegramBotDisplayLabel';
 import {
   useTelegramGlobalBotToken,
@@ -22,6 +23,7 @@ export function TelegramGlobalBotTokenCard() {
   const save = useUpdateTelegramGlobalBotToken();
   const verify = useVerifyTelegramGlobalBotToken();
   const [botToken, setBotToken] = React.useState('');
+  const connectedModule = useFirstConnectedTelegramModuleToken();
 
   const serverToken = data?.botToken ?? '';
   const { label, isResolving } = useTelegramBotDisplayLabel(botToken);
@@ -34,6 +36,8 @@ export function TelegramGlobalBotTokenCard() {
   const trimmed = botToken.trim();
   const dirty = trimmed !== serverToken.trim();
   const saved = Boolean(data?.tokenConfigured) && !dirty && Boolean(trimmed);
+  const showModuleSuggestion =
+    !isLoading && !busy && !trimmed && !dirty && Boolean(connectedModule);
 
   const onSaveAndTest = () => {
     if (!trimmed) {
@@ -116,6 +120,16 @@ export function TelegramGlobalBotTokenCard() {
                 {actionLabel}
               </Button>
             )}
+
+            {showModuleSuggestion && connectedModule ? (
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground -mt-1 w-fit py-2 text-left text-sm underline underline-offset-4 md:col-span-2"
+                onClick={() => setBotToken(connectedModule.token)}
+              >
+                Use the token from {connectedModule.moduleLabel} notifications
+              </button>
+            ) : null}
           </div>
         )}
       </CardContent>

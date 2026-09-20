@@ -196,6 +196,38 @@ export function usePropertyTemplateMutations() {
   return { saveTemplate, resetTemplate, createCustomTemplate, deleteCustomTemplate };
 }
 
+/** Manual send of a saved custom template to a booking's guest. */
+export function useSendPropertyCustomTemplateEmail() {
+  const propertyId = usePropertyIdParam();
+
+  return useMutation({
+    mutationFn: async (input: {
+      bookingId: string;
+      templateKey: string;
+    }): Promise<{ bookingId: string; templateKey: string }> => {
+      const headers = await authHeaders();
+      const res = await fetch(
+        scopedFunctionsUrl('/send-property-custom-template-email', propertyId),
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(input),
+        }
+      );
+      const json = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+        bookingId?: string;
+        templateKey?: string;
+      };
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? 'Failed to send template');
+      }
+      return { bookingId: input.bookingId, templateKey: input.templateKey };
+    },
+  });
+}
+
 export function usePropertyTemplatePreview() {
   const propertyId = usePropertyIdParam();
 
