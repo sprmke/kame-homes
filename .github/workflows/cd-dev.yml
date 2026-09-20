@@ -179,6 +179,13 @@ jobs:
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          PREVIEW_URL=https://dev.kamehomes.space \
-          HEALTH_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/get-health" \
-          bun run verify:deployed-preview
+          export PREVIEW_URL=https://dev.kamehomes.space
+          export HEALTH_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/get-health"
+          for attempt in $(seq 1 12); do
+            if bun run verify:deployed-preview; then
+              exit 0
+            fi
+            echo "verify:deployed-preview attempt ${attempt}/12 failed (Vercel may still be building); sleeping 30s"
+            sleep 30
+          done
+          exit 1
