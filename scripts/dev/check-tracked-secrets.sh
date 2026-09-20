@@ -29,7 +29,7 @@ paths=(
   '.github'
 )
 
-matches=$(git grep -nE -- "$regex" -- "${paths[@]}" \
+matches=$(git grep -nE -I -- "$regex" -- "${paths[@]}" \
   ':(exclude)*.lock' \
   ':(exclude)docs/workflow/planned/production-readiness-checklist/baselines/*' \
   ':(exclude)supabase/snippets/*' \
