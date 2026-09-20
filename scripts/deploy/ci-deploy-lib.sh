@@ -77,3 +77,50 @@ ci_deploy_require_env() {
     exit 1
   fi
 }
+
+# When SUPABASE_ANON_KEY is unset, resolve the publishable anon key via Management API
+# (needs SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF). Public key; not a privilege boundary.
+ci_deploy_ensure_anon_key() {
+  if [[ -n "${SUPABASE_ANON_KEY:-}" ]]; then
+    return 0
+  fi
+  if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" || -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+    echo "ERROR: SUPABASE_ANON_KEY is not set and cannot be resolved (need SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF)." >&2
+    echo "Add secret SUPABASE_ANON_KEY to GitHub Environment development — docs/archive/operations/github-environments-setup.md" >&2
+    exit 1
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required to resolve SUPABASE_ANON_KEY from the Management API." >&2
+    exit 1
+  fi
+  local url="https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/api-keys"
+  local resp
+  if ! resp="$(curl -sS -f -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" -H "Accept: application/json" "$url")"; then
+    echo "ERROR: Management API request for anon key failed." >&2
+    echo "Set GitHub secret SUPABASE_ANON_KEY — docs/archive/operations/github-environments-setup.md" >&2
+    exit 1
+  fi
+  SUPABASE_ANON_KEY="$(jq -r '[.[] | select(.name == "anon" or .name == "anon_key") | .api_key] | first // empty' <<<"$resp")"
+  if [[ -z "$SUPABASE_ANON_KEY" ]]; then
+    echo "ERROR: anon key not found in Management API response." >&2
+    exit 1
+  fi
+  export SUPABASE_ANON_KEY
+  echo "Resolved SUPABASE_ANON_KEY via Supabase Management API."
+}
+
+# Stable dev property for post-deploy GET smoke when SMOKE_PROPERTY_SLUG is unset.
+ci_deploy_default_smoke_property_slug() {
+  local target="$1"
+  if [[ -n "${SMOKE_PROPERTY_SLUG:-}" ]]; then
+    return 0
+  fi
+  if [[ "$target" == "dev" ]]; then
+    SMOKE_PROPERTY_SLUG="solea-mactan"
+    export SMOKE_PROPERTY_SLUG
+    echo "SMOKE_PROPERTY_SLUG unset — using default dev slug: solea-mactan"
+    return 0
+  fi
+  echo "ERROR: required env var SMOKE_PROPERTY_SLUG is not set (prod requires an explicit slug)." >&2
+  exit 1
+}

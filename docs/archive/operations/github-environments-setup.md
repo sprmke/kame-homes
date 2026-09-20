@@ -46,18 +46,18 @@ _(Not named `develop` — that is the git branch.)_
 
 Add **Environment secrets**:
 
-| Secret                    | Value                                                                                   |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`   | Supabase PAT ([Account → Access Tokens](https://supabase.com/dashboard/account/tokens)) |
-| `SUPABASE_PROJECT_REF`    | `fworvijbrwpyngycotbz`                                                                  |
-| `SUPABASE_DB_PASSWORD`    | Database password used by linked CLI migration commands                                 |
-| `SUPABASE_ANON_KEY`       | Dev project anon key used by post-deploy public endpoint smoke tests                    |
-| `DEV_DB_URL`              | Session-pooler URI used for complete auth/storage/cron backup                           |
-| `LEGACY_PROD_PROJECT_REF` | `zfttdwtceyqszyeyhilc`                                                                  |
+| Secret                    | Value                                                                                                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`   | Supabase PAT ([Account → Access Tokens](https://supabase.com/dashboard/account/tokens))                                                                               |
+| `SUPABASE_PROJECT_REF`    | `fworvijbrwpyngycotbz`                                                                                                                                                |
+| `SUPABASE_DB_PASSWORD`    | Database password used by linked CLI migration commands                                                                                                               |
+| `SUPABASE_ANON_KEY`       | Dev anon key for post-deploy smoke + adversarial tests. **Optional** if `SUPABASE_ACCESS_TOKEN` can call the Management API (`ci-smoke.sh` resolves anon when unset). |
+| `DEV_DB_URL`              | Session-pooler URI used for complete auth/storage/cron backup                                                                                                         |
+| `LEGACY_PROD_PROJECT_REF` | `zfttdwtceyqszyeyhilc`                                                                                                                                                |
 
 **Do not** add these to Vercel — the SPA needs **`VITE_*`** vars on Vercel Preview instead.
 
-Add environment variable `SMOKE_PROPERTY_SLUG` with a stable active dev property.
+Add environment variable `SMOKE_PROPERTY_SLUG` with a stable active dev property (e.g. `solea-mactan`). When unset, `ci-smoke.sh dev` defaults to `solea-mactan`.
 
 ---
 

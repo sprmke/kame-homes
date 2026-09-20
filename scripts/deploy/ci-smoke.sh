@@ -35,8 +35,8 @@ fi
 
 ci_deploy_require_env SUPABASE_ACCESS_TOKEN
 ci_deploy_require_env SUPABASE_PROJECT_REF
-ci_deploy_require_env SUPABASE_ANON_KEY
-ci_deploy_require_env SMOKE_PROPERTY_SLUG
+ci_deploy_ensure_anon_key
+ci_deploy_default_smoke_property_slug "$TARGET"
 
 if [[ "$TARGET" == "dev" && -n "${LEGACY_PROD_PROJECT_REF:-}" ]]; then
   ci_deploy_assert_not_legacy_ref "$SUPABASE_PROJECT_REF" "$LEGACY_PROD_PROJECT_REF"
