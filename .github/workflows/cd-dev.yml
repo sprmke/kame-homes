@@ -196,6 +196,10 @@ jobs:
         env:
           DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
         run: |
+          if [[ -z "${DEV_DB_URL:-}" ]]; then
+            echo "::warning title=pg_stat skipped (doc 00)::Set DEV_DB_URL on GitHub Environment development — docs/archive/operations/github-environments-setup.md"
+            exit 0
+          fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
           bash scripts/performance/capture-pg-stat-statements.sh hosted-dev-ci
