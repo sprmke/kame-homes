@@ -362,15 +362,20 @@ servePublic('list-public-developments', async (req) => {
       };
     });
 
-    return jsonResponse(req, {
-      success: true,
-      data,
-      total,
-      facets,
-      page: effectivePage,
-      pageSize: effectivePageSize,
-      ...(mapMode ? { mapMode: true } : {}),
-    });
+    return jsonResponse(
+      req,
+      {
+        success: true,
+        data,
+        total,
+        facets,
+        page: effectivePage,
+        pageSize: effectivePageSize,
+        ...(mapMode ? { mapMode: true } : {}),
+      },
+      200,
+      'publicDynamic'
+    );
   } catch (error) {
     console.error('[list-public-developments]', error);
     return jsonError(req, 'Failed to list developments', 500);

@@ -17,7 +17,6 @@ servePublic('get-public-host', async (req) => {
     return jsonError(req, `Method ${req.method} not allowed`, 405);
   }
 
-
   const limited = await publicGetRateLimitGate(req, 'get-public-host');
   if (limited) return limited;
 
@@ -31,5 +30,7 @@ servePublic('get-public-host', async (req) => {
     return jsonError(req, 'Host not found', 404);
   }
 
-  return jsonSuccess(req, profile);
+  // Public dynamic — no ETag: `loadPublicHostByOrgSlug` not audited here for
+  // embedded Storage signed URLs (doc 11 Phase 11.3 edge case).
+  return jsonSuccess(req, profile, undefined, 'publicDynamic');
 });

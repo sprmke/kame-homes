@@ -38,5 +38,8 @@ servePublic('get-public-property', async (req) => {
     return jsonError(req, 'Property not found', 404);
   }
 
-  return jsonSuccess(req, detail);
+  // Public dynamic — no ETag: `loadPublicPropertyById`/`BySlug` are not audited
+  // here for embedded Storage signed URLs, and a mismatched ETag on a signed-URL
+  // payload is worse than no ETag (doc 11 Phase 11.3 edge case).
+  return jsonSuccess(req, detail, undefined, 'publicDynamic');
 });

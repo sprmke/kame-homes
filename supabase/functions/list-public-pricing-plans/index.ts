@@ -10,7 +10,7 @@ import {
   normalizePlanDiscountPercent,
   normalizeVolumeDiscountTiers,
 } from '../_shared/planPricing.ts';
-import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
+import { jsonError, jsonSuccessWithETag, requireHttpMethod } from '../_shared/httpResponse.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 
@@ -35,7 +35,6 @@ function serializePlan(row: Record<string, unknown>) {
 servePublic('list-public-pricing-plans', async (req) => {
   requireHttpMethod(req, 'GET');
 
-
   const limited = await publicGetRateLimitGate(req, 'list-public-pricing-plans');
   if (limited) return limited;
   const supabase = createServiceClient();
@@ -51,7 +50,11 @@ servePublic('list-public-pricing-plans', async (req) => {
 
   if (error) return jsonError(req, error.message, 500);
 
-  return jsonSuccess(req, {
-    plans: (data ?? []).map((row) => serializePlan(row as Record<string, unknown>)),
-  });
+  // Plan catalog — changes only on a super-admin edit. Public static class + ETag
+  // (payload has no timestamp/signed URL, safe to hash).
+  return jsonSuccessWithETag(
+    req,
+    { plans: (data ?? []).map((row) => serializePlan(row as Record<string, unknown>)) },
+    'publicStatic'
+  );
 });

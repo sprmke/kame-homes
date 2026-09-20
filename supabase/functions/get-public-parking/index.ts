@@ -29,5 +29,7 @@ servePublic('get-public-parking', async (req) => {
     return jsonError(req, 'Parking not found', 404);
   }
 
-  return jsonSuccess(req, detail);
+  // Public dynamic — no ETag: `loadPublicParkingBySlug` not audited here for
+  // embedded Storage signed URLs (doc 11 Phase 11.3 edge case).
+  return jsonSuccess(req, detail, undefined, 'publicDynamic');
 });

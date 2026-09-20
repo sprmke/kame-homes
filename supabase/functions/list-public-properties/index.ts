@@ -153,7 +153,6 @@ servePublic('list-public-properties', async (req) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-
   const limited = await publicGetRateLimitGate(req, 'list-public-properties');
   if (limited) return limited;
 
@@ -465,7 +464,7 @@ servePublic('list-public-properties', async (req) => {
         type: propertyTypeLabel(summary.type),
         location: summary.locationLabel,
         price: summary.price ?? row.price,
-        rating: summary.rating ?? 0,
+        rating: summary.reviewCount > 0 ? summary.rating : null,
         reviews: summary.reviewCount,
         images:
           summary.images.length > 0
@@ -489,15 +488,20 @@ servePublic('list-public-properties', async (req) => {
       };
     });
 
-    return jsonResponse(req, {
-      success: true,
-      data,
-      total,
-      facets,
-      page: effectivePage,
-      pageSize: effectivePageSize,
-      ...(mapMode ? { mapMode: true } : {}),
-    });
+    return jsonResponse(
+      req,
+      {
+        success: true,
+        data,
+        total,
+        facets,
+        page: effectivePage,
+        pageSize: effectivePageSize,
+        ...(mapMode ? { mapMode: true } : {}),
+      },
+      200,
+      'publicDynamic'
+    );
   } catch (error) {
     console.error('[list-public-properties]', error);
     return jsonError(req, 'Failed to list properties', 500);

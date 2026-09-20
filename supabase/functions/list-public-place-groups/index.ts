@@ -101,8 +101,6 @@ function titleForFamily(family: ListingFamily, place: string): string {
 servePublic('list-public-place-groups', async (req) => {
   if (req.method !== 'GET') return jsonError(req, 'Method not allowed', 405);
 
-
-
   const limited = await publicGetRateLimitGate(req, 'list-public-place-groups');
   if (limited) return limited;
   const url = new URL(req.url);
@@ -245,7 +243,7 @@ servePublic('list-public-place-groups', async (req) => {
           type: propertyTypeLabel(summary.type),
           location: summary.locationLabel,
           price: summary.price ?? 2799,
-          rating: summary.rating ?? 0,
+          rating: summary.reviewCount > 0 ? summary.rating : null,
           reviews: summary.reviewCount,
           images:
             summary.images.length > 0
@@ -410,15 +408,20 @@ servePublic('list-public-place-groups', async (req) => {
         .filter((row): row is Record<string, unknown> => Boolean(row)),
     }));
 
-    return jsonResponse(req, {
-      success: true,
-      groups,
-      total: rawRows.length,
-      groupTotal: allGroups.length,
-      groupOffset,
-      groupLimit,
-      previewSize,
-    });
+    return jsonResponse(
+      req,
+      {
+        success: true,
+        groups,
+        total: rawRows.length,
+        groupTotal: allGroups.length,
+        groupOffset,
+        groupLimit,
+        previewSize,
+      },
+      200,
+      'publicDynamic'
+    );
   } catch (error) {
     console.error('[list-public-place-groups]', error);
     return jsonError(req, 'Failed to list places', 500);

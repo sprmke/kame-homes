@@ -358,15 +358,20 @@ servePublic('list-public-parkings', async (req) => {
       };
     });
 
-    return jsonResponse(req, {
-      success: true,
-      data,
-      total,
-      facets,
-      page: effectivePage,
-      pageSize: effectivePageSize,
-      ...(mapMode ? { mapMode: true } : {}),
-    });
+    return jsonResponse(
+      req,
+      {
+        success: true,
+        data,
+        total,
+        facets,
+        page: effectivePage,
+        pageSize: effectivePageSize,
+        ...(mapMode ? { mapMode: true } : {}),
+      },
+      200,
+      'publicDynamic'
+    );
   } catch (error) {
     console.error('[list-public-parkings]', error);
     return jsonError(req, 'Failed to list parkings', 500);
