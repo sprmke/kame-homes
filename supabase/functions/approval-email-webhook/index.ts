@@ -1,5 +1,11 @@
 /**
- * approval-email-webhook — Resend inbound `email.received` for Azure GAF/pet approvals.
+ * approval-email-webhook — Resend webhook receiver.
+ *
+ * Handles two event families:
+ *   - `email.received` — Azure GAF/pet approvals (plus-address routing).
+ *   - `email.bounced` / `email.complained` — recorded to `email_suppressions`
+ *     (doc 25 Phase 25.4/25.5) so guest-facing sends can skip dead/complaining
+ *     addresses. All other event types are acknowledged and ignored.
  *
  * Public POST (verify_jwt=false). Auth = Svix signature (`RESEND_INBOUND_WEBHOOK_SECRET`).
  * Property routing = plus-address `approvals+{slug}@{RESEND_APPROVAL_INBOUND_DOMAIN}`.
@@ -24,6 +30,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { jsonError } from '../_shared/httpResponse.ts';
 import { createNotification } from '../_shared/notificationService.ts';
 import { bookingNotificationMetadata } from '../_shared/notificationEnrichment.ts';
+import { recordEmailSuppression } from '../_shared/emailSuppression.ts';
 import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 import { verifyResendWebhookSignature } from '../_shared/resendWebhookVerify.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
@@ -44,6 +51,48 @@ type ResendReceivedEvent = {
     attachments?: Array<{ id?: string; filename?: string; content_type?: string }>;
   };
 };
+
+/** `email.bounced` / `email.complained` — shape per Resend's webhook docs. */
+type ResendDeliveryEvent = {
+  type?: string;
+  data?: {
+    email_id?: string;
+    to?: string[];
+    bounce?: { type?: string; subType?: string; message?: string };
+    complaint?: { type?: string };
+  };
+};
+
+const RESEND_SUPPRESSION_EVENT_TYPES = new Set(['email.bounced', 'email.complained']);
+
+async function processDeliveryEvent(event: ResendDeliveryEvent): Promise<{
+  action: 'recorded' | 'ignored';
+  reason?: string;
+}> {
+  const recipients = event.data?.to ?? [];
+  if (recipients.length === 0) {
+    return { action: 'ignored', reason: 'missing_recipient' };
+  }
+
+  const reason = event.type === 'email.complained' ? 'complained' : 'bounced';
+  const detail =
+    event.type === 'email.complained'
+      ? event.data?.complaint?.type
+      : [event.data?.bounce?.type, event.data?.bounce?.subType].filter(Boolean).join('/') ||
+        event.data?.bounce?.message;
+
+  for (const recipient of recipients) {
+    await recordEmailSuppression({
+      email: recipient,
+      reason,
+      eventType: event.type ?? reason,
+      messageId: event.data?.email_id,
+      detail,
+    });
+  }
+
+  return { action: 'recorded' };
+}
 
 type ResendAttachmentMeta = {
   id: string;
@@ -200,6 +249,7 @@ async function uploadApprovedPdf(params: {
   const { error } = await sb.storage.from(bucket).upload(filename, params.bytes, {
     contentType: 'application/pdf',
     upsert: true,
+    cacheControl: '300',
   });
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
 
@@ -443,6 +493,22 @@ servePublic('approval-email-webhook', async (req) => {
     event = JSON.parse(rawBody) as ResendReceivedEvent;
   } catch {
     return jsonError(req, 'Invalid JSON', 400);
+  }
+
+  if (event.type && RESEND_SUPPRESSION_EVENT_TYPES.has(event.type)) {
+    try {
+      const result = await processDeliveryEvent(event as ResendDeliveryEvent);
+      return new Response(JSON.stringify({ success: true, ...result }), {
+        status: 200,
+        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('[approval-email-webhook] delivery event error:', error);
+      return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
+        status: 500,
+        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   if (event.type !== 'email.received') {

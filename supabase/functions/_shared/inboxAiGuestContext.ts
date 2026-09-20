@@ -4,7 +4,7 @@
  */
 
 import { serializeGuestPaymentInfo } from './appSettings.ts';
-import { listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { addDaysYmd, listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import {
   collectDevelopmentPricingValues,
   loadGuestSafeDevelopmentContextByName,
@@ -474,11 +474,14 @@ export async function loadGuestSafeAvailabilityContext(
   const horizonEnd = new Date(todayStart);
   horizonEnd.setDate(horizonEnd.getDate() + AVAILABILITY_HORIZON_DAYS);
 
+  const horizonEndYmd = addDaysYmd(todayYmd, AVAILABILITY_HORIZON_DAYS);
   const { data: bookings, error } = await sb
     .from('guest_submissions')
     .select('check_in_date, check_out_date, status')
     .eq('property_id', propertyId)
-    .neq('status', 'CANCELLED');
+    .neq('status', 'CANCELLED')
+    .lte('check_in_date_sql', horizonEndYmd)
+    .gte('check_out_date_sql', todayYmd);
 
   if (error) {
     console.error('[inboxAiGuestContext] load availability:', error.message);

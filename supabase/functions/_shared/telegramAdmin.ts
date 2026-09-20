@@ -779,12 +779,19 @@ export async function runAdminHourlyAlerts(opts?: {
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
+  // All four `bookingNeeds*HourlyAlert` checks below require a non-CANCELLED,
+  // non-COMPLETED status (PENDING_REVIEW/_DOCUMENTS/_GAF/_PARKING_REQUEST/_PET_REQUEST,
+  // READY_FOR_CHECKIN, or PENDING_SD_REFUND) — a COMPLETED booking can never match any
+  // of them, so excluding it in SQL is behavior-preserving and keeps this hourly,
+  // per-property cron from re-fetching a property's entire completed booking history
+  // every run (Phase 10.5 audit, doc 10). The duplicate `.neq('status', 'CANCELLED')`
+  // was a harmless pre-existing no-op, folded into one call.
   const { data: rows, error } = await supabase
     .from('guest_submissions')
     .select('*')
     .eq('property_id', opts.propertyId)
     .neq('status', 'CANCELLED')
-    .neq('status', 'CANCELLED');
+    .neq('status', 'COMPLETED');
 
   if (error) {
     console.error('[telegram-admin] query bookings:', error);

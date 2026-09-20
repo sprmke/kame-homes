@@ -80,6 +80,7 @@ export async function persistAssistantAttachments(input: {
     const { error } = await sb.storage.from('ai-assistant-attachments').upload(path, bytes, {
       contentType: attachment.mimeType,
       upsert: false,
+      cacheControl: '31536000',
     });
     if (error) throw new Error(`Failed to store attachment: ${error.message}`);
 

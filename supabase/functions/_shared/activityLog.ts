@@ -199,6 +199,13 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'booking',
     summary: (c) => `${c.actorName} cancelled ${label(c, 'a booking')}`,
   },
+  'booking.custom_template_sent': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} sent ${str(c.metadata, 'template_name') ?? 'a custom template'} to ${label(c, 'a booking')}'s guest`,
+  },
   'booking.document_substep_completed': {
     category: 'booking',
     severity: 'info',

@@ -10,6 +10,7 @@ import {
 } from '../_shared/dashboardAssistantSettings.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
 
 serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
@@ -29,6 +30,13 @@ serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
     const settings = await setDashboardAssistantGlobalSettings({
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
       updatedBy: user.id,
+    });
+    await logSuperAdminAction(user, {
+      action: 'platform.dashboard_assistant_settings_update',
+      targetType: 'platform',
+      targetId: 'dashboard_assistant_global_settings',
+      summary: 'Updated dashboard assistant kill switch',
+      metadata: { enabled: settings.enabled },
     });
     return jsonSuccess(req, settings);
   }

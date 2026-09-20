@@ -13,6 +13,37 @@ import {
 } from './financeService.ts';
 import { computeMaintenanceSummary } from './maintenanceService.ts';
 import { manilaTodayIso } from './bookingsListSort.ts';
+import type { SupabaseClient } from './supabaseJs.ts';
+
+const LIVE_BOOKING_STATUSES = [
+  'PENDING_REVIEW',
+  'PENDING_DOCUMENTS',
+  'READY_FOR_CHECKIN',
+  'READY_FOR_CHECKOUT',
+] as const;
+
+async function countBookingsByStatus(
+  sb: SupabaseClient,
+  propertyIds: string[],
+  status: string,
+  extra?: { gteColumn?: string; gteValue?: string }
+): Promise<number> {
+  if (propertyIds.length === 0) return 0;
+  let query = sb
+    .from('guest_submissions')
+    .select('id', { count: 'exact', head: true })
+    .in('property_id', propertyIds)
+    .eq('status', status);
+  if (extra?.gteColumn && extra.gteValue) {
+    query = query.gte(extra.gteColumn, extra.gteValue);
+  }
+  const { count, error } = await query;
+  if (error) {
+    console.warn('[dashboardAssistantContext] status count failed:', status, error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
 
 export type DashboardAssistantContext = {
   org: { id: string; name: string; slug: string } | null;
@@ -69,45 +100,29 @@ export async function buildDashboardAssistantContext(
   }
 
   const propertyIds = (properties ?? []).map((p) => p.id);
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const todayStartIso = todayStart.toISOString();
+  const todayStartIso = `${manilaTodayIso()}T00:00:00+08:00`;
 
-  const bookingsQuery = sb
-    .from('guest_submissions')
-    .select('status, created_at', { count: 'exact', head: false })
-    .in('status', [
-      'PENDING_REVIEW',
-      'PENDING_DOCUMENTS',
-      'READY_FOR_CHECKIN',
-      'READY_FOR_CHECKOUT',
-      'COMPLETED',
-      'CANCELLED',
-    ]);
-  if (propertyIds.length > 0) {
-    bookingsQuery.in('property_id', propertyIds);
-  } else {
-    bookingsQuery.eq('property_id', '00000000-0000-0000-0000-000000000000');
-  }
-  const { data: bookingsSummary } = await bookingsQuery;
-
+  const liveCounts = await Promise.all(
+    LIVE_BOOKING_STATUSES.map((status) => countBookingsByStatus(sb, propertyIds, status))
+  );
+  const [completedToday, cancelledToday] = await Promise.all([
+    countBookingsByStatus(sb, propertyIds, 'COMPLETED', {
+      gteColumn: 'status_updated_at',
+      gteValue: todayStartIso,
+    }),
+    countBookingsByStatus(sb, propertyIds, 'CANCELLED', {
+      gteColumn: 'status_updated_at',
+      gteValue: todayStartIso,
+    }),
+  ]);
   const summary = {
-    pendingReview: 0,
-    pendingDocuments: 0,
-    readyForCheckin: 0,
-    readyForCheckout: 0,
-    completed: 0,
-    cancelled: 0,
+    pendingReview: liveCounts[0],
+    pendingDocuments: liveCounts[1],
+    readyForCheckin: liveCounts[2],
+    readyForCheckout: liveCounts[3],
+    completedToday,
+    cancelledToday,
   };
-  for (const row of bookingsSummary ?? []) {
-    const status = row.status as string;
-    if (status === 'PENDING_REVIEW') summary.pendingReview++;
-    if (status === 'PENDING_DOCUMENTS') summary.pendingDocuments++;
-    if (status === 'READY_FOR_CHECKIN') summary.readyForCheckin++;
-    if (status === 'READY_FOR_CHECKOUT') summary.readyForCheckout++;
-    if (status === 'COMPLETED') summary.completed++;
-    if (status === 'CANCELLED') summary.cancelled++;
-  }
 
   const { data: usageRow } = await sb
     .from('ai_platform_usage_daily')
@@ -229,23 +244,26 @@ export async function buildHostSafeGroundingFacts(
     cancelledToday: 0,
   };
   if (propertyIds.length > 0) {
-    const { data: bookingRows } = await sb
-      .from('guest_submissions')
-      .select('status')
-      .in('property_id', propertyIds)
-      .in('status', [
-        'PENDING_REVIEW',
-        'PENDING_DOCUMENTS',
-        'READY_FOR_CHECKIN',
-        'READY_FOR_CHECKOUT',
-      ]);
-    for (const row of bookingRows ?? []) {
-      const status = row.status as string;
-      if (status === 'PENDING_REVIEW') summary.pendingReview++;
-      if (status === 'PENDING_DOCUMENTS') summary.pendingDocuments++;
-      if (status === 'READY_FOR_CHECKIN') summary.readyForCheckin++;
-      if (status === 'READY_FOR_CHECKOUT') summary.readyForCheckout++;
-    }
+    const liveCounts = await Promise.all(
+      LIVE_BOOKING_STATUSES.map((status) => countBookingsByStatus(sb, propertyIds, status))
+    );
+    summary.pendingReview = liveCounts[0];
+    summary.pendingDocuments = liveCounts[1];
+    summary.readyForCheckin = liveCounts[2];
+    summary.readyForCheckout = liveCounts[3];
+    const todayIso = `${manilaTodayIso()}T00:00:00+08:00`;
+    const [completedToday, cancelledToday] = await Promise.all([
+      countBookingsByStatus(sb, propertyIds, 'COMPLETED', {
+        gteColumn: 'status_updated_at',
+        gteValue: todayIso,
+      }),
+      countBookingsByStatus(sb, propertyIds, 'CANCELLED', {
+        gteColumn: 'status_updated_at',
+        gteValue: todayIso,
+      }),
+    ]);
+    summary.completedToday = completedToday;
+    summary.cancelledToday = cancelledToday;
   }
 
   let finance: HostSafeGroundingFacts['finance'] = null;

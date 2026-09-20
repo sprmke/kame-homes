@@ -363,11 +363,13 @@ async function queryTodayBookings(todayYmd: string, propertyId?: string): Promis
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  // Occupies tonight: check_in <= today < check_out (doc 10 generated date columns).
   let query = supabase
     .from('guest_submissions')
     .select('*')
     .neq('status', 'CANCELLED')
-    .neq('status', 'CANCELLED');
+    .lte('check_in_date_sql', todayYmd)
+    .gt('check_out_date_sql', todayYmd);
   if (propertyId) {
     query = query.eq('property_id', propertyId);
   }
@@ -407,11 +409,14 @@ async function queryNextDaysBookings(
     targetDates.add(addDays(todayYmd, i));
   }
 
+  const fromYmd = addDays(todayYmd, 1);
+  const toYmd = addDays(todayYmd, days);
   let query = supabase
     .from('guest_submissions')
     .select('*')
     .neq('status', 'CANCELLED')
-    .neq('status', 'CANCELLED');
+    .gte('check_in_date_sql', fromYmd)
+    .lte('check_in_date_sql', toYmd);
   if (propertyId) {
     query = query.eq('property_id', propertyId);
   }

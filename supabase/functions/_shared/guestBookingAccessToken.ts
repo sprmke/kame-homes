@@ -3,6 +3,17 @@
  *
  * Staged rollout: mint on new bookings; endpoints accept legacy bare bookingId until
  * GUEST_BOOKING_ACCESS_ENFORCE=true in edge secrets.
+ *
+ * Capability-token audit (production-readiness doc 21.3, 2026-09-18):
+ * - TTL: 180 days (`DEFAULT_TTL_MS`). Not shortened this pass (product decision).
+ * - Purpose: payload is `v1.{bookingId}.{exp}.{sig}` — binds the booking only,
+ *   not a single endpoint/purpose. Any holder of a valid token can hit every
+ *   guest-PII reader that accepts `?access=` for that booking.
+ * - Revocation: none. Cancelling a booking does not denylist the token; the
+ *   handler must still 404/410 from booking status. There is no denylist table.
+ * - Telemetry: PostHog property keys `access`/`token` are dropped
+ *   (`posthogSanitize.ts`); edge `handleEdgeError` redacts every query-param
+ *   value before forwarding `req.url`.
  */
 
 const TOKEN_VERSION = 'v1';
