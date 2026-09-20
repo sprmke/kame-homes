@@ -9,6 +9,8 @@ updated: 2026-09-01
 
 Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split. Cross-links: [`docs/archive/reference/telegram-marketing-reminders.md`](../archive/reference/telegram-marketing-reminders.md), [`docs/archive/reference/ai-payment-receipt-validation.md`](../archive/reference/ai-payment-receipt-validation.md).
 
+**Browser third-party origins (CSP):** [`third-party-origins.md`](./third-party-origins.md). Server-only processors (Resend, PayMongo redirects, Meta OAuth) stay in the sections below.
+
 ---
 
 ## 9. Integrations detail

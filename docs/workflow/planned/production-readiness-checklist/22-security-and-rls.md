@@ -2,7 +2,7 @@
 title: 'Security and RLS'
 status: active
 tags: [workflow, planned, production-readiness, security, rls, privacy]
-updated: 2026-09-18
+updated: 2026-09-21
 stage: planned
 kind: plan
 ---
@@ -13,13 +13,13 @@ kind: plan
 
 ## Remaining work to finalize
 
-**Status: partial — RLS / SECURITY DEFINER / XSS / SSRF-on-marketing-fetch / secret-rotation runbook / prompt-injection coverage table shipped (2026-09-18).** CSP, hosted advisors, privacy/legal, and role-as-anon RLS probes remain.
+**Status: partial — RLS / SECURITY DEFINER / XSS / SSRF / secret-rotation / CSP Report-Only (2026-09-21).** Enforcing CSP, report triage endpoint, hosted advisors, privacy/legal, and `authenticated` RLS probes remain.
 
 | #   | Work                                                                                                                                                                                                                                                                   | Blocker         |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | 1   | `mcp__supabase__get_advisors` against hosted.                                                                                                                                                                                                                          | Hosted MCP      |
 | 2   | RLS as `anon`: **partial** — `scripts/dev/probe-rls-anon-local.sh` in `migration-replay.yml` after `db:reset` (deny-by-default tables). `authenticated` role probes still open.                                                                                        | Tests           |
-| 3   | Security headers / CSP Report-Only then enforce (22.4). Feeds docs 04/16.                                                                                                                                                                                              | Hosted preview  |
+| 3   | CSP **Report-Only** on Vercel (`ui/vercel.json`); inventory `docs/architecture/third-party-origins.md`; CI `check-csp-theme-hash.sh` + `verify:deployed-preview` header check. **Open:** enforce CSP, `report-uri`/`report-to`, hosted violation triage.               | Hosted preview  |
 | 4   | ~~SSRF on user-supplied fetch.~~ **Done** for marketing remote audio + generated-video download (`safeOutboundUrl.ts`, hop revalidation, private-IP block). Calendar iCal already guarded. Other `fetch(` of host-controlled Google/Gemini URLs are not user-supplied. | —               |
 | 5   | ~~Open redirect.~~ **Done** — Meta OAuth uses `isMetaReturnOriginAllowed`.                                                                                                                                                                                             | —               |
 | 6   | ~~Secret rotation runbook.~~ **Done** — `docs/archive/operations/secret-rotation.md`. Bundle grep already clean.                                                                                                                                                       | —               |
@@ -65,7 +65,15 @@ Local Supabase was running this session (Docker up, `bun run db:migrate` executa
 | Receipt / document vision      | Guest files                                                                | Existing cost-abuse plan; no extra injection guard |
 | CSV import column mapping      | Host CSV                                                                   | Quota-gated; treat as remaining adversarial        |
 
-Not attempted this session — remaining rows 1–3, 7–8 in Remaining work.
+Not attempted in the 2026-09-18 session — remaining rows 1–3, 7–8 in Remaining work at that time.
+
+### Phase 22.4 — CSP Report-Only (2026-09-21)
+
+- Policy in `ui/vercel.json` → `Content-Security-Policy-Report-Only` (global `/(.*)` headers). Inline theme boot script allowlisted via `sha256-3iYuQTtr8rq0X6H7xzU0ofTgMxCUvnKCZ+fPhxsYb9g=` (must match `ui/index.html`; guarded by `scripts/dev/check-csp-theme-hash.sh` in `ci.yml` / `ci:quality`).
+- Third-party allowlist derived from `docs/architecture/third-party-origins.md` (doc 04 Phase 4.2 feed).
+- Post-deploy check: `PREVIEW_URL=https://dev.kamehomes.space bun run verify:deployed-preview` asserts the header on `index.html` after Vercel deploy.
+
+**Still open:** switch to enforcing `Content-Security-Policy`, wire reports to a collector, bake on dev then prod; font async `onload` in `index.html` may need a nonce or JS swap before `style-src` tightens.
 
 ## The single most important fact about this codebase
 
@@ -179,7 +187,7 @@ This system stores government IDs, vaccination records, payment receipts, and gu
 - [x] RLS audit across every table (114/114 checked); enabled with deny-by-default where no non-service path exists (3 gaps found and fixed via migration). Advisor findings not closed — `get_advisors` needs hosted MCP access not available this session.
 - [x] Every direct-client query (2 found) and realtime channel (3 found) verified RLS-protected by reading policy definitions. Not yet tested by literally connecting as `anon`/`authenticated` and probing.
 - [x] `SECURITY DEFINER` inventory complete (43/43) with pinned `search_path` (0 gaps) and least-privilege grants (0/43 anon-executable, 10/43 authenticated-executable and all 10 are the expected RLS-predicate-helper pattern).
-- [ ] Security headers live; CSP enforcing (past Report-Only) with reports monitored. Not attempted — needs a deployed preview.
+- [ ] Security headers live; CSP **enforcing** (past Report-Only) with reports monitored. Report-Only shipped in repo + CI; hosted header verified via `verify:deployed-preview` after deploy.
 - [x] XSS audit of all `dangerouslySetInnerHTML` (4/4 sites) — gap found (zero sanitization anywhere) and fixed with DOMPurify allowlist sanitization. Email/PDF placeholder escaping with a hostile guest-name fixture not tested this session.
 - [x] SSRF on marketing remote fetch + generated-video download (`safeOutboundUrl.ts`). Calendar iCal already guarded. Open redirect: Meta OAuth allowlisted.
 - [x] Bundle grep confirms no secrets in the existing production build. Rotation runbook: `docs/archive/operations/secret-rotation.md`.
@@ -188,6 +196,6 @@ This system stores government IDs, vaccination records, payment receipts, and gu
 
 ## Docs / Plans / activity-log
 
-- **Docs:** `.cursor/rules/admin-auth.mdc`, `docs/PROJECT.md`, `docs/architecture/integrations.md`, `docs/architecture/edge-functions.md` (SSRF + wrapper rate check), legal pages, `docs/archive/operations/migration-runbook.md`, **`docs/archive/operations/secret-rotation.md`**.
+- **Docs:** `.cursor/rules/admin-auth.mdc`, `docs/PROJECT.md`, `docs/architecture/integrations.md`, **`docs/architecture/third-party-origins.md`**, `docs/architecture/edge-functions.md` (SSRF + wrapper rate check), legal pages, `docs/archive/operations/migration-runbook.md`, **`docs/archive/operations/secret-rotation.md`**.
 - **Plans / Team RBAC:** N/A directly; pairs with doc 21.
 - **activity-log:** N/A this pass — no new mutating guest/org capability. Super-admin writes covered in doc 21.

@@ -2,7 +2,7 @@
 title: 'Defer non-critical scripts'
 status: active
 tags: [workflow, planned, production-readiness, performance, third-party]
-updated: 2026-09-16
+updated: 2026-09-21
 stage: planned
 kind: plan
 ---
@@ -101,7 +101,7 @@ Add these as Playwright specs — this is the class of failure that only appears
 - [ ] Default UI font self-hosted, preloaded, immutable-cached; `index.html` has no render-blocking third-party stylesheet on the critical path. (render-blocking part closed; self-hosting part not done — see status note)
 - [ ] Brand font set loads only on routes that use it.
 - [x] Email + PDF rendering verified unchanged after the font change. (N/A — the font change only touched `ui/index.html`'s stylesheet loading, not the separate PDF/email template font declarations; nothing to regress)
-- [ ] Third-party origin inventory documented and feeding doc 22's CSP.
+- [x] Third-party origin inventory documented and feeding doc 22's CSP (`docs/architecture/third-party-origins.md`, 2026-09-21).
 - [ ] Playwright specs prove graceful degradation for all five third parties above.
 - [x] CI grep blocks a new blocking `<script src>` in `index.html`.
 
@@ -131,12 +131,12 @@ Add these as Playwright specs — this is the class of failure that only appears
 
 Render-blocking Google Fonts CSS is gone; the third-party **fetch** and unused brand families are not.
 
-| #   | Work                                                                                                                                                | Blocker     |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 1   | Self-host Plus Jakarta Sans (files already exist for PDF under `ui/src/assets/fonts`) and drop the Google Fonts stylesheet for the default UI font. | Code        |
-| 2   | Load the 15 brand families **per route / per org**, not all 15 on every page.                                                                       | Code        |
-| 3   | Write the third-party origin inventory (fonts, PostHog, maps, Meta, Turnstile, PayMongo) for doc 22 CSP.                                            | Code / docs |
-| 4   | Playwright degradation specs: fonts fail, PostHog blocked, and the app still paints.                                                                | Playwright  |
+| #   | Work                                                                                                                                                | Blocker    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | Self-host Plus Jakarta Sans (files already exist for PDF under `ui/src/assets/fonts`) and drop the Google Fonts stylesheet for the default UI font. | Code       |
+| 2   | Load the 15 brand families **per route / per org**, not all 15 on every page.                                                                       | Code       |
+| 3   | ~~Third-party origin inventory for doc 22 CSP.~~ **Done** — `docs/architecture/third-party-origins.md`.                                             | —          |
+| 4   | Playwright degradation specs: fonts fail, PostHog blocked, and the app still paints.                                                                | Playwright |
 
 ## Docs / Plans / activity-log
 

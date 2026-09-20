@@ -49,6 +49,9 @@ jobs:
       - name: Vercel cache and security headers
         run: bash scripts/dev/check-vercel-headers.sh
 
+      - name: CSP theme script hash (production-readiness doc 22)
+        run: bash scripts/dev/check-csp-theme-hash.sh
+
       - name: Storage upload cacheControl
         run: node scripts/dev/check-storage-cache-control.mjs
 
