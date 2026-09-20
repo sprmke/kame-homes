@@ -5,6 +5,7 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
+import { fetchPublicHttp, UnsafeOutboundUrlError } from './safeOutboundUrl.ts';
 import { formatPublicUrl } from './utils.ts';
 
 export const MARKETING_AUDIO_MAX_BYTES = 15 * 1024 * 1024;
@@ -134,6 +135,7 @@ export async function uploadMarketingAudioBytes(
   const { error } = await supabase.storage.from(PROPERTY_MEDIA_BUCKET).upload(storagePath, bytes, {
     contentType: resolvedMime.split(';')[0]?.trim() || 'audio/mpeg',
     upsert: true,
+    cacheControl: '300',
   });
 
   if (error) {
@@ -151,17 +153,20 @@ export async function fetchRemoteAudioBytes(
   url: string
 ): Promise<{ bytes: Uint8Array; mime: string; fileName?: string }> {
   const trimmed = url.trim();
-  if (!/^https?:\/\//i.test(trimmed)) {
-    throw new Error('URL must start with http:// or https://');
+  let res: Response;
+  try {
+    res = await fetchPublicHttp(trimmed, {
+      headers: {
+        'User-Agent': 'PropertyMarketing/1.0',
+        Accept: 'audio/*,application/octet-stream,*/*;q=0.8',
+      },
+    });
+  } catch (err) {
+    if (err instanceof UnsafeOutboundUrlError) {
+      throw new Error(err.message);
+    }
+    throw err;
   }
-
-  const res = await fetch(trimmed, {
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'PropertyMarketing/1.0',
-      Accept: 'audio/*,application/octet-stream,*/*;q=0.8',
-    },
-  });
   if (!res.ok) {
     throw new Error(`Could not fetch audio (${res.status})`);
   }

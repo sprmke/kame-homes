@@ -144,7 +144,7 @@ export async function applyPropertyMediaFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(PROPERTY_MEDIA_BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime });
+    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const {

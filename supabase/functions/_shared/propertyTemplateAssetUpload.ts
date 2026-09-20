@@ -102,7 +102,7 @@ export async function applyPropertyTemplateAssetFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, { upsert: true, contentType: mime });
+    .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '300' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const {

@@ -13,6 +13,7 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
+import { fetchPublicHttp, UnsafeOutboundUrlError } from './safeOutboundUrl.ts';
 import { UPLOAD_MAX_BYTES } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
 
@@ -199,6 +200,7 @@ export async function uploadGenerationBytes(
   const { error } = await supabase.storage.from(PROPERTY_MEDIA_BUCKET).upload(storagePath, bytes, {
     contentType: normalizeMime(mime) || 'application/octet-stream',
     upsert: true,
+    cacheControl: '300',
   });
   if (error) {
     throw new Error(`Upload failed: ${error.message}`);
@@ -234,10 +236,19 @@ export async function fetchGeneratedVideoBytes(
   uri: string,
   apiKey: string
 ): Promise<{ bytes: Uint8Array; mimeType: string }> {
-  const res = await fetch(uri, {
-    redirect: 'follow',
-    headers: { 'x-goog-api-key': apiKey },
-  });
+  let res: Response;
+  try {
+    res = await fetchPublicHttp(
+      uri,
+      { headers: { 'x-goog-api-key': apiKey } },
+      { httpsOnly: true }
+    );
+  } catch (err) {
+    if (err instanceof UnsafeOutboundUrlError) {
+      throw new Error(err.message);
+    }
+    throw err;
+  }
   if (!res.ok) {
     throw new Error(`Could not download the generated video (${res.status})`);
   }

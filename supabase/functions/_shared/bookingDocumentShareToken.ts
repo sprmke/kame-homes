@@ -124,7 +124,7 @@ export async function resolveBookingDocumentByToken(
 
   const { data: signed, error: signError } = await supabase.storage
     .from(loc.bucket)
-    .createSignedUrl(loc.path, SIGNED_URL_TTL_SEC);
+    .createSignedUrl(loc.path, SIGNED_URL_TTL_SEC, { download: true });
 
   if (signError || !signed?.signedUrl) {
     console.error('[bookingDocumentShareToken] createSignedUrl:', signError);

@@ -68,6 +68,7 @@ export async function cloneStorageObject(req: AssetCloneRequest): Promise<AssetC
       .upload(req.targetPath, bytes, {
         contentType,
         upsert: true,
+        cacheControl: '300',
       });
     if (uploadError) {
       return {

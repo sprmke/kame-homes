@@ -26,7 +26,6 @@ export const ALLOWED_PROPERTY_IMAGE_MIME = new Set([
   'image/bmp',
   'image/tiff',
   'image/avif',
-  'image/svg+xml',
 ]);
 
 export const ALLOWED_PROPERTY_VIDEO_MIME = new Set([
@@ -53,6 +52,7 @@ export type PropertyMediaRecord = {
 
 export function classifyPropertyMediaMime(mime: string): PropertyMediaType | null {
   const normalized = mime.trim().toLowerCase();
+  if (normalized === 'image/svg+xml') return null;
   if (ALLOWED_PROPERTY_IMAGE_MIME.has(normalized)) return 'image';
   if (ALLOWED_PROPERTY_VIDEO_MIME.has(normalized)) return 'video';
   if (normalized.startsWith('image/')) return 'image';

@@ -108,7 +108,7 @@ export async function applyParkingCoverFromBytes(
 
   const { error: uploadError } = await supabase.storage
     .from(PROPERTY_MEDIA_BUCKET)
-    .upload(storagePath, file, { upsert: true, contentType: mime });
+    .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '300' });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
   const {

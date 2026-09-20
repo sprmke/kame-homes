@@ -72,6 +72,7 @@ export async function uploadMarketingMediaBytes(
   const { error } = await supabase.storage.from(PROPERTY_MEDIA_BUCKET).upload(storagePath, bytes, {
     contentType: mime,
     upsert: true,
+    cacheControl: '300',
   });
 
   if (error) {
