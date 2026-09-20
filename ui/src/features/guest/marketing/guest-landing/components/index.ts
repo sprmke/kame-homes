@@ -5,5 +5,3 @@ export { FeaturedProperties } from './FeaturedProperties';
 export { PopularDestinations } from './PopularDestinations';
 export { LandingSocialProof } from './LandingSocialProof';
 export { HowItWorks } from './HowItWorks';
-export { Testimonials } from './Testimonials';
-export { TrustIndicators } from './TrustIndicators';

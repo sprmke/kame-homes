@@ -117,14 +117,6 @@ export const editorialDestinations = [
   },
 ] as const;
 
-export const featuredGuestReview = {
-  quote:
-    'Booking was straightforward and the place looked exactly like the photos. We felt taken care of from check-in to check-out.',
-  name: 'Maria Santos',
-  stay: 'Sunset Beach Villa, Boracay',
-  rating: 5,
-} as const;
-
 export const suggestedDestinations = [
   {
     id: 'nearby',

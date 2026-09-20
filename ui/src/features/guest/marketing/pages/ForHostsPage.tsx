@@ -7,7 +7,6 @@ import { HostCapabilityStrip } from '@/features/guest/marketing/for-hosts/compon
 import { HostClosingCta } from '@/features/guest/marketing/for-hosts/components/HostClosingCta';
 import { HostDashboardTour } from '@/features/guest/marketing/for-hosts/components/HostDashboardTour';
 import { HostHowItWorks } from '@/features/guest/marketing/for-hosts/components/HostHowItWorks';
-import { HostReviews } from '@/features/guest/marketing/for-hosts/components/HostReviews';
 import { scrollToSection } from '@/features/guest/marketing/for-hosts/lib/scrollToSection';
 import { AbstractBackground } from '@/features/guest/marketing/shared/components/AbstractBackground';
 
@@ -95,7 +94,6 @@ export function ForHostsPage() {
 
       <HostCapabilityStrip />
       <HostHowItWorks />
-      <HostReviews />
       <HostClosingCta />
     </>
   );
