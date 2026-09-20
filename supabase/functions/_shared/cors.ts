@@ -28,6 +28,9 @@ export const CORS_ALLOW_HEADERS = [
   'x-posthog-window-id',
   'x-superadmin-otp',
   'idempotency-key',
+  // Doc 27 Phase 27.2 — client-generated correlation id, threaded through
+  // handleEdgeError into structured logs + PostHog + the user-facing error.
+  'x-request-id',
 ].join(', ');
 
 function hostnameOf(origin: string): string | null {

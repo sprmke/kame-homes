@@ -13,6 +13,12 @@
  *
  * Fails OPEN on any DB error (logged): a transient problem with the counter
  * table must never take down a booking form. CAPTCHA + bot heuristics still run.
+ *
+ * Fail-open vs fail-closed (production-readiness doc 23):
+ * - This primitive (public GET/write, authenticated-wrapper log-only) fails OPEN.
+ * - AI spend is a different control: `assertOrgAndPropertyAiQuota` fails CLOSED
+ *   before the model call (`AiQuotaExceededError` / `AiPlatformDisabledError`).
+ * - Cron secret gate fails CLOSED in production when the secret is unset.
  */
 
 import { corsHeaders } from './cors.ts';

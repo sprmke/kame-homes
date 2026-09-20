@@ -113,8 +113,19 @@ function notFoundResponse(message: string): Response {
   });
 }
 
+// Module-scope singleton: this is the dominant service-role client factory in
+// the codebase (~260 files, ~490 call sites) and previously called
+// createClient() fresh on every invocation. Env vars are static per isolate
+// (resolveSupabaseUrl/resolveSupabaseServiceRoleKey read only Deno.env, never
+// request-scoped state — see supabaseRuntimeEnv.ts), so caching is safe and,
+// on hosted Supabase's warm-isolate reuse (unlike local `oneshot`), avoids
+// rebuilding the client's full object graph on every warm invocation.
+// See doc 15, Phase 15.2.
+let _serviceClient: SupabaseClient | null = null;
 export function createServiceClient(): SupabaseClient {
-  return createClient(resolveSupabaseUrl(), resolveSupabaseServiceRoleKey());
+  if (_serviceClient) return _serviceClient;
+  _serviceClient = createClient(resolveSupabaseUrl(), resolveSupabaseServiceRoleKey());
+  return _serviceClient;
 }
 
 export function isPlatformAdmin(email: string): boolean {

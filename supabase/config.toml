@@ -164,6 +164,9 @@ verify_jwt = false
 [functions.get-public-platform-status]
 verify_jwt = false
 
+[functions.get-health]
+verify_jwt = false
+
 [functions.get-guest-review]
 verify_jwt = false
 
@@ -326,6 +329,13 @@ static_files = [
   "./functions/_shared/email-templates/*.html",
   "./functions/_shared/email-templates/fragments/*.html",
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.send-property-custom-template-email]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
 ]
 
 [functions.preview-guest-stay-guide]
@@ -1095,6 +1105,9 @@ verify_jwt = false
 [functions.dashboard-assistant-expire-pending-actions]
 verify_jwt = false
 
+[functions.query-cache-sweep-cron]
+verify_jwt = false
+
 [functions.notifications-list]
 verify_jwt = false
 
@@ -1193,3 +1206,5 @@ verify_jwt = false
 # [functions.sd-refund-cron] schedule = "*/5 * * * *"
 # schedule = "*/5 * * * *"
 # [functions.telegram-marketing-cron] Manila 10:00 / 15:00 / 21:00 → UTC cron: 0 2,7,13 * * *
+# [functions.query-cache-sweep-cron] Manila 10:17 → UTC cron: 17 2 * * * (see migration
+#   20261316121700_query_cache_table.sql#sync_query_cache_sweep_cron_job)
