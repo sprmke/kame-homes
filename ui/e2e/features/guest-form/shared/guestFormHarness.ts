@@ -1,6 +1,7 @@
+import { mockEdgeFunctions } from '../../../shared/interceptEdge';
+
 import type { Page } from '@playwright/test';
 
-import { mockEdgeFunctions } from '../../../shared/interceptEdge';
 
 export const GUEST_FORM_PROPERTY_SLUG = 'solea-mactan';
 

@@ -2,8 +2,8 @@ import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
-import { seedSupabaseAuthSession } from '../../shared/authSeam';
 import { guestFormPath, installGuestFormMocks } from './shared/guestFormHarness';
+import { seedSupabaseAuthSession } from '../../shared/authSeam';
 
 const VALID_ID_FIXTURE = path.join(process.cwd(), 'ui/public/icons/pwa-192.png');
 

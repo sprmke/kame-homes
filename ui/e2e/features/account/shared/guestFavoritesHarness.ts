@@ -1,8 +1,9 @@
-import type { Page, Route } from '@playwright/test';
 
 import { seedSupabaseAuthSession } from '../../../shared/authSeam';
 import { E2E_GUEST_USER_ID } from '../../../shared/ids';
 import { mockPublicPropertyBody } from '../../../shared/mockFixtures';
+
+import type { Page, Route } from '@playwright/test';
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({

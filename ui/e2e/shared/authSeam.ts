@@ -1,6 +1,7 @@
+import { E2E_GUEST_USER_ID, E2E_HOST_USER_ID, SUPABASE_AUTH_STORAGE_KEY } from './ids';
+
 import type { Page } from '@playwright/test';
 
-import { E2E_GUEST_USER_ID, E2E_HOST_USER_ID, SUPABASE_AUTH_STORAGE_KEY } from './ids';
 
 export type E2eAuthRole = 'host' | 'guest';
 

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import { seedSupabaseAuthSession } from '../../shared/authSeam';
 import { guestCalendarPath, installGuestFormMocks } from './shared/guestFormHarness';
+import { seedSupabaseAuthSession } from '../../shared/authSeam';
 
 test.describe('@ci guest calendar smoke', () => {
   test('calendar loads with booked dates mock', async ({ page }) => {

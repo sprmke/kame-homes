@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+import { guestFormPath, installGuestFormMocks } from './shared/guestFormHarness';
 import { seedSupabaseAuthSession } from '../../shared/authSeam';
 import {
   expectNoPageHorizontalOverflow,
   expectNoUnnamedInteractiveControls,
 } from '../../shared/layoutAssertions';
-import { guestFormPath, installGuestFormMocks } from './shared/guestFormHarness';
 
 test.describe('@smoke guest form load', () => {
   test('renders booking form for property-scoped URL', async ({ page }) => {

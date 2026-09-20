@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+import { mockEdgeFunctions } from '../../shared/interceptEdge';
+import {
+  expectNoPageHorizontalOverflow,
+  expectNoUnnamedInteractiveControls,
+} from '../../shared/layoutAssertions';
 import {
   mockPublicDevelopmentsListBody,
   mockPublicPricingPlansBody,
@@ -8,11 +13,6 @@ import {
   mockSearchListingsBody,
   mockSearchSuggestionsBody,
 } from '../../shared/mockFixtures';
-import { mockEdgeFunctions } from '../../shared/interceptEdge';
-import {
-  expectNoPageHorizontalOverflow,
-  expectNoUnnamedInteractiveControls,
-} from '../../shared/layoutAssertions';
 
 async function expectPublicPageReady(page: Parameters<typeof expectNoPageHorizontalOverflow>[0]) {
   await expectNoPageHorizontalOverflow(page);
