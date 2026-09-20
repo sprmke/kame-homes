@@ -109,16 +109,14 @@ ci_deploy_ensure_anon_key() {
   echo "Resolved SUPABASE_ANON_KEY via Supabase Management API."
 }
 
-# Stable dev property for post-deploy GET smoke when SMOKE_PROPERTY_SLUG is unset.
+# Prod requires an explicit slug. Dev may omit it and use the first public listing from smoke.
 ci_deploy_default_smoke_property_slug() {
   local target="$1"
   if [[ -n "${SMOKE_PROPERTY_SLUG:-}" ]]; then
     return 0
   fi
   if [[ "$target" == "dev" ]]; then
-    SMOKE_PROPERTY_SLUG="solea-mactan"
-    export SMOKE_PROPERTY_SLUG
-    echo "SMOKE_PROPERTY_SLUG unset — using default dev slug: solea-mactan"
+    echo "SMOKE_PROPERTY_SLUG unset — will use first list-public-properties slug when available."
     return 0
   fi
   echo "ERROR: required env var SMOKE_PROPERTY_SLUG is not set (prod requires an explicit slug)." >&2

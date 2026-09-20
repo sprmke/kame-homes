@@ -57,7 +57,7 @@ Add **Environment secrets**:
 
 **Do not** add these to Vercel — the SPA needs **`VITE_*`** vars on Vercel Preview instead.
 
-Add environment variable `SMOKE_PROPERTY_SLUG` with a stable active dev property (e.g. `solea-mactan`). When unset, `ci-smoke.sh dev` defaults to `solea-mactan`.
+Add environment variable `SMOKE_PROPERTY_SLUG` with a stable **ACTIVE public** dev property when you want full post-deploy smoke (property, availability, search). When unset, `ci-smoke.sh dev` uses the first slug from `list-public-properties`, or passes **partial** smoke (listing only) if hosted dev has zero public listings.
 
 ---
 

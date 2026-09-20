@@ -17,12 +17,13 @@ Environment:
   SUPABASE_ACCESS_TOKEN   Required
   SUPABASE_PROJECT_REF    Required
   SUPABASE_ANON_KEY       Required
-  SMOKE_PROPERTY_SLUG     Required, active property used for read-only probes
+  SMOKE_PROPERTY_SLUG     Optional on dev (first public listing used when unset).
+                          Required on prod.
 
 Checks:
   1. Required public functions are deployed
-  2. Real GET requests return successful JSON from the listing, property,
-     availability, and search handlers
+  2. list-public-properties GET (always)
+  3. When a slug is known (env or first listing), property / availability / search GETs
 EOF
 }
 
@@ -96,9 +97,25 @@ smoke_get() {
   fi
 }
 
-SLUG="$(jq -rn --arg value "$SMOKE_PROPERTY_SLUG" '$value|@uri')"
-smoke_get "properties" "list-public-properties?pageSize=1" \
+smoke_get "properties" "list-public-properties?pageSize=5" \
   '.success == true and (.data | type == "array")'
+
+discovered_slug="$(jq -r '.data[0].slug // empty' "$TMP_DIR/properties.json")"
+effective_slug="${discovered_slug:-${SMOKE_PROPERTY_SLUG:-}}"
+
+if [[ -z "$effective_slug" ]]; then
+  if [[ "$TARGET" == "prod" ]]; then
+    echo "ERROR: SMOKE_PROPERTY_SLUG is required on prod (no public listings returned)." >&2
+    exit 1
+  fi
+  echo "Smoke partial: hosted dev has no public property listings and SMOKE_PROPERTY_SLUG is unset."
+  echo "  Passed: functions list + list-public-properties."
+  echo "  Set GitHub var SMOKE_PROPERTY_SLUG to an ACTIVE public property for full slug probes."
+  exit 0
+fi
+
+echo "  smoke slug: $effective_slug"
+SLUG="$(jq -rn --arg value "$effective_slug" '$value|@uri')"
 smoke_get "property" "get-public-property?property=${SLUG}" \
   '.success == true and (.data.id | type == "string")'
 smoke_get "availability" "get-booked-dates?property=${SLUG}" \
