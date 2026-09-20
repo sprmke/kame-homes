@@ -34,7 +34,8 @@ Tooling for [`docs/workflow/planned/production-readiness-checklist/`](../docs/wo
 | `lighthouse-routes.mjs`           | `perf:lighthouse`             | Mobile-throttled Lighthouse across the 9 baseline routes against `vite preview` (or `--base-url` for a deployed preview). Pass `--runs=3` for per-route medians (doc 00).                        |
 | `edge-latency-baseline.mjs`       | `perf:edge-latency`           | p50/p95/p99 latency sampler for public (and, with a token, authenticated) edge functions against **hosted dev only** — never production.                                                         |
 | `audit-image-loading.mjs`         | —                             | Reports `<img>` tags missing `loading`/size hints across `ui/src`. Report-only by default; `--strict` exits 1 (use for a targeted cleanup pass).                                                 |
-| `verify-deployed-preview.mjs`     | `verify:deployed-preview`     | Docs 02/16: brotli/gzip on hashed JS, index `must-revalidate`, hashed `immutable`, `.map` not public; optional `HEALTH_URL` for `get-health`. Set `PREVIEW_URL` (default none).                  |
+| `verify-deployed-preview.mjs`     | `verify:deployed-preview`     | Docs 02/16: brotli/gzip on hashed JS, index `must-revalidate`, hashed `immutable`, `.map` not public, CSP Report-Only; optional `HEALTH_URL` for `get-health`. Set `PREVIEW_URL` (default none). |
+| `capture-pg-stat-statements.sh`   | `perf:pg-stat-statements`     | Doc 00: read-only top-50 `pg_stat_statements` snapshot → `baselines/*.json`. Requires `DEV_DB_URL` (session pooler).                                                                             |
 
 Run `node scripts/performance/<script>.mjs` directly, or via the `bun run perf:*` aliases above.
 
