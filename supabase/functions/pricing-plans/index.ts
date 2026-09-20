@@ -23,6 +23,7 @@ import {
 } from '../_shared/httpResponse.ts';
 import { postgrestOrIlikeValue } from '../_shared/publicSearch.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
 
 function serializePlan(row: Record<string, unknown>) {
@@ -172,6 +173,15 @@ serveSuperAdmin('pricing-plans', async (req, user) => {
       .single();
 
     if (error) return jsonError(req, error.message, 500);
+
+    await logSuperAdminAction(user, {
+      action: 'pricing_plans.plan_created',
+      targetType: 'pricing_plan',
+      targetId: typeof data.id === 'string' ? data.id : null,
+      summary: 'Created pricing plan',
+      metadata: { code },
+    });
+
     return jsonSuccess(req, { plan: serializePlan(data as Record<string, unknown>) });
   }
 
@@ -236,6 +246,15 @@ serveSuperAdmin('pricing-plans', async (req, user) => {
 
     if (error) return jsonError(req, error.message, 500);
     if (!data) return jsonError(req, 'Plan not found', 404);
+
+    await logSuperAdminAction(user, {
+      action: 'pricing_plans.plan_updated',
+      targetType: 'pricing_plan',
+      targetId: id,
+      summary: 'Updated pricing plan',
+      metadata: { fields: Object.keys(patch) },
+    });
+
     return jsonSuccess(req, { plan: serializePlan(data as Record<string, unknown>) });
   }
 

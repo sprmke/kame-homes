@@ -102,9 +102,16 @@ servePublic('get-booked-dates', async (req) => {
       checkOutDate: normalizeDate(range.end_date),
     }));
 
-  return jsonResponse(req, {
-    success: true,
-    data: [...bookedDateRanges, ...blockedDateRanges],
-    message: 'Future booked dates retrieved successfully.',
-  });
+  // Availability data — short TTL, no stale-while-revalidate: stale availability
+  // here means a guest sees a night as free that's actually booked.
+  return jsonResponse(
+    req,
+    {
+      success: true,
+      data: [...bookedDateRanges, ...blockedDateRanges],
+      message: 'Future booked dates retrieved successfully.',
+    },
+    200,
+    'publicAvailability'
+  );
 });

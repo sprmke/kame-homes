@@ -98,6 +98,7 @@ serveAuthenticated('import-parse-file', async (req) => {
     .upload(storagePath, file, {
       upsert: false,
       contentType: contentTypeForImportKind(parsedKind),
+      cacheControl: '31536000',
     });
 
   if (uploadError) {

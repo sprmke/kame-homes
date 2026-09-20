@@ -166,7 +166,10 @@ serve(async (req) => {
 
       if (hasOverlap) {
         console.error('❌ BOOKING OVERLAP DETECTED!');
-        console.error('Overlapping bookings:', overlappingBookings);
+        console.error(
+          'Overlapping booking ids:',
+          (overlappingBookings ?? []).map((b: { id: string }) => b.id)
+        );
         throw new Error(
           'BOOKING_OVERLAP: The selected dates are already booked. Please screenshot this message and contact your host to further assist you.'
         );

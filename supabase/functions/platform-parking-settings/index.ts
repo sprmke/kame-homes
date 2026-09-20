@@ -13,6 +13,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
+import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
 
 function serialize(row: Record<string, unknown>) {
@@ -87,6 +88,14 @@ serveSuperAdmin('platform-parking-settings', async (req, user) => {
       .select('*')
       .single();
     if (error) return jsonError(req, error.message, 500);
+
+    await logSuperAdminAction(user, {
+      action: 'platform.parking_settings_update',
+      targetType: 'platform',
+      targetId: 'platform_parking_settings',
+      summary: 'Updated platform parking settings',
+      metadata: { changed: Object.keys(patch).filter((k) => k !== 'updated_by') },
+    });
 
     return jsonSuccess(req, { settings: serialize(data as Record<string, unknown>) });
   }

@@ -50,7 +50,7 @@ serveAuthenticated('cancel-booking', async (req) => {
     return jsonError(req, 'Booking is already cancelled');
   }
 
-  console.log(`Cancelling booking: ${bookingId} (${booking.primary_guest_name})`);
+  console.log(`Cancelling booking: ${bookingId}`);
 
   const result = await WorkflowOrchestrator.transition(
     String(bookingId),

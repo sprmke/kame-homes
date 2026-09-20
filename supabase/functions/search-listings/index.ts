@@ -293,7 +293,7 @@ servePublic('search-listings', async (req) => {
         usedSmartFallback: false,
         conceptId: null,
       },
-    });
+    }, undefined, 'publicDynamic');
   }
 
   async function runListings(activeSearch: ActiveSearch): Promise<{
@@ -701,7 +701,7 @@ servePublic('search-listings', async (req) => {
       developments: result.developments,
       parkings: result.parkings,
       meta,
-    });
+    }, undefined, 'publicDynamic');
   } catch {
     return jsonError(req, 'Failed to search listings', 500);
   }

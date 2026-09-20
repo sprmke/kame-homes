@@ -4,7 +4,7 @@
  */
 
 import { createServiceClient } from '../_shared/orgAuth.ts';
-import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
+import { jsonError, jsonSuccessWithETag } from '../_shared/httpResponse.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 import { mergeUnitTypes } from '../_shared/unitTypes.ts';
@@ -13,7 +13,6 @@ servePublic('get-residence-unit-types', async (req) => {
   if (req.method !== 'GET') {
     return jsonError(req, `Method ${req.method} not allowed`, 405);
   }
-
 
   const limited = await publicGetRateLimitGate(req, 'get-residence-unit-types');
   if (limited) return limited;
@@ -42,5 +41,6 @@ servePublic('get-residence-unit-types', async (req) => {
       : {};
 
   const unitTypes = mergeUnitTypes(settings.unitTypes, residenceName);
-  return jsonSuccess(req, { unitTypes });
+  // Unit type vocabulary — changes only on a super-admin development edit.
+  return jsonSuccessWithETag(req, { unitTypes }, 'publicStatic');
 });

@@ -260,43 +260,53 @@ servePublic('search-suggestions', async (req) => {
   if (intent.kind === 'nearby') {
     const category = nearbyCategoryFromQuery(q);
     const label = nearbyDisplayLabel(category);
-    return jsonSuccess(req, {
-      query: q,
-      locations: [
-        {
-          kind: 'location' as const,
-          id: 'nearby',
-          label,
-          subtitle:
-            category === 'developments'
-              ? 'Developments around you'
-              : category === 'properties'
-                ? 'Stays around you'
-                : category === 'parkings'
-                  ? 'Parking around you'
-                  : 'Uses your location',
-        },
-      ],
-      developments: [] as SearchSuggestionItem[],
-      properties: [] as SearchSuggestionItem[],
-      parkings: [] as SearchSuggestionItem[],
-    });
+    return jsonSuccess(
+      req,
+      {
+        query: q,
+        locations: [
+          {
+            kind: 'location' as const,
+            id: 'nearby',
+            label,
+            subtitle:
+              category === 'developments'
+                ? 'Developments around you'
+                : category === 'properties'
+                  ? 'Stays around you'
+                  : category === 'parkings'
+                    ? 'Parking around you'
+                    : 'Uses your location',
+          },
+        ],
+        developments: [] as SearchSuggestionItem[],
+        properties: [] as SearchSuggestionItem[],
+        parkings: [] as SearchSuggestionItem[],
+      },
+      undefined,
+      'publicDynamic'
+    );
   }
 
   if (q.length < 2) {
-    return jsonSuccess(req, {
-      query: q,
-      locations: [] as SearchSuggestionItem[],
-      developments: [] as SearchSuggestionItem[],
-      properties: [] as SearchSuggestionItem[],
-      parkings: [] as SearchSuggestionItem[],
-    });
+    return jsonSuccess(
+      req,
+      {
+        query: q,
+        locations: [] as SearchSuggestionItem[],
+        developments: [] as SearchSuggestionItem[],
+        properties: [] as SearchSuggestionItem[],
+        parkings: [] as SearchSuggestionItem[],
+      },
+      undefined,
+      'publicDynamic'
+    );
   }
 
   if (intent.kind === 'concept') {
     try {
       const grouped = await buildConceptSuggestions(intent, limit);
-      return jsonSuccess(req, { query: q, ...grouped });
+      return jsonSuccess(req, { query: q, ...grouped }, undefined, 'publicDynamic');
     } catch (error) {
       console.error('[search-suggestions] concept', error);
       return jsonError(req, 'Failed to load suggestions', 500);
@@ -413,11 +423,16 @@ servePublic('search-suggestions', async (req) => {
 
   const grouped = trimOverflow({ locations, developments, properties, parkings }, limit);
 
-  return jsonSuccess(req, {
-    query: q,
-    locations: grouped.locations,
-    developments: grouped.developments,
-    properties: grouped.properties,
-    parkings: grouped.parkings,
-  });
+  return jsonSuccess(
+    req,
+    {
+      query: q,
+      locations: grouped.locations,
+      developments: grouped.developments,
+      properties: grouped.properties,
+      parkings: grouped.parkings,
+    },
+    undefined,
+    'publicDynamic'
+  );
 });
