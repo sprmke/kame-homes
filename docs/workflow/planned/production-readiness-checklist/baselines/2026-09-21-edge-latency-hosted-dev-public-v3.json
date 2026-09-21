@@ -1,0 +1,70 @@
+{
+  "capturedAt": "2026-09-21T00:41:05.042Z",
+  "label": "hosted-dev-public-v3",
+  "supabaseUrl": "https://fworvijbrwpyngycotbz.supabase.co/functions/v1",
+  "iterations": 12,
+  "publicEndpoints": [
+    {
+      "name": "get-health",
+      "path": "/functions/v1/get-health",
+      "iterations": 12,
+      "coldMs": 294,
+      "warmP50Ms": 161,
+      "warmP95Ms": 206,
+      "warmP99Ms": 206,
+      "allP50Ms": 161,
+      "allP95Ms": 294,
+      "allP99Ms": 294,
+      "statusCounts": {
+        "404": 12
+      }
+    },
+    {
+      "name": "list-public-pricing-plans",
+      "path": "/functions/v1/list-public-pricing-plans",
+      "iterations": 12,
+      "coldMs": 110,
+      "warmP50Ms": 161,
+      "warmP95Ms": 192,
+      "warmP99Ms": 192,
+      "allP50Ms": 160,
+      "allP95Ms": 192,
+      "allP99Ms": 192,
+      "statusCounts": {
+        "404": 12
+      }
+    },
+    {
+      "name": "list-public-properties",
+      "path": "/functions/v1/list-public-properties?page=1&pageSize=5",
+      "iterations": 12,
+      "coldMs": 159,
+      "warmP50Ms": 160,
+      "warmP95Ms": 205,
+      "warmP99Ms": 205,
+      "allP50Ms": 159,
+      "allP95Ms": 205,
+      "allP99Ms": 205,
+      "statusCounts": {
+        "404": 12
+      }
+    },
+    {
+      "name": "list-public-parkings",
+      "path": "/functions/v1/list-public-parkings?page=1&pageSize=5",
+      "iterations": 12,
+      "coldMs": 165,
+      "warmP50Ms": 158,
+      "warmP95Ms": 206,
+      "warmP99Ms": 206,
+      "allP50Ms": 158,
+      "allP95Ms": 206,
+      "allP99Ms": 206,
+      "statusCounts": {
+        "404": 12
+      }
+    }
+  ],
+  "authenticatedEndpoints": [],
+  "note": "Cold = first call per endpoint (may include a Deno Deploy cold start). Warm p50/p95/p99 exclude that first call. Run this against hosted dev only."
+}

@@ -48,10 +48,10 @@ Everything else in this doc is genuinely hosted-blocked this session — no `SUP
 
 ## Implementation status (2026-09-21 follow-up)
 
-**cd-dev green path re-confirmed** after Playwright `@ci` stabilization (`marketingCollage.spec.ts` timeouts, guest-form harness dates, `VITE_API_URL` in webServer env). GitHub Actions run [`35545944443`](https://github.com/sprmke/kame-homes/actions/runs/35545944443) (`9299d7fb` on `develop`): `quality` job passed `@smoke` + full `@ci`; `deploy` job deployed MULTI_TENANT_DEV, then:
+**cd-dev green path re-confirmed** after Playwright `@ci` stabilization and post-deploy smoke hardening (`24a02935`). Latest run [`35547228391`](https://github.com/sprmke/kame-homes/actions/runs/35547228391): `quality` passed `@smoke` + `@ci`; `deploy` then:
 
-- `ci-smoke.sh dev` — partial pass (empty `list-public-properties`; no `SMOKE_PROPERTY_SLUG` set).
-- `adversarialAuthLive.test.ts` — 3/3.
+- `ci-smoke.sh dev` — partial pass (empty listings) + transport compression on `get-health` / `list-public-pricing-plans`.
+- `adversarialAuthLive.test.ts` — 6/6.
 - `verify:deployed-preview` — OK against `https://dev.kamehomes.space` and hosted `get-health`.
 
 **`pg_stat_statements` capture** still skipped when `DEV_DB_URL` is unset on the `development` GitHub Environment (workflow emits `::warning` since `9299d7fb`). Operator: add secret per `docs/archive/operations/github-environments-setup.md`, re-run cd-dev, commit artifact under `baselines/` (doc 00 row 4).

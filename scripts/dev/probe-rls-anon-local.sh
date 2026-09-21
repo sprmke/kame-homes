@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Doc 22 — probe a few deny-by-default tables as the `anon` role on local Supabase.
+# Doc 22 — probe deny-by-default tables as `anon` and `authenticated` on local Supabase.
 # Intended to run after `bun run db:reset` (migration-replay workflow / manual).
 set -euo pipefail
 
@@ -12,9 +12,11 @@ if [[ -z "$container" ]]; then
   exit 1
 fi
 
-sql=$(cat <<'SQL'
-SET ROLE anon;
--- RLS enabled, zero policies: must not leak rows to anon.
+probe_role() {
+  local role="$1"
+  local sql
+  sql=$(cat <<SQL
+SET ROLE ${role};
 SELECT 'developments' AS tbl, count(*)::int AS n FROM public.developments
 UNION ALL
 SELECT 'query_cache', count(*)::int FROM public.query_cache
@@ -22,19 +24,24 @@ UNION ALL
 SELECT 'processed_emails', count(*)::int FROM public.processed_emails;
 SQL
 )
-
-out="$(docker exec -i "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At -c "$sql")"
+  local out
+  out="$(docker exec -i "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At -c "$sql")"
+  local fail=0
+  while IFS='|' read -r tbl n; do
+    if [[ "$n" != "0" ]]; then
+      echo "probe-rls-anon-local: FAIL $tbl returned $n rows as ${role} (expected 0)"
+      fail=1
+    fi
+  done <<<"$out"
+  return "$fail"
+}
 
 fail=0
-while IFS='|' read -r tbl n; do
-  if [[ "$n" != "0" ]]; then
-    echo "probe-rls-anon-local: FAIL $tbl returned $n rows as anon (expected 0)"
-    fail=1
-  fi
-done <<<"$out"
+probe_role anon || fail=1
+probe_role authenticated || fail=1
 
 if [[ "$fail" -ne 0 ]]; then
   exit 1
 fi
 
-echo "probe-rls-anon-local: OK (anon sees 0 rows on deny-by-default tables)"
+echo "probe-rls-anon-local: OK (anon + authenticated see 0 rows on deny-by-default tables)"

@@ -213,6 +213,28 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: Edge latency snapshot (production-readiness doc 00)
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # shellcheck source=scripts/deploy/ci-deploy-lib.sh
+          source scripts/deploy/ci-deploy-lib.sh
+          ci_deploy_ensure_anon_key
+          export SUPABASE_URL="https://${SUPABASE_PROJECT_REF}.supabase.co"
+          node scripts/performance/edge-latency-baseline.mjs --iterations=8 --label=hosted-dev-ci
+
+      - name: Upload edge latency baseline artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-latency-hosted-dev
+          path: docs/workflow/planned/production-readiness-checklist/baselines/*-edge-latency-hosted-dev-ci.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Deployed preview headers (production-readiness doc 02/16)
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
