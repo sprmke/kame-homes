@@ -169,6 +169,18 @@ Deno.test({
 });
 
 Deno.test({
+  name: 'anon without Authorization cannot call serveAuthenticated property-access',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet(
+      'property-access?property_id=00000000-0000-0000-0000-000000000001',
+      {}
+    );
+    assertUnauthorized(res.status, 'property-access');
+  },
+});
+
+Deno.test({
   name: 'anon can call servePublic get-health (positive control)',
   ignore: !live,
   fn: async () => {
