@@ -64,6 +64,15 @@ Deno.test({
 });
 
 Deno.test({
+  name: 'anon without Authorization cannot call serveAuthenticated list-properties',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-properties', {});
+    assertUnauthorized(res.status, 'list-properties');
+  },
+});
+
+Deno.test({
   name: 'anon Bearer (anon JWT) cannot call serveAdmin list-bookings',
   ignore: !live,
   fn: async () => {
