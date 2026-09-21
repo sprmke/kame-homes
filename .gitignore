@@ -109,6 +109,7 @@ ui/screen-tmp/*
 
 # Personal Claude Code overrides (team config is .claude/settings.json)
 .claude/settings.local.json
+supabase/functions/tests/fixtures/auth-parity-seed.local.json
 
 # Superpowers lean mode session marker (hooks — local only)
 .cursor/.superpowers-lean-active

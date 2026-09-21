@@ -9,6 +9,7 @@ import { expandBookingsPhase3PermissionIds } from './bookingsPermissionExpansion
 import { expandLegacyPropertyPermissionIds } from './legacyPermissionExpansion.ts';
 import { expandOpsPhase4PermissionIds } from './opsPermissionExpansion.ts';
 import { expandSettingsPhase5PermissionIds } from './settingsPermissionExpansion.ts';
+import { expandLegacyOrgPermissionIds } from './orgLegacyPermissionExpansion.ts';
 
 Deno.test('expandAccessPhase6 expands team:manage to member + custom-role leaves', () => {
   const out = expandAccessPhase6PermissionIds(['team:manage']);
@@ -50,4 +51,21 @@ Deno.test('expandSettingsPhase5 expands settings:view integrations leaf', () => 
     'settings:view',
     'settings.integrations:view',
   ]);
+});
+
+Deno.test('expandLegacyOrgPermissionIds drops org:import:manage', () => {
+  assertEquals(expandLegacyOrgPermissionIds(['org:import:manage']), []);
+});
+
+Deno.test('expandLegacyOrgPermissionIds expands org:team:manage', () => {
+  const out = expandLegacyOrgPermissionIds(['org:team:manage']).sort();
+  assertEquals(
+    out,
+    [
+      'org.team.invitations:delete',
+      'org.team.invitations:edit',
+      'org.team.members:delete',
+      'org.team.members:edit',
+    ].sort()
+  );
 });

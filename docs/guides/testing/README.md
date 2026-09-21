@@ -83,25 +83,37 @@ Manual-only (existing):
 
 ## Coverage inventory
 
-| Domain            | Unit                                        | E2E                                                                                     | Manual              |
-| ----------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------- |
-| Booking workflow  | `statusMachine_test.ts`, `workflow.test.ts` | `ui/e2e/features/bookings/`, `guest-form/`                                              | workflow emails     |
-| Parking           | `parkingStatusMachine_test.ts`              | `ui/e2e/features/parking/` (guest `@ci`, outcomes `@ci`)                                | PayMongo live       |
-| Plans / billing   | `planPresentation.test.ts`, entitlements    | `ui/e2e/features/plans/org/*` (`@ci`)                                                   | PayMongo checkout   |
-| Team RBAC         | catalog drift tests                         | `ui/e2e/features/team/`                                                                 | —                   |
-| Org hub           | org permissions helpers                     | `ui/e2e/features/org/` (dashboard, bookings, properties, team, settings)                | —                   |
-| Guest account     | profile validation                          | `ui/e2e/features/account/` (favorites, profile, stays `@ci`)                            | OAuth, chat live    |
-| Vouchers          | `voucherRevealWheel.test.ts`                | `ui/e2e/features/vouchers/`                                                             | —                   |
-| Assistant         | `assistantToolCatalog.test.ts`              | `ui/e2e/features/assistant/`                                                            | live Gemini         |
-| Auth              | validators                                  | `ui/e2e/features/auth/` (pages, redirect, legacy routes, accept-invite `@ci`)           | Google OAuth        |
-| Public / search   | intent helpers                              | `ui/e2e/features/public/` (landing, list, for-hosts, search, legal, developments `@ci`) | smart-search manual |
-| Redirects         | —                                           | `legacyRouteRedirectSmoke.spec.ts`, `legacyRedirectSmoke.spec.ts`                       | —                   |
-| Dashboard modules | finance/pricing/settings units              | `ui/e2e/features/dashboard/` (finance, team, public-pages, activity `@ci`)              | OTP payment         |
-| Onboarding        | reserved-name validators                    | `ui/e2e/features/onboarding/` (`@ci`)                                                   | verification upload |
-| Super admin       | `superAdminVerification_test.ts`            | `ui/e2e/features/admin/` (overview + approvals queue `@ci`)                             | OTP, payouts        |
-| Crons / webhooks  | lead-window, signature units                | —                                                                                       | scheduled jobs      |
+| Domain            | Unit                                        | E2E                                                                                     | Manual                   |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------ |
+| Booking workflow  | `statusMachine_test.ts`, `workflow.test.ts` | `ui/e2e/features/bookings/`, `guest-form/`                                              | workflow emails          |
+| Parking           | `parkingStatusMachine_test.ts`              | `ui/e2e/features/parking/` (guest `@ci`, outcomes `@ci`)                                | PayMongo live            |
+| Plans / billing   | `planPresentation.test.ts`, entitlements    | `ui/e2e/features/plans/org/*` (`@ci`)                                                   | PayMongo checkout        |
+| Team RBAC         | catalog drift + permission expansion tests  | `ui/e2e/features/team/`                                                                 | auth parity seed (below) |
+| Org hub           | org permissions helpers                     | `ui/e2e/features/org/` (dashboard, bookings, properties, team, settings)                | —                        |
+| Guest account     | profile validation                          | `ui/e2e/features/account/` (favorites, profile, stays `@ci`)                            | OAuth, chat live         |
+| Vouchers          | `voucherRevealWheel.test.ts`                | `ui/e2e/features/vouchers/`                                                             | —                        |
+| Assistant         | `assistantToolCatalog.test.ts`              | `ui/e2e/features/assistant/`                                                            | live Gemini              |
+| Auth              | validators                                  | `ui/e2e/features/auth/` (pages, redirect, legacy routes, accept-invite `@ci`)           | Google OAuth             |
+| Public / search   | intent helpers                              | `ui/e2e/features/public/` (landing, list, for-hosts, search, legal, developments `@ci`) | smart-search manual      |
+| Redirects         | —                                           | `legacyRouteRedirectSmoke.spec.ts`, `legacyRedirectSmoke.spec.ts`                       | —                        |
+| Dashboard modules | finance/pricing/settings units              | `ui/e2e/features/dashboard/` (finance, team, public-pages, activity `@ci`)              | OTP payment              |
+| Onboarding        | reserved-name validators                    | `ui/e2e/features/onboarding/` (`@ci`)                                                   | verification upload      |
+| Super admin       | `superAdminVerification_test.ts`            | `ui/e2e/features/admin/` (overview + approvals queue `@ci`)                             | OTP, payouts             |
+| Crons / webhooks  | lead-window, signature units                | —                                                                                       | scheduled jobs           |
 
 Route guides: each **`docs/guides/routes/*.md`** includes a **Testing** section (unit path / E2E spec / manual).
+
+### Auth parity seed (production-readiness doc 21)
+
+Hosted no-seed smoke: `supabase/functions/tests/adversarialAuthLive.test.ts` (cd-dev deploy job).
+
+Seeded role × endpoint table (local or hosted with real JWTs):
+
+1. Copy `supabase/functions/tests/fixtures/auth-parity-seed.example.json` to `auth-parity-seed.local.json` (gitignored).
+2. Fill query params and export JWT env vars named in each case.
+3. Run `AUTH_PARITY_FIXTURE=supabase/functions/tests/fixtures/auth-parity-seed.local.json SUPABASE_URL=... SUPABASE_ANON_KEY=... deno test --allow-net --allow-env --allow-read supabase/functions/tests/authParitySeed.test.ts`
+
+CI runs the harness with fixture unset (one passing skip marker test).
 
 ## Same change as code
 

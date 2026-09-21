@@ -83,6 +83,8 @@ Currently 7 handler tests for 300 functions. Rather than writing 300 by hand, bu
 
 The E2E harnesses in `ui/e2e/features/team/shared/propertyTeamRbacHarness.ts` show this pattern already exists in the repo — extend it.
 
+**2026-09-21:** edge-side table driver `authParitySeed.test.ts` + `fixtures/auth-parity-seed.example.json` (doc 21.2/21.6); runs only when `AUTH_PARITY_FIXTURE` is set. See `docs/guides/testing/README.md` § Auth parity seed.
+
 ### Phase 29.3 — Test data and environments
 
 - The large-tenant seed (doc 10) becomes the standard fixture for performance and pagination tests.

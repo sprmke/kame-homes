@@ -10,6 +10,7 @@ import {
   SETTINGS_SECTION_EDIT_IDS,
   expandSettingsPhase5PermissionIds,
 } from '@/features/dashboard/team/lib/settingsPermissionExpansion';
+import { expandLegacyOrgPermissionIds } from '@/features/dashboard/team/lib/orgLegacyPermissionExpansion';
 
 const ROOT = resolve(import.meta.dirname, '../../../../../..');
 
@@ -94,6 +95,22 @@ function extractExpansionKeys(source: string, exportName: string): string[] {
   return [...match[1].matchAll(/'([^']+)':/g)].map((m) => m[1]);
 }
 
+function extractLegacyOrgKeys(source: string): string[] {
+  const match = source.match(/LEGACY_ORG_EXPANSION: Record[\s\S]*?=\s*\{([\s\S]*?)\n\};/);
+  if (!match) return [];
+  return [...match[1].matchAll(/'([^']+)':/g)].map((m) => m[1]);
+}
+
+const ORG_LEGACY_UMBRELLA_EXPECTED: Record<string, readonly string[]> = {
+  'org:team:manage': [
+    'org.team.invitations:edit',
+    'org.team.invitations:delete',
+    'org.team.members:edit',
+    'org.team.members:delete',
+  ],
+  'org:import:manage': [],
+};
+
 describe('permission expansion (doc 21)', () => {
   it('access umbrella keys match edge ACCESS_PHASE6_EXPANSION', () => {
     const edgeSource = readFileSync(
@@ -152,6 +169,24 @@ describe('permission expansion (doc 21)', () => {
   it('expandSettingsPhase5PermissionIds matches frozen umbrella table', () => {
     for (const [umbrella, expected] of Object.entries(SETTINGS_UMBRELLA_EXPECTED)) {
       expect(expandSettingsPhase5PermissionIds([umbrella])).toEqual([...expected]);
+    }
+  });
+
+  it('org legacy umbrella keys match edge orgLegacyPermissionExpansion.ts', () => {
+    const edgeSource = readFileSync(
+      resolve(ROOT, 'supabase/functions/_shared/orgLegacyPermissionExpansion.ts'),
+      'utf8'
+    );
+    const edgeKeys = extractLegacyOrgKeys(edgeSource).sort();
+    expect(edgeKeys.length).toBeGreaterThan(10);
+    for (const key of Object.keys(ORG_LEGACY_UMBRELLA_EXPECTED)) {
+      expect(edgeKeys).toContain(key);
+    }
+  });
+
+  it('expandLegacyOrgPermissionIds matches frozen org legacy table', () => {
+    for (const [umbrella, expected] of Object.entries(ORG_LEGACY_UMBRELLA_EXPECTED)) {
+      expect(expandLegacyOrgPermissionIds([umbrella]).sort()).toEqual([...expected].sort());
     }
   });
 });
