@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-21T03:38:50.785Z",
+  "capturedAt": "2026-09-21T04:23:04.851Z",
   "label": "hosted-dev-ci",
   "supabaseUrl": "https://fworvijbrwpyngycotbz.supabase.co",
   "iterations": 8,
@@ -8,13 +8,13 @@
       "name": "get-health",
       "path": "/functions/v1/get-health",
       "iterations": 8,
-      "coldMs": 1103,
-      "warmP50Ms": 1313,
-      "warmP95Ms": 2158,
-      "warmP99Ms": 2158,
-      "allP50Ms": 1103,
-      "allP95Ms": 2158,
-      "allP99Ms": 2158,
+      "coldMs": 5410,
+      "warmP50Ms": 3398,
+      "warmP95Ms": 5902,
+      "warmP99Ms": 5902,
+      "allP50Ms": 3398,
+      "allP95Ms": 5902,
+      "allP99Ms": 5902,
       "statusCounts": {
         "200": 8
       }
@@ -23,13 +23,13 @@
       "name": "list-public-pricing-plans",
       "path": "/functions/v1/list-public-pricing-plans",
       "iterations": 8,
-      "coldMs": 982,
-      "warmP50Ms": 993,
-      "warmP95Ms": 1730,
-      "warmP99Ms": 1730,
-      "allP50Ms": 982,
-      "allP95Ms": 1730,
-      "allP99Ms": 1730,
+      "coldMs": 5112,
+      "warmP50Ms": 2181,
+      "warmP95Ms": 5141,
+      "warmP99Ms": 5141,
+      "allP50Ms": 2181,
+      "allP95Ms": 5141,
+      "allP99Ms": 5141,
       "statusCounts": {
         "200": 8
       }
@@ -38,13 +38,13 @@
       "name": "list-public-properties",
       "path": "/functions/v1/list-public-properties?page=1&pageSize=5",
       "iterations": 8,
-      "coldMs": 1568,
-      "warmP50Ms": 1217,
-      "warmP95Ms": 2153,
-      "warmP99Ms": 2153,
-      "allP50Ms": 1217,
-      "allP95Ms": 2153,
-      "allP99Ms": 2153,
+      "coldMs": 1832,
+      "warmP50Ms": 2461,
+      "warmP95Ms": 5361,
+      "warmP99Ms": 5361,
+      "allP50Ms": 1902,
+      "allP95Ms": 5361,
+      "allP99Ms": 5361,
       "statusCounts": {
         "200": 8
       }
@@ -53,13 +53,13 @@
       "name": "list-public-parkings",
       "path": "/functions/v1/list-public-parkings?page=1&pageSize=5",
       "iterations": 8,
-      "coldMs": 1921,
-      "warmP50Ms": 1350,
-      "warmP95Ms": 2395,
-      "warmP99Ms": 2395,
-      "allP50Ms": 1350,
-      "allP95Ms": 2395,
-      "allP99Ms": 2395,
+      "coldMs": 4606,
+      "warmP50Ms": 2011,
+      "warmP95Ms": 6764,
+      "warmP99Ms": 6764,
+      "allP50Ms": 2011,
+      "allP95Ms": 6764,
+      "allP99Ms": 6764,
       "statusCounts": {
         "200": 8
       }
@@ -70,13 +70,13 @@
       "name": "list-bookings",
       "path": "/functions/v1/list-bookings",
       "iterations": 8,
-      "coldMs": 458,
-      "warmP50Ms": 424,
-      "warmP95Ms": 453,
-      "warmP99Ms": 453,
-      "allP50Ms": 424,
-      "allP95Ms": 458,
-      "allP99Ms": 458,
+      "coldMs": 637,
+      "warmP50Ms": 612,
+      "warmP95Ms": 1261,
+      "warmP99Ms": 1261,
+      "allP50Ms": 612,
+      "allP95Ms": 1261,
+      "allP99Ms": 1261,
       "statusCounts": {
         "401": 8
       }
@@ -85,13 +85,13 @@
       "name": "list-organizations",
       "path": "/functions/v1/list-organizations",
       "iterations": 8,
-      "coldMs": 406,
-      "warmP50Ms": 390,
-      "warmP95Ms": 430,
-      "warmP99Ms": 430,
-      "allP50Ms": 390,
-      "allP95Ms": 430,
-      "allP99Ms": 430,
+      "coldMs": 746,
+      "warmP50Ms": 574,
+      "warmP95Ms": 798,
+      "warmP99Ms": 798,
+      "allP50Ms": 574,
+      "allP95Ms": 798,
+      "allP99Ms": 798,
       "statusCounts": {
         "401": 8
       }
