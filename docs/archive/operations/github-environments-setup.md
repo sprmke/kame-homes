@@ -26,13 +26,13 @@ Vercel **`Preview`** / **`Production`** are separate — configured in Vercel da
 
 ## Workflows
 
-| Workflow          | Trigger                   | GitHub Environment              | Target                          |
-| ----------------- | ------------------------- | ------------------------------- | ------------------------------- |
-| `ci.yml`          | Push/PR `main`, `develop` | —                               | Quality only                    |
-| `cd-dev.yml`      | Push **`develop`**        | **`development`**               | MULTI_TENANT_DEV `fwor…`        |
-| `cd-preprod.yml`  | Manual                    | `preproduction`                 | Optional rehearsal              |
-| `cd-prod.yml`     | Manual (gated)            | **`production`**                | MULTI_TENANT_PROD — **Phase B** |
-| `cd-rollback.yml` | Manual                    | `development` / `preproduction` | Validates env                   |
+| Workflow          | Trigger                                                                       | GitHub Environment              | Target                          |
+| ----------------- | ----------------------------------------------------------------------------- | ------------------------------- | ------------------------------- |
+| `ci.yml`          | Push/PR `main`, `develop`                                                     | —                               | Quality only                    |
+| `cd-dev.yml`      | Push **`develop`** (paths: `supabase/**`, `scripts/deploy/**`, workflow file) | **`development`**               | MULTI_TENANT_DEV `fwor…`        |
+| `cd-preprod.yml`  | Manual                                                                        | `preproduction`                 | Optional rehearsal              |
+| `cd-prod.yml`     | Manual (gated)                                                                | **`production`**                | MULTI_TENANT_PROD — **Phase B** |
+| `cd-rollback.yml` | Manual                                                                        | `development` / `preproduction` | Validates env                   |
 
 **Note:** Vercel deploys UI from git. `cd-dev.yml` deploys **Supabase only**.
 

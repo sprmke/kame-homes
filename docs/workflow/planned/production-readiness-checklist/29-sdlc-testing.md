@@ -29,7 +29,7 @@ Everything else in this doc (risk-tier coverage targets, contract tests against 
 | --- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | 1   | Risk-tier coverage targets defined and met for the seven high-risk surfaces (29.1).                                        | Process + tests          |
 | 2   | Table-driven handler harness: **wrapper-level auth rejection done** (15 tests); per-function validation still open (29.2). | Tests                    |
-| 3   | Doc 21 adversarial matrix executable and green.                                                                            | Doc 21 + tests           |
+| 3   | Doc 21 adversarial matrix executable and green. **Partial:** `adversarialAuthLive.test.ts` 6 cases on cd-dev (2026-09-21). | Doc 21 + tests           |
 | 4   | Contract tests against a real local stack for the top flows (29.3).                                                        | Local Supabase           |
 | 5   | WebKit for the guest flow; large-tenant fixture; Manila timezone pinned in the test env.                                   | Playwright + doc 10 seed |
 | 6   | Zero long-lived quarantined flaky tests (29.4). **One found this session** (`guestFormSubmit.spec.ts` — doc 26 cross-ref). | Tests                    |

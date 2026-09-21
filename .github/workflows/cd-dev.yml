@@ -10,6 +10,11 @@ on:
   push:
     branches:
       - develop
+    # Supabase-only workflow — skip when a push touches only docs/UI (Vercel deploys UI separately).
+    paths:
+      - '.github/workflows/cd-dev.yml'
+      - 'scripts/deploy/**'
+      - 'supabase/**'
 
 concurrency:
   group: supabase-mt-dev
