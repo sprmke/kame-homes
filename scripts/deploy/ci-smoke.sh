@@ -63,6 +63,13 @@ for fn in list-public-properties get-public-property get-booked-dates search-lis
 done
 echo "  required public functions present"
 
+CRON_PROBE="activity-log-retention-cron"
+if ! grep -q "$CRON_PROBE" <<<"$FUNCS"; then
+  echo "ERROR: scheduled function $CRON_PROBE not found in functions list (doc 24 cron presence)." >&2
+  exit 1
+fi
+echo "  cron function present ($CRON_PROBE)"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required for response-shape assertions." >&2
   exit 1

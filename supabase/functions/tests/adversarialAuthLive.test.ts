@@ -113,3 +113,21 @@ Deno.test({
     assertUnauthorized(res.status, 'telegram-admin-cron');
   },
 });
+
+Deno.test({
+  name: 'anon without Authorization cannot call serveAdmin org-settings',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('org-settings', {});
+    assertUnauthorized(res.status, 'org-settings');
+  },
+});
+
+Deno.test({
+  name: 'POST without cron secret cannot invoke serveCronPost activity-log-retention-cron',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgePost('activity-log-retention-cron', {});
+    assertUnauthorized(res.status, 'activity-log-retention-cron');
+  },
+});

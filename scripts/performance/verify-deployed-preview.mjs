@@ -105,6 +105,33 @@ if (manifestHead.status === 200) {
   assertIncludes(manifestHead.headers, 'cache-control', 'must-revalidate', 'manifest.webmanifest');
 }
 
+const pwaVersionRes = await fetch(`${previewUrl}/pwa-version.json`, { redirect: 'follow' });
+const pwaVersionBody = await pwaVersionRes.text();
+if (!pwaVersionRes.ok) {
+  fail(`/pwa-version.json returned ${pwaVersionRes.status} (doc 24 PWA kill-switch)`);
+}
+const pwaCache = pwaVersionRes.headers.get('cache-control') ?? '';
+const pwaCacheOk =
+  pwaCache.includes('no-cache') ||
+  pwaCache.includes('must-revalidate') ||
+  pwaCache.includes('no-store');
+if (!pwaCacheOk) {
+  fail(`pwa-version.json: expected no-cache, must-revalidate, or no-store, got "${pwaCache || '(missing)'}"`);
+}
+let pwaVersion;
+try {
+  pwaVersion = JSON.parse(pwaVersionBody);
+} catch {
+  fail('pwa-version.json is not valid JSON');
+}
+if (typeof pwaVersion.disabled !== 'boolean') {
+  fail('pwa-version.json missing boolean disabled');
+}
+if (typeof pwaVersion.minBuild !== 'number') {
+  fail('pwa-version.json missing numeric minBuild');
+}
+console.log(`verify-deployed-preview: pwa-version OK (disabled=${pwaVersion.disabled})`);
+
 if (healthUrl) {
   const healthRes = await fetch(healthUrl, { redirect: 'follow' });
   const body = await healthRes.text();
