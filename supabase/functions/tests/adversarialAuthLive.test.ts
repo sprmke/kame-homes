@@ -73,6 +73,15 @@ Deno.test({
 });
 
 Deno.test({
+  name: 'anon without Authorization cannot call serveAuthenticated list-parkings',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-parkings?orgId=00000000-0000-0000-0000-000000000001', {});
+    assertUnauthorized(res.status, 'list-parkings');
+  },
+});
+
+Deno.test({
   name: 'anon Bearer (anon JWT) cannot call serveAdmin list-bookings',
   ignore: !live,
   fn: async () => {
