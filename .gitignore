@@ -85,6 +85,7 @@ supabase_backup*.dump
 # Obsidian local UI state (vault content stays tracked)
 docs/.obsidian/workspace.json
 docs/.obsidian/graph.json
+docs/workflow/planned/production-readiness-checklist/baselines/.artifact-download/
 
 # Tests / local agent tooling (keep .fallowrc.json tracked)
 .playwright-mcp/

@@ -51,7 +51,7 @@ Everything else in this doc is genuinely hosted-blocked this session — no `SUP
 **cd-dev green path re-confirmed** after Playwright `@ci` stabilization and post-deploy smoke hardening (`24a02935`). Latest run [`35547228391`](https://github.com/sprmke/kame-homes/actions/runs/35547228391): `quality` passed `@smoke` + `@ci`; `deploy` then:
 
 - `ci-smoke.sh dev` — partial pass (empty listings) + transport compression on `get-health` / `list-public-pricing-plans`.
-- `adversarialAuthLive.test.ts` — **8/8** on cd-dev run [`35556921767`](https://github.com/sprmke/kame-homes/actions/runs/35556921767) (2026-09-21).
+- `adversarialAuthLive.test.ts` — **11/11** on cd-dev run [`35558455879`](https://github.com/sprmke/kame-homes/actions/runs/35558455879) (2026-09-21).
 - `verify:deployed-preview` — OK against `https://dev.kamehomes.space` and hosted `get-health`.
 
 **`pg_stat_statements` capture** still skipped when `DEV_DB_URL` is unset on the `development` GitHub Environment (workflow emits `::warning` since `9299d7fb`). Operator: add secret per `docs/archive/operations/github-environments-setup.md`, re-run cd-dev, commit artifact under `baselines/` (doc 00 row 4).
