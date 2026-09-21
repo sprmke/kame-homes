@@ -41,9 +41,13 @@ test.describe('@ci marketing studio collage', () => {
 
     await page.getByRole('button', { name: '2x2 grid' }).click();
 
-    // Choosing a layout turns the canvas into a collage — Photos/Style appear (Polotno can lag on CI).
-    await expect(page.getByText('Photos', { exact: true })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText('Style', { exact: true })).toBeVisible({ timeout: 20_000 });
+    // Choosing a layout turns the canvas into a collage — Polotno/mobx can lag on CI workers.
+    await expect(page.getByText('Pick a layout above to start your collage.')).toBeHidden({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole('button', { name: 'Fill all' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Photos', { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Style', { exact: true })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: '2x2 grid' })).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -96,7 +100,13 @@ test.describe('@ci marketing studio collage', () => {
       const startFrom = sheet.getByRole('radiogroup', { name: 'Start from' });
       await startFrom.getByRole('radio', { name: 'Collage' }).click();
       await sheet.getByRole('button', { name: '2x2 grid' }).click();
-      await expect(sheet.getByText('Photos', { exact: true })).toBeVisible();
+      await expect(sheet.getByText('Pick a layout above to start your collage.')).toBeHidden({
+        timeout: 30_000,
+      });
+      await expect(sheet.getByRole('button', { name: 'Fill all' })).toBeVisible({
+        timeout: 30_000,
+      });
+      await expect(sheet.getByText('Photos', { exact: true })).toBeVisible({ timeout: 10_000 });
 
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
