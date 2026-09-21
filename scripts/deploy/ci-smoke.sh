@@ -21,9 +21,10 @@ Environment:
                           Required on prod.
 
 Checks:
-  1. Required public functions are deployed
+  1. Required public functions are deployed (+ activity-log-retention-cron for doc 24)
   2. list-public-properties GET (always)
-  3. When a slug is known (env or first listing), property / availability / search GETs
+  3. Transport compression on get-health + list-public-pricing-plans (doc 13)
+  4. When a slug is known (env or first listing), property / availability / search GETs
 EOF
 }
 
