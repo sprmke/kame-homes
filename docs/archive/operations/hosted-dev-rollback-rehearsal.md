@@ -11,7 +11,7 @@ updated: 2026-09-21
 
 **This document does not replace** `migration-runbook.md` §6 or `production-deployment.md` §12. Read those before any restore.
 
-**Status (2026-09-21):** Preflight script shipped (`scripts/deploy/hosted-dev-rollback-rehearsal-preflight.sh`). **Full drill not executed** in automation; operator must run on a trusted machine with mt-dev credentials.
+**Status (2026-09-21):** Preflight script shipped (`scripts/deploy/hosted-dev-rollback-rehearsal-preflight.sh`). Local preflight on a linked dev machine: project ref `fworvijbrwpyngycotbz`, deploy-log readable, dev backup files under `backups/dev/`; `rollback --dry-run` needs `DEV_DB_URL` in `supabase/.env.dev.local`. **Full drill not executed**; operator must run destructive steps on a trusted machine.
 
 ---
 

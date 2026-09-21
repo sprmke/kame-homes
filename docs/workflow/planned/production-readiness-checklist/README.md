@@ -189,7 +189,7 @@ One-line summary. Details live in each doc's **Remaining work to finalize**.
 | 27  | Structured logs + correlation IDs (central, admin-side) + PII audit **done**. PostHog setup, alerts, guest-side correlation ids, retention policy, health surface still open                                                                       | Operator + code                |
 | 28  | Operator PostHog projects; funnels; deferred events; replay masking; identity stitching                                                                                                                                                            | Operator                       |
 | 29  | Wrapper-level auth-rejection harness **done** (15 tests). **Partial:** doc 21 adversarial **12/12** on cd-dev `35561028251`. Risk-tier targets; per-function validation; WebKit; large-tenant fixture; a11y                                        | Tests + seed                   |
-| 30  | Health endpoint + incident runbook **done**. **Partial:** restore drill runbook + `rehearsal:rollback:dev:preflight` (2026-09-21); measured drill still top priority; backup integrity; uptime monitor; kill switches                              | Hosted-dev operator            |
+| 30  | Health endpoint + incident runbook **done**. **Partial:** restore runbook + preflight OK (linked dev, backups on disk; dry-run needs `DEV_DB_URL`); measured drill still top priority; backup integrity; uptime monitor; kill switches             | Hosted-dev operator            |
 
 ### Review pass (2026-09-17)
 
@@ -244,4 +244,4 @@ Still open, correctly not attempted (need operator/hosted access this session di
 - **Shipped `a5521e90`:** `marketingCollage.spec.ts` CI hardening (Fill all / hidden helper copy waits).
 - **Shipped `d85de641`:** adversarial **11** cases. **cd-dev** [`35558455879`](https://github.com/sprmke/kame-homes/actions/runs/35558455879) green (adversarial **11/11**, partial smoke, `pg_stat` skipped). **Evidence `397ea015`:** checklist pointers + gitignore for artifact downloads.
 - **Evidence `45b53cd2`:** edge-latency baseline refresh (`04:23:04Z`); remaining-work index aligned to `35558455879`.
-- **Shipped `2a4865c3`:** adversarial **12** cases (+ `get-health` control); `listingContractRenewalSession` sign-out unit test. **cd-dev** [`35561028251`](https://github.com/sprmke/kame-homes/actions/runs/35561028251) green (adversarial **12/12**, 2026-09-21). **Evidence `acf9668e`:** checklist aligned to that run.
+- **Shipped `2a4865c3`:** adversarial **12** cases (+ `get-health` control); `listingContractRenewalSession` sign-out unit test. **cd-dev** [`35561028251`](https://github.com/sprmke/kame-homes/actions/runs/35561028251) green (adversarial **12/12**, 2026-09-21). **Evidence `acf9668e`**, **`05611d18`:** checklist run ids. **2026-09-21:** `rehearsal:rollback:dev:preflight` read-only OK (drill not run).
