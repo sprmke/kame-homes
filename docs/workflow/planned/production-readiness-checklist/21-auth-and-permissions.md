@@ -27,7 +27,7 @@ Every endpoint and every UI surface enforces the correct one of seven auth tiers
 | 4   | ~~Capability-token TTL / purpose / revocation / telemetry audit.~~ **Done** — findings in 21.3 below. Remaining product work: purpose-scoped tokens and cancel-time denylist (not shipped).                                                                                                                    | Product           |
 | 5   | Invite-flow adversarial checks (replay after revoke, non-escalating role). **Code review:** accept uses invite row `role_id` (not the body), email-bound, `status=pending` then `accepted`, expiry checked. Tests not written.                                                                                 | Tests             |
 | 6   | ~~Super-admin mutating audit coverage.~~ **Done** this pass for FAQ, playbook, support reply/status, pricing-plans, platform payment/host/parking settings, dashboard-assistant kill switch, contract consideration. Reads remain N/A. Spot-check any new `serveSuperAdmin` writer.                            | —                 |
-| 7   | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **15** live cases (`list-properties` added 2026-09-21); last cd-dev **14/14** [`35567004695`](https://github.com/sprmke/kame-homes/actions/runs/35567004695). Full 21.6 table + Playwright still open.                              | Tests + seed data |
+| 7   | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **15/15** on hosted dev + cd-dev [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373) (`e047dd27`, 2026-09-21). Full 21.6 table + Playwright still open.                                                  | Tests + seed data |
 
 ## Measured before / after
 
@@ -184,7 +184,7 @@ Each case gets a test. This suite is the evidence that closes this doc.
 - [x] Capability tokens audited: TTL 180 days, not single-purpose, no cancel denylist, not logged (query values redacted). Product follow-up listed in Remaining work.
 - [ ] Invite flows proven single-use, expiring, email-bound, non-escalating **by test**. Code review says they are; suite not written.
 - [x] Super-admin mutating actions listed above now `logSuperAdminAction`; step-up already on `GATED_SUPER_ADMIN_ACTIONS`. Impersonation: none found.
-- [ ] Adversarial suite green; each case fails correctly when the check is removed. **Partial:** live smoke **15/15** on hosted dev (2026-09-21); last cd-dev **14/14** `35567004695` (seeded IDOR/invite rows still open).
+- [ ] Adversarial suite green; each case fails correctly when the check is removed. **Partial:** live smoke **15/15** on cd-dev `35569769373` (seeded IDOR/invite rows still open).
 - [ ] Permission expansion helpers unit-tested (21 prior art). **Partial:** `permissionExpansion_test.ts` (9) + UI `permissionExpansionDrift.test.ts` (10); property/org full chain still open.
 
 ## Docs / Plans / activity-log
