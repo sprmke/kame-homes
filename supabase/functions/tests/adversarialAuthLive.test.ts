@@ -160,6 +160,15 @@ Deno.test({
 });
 
 Deno.test({
+  name: 'anon without Authorization cannot call serveAuthenticated list-activity-log',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-activity-log?orgId=00000000-0000-0000-0000-000000000001', {});
+    assertUnauthorized(res.status, 'list-activity-log');
+  },
+});
+
+Deno.test({
   name: 'anon can call servePublic get-health (positive control)',
   ignore: !live,
   fn: async () => {
