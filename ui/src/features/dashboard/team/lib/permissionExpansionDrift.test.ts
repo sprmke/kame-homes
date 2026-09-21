@@ -5,6 +5,11 @@ import { describe, expect, it } from 'vitest';
 
 import { expandAccessPhase6PermissionIds } from '@/features/dashboard/team/lib/accessPermissionExpansion';
 import { expandBookingsPhase3PermissionIds } from '@/features/dashboard/team/lib/bookingsPermissionExpansion';
+import { expandOpsPhase4PermissionIds } from '@/features/dashboard/team/lib/opsPermissionExpansion';
+import {
+  SETTINGS_SECTION_EDIT_IDS,
+  expandSettingsPhase5PermissionIds,
+} from '@/features/dashboard/team/lib/settingsPermissionExpansion';
 
 const ROOT = resolve(import.meta.dirname, '../../../../../..');
 
@@ -50,6 +55,38 @@ const BOOKINGS_UMBRELLA_EXPECTED: Record<string, readonly string[]> = {
   'import:manage': ['bookings.import:add'],
 };
 
+const OPS_UMBRELLA_EXPECTED: Record<string, readonly string[]> = {
+  'finance:edit': [
+    'finance.transactions:add',
+    'finance.transactions:edit',
+    'finance.transactions:delete',
+    'finance.export:view',
+  ],
+  'maintenance:edit': [
+    'maintenance.reminders:add',
+    'maintenance.reminders:edit',
+    'maintenance.reminders:delete',
+    'maintenance.export:view',
+  ],
+  'pricing:edit': ['pricing.rates:edit', 'pricing.blocks:add', 'pricing.blocks:delete'],
+};
+
+const SETTINGS_UMBRELLA_EXPECTED: Record<string, readonly string[]> = {
+  'settings:view': ['settings:view', 'settings.integrations:view'],
+  'settings:edit': SETTINGS_SECTION_EDIT_IDS,
+  'templates:view': ['templates:view', 'publicPages:view'],
+  'templates:edit': [
+    'templates.standard:edit',
+    'templates.email:edit',
+    'templates.custom:add',
+    'templates.custom:edit',
+    'templates.custom:delete',
+    'publicPages.property:edit',
+    'publicPages.stayGuide:edit',
+    'publicPages.showcase:edit',
+  ],
+};
+
 function extractExpansionKeys(source: string, exportName: string): string[] {
   const re = new RegExp(`export const ${exportName}[\\s\\S]*?=\\s*\\{([\\s\\S]*?)\\n\\};`);
   const match = source.match(re);
@@ -85,6 +122,36 @@ describe('permission expansion (doc 21)', () => {
   it('expandBookingsPhase3PermissionIds matches frozen umbrella table', () => {
     for (const [umbrella, expected] of Object.entries(BOOKINGS_UMBRELLA_EXPECTED)) {
       expect(expandBookingsPhase3PermissionIds([umbrella])).toEqual([...expected]);
+    }
+  });
+
+  it('ops umbrella keys match edge OPS_PHASE4_EXPANSION', () => {
+    const edgeSource = readFileSync(
+      resolve(ROOT, 'supabase/functions/_shared/opsPermissionExpansion.ts'),
+      'utf8'
+    );
+    const edgeKeys = extractExpansionKeys(edgeSource, 'OPS_PHASE4_EXPANSION').sort();
+    expect(Object.keys(OPS_UMBRELLA_EXPECTED).sort()).toEqual(edgeKeys);
+  });
+
+  it('expandOpsPhase4PermissionIds matches frozen umbrella table', () => {
+    for (const [umbrella, expected] of Object.entries(OPS_UMBRELLA_EXPECTED)) {
+      expect(expandOpsPhase4PermissionIds([umbrella])).toEqual([...expected]);
+    }
+  });
+
+  it('settings umbrella keys match edge SETTINGS_PHASE5_EXPANSION', () => {
+    const edgeSource = readFileSync(
+      resolve(ROOT, 'supabase/functions/_shared/settingsPermissionExpansion.ts'),
+      'utf8'
+    );
+    const edgeKeys = extractExpansionKeys(edgeSource, 'SETTINGS_PHASE5_EXPANSION').sort();
+    expect(Object.keys(SETTINGS_UMBRELLA_EXPECTED).sort()).toEqual(edgeKeys);
+  });
+
+  it('expandSettingsPhase5PermissionIds matches frozen umbrella table', () => {
+    for (const [umbrella, expected] of Object.entries(SETTINGS_UMBRELLA_EXPECTED)) {
+      expect(expandSettingsPhase5PermissionIds([umbrella])).toEqual([...expected]);
     }
   });
 });

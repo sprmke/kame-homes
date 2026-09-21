@@ -7,6 +7,8 @@ import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { expandAccessPhase6PermissionIds } from './accessPermissionExpansion.ts';
 import { expandBookingsPhase3PermissionIds } from './bookingsPermissionExpansion.ts';
 import { expandLegacyPropertyPermissionIds } from './legacyPermissionExpansion.ts';
+import { expandOpsPhase4PermissionIds } from './opsPermissionExpansion.ts';
+import { expandSettingsPhase5PermissionIds } from './settingsPermissionExpansion.ts';
 
 Deno.test('expandAccessPhase6 expands team:manage to member + custom-role leaves', () => {
   const out = expandAccessPhase6PermissionIds(['team:manage']);
@@ -35,4 +37,17 @@ Deno.test('expandLegacyPropertyPermissionIds chains bookings then access', () =>
   const out = expandLegacyPropertyPermissionIds(['bookings:workflow', 'inbox:reply']);
   assertEquals(out.includes('bookings.detail.workflow:edit'), true);
   assertEquals(out.includes('inbox.messages:edit'), true);
+});
+
+Deno.test('expandOpsPhase4 expands finance:edit transaction leaves', () => {
+  const out = expandOpsPhase4PermissionIds(['finance:edit']);
+  assertEquals(out.includes('finance.transactions:add'), true);
+  assertEquals(out.length, 4);
+});
+
+Deno.test('expandSettingsPhase5 expands settings:view integrations leaf', () => {
+  assertEquals(expandSettingsPhase5PermissionIds(['settings:view']), [
+    'settings:view',
+    'settings.integrations:view',
+  ]);
 });
