@@ -42,6 +42,18 @@ async function edgeGet(path: string, headers: Record<string, string>): Promise<R
   });
 }
 
+async function edgePost(path: string, headers: Record<string, string>): Promise<Response> {
+  return fetch(`${functionsBase}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+    body: '{}',
+  });
+}
+
 Deno.test({
   name: 'anon without Authorization cannot call serveAuthenticated list-organizations',
   ignore: !live,
@@ -70,5 +82,34 @@ Deno.test({
       Authorization: `Bearer ${anonKey}`,
     });
     assertUnauthorized(res.status, 'super-admin-overview');
+  },
+});
+
+Deno.test({
+  name: 'anon without Authorization cannot call serveAdmin dashboard-stats',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('dashboard-stats', {});
+    assertUnauthorized(res.status, 'dashboard-stats');
+  },
+});
+
+Deno.test({
+  name: 'malformed Bearer JWT cannot call serveAuthenticated list-organizations',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-organizations', {
+      Authorization: 'Bearer not.a.valid.jwt',
+    });
+    assertUnauthorized(res.status, 'list-organizations (bad jwt)');
+  },
+});
+
+Deno.test({
+  name: 'POST without cron secret cannot invoke serveCronPost telegram-admin-cron',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgePost('telegram-admin-cron', {});
+    assertUnauthorized(res.status, 'telegram-admin-cron');
   },
 });

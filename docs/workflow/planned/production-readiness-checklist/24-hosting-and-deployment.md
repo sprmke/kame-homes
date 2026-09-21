@@ -2,7 +2,7 @@
 title: 'Hosting and deployment'
 status: active
 tags: [workflow, planned, production-readiness, deployment, vercel, supabase]
-updated: 2026-09-18
+updated: 2026-09-21
 stage: planned
 kind: plan
 ---
@@ -15,25 +15,26 @@ A deploy is boring: reproducible, verified before it reaches users, reversible w
 
 ## Remaining work to finalize
 
-**Status: partial — deploy ordering + maintenance-mode verified; branch protection checked via GitHub API (2026-09-18).** Cutover still blocked on 21/22/23. Rollback rehearsal is still the highest residual risk.
+**Status: partial — deploy ordering + maintenance-mode verified; branch protection on since doc 26 (2026-09-19).** Cutover still blocked on 21/22/23. Rollback rehearsal is still the highest residual risk.
 
-| #   | Work                                                                                                                                                       | Blocker       |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| 1   | Verify the environment matrix against live projects; deploy-time env var assertion (24.1).                                                                 | Hosted        |
-| 2   | Rehearse rollback on hosted-dev with a measured RTO (24.2).                                                                                                | Hosted-dev    |
-| 3   | Prod path: manual approval with the schema diff attached (24.4). `kamewave` stays the unlock.                                                              | CI + policy   |
-| 4   | Smoke tests: authenticated reads, a cleaned-up write, asset headers, PWA version, cron presence (24.5).                                                    | CI + hosted   |
-| 5   | Branch protection on `main` and `develop`. **Verified 2026-09-18: neither branch is protected** (`gh api` 404). Operator must enable required CI + review. | GitHub        |
-| 6   | Preview env scoping (no prod secrets).                                                                                                                     | GitHub/Vercel |
-| 7   | Cutover checklist with named owners (24.6). Depends on 17, 21, 22, 23, 27, 30.                                                                             | Those docs    |
+| #   | Work                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Blocker       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1   | Verify the environment matrix against live projects; deploy-time env var assertion (24.1).                                                                                                                                                                                                                                                                                                                                                                                                                                            | Hosted        |
+| 2   | Rehearse rollback on hosted-dev with a measured RTO (24.2).                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Hosted-dev    |
+| 3   | Prod path: manual approval with the schema diff attached (24.4). `kamewave` stays the unlock.                                                                                                                                                                                                                                                                                                                                                                                                                                         | CI + policy   |
+| 4   | Smoke tests: authenticated reads, a cleaned-up write, asset headers, PWA version, cron presence (24.5). **Partial (2026-09-21):** cd-dev deploy runs `35544063765` and `35545944443` — `ci-smoke.sh` partial when mt-dev has zero public listings (`list-public-properties` 200 + transport compression on `get-health` / `list-public-pricing-plans` after this session), `adversarialAuthLive.test.ts` 6/6, `verify:deployed-preview` OK on `dev.kamehomes.space`. Authenticated read/write + PWA version + cron probes still open. | CI + hosted   |
+| 5   | ~~Branch protection on `main` and `develop`.~~ **Closed** — applied 2026-09-19 (doc 26); re-verified `develop` 2026-09-21 (`gh api` → required `quality` check, PR reviews, no force-push).                                                                                                                                                                                                                                                                                                                                           | —             |
+| 6   | Preview env scoping (no prod secrets).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | GitHub/Vercel |
+| 7   | Cutover checklist with named owners (24.6). Depends on 17, 21, 22, 23, 27, 30.                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Those docs    |
 
 ## Measured before / after
 
-| Metric                  | Before             | After                                          | Difference             |
-| ----------------------- | ------------------ | ---------------------------------------------- | ---------------------- |
-| Migrations vs functions | Assumed sequential | Confirmed in deploy scripts (db then fn)       | Race closed            |
-| Maintenance mode scope  | Unverified         | 5 new-intake writers + banner; status uncached | Intentional, not a bug |
-| Branch protection       | Unknown            | **Off** on `main` and `develop`                | Operator gap, not code |
+| Metric                  | Before             | After                                                                | Difference                               |
+| ----------------------- | ------------------ | -------------------------------------------------------------------- | ---------------------------------------- |
+| Migrations vs functions | Assumed sequential | Confirmed in deploy scripts (db then fn)                             | Race closed                              |
+| Maintenance mode scope  | Unverified         | 5 new-intake writers + banner; status uncached                       | Intentional, not a bug                   |
+| Branch protection       | Off (2026-09-18)   | **On** `main` + `develop` (doc 26, 2026-09-19)                       | Closed                                   |
+| Post-deploy smoke       | Public GETs only   | Partial listing + adversarial + header verify (cd-dev `35545944443`) | Hosted data gap for full property probes |
 
 ## Implementation status (2026-09-18 session)
 
@@ -43,7 +44,17 @@ Docs 21/22/23 are not fully closed yet (see their own status), so this doc's Pha
 
 **Phase 24.7 — maintenance mode: verified, correct scope, no gap.** `maintenanceModeResponse()` (`_shared/platformSettingsCache.ts`) is checked in exactly 5 functions: `submit-form`, `submit-form-completion`, `submit-sd-form`, `submit-guest-review`, `create-organization` — the new-intake/new-signup write paths. This is intentionally narrower than "block everything," which is correct: a maintenance window should stop new bookings/signups without also locking hosts out of finishing in-progress admin work. `PlatformMaintenanceBanner` renders app-wide as an informational notice (not a hard block), confirming this is the intended design, not an oversight. Confirmed `get-public-platform-status` (the status-check endpoint itself) is excluded from the service worker's cache allowlist (`SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts`) and returns `private` cache headers by explicit code comment — so a lifted maintenance flag is never masked by a stale cached response, closing the doc's own edge case.
 
-Everything else in this doc is genuinely hosted-blocked this session — no `SUPABASE_ACCESS_TOKEN`/Vercel API access, and `mt-prod` does not exist yet per `docs/archive/operations/ci-cd-environment-matrix.md` (confirmed current, re-read this session). **Branch protection was checked via `gh api` this pass: `main` and `develop` are not protected.** Remaining work is the table at the top of this doc.
+Everything else in this doc is genuinely hosted-blocked this session — no `SUPABASE_ACCESS_TOKEN`/Vercel API access, and `mt-prod` does not exist yet per `docs/archive/operations/ci-cd-environment-matrix.md` (confirmed current, re-read this session). **Branch protection is no longer an open item** (doc 26). Remaining work is the table at the top of this doc.
+
+## Implementation status (2026-09-21 follow-up)
+
+**cd-dev green path re-confirmed** after Playwright `@ci` stabilization (`marketingCollage.spec.ts` timeouts, guest-form harness dates, `VITE_API_URL` in webServer env). GitHub Actions run [`35545944443`](https://github.com/sprmke/kame-homes/actions/runs/35545944443) (`9299d7fb` on `develop`): `quality` job passed `@smoke` + full `@ci`; `deploy` job deployed MULTI_TENANT_DEV, then:
+
+- `ci-smoke.sh dev` — partial pass (empty `list-public-properties`; no `SMOKE_PROPERTY_SLUG` set).
+- `adversarialAuthLive.test.ts` — 3/3.
+- `verify:deployed-preview` — OK against `https://dev.kamehomes.space` and hosted `get-health`.
+
+**`pg_stat_statements` capture** still skipped when `DEV_DB_URL` is unset on the `development` GitHub Environment (workflow emits `::warning` since `9299d7fb`). Operator: add secret per `docs/archive/operations/github-environments-setup.md`, re-run cd-dev, commit artifact under `baselines/` (doc 00 row 4).
 
 ## Prior art — do not redo
 

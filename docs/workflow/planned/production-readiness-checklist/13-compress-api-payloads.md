@@ -65,13 +65,13 @@ Run this against hosted dev for a representative large response (e.g. `list-book
 
 `select('*')` inventory + CI guard are shipped. Transport proof, field narrowing, and payload budgets are not.
 
-| #   | Work                                                                                                                                                    | Blocker                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| 1   | `curl -I` gzip confirmed on small public JSON (2026-09-21). Still need a **large** host endpoint sample; add function-level compression only if absent. | Auth token + large route |
-| 2   | Narrow `guest_submissions` selects after a field-usage graph of finance/dashboard consumers. Do not guess columns.                                      | Code (careful)           |
-| 3   | Stream finance CSV if memory or time becomes a problem at large-tenant volume (doc 10 seed).                                                            | Seed + evidence          |
-| 4   | Close or accept-with-reason the `get-form` residual (signed Storage URLs next to guest-editable fields).                                                | Security review          |
-| 5   | Response-size telemetry + top-10 payload budgets in `performance-budgets.json`.                                                                         | Hosted-dev + doc 00      |
+| #   | Work                                                                                                                                                                                                                                                           | Blocker                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | `curl -I` gzip confirmed on small public JSON (2026-09-21). **cd-dev:** `ci-smoke.sh` now fails deploy if `get-health` / `list-public-pricing-plans` lack gzip/br. Still need a **large** host endpoint sample; add function-level compression only if absent. | Auth token + large route |
+| 2   | Narrow `guest_submissions` selects after a field-usage graph of finance/dashboard consumers. Do not guess columns.                                                                                                                                             | Code (careful)           |
+| 3   | Stream finance CSV if memory or time becomes a problem at large-tenant volume (doc 10 seed).                                                                                                                                                                   | Seed + evidence          |
+| 4   | Close or accept-with-reason the `get-form` residual (signed Storage URLs next to guest-editable fields).                                                                                                                                                       | Security review          |
+| 5   | Response-size telemetry + top-10 payload budgets in `performance-budgets.json`.                                                                                                                                                                                | Hosted-dev + doc 00      |
 
 ## Goal
 

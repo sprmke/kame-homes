@@ -71,6 +71,22 @@ fi
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+smoke_assert_transport_compression() {
+  local path="$1"
+  local enc
+  enc="$(
+    curl --silent --show-error -I \
+      --header "Accept-Encoding: br, gzip" \
+      --header "apikey: ${SUPABASE_ANON_KEY}" \
+      "${BASE}/${path}" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-encoding" {print tolower($2)}'
+  )"
+  if [[ "$enc" != *gzip* && "$enc" != *br* ]]; then
+    echo "ERROR: ${path%%\?*} missing gzip/br Content-Encoding (got: ${enc:-none})." >&2
+    exit 1
+  fi
+  echo "  transport compression OK: ${path%%\?*}"
+}
+
 smoke_get() {
   local label="$1"
   local path="$2"
@@ -99,6 +115,10 @@ smoke_get() {
 
 smoke_get "properties" "list-public-properties?pageSize=5" \
   '.success == true and (.data | type == "array")'
+
+# Doc 13 — verify platform transport compression on public JSON (not payload size).
+smoke_assert_transport_compression "get-health"
+smoke_assert_transport_compression "list-public-pricing-plans"
 
 discovered_slug="$(jq -r '.data[0].slug // empty' "$TMP_DIR/properties.json")"
 effective_slug="${discovered_slug:-${SMOKE_PROPERTY_SLUG:-}}"
