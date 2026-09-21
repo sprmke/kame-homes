@@ -151,7 +151,7 @@ Several checklist rows stay **partial** until GitHub Environment **`development`
 | **`SMOKE_PROPERTY_SLUG`** (optional) | Doc **24** full `ci-smoke.sh` property/availability/search paths when `list-public-properties` is empty on mt-dev.                                                                                                                  |
 | Measured restore drill               | Docs **24** / **30**: runbook [`hosted-dev-rollback-rehearsal.md`](../../../archive/operations/hosted-dev-rollback-rehearsal.md); preflight `bun run rehearsal:rollback:dev:preflight` (read-only).                                 |
 
-**Latest green cd-dev (2026-09-21):** run [`35564092409`](https://github.com/sprmke/kame-homes/actions/runs/35564092409) (`d54b4dce`) — adversarial **13/13**, partial smoke + cron probe, `verify:deployed-preview`. `pg_stat` skipped (`DEV_DB_URL` unset). Run [`35564197137`](https://github.com/sprmke/kame-homes/actions/runs/35564197137) (`b46a2bc4`) failed **quality** (`marketingCollage.spec.ts` flake; fixed on develop after). **Tip:** `cd-dev` `paths` filter skips UI-only pushes.
+**Latest green cd-dev (2026-09-21):** run [`35564092409`](https://github.com/sprmke/kame-homes/actions/runs/35564092409) (`d54b4dce`) — adversarial **13/13**, partial smoke + cron probe, `verify:deployed-preview`. `pg_stat` skipped (`DEV_DB_URL` unset). Run [`35564197137`](https://github.com/sprmke/kame-homes/actions/runs/35564197137) (`b46a2bc4`) failed **quality** (`marketingCollage`; fixed `97685134`, CI [`35566594313`](https://github.com/sprmke/kame-homes/actions/runs/35566594313) green). **Tip:** `cd-dev` `paths` filter skips UI-only pushes; re-run via `supabase/**` after flake fix.
 
 ## Remaining work index
 
