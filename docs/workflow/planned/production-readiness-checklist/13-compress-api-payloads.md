@@ -2,7 +2,7 @@
 title: 'Compress API payloads'
 status: active
 tags: [workflow, planned, production-readiness, performance, edge-functions]
-updated: 2026-09-17
+updated: 2026-09-21
 stage: planned
 kind: plan
 ---
@@ -11,7 +11,7 @@ kind: plan
 
 ## Implementation status (2026-09-17)
 
-**Phase 13.1 (verify transport compression): partial on hosted dev (2026-09-21).** `curl -sI -H 'Accept-Encoding: br,gzip'` against `get-health` and `list-public-pricing-plans` on `fwor…` returned `content-encoding: gzip` and `vary: Accept-Encoding, Origin`. No explicit `CompressionStream` in `httpResponse.ts` yet (platform appears to compress JSON). Still outstanding: repeat on a **large** authenticated response (`list-bookings`, `dashboard-stats`) before treating large payloads as covered.
+**Phase 13.1 (verify transport compression): partial on hosted dev (2026-09-21).** `curl -sI -H 'Accept-Encoding: br,gzip'` against `get-health` and `list-public-pricing-plans` on `fwor…` returned `content-encoding: gzip` and `vary: Accept-Encoding, Origin`. `list-public-pricing-plans` body is ~6.5 KiB on mt-dev (largest public JSON checked so far). No explicit `CompressionStream` in `httpResponse.ts` yet (platform appears to compress JSON). Still outstanding: repeat on a **large authenticated** response (`list-bookings`, `dashboard-stats`) before treating host payloads as covered.
 
 ```bash
 curl -sI -H 'Accept-Encoding: br, gzip' \
@@ -57,7 +57,7 @@ Run this against hosted dev for a representative large response (e.g. `list-book
 | ---------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `select('*')` inventory      | Uncounted                   | 257 sites / 102 files classified                                                                      | Public listing endpoints already narrow (prior pass); wide `guest_submissions` left explicit |
 | New unreviewed `select('*')` | Could land silently         | `check-select-star.sh` in CI                                                                          | Regression blocked                                                                           |
-| Transport gzip/br            | Assumed                     | Still unverified (`curl -I` needs hosted-dev)                                                         | Open                                                                                         |
+| Transport gzip/br            | Assumed                     | Verified on public endpoints + cd-dev `ci-smoke.sh` (2026-09-21); authenticated large JSON still open | Partial                                                                                      |
 | Finance CSV                  | Unscoped org fetch (doc 10) | Property + period scoped (doc 10)                                                                     | Payload bounded by one property's period, still not streamed                                 |
 | BREACH / capability tokens   | Unreviewed                  | `get-form` residual documented (signed URLs next to guest text); stay-guide and form-completion clean | No silent token echo                                                                         |
 
