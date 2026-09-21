@@ -1,0 +1,101 @@
+{
+  "capturedAt": "2026-09-21T01:04:46.057Z",
+  "label": "hosted-dev-ci",
+  "supabaseUrl": "https://fworvijbrwpyngycotbz.supabase.co",
+  "iterations": 8,
+  "publicEndpoints": [
+    {
+      "name": "get-health",
+      "path": "/functions/v1/get-health",
+      "iterations": 8,
+      "coldMs": 1193,
+      "warmP50Ms": 1112,
+      "warmP95Ms": 2051,
+      "warmP99Ms": 2051,
+      "allP50Ms": 1112,
+      "allP95Ms": 2051,
+      "allP99Ms": 2051,
+      "statusCounts": {
+        "200": 8
+      }
+    },
+    {
+      "name": "list-public-pricing-plans",
+      "path": "/functions/v1/list-public-pricing-plans",
+      "iterations": 8,
+      "coldMs": 1087,
+      "warmP50Ms": 1508,
+      "warmP95Ms": 2935,
+      "warmP99Ms": 2935,
+      "allP50Ms": 1087,
+      "allP95Ms": 2935,
+      "allP99Ms": 2935,
+      "statusCounts": {
+        "200": 8
+      }
+    },
+    {
+      "name": "list-public-properties",
+      "path": "/functions/v1/list-public-properties?page=1&pageSize=5",
+      "iterations": 8,
+      "coldMs": 1499,
+      "warmP50Ms": 1818,
+      "warmP95Ms": 2588,
+      "warmP99Ms": 2588,
+      "allP50Ms": 1814,
+      "allP95Ms": 2588,
+      "allP99Ms": 2588,
+      "statusCounts": {
+        "200": 8
+      }
+    },
+    {
+      "name": "list-public-parkings",
+      "path": "/functions/v1/list-public-parkings?page=1&pageSize=5",
+      "iterations": 8,
+      "coldMs": 1365,
+      "warmP50Ms": 1129,
+      "warmP95Ms": 1559,
+      "warmP99Ms": 1559,
+      "allP50Ms": 1129,
+      "allP95Ms": 1559,
+      "allP99Ms": 1559,
+      "statusCounts": {
+        "200": 8
+      }
+    }
+  ],
+  "authenticatedEndpoints": [
+    {
+      "name": "list-bookings",
+      "path": "/functions/v1/list-bookings",
+      "iterations": 8,
+      "coldMs": 638,
+      "warmP50Ms": 497,
+      "warmP95Ms": 506,
+      "warmP99Ms": 506,
+      "allP50Ms": 497,
+      "allP95Ms": 638,
+      "allP99Ms": 638,
+      "statusCounts": {
+        "401": 8
+      }
+    },
+    {
+      "name": "list-organizations",
+      "path": "/functions/v1/list-organizations",
+      "iterations": 8,
+      "coldMs": 475,
+      "warmP50Ms": 483,
+      "warmP95Ms": 501,
+      "warmP99Ms": 501,
+      "allP50Ms": 475,
+      "allP95Ms": 501,
+      "allP99Ms": 501,
+      "statusCounts": {
+        "401": 8
+      }
+    }
+  ],
+  "note": "Cold = first call per endpoint (may include a Deno Deploy cold start). Warm p50/p95/p99 exclude that first call. Run this against hosted dev only."
+}
