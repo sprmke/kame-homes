@@ -55,7 +55,7 @@ Canonical detail: **`.cursor/rules/documentation-maintenance.mdc`** · route map
 ## Finish checklist
 
 - [ ] Matching **`docs/guides/routes/*.md`** updated if any page/section/UX changed (`route-guides`)
-- [ ] **`docs/PROJECT.md`** updated if API / env / architecture / data model changed
+- [ ] **`docs/PROJECT.md`** updated if API / env / architecture / data model changed. Full-app picture lives in **`docs/architecture/overview.md`**.
 - [ ] Canonical **`.cursor/rules/*.mdc`** updated if booking workflow or admin auth invariants changed
 - [ ] Plans/pricing surfaces updated if entitlements or tier presentation changed
 - [ ] **`plans-and-permissions`** decided (implemented or explicit N/A) for any new host capability
