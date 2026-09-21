@@ -208,10 +208,49 @@ function sanitizeUrlForTelemetry(rawUrl: string): string {
   }
 }
 
+/**
+ * Declares an intended HTTP status at the throw site instead of inferring one from the
+ * message text. Prefer this over `throw new Error(...)` in new code: `errorMessageFromThrown`
+ * has to guess a status for a bare Error, and its only safe guess for a handler-authored
+ * message is 400 (see the status-inference notes there).
+ *
+ * `code` is a stable machine-readable slug (`booking_status_conflict`) that clients and
+ * alerting can branch on without matching prose, which changes freely.
+ */
+export class EdgeError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, message: string, code = 'edge_error') {
+    super(message);
+    this.name = 'EdgeError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+/** 400 — the request itself is malformed or fails validation. */
+export function badRequest(message: string, code = 'bad_request'): EdgeError {
+  return new EdgeError(400, message, code);
+}
+
+/** 409 — the request was valid but lost a race against concurrent state. */
+export function statusConflict(message: string, code = 'status_conflict'): EdgeError {
+  return new EdgeError(409, message, code);
+}
+
+/**
+ * 500 — an invariant this code believes should hold did not. Distinct from an unexpected
+ * throw only in that it is deliberate; both are traceable and both page.
+ */
+export function internalError(message: string, code = 'internal_error'): EdgeError {
+  return new EdgeError(500, message, code);
+}
+
 export async function errorMessageFromThrown(
   error: unknown,
   unauthorizedFallback = 'Unauthorized'
-): Promise<{ status: number; message: string }> {
+): Promise<{ status: number; message: string; code?: string }> {
   if (error instanceof Response) {
     const status = error.status;
     const message = await error
@@ -221,10 +260,48 @@ export async function errorMessageFromThrown(
       .catch(() => unauthorizedFallback);
     return { status, message };
   }
-  const message = (error as Error).message ?? 'Request failed';
-  if (message.startsWith('STATUS_CONFLICT:')) {
-    return { status: 409, message: message.replace(/^STATUS_CONFLICT:\s*/, '') };
+
+  // Explicit intent from the throw site always wins over inference.
+  if (error instanceof EdgeError) {
+    return { status: error.status, message: error.message, code: error.code };
   }
+
+  // A non-Error throw (`throw 'oops'`, a rejected non-Error, a TypeError surfacing as a
+  // bare object) cannot carry handler intent, so it is a crash. Returning 400 here used to
+  // both mislabel it and — because handleEdgeError attaches a requestId on 5xx only —
+  // strip the one identifier that made it traceable. Generic message: an unexpected throw
+  // can carry internals (SQL, stack text) that should not reach a client.
+  if (!(error instanceof Error)) {
+    return { status: 500, message: 'Internal server error', code: 'unexpected_throw' };
+  }
+
+  const message = error.message || 'Request failed';
+
+  // Legacy string-prefix path. Superseded by `statusConflict()`; kept because
+  // `databaseService.ts` and `bookingDetailsPatch.ts` still throw the prefixed string.
+  if (message.startsWith('STATUS_CONFLICT:')) {
+    return {
+      status: 409,
+      message: message.replace(/^STATUS_CONFLICT:\s*/, ''),
+      code: 'status_conflict',
+    };
+  }
+
+  // A bare `new Error(...)` is overwhelmingly handler-authored validation in this codebase
+  // ("property_id is required"), so 400 stays the default and its message is passed through.
+  // The cost is that a genuine runtime Error (a TypeError from a bad property access) is
+  // also reported as 400. Narrowing that needs the throw sites converted to `EdgeError`
+  // first — a blanket flip to 500 here would turn every validation failure into a false
+  // 5xx alert. Native runtime error types are the unambiguous subset, so they go now.
+  if (
+    error instanceof TypeError ||
+    error instanceof RangeError ||
+    error instanceof ReferenceError ||
+    error instanceof SyntaxError
+  ) {
+    return { status: 500, message: 'Internal server error', code: 'runtime_error' };
+  }
+
   return { status: 400, message };
 }
 
@@ -234,20 +311,28 @@ export async function handleEdgeError(
   logPrefix: string,
   unauthorizedFallback = 'Unauthorized'
 ): Promise<Response> {
-  const { status, message } = await errorMessageFromThrown(error, unauthorizedFallback);
+  const { status, message, code } = await errorMessageFromThrown(error, unauthorizedFallback);
   const requestId = resolveRequestId(req);
   // Response-instance throws are intentional control flow (401/403/expected 400s).
   // Logging the Response object as console.error looks like a crash in `functions serve`.
-  if (error instanceof Response && status < 500) {
+  // An EdgeError below 500 is the same: a status the handler chose on purpose.
+  const isDeliberate4xx = (error instanceof Response || error instanceof EdgeError) && status < 500;
+  if (isDeliberate4xx) {
     console.warn(`${logPrefix} ${status} ${message}`);
-    logEvent('warn', { fn: logPrefix, requestId, event: 'request_failed', status });
+    logEvent('warn', { fn: logPrefix, requestId, event: 'request_failed', status, meta: { code } });
   } else {
     console.error(logPrefix, error);
-    logEvent('error', { fn: logPrefix, requestId, event: 'request_failed', status });
+    logEvent('error', {
+      fn: logPrefix,
+      requestId,
+      event: 'request_failed',
+      status,
+      meta: { code },
+    });
     await capturePostHogException(error, {
       logPrefix,
       request: req,
-      extra: { status, message, url: sanitizeUrlForTelemetry(req.url), requestId },
+      extra: { status, message, code, url: sanitizeUrlForTelemetry(req.url), requestId },
     });
   }
   // 5xx only — a 4xx is often expected client-side flow (validation, not-found) and
