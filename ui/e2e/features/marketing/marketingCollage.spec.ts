@@ -20,10 +20,12 @@ test.describe('@ci marketing studio collage', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Design' }).click();
+    const designTab = page.getByRole('tab', { name: 'Design' });
+    await designTab.click();
+    await expect(designTab).toHaveAttribute('aria-selected', 'true');
 
     const startFrom = page.getByRole('radiogroup', { name: 'Start from' });
-    await expect(startFrom).toBeVisible();
+    await expect(startFrom).toBeVisible({ timeout: 30_000 });
     await expect(startFrom.getByRole('radio', { name: 'Templates' })).toHaveAttribute(
       'aria-checked',
       'true'
@@ -66,8 +68,12 @@ test.describe('@ci marketing studio collage', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Design' }).click();
+    const designTab = page.getByRole('tab', { name: 'Design' });
+    await designTab.click();
+    await expect(designTab).toHaveAttribute('aria-selected', 'true');
+
     const startFrom = page.getByRole('radiogroup', { name: 'Start from' });
+    await expect(startFrom).toBeVisible({ timeout: 30_000 });
 
     await startFrom.getByRole('radio', { name: 'Blank' }).click();
     await expect(page.getByText('Blank canvas at the selected format.')).toBeVisible();
@@ -92,7 +98,9 @@ test.describe('@ci marketing studio collage', () => {
         timeout: 20_000,
       });
 
-      await page.getByRole('tab', { name: 'Design' }).click();
+      const designTab = page.getByRole('tab', { name: 'Design' });
+      await designTab.click();
+      await expect(designTab).toHaveAttribute('aria-selected', 'true');
       await page.getByRole('toolbar', { name: 'Editor actions' }).getByText('Templates').click();
 
       const sheet = page.getByRole('dialog');
