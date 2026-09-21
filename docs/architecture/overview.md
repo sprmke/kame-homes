@@ -2,99 +2,401 @@
 title: 'Architecture overview'
 status: active
 tags: [architecture]
-updated: 2026-08-02
+updated: 2026-09-21
 ---
 
 # Architecture overview
 
-Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split — see that index for the full topic list.
+**Start here** for a picture of the whole Kame Homes app. Topic files under [`docs/architecture/`](./) hold depth. Index: [`docs/PROJECT.md`](../PROJECT.md).
+
+Kame Homes is a **multi-tenant short-term rental platform**: public listings and guest booking, a host dashboard (property **and** parking as peer verticals), org billing, and a super-admin console. The original product was a Guest Advice Form (GAF) for one unit. That loop still sits at the center. The app around it is much larger.
 
 ---
 
-## 1. Purpose and product context
+## Contents
 
-The application supports **short-term rental guest onboarding** for a specific unit (**Monaco 2604**, **Kame Home** branding). Guests complete a **Guest Advice / Advise Form (GAF)**-style submission that includes:
-
-- Identity and contact details
-- Stay dates and guest counts
-- Optional parking and pet information with uploads
-- Required uploads: **downpayment receipt** (Facebook bookings); **valid government ID per guest aged 18+** (up to 5 guests; ages collected per guest; adults/children derived from ages ≤3 = child; fifth guest capped at age 3; Azure allows 4 adults + 1 child — UI shows Azure reminder when the 5th guest slot is added or when more than 4 adults)
-
-Submissions are persisted in **Supabase Postgres**, files go to **Supabase Storage**, and optional automation sends **emails (Resend)** and runs the booking status workflow — all behind **Supabase Edge Functions** (Deno).
+1. [The whole system](#1-the-whole-system)
+2. [Who uses it](#2-who-uses-it)
+3. [Tech stack](#3-tech-stack)
+4. [What happens on a request](#4-what-happens-on-a-request)
+5. [Product surfaces](#5-product-surfaces)
+6. [Identity and access](#6-identity-and-access)
+7. [Data and files](#7-data-and-files)
+8. [Booking workflow](#8-booking-workflow)
+9. [Integrations and jobs](#9-integrations-and-jobs)
+10. [Deploy tracks](#10-deploy-tracks)
+11. [Repository layout](#11-repository-layout)
+12. [Local development](#12-local-development)
+13. [Topic index](#13-topic-index)
+14. [Known notes](#14-known-notes)
+15. [Key files](#15-key-files)
 
 ---
 
-## 2. High-level architecture
+## 1. The whole system
+
+Browsers load a **Vite SPA** from **Vercel**. The SPA calls **Supabase Edge Functions** (Deno). Functions talk to **Postgres, Storage, and Auth** over PostgREST HTTP (not a direct Postgres socket). Scheduled work is **`pg_cron` + `pg_net`** posting back into those functions. Vendors (email, payments, AI, Meta, Telegram) are called from the edge, not from the browser.
 
 ```mermaid
 flowchart LR
-  subgraph client [Vite React UI]
-    UI[Guest form + Calendar]
+  subgraph people [People]
+    G[Guests]
+    H[Hosts and team]
+    S[Super-admins]
   end
+
+  subgraph vercel [Vercel]
+    SPA[Vite React SPA + PWA]
+  end
+
   subgraph supabase [Supabase]
-    EF[Edge Functions]
-    DB[(Postgres guest_submissions)]
-    ST[Storage buckets]
+    EF["~300 Edge Functions"]
+    DB[(Postgres)]
+    ST[Storage]
+    AU[Auth]
+    RT[Realtime]
+    CR[pg_cron + pg_net]
   end
-  subgraph external [External services]
-    R[Resend Email]
+
+  subgraph vendors [Vendors]
+    R[Resend]
+    P[PayMongo]
+    AI[Gemini / Groq / Veo]
+    M[Meta]
+    TG[Telegram]
+    PH[PostHog]
   end
-  UI -->|JWT anon key + FormData/JSON| EF
+
+  G --> SPA
+  H --> SPA
+  S --> SPA
+  SPA -->|anon key or session JWT| EF
   EF --> DB
   EF --> ST
+  EF --> AU
+  EF --> RT
+  CR -->|HTTP POST| EF
   EF --> R
+  EF --> P
+  EF --> AI
+  EF --> M
+  EF --> TG
+  EF --> PH
 ```
 
-- **UI**: React 18, Vite, React Router, React Hook Form + Zod, Tailwind, Radix/shadcn-style components, Sonner toasts (error and warning copy is sanitized to short host-facing lines).
-- **Backend**: Supabase Edge Functions under `supabase/functions/` (no separate Node API package).
-- **Local dev**: `dev.sh` runs **`scripts/dev/run-with-ui-dev-env.sh`** before **`supabase start`**, then **`scripts/dev/build-local-functions-env.sh`** + **`supabase functions serve`** so `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` from **`ui/.env.development`** are in the shell when the CLI resolves `config.toml` `env(...)`. Edge secrets come from a merged **`supabase/.temp/functions-serve.env`**. Then `cd ui && bun run dev`. **Package manager:** **Bun** (`bun install`, `bun run …`). **UI-only (no Docker):** `./dev.sh --ui-only` or `SKIP_SUPABASE=1 ./dev.sh` — point `ui/.env.development` at a hosted Supabase project. Do not start a second `supabase functions serve` in parallel (Docker edge-runtime name conflict). **`bun run dev:api`** uses the same merged env file.
-- **502 on `/functions/v1/*` (Kong “Bad Gateway”)**: Usually Kong is still targeting an old **Docker edge-runtime** IP after **`bun run db:reset`** or a partial restart while `./dev.sh` is running. **`bun run stop:supabase`** then **`./dev.sh`** resyncs Kong with the host `functions serve` process. Confirm with `docker logs supabase_kong_<project> 2>&1 | tail -20` — look for `Host is unreachable` toward `172.x.x.x:8081`.
-- **CLI env**: `config.toml` references `GOOGLE_CLIENT_*` from the process environment. Prefer **`bun run status:supabase`**, **`bun run stop:supabase`**, **`bun run db:reset`**, **`bun run start:supabase`**: they run **`bunx supabase@latest`** via `scripts/dev/run-with-ui-dev-env.sh`, which also loads `ui/.env.development`. A **global** `supabase` on PATH (e.g. v2.40.x) is easy to leave outdated and break Postgres 17 migrations (`storage.buckets` missing).
-- **Nuclear local reset**: **`bun run stop:supabase:clean`** stops the stack and **deletes Docker data volumes** (fixes sticky Storage `migrations_name_key` issues when the CLI keeps **restoring from backup**). Then `bun run start:supabase`. All local DB data is lost until you `db reset` / migrations / optional prod sync.
-- **Cloud Agent env (`.cursor/environment.json`)**: reproduces the full local stack (Docker → Supabase DB/Auth/Storage/edge + Vite UI) in a Cloud Agent VM on the **`develop`** branch. `install` (`.cursor/install.sh`) installs Bun + `docker.io` + `fuse-overlayfs`, runs `bun install`, generates git-ignored dev env files (`.cursor/write-env-files.sh`), warms Supabase images, and validates migrations. `start` (`.cursor/start.sh`) starts `dockerd` with nested-container fixes (`.cursor/docker-up.sh`) and runs `bun run start:supabase`. Terminals run the host edge-functions server (`.cursor/serve-functions.sh`, merged `supabase/.temp/functions-serve.env`) and the UI (`bun run dev`). Nested Docker needs three fixes each boot (not in snapshots): fuse-overlayfs storage driver, `net.bridge.bridge-nf-call-iptables=0`, and `iptables-legacy -P FORWARD ACCEPT`. Real Resend/Google/Telegram/Gmail secrets are optional — guest-form → Postgres/Storage works without them.
-- **Cursor agents:** See **`.cursor/rules/README.md`** (rules, skills, subagents index).
-- **Docker RAM (local Supabase):** Full stack needs Docker Desktop. To reduce memory: (1) **`./dev.sh --ui-only`** when only editing UI against a hosted project; (2) **`bun run stop:supabase`** when done for the day; (3) Docker Desktop → **Settings → Resources** — lower CPU/RAM if you only need the UI most of the time; (4) avoid leaving `./dev.sh` + ngrok + second IDE running when not testing webhooks. Supabase local typically uses **~2–4 GB** depending on images running.
-- **CI:** GitHub Actions **`.github/workflows/ci.yml`** — `bun install`, `type-check`, `lint`, `build` on push/PR.
+There is **no separate Node API package**. Access control lives in the edge wrappers and scope helpers. RLS is extra protection for some client reads, not the main gate.
 
 ---
 
-## 3. Repository layout
+## 2. Who uses it
 
-| Path                             | Role                                                           |
-| -------------------------------- | -------------------------------------------------------------- |
-| `ui/`                            | Vite SPA: guest form, calendar picker, success page            |
-| `supabase/migrations/`           | Postgres schema, RLS, storage policies                         |
-| `supabase/functions/`            | Deno edge functions + `_shared` modules                        |
-| `supabase/config.toml`           | Local Supabase + function JWT settings                         |
-| `scripts/`                       | Dev, deploy, data sync, integrations — see `scripts/README.md` |
-| `docs/`                          | Doc index ([[README]]), guides, operations runbooks            |
-| `dev.sh`                         | Local stack (Docker + Supabase + UI) or `--ui-only`            |
-| `.cursor/rules/architecture.mdc` | Feature folders, shared utils, import conventions              |
-| `.fallow/baseline.json`          | Fallow dead-code regression baseline (optional CI gate)        |
+| Persona           | What they see                                                                     | How they prove who they are                                           |
+| ----------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Guest (anon)      | Marketing, listings, calendar, booking form, stay guide, SD form, parking request | Anon key. Some pages use a capability token (`?token=`, `?complete=`) |
+| Guest (signed in) | `/account`: trips, chat, profile, tickets, vouchers                               | Supabase Auth, separate from host identity                            |
+| Host / team       | `/org/:orgSlug/property/:slug/…` and `/org/:orgSlug/parking/:slug/…`              | Google OAuth + org / property / parking membership                    |
+| Super-admin       | `/admin/*`                                                                        | `SUPER_ADMIN_EMAILS`. Writes need a step-up OTP                       |
 
-**Dev tooling** (root): `bun run lint`, `lint:fix`, `type-check`, `check:filenames`, `format`, `format:check`. **Husky** runs lint-staged on commit and **commitlint** on commit messages. ESLint + Prettier configs live at repo root (Prettier) and `ui/eslint.config.js`. **VS Code:** `.vscode/tasks.json` (dev, Supabase, quality, deploy), `.vscode/launch.json` (Chrome debug), `.vscode/settings.json` (Bun UI + Deno edge functions). See **`.cursor/rules/architecture.mdc`** for folder conventions; **[[project-structure|UI project structure]]** for `features/guest/` vs `features/dashboard/`. Backlog: **[`docs/README.md`](../README.md)** (GitHub Issues; shipped archive in `docs/archive/todos/shipped/`).
-
-**UI entry**: `ui/src/main.tsx` → `App.tsx` → `routes/index.tsx` → merges `features/guest/routes`, `features/sd-form/routes`, `features/pay-parking/routes`, and `features/dashboard/routes`.
+Routes: [`routing.md`](routing.md). Per-page behavior: [`docs/guides/routes/`](../guides/routes/README.md).
 
 ---
 
-## 14. Known implementation notes
+## 3. Tech stack
 
-- **`compareFormData`** (server) compares many scalar fields and file re-uploads; **`petType` is not currently in the compared field list**, so changing only pet type might not trigger an update pipeline—extend the list in `_shared/utils.ts` if that becomes a product requirement.
-- **Dashboard JWT** (`getSessionJwt` in `ui/src/features/dashboard/org/lib/edgeClient.ts`) reuses the cached access token and refreshes only when it is near expiry. Do not call `refreshSession()` on every edge request: hosted Auth rate-limits `/token` (`over_request_rate_limit`) and a 429 can sign the user out.
+| Layer           | What we use                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| Package manager | **Bun** (`bun install`, `bun run …`)                                                                            |
+| UI              | **Vite 4.4**, **React 19** (`ui/package.json`), **TypeScript**, **React Router 6**                              |
+| UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts |
+| PWA             | `vite-plugin-pwa` injectManifest, Workbox, IndexedDB persist + outbox, Web Push. See [`pwa.md`](pwa.md)         |
+| API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                          |
+| Data            | **Postgres** (SQL in `supabase/migrations/`, no ORM), **Storage**, **Auth**, **Realtime**                       |
+| Jobs            | Hosted **`pg_cron`** fires `pg_net.http_post` into cron functions. Not `config.toml` schedule                   |
+| Tests           | Vitest (UI), Deno (`_shared` + handlers), Playwright mocked E2E (`@smoke` / `@ci` / `@live`)                    |
+
+Specialized UI: **Polotno** + **Remotion** (Marketing Studio), **Google Maps**, Web Worker image compression, pdf-lib. Phone chrome uses shared primitives (`ResponsiveModal`, `BottomTabBar`, `ContextualActionBar`), not a shrunk desktop layout.
+
+**Timezone:** all user-visible times are **Asia/Manila**. Guest date fields in Postgres are often `TEXT` `MM-DD-YYYY`; UI and query params prefer `YYYY-MM-DD`. Normalize with `ui/src/utils/format/dates.ts` and `_shared/utils.ts`.
 
 ---
 
-## 15. Key files quick reference
+## 4. What happens on a request
 
-| Concern                                  | Location                                                                                                                                                                                                                                                                |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Submit pipeline                          | `supabase/functions/submit-form/index.ts`                                                                                                                                                                                                                               |
-| DB + overlap + FormData processing       | `supabase/functions/_shared/databaseService.ts`                                                                                                                                                                                                                         |
-| Field-level diff for updates             | `supabase/functions/_shared/utils.ts` (`compareFormData`)                                                                                                                                                                                                               |
-| Form UI                                  | `ui/src/features/guest/form/components/GuestForm.tsx`                                                                                                                                                                                                                   |
-| Validation schema                        | `ui/src/features/guest/form/schemas/guestFormSchema.ts`                                                                                                                                                                                                                 |
-| Telegram marketing (Edge + Marketing UI) | [[telegram-marketing-reminders]], `supabase/functions/_shared/telegramMarketing.ts`, `supabase/functions/_shared/telegramMarketingCronSync.ts`, `supabase/migrations/20260615105000_telegram_marketing_cron_slots.sql`, `supabase/snippets/telegram-marketing-cron.sql` |
-| AI payment receipt validation            | [[ai-payment-receipt-validation]], `supabase/functions/_shared/receiptValidationService.ts`, `supabase/migrations/20260717120000_receipt_ai_validation_columns.sql`, `supabase/migrations/20260718120000_parking_receipt_ai_validation.sql`                             |
-| Calendar page                            | `ui/src/features/guest/calendar/pages/CalendarPage.tsx`                                                                                                                                                                                                                 |
-| Date helpers / overlap helpers           | `ui/src/utils/format/dates.ts`                                                                                                                                                                                                                                          |
+```mermaid
+flowchart TD
+  A[Page + TanStack Query hook] --> B[Edge wrapper]
+  B --> C[Auth and tenant scope]
+  C --> D[Handler: validate, read or write]
+  D --> E[(Postgres / Storage)]
+  E --> F[Side effects]
+  F --> G[JSON + Cache-Control]
+```
+
+1. **Client.** React Router page. Query hook. Forms: Zod + RHF. Images go through `prepareUpload` before the body is built.
+2. **Wrapper.** `servePublic` / `serveAuthenticated` / `serveAdmin` / `serveSuperAdmin` / `serveCronPost`. CORS, `x-request-id`, structured logs, default `private, no-store`.
+3. **Scope.** `verifyAdminJwt`, `verifyOrgAccess`, `verifyPropertyAccess`, `resolveScopedParkingAccess`. Plan keys and RBAC leaves are checked here, not only in the UI.
+4. **Write + effects.** Service-role client. Then `WorkflowOrchestrator` (bookings), `logActivity`, notifications, PostHog. Effects run after a successful write, never in a `catch`.
+
+Public listing GETs may use `publicStatic` / `publicDynamic` / `publicAvailability` cache classes. Admin and guest-PII responses stay `no-store`. Contracts: [`edge-functions.md`](edge-functions.md).
+
+---
+
+## 5. Product surfaces
+
+```mermaid
+flowchart TB
+  subgraph public [Public]
+    MKT[Marketing and search]
+    LIST[Property / parking / development listings]
+    BOOK[Calendar → guest form → success]
+    GUIDE[Stay guide, showcase, SD form]
+  end
+
+  subgraph portal [Guest portal]
+    ACC["/account"]
+  end
+
+  subgraph host [Host dashboard]
+    ORG["/org/:orgSlug"]
+    PROP[Property: bookings, calendar, inbox, marketing, …]
+    PARK[Parking: peer vertical, own RBAC]
+  end
+
+  subgraph plat [Platform]
+    ADM["/admin/*"]
+  end
+
+  MKT --> LIST --> BOOK
+  LIST --> GUIDE
+  BOOK --> ACC
+  ORG --> PROP
+  ORG --> PARK
+```
+
+**Guest feature folders** (`ui/src/features/guest/`): marketing, search, property, calendar, form, sd-form, pay-parking, stay-guide, account, auth, chat, booking-documents.
+
+**Dashboard feature folders** (`ui/src/features/dashboard/`): org, property, parking, bookings, finance, maintenance, pricing, inbox, marketing, analytics, page-editor, custom-pages, team, plans, activity, ai-assistant, help-support, import, announcements, notifications, setup-guide, super-admin, offline.
+
+Entry: `ui/src/main.tsx` → `App.tsx` → `ui/src/routes/index.tsx` merges `guestRoutes` + `dashboardRoutes`.
+
+| Capability            | What it is                                            | Gate                              |
+| --------------------- | ----------------------------------------------------- | --------------------------------- |
+| Booking workflow      | GAF / pet / parking docs, emails, SD refund, vouchers | `bookings:*` leaves               |
+| Calendar sync         | Two-way iCal (Airbnb / Booking.com / Vrbo)            | `calendarSync` (Pro+)             |
+| Smart pricing         | AI nightly rates + autopilot cron                     | `smartPricing`                    |
+| Guest Inbox           | Meta + web chat, AI replies                           | inbox leaves                      |
+| Marketing Studio      | Polotno, Remotion, Gemini/Veo generate, Meta publish  | `marketingStudio` + generate keys |
+| Finance / Maintenance | Line items, recurrence, Telegram reminders            | matching leaves                   |
+| Parking marketplace   | Broadcast, claim, PayMongo, endorsement               | parking RBAC                      |
+| AI assistant          | Dashboard chat + tools, credit wallet                 | org credits + allowlist           |
+| Host Analytics        | Occupancy / ADR bundle, AI review                     | `analyticsInsights`               |
+| PWA                   | Install, offline read, inbox outbox, Web Push         | deepest on host dashboard         |
+
+**Billing is org-level only** (`org_subscriptions`). A property left out of enrollment resolves to Free. Plans UI: `/org/:orgSlug/plans`. Matrix: [`plans-feature-matrix.md`](plans-feature-matrix.md).
+
+---
+
+## 6. Identity and access
+
+Do not mix these tiers. Guest Auth is **not** host admin.
+
+```mermaid
+flowchart TD
+  ANON[Guest anon] --> GAUTH[Guest Auth portal]
+  HOST[Host Google OAuth] --> ORG[Org owner / Admin]
+  ORG --> PROP[Property members ~81 leaves]
+  ORG --> PARK[Parking members]
+  HOST --> SUPER[Super-admin email list]
+```
+
+| Tier                          | Server gate                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| Guest anon                    | None (anon key)                                                                  |
+| Guest authenticated           | Supabase Auth                                                                    |
+| Legacy / platform admin email | `ADMIN_ALLOWED_EMAILS` + `verifyAdminJwt`                                        |
+| Org                           | `verifyOrgAccess`                                                                |
+| Property                      | `verifyPropertyAccess` (owner / org Admin implicit full; else JSONB leaves)      |
+| Parking                       | `resolveScopedParkingAccess` (separate catalog)                                  |
+| Super-admin                   | `SUPER_ADMIN_EMAILS`. Mutating `serveSuperAdmin` needs `requireSuperAdminStepUp` |
+
+**Plans vs team:** permission = can you see it; plan = can you use it (`requirePropertyPermissionAndFeature`). Property templates: Full Access / Operations / Read Only. Org team is Owner + Admin only. Parking still uses coarse MANAGER / STAFF / VIEWER.
+
+Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-auth.mdc`.
+
+---
+
+## 7. Data and files
+
+**Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
+
+| Cluster  | Examples                                                              | Access                                    |
+| -------- | --------------------------------------------------------------------- | ----------------------------------------- |
+| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations       | Edge + membership                         |
+| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews        | Scoped RLS on some reads; writes via edge |
+| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`           | Service role                              |
+| Inbox    | `social_*` conversations and messages                                 | Service role                              |
+| AI       | credit wallet / ledger, assistant messages, marketing generation jobs | Service role                              |
+| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`   | Service role                              |
+
+Schema: [`data-model.md`](data-model.md).
+
+**Storage:** guest PII buckets (IDs, receipts, pet docs) are **private**; reads use short-lived signed URLs. Listing media lives in `property-media` (including `marketing-ai/` and `marketing-uploads/`). Ceilings: image 10 MB, avatar 5 MB, document/PDF 12 MB, video 50 MB. Detail: [`storage.md`](storage.md).
+
+**Postgres connections:** edge functions use supabase-js → PostgREST. Cron is in-database HTTP. Backups and migrations use a direct session connection. Analysis: [`PROJECT.md`](../PROJECT.md) (Database connection topology).
+
+---
+
+## 8. Booking workflow
+
+Canonical status strings live in `_shared/statusMachine.ts` (server) and `ui/.../bookings/lib/workflow.ts` (client). Postgres stores `TEXT` + `CHECK`, not a native ENUM. **Every** transition goes through `WorkflowOrchestrator.transition()`.
+
+```mermaid
+flowchart LR
+  PR[PENDING_REVIEW] --> PD[PENDING_DOCUMENTS]
+  PD --> CI[READY_FOR_CHECKIN]
+  CI --> CO[READY_FOR_CHECKOUT]
+  CO --> SD[PENDING_SD_REFUND]
+  SD --> DONE[COMPLETED]
+```
+
+`CANCELLED` is reachable from every non-terminal status. `IMPORTED` is insert-only from the CSV importer. Nested `PENDING_GAF` / `PENDING_PARKING_REQUEST` / `PENDING_PET_REQUEST` remain as legacy document stages.
+
+**PENDING_REVIEW → PENDING_DOCUMENTS** generates GAF/pet PDFs, emails Azure (plus IDs), optional pet mail, parking broadcast, and guest acknowledgement. Same-day check-in (Asia/Manila) marks ops subjects URGENT. Azure replies to `approvals+{slug}@{inbound-domain}`; `approval-email-webhook` verifies Svix and continues the orchestrator.
+
+**Parking marketplace** is a separate graph: `PENDING_HOST_ACCEPTANCE` → claim → `PENDING_PAYMENT` → PayMongo paid → `PENDING_REVIEW`. Timeouts return to search or `NO_HOST_AVAILABLE`. First-accept-wins is a guarded `UPDATE` on status.
+
+Canonical spec: `.cursor/rules/booking-workflow.mdc`. Host walkthrough: [`booking-flow-guide-for-admin.md`](../archive/reference/booking-flow-guide-for-admin.md).
+
+---
+
+## 9. Integrations and jobs
+
+```mermaid
+flowchart LR
+  EF[Edge Functions]
+  EF --> Resend[Resend email + inbound approvals]
+  EF --> PayMongo[PayMongo checkout + webhooks]
+  EF --> Gemini[Gemini / Groq / Veo]
+  EF --> Meta[Meta Graph inbox + publish]
+  EF --> Telegram[Telegram bots per property]
+  EF --> PostHog[PostHog events + errors]
+  EF --> Maps[Google Maps]
+  N[notifications INSERT] --> PN[pg_net]
+  PN --> Push[push-fanout → Web Push]
+```
+
+| Vendor              | Role                                                                             |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Resend              | Transactional mail, GAF/pet inbound, bounce suppression                          |
+| PayMongo            | Org subscription links + parking guest checkout                                  |
+| Gemini / Groq / Veo | Receipt OCR, booking AI review, assistant, marketing image/video, analytics copy |
+| Meta Graph          | Inbox DMs + marketing publish (parking has no Meta UI)                           |
+| Telegram            | Per-property bots: marketing, staff, ops, finance, maintenance                   |
+| PostHog             | Product events + exceptions (UI catalog + edge conversions)                      |
+| Google Maps         | Listing location pickers and public maps                                         |
+
+**Cron examples:** `sd-refund-cron`, `calendar-sync-cron` (30m), `smart-pricing-cron`, `platform-billing-cron`, `expire-parking-broadcasts` (5m), five `telegram-*-cron` jobs, `meta-inbox-webhook-healthcheck`, `superhost-assessment-cron`, `analytics-ai-review-cron`, `marketing-generation-sweeper` (1m), `activity-log-retention-cron`, `query-cache-sweep-cron`. Hosted only; local has no `pg_cron` unless you install it. Runbook: [`scheduled-jobs-and-testing.md`](../archive/operations/scheduled-jobs-and-testing.md). Detail: [`integrations.md`](integrations.md).
+
+---
+
+## 10. Deploy tracks
+
+Until multi-tenant cutover, **two parallel stacks** share this git repo. Do not cross-wire. Production Supabase writes need the unlock word **`kamewave`**.
+
+| Track               | Git                  | Vercel                      | Supabase               | URL                   |
+| ------------------- | -------------------- | --------------------------- | ---------------------- | --------------------- |
+| Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production     |
+| Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `dev.kamehomes.space` |
+| mt-prod (deferred)  | `main` after cutover | `kame-homes` Production     | Create at release      | `app.kamehomes.space` |
+
+**CI:** `.github/workflows/ci.yml` runs five parallel jobs into a required `quality` gate. `cd-dev.yml` adds Playwright `@ci` then deploys `develop`. Local parity: `bun run ci:quality`.
+
+Full matrix: [`deployment.md`](deployment.md).
+
+---
+
+## 11. Repository layout
+
+| Path                   | Role                                                                  |
+| ---------------------- | --------------------------------------------------------------------- |
+| `ui/`                  | Vite SPA. `@/` → `ui/src/`. Feature folders, no cross-feature barrels |
+| `supabase/migrations/` | Postgres + RLS + storage. Never edit a shipped migration              |
+| `supabase/functions/`  | Deno handlers + `_shared/` + `tests/`                                 |
+| `supabase/config.toml` | Local stack. Per-function Kong JWT is off; the app checks JWT         |
+| `scripts/`             | Dev, deploy, data-sync, audits. See `scripts/README.md`               |
+| `docs/`                | This architecture set, route guides, workflow                         |
+| `dev.sh`               | Local orchestrator (`--ui-only` skips Docker)                         |
+| `.cursor/rules/`       | Agent gates (mobile, docs, plans, audit, no-prod-deploy)              |
+
+Folder conventions: `.cursor/rules/architecture.mdc`. UI map: [`project-structure.md`](../archive/reference/project-structure.md).
+
+---
+
+## 12. Local development
+
+| Command                        | What runs                                          |
+| ------------------------------ | -------------------------------------------------- |
+| `./dev.sh`                     | Docker + local Supabase + `functions serve` + Vite |
+| `./dev.sh --ui-only`           | Vite only (`ui/.env.development`)                  |
+| `./dev.sh --ui-only --env dev` | Vite against hosted mt-dev                         |
+| `bun run dev:remote-api`       | Local edge functions → hosted dev DB               |
+
+`dev.sh` loads `ui/.env.development` before `supabase start`, then merges edge secrets into `supabase/.temp/functions-serve.env`. Prefer `bun run start:supabase` / `status:supabase` / `db:reset` over a global `supabase` CLI (easy to leave outdated; breaks Postgres 17 migrations).
+
+**Do not** start a second `supabase functions serve` in parallel (Docker name conflict).
+
+**502 on `/functions/v1/*`:** Kong is usually still pointing at an old edge-runtime IP after `db:reset`. Fix: `bun run stop:supabase` then `./dev.sh`.
+
+**Nuclear reset:** `bun run stop:supabase:clean` deletes Docker volumes (all local DB data is lost). Then `bun run start:supabase`.
+
+Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need the UI. PWA service worker is **off** under `vite` (it would fight HMR); test with `bun run build` + `preview`, or `VITE_PWA_DEV=true`.
+
+---
+
+## 13. Topic index
+
+| Topic                         | File                                                     |
+| ----------------------------- | -------------------------------------------------------- |
+| Routes and user flows         | [`routing.md`](routing.md)                               |
+| Postgres schema               | [`data-model.md`](data-model.md)                         |
+| Storage buckets               | [`storage.md`](storage.md)                               |
+| Edge API surface              | [`edge-functions.md`](edge-functions.md)                 |
+| Email, payments, PDF, PostHog | [`integrations.md`](integrations.md)                     |
+| Validation + env vars         | [`validation-and-env.md`](validation-and-env.md)         |
+| Deploy / dual-track           | [`deployment.md`](deployment.md)                         |
+| PWA                           | [`pwa.md`](pwa.md)                                       |
+| Plans / entitlements          | [`plans-feature-matrix.md`](plans-feature-matrix.md)     |
+| AI dashboard assistant        | [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md) |
+| Smart pricing                 | [`smart-pricing.md`](smart-pricing.md)                   |
+| Booking status machine        | `.cursor/rules/booking-workflow.mdc`                     |
+| Admin JWT / allow list        | `.cursor/rules/admin-auth.mdc`                           |
+
+---
+
+## 14. Known notes
+
+- **`compareFormData`** (server) does not include `petType`. Changing only pet type may skip the update pipeline. Extend `_shared/utils.ts` if that becomes a product need.
+- **Dashboard JWT** (`getSessionJwt` in `ui/src/features/dashboard/org/lib/edgeClient.ts`) reuses the cached access token and refreshes only near expiry. Do not call `refreshSession()` on every edge request: Auth rate-limits `/token` and a 429 can sign the user out.
+- Two PDF template copies must stay in sync: Storage bucket `templates` (workflow) vs `ui/public/templates` (admin preview).
+- Kong `verify_jwt=false` is intentional. Modern user JWTs fail Kong's HS256 check. The real gate is `verifyAdminJwt` / org / property / parking helpers inside the function.
+
+---
+
+## 15. Key files
+
+| Concern                    | Location                                                |
+| -------------------------- | ------------------------------------------------------- |
+| Submit pipeline            | `supabase/functions/submit-form/index.ts`               |
+| DB + overlap + FormData    | `supabase/functions/_shared/databaseService.ts`         |
+| Status graph               | `supabase/functions/_shared/statusMachine.ts`           |
+| Transitions + side effects | `supabase/functions/_shared/workflowOrchestrator.ts`    |
+| HTTP wrappers              | `supabase/functions/_shared/serveEdge.ts`               |
+| Activity log               | `supabase/functions/_shared/activityLog.ts`             |
+| Guest form UI              | `ui/src/features/guest/form/components/GuestForm.tsx`   |
+| Guest form schema          | `ui/src/features/guest/form/schemas/guestFormSchema.ts` |
+| Host workflow UI           | `ui/src/features/dashboard/bookings/lib/workflow.ts`    |
+| Calendar page              | `ui/src/features/guest/calendar/pages/CalendarPage.tsx` |
+| Admin edge client          | `ui/src/features/dashboard/org/lib/edgeClient.ts`       |
+| Telegram marketing         | `_shared/telegramMarketing.ts`                          |
+| Receipt AI                 | `_shared/receiptValidationService.ts`                   |
+| Dates                      | `ui/src/utils/format/dates.ts`, `_shared/utils.ts`      |

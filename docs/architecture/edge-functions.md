@@ -111,9 +111,34 @@ Full phase status — what's classified vs. deferred, real bugs found during sel
 `_shared/requestLog.ts#logEvent` emits one JSON shape: `{ts, level, fn, requestId, orgId?, propertyId?, userId?, event, durationMs?, status?, meta?}`. `level` is `error` (needs a human) / `warn` (degraded, self-healing) / `info` (state change) / `debug` (off unless `EDGE_LOG_DEBUG=1`).
 
 - **Wired centrally, not per-function.** `handleEdgeError` (`_shared/httpResponse.ts`) — the one place every `serve*` wrapper in `serveEdge.ts` already routes a caught error through — calls `logEvent` on every failure. This gives all ~300 functions the structured shape without a per-function edit; a handler only calls `logEvent` directly for a mid-request state change worth recording beyond the wrapper's own entry/error line.
-- **Correlation id**: `resolveRequestId(req)` reads a client-sent `x-request-id` header (validated `^[a-zA-Z0-9_-]{1,64}$`, otherwise `crypto.randomUUID()` server-side). Threaded into the structured log, the PostHog exception's `extra.requestId`, and — **only on a 5xx** — the JSON error body's `requestId` field (a 4xx is usually expected client flow; a reference id there is noise). `jsonError(req, message, status, requestId?)` — the 4th param is optional and backward compatible.
+- **Correlation id**: `resolveRequestId(req)` reads a client-sent `x-request-id` header (validated `^[a-zA-Z0-9_-]{1,64}$`, otherwise `crypto.randomUUID()` server-side). Threaded into the structured log, the PostHog exception's `extra.requestId`, and — **only on a 5xx** — the JSON error body's `requestId` field (a 4xx is usually expected client flow; a reference id there is noise). `jsonError(req, message, status, requestId?)` — the 4th param is optional and backward compatible. Unexpected throws now resolve to 500 rather than 400 (see the Error status contract above), so a genuine crash falls on the traceable side of this rule instead of being silently stripped of its id.
 - **Client side (admin surface only):** `ui/src/lib/api/adminEdgeFetch.ts` sends a fresh `x-request-id` on every `adminEdgeFetch`/`assetEdgeFetch` call; `AdminEdgeFetchError.requestId` carries it back on failure. Guest-side fetch call sites do not send this header yet — extending the pattern there is the natural next slice, not done this session.
 - **Never log:** guest names, emails, phone numbers, addresses, ID/document contents, tokens, secrets, full request bodies. Log identifiers (`bookingId`), not the row/object. A PII-in-logs audit of all `console.*` call sites across `supabase/functions/**` found and fixed 3 violations of this rule (2026-09-19) — see doc 27's implementation status for specifics.
+
+---
+
+## Error status contract (`EdgeError`)
+
+`errorMessageFromThrown` (`_shared/httpResponse.ts`) resolves a thrown value to `{status, message, code?}`. Resolution order:
+
+| Thrown                                                  | Status             | Client message          | `code`             |
+| ------------------------------------------------------- | ------------------ | ----------------------- | ------------------ |
+| `Response`                                              | its own status     | its body `error`        | —                  |
+| **`EdgeError`**                                         | **its own status** | its own message         | its own code       |
+| non-`Error` (`throw 'oops'`, a bare object)             | **500**            | `Internal server error` | `unexpected_throw` |
+| `Error` whose message starts `STATUS_CONFLICT:`         | 409                | message minus prefix    | `status_conflict`  |
+| `TypeError`/`RangeError`/`ReferenceError`/`SyntaxError` | **500**            | `Internal server error` | `runtime_error`    |
+| any other `Error`                                       | 400                | its message             | —                  |
+
+**Prefer `EdgeError` in new code** — `badRequest()`, `statusConflict()`, `internalError()`, or `new EdgeError(status, message, code)`. A bare `throw new Error(...)` forces the inference above, whose only safe guess for a handler-authored message is 400.
+
+**Why unexpected throws are 500, not 400.** A crash previously fell through to the bare-`Error` default and was reported as **400 carrying the raw JS message** — and since `handleEdgeError` attaches a `requestId` only on 5xx, that also stripped the one identifier that made it traceable. Native runtime error types and non-`Error` throws now resolve to 500 with a generic message, so a genuine fault is both traceable and not leaking internals (SQL text, stack fragments) to the client.
+
+**Why the bare-`Error` default stays 400.** In this codebase a bare `new Error('property_id is required')` is overwhelmingly handler-authored validation, so flipping that default to 500 would turn routine validation failures into false 5xx alerts. Narrowing it further requires converting throw sites to `EdgeError` first; the native-runtime-type check above is the unambiguous subset that could move safely today.
+
+`code` is a stable machine-readable slug for clients and alerting to branch on without matching prose. It reaches the structured log (`meta.code`) and the PostHog exception `extra`, and an `EdgeError` under 500 logs at `warn` rather than `error` — a status the handler chose on purpose is not a crash.
+
+The legacy `STATUS_CONFLICT:` string prefix still works (`databaseService.ts`, `bookingDetailsPatch.ts` throw it); `statusConflict()` is the replacement and produces an identical result.
 
 ---
 
