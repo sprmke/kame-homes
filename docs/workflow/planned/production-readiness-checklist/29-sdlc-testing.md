@@ -56,7 +56,7 @@ Everything else in this doc (risk-tier coverage targets, contract tests against 
 
 ## Current state
 
-Inventory at the last audit: 25 UI unit tests, 0 component tests (by decision), 46 shared edge tests, 7 handler tests, 48 E2E specs — against 2330 UI files and 300 edge functions.
+Inventory at the last audit: 25 UI unit tests, 0 component tests (by decision), 46 shared edge tests, 7 handler tests, 48 E2E specs — against 2330 UI files and 300 edge functions. **2026-09-21:** handler suite **50** Deno tests (`bun run test:edge:handlers`); live adversarial **14** on cd-dev `35567004695`.
 
 The honest read: **the pyramid exists but is thin relative to the codebase size**, and it is concentrated on `_shared` logic and smoke paths. That is a defensible prioritization (pure logic and critical paths first), but it leaves most of the 300 edge handlers without a handler test.
 
@@ -79,7 +79,7 @@ Do not chase a coverage percentage. Target by blast radius:
 
 ### Phase 29.2 — Close the handler-test gap
 
-Currently 7 handler tests for 300 functions. Rather than writing 300 by hand, build a **table-driven harness**: for each function, a fixture declaring auth tier, valid input, and expected failures, then generate the auth/validation tests automatically. This makes doc 21's adversarial matrix and doc 18's conformance sweep executable rather than manual.
+Handler suite (2026-09-21 local): **50 passed**, 1 ignored (`authParitySeed` harness when fixture unset; `adversarialAuthLive` skipped without env). Still thin vs ~300 functions. Rather than writing 300 by hand, build a **table-driven harness**: for each function, a fixture declaring auth tier, valid input, and expected failures, then generate the auth/validation tests automatically. This makes doc 21's adversarial matrix and doc 18's conformance sweep executable rather than manual.
 
 The E2E harnesses in `ui/e2e/features/team/shared/propertyTeamRbacHarness.ts` show this pattern already exists in the repo — extend it.
 

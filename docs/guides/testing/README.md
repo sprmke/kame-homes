@@ -16,6 +16,7 @@ Sitewide pyramid for Kame Homes. Plan: [`docs/workflow/done/sitewide-automated-t
 | UI unit (Vitest)                | `bun run test`                     | every PR             |
 | Edge unit (Deno `_shared`)      | `bun run test:edge`                | every PR             |
 | Edge handlers                   | `bun run test:edge:handlers`       | every PR             |
+| Auth parity seed (doc 21, opt.) | `bun run test:auth-parity-seed`    | local / manual       |
 | Playwright smoke                | `bun run test:e2e:smoke`           | PR + develop         |
 | Playwright phone + tablet smoke | `bun run test:e2e:smoke`           | every PR             |
 | Playwright CI suite             | `bun run test:e2e:ci`              | develop              |
@@ -111,7 +112,7 @@ Seeded role × endpoint table (local or hosted with real JWTs):
 
 1. Copy `supabase/functions/tests/fixtures/auth-parity-seed.example.json` to `auth-parity-seed.local.json` (gitignored).
 2. Fill query params and export JWT env vars named in each case.
-3. Run `AUTH_PARITY_FIXTURE=supabase/functions/tests/fixtures/auth-parity-seed.local.json SUPABASE_URL=... SUPABASE_ANON_KEY=... deno test --allow-net --allow-env --allow-read supabase/functions/tests/authParitySeed.test.ts`
+3. Run `AUTH_PARITY_FIXTURE=supabase/functions/tests/fixtures/auth-parity-seed.local.json SUPABASE_URL=... SUPABASE_ANON_KEY=... bun run test:auth-parity-seed`
 
 CI runs the harness with fixture unset (one passing skip marker test).
 

@@ -39,6 +39,7 @@
     "check:edge-types": "bash scripts/dev/check-edge-types.sh",
     "test:edge": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read --allow-import --ignore=\"supabase/functions/**/*integration_test.ts\" supabase/functions/_shared/'",
     "test:edge:handlers": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read --allow-import supabase/functions/tests/ --ignore=\"supabase/functions/tests/*integration_test.ts\" --ignore=\"supabase/functions/tests/assistantParityLiveGemini.integration_test.ts\"'",
+    "test:auth-parity-seed": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read supabase/functions/tests/authParitySeed.test.ts'",
     "test:assistant-parity": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read supabase/functions/tests/assistantToolCatalog.test.ts supabase/functions/tests/assistantOrgPermissionLeaves.test.ts supabase/functions/tests/assistantAttachmentApply.test.ts supabase/functions/tests/assistantParityLocal.integration_test.ts'",
     "test:assistant-parity:live": "bash scripts/dev/run-assistant-parity-live-gemini.sh",
     "test:media:quality": "node scripts/media/quality-check.mjs",
