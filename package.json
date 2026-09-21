@@ -118,6 +118,7 @@
     "deploy:supabase:dev:functions": "./scripts/deploy/deploy-supabase-dev.sh --functions-only",
     "backup:supabase:dev": "./scripts/deploy/backup-supabase.sh dev",
     "backup:supabase:prod": "./scripts/deploy/backup-supabase.sh prod",
+    "rehearsal:rollback:dev:preflight": "./scripts/deploy/hosted-dev-rollback-rehearsal-preflight.sh",
     "rollback:supabase:dev": "./scripts/deploy/rollback-supabase.sh dev",
     "rollback:supabase:prod": "./scripts/deploy/rollback-supabase.sh prod",
     "rollback:functions:dev": "./scripts/deploy/rollback-functions.sh dev",
