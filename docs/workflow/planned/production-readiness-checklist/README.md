@@ -244,3 +244,4 @@ Still open, correctly not attempted (need operator/hosted access this session di
 - **Shipped `a5521e90`:** `marketingCollage.spec.ts` CI hardening (Fill all / hidden helper copy waits).
 - **Shipped `d85de641`:** adversarial **11** cases. **cd-dev** [`35558455879`](https://github.com/sprmke/kame-homes/actions/runs/35558455879) green (adversarial **11/11**, partial smoke, `pg_stat` skipped). **Evidence `397ea015`:** checklist pointers + gitignore for artifact downloads.
 - **Evidence `45b53cd2`:** edge-latency baseline refresh (`04:23:04Z`); remaining-work index aligned to `35558455879`.
+- **Shipped `2a4865c3`:** adversarial **12** cases (+ `get-health` control); `listingContractRenewalSession` sign-out unit test. **cd-dev** [`35561028251`](https://github.com/sprmke/kame-homes/actions/runs/35561028251) in progress.
