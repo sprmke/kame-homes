@@ -241,4 +241,4 @@ Still open, correctly not attempted (need operator/hosted access this session di
 - **Shipped `ddbd1724`:** `hosted-dev-rollback-rehearsal.md` + `bun run rehearsal:rollback:dev:preflight` (docs 24/30). **cd-dev** [`35555310204`](https://github.com/sprmke/kame-homes/actions/runs/35555310204) green after push (2026-09-21). Measured restore drill still operator-owned.
 - **Shipped `77944d51`:** adversarial **8/8**, PWA + cron post-deploy checks. **cd-dev** [`35556921767`](https://github.com/sprmke/kame-homes/actions/runs/35556921767) green (2026-09-21). CI [`35556921759`](https://github.com/sprmke/kame-homes/actions/runs/35556921759) green.
 - **Evidence `3c9e635f`:** checklist + edge-latency baseline refresh for run `35556921767`.
-- **Pending:** `marketingCollage.spec.ts` CI hardening (Fill all / hidden helper copy waits).
+- **Shipped `a5521e90`:** `marketingCollage.spec.ts` CI hardening (Fill all / hidden helper copy waits).
