@@ -158,3 +158,18 @@ Deno.test({
     assertUnauthorized(res.status, 'list-support-tickets');
   },
 });
+
+Deno.test({
+  name: 'anon can call servePublic get-health (positive control)',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('get-health', {});
+    assertEquals(res.status, 200, 'get-health status code');
+    const json = await res.json();
+    assertEquals(
+      json.status === 'ok' || json.status === 'degraded',
+      true,
+      `get-health body.status (got ${JSON.stringify(json.status)})`
+    );
+  },
+});
