@@ -131,3 +131,30 @@ Deno.test({
     assertUnauthorized(res.status, 'activity-log-retention-cron');
   },
 });
+
+Deno.test({
+  name: 'anon without Authorization cannot call serveSuperAdmin list-organizations-admin',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-organizations-admin', {});
+    assertUnauthorized(res.status, 'list-organizations-admin');
+  },
+});
+
+Deno.test({
+  name: 'anon without Authorization cannot call serveSuperAdmin list-support-tickets-admin',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-support-tickets-admin', {});
+    assertUnauthorized(res.status, 'list-support-tickets-admin');
+  },
+});
+
+Deno.test({
+  name: 'anon without Authorization cannot call serveAuthenticated list-support-tickets',
+  ignore: !live,
+  fn: async () => {
+    const res = await edgeGet('list-support-tickets', {});
+    assertUnauthorized(res.status, 'list-support-tickets');
+  },
+});
