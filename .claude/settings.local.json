@@ -10,17 +10,28 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(ln -s ../.mcp.json .cursor/mcp.json)",
-      "mcp__playwright__browser_run_code_unsafe"
+      "mcp__playwright__browser_run_code_unsafe",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X PATCH http://127.0.0.1:54321/functions/v1/ai-platform-settings?org_id=__TRACKED_VAR__ -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"dailyCallLimit\": 1}')",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST http://127.0.0.1:54321/functions/v1/dashboard-assistant?org_id=__TRACKED_VAR__ -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"message\": \"quota test message unique\"}')",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST http://127.0.0.1:54321/functions/v1/dashboard-assistant?org_id=__TRACKED_VAR__ -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"message\": \"quota test message unique 2\"}')",
+      "Bash(bash scripts/dev/workflow-move.sh start help-support-center)",
+      "Bash(bun scripts/sync-ai-knowledge-base.ts --dry-run)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "playwright",
+    "context7",
+    "markitdown"
+  ],
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f \"/Users/michaelmanlulu/.claude/skills/impeccable/scripts/hook.mjs\" ] || node \"/Users/michaelmanlulu/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" ] || \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" hook",
             "timeout": 5,
             "statusMessage": "Checking UI changes"
           }
@@ -32,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f \"/Users/michaelmanlulu/.claude/skills/impeccable/scripts/hook.mjs\" ] || node \"/Users/michaelmanlulu/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" ] || \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" hook",
             "timeout": 30,
             "statusMessage": "Design deep pass"
           }
@@ -40,6 +51,5 @@
       }
     ]
   },
-  "description": "Impeccable design detector: immediate-tier checks after Edit/Write/MultiEdit on UI files, full-rule deep pass on Stop.",
-  "enabledMcpjsonServers": ["supabase", "playwright", "context7", "markitdown"]
+  "description": "Impeccable design detector: immediate-tier checks after Edit/Write on UI files, full-rule deep pass on Stop."
 }

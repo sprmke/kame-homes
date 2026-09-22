@@ -1,11 +1,11 @@
----
+I---
 title: 'Tasks To Prompt'
 status: archived
 tags: [planning]
-updated: 2026-08-31
+updated: 2026-09-22
 ---
 
-**Status legend:** ❌ cancelled / won't do · ✅ done · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
+**Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
 
 ===
 
@@ -210,6 +210,33 @@ Generate more real world and hundreds of mock data for different properties, dev
 ✅ Make sure auth modal and auth page section is similar or aligned same order for consistency
 ===
 
+✅ Next-stay voucher redemption (guest wallet + booking apply)
+
+→ **Done:** [`../done/voucher-redemption.md`](../done/voucher-redemption.md) · awards: [`../done/property-guest-rewards-vouchers.md`](../done/property-guest-rewards-vouchers.md) · reveal styles: [`../done/voucher-reveal-styles.md`](../done/voucher-reveal-styles.md)
+===
+
+✅ Commission-based pricing (pay % of completed bookings)
+
+Foundation schema exists but product was retired from live UI (2026-08-24) until fully shippable: host self-serve, Plans & Billing, public pricing, invoicing/PayMongo collection. Do not re-enable the catalog row without a plan.
+
+→ **Pending:** `docs/architecture/plans-feature-matrix.md` § Pending: commission pricing · partial foundation: [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md)
+===
+
+✅ Update dashboard AI assistant to support edit public page
+
+→ **Partial:** public-page **context attach** shipped in [`../done/ai-assistant-universal-context-pickers.md`](../done/ai-assistant-universal-context-pickers.md) (`ChatComposerPublicPagePicker`). **Still open:** assistant-driven edits to Stay Guide / property landing content (use Page Editor or new tools).
+===
+
+✅ Update for-hosts landing page animation section with updated features and more refined text/voice
+
+Rebuilt the Remotion dashboard tour into 19 variable-length chapters (~2m 54s) with high-fidelity route recreations, dedicated chapters for AI import, Airbnb sync, Guest Inbox, voice receptionist, Marketing Studio, Public Pages editor, and AI dashboard assistant.
+
+→ **Done:** guide [`../../guides/routes/for-hosts.md`](../../guides/routes/for-hosts.md)
+===
+
+✅ In booking detail page, analyze if same primary guest name is recurring guest and respect voucher discount if enabled
+===
+
 🚧 Branch deployment guide + dev/staging environment
 
 Meaning, I want to deploy our app in vercel with ou current branch with our new changes.
@@ -227,7 +254,7 @@ Also, another important setup I'd like to have is to point or use supabase deplo
 
 Update marketing generate design suggestion thumbnail to be more closed to calendar template, design and video clips
 
-→ **Related:** [`../in-progress/marketing-module-refinement.md`](../in-progress/marketing-module-refinement.md) (perf/AI-gen shipped; publish UX gaps remain)
+→ **Related:** [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen + generate-modal stepper shipped; Meta publish UX gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md))
 ===
 
 🚧 Refine add pay parking and add/edit parking from booking detail page
@@ -247,13 +274,6 @@ Let's refine, improve and make the exported reports look more professional, neat
 Make sure we apply it to all exported reports and sub reports for all modules that supports reporting
 ===
 
-✅ Commission-based pricing (pay % of completed bookings)
-
-Foundation schema exists but product was retired from live UI (2026-08-24) until fully shippable: host self-serve, Plans & Billing, public pricing, invoicing/PayMongo collection. Do not re-enable the catalog row without a plan.
-
-→ **Pending:** `docs/architecture/plans-feature-matrix.md` § Pending: commission pricing · partial foundation: [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md)
-===
-
 🔵 Redesign hosts page to be similar UI with developments page.
 
 Maybe add org photos/banner from org settings?
@@ -261,9 +281,6 @@ Maybe add org photos/banner from org settings?
 - http://localhost:5173/hosts/kame-homes
 - http://localhost:5173/developments/azure-north-residences
   \===
-
-🔵 Update for-hosts landing page animation section with updated features and more refined text/voice
-===
 
 🔵 Improve avatar video animation
 ===
@@ -276,23 +293,30 @@ EMAIL_TO / EMAIL_REPLY_TO
 🔵 Make sure the SD refund payments is reflecting based on payment methods available from property settings
 ===
 
-🔵 In booking detail page, analyze if same primary guest name is recurring guest
-===
-
-✅ Update dashboard AI assistant to support edit public page
-
-→ **Partial:** public-page **context attach** shipped in [`../done/ai-assistant-universal-context-pickers.md`](../done/ai-assistant-universal-context-pickers.md) (`ChatComposerPublicPagePicker`). **Still open:** assistant-driven edits to Stay Guide / property landing content (use Page Editor or new tools).
-===
-
 🔵 Improve parking details
 ===
 
 🔵 Support org pincode for security
 ===
 
-🔵 Guest review — add Facebook review step if possible
+📋 Check current functionalities and features that we have that may cost us in billing and may use a lot of services and expensive tasks either on UI, database, backend and that may cost us so much money when we deploy to prod. List them down, provide solution and suggestion how to resolve and improve it. We also need to decide if we keep, improve or change it or totally remove it. We need to carefully analyze if the cost is worth it with the impact the feature offers.
+
+Sept 2026 audit delivered (Resend free cap, rotated free AI keys, voice receptionist / Gemini Live, PostHog replay, Vercel Hobby, Supabase realtime/polling, storage, Google Maps guest-facing loads, PayMongo txn fees, Remotion/Jamendo licensing). Full cost-control + optimization plan (per-service super-admin limit matrix, `serviceGuard` + auto-degrade engine, `/admin/service-health` console, email/Telegram alerts, D1–D8 optimization workstream, plan-tier entitlement mapping; P0–P6):
+
+→ **Planned:** [`../planned/super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md)
+===
+
+🚧 Reschedule dropdown action from booking detail page
+===
+
+🔵 No privacy policy, cookie consent, terms & conditions & no exposed user data
+===
+
+📋 Guest review — add Facebook review step if possible
 
 After guests submit their in-app Kame review (`/sd-form` step 1 or standalone `/properties/:slug/guest-review`), explore adding an optional **Facebook review** prompt or step when the property has a Facebook reviews URL configured (`facebookReviewsUrl` / `facebook_reviews_url`).
 
 Legacy SD flow redirected guests to Facebook before the voucher reveal; the current flow is in-app only. Research whether we can deep-link to the host's Facebook review page, show a clear CTA after Kame review submit, and whether completion can be verified (or should stay honor-system). Implement only if feasible — do not block voucher/refund on Facebook completion unless we have a reliable signal.
+
+→ **Planned:** [`../planned/guest-review-facebook-cta.md`](../planned/guest-review-facebook-cta.md)
 ===

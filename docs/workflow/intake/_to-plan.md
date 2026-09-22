@@ -2,10 +2,10 @@
 title: 'Claude To Plan'
 status: archived
 tags: [planning]
-updated: 2026-09-12
+updated: 2026-09-22
 ---
 
-**Status legend:** ❌ cancelled / won't do · ✅ done · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
+**Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
 
 ===
 
@@ -22,6 +22,8 @@ Just make sure that we don't change or affect any public related pages that we h
 
 # → **Won't do:** [`../wont-do/dashboard-ground-up-redesign.md`](../wont-do/dashboard-ground-up-redesign.md) — incremental dashboard polish only; no dedicated ground-up pass
 
+===
+
 ✅ Improve for-hosts landing page
 
 For host mode, we should improve the landing page for /for-hosts that showcase all the features and functionalities that we have from our dashboard. I want to have a stunning, looks very professional, animated landing page that showcase all the features that we have for our system.
@@ -29,6 +31,8 @@ For host mode, we should improve the landing page for /for-hosts that showcase a
 Reviews section from hosts is also good. We can use mock data for now.
 
 # We should also need to update our header menus for hosts mode
+
+===
 
 ✅ Refine Property Templates page
 
@@ -42,6 +46,8 @@ The stay guide page looks very plain and not appealing at all. This needs to be 
 
 # → **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md) (Option B; Option A is stay-guide slice of same plan)
 
+===
+
 ✅ OPTION B: Templated configurable & shareable custom pages
 
 Generate 3-5 templated stunning and professional looking landing pages/stay guide pages that contains these standard templates, property information and booking information for hosts to send their to their guests.
@@ -52,6 +58,8 @@ On the dashboard, we will have new menu and page for "Custom Pages" where they c
 Maybe we will offer a simplified website editor?
 
 # → **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md)
+
+===
 
 ✅ Make our main public search bar fully working
 
@@ -67,6 +75,8 @@ Make sure that filtered result are animated and we display it elegantly. Not sur
 
 # → **Done:** [`../done/smart-search-bar.md`](../done/smart-search-bar.md)
 
+===
+
 ✅ Make filters fully working
 
 Once we finalized and have fully working search bar and functionality, we should also update and make our filter works fully end to end.
@@ -78,6 +88,8 @@ The goal is to have a very smart filter sidebar section to filter any data that 
 We should also refine and update our sort options based on our data and make sure this will also work properly.
 
 # → **Done:** [`../done/smart-filters.md`](../done/smart-filters.md)
+
+===
 
 ✅ Marketing 1: Improve Marketing Calendar Templates
 
@@ -99,6 +111,8 @@ Same with marketing design templates goal.
 
 # → **Follow-up (Quiet Coast Motion):** from-scratch Video redo — Video-only categories + storyboard recipes. Spec: `docs/archive/superpowers/specs/marketing-video-quiet-coast-motion-design.md`. Plan: `docs/workflow/done/marketing-video-quiet-coast-motion.md`.
 
+===
+
 ✅ Marketing 4: Use AI to generate marketing calendar, design and video templates
 
 Now that we made some improvements on marketing calendar, canvas and video editors, I want to really extend by having AI feature that will generate design and video templates from scratch that looks very beautiful, elegant, instagrammable and has wow factor to hosts.
@@ -111,11 +125,15 @@ The end goal is that with the help of AI, we should be able to generate calendar
 
 # → **Done:** [`../done/marketing-ai-generated-templates.md`](../done/marketing-ai-generated-templates.md) (calendar, design, and video AI generate shipped)
 
+===
+
 ✅ Refine footer & create public pages
 
 Footer trimmed; About/Contact/Support/Cookies routes live; Terms/Privacy/Cookie Policy grounded in product copy.
 
 # → **Done:** [`../done/refine-footer-public-pages.md`](../done/refine-footer-public-pages.md)
+
+===
 
 ✅ Refine our route guides to have complete context for each page & section in our app
 
@@ -126,6 +144,8 @@ Make sure we always update and add any new routes or updated any missed routes. 
 This document will be helpful in our project while we develop it and my goal is to provide this docs when we integrate AI chat in our dashboard to provide better response and context to hosts when they ask something about some app knowledge, features, flow, process, etc
 
 # The goal of this docs is to become a context and product knowledge for our AI receptionist & dashboard AI assistant features
+
+===
 
 ✅ Extend chat app to have real-time chat with AI receptionist
 
@@ -143,6 +163,8 @@ All the settings should be configurable in our admin dashboard as well. If we ca
 I think there are a lot of existing projects like this, what we need to plan and refine is this should be production grade level, will not introduce any issues or security risks, it should not crash, and it should be easy to use and helpful for guests.
 
 # → **Done:** [`../done/ai-voice-receptionist.md`](../done/ai-voice-receptionist.md)
+
+===
 
 ✅ Provide chat app that can access and manage entire dashboard
 
@@ -165,6 +187,8 @@ Also, this should be tied app with our pricing and subscription module so that w
 
 # → **Done:** [`../done/ai-dashboard-assistant.md`](../done/ai-dashboard-assistant.md) · v2 full coverage: [`../done/ai-dashboard-assistant-v2-full-coverage.md`](../done/ai-dashboard-assistant-v2-full-coverage.md)
 
+===
+
 ✅ Booking from listing e2e
 
 I want you to review our whole booking end to end flow and make sure it's production ready. When a guest book from our listing page or from our guest form. Please review each step, flow and process that we have. Improve UI/UX or flow that we need to improve.
@@ -172,6 +196,8 @@ I want you to review our whole booking end to end flow and make sure it's produc
 The end goal is to make sure that we don't miss any important step or process for e2e booking process. Make sure we provide the best UX as much as possible to our guest.
 
 # Do /impeccable critique, audit, review, harden & polish of our current e2e booking process and list down things that we can improve and create superpowers executable plan for it.
+
+===
 
 ✅ Optimize how AI integrated in our app
 
@@ -187,6 +213,8 @@ Let's update our implementation that's using or relying with AI like the AI-auto
 
 # → **Done:** [`../done/docs-obsidian-tooling-sync.md`](../done/docs-obsidian-tooling-sync.md)
 
+===
+
 ✅ In app notification for chat & other activity
 
 When we receive new chat or guest message from inbox, we should display a toast or notification message on our app as long as we are using the app and even we are not on inbox page.
@@ -199,9 +227,13 @@ Analyze how popular apps how handle this and make sure we implement the way poss
 
 # → **Done:** [`../done/in-app-notifications.md`](../done/in-app-notifications.md)
 
+===
+
 ✅ Smart import data with use of AI
 
 # Shipped: [`../done/smart-ai-data-importer.md`](../done/smart-ai-data-importer.md) + [`../done/import-preview-fix-queue.md`](../done/import-preview-fix-queue.md)
+
+===
 
 ✅ Avail parking e2e flow
 
@@ -255,15 +287,21 @@ Phase 4: Manual & Physical on site tasks:
 
 # → **Done (Phase 0 & Phase 1):** [`../done/parking-e2e-phase1-overview.md`](../done/parking-e2e-phase1-overview.md) (+ companions in `done/`). Phases 2–5, 7–8 **done**; Phase 6 + production-readiness **planned:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md).
 
+===
+
 ✅ Help & Support page (org + property level)
 
 Now that we have the AI assistant in the dashboard, build a Help & Support page for hosts at both org and property level: Documentation (from docs/guides Host-facing knowledge, filtered to never expose sensitive/internal info), AI Chat (opens the existing dashboard assistant sidebar), Ticket/App Support (dynamic per-category fields — bug/inquiry/suggestion/business — replied to from a new super-admin page), and FAQs (20-50 items generated from the docs). Every docs/guides change should stay synced to whatever powers this automatically.
 
 # → **Done:** [`../done/help-support-center.md`](../done/help-support-center.md)
 
+===
+
 ✅ Free trial, subscription and payments to use app
 
 # Related (shipped): [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) · [`host-plans-pricing-page`](../done/host-plans-pricing-page.md) · [`feature-gating-subscription-upgrade`](../done/feature-gating-subscription-upgrade.md) · [`host-plans-and-pricing-tiers`](../done/host-plans-and-pricing-tiers.md).
+
+===
 
 ✅ Able to send documents through chat
 
@@ -276,6 +314,8 @@ Links: Stay Guide, Property, Calendar, Messages
 Let's put a new icon for these beside the Quick reply & suggest section.
 
 # → **Done:** [`../done/inbox-share-links-and-files.md`](../done/inbox-share-links-and-files.md) — Inbox composer Share icon; durable GAF/Pet share links; calendar link opens in-place availability modal (2026-08-22)
+
+===
 
 ✅ Plans & Pricing
 
@@ -298,6 +338,8 @@ Again, the goal of this plan is scoped only to build the Pricing page.
 Do not work on these referenced plan. We will work on it one by one.
 
 # → **Done:** [`../done/host-plans-pricing-page.md`](../done/host-plans-pricing-page.md) (host Plans page + PayMongo checkout) · tiers foundation: [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md) · PayMongo: [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) · feature gating: [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) · AI credits: [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md)
+
+===
 
 ✅ Host plans and pricing tiers for property listings
 Based on all the features that we have, we should analyze all thea features & functionalities that we have and create different pricing tiers.
@@ -359,6 +401,8 @@ There's also another pricing model that user can choose of which is commission b
 
 # → **Partial foundation only (retired from live UI 2026-08-24):** schema + `COMPLETED` ledger hook in [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md). **Not host-selectable** — catalog row inactive; super-admin/public/host Plans exclude it until a full commission product (self-serve + collection) is planned and shipped. See `docs/architecture/plans-feature-matrix.md` § Pending: commission pricing.
 
+===
+
 ✅ Integrate paymongo for payment subscription to our app
 
 Now, want I you to plan is how we can integrate Paymongo as payment platform when hosts subscribe to our application.
@@ -371,6 +415,8 @@ Also, please give me detailed step how to properly set Paymongo, how to setup sa
 Please create a detailed plan for this and put it on our planned directory
 
 # → **Done:** [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) (checkout, webhook, cron, suspension gate — env setup required for live)
+
+===
 
 ✅ Allow features based on subscription plan & show payment subscription modal
 
@@ -386,6 +432,8 @@ The goal of this plan is to analyze the paid features that we have, check when's
 Again, please generate a detailed plan and separate docs for this so that we have mapping the flow and when we are triggering the payment gate modal.
 
 # → **Done:** [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) (deferrals: custom pages create, automated booking toggle, search visibility tier)
+
+===
 
 ✅ Provide easy way for host to select context for each module we have for Ai dashboard assistant
 
@@ -412,6 +460,8 @@ With these so much info, we need to generate the best UI/UX for this within the 
 
 # → **Done:** [`../done/ai-assistant-universal-context-pickers.md`](../done/ai-assistant-universal-context-pickers.md)
 
+===
+
 ✅ Make public pages editable via a host-facing Page Editor (left controls / right realtime preview)
 
 I think the next module that we need is to make our public pages editable.
@@ -431,6 +481,8 @@ If we can also update our existing public pages list as well, that would be grea
 
 # → **Done:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md) — Stay Guide + Property Landing Page Editor, gallery redesign, Settings migration (Phases 0–7); Phase 8 backlog deferred (2026-08-20)
 
+===
+
 ✅ Harden guest inbox meta facebook and instagram module
 
 One big module that we need to review the implementation carefully is the Inbox Meta facebook and instagram implementation. I want you to do deep checking and review and make sure that our module there is complete and production ready. Make sure we don't have poor implementation, restructure or recode that module if needed so that we have good implementation, production ready and scalable solutions.
@@ -447,19 +499,27 @@ Also, I want you to visit if we can support the comments on facebook post on Fac
 
 # → **Done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md) — webhook health-check/resubscribe, non-destructive disconnect, HUMAN_AGENT 7-day tag, comment scope removed, backfill + error UX hardening (2026-08-20)
 
+===
+
 ✅ Org portfolio pricing bundles (Pro ≤3 / Business ≤5 / Business Plus ≤10)
 
 Pivot from strict per-property billing to org-scoped portfolio caps for Pro/Business tiers while keeping Free/Starter/Managed/Commission per-property.
 
 # → **Planned:** [`../planned/pricing-portfolio-bundling.md`](../planned/pricing-portfolio-bundling.md)
 
+===
+
 ✅ Accurately track AI usages for each AI actions and features, decide limit granularity, prep for paid AI credits
 
 # → **Done:** [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md) — Phases 1–3 shipped (attribution, credit ledger, enforcement, wallet UI). Phase 4 paid top-up deferred.
 
+===
+
 ✅ Property guest rewards & vouchers (Reviews split)
 
 # → **Done:** [`../done/property-guest-rewards-vouchers.md`](../done/property-guest-rewards-vouchers.md)
+
+===
 
 ✅ Voucher reveal styles (host-selectable animation)
 
@@ -467,15 +527,21 @@ Spin the wheel, slot scroll/reel (current), flip card — property setting under
 
 # → **Done:** [`../done/voucher-reveal-styles.md`](../done/voucher-reveal-styles.md)
 
+===
+
 ✅ Guest Review after booking
 
 Standalone `/properties/:slug/guest-review`, SD form review section, edge functions, feedback tags + photo upload.
 
 # → **Done:** [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
 
+===
+
 ✅ Refine AI settings from property & super admin settings
 
 # → **Done (Phases 1–3):** meter UI shipped — [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md). Phase 4 paid top-up still backlog.
+
+===
 
 ✅ Finalize plans & billing
 I noticed some limitation are not respected on free tier like team members, etc.
@@ -484,6 +550,8 @@ Clicking continue to payment should redirect user to org level, plans & billing 
 We also need to make sure that we cover and require payment when we add more properties
 
 # → **Done:** [`../done/finalize-plans-billing.md`](../done/finalize-plans-billing.md)
+
+===
 
 ✅ Also, here are the things we need to adjust and make sure we add from our tasks list:
 
@@ -546,35 +614,96 @@ Also, for security as well, we need to make sure that these limitations are not 
 
 Please also improve our upgrade plan modal text or content and UI so that user easily understand that they need to upgrade to access or do that action
 
-# Make sure as well that we updated the necessary docs for all these changes please
-
+→ Make sure as well that we updated the necessary docs for all these changes please.
 ===
 
-✅ Sitewide automated testing (unit + Playwright + CI)
+✅ Refine booking detail page, edit and workflow (multi-tenancy config)
 
-Vitest + Deno + mocked Playwright across all modules/pages; CI gates on develop/prod; agents keep tests in sync with every change. Cursor / Claude Code / OpenCode tooling included.
+- Improve UI/UX of entire booking detail page and edit form
+- Improve UI/UX and refine each elements, sections, modal, actions, process, status, logic and flow for booking e2e flow and make sure it's production ready
+  - ✅ Update implementation for automated gmail listener to use resend reply/hooks to prevent the need of Google CASA approval → **Done:** [`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md)
+  - ✅ Entirely remove or limit access for google calendar and sheets sync → **Done:** [`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md)
+  - 🔵 Check and refine all automation triggers for each step/status (deferred polish)
+  - 🔵 Update AI validation logic, display, etc (deferred polish)
+  - 🔵 Refine and improve UI/UX for each step/status (deferred polish)
 
-# → **Done:** [`../done/sitewide-automated-testing.md`](../done/sitewide-automated-testing.md)
-
+→ **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md)
 ===
 
-🧪 Cost, abuse, and security production readiness
+✅ Document, refine, finalize booking detail & workflow
 
-Review the whole app for high usage / API cost, AI spend, brute force, missing rate limits, and security holes. Implement restrictions, validations, and optimizations so guests and hosts cannot run up Gemini, Resend, Maps, or Edge bills. Include a pentest / abuse-script plan.
+Multi-tenant document-requirements config + Resend inbound approvals shipped. Deferred: payment auto-settlement, parking redesign, booking-detail UX polish (see done doc).
 
-→ **For testing:** [`../for-testing/cost-abuse-security-production-readiness.md`](../for-testing/cost-abuse-security-production-readiness.md)
-
+→ **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md) · v1 slice: [`../done/booking-workflow-configurable-docs.md`](../done/booking-workflow-configurable-docs.md)
 ===
 
-🧪 Production readiness audit and remediation
+✅ Review, refine and improve e2e of booking flow/page
 
-Full develop-track audit: deduplicate existing cost/abuse/testing/parking work, close net-new Critical/High code gaps (guest write tokens, live developments/similar stays, workflow CAS, CI public RL check, voice preview quota, Meta webhook RL), publish go/no-go gates. Operator P0 keys stay on the pending-from-user doc.
+Overlaps booking multi-tenancy — config closed; remaining UX polish deferred (see done doc).
 
-→ **For testing:** [`../for-testing/production-readiness-audit-and-remediation.md`](../for-testing/production-readiness-audit-and-remediation.md)
-
+→ **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md)
 ===
 
-🧪 Analyze entire app pages & features and brainstorm how AI can help us for each feature
+✅ Stay Guide page templates parity (Showcase engine)
+
+→ **Done:** [`../done/stay-guide-showcase-templates.md`](../done/stay-guide-showcase-templates.md)
+===
+
+✅ Airbnb / OTA calendar sync
+
+→ **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md) — Phase 1 + 2 shipped; staging browser walk-through pending
+===
+
+✅ Marketing — edit guest review page design
+
+Let hosts customize the guest review experience from the **Marketing** module (or Public Pages / Page Editor sibling), similar to Stay Guide and Property Landing:
+
+- Template or canvas presets for `/guest-review` (and optionally SD form review step) — typography, colors, hero/brand, thank-you state.
+- Reuse marketing design editor / Polotno patterns where sensible; preview with sample booking context.
+- Single source of truth — avoid duplicating controls already on property settings unless marketing owns visual layer only.
+
+→ **Done:** [`../done/marketing-guest-review-studio.md`](../done/marketing-guest-review-studio.md) · guest review module: [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
+===
+
+✅ Refine and finalize team permissions
+
+→ **Done (property):** [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) · **Org follow-on:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md)
+===
+
+✅ Super admin console overhaul
+
+Phases 0–7 shipped (grouped nav, Overview dashboard, org hub, 4 of 10 Phase 6 modules). Remaining console backlog in planned followups.
+
+→ **Done:** [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) · audit log: [`../done/super-admin-audit-log.md`](../done/super-admin-audit-log.md) · AI usage: [`../done/super-admin-ai-usage-dashboard.md`](../done/super-admin-ai-usage-dashboard.md) · platform settings: [`../done/super-admin-platform-settings.md`](../done/super-admin-platform-settings.md) · global search: [`../done/super-admin-global-search.md`](../done/super-admin-global-search.md) · **Follow-ups:** [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md)
+===
+
+🧪 Onboarding verification simplify
+
+Step 2 Property Rights (Parking Rights when parking-only) from existing verification-rights values. Step 3 Valid ID + Facebook Page screenshot only. Listing Verified: proof of ownership. Listing Recommended: additional proof + Azure PMO. Listing go-live stays on listing base approve.
+
+→ **For testing:** [`../for-testing/onboarding-verification-simplify.md`](../for-testing/onboarding-verification-simplify.md) · spec: [`../for-testing/onboarding-verification-simplify-design.md`](../for-testing/onboarding-verification-simplify-design.md)
+===
+
+🧪 Host verification tiers (Phase 3 partial)
+
+Phases 1–2 shipped (Verified/Recommended modal polish, Tier 2 docs, admin queue priority). Browse search boost for Recommended hosts deferred until public listings API.
+
+→ **For testing:** [`../for-testing/host-verification-tiers.md`](../for-testing/host-verification-tiers.md) · scope split shipped: [`../done/verification-scope-split.md`](../done/verification-scope-split.md)
+===
+
+🧪 Superhost program
+
+Earned-only org Superhost badge — metrics, cron, Trust UI shipped; manual QA pending.
+
+→ **For testing:** [`../for-testing/superhost-program.md`](../for-testing/superhost-program.md)
+===
+
+🧪 Smart pricing with AI
+
+→ **For testing:** [`../for-testing/smart-pricing-ai.md`](../for-testing/smart-pricing-ai.md)
+===
+
+📋 Analyze entire app pages & features and brainstorm how AI can help us for each feature
 
 Analyze the entire codebase, pages and features that we have, and see how AI can help hosts, guests, admin, and us developers on anything
 
@@ -583,35 +712,30 @@ Example:
 - Use AI to analyze and suggest marketing strategies
 - Use AI to help managing finance, analyze big expenses, how to fix and suggest financial strats, etc
 
-# → **Plan / backlog:** [`../planned/ai-opportunities-roadmap.md`](../planned/ai-opportunities-roadmap.md)
+→ **Plan / backlog:** [`../planned/ai-opportunities-roadmap.md`](../planned/ai-opportunities-roadmap.md)
+===
 
-🚧 Onboarding verification simplify
+📋 Super admin — manage "Coming soon" surfaces
 
-Step 2 Property Rights (Parking Rights when parking-only) from existing verification-rights values. Step 3 Valid ID + Facebook Page screenshot only. Listing Verified: proof of ownership. Listing Recommended: additional proof + Azure PMO. Listing go-live stays on listing base approve.
+Super-admin UI to configure which product areas show **Coming soon** (or are hidden) app-wide — e.g. public `/services`, gated marketing features, AI credit top-up stubs, Page Editor "other guest pages", and future modules before launch.
 
-# → **In progress:** [`../in-progress/onboarding-verification-simplify.md`](../in-progress/onboarding-verification-simplify.md) · spec: [`onboarding-verification-simplify-design.md`](./onboarding-verification-simplify-design.md)
+- Central config (DB or app settings) keyed by feature/surface id.
+- Dashboard + public consumers read the same flag so hosts/guests see consistent copy.
+- Optional scheduled enable date or environment override (dev vs prod).
 
-🚧 Refine booking detail page, edit and workflow
+→ **Planned:** [`../planned/module-status-management.md`](../planned/module-status-management.md) · **Related:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md); [`services.md`](../../guides/routes/services.md)
+===
 
-- Improve UI/UX of entire booking detail page and edit form
-- Improve UI/UX and refine each elements, sections, modal, actions, process, status, logic and flow for booking e2e flow and make sure it's production ready
-  - ✅ Update implementation for automated gmail listener to use resend reply/hooks to prevent the need of Google CASA approval → **Done:** [`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md)
-  - ✅ Entirely remove or limit access for google calendar and sheets sync → **Done:** [`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md)
-  - Check and refine all automation triggers for each step/status
-  - Update AI validation logic, display, etc
-  - Refine and improve UI/UX for each step/status
-
-# → **In progress:** [`../in-progress/booking-workflow-multi-tenancy.md`](../in-progress/booking-workflow-multi-tenancy.md)
-
-🚧 Marketing 5: Refine & finalize Marketing module
+✅ Marketing 5: Refine & finalize Marketing module
 
 - Make sure each module is optimized. Right now, something looks broken and when we visit the page and each tab, the app becomes kinda laggy and have performance issues. The thumbnails are not loading properly, creating new item somewhat breaks other thumbnails, switching to other orientation feels like rendering broken thumbnails, playing video preview does not fully play the video, it requires 2-3x click to fully play it which is broken.
 - Make sure AI generations for 3 modules are production ready, renders beautiful designs, content are engaging and easy to read, designs and videos are instagrammable and ready to post, etc.
 - If app is connected to social platform like Facebook and Instagram, make sure we support quick and easy publishing for post & story.
 
-# → **In progress:** [`../in-progress/marketing-module-refinement.md`](../in-progress/marketing-module-refinement.md) — perf/thumbnail/playback bugs + AI-gen/publish correctness fixes shipped; Meta scheduling/confirmation gaps remain open
+→ **Done:** [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) — perf/thumbnail/playback bugs + AI-gen/publish correctness fixes shipped. Meta scheduling/confirmation gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
+===
 
-🚧 Do an ground up redesign for mobile view
+🧪 Do an ground up redesign for mobile view
 
 I want to have a rebuilt or groundup redesign for mobile view to make our app look and feels like a native mobile app.
 Not just simply a website or page that's adjusted to be responsive to different resolution.
@@ -620,27 +744,8 @@ The end goal is when we resize to mobile view, it should look and feel like a na
 
 Apply to all pages including both public and dashboard pages
 
-# → **In progress:** [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md)
-
-🚧 Document, refine, finalize booking detail & workflow
-
-I want you to carefully review our booking detail page, booking edit and booking workflow and see how we can improve, refine, make other flow, logic and settings to be configurable from our property settings and make the whole flow to be multi users and multi property. What we have in prod, we are focused and only support Kame Home 2604. Now we are building our system to be used with different tenant, users, multi-properties, multi residence or property type and I want every little things to be configurable and refined for production used.
-
-I believe we already have docs for this, I just want you to review our latest implementation and make sure it's up to date, then create a one file doc that documents everything.
-
-After that, I want you to list down tasks, suggestion and improvements that we need to do to make our booking workflow to be used by different users and properties.
-
-The current booking status that we have is only applied for Azure North residence, again we should have config for this residence.
-
-Also, I want you to review each section, field, settings, flow, logic & process and if there's something we can improve or change, please suggest it.
-
-Also, for parking request step, skip this for now. The whole flow for this will be TBD later on.
-
-Also, another important thing I'd like to improve is to automate everything as much as possible. Right now, there's still some step or transition that require manual admin transition. Analyze and check how we can automate everything.
-
-The end goal is after this, our booking detail, edit and workflow is refined & finalize and production ready.
-
-# → **In progress:** [`../in-progress/booking-workflow-multi-tenancy.md`](../in-progress/booking-workflow-multi-tenancy.md) · v1 slice **done:** [`../done/booking-workflow-configurable-docs.md`](../done/booking-workflow-configurable-docs.md)
+→ **In progress:** [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md)
+===
 
 🚧 CI/CD + multi-tenant environments — [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · matrix [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md)
 
@@ -655,46 +760,29 @@ The end goal is after this, our booking detail, edit and workflow is refined & f
 - Google OAuth **prod** client + Auth on mt-prod
 - Enable GitHub **`production`** secrets + **`cd-prod.yml`**
 
-# Design: [`ci-cd-dev-prod-design.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod-design.md) · plan: [`ci-cd-dev-prod.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod.md) · index [`ci-cd-environments/README.md`](../in-progress/ci-cd-environments/README.md)
-
-🚧 Review, refine and improve e2e of booking flow/page
-
-Overlaps booking detail/workflow refinement — tracked under booking multi-tenancy backlog.
-
-# → **In progress:** [`../in-progress/booking-workflow-multi-tenancy.md`](../in-progress/booking-workflow-multi-tenancy.md)
+→ Design: [`ci-cd-dev-prod-design.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod-design.md) · plan: [`ci-cd-dev-prod.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod.md) · index [`ci-cd-environments/README.md`](../in-progress/ci-cd-environments/README.md)
+===
 
 🚧 Review implementation on the following modules
 
 Review the implementation on the following modules and make sure we simplify, recode, improve and make sure it's production ready and does not contain trash code or changes, poor implemented features caused by AI vibe coding. Be a 10x senior software engineering and review the following modules and make sure it met our standards and they are all production ready and will not cause any performance issue or security and lastly, make sure everything is still working properly
 
-- Marketing — partial: [`../in-progress/marketing-module-refinement.md`](../in-progress/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps open)
+- Marketing — partial: [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps open)
 - Inbox (Meta chats) — **done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md)
 - Real-time web chat app (host & guest side)
   \===
 
-🚧 Host verification tiers (Phase 3 partial)
+🧪 Org-level granular team permissions
 
-Phases 1–2 shipped (Verified/Recommended modal polish, Tier 2 docs, admin queue priority). Browse search boost for Recommended hosts deferred until public listings API.
+→ **For testing:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md) · property catalog shipped: [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md)
+===
 
-# → **In progress:** [`../in-progress/host-verification-tiers.md`](../in-progress/host-verification-tiers.md) · scope split shipped: [`../done/verification-scope-split.md`](../done/verification-scope-split.md)
+📋 Scheduled marketing posts/story
 
-🚧 Stay Guide page templates parity (Showcase engine)
+→ **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Meta scheduling cron + `scheduledAt` UI + confirmation/permalink + retry + Reels (split from the done Marketing 5 bug-fix slice)
+===
 
-# → **In progress:** [`../in-progress/stay-guide-showcase-templates.md`](../in-progress/stay-guide-showcase-templates.md)
-
-✅ Airbnb / OTA calendar sync
-
-# → **In progress:** [`../in-progress/airbnb-calendar-sync.md`](../in-progress/airbnb-calendar-sync.md)
-
-🚧 Org-level granular team permissions
-
-# → **In progress:** [`../in-progress/org-granular-team-permissions.md`](../in-progress/org-granular-team-permissions.md) · property catalog shipped: [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md)
-
-🚧 Scheduled marketing posts/story
-
-# → **In progress:** Meta scheduling/confirmation gaps — [`../in-progress/marketing-module-refinement.md`](../in-progress/marketing-module-refinement.md)
-
-✅ Improve onboarding flow
+🧪 Improve onboarding flow
 
 Refine the full host onboarding flow end to end — not just the left showcase panel.
 
@@ -703,110 +791,39 @@ Refine the full host onboarding flow end to end — not just the left showcase p
 - Align with verification tiers, plans gating, and post-onboarding first actions (settings completion, public pages, inbox connect).
 - Reuse or extend `HostWorkspaceSidePanel` / `onboarding-host-workspace-showcase` patterns where they still fit.
 
-# → **Partial:** [`../done/onboarding-host-workspace-showcase.md`](../done/onboarding-host-workspace-showcase.md) (auth left panel only). Full flow polish remains open.
+→ **Partial:** [`../done/onboarding-host-workspace-showcase.md`](../done/onboarding-host-workspace-showcase.md) (auth left panel only). Full flow polish remains open. Post-registration Setup Guide: [`../in-progress/host-onboarding-setup-guide.md`](../in-progress/host-onboarding-setup-guide.md).
+===
 
-# 🔵 Host/Guest booking payment e2e
+🧪 Copy property settings to other properties
 
-# 🔵 Invoice generator? Or provide invoice every after successful booking
+When we have multiple properties, hosts should reuse settings/config/design from one property to others. Review each property page, module, and flow for what can be shared.
 
-# 🔵 Guest chat to confirmed booking flow e2e
+→ **For testing:** [`../for-testing/property-settings-copy-to-properties.md`](../for-testing/property-settings-copy-to-properties.md)
+===
 
-# 🔵 Redesign our main landing page
+🧪 Host onboarding setup guide
 
-# 📋 Implement Sentry & Posthog
+Post-registration resumable Setup Guide overlay — stepper over real settings/pricing/payments/guest-form/verification sections (same validation + save paths), non-blocking dashboard launcher, derived progress; optional Recommended verification → 1 month of Pro (super-admin-controlled).
 
-PostHog implemented (UI: error tracking + analytics + session replay + feature flags via `posthog-js`/`@posthog/react`, source map upload via `@posthog/rollup-plugin`; edge: `posthog-node` wired into every function — `handleEdgeError` + `serveCronPost` choke points, plus the handful of pre-`serveEdge.ts` functions that call `serve()` directly). Sentry deferred — see `docs/architecture/integrations.md` §9.5.
+→ **For testing:** [`../for-testing/host-onboarding-setup-guide.md`](../for-testing/host-onboarding-setup-guide.md)
+===
 
-→ **Planned:** [`../planned/posthog-analytics-production-readiness.md`](../planned/posthog-analytics-production-readiness.md) — product analytics + error tracking to production (taxonomy, server conversions, legal, two projects). Sentry still deferred. Do not turn session replay on until Phase 5 of that plan.
+🧪 Implement Sentry & Posthog
 
-# 🔵 Offer ads within the app
+PostHog implemented (UI error tracking, analytics, session replay, feature flags, source-map upload; edge capture through shared error and cron paths). Sentry remains deferred.
 
-# 🔵 Display announcements per development from super admin
+→ **For testing:** [`../for-testing/posthog-analytics-production-readiness.md`](../for-testing/posthog-analytics-production-readiness.md) — operator project setup, keys, alerts, and funnels remain.
+===
 
-# 🔵 Monitoring for suspicious or unusual activities from super admin
+🧪 Parking ↔ property production parity
 
-🚧 Prod readiness checklist
+v1 parity and org-native entitlements shipped.
 
-- Frontend
-- Backend & APIs
-- Database
-- Storage
-- Auth / Permissions
-- Hosting & Deployment
-- Cloud Computing
-- CI/CD & Version control
-- Security & RLS
-- Rate Limiting
-- Caching & CDN
-- Load Balancing & Scalability
-- Error Tracking & Logs
-- Analytics
-- SDLC Testing
-- Availability & Recovery
-  \===
+→ **For testing:** [`../for-testing/parking-property-parity.md`](../for-testing/parking-property-parity.md)
+===
 
-🔵 Review each dashboard pages, section & actions based on user role
+🚧 Another big change I would like to implement is to refine the whole parking e2e flow.
 
-After we refine the roles & permissions that we have on both org and property level, we need to revisit and review each pages within the dashboard and make sure that each section, elements, action, process, flow, basically everything is well thought and only be accessible based on user role
-
-# → Unblocked by [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) (property granular catalog shipped). Org follow-on: [`../in-progress/org-granular-team-permissions.md`](../in-progress/org-granular-team-permissions.md). Audit against live leaf ids remains open.
-
-# 🔵 Pool fee should be configurable via development settings and we need to adjust AI receptionist or AI tool that beside on reading property & booking info, we should also check which development it's under the current property and have access to development information just like the amenities, pool fee, schedule of pool, requirements, guides, etc
-
-# 🔵 Create marketing video ads for our app with remotion that features our core & main features
-
-# 🔵 Support google map directions from use current area to properties/places
-
-# 🔵 Cancellation Process
-
-# 🔵 Redesign for hosts landing page
-
-# 🔵 Manage how to give free AI credits to new users, give discount for special events/occasions
-
-# 🔵 Refine and finalize team permissions
-
-# 🔵 Think and plan how AI can help us manage pricing better
-
-# 🔵 Redesign explore landing page
-
-# 🔵 Community group chat
-
-# 🔵 Support to buy more AI credits on Plans
-
-# 🔵 When we have multiple properties, we should plan a way for hosts to share and reuse settings or configurations or design for from a property to other properties. Review each property pages, module, flow and check which one we can reuse and re-share to other properties
-
-🔵 Super admin — org, property, host, and listing management
-
-Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc support:
-
-- **Orgs** — list/search, view owner, plan/subscription state, suspend or impersonation-safe read-only drill-down.
-- **Properties & parking** — list/filter by org, verification/plan badges, featured visibility, basic edit or flag actions.
-- **Hosts** — tie org owner + members to listings; quick links to approvals queue and support tickets.
-- **Plans & billing** — read org entitlements, manual overrides (credits, comp tier) where product allows.
-
-# → **Partial today:** approvals, app settings, support tickets, PayMongo config. Full org/property/host CRUD and plan visibility still open.
-
-✅ Super admin — manage "Coming soon" surfaces
-
-Super-admin UI to configure which product areas show **Coming soon** (or are hidden) app-wide — e.g. public `/services`, gated marketing features, AI credit top-up stubs, Page Editor "other guest pages", and future modules before launch.
-
-- Central config (DB or app settings) keyed by feature/surface id.
-- Dashboard + public consumers read the same flag so hosts/guests see consistent copy.
-- Optional scheduled enable date or environment override (dev vs prod).
-
-# → **Related:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md) (optional Coming soon badge on non-editable guest pages); [`services.md`](../../guides/routes/services.md) (UI-only coming soon).
-
-✅ Marketing — edit guest review page design
-
-Let hosts customize the guest review experience from the **Marketing** module (or Public Pages / Page Editor sibling), similar to Stay Guide and Property Landing:
-
-- Template or canvas presets for `/guest-review` (and optionally SD form review step) — typography, colors, hero/brand, thank-you state.
-- Reuse marketing design editor / Polotno patterns where sensible; preview with sample booking context.
-- Single source of truth — avoid duplicating controls already on property settings unless marketing owns visual layer only.
-
-# → **Related:** guest review shipped [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md); Page Editor defers guest-review edit [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md).
-
-🔵 Another big change I would like to implement is to refine the whole parking e2e flow.
 Right now, I feel like it's not yet production ready and there are missing features and things that can be improved.
 Let's separate this to multiple phases with multiple tasks per phase and address my main concerns:
 
@@ -869,4 +886,112 @@ But we need to plan how we can make this automated as well?
 
 From the dashboard, there should be a copyable link for parking owner hosts where they can share their parking registration form link and guest can use this so that they can book parking directly.
 
-# We should apply all the same logic and flow that we have from above except that this is direct booking and guest needs to manually fill up their information, car details and pay the parking.
+We should apply all the same logic and flow that we have from above except that this is direct booking and guest needs to manually fill up their information, car details and pay the parking.
+
+→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **Planned:** Phase 6 + [`../planned/parking-e2e-production-readiness.md`](../planned/parking-e2e-production-readiness.md)
+===
+
+🔵 Host/Guest booking payment e2e
+===
+
+🔵 Invoice generator? Or provide invoice every after successful booking
+===
+
+🔵 Guest chat to confirmed booking flow e2e
+===
+
+🔵 Redesign our main landing page
+===
+
+🚧 Implement Sentry & Posthog
+
+PostHog implemented (UI: error tracking + analytics + session replay + feature flags via `posthog-js`/`@posthog/react`, source map upload via `@posthog/rollup-plugin`; edge: `posthog-node` wired into every function — `handleEdgeError` + `serveCronPost` choke points, plus the handful of pre-`serveEdge.ts` functions that call `serve()` directly). Sentry deferred — see `docs/architecture/integrations.md` §9.5. Still pending: user creates the PostHog project (US Cloud), sets `VITE_POSTHOG_KEY` / `POSTHOG_API_KEY` (edge) / `POSTHOG_PERSONAL_API_KEY`+`POSTHOG_PROJECT_ID` (UI build, source maps), turns on Session Recording, and deploys.
+===
+
+🔵 Offer ads within the app
+===
+
+✅ Display announcements per development from super admin
+===
+
+🔵 Monitoring for suspicious or unusual activities from super admin
+===
+
+🚧 Prod readiness checklist
+
+- Frontend
+- Backend & APIs
+- Database
+- Storage
+- Auth / Permissions
+- Hosting & Deployment
+- Cloud Computing
+- CI/CD & Version control
+- Security & RLS
+- Rate Limiting
+- Caching & CDN
+- Load Balancing & Scalability
+- Error Tracking & Logs
+- Analytics
+- SDLC Testing
+- Availability & Recovery
+  \===
+
+🚧 Review each dashboard pages, section & actions based on user role
+
+After we refine the roles & permissions that we have on both org and property level, we need to revisit and review each pages within the dashboard and make sure that each section, elements, action, process, flow, basically everything is well thought and only be accessible based on user role
+
+→ Unblocked by [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) (property granular catalog shipped). Org follow-on: [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md). Audit against live leaf ids remains open.
+===
+
+✅ Pool fee should be configurable via development settings and we need to adjust AI receptionist or AI tool that beside on reading property & booking info, we should also check which development it's under the current property and have access to development information just like the amenities, pool fee, schedule of pool, requirements, guides, etc
+===
+
+🔵 Create marketing video ads for our app with remotion that features our core & main features
+===
+
+🔵 Support google map directions from use current area to properties/places
+===
+
+🔵 Cancellation Process
+===
+
+🚧 Redesign for hosts landing page
+===
+
+🔵 Manage how to give free AI credits to new users, give discount for special events/occasions
+===
+
+✅ Think and plan how AI can help us manage pricing better
+===
+
+🚧 Redesign explore landing page
+===
+
+🔵 Community group chat
+===
+
+📋 Support to buy more AI credits when they run out of token from their current plan
+===
+
+🔵 Refine emails being received as host & guests
+===
+
+📋 Super admin — org, property, host, and listing management
+
+Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc support:
+
+- **Orgs** — list/search, view owner, plan/subscription state, suspend or impersonation-safe read-only drill-down.
+- **Properties & parking** — list/filter by org, verification/plan badges, featured visibility, basic edit or flag actions.
+- **Hosts** — tie org owner + members to listings; quick links to approvals queue and support tickets.
+- **Plans & billing** — read org entitlements, manual overrides (credits, comp tier) where product allows.
+
+→ **Partial today:** Phases 0–7 console shipped — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md). Remaining backlog: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md)
+===
+
+📋 Pre-production checklist — apply every optimization item across the whole app
+
+Take the pre-prod checklist (cache API responses, load balancer, index the DB, compress images, loading skeletons, cache expensive queries, debounce input handlers, split code into chunks, add CDN, paginate large lists, compress API payloads, unnecessary re-renders ❌, minify JS/CSS, add lazy loading, defer non-critical scripts, unused dependencies ❌, DB connection pooling) plus the platform readiness list (frontend, backend & APIs, database, storage, auth/permissions, hosting & deployment, cloud computing, CI/CD & version control, security & RLS, rate limiting, caching & CDN, load balancing & scalability, error tracking & logs, analytics, SDLC testing, availability & recovery) and produce one detailed plan per item, applied everywhere in the codebase — not spot fixes.
+
+→ **Planned:** [`../planned/production-readiness-checklist/README.md`](../planned/production-readiness-checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
+===
