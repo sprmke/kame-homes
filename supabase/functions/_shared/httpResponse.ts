@@ -1,6 +1,7 @@
 import { corsHeaders } from './cors.ts';
 import { capturePostHogException } from './posthog.ts';
 import { logEvent, resolveRequestId } from './requestLog.ts';
+import { captureSentryException } from './sentry.ts';
 
 /**
  * Response cache classification (production-readiness doc 11, Phase 11.1).
@@ -329,11 +330,25 @@ export async function handleEdgeError(
       status,
       meta: { code },
     });
-    await capturePostHogException(error, {
-      logPrefix,
-      request: req,
-      extra: { status, message, code, url: sanitizeUrlForTelemetry(req.url), requestId },
-    });
+    const safeUrl = sanitizeUrlForTelemetry(req.url);
+    // PostHog keeps the exception history; Sentry carries the alert (doc 28 records
+    // PostHog alerting as operator-blocked). Settled together so one vendor being slow
+    // or down cannot make the other wait, and neither can fail the response — both
+    // swallow their own errors internally.
+    await Promise.allSettled([
+      capturePostHogException(error, {
+        logPrefix,
+        request: req,
+        extra: { status, message, code, url: safeUrl, requestId },
+      }),
+      captureSentryException(error, {
+        logPrefix,
+        requestId,
+        url: safeUrl,
+        method: req.method,
+        extra: { status, message, code },
+      }),
+    ]);
   }
   // 5xx only — a 4xx is often expected client-side flow (validation, not-found) and
   // showing "Reference: <id>" there would be noise, not a debugging aid.
