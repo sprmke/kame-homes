@@ -1,11 +1,7 @@
 /**
- * voice-receptionist-end — Ends a guest voice receptionist session and batch-writes the
- * committed transcript into the property's existing social_messages thread (source_mode=
- * 'voice') so the admin Inbox shows unified history. Call on guest End, timeout, or error —
- * without this, `voice_receptionist_sessions.ended_at` never sets and concurrency caps stay
- * heuristic-only (see Task 2 report). Idempotent: retries on an already-ended session just
- * return the existing duration; transcript writes are deduped by a deterministic
- * external_message_id per (sessionId, turn index).
+ * voice-receptionist-end — atomically ends a guest voice session and stores bounded browser
+ * captions as unverified session evidence. Client-reported assistant text is never written
+ * as a canonical outbound social message.
  * Auth: any signed-in guest (Supabase JWT); the session must belong to that guest.
  */
 
@@ -14,18 +10,22 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import {
   endVoiceReceptionistSession,
   loadVoiceReceptionistSessionForEnd,
+  sanitizeVoiceReceptionistClientMetrics,
   sanitizeVoiceTranscriptTurns,
-  writeVoiceTranscriptToConversation,
+  storeClientReportedVoiceTranscript,
+  storeVoiceReceptionistClientMetrics,
   type VoiceReceptionistEndReason,
 } from '../_shared/voiceReceptionistService.ts';
-import { polishVoiceTranscriptTurns } from '../_shared/polishVoiceUtterance.ts';
-import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 
 const END_REASONS: VoiceReceptionistEndReason[] = [
   'guest_ended',
   'timeout',
   'cap_reached',
   'error',
+  'provider_go_away',
+  'provider_error',
+  'page_closed',
+  'idle_timeout',
 ];
 
 serveAuthenticated('voice-receptionist-end', async (req, user) => {
@@ -43,6 +43,7 @@ serveAuthenticated('voice-receptionist-end', async (req, user) => {
     ? (endReasonRaw as VoiceReceptionistEndReason)
     : 'guest_ended';
   const turns = sanitizeVoiceTranscriptTurns(body.transcript);
+  const metrics = sanitizeVoiceReceptionistClientMetrics(body.metrics);
 
   const session = await loadVoiceReceptionistSessionForEnd(sessionId, user.id);
   if (!session) {
@@ -50,27 +51,27 @@ serveAuthenticated('voice-receptionist-end', async (req, user) => {
   }
 
   const result = await endVoiceReceptionistSession(session, endReason, user.id);
+  await storeVoiceReceptionistClientMetrics(session.id, user.id, metrics);
 
-  if (session.conversationId && turns.length) {
+  if (turns.length) {
     try {
-      const organizationId = await resolveOrganizationIdForProperty(session.propertyId);
-      const polishedTurns = await polishVoiceTranscriptTurns(turns, {
-        organizationId,
-        propertyId: session.propertyId,
-        actorUserId: user.id,
-        actorType: 'guest',
-      });
-      await writeVoiceTranscriptToConversation(
-        session.id,
-        session.conversationId,
-        user.id,
-        session.startedAt,
-        polishedTurns
-      );
+      await storeClientReportedVoiceTranscript(session, user.id, turns);
     } catch (e) {
-      console.error('[voice-receptionist-end] transcript write failed:', (e as Error).message);
+      console.error(
+        '[voice-receptionist-end] transcript evidence write failed:',
+        (e as Error).message
+      );
     }
   }
+
+  console.info(
+    JSON.stringify({
+      event: 'voice_session_end_processed',
+      endReason,
+      transitioned: result.transitioned,
+      transcriptTurnCount: turns.length,
+    })
+  );
 
   return jsonSuccess(req, result);
 });

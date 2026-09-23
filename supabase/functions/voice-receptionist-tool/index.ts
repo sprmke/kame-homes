@@ -1,50 +1,120 @@
 /**
- * voice-receptionist-tool — Serves the getPropertyFact tool call the browser relays from an
- * active Gemini Live session. This allowlist is the hard security boundary (Architecture §1):
- * even a client-tampered system prompt cannot make the model return data outside it.
+ * voice-receptionist-tool — executes a closed set of guest-safe tools for an active session.
+ * Tool names, arguments, data scope, spoken text, and UI actions are server-authoritative.
  * Auth: any signed-in guest (Supabase JWT); the session must belong to that guest.
  */
 
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
-import { loadVoiceReceptionistSessionForGuest } from '../_shared/voiceReceptionistService.ts';
 import {
-  answerGuestSafeVoiceTopic,
-  matchGuestSafeVoiceTopic,
+  loadVoiceReceptionistSessionForGuest,
+  recordVoiceReceptionistToolMetric,
+} from '../_shared/voiceReceptionistService.ts';
+import {
+  executeVoiceReceptionistTool,
+  type VoiceReceptionistToolName,
 } from '../_shared/voiceReceptionistTool.ts';
+
+const TOOL_NAMES: VoiceReceptionistToolName[] = [
+  'get_property_facts',
+  'check_dates',
+  'get_inquiry_price',
+  'get_my_stay',
+  'get_stay_guide',
+  'handoff_to_host',
+];
+const TOOL_TIMEOUT_MS = 8_000;
 
 serveAuthenticated('voice-receptionist-tool', async (req, user) => {
   if (req.method !== 'POST') {
     return jsonError(req, 'Method not allowed', 405);
   }
 
+  const limited = await rateLimitGate(req, {
+    scope: 'voice-receptionist-tool',
+    identity: identityFromRequest(req, user),
+    limit: 120,
+    windowSec: 3600,
+  });
+  if (limited) return limited;
+
   const body = await readJsonBody(req);
   const sessionId = String(body.sessionId ?? body.session_id ?? '').trim();
-  const topic = String(body.topic ?? '').trim();
-  if (!sessionId || !topic) {
-    return jsonError(req, 'sessionId and topic are required', 400);
+  const toolName = String(
+    body.toolName ?? body.tool_name ?? ''
+  ).trim() as VoiceReceptionistToolName;
+  const args =
+    body.args && typeof body.args === 'object' && !Array.isArray(body.args)
+      ? (body.args as Record<string, unknown>)
+      : {};
+  if (!sessionId || !TOOL_NAMES.includes(toolName)) {
+    return jsonError(req, 'A valid sessionId and toolName are required', 400);
   }
 
   const session = await loadVoiceReceptionistSessionForGuest(sessionId, user.id);
   if (!session) {
     return jsonError(req, 'Voice session not found', 404);
   }
-  if (session.endedAt) {
+  if (session.endedAt || session.status !== 'active') {
     return jsonError(req, 'Voice session has ended', 410);
   }
 
-  const topicKey = matchGuestSafeVoiceTopic(topic);
-  if (!topicKey) {
-    return jsonError(req, `Topic "${topic}" is not supported by the voice receptionist.`, 400);
-  }
-
+  const toolStartedAt = performance.now();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    const answer = await answerGuestSafeVoiceTopic(session.propertyId, topicKey);
-    return jsonSuccess(req, { topic: topicKey, answer });
+    const result = await Promise.race([
+      executeVoiceReceptionistTool({
+        name: toolName,
+        args,
+        propertyId: session.propertyId,
+        guestUserId: user.id,
+      }),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Voice tool timed out')), TOOL_TIMEOUT_MS);
+      }),
+    ]);
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    const durationMs = Math.round(performance.now() - toolStartedAt);
+    await recordVoiceReceptionistToolMetric({
+      sessionId,
+      toolName,
+      durationMs,
+      outcome: 'success',
+    });
+    console.info(
+      JSON.stringify({
+        event: 'voice_tool_completed',
+        toolName,
+        durationMs,
+        outcome: 'success',
+      })
+    );
+    return jsonSuccess(req, { toolName, ...result });
   } catch (e) {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
     const message = (e as Error).message;
-    if (message === 'Property not found') {
-      return jsonError(req, message, 404);
+    const durationMs = Math.round(performance.now() - toolStartedAt);
+    await recordVoiceReceptionistToolMetric({
+      sessionId,
+      toolName,
+      durationMs,
+      outcome: 'failed',
+    });
+    console.warn(
+      JSON.stringify({
+        event: 'voice_tool_completed',
+        toolName,
+        durationMs,
+        outcome: 'failed',
+      })
+    );
+    if (
+      message === 'Property not found' ||
+      message === 'Unsupported property fact' ||
+      message === 'A valid stay of 1 to 90 nights is required'
+    ) {
+      return jsonError(req, message, message === 'Property not found' ? 404 : 400);
     }
     throw e;
   }
