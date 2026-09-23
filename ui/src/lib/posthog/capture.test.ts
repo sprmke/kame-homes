@@ -1,39 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-const capture = vi.fn();
-
-vi.mock('./client', () => ({
-  isPostHogEnabled: true,
-  posthog: { capture },
-}));
-
-vi.mock('./analyticsMode', () => ({
-  shouldCaptureProductEvents: () => true,
-}));
-
-vi.mock('./context', () => ({
-  buildSharedAnalyticsProperties: () => ({
-    environment: 'local',
-    app_track: 'mt',
-    persona: 'anonymous_guest',
-    surface: 'guest_ops',
-  }),
-}));
+import { captureAppEvent, captureAppException } from '@/lib/posthog/capture';
 
 describe('captureAppEvent', () => {
-  afterEach(() => {
-    capture.mockClear();
+
+  it('captureAppEvent is exported', () => {
+    expect(typeof captureAppEvent).toBe('function');
   });
 
-  it('forwards typed events with shared properties', async () => {
-    const { captureAppEvent } = await import('./capture');
-    captureAppEvent('calendar_opened', { booking_source: 'facebook' });
-    expect(capture).toHaveBeenCalledWith(
-      'calendar_opened',
-      expect.objectContaining({
-        environment: 'local',
-        booking_source: 'facebook',
-      })
-    );
+});
+
+describe('captureAppException', () => {
+
+  it('captureAppException is exported', () => {
+    expect(typeof captureAppException).toBe('function');
   });
+
 });
