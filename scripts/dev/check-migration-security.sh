@@ -19,6 +19,19 @@ count_matches() {
   fi
 }
 
+count_public_function_revokes() {
+  local path="$1"
+  if command -v rg >/dev/null 2>&1; then
+    rg -U --count-matches 'REVOKE (ALL|EXECUTE) ON FUNCTION(?s:.*?)FROM PUBLIC' "$path" || true
+  else
+    awk '
+      /REVOKE (ALL|EXECUTE) ON FUNCTION/ { in_revoke = 1 }
+      in_revoke && /FROM PUBLIC/ { count += 1; in_revoke = 0 }
+      END { print count + 0 }
+    ' "$path"
+  fi
+}
+
 BASELINE_VERSION=20261316121200
 failed=0
 
@@ -29,7 +42,7 @@ for path in supabase/migrations/*.sql; do
   (( 10#$version >= 10#$BASELINE_VERSION )) || continue
 
   definer_count="$(count_matches '^[[:space:]]*SECURITY DEFINER' "$path")"
-  revoke_count="$(count_matches '^[[:space:]]*REVOKE (ALL|EXECUTE) ON FUNCTION .* FROM PUBLIC' "$path")"
+  revoke_count="$(count_public_function_revokes "$path")"
   if (( definer_count > revoke_count )); then
     echo "MISSING PUBLIC revoke for SECURITY DEFINER function: $path" >&2
     failed=1

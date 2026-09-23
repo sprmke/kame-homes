@@ -120,6 +120,7 @@ const SCOPE_PATTERNS = [
   /\blistGuestMessageThreads\s*\(\s*user\b/,
   /\blistGuestVouchers\s*\(\s*user\b/,
   /\bloadVoiceReceptionistSessionForGuest\s*\(\s*\w+\s*,\s*user\.id\s*\)/,
+  /\bloadVoiceReceptionistSessionForEnd\s*\(\s*\w+\s*,\s*user\.id\s*\)/,
   /\bstartGuestWebChat\s*\(\s*user\b/,
   /\bresumeGuestWebChat\s*\(\s*user\b/,
   /\bsendGuestWebChatMessage\s*\(\s*user\b/,

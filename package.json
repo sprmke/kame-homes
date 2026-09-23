@@ -36,6 +36,7 @@
     "setup:design-md": "bash scripts/dev/setup-design-md.sh",
     "type-check": "cd ui && bun run type-check",
     "test": "cd ui && bun run test",
+    "test:coverage:lib": "cd ui && bun run test:coverage:lib",
     "check:edge-types": "bash scripts/dev/check-edge-types.sh",
     "test:edge": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read --allow-import --ignore=\"supabase/functions/**/*integration_test.ts\" supabase/functions/_shared/'",
     "test:edge:handlers": "bash -c 'command -v deno >/dev/null || export PATH=\"$HOME/.deno/bin:$PATH\"; deno test --allow-env --allow-net --allow-read --allow-import supabase/functions/tests/ --ignore=\"supabase/functions/tests/*integration_test.ts\" --ignore=\"supabase/functions/tests/assistantParityLiveGemini.integration_test.ts\"'",
