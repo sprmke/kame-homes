@@ -2,7 +2,7 @@
 title: 'Claude To Plan'
 status: archived
 tags: [planning]
-updated: 2026-09-12
+updated: 2026-09-24
 ---
 
 **Status legend:** ❌ cancelled / won't do · ✅ done · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
@@ -143,6 +143,12 @@ All the settings should be configurable in our admin dashboard as well. If we ca
 I think there are a lot of existing projects like this, what we need to plan and refine is this should be production grade level, will not introduce any issues or security risks, it should not crash, and it should be easy to use and helpful for guests.
 
 # → **Done:** [`../done/ai-voice-receptionist.md`](../done/ai-voice-receptionist.md)
+
+# 🚧 AI receptionist production-readiness review
+
+Harden the shipped guest voice receptionist for production: current Gemini Live protocol, transcript integrity, atomic session lifecycle, tiered guest-safe context, guardrails, reconnects, low-latency conversation UX, privacy, observability, automated tests, and staged rollout.
+
+# → **In progress:** [`../in-progress/ai-receptionist-production-readiness.md`](../in-progress/ai-receptionist-production-readiness.md)
 
 ✅ Provide chat app that can access and manage entire dashboard
 

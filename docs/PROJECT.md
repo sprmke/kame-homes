@@ -195,6 +195,42 @@ Defense-in-depth bot/abuse layer across every spammable surface. Code shipped, *
 
 ---
 
+## Guest AI voice receptionist
+
+Property-scoped, authenticated guest voice uses a direct browser-to-Gemini Live connection with a
+server-minted `v1beta` constrained ephemeral token. The approved model is registered once in
+`_shared/geminiLiveEphemeral.ts`; the browser receives a versioned connection descriptor and never
+hardcodes a provider endpoint or model. The current provider model is `gemini-3.8-live`; Google
+still classifies Live API and ephemeral tokens as Preview, so rollout remains allowlist-first with
+a dated model review gate.
+
+Session lifecycle is `connecting -> active -> ending -> ended`, with terminal `failed`,
+`abandoned`, and `expired`. `reserve_voice_receptionist_session` serializes property and guest cap
+checks. `voice-receptionist-session` acknowledges setup and heartbeats the lease;
+records host handoff, and atomically deletes captions. `voice-receptionist-reaper` closes stale
+leases and applies transcript retention. Client captions live only in
+`voice_receptionist_transcript_turns` as `client_reported` / `unverified`; they never create
+canonical outbound `social_messages`. Derived safety flags contain categories only and are cleared
+with the captions.
+
+Grounding is tiered in `_shared/guestReceptionistContext.ts`. Volatile or stay-specific facts use
+the closed tools `get_property_facts`, `check_dates`, `get_inquiry_price`, `get_my_stay`,
+`get_stay_guide`, and `handoff_to_host`. Platform controls live on
+`ai_platform_global_settings`: allowed feature kill switch, deterministic rollout percentage and
+property allowlist, cost estimate, and 1-90 day caption retention. Staging health uses
+`voice-receptionist-canary`; it is disabled when `ENVIRONMENT=production` and persists the latest
+model, protocol, token-mint latency, setup latency, and structured failure state for super-admins.
+Fresh token-mint failures open a five-minute circuit breaker that hides voice entry while text chat
+remains available; an active setup clears the unhealthy signal. The super-admin AI surface also
+loads a service-role-only seven-day reliability rollup with p50/p95 startup, first-audio, tool,
+session, and reconnect metrics plus completion and threshold alerts. Metric rows never contain
+caption text, tool arguments, or tool results.
+
+Secrets: `GEMINI_API_KEY` (or local-only rotation via `GEMINI_API_KEYS`),
+`VOICE_RECEPTIONIST_CANARY_SECRET`, and `VOICE_RECEPTIONIST_REAPER_SECRET`.
+
+---
+
 ## Airbnb / OTA calendar sync (two-way iCal)
 
 `calendarSync` plan feature (**Pro / `growth` and above**). Property-level, managed from **Pricing → Channel sync** (`ChannelSyncDialog` modal). **Inbound:** each **`property_calendar_feeds`** row is an external `.ics` URL (Airbnb (primary; Booking.com / VRBO schema-ready only)), polled every 30 min by **`calendar-sync-cron`** (job `calendar-sync-every-30m`) — parsed and diffed by **`_shared/calendarSyncService.ts`** (RFC-5545, SSRF-guarded fetch), applied by **`_shared/calendarSyncRun.ts`** as **`property_blocked_dates`** rows with **`source='ical_import'`** (read-only in the Pricing calendar — not selectable / not unblockable). **Outbound:** **`ical-export`** (`?property=<slug>&token=<t>[&as=<provider>]`) publishes GFM busy nights (bookings + manual blocks) as a token-gated feed the host pastes into each OTA; `?as=<provider>` strips that OTA's own imported rows to prevent an echo loop. Failures and overlaps raise `calendar_sync_failing` / `calendar_conflict` notifications. **Phase 2 (shipped):** a feed with `create_bookings = true` also promotes reservation events to real `guest_submissions` rows (`external_source`/`external_uid`/`external_feed_id`, `booking_source='Airbnb'`) held in `PENDING_REVIEW` and never auto-advanced; all guest-facing side effects stay suppressed while `guest_email` is blank. The host then forwards `<origin>/form?complete=<token>` (`issue-guest-form-completion-token` → `get-form-completion` → `submit-form-completion`) so the OTA guest fills in the rest against that row with the dates locked. Notifications `booking_external_imported` / `booking_guest_form_completed`. Plan: [`workflow/done/airbnb-calendar-sync.md`](workflow/done/airbnb-calendar-sync.md). Data model: [`architecture/data-model.md`](architecture/data-model.md); edge fns: [`architecture/edge-functions.md`](architecture/edge-functions.md); env + cron: [`architecture/validation-and-env.md`](architecture/validation-and-env.md), [`archive/operations/scheduled-jobs-and-testing.md`](archive/operations/scheduled-jobs-and-testing.md).

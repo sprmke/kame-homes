@@ -257,6 +257,11 @@ When set, matching cron endpoints require the corresponding header. See **`docs/
 
 **Smart Pricing (`smartPricing`, Pro+):** `SMART_PRICING_CRON_SECRET` (optional) gates the global `smart-pricing-cron` autopilot sweep. All other Smart Pricing tuning lives in `property_smart_pricing_settings` (per property, host-editable), not env. The optional AI rationale pass reuses the platform `GEMINI_API_KEYS` and the shared `ai_platform_*` quota/credit system (feature `smart_pricing`) — no new AI env var.
 
+**Voice receptionist:** `VOICE_RECEPTIONIST_REAPER_SECRET` gates the one-minute stale-session and
+caption-retention cron. `VOICE_RECEPTIONIST_CANARY_SECRET` gates the staging-only provider
+connection check; the function rejects `ENVIRONMENT=production`. Both follow
+`_shared/cronSecretGate.ts` and should have matching Vault secrets for hosted cron/monitor calls.
+
 #### Deploy / script-only (not edge runtime)
 
 | Variable                                                      | File                       | Notes                                   |

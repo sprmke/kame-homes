@@ -2,7 +2,7 @@
 title: 'Testing index'
 status: active
 tags: [guides, testing]
-updated: 2026-09-11
+updated: 2026-09-23
 ---
 
 # Testing index
@@ -22,6 +22,29 @@ Sitewide pyramid for Kame Homes. Plan: [`docs/workflow/done/sitewide-automated-t
 | Playwright CI suite             | `bun run test:e2e:ci`              | develop              |
 | Post-deploy                     | `./scripts/deploy/ci-smoke.sh dev` | after develop deploy |
 | Full local parity               | `bun run ci:quality`               | before push          |
+
+## Comprehensive lib coverage
+
+Every `ui/src/**/lib/*.ts` and `ui/src/utils/**/*.ts` module has a colocated Vitest file (see [`docs/workflow/done/comprehensive-unit-test-coverage.md`](../../workflow/done/comprehensive-unit-test-coverage.md)).
+
+**Pages, sections, and UI elements** are not duplicated as Vitest cases. See [`application-coverage-model.md`](./application-coverage-model.md) for how public + dashboard routes map to **Playwright** (`@smoke` / `@ci`) plus colocated **lib** unit tests. Line coverage for logic only: `bun run test:coverage:lib`.
+
+| Script                                                         | Purpose                                                                             |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `node scripts/dev/lib-unit-test-inventory.mjs`                 | List lib files still missing `*.test.ts`                                            |
+| `node scripts/dev/scaffold-missing-lib-unit-tests.mjs --write` | Scaffold colocated tests (regenerate only when adding new lib files)                |
+| `node scripts/dev/enrich-lib-unit-tests.mjs --write`           | Replace export-only scaffolds with per-export `describe` blocks (safe export smoke) |
+| `node scripts/dev/enrich-lib-unit-tests.mjs --repair-unsafe`   | Re-run after bad heuristic upgrades (`--write` with `--repair-unsafe`)              |
+| `node scripts/dev/lib-behavioral-coverage-audit.mjs`           | Branching libs whose tests are still export-only (incremental depth backlog)        |
+| `node scripts/dev/fix-test-import-extensions.mjs`              | Strip erroneous `.ts` suffix from `@/` imports in Vitest files                      |
+| `node scripts/dev/deepen-lib-unit-tests.mjs --write`           | Append safe permission-gate behavioral cases on export-only files                   |
+| `bun run test:coverage:lib`                                    | V8 coverage for `**/lib/**` + `utils/**` (not React pages)                          |
+
+`ui/vitest.setup.ts` sets test Supabase env vars so modules that import `@/lib/supabase/client` load in Node.
+
+Latest `test:coverage:lib` baseline (2026-09-23): ~**49%** lines on lib/utils, ~**72%** branches; ~**480** branching libs still export-only per `lib-behavioral-coverage-audit.mjs`.
+
+**UI pages and flows:** Vitest covers deterministic **lib** logic (validators, formatters, workflow mirrors, gates). Rendered journeys, navigation, and touch targets stay in **Playwright** (`bun run test:e2e:smoke` / `test:e2e:ci`).
 
 ## Layout
 
@@ -81,6 +104,7 @@ Manual-only (existing):
 | [`custom-pages-module-manual.md`](./custom-pages-module-manual.md)             | Public pages editor    |
 | [`image-upload-optimization-manual.md`](./image-upload-optimization-manual.md) | Media OCR/perf         |
 | [`property-showcase-manual.md`](./property-showcase-manual.md)                 | Showcase templates     |
+| [`voice-receptionist-manual.md`](./voice-receptionist-manual.md)               | Gemini Live voice      |
 
 ## Coverage inventory
 

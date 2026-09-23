@@ -2,7 +2,7 @@
 title: 'Super Admin AI Management — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-04
+updated: 2026-09-23
 ---
 
 # Super Admin AI Management — operator guide
@@ -49,21 +49,39 @@ These controls are internal to the platform team. Hosts do not see or manage the
 
 ## Platform AI
 
-| Control                  | Effect                                                                                                                                                                                                                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Enabled**              | Master kill switch for all AI features across the platform                                                                                                                                                                                                                                |
-| **Enforce quotas**       | When on, org-level and per-property AI usage quotas are enforced                                                                                                                                                                                                                          |
-| **Allowed features**     | Per-feature allowlist (`allowed_features`). Empty array = all allowed when enabled. A non-empty list is exclusive — features not listed (e.g. `import_column_map`) degrade or fail closed. Toggle rows cover every `AiFeature` id (booking AI review maps to the three summary features). |
-| **Default quotas**       | Daily calls, monthly calls, and daily USD cost limits inherited by orgs without overrides                                                                                                                                                                                                 |
-| **Credit unit (USD)**    | Super-admin-only — USD value of one AI credit (`credit_unit_usd`; working default `0.001`)                                                                                                                                                                                                |
-| **Voice cost/min (USD)** | Super-admin-only — per-minute Gemini Live estimate for voice receptionist billing (`voice_receptionist_cost_per_minute_usd`)                                                                                                                                                              |
+| Control                      | Effect                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enabled**                  | Master kill switch for all AI features across the platform                                                                                                                                                                                                                                |
+| **Enforce quotas**           | When on, org-level and per-property AI usage quotas are enforced                                                                                                                                                                                                                          |
+| **Allowed features**         | Per-feature allowlist (`allowed_features`). Empty array = all allowed when enabled. A non-empty list is exclusive — features not listed (e.g. `import_column_map`) degrade or fail closed. Toggle rows cover every `AiFeature` id (booking AI review maps to the three summary features). |
+| **Default quotas**           | Daily calls, monthly calls, and daily USD cost limits inherited by orgs without overrides                                                                                                                                                                                                 |
+| **Credit unit (USD)**        | Super-admin-only — USD value of one AI credit (`credit_unit_usd`; working default `0.001`)                                                                                                                                                                                                |
+| **Voice cost/min (USD)**     | Super-admin-only — per-minute Gemini Live estimate for voice receptionist billing (`voice_receptionist_cost_per_minute_usd`)                                                                                                                                                              |
+| **Voice rollout (%)**        | Deterministic property rollout. `0` is fail-closed except explicitly allowlisted properties; `100` admits every otherwise eligible property                                                                                                                                               |
+| **Voice property allowlist** | Property UUIDs admitted before percentage rollout; accepts one ID per line or comma-separated IDs                                                                                                                                                                                         |
+| **Voice retention (days)**   | Retention for unverified client caption evidence, from 1 to 90 days                                                                                                                                                                                                                       |
+| **Voice health**             | Read-only latest staging canary status, approved model/protocol, and token-mint/setup latency                                                                                                                                                                                             |
+| **Voice reliability**        | Read-only seven-day p95 startup, first-audio, tool, session, reconnect, and completion metrics; flags breached rollout thresholds                                                                                                                                                         |
 
-Voice receptionist is controlled by the **Allowed features** list — add or remove `voice_receptionist` to gate the product. The old standalone voice kill switch endpoint was removed.
+Voice receptionist is controlled by **Allowed features**, the property allowlist, and **Voice
+rollout (%)**. The platform owner keeps rollout at zero and uses the allowlist until canary,
+privacy, and latency gates pass. Removing
+`voice_receptionist` is the incident kill switch. The old standalone voice kill-switch tables are
+dropped by the staged final backfill after hosted-data verification.
+
+Reliability alerts trip at 5% provider failures, 10% sessions with a reconnect, 5% abandoned or
+expired sessions, or 5% cap-denied starts over the selected window. Cost estimate drift is reviewed
+against the provider invoice each quarter; a 20% variance pauses rollout and updates the configured
+voice cost per minute.
 
 ### Save path
 
 1. Toggle or edit in UI → `PATCH ai-platform-global-settings`
 2. Persists `ai_platform_global_settings` singleton row (including credit conversion fields)
+
+Plans: N/A, this is a platform-only super-admin control. Team permissions: N/A, access is already
+limited by `SUPER_ADMIN_EMAILS` plus step-up verification. Mutations use the existing super-admin
+audit trail.
 
 ---
 
@@ -146,5 +164,4 @@ Independent of Platform AI. Org-level opt-in still lives on organization Setting
 
 ## Pending / follow-ups
 
-- [ ] Drop legacy `voice_receptionist_global_settings` table in a follow-up migration after verifying the platform switch is seeded on hosted environments.
 - [ ] No UI yet to edit `default_daily_credit_limit`/`default_monthly_credit_limit` (platform-wide) or an org's `daily_credit_limit`/`monthly_credit_limit` override — settable only via direct API/DB today. Deliberately deferred until real pricing numbers replace the current generous working defaults.

@@ -1,6 +1,6 @@
 # AI platform billing and production keys
 
-Operational guide for shared Gemini/Groq AI features (receipt validation, inbox suggest, marketing captions, import column mapping, voice polish, and voice receptionist sessions).
+Operational guide for shared Gemini/Groq AI features (receipt validation, inbox suggest, marketing captions, import column mapping, and voice receptionist sessions).
 
 ## Production model
 
@@ -43,13 +43,39 @@ Shared server modules:
 
 ## Model tiering (defaults)
 
-| Feature                                                                                                 | Model                                   |
-| ------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Receipt validation / marketing templates / booking AI review / dashboard assistant                      | `gemini-2.5-flash`                      |
-| Inbox suggest / auto-reply / marketing captions / import column map / voice polish / integration verify | `gemini-3.1-flash-lite`                 |
-| Voice Live                                                                                              | `gemini-2.5-flash-native-audio-preview` |
+| Feature                                                                                  | Model                   |
+| ---------------------------------------------------------------------------------------- | ----------------------- |
+| Receipt validation / marketing templates / booking AI review / dashboard assistant       | `gemini-2.5-flash`      |
+| Inbox suggest / auto-reply / marketing captions / import column map / integration verify | `gemini-3.1-flash-lite` |
+| Voice Live (provider Preview)                                                            | `gemini-3.8-live`       |
 
 Verify current rates at [ai.google.dev/pricing](https://ai.google.dev/gemini-api/docs/pricing) before budgeting.
+
+## Voice production gate
+
+Voice uses `v1beta` constrained ephemeral tokens. The browser never receives the long-lived Gemini
+API key. Before raising rollout above zero, the billing/project owner records evidence for:
+
+- paid Gemini project and billing account
+- budget alerts at warning and hard-review thresholds
+- API key limited to the Gemini API and server use
+- Google data-processing terms accepted for the operating entity
+- provider retention and model-improvement settings reviewed for guest audio
+- supported processing region reviewed against the product privacy notice
+- Live API and ephemeral-token Preview risk accepted for the release
+- `gemini-3.8-live` rechecked against Google docs by `2026-10-15`
+- `voice-receptionist-canary` green in staging for seven consecutive days
+- current Live price reconciled with `voice_receptionist_cost_per_minute_usd`
+
+These are provider-console checks and cannot be inferred from repository configuration. Keep
+`voice_receptionist_rollout_percentage = 0` until the evidence is attached to the release record.
+
+## Voice cost reconciliation
+
+`voice_receptionist_sessions` stores measured duration and an estimated cost. One
+`ai_platform_usage_events` row is claimed per terminal session, including failed or abandoned
+sessions. Monthly, compare provider invoice totals against summed voice usage events, then adjust
+the super-admin **Voice cost/min (USD)** value. Do not rewrite historical events.
 
 ## Dual-track deploy
 

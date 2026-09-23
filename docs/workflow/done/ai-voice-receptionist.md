@@ -12,6 +12,10 @@ updated: 2026-08-01
 
 **6.1–6.4 shipped.** Avatar is an original photorealistic concierge portrait with a 2D face-plate image fallback.
 
+> Historical v1 record. Production hardening and current architecture are tracked in
+> [`AI Receptionist Production Readiness`](../in-progress/ai-receptionist-production-readiness.md).
+> In particular, client-reported voice captions no longer become canonical `social_messages`.
+
 ## Context
 
 Guests currently get AI help two ways: an async AI-drafted reply inside the existing Guest Inbox web chat (`social-inbox-ai-suggest` / `webInboxAutoReply.ts`), and nothing real-time or voice-based. The ask is to extend that same guest chat experience with an opt-in **live voice conversation** — guest clicks "Talk to our receptionist," an animated cute turtle appears, and they have a spoken back-and-forth (Siri/Alexa-style) about the property/their booking. It must reuse the property/booking "guest-safe" data boundary the text AI already enforces, be configurable per property from the admin dashboard (voice, limits, on/off), and — because this is a new real-time, mic-access, per-minute-billed surface — ship with hard cost/abuse guardrails and an instant kill switch, not just a happy path.

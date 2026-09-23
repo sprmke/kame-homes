@@ -2,7 +2,7 @@
 title: 'Data model'
 status: active
 tags: [architecture, data-model]
-updated: 2026-09-01
+updated: 2026-09-23
 ---
 
 # Data model
@@ -36,6 +36,8 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 **Property team RBAC (migrations `20260908120000_property_team_rbac.sql`, `20261203120000_property_team_admin_role.sql`, plus Phase 3–7 granular remaps through `20261208120000_property_team_marketing_granular.sql`):** **`property_custom_roles`** (UUID id, name, `permissions` JSONB — seeded templates **Full Access** / **Operations** / **Read Only** plus custom templates), **`property_members`** (`user_id`, `role_id` = `ADMIN` or template UUID, `permissions`, `status` active\|inactive, `saved_permissions`), **`property_invitations`** (email, token, 7-day expiry, status). Leaf catalog lives in **`supabase/functions/_shared/propertyTeamPermissions.ts`** (~81 ids); templates in **`propertyTeamTemplates.ts`**; access helper **`orgAuth.ts#verifyPropertyAccess`** (+ **`requirePropertyPermissionAndFeature`** when a plan key applies). Org owner / org Admin / platform admin have implicit full access without a member row. **Org team** stays fixed **Owner | Admin** (`organizations.owner_id` + `organization_members.role_id = 'ADMIN'`) — no org custom roles this round.
 
 **Copy property settings** (migrations **`20261306120000_property_settings_copy_log.sql`**, **`20261306120100_property_settings_copied_notification_type.sql`**; plan [[workflow/for-testing/property-settings-copy-to-properties]]): append-only **`property_settings_copy_log`** (`organization_id`, `source_property_id`, `actor_user_id`, `groups`, `target_property_ids`, `results` JSONB). Written by **`copy-property-settings`** (service role) on real (non–dry-run) runs; listed to org members via **`action: 'listLogs'`**. RLS on, no client policies. Notification type **`property_settings_copied`**. Registry: `_shared/propertySettingsClone.ts` (+ Phase 1–3 groups, `propertyAssetClone`); UI catalog: `ui/.../org/lib/copyPropertySettingsGroups.ts`. Full group inventory: that plan §2.
+
+**Voice receptionist sessions** (migrations **`20261316122340`** through **`20261316123410`**): **`voice_receptionist_sessions`** uses explicit connecting/active/terminal states, activity leases, provider model/protocol fields, duration measured from provider setup, one-time usage recording, client setup/first-audio/reconnect metrics, transcript status/hash, and non-PII **`safety_flags`** derived from unverified browser captions. **`voice_receptionist_transcript_turns`** stores bounded `client_reported` / `unverified` guest and assistant captions by session and sequence. **`voice_receptionist_start_attempts`** stores non-transcript gate/provider outcomes and latency. **`voice_receptionist_tool_metrics`** stores tool name, latency, and outcome without arguments or response text; `get_voice_receptionist_operational_metrics` returns service-role-only p50/p95 and rollout alert signals. These tables are service-role only. Legacy voice settings are final-backfilled into unified AI platform settings without changing the existing platform kill switch or feature allowlist before their tables are removed.
 
 Created in migrations; key points:
 

@@ -2,7 +2,7 @@
 title: 'Legal & company pages — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-08-27
+updated: 2026-09-23
 ---
 
 # Legal & company pages — operator guide
@@ -56,6 +56,10 @@ These public pages explain the company, how to reach support, common guest/host 
 - Shared hero band: **`MarketingPublicPageHero`** (centered eyebrow / title / description by default) + body via **`MarketingPublicPageContent`**. Company pages reuse **`MarketingPublicSectionHeading`**, **`MarketingPublicIconCard`**, **`MarketingPublicCallout`**, and **`MarketingPublicFaqList`** for consistent spacing and typography. Legal / Support / Pricing use **`narrow`** on both hero and content so title and body share one **centered** reading column (`mx-auto max-w-3xl`). Legal pages use **`LegalSimplePage`** (divided sections, left hero blob).
 - Content is hard-coded in page components; no CMS.
 - **Contact** (`/contact`) — four ticket categories (**Broken**, **Idea**, **Question**, **Business**) matching Help & Support. Clicking a category runs **`requireGuestAuth`** → **`GuestAuthModal`** (same as Reserve / Contact host on listings), then opens the same **`NewTicketModal`**. OAuth return uses `?category=` (+ optional `?subject=`). Deep links: Managed plan from **`/for-hosts/pricing`**. After submit → **`/account/tickets/:ticketId`**. Org-scoped host tickets remain under dashboard Help & Support. Guests also see Support + mailto fallback below the categories.
+- Privacy states that Gemini processes live microphone audio, the platform does not store raw
+  audio, unverified captions default to 30-day retention (configurable from 1 to 90 days), and the
+  guest can delete captions after the call. Caption deletion also clears derived safety flags;
+  timing, outcome, model, and estimated usage remain with account/property operational records.
 - Cookie policy states current footprint: Supabase Auth session storage, UI preferences (e.g. theme); no analytics/ad-tracking scripts on these surfaces.
 
 ---

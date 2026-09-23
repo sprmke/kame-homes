@@ -416,14 +416,14 @@ Save path: section-local **Save** button → `PATCH ai-platform-property-setting
 
 Opt-in AI voice assistant guests can talk to (check-in, wifi, parking, and other stay questions). Config is now stored inside `ai_platform_property_settings.feature_configs.voice_receptionist`. The section still uses `voice-receptionist-settings` for reads/writes and saves with the shared **Save Changes** footer.
 
-| Field               | Storage path                                                               | Notes                                                                           |
-| ------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Enable              | `ai_platform_property_settings.feature_configs.voice_receptionist.enabled` | Also gated by the platform-wide AI kill switch + `voice_receptionist` allowlist |
-| Voice               | `voice_id`                                                                 | Gemini Live prebuilt voice; options from `availableVoices` (labeled in UI)      |
-| Persona prompt      | `persona_prompt`                                                           | Optional tone guidance; guest-safe grounding is fixed and cannot be overridden  |
-| Max session (sec)   | `max_session_seconds`                                                      | Default 300; allowed **60–3600**                                                |
-| Max per guest / day | `max_sessions_per_guest_per_day`                                           | Default 3; allowed **1–999**                                                    |
-| Max concurrent      | `max_concurrent_sessions`                                                  | Default 3, property-wide; allowed **1–50**                                      |
+| Field               | Storage path                                                               | Notes                                                                             |
+| ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Enable              | `ai_platform_property_settings.feature_configs.voice_receptionist.enabled` | Also gated by the platform-wide AI kill switch + `voice_receptionist` allowlist   |
+| Voice               | `voice_id`                                                                 | Gemini Live prebuilt voice; options from `availableVoices` (labeled in UI)        |
+| Persona prompt      | `persona_prompt`                                                           | Optional tone guidance, max 300 characters; policy/tool override text is rejected |
+| Max session (sec)   | `max_session_seconds`                                                      | Default 300; allowed **60–3600**, currently capped to 540 at session start        |
+| Max per guest / day | `max_sessions_per_guest_per_day`                                           | Default 3; allowed **1–999**                                                      |
+| Max concurrent      | `max_concurrent_sessions`                                                  | Default 3, property-wide; allowed **1–50**                                        |
 
 Save path: page **Save Changes** → `PATCH voice-receptionist-settings?property_id=` when this section is dirty (`settings.voiceReceptionist:edit`; enabling also requires plan `aiReceptionist`). Hook: `useVoiceReceptionistSettings.ts`. UI: `PropertyVoiceReceptionistSection.tsx` (controlled from `PropertySettingsCard.tsx`).
 
@@ -432,17 +432,15 @@ Save path: page **Save Changes** → `PATCH voice-receptionist-settings?property
 **Plan gating:** Hidden from the secondary settings nav and the settings card unless the property is entitled to **`aiReceptionist`** (Business and above). When entitled, enable/save still require that feature server-side (`voice-receptionist-settings` PATCH, `voice-receptionist-start`).
 
 **Usage panel** — read-only "Usage — last 30 days" stat grid (sessions today, last 30 days, avg.
-length, estimated cost) below the form fields. `GET voice-receptionist-usage?property_id=`
+length, estimated cost, failure rate, and host-handoff rate) below the form fields. `GET voice-receptionist-usage?property_id=`
 (`settings:view`), hook `useVoiceReceptionistUsage`. Estimated cost is a rough per-minute
 blended-rate estimate persisted on `voice_receptionist_sessions.estimated_cost_usd` when a
 session ends; the same session is also recorded in `ai_platform_usage_events` (feature `voice_receptionist`) for unified platform usage.
 
-**Guest-side hardening (Task 5):** sessions also end with `end_reason='timeout'` after 45s of
-no guest/assistant speech activity (idle timeout, distinct from the max-session-length cap);
-mic permission is requested before minting a session so a denial never consumes a daily-cap
-slot; hard connection drops / mic disconnects call the end endpoint immediately (no zombie
-sessions); mic-permission and cap-limit errors show plain-language copy in the overlay and stay
-open until the guest dismisses them (no forced auto-close).
+**Guest-side hardening:** sessions end after 45 seconds without guest or assistant speech. Mic
+permission is requested before reserving provider capacity, stale sessions are reaped, and failed
+connections offer Retry or text handoff. Browser captions remain unverified session evidence and
+can be deleted by the guest; they are not added to the host Inbox as assistant messages.
 
 **Guest UX polish (Phase 6):** **6.1–6.4 shipped** (speech VAD; rich bubbles; leaner prompts;
 booth UI; premium human concierge portrait). Admin settings fields above are unchanged. Plan:
@@ -544,7 +542,7 @@ Keep UI and edge copies in sync when changing rules.
 - [ ] Soft-delete flag instead of hard delete for edge cases
 - [x] Automated tests for property settings validation (load smoke in `dashboardModulesSmoke.spec.ts`; save paths manual)
 - [x] Remove deprecated `voice-receptionist-global-settings` edge function and UI card
-- [ ] Drop legacy `voice_receptionist_global_settings` table after verifying the platform switch is seeded on hosted environments
+- [x] Final-backfill and drop legacy voice settings tables (`20261316122350` then `20261316122400`)
 
 ## Setup Guide
 

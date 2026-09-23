@@ -2,7 +2,7 @@
 title: 'Guest messages'
 status: active
 tags: [guides, routes]
-updated: 2026-08-30
+updated: 2026-09-23
 ---
 
 # Guest messages
@@ -85,37 +85,55 @@ Same interactive cards as the host assistant (`ChatSuggestionList`); no Question
 
 **Realtime:** Supabase channel on **`social_messages`** (guest RLS).
 
-**Voice receptionist:** when enabled (global + property), the header ⋮ menu shows **Talk to
+**Voice receptionist:** when enabled (global rollout + property), the header ⋮ menu shows **Talk to
 receptionist** on both **`ContactHostSheet`** (property detail) and this full-screen page. That swaps
-the conversation column for an inline **`VoiceSessionPanel`** (same shell: host header stays visible —
-no black modal). Gemini Live audio, turtle avatar, live captions, countdown, mute, and end controls
-use theme tokens (light/dark). On end, timeout, or error the transcript is batch-written into this
-thread as `social_messages` (`source_mode='voice'`); the panel closes and the text thread returns
-with those turns already loaded. First-inquiry guests can start a voice session from the contact
-modal without picking dates; `guest-web-chat-resume` still returns `voiceReceptionistEnabled` when
-there is no existing thread.
+the conversation column for an inline **`VoiceSessionPanel`**. Every call starts from an explicit
+**Start call** action so microphone permission remains tied to a guest gesture. First use identifies
+the assistant as AI and discloses microphone, Gemini processing, and caption storage. Gemini Live
+audio, captions, interruption, one reconnect, countdown, mute, end, and **Message host** handoff use
+the same responsive thread shell.
 
-**AI grounding (text + voice):** when the property's residence matches a platform development, guest AI tools also receive development-level facts (amenities, pool fee/schedule, requirements, guides, document labels, other info) from **`developments.settings`** via `_shared/developmentGuestInfo.ts`. Super admins edit these on **`/admin/developments/:slug`** (Pool + Guest information sections).
+Browser captions are bounded and stored as `client_reported` / `unverified` session evidence. They
+are not copied into `social_messages`, and guest-supplied assistant text can never become a canonical
+outbound host/AI message. Retention defaults to 30 days (platform configurable from 1 to 90 days);
+the completed-call panel provides **Delete captions** through the authenticated session API. Text
+chat remains available after every voice end or provider failure. Session timing, model/protocol,
+end reason, and usage/cost remain as operational records. Caption hashes and derived safety flags
+are cleared when captions are deleted or expire. The platform does not store raw microphone audio.
 
-**Phase 6 (shipped):** speech VAD; rich map/list/link bubbles; leaner voice prompts; theme-aware
-in-thread voice panel (primary ring + mic waveform); batch Flash polish on hang-up (`thinkingBudget: 0`);
-panel shows **Saving conversation…** until the thread refetch settles; spoken money uses
-**pesos**; circular turtle avatar (full-body 9:16 HeyGen clip; talk loop **only** while `phase === 'speaking'`, idle still otherwise). Mouth motion is a baked loop — not live phoneme sync.
-See [[2026-07-30-ai-voice-receptionist|AI Voice Receptionist — Implementation Plan]] § Phase 6.
+**Voice grounding:** `_shared/guestReceptionistContext.ts` builds a compact disclosure tier
+(`public`, `inquiry`, `verified_booking`, or `verified_stay`). Static voice context excludes payment
+account numbers, IDs/documents, receipts, internal notes, finance, other guests, team data, and
+pre-stay credentials.
+Availability, exact price, the guest's own stay, active-stay guidance, and handoff use closed,
+server-authorized tools. Date tools accept real 1-90-night ranges; availability checks are limited
+to the documented 180-day horizon. Tool actions contain server-authored links for the property,
+calendar, booking form, stay guide, or host chat.
+
+**Voice transport:** server-issued `v1beta` constrained ephemeral token, reviewed
+`gemini-3.8-live` Preview model registry, 32 ms PCM chunks, setup timeout, session resumption
+handle, `GoAway` recovery, and a single jittered reconnect. Until recovery completes live
+acceptance, the effective call length is capped below the provider's unresumed connection limit.
+Fresh provider token failures hide voice entry for five minutes; text chat stays available, and a
+later successful setup closes the circuit. After repeated false interruptions, the panel suggests
+headphones. Server-returned action cards are restricted to allowlisted internal routes.
+
+**Shared AI rich-response rendering (2026-09-23):** every text-based AI message in this thread now goes through the same shared renderer used by dashboard assistant text blocks. Besides existing map/link/list cards, messages can render reusable fenced rich cards when present (`flow`, `diagram`, `form`, `table`). This keeps public and dashboard AI conversations visually consistent without forking chat UI logic.
 
 ## API
 
-| Function                   | Method | Auth      | Notes                                                                                                                                                         |
-| -------------------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `guest-web-chat-resume`    | GET    | Guest JWT | `?property_slug=` — existing thread if messages exist; always returns `voiceReceptionistEnabled` (even when `hasMessages` is false)                           |
-| `guest-web-chat-start`     | POST   | Guest JWT | `{ propertySlug, checkInDate, checkOutDate }` — first inquiry; also returns `voiceReceptionistEnabled`                                                        |
-| `guest-web-chat-messages`  | GET    | Guest JWT | `?conversation_id=`; `before` cursor; returns `replyStatus` on first page load                                                                                |
-| `guest-web-chat-messages`  | POST   | Guest JWT | `{ conversationId, text?, attachments?, replyToMessageId? }`, `{ action: 'mark_read', conversationId }`, or `{ action: 'unsend', conversationId, messageId }` |
-| `guest-web-chat-messages`  | PATCH  | Guest JWT | `{ conversationId, messageId, text }` — edit own inbound until host read or reply                                                                             |
-| `upload-guest-chat-asset`  | POST   | Guest JWT | Multipart file → **`guest-chat-attachments`** bucket; returns `{ kind, url, label? }` for send payload                                                        |
-| `voice-receptionist-start` | POST   | Guest JWT | `{ propertySlug }` → `{ ephemeralToken, sessionId, model, voiceId, maxSessionSeconds }` (Gemini Live)                                                         |
-| `voice-receptionist-tool`  | POST   | Guest JWT | `{ sessionId, topic }` — property-fact tool call from the live model                                                                                          |
-| `voice-receptionist-end`   | POST   | Guest JWT | `{ sessionId, endReason, transcript }` — ends session; **one** batch Flash polish → `social_messages` (`source_mode='voice'`)                                 |
+| Function                     | Method | Auth      | Notes                                                                                                                                                         |
+| ---------------------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `guest-web-chat-resume`      | GET    | Guest JWT | `?property_slug=` — existing thread if messages exist; always returns `voiceReceptionistEnabled` (even when `hasMessages` is false)                           |
+| `guest-web-chat-start`       | POST   | Guest JWT | `{ propertySlug, checkInDate, checkOutDate }` — first inquiry; also returns `voiceReceptionistEnabled`                                                        |
+| `guest-web-chat-messages`    | GET    | Guest JWT | `?conversation_id=`; `before` cursor; returns `replyStatus` on first page load                                                                                |
+| `guest-web-chat-messages`    | POST   | Guest JWT | `{ conversationId, text?, attachments?, replyToMessageId? }`, `{ action: 'mark_read', conversationId }`, or `{ action: 'unsend', conversationId, messageId }` |
+| `guest-web-chat-messages`    | PATCH  | Guest JWT | `{ conversationId, messageId, text }` — edit own inbound until host read or reply                                                                             |
+| `upload-guest-chat-asset`    | POST   | Guest JWT | Multipart file → **`guest-chat-attachments`** bucket; returns `{ kind, url, label? }` for send payload                                                        |
+| `voice-receptionist-start`   | POST   | Guest JWT | `{ propertySlug }` → session plus server-owned protocol/connection descriptor and constrained token                                                           |
+| `voice-receptionist-session` | POST   | Guest JWT | `{ sessionId, action }`; active acknowledgement, heartbeat, host-handoff metric, or transcript deletion                                                       |
+| `voice-receptionist-tool`    | POST   | Guest JWT | `{ sessionId, toolName, args }`; closed tool catalog with structured spoken text and safe UI actions                                                          |
+| `voice-receptionist-end`     | POST   | Guest JWT | `{ sessionId, endReason, transcript }`; atomic idempotent end plus unverified transcript evidence                                                             |
 
 Host replies use **`social-inbox-send`** (web branch). When the guest is offline, host web replies trigger **`guestChatEmail.ts`** → body from **`guest-chat-reply.html`** wrapped in **`renderBrandedEmailShell`** (same card shell as property template emails; deduped via **`social_messages.guest_reply_email_sent_at`**).
 
@@ -160,36 +178,40 @@ Backlog: [GitHub Issue #110 — Epic 10](https://github.com/sprmke/kame-homes/is
 
 ## Implementation map
 
-| Area            | Path                                                                                                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sheet (primary) | `ui/src/features/guest/chat/components/ContactHostSheet.tsx`                                                                                                                                      |
-| Full page       | `ui/src/features/guest/chat/pages/PropertyChatPage.tsx`                                                                                                                                           |
-| Thread UI       | `ui/src/features/guest/chat/components/GuestChatThread.tsx`, `GuestChatHeaderBar.tsx`, `GuestChatFaqSuggestions.tsx`, `GuestChatInsertMenu.tsx`, `GuestChatResourceHub.tsx`                       |
-| Insert / hub    | `ui/src/features/guest/chat/lib/guestChatInsertItems.ts`, `guestChatResourceHubItems.ts`                                                                                                          |
-| Shared bubble   | `ui/src/components/chat/ChatMessageBubble.tsx`, `ChatMessageList.tsx`, `ChatDateSeparator.tsx`, `ChatThreadSearch.tsx`, `ChatHighlightedText.tsx`, `ChatSuggestionList.tsx`                       |
-| Format helpers  | `ui/src/lib/chat/chatMessageFormat.ts`, `useChatTyping.ts`, `useChatThreadSearch.ts`, `chatThreadSearch.ts`, `chatAttachments.ts`                                                                 |
-| Hooks / API     | `ui/src/features/guest/chat/hooks/useGuestChat.ts`, `lib/guestChatApi.ts`, `lib/guestChatSuggestions.ts`                                                                                          |
-| Voice UI        | `VoiceSessionPanel` (inline in conversation column; `VoiceSessionOverlay` is a deprecated alias); `ReceptionistAvatar` circular muted turtle video + idle still; `ReceptionistFacePlate` fallback |
-| Voice hooks/API | `ui/src/features/guest/chat/hooks/useVoiceSession.ts`, `lib/voiceReceptionistApi.ts`, `lib/voiceAudioCodec.ts`, `public/worklets/voice-pcm-recorder.js`                                           |
-| Voice polish    | `_shared/polishVoiceUtterance.ts` (batch on end); `ChatUrlLinkCard` for https in bubbles                                                                                                          |
-| Avatar asset    | `receptionist-turtle-talk.mp4` + `receptionist-turtle-idle.png` + `ATTRIBUTION.md`                                                                                                                |
-| Voice edge      | `supabase/functions/voice-receptionist-start/`, `voice-receptionist-tool/`, `voice-receptionist-end/`, `_shared/voiceReceptionistService.ts`                                                      |
-| CTA hook        | `ui/src/features/guest/marketing/properties/hooks/usePropertyContactHost.ts`                                                                                                                      |
-| OAuth resume    | `ui/src/features/guest/auth/lib/guestAuthResume.ts` — `contact_host_sheet` → property `?contactHost=open` + dates; draft `kame_contact_host_draft` in `sessionStorage`                            |
-| Host card       | `ui/src/features/guest/marketing/shared/components/ListingHostCard.tsx`                                                                                                                           |
-| Edge            | `supabase/functions/guest-web-chat-resume/`, `guest-web-chat-start/`, `guest-web-chat-messages/`, `upload-guest-chat-asset/` — resume/start return `stayGuideUrl` when eligible                   |
-| Lifecycle       | `supabase/functions/_shared/chatMessageLifecycle.ts`, `guestChatAttachments.ts`, `guestChatEmail.ts` — read, edit, reply, attachments, offline notify                                             |
-| Auto-reply      | `supabase/functions/_shared/webInboxAutoReply.ts` — when inbox Automation → Send automatically → Chat is on                                                                                       |
-| Migration       | `20260719153000_web_guest_chat.sql`, `20260927120000_chat_message_lifecycle.sql`, `20260928120000_chat_phase5.sql`                                                                                |
-| Host inbox      | `ui/src/features/dashboard/inbox/**` — **Web** tab                                                                                                                                                |
+| Area            | Path                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sheet (primary) | `ui/src/features/guest/chat/components/ContactHostSheet.tsx`                                                                                                                    |
+| Full page       | `ui/src/features/guest/chat/pages/PropertyChatPage.tsx`                                                                                                                         |
+| Thread UI       | `ui/src/features/guest/chat/components/GuestChatThread.tsx`, `GuestChatHeaderBar.tsx`, `GuestChatFaqSuggestions.tsx`, `GuestChatInsertMenu.tsx`, `GuestChatResourceHub.tsx`     |
+| Insert / hub    | `ui/src/features/guest/chat/lib/guestChatInsertItems.ts`, `guestChatResourceHubItems.ts`                                                                                        |
+| Shared bubble   | `ui/src/components/chat/ChatMessageBubble.tsx`, `ChatMessageList.tsx`, `ChatDateSeparator.tsx`, `ChatThreadSearch.tsx`, `ChatHighlightedText.tsx`, `ChatSuggestionList.tsx`     |
+| Format helpers  | `ui/src/lib/chat/chatMessageFormat.ts`, `useChatTyping.ts`, `useChatThreadSearch.ts`, `chatThreadSearch.ts`, `chatAttachments.ts`                                               |
+| Hooks / API     | `ui/src/features/guest/chat/hooks/useGuestChat.ts`, `lib/guestChatApi.ts`, `lib/guestChatSuggestions.ts`                                                                        |
+| Voice UI        | `VoiceSessionPanel` inline in conversation column; `ReceptionistAvatar` circular muted turtle video + idle still; `ReceptionistFacePlate` fallback                              |
+| Voice hooks/API | `ui/src/features/guest/chat/hooks/useVoiceSession.ts`, `lib/voiceReceptionistApi.ts`, `lib/voiceAudioCodec.ts`, `public/worklets/voice-pcm-recorder.js`                         |
+| Avatar asset    | `receptionist-turtle-talk.mp4` + `receptionist-turtle-idle.png` + `ATTRIBUTION.md`                                                                                              |
+| Voice edge      | `voice-receptionist-start`, `voice-receptionist-session`, `voice-receptionist-tool`, `voice-receptionist-end`, `voice-receptionist-reaper`, `voice-receptionist-canary`         |
+| CTA hook        | `ui/src/features/guest/marketing/properties/hooks/usePropertyContactHost.ts`                                                                                                    |
+| OAuth resume    | `ui/src/features/guest/auth/lib/guestAuthResume.ts` — `contact_host_sheet` → property `?contactHost=open` + dates; draft `kame_contact_host_draft` in `sessionStorage`          |
+| Host card       | `ui/src/features/guest/marketing/shared/components/ListingHostCard.tsx`                                                                                                         |
+| Edge            | `supabase/functions/guest-web-chat-resume/`, `guest-web-chat-start/`, `guest-web-chat-messages/`, `upload-guest-chat-asset/` — resume/start return `stayGuideUrl` when eligible |
+| Lifecycle       | `supabase/functions/_shared/chatMessageLifecycle.ts`, `guestChatAttachments.ts`, `guestChatEmail.ts` — read, edit, reply, attachments, offline notify                           |
+| Auto-reply      | `supabase/functions/_shared/webInboxAutoReply.ts` — when inbox Automation → Send automatically → Chat is on                                                                     |
+| Migration       | `20260719153000_web_guest_chat.sql`, `20260927120000_chat_message_lifecycle.sql`, `20260928120000_chat_phase5.sql`                                                              |
+| Host inbox      | `ui/src/features/dashboard/inbox/**` — **Web** tab                                                                                                                              |
 
 ---
 
 ## Testing
 
-| Layer | Path / spec                | Manual                          |
-| ----- | -------------------------- | ------------------------------- |
-| N/A   | Property-scoped guest chat | Manual + stays hub E2E for list |
+| Layer     | Path / spec                                                                                                                                                                      | Manual                               |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| UI unit   | `liveVoiceProtocol`, state, timing, transcript, codec, action, tool-dispatch, and worklet contract tests                                                                         | —                                    |
+| Edge unit | `geminiLiveEphemeral_test.ts`, `voiceReceptionistHardening_test.ts`                                                                                                              | —                                    |
+| Handler   | `voiceReceptionistContracts.test.ts`                                                                                                                                             | —                                    |
+| E2E       | `guest-chat/voiceReceptionistConsent.spec.ts` (375/768/desktop disclosure, denied mic, captions, interruption, actions, reconnect, provider fallback, handoff, max length, idle) | —                                    |
+| Provider  | `voice-receptionist-canary`, `geminiLiveCanary_integration_test.ts`                                                                                                              | Staging only, seven-day launch gate  |
+| Voice UX  | `voice-receptionist-manual.md`                                                                                                                                                   | Chrome, Safari, mobile Safari matrix |
 
 ## Related
 
