@@ -20,7 +20,7 @@ export function VoiceMicWaveform({ amplitude = 0, active = true, className }: Pr
         return (
           <span
             key={i}
-            className="bg-primary/70 w-1 rounded-full transition-[height] duration-75"
+            className="bg-primary/70 w-1 rounded-full transition-[height] duration-75 motion-reduce:transition-none"
             style={{
               height: h,
               opacity: 0.4 + amp * 0.55,
