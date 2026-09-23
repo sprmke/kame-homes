@@ -98,6 +98,10 @@ export type VoiceReceptionistUsageSummaryDto = {
   totalDurationSeconds: number;
   avgDurationSeconds: number;
   estimatedCostUsdLast30Days: number;
+  failedSessionsLast30Days: number;
+  handoffsLast30Days: number;
+  failureRate: number;
+  handoffRate: number;
   endReasonCounts: Record<string, number>;
   recentSessions: Array<{
     startedAt: string;
