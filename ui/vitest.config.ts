@@ -12,7 +12,14 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*Test.ts', 'src/**/*.test.ts'],
     passWithNoTests: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary'],
+      include: ['src/**/lib/**/*.ts', 'src/utils/**/*.ts'],
+      exclude: ['**/*.test.ts', '**/*Test.ts', '**/types.ts', '**/*Mock*.ts', '**/*mock*.ts'],
+    },
   },
 });
