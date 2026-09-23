@@ -10,6 +10,8 @@
  * - live: native audio (voice receptionist).
  */
 
+import { GEMINI_LIVE_MODEL } from './geminiLiveEphemeral.ts';
+
 export const AI_FEATURES = [
   'receipt_validation',
   'inbox_suggest',
@@ -138,7 +140,7 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     thinkingBudget: 0,
   },
   voice_receptionist: {
-    model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+    model: GEMINI_LIVE_MODEL,
     tier: 'live',
     inputUsdPer1M: 0.3,
     outputUsdPer1M: 2.5,

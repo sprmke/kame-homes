@@ -92,9 +92,10 @@ function rowToRecord(row: unknown, columns: string[]): Record<string, string | n
   const obj = row as Record<string, unknown>;
 
   if (Array.isArray(obj.cells)) {
+    const cells = obj.cells as unknown[];
     const record: Record<string, string | number> = {};
     columns.forEach((col, i) => {
-      record[col] = asDisplay(obj.cells[i]);
+      record[col] = asDisplay(cells[i]);
     });
     return recordHasContent(record) ? record : null;
   }
@@ -341,6 +342,30 @@ function sanitizeImage(block: Extract<ChatBlock, { type: 'image' }>): ChatBlock 
   };
 }
 
+function sanitizeFlow(block: Extract<ChatBlock, { type: 'flow' }>): ChatBlock | null {
+  const steps = (block.steps ?? []).map((step) => asDisplay(step)).filter(Boolean);
+  if (steps.length === 0) return null;
+  const title = asDisplay(block.title);
+  return { type: 'flow', ...(title ? { title } : {}), steps };
+}
+
+function sanitizeDiagram(block: Extract<ChatBlock, { type: 'diagram' }>): ChatBlock | null {
+  const source = asDisplay(block.source);
+  if (!source) return null;
+  const title = asDisplay(block.title);
+  const format = block.format === 'mermaid' ? 'mermaid' : 'text';
+  return { type: 'diagram', ...(title ? { title } : {}), format, source };
+}
+
+function sanitizeMap(block: Extract<ChatBlock, { type: 'map' }>): ChatBlock | null {
+  const href = asDisplay(block.href);
+  if (!href) return null;
+  const label = asDisplay(block.label) || 'Location';
+  const lat = typeof block.lat === 'number' && Number.isFinite(block.lat) ? block.lat : null;
+  const lng = typeof block.lng === 'number' && Number.isFinite(block.lng) ? block.lng : null;
+  return { type: 'map', href, lat, lng, label };
+}
+
 const URL_IN_TEXT_RE = /https?:\/\/|www\./i;
 
 function sanitizeQuickActions(
@@ -500,6 +525,21 @@ export function sanitizeAssistantChatBlocks(
     }
     if (block.type === 'image') {
       const next = sanitizeImage(block);
+      if (next) out.push(next);
+      continue;
+    }
+    if (block.type === 'flow') {
+      const next = sanitizeFlow(block);
+      if (next) out.push(next);
+      continue;
+    }
+    if (block.type === 'diagram') {
+      const next = sanitizeDiagram(block);
+      if (next) out.push(next);
+      continue;
+    }
+    if (block.type === 'map') {
+      const next = sanitizeMap(block);
       if (next) out.push(next);
       continue;
     }
@@ -810,7 +850,7 @@ function hydrateStepperFromJourney(
     .map((step) => {
       const label = asDisplay(step.label);
       if (!label) return null;
-      const status =
+      const status: 'done' | 'current' | 'upcoming' =
         step.stepStatus === 'done' ||
         step.stepStatus === 'current' ||
         step.stepStatus === 'upcoming'

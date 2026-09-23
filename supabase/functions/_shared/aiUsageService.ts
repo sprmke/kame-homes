@@ -105,6 +105,16 @@ export type AiPlatformGlobalSettings = {
   creditUnitUsd: number;
   /** Configurable per-minute cost estimate for voice_receptionist (cost_basis: 'duration'). */
   voiceReceptionistCostPerMinuteUsd: number;
+  voiceReceptionistRolloutPercentage: number;
+  voiceReceptionistRolloutPropertyIds: string[];
+  voiceReceptionistTranscriptRetentionDays: number;
+  voiceReceptionistHealthStatus: 'unknown' | 'healthy' | 'unhealthy';
+  voiceReceptionistHealthCheckedAt: string | null;
+  voiceReceptionistHealthFailureCode: string | null;
+  voiceReceptionistHealthTokenMintMs: number | null;
+  voiceReceptionistHealthSetupMs: number | null;
+  voiceReceptionistHealthModel: string | null;
+  voiceReceptionistHealthProtocolVersion: string | null;
   /** Working defaults, deliberately generous — see migration 20261022150000 header comment. */
   defaultDailyCreditLimit: number;
   defaultMonthlyCreditLimit: number;
@@ -179,7 +189,7 @@ export async function getAiPlatformGlobalSettings(): Promise<AiPlatformGlobalSet
   const { data, error } = await sb
     .from('ai_platform_global_settings')
     .select(
-      'enabled, enforce_quotas, allowed_features, default_daily_call_limit, default_monthly_call_limit, default_daily_cost_usd_limit, credit_unit_usd, voice_receptionist_cost_per_minute_usd, default_daily_credit_limit, default_monthly_credit_limit, updated_at'
+      'enabled, enforce_quotas, allowed_features, default_daily_call_limit, default_monthly_call_limit, default_daily_cost_usd_limit, credit_unit_usd, voice_receptionist_cost_per_minute_usd, voice_receptionist_rollout_percentage, voice_receptionist_rollout_property_ids, voice_receptionist_transcript_retention_days, voice_receptionist_health_status, voice_receptionist_health_checked_at, voice_receptionist_health_failure_code, voice_receptionist_health_token_mint_ms, voice_receptionist_health_setup_ms, voice_receptionist_health_model, voice_receptionist_health_protocol_version, default_daily_credit_limit, default_monthly_credit_limit, updated_at'
     )
     .eq('id', 1)
     .maybeSingle();
@@ -200,6 +210,35 @@ export async function getAiPlatformGlobalSettings(): Promise<AiPlatformGlobalSet
     voiceReceptionistCostPerMinuteUsd: Number(
       data?.voice_receptionist_cost_per_minute_usd ?? DEFAULT_VOICE_RECEPTIONIST_COST_PER_MINUTE_USD
     ),
+    voiceReceptionistRolloutPercentage: Number(data?.voice_receptionist_rollout_percentage ?? 0),
+    voiceReceptionistRolloutPropertyIds: Array.isArray(
+      data?.voice_receptionist_rollout_property_ids
+    )
+      ? (data.voice_receptionist_rollout_property_ids as string[])
+      : [],
+    voiceReceptionistTranscriptRetentionDays: Number(
+      data?.voice_receptionist_transcript_retention_days ?? 30
+    ),
+    voiceReceptionistHealthStatus:
+      data?.voice_receptionist_health_status === 'healthy' ||
+      data?.voice_receptionist_health_status === 'unhealthy'
+        ? data.voice_receptionist_health_status
+        : 'unknown',
+    voiceReceptionistHealthCheckedAt:
+      (data?.voice_receptionist_health_checked_at as string | null) ?? null,
+    voiceReceptionistHealthFailureCode:
+      (data?.voice_receptionist_health_failure_code as string | null) ?? null,
+    voiceReceptionistHealthTokenMintMs:
+      data?.voice_receptionist_health_token_mint_ms == null
+        ? null
+        : Number(data.voice_receptionist_health_token_mint_ms),
+    voiceReceptionistHealthSetupMs:
+      data?.voice_receptionist_health_setup_ms == null
+        ? null
+        : Number(data.voice_receptionist_health_setup_ms),
+    voiceReceptionistHealthModel: (data?.voice_receptionist_health_model as string | null) ?? null,
+    voiceReceptionistHealthProtocolVersion:
+      (data?.voice_receptionist_health_protocol_version as string | null) ?? null,
     defaultDailyCreditLimit: Number(data?.default_daily_credit_limit ?? DEFAULT_DAILY_CREDIT_LIMIT),
     defaultMonthlyCreditLimit: Number(
       data?.default_monthly_credit_limit ?? DEFAULT_MONTHLY_CREDIT_LIMIT
@@ -228,6 +267,9 @@ export async function setAiPlatformGlobalSettings(input: {
   defaultDailyCostUsdLimit?: number;
   creditUnitUsd?: number;
   voiceReceptionistCostPerMinuteUsd?: number;
+  voiceReceptionistRolloutPercentage?: number;
+  voiceReceptionistRolloutPropertyIds?: string[];
+  voiceReceptionistTranscriptRetentionDays?: number;
   defaultDailyCreditLimit?: number;
   defaultMonthlyCreditLimit?: number;
   updatedBy: string;
@@ -248,6 +290,13 @@ export async function setAiPlatformGlobalSettings(input: {
   if (typeof input.creditUnitUsd === 'number') patch.credit_unit_usd = input.creditUnitUsd;
   if (typeof input.voiceReceptionistCostPerMinuteUsd === 'number')
     patch.voice_receptionist_cost_per_minute_usd = input.voiceReceptionistCostPerMinuteUsd;
+  if (typeof input.voiceReceptionistRolloutPercentage === 'number')
+    patch.voice_receptionist_rollout_percentage = input.voiceReceptionistRolloutPercentage;
+  if (Array.isArray(input.voiceReceptionistRolloutPropertyIds))
+    patch.voice_receptionist_rollout_property_ids = input.voiceReceptionistRolloutPropertyIds;
+  if (typeof input.voiceReceptionistTranscriptRetentionDays === 'number')
+    patch.voice_receptionist_transcript_retention_days =
+      input.voiceReceptionistTranscriptRetentionDays;
   if (typeof input.defaultDailyCreditLimit === 'number')
     patch.default_daily_credit_limit = input.defaultDailyCreditLimit;
   if (typeof input.defaultMonthlyCreditLimit === 'number')
@@ -258,7 +307,7 @@ export async function setAiPlatformGlobalSettings(input: {
     .update(patch)
     .eq('id', 1)
     .select(
-      'enabled, enforce_quotas, allowed_features, default_daily_call_limit, default_monthly_call_limit, default_daily_cost_usd_limit, credit_unit_usd, voice_receptionist_cost_per_minute_usd, default_daily_credit_limit, default_monthly_credit_limit, updated_at'
+      'enabled, enforce_quotas, allowed_features, default_daily_call_limit, default_monthly_call_limit, default_daily_cost_usd_limit, credit_unit_usd, voice_receptionist_cost_per_minute_usd, voice_receptionist_rollout_percentage, voice_receptionist_rollout_property_ids, voice_receptionist_transcript_retention_days, voice_receptionist_health_status, voice_receptionist_health_checked_at, voice_receptionist_health_failure_code, voice_receptionist_health_token_mint_ms, voice_receptionist_health_setup_ms, voice_receptionist_health_model, voice_receptionist_health_protocol_version, default_daily_credit_limit, default_monthly_credit_limit, updated_at'
     )
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -276,6 +325,35 @@ export async function setAiPlatformGlobalSettings(input: {
     voiceReceptionistCostPerMinuteUsd: Number(
       data?.voice_receptionist_cost_per_minute_usd ?? DEFAULT_VOICE_RECEPTIONIST_COST_PER_MINUTE_USD
     ),
+    voiceReceptionistRolloutPercentage: Number(data?.voice_receptionist_rollout_percentage ?? 0),
+    voiceReceptionistRolloutPropertyIds: Array.isArray(
+      data?.voice_receptionist_rollout_property_ids
+    )
+      ? (data.voice_receptionist_rollout_property_ids as string[])
+      : [],
+    voiceReceptionistTranscriptRetentionDays: Number(
+      data?.voice_receptionist_transcript_retention_days ?? 30
+    ),
+    voiceReceptionistHealthStatus:
+      data?.voice_receptionist_health_status === 'healthy' ||
+      data?.voice_receptionist_health_status === 'unhealthy'
+        ? data.voice_receptionist_health_status
+        : 'unknown',
+    voiceReceptionistHealthCheckedAt:
+      (data?.voice_receptionist_health_checked_at as string | null) ?? null,
+    voiceReceptionistHealthFailureCode:
+      (data?.voice_receptionist_health_failure_code as string | null) ?? null,
+    voiceReceptionistHealthTokenMintMs:
+      data?.voice_receptionist_health_token_mint_ms == null
+        ? null
+        : Number(data.voice_receptionist_health_token_mint_ms),
+    voiceReceptionistHealthSetupMs:
+      data?.voice_receptionist_health_setup_ms == null
+        ? null
+        : Number(data.voice_receptionist_health_setup_ms),
+    voiceReceptionistHealthModel: (data?.voice_receptionist_health_model as string | null) ?? null,
+    voiceReceptionistHealthProtocolVersion:
+      (data?.voice_receptionist_health_protocol_version as string | null) ?? null,
     defaultDailyCreditLimit: Number(data?.default_daily_credit_limit ?? DEFAULT_DAILY_CREDIT_LIMIT),
     defaultMonthlyCreditLimit: Number(
       data?.default_monthly_credit_limit ?? DEFAULT_MONTHLY_CREDIT_LIMIT

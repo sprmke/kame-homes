@@ -40,6 +40,21 @@ export function assistantBlocksToSnippet(blocks: unknown): string {
       parts.push(asText(rec.title));
     } else if (rec.type === 'data_table' && asText(rec.title)) {
       parts.push(asText(rec.title));
+    } else if (rec.type === 'flow') {
+      const title = asText(rec.title);
+      if (title) {
+        parts.push(title);
+      } else if (Array.isArray(rec.steps) && rec.steps.length > 0) {
+        parts.push(asText(rec.steps[0]));
+      }
+    } else if (rec.type === 'diagram') {
+      const title = asText(rec.title);
+      if (title) parts.push(title);
+      else if (asText(rec.source)) parts.push('Shared a diagram');
+    } else if (rec.type === 'map') {
+      const label = asText(rec.label);
+      if (label) parts.push(`Location: ${label}`);
+      else if (asText(rec.href)) parts.push(asText(rec.href));
     } else if (rec.type === 'booking_card') {
       const guest = asText(rec.guestName) || 'Guest';
       const status = asText(rec.status);

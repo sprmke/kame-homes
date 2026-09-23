@@ -6,13 +6,13 @@
 import {
   getAiPlatformGlobalSettings,
   setAiPlatformGlobalSettings,
-  type AiFeature,
 } from '../_shared/aiUsageService.ts';
-import { isValidAiFeature } from '../_shared/aiModelRouter.ts';
+import { isValidAiFeature, type AiFeature } from '../_shared/aiModelRouter.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
+import { getVoiceReceptionistOperationalMetrics } from '../_shared/voiceReceptionistService.ts';
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0;
@@ -25,12 +25,26 @@ function isValidFeatureList(value: unknown): value is AiFeature[] {
   );
 }
 
+function isUuidList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item)
+    )
+  );
+}
+
 serveSuperAdmin('ai-platform-global-settings', async (req, user) => {
   const stepUp = await requireSuperAdminStepUp(req, user, 'ai_global_settings');
   if (stepUp) return stepUp;
 
   if (req.method === 'GET') {
-    const data = await getAiPlatformGlobalSettings();
+    const [data, voiceReceptionistMetrics] = await Promise.all([
+      getAiPlatformGlobalSettings(),
+      getVoiceReceptionistOperationalMetrics(7),
+    ]);
     return jsonSuccess(req, {
       enabled: data.enabled,
       enforceQuotas: data.enforceQuotas,
@@ -40,6 +54,17 @@ serveSuperAdmin('ai-platform-global-settings', async (req, user) => {
       defaultDailyCostUsdLimit: data.defaultDailyCostUsdLimit,
       creditUnitUsd: data.creditUnitUsd,
       voiceReceptionistCostPerMinuteUsd: data.voiceReceptionistCostPerMinuteUsd,
+      voiceReceptionistRolloutPercentage: data.voiceReceptionistRolloutPercentage,
+      voiceReceptionistRolloutPropertyIds: data.voiceReceptionistRolloutPropertyIds,
+      voiceReceptionistTranscriptRetentionDays: data.voiceReceptionistTranscriptRetentionDays,
+      voiceReceptionistHealthStatus: data.voiceReceptionistHealthStatus,
+      voiceReceptionistHealthCheckedAt: data.voiceReceptionistHealthCheckedAt,
+      voiceReceptionistHealthFailureCode: data.voiceReceptionistHealthFailureCode,
+      voiceReceptionistHealthTokenMintMs: data.voiceReceptionistHealthTokenMintMs,
+      voiceReceptionistHealthSetupMs: data.voiceReceptionistHealthSetupMs,
+      voiceReceptionistHealthModel: data.voiceReceptionistHealthModel,
+      voiceReceptionistHealthProtocolVersion: data.voiceReceptionistHealthProtocolVersion,
+      voiceReceptionistMetrics,
       defaultDailyCreditLimit: data.defaultDailyCreditLimit,
       defaultMonthlyCreditLimit: data.defaultMonthlyCreditLimit,
       updatedAt: data.updatedAt,
@@ -86,6 +111,28 @@ serveSuperAdmin('ai-platform-global-settings', async (req, user) => {
       return jsonError(req, 'voiceReceptionistCostPerMinuteUsd must be a positive number', 400);
     }
     if (
+      body.voiceReceptionistRolloutPercentage !== undefined &&
+      (typeof body.voiceReceptionistRolloutPercentage !== 'number' ||
+        !Number.isInteger(body.voiceReceptionistRolloutPercentage) ||
+        body.voiceReceptionistRolloutPercentage < 0 ||
+        body.voiceReceptionistRolloutPercentage > 100)
+    ) {
+      return jsonError(req, 'voiceReceptionistRolloutPercentage must be from 0 to 100', 400);
+    }
+    if (
+      body.voiceReceptionistRolloutPropertyIds !== undefined &&
+      !isUuidList(body.voiceReceptionistRolloutPropertyIds)
+    ) {
+      return jsonError(req, 'voiceReceptionistRolloutPropertyIds must contain UUIDs', 400);
+    }
+    if (
+      body.voiceReceptionistTranscriptRetentionDays !== undefined &&
+      (!isPositiveInt(body.voiceReceptionistTranscriptRetentionDays) ||
+        body.voiceReceptionistTranscriptRetentionDays > 90)
+    ) {
+      return jsonError(req, 'voiceReceptionistTranscriptRetentionDays must be from 1 to 90', 400);
+    }
+    if (
       body.defaultDailyCreditLimit !== undefined &&
       (typeof body.defaultDailyCreditLimit !== 'number' || body.defaultDailyCreditLimit <= 0)
     ) {
@@ -117,6 +164,18 @@ serveSuperAdmin('ai-platform-global-settings', async (req, user) => {
         typeof body.voiceReceptionistCostPerMinuteUsd === 'number'
           ? body.voiceReceptionistCostPerMinuteUsd
           : undefined,
+      voiceReceptionistRolloutPercentage:
+        typeof body.voiceReceptionistRolloutPercentage === 'number'
+          ? body.voiceReceptionistRolloutPercentage
+          : undefined,
+      voiceReceptionistRolloutPropertyIds: isUuidList(body.voiceReceptionistRolloutPropertyIds)
+        ? body.voiceReceptionistRolloutPropertyIds
+        : undefined,
+      voiceReceptionistTranscriptRetentionDays: isPositiveInt(
+        body.voiceReceptionistTranscriptRetentionDays
+      )
+        ? body.voiceReceptionistTranscriptRetentionDays
+        : undefined,
       defaultDailyCreditLimit:
         typeof body.defaultDailyCreditLimit === 'number' ? body.defaultDailyCreditLimit : undefined,
       defaultMonthlyCreditLimit:
@@ -145,6 +204,16 @@ serveSuperAdmin('ai-platform-global-settings', async (req, user) => {
       defaultDailyCostUsdLimit: data.defaultDailyCostUsdLimit,
       creditUnitUsd: data.creditUnitUsd,
       voiceReceptionistCostPerMinuteUsd: data.voiceReceptionistCostPerMinuteUsd,
+      voiceReceptionistRolloutPercentage: data.voiceReceptionistRolloutPercentage,
+      voiceReceptionistRolloutPropertyIds: data.voiceReceptionistRolloutPropertyIds,
+      voiceReceptionistTranscriptRetentionDays: data.voiceReceptionistTranscriptRetentionDays,
+      voiceReceptionistHealthStatus: data.voiceReceptionistHealthStatus,
+      voiceReceptionistHealthCheckedAt: data.voiceReceptionistHealthCheckedAt,
+      voiceReceptionistHealthFailureCode: data.voiceReceptionistHealthFailureCode,
+      voiceReceptionistHealthTokenMintMs: data.voiceReceptionistHealthTokenMintMs,
+      voiceReceptionistHealthSetupMs: data.voiceReceptionistHealthSetupMs,
+      voiceReceptionistHealthModel: data.voiceReceptionistHealthModel,
+      voiceReceptionistHealthProtocolVersion: data.voiceReceptionistHealthProtocolVersion,
       defaultDailyCreditLimit: data.defaultDailyCreditLimit,
       defaultMonthlyCreditLimit: data.defaultMonthlyCreditLimit,
       updatedAt: data.updatedAt,

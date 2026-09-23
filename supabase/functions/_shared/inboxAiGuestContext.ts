@@ -4,7 +4,7 @@
  */
 
 import { serializeGuestPaymentInfo } from './appSettings.ts';
-import { addDaysYmd, listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import {
   collectDevelopmentPricingValues,
   loadGuestSafeDevelopmentContextByName,

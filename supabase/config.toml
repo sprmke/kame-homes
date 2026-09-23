@@ -878,6 +878,15 @@ verify_jwt = false
 [functions.voice-receptionist-end]
 verify_jwt = false
 
+[functions.voice-receptionist-session]
+verify_jwt = false
+
+[functions.voice-receptionist-reaper]
+verify_jwt = false
+
+[functions.voice-receptionist-canary]
+verify_jwt = false
+
 [functions.voice-receptionist-settings]
 verify_jwt = false
 

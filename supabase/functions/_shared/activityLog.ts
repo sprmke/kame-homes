@@ -833,6 +833,12 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'cron',
     summary: (c) => str(c.metadata, 'message') ?? `${c.actorName} completed a scheduled job`,
   },
+  'privacy.data_deleted': {
+    category: 'guest',
+    severity: 'notice',
+    targetType: 'privacy_data',
+    summary: () => 'A guest deleted voice transcript data',
+  },
 } as const satisfies Record<string, ActivityActionDef>;
 
 export type ActivityAction = keyof typeof ACTIVITY_ACTION_CATALOG;

@@ -156,6 +156,27 @@ export type DynamicFormBlock = {
   values?: Record<string, string>;
 };
 
+export type FlowBlock = {
+  type: 'flow';
+  title?: string;
+  steps: string[];
+};
+
+export type DiagramBlock = {
+  type: 'diagram';
+  title?: string;
+  format: 'mermaid' | 'text';
+  source: string;
+};
+
+export type MapBlock = {
+  type: 'map';
+  href: string;
+  lat: number | null;
+  lng: number | null;
+  label: string;
+};
+
 export type ChatBlock =
   | { type: 'text'; text: string }
   | {
@@ -205,6 +226,9 @@ export type ChatBlock =
       }>;
     }
   | { type: 'quick_actions'; actions: Array<{ label: string; prompt: string }> }
+  | FlowBlock
+  | DiagramBlock
+  | MapBlock
   | DynamicFormBlock
   | ActionConfirmationBlock;
 
@@ -220,6 +244,9 @@ const KNOWN_BLOCK_TYPES = new Set<ChatBlock['type']>([
   'activity_timeline',
   'task_plan',
   'quick_actions',
+  'flow',
+  'diagram',
+  'map',
   'dynamic_form',
   'action_confirmation',
 ]);
@@ -230,6 +257,7 @@ const KNOWN_BLOCK_TYPES = new Set<ChatBlock['type']>([
  * inherently safe regardless of context (there are none yet).
  */
 const UNGROUNDED_NUMBER_ALLOWLIST = new Set<number>([]);
+const MAP_COORD_EPSILON = 0.000001;
 
 function extractNumericLiterals(value: unknown, out: number[]): void {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -239,6 +267,32 @@ function extractNumericLiterals(value: unknown, out: number[]): void {
   } else if (value && typeof value === 'object') {
     for (const item of Object.values(value)) extractNumericLiterals(item, out);
   }
+}
+
+function parseMapCoordsFromHref(href: string): { lat: number; lng: number } | null {
+  try {
+    const u = new URL(href);
+    const at = u.pathname.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+    if (at) {
+      const lat = Number(at[1]);
+      const lng = Number(at[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+
+    for (const key of ['q', 'query', 'll', 'destination'] as const) {
+      const raw = u.searchParams.get(key);
+      if (!raw) continue;
+      const decoded = decodeURIComponent(raw.replace(/\+/g, ' '));
+      const pair = decoded.match(/^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$/);
+      if (!pair) continue;
+      const lat = Number(pair[1]);
+      const lng = Number(pair[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+  } catch {
+    // ignore invalid URL
+  }
+  return null;
 }
 
 /**
@@ -291,10 +345,47 @@ export function assertBlocksGrounded(
     if (
       block.type === 'stepper' ||
       block.type === 'quick_actions' ||
+      block.type === 'flow' ||
+      block.type === 'diagram' ||
       block.type === 'activity_timeline' ||
       block.type === 'task_plan' ||
       block.type === 'dynamic_form'
     ) {
+      return;
+    }
+
+    if (block.type === 'map') {
+      const href = typeof block.href === 'string' ? block.href.trim() : '';
+      if (!href || !groundingText.includes(href)) {
+        rejectedIndexes.push(index);
+        reason = reason ?? `Ungrounded map url in block at index ${index}`;
+        return;
+      }
+
+      const hasCoords = block.lat != null && block.lng != null;
+      if (hasCoords) {
+        const lat = Number(block.lat);
+        const lng = Number(block.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          rejectedIndexes.push(index);
+          reason = reason ?? `Invalid map coordinates in block at index ${index}`;
+          return;
+        }
+
+        const latGrounded = groundingText.includes(String(lat));
+        const lngGrounded = groundingText.includes(String(lng));
+        if (!latGrounded || !lngGrounded) {
+          const hrefCoords = parseMapCoordsFromHref(href);
+          const coordsMatchHref =
+            hrefCoords != null &&
+            Math.abs(hrefCoords.lat - lat) <= MAP_COORD_EPSILON &&
+            Math.abs(hrefCoords.lng - lng) <= MAP_COORD_EPSILON;
+          if (!coordsMatchHref) {
+            rejectedIndexes.push(index);
+            reason = reason ?? `Ungrounded map coordinates in block at index ${index}`;
+          }
+        }
+      }
       return;
     }
 

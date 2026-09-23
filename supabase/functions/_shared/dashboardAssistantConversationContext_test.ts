@@ -62,6 +62,23 @@ Deno.test('assistantBlocksToSnippet prefers text then titles', () => {
   assertEqual(snippet.includes('Net profit'), true, 'text');
 });
 
+Deno.test('assistantBlocksToSnippet includes flow diagram and map context', () => {
+  const snippet = assistantBlocksToSnippet([
+    { type: 'flow', title: 'Check-in flow', steps: ['Confirm guest', 'Send guide'] },
+    { type: 'diagram', format: 'mermaid', source: 'graph TD;A-->B' },
+    {
+      type: 'map',
+      href: 'https://maps.google.com/?q=14.5995,120.9842',
+      lat: 14.5995,
+      lng: 120.9842,
+      label: 'Makati',
+    },
+  ]);
+  assertEqual(snippet.includes('Check-in flow'), true, 'flow title');
+  assertEqual(snippet.includes('Shared a diagram'), true, 'diagram fallback summary');
+  assertEqual(snippet.includes('Location: Makati'), true, 'map label');
+});
+
 Deno.test('conversationContextPromptSection empty when no summary', () => {
   assertEqual(conversationContextPromptSection(''), '', 'empty');
   assertEqual(
