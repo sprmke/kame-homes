@@ -36,6 +36,7 @@ export function PrivacyPage() {
           paragraphs: [
             'We use personal data to fulfill bookings, verify identity and documents, communicate about stays, process security-deposit refunds, operate host dashboards (availability calendar, email, messaging, finance, maintenance, marketing), and meet legal obligations.',
             'AI features (for example receipt or document validation, marketing caption suggestions, inbox reply suggestions, and voice receptionist where enabled) process relevant content to produce suggestions or checks for hosts. We do not sell personal information.',
+            'When you start the voice receptionist, microphone audio is sent to Google Gemini for live processing. We do not store raw voice audio. Live captions may be stored as an unverified session transcript.',
           ],
         },
         {
@@ -56,6 +57,8 @@ export function PrivacyPage() {
           title: 'Retention',
           paragraphs: [
             'We keep booking, document, and account records for as long as needed to operate stays, support hosts, meet accounting or legal requirements, and resolve disputes. When data is no longer required, we delete or anonymize it according to our operational practices.',
+            'Voice receptionist captions are kept for 30 days by default. The platform may set a shorter or longer period from 1 to 90 days. You can delete captions from the completed call.',
+            'Call timing, outcome, model, and estimated usage remain with account and property records for security, reliability, and billing. Deleting captions also removes their safety flags.',
           ],
         },
         {
