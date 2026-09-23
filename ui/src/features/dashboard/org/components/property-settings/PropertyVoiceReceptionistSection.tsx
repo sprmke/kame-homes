@@ -62,8 +62,8 @@ function VoiceReceptionistUsagePanel() {
   if (isError) return null;
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4" aria-hidden>
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6" aria-hidden>
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-muted h-16 animate-pulse rounded-lg" />
         ))}
       </div>
@@ -75,11 +75,13 @@ function VoiceReceptionistUsagePanel() {
       <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
         Usage — last 30 days
       </p>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <UsageStat label="Today" value={String(data.sessionsToday)} />
         <UsageStat label="Last 30 days" value={String(data.sessionsLast30Days)} />
         <UsageStat label="Avg. length" value={formatDurationShort(data.avgDurationSeconds)} />
         <UsageStat label="Est. cost" value={`$${data.estimatedCostUsdLast30Days.toFixed(2)}`} />
+        <UsageStat label="Failed" value={`${data.failureRate.toFixed(1)}%`} />
+        <UsageStat label="Handoff" value={`${data.handoffRate.toFixed(1)}%`} />
       </div>
     </div>
   );
@@ -214,7 +216,7 @@ export function PropertyVoiceReceptionistSection({
               disabled={disabled}
               value={draft.personaPrompt}
               onChange={(event) => onChange('personaPrompt', event.target.value)}
-              maxLength={2000}
+              maxLength={300}
             />
           </SettingsField>
 
