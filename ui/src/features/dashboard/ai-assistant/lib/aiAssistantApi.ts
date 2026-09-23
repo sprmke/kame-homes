@@ -75,6 +75,27 @@ export type DynamicFormBlock = {
   values?: Record<string, string>;
 };
 
+export type FlowBlock = {
+  type: 'flow';
+  title?: string;
+  steps: string[];
+};
+
+export type DiagramBlock = {
+  type: 'diagram';
+  title?: string;
+  format: 'mermaid' | 'text';
+  source: string;
+};
+
+export type MapBlock = {
+  type: 'map';
+  href: string;
+  lat: number | null;
+  lng: number | null;
+  label: string;
+};
+
 export type ChatBlock =
   | { type: 'text'; text: string }
   | {
@@ -105,6 +126,9 @@ export type ChatBlock =
   | { type: 'activity_timeline'; entries: ActivityTimelineEntry[] }
   | { type: 'task_plan'; title: string; steps: TaskPlanStep[] }
   | { type: 'quick_actions'; actions: Array<{ label: string; prompt: string }> }
+  | FlowBlock
+  | DiagramBlock
+  | MapBlock
   | DynamicFormBlock
   | ActionConfirmationBlock;
 

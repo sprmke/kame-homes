@@ -5,13 +5,16 @@ import { ChatCanvasCompactCard } from '@/features/dashboard/ai-assistant/compone
 import { DataTableBlock } from '@/features/dashboard/ai-assistant/components/blocks/DataTableBlock';
 import { DynamicFormBlock } from '@/features/dashboard/ai-assistant/components/blocks/DynamicFormBlock';
 import { FileListBlock } from '@/features/dashboard/ai-assistant/components/blocks/FileListBlock';
+import { FlowBlock } from '@/features/dashboard/ai-assistant/components/blocks/FlowBlock';
 import { ImageBlock } from '@/features/dashboard/ai-assistant/components/blocks/ImageBlock';
 import { LinkListBlock } from '@/features/dashboard/ai-assistant/components/blocks/LinkListBlock';
+import { MapBlock } from '@/features/dashboard/ai-assistant/components/blocks/MapBlock';
 import { QuickActionsBlock } from '@/features/dashboard/ai-assistant/components/blocks/QuickActionsBlock';
 import { StatListBlock } from '@/features/dashboard/ai-assistant/components/blocks/StatListBlock';
 import { StepperBlock } from '@/features/dashboard/ai-assistant/components/blocks/StepperBlock';
 import { TaskPlanBlock } from '@/features/dashboard/ai-assistant/components/blocks/TaskPlanBlock';
 import { TextBlock } from '@/features/dashboard/ai-assistant/components/blocks/TextBlock';
+import { DiagramBlock } from '@/features/dashboard/ai-assistant/components/blocks/DiagramBlock';
 import type {
   ChatBlock,
   ConfirmActionResponse,
@@ -62,6 +65,12 @@ export function ChatBlockRenderer({
             return <FileListBlock key={i} {...block} />;
           case 'image':
             return <ImageBlock key={i} {...block} />;
+          case 'flow':
+            return <FlowBlock key={i} {...block} />;
+          case 'diagram':
+            return <DiagramBlock key={i} {...block} />;
+          case 'map':
+            return <MapBlock key={i} {...block} />;
           case 'stepper':
             return <StepperBlock key={i} {...block} onResolveAction={onResolveAction} />;
           case 'activity_timeline':

@@ -51,10 +51,106 @@ export function ChatRichBody({
   onCalendarLinkClick,
 }: Props) {
   const blocks = useMemo(() => parseChatRichBlocks(text), [text]);
+  const cardClass = outbound
+    ? 'border-primary-foreground/25 bg-primary-foreground/10'
+    : 'border-border/60 bg-card';
 
   return (
     <div className={cn('space-y-2 break-words text-sm leading-relaxed', className)}>
       {blocks.map((block, i) => {
+        if (block.type === 'flow') {
+          return (
+            <div key={`flow-${i}`} className={cn('space-y-2 rounded-xl border p-3', cardClass)}>
+              {block.title ? (
+                <p className="text-xs font-semibold uppercase tracking-wide">{block.title}</p>
+              ) : null}
+              <ol className="space-y-1.5 pl-4">
+                {block.steps.map((step, stepIndex) => (
+                  <li key={`${step}-${stepIndex}`} className="list-decimal">
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          );
+        }
+
+        if (block.type === 'diagram') {
+          return (
+            <div key={`diagram-${i}`} className={cn('space-y-2 rounded-xl border p-3', cardClass)}>
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                {block.title?.trim() || (block.format === 'mermaid' ? 'Diagram' : 'Flow')}
+              </p>
+              <pre className="bg-background/50 overflow-x-auto rounded-lg p-2 text-xs leading-relaxed">
+                <code>{block.source}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        if (block.type === 'form') {
+          return (
+            <div key={`form-${i}`} className={cn('space-y-2 rounded-xl border p-3', cardClass)}>
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                {block.title?.trim() || 'Form details'}
+              </p>
+              <ul className="space-y-1.5">
+                {block.fields.map((field, fieldIndex) => (
+                  <li key={`${field.label}-${fieldIndex}`} className="text-sm">
+                    <span className="font-medium">
+                      {field.label}
+                      {field.required ? <span className="text-destructive"> *</span> : null}
+                    </span>
+                    {field.hint ? (
+                      <span className="text-muted-foreground">: {field.hint}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
+
+        if (block.type === 'dataTable') {
+          return (
+            <div key={`table-${i}`} className={cn('space-y-2 rounded-xl border p-3', cardClass)}>
+              {block.title ? (
+                <p className="text-xs font-semibold uppercase tracking-wide">{block.title}</p>
+              ) : null}
+              <div className="border-border/60 overflow-x-auto rounded-lg border">
+                <table className="min-w-full text-left text-xs sm:text-sm">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      {block.columns.map((column, colIndex) => (
+                        <th
+                          key={`${column}-${colIndex}`}
+                          className="whitespace-nowrap px-2.5 py-2 font-semibold"
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, rowIndex) => (
+                      <tr key={`row-${rowIndex}`} className="border-border/60 border-t">
+                        {block.columns.map((_, colIndex) => (
+                          <td
+                            key={`cell-${rowIndex}-${colIndex}`}
+                            className="px-2.5 py-2 align-top"
+                          >
+                            {row[colIndex] ?? ''}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        }
+
         if (block.type === 'mapLink') {
           return (
             <ChatMapLinkCard

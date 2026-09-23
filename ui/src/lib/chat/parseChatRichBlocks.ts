@@ -22,6 +22,14 @@ export type ChatUrlLinkResourceKind =
 export type ChatRichBlock =
   | { type: 'paragraph'; segments: ChatRichSegment[] }
   | { type: 'list'; ordered: boolean; items: ChatRichSegment[][] }
+  | { type: 'flow'; title?: string; steps: string[] }
+  | { type: 'diagram'; title?: string; format: 'mermaid' | 'text'; source: string }
+  | {
+      type: 'form';
+      title?: string;
+      fields: Array<{ label: string; hint?: string; required: boolean }>;
+    }
+  | { type: 'dataTable'; title?: string; columns: string[]; rows: string[][] }
   | {
       type: 'mapLink';
       href: string;
@@ -56,6 +64,7 @@ export function isMostlyLatinScript(text: string): boolean {
 
 /** https URLs; trims common trailing punctuation from the match. */
 const URL_RE = /https:\/\/[^\s<>"'`]+/gi;
+const FENCED_BLOCK_RE = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
 
 const LIST_UNORDERED_RE = /^\s*([-•*])\s+(.*)$/;
 const LIST_ORDERED_RE = /^\s*(\d+)[.)]\s+(.*)$/;
@@ -394,13 +403,10 @@ function flushList(ordered: boolean, items: string[], out: ChatRichBlock[]) {
   out.push(...afterMaps);
 }
 
-/**
- * Parse plain message text into rich blocks for `ChatRichBody`.
- */
-export function parseChatRichBlocks(raw: string): ChatRichBlock[] {
+function parsePlainTextBlocks(raw: string): ChatRichBlock[] {
   const text = normalizeChatText(raw).replace(/\r\n/g, '\n');
   if (!text.trim()) {
-    return [{ type: 'paragraph', segments: [{ type: 'text', text: '-' }] }];
+    return [];
   }
 
   const lines = text.split('\n');
@@ -446,7 +452,148 @@ export function parseChatRichBlocks(raw: string): ChatRichBlock[] {
   endList();
   flushParagraph(paragraphBuf, out);
 
-  return out.length ? out : [{ type: 'paragraph', segments: [{ type: 'text', text: text }] }];
+  return out.length ? out : [{ type: 'paragraph', segments: [{ type: 'text', text }] }];
+}
+
+function extractOptionalTitle(lines: string[]): { title?: string; bodyLines: string[] } {
+  const [first, ...rest] = lines;
+  if (!first) return { bodyLines: [] };
+  const match = first.match(/^title\s*:\s*(.+)$/i);
+  if (!match) return { bodyLines: lines };
+  return { title: match[1]?.trim() || undefined, bodyLines: rest };
+}
+
+function parseFlowBlock(body: string): Extract<ChatRichBlock, { type: 'flow' }> | null {
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  const { title, bodyLines } = extractOptionalTitle(lines);
+  const steps = bodyLines
+    .map((line) =>
+      line
+        .replace(/^\d+[.)]\s+/, '')
+        .replace(/^[-*]\s+/, '')
+        .trim()
+    )
+    .filter(Boolean);
+  if (steps.length === 0) return null;
+  return { type: 'flow', title, steps };
+}
+
+function parseDiagramBlock(
+  body: string,
+  format: 'mermaid' | 'text'
+): Extract<ChatRichBlock, { type: 'diagram' }> | null {
+  const lines = body.split('\n');
+  const { title, bodyLines } = extractOptionalTitle(lines);
+  const source = bodyLines.join('\n').trim();
+  if (!source) return null;
+  return { type: 'diagram', title, format, source };
+}
+
+function parseFormBlock(body: string): Extract<ChatRichBlock, { type: 'form' }> | null {
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  const { title, bodyLines } = extractOptionalTitle(lines);
+  const fields = bodyLines.reduce<Array<{ label: string; hint?: string; required: boolean }>>(
+    (acc, line) => {
+      const cleaned = line.replace(/^[-*]\s+/, '').trim();
+      const [labelPart, ...hintParts] = cleaned.split(':');
+      const labelRaw = (labelPart ?? '').trim();
+      const required =
+        /\(\s*required\s*\)\s*$/i.test(cleaned) || /\*$/.test(cleaned) || /\*$/.test(labelRaw);
+      const withoutRequired = cleaned
+        .replace(/\(\s*required\s*\)\s*$/i, '')
+        .replace(/\*$/, '')
+        .trim();
+      const [withoutRequiredLabel, ...withoutRequiredHintParts] = withoutRequired.split(':');
+      const label = (withoutRequiredLabel ?? '').trim().replace(/\*$/, '').trim();
+      const hint = hintParts.join(':').trim() || undefined;
+      const fallbackHint = withoutRequiredHintParts.join(':').trim() || undefined;
+      if (!label) return acc;
+      const resolvedHint = hint ?? fallbackHint;
+      acc.push(resolvedHint ? { label, hint: resolvedHint, required } : { label, required });
+      return acc;
+    },
+    []
+  );
+  if (fields.length === 0) return null;
+  return { type: 'form', title, fields };
+}
+
+function parseTableBlock(body: string): Extract<ChatRichBlock, { type: 'dataTable' }> | null {
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return null;
+  const { title, bodyLines } = extractOptionalTitle(lines);
+  const rows = bodyLines
+    .map((line) => line.replace(/^\|/, '').replace(/\|$/, ''))
+    .map((line) => line.split('|').map((cell) => cell.trim()));
+  if (rows.length < 2) return null;
+  const isDivider = (cell: string) => /^:?-{3,}:?$/.test(cell);
+  const maybeDivider = rows[1] ?? [];
+  const hasDivider = maybeDivider.length > 0 && maybeDivider.every(isDivider);
+  const columns = rows[0]?.filter(Boolean) ?? [];
+  const dataRows = (hasDivider ? rows.slice(2) : rows.slice(1))
+    .map((row) => row.map((cell) => cell.trim()))
+    .filter((row) => row.some((cell) => cell.length > 0));
+  if (columns.length === 0 || dataRows.length === 0) return null;
+  return { type: 'dataTable', title, columns, rows: dataRows };
+}
+
+function parseStructuredFence(langRaw: string | undefined, body: string): ChatRichBlock | null {
+  const lang = (langRaw ?? '').trim().toLowerCase();
+  if (!lang) return null;
+  if (lang === 'flow' || lang === 'workflow' || lang === 'steps') {
+    return parseFlowBlock(body);
+  }
+  if (lang === 'mermaid') return parseDiagramBlock(body, 'mermaid');
+  if (lang === 'diagram') return parseDiagramBlock(body, 'text');
+  if (lang === 'form' || lang === 'fields') return parseFormBlock(body);
+  if (lang === 'table' || lang === 'markdown-table' || lang === 'csv') return parseTableBlock(body);
+  return null;
+}
+
+/**
+ * Parse plain message text into rich blocks for `ChatRichBody`.
+ */
+export function parseChatRichBlocks(raw: string): ChatRichBlock[] {
+  const text = normalizeChatText(raw).replace(/\r\n/g, '\n');
+  if (!text.trim()) {
+    return [{ type: 'paragraph', segments: [{ type: 'text', text: '-' }] }];
+  }
+
+  const out: ChatRichBlock[] = [];
+  let cursor = 0;
+  FENCED_BLOCK_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = FENCED_BLOCK_RE.exec(text)) !== null) {
+    const start = match.index;
+    if (start > cursor) {
+      out.push(...parsePlainTextBlocks(text.slice(cursor, start)));
+    }
+    const structured = parseStructuredFence(match[1], match[2] ?? '');
+    if (structured) {
+      out.push(structured);
+    } else {
+      out.push(...parsePlainTextBlocks(match[0]));
+    }
+    cursor = start + match[0].length;
+  }
+
+  if (cursor < text.length) {
+    out.push(...parsePlainTextBlocks(text.slice(cursor)));
+  }
+
+  return out.length ? out : [{ type: 'paragraph', segments: [{ type: 'text', text }] }];
 }
 
 /** @deprecated Prefer Google/OSM embed via `resolvePropertyMapEmbedSrc` — kept for callers/tests. */
