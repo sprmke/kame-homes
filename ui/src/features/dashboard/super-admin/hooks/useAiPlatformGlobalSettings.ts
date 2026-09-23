@@ -11,6 +11,27 @@ export type AiPlatformGlobalSettingsDto = {
   defaultDailyCostUsdLimit: number;
   creditUnitUsd: number;
   voiceReceptionistCostPerMinuteUsd: number;
+  voiceReceptionistRolloutPercentage: number;
+  voiceReceptionistRolloutPropertyIds: string[];
+  voiceReceptionistTranscriptRetentionDays: number;
+  voiceReceptionistHealthStatus: 'unknown' | 'healthy' | 'unhealthy';
+  voiceReceptionistHealthCheckedAt: string | null;
+  voiceReceptionistHealthFailureCode: string | null;
+  voiceReceptionistHealthTokenMintMs: number | null;
+  voiceReceptionistHealthSetupMs: number | null;
+  voiceReceptionistHealthModel: string | null;
+  voiceReceptionistHealthProtocolVersion: string | null;
+  voiceReceptionistMetrics: {
+    days: number;
+    sessions: number;
+    startupMs: { p50: number | null; p95: number | null };
+    firstAudioMs: { p50: number | null; p95: number | null };
+    toolMs: { p50: number | null; p95: number | null };
+    sessionSeconds: { p50: number | null; p95: number | null };
+    reconnects: { p50: number | null; p95: number | null };
+    completionRatePct: number | null;
+    alerts: Record<string, boolean>;
+  } | null;
   updatedAt: string | null;
 };
 
@@ -23,6 +44,9 @@ export type AiPlatformGlobalSettingsPatch = {
   defaultDailyCostUsdLimit?: number;
   creditUnitUsd?: number;
   voiceReceptionistCostPerMinuteUsd?: number;
+  voiceReceptionistRolloutPercentage?: number;
+  voiceReceptionistRolloutPropertyIds?: string[];
+  voiceReceptionistTranscriptRetentionDays?: number;
 };
 
 const QUERY_KEY = ['super-admin', 'ai-platform-global-settings'] as const;
@@ -42,8 +66,8 @@ export function useUpdateAiPlatformGlobalSettings() {
         method: 'PATCH',
         body: JSON.stringify(patch),
       }),
-    onSuccess: (data) => {
-      qc.setQueryData(QUERY_KEY, data);
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: QUERY_KEY });
     },
   });
 }

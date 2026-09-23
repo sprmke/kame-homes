@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -6,8 +8,10 @@ import {
   useUpdateAiPlatformGlobalSettings,
 } from '@/features/dashboard/super-admin/hooks/useAiPlatformGlobalSettings';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 /** UI toggles — each row maps to one or more `AiFeature` ids from the server allowlist. */
@@ -37,6 +41,11 @@ const CARD_CLASS = 'border-border bg-card flex h-full min-w-0 flex-col gap-5 rou
 export function AiPlatformKillSwitchCard() {
   const { data, isLoading } = useAiPlatformGlobalSettings();
   const update = useUpdateAiPlatformGlobalSettings();
+  const [voiceAllowlistDraft, setVoiceAllowlistDraft] = useState('');
+
+  useEffect(() => {
+    setVoiceAllowlistDraft((data?.voiceReceptionistRolloutPropertyIds ?? []).join('\n'));
+  }, [data?.voiceReceptionistRolloutPropertyIds]);
 
   const allowed = new Set(data?.allowedFeatures ?? []);
   const allEnabled = Boolean(data?.enabled) && allowed.size === 0;
@@ -52,11 +61,35 @@ export function AiPlatformKillSwitchCard() {
     defaultDailyCostUsdLimit?: number;
     creditUnitUsd?: number;
     voiceReceptionistCostPerMinuteUsd?: number;
+    voiceReceptionistRolloutPercentage?: number;
+    voiceReceptionistRolloutPropertyIds?: string[];
+    voiceReceptionistTranscriptRetentionDays?: number;
   }) => {
     update.mutate(patch, {
       onSuccess: () => toast.success('AI platform settings updated'),
       onError: (err: unknown) => toast.error(friendlyToastError(err, 'Could not save setting')),
     });
+  };
+
+  const saveVoiceAllowlist = () => {
+    const ids = Array.from(
+      new Set(
+        voiceAllowlistDraft
+          .split(/[\s,]+/)
+          .map((value) => value.trim())
+          .filter(Boolean)
+      )
+    );
+    if (
+      ids.some(
+        (id) =>
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      )
+    ) {
+      toast.error('Enter valid property IDs');
+      return;
+    }
+    save({ voiceReceptionistRolloutPropertyIds: ids });
   };
 
   const handleEnabledChange = (enabled: boolean) => {
@@ -89,14 +122,20 @@ export function AiPlatformKillSwitchCard() {
       | 'defaultMonthlyCallLimit'
       | 'defaultDailyCostUsdLimit'
       | 'creditUnitUsd'
-      | 'voiceReceptionistCostPerMinuteUsd',
+      | 'voiceReceptionistCostPerMinuteUsd'
+      | 'voiceReceptionistRolloutPercentage'
+      | 'voiceReceptionistTranscriptRetentionDays',
     value: string
   ) => {
     const num =
       field === 'defaultDailyCallLimit' || field === 'defaultMonthlyCallLimit'
         ? parseInt(value, 10)
         : parseFloat(value);
-    if (Number.isFinite(num) && num > 0) {
+    const valid =
+      field === 'voiceReceptionistRolloutPercentage'
+        ? Number.isInteger(num) && num >= 0 && num <= 100
+        : Number.isFinite(num) && num > 0;
+    if (valid) {
       save({ [field]: num });
     }
   };
@@ -133,6 +172,56 @@ export function AiPlatformKillSwitchCard() {
           />
         </label>
       </div>
+
+      <div className="border-border/50 bg-muted/15 rounded-lg border px-3 py-2.5 text-sm">
+        <div className="flex min-h-[24px] items-center justify-between gap-3">
+          <span className="font-medium">Voice health</span>
+          <span
+            className={
+              data?.voiceReceptionistHealthStatus === 'healthy'
+                ? 'text-success'
+                : data?.voiceReceptionistHealthStatus === 'unhealthy'
+                  ? 'text-destructive'
+                  : 'text-muted-foreground'
+            }
+          >
+            {data?.voiceReceptionistHealthStatus ?? 'unknown'}
+          </span>
+        </div>
+        {data?.voiceReceptionistHealthCheckedAt ? (
+          <p className="text-muted-foreground mt-1 text-xs">
+            {data.voiceReceptionistHealthModel ?? 'Model unknown'} ·{' '}
+            {data.voiceReceptionistHealthProtocolVersion ?? 'Protocol unknown'} · mint{' '}
+            {data.voiceReceptionistHealthTokenMintMs ?? 0} ms · setup{' '}
+            {data.voiceReceptionistHealthSetupMs ?? 0} ms
+          </p>
+        ) : null}
+      </div>
+      {data?.voiceReceptionistMetrics ? (
+        <div className="border-border/50 bg-muted/15 rounded-lg border px-3 py-2.5 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-medium">Voice reliability</span>
+            <span className="text-muted-foreground">
+              {data.voiceReceptionistMetrics.sessions} sessions
+            </span>
+          </div>
+          <div className="text-muted-foreground mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+            <span>Startup p95 {data.voiceReceptionistMetrics.startupMs.p95 ?? 'n/a'} ms</span>
+            <span>
+              First audio p95 {data.voiceReceptionistMetrics.firstAudioMs.p95 ?? 'n/a'} ms
+            </span>
+            <span>Tool p95 {data.voiceReceptionistMetrics.toolMs.p95 ?? 'n/a'} ms</span>
+            <span>Session p95 {data.voiceReceptionistMetrics.sessionSeconds.p95 ?? 'n/a'} sec</span>
+            <span>Reconnect p95 {data.voiceReceptionistMetrics.reconnects.p95 ?? 'n/a'}</span>
+            <span>Completion {data.voiceReceptionistMetrics.completionRatePct ?? 'n/a'}%</span>
+          </div>
+          {Object.values(data.voiceReceptionistMetrics.alerts).some(Boolean) ? (
+            <p role="alert" className="text-destructive mt-2 text-xs">
+              Voice reliability threshold exceeded.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Allowed features</p>
@@ -218,7 +307,54 @@ export function AiPlatformKillSwitchCard() {
             }
           />
         </label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+          <span>Voice rollout (%)</span>
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            className="h-10"
+            value={data?.voiceReceptionistRolloutPercentage ?? ''}
+            disabled={featuresDisabled}
+            onChange={(e) =>
+              handleNumberChange('voiceReceptionistRolloutPercentage', e.target.value)
+            }
+          />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+          <span>Voice retention (days)</span>
+          <Input
+            type="number"
+            min={1}
+            max={90}
+            className="h-10"
+            value={data?.voiceReceptionistTranscriptRetentionDays ?? ''}
+            disabled={featuresDisabled}
+            onChange={(e) =>
+              handleNumberChange('voiceReceptionistTranscriptRetentionDays', e.target.value)
+            }
+          />
+        </label>
       </div>
+      <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+        <span>Voice property allowlist</span>
+        <Textarea
+          rows={3}
+          value={voiceAllowlistDraft}
+          disabled={featuresDisabled}
+          onChange={(event) => setVoiceAllowlistDraft(event.target.value)}
+          placeholder="One property ID per line"
+        />
+      </label>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={featuresDisabled}
+        onClick={saveVoiceAllowlist}
+        className="min-h-[44px] self-start"
+      >
+        Save allowlist
+      </Button>
     </div>
   );
 }
