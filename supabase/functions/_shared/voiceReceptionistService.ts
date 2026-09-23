@@ -9,7 +9,6 @@
 
 import { createServiceClient } from './orgAuth.ts';
 import { GEMINI_LIVE_VOICES, type GeminiLiveVoice } from './geminiLiveEphemeral.ts';
-import { insertMessageIfNew, updateConversationAfterMessage } from './socialInboxService.ts';
 import { getModelConfig, isValidAiFeature } from './aiModelRouter.ts';
 import { getAiPlatformGlobalSettings, recordAiUsage } from './aiUsageService.ts';
 
@@ -29,6 +28,10 @@ const FALLBACK_ESTIMATED_COST_PER_MINUTE_USD = 0.023;
 
 export type VoiceReceptionistGlobalSettingsDto = {
   enabled: boolean;
+  rolloutPercentage: number;
+  rolloutPropertyIds: string[];
+  healthStatus: 'unknown' | 'healthy' | 'unhealthy';
+  healthCheckedAt: string | null;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -44,6 +47,31 @@ export type VoiceReceptionistSettingsDto = {
   availableVoices: readonly string[];
 };
 
+export type VoiceReceptionistClientMetrics = {
+  setupMs: number | null;
+  firstAudioMs: number | null;
+  reconnectCount: number;
+};
+
+function boundedClientMetric(value: unknown, maximum: number): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.min(maximum, Math.max(0, Math.round(value)));
+}
+
+export function sanitizeVoiceReceptionistClientMetrics(
+  value: unknown
+): VoiceReceptionistClientMetrics {
+  const metrics =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  return {
+    setupMs: boundedClientMetric(metrics.setupMs, 600_000),
+    firstAudioMs: boundedClientMetric(metrics.firstAudioMs, 600_000),
+    reconnectCount: boundedClientMetric(metrics.reconnectCount, 100) ?? 0,
+  };
+}
+
 export class VoiceReceptionistCapError extends Error {
   constructor(
     message: string,
@@ -52,6 +80,118 @@ export class VoiceReceptionistCapError extends Error {
     super(message);
     this.name = 'VoiceReceptionistCapError';
   }
+}
+
+export async function recordVoiceReceptionistStartAttempt(input: {
+  propertyId: string;
+  guestUserId: string;
+  outcome: 'started' | 'provider_failed' | 'cap_denied' | 'gate_denied';
+  failureCode?: string | null;
+  reservationLatencyMs?: number | null;
+  mintLatencyMs?: number | null;
+}): Promise<void> {
+  const { error } = await db()
+    .from('voice_receptionist_start_attempts')
+    .insert({
+      property_id: input.propertyId,
+      guest_user_id: input.guestUserId,
+      outcome: input.outcome,
+      failure_code: input.failureCode ?? null,
+      reservation_latency_ms: input.reservationLatencyMs ?? null,
+      mint_latency_ms: input.mintLatencyMs ?? null,
+    });
+  if (error) {
+    console.warn('[voiceReceptionistService] start-attempt record failed:', error.message);
+  }
+}
+
+export async function recordVoiceReceptionistProviderFailure(failureCode: string): Promise<void> {
+  const { error } = await db()
+    .from('ai_platform_global_settings')
+    .update({
+      voice_receptionist_health_status: 'unhealthy',
+      voice_receptionist_health_checked_at: new Date().toISOString(),
+      voice_receptionist_health_failure_code: failureCode.slice(0, 120),
+    })
+    .eq('id', 1);
+  if (error) {
+    console.warn('[voiceReceptionistService] provider failure health:', error.message);
+  }
+}
+
+export async function recordVoiceReceptionistToolMetric(input: {
+  sessionId: string;
+  toolName: string;
+  durationMs: number;
+  outcome: 'success' | 'failed';
+}): Promise<void> {
+  const { error } = await db()
+    .from('voice_receptionist_tool_metrics')
+    .insert({
+      session_id: input.sessionId,
+      tool_name: input.toolName.slice(0, 80),
+      duration_ms: Math.min(600_000, Math.max(0, Math.round(input.durationMs))),
+      outcome: input.outcome,
+    });
+  if (error) {
+    console.warn('[voiceReceptionistService] tool metric failed:', error.message);
+  }
+}
+
+export async function storeVoiceReceptionistClientMetrics(
+  sessionId: string,
+  guestUserId: string,
+  metrics: VoiceReceptionistClientMetrics
+): Promise<void> {
+  const { error } = await db()
+    .from('voice_receptionist_sessions')
+    .update({
+      client_setup_ms: metrics.setupMs,
+      client_first_audio_ms: metrics.firstAudioMs,
+      reconnect_count: metrics.reconnectCount,
+    })
+    .eq('id', sessionId)
+    .eq('guest_user_id', guestUserId);
+  if (error) {
+    console.warn('[voiceReceptionistService] client metric failed:', error.message);
+  }
+}
+
+export async function getVoiceReceptionistOperationalMetrics(days = 7): Promise<unknown> {
+  const boundedDays = Math.min(30, Math.max(1, Math.round(days)));
+  const sb = db();
+  const [metricsResult, mintAlertResult] = await Promise.all([
+    sb.rpc('get_voice_receptionist_operational_metrics', { p_days: boundedDays }),
+    sb.rpc('is_voice_receptionist_mint_failure_rate_high', { p_days: boundedDays }),
+  ]);
+  if (metricsResult.error) {
+    console.warn(
+      '[voiceReceptionistService] operational metrics failed:',
+      metricsResult.error.message
+    );
+    return null;
+  }
+  if (mintAlertResult.error) {
+    console.warn(
+      '[voiceReceptionistService] mint alert metric failed:',
+      mintAlertResult.error.message
+    );
+  }
+  const metrics =
+    metricsResult.data && typeof metricsResult.data === 'object'
+      ? (metricsResult.data as Record<string, unknown>)
+      : {};
+  const alerts =
+    metrics.alerts && typeof metrics.alerts === 'object'
+      ? (metrics.alerts as Record<string, unknown>)
+      : {};
+  return {
+    ...metrics,
+    alerts: {
+      ...alerts,
+      mintFailureRateHigh: mintAlertResult.data === true,
+    },
+  };
 }
 
 function db() {
@@ -92,59 +232,72 @@ export async function getGlobalVoiceReceptionistSettings(): Promise<VoiceRecepti
     globalEnabled && (allowedFeatures.length === 0 || allowedFeatures.includes(VOICE_FEATURE));
   return {
     enabled: allowed,
+    rolloutPercentage: Math.min(
+      100,
+      Math.max(0, Number(data?.voice_receptionist_rollout_percentage ?? 0))
+    ),
+    rolloutPropertyIds: Array.isArray(data?.voice_receptionist_rollout_property_ids)
+      ? (data.voice_receptionist_rollout_property_ids as string[])
+      : [],
+    healthStatus:
+      data?.voice_receptionist_health_status === 'healthy' ||
+      data?.voice_receptionist_health_status === 'unhealthy'
+        ? data.voice_receptionist_health_status
+        : 'unknown',
+    healthCheckedAt:
+      (data?.voice_receptionist_health_checked_at as string | null | undefined) ?? null,
     updatedBy: (data?.updated_by as string | null) ?? null,
     updatedAt: (data?.updated_at as string | undefined) ?? new Date().toISOString(),
   };
 }
 
-export async function setGlobalVoiceReceptionistEnabled(
-  enabled: boolean,
-  updatedByUserId: string
-): Promise<VoiceReceptionistGlobalSettingsDto> {
-  const sb = db();
-  // Ensure row exists first.
-  await sb
-    .from('ai_platform_global_settings')
-    .upsert({ id: 1 }, { onConflict: 'id', ignoreDuplicates: true });
+export function isVoiceReceptionistCircuitOpen(
+  settings: VoiceReceptionistGlobalSettingsDto,
+  nowMs = Date.now()
+): boolean {
+  if (settings.healthStatus !== 'unhealthy' || !settings.healthCheckedAt) return false;
+  const checkedAtMs = new Date(settings.healthCheckedAt).getTime();
+  return Number.isFinite(checkedAtMs) && nowMs - checkedAtMs < 5 * 60_000;
+}
 
-  const { data: current, error: readError } = await sb
-    .from('ai_platform_global_settings')
-    .select('allowed_features')
-    .eq('id', 1)
-    .single();
+export function isPropertyInVoiceReceptionistRollout(
+  propertyId: string,
+  settings: VoiceReceptionistGlobalSettingsDto
+): boolean {
+  if (!settings.enabled) return false;
+  if (settings.rolloutPropertyIds.includes(propertyId)) return true;
+  if (settings.rolloutPercentage >= 100) return true;
+  if (settings.rolloutPercentage <= 0) return false;
+  const normalized = propertyId.replaceAll('-', '').slice(0, 8);
+  const bucket = Number.parseInt(normalized, 16) % 100;
+  return bucket < settings.rolloutPercentage;
+}
 
-  if (readError) {
-    console.error('[voiceReceptionistService] read global settings:', readError.message);
-    throw new Error('Failed to update global voice receptionist settings');
+export function evaluateVoiceReceptionistGlobalGate(
+  propertyId: string,
+  settings: VoiceReceptionistGlobalSettingsDto,
+  nowMs = Date.now()
+): 'platform_disabled' | 'rollout_denied' | 'provider_unhealthy' | null {
+  if (!settings.enabled) return 'platform_disabled';
+  if (!isPropertyInVoiceReceptionistRollout(propertyId, settings)) return 'rollout_denied';
+  if (isVoiceReceptionistCircuitOpen(settings, nowMs)) return 'provider_unhealthy';
+  return null;
+}
+
+export function resolveVoiceReceptionistSessionBudget(
+  configuredMaxSeconds: number,
+  dailyCostRemaining: number
+): { effectiveMaxSeconds: number; denialCode: 'daily_cost_limit' | null } {
+  if (dailyCostRemaining <= 0) {
+    return { effectiveMaxSeconds: 0, denialCode: 'daily_cost_limit' };
   }
-
-  const allowedFeatures = (current?.allowed_features as string[] | undefined) ?? [];
-  const updatedFeatures = enabled
-    ? Array.from(new Set([...allowedFeatures, VOICE_FEATURE]))
-    : allowedFeatures.filter((f) => f !== VOICE_FEATURE);
-
-  const { data, error } = await sb
-    .from('ai_platform_global_settings')
-    .update({
-      enabled,
-      allowed_features: updatedFeatures,
-      updated_by: updatedByUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', 1)
-    .select('*')
-    .single();
-  if (error) {
-    console.error('[voiceReceptionistService] update global settings:', error.message);
-    throw new Error('Failed to update global voice receptionist settings');
+  let effectiveMaxSeconds = Math.min(configuredMaxSeconds, 9 * 60);
+  if (dailyCostRemaining < 1) {
+    effectiveMaxSeconds = Math.min(effectiveMaxSeconds, 90);
+  } else if (dailyCostRemaining < 3) {
+    effectiveMaxSeconds = Math.min(effectiveMaxSeconds, 180);
   }
-  return {
-    enabled:
-      (data.enabled as boolean) &&
-      (updatedFeatures.length === 0 || updatedFeatures.includes(VOICE_FEATURE)),
-    updatedBy: (data.updated_by as string | null) ?? null,
-    updatedAt: data.updated_at as string,
-  };
+  return { effectiveMaxSeconds, denialCode: null };
 }
 
 type VoiceFeatureConfig = {
@@ -258,7 +411,18 @@ export function validateVoiceReceptionistPatch(body: Record<string, unknown>): {
     if (body.personaPrompt === null) {
       patch.personaPrompt = null;
     } else if (typeof body.personaPrompt === 'string') {
-      patch.personaPrompt = body.personaPrompt.trim() || null;
+      const personaPrompt = body.personaPrompt.trim();
+      if (personaPrompt.length > 300) {
+        return { patch, error: 'personaPrompt must be 300 characters or fewer' };
+      }
+      if (
+        /ignore\s+(all|any|the|previous|prior|system)|system\s+prompt|developer\s+message|reveal.{0,20}(prompt|instruction)|tool\s+schema|<\s*\/?\s*(system|developer|tool)/i.test(
+          personaPrompt
+        )
+      ) {
+        return { patch, error: 'personaPrompt contains unsupported instructions' };
+      }
+      patch.personaPrompt = personaPrompt || null;
     } else {
       return { patch, error: 'personaPrompt must be a string or null' };
     }
@@ -356,85 +520,78 @@ function manilaStartOfTodayIso(): string {
   return new Date(`${todayYmd}T00:00:00+08:00`).toISOString();
 }
 
-/**
- * Enforces per-guest daily cap and property-wide concurrent cap.
- * A session with no `ended_at` is treated as still-open only while within
- * `maxSessionSeconds` of `started_at` — stale rows (client crashed, no explicit end
- * call yet) age out of the concurrency count rather than permanently occupying a slot.
- */
-export async function enforceVoiceReceptionistCaps(
-  propertyId: string,
-  guestUserId: string,
-  settings: VoiceReceptionistSettingsDto
-): Promise<void> {
-  const sb = db();
-
-  const { count: dailyCount, error: dailyError } = await sb
-    .from('voice_receptionist_sessions')
-    .select('id', { count: 'exact', head: true })
-    .eq('property_id', propertyId)
-    .eq('guest_user_id', guestUserId)
-    .gte('started_at', manilaStartOfTodayIso());
-  if (dailyError) {
-    console.error('[voiceReceptionistService] daily cap check:', dailyError.message);
-    throw new Error('Failed to check voice session limits');
-  }
-  if ((dailyCount ?? 0) >= settings.maxSessionsPerGuestPerDay) {
-    throw new VoiceReceptionistCapError(
-      `You've reached today's limit of ${settings.maxSessionsPerGuestPerDay} voice sessions for this property. Please try again tomorrow.`,
-      'guest_daily_cap'
-    );
-  }
-
-  const staleBeforeIso = new Date(Date.now() - settings.maxSessionSeconds * 1000).toISOString();
-  const { count: concurrentCount, error: concurrentError } = await sb
-    .from('voice_receptionist_sessions')
-    .select('id', { count: 'exact', head: true })
-    .eq('property_id', propertyId)
-    .is('ended_at', null)
-    .gte('started_at', staleBeforeIso);
-  if (concurrentError) {
-    console.error('[voiceReceptionistService] concurrent cap check:', concurrentError.message);
-    throw new Error('Failed to check voice session limits');
-  }
-  if ((concurrentCount ?? 0) >= settings.maxConcurrentSessions) {
-    throw new VoiceReceptionistCapError(
-      'Our voice receptionist is at capacity for this property right now. Please try again shortly.',
-      'concurrent_cap'
-    );
-  }
-}
-
-export async function createVoiceReceptionistSession(input: {
+export async function reserveVoiceReceptionistSession(input: {
   propertyId: string;
   guestUserId: string;
   conversationId: string | null;
+  settings: VoiceReceptionistSettingsDto;
+  providerModel: string;
+  protocolVersion: string;
 }): Promise<{ id: string; startedAt: string }> {
   const sb = db();
-  const { data, error } = await sb
-    .from('voice_receptionist_sessions')
-    .insert({
-      property_id: input.propertyId,
-      guest_user_id: input.guestUserId,
-      conversation_id: input.conversationId,
-    })
-    .select('id, started_at')
-    .single();
+  const { data, error } = await sb.rpc('reserve_voice_receptionist_session', {
+    p_property_id: input.propertyId,
+    p_guest_user_id: input.guestUserId,
+    p_conversation_id: input.conversationId,
+    p_max_daily: input.settings.maxSessionsPerGuestPerDay,
+    p_max_concurrent: input.settings.maxConcurrentSessions,
+    p_provider_model: input.providerModel,
+    p_protocol_version: input.protocolVersion,
+  });
   if (error) {
-    console.error('[voiceReceptionistService] create session:', error.message);
+    if (error.message.includes('voice_guest_daily_cap')) {
+      throw new VoiceReceptionistCapError(
+        `You've reached today's limit of ${input.settings.maxSessionsPerGuestPerDay} voice sessions for this property. Please try again tomorrow.`,
+        'guest_daily_cap'
+      );
+    }
+    if (error.message.includes('voice_concurrent_cap')) {
+      throw new VoiceReceptionistCapError(
+        'Our voice receptionist is at capacity for this property right now. Please try again shortly.',
+        'concurrent_cap'
+      );
+    }
+    console.error('[voiceReceptionistService] reserve session:', error.message);
     throw new Error('Failed to start voice session');
   }
-  return { id: data.id as string, startedAt: data.started_at as string };
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+  if (!row?.id || !row.started_at) throw new Error('Failed to start voice session');
+  return { id: row.id as string, startedAt: row.started_at as string };
+}
+
+/** Release a provisional reservation when provider setup fails before the guest connects. */
+export async function failVoiceReceptionistReservation(
+  sessionId: string,
+  guestUserId: string,
+  failureCode: string
+): Promise<void> {
+  const endedAt = new Date().toISOString();
+  const { error } = await db()
+    .from('voice_receptionist_sessions')
+    .update({
+      status: 'failed',
+      ended_at: endedAt,
+      duration_seconds: 0,
+      end_reason: 'provider_error',
+      failure_code: failureCode.slice(0, 120),
+      last_activity_at: endedAt,
+    })
+    .eq('id', sessionId)
+    .eq('guest_user_id', guestUserId)
+    .in('status', ['reserved', 'connecting']);
+  if (error) {
+    console.error('[voiceReceptionistService] fail reservation:', error.message);
+  }
 }
 
 export async function loadVoiceReceptionistSessionForGuest(
   sessionId: string,
   guestUserId: string
-): Promise<{ id: string; propertyId: string; endedAt: string | null } | null> {
+): Promise<{ id: string; propertyId: string; status: string; endedAt: string | null } | null> {
   const sb = db();
   const { data, error } = await sb
     .from('voice_receptionist_sessions')
-    .select('id, property_id, ended_at')
+    .select('id, property_id, status, ended_at')
     .eq('id', sessionId)
     .eq('guest_user_id', guestUserId)
     .maybeSingle();
@@ -446,8 +603,75 @@ export async function loadVoiceReceptionistSessionForGuest(
   return {
     id: data.id as string,
     propertyId: data.property_id as string,
+    status: data.status as string,
     endedAt: (data.ended_at as string | null) ?? null,
   };
+}
+
+export async function acknowledgeVoiceReceptionistSession(
+  sessionId: string,
+  guestUserId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from('voice_receptionist_sessions')
+    .update({ status: 'active', connected_at: now, last_activity_at: now })
+    .eq('id', sessionId)
+    .eq('guest_user_id', guestUserId)
+    .in('status', ['reserved', 'connecting', 'active'])
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error('Failed to activate voice session');
+  if (data) {
+    const { error: healthError } = await db()
+      .from('ai_platform_global_settings')
+      .update({
+        voice_receptionist_health_status: 'healthy',
+        voice_receptionist_health_checked_at: now,
+        voice_receptionist_health_failure_code: null,
+      })
+      .eq('id', 1)
+      .eq('voice_receptionist_health_status', 'unhealthy');
+    if (healthError) {
+      console.warn('[voiceReceptionistService] provider recovery health:', healthError.message);
+    }
+  }
+  return Boolean(data);
+}
+
+export async function heartbeatVoiceReceptionistSession(
+  sessionId: string,
+  guestUserId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from('voice_receptionist_sessions')
+    .update({ last_activity_at: now })
+    .eq('id', sessionId)
+    .eq('guest_user_id', guestUserId)
+    .eq('status', 'active')
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error('Failed to update voice session');
+  return Boolean(data);
+}
+
+export async function markVoiceReceptionistHandoff(
+  sessionId: string,
+  guestUserId: string
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from('voice_receptionist_sessions')
+    .update({ handoff_at: now, last_activity_at: now })
+    .eq('id', sessionId)
+    .eq('guest_user_id', guestUserId)
+    .eq('status', 'active')
+    .is('handoff_at', null)
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error('Failed to record voice handoff');
+  return Boolean(data);
 }
 
 /** Global kill switch AND property opt-in — the same gate `voice-receptionist-start` enforces. */
@@ -456,7 +680,12 @@ export async function isVoiceReceptionistAvailableForProperty(
 ): Promise<boolean> {
   try {
     const global = await getGlobalVoiceReceptionistSettings();
-    if (!global.enabled) return false;
+    if (
+      !isPropertyInVoiceReceptionistRollout(propertyId, global) ||
+      isVoiceReceptionistCircuitOpen(global)
+    ) {
+      return false;
+    }
     const settings = await getVoiceReceptionistSettings(propertyId);
     return settings.enabled;
   } catch (error) {
@@ -469,7 +698,16 @@ export async function isVoiceReceptionistAvailableForProperty(
   }
 }
 
-export type VoiceReceptionistEndReason = 'guest_ended' | 'timeout' | 'cap_reached' | 'error';
+export type VoiceReceptionistEndReason =
+  | 'guest_ended'
+  | 'timeout'
+  | 'cap_reached'
+  | 'error'
+  | 'provider_go_away'
+  | 'provider_error'
+  | 'page_closed'
+  | 'idle_timeout'
+  | 'stale_reaper';
 
 export type VoiceReceptionistSessionForEnd = {
   id: string;
@@ -477,6 +715,8 @@ export type VoiceReceptionistSessionForEnd = {
   conversationId: string | null;
   startedAt: string;
   endedAt: string | null;
+  status: string;
+  usageRecordedAt: string | null;
 };
 
 export async function loadVoiceReceptionistSessionForEnd(
@@ -486,7 +726,7 @@ export async function loadVoiceReceptionistSessionForEnd(
   const sb = db();
   const { data, error } = await sb
     .from('voice_receptionist_sessions')
-    .select('id, property_id, conversation_id, started_at, ended_at')
+    .select('id, property_id, conversation_id, started_at, ended_at, status, usage_recorded_at')
     .eq('id', sessionId)
     .eq('guest_user_id', guestUserId)
     .maybeSingle();
@@ -501,6 +741,8 @@ export async function loadVoiceReceptionistSessionForEnd(
     conversationId: (data.conversation_id as string | null) ?? null,
     startedAt: data.started_at as string,
     endedAt: (data.ended_at as string | null) ?? null,
+    status: data.status as string,
+    usageRecordedAt: (data.usage_recorded_at as string | null) ?? null,
   };
 }
 
@@ -521,71 +763,194 @@ export async function loadVoiceReceptionistSessionForEnd(
 export async function endVoiceReceptionistSession(
   session: VoiceReceptionistSessionForEnd,
   endReason: VoiceReceptionistEndReason,
-  guestUserId?: string
-): Promise<{ endedAt: string; durationSeconds: number }> {
-  if (session.endedAt) {
-    const durationSeconds = Math.max(
-      0,
-      Math.round(
-        (new Date(session.endedAt).getTime() - new Date(session.startedAt).getTime()) / 1000
-      )
-    );
-    return { endedAt: session.endedAt, durationSeconds };
-  }
-
-  const endedAt = new Date().toISOString();
-  const durationSeconds = Math.max(
-    0,
-    Math.round((new Date(endedAt).getTime() - new Date(session.startedAt).getTime()) / 1000)
-  );
-  const costPerMinuteUsd = await getVoiceReceptionistCostPerMinuteUsd();
-  const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMinuteUsd * 10000) / 10000;
-
+  guestUserId: string
+): Promise<{ endedAt: string; durationSeconds: number; transitioned: boolean }> {
   const sb = db();
-  // .is('ended_at', null) means a concurrent call that already ended this session (guest End
-  // racing a timeout handler, or a retried request) matches 0 rows here rather than erroring —
-  // .select() + checking the returned row is required to detect that and skip double-recording
-  // usage below, since Postgres/PostgREST doesn't otherwise surface "0 rows affected".
-  const { data: updated, error } = await sb
-    .from('voice_receptionist_sessions')
-    .update({
-      ended_at: endedAt,
-      duration_seconds: durationSeconds,
-      end_reason: endReason,
-      estimated_cost_usd: estimatedCostUsd,
-    })
-    .eq('id', session.id)
-    .is('ended_at', null)
-    .select('id')
-    .maybeSingle();
+  const failureCode =
+    endReason === 'error'
+      ? 'client_reported_error'
+      : endReason === 'provider_error' || endReason === 'provider_go_away'
+        ? endReason
+        : null;
+  const { data, error } = await sb.rpc('end_voice_receptionist_session', {
+    p_session_id: session.id,
+    p_guest_user_id: guestUserId,
+    p_end_reason: endReason,
+    p_failure_code: failureCode,
+  });
   if (error) {
     console.error('[voiceReceptionistService] end session:', error.message);
     throw new Error('Failed to end voice session');
   }
-  if (!updated) {
-    // Another concurrent call already ended this session — don't double-record usage.
-    return { endedAt, durationSeconds };
-  }
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+  if (!row?.ended_at) throw new Error('Failed to end voice session');
+  const endedAt = row.ended_at as string;
+  const durationSeconds = Number(row.duration_seconds ?? 0);
+  const transitioned = row.transitioned === true;
+  const costPerMinuteUsd = await getVoiceReceptionistCostPerMinuteUsd();
+  const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMinuteUsd * 10000) / 10000;
 
+  await sb
+    .from('voice_receptionist_sessions')
+    .update({ estimated_cost_usd: estimatedCostUsd })
+    .eq('id', session.id);
+
+  const usageClaimedAt = new Date().toISOString();
+  const { data: usageClaim } = await sb
+    .from('voice_receptionist_sessions')
+    .update({ usage_recorded_at: usageClaimedAt })
+    .eq('id', session.id)
+    .is('usage_recorded_at', null)
+    .select('id')
+    .maybeSingle();
   try {
-    const orgId = await getOrganizationIdForProperty(session.propertyId);
-    const voiceConfig = getModelConfig(VOICE_FEATURE);
-    await recordAiUsage({
-      organizationId: orgId,
-      propertyId: session.propertyId,
-      feature: VOICE_FEATURE,
-      provider: 'gemini',
-      model: voiceConfig.model,
-      estimatedCostUsd,
-      durationSeconds,
-      actorUserId: guestUserId ?? null,
-      actorType: 'guest',
-    });
+    if (usageClaim) {
+      const orgId = await getOrganizationIdForProperty(session.propertyId);
+      const voiceConfig = getModelConfig(VOICE_FEATURE);
+      await recordAiUsage({
+        organizationId: orgId,
+        propertyId: session.propertyId,
+        feature: VOICE_FEATURE,
+        provider: 'gemini',
+        model: voiceConfig.model,
+        estimatedCostUsd,
+        durationSeconds,
+        actorUserId: guestUserId ?? null,
+        actorType: 'guest',
+      });
+    }
   } catch (err) {
     console.warn('[voiceReceptionistService] usage record failed:', (err as Error).message);
+    await sb
+      .from('voice_receptionist_sessions')
+      .update({ usage_recorded_at: null })
+      .eq('id', session.id)
+      .eq('usage_recorded_at', usageClaimedAt);
   }
 
-  return { endedAt, durationSeconds };
+  return { endedAt, durationSeconds, transitioned };
+}
+
+export async function reapStaleVoiceReceptionistSessions(): Promise<{
+  reaped: number;
+  transcriptsDeleted: number;
+  propertyStats: Array<{ propertyId: string; reaped: number; transcriptsDeleted: number }>;
+}> {
+  const sb = db();
+  const connectingBefore = new Date(Date.now() - 2 * 60_000).toISOString();
+  const activeBefore = new Date(Date.now() - 90_000).toISOString();
+  const { data, error } = await sb
+    .from('voice_receptionist_sessions')
+    .select(
+      'id, property_id, guest_user_id, conversation_id, started_at, ended_at, status, usage_recorded_at'
+    )
+    .or(
+      `and(status.in.(reserved,connecting),last_activity_at.lt.${connectingBefore}),and(status.eq.active,last_activity_at.lt.${activeBefore})`
+    )
+    .order('last_activity_at', { ascending: true })
+    .limit(200);
+  if (error) throw new Error('Failed to load stale voice sessions');
+
+  const propertyStats = new Map<string, { reaped: number; transcriptsDeleted: number }>();
+  let reaped = 0;
+  for (const row of data ?? []) {
+    try {
+      await endVoiceReceptionistSession(
+        {
+          id: row.id as string,
+          propertyId: row.property_id as string,
+          conversationId: (row.conversation_id as string | null) ?? null,
+          startedAt: row.started_at as string,
+          endedAt: (row.ended_at as string | null) ?? null,
+          status: row.status as string,
+          usageRecordedAt: (row.usage_recorded_at as string | null) ?? null,
+        },
+        'stale_reaper',
+        row.guest_user_id as string
+      );
+      const propertyId = row.property_id as string;
+      const stats = propertyStats.get(propertyId) ?? { reaped: 0, transcriptsDeleted: 0 };
+      stats.reaped += 1;
+      propertyStats.set(propertyId, stats);
+      reaped += 1;
+    } catch (err) {
+      console.warn('[voiceReceptionistService] stale-session reaper:', (err as Error).message);
+    }
+  }
+  const { data: global } = await sb
+    .from('ai_platform_global_settings')
+    .select('voice_receptionist_transcript_retention_days')
+    .eq('id', 1)
+    .maybeSingle();
+  const retentionDays = Math.min(
+    90,
+    Math.max(1, Number(global?.voice_receptionist_transcript_retention_days ?? 30))
+  );
+  const retentionBefore = new Date(Date.now() - retentionDays * 24 * 60 * 60_000).toISOString();
+  const { data: expiredTranscripts, error: retentionError } = await sb
+    .from('voice_receptionist_transcript_turns')
+    .delete()
+    .lt('created_at', retentionBefore)
+    .select('id, session_id');
+  if (retentionError) {
+    console.warn('[voiceReceptionistService] transcript retention:', retentionError.message);
+  } else {
+    const expiredSessionIds = [
+      ...new Set((expiredTranscripts ?? []).map((row) => row.session_id as string)),
+    ];
+    if (expiredSessionIds.length > 0) {
+      const { data: expiredSessions } = await sb
+        .from('voice_receptionist_sessions')
+        .select('id, property_id')
+        .in('id', expiredSessionIds);
+      const propertyBySession = new Map(
+        (expiredSessions ?? []).map((row) => [row.id as string, row.property_id as string])
+      );
+      for (const row of expiredTranscripts ?? []) {
+        const propertyId = propertyBySession.get(row.session_id as string);
+        if (!propertyId) continue;
+        const stats = propertyStats.get(propertyId) ?? { reaped: 0, transcriptsDeleted: 0 };
+        stats.transcriptsDeleted += 1;
+        propertyStats.set(propertyId, stats);
+      }
+      const { error: sessionRetentionError } = await sb
+        .from('voice_receptionist_sessions')
+        .update({
+          transcript_status: 'discarded',
+          client_report_hash: null,
+          safety_flags: [],
+          transcript_processed_at: new Date().toISOString(),
+        })
+        .in('id', expiredSessionIds);
+      if (sessionRetentionError) {
+        console.warn(
+          '[voiceReceptionistService] transcript session retention:',
+          sessionRetentionError.message
+        );
+      }
+    }
+  }
+
+  return {
+    reaped,
+    transcriptsDeleted: expiredTranscripts?.length ?? 0,
+    propertyStats: Array.from(propertyStats, ([propertyId, stats]) => ({
+      propertyId,
+      ...stats,
+    })),
+  };
+}
+
+export async function deleteGuestVoiceTranscript(
+  sessionId: string,
+  guestUserId: string
+): Promise<boolean> {
+  const { data, error } = await db().rpc('delete_voice_receptionist_transcript', {
+    p_session_id: sessionId,
+    p_guest_user_id: guestUserId,
+  });
+  if (error) throw new Error('Failed to delete voice transcript');
+  return data === true;
 }
 
 async function getVoiceReceptionistCostPerMinuteUsd(): Promise<number> {
@@ -608,6 +973,10 @@ export type VoiceReceptionistUsageSummary = {
   totalDurationSeconds: number;
   avgDurationSeconds: number;
   estimatedCostUsdLast30Days: number;
+  failedSessionsLast30Days: number;
+  handoffsLast30Days: number;
+  failureRate: number;
+  handoffRate: number;
   endReasonCounts: Record<string, number>;
   recentSessions: Array<{
     startedAt: string;
@@ -630,7 +999,9 @@ export async function getVoiceReceptionistUsageSummary(
 
   const { data, error } = await sb
     .from('voice_receptionist_sessions')
-    .select('started_at, ended_at, duration_seconds, end_reason, estimated_cost_usd')
+    .select(
+      'started_at, ended_at, duration_seconds, end_reason, estimated_cost_usd, status, handoff_at'
+    )
     .eq('property_id', propertyId)
     .gte('started_at', since30dIso)
     .order('started_at', { ascending: false });
@@ -648,6 +1019,8 @@ export async function getVoiceReceptionistUsageSummary(
   let totalDurationSeconds = 0;
   let durationCount = 0;
   let estimatedCostUsdLast30Days = 0;
+  let failedSessionsLast30Days = 0;
+  let handoffsLast30Days = 0;
   const endReasonCounts: Record<string, number> = {};
 
   for (const row of rows) {
@@ -666,6 +1039,8 @@ export async function getVoiceReceptionistUsageSummary(
 
     const reason = (row.end_reason as string | null) ?? 'open';
     endReasonCounts[reason] = (endReasonCounts[reason] ?? 0) + 1;
+    if (row.status === 'failed' || row.status === 'abandoned') failedSessionsLast30Days += 1;
+    if (row.handoff_at) handoffsLast30Days += 1;
   }
 
   return {
@@ -675,6 +1050,11 @@ export async function getVoiceReceptionistUsageSummary(
     totalDurationSeconds,
     avgDurationSeconds: durationCount > 0 ? Math.round(totalDurationSeconds / durationCount) : 0,
     estimatedCostUsdLast30Days: Math.round(estimatedCostUsdLast30Days * 10000) / 10000,
+    failedSessionsLast30Days,
+    handoffsLast30Days,
+    failureRate:
+      rows.length > 0 ? Math.round((failedSessionsLast30Days / rows.length) * 1000) / 10 : 0,
+    handoffRate: rows.length > 0 ? Math.round((handoffsLast30Days / rows.length) * 1000) / 10 : 0,
     endReasonCounts,
     recentSessions: rows.slice(0, 10).map((row) => ({
       startedAt: row.started_at as string,
@@ -695,80 +1075,130 @@ export type VoiceReceptionistTranscriptTurn = {
 export function sanitizeVoiceTranscriptTurns(input: unknown): VoiceReceptionistTranscriptTurn[] {
   if (!Array.isArray(input)) return [];
   const turns: VoiceReceptionistTranscriptTurn[] = [];
+  let totalCharacters = 0;
   for (const raw of input) {
+    if (turns.length >= 100 || totalCharacters >= 40_000) break;
     if (!raw || typeof raw !== 'object') continue;
     const row = raw as Record<string, unknown>;
     const role = row.role === 'assistant' ? 'assistant' : row.role === 'guest' ? 'guest' : null;
-    const text = typeof row.text === 'string' ? row.text.trim() : '';
+    const text = typeof row.text === 'string' ? row.text.trim().slice(0, 2_000) : '';
     if (!role || !text) continue;
+    if (totalCharacters + text.length > 40_000) break;
     const at =
       typeof row.at === 'string' && !Number.isNaN(new Date(row.at).getTime()) ? row.at : undefined;
     turns.push({ role, text, at });
+    totalCharacters += text.length;
   }
   return turns;
 }
 
-/**
- * Batch-writes committed voice turns into the property's existing social_messages thread
- * with source_mode='voice' so the admin Inbox shows a unified history. Idempotent per
- * sessionId (external_message_id is deterministic) — safe to retry on network failure.
- */
-export async function writeVoiceTranscriptToConversation(
-  sessionId: string,
-  conversationId: string,
+export function classifyVoiceTranscriptSafety(turns: VoiceReceptionistTranscriptTurn[]): string[] {
+  const assistantText = turns
+    .filter((turn) => turn.role === 'assistant')
+    .map((turn) => turn.text)
+    .join(' ')
+    .slice(0, 40_000);
+  const flags = new Set<string>();
+  if (
+    /\b(service role|api[_ -]?key|access token|refresh token|password|door code|lock code|account number)\b/i.test(
+      assistantText
+    )
+  ) {
+    flags.add('possible_credential_or_account_data');
+  }
+  if (
+    /\b(owner revenue|owner profit|finance ledger|internal note|staff email|guest list|other guest)\b/i.test(
+      assistantText
+    )
+  ) {
+    flags.add('possible_internal_or_cross_guest_data');
+  }
+  if (/\b(system prompt|developer message|hidden instruction|tool schema)\b/i.test(assistantText)) {
+    flags.add('possible_policy_disclosure');
+  }
+  if (
+    /\b(kill yourself|self[- ]harm|make a bomb|buy illegal drugs|sexual content involving a minor)\b/i.test(
+      assistantText
+    )
+  ) {
+    flags.add('possible_high_risk_content');
+  }
+  return [...flags];
+}
+
+async function hashVoiceTranscript(turns: VoiceReceptionistTranscriptTurn[]): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(turns));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** Store browser captions as bounded, explicitly unverified evidence outside social_messages. */
+export async function storeClientReportedVoiceTranscript(
+  session: VoiceReceptionistSessionForEnd,
   guestUserId: string,
-  sessionStartedAt: string,
   turns: VoiceReceptionistTranscriptTurn[]
 ): Promise<void> {
   if (!turns.length) return;
 
   const sb = db();
-  const { data: conv, error } = await sb
-    .from('social_conversations')
-    .select('organization_id')
-    .eq('id', conversationId)
+  const clientReportHash = await hashVoiceTranscript(turns);
+  const safetyFlags = classifyVoiceTranscriptSafety(turns);
+  const { data: claimed, error: claimError } = await sb
+    .from('voice_receptionist_sessions')
+    .update({
+      client_report_hash: clientReportHash,
+      transcript_status: 'client_reported',
+      safety_flags: safetyFlags,
+    })
+    .eq('id', session.id)
+    .eq('guest_user_id', guestUserId)
+    .neq('transcript_status', 'discarded')
+    .or(`client_report_hash.is.null,client_report_hash.eq.${clientReportHash}`)
+    .select('id')
     .maybeSingle();
-  if (error || !conv) {
-    console.error('[voiceReceptionistService] load conversation for transcript:', error?.message);
-    return;
+  if (claimError) {
+    throw new Error('Failed to store voice transcript');
   }
-  const organizationId = conv.organization_id as string;
+  if (!claimed) return;
 
-  let lastTs = new Date(sessionStartedAt).getTime();
-  let lastGuestText: string | null = null;
-  let lastAssistantText: string | null = null;
-
-  for (let i = 0; i < turns.length; i++) {
-    const turn = turns[i]!;
-    const candidateTs = turn.at ? new Date(turn.at).getTime() : lastTs + 1000;
-    const ts = Math.max(candidateTs, lastTs + 1);
-    lastTs = ts;
-    const sentAt = new Date(ts).toISOString();
-
-    await insertMessageIfNew({
-      organization_id: organizationId,
-      conversation_id: conversationId,
-      direction: turn.role === 'guest' ? 'inbound' : 'outbound',
-      external_message_id: `voice:${sessionId}:${i}`,
-      body_text: turn.text,
-      attachments: [],
-      sent_at: sentAt,
-      delivery_status: 'sent',
-      sent_by_user_id: turn.role === 'guest' ? guestUserId : null,
-      is_ai_generated: turn.role === 'assistant',
-      source_mode: 'voice',
-    });
-
-    if (turn.role === 'guest') lastGuestText = turn.text;
-    else lastAssistantText = turn.text;
-  }
-
-  const lastTurn = turns[turns.length - 1]!;
-  await updateConversationAfterMessage(conversationId, {
-    subject_preview: lastTurn.text.slice(0, 500),
-    last_message_at: new Date(lastTs).toISOString(),
-    reply_status: lastTurn.role === 'assistant' ? 'replied' : 'pending',
-    unread_delta: lastGuestText ? 1 : 0,
-    guest_unread_delta: lastAssistantText ? 1 : 0,
+  const startedAtMs = new Date(session.startedAt).getTime();
+  const endedAtMs = new Date(session.endedAt ?? Date.now()).getTime();
+  const rows = turns.map((turn, sequence) => {
+    const occurredAtMs = turn.at ? new Date(turn.at).getTime() : Number.NaN;
+    const occurredAt =
+      Number.isFinite(occurredAtMs) &&
+      occurredAtMs >= startedAtMs - 60_000 &&
+      occurredAtMs <= endedAtMs + 60_000
+        ? new Date(occurredAtMs).toISOString()
+        : null;
+    return {
+      session_id: session.id,
+      sequence,
+      role: turn.role,
+      text: turn.text,
+      occurred_at: occurredAt,
+      source: 'client_reported',
+      trust: 'unverified',
+    };
   });
+  const { error } = await sb
+    .from('voice_receptionist_transcript_turns')
+    .upsert(rows, { onConflict: 'session_id,sequence', ignoreDuplicates: true });
+  if (error) {
+    await sb
+      .from('voice_receptionist_sessions')
+      .update({ transcript_status: 'failed' })
+      .eq('id', session.id);
+    throw new Error('Failed to store voice transcript');
+  }
+  await sb
+    .from('voice_receptionist_sessions')
+    .update({
+      transcript_status: 'stored_unverified',
+      transcript_processed_at: new Date().toISOString(),
+    })
+    .eq('id', session.id)
+    .eq('client_report_hash', clientReportHash);
 }

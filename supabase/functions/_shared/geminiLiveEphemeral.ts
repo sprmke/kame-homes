@@ -1,14 +1,31 @@
 /**
- * Mint Gemini Live API ephemeral tokens (v1alpha).
+ * Mint Gemini Live API ephemeral tokens (v1beta).
  * Browser connects directly via BidiGenerateContentConstrained — never expose GEMINI_API_KEY.
  *
- * Docs: https://ai.google.dev/gemini-api/docs/ephemeral-tokens
+ * Docs: https://ai.google.dev/gemini-api/docs/live-api/ephemeral-tokens
  */
 
-/** Official ephemeral-token docs model (native audio). Verify at launch. */
-export const GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+/** Current documented Live model as of 2026-09-15. The Live API remains Preview. */
+export const GEMINI_LIVE_MODEL = 'gemini-3.8-live';
+export const GEMINI_LIVE_PROTOCOL_VERSION = 'gemini-live-v1beta-2026-09';
+export const GEMINI_LIVE_WEBSOCKET_BASE_URL =
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
 
 export const GEMINI_LIVE_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'] as const;
+export const GEMINI_LIVE_MODEL_REGISTRY = {
+  id: GEMINI_LIVE_MODEL,
+  rolloutStatus: 'preview-approved',
+  reviewAfter: '2026-10-15',
+  documentationUrl: 'https://ai.google.dev/gemini-api/docs/live-api',
+  voices: GEMINI_LIVE_VOICES,
+  capabilities: {
+    audioInput: true,
+    audioOutput: true,
+    transcription: true,
+    functionCalling: true,
+    sessionResumption: true,
+  },
+} as const;
 
 export type GeminiLiveVoice = (typeof GEMINI_LIVE_VOICES)[number];
 
@@ -25,7 +42,6 @@ function geminiKeys(): string[] {
 }
 
 export type MintLiveEphemeralOptions = {
-  model?: string;
   voiceName?: string;
   systemInstruction?: string;
   /** When set, locks tools into the token (client cannot swap declarations). */
@@ -40,6 +56,10 @@ export type MintLiveEphemeralOptions = {
   expireMinutes?: number;
   /** Window to start a new session (default 1m). */
   newSessionExpireMinutes?: number;
+  /** Test seam; production uses the global fetch implementation. */
+  fetchImpl?: typeof fetch;
+  /** Test seam for deterministic expiry timestamps. */
+  nowMs?: number;
 };
 
 export type MintLiveEphemeralResult = {
@@ -48,14 +68,73 @@ export type MintLiveEphemeralResult = {
   voiceName: string;
   expireTime: string;
   newSessionExpireTime: string;
-  /** True when bidiGenerateContentSetup was included (server-locked config). */
+  protocolVersion: string;
+  webSocketBaseUrl: string;
+  clientSetup: Record<string, unknown>;
+  /** True when liveConnectConstraints were included (server-locked config). */
   lockedSessionConfig: boolean;
 };
 
-/**
- * POST /v1alpha/auth_tokens — raw REST (no SDK; Deno edge).
- * Omitting fieldMask with a non-empty bidiGenerateContentSetup = global lock of those fields.
- */
+export function buildGeminiLiveClientSetup(
+  model: string,
+  voiceName: string
+): Record<string, unknown> {
+  return {
+    model: model.startsWith('models/') ? model : `models/${model}`,
+    responseModalities: ['AUDIO'],
+    speechConfig: {
+      voiceConfig: {
+        prebuiltVoiceConfig: { voiceName },
+      },
+    },
+    realtimeInputConfig: {
+      automaticActivityDetection: {
+        disabled: false,
+        startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
+        endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
+        prefixPaddingMs: 40,
+        silenceDurationMs: 900,
+      },
+    },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ],
+    sessionResumption: {},
+    contextWindowCompression: { slidingWindow: {} },
+  };
+}
+
+export function buildGeminiLiveTokenBody(input: {
+  model: string;
+  voiceName: string;
+  systemInstruction: string;
+  tools: MintLiveEphemeralOptions['tools'];
+  expireTime: string;
+  newSessionExpireTime: string;
+}): Record<string, unknown> {
+  const clientSetup = buildGeminiLiveClientSetup(input.model, input.voiceName);
+  const { model, ...lockedPublicConfig } = clientSetup;
+  return {
+    uses: 1,
+    expireTime: input.expireTime,
+    newSessionExpireTime: input.newSessionExpireTime,
+    liveConnectConstraints: {
+      model,
+      config: {
+        ...lockedPublicConfig,
+        systemInstruction: { parts: [{ text: input.systemInstruction }] },
+        tools: input.tools,
+      },
+    },
+  };
+}
+
+/** POST /v1beta/auth_tokens — raw REST (no SDK; Deno edge). */
 export async function mintGeminiLiveEphemeralToken(
   options: MintLiveEphemeralOptions = {}
 ): Promise<MintLiveEphemeralResult> {
@@ -64,9 +143,9 @@ export async function mintGeminiLiveEphemeralToken(
     throw new Error('GEMINI_API_KEYS or GEMINI_API_KEY not set');
   }
 
-  const model = options.model ?? GEMINI_LIVE_MODEL;
+  const model = GEMINI_LIVE_MODEL_REGISTRY.id;
   const voiceName = options.voiceName ?? 'Kore';
-  const now = Date.now();
+  const now = options.nowMs ?? Date.now();
   const expireTime = new Date(now + (options.expireMinutes ?? 30) * 60_000).toISOString();
   const newSessionExpireTime = new Date(
     now + (options.newSessionExpireMinutes ?? 1) * 60_000
@@ -98,51 +177,25 @@ export async function mintGeminiLiveEphemeralToken(
     },
   ];
 
-  // Wait a beat after the guest pauses so mid-sentence breaths don't cut them off
-  // (480ms + HIGH end sensitivity produced "Um how much is the" scraps). Locked into
-  // the ephemeral token so the browser cannot loosen it.
-  const realtimeInputConfig = {
-    automaticActivityDetection: {
-      disabled: false,
-      startOfSpeechSensitivity: 'START_SENSITIVITY_HIGH',
-      endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
-      prefixPaddingMs: 40,
-      silenceDurationMs: 900,
-    },
-  };
-
-  // REST body shape after SDK conversion (see google-genai _tokens_converters).
-  const body: Record<string, unknown> = {
-    uses: 1,
+  const body = buildGeminiLiveTokenBody({
+    model,
+    voiceName,
+    systemInstruction: systemText,
+    tools,
     expireTime,
     newSessionExpireTime,
-    bidiGenerateContentSetup: {
-      model: model.startsWith('models/') ? model : `models/${model}`,
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        // Slightly lower than 0.7 — snappier, less meandering spoken replies (Phase 6.2).
-        temperature: 0.55,
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName },
-          },
-        },
-      },
-      systemInstruction: { parts: [{ text: systemText }] },
-      tools,
-      realtimeInputConfig,
-      // Prefer English via system instruction — native-audio STT does not accept languageCodes here.
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
-    },
-  };
+  });
+  const clientSetup = buildGeminiLiveClientSetup(model, voiceName);
 
   let lastError = 'auth_tokens create failed';
   for (const key of keys) {
-    const url = `https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key=${encodeURIComponent(key)}`;
-    const res = await fetch(url, {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/auth_tokens';
+    const res = await (options.fetchImpl ?? fetch)(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': key,
+      },
       body: JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as {
@@ -156,6 +209,9 @@ export async function mintGeminiLiveEphemeralToken(
         voiceName,
         expireTime,
         newSessionExpireTime,
+        protocolVersion: GEMINI_LIVE_PROTOCOL_VERSION,
+        webSocketBaseUrl: GEMINI_LIVE_WEBSOCKET_BASE_URL,
+        clientSetup,
         lockedSessionConfig: true,
       };
     }
@@ -165,9 +221,4 @@ export async function mintGeminiLiveEphemeralToken(
   }
 
   throw new Error(lastError);
-}
-
-export function geminiLiveWebSocketUrl(ephemeralToken: string): string {
-  const token = encodeURIComponent(ephemeralToken);
-  return `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${token}`;
 }

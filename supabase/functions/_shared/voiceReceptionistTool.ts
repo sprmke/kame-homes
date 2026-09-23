@@ -12,42 +12,8 @@ import {
   type PropertyGuestContextDto,
 } from './inboxAiGuestContext.ts';
 import type { DevelopmentGuestContextDto } from './developmentGuestInfo.ts';
-
-type TopicMatcher = { key: string; pattern: RegExp };
-
-/**
- * Ordered allowlist — first match wins. Anything that matches none of these (finance,
- * other guests, staff/internal ops, maintenance, etc.) is rejected by the caller.
- */
-const TOPIC_MATCHERS: TopicMatcher[] = [
-  { key: 'checkin', pattern: /check[- ]?in/i },
-  { key: 'checkout', pattern: /check[- ]?out/i },
-  { key: 'wifi', pattern: /wifi|internet|network/i },
-  { key: 'pool', pattern: /pool|swim/i },
-  { key: 'parking', pattern: /park/i },
-  { key: 'pets', pattern: /pet/i },
-  { key: 'pricing', pattern: /rate|price|pricing|cost|deposit|fee/i },
-  { key: 'availability', pattern: /available|availability|vacan|book(?:ed|ing)?/i },
-  { key: 'payment', pattern: /pay|gcash|bank|cash/i },
-  { key: 'cancellation', pattern: /cancel|refund/i },
-  { key: 'location', pattern: /location|address|map|direction|where/i },
-  { key: 'houseRules', pattern: /house rule|rule/i },
-  { key: 'requirements', pattern: /requirement|document|need to bring|submit/i },
-  { key: 'guides', pattern: /guide|how to|building info|residence info/i },
-  { key: 'capacity', pattern: /guest|capacity|bedroom|bathroom|max|sleep|occupan/i },
-  { key: 'amenities', pattern: /amenit|facilit/i },
-  {
-    key: 'overview',
-    pattern: /overview|general|about|property|residence|unit|development|building/i,
-  },
-];
-
-export function matchGuestSafeVoiceTopic(rawTopic: string): string | null {
-  const topic = rawTopic.trim();
-  if (!topic) return null;
-  const match = TOPIC_MATCHERS.find(({ pattern }) => pattern.test(topic));
-  return match?.key ?? null;
-}
+import { createServiceClient } from './orgAuth.ts';
+import { computeDefaultBookingRateFromDefaults, loadPropertyPricing } from './propertyPricing.ts';
 
 function findAmenityMatching(amenities: string[], pattern: RegExp): string | null {
   return amenities.find((amenity) => pattern.test(amenity)) ?? null;
@@ -116,6 +82,15 @@ function renderGuidesAnswer(development: DevelopmentGuestContextDto | null): str
     return 'No development guides are listed — ask the host team to confirm.';
   }
   return development.guestGuides.map((guide) => `${guide.title}: ${guide.content}`).join(' ');
+}
+
+export function sanitizeVoiceToolFact(raw: string): string {
+  return raw
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/<\s*\/?\s*(system|developer|tool|assistant|user)[^>]*>/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 1_500);
 }
 
 /**
@@ -201,4 +176,289 @@ export async function answerGuestSafeVoiceTopic(
       return `${property.name} is located in ${property.locationLabel}${developmentLine}, sleeps up to ${property.maxGuests} guests, with check-in at ${property.checkInTime} and check-out at ${property.checkOutTime}.${extraInfo}`;
     }
   }
+}
+
+export const VOICE_PROPERTY_FACT_TOPICS = [
+  'checkin',
+  'checkout',
+  'pool',
+  'parking',
+  'pets',
+  'payment',
+  'cancellation',
+  'location',
+  'houseRules',
+  'requirements',
+  'capacity',
+  'amenities',
+  'overview',
+] as const;
+
+export type VoicePropertyFactTopic = (typeof VOICE_PROPERTY_FACT_TOPICS)[number];
+export type VoiceReceptionistToolName =
+  | 'get_property_facts'
+  | 'check_dates'
+  | 'get_inquiry_price'
+  | 'get_my_stay'
+  | 'get_stay_guide'
+  | 'handoff_to_host';
+
+export type VoiceToolResult = {
+  spokenText: string;
+  actions: Array<{
+    type: 'open_text_chat' | 'open_booking' | 'open_calendar' | 'open_stay_guide' | 'open_property';
+    label: string;
+    url: string;
+  }>;
+};
+
+export const VOICE_RECEPTIONIST_TOOL_DECLARATIONS = [
+  {
+    functionDeclarations: [
+      {
+        name: 'get_property_facts',
+        description: 'Get a current public property fact that is not already in Known facts.',
+        parameters: {
+          type: 'object',
+          properties: {
+            topic: { type: 'string', enum: VOICE_PROPERTY_FACT_TOPICS },
+          },
+          required: ['topic'],
+        },
+      },
+      {
+        name: 'check_dates',
+        description: 'Check exact property availability for requested dates.',
+        parameters: {
+          type: 'object',
+          properties: {
+            checkIn: { type: 'string', description: 'YYYY-MM-DD' },
+            checkOut: { type: 'string', description: 'YYYY-MM-DD' },
+          },
+          required: ['checkIn', 'checkOut'],
+        },
+      },
+      {
+        name: 'get_inquiry_price',
+        description: 'Get the current public lodging total for exact dates.',
+        parameters: {
+          type: 'object',
+          properties: {
+            checkIn: { type: 'string', description: 'YYYY-MM-DD' },
+            checkOut: { type: 'string', description: 'YYYY-MM-DD' },
+          },
+          required: ['checkIn', 'checkOut'],
+        },
+      },
+      {
+        name: 'get_my_stay',
+        description: "Get the signed-in guest's own booking status and stay dates.",
+        parameters: { type: 'object', properties: {} },
+      },
+      {
+        name: 'get_stay_guide',
+        description: 'Get guest-visible stay guidance during a verified active stay.',
+        parameters: { type: 'object', properties: {} },
+      },
+      {
+        name: 'handoff_to_host',
+        description: 'Offer the guest a safe switch to text chat with the host.',
+        parameters: { type: 'object', properties: {} },
+      },
+    ],
+  },
+];
+
+export function parseVoiceStayRange(args: Record<string, unknown>): {
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+} {
+  const checkIn = String(args.checkIn ?? '');
+  const checkOut = String(args.checkOut ?? '');
+  const checkInMs = Date.parse(`${checkIn}T00:00:00Z`);
+  const checkOutMs = Date.parse(`${checkOut}T00:00:00Z`);
+  const nights = Math.round((checkOutMs - checkInMs) / 86_400_000);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(checkIn) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) ||
+    !Number.isFinite(checkInMs) ||
+    !Number.isFinite(checkOutMs) ||
+    new Date(checkInMs).toISOString().slice(0, 10) !== checkIn ||
+    new Date(checkOutMs).toISOString().slice(0, 10) !== checkOut ||
+    nights < 1 ||
+    nights > 90
+  ) {
+    throw new Error('A valid stay of 1 to 90 nights is required');
+  }
+  return { checkIn, checkOut, nights };
+}
+
+function normalizeBookingDate(value: unknown): string | null {
+  const raw = String(value ?? '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const match = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  return match ? `${match[3]}-${match[1]}-${match[2]}` : null;
+}
+
+async function loadOwnBooking(propertyId: string, guestUserId: string) {
+  const { data, error } = await createServiceClient()
+    .from('guest_submissions')
+    .select('id, status, check_in_date, check_out_date')
+    .eq('property_id', propertyId)
+    .eq('guest_user_id', guestUserId)
+    .neq('status', 'CANCELLED')
+    .order('check_in_date_sql', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error('Failed to load guest booking');
+  return data;
+}
+
+async function loadPropertySlug(propertyId: string): Promise<string | null> {
+  const { data, error } = await createServiceClient()
+    .from('properties')
+    .select('slug')
+    .eq('id', propertyId)
+    .maybeSingle();
+  if (error) throw new Error('Failed to load property');
+  return data?.slug ? String(data.slug) : null;
+}
+
+export async function executeVoiceReceptionistTool(input: {
+  name: VoiceReceptionistToolName;
+  args: Record<string, unknown>;
+  propertyId: string;
+  guestUserId: string;
+}): Promise<VoiceToolResult> {
+  const actions: VoiceToolResult['actions'] = [];
+
+  if (input.name === 'get_property_facts') {
+    const topic = String(input.args.topic ?? '') as VoicePropertyFactTopic;
+    if (!VOICE_PROPERTY_FACT_TOPICS.includes(topic)) throw new Error('Unsupported property fact');
+    const slug = await loadPropertySlug(input.propertyId);
+    if (slug) {
+      actions.push({
+        type: 'open_property',
+        label: 'View property',
+        url: `/properties/${encodeURIComponent(slug)}`,
+      });
+    }
+    return {
+      spokenText: sanitizeVoiceToolFact(await answerGuestSafeVoiceTopic(input.propertyId, topic)),
+      actions,
+    };
+  }
+
+  if (input.name === 'check_dates') {
+    const { checkIn, checkOut } = parseVoiceStayRange(input.args);
+    const availability = await loadGuestSafeAvailabilityContext(input.propertyId);
+    const horizonEnd = new Date(`${availability.asOfDate}T00:00:00Z`);
+    horizonEnd.setUTCDate(horizonEnd.getUTCDate() + 180);
+    if (checkIn < availability.asOfDate || checkOut > horizonEnd.toISOString().slice(0, 10)) {
+      return {
+        spokenText:
+          'I can check dates within the next 180 days. For other dates, message the host.',
+        actions,
+      };
+    }
+    const blocked = availability.blockedRanges.some(
+      (range) => checkIn < range.checkOut && checkOut > range.checkIn
+    );
+    const slug = await loadPropertySlug(input.propertyId);
+    if (slug) {
+      actions.push({
+        type: 'open_calendar',
+        label: 'Open calendar',
+        url: `/properties/${encodeURIComponent(slug)}/calendar`,
+      });
+    }
+    return {
+      spokenText: blocked
+        ? 'Those dates are not available. Try different dates or message the host.'
+        : `Those dates are currently available as of ${availability.asOfDate}.`,
+      actions,
+    };
+  }
+
+  if (input.name === 'get_inquiry_price') {
+    const { checkIn, checkOut, nights } = parseVoiceStayRange(input.args);
+    const pricing = await loadPropertyPricing(input.propertyId);
+    const total = computeDefaultBookingRateFromDefaults(
+      new Date(`${checkIn}T00:00:00+08:00`),
+      new Date(`${checkOut}T00:00:00+08:00`),
+      nights,
+      pricing,
+      pricing
+    );
+    if (total == null) {
+      return {
+        spokenText: 'I could not calculate that stay total. Please check the booking page.',
+        actions,
+      };
+    }
+    const slug = await loadPropertySlug(input.propertyId);
+    if (slug) {
+      const params = new URLSearchParams({ checkInDate: checkIn, checkOutDate: checkOut });
+      actions.push({
+        type: 'open_booking',
+        label: 'Book dates',
+        url: `/properties/${encodeURIComponent(slug)}/form?${params.toString()}`,
+      });
+    }
+    return {
+      spokenText: `The current lodging total is ${total} pesos. Fees or add-ons may apply.`,
+      actions,
+    };
+  }
+
+  if (input.name === 'get_my_stay' || input.name === 'get_stay_guide') {
+    const booking = await loadOwnBooking(input.propertyId, input.guestUserId);
+    if (!booking) {
+      return { spokenText: 'I could not find a booking for this property.', actions };
+    }
+    if (input.name === 'get_my_stay') {
+      actions.push({ type: 'open_booking', label: 'View stay', url: '/account/stays' });
+      return {
+        spokenText: `Your booking is ${String(booking.status).replaceAll('_', ' ').toLowerCase()}, from ${booking.check_in_date} to ${booking.check_out_date}.`,
+        actions,
+      };
+    }
+    const availability = await loadGuestSafeAvailabilityContext(input.propertyId);
+    const checkIn = normalizeBookingDate(booking.check_in_date);
+    const checkOut = normalizeBookingDate(booking.check_out_date);
+    if (
+      !checkIn ||
+      !checkOut ||
+      availability.asOfDate < checkIn ||
+      availability.asOfDate > checkOut
+    ) {
+      return {
+        spokenText: 'Stay-guide details are available only during your active stay.',
+        actions,
+      };
+    }
+    const guide = sanitizeVoiceToolFact(
+      await answerGuestSafeVoiceTopic(input.propertyId, 'guides')
+    );
+    const slug = await loadPropertySlug(input.propertyId);
+    if (slug) {
+      actions.push({
+        type: 'open_stay_guide',
+        label: 'Open stay guide',
+        url: `/properties/${encodeURIComponent(slug)}/stay-guide`,
+      });
+    }
+    return { spokenText: guide, actions };
+  }
+
+  const propertySlug = await loadPropertySlug(input.propertyId);
+  actions.push({
+    type: 'open_text_chat',
+    label: 'Message host',
+    url: propertySlug
+      ? `/account/messages?property=${encodeURIComponent(propertySlug)}`
+      : '/account/messages',
+  });
+  return { spokenText: 'You can message the host now.', actions };
 }
