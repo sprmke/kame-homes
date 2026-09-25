@@ -29,6 +29,7 @@ import { ATTACHED_CONTEXT_ICONS } from '@/features/dashboard/ai-assistant/lib/co
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { cn } from '@/lib/utils';
 
 const COMPOSER_MAX_ROWS = 10;
@@ -302,6 +303,7 @@ export function ChatComposer({
           <textarea
             ref={textareaRef}
             value={value}
+            maxLength={CHAT_MESSAGE_MAX_CHARS}
             onChange={(e) => {
               if (listening) stopSpeech();
               setValue(e.target.value);
