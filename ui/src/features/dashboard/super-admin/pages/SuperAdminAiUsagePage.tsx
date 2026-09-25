@@ -44,6 +44,11 @@ function labelFeature(feature: string): string {
   return feature.replace(/_/g, ' ');
 }
 
+function formatLatency(ms: number | null): string {
+  if (ms == null) return '-';
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+}
+
 export function SuperAdminAiUsagePage() {
   const [range, setRange] = useState<SuperAdminAiUsageRange>('30d');
   const { data, isLoading, error } = useSuperAdminAiUsage(range);
@@ -217,6 +222,46 @@ export function SuperAdminAiUsagePage() {
               </div>
             </section>
           </div>
+
+          {data.featureBreakdown.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-section-title">Feature health</h2>
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Feature</TableHead>
+                        <TableHead>Calls</TableHead>
+                        <TableHead>Errors</TableHead>
+                        <TableHead>Fallback</TableHead>
+                        <TableHead className="hidden md:table-cell">p50</TableHead>
+                        <TableHead>p95</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.featureBreakdown.map((f) => (
+                        <TableRow key={f.feature}>
+                          <TableCell className="font-medium">{labelFeature(f.feature)}</TableCell>
+                          <TableCell className="tabular-nums">{f.calls}</TableCell>
+                          <TableCell className="tabular-nums">
+                            {f.errors} ({f.errorRatePct}%)
+                          </TableCell>
+                          <TableCell className="tabular-nums">{f.fallbackRatePct}%</TableCell>
+                          <TableCell className="hidden tabular-nums md:table-cell">
+                            {formatLatency(f.latencyP50Ms)}
+                          </TableCell>
+                          <TableCell className="tabular-nums">
+                            {formatLatency(f.latencyP95Ms)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
+            </div>
+          )}
 
           <div className="space-y-3">
             <h2 className="text-section-title">Top organizations by spend</h2>

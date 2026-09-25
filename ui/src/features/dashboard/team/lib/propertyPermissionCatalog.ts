@@ -104,7 +104,6 @@ const COARSE_PLAN_FEATURES: Partial<Record<string, PlanFeatureKey>> = {
   'publicPages.showcase:edit': 'propertyShowcase',
   'pricing.channels:view': 'calendarSync',
   'pricing.channels:edit': 'calendarSync',
-  'analytics:view': 'analyticsInsights',
   'analytics:export': 'analyticsInsights',
   'settings.voiceReceptionist:edit': 'aiReceptionist',
   'settings.aiOverrides:edit': 'aiMonthlyCreditAllowance',

@@ -178,6 +178,6 @@ export const PLAN_FEATURE_LABELS: Record<keyof PlanFeatures, string> = {
   smartPricing: 'Smart Pricing',
   customRoles: 'Custom team roles',
   copyPropertySettings: 'Copy property settings',
-  analyticsInsights: 'Analytics & AI performance review',
+  analyticsInsights: 'Analytics export and AI review',
   activityLogExport: 'Activity log CSV export',
 };

@@ -195,7 +195,7 @@ export const PLAN_TIER_CARD_GAINS: Record<string, string[]> = {
     'Airbnb calendar sync',
     'Smart AI Pricing',
     'Copy property settings',
-    'Analytics & AI performance review',
+    'Analytics export and AI review',
     'AI image generation',
     '5,000 AI credits per month',
   ],
@@ -290,7 +290,7 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
   boolRow('calendarSync', 'Airbnb calendar sync', 'pricing'),
   boolRow('smartPricing', 'Smart AI Pricing', 'pricing'),
 
-  boolRow('analyticsInsights', 'Analytics & AI performance review', 'analytics'),
+  boolRow('analyticsInsights', 'Analytics export and AI review', 'analytics'),
 
   {
     key: 'teamManagement',

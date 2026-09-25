@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 
+import { AppLoader } from '@/components/branding/AppLoader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -810,30 +811,9 @@ export function DashboardSkeleton() {
   );
 }
 
-/** Generic route-guard/auth-check loading shape — used while access is being resolved, before the target page's real shape is known. */
+/** Shown while access is still resolving, before the target page's shape is known. */
 export function RouteGuardSkeleton({ fullScreen = false }: { fullScreen?: boolean } = {}) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col justify-center px-4 py-8 sm:px-6',
-        fullScreen ? 'min-h-screen' : 'min-h-[40vh]'
-      )}
-      aria-busy="true"
-      aria-label="Loading"
-    >
-      <div className="mx-auto w-full max-w-2xl space-y-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-10 shrink-0 rounded-full" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-4 w-40 max-w-full" />
-            <Skeleton className="h-3 w-64 max-w-full" />
-          </div>
-        </div>
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-      </div>
-    </div>
-  );
+  return <AppLoader fullScreen={fullScreen} />;
 }
 
 /** Generic block of content rows — settings sections, modal bodies, misc panel content whose shape isn't worth a bespoke skeleton. */

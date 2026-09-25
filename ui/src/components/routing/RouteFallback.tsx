@@ -1,3 +1,4 @@
+import { AppLoader } from '@/components/branding/AppLoader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 
@@ -37,17 +38,5 @@ export function PageLoadingFallback() {
   const show = useShowAfterDelay();
   if (!show) return null;
 
-  return (
-    <div
-      className="flex min-h-screen w-full items-center justify-center"
-      role="status"
-      aria-live="polite"
-      aria-label="Loading"
-    >
-      <div
-        aria-hidden
-        className="border-muted-foreground/20 border-t-primary h-8 w-8 animate-spin rounded-full border-4"
-      />
-    </div>
-  );
+  return <AppLoader fullScreen />;
 }

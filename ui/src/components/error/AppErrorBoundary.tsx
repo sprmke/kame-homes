@@ -4,6 +4,7 @@ import { RotateCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { captureAppException } from '@/lib/posthog/capture';
+import { captureSentryException } from '@/lib/sentry/client';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -18,7 +19,10 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[AppErrorBoundary]', error, info.componentStack);
+    // PostHog keeps the exception history; Sentry carries the alert. Each is
+    // independently configured and each swallows its own errors.
     captureAppException(error, { componentStack: info.componentStack });
+    captureSentryException(error, { componentStack: info.componentStack });
   }
 
   render() {

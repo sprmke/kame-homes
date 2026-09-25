@@ -9,7 +9,16 @@ export type SuperAdminAiUsage = {
   generatedAt: string;
   totals: { costUsd: number; calls: number; orgsWithUsage: number; quotaBreaches: number };
   dailySeries: { date: string; costUsd: number; calls: number }[];
-  featureBreakdown: { feature: string; costUsd: number; calls: number }[];
+  featureBreakdown: {
+    feature: string;
+    costUsd: number;
+    calls: number;
+    errors: number;
+    errorRatePct: number;
+    fallbackRatePct: number;
+    latencyP50Ms: number | null;
+    latencyP95Ms: number | null;
+  }[];
   topOrgs: {
     organizationId: string;
     organizationName: string;

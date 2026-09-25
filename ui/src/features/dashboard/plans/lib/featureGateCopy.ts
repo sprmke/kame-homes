@@ -172,9 +172,9 @@ export const FEATURE_GATE_COPY: Record<PlanFeatureKey, FeatureGateCopy> = {
     ctaLabel: 'View plans',
   },
   analyticsInsights: {
-    title: 'Analytics',
+    title: 'Analytics export',
     description:
-      'Property and portfolio analytics — occupancy, revenue, guest insights, and the AI performance review are available on Pro and above.',
+      'Downloading Analytics as PDF or CSV is available on Pro and above. Viewing the dashboard stays free on every plan.',
     ctaLabel: 'View plans',
   },
   activityLogExport: {
