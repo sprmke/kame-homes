@@ -184,6 +184,7 @@ Principle: **cost-based primary enforcement, call-count as a secondary guardrail
 3. `aiUsageService.ts`: add the platform-ceiling check at the top of `assertOrgAndPropertyAiQuota()` (fail-closed + fire an alert row); add the monthly-cost check alongside the existing daily-cost check; add per-feature sub-cap lookups; add the `actor_type`-scoped guest cap.
 4. Extend `getOrgAiUsageSummary` / `getPropertyAiUsageSummary` DTOs with the new remaining values so the existing `/admin/ai-usage` + org settings UI can render them.
 5. Wire the platform ceiling breach into the same email + Telegram alert path proposed in [`super-admin-service-cost-monitoring.md`](./super-admin-service-cost-monitoring.md) — do not build a parallel alerter.
+6. **Atomic quota (handed off from [`ai-llm-best-practices-hardening.md`](../for-testing/ai-llm-best-practices-hardening.md) Phase 4):** today `assertOrgAndPropertyAiQuota` reads usage, the call runs, then usage is written, so concurrent calls can overshoot a cap. Replace with a reserve-then-settle RPC (reserve estimated credits before the call inside the AI gateway `_shared/ai/llmClient.ts`, settle actual usage or release on failure). Overshoot is currently bounded by per-user rate limits and the platform cap.
 
 ### Phase 3 — UI surfacing (route guides required)
 

@@ -21,12 +21,14 @@ underbooked through fully booked, and independently whether upcoming bookings ha
 collections at risk — and gives state-appropriate guidance either way: a fully booked listing
 gets a yield nudge to raise rates, not silence; an underbooked one gets a pricing/marketing
 gap check; a listing with unpaid balances due soon gets a collections nudge regardless of how
-full the calendar looks. The full module (deterministic analytics + all three AI surfaces) is
-a **Pro-tier paid capability**; Free and Starter see a teaser with an upgrade CTA.
+full the calendar looks. Pages and charts are **preview-open** on every plan. `analyticsInsights`
+(Pro) gates **Export PDF / Export CSV** and **AI review generation** (POST + weekly cron).
 
 ## Implementation status (2026-09-09)
 
-**Shipped: all of Phases 0–5.** Phase 0 (foundation, gating, deterministic service), Phase 1
+**Shipped: all of Phases 0–5.** Gating update (2026-09-23): removed the org `RequireOrgFeature`
+page lock and the property KPI-strip teaser. Free hosts see the full dashboards; plan gates sit
+on export buttons and AI review POST/cron. Phase 0 (foundation, gating, deterministic service), Phase 1
 (property analytics page), Phase 2 (forward-looking: booking pace, next-N-days, YoY comparison
 toggle), Phase 2b (public page tracking + monthly pruning cron), Phase 3 (AI Performance Review
 — weekly cron + on-demand regenerate), Phase 4 (Improvement Playbook + super-admin CRUD at
@@ -395,10 +397,10 @@ from `_shared/requestRateLimits` or the settings-verification pattern).
 
 ### Plans + Team RBAC (mandatory decision)
 
-| Control       | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Plans**     | **YES.** New `PlanFeatureKey` `analyticsInsights`, entitled on `growth` (Pro) / `pro` (Business) / `managed`. Free + Starter get a **teaser**: the KPI strip with period-over-period only (data the dashboard already exposes) + a locked "Insights, pace & AI review" panel with an upgrade CTA. Full bundle, forward-looking, all 3 AI surfaces, and export require the entitlement. AI surfaces additionally consume `aiMonthlyCreditAllowance` (double-gated, like Smart Pricing). Rationale: analytics + AI coaching is the classic "grow revenue" upsell and belongs with Smart Pricing / calendar sync / marketing studio, which are already Pro+. |
-| **Team RBAC** | **YES.** New property leaves `analytics:view` (see the page) and `analytics:export` (CSV/PDF). Org mirror `org:analytics:view` for the portfolio page. Seeded: owner + co-host → view + export; manager → view; others → none by default (configurable). Nav item hidden without `analytics:view`; `RequirePropertyPermission`; `resolveScopedPropertyAccess(req, 'analytics:view')` on `analytics-summary`, `:export` on `analytics-export`.                                                                                                                                                                                                             |
+| Control       | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Plans**     | **YES.** `analyticsInsights` on `growth` / `pro` / `managed`. **Preview-open** pages: Free/Starter see the full property and org dashboards. The key gates **Export PDF / Export CSV** and **AI review generation** (POST + weekly cron). Ask Analytics reads match the page (`analytics:view` only).                                                                                                                                         |
+| **Team RBAC** | **YES.** New property leaves `analytics:view` (see the page) and `analytics:export` (CSV/PDF). Org mirror `org:analytics:view` for the portfolio page. Seeded: owner + co-host → view + export; manager → view; others → none by default (configurable). Nav item hidden without `analytics:view`; `RequirePropertyPermission`; `resolveScopedPropertyAccess(req, 'analytics:view')` on `analytics-summary`, `:export` on `analytics-export`. |
 
 ### UI
 

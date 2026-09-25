@@ -190,6 +190,8 @@ The kanban workflow dialog (`variant="modal"`) uses a single custom shell: **hea
 
 **Pending Review gate.** While `status === PENDING_REVIEW` the panel keeps its stage deck header — step count, stage name, progress track, and the **View all steps** map stay readable — but the body and the whole actions bar are replaced by `WorkflowPendingReviewAck`: one card with an optional **Manual** / **AI check** segmented control labeled **Choose how to review this booking**. **Manual** shows the confirmation checkbox only. **AI check** shows **Run AI check** until a job has finished (`completed` or `failed` on `booking_ai_reviews`), then the checkbox with AI-specific ack copy. If the stored run is **outdated** (booking fields or files changed since the fingerprints were taken) or the job **failed**, **Recheck** appears as an optional outline control above the checkbox — the host can confirm without rechecking. The first run still hides the checkbox until a job has finished. Stepping the booking back without changing guest data does not mark the run outdated. The AI panel is a read-only review aid; it does not mark the booking reviewed. The ack is session storage keyed by booking id and stamped with `status_updated_at` (fallback `created_at`, `usePendingReviewAck`), so a server-side change that returns the booking to Pending Review asks for a fresh confirmation. In the kanban dialog (`variant="modal"`) the same card fills the body under the dialog header.
 
+**AI receipt verdict override.** AI document checks are advisory. When Proceed / Mark complete is blocked only because the AI judged a required receipt `invalid`, `transition-booking` answers **409 `ai_verdict_blocked`** and the UI shows a warning toast with a **Proceed anyway** action (15 s, `offerAiVerdictOverride` in `bookings/lib/aiVerdictOverride.ts`, wired in `WorkflowPanel` for transitions and pending-document mark-complete). Proceed anyway re-sends the same call with `override_ai_verdict: true`; the server accepts it only from a person (owner / team member / super-admin) and records `aiVerdictOverridden` on the transition's activity entry. Canonical rule: `.cursor/rules/booking-workflow.mdc` §6.
+
 Every transition/cancel call goes through `transition-booking` / `cancel-booking`, which delegate all side effects to `_shared/workflowOrchestrator.ts` — see `.cursor/rules/booking-workflow.mdc` for the full status enum, transition graph, and side-effect matrix (never duplicated here).
 
 ---
@@ -268,6 +270,8 @@ This is the page a host opens to manage one specific booking end to end: guest d
 
 **Common host questions**
 
+- Q: The AI says a receipt is invalid, but I checked it and it's fine. Can I still move the booking forward?
+  A: Yes. When you press Proceed, a warning appears with **Proceed anyway**. Tap it to continue. The AI check is only advice, and the activity log notes that you chose to proceed.
 - Q: Can the AI assistant upload an approved GAF or guest ID for me?
   A: Yes. In the assistant, attach the PDF or photo, pin the booking (or name the guest), and ask it to apply the file — for example as the approved GAF or a valid ID. You’ll get a Confirm card (including a warning if a file is already there). You can also ask it to send workflow emails (acknowledgement, GAF request, and the rest) the same way you would from Automation Triggers.
 - Q: Why can't I see the pricing yet?
@@ -396,20 +400,20 @@ This is the page a host opens to manage one specific booking end to end: guest d
 
 ## API reference
 
-| Action                              | Endpoint                                                                 |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| Load booking                        | Supabase `guest_submissions` select (admin session)                      |
-| Save edit-form and progress fields  | `POST update-booking-details`                                            |
-| Reschedule / clear detail assets    | `POST update-booking-details`                                            |
-| Advance/back a workflow step        | `POST transition-booking` — **409** if another host already moved status |
-| Cancel booking                      | `POST cancel-booking`                                                    |
-| Upload/replace a guest document     | `POST upload-booking-asset`                                              |
-| Manually run check-out automation   | `POST sd-refund-cron` (scoped to `{ bookingId }`)                        |
-| Resend Check-out Instructions email | `POST send-sd-refund-form-email`                                         |
-| Issue/refresh guest stay-guide link | `POST issue-guest-stay-guide-token`                                      |
-| Optional admin receipt re-validate  | `POST validate-booking-receipts` (not called from booking detail UI)     |
-| Trigger AI summary job              | `POST booking-ai-review` (`{ bookingId, refresh? }`)                     |
-| Poll AI summary job                 | `GET get-booking-ai-review` (includes computed `stale_sections`)         |
+| Action                              | Endpoint                                                                                                                                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Load booking                        | Supabase `guest_submissions` select (admin session)                                                                                                                                            |
+| Save edit-form and progress fields  | `POST update-booking-details`                                                                                                                                                                  |
+| Reschedule / clear detail assets    | `POST update-booking-details`                                                                                                                                                                  |
+| Advance/back a workflow step        | `POST transition-booking` — **409** if another host already moved status; **409 `ai_verdict_blocked`** when an AI `invalid` receipt verdict blocks it (retry with `override_ai_verdict: true`) |
+| Cancel booking                      | `POST cancel-booking`                                                                                                                                                                          |
+| Upload/replace a guest document     | `POST upload-booking-asset`                                                                                                                                                                    |
+| Manually run check-out automation   | `POST sd-refund-cron` (scoped to `{ bookingId }`)                                                                                                                                              |
+| Resend Check-out Instructions email | `POST send-sd-refund-form-email`                                                                                                                                                               |
+| Issue/refresh guest stay-guide link | `POST issue-guest-stay-guide-token`                                                                                                                                                            |
+| Optional admin receipt re-validate  | `POST validate-booking-receipts` (not called from booking detail UI)                                                                                                                           |
+| Trigger AI summary job              | `POST booking-ai-review` (`{ bookingId, refresh? }`)                                                                                                                                           |
+| Poll AI summary job                 | `GET get-booking-ai-review` (includes computed `stale_sections`)                                                                                                                               |
 
 ---
 

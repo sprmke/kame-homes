@@ -20,10 +20,25 @@ Routes:
 
 | Section           | E2E save | Validation | Docs | Notes                                                                                                                                                                   |
 | ----------------- | -------- | ---------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI usage          | n/a      | —          | Done | Spend trend + cost-by-feature charts + top-orgs table + quota breaches. Read-only.                                                                                      |
+| AI usage          | n/a      | —          | Done | Spend trend + cost-by-feature charts + **Feature health** + top-orgs + quota breaches. Read-only.                                                                       |
 | Audit log         | n/a      | —          | Done | Search + paginated list; org-hub **Activity** tab filters to one org.                                                                                                   |
 | Platform settings | Done     | client     | Done | Signups, maintenance, default plan, support/legal, rate limit, **Host verification reward** card (config + live grants list with Revoke via `org-subscriptions-admin`). |
 | ⌘K search palette | n/a      | —          | Done | Fans out over orgs / properties / parkings / tickets; Enter navigates.                                                                                                  |
+
+---
+
+## Host-facing knowledge
+
+The AI usage page shows what AI costs the platform and how reliable each AI feature is.
+
+**Common operator questions**
+
+- Q: What does "fallback rate" mean on Feature health?
+  A: How often the main AI provider was unavailable and the backup provider answered instead. A rising number usually means the main provider is rate limiting or having an outage.
+- Q: Why does a feature show errors but no extra cost?
+  A: Failed calls are counted so you can spot problems, but only successful calls add to cost.
+- Q: What is p95 latency?
+  A: The slowest typical response time. 95 out of 100 calls finished faster than this.
 
 ---
 
@@ -34,6 +49,10 @@ Routes:
   top-25-orgs table, and compares each org's today/month call counts against
   `ai_platform_org_settings` (falling back to the platform defaults — 200/day, 5000/month) to flag
   quota breaches. Each org row links to that org's **AI credits** hub section.
+  **Feature health** table: per AI feature, calls, failed calls, error rate, fallback rate (share
+  of calls served by the backup provider) and p50/p95 latency, from the `status`, `fallback_used`
+  and `latency_ms` columns on `ai_platform_usage_events`. Cost-by-feature counts successful calls
+  only. See [`ai-platform.md`](../../../architecture/ai-platform.md) §6.
 - **Audit log** (`SuperAdminAuditPage` / org-hub `SuperAdminOrgActivitySection`):
   `list-super-admin-audit` reads `super_admin_audit_events`, written fire-and-forget by
   `_shared/superAdminAudit.ts#logSuperAdminAction()` — a write failure there never blocks the
@@ -60,13 +79,13 @@ Routes:
 
 ## API reference
 
-| Method  | Endpoint                               | Notes                                                                                             |
-| ------- | -------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| GET     | `super-admin-ai-usage`                 | `?range=30d\|90d\|12mo` → `totals`, `dailySeries`, `featureBreakdown`, `topOrgs`, `quotaBreaches` |
-| GET     | `list-super-admin-audit`               | `?q=`, `?actor=`, `?targetType=`, `?targetId=`, `?page=`, `?limit=`                               |
-| GET     | `org-subscriptions-admin?rewards=true` | Live `source=reward` grants for Host verification reward card                                     |
-| GET/PUT | `platform-settings`                    | Singleton row; PUT accepts a partial patch                                                        |
-| GET     | `super-admin-search`                   | `?q=` (min 2 chars) → grouped `results[]` with `href`                                             |
+| Method  | Endpoint                               | Notes                                                                                                                                                                             |
+| ------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `super-admin-ai-usage`                 | `?range=30d\|90d\|12mo` → `totals`, `dailySeries`, `featureBreakdown` (+ `errors`, `errorRatePct`, `fallbackRatePct`, `latencyP50Ms`, `latencyP95Ms`), `topOrgs`, `quotaBreaches` |
+| GET     | `list-super-admin-audit`               | `?q=`, `?actor=`, `?targetType=`, `?targetId=`, `?page=`, `?limit=`                                                                                                               |
+| GET     | `org-subscriptions-admin?rewards=true` | Live `source=reward` grants for Host verification reward card                                                                                                                     |
+| GET/PUT | `platform-settings`                    | Singleton row; PUT accepts a partial patch                                                                                                                                        |
+| GET     | `super-admin-search`                   | `?q=` (min 2 chars) → grouped `results[]` with `href`                                                                                                                             |
 
 ---
 

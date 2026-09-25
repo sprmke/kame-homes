@@ -1,7 +1,7 @@
 ---
 title: 'QA — Property Templates'
 status: active
-updated: 2026-08-29
+updated: 2026-09-21
 ---
 
 # 11 — Templates
@@ -12,19 +12,18 @@ Route: `/org/:orgSlug/property/:propertySlug/templates`
 
 - Standard stay-guide templates free; email save Starter+; custom create Starter+.
 - Preview uses same send renderer — trustable.
-- TipTap duplicate extension warnings in console (noise).
 
 ## Issues
 
-| Sev | Issue                                                                                 | Evidence            |
-| --- | ------------------------------------------------------------------------------------- | ------------------- |
-| P2  | Custom templates stored but **not wired to any send** — hosts may create dead content | Guide “Not wired”   |
-| P3  | TipTap duplicate `link`/`underline` warnings                                          | Console during walk |
+| Sev | Issue                                                                                                                                                                                         | Evidence                                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| P2  | ~~Custom templates stored but **not wired to any send**~~ — **Fixed**: manual **Send to guest** picker + `send-property-custom-template-email`                                                | Guide "Custom templates → Send to guest"                                 |
+| P3  | ~~TipTap duplicate `link`/`underline` warnings~~ — **Fixed**: `StarterKit.configure({ link: {...} })` instead of a separate `Link`/`Underline` extension (StarterKit v3 bundles both already) | `RichTextEditor.tsx`; regression test in `dashboardModulesSmoke.spec.ts` |
 
 ## Improvements
 
-- Either wire custom templates to a manual “Send to guest” or hide Create until wired.
-- Dedupe TipTap extensions.
+- ~~Either wire custom templates to a manual "Send to guest" or hide Create until wired.~~ Done — manual send shipped.
+- ~~Dedupe TipTap extensions.~~ Done.
 
 ## Doc gaps
 
@@ -32,4 +31,4 @@ Route: `/org/:orgSlug/property/:propertySlug/templates`
 
 ## Evidence
 
-Live Templates load; guide `templates.md`; console tiptap warns.
+Live Templates load; guide `templates.md`.

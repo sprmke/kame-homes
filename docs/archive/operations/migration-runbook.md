@@ -629,6 +629,21 @@ So a migration file that contains `CREATE INDEX CONCURRENTLY` **will fail to app
 
 **When to promote `20261316121800`'s indexes from Option A to Option B:** if hosted dev/prod `guest_submissions`, `notifications`, `social_messages`, `ai_platform_usage_events`, or `activity_log` have grown large by the time this migration is deployed (check row counts first — `SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 20;`), re-run those specific `CREATE INDEX` statements manually with `CONCURRENTLY` per Option B instead of relying on the migration's plain form, then let the migration's `IF NOT EXISTS` no-op past them on the next deploy.
 
+### 11i AI / LLM best-practices hardening, September 2026
+
+Plan: [`docs/workflow/for-testing/ai-llm-best-practices-hardening.md`](../../workflow/for-testing/ai-llm-best-practices-hardening.md) · architecture: [`docs/architecture/ai-platform.md`](../../architecture/ai-platform.md).
+
+| File                                  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Reversible                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `20261316123050_ai_llm_hardening.sql` | Adds `failed` to the assistant pending-action status check. New RPC `search_ai_assistant_knowledge_base(p_query, p_limit)` (parameterized ranked FTS, max 10). Adds trace columns to `ai_platform_usage_events` (`prompt_id`, `prompt_version`, `latency_ms`, `status` with check, `error_code`, `request_id`, `cache_hit`, `fallback_used`) + an index. New atomic counter RPC `increment_ai_dashboard_assistant_usage_daily`. New `run_ai_data_retention(p_tool_calls_days)` (SECURITY DEFINER, `service_role` only) and, when `pg_cron` exists, job `ai-data-retention-nightly` (`41 3 * * *` UTC). | Yes: drop the functions/job and columns. Existing rows default to `status='success'`. |
+
+Notes:
+
+- The new columns use constant defaults, so `ADD COLUMN` is metadata-only on Postgres 11+; the single new index on `ai_platform_usage_events` is a plain `CREATE INDEX IF NOT EXISTS` (Option A above). Check the row count first on a large prod table.
+- Deploy edge functions **after** the migration: the gateway writes the new usage columns and the chat/confirm handlers call the new RPCs.
+- Local: `bun run db:migrate`. Local has no `pg_cron`, so the retention job is skipped; run `SELECT public.run_ai_data_retention();` manually to test.
+- Verify: `SELECT status, count(*) FROM ai_platform_usage_events GROUP BY 1;` and `SELECT jobname, schedule FROM cron.job WHERE jobname = 'ai-data-retention-nightly';` (hosted).
+
 ---
 
 ## 11. Production configuration & secrets (Supabase, Google, hosting)

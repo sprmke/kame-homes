@@ -79,6 +79,12 @@ Organization settings control your brand identity and public presence: logo, nam
   A: Yes. Use the paperclip next to the message box for a photo or PDF (up to three files, 4 MB each). The bookmark icon opens a **module list** (Bookings, Finance, Team, …) — pick a module, then pick the item to pin. The current page’s module is labeled **This page** at the top. **Search all modules…** at the bottom (or **Cmd/Ctrl+K**) opens the same two-step flow in a centered dialog. You can pin several items (up to eight). The message box grows as you type (up to about ten lines).
 - Q: What happens when I tap Open on a long table or booking journey?
   A: On a laptop the chat stays on the right and the table or steps open beside it. On a phone the steps fill the panel; Back returns to the chat. Confirming a step still moves only that one status, same as Confirm in the thread.
+- Q: Why did the assistant ask me to confirm a change it usually makes on its own?
+  A: If it read a guest message or review earlier in the same request, it always asks first, so text written by a guest can never trigger a change by itself. It also asks when you request several changes at once.
+- Q: The assistant said it reached today's action limit. What now?
+  A: Your organization's daily limit for assistant changes was used up. You can still ask questions. Changes work again tomorrow, or an owner can raise the limit in Settings.
+- Q: Why does an answer show "Related pages"?
+  A: When the answer comes from the help guides, the assistant links the pages it used so you can open them directly.
 - Q: Can I delete an old assistant chat?
   A: Yes. Open History (clock), then the trash on that conversation. That chat is gone for good.
 
@@ -147,7 +153,7 @@ Public listings read **`isSuperhost`** from org earned flag via `_shared/orgSupe
 | Daily cost USD limit | `ai_platform_org_settings.daily_cost_usd_limit` | Default 10; blank falls back to platform default.                                         |
 | Voice receptionist   | inherited from platform allowlist               | Can be enabled per property only when the platform allows the voice receptionist feature. |
 
-Save path: section-local **Save** button → `PATCH ai-platform-settings` (org owner / org admin only). Hook: `useAiPlatformSettings.ts`.
+Save path: section-local **Save** button → `PATCH ai-platform-settings` (org owner / org admin only). Hook: `useAiPlatformSettings.ts`. **Ceiling:** the three limits may be lowered but never raised above the platform defaults; a higher value returns 400 (`dailyCallLimit cannot exceed …`).
 
 Usage summary: `GET ai-platform-usage` (today, this month, per-feature breakdown, per-property breakdown, **`monthCreditsConsumed`**/**`monthlyCreditLimit`**, **`walletBalanceCredits`**). The section shows **Credits used this month** as a progress bar against the monthly credit allowance, with the top-up wallet balance shown once non-zero. Credit-based enforcement is **live** (org daily/monthly, inherited by properties unless overridden) — once exceeded, calls draw from the org's credit wallet if it has a positive balance, else fail with the same upgrade-hook toast as call/cost limits. The default daily/monthly credit limits ship deliberately generous (not real pricing numbers — see the linked plan doc) so this gate is inert under today's usage until pricing is confirmed; there is no org-editable UI for these limits yet, only super-admin defaults + manual wallet top-ups. Hook: `useAiPlatformSettings.ts`.
 
@@ -155,12 +161,12 @@ Usage summary: `GET ai-platform-usage` (today, this month, per-feature breakdown
 
 Independent of **AI platform** (receipt validation, marketing, inbox). Off by default per org; also gated by a super-admin kill switch.
 
-| Field                    | Storage                                                     | Notes                                                   |
-| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------- |
-| Assistant enabled        | `ai_dashboard_assistant_org_settings.enabled`               | Org owner/admin; hidden on `/admin/*` regardless        |
-| Disable on properties    | `ai_dashboard_assistant_org_settings.disabled_property_ids` | Per-property opt-out                                    |
-| Daily / monthly messages | `…daily_message_limit`, `…monthly_message_limit`            | Hitting the cap shows an upgrade line in the chat panel |
-| Daily write-action limit | `…daily_write_action_limit`                                 | Counts confirmed/auto-executed writes                   |
+| Field                    | Storage                                                     | Notes                                                                                                                                                 |
+| ------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assistant enabled        | `ai_dashboard_assistant_org_settings.enabled`               | Org owner/admin; hidden on `/admin/*` regardless                                                                                                      |
+| Disable on properties    | `ai_dashboard_assistant_org_settings.disabled_property_ids` | Per-property opt-out                                                                                                                                  |
+| Daily / monthly messages | `…daily_message_limit`, `…monthly_message_limit`            | Hitting the cap shows an upgrade line in the chat panel                                                                                               |
+| Daily write-action limit | `…daily_write_action_limit`                                 | Counts confirmed/auto-executed writes. Enforced server-side (atomic counter): once reached, the assistant commits no more writes that day and says so |
 
 Save path: section-local **Save assistant settings** → `PATCH dashboard-assistant-settings` (`org.settings.aiAssistant:edit`). Hook: `useAiDashboardAssistantSettings.ts`.
 

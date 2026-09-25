@@ -2,7 +2,7 @@
 title: 'Analytics — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-15
+updated: 2026-09-23
 ---
 
 # Analytics — operator guide
@@ -29,7 +29,7 @@ Route: `/org/:orgSlug/property/:propertySlug/analytics`
 | Guests (age + origins)                       | —        | —          | Done    | **Guest age**, **Party size** (adults+children: 1–4, 5+), and **Guest origins** (max 6 distinct; last row **Others** when more exist) on Overview and Guests                                                                                                                                             |
 | Lead time & length of stay                   | —        | —          | Done    | Trends: lead-time + length-of-stay histograms fill a continuous bucket range (zeros between min–max hits, padded to ≥3); hover tooltip (no bar labels). Plus Reviews & response                                                                                                                          |
 | Date range control                           | —        | —          | Done    | Shared `BookingDateRangeFilter` (Week/Month/Year/Custom), `?from`/`?to` params — same as Bookings/Finance/Dashboard; default = current month                                                                                                                                                             |
-| Teaser (Free/Starter)                        | —        | —          | Done    | 4-KPI preview + upgrade CTA, no fabricated data                                                                                                                                                                                                                                                          |
+| Teaser (Free/Starter)                        | —        | —          | Removed | Full dashboard is preview-open; plan gate is Export PDF / CSV + AI review generate                                                                                                                                                                                                                       |
 | Empty state (new property)                   | —        | —          | Done    | Shown below 10 non-cancelled bookings ever                                                                                                                                                                                                                                                               |
 | Comparison toggle (prior vs last year)       | —        | —          | Removed | On-screen toggle dropped as redundant. KPI deltas are always vs-last-period; YoY still in the bundle for PDF + AI review                                                                                                                                                                                 |
 | AI Performance Review                        | —        | —          | Done    | Weekly cron + on-demand regenerate (1/hour); score dial, Working/Improve/Avoid columns. Local demo seed includes a mock latest review                                                                                                                                                                    |
@@ -55,8 +55,8 @@ property Dashboard:
   - `useDateNavigation`. Default window is the current calendar month. On mobile it sits in the
     floating toolbar that straddles the hero edge.
 - **Export PDF** — desktop: a button next to the date filter; mobile: a `···` hero action menu
-  (`MobileHeroActionMenu`). Only renders on the full (entitled) dashboard **and** with
-  `analytics:export`. (The dedicated **Ask AI** button was removed 2026-09-10 — see § Ask AI below.)
+  (`MobileHeroActionMenu`). Renders with `analytics:export`. Below Pro the click opens the
+  upgrade modal (`analyticsInsights`) and a corner plan pill sits on the desktop button.
 
 There is **no period-comparison toggle** — KPI deltas are always period-over-period ("vs last
 period"). The server still returns year-over-year figures in the bundle for the PDF and the AI
@@ -133,18 +133,17 @@ context) is a possible future follow-up.
 
 ## Plan gate
 
-Full dashboard requires the `analyticsInsights` plan feature (Pro `growth` and above). Free/Starter
-see a **teaser**: a 4-KPI strip (occupancy, ADR, RevPAR, reservations — real numbers, not
-placeholders) plus an upgrade panel. The server (`analytics-summary`) computes the same
-deterministic bundle either way and only trims the response for non-entitled properties — the
-teaser numbers are never fabricated.
+The page (KPI strip, Overview / Trends / Guests / AI review tabs, playbook) is **preview-open**
+on every plan. `analyticsInsights` (Pro `growth` and above) gates **Export PDF** and **AI
+review generation** (POST + weekly cron). `analytics-summary` always returns the full bundle
+for `analytics:view`. Same action-level pattern as Finance export.
 
 ## Permission table
 
-| Permission         | Grants                                                          |
-| ------------------ | --------------------------------------------------------------- |
-| `analytics:view`   | View the Analytics page (any tier — teaser or full)             |
-| `analytics:export` | Show and use the **Export PDF** button in the Analytics toolbar |
+| Permission         | Grants                                                       |
+| ------------------ | ------------------------------------------------------------ |
+| `analytics:view`   | View the Analytics page (any tier)                           |
+| `analytics:export` | Show the **Export PDF** button (plan still applies on click) |
 
 Seeded role templates: Full Access → both; Operations and Read Only → `analytics:view` only;
 other custom roles → none by default (configurable per org).
@@ -154,8 +153,6 @@ other custom roles → none by default (configurable per org).
 - **Loading**: `DashboardSkeleton` (shared skeleton, KPI cards + chart placeholders).
 - **Empty**: fewer than 10 non-cancelled bookings ever → "Not enough booking history yet" with
   the current count.
-- **Teaser**: Free/Starter — 4-KPI strip + upgrade CTA, rest of the page hidden (not blurred/
-  watermarked — a clean upgrade panel instead).
 - **Error**: generic retry message.
 
 ## Host-facing knowledge
@@ -181,9 +178,8 @@ rates, bookings, and guest mix.
 - Q: Are website / Direct bookings included in Where bookings come from?
   A: Yes. Bookings made through your listing page (no Airbnb or Facebook link) count as Direct,
   alongside OTAs and social sources.
-- Q: I'm on the Free plan — why can't I see the charts?
-  A: The full Analytics dashboard (trends, guest insights, and the AI review) is a Pro feature.
-  The KPI strip at the top still shows your real numbers.
+- Q: Can I download a report on Free?
+  A: **Export PDF** is on Pro. The button still shows; tapping it opens Plans.
 - Q: Does the AI review change my rates or settings?
   A: No. It's advisory only — it can suggest an action (e.g. "raise your weekend rate") but
   never applies one. You'd still make that change yourself on the Pricing page.

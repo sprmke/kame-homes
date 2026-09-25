@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-09-24
+updated: 2026-09-25
 stage: in-progress
 kind: reference
 ---
@@ -22,6 +22,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 **Moved out 2026-09-14:** `marketing-ai-asset-generation` → [`../done/`](../done/) — Phases 1–3 shipped (`ci:quality` green). Live Veo/Gemini calls left as accepted residual (funded key required).
 
 **Moved out 2026-09-15:** `pre-production-launch-audit` → [`../for-testing/`](../for-testing/) — every P0/P1/P2 item closed in repo; remaining QA is restore rehearsal on hosted **dev** + the mt-prod cutover gate.
+
+**Moved in 2026-09-23:** [`marketing-ai-image-quality-hardening.md`](./marketing-ai-image-quality-hardening.md) ← [`../planned/`](../planned/) — Phases 1–6 implemented. 2026-09-24: property context now reads real amenity settings and includes the listing name and brand color. Still open: the 20-prompt blind image score (user is the judge) before this can move to done.
 
 | Doc                                                                                    | Summary                                                                                               |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
