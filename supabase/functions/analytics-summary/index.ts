@@ -3,16 +3,14 @@
  * Property scope: ?property_id=…
  * ?from=&to= (ISO yyyy-mm-dd, inclusive). Defaults to the current calendar month (Manila).
  *
- * Free/Starter get a teaser payload (KPI strip only, period-over-period). Pro (`analyticsInsights`)
- * gets the full AnalyticsBundle (trend, distributions, forward view, pace, state assessment).
+ * Preview-open: every entitled `analytics:view` host gets the full AnalyticsBundle.
+ * `analyticsInsights` gates export (PDF) and on-demand AI review POST, not this read.
  */
 
 import { computeAnalyticsBundle, computePlatformBenchmark } from '../_shared/analyticsService.ts';
 import { manilaTodayIso } from '../_shared/bookingsListSort.ts';
 import { matchPlaybookArticles } from '../_shared/hostPlaybook.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
-import { isFeatureEnabled } from '../_shared/planFeatures.ts';
-import { resolvePropertyEntitlements } from '../_shared/planEntitlements.ts';
 import { readPropertyIdFromUrl, resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -48,24 +46,7 @@ serveAuthenticated('analytics-summary', async (req) => {
     return jsonError(req, '`from` must be on or before `to`', 400);
   }
 
-  const entitlements = await resolvePropertyEntitlements(property.id);
-  const hasAnalytics = isFeatureEnabled(entitlements, 'analyticsInsights');
-
   const bundle = await computeAnalyticsBundle({ propertyId: property.id, from, to });
-
-  if (!hasAnalytics) {
-    return jsonSuccess(req, {
-      tier: 'teaser' as const,
-      period: bundle.period,
-      kpis: {
-        occupancyRate: bundle.kpis.occupancyRate,
-        adr: bundle.kpis.adr,
-        revpar: bundle.kpis.revpar,
-        reservations: bundle.kpis.reservations,
-      },
-      sufficiency: bundle.sufficiency,
-    });
-  }
 
   const playbook = await matchPlaybookArticles(bundle).catch(() => []);
   const benchmark = await computePlatformBenchmark(

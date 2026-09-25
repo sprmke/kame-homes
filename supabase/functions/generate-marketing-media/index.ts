@@ -59,10 +59,17 @@ import {
   touchGenerationReferences,
 } from '../_shared/marketingGenerationJobs.ts';
 import {
+  GenerationOutputError,
   generateMarketingImage,
   isGenerationSafetyError,
   loadReferenceInlineData,
 } from '../_shared/marketingImageGenerationAi.ts';
+import {
+  amenitiesFromPropertySettings,
+  buildStructuredImagePrompt,
+  enhanceMarketingImagePrompt,
+  type MarketingImagePropertyContext,
+} from '../_shared/marketingImagePromptBuilder.ts';
 import { startMarketingVideoJob } from '../_shared/marketingVideoGenerationAi.ts';
 import {
   allowPremiumForFeature,
@@ -72,9 +79,11 @@ import {
 } from '../_shared/marketingGenerationFeatureConfig.ts';
 import {
   extensionForVisualMime,
+  isDegenerateGeneratedImage,
   marketingGenerationStoragePath,
   uploadGenerationBytes,
 } from '../_shared/marketingGenerationStorage.ts';
+import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.ts';
 
 const MAX_REFERENCE_IDS = 14;
 /** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
@@ -263,12 +272,43 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
   });
   if (budgetError) return budgetError;
 
+  // Decision 1 (quality-hardening plan): enhancement is on by default, with a
+  // per-generation opt-out — `enhancePrompt: false` in the request body sends the
+  // host's own wording (still platform-framed by buildStructuredImagePrompt) verbatim.
+  const enhancementRequested = body.enhancePrompt !== false;
+  const propertyContext = await loadPropertyContextForPrompt(sb, propertyId);
+
+  const enhancement = enhancementRequested
+    ? await enhanceMarketingImagePrompt({
+        organizationId,
+        propertyId,
+        prompt,
+        aspectRatio: options.aspectRatio,
+        property: propertyContext,
+        hasReferenceImages: references.length > 0,
+        actorUserId,
+      })
+    : {
+        prompt: buildStructuredImagePrompt({
+          prompt,
+          aspectRatio: options.aspectRatio,
+          property: propertyContext,
+        }),
+        enhanced: false,
+      };
+
   const job = await insertMarketingGenerationJob(sb, {
     organizationId,
     propertyId,
     mediaType: 'image',
     prompt,
     negativePrompt,
+    // Only populated when enhancement actually ran and succeeded — a null here is
+    // the "off, skipped, or failed open" signal the migration comment describes.
+    // The prompt actually sent to the model (enhancement.prompt) is used below
+    // regardless; this column is for host-facing transparency, not generation.
+    enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
+    promptEnhanced: enhancement.enhanced,
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,
@@ -285,12 +325,25 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     const inlineReferences = await loadReferenceInlineData(sb, references);
     const generated = await generateMarketingImage({
       config: options.config,
-      prompt,
+      prompt: enhancement.prompt,
       negativePrompt,
       aspectRatio: options.aspectRatio,
       imageSize: options.imageSize,
       references: inlineReferences,
     });
+
+    const dimensions =
+      generated.width && generated.height
+        ? { width: generated.width, height: generated.height }
+        : null;
+    const degenerate = await isDegenerateGeneratedImage({
+      bytes: generated.bytes,
+      dimensions,
+      requestedAspectRatio: options.aspectRatio,
+    });
+    if (degenerate.degenerate) {
+      throw new GenerationOutputError(degenerate.reason);
+    }
 
     const storagePath = marketingGenerationStoragePath(
       propertyId,
@@ -364,6 +417,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
           image_size: options.imageSize,
           reference_count: references.length,
           credits: creditsConsumed,
+          prompt_enhanced: enhancement.enhanced,
         },
       }),
     ]);
@@ -377,6 +431,13 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
   } catch (err) {
     console.warn('[generate-marketing-media] image generation failed:', err);
     const safety = isGenerationSafetyError(err);
+    // Phase 4b: the provider returned 200 with unusable bytes. Not a safety block
+    // (400 would wrongly tell the host their prompt was the problem) — treated as a
+    // provider_error, same 502 as any other provider failure, and not billed: the
+    // throw happens before upload/completeMarketingGenerationJob (see the Phase 4
+    // note in the plan doc). `useMarketingGenerationApi.ts`'s `retryable` field only
+    // has meaning on a 429 response (rate limit vs. quota), so it is not set here —
+    // the job card's existing Retry action already covers "try again" for any 502.
     const errorCode = safety
       ? 'safety_blocked'
       : ((err as { code?: string }).code ?? 'provider_error');
@@ -536,6 +597,53 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
       },
       safety ? 400 : 502
     );
+  }
+}
+
+/**
+ * Phase 2 (quality-hardening plan) — property context for prompt enhancement, read
+ * from the same `properties` row already scoped and permission-checked earlier in
+ * the request. Deliberately narrow: only fields useful for describing a photo
+ * (name/type/city/residence/capacity/amenity labels/brand color). Never reads guest,
+ * booking, or contact data — this context reaches an LLM prompt, so anything read
+ * here is a candidate for a future leak if the field list ever grows carelessly.
+ *
+ * Best-effort: a failure loading context must never block image generation, so this
+ * returns null on any error and the caller proceeds with whatever the host typed.
+ */
+async function loadPropertyContextForPrompt(
+  sb: ReturnType<typeof createServiceClient>,
+  propertyId: string
+): Promise<MarketingImagePropertyContext | null> {
+  try {
+    const { data, error } = await sb
+      .from('properties')
+      .select('name, type, city, residence_name, max_guests, settings')
+      .eq('id', propertyId)
+      .maybeSingle();
+    if (error || !data) return null;
+
+    const settings = (data.settings ?? {}) as Record<string, unknown>;
+    const amenities = amenitiesFromPropertySettings(settings);
+
+    // Brand color is NOT on properties.settings — it lives on the per-property
+    // app_settings row with org → env fallback, and propertyBranding.ts already
+    // resolves that chain (with its own short cache). Reuse it rather than
+    // re-deriving the fallback logic here.
+    const brandColor = await loadResolvedBrandColorByPropertyId(propertyId);
+
+    return {
+      name: String(data.name ?? ''),
+      type: (data.type as string | null) ?? null,
+      city: (data.city as string | null) ?? null,
+      residenceName: (data.residence_name as string | null) ?? null,
+      maxGuests: (data.max_guests as number | null) ?? null,
+      amenities,
+      brandColor: brandColor || null,
+    };
+  } catch (err) {
+    console.warn('[generate-marketing-media] property context load failed (non-fatal):', err);
+    return null;
   }
 }
 

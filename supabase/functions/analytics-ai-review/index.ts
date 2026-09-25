@@ -130,7 +130,7 @@ serveAuthenticated('analytics-ai-review', async (req) => {
     periodStart: bundle.period.from,
     periodEnd: bundle.period.to,
     generatedBy: user.id,
-    model: 'gemini-2.5-flash',
+    model: result.model,
     output: result.output,
     scoreDelta,
     metricsSnapshot: { kpis: bundle.kpis, stateAssessment: bundle.stateAssessment },

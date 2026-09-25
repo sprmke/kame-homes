@@ -2,17 +2,14 @@
  * analytics-org-summary — Host Analytics Phase 5, org portfolio rollup.
  * Org scope: ?org_slug=… or ?org_id=…. ?from=&to= (defaults to current calendar month, Manila).
  *
- * Gated permissively at the page level (`org.analytics:view` + "org has any analyticsInsights
- * property"), but each row in the response reflects that property's own actual entitlement —
- * a Free-tier property inside a mixed-enrollment org comes back locked, not silently included.
+ * Preview-open: `org.analytics:view` is enough to read every active property's numbers.
+ * `analyticsInsights` gates Export CSV (client), not this GET.
  */
 
 import { computePropertyPortfolioRow } from '../_shared/analyticsService.ts';
 import { manilaTodayIso } from '../_shared/bookingsListSort.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
-import { isFeatureEnabled } from '../_shared/planFeatures.ts';
-import { resolvePropertyEntitlements } from '../_shared/planEntitlements.ts';
 import { resolveOrgAccessContext } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -60,16 +57,6 @@ serveAuthenticated('analytics-org-summary', async (req) => {
 
   const rows = await Promise.all(
     (properties ?? []).map(async (property) => {
-      const entitlements = await resolvePropertyEntitlements(property.id);
-      const hasAnalytics = isFeatureEnabled(entitlements, 'analyticsInsights');
-      if (!hasAnalytics) {
-        return {
-          propertyId: property.id,
-          propertyName: property.name,
-          propertySlug: property.slug,
-          locked: true as const,
-        };
-      }
       const portfolioRow = await computePropertyPortfolioRow(property.id, from, to);
       return {
         propertyId: property.id,
@@ -81,28 +68,11 @@ serveAuthenticated('analytics-org-summary', async (req) => {
     })
   );
 
-  const unlockedRows = rows.filter((r): r is typeof r & { locked: false } => !r.locked);
-  const anyEntitled = unlockedRows.length > 0;
-
-  if (!anyEntitled) {
-    // Reachable even when the org's own subscription plan supports Analytics: entitlement is
-    // resolved per property via org_subscription_properties, so a Pro org with zero properties
-    // actually assigned to that subscription still lands here. Message accordingly rather than
-    // implying the org itself needs to upgrade.
-    return jsonError(
-      req,
-      'No property in this organization is currently enrolled in a Pro plan. Assign a property to your subscription from Plans & Billing to see portfolio analytics.',
-      402
-    );
-  }
-
-  const totalRevenue = unlockedRows.reduce((sum, r) => sum + r.grossRevenue, 0);
-  const totalReservations = unlockedRows.reduce((sum, r) => sum + r.reservations, 0);
+  const totalRevenue = rows.reduce((sum, r) => sum + r.grossRevenue, 0);
+  const totalReservations = rows.reduce((sum, r) => sum + r.reservations, 0);
   const avgOccupancy =
-    unlockedRows.length > 0
-      ? Math.round(
-          (unlockedRows.reduce((sum, r) => sum + r.occupancyRate, 0) / unlockedRows.length) * 100
-        ) / 100
+    rows.length > 0
+      ? Math.round((rows.reduce((sum, r) => sum + r.occupancyRate, 0) / rows.length) * 100) / 100
       : 0;
 
   return jsonSuccess(req, {
@@ -112,7 +82,7 @@ serveAuthenticated('analytics-org-summary', async (req) => {
       totalReservations,
       avgOccupancy,
       propertyCount: properties?.length ?? 0,
-      entitledPropertyCount: unlockedRows.length,
+      entitledPropertyCount: rows.length,
     },
     rows,
   });

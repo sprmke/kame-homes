@@ -12,28 +12,15 @@ import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
 import {
   attachConversationConnectionStatus,
+  conversationAllowedInScope,
   enrichConversationMessageAttachments,
   fillMissingMetaParticipantIdentity,
   getConversationById,
   listMessages,
   markConversationRead,
 } from '../_shared/socialInboxService.ts';
-import type { SocialConversationRow } from '../_shared/socialInboxTypes.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
-
-function conversationAllowedInScope(
-  conv: SocialConversationRow,
-  ctx: { propertyId: string | null; parkingId: string | null; metaIds: Set<string> }
-): boolean {
-  if (!ctx.propertyId && !ctx.parkingId) return true;
-  if (conv.platform === 'web') {
-    if (ctx.propertyId) return conv.property_id === ctx.propertyId;
-    if (ctx.parkingId) return conv.parking_id === ctx.parkingId;
-    return false;
-  }
-  return ctx.metaIds.has(conv.connection_id);
-}
 
 serveAuthenticated('social-inbox-messages', async (req) => {
   const url = new URL(req.url);

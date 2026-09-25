@@ -5,6 +5,7 @@
   },
   "imports": {
     "dayjs": "npm:dayjs@1.11.10",
-    "papaparse": "npm:papaparse@5.4.1"
+    "papaparse": "npm:papaparse@5.4.1",
+    "zod": "npm:zod@3.23.8"
   }
 }

@@ -37,10 +37,20 @@ import {
   resolveScopedPropertyAccess,
   verifyBookingBelongsToProperty,
 } from '../_shared/propertyScope.ts';
+import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('booking-ai-review', async (req, user) => {
   requireHttpMethod(req, 'POST');
+
+  const limited = await rateLimitGate(req, {
+    scope: 'booking-ai-review',
+    identity: identityFromRequest(req, user),
+    limit: 20,
+    windowSec: 600,
+  });
+  if (limited) return limited;
+
   const { property, org } = await resolveScopedPropertyAccess(req, 'bookings.detail.stay:edit');
   const propertyId = property.id;
 

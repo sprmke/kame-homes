@@ -16,6 +16,7 @@ import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/h
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { assertAssetRowInScope } from '../_shared/assetRowScope.ts';
 
 serveAuthenticated('maintenance-items', async (req, user) => {
   const permission =
@@ -37,6 +38,7 @@ serveAuthenticated('maintenance-items', async (req, user) => {
   if (req.method === 'GET') {
     const seriesId = url.searchParams.get('recurrence_series_id');
     if (seriesId) {
+      await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, recurrenceSeriesId: seriesId });
       const items = await listRecurringSeriesItems(seriesId);
       return jsonSuccess(req, items);
     }
@@ -62,6 +64,7 @@ serveAuthenticated('maintenance-items', async (req, user) => {
       if (!seriesId || !/^\d{4}-\d{2}-\d{2}$/.test(extend_until)) {
         return jsonError(req, 'Invalid fields');
       }
+      await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, recurrenceSeriesId: seriesId });
       const result = await extendRecurringSeries(seriesId, direction, extend_until, email);
       return jsonSuccess(req, result.rows, {
         created_count: result.created_count,
@@ -162,6 +165,7 @@ serveAuthenticated('maintenance-items', async (req, user) => {
     if (typeof body.recurrence_until === 'string' && body.recurrence_until) {
       patch.recurrence_until = body.recurrence_until.slice(0, 10);
     }
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
     const result = await updateMaintenanceItem(id, patch, scope);
     await logAssetActivity({
       req,
@@ -187,6 +191,7 @@ serveAuthenticated('maintenance-items', async (req, user) => {
     }
     const scopeParam = url.searchParams.get('scope');
     const scope = isRecurrenceEditScope(scopeParam) ? scopeParam : 'this';
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
     const result = await deleteMaintenanceItem(id, scope);
     await logAssetActivity({
       req,

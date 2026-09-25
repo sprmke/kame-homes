@@ -13,15 +13,16 @@
 
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { serveCronPost } from '../_shared/serveEdge.ts';
+import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
 const RETENTION_DAYS = 180;
 const BATCH_SIZE = 5000;
 const MAX_BATCHES = 20; // caps a single run at 100k rows; next month's run continues from there.
 
 function cronSecretOk(req: Request): boolean {
-  const expected = Deno.env.get('PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  return req.headers.get('x-property-page-views-prune-cron-secret')?.trim() === expected;
+  // Fail-closed in production when the secret is unset (shared gate) — never burn AI credits or
+  // run destructive jobs for an anonymous caller.
+  return verifyCronSecret(req, { envKey: 'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET', headerName: 'x-property-page-views-prune-cron-secret' });
 }
 
 serveCronPost('property-page-views-prune-cron', cronSecretOk, async () => {

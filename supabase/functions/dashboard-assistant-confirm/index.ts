@@ -7,11 +7,17 @@
  * Body: { actionId: string, confirm: boolean }
  */
 
-import { incrementDashboardAssistantUsage } from '../_shared/dashboardAssistantSettings.ts';
+import {
+  DASHBOARD_ASSISTANT_WRITE_LIMIT_MESSAGE,
+  getDashboardAssistantOrgSettings,
+  incrementDashboardAssistantUsage,
+  remainingDashboardAssistantWrites,
+} from '../_shared/dashboardAssistantSettings.ts';
 import { stripAssistantScopeFromPayload } from '../_shared/dashboardAssistantAttachedContext.ts';
 import { humanizeTransitionError } from '../_shared/dashboardAssistantActionDisplay.ts';
 import {
   executeConfirmedAction,
+  logAssistantWriteActivity,
   type ToolExecutionContext,
 } from '../_shared/dashboardAssistantTools.ts';
 import {
@@ -28,6 +34,7 @@ import {
   requireOrgFeature,
   requirePropertyFeature,
 } from '../_shared/planEntitlements.ts';
+import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 function updateActionBlockStatus(
@@ -79,6 +86,15 @@ function updateActionBlockStatus(
 serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
   try {
     requireHttpMethod(req, 'POST');
+
+    const limited = await rateLimitGate(req, {
+      scope: 'dashboard-assistant-confirm',
+      identity: identityFromRequest(req, user),
+      limit: 30,
+      windowSec: 600,
+    });
+    if (limited) return limited;
+
     const body = await readJsonBody(req);
     const actionId = String(body.actionId ?? '').trim();
     const confirm = body.confirm === true;
@@ -173,12 +189,35 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
       conversationId: pending.conversation_id as string,
     };
 
+    const orgSettings = await getDashboardAssistantOrgSettings(conversation.organization_id as string);
+    if ((await remainingDashboardAssistantWrites(conversation.organization_id as string, orgSettings)) < 1) {
+      return jsonError(req, DASHBOARD_ASSISTANT_WRITE_LIMIT_MESSAGE, 429);
+    }
+
+    // Atomic claim: only one request can move this row out of `pending`, so a double-click or a
+    // retried POST can never execute the same action twice. A row left in `confirmed` (crash
+    // mid-execution) is intentionally never re-run.
+    const { data: claimed, error: claimError } = await sb
+      .from('ai_dashboard_assistant_pending_actions')
+      .update({ status: 'confirmed' })
+      .eq('id', actionId)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle();
+    if (claimError) throw claimError;
+    if (!claimed) {
+      return jsonSuccess(req, { status: 'pending', alreadyResolved: true });
+    }
+
     const result = await executeConfirmedAction(pending.tool_name as string, inputPayload, toolCtx);
+    await logAssistantWriteActivity(toolCtx, pending.tool_name as string, result, 'tier2_confirmed');
+    // The chat block keeps the existing UI contract (`denied` + errorMessage renders the failure);
+    // the pending-action row records the truthful `failed` for reporting.
     const newStatus = result.ok ? 'executed' : 'denied';
 
     await sb
       .from('ai_dashboard_assistant_pending_actions')
-      .update({ status: newStatus })
+      .update({ status: result.ok ? 'executed' : 'failed' })
       .eq('id', actionId);
 
     await sb.from('ai_dashboard_assistant_action_audit').insert({

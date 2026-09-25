@@ -17,6 +17,7 @@ import { parseFinanceTelegramReminderInput } from '../_shared/telegramFinance.ts
 import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { assertAssetRowInScope } from '../_shared/assetRowScope.ts';
 
 function isKind(v: unknown): v is FinanceLineItemKind {
   return v === 'expense' || v === 'income';
@@ -48,6 +49,7 @@ serveAuthenticated('finance-line-items', async (req, user) => {
   if (req.method === 'GET') {
     const seriesId = url.searchParams.get('recurrence_series_id');
     if (seriesId) {
+      await assertAssetRowInScope({ table: 'finance_line_items', scope: scope, recurrenceSeriesId: seriesId });
       const items = await listRecurringSeriesItems(seriesId);
       return jsonSuccess(req, items);
     }
@@ -73,6 +75,7 @@ serveAuthenticated('finance-line-items', async (req, user) => {
       if (!seriesId || !/^\d{4}-\d{2}-\d{2}$/.test(extend_until)) {
         return jsonError(req, 'Invalid fields');
       }
+      await assertAssetRowInScope({ table: 'finance_line_items', scope: scope, recurrenceSeriesId: seriesId });
       const result = await extendRecurringSeries(seriesId, direction, extend_until, email);
       return jsonSuccess(req, result.rows, {
         created_count: result.created_count,
@@ -183,6 +186,7 @@ serveAuthenticated('finance-line-items', async (req, user) => {
     if (typeof body.recurrence_until === 'string' && body.recurrence_until) {
       patch.recurrence_until = body.recurrence_until.slice(0, 10);
     }
+    await assertAssetRowInScope({ table: 'finance_line_items', scope: scope, id });
     const result = await updateFinanceLineItem(id, patch, scopeParam);
     await logAssetActivity({
       req,
@@ -205,6 +209,7 @@ serveAuthenticated('finance-line-items', async (req, user) => {
     }
     const scopeParam = url.searchParams.get('scope');
     const deleteScope = isRecurrenceEditScope(scopeParam) ? scopeParam : 'this';
+    await assertAssetRowInScope({ table: 'finance_line_items', scope: scope, id });
     const result = await deleteFinanceLineItem(id, deleteScope);
     await logAssetActivity({
       req,

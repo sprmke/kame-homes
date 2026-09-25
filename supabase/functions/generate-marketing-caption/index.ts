@@ -2,13 +2,24 @@
  * generate-marketing-caption — AI caption suggestions for Content Studio.
  */
 
+import { z } from 'zod';
+
 import { generateMarketingCaption } from '../_shared/marketingCaptionAi.ts';
-import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
-import { isAiPlatformDisabledError, isAiQuotaError } from '../_shared/aiUsageService.ts';
+import { aiErrorResponse } from '../_shared/ai/aiErrorResponse.ts';
+import { boundedText, parseAiRequestBody } from '../_shared/ai/requestInput.ts';
+import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { createServiceClient, requirePropertyPermissionAndFeature } from '../_shared/orgAuth.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+
+const CaptionRequest = z.object({
+  platform: z.enum(['facebook', 'instagram']).catch('facebook'),
+  postType: z.enum(['post', 'story']).catch('post'),
+  contentHint: boundedText(500).optional(),
+  nightlyRate: boundedText(40).optional(),
+  availabilityText: boundedText(200).optional(),
+});
 
 serveAuthenticated('generate-marketing-caption', async (req, user) => {
   if (req.method !== 'POST') {
@@ -40,14 +51,10 @@ serveAuthenticated('generate-marketing-caption', async (req, user) => {
     throw err;
   }
 
-  const body = await readJsonBody(req);
-
-  const platform = body.platform === 'instagram' ? 'instagram' : 'facebook';
-  const postType = body.postType === 'story' ? 'story' : 'post';
-  const contentHint = typeof body.contentHint === 'string' ? body.contentHint.trim() : '';
-  const nightlyRate = typeof body.nightlyRate === 'string' ? body.nightlyRate.trim() : '';
-  const availabilityText =
-    typeof body.availabilityText === 'string' ? body.availabilityText.trim() : '';
+  const { platform, postType, contentHint, nightlyRate, availabilityText } = parseAiRequestBody(
+    CaptionRequest,
+    await readJsonBody(req)
+  );
 
   const sb = createServiceClient();
   const { data: propertyRow, error } = await sb
@@ -68,20 +75,14 @@ serveAuthenticated('generate-marketing-caption', async (req, user) => {
       propertyName: String(propertyRow.name),
       platform,
       postType,
-      contentHint: contentHint || undefined,
-      nightlyRate: nightlyRate || undefined,
-      availabilityText: availabilityText || undefined,
+      contentHint,
+      nightlyRate,
+      availabilityText,
       actorUserId,
       actorType: 'staff',
     });
     return jsonSuccess(req, { caption });
   } catch (err) {
-    if (isAiQuotaError(err)) {
-      return jsonResponse(req, { success: false, error: err.message }, 429);
-    }
-    if (isAiPlatformDisabledError(err)) {
-      return jsonResponse(req, { success: false, error: err.message }, 503);
-    }
-    return jsonError(req, err instanceof Error ? err.message : 'Failed to generate caption', 500);
+    return aiErrorResponse(req, err, 'generate-marketing-caption');
   }
 });

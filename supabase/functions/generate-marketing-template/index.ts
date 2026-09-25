@@ -4,12 +4,15 @@
  */
 
 import { generateMarketingTemplateTokens } from '../_shared/marketingTemplateGenerationAi.ts';
-import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
-import { isAiPlatformDisabledError, isAiQuotaError } from '../_shared/aiUsageService.ts';
+import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { aiErrorResponse } from '../_shared/ai/aiErrorResponse.ts';
 import { createServiceClient, requirePropertyPermissionAndFeature } from '../_shared/orgAuth.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+
+/** Context blocks are host-derived property data; clipped so they cannot flood the prompt. */
+const CONTEXT_TEXT_MAX = 1_000;
 
 serveAuthenticated('generate-marketing-template', async (req, user) => {
   if (req.method !== 'POST') {
@@ -66,11 +69,11 @@ serveAuthenticated('generate-marketing-template', async (req, user) => {
 
   const amenitiesText =
     includeAmenities && typeof body.amenitiesText === 'string'
-      ? body.amenitiesText.trim()
+      ? body.amenitiesText.trim().slice(0, CONTEXT_TEXT_MAX)
       : undefined;
   const availabilityText =
     includeAvailability && typeof body.availabilityText === 'string'
-      ? body.availabilityText.trim()
+      ? body.availabilityText.trim().slice(0, CONTEXT_TEXT_MAX)
       : undefined;
 
   const preferencesRaw =
@@ -158,16 +161,6 @@ serveAuthenticated('generate-marketing-template', async (req, user) => {
 
     return jsonSuccess(req, result);
   } catch (err) {
-    if (isAiQuotaError(err)) {
-      return jsonResponse(
-        req,
-        { success: false, error: (err as Error).message, upgradeHook: true },
-        429
-      );
-    }
-    if (isAiPlatformDisabledError(err)) {
-      return jsonError(req, (err as Error).message, 503);
-    }
-    return jsonError(req, (err as Error).message, 503);
+    return aiErrorResponse(req, err, 'generate-marketing-template');
   }
 });

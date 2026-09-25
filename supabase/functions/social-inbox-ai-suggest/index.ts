@@ -6,7 +6,12 @@ import { suggestInboxReply } from '../_shared/socialInboxAiService.ts';
 import { isAiPlatformDisabledError, isAiQuotaError } from '../_shared/aiUsageService.ts';
 import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
-import { getConversationById, listMessages } from '../_shared/socialInboxService.ts';
+import {
+  InboxSendReplyError,
+  loadInboxConversationInScope,
+} from '../_shared/inboxSendReplyAction.ts';
+import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
+import { listMessages } from '../_shared/socialInboxService.ts';
 import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -31,9 +36,15 @@ serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
     return jsonError(req, 'conversationId required', 400);
   }
 
-  const conv = await getConversationById(ctx.orgId, conversationId);
-  if (!conv) {
-    return jsonError(req, 'Conversation not found', 404);
+  // Same scope check as social-inbox-messages / send: a property- or parking-scoped staffer must
+  // not be able to draft (and bill) a reply from another property's transcript.
+  let conv;
+  try {
+    const metaIds = new Set(await resolveMetaConnectionIdsForScope(ctx.orgId, ctx.scope));
+    conv = await loadInboxConversationInScope(ctx, conversationId, metaIds);
+  } catch (err) {
+    if (err instanceof InboxSendReplyError) return jsonError(req, err.message, err.status);
+    throw err;
   }
 
   const { messages } = await listMessages(ctx.orgId, conversationId, { limit: 20 });

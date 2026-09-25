@@ -21,6 +21,7 @@ import { createOrCoalesceNotification } from '../_shared/notificationService.ts'
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { resolvePropertyEntitlements } from '../_shared/planEntitlements.ts';
 import { serveCronPost } from '../_shared/serveEdge.ts';
+import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
 const BATCH = 50;
 const TIME_BUDGET_MS = 55_000;
@@ -28,9 +29,9 @@ const TIME_BUDGET_MS = 55_000;
 const NOTIFY_MIN_SCORE_DELTA = 8;
 
 function cronSecretOk(req: Request): boolean {
-  const expected = Deno.env.get('ANALYTICS_AI_REVIEW_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  return req.headers.get('x-analytics-ai-review-cron-secret')?.trim() === expected;
+  // Fail-closed in production when the secret is unset (shared gate) — never burn AI credits or
+  // run destructive jobs for an anonymous caller.
+  return verifyCronSecret(req, { envKey: 'ANALYTICS_AI_REVIEW_CRON_SECRET', headerName: 'x-analytics-ai-review-cron-secret' });
 }
 
 function addDaysIso(dateIso: string, days: number): string {
@@ -156,7 +157,7 @@ serveCronPost('analytics-ai-review-cron', cronSecretOk, async () => {
         periodStart: bundle.period.from,
         periodEnd: bundle.period.to,
         generatedBy: null,
-        model: 'gemini-2.5-flash',
+        model: result.model,
         output: result.output,
         scoreDelta,
         metricsSnapshot: { kpis: bundle.kpis, stateAssessment: bundle.stateAssessment },

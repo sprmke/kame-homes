@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { runAfterResponse } from '../_shared/backgroundTask.ts';
 import { maybeAutoReplyToInboundDm } from '../_shared/metaInboxAutoReply.ts';
 import { metaWebhookVerifyToken } from '../_shared/metaInboxConfig.ts';
 import {
@@ -91,16 +92,15 @@ serve(async (req) => {
             const conn = await getConnectionForMetaWebhook(pageOrIgId, platform);
             const inboundMid = (messaging.message as { mid?: string }).mid;
             if (conn && inboundMid) {
-              try {
-                await maybeAutoReplyToInboundDm(
+              // After the 200 — Meta expects a fast ack; the AI call must not hold it open.
+              await runAfterResponse('meta-inbox-webhook auto-reply', () =>
+                maybeAutoReplyToInboundDm(
                   conn.organization_id,
                   buildDmThreadId(platform, guestId),
                   platform,
                   inboundMid
-                );
-              } catch (autoErr) {
-                console.warn('[meta-inbox-webhook] auto-reply:', autoErr);
-              }
+                )
+              );
             }
           }
         }

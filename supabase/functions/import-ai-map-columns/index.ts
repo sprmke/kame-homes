@@ -18,6 +18,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 const SAMPLE_ROW_LIMIT = 5;
@@ -71,8 +72,16 @@ async function updateBatchStatus(
   return Boolean(data);
 }
 
-serveAuthenticated('import-ai-map-columns', async (req) => {
+serveAuthenticated('import-ai-map-columns', async (req, user) => {
   requireHttpMethod(req, 'POST');
+
+  const limited = await rateLimitGate(req, {
+    scope: 'import-ai-map-columns',
+    identity: identityFromRequest(req, user),
+    limit: 20,
+    windowSec: 3600,
+  });
+  if (limited) return limited;
 
   const access = await resolveImportAccessWithPlan(req);
   const body = await readJsonBody(req);

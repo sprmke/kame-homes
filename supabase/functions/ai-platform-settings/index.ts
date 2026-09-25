@@ -3,6 +3,7 @@
  */
 
 import {
+  getAiPlatformGlobalSettings,
   getAiPlatformOrgSettings,
   upsertAiPlatformOrgSettings,
 } from '../_shared/aiUsageService.ts';
@@ -53,6 +54,20 @@ serveAuthenticated('ai-platform-settings', async (req, user) => {
     if (dailyCost !== undefined && (!Number.isFinite(dailyCost) || dailyCost <= 0)) {
       return jsonError(req, 'dailyCostUsdLimit must be a positive number', 400);
     }
+
+    // Org admins may tighten their AI limits, never raise them above the platform ceiling the
+    // super admin sets (ai_platform_global_settings defaults) — otherwise any org admin could
+    // lift their own spend guard.
+    const platform = await getAiPlatformGlobalSettings();
+    const ceilingError =
+      daily !== undefined && daily > platform.defaultDailyCallLimit
+        ? `dailyCallLimit cannot exceed ${platform.defaultDailyCallLimit}`
+        : monthly !== undefined && monthly > platform.defaultMonthlyCallLimit
+          ? `monthlyCallLimit cannot exceed ${platform.defaultMonthlyCallLimit}`
+          : dailyCost !== undefined && dailyCost > platform.defaultDailyCostUsdLimit
+            ? `dailyCostUsdLimit cannot exceed ${platform.defaultDailyCostUsdLimit}`
+            : null;
+    if (ceilingError) return jsonError(req, ceilingError, 400);
 
     const settings = await upsertAiPlatformOrgSettings({
       organizationId: ctx.org.id,

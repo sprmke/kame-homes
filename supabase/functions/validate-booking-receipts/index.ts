@@ -23,10 +23,20 @@ import {
   resolveScopedPropertyAccess,
   verifyBookingBelongsToProperty,
 } from '../_shared/propertyScope.ts';
+import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-serveAuthenticated('validate-booking-receipts', async (req) => {
+serveAuthenticated('validate-booking-receipts', async (req, authUser) => {
   requireHttpMethod(req, 'POST');
+
+  const limited = await rateLimitGate(req, {
+    scope: 'validate-booking-receipts',
+    identity: identityFromRequest(req, authUser),
+    limit: 20,
+    windowSec: 600,
+  });
+  if (limited) return limited;
+
   const { user, property, org } = await resolveScopedPropertyAccess(
     req,
     'bookings.detail.pricing:edit'

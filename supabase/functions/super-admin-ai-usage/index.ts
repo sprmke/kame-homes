@@ -36,7 +36,7 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       .limit(100_000),
     supabase
       .from('ai_platform_usage_events')
-      .select('feature, estimated_cost_usd, organization_id')
+      .select('feature, estimated_cost_usd, organization_id, status, latency_ms, fallback_used')
       .gte('created_at', sinceIso)
       .limit(100_000),
     supabase
@@ -83,28 +83,55 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       calls: v.calls,
     }));
 
-  // Cost by feature
-  const byFeature = new Map<string, { costUsd: number; calls: number }>();
+  // Cost + reliability by feature (gateway trace columns: status, latency_ms, fallback_used).
+  type FeatureBucket = {
+    costUsd: number;
+    calls: number;
+    errors: number;
+    fallbacks: number;
+    latencies: number[];
+  };
+  const byFeature = new Map<string, FeatureBucket>();
   for (const ev of eventsRes.data ?? []) {
     const feature = (ev.feature as string) || 'other';
-    const bucket = byFeature.get(feature) ?? { costUsd: 0, calls: 0 };
-    bucket.costUsd += Number(ev.estimated_cost_usd ?? 0);
-    bucket.calls += 1;
+    const bucket =
+      byFeature.get(feature) ?? { costUsd: 0, calls: 0, errors: 0, fallbacks: 0, latencies: [] };
+    if (ev.status === 'error') {
+      bucket.errors += 1;
+    } else {
+      bucket.calls += 1;
+      bucket.costUsd += Number(ev.estimated_cost_usd ?? 0);
+      if (ev.fallback_used === true) bucket.fallbacks += 1;
+      const latency = Number(ev.latency_ms);
+      if (Number.isFinite(latency) && latency > 0) bucket.latencies.push(latency);
+    }
     byFeature.set(feature, bucket);
   }
+  const percentile = (sorted: number[], p: number): number | null =>
+    sorted.length === 0 ? null : sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+  const ratio = (part: number, whole: number): number =>
+    whole === 0 ? 0 : Math.round((part / whole) * 1000) / 10;
   const featureBreakdown = Array.from(byFeature.entries())
-    .map(([feature, v]) => ({
-      feature,
-      costUsd: Math.round(v.costUsd * 10_000) / 10_000,
-      calls: v.calls,
-    }))
+    .map(([feature, v]) => {
+      const sorted = [...v.latencies].sort((a, b) => a - b);
+      return {
+        feature,
+        costUsd: Math.round(v.costUsd * 10_000) / 10_000,
+        calls: v.calls,
+        errors: v.errors,
+        errorRatePct: ratio(v.errors, v.calls + v.errors),
+        fallbackRatePct: ratio(v.fallbacks, v.calls),
+        latencyP50Ms: percentile(sorted, 0.5),
+        latencyP95Ms: percentile(sorted, 0.95),
+      };
+    })
     .sort((a, b) => b.costUsd - a.costUsd);
 
   // Spend by org (from events — has org_id) + this-month day counts from daily rows
   const byOrg = new Map<string, { costUsd: number; calls: number }>();
   for (const ev of eventsRes.data ?? []) {
     const orgId = ev.organization_id as string;
-    if (!orgId) continue;
+    if (!orgId || ev.status === 'error') continue;
     const bucket = byOrg.get(orgId) ?? { costUsd: 0, calls: 0 };
     bucket.costUsd += Number(ev.estimated_cost_usd ?? 0);
     bucket.calls += 1;

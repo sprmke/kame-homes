@@ -17,15 +17,16 @@
 
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { serveCronPost } from '../_shared/serveEdge.ts';
+import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
 const DEFAULT_RETENTION_MONTHS = 24;
 const MIN_RETENTION_MONTHS = 6;
 const MAX_ROWS_PER_RUN = 200_000;
 
 function cronSecretOk(req: Request): boolean {
-  const expected = Deno.env.get('ACTIVITY_LOG_RETENTION_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  return req.headers.get('x-activity-log-retention-cron-secret')?.trim() === expected;
+  // Fail-closed in production when the secret is unset (shared gate) — never burn AI credits or
+  // run destructive jobs for an anonymous caller.
+  return verifyCronSecret(req, { envKey: 'ACTIVITY_LOG_RETENTION_CRON_SECRET', headerName: 'x-activity-log-retention-cron-secret' });
 }
 
 serveCronPost('activity-log-retention-cron', cronSecretOk, async () => {
