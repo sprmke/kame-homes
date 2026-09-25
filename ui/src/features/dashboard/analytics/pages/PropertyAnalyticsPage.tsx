@@ -15,7 +15,6 @@ import {
   AnalyticsSectionTabs,
   type AnalyticsSection,
 } from '@/features/dashboard/analytics/components/AnalyticsSectionTabs';
-import { AnalyticsTeaserKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsTeaserKpiStrip';
 import { BookingPaceCard } from '@/features/dashboard/analytics/components/BookingPaceCard';
 import { ChannelMixCard } from '@/features/dashboard/analytics/components/ChannelMixCard';
 import { GuestAgeCard } from '@/features/dashboard/analytics/components/GuestAgeCard';
@@ -40,7 +39,7 @@ import {
   useSyncDateRangeWithQuery,
 } from '@/features/dashboard/bookings/hooks/useDateNavigation';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
-import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
+import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
@@ -98,7 +97,8 @@ export function PropertyAnalyticsPage() {
   }, [dateNav]);
 
   const { data, isLoading, isError } = usePropertyAnalyticsSummary(period);
-  const { canUse } = useFeatureGate('analyticsInsights');
+  const { canUse: canExportByPlan, isLoading: exportPlanLoading } =
+    useFeatureGate('analyticsInsights');
   const { open: openUpgradeModal } = useUpgradeModal();
   const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview();
   const orgContext = useOptionalOrgContext();
@@ -108,6 +108,10 @@ export function PropertyAnalyticsPage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleExportPdf = useCallback(async () => {
+    if (!canExportByPlan) {
+      if (!exportPlanLoading) openUpgradeModal('analyticsInsights');
+      return;
+    }
     if (!data || !isFullAnalyticsBundle(data)) return;
     setIsExportingPdf(true);
     try {
@@ -130,9 +134,19 @@ export function PropertyAnalyticsPage() {
     } finally {
       setIsExportingPdf(false);
     }
-  }, [data, aiReview, dateNav.dateRange, dateNav.datePreset, orgContext, brandColor]);
+  }, [
+    canExportByPlan,
+    exportPlanLoading,
+    openUpgradeModal,
+    data,
+    aiReview,
+    dateNav.dateRange,
+    dateNav.datePreset,
+    orgContext,
+    brandColor,
+  ]);
 
-  const isFullDashboard = canUse && data != null && isFullAnalyticsBundle(data);
+  const isFullDashboard = data != null && isFullAnalyticsBundle(data);
 
   const desktopActions = (
     <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2">
@@ -143,19 +157,21 @@ export function PropertyAnalyticsPage() {
         fullWidth={isBelowMd}
       />
       {isFullDashboard && canExportPdf ? (
-        <Button
-          variant="outline"
-          onClick={() => void handleExportPdf()}
-          disabled={isExportingPdf}
-          className="w-full gap-1.5 sm:w-auto"
-        >
-          {isExportingPdf ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <Download className="size-4" aria-hidden />
-          )}
-          Export PDF
-        </Button>
+        <TierBadgeAnchor feature="analyticsInsights">
+          <Button
+            variant="outline"
+            onClick={() => void handleExportPdf()}
+            disabled={isExportingPdf}
+            className="min-h-[44px] w-full gap-1.5 sm:w-auto"
+          >
+            {isExportingPdf ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Download className="size-4" aria-hidden />
+            )}
+            Export PDF
+          </Button>
+        </TierBadgeAnchor>
       ) : null}
     </div>
   );
@@ -185,7 +201,6 @@ export function PropertyAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
-      badge={<TierBadge feature="analyticsInsights" />}
       heroTrailing={heroActions}
       overlap={overlapControls}
       desktopActions={desktopActions}
@@ -203,19 +218,11 @@ export function PropertyAnalyticsPage() {
         ) : data.sufficiency.sampleSize < 10 ? (
           <AnalyticsEmptyState sampleSize={data.sufficiency.sampleSize} />
         ) : !isFullDashboard ? (
-          <>
-            <AnalyticsTeaserKpiStrip kpis={data.kpis} />
-            <div className="surface-card flex flex-col items-center gap-3 p-8 text-center">
-              <p className="text-foreground text-sm font-semibold">
-                Unlock the full Analytics dashboard
-              </p>
-              <p className="text-muted-foreground max-w-md text-sm">
-                Trends, guest insights, and the AI performance review are available on Pro and
-                above.
-              </p>
-              <Button onClick={() => openUpgradeModal('analyticsInsights')}>View plans</Button>
-            </div>
-          </>
+          <div className="surface-card p-6 text-center">
+            <p className="text-muted-foreground text-sm">
+              Couldn't load analytics. Try again shortly.
+            </p>
+          </div>
         ) : (
           <>
             <AnalyticsKpiStrip kpis={data.kpis} />

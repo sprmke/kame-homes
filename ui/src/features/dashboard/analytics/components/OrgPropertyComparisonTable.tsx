@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 
 import { Link, useParams } from 'react-router-dom';
 
-import { ArrowDown, ArrowUp, Download, Lock, Table as TableIcon } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Table as TableIcon } from 'lucide-react';
 
 import { downloadCsv, orgPortfolioRowsToCsv } from '@/features/dashboard/analytics/lib/exportCsv';
 import type { OrgPortfolioRow } from '@/features/dashboard/analytics/lib/types';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
+import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
+import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 
@@ -36,6 +39,9 @@ export function OrgPropertyComparisonTable({ rows, className }: Props) {
   const { orgSlug = '' } = useParams<{ orgSlug: string }>();
   const { data: access } = useOrgPermissions();
   const canExport = hasOrgPermission(access?.permissions, 'org.analytics:export');
+  const { canUse: canExportByPlan, isLoading: exportPlanLoading } =
+    useFeatureGate('analyticsInsights');
+  const { open: openUpgradeModal } = useUpgradeModal();
   const [sortKey, setSortKey] = useState<SortKey>('grossRevenue');
   const [sortDesc, setSortDesc] = useState(true);
 
@@ -52,6 +58,14 @@ export function OrgPropertyComparisonTable({ rows, className }: Props) {
     });
     return copy;
   }, [rows, sortKey, sortDesc]);
+
+  function handleExportCsv() {
+    if (!canExportByPlan) {
+      if (!exportPlanLoading) openUpgradeModal('analyticsInsights');
+      return;
+    }
+    downloadCsv(orgPortfolioRowsToCsv(rows), `portfolio-analytics-${orgSlug}.csv`);
+  }
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -76,16 +90,17 @@ export function OrgPropertyComparisonTable({ rows, className }: Props) {
         iconClassName="bg-muted/80"
         action={
           canExport ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                downloadCsv(orgPortfolioRowsToCsv(rows), `portfolio-analytics-${orgSlug}.csv`)
-              }
-            >
-              <Download className="size-3.5" aria-hidden />
-              Export CSV
-            </Button>
+            <TierBadgeAnchor feature="analyticsInsights">
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[44px]"
+                onClick={handleExportCsv}
+              >
+                <Download className="size-3.5" aria-hidden />
+                Export CSV
+              </Button>
+            </TierBadgeAnchor>
           ) : undefined
         }
       />
@@ -118,23 +133,16 @@ export function OrgPropertyComparisonTable({ rows, className }: Props) {
             {sorted.map((row) => (
               <tr key={row.propertyId} className="border-border/60 border-b last:border-0">
                 <td className="p-2">
-                  {row.locked ? (
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <Lock className="size-3.5" aria-hidden />
-                      {row.propertyName}
-                    </span>
-                  ) : (
-                    <Link
-                      to={propertySectionPath(orgSlug, row.propertySlug, 'analytics')}
-                      className="text-primary font-medium hover:underline"
-                    >
-                      {row.propertyName}
-                    </Link>
-                  )}
+                  <Link
+                    to={propertySectionPath(orgSlug, row.propertySlug, 'analytics')}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    {row.propertyName}
+                  </Link>
                 </td>
                 {row.locked ? (
                   <td colSpan={5} className="text-muted-foreground p-2 text-xs">
-                    Upgrade this property to Pro to see its analytics
+                    Numbers unavailable for this property
                   </td>
                 ) : (
                   <>

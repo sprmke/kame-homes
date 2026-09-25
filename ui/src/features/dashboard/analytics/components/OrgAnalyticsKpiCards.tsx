@@ -24,11 +24,7 @@ export function OrgAnalyticsKpiCards({ portfolio }: Props) {
           value={String(portfolio.totalReservations)}
           icon={Calendar}
         />
-        <StatCard
-          title="Properties Reporting"
-          value={`${portfolio.entitledPropertyCount} / ${portfolio.propertyCount}`}
-          icon={Building2}
-        />
+        <StatCard title="Properties" value={String(portfolio.propertyCount)} icon={Building2} />
       </div>
     </section>
   );

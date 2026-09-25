@@ -15,7 +15,7 @@ import { DashboardSkeleton } from '@/components/skeletons/AdminSkeletons';
 export function OrgAnalyticsPage() {
   const [preset, setPreset] = useState<AnalyticsRangePreset>('last-30d');
   const range = rangeForPreset(preset);
-  const { data, isLoading, isError, error } = useOrgAnalyticsSummary(range);
+  const { data, isLoading, isError } = useOrgAnalyticsSummary(range);
 
   return (
     <AdminMobilePage
@@ -33,9 +33,7 @@ export function OrgAnalyticsPage() {
         ) : isError || !data ? (
           <div className="surface-card p-6 text-center">
             <p className="text-muted-foreground text-sm">
-              {error instanceof Error
-                ? error.message
-                : "Couldn't load portfolio analytics. Try again shortly."}
+              Couldn't load portfolio analytics. Try again shortly.
             </p>
           </div>
         ) : (

@@ -12,7 +12,6 @@ import { OrgAdminShell } from '@/features/dashboard/org/components/OrgAdminShell
 import { ParkingAdminShell } from '@/features/dashboard/org/components/ParkingAdminShell';
 import { PropertyAdminShell } from '@/features/dashboard/org/components/PropertyAdminShell';
 import type { OrgRouteFn } from '@/features/dashboard/org/routes/guards';
-import { RequireOrgFeature } from '@/features/dashboard/plans/components/RequireOrgFeature';
 
 const ActivityLogRedirect = lazy(() =>
   import('@/features/dashboard/activity/pages/ActivityLogRedirect').then((m) => ({
@@ -90,15 +89,7 @@ export function orgAdminRoutes(orgRoute: OrgRouteFn): ReactNode {
       <Route path="team" element={orgRoute('team', <OrgTeamPage />)} />
       <Route path="plans" element={orgRoute('plans', <OrgPlansPage />)} />
       {hostAnnouncementsOrgRoute(orgRoute)}
-      <Route
-        path="analytics"
-        element={orgRoute(
-          'analytics',
-          <RequireOrgFeature feature="analyticsInsights">
-            <OrgAnalyticsPage />
-          </RequireOrgFeature>
-        )}
-      />
+      <Route path="analytics" element={orgRoute('analytics', <OrgAnalyticsPage />)} />
       <Route path="activity" element={orgRoute('activity', <ActivityLogRedirect scope="org" />)} />
       <Route path="inbox" element={<OrgInboxRedirect />} />
       <Route path="help-support" element={orgRoute('help-support', <HelpSupportLayout />)}>
