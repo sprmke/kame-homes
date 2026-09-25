@@ -20,7 +20,7 @@ Do not implement from memory. Align with repo docs first — then **write docs b
 
 ## Steps
 
-1. **`docs/README.md`** — index; then **`docs/PROJECT.md`** for architecture, API, env vars, routes
+1. **`docs/README.md`** — index; then **`docs/architecture/overview.md`** (full-app picture) and **`docs/PROJECT.md`** for API, env vars, routes
 2. **`docs/guides/routes/README.md`** — per-route behavior (update matching guide in the same change)
 3. **`docs/README.md`** — backlog on GitHub Issues (Product backlog section); shipped history in `docs/archive/todos/shipped/`
 4. **Booking / admin work** — read `docs/archive/planning/NEW_FLOW_PLAN.md`, `.cursor/rules/booking-workflow.mdc`, and `.cursor/rules/admin-auth.mdc` (these are glob-scoped, not always-on — open them when the task touches status/auth)
@@ -43,6 +43,7 @@ Claude Code cannot auto-load Cursor’s always-on `.mdc` rules — treat **`CLAU
 | Topic                  | Primary doc / rule                                                               |
 | ---------------------- | -------------------------------------------------------------------------------- |
 | Routes & page behavior | `docs/guides/routes/*.md`                                                        |
+| Architecture (picture) | `docs/architecture/overview.md` → topic files via `docs/PROJECT.md`              |
 | Same-change doc writes | `.agent/skills/documentation-maintenance/SKILL.md`                               |
 | Booking workflow       | `.cursor/rules/booking-workflow.mdc`                                             |
 | Admin auth             | `.cursor/rules/admin-auth.mdc`                                                   |

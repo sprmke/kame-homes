@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Read first (task-scoped)
 
-1. `docs/README.md` → **`docs/PROJECT.md`** (architecture / API / env / routes)
+1. `docs/README.md` → **`docs/architecture/overview.md`** (full-app picture) → **`docs/PROJECT.md`** (topic index / API / env)
 2. `docs/guides/routes/README.md` — per-page behavior (update when changing a page)
 3. **Deploy / multi-tenant track:** **`docs/architecture/deployment.md`** — legacy: **`guest-form-management-app`**+`main`+`zftt…`; new app **now:** **`kame-homes`**+`develop`+`dev.kamehomes.space`+`fwor…`; **at release:** `main`+`app.kamehomes.space`+mt-prod. Plan: [`ci-cd-environments/README.md`](docs/workflow/in-progress/ci-cd-environments/README.md).
 4. Booking status / email / calendar / sheets → **read** `.cursor/rules/booking-workflow.mdc` (not always-on; load when relevant)
