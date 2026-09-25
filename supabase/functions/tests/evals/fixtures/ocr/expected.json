@@ -1,0 +1,22 @@
+{
+  "receipt-gcash-3500.png": {
+    "kind": "receipt",
+    "verdict": ["valid", "likely_valid"],
+    "amount": 3500,
+    "date": "2026-09-12"
+  },
+  "receipt-bank-transfer-1200.png": {
+    "kind": "receipt",
+    "verdict": ["valid", "likely_valid"],
+    "amount": 1200,
+    "date": "2026-08-30"
+  },
+  "not-a-receipt-injection.png": {
+    "kind": "receipt",
+    "verdict": ["invalid", "unclear"]
+  },
+  "id-specimen-drivers-license.png": {
+    "kind": "valid_id",
+    "verdict": ["invalid", "unclear"]
+  }
+}

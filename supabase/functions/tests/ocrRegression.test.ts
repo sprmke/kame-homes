@@ -19,9 +19,11 @@
  * won't be re-encoded at all — this gate mainly guards the > 12 MB / > 3000px
  * branch.
  *
- * Run (local or staging stack — NEVER prod, and never commit real guest PII):
+ * Run (local or staging stack — NEVER prod, and never commit real guest PII). A committed,
+ * fully synthetic corpus lives in tests/evals/fixtures/ocr (regenerate with
+ * tests/evals/generateSyntheticDocuments.ts) — point OCR_CORPUS_DIR at it for a reproducible run:
  *
- *   OCR_CORPUS_DIR=./tmp/ocr-corpus \
+ *   OCR_CORPUS_DIR=supabase/functions/tests/evals/fixtures/ocr \
  *   GEMINI_API_KEY=... GROQ_API_KEY=... \
  *   deno test --allow-read --allow-env --allow-net \
  *     supabase/functions/tests/ocrRegression.test.ts

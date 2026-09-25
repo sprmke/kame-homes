@@ -73,3 +73,49 @@ Deno.test('Part D.1 booking asset inventory matches shared upload helper', () =>
 Deno.test('Part F.4 workflow email kinds match send helper', () => {
   assertEquals([...BOOKING_WORKFLOW_EMAIL_KINDS].sort(), [...EXPECTED_WORKFLOW_EMAIL_KINDS].sort());
 });
+
+/**
+ * Source-level check (the tools module's full import graph carries an unrelated typing backlog,
+ * so this reads the file instead of importing it): every tool declared to the model has exactly
+ * one execution handler in TOOL_HANDLERS, and no handler exists for an undeclared tool.
+ */
+Deno.test('assistant tool registry — declarations and handlers stay in sync', async () => {
+  const source = await Deno.readTextFile(
+    new URL('../_shared/dashboardAssistantTools.ts', import.meta.url)
+  );
+  const registryBlock = source.slice(
+    source.indexOf('const TOOL_HANDLERS'),
+    source.indexOf('\n};', source.indexOf('const TOOL_HANDLERS'))
+  );
+  const handlers = new Set(
+    [...registryBlock.matchAll(/^ {2}([a-z_0-9]+): \(/gm)].map((m) => m[1])
+  );
+  // Declarations live in dashboardAssistantTools.ts (TOOL_DECLARATIONS) and the per-domain
+  // *Tools.ts modules it spreads in.
+  const declared = new Set<string>();
+  for (const entry of Deno.readDirSync(new URL('../_shared/', import.meta.url))) {
+    if (!/^dashboardAssistant\w*Tools\.ts$/.test(entry.name)) continue;
+    const text = await Deno.readTextFile(new URL(`../_shared/${entry.name}`, import.meta.url));
+    // Shape 1: `export const X_TOOL_DECLARATION = { name: '…'` (per-domain modules).
+    for (const m of text.matchAll(/_TOOL_DECLARATION\s*=\s*\{\s*name:\s*'([a-z_0-9]+)'/g)) {
+      declared.add(m[1]);
+    }
+    // Shape 2: literal entries inside the `TOOL_DECLARATIONS = [` array.
+    const arrayStart = text.search(/export const TOOL_DECLARATIONS\s*=\s*\[/);
+    if (arrayStart >= 0) {
+      for (const m of text.slice(arrayStart).matchAll(/^ {4}name: '([a-z_0-9]+)',$/gm)) {
+        declared.add(m[1]);
+      }
+    }
+  }
+  assertEquals(
+    [...declared].filter((name) => !handlers.has(name)),
+    [],
+    'declared to the model but not executable'
+  );
+  assertEquals(
+    [...handlers].filter((name) => !declared.has(name)),
+    [],
+    'handler for a tool the model is never told about'
+  );
+});
