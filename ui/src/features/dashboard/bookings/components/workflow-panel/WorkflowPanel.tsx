@@ -75,6 +75,7 @@ import {
 import { useUpdateBooking } from '@/features/dashboard/bookings/hooks/useUpdateBooking';
 import { useWorkflowActions } from '@/features/dashboard/bookings/hooks/useWorkflowActions';
 import { useWorkflowSubFormDrafts } from '@/features/dashboard/bookings/hooks/useWorkflowSubFormDrafts';
+import { offerAiVerdictOverride } from '@/features/dashboard/bookings/lib/aiVerdictOverride';
 import { resolveBookingPropertySlug } from '@/features/dashboard/bookings/lib/bookingListNavigation';
 import { shouldWarnPastBookingStayForProceed } from '@/features/dashboard/bookings/lib/bookingPastPipelineManila';
 import {
@@ -632,7 +633,8 @@ function WorkflowPanelInner({
 
   async function handleTransition(
     toStatus: BookingStatus,
-    devControls?: ReturnType<typeof buildWorkflowEmailDevControls>
+    devControls?: ReturnType<typeof buildWorkflowEmailDevControls>,
+    overrideAiVerdict = false
   ) {
     setConfirm(null);
     setEmailChoices({});
@@ -640,7 +642,10 @@ function WorkflowPanelInner({
       await transitionMut.mutateAsync({
         bookingId: booking.id,
         toStatus,
-        payload: subFormDrafts.buildPayload(toStatus),
+        payload: {
+          ...subFormDrafts.buildPayload(toStatus),
+          ...(overrideAiVerdict ? { override_ai_verdict: true } : {}),
+        },
         ...(devControls ? { devControls } : {}),
         manual: true,
       });
@@ -652,11 +657,17 @@ function WorkflowPanelInner({
       toast.success(`Moved to ${statusLabel(toStatus)}`);
       if (kanbanTargetStatus) dismissKanbanFlow();
     } catch (err: unknown) {
+      if (offerAiVerdictOverride(err, () => void handleTransition(toStatus, devControls, true))) {
+        return;
+      }
       toast.error(friendlyToastError(err, 'Could not update booking status'));
     }
   }
 
-  async function handleMarkPendingDocSubStatusComplete(subStatus: PendingDocNestedKey) {
+  async function handleMarkPendingDocSubStatusComplete(
+    subStatus: PendingDocNestedKey,
+    overrideAiVerdict = false
+  ) {
     if (subStatus === PARKING_NESTED_KEY) {
       const ok = await validateById('parking');
       if (!ok) return;
@@ -665,6 +676,7 @@ function WorkflowPanelInner({
     try {
       const payload: TransitionPayload = {
         document_completion_target: subStatus,
+        ...(overrideAiVerdict ? { override_ai_verdict: true } : {}),
       };
       const parkingValues = subFormDrafts.parkingValues;
       if (
@@ -709,6 +721,11 @@ function WorkflowPanelInner({
         }
       }
     } catch (err: unknown) {
+      if (
+        offerAiVerdictOverride(err, () => void handleMarkPendingDocSubStatusComplete(subStatus, true))
+      ) {
+        return;
+      }
       toast.error(friendlyToastError(err, 'Could not mark step complete'));
     }
   }

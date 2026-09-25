@@ -44,6 +44,7 @@ import {
   unsentMessageLabel,
 } from '@/lib/chat/chatMessageFormat';
 import { focusComposerInput, type ComposerFocusMode } from '@/lib/chat/focusComposerInput';
+import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import {
   useChatThreadSearch,
   type ChatThreadSearchController,
@@ -675,6 +676,7 @@ export function GuestChatThread({
           <Textarea
             ref={composerInputRef}
             value={draft}
+            maxLength={CHAT_MESSAGE_MAX_CHARS}
             onChange={(e) => {
               setDraft(e.target.value);
               signalTyping();

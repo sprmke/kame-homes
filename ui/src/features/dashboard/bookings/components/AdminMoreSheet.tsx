@@ -78,13 +78,16 @@ export function AdminMoreSheet({
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       {/*
-        `layout="split"` + definite `h-[92dvh]`: only the nav list scrolls.
-        Theme/mode + profile + sign-out stay pinned. (max-height alone / max-content
-        height lets WebKit scroll the whole sheet.)
+        `layout="split"`: BottomSheetContent measures nav + footer content and sets a
+        definite `height` that shrinks to fit (capped 640px / 92dvh) — see
+        bottom-sheet.tsx for why pure CSS (max-height alone) can't do this on iOS
+        Safari. Only the nav list scrolls once content exceeds the cap; theme/mode +
+        profile + sign-out stay pinned.
       */}
       <BottomSheetContent
         layout="split"
-        className="!h-[92dvh] !max-h-[92dvh] gap-0 overflow-hidden px-0 pb-0"
+        maxHeightPx={640}
+        className="gap-0 overflow-hidden px-0 pb-0"
       >
         <BottomSheetHeader className="sr-only">
           <BottomSheetTitle>More</BottomSheetTitle>

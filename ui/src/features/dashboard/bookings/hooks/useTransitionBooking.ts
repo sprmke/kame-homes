@@ -64,7 +64,24 @@ export type TransitionPayload = {
    * id) — mirrors `workflowOrchestrator.ts` §`LEGACY_DOC_TARGET_TO_REQUIREMENT_ID`.
    */
   document_completion_target?: string | null;
+  /** Host checked the receipt and proceeds despite an AI `invalid` verdict (audited server-side). */
+  override_ai_verdict?: boolean;
 };
+
+/** Transition failure with the server's stable error `code` (e.g. `ai_verdict_blocked`). */
+export class TransitionBookingError extends Error {
+  readonly code: string | undefined;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = 'TransitionBookingError';
+    this.code = code;
+  }
+}
+
+/** The transition was blocked only by an AI receipt verdict — the host may proceed anyway. */
+export function isAiVerdictBlockedError(err: unknown): err is TransitionBookingError {
+  return err instanceof TransitionBookingError && err.code === 'ai_verdict_blocked';
+}
 
 /** Mirrors `_shared/workflowOrchestrator.ts#DevControlFlags` email keys. */
 export type TransitionEmailDevControls = {
@@ -121,7 +138,7 @@ async function callTransitionBooking(input: TransitionInput, propertyId: string 
 
   const json = await res.json();
   if (!res.ok || !json.success) {
-    throw new Error(json.error ?? `HTTP ${res.status}`);
+    throw new TransitionBookingError(json.error ?? `HTTP ${res.status}`, json.code);
   }
 
   return json.data as TransitionResult;

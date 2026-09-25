@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/responsive-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { useChatThreadSearch } from '@/lib/chat/useChatThreadSearch';
 import { formatDateToYYYYMMDD, formatStayDateRange } from '@/utils/format/dates';
 
@@ -448,6 +449,7 @@ export function ContactHostSheet({
                       <>
                         <Textarea
                           value={composeDraft}
+                          maxLength={CHAT_MESSAGE_MAX_CHARS}
                           onChange={(e) => setComposeDraft(e.target.value)}
                           placeholder="Message"
                           rows={1}

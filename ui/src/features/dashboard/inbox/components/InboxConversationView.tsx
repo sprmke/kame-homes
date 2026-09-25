@@ -8,6 +8,8 @@ import {
   type ChangeEvent,
 } from 'react';
 
+import { Link } from 'react-router-dom';
+
 import {
   ArrowLeft,
   Loader2,
@@ -24,7 +26,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Link } from 'react-router-dom';
 
 import { BookingCalendarModal } from '@/features/guest/marketing/properties/components/property-detail/BookingCalendarModal';
 
@@ -96,6 +97,7 @@ import {
   unsentMessageLabel,
 } from '@/lib/chat/chatMessageFormat';
 import { focusComposerInput, type ComposerFocusMode } from '@/lib/chat/focusComposerInput';
+import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { useChatThreadSearch } from '@/lib/chat/useChatThreadSearch';
 import { useChatTyping } from '@/lib/chat/useChatTyping';
 import { cn } from '@/lib/utils';
@@ -916,6 +918,7 @@ export function InboxConversationView({
             <Textarea
               ref={composerInputRef}
               value={draft}
+              maxLength={CHAT_MESSAGE_MAX_CHARS}
               onChange={(e) => {
                 setDraft(e.target.value);
                 setDraftFromAi(false);

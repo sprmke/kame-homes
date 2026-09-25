@@ -92,9 +92,17 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
 
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
+      {/*
+        `layout="split"`: BottomSheetContent measures link list + footer content and
+        sets a definite `height` that shrinks to fit (capped 680px / 92dvh) — see
+        bottom-sheet.tsx for why pure CSS (max-height alone) can't do this on iOS
+        Safari. Only the link list scrolls once content exceeds the cap; theme/mode +
+        sign-in/out stay pinned.
+      */}
       <BottomSheetContent
         layout="split"
-        className="!h-[85dvh] !max-h-[85dvh] gap-0 overflow-hidden px-0 pb-0"
+        maxHeightPx={680}
+        className="gap-0 overflow-hidden px-0 pb-0"
       >
         <BottomSheetHeader className="sr-only">
           <BottomSheetTitle>More</BottomSheetTitle>
