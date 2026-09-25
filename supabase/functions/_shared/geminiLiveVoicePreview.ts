@@ -3,14 +3,17 @@
  * Returns raw PCM base64 — clients wrap as WAV for playback.
  */
 
+import {
+  AiProviderError,
+  geminiModelPath,
+  geminiRequest,
+  isGeminiConfigured,
+} from './ai/llmTransport.ts';
+import { GEMINI_TTS_PREVIEW_MODELS } from './aiModelRouter.ts';
 import { GEMINI_LIVE_VOICES, type GeminiLiveVoice } from './geminiLiveEphemeral.ts';
 import { PROPERTY_GUEST_NAME_FALLBACK } from './propertyGuestName.ts';
 
-const TTS_MODELS = [
-  'gemini-2.5-flash-preview-tts',
-  'gemini-3.1-flash-tts-preview',
-  'gemini-2.5-pro-preview-tts',
-] as const;
+const TTS_TIMEOUT_MS = 15_000;
 
 /** Sample line for admin voice picker — uses Basic Information property name when provided. */
 export function voicePreviewLine(propertyName?: string | null): string {
@@ -25,18 +28,6 @@ export const GEMINI_LIVE_VOICE_LABELS: Record<GeminiLiveVoice, string> = {
   Fenrir: 'Fenrir — Excitable',
   Aoede: 'Aoede — Breezy',
 };
-
-function geminiKeys(): string[] {
-  const multi = Deno.env.get('GEMINI_API_KEYS')?.trim();
-  if (multi) {
-    return multi
-      .split(',')
-      .map((k) => k.trim())
-      .filter(Boolean);
-  }
-  const single = Deno.env.get('GEMINI_API_KEY')?.trim();
-  return single ? [single] : [];
-}
 
 export type VoicePreviewResult = {
   voiceId: GeminiLiveVoice;
@@ -66,66 +57,46 @@ export async function previewGeminiLiveVoice(
 
   const previewLine = voicePreviewLine(propertyName);
 
-  const keys = geminiKeys();
-  if (!keys.length) {
+  if (!isGeminiConfigured()) {
     throw new Error('GEMINI_API_KEYS or GEMINI_API_KEY not set');
   }
 
+  // Try each TTS model in turn (preview models come and go); keys rotate inside the transport.
   let lastError = 'voice preview unavailable';
-  for (const model of TTS_MODELS) {
-    for (const apiKey of keys) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 15_000);
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `Say warmly: ${previewLine}` }] }],
-              generationConfig: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                  voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: voiceId },
-                  },
-                },
-              },
-            }),
-          }
-        );
-        clearTimeout(timer);
-        const json = (await res.json()) as {
-          error?: { message?: string };
-          candidates?: Array<{
-            content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
-          }>;
-        };
-        if (!res.ok) {
-          lastError = json.error?.message ?? `HTTP ${res.status}`;
-          if (res.status !== 429 && res.status !== 503) break;
-          continue;
-        }
-        const inline = json.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-        const audioBase64 = inline?.data?.trim();
-        if (!audioBase64) {
-          lastError = 'empty audio candidate';
-          continue;
-        }
-        const mimeType = inline?.mimeType?.trim() || 'audio/L16;rate=24000';
-        return {
-          voiceId,
-          text: previewLine,
-          mimeType,
-          sampleRateHz: parseSampleRate(mimeType),
-          audioBase64,
-        };
-      } catch (e) {
-        lastError = (e as Error).message;
-        if ((e as Error).name === 'AbortError') break;
+  for (const model of GEMINI_TTS_PREVIEW_MODELS) {
+    try {
+      const json = (await geminiRequest(
+        geminiModelPath(model, 'generateContent'),
+        {
+          contents: [{ parts: [{ text: `Say warmly: ${previewLine}` }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceId } } },
+          },
+        },
+        { timeoutMs: TTS_TIMEOUT_MS }
+      )) as {
+        candidates?: Array<{
+          content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
+        }>;
+      };
+      const inline = json.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+      const audioBase64 = inline?.data?.trim();
+      if (!audioBase64) {
+        lastError = 'empty audio candidate';
+        continue;
       }
+      const mimeType = inline?.mimeType?.trim() || 'audio/L16;rate=24000';
+      return {
+        voiceId,
+        text: previewLine,
+        mimeType,
+        sampleRateHz: parseSampleRate(mimeType),
+        audioBase64,
+      };
+    } catch (err) {
+      if (!(err instanceof AiProviderError) || err.code === 'aborted') throw err;
+      lastError = err.message;
     }
   }
 

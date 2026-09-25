@@ -4,6 +4,7 @@
  */
 
 import { createServiceClient, verifyPropertyAccess } from './orgAuth.ts';
+import { inlineUntrusted } from './ai/untrusted.ts';
 
 export const ATTACHED_CONTEXT_TYPES = [
   'booking',
@@ -184,7 +185,9 @@ export function attachedContextPromptLines(items: AttachedContextItem[]): string
   for (const type of ATTACHED_CONTEXT_TYPES) {
     const list = grouped.get(type);
     if (!list?.length) continue;
-    parts.push(list.map((item) => `${typeLabel(type)} ${item.label} (${item.id})`).join('; '));
+    parts.push(
+      list.map((item) => `${typeLabel(type)} ${inlineUntrusted(item.label)} (${item.id})`).join('; ')
+    );
   }
   return `\nThe host attached: ${parts.join('; ')}. Prefer these entities for matching tools unless they name a different one.`;
 }

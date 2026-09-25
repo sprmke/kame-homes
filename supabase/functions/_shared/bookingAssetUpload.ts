@@ -33,6 +33,8 @@ import {
   BOOKING_ASSET_LABELS,
   type BookingAssetType,
 } from './bookingAssetTypes.ts';
+import { isFeatureEnabled } from './planFeatures.ts';
+import { resolvePropertyEntitlements } from './planEntitlements.ts';
 
 export {
   BOOKING_ASSET_CONFIG,
@@ -175,7 +177,12 @@ export async function applyBookingAssetFromBytes(
 
   let receiptValidation: ReceiptValidationResult | undefined;
   const docAiKind = documentAiKindForAssetType(input.assetType);
-  if (docAiKind) {
+  // Paid vision calls only for plans that include AI validations (same gate as
+  // validate-booking-receipts); the upload itself never depends on it.
+  if (
+    docAiKind &&
+    isFeatureEnabled(await resolvePropertyEntitlements(input.propertyId), 'aiValidations')
+  ) {
     try {
       const orgId = await resolveOrgIdForProperty(input.propertyId);
       const aiUsage: AiUsageContext | null = orgId
@@ -194,9 +201,8 @@ export async function applyBookingAssetFromBytes(
       if (shouldPersistReceiptValidation(receiptValidation)) {
         Object.assign(workflowUpdate, dbPatchForDocumentAiValidation(docAiKind, receiptValidation));
       }
-      console.log(
-        `${logPrefix} ${input.assetType} AI: ${receiptValidation.verdict} — ${receiptValidation.summary}`
-      );
+      // Verdict only: the AI summary can echo guest ID / payment details.
+      console.log(`${logPrefix} ${input.assetType} AI: ${receiptValidation.verdict}`);
     } catch (aiErr) {
       console.error(`${logPrefix} Receipt AI validation failed (non-fatal):`, aiErr);
     }

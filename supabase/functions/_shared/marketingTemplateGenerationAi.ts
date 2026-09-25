@@ -1,31 +1,22 @@
 /**
- * Structured AI tokens for Marketing Content Studio templates (Gemini / Groq).
+ * Structured AI tokens for Marketing Content Studio templates (via the AI gateway).
  * Calendar MVP: returns a single calendar token payload (not full CalendarStyles).
  */
 
-import {
-  extractGeminiText,
-  extractGeminiUsage,
-  getGeminiApiKeys,
-  getGroqApiKey,
-  nextGeminiKeyStartIndex,
-  shouldTryNextProvider,
-} from './aiGeminiKeys.ts';
-import { geminiGenerateContentUrl, getModelConfig } from './aiModelRouter.ts';
-import { assertOrgAndPropertyAiQuota, recordAiUsage, type AiActorType } from './aiUsageService.ts';
-import {
-  buildCacheInputs,
-  computePromptFingerprint,
-  getCachedAiResponse,
-  setCachedAiResponse,
-} from './aiQuotaCache.ts';
+import { z } from 'zod';
+
+import { generateStructured } from './ai/llmClient.ts';
+import { definePrompt, type PromptRef } from './ai/prompt.ts';
+import { wrapUntrusted } from './ai/untrusted.ts';
+import { assertOrgAndPropertyAiQuota, type AiActorType } from './aiUsageService.ts';
 
 const FEATURE = 'marketing_template' as const;
-const CONFIG = getModelConfig(FEATURE);
-const GEMINI_MODEL = CONFIG.model;
-const GEMINI_URL = geminiGenerateContentUrl(GEMINI_MODEL);
-const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+const TEMPLATE_PROMPTS = {
+  calendar: definePrompt({ id: 'marketing_template_calendar', version: '2026-09-24.1' }),
+  design: definePrompt({ id: 'marketing_template_design', version: '2026-09-24.1' }),
+  video: definePrompt({ id: 'marketing_template_video', version: '2026-09-24.1' }),
+} as const;
 
 const CALENDAR_RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -123,56 +114,20 @@ const DESIGN_RESPONSE_SCHEMA = {
   ],
 } as const;
 
-function parseAiJsonPayload(text: string): unknown {
-  const attempts: string[] = [];
-  const trimmed = text.trim();
-  if (trimmed) attempts.push(trimmed);
-
-  const fullFence = /^```(?:json)?\s*([\s\S]*?)```$/i.exec(trimmed);
-  if (fullFence?.[1]?.trim()) attempts.push(fullFence[1].trim());
-
-  const embeddedFence = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed);
-  if (embeddedFence?.[1]?.trim()) attempts.push(embeddedFence[1].trim());
-
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (jsonMatch?.[0]) attempts.push(jsonMatch[0]);
-
-  for (const candidate of attempts) {
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      /* try next candidate */
-    }
-  }
-
-  throw new Error('AI generation returned unreadable JSON');
-}
-
-function hasRequiredKeys(value: unknown, required: readonly string[]): boolean {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  return required.every((key) => obj[key] !== undefined);
-}
-
 /**
- * Groq's `response_format: json_object` only guarantees syntactically valid
- * JSON, not that it matches our token schema (Gemini's `responseSchema` does
- * enforce shape, but we still validate both providers the same way here for
- * one code path). Without `requiredKeys`, a model response like
- * `{"note": "cannot help with that"}` would parse fine and get treated as a
- * successful generation — `parseXTemplateTokens` then silently backfills
- * every missing field with defaults, producing a generic-looking template
- * with no error shown to the host. Checking required top-level keys turns
- * that into a real failure that surfaces through the existing error path.
+ * Top-level token keys must all be present. Without this, a refusal like
+ * `{"note": "cannot help"}` would parse and `parseXTemplateTokens` would silently backfill
+ * defaults, producing a generic template with no error. Field values are then clamped and
+ * allow-listed by the parse*TemplateTokens business-rule functions.
  */
-function isValidAiJsonText(text: string, requiredKeys?: readonly string[]): boolean {
-  try {
-    const parsed = parseAiJsonPayload(text);
-    if (requiredKeys && !hasRequiredKeys(parsed, requiredKeys)) return false;
-    return true;
-  } catch {
-    return false;
-  }
+function requiredKeysContract(keys: readonly string[]) {
+  return z
+    .object(
+      Object.fromEntries(
+        keys.map((key) => [key, z.custom<unknown>((v) => v !== undefined, 'Required')])
+      )
+    )
+    .passthrough();
 }
 
 export type MarketingTemplateContentType = 'calendar' | 'design' | 'video';
@@ -656,10 +611,10 @@ function buildVideoUserPrompt(input: GenerateMarketingTemplateInput): string {
     `Property: ${input.propertyName}`,
     `Content type: ${input.contentType}`,
     `Category: ${prefs.category || 'soft-stay'}`,
-    `Host prompt: ${input.prompt || '(no prompt — pick a tasteful editorial hospitality promo video)'}`,
+    `Host prompt: ${input.prompt ? wrapUntrusted('host_prompt', input.prompt, 500) : '(no prompt — pick a tasteful editorial hospitality promo video)'}`,
   ];
   if (input.content) {
-    lines.push(`Content: ${input.content}`);
+    lines.push(`Content: ${wrapUntrusted('host_content', input.content, 1000)}`);
   } else if (categoryDefault) {
     lines.push(`Content: ${categoryDefault}`);
   }
@@ -762,7 +717,7 @@ function buildUserPrompt(input: GenerateMarketingTemplateInput): string {
   const lines = [
     `Property: ${input.propertyName}`,
     `Content type: ${input.contentType}`,
-    `Host prompt: ${input.prompt || '(no prompt — pick a tasteful pastel availability calendar)'}`,
+    `Host prompt: ${input.prompt ? wrapUntrusted('host_prompt', input.prompt, 500) : '(no prompt — pick a tasteful pastel availability calendar)'}`,
   ];
   if (input.amenitiesText) lines.push(`Amenities: ${input.amenitiesText}`);
   if (input.availabilityText) lines.push(`Availability: ${input.availabilityText}`);
@@ -786,10 +741,10 @@ function buildDesignUserPrompt(input: GenerateMarketingTemplateInput): string {
     `Property: ${input.propertyName}`,
     `Content type: ${input.contentType}`,
     `Category: ${prefs.category || 'promo'}`,
-    `Host prompt: ${input.prompt || '(no prompt — pick a tasteful editorial hospitality promo design)'}`,
+    `Host prompt: ${input.prompt ? wrapUntrusted('host_prompt', input.prompt, 500) : '(no prompt — pick a tasteful editorial hospitality promo design)'}`,
   ];
   if (input.content) {
-    lines.push(`Content: ${input.content}`);
+    lines.push(`Content: ${wrapUntrusted('host_content', input.content, 1000)}`);
   } else if (categoryDefault) {
     lines.push(`Content: ${categoryDefault}`);
   }
@@ -814,167 +769,31 @@ function buildDesignUserPrompt(input: GenerateMarketingTemplateInput): string {
   return lines.join('\n');
 }
 
-async function generateJsonText(
-  systemPrompt: string,
-  userPrompt: string,
-  responseSchema: unknown,
-  usage: {
-    organizationId: string;
-    propertyId: string;
-    actorUserId?: string | null;
-    actorType?: AiActorType;
-  },
-  cacheKey: string,
-  requiredKeys: readonly string[]
-): Promise<string> {
-  const cached = await getCachedAiResponse(FEATURE, cacheKey);
-  if (cached && isValidAiJsonText(cached.responseText, requiredKeys)) return cached.responseText;
-
-  const keys = getGeminiApiKeys();
-  let geminiSawKeys = keys.length > 0;
-  let geminiQuotaHit = false;
-  let geminiLastStatus: number | null = null;
-  let geminiParseFailures = 0;
-
-  const startIdx = nextGeminiKeyStartIndex(keys.length);
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const apiKey = keys[(startIdx + attempt) % keys.length]!;
-    try {
-      const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          generationConfig: {
-            temperature: 0.85,
-            maxOutputTokens: CONFIG.defaultMaxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: responseSchema,
-            thinkingConfig: { thinkingBudget: CONFIG.thinkingBudget },
-          },
-        }),
-      });
-      geminiLastStatus = res.status;
-      if (res.status === 429) {
-        geminiQuotaHit = true;
-        continue;
-      }
-      if (!res.ok) {
-        if (shouldTryNextProvider(res.status)) continue;
-        break;
-      }
-      const json = await res.json();
-      const finishReason =
-        (json as { candidates?: Array<{ finishReason?: string }> }).candidates?.[0]?.finishReason ??
-        '';
-      const text = extractGeminiText(json);
-      if (text && finishReason !== 'MAX_TOKENS' && isValidAiJsonText(text, requiredKeys)) {
-        const tokenUsage = extractGeminiUsage(json);
-        await recordAiUsage({
-          organizationId: usage.organizationId,
-          propertyId: usage.propertyId,
-          feature: FEATURE,
-          provider: 'gemini',
-          model: GEMINI_MODEL,
-          inputTokens: tokenUsage.inputTokens,
-          outputTokens: tokenUsage.outputTokens,
-          actorUserId: usage.actorUserId ?? null,
-          actorType: usage.actorType ?? 'staff',
-        });
-        await setCachedAiResponse(FEATURE, cacheKey, {
-          provider: 'gemini',
-          model: GEMINI_MODEL,
-          responseText: text,
-          inputTokens: tokenUsage.inputTokens,
-          outputTokens: tokenUsage.outputTokens,
-          estimatedCostUsd: 0,
-        });
-        return text;
-      }
-      if (text) geminiParseFailures += 1;
-    } catch {
-      /* try next key */
-    }
-  }
-
-  const groq = getGroqApiKey();
-  let groqLastStatus: number | null = null;
-  if (groq) {
-    try {
-      const res = await fetch(GROQ_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${groq}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.85,
-          max_tokens: CONFIG.defaultMaxOutputTokens,
-          response_format: { type: 'json_object' },
-        }),
-      });
-      groqLastStatus = res.status;
-      if (res.ok) {
-        const json = (await res.json()) as {
-          choices?: Array<{ message?: { content?: string } }>;
-          usage?: { prompt_tokens?: number; completion_tokens?: number };
-        };
-        const text = json.choices?.[0]?.message?.content?.trim();
-        if (text && isValidAiJsonText(text, requiredKeys)) {
-          const groqInputTokens = Number(json.usage?.prompt_tokens ?? 0);
-          const groqOutputTokens = Number(json.usage?.completion_tokens ?? 0);
-          await recordAiUsage({
-            organizationId: usage.organizationId,
-            propertyId: usage.propertyId,
-            feature: FEATURE,
-            provider: 'groq',
-            model: GROQ_MODEL,
-            inputTokens: groqInputTokens,
-            outputTokens: groqOutputTokens,
-            actorUserId: usage.actorUserId ?? null,
-            actorType: usage.actorType ?? 'staff',
-          });
-          await setCachedAiResponse(FEATURE, cacheKey, {
-            provider: 'groq',
-            model: GROQ_MODEL,
-            responseText: text,
-            inputTokens: groqInputTokens,
-            outputTokens: groqOutputTokens,
-            estimatedCostUsd: 0,
-          });
-          return text;
-        }
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-
-  if (!geminiSawKeys && !groq) {
-    throw new Error('AI generation unavailable — configure GEMINI_API_KEYS or GROQ_API_KEY');
-  }
-  if (geminiParseFailures > 0) {
-    throw new Error('AI generation returned unreadable JSON');
-  }
-  if (geminiQuotaHit) {
-    throw new Error(
-      'AI generation unavailable — Gemini quota exceeded on all configured keys' +
-        (groqLastStatus ? ` (Groq fallback HTTP ${groqLastStatus})` : groq ? '' : '')
-    );
-  }
-  if (geminiLastStatus || groqLastStatus) {
-    throw new Error(
-      `AI generation unavailable — Gemini HTTP ${geminiLastStatus ?? 'n/a'}` +
-        (groq ? `, Groq HTTP ${groqLastStatus ?? 'n/a'}` : '')
-    );
-  }
-  throw new Error('AI generation unavailable — providers returned empty responses');
+async function generateTemplateJson(options: {
+  prompt: PromptRef;
+  system: string;
+  user: string;
+  responseSchema: { required: readonly string[] } & Record<string, unknown>;
+  input: GenerateMarketingTemplateInput;
+}): Promise<unknown> {
+  const result = await generateStructured({
+    feature: FEATURE,
+    prompt: options.prompt,
+    system: options.system,
+    user: options.user,
+    temperature: 0.85,
+    schema: requiredKeysContract(options.responseSchema.required),
+    jsonSchema: options.responseSchema,
+    cache: {},
+    billing: {
+      organizationId: options.input.organizationId,
+      propertyId: options.input.propertyId,
+      actorUserId: options.input.actorUserId ?? null,
+      actorType: options.input.actorType ?? 'staff',
+      quotaChecked: true,
+    },
+  });
+  return result.data;
 }
 
 export async function generateMarketingTemplateTokens(
@@ -997,23 +816,13 @@ export async function generateMarketingTemplateTokens(
   await assertOrgAndPropertyAiQuota(input.organizationId, input.propertyId, FEATURE);
 
   if (input.contentType === 'calendar') {
-    const system = calendarSystemPrompt();
-    const user = buildUserPrompt(input);
-    const cacheKey = await computePromptFingerprint(buildCacheInputs(system, user));
-    const rawText = await generateJsonText(
-      system,
-      user,
-      CALENDAR_RESPONSE_SCHEMA,
-      {
-        organizationId: input.organizationId,
-        propertyId: input.propertyId,
-        actorUserId: input.actorUserId,
-        actorType: input.actorType,
-      },
-      cacheKey,
-      CALENDAR_RESPONSE_SCHEMA.required
-    );
-    const parsed = parseAiJsonPayload(rawText);
+    const parsed = await generateTemplateJson({
+      prompt: TEMPLATE_PROMPTS.calendar,
+      system: calendarSystemPrompt(),
+      user: buildUserPrompt(input),
+      responseSchema: CALENDAR_RESPONSE_SCHEMA,
+      input,
+    });
     return {
       contentType: 'calendar',
       tokens: parseCalendarTemplateTokens(parsed),
@@ -1021,46 +830,26 @@ export async function generateMarketingTemplateTokens(
   }
 
   if (input.contentType === 'video') {
-    const system = videoSystemPrompt();
-    const user = buildVideoUserPrompt(input);
-    const cacheKey = await computePromptFingerprint(buildCacheInputs(system, user));
-    const rawText = await generateJsonText(
-      system,
-      user,
-      VIDEO_RESPONSE_SCHEMA,
-      {
-        organizationId: input.organizationId,
-        propertyId: input.propertyId,
-        actorUserId: input.actorUserId,
-        actorType: input.actorType,
-      },
-      cacheKey,
-      VIDEO_RESPONSE_SCHEMA.required
-    );
-    const parsed = parseAiJsonPayload(rawText);
+    const parsed = await generateTemplateJson({
+      prompt: TEMPLATE_PROMPTS.video,
+      system: videoSystemPrompt(),
+      user: buildVideoUserPrompt(input),
+      responseSchema: VIDEO_RESPONSE_SCHEMA,
+      input,
+    });
     return {
       contentType: 'video',
       tokens: parseVideoTemplateTokens(parsed),
     };
   }
 
-  const designSystem = designSystemPrompt();
-  const designUser = buildDesignUserPrompt(input);
-  const designCacheKey = await computePromptFingerprint(buildCacheInputs(designSystem, designUser));
-  const rawText = await generateJsonText(
-    designSystem,
-    designUser,
-    DESIGN_RESPONSE_SCHEMA,
-    {
-      organizationId: input.organizationId,
-      propertyId: input.propertyId,
-      actorUserId: input.actorUserId,
-      actorType: input.actorType,
-    },
-    designCacheKey,
-    DESIGN_RESPONSE_SCHEMA.required
-  );
-  const parsed = parseAiJsonPayload(rawText);
+  const parsed = await generateTemplateJson({
+    prompt: TEMPLATE_PROMPTS.design,
+    system: designSystemPrompt(),
+    user: buildDesignUserPrompt(input),
+    responseSchema: DESIGN_RESPONSE_SCHEMA,
+    input,
+  });
 
   return {
     contentType: 'design',

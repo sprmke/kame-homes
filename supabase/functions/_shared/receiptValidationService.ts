@@ -1,32 +1,26 @@
 /**
- * AI document validation via Google Gemini Flash (vision) with multi-key rotation
- * and Groq (Llama 4 Scout) fallback. Non-blocking when no API keys are configured.
- *
- * Provider chain:
- *  1. Gemini keys (round-robin from GEMINI_API_KEYS or single GEMINI_API_KEY)
- *  2. Groq Llama 4 Scout (GROQ_API_KEY) — fallback when all Gemini keys fail
- *
- * Rate-limit (429) or server errors on one key immediately try the next.
+ * AI document validation (payment receipts, government IDs) via the AI gateway: Gemini vision
+ * with Groq vision fallback for image types Groq supports. Output is schema-validated; the
+ * verdict is advisory and never auto-approves a booking. Non-blocking when AI is unconfigured.
  */
+
+import { z } from 'zod';
 
 import { createClient } from './supabaseJs.ts';
 
+import { AiProviderError, generateStructured, isAiGatewayError } from './ai/llmClient.ts';
 import {
-  getGeminiApiKeys,
-  getGroqApiKey,
-  nextGeminiKeyStartIndex,
-  probeAiProviderMinimal,
-  shouldTryNextProvider,
-  extractGeminiUsage,
-} from './aiGeminiKeys.ts';
-import { geminiGenerateContentUrl, getModelConfig } from './aiModelRouter.ts';
-import {
-  assertPropertyAiQuotaOptional,
-  AiQuotaExceededError,
-  recordAiUsageOptional,
-  type AiActorType,
-  type RecordAiUsageInput,
-} from './aiUsageService.ts';
+  DOCUMENT_VERDICT_JSON_SCHEMA,
+  RECEIPT_SYSTEM_PROMPT,
+  RECEIPT_VALIDATION_PROMPT,
+  VALID_ID_SYSTEM_PROMPT,
+  VALID_ID_VALIDATION_PROMPT,
+} from './ai/prompts/documentValidation.ts';
+import { probeAiProviders } from './ai/providerHealth.ts';
+import type { PromptRef } from './ai/prompt.ts';
+import { getModelConfig } from './aiModelRouter.ts';
+import { isAiQuotaError, type AiActorType } from './aiUsageService.ts';
+import { toHostFacingError } from './hostFacingError.ts';
 import { computeTotalGuestBalanceFromBooking } from './totalGuestBalance.ts';
 
 export type AiUsageContext = {
@@ -56,13 +50,7 @@ export type ReceiptValidationResult = {
 };
 
 const RECEIPT_FEATURE = 'receipt_validation' as const;
-const VERIFY_FEATURE = 'ai_integration_verify' as const;
-const CONFIG = getModelConfig(RECEIPT_FEATURE);
-const GEMINI_MODEL = CONFIG.model;
-const VERIFY_GEMINI_MODEL = getModelConfig(VERIFY_FEATURE).model;
-const GEMINI_URL = geminiGenerateContentUrl(GEMINI_MODEL);
-const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const VERIFY_GEMINI_MODEL = getModelConfig('ai_integration_verify').model;
 
 // --- Verify integration ---
 
@@ -75,71 +63,19 @@ export type AiProviderVerifyResult = {
 
 /** Admin-only: minimal provider health probe that does not expose key counts. */
 export async function verifyAiProviders(): Promise<AiProviderVerifyResult> {
-  const probe = await probeAiProviderMinimal();
+  const probe = await probeAiProviders({ force: true });
   return {
     model: VERIFY_GEMINI_MODEL,
-    ok: probe.ok,
-    latencyMs: probe.latencyMs,
-    error: probe.error,
+    ok: probe.available,
+    latencyMs: probe.latencyMs ?? undefined,
+    error: probe.error ?? undefined,
   };
 }
 
-/** @deprecated Use verifyAiProviders() which does not expose key counts. */
-export async function verifyGeminiIntegration(): Promise<AiProviderVerifyResult> {
-  return verifyAiProviders();
-}
 
-const RECEIPT_PROMPT = `You are validating a payment proof image for a vacation rental booking in the Philippines.
-Analyze the image and return ONLY valid JSON (no markdown) with this exact shape:
-{
-  "verdict": "valid" | "likely_valid" | "unclear" | "invalid",
-  "confidence": number between 0 and 1,
-  "summary": "one short sentence for an admin",
-  "has_amount": boolean,
-  "has_date": boolean,
-  "has_reference": boolean,
-  "extracted_amount": number | null,
-  "extracted_date": "YYYY-MM-DD" | null
-}
 
-Accept TWO forms of payment proof:
-1) Digital — GCash, Maya, InstaPay, bank transfer, or similar e-wallet/bank app screenshots showing money sent (amount plus date or reference when visible).
-2) Cash — a photo clearly showing Philippine peso (PHP) banknotes as payment proof (e.g. bills held in hand, fanned out, or on a table). Recognizable PHP denominations (₱20–₱1000) count as valid proof even without a transaction reference or date.
 
-Rules:
-- "valid": clear digital transfer receipt/screenshot with transaction details, OR a clear photo of PHP cash bills as payment proof.
-- "likely_valid": payment screenshot or cash photo that is partly blurry/cropped but still recognizable as payment proof.
-- "unclear": too blurry or ambiguous to tell if it is digital payment proof or PHP cash payment proof.
-- "invalid": clearly NOT payment proof (random photo, scenery, meme, blank, ID only, chat without payment proof, unrelated objects with no visible transfer details or PHP cash).
-- For cash photos: set has_amount true when bill denominations are visible; has_date and has_reference are usually false — that is OK.
-- extracted_amount: the numeric Philippine peso amount actually sent/paid (ignore fees, balances, or unrelated numbers). Null when not legible.
-- extracted_date: the transaction date shown on the screenshot (bank/e-wallet apps always show one), normalized to YYYY-MM-DD. If only a partial date is visible (e.g. no year), infer the most recent plausible year. Null for cash photos or when no date is visible at all.
-- summary must be plain English, max 120 characters, no line breaks.`;
 
-const VALID_ID_PROMPT = `You are validating a government-issued photo ID image for a vacation rental guest check-in in the Philippines.
-Analyze the image or PDF and return ONLY valid JSON (no markdown) with this exact shape:
-{
-  "verdict": "valid" | "likely_valid" | "unclear" | "invalid",
-  "confidence": number between 0 and 1,
-  "summary": "one short sentence for an admin",
-  "has_amount": boolean,
-  "has_date": boolean,
-  "has_reference": boolean
-}
-
-Accept common Philippine and travel IDs, including:
-- Philippine National ID (PhilSys / ePhilID)
-- Passport (Philippine or foreign)
-- Driver's license
-- UMID, SSS, PhilHealth, postal ID, voter's ID, PRC ID, and similar government photo IDs
-
-Rules:
-- "valid": clear government-issued photo ID with recognizable ID document layout (name and/or photo visible; rotation is OK).
-- "likely_valid": ID appears genuine but is blurry, cropped, glare-heavy, or rotated — still recognizable as an ID document.
-- "unclear": too blurry or ambiguous to tell if it is a government ID.
-- "invalid": clearly NOT an ID (selfie only, payment receipt, scenery, meme, blank image, random object, chat screenshot without ID).
-- Set has_amount false. Set has_date true when a birth date or expiry is visible. Set has_reference true when an ID number is visible.
-- summary must be plain English, max 120 characters, no line breaks. Mention ID type when confident (e.g. "PhilSys ID", "passport").`;
 
 function skipped(summary = 'AI validation unavailable'): ReceiptValidationResult {
   return {
@@ -161,17 +97,6 @@ function aiModelFailure(summary: string, detail?: string): ReceiptValidationResu
   };
 }
 
-function parseGeminiApiError(status: number, errText: string): string {
-  let message = `Gemini API returned ${status}`;
-  try {
-    const parsed = JSON.parse(errText) as { error?: { message?: string } };
-    if (parsed.error?.message) message = parsed.error.message;
-  } catch {
-    if (errText.trim()) message = errText.trim().slice(0, 240);
-  }
-  return message;
-}
-
 /** True when a real verdict was produced and may be written to guest_submissions. */
 export function shouldPersistReceiptValidation(result: ReceiptValidationResult): boolean {
   return !result.aiModelError;
@@ -184,48 +109,6 @@ function bytesToBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
-}
-
-function normalizeVerdict(raw: unknown): ReceiptValidationVerdict {
-  const v = String(raw ?? '')
-    .trim()
-    .toLowerCase();
-  if (v === 'valid' || v === 'likely_valid' || v === 'unclear' || v === 'invalid') {
-    return v;
-  }
-  return 'unclear';
-}
-
-function parseGeminiJson(
-  text: string,
-  defaultSummary = 'Document analyzed.'
-): ReceiptValidationResult | null {
-  const trimmed = text.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
-  try {
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-    const confidenceRaw = Number(parsed.confidence);
-    const confidence = Number.isFinite(confidenceRaw)
-      ? Math.min(1, Math.max(0, confidenceRaw))
-      : null;
-    const summary =
-      String(parsed.summary ?? '')
-        .trim()
-        .slice(0, 200) || defaultSummary;
-    return {
-      verdict: normalizeVerdict(parsed.verdict),
-      confidence,
-      summary,
-      has_amount: Boolean(parsed.has_amount),
-      has_date: Boolean(parsed.has_date),
-      has_reference: Boolean(parsed.has_reference),
-      extracted_amount: coerceNumber(parsed.extracted_amount),
-      extracted_date: normalizeExtractedDate(parsed.extracted_date),
-    };
-  } catch {
-    return null;
-  }
 }
 
 function coerceNumber(value: unknown): number | null {
@@ -252,290 +135,127 @@ function normalizeVisionMimeType(mimeType: string, path?: string): string {
   return 'image/jpeg';
 }
 
-/** Try a single Gemini key. Returns result or null if rate-limited/server-error (caller should try next). */
-async function tryGeminiKey(
-  apiKey: string,
-  prompt: string,
-  base64: string,
-  safeMime: string,
-  logTag: string,
-  defaultSummary: string
-): Promise<{
-  result: ReceiptValidationResult;
-  usage: { inputTokens: number; outputTokens: number };
-} | null> {
-  try {
-    const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }, { inline_data: { mime_type: safeMime, data: base64 } }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: CONFIG.defaultMaxOutputTokens,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: CONFIG.thinkingBudget },
-        },
-      }),
-    });
+/** Structural contract. The verdict enum is strict (a bad verdict triggers the repair retry). */
+const DocumentVerdictResponse = z.object({
+  verdict: z.enum(['valid', 'likely_valid', 'unclear', 'invalid']),
+  confidence: z.coerce.number().nullable().optional(),
+  summary: z.string().optional(),
+  has_amount: z.coerce.boolean().optional(),
+  has_date: z.coerce.boolean().optional(),
+  has_reference: z.coerce.boolean().optional(),
+  extracted_amount: z.unknown().optional(),
+  extracted_date: z.unknown().optional(),
+});
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      if (shouldTryNextProvider(res.status)) {
-        console.warn(`[${logTag}] Gemini key exhausted/error (${res.status}), trying next...`);
-        return null; // signal: try next key/provider
-      }
-      const detail = parseGeminiApiError(res.status, errText);
-      console.error(`[${logTag}] Gemini API error:`, res.status, errText);
-      return {
-        result: aiModelFailure('AI validation failed', detail),
-        usage: { inputTokens: 0, outputTokens: 0 },
-      };
-    }
-
-    const body = await res.json();
-    const text =
-      (body as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })
-        .candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const parsed = parseGeminiJson(text, defaultSummary);
-    if (!parsed) {
-      console.warn(`[${logTag}] Could not parse Gemini response:`, text.slice(0, 200));
-      return {
-        result: aiModelFailure(
-          'AI validation returned unreadable result',
-          'The AI model returned a response we could not parse. Try again.'
-        ),
-        usage: extractGeminiUsage(body),
-      };
-    }
-
-    console.log(
-      `[${logTag}] [gemini] verdict=${parsed.verdict} confidence=${parsed.confidence} summary=${parsed.summary}`
-    );
-    return {
-      result: { ...parsed, provider: 'gemini' },
-      usage: extractGeminiUsage(body),
-    };
-  } catch (err) {
-    console.warn(
-      `[${logTag}] Gemini key threw (network?):`,
-      err instanceof Error ? err.message : err
-    );
-    return null; // treat network errors as transient → try next
-  }
-}
-
-const GROQ_SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-
-/** Groq (Llama 4 Scout) fallback — OpenAI-compatible vision API. */
-async function tryGroq(
-  groqKey: string,
-  prompt: string,
-  base64: string,
-  safeMime: string,
-  logTag: string,
-  defaultSummary: string
-): Promise<ReceiptValidationResult | null> {
-  if (!GROQ_SUPPORTED_MIME_TYPES.has(safeMime)) {
-    console.warn(`[${logTag}] Groq skipped — unsupported MIME type: ${safeMime}`);
-    return null;
-  }
-
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                image_url: { url: `data:${safeMime};base64,${base64}` },
-              },
-            ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: CONFIG.defaultMaxOutputTokens,
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      if (shouldTryNextProvider(res.status)) {
-        console.warn(`[${logTag}] Groq rate-limited/error (${res.status})`);
-        return null;
-      }
-      console.error(`[${logTag}] Groq API error:`, res.status, errText);
-      return aiModelFailure('AI validation failed (fallback)', `Groq returned ${res.status}`);
-    }
-
-    const body = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const text = body.choices?.[0]?.message?.content ?? '';
-    const parsed = parseGeminiJson(text, defaultSummary);
-    if (!parsed) {
-      console.warn(`[${logTag}] Could not parse Groq response:`, text.slice(0, 200));
-      return aiModelFailure(
-        'AI validation returned unreadable result',
-        'Fallback AI model returned a response we could not parse.'
-      );
-    }
-
-    console.log(
-      `[${logTag}] [groq] verdict=${parsed.verdict} confidence=${parsed.confidence} summary=${parsed.summary}`
-    );
-    return { ...parsed, provider: 'groq' };
-  } catch (err) {
-    console.error(`[${logTag}] Groq unexpected error:`, err);
-    return null;
-  }
+/** Business-rule normalization of validated model output. */
+function toValidationResult(
+  data: z.infer<typeof DocumentVerdictResponse>,
+  defaultSummary: string,
+  provider: 'gemini' | 'groq'
+): ReceiptValidationResult {
+  const confidence =
+    typeof data.confidence === 'number' && Number.isFinite(data.confidence)
+      ? Math.min(1, Math.max(0, data.confidence))
+      : null;
+  return {
+    verdict: data.verdict,
+    confidence,
+    summary: (data.summary ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || defaultSummary,
+    has_amount: Boolean(data.has_amount),
+    has_date: Boolean(data.has_date),
+    has_reference: Boolean(data.has_reference),
+    extracted_amount: coerceNumber(data.extracted_amount),
+    extracted_date: normalizeExtractedDate(data.extracted_date),
+    provider,
+  };
 }
 
 /**
- * Multi-provider vision validation:
- *  1. Round-robin through Gemini keys (skip 429/5xx → next key)
- *  2. Fallback to Groq if all Gemini keys are exhausted
- *  3. Return aiModelError only when ALL providers fail
+ * One document check through the gateway. Never throws for AI problems: quota, provider
+ * outage or unreadable output become an aiModelError result the admin can retry.
  */
-async function callGeminiVision(
-  prompt: string,
-  imageBytes: Uint8Array,
-  mimeType: string,
-  logTag: string,
-  defaultSummary: string,
-  usageContext?: AiUsageContext | null
-): Promise<ReceiptValidationResult> {
+async function validateDocument(options: {
+  prompt: PromptRef;
+  system: string;
+  imageBytes: Uint8Array;
+  mimeType: string;
+  logTag: string;
+  defaultSummary: string;
+  usageContext?: AiUsageContext | null;
+}): Promise<ReceiptValidationResult> {
+  if (!options.imageBytes?.length) return skipped('No image data to validate');
+
   try {
-    await assertPropertyAiQuotaOptional(
-      usageContext?.organizationId,
-      usageContext?.propertyId,
-      RECEIPT_FEATURE
-    );
-  } catch (error) {
-    if (error instanceof AiQuotaExceededError) {
-      return aiModelFailure('AI quota exceeded', error.message);
+    const result = await generateStructured({
+      feature: RECEIPT_FEATURE,
+      prompt: options.prompt,
+      system: options.system,
+      user: [
+        { text: 'Assess the attached document and return the JSON object.' },
+        { inlineData: { mimeType: options.mimeType, data: bytesToBase64(options.imageBytes) } },
+      ],
+      temperature: 0.1,
+      schema: DocumentVerdictResponse,
+      jsonSchema: DOCUMENT_VERDICT_JSON_SCHEMA,
+      billing: {
+        organizationId: options.usageContext?.organizationId,
+        propertyId: options.usageContext?.propertyId ?? null,
+        actorUserId: options.usageContext?.actorUserId ?? null,
+        actorType: options.usageContext?.actorType,
+      },
+    });
+    const verdict = toValidationResult(result.data, options.defaultSummary, result.provider);
+    // Verdict + provider only: summaries can echo guest ID / payment details.
+    console.log(`[${options.logTag}] [${result.provider}] verdict=${verdict.verdict}`);
+    return verdict;
+  } catch (err) {
+    if (err instanceof AiProviderError && err.code === 'not_configured') {
+      console.warn(`[${options.logTag}] No AI provider configured — skipping`);
+      return skipped();
     }
-    throw error;
-  }
-
-  const geminiKeys = getGeminiApiKeys();
-  const groqKey = getGroqApiKey();
-
-  if (geminiKeys.length === 0 && !groqKey) {
-    console.warn(`[${logTag}] No AI API keys configured — skipping`);
-    return skipped();
-  }
-  if (!imageBytes?.length) {
-    return skipped('No image data to validate');
-  }
-
-  const safeMime = normalizeVisionMimeType(mimeType);
-  const base64 = bytesToBase64(imageBytes);
-
-  // Layer 1: Try all Gemini keys (round-robin starting from last successful index)
-  if (geminiKeys.length > 0) {
-    const startIdx = nextGeminiKeyStartIndex(geminiKeys.length);
-    for (let i = 0; i < geminiKeys.length; i++) {
-      const idx = (startIdx + i) % geminiKeys.length;
-      const geminiAttempt = await tryGeminiKey(
-        geminiKeys[idx],
-        prompt,
-        base64,
-        safeMime,
-        logTag,
-        defaultSummary
+    if (isAiQuotaError(err)) return aiModelFailure('AI quota exceeded', err.message);
+    if (isAiGatewayError(err)) {
+      console.warn(`[${options.logTag}] AI validation failed: ${err.name}`);
+      return aiModelFailure(
+        'AI validation temporarily unavailable',
+        toHostFacingError(err, 'AI validation is unavailable right now. Try again.')
       );
-      if (geminiAttempt) {
-        await recordVisionUsage(usageContext, 'gemini', geminiAttempt.usage);
-        return geminiAttempt.result;
-      }
     }
-    console.warn(
-      `[${logTag}] All ${geminiKeys.length} Gemini key(s) failed, trying Groq fallback...`
-    );
+    throw err;
   }
-
-  // Layer 2: Groq fallback
-  if (groqKey) {
-    const result = await tryGroq(groqKey, prompt, base64, safeMime, logTag, defaultSummary);
-    if (result) {
-      await recordVisionUsage(usageContext, 'groq', null);
-      return result;
-    }
-  }
-
-  // All providers exhausted
-  const providers = [];
-  if (geminiKeys.length > 0)
-    providers.push(`Gemini (${geminiKeys.length} key${geminiKeys.length > 1 ? 's' : ''})`);
-  if (groqKey) providers.push('Groq');
-  const detail = `All AI providers exhausted: ${providers.join(', ')}. Try again later.`;
-  console.error(`[${logTag}] ${detail}`);
-  return aiModelFailure('AI validation temporarily unavailable', detail);
 }
 
-async function recordVisionUsage(
-  usageContext: AiUsageContext | null | undefined,
-  provider: 'gemini' | 'groq',
-  tokenUsage: { inputTokens: number; outputTokens: number } | null
-): Promise<void> {
-  if (!usageContext?.organizationId) return;
-  const usage: Omit<RecordAiUsageInput, 'organizationId'> = {
-    propertyId: usageContext.propertyId ?? null,
-    feature: RECEIPT_FEATURE,
-    provider,
-    model: provider === 'gemini' ? GEMINI_MODEL : GROQ_MODEL,
-    inputTokens: tokenUsage?.inputTokens,
-    outputTokens: tokenUsage?.outputTokens,
-    actorUserId: usageContext.actorUserId ?? null,
-    actorType: usageContext.actorType,
-  };
-  await recordAiUsageOptional(usageContext.organizationId, usage);
-}
-
-async function validateReceiptImage(
+function validateReceiptImage(
   imageBytes: Uint8Array,
   mimeType: string,
   usageContext?: AiUsageContext | null
 ): Promise<ReceiptValidationResult> {
-  return callGeminiVision(
-    RECEIPT_PROMPT,
+  return validateDocument({
+    prompt: RECEIPT_VALIDATION_PROMPT,
+    system: RECEIPT_SYSTEM_PROMPT,
     imageBytes,
-    mimeType,
-    'receipt-validation',
-    'Receipt analyzed.',
-    usageContext
-  );
+    mimeType: normalizeVisionMimeType(mimeType),
+    logTag: 'receipt-validation',
+    defaultSummary: 'Receipt analyzed.',
+    usageContext,
+  });
 }
 
-async function validateValidIdImage(
+function validateValidIdImage(
   imageBytes: Uint8Array,
   mimeType: string,
   path?: string,
   usageContext?: AiUsageContext | null
 ): Promise<ReceiptValidationResult> {
-  return callGeminiVision(
-    VALID_ID_PROMPT,
+  return validateDocument({
+    prompt: VALID_ID_VALIDATION_PROMPT,
+    system: VALID_ID_SYSTEM_PROMPT,
     imageBytes,
-    normalizeVisionMimeType(mimeType, path),
-    'valid-id-validation',
-    'ID analyzed.',
-    usageContext
-  );
+    mimeType: normalizeVisionMimeType(mimeType, path),
+    logTag: 'valid-id-validation',
+    defaultSummary: 'ID analyzed.',
+    usageContext,
+  });
 }
 
 export async function validateReceiptFile(

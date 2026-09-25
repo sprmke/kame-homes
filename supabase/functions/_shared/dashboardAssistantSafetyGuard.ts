@@ -10,10 +10,16 @@
  *      dashboardAssistantRiskClassifier.ts had a bug at proposal time.
  */
 
-import { callGeminiStructured, type GeminiToolCallOptions } from './geminiToolCallClient.ts';
+import { z } from 'zod';
+
+import { generateStructuredViaTool } from './ai/llmTools.ts';
+import { definePrompt } from './ai/prompt.ts';
+import { withUntrustedDataRule, wrapUntrusted } from './ai/untrusted.ts';
+import type { AiActorType } from './aiUsageService.ts';
 import { createServiceClient } from './orgAuth.ts';
 import {
   classifyActionRisk,
+  isTierSufficient,
   type ActionRiskInput,
   type ActionRiskTier,
 } from './dashboardAssistantRiskClassifier.ts';
@@ -42,33 +48,56 @@ Check the assistant's response and flag it if it:
 - Hallucinates bookings or numbers not present in the provided context.
 Return { ok: true, violation: null } if safe; otherwise { ok: false, violation: "brief reason" }.`;
 
+const SAFETY_GUARD_PROMPT = definePrompt({ id: 'dashboard_assistant_safety', version: '2026-09-24.1' });
+
+const SafetyVerdict = z.object({ ok: z.boolean(), violation: z.string().nullable().optional() });
+
 export async function guardDashboardAssistantResponse(
-  options: Pick<
-    GeminiToolCallOptions,
-    'organizationId' | 'propertyId' | 'actorUserId' | 'actorType'
-  >,
+  options: {
+    organizationId: string;
+    propertyId?: string | null;
+    actorUserId?: string | null;
+    actorType?: AiActorType;
+    signal?: AbortSignal;
+  },
   assistantResponse: string,
   contextSummary: string
 ): Promise<SafetyCheckResult> {
-  const prompt = `Context summary: """${contextSummary}"""\nAssistant response: """${assistantResponse}"""\nReview and return only the JSON object matching the schema.`;
-  const result = await callGeminiStructured<Omit<SafetyCheckResult, 'creditsConsumed'>>(
-    {
-      feature: 'dashboard_assistant',
+  const prompt =
+    `Context summary:\n${wrapUntrusted('context_summary', contextSummary, 20_000)}\n` +
+    `Assistant response to review:\n${wrapUntrusted('assistant_response', assistantResponse, 12_000)}\n` +
+    'Review and return only the JSON object matching the schema.';
+  const result = await generateStructuredViaTool({
+    feature: 'dashboard_assistant',
+    prompt: SAFETY_GUARD_PROMPT,
+    system: withUntrustedDataRule(SYSTEM_PROMPT),
+    user: prompt,
+    temperature: 0,
+    maxOutputTokens: 128,
+    signal: options.signal,
+    cache: { extras: { assistantResponse, contextSummary } },
+    jsonSchema: SAFETY_SCHEMA,
+    schema: SafetyVerdict,
+    billing: {
       organizationId: options.organizationId,
       propertyId: options.propertyId ?? null,
-      systemPrompt: SYSTEM_PROMPT,
-      userPrompt: prompt,
-      temperature: 0,
-      maxOutputTokens: 128,
-      cacheInputs: { assistantResponse, contextSummary },
-      actorUserId: options.actorUserId,
+      actorUserId: options.actorUserId ?? null,
       actorType: options.actorType,
     },
-    SAFETY_SCHEMA
-  );
+  });
 
+  // Fail closed: a missing or malformed verdict is never treated as approval. The caller then
+  // withholds the response and skips deferred Tier-1 writes.
+  if (!result.data) {
+    return {
+      ok: false,
+      violation: 'safety_check_unavailable',
+      creditsConsumed: result.creditsConsumed,
+    };
+  }
   return {
-    ...(result.data ?? { ok: true, violation: null }),
+    ok: result.data.ok,
+    violation: result.data.violation ?? null,
     creditsConsumed: result.creditsConsumed,
   };
 }
@@ -448,7 +477,10 @@ export async function assertActionSafeToExecute(input: ActionSafetyCheckInput): 
     isBulk: input.isBulk,
   });
 
-  if (recomputedTier !== input.expectedTier) {
+  // Block only when this execution would get LESS confirmation than the current state requires
+  // (e.g. an auto-executed write that now needs a host confirm). A host-confirmed Tier-2 action
+  // whose recomputed tier is Tier 1 (it was escalated for bulk / untrusted content) is safe.
+  if (!isTierSufficient(input.expectedTier, recomputedTier)) {
     throw new Error(
       `Action-safety guard: risk tier mismatch for "${input.toolName}" — expected "${input.expectedTier}", recomputed "${recomputedTier}" from current DB state. Execution blocked.`
     );

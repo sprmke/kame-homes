@@ -27,6 +27,7 @@ import type {
   ParkingTeamAccessContext,
   PropertyAccessContext,
 } from './orgAuth.ts';
+import { getWaitUntil } from './backgroundTask.ts';
 
 // ─── Enumerations (mirror the CHECK constraints in the activity_log migration) ──
 
@@ -757,6 +758,15 @@ export const ACTIVITY_ACTION_CATALOG = {
         'a listing'
       )}`,
   },
+  'ai.assistant_action_executed': {
+    category: 'system',
+    severity: 'notice',
+    targetType: 'assistant_action',
+    summary: (c) =>
+      `${c.actorName} ran "${str(c.metadata, 'action') ?? 'an action'}"` +
+      (c.targetLabel ? ` on ${c.targetLabel}` : '') +
+      (str(c.metadata, 'risk_tier') === 'tier2_confirmed' ? ' (confirmed by host)' : ''),
+  },
   'ai.config_changed': {
     category: 'settings',
     severity: 'info',
@@ -1358,18 +1368,6 @@ export function buildActivityRow(input: LogActivityInput): Record<string, unknow
 }
 
 // ─── Public writers ──────────────────────────────────────────────────────────
-
-/** `EdgeRuntime.waitUntil` is a Supabase-provided global; not in Deno's lib types. */
-function getWaitUntil(): ((p: Promise<unknown>) => void) | null {
-  try {
-    const rt = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: unknown } }).EdgeRuntime;
-    return typeof rt?.waitUntil === 'function'
-      ? (rt.waitUntil as (p: Promise<unknown>) => void)
-      : null;
-  } catch {
-    return null;
-  }
-}
 
 async function insertRows(rows: Record<string, unknown>[]): Promise<void> {
   try {

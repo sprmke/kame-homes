@@ -15,7 +15,7 @@ import {
   computeTotalGuestBalanceFromBooking,
   guestBalancePaymentReceiptRequired,
 } from './totalGuestBalance.ts';
-import { receiptVerdictBlocksAdminTransition } from './receiptValidationService.ts';
+import { assertAiVerdictAllowsProceed } from './aiVerdictOverride.ts';
 import { generatePDF, generatePetPDF } from './pdfService.ts';
 import { UploadService } from './uploadService.ts';
 import { bookingAssetStorageKey } from './bookingStoragePaths.ts';
@@ -112,6 +112,13 @@ export type TransitionPayload = {
   // Approved PDFs (set by Gmail listener in Phase 4; admin can also set manually)
   approved_gaf_pdf_url?: string | null;
   approved_pet_pdf_url?: string | null;
+
+  /**
+   * Host confirmed a payment receipt is genuine despite an AI `invalid` verdict. Honored only for
+   * human actors (owner / team member / super admin) — never the AI assistant, cron or webhooks —
+   * and recorded on the transition's activity-log entry.
+   */
+  override_ai_verdict?: boolean;
 
   /**
    * PENDING_DOCUMENTS → PENDING_DOCUMENTS: admin marks a sub-step complete (no status change).
@@ -301,10 +308,11 @@ function approvedPdfColumnForRequirement(
 
 function assertParkingPaymentReceiptIfRequired(
   payload: TransitionPayload,
-  booking?: Record<string, unknown>
-): void {
+  booking?: Record<string, unknown>,
+  actor?: ActorContext
+): boolean {
   const included = payload.parking_fee_included_in_downpayment !== false;
-  if (included) return;
+  if (included) return false;
   const receipt =
     typeof payload.parking_payment_receipt_url === 'string'
       ? payload.parking_payment_receipt_url.trim()
@@ -312,18 +320,14 @@ function assertParkingPaymentReceiptIfRequired(
   if (!receipt) {
     throw new Error('Upload a parking payment receipt before completing parking');
   }
-  if (
-    booking &&
-    receiptVerdictBlocksAdminTransition(
-      typeof booking.parking_receipt_ai_verdict === 'string'
-        ? booking.parking_receipt_ai_verdict
-        : null
-    )
-  ) {
-    throw new Error(
-      'Parking payment receipt failed AI validation. Upload a valid payment screenshot before completing parking.'
-    );
-  }
+  if (!booking) return false;
+  return assertAiVerdictAllowsProceed({
+    verdict: booking.parking_receipt_ai_verdict,
+    payload,
+    actor,
+    message:
+      'Parking payment receipt failed AI validation. Upload a valid payment screenshot, or proceed anyway if you checked it yourself.',
+  });
 }
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
@@ -364,6 +368,8 @@ export class WorkflowOrchestrator {
     const fromStatus = booking.status as BookingStatus;
     const propertyId =
       typeof booking.property_id === 'string' ? booking.property_id.trim() || null : null;
+    /** Set when a host proceeded past an AI `invalid` receipt verdict (audited below). */
+    let aiVerdictOverridden = false;
 
     // ── OTA-ingested bookings (calendar sync Phase 2) ─────────────────────────
     // A row created by calendar-sync-cron from an Airbnb/OTA reservation has dates but
@@ -582,7 +588,9 @@ export class WorkflowOrchestrator {
         docComplete === 'PENDING_PARKING_REQUEST';
 
       if (docComplete === 'PENDING_PARKING_REQUEST' && manual) {
-        assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>);
+        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+          aiVerdictOverridden = true;
+        }
       }
 
       if (fromStatus === 'PENDING_DOCUMENTS' && toStatus === 'PENDING_DOCUMENTS') {
@@ -629,7 +637,9 @@ export class WorkflowOrchestrator {
       (docComplete === 'PENDING_PARKING_REQUEST' && manual)
     ) {
       if (fromStatus === 'PENDING_PARKING_REQUEST') {
-        assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>);
+        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+          aiVerdictOverridden = true;
+        }
       }
       if (payload.parking_rate_paid != null)
         workflowFields.parking_rate_paid = payload.parking_rate_paid;
@@ -721,15 +731,15 @@ export class WorkflowOrchestrator {
         totalDue !== null &&
         guestBalancePaymentReceiptRequired(totalDue) &&
         settlement.receiptUrl &&
-        receiptVerdictBlocksAdminTransition(
-          typeof booking.balance_receipt_ai_verdict === 'string'
-            ? booking.balance_receipt_ai_verdict
-            : null
-        )
+        assertAiVerdictAllowsProceed({
+          verdict: booking.balance_receipt_ai_verdict,
+          payload,
+          actor,
+          message:
+            'Balance payment receipt failed AI validation. Upload a valid payment screenshot, or proceed anyway if you checked it yourself.',
+        })
       ) {
-        throw new Error(
-          'Balance payment receipt failed AI validation. Upload a valid payment screenshot before advancing.'
-        );
+        aiVerdictOverridden = true;
       }
     }
 
@@ -1179,6 +1189,7 @@ export class WorkflowOrchestrator {
         completionsChanged,
         manual,
         actor,
+        aiVerdictOverridden,
         resolveOrgId: resolveNotificationOrgId,
       });
       await this.logTransitionPostHog({
@@ -1304,6 +1315,7 @@ export class WorkflowOrchestrator {
     completionsChanged: boolean;
     manual: boolean;
     actor?: ActorContext;
+    aiVerdictOverridden?: boolean;
     resolveOrgId: () => Promise<string | null>;
   }): Promise<void> {
     try {
@@ -1342,6 +1354,7 @@ export class WorkflowOrchestrator {
           to_status: toStatus,
           manual: args.manual,
           ...(isDocSubstep && args.completionTarget ? { requirement: args.completionTarget } : {}),
+          ...(args.aiVerdictOverridden ? { ai_verdict_overridden: true } : {}),
         },
       });
     } catch (err) {

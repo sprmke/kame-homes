@@ -161,3 +161,26 @@ Deno.test('shapeSmartPricingAiOutput: garbage input -> safe empty shape', () => 
   assertEquals(shapeSmartPricingAiOutput(null, false, false).warnings, []);
   assertEquals(shapeSmartPricingAiOutput('nope', false, false).seasonRationales, []);
 });
+
+Deno.test('shapeSmartPricingAiOutput: suggested bounds are clamped to the base rate', () => {
+  const base = { weekday: 3000, weekend: 4000 };
+  const shape = (min: number, max: number) =>
+    shapeSmartPricingAiOutput(
+      { seasonRationales: [], warnings: [], suggestedMinPrice: min, suggestedMaxPrice: max },
+      false,
+      false,
+      base
+    );
+  // Sensible floor/ceiling pass through.
+  assertEquals([shape(2000, 11000).suggestedMinPrice, shape(2000, 11000).suggestedMaxPrice], [
+    2000, 11000,
+  ]);
+  // Absurd floor (below 0.3x) and ceiling (above 5x) are dropped.
+  assertEquals(shape(100, 90000).suggestedMinPrice, null);
+  assertEquals(shape(100, 90000).suggestedMaxPrice, null);
+  // Inverted pair is dropped entirely.
+  assertEquals([shape(3900, 3500).suggestedMinPrice, shape(3900, 3500).suggestedMaxPrice], [
+    null,
+    null,
+  ]);
+});

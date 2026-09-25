@@ -1,7 +1,7 @@
 /**
  * Deterministic short-term cache for AI responses.
  * Keyed by feature + SHA-256 fingerprint of the canonical prompt/system/inputs.
- * Entries expire after 1 hour (TTL is enforced at write and by periodic cleanup).
+ * Entries expire after 1 hour: reads ignore expired rows and the ai-retention cron purges them.
  */
 
 import { createClient } from './supabaseJs.ts';
@@ -17,8 +17,22 @@ export type AiCacheEntry = {
   estimatedCostUsd: number;
 };
 
+/**
+ * Deterministic JSON with keys sorted at every depth. (A replacer *array* would filter nested
+ * keys to the top-level key set and silently drop them, so different prompts could collide.)
+ */
+export function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`);
+  return `{${entries.join(',')}}`;
+}
+
 export async function computePromptFingerprint(inputs: unknown): Promise<string> {
-  const canonical = JSON.stringify(inputs, Object.keys(inputs as object).sort());
+  const canonical = stableStringify(inputs);
   const encoder = new TextEncoder();
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(canonical));
   return Array.from(new Uint8Array(digest))

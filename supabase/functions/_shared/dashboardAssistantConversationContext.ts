@@ -3,7 +3,7 @@
  * Loads recent messages, builds a short rolling summary, and maps turns into Gemini history.
  */
 
-import type { GeminiContent } from './geminiToolCallClient.ts';
+import type { GeminiContent } from './ai/llmTools.ts';
 
 export type ConversationMessageRow = {
   id: string;

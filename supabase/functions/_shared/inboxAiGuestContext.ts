@@ -4,7 +4,7 @@
  */
 
 import { serializeGuestPaymentInfo } from './appSettings.ts';
-import { listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { addDaysYmd, listAvailableCheckIns, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import {
   collectDevelopmentPricingValues,
   loadGuestSafeDevelopmentContextByName,
@@ -140,12 +140,6 @@ function parseFlexibleDate(dateStr: string): Date | null {
   const [year, month, day] = normalized.split('-').map((part) => parseInt(part, 10));
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
   return new Date(year, month - 1, day);
-}
-
-function addDaysYmd(ymd: string, deltaDays: number): string {
-  const [y, m, d] = ymd.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
-  return dt.toISOString().slice(0, 10);
 }
 
 function normalizeAccountDigits(value: string): string {
@@ -537,6 +531,8 @@ async function loadOtherGuestNamesForGuard(
     .select('primary_guest_name, guest_facebook_name')
     .in('property_id', propertyIds)
     .neq('status', 'CANCELLED')
+    // Most recent guests first — they are the ones a reply is most likely to mention.
+    .order('created_at', { ascending: false })
     .limit(200);
   if (error) {
     console.warn('[inboxAiGuestContext] guest name guard load failed:', error.message);

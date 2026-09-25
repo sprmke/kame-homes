@@ -26,16 +26,13 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import {
-  type AiVideoModelConfig,
-  geminiOperationUrl,
-  geminiPredictLongRunningUrl,
-} from './aiModelRouter.ts';
-import {
-  getGeminiApiKeys,
-  nextGeminiKeyStartIndex,
-  providerError,
-  shouldTryNextProvider,
-} from './aiGeminiKeys.ts';
+  AiProviderError,
+  geminiModelPath,
+  geminiRequest,
+  geminiRequestWithKey,
+  isGeminiConfigured,
+} from './ai/llmTransport.ts';
+import { type AiVideoModelConfig } from './aiModelRouter.ts';
 import { recordAiUsage } from './aiUsageService.ts';
 import {
   bumpMarketingVideoJobPoll,
@@ -55,6 +52,9 @@ import {
   uploadGenerationBytes,
 } from './marketingGenerationStorage.ts';
 import type { ReferenceInlineData } from './marketingImageGenerationAi.ts';
+
+/** Per-attempt cap for Veo submit / poll HTTP calls (the generation itself runs async). */
+const PROVIDER_TIMEOUT_MS = 30_000;
 
 export class GenerationSafetyError extends Error {
   readonly code = 'safety_blocked';
@@ -100,8 +100,7 @@ export async function startMarketingVideoJob(
   jobId: string,
   input: StartMarketingVideoJobInput
 ): Promise<MarketingGenerationJobRow> {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) {
+  if (!isGeminiConfigured()) {
     throw new GenerationProviderError('Video generation is not configured');
   }
 
@@ -128,44 +127,24 @@ export async function startMarketingVideoJob(
     },
   };
 
-  const url = geminiPredictLongRunningUrl(input.config.model);
-  const start = nextGeminiKeyStartIndex(keys.length);
-  let lastError = 'Video generation could not be started';
-
-  for (let attempt = 0; attempt < keys.length; attempt += 1) {
-    const key = keys[(start + attempt) % keys.length]!;
-    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = null;
-      }
-      lastError = providerError(parsed, `Video generation failed to start (${res.status})`);
-      if (shouldTryNextProvider(res.status) && attempt < keys.length - 1) continue;
-      throw new GenerationProviderError(lastError);
-    }
-
-    const json = (await res.json()) as { name?: string };
-    if (!json.name) {
-      throw new GenerationProviderError('The model did not return an operation to track');
-    }
-
-    const updated = await markMarketingVideoJobProcessing(sb, jobId, json.name);
-    if (!updated) {
-      throw new GenerationProviderError('Job could not be marked as processing');
-    }
-    return updated;
+  let json: { name?: string };
+  try {
+    json = (await geminiRequest(geminiModelPath(input.config.model, 'predictLongRunning'), body, {
+      timeoutMs: PROVIDER_TIMEOUT_MS,
+    })) as { name?: string };
+  } catch (err) {
+    if (err instanceof AiProviderError) throw new GenerationProviderError(err.message);
+    throw err;
+  }
+  if (!json.name) {
+    throw new GenerationProviderError('The model did not return an operation to track');
   }
 
-  throw new GenerationProviderError(lastError);
+  const updated = await markMarketingVideoJobProcessing(sb, jobId, json.name);
+  if (!updated) {
+    throw new GenerationProviderError('Job could not be marked as processing');
+  }
+  return updated;
 }
 
 type GoogleOperationResponse = {
@@ -179,26 +158,26 @@ type GoogleOperationResponse = {
   };
 };
 
+/**
+ * Polls a long-running operation. Operations belong to the Google project whose key created
+ * them, so a 404 rotates to the next key; the key that answered is returned for the download.
+ */
 async function fetchOperationStatus(
-  operationName: string,
-  apiKey: string
-): Promise<GoogleOperationResponse> {
-  const res = await fetch(geminiOperationUrl(operationName), {
-    headers: { 'x-goog-api-key': apiKey },
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    let parsed: unknown = null;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = null;
+  operationName: string
+): Promise<{ status: GoogleOperationResponse; apiKey: string }> {
+  try {
+    const { json, apiKey } = await geminiRequestWithKey(operationName, null, {
+      method: 'GET',
+      timeoutMs: PROVIDER_TIMEOUT_MS,
+      keySpecificStatuses: [404],
+    });
+    return { status: json as GoogleOperationResponse, apiKey };
+  } catch (err) {
+    if (err instanceof AiProviderError) {
+      throw new GenerationProviderError(`Could not check generation status (${err.message})`);
     }
-    throw new GenerationProviderError(
-      providerError(parsed, `Could not check generation status (${res.status})`)
-    );
+    throw err;
   }
-  return (await res.json()) as GoogleOperationResponse;
 }
 
 export type PollAndFinalizeOutcome =
@@ -223,14 +202,12 @@ export async function pollAndFinalizeMarketingVideoJob(
   sb: SupabaseClient,
   job: MarketingGenerationJobRow
 ): Promise<PollAndFinalizeOutcome> {
-  const keys = getGeminiApiKeys();
-  const apiKey = keys[0];
   const operationName = job.provider_operation_name as string | null;
-  if (!apiKey || !operationName) {
+  if (!isGeminiConfigured() || !operationName) {
     return { kind: 'still_processing', job };
   }
 
-  const status = await fetchOperationStatus(operationName, apiKey);
+  const { status, apiKey } = await fetchOperationStatus(operationName);
 
   if (!status.done) {
     const nextPollCount = Number(job.provider_poll_count ?? 0) + 1;

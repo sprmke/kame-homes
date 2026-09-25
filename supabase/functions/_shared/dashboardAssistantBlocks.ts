@@ -40,6 +40,7 @@ import type {
   ActionConfirmationBlock,
   DynamicFormField,
   DynamicFormFieldType,
+  StepperStep,
 } from './dashboardAssistantSafetyGuard.ts';
 
 const STATUS_CODE_RE = /\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)\b/g;
@@ -315,9 +316,46 @@ function sanitizeDataTable(block: Extract<ChatBlock, { type: 'data_table' }>): C
   return { ...block, columns, rows };
 }
 
+/**
+ * Model-written hrefs render as in-app links, so only same-origin app paths are allowed. Blocks
+ * injected external/phishing URLs, protocol-relative `//host`, `javascript:` and backslash tricks.
+ */
+export function isSafeInternalHref(href: string): boolean {
+  const value = href.trim();
+  if (!value.startsWith('/') || value.startsWith('//')) return false;
+  return !/[\\\u0000-\u001f\u007f]/.test(value);
+}
+
+/**
+ * Deterministic "Related pages" citations for knowledge-base answers. Only routes whose
+ * `:params` all resolve (and stay internal) are linked; the model never writes these hrefs.
+ */
+export function knowledgeSourceLinks(
+  hits: Array<Record<string, unknown>>,
+  params: Record<string, string | null | undefined>,
+  max = 3
+): ChatBlock | null {
+  const links: Array<{ label: string; href: string }> = [];
+  for (const hit of hits) {
+    const template = asDisplay(hit.route_path);
+    const label = asDisplay(hit.question);
+    if (!template || !label) continue;
+    let unresolved = false;
+    const href = template.replace(/:([A-Za-z]+)/g, (_, key: string) => {
+      const value = params[key];
+      if (!value) unresolved = true;
+      return value ? encodeURIComponent(value) : '';
+    });
+    if (unresolved || !isSafeInternalHref(href) || links.some((l) => l.href === href)) continue;
+    links.push({ label, href });
+    if (links.length >= max) break;
+  }
+  return links.length > 0 ? { type: 'link_list', title: 'Related pages', links } : null;
+}
+
 function sanitizeLinkList(block: Extract<ChatBlock, { type: 'link_list' }>): ChatBlock | null {
   const links = (block.links ?? []).filter(
-    (link) => asDisplay(link.label) !== '' && asDisplay(link.href) !== ''
+    (link) => asDisplay(link.label) !== '' && isSafeInternalHref(asDisplay(link.href))
   );
   if (links.length === 0) return null;
   return { ...block, links };
@@ -391,7 +429,7 @@ function sanitizeQuickActions(
 
 function sanitizeStepper(block: Extract<ChatBlock, { type: 'stepper' }>): ChatBlock | null {
   const steps = (block.steps ?? [])
-    .map((step) => {
+    .map((step): StepperStep | null => {
       const label = asDisplay(step.label);
       if (!label) return null;
       const status =
@@ -401,7 +439,7 @@ function sanitizeStepper(block: Extract<ChatBlock, { type: 'stepper' }>): ChatBl
       const description = asDisplay(step.description) || undefined;
       return { ...step, label, status, description };
     })
-    .filter((step): step is NonNullable<typeof step> => step != null);
+    .filter((step): step is StepperStep => step != null);
   if (steps.length === 0) return null;
   return { type: 'stepper', title: asDisplay(block.title) || 'Booking journey', steps };
 }
@@ -847,7 +885,7 @@ function hydrateStepperFromJourney(
   });
 
   const steps = rawSteps
-    .map((step) => {
+    .map((step): StepperStep | null => {
       const label = asDisplay(step.label);
       if (!label) return null;
       const status: 'done' | 'current' | 'upcoming' =
@@ -864,7 +902,7 @@ function hydrateStepperFromJourney(
         actionBlock: status === 'current' ? actionBlock : undefined,
       };
     })
-    .filter((step): step is NonNullable<typeof step> => step != null);
+    .filter((step): step is StepperStep => step != null);
 
   if (steps.length === 0) return blocks;
 

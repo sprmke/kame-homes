@@ -45,9 +45,9 @@ async function sendSuperhostEmail(opts: {
   });
 
   const shellHtml = await renderBrandedEmailShell({
-    headline: opts.headline,
+    brandName: opts.organizationName,
+    emailTitle: opts.headline,
     bodyHtml,
-    preheader: opts.subject,
   });
 
   const res = await fetch(RESEND_API, {

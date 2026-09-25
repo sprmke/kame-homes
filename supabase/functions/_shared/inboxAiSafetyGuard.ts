@@ -12,6 +12,8 @@ export type GuestReplyGuardInput = {
   allowedFacts: {
     pricingValues: number[];
     allowedAccountNumbers?: string[];
+    /** Known-facts text the reply was grounded on; numbers appearing here are grounded. */
+    factsText?: string;
   };
   participantName?: string | null;
   otherGuestNames?: string[];
@@ -30,6 +32,13 @@ const NORMAL_GUEST_TOPIC_PATTERN =
 
 const CURRENCY_AMOUNT_PATTERN =
   /(?:₱|PHP\s*|P\s*)(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+
+/** Amounts written without a currency prefix: "3,500 pesos", "2500/night", "1,800 per night". */
+const BARE_AMOUNT_PATTERN =
+  /\b(\d{1,3}(?:,\d{3})+|\d{3,6})(?:\.\d{1,2})?\s*(?:pesos?\b|php\b|\/\s*(?:night|nt)\b|per\s+(?:night|stay|person|guest|pax)\b)/gi;
+
+/** Long digit runs (GCash / bank / card numbers) — must be a configured account or in the facts. */
+const ACCOUNT_NUMBER_PATTERN = /\+?\d[\d\s-]{8,}\d/g;
 
 function normalizeAmount(value: number): number {
   return Math.round(value * 100) / 100;
@@ -61,13 +70,33 @@ function draftAppropriatelyRefusesSensitive(draftText: string): boolean {
 
 function extractDraftAmounts(draftText: string): number[] {
   const amounts: number[] = [];
-  for (const match of draftText.matchAll(CURRENCY_AMOUNT_PATTERN)) {
-    const raw = match[1]?.replace(/,/g, '');
-    if (!raw) continue;
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) amounts.push(normalizeAmount(parsed));
+  for (const pattern of [CURRENCY_AMOUNT_PATTERN, BARE_AMOUNT_PATTERN]) {
+    for (const match of draftText.matchAll(pattern)) {
+      const raw = match[1]?.replace(/,/g, '');
+      if (!raw) continue;
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) amounts.push(normalizeAmount(parsed));
+    }
   }
   return amounts;
+}
+
+/** A long digit run that is neither a configured payment account nor present in the facts. */
+function findUngroundedAccountNumber(
+  draftText: string,
+  allowedAccountNumbers: string[],
+  factsText: string
+): string | null {
+  const allowed = new Set(allowedAccountNumbers.map(normalizeAccountDigits).filter(Boolean));
+  const factsDigits = normalizeAccountDigits(factsText);
+  for (const match of draftText.matchAll(ACCOUNT_NUMBER_PATTERN)) {
+    const digits = normalizeAccountDigits(match[0]);
+    if (digits.length < 10) continue;
+    if (allowed.has(digits)) continue;
+    if (factsDigits.includes(digits)) continue;
+    return match[0].trim();
+  }
+  return null;
 }
 
 function isAllowedAmount(amount: number, allowedValues: number[]): boolean {
@@ -140,6 +169,16 @@ export function assertSafeGuestReply(input: GuestReplyGuardInput): GuardResult {
     if (/\b(revenue|profit|expenses?|net income)\b/i.test(draftText)) {
       return { safe: false, reason: 'sensitive inquiry answered with finance data' };
     }
+  }
+
+  // An invented GCash / bank number would send a guest's money to the wrong place.
+  const strayAccount = findUngroundedAccountNumber(
+    draftText,
+    input.allowedFacts.allowedAccountNumbers ?? [],
+    input.allowedFacts.factsText ?? ''
+  );
+  if (strayAccount) {
+    return { safe: false, reason: 'ungrounded account number' };
   }
 
   const draftAmounts = extractDraftAmounts(draftText);

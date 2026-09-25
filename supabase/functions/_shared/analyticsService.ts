@@ -1330,8 +1330,7 @@ async function writeBenchmarkCache(peers: BenchmarkPeerValues): Promise<void> {
  * toward zero without reflecting real market performance). The peer scan itself is cached (see
  * BENCHMARK_CACHE_TTL_HOURS) — this function is cheap on a cache hit, expensive only on the
  * (at most hourly-ish, platform-wide, not per-request) cache miss. Optional Phase 5 feature —
- * only called from the full-tier path of analytics-summary, never for teaser (Free/Starter)
- * responses, since those hosts cannot see the result anyway.
+ * called from analytics-summary's preview-open GET (every `analytics:view` host).
  */
 export async function computePlatformBenchmark(
   propertyId: string,

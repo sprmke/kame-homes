@@ -61,3 +61,45 @@ Deno.test('assertSafeGuestReply — sensitive inquiry with refusal is safe', () 
 Deno.test('AI_SUGGEST_FALLBACK_REPLY is non-empty', () => {
   assert(AI_SUGGEST_FALLBACK_REPLY.trim().length > 0);
 });
+
+Deno.test('assertSafeGuestReply — blocks an invented GCash / bank number', () => {
+  const result = assertSafeGuestReply({
+    draftText: 'Please send the down payment to GCash 0917 123 4567.',
+    guestMessage: 'How do I pay?',
+    allowedFacts: { pricingValues: [], allowedAccountNumbers: ['09998887777'] },
+  });
+  assertEquals(result.safe, false);
+});
+
+Deno.test('assertSafeGuestReply — allows the configured payment account number', () => {
+  const result = assertSafeGuestReply({
+    draftText: 'You can pay via GCash 0999-888-7777 (Juan D.).',
+    guestMessage: 'How do I pay?',
+    allowedFacts: { pricingValues: [], allowedAccountNumbers: ['09998887777'] },
+  });
+  assertEquals(result.safe, true);
+});
+
+Deno.test('assertSafeGuestReply — allows numbers present in the grounded facts (host phone)', () => {
+  const result = assertSafeGuestReply({
+    draftText: 'You can reach the host at +63 917 555 0101.',
+    guestMessage: 'What is your number?',
+    allowedFacts: { pricingValues: [], factsText: 'Host contact: +63 917 555 0101' },
+  });
+  assertEquals(result.safe, true);
+});
+
+Deno.test('assertSafeGuestReply — checks amounts written without a currency sign', () => {
+  const ungrounded = assertSafeGuestReply({
+    draftText: 'The rate is 9,999 per night.',
+    guestMessage: 'What is the rate?',
+    allowedFacts: { pricingValues: [3500] },
+  });
+  assertEquals(ungrounded.safe, false);
+  const grounded = assertSafeGuestReply({
+    draftText: 'The rate is 3,500 pesos per night.',
+    guestMessage: 'What is the rate?',
+    allowedFacts: { pricingValues: [3500] },
+  });
+  assertEquals(grounded.safe, true);
+});

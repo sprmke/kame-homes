@@ -18,6 +18,7 @@ export const AI_FEATURES = [
   'inbox_auto_reply',
   'marketing_caption',
   'marketing_template',
+  'marketing_image_prompt_enhance',
   'import_column_map',
   'voice_polish',
   'ai_integration_verify',
@@ -47,7 +48,28 @@ export type AiModelConfig = {
   defaultMaxOutputTokens: number;
   /** Whether thinking tokens should be budgeted for this task. */
   thinkingBudget: number;
+  /** Per-attempt provider timeout (llmTransport). */
+  timeoutMs: number;
+  /** Fall back to Groq (GROQ_FALLBACK_MODEL) when every Gemini key fails. */
+  groqFallback: boolean;
 };
+
+/**
+ * Groq fallback model (OpenAI-compatible API; text + vision). Priced separately so fallback
+ * calls are billed at Groq rates, not the Gemini feature rates.
+ */
+export const GROQ_FALLBACK_MODEL = {
+  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+  inputUsdPer1M: 0.11,
+  outputUsdPer1M: 0.34,
+} as const;
+
+/** Voice-preview TTS models, tried in order (not host-billed; see geminiLiveVoicePreview.ts). */
+export const GEMINI_TTS_PREVIEW_MODELS = [
+  'gemini-2.5-flash-preview-tts',
+  'gemini-3.1-flash-tts-preview',
+  'gemini-2.5-pro-preview-tts',
+] as const;
 
 /** Authoritative feature → model map. */
 const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
@@ -58,6 +80,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
   },
   inbox_suggest: {
     model: 'gemini-3.1-flash-lite',
@@ -66,6 +90,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 256,
     thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
   },
   inbox_auto_reply: {
     model: 'gemini-3.1-flash-lite',
@@ -74,6 +100,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 256,
     thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
   },
   marketing_caption: {
     model: 'gemini-3.1-flash-lite',
@@ -82,6 +110,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 256,
     thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
   },
   marketing_template: {
     model: 'gemini-2.5-flash',
@@ -90,6 +120,22 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 1024,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  // Rewrites the host's short Generate-tab prompt into a full scene description
+  // before it reaches the image model — see marketingImagePromptBuilder.ts. Billed
+  // as platform cost, not host credits (see the quality-hardening plan, "Decision 2");
+  // recordAiUsage is still called so spend stays visible in the AI usage dashboards.
+  marketing_image_prompt_enhance: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 8000,
+    groqFallback: false,
   },
   import_column_map: {
     model: 'gemini-3.1-flash-lite',
@@ -98,6 +144,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 1024,
     thinkingBudget: 0,
+    timeoutMs: 18000,
+    groqFallback: true,
   },
   voice_polish: {
     model: 'gemini-3.1-flash-lite',
@@ -106,6 +154,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: false,
   },
   ai_integration_verify: {
     model: 'gemini-3.1-flash-lite',
@@ -114,6 +164,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 1.5,
     defaultMaxOutputTokens: 16,
     thinkingBudget: 0,
+    timeoutMs: 10000,
+    groqFallback: false,
   },
   booking_ai_summary_guests: {
     model: 'gemini-2.5-flash',
@@ -122,6 +174,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
   },
   booking_ai_summary_pets: {
     model: 'gemini-2.5-flash',
@@ -130,6 +184,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
   },
   booking_ai_summary_pricing: {
     model: 'gemini-2.5-flash',
@@ -138,6 +194,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
   },
   voice_receptionist: {
     model: GEMINI_LIVE_MODEL,
@@ -146,6 +204,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 1024,
     thinkingBudget: 0,
+    timeoutMs: 15000,
+    groqFallback: false,
   },
   dashboard_assistant: {
     model: 'gemini-2.5-flash',
@@ -154,6 +214,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 2048,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
   },
   smart_pricing: {
     model: 'gemini-2.5-flash',
@@ -162,6 +224,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 768,
     thinkingBudget: 0,
+    timeoutMs: 30000,
+    groqFallback: false,
   },
   host_analytics: {
     model: 'gemini-2.5-flash',
@@ -170,6 +234,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 1024,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
   },
   // Media generation is priced from MARKETING_IMAGE_MODELS / MARKETING_VIDEO_MODELS
   // below, not from these rows. They exist so getModelConfig() and the kill-switch
@@ -182,6 +248,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 60,
     defaultMaxOutputTokens: 8192,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
   },
   marketing_video_generate: {
     model: 'veo-3.1-fast-generate-preview',
@@ -190,6 +258,8 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 0,
     defaultMaxOutputTokens: 0,
     thinkingBudget: 0,
+    timeoutMs: 30000,
+    groqFallback: false,
   },
 };
 
@@ -207,10 +277,6 @@ export function getModelConfig(feature: AiFeature): AiModelConfig {
     (typeof Deno !== 'undefined' ? Deno.env.get('GEMINI_MODEL_OVERRIDE') : undefined)?.trim();
   if (!override) return base;
   return { ...base, model: override };
-}
-
-export function geminiGenerateContentUrl(model: string): string {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 }
 
 export function estimateTokenCostUsd(
@@ -277,6 +343,8 @@ export const MARKETING_IMAGE_MODELS: Record<MarketingGenerationTier, AiImageMode
     outputUsdPer1M: 30,
     defaultMaxOutputTokens: 8192,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
     maxReferenceImages: 14,
     allowedSizes: ['1K'],
     allowedAspectRatios: IMAGE_ASPECT_RATIOS,
@@ -288,6 +356,8 @@ export const MARKETING_IMAGE_MODELS: Record<MarketingGenerationTier, AiImageMode
     outputUsdPer1M: 60,
     defaultMaxOutputTokens: 8192,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
     maxReferenceImages: 10,
     allowedSizes: ['512px', '1K', '2K', '4K'],
     allowedAspectRatios: IMAGE_ASPECT_RATIOS,
@@ -299,6 +369,8 @@ export const MARKETING_IMAGE_MODELS: Record<MarketingGenerationTier, AiImageMode
     outputUsdPer1M: 120,
     defaultMaxOutputTokens: 8192,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
     maxReferenceImages: 6,
     allowedSizes: ['512px', '1K', '2K', '4K'],
     allowedAspectRatios: IMAGE_ASPECT_RATIOS,
@@ -350,17 +422,6 @@ export function getMarketingVideoModel(tier: MarketingGenerationTier): AiVideoMo
       : undefined
   )?.trim();
   return override ? { ...base, model: override } : base;
-}
-
-/** Veo long-running generation submit endpoint. */
-export function geminiPredictLongRunningUrl(model: string): string {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:predictLongRunning`;
-}
-
-/** Poll endpoint for a long-running operation name returned by :predictLongRunning. */
-export function geminiOperationUrl(operationName: string): string {
-  const trimmed = operationName.replace(/^\/+/, '');
-  return `https://generativelanguage.googleapis.com/v1beta/${trimmed}`;
 }
 
 export function estimateVideoCostUsd(

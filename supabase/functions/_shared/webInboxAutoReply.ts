@@ -3,14 +3,17 @@
  */
 
 import { suggestInboxReply } from './socialInboxAiService.ts';
-import { isFeatureEnabled } from './planFeatures.ts';
-import { orgHasPropertyWithFeature, resolvePropertyEntitlements } from './planEntitlements.ts';
+import {
+  consumeAutoReplyBudget,
+  isAutoReplyEntitled,
+  isSendableAutoReply,
+  isWithinAutoReplyCooldown,
+  loadAutoReplySettings,
+} from './inboxAutoReplyPolicy.ts';
 import { socialInboxDb } from './socialInboxDb.ts';
 import { insertMessageIfNew, listMessages, updateConversationAfterMessage } from './socialInboxService.ts';
 import { maybeNotifyGuestOfHostWebReply } from './guestChatEmail.ts';
 import { buildWebMessageExternalId } from './webGuestChatIds.ts';
-
-const AUTO_REPLY_COOLDOWN_MS = 90_000;
 
 async function loadWebPropertyContext(propertyId: string | null): Promise<{
   propertyName: string | null;
@@ -34,18 +37,10 @@ export async function maybeAutoReplyToWebInbound(
   conversationId: string,
   inboundExternalMessageId: string
 ): Promise<void> {
+  const settings = await loadAutoReplySettings(orgId, 'web');
+  if (!settings) return;
+
   const sb = socialInboxDb();
-  const { data: settings } = await sb
-    .from('social_inbox_settings')
-    .select('*')
-    .eq('organization_id', orgId)
-    .is('parking_id', null)
-    .maybeSingle();
-  if (!settings?.auto_reply_enabled || settings.auto_reply_mode !== 'send') return;
-
-  const toggles = (settings.platform_toggles ?? {}) as Record<string, boolean>;
-  if (toggles.web === false) return;
-
   const { data: conv } = await sb
     .from('social_conversations')
     .select('*')
@@ -54,15 +49,7 @@ export async function maybeAutoReplyToWebInbound(
     .eq('platform', 'web')
     .maybeSingle();
   if (!conv || conv.conversation_type !== 'dm') return;
-
-  const propertyId = (conv.property_id as string | null) ?? null;
-  if (propertyId) {
-    const entitlements = await resolvePropertyEntitlements(propertyId);
-    if (!isFeatureEnabled(entitlements, 'aiChatAutoReply')) return;
-  } else {
-    const allowed = await orgHasPropertyWithFeature(orgId, 'aiChatAutoReply');
-    if (!allowed) return;
-  }
+  if (!(await isAutoReplyEntitled(orgId, (conv.property_id as string | null) ?? null))) return;
 
   const { data: inboundRow } = await sb
     .from('social_messages')
@@ -74,24 +61,12 @@ export async function maybeAutoReplyToWebInbound(
   if (!inboundRow) return;
 
   const { messages } = await listMessages(orgId, conversationId, { limit: 20 });
-
-  const recentAutoReply = [...messages]
-    .reverse()
-    .find(
-      (m) =>
-        m.direction === 'outbound' &&
-        m.is_ai_generated &&
-        Date.now() - new Date(m.sent_at).getTime() < AUTO_REPLY_COOLDOWN_MS
-    );
-  if (recentAutoReply) {
-    const autoIdx = messages.findIndex((m) => m.id === recentAutoReply.id);
-    const inboundAfterAuto = messages.slice(autoIdx + 1).some((m) => m.direction === 'inbound');
-    if (!inboundAfterAuto) return;
-  }
+  if (isWithinAutoReplyCooldown(messages)) return;
+  if (!(await consumeAutoReplyBudget(conversationId))) return;
 
   const propertyCtx = await loadWebPropertyContext(conv.property_id as string | null);
 
-  const { suggestion: draft } = await suggestInboxReply({
+  const reply = await suggestInboxReply({
     orgId,
     platform: 'web',
     conversationType: conv.conversation_type,
@@ -105,8 +80,10 @@ export async function maybeAutoReplyToWebInbound(
       body: m.body_text,
       sentAt: m.sent_at,
     })),
-    systemPromptOverride: settings.ai_system_prompt as string | null,
+    systemPromptOverride: settings.ai_system_prompt,
   });
+  if (!isSendableAutoReply(reply)) return;
+  const draft = reply.suggestion;
 
   const now = new Date().toISOString();
   const externalId = buildWebMessageExternalId();

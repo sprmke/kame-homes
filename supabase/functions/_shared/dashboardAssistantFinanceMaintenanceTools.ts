@@ -4,6 +4,7 @@
  */
 
 import { classifyActionRisk, type ActionRiskTier } from './dashboardAssistantRiskClassifier.ts';
+import { assertAssetRowInScope } from './assetRowScope.ts';
 import { assertActionSafeToExecute } from './dashboardAssistantSafetyGuard.ts';
 import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts';
 import {
@@ -11,7 +12,6 @@ import {
   updateFinanceLineItem,
   type FinanceLineItemKind,
 } from './financeService.ts';
-import { resolveFinanceAssetAccess } from './financeAssetScope.ts';
 import { deleteMaintenanceItem, updateMaintenanceItem } from './maintenanceService.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import { verifyPropertyAccess } from './orgAuth.ts';
@@ -59,6 +59,23 @@ async function assertPropertyInOrg(propertyId: string, organizationId: string): 
   if (orgId !== organizationId) throw new Error('Property is outside this organization');
 }
 
+/**
+ * Finance line items are addressed by a bare id, so every propose/execute re-checks the caller's
+ * property permission AND that the id belongs to that property (never trust a model-supplied id).
+ */
+async function authorizeFinanceLineItem(
+  ctx: FmToolContext,
+  id: string,
+  propertyId: string | null,
+  permission: 'finance.transactions:edit' | 'finance.transactions:delete'
+): Promise<string> {
+  if (!propertyId) throw new Error('propertyId is required');
+  await assertPropertyInOrg(propertyId, ctx.organizationId);
+  await verifyPropertyAccess(ctx.req, propertyId, permission);
+  await assertAssetRowInScope({ table: 'finance_line_items', scope: { propertyId }, id });
+  return propertyId;
+}
+
 export async function toolProposeUpdateFinanceLineItem(
   ctx: FmToolContext,
   args: Record<string, unknown>
@@ -66,10 +83,12 @@ export async function toolProposeUpdateFinanceLineItem(
   try {
     const id = str(args, 'id');
     if (!id) return { ok: false, error: 'id is required' };
-    const propertyId = str(args, 'propertyId') ?? ctx.pageContext.propertyId ?? null;
-    if (propertyId) await assertPropertyInOrg(propertyId, ctx.organizationId);
-
-    await resolveFinanceAssetAccess(ctx.req, 'finance.transactions:edit');
+    const propertyId = await authorizeFinanceLineItem(
+      ctx,
+      id,
+      str(args, 'propertyId') ?? ctx.pageContext.propertyId ?? null,
+      'finance.transactions:edit'
+    );
 
     const patch: Record<string, unknown> = {};
     const label = str(args, 'label');
@@ -122,10 +141,12 @@ export async function executeUpdateFinanceLineItem(
     const id = str(payload, 'id');
     const patch = (payload.patch ?? {}) as Record<string, unknown>;
     if (!id || typeof patch !== 'object') return { ok: false, error: 'Malformed proposal payload' };
-    const propertyId = str(payload, 'propertyId');
-    if (propertyId) await assertPropertyInOrg(propertyId, ctx.organizationId);
-
-    await resolveFinanceAssetAccess(ctx.req, 'finance.transactions:edit');
+    const propertyId = await authorizeFinanceLineItem(
+      ctx,
+      id,
+      str(payload, 'propertyId'),
+      'finance.transactions:edit'
+    );
     await assertActionSafeToExecute({
       toolName: 'propose_update_finance_line_item',
       targetBookingId: null,
@@ -159,9 +180,12 @@ export async function toolProposeDeleteFinanceLineItem(
   try {
     const id = str(args, 'id');
     if (!id) return { ok: false, error: 'id is required' };
-    const propertyId = str(args, 'propertyId') ?? ctx.pageContext.propertyId ?? null;
-    if (propertyId) await assertPropertyInOrg(propertyId, ctx.organizationId);
-    await resolveFinanceAssetAccess(ctx.req, 'finance.transactions:delete');
+    const propertyId = await authorizeFinanceLineItem(
+      ctx,
+      id,
+      str(args, 'propertyId') ?? ctx.pageContext.propertyId ?? null,
+      'finance.transactions:delete'
+    );
 
     const tier = classifyActionRisk({
       toolName: 'propose_delete_finance_line_item',
@@ -196,9 +220,12 @@ export async function executeDeleteFinanceLineItem(
   try {
     const id = str(payload, 'id');
     if (!id) return { ok: false, error: 'Malformed proposal payload' };
-    const propertyId = str(payload, 'propertyId');
-    if (propertyId) await assertPropertyInOrg(propertyId, ctx.organizationId);
-    await resolveFinanceAssetAccess(ctx.req, 'finance.transactions:delete');
+    const propertyId = await authorizeFinanceLineItem(
+      ctx,
+      id,
+      str(payload, 'propertyId'),
+      'finance.transactions:delete'
+    );
     await assertActionSafeToExecute({
       toolName: 'propose_delete_finance_line_item',
       targetBookingId: null,
@@ -231,6 +258,7 @@ export async function toolProposeUpdateMaintenanceItem(
     if (!id || !propertyId) return { ok: false, error: 'id and propertyId are required' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:edit');
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
 
     const patch: Record<string, unknown> = {};
     const label = str(args, 'label');
@@ -285,6 +313,7 @@ export async function executeUpdateMaintenanceItem(
     if (!id || !propertyId) return { ok: false, error: 'Malformed proposal payload' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:edit');
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
     await assertActionSafeToExecute({
       toolName: 'propose_update_maintenance_item',
       targetBookingId: null,
@@ -320,6 +349,7 @@ export async function toolProposeDeleteMaintenanceItem(
     if (!id || !propertyId) return { ok: false, error: 'id and propertyId are required' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:delete');
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
 
     const tier = classifyActionRisk({
       toolName: 'propose_delete_maintenance_item',
@@ -357,6 +387,7 @@ export async function executeDeleteMaintenanceItem(
     if (!id || !propertyId) return { ok: false, error: 'Malformed proposal payload' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:delete');
+    await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
     await assertActionSafeToExecute({
       toolName: 'propose_delete_maintenance_item',
       targetBookingId: null,

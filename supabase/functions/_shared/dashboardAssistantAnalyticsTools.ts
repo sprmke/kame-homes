@@ -9,12 +9,12 @@
  * `dashboardAssistantTools.ts`'s import list, switch, and tool-declaration array only
  * (additive, no existing case/list entries touched).
  *
- * Both tools independently re-verify RBAC (`analytics:view`) and the `analyticsInsights`
- * plan entitlement against the real request JWT — never trust the model's own propertyId.
+ * Both tools independently re-verify RBAC (`analytics:view`) against the real request JWT —
+ * never trust the model's own propertyId. Reads are preview-open (same as `analytics-summary`);
+ * `analyticsInsights` gates export and on-demand AI review POST, not these tools.
  */
 
 import { verifyPropertyAccess } from './orgAuth.ts';
-import { requirePropertyFeature } from './planEntitlements.ts';
 import { formatFinancePhp } from './financeService.ts';
 import { manilaTodayIso } from './bookingsListSort.ts';
 import {
@@ -93,13 +93,6 @@ async function resolveAnalyticsProperty(
   const propertyId = str(args, 'propertyId') ?? ctx.pageContext.propertyId ?? null;
   if (!propertyId) throw new Error('propertyId is required (no property in scope)');
   await verifyPropertyAccess(ctx.req, propertyId, 'analytics:view');
-  try {
-    await requirePropertyFeature(propertyId, 'analyticsInsights');
-  } catch {
-    throw new Error(
-      'Analytics is a Pro-plan feature and is not enabled for this property yet — the host can upgrade from the Plans page.'
-    );
-  }
   return propertyId;
 }
 

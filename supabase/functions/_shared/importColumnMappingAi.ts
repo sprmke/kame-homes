@@ -3,22 +3,12 @@
  * Categorical status only — never numeric confidence scores.
  */
 
-import {
-  extractGeminiText,
-  extractGeminiUsage,
-  getGeminiApiKeys,
-  getGroqApiKey,
-  nextGeminiKeyStartIndex,
-  shouldTryNextProvider,
-} from './aiGeminiKeys.ts';
-import { geminiGenerateContentUrl, getModelConfig } from './aiModelRouter.ts';
-import { assertOrgAndPropertyAiQuota, recordAiUsage, type AiActorType } from './aiUsageService.ts';
-import {
-  buildCacheInputs,
-  computePromptFingerprint,
-  getCachedAiResponse,
-  setCachedAiResponse,
-} from './aiQuotaCache.ts';
+import { z } from 'zod';
+
+import { generateStructured, type LlmBilling } from './ai/llmClient.ts';
+import { definePrompt } from './ai/prompt.ts';
+import { withUntrustedDataRule, wrapUntrusted } from './ai/untrusted.ts';
+import { assertOrgAndPropertyAiQuota, type AiActorType } from './aiUsageService.ts';
 import {
   isBookingImportTargetFieldId,
   resolveBookingImportTargetId,
@@ -58,12 +48,16 @@ export type ImportColumnMappingInput = {
 };
 
 const IMPORT_FEATURE = 'import_column_map' as const;
-const CONFIG = getModelConfig(IMPORT_FEATURE);
-const GEMINI_MODEL = CONFIG.model;
-const GEMINI_URL = geminiGenerateContentUrl(GEMINI_MODEL);
-const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const AI_TIMEOUT_MS = 18_000;
+
+export const IMPORT_COLUMN_MAPPING_PROMPT = definePrompt({
+  id: 'import_column_map',
+  version: '2026-09-24.1',
+});
+
+/** Prompt budget: extra columns fall back to deterministic header matching. */
+const MAX_AI_HEADERS = 100;
+const MAX_SAMPLES_PER_HEADER = 3;
+const MAX_SAMPLE_CHARS = 80;
 
 function normalizeMappingStatus(raw: unknown): ImportColumnMappingStatus {
   const value = String(raw ?? '')
@@ -207,242 +201,127 @@ function applyDeterministicHeaderMatches(
   });
 }
 
-function buildPrompt(input: ImportColumnMappingInput): string {
+/**
+ * Minimize guest PII sent to the provider: the model only needs the *shape* of a column to map
+ * it, so emails, phone numbers and long digit runs (IDs, card/account numbers) are masked.
+ */
+export function maskSampleValue(value: string): string {
+  return value
+    .slice(0, MAX_SAMPLE_CHARS)
+    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '<email>')
+    .replace(/\+?\d[\d\s().-]{6,}\d/g, (match) =>
+      match.replace(/\D/g, '').length >= 7 ? '<number>' : match
+    );
+}
+
+function buildPrompt(input: ImportColumnMappingInput): { system: string; user: string } {
   const targetFields = serializeBookingImportTargetFields();
   const columns = input.headers.map((header) => ({
     rawHeader: header,
-    sampleValues: (input.samplesByHeader[header] ?? []).slice(0, 5),
+    sampleValues: (input.samplesByHeader[header] ?? [])
+      .slice(0, MAX_SAMPLES_PER_HEADER)
+      .map(maskSampleValue),
   }));
 
-  return (
-    'Map each CSV column header to at most one canonical booking database field.\n' +
-    'Return ONLY valid JSON with shape:\n' +
-    '{\n' +
-    '  "mappings": [\n' +
-    '    {\n' +
-    '      "rawHeader": string,\n' +
-    '      "suggestedTarget": string | null,\n' +
-    '      "status": "matched" | "likely_matched" | "ambiguous" | "unmatched",\n' +
-    '      "reason": string\n' +
-    '    }\n' +
-    '  ]\n' +
-    '}\n\n' +
-    'Rules:\n' +
-    '- suggestedTarget MUST be one of the target field ids below, or null.\n' +
-    '- Never map to status, file URLs, AI verdict columns, or workflow timestamps.\n' +
-    '- Use matched when the header clearly equals a target id or obvious synonym.\n' +
-    '- Use likely_matched for strong but not exact matches.\n' +
-    '- Use ambiguous when multiple targets could fit.\n' +
-    '- Use unmatched when no target fits.\n' +
-    '- Do NOT output numeric confidence scores.\n' +
-    '- Return exactly one mapping object per input column, same rawHeader values.\n\n' +
-    `Target fields:\n${JSON.stringify(targetFields)}\n\n` +
-    `Input columns:\n${JSON.stringify(columns)}`
+  const system = withUntrustedDataRule(
+    'You map spreadsheet column headers to canonical booking database fields.\n' +
+      'Rules:\n' +
+      '- suggestedTarget MUST be one of the target field ids provided, or null.\n' +
+      '- Never map to status, file URLs, AI verdict columns, or workflow timestamps.\n' +
+      '- Use matched when the header clearly equals a target id or obvious synonym.\n' +
+      '- Use likely_matched for strong but not exact matches.\n' +
+      '- Use ambiguous when multiple targets could fit.\n' +
+      '- Use unmatched when no target fits.\n' +
+      '- Do NOT output numeric confidence scores.\n' +
+      '- Return exactly one mapping object per input column, same rawHeader values, as JSON.'
   );
+  const user =
+    `Target fields:\n${JSON.stringify(targetFields)}\n\n` +
+    `Input columns (uploaded spreadsheet content):\n${wrapUntrusted('csv_columns', JSON.stringify(columns), 20_000)}`;
+  return { system, user };
 }
 
-function parseMappingsPayload(text: string, headers: string[]): ImportColumnMappingEntry[] | null {
-  const trimmed = text.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+const MappingResponse = z.object({
+  mappings: z.array(
+    z
+      .object({
+        rawHeader: z.string(),
+        suggestedTarget: z.string().nullable().optional(),
+        status: z.string().optional(),
+        reason: z.string().optional(),
+      })
+      .passthrough()
+  ),
+});
 
-  try {
-    const parsed = JSON.parse(jsonMatch[0]) as { mappings?: unknown };
-    if (!Array.isArray(parsed.mappings)) return null;
-
-    const byHeader = new Map<string, Record<string, unknown>>();
-    for (const row of parsed.mappings) {
-      if (!row || typeof row !== 'object') continue;
-      const record = row as Record<string, unknown>;
-      const header = typeof record.rawHeader === 'string' ? record.rawHeader.trim() : '';
-      if (header) byHeader.set(header, record);
-    }
-
-    const sanitized = headers.map((header) =>
-      sanitizeMappingEntry(byHeader.get(header) ?? { rawHeader: header }, header)
-    );
-    return resolveDuplicateSuggestedTargets(sanitized);
-  } catch {
-    return null;
-  }
-}
-
-async function tryGeminiMapping(
-  prompt: string,
-  headers: string[],
-  usage: {
-    organizationId: string;
-    propertyId: string;
-    actorUserId?: string | null;
-    actorType?: AiActorType;
-  },
-  cacheKey: string
-): Promise<ImportColumnMappingEntry[] | null> {
-  const keys = getGeminiApiKeys();
-  if (!keys.length) return null;
-
-  const startIdx = nextGeminiKeyStartIndex(keys.length);
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const apiKey = keys[(startIdx + attempt) % keys.length]!;
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-
-    try {
-      const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: CONFIG.defaultMaxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'OBJECT',
-              properties: {
-                mappings: {
-                  type: 'ARRAY',
-                  items: {
-                    type: 'OBJECT',
-                    properties: {
-                      rawHeader: { type: 'STRING' },
-                      suggestedTarget: { type: 'STRING', nullable: true },
-                      status: { type: 'STRING' },
-                      reason: { type: 'STRING' },
-                    },
-                    required: ['rawHeader', 'status', 'reason'],
-                  },
-                },
-              },
-              required: ['mappings'],
-            },
-            thinkingConfig: { thinkingBudget: CONFIG.thinkingBudget },
-          },
-        }),
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        if (shouldTryNextProvider(res.status)) continue;
-        return null;
-      }
-
-      const json = await res.json();
-      const text = extractGeminiText(json);
-      if (!text) continue;
-
-      const mappings = parseMappingsPayload(text, headers);
-      if (mappings) {
-        const tokenUsage = extractGeminiUsage(json);
-        await recordAiUsage({
-          organizationId: usage.organizationId,
-          propertyId: usage.propertyId,
-          feature: IMPORT_FEATURE,
-          provider: 'gemini',
-          model: GEMINI_MODEL,
-          inputTokens: tokenUsage.inputTokens,
-          outputTokens: tokenUsage.outputTokens,
-          actorUserId: usage.actorUserId ?? null,
-          actorType: usage.actorType ?? 'staff',
-        });
-        await setCachedAiResponse(IMPORT_FEATURE, cacheKey, {
-          provider: 'gemini',
-          model: GEMINI_MODEL,
-          responseText: text,
-          inputTokens: tokenUsage.inputTokens,
-          outputTokens: tokenUsage.outputTokens,
-          estimatedCostUsd: 0,
-        });
-        return mappings;
-      }
-    } catch (error) {
-      clearTimeout(timer);
-      if ((error as Error).name === 'AbortError') break;
-    }
-  }
-
-  return null;
-}
-
-async function tryGroqMapping(
-  prompt: string,
-  headers: string[],
-  usage: {
-    organizationId: string;
-    propertyId: string;
-    actorUserId?: string | null;
-    actorType?: AiActorType;
-  },
-  cacheKey: string
-): Promise<ImportColumnMappingEntry[] | null> {
-  const groqKey = getGroqApiKey();
-  if (!groqKey) return null;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${groqKey}`,
+const MAPPING_JSON_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    mappings: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          rawHeader: { type: 'STRING' },
+          suggestedTarget: { type: 'STRING', nullable: true },
+          status: { type: 'STRING', enum: [...IMPORT_COLUMN_MAPPING_STATUSES] },
+          reason: { type: 'STRING' },
+        },
+        required: ['rawHeader', 'status', 'reason'],
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: CONFIG.defaultMaxOutputTokens,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    clearTimeout(timer);
+    },
+  },
+  required: ['mappings'],
+};
 
-    if (!res.ok) {
-      if (shouldTryNextProvider(res.status)) return null;
-      return null;
-    }
-
-    const body = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-    };
-    const text = body.choices?.[0]?.message?.content ?? '';
-    const mappings = parseMappingsPayload(text, headers);
-    if (mappings) {
-      const groqInputTokens = Number(body.usage?.prompt_tokens ?? 0);
-      const groqOutputTokens = Number(body.usage?.completion_tokens ?? 0);
-      await recordAiUsage({
-        organizationId: usage.organizationId,
-        propertyId: usage.propertyId,
-        feature: IMPORT_FEATURE,
-        provider: 'groq',
-        model: GROQ_MODEL,
-        inputTokens: groqInputTokens,
-        outputTokens: groqOutputTokens,
-        actorUserId: usage.actorUserId ?? null,
-        actorType: usage.actorType ?? 'staff',
-      });
-      await setCachedAiResponse(IMPORT_FEATURE, cacheKey, {
-        provider: 'groq',
-        model: GROQ_MODEL,
-        responseText: text,
-        inputTokens: groqInputTokens,
-        outputTokens: groqOutputTokens,
-        estimatedCostUsd: 0,
-      });
-      return mappings;
-    }
-  } catch (error) {
-    clearTimeout(timer);
-    if ((error as Error).name !== 'AbortError') {
-      console.warn('[importColumnMappingAi] Groq error:', (error as Error).message);
-    }
-    return null;
+/** Business-rule pass over validated model output: one entry per header, known targets only. */
+function toMappingEntries(
+  payload: z.infer<typeof MappingResponse>,
+  headers: string[]
+): ImportColumnMappingEntry[] {
+  const byHeader = new Map<string, Record<string, unknown>>();
+  for (const row of payload.mappings) {
+    const header = row.rawHeader.trim();
+    if (header) byHeader.set(header, row);
   }
+  const sanitized = headers.map((header) =>
+    sanitizeMappingEntry(byHeader.get(header) ?? { rawHeader: header }, header)
+  );
+  return resolveDuplicateSuggestedTargets(sanitized);
+}
+
+/**
+ * The model step alone (prompt → validated contract → business rules), shared by
+ * suggestImportColumnMappings and the live eval runner. Throws on AI failure.
+ */
+export async function mapColumnsWithModel(
+  input: { headers: string[]; samplesByHeader: Record<string, string[]> },
+  billing: LlmBilling
+): Promise<{ mappings: ImportColumnMappingEntry[]; provider: 'gemini' | 'groq' }> {
+  const aiHeaders = input.headers.slice(0, MAX_AI_HEADERS);
+  const { system, user } = buildPrompt({
+    organizationId: billing.organizationId ?? '',
+    propertyId: billing.propertyId ?? '',
+    headers: aiHeaders,
+    samplesByHeader: input.samplesByHeader,
+  });
+  const result = await generateStructured({
+    feature: IMPORT_FEATURE,
+    prompt: IMPORT_COLUMN_MAPPING_PROMPT,
+    system,
+    user,
+    temperature: 0.1,
+    schema: MappingResponse,
+    jsonSchema: MAPPING_JSON_SCHEMA,
+    cache: {},
+    billing,
+  });
+  const aiMappings = toMappingEntries(result.data, aiHeaders);
+  const overflow = buildDegradedMappings(input.headers.slice(MAX_AI_HEADERS));
+  return {
+    mappings: applyDeterministicHeaderMatches([...aiMappings, ...overflow]),
+    provider: result.provider,
+  };
 }
 
 /** Suggest booking-field mappings for CSV headers. Degrades to all-unmatched when AI is unavailable. */
@@ -465,41 +344,20 @@ export async function suggestImportColumnMappings(
     };
   }
 
-  const prompt = buildPrompt({ ...input, headers });
-  const cacheKey = await computePromptFingerprint(buildCacheInputs(prompt, ''));
-  const cached = await getCachedAiResponse(IMPORT_FEATURE, cacheKey);
-  if (cached) {
-    const cachedMappings = parseMappingsPayload(cached.responseText, headers);
-    if (cachedMappings) {
-      return {
-        mappings: applyDeterministicHeaderMatches(cachedMappings),
-        provider: 'none',
-        degraded: false,
-      };
-    }
-  }
-  const usage = {
-    organizationId: input.organizationId,
-    propertyId: input.propertyId,
-    actorUserId: input.actorUserId,
-    actorType: input.actorType,
-  };
-  const geminiMappings = await tryGeminiMapping(prompt, headers, usage, cacheKey);
-  if (geminiMappings) {
-    return {
-      mappings: applyDeterministicHeaderMatches(geminiMappings),
-      provider: 'gemini',
-      degraded: false,
-    };
-  }
-
-  const groqMappings = await tryGroqMapping(prompt, headers, usage, cacheKey);
-  if (groqMappings) {
-    return {
-      mappings: applyDeterministicHeaderMatches(groqMappings),
-      provider: 'groq',
-      degraded: false,
-    };
+  try {
+    const { mappings, provider } = await mapColumnsWithModel(
+      { headers, samplesByHeader: input.samplesByHeader },
+      {
+        organizationId: input.organizationId,
+        propertyId: input.propertyId,
+        actorUserId: input.actorUserId ?? null,
+        actorType: input.actorType ?? 'staff',
+        quotaChecked: true,
+      }
+    );
+    return { mappings, provider, degraded: false };
+  } catch (error) {
+    console.warn('[importColumnMappingAi] AI mapping failed:', (error as Error).message);
   }
 
   console.warn('[importColumnMappingAi] All providers unavailable — degrading to unmatched');

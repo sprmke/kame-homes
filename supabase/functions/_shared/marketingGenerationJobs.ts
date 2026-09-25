@@ -13,6 +13,7 @@ import { HOST_FACING_GENERATION_FAILED, toHostFacingError } from './hostFacingEr
 
 export const MARKETING_GENERATION_JOB_COLUMNS = `
   id, organization_id, property_id, media_type, job_status, prompt, negative_prompt,
+  enhanced_prompt, prompt_enhanced,
   model, quality_tier, aspect_ratio, image_size, resolution, duration_seconds,
   reference_paths, reference_urls, provider, provider_operation_name, provider_poll_count,
   last_provider_poll_at, output_storage_path, output_url, output_mime_type, output_bytes,
@@ -31,6 +32,13 @@ export type MarketingGenerationJobDto = {
   jobStatus: 'pending' | 'processing' | 'finalizing' | 'completed' | 'failed' | 'cancelled';
   prompt: string;
   negativePrompt: string | null;
+  /** The full scene description actually sent to the image model, when prompt
+   *  enhancement ran (image jobs only) — see marketingImagePromptBuilder.ts. Null
+   *  when enhancement was off, not applicable (video), or failed open. */
+  enhancedPrompt: string | null;
+  /** True only when `enhancedPrompt` is populated AND the enhancement call actually
+   *  succeeded — never inferred from enhancedPrompt being non-null alone. */
+  promptEnhanced: boolean;
   model: string;
   qualityTier: 'draft' | 'standard' | 'premium';
   aspectRatio: string;
@@ -66,6 +74,8 @@ export function toMarketingGenerationJobDto(row: MarketingGenerationJobRow) {
     jobStatus: row.job_status as MarketingGenerationJobDto['jobStatus'],
     prompt: String(row.prompt ?? ''),
     negativePrompt: (row.negative_prompt as string | null) ?? null,
+    enhancedPrompt: (row.enhanced_prompt as string | null) ?? null,
+    promptEnhanced: Boolean(row.prompt_enhanced),
     model: String(row.model ?? ''),
     qualityTier: row.quality_tier as MarketingGenerationJobDto['qualityTier'],
     aspectRatio: String(row.aspect_ratio ?? ''),
@@ -96,6 +106,8 @@ export type InsertMarketingGenerationJobInput = {
   mediaType: 'image' | 'video';
   prompt: string;
   negativePrompt?: string | null;
+  enhancedPrompt?: string | null;
+  promptEnhanced?: boolean;
   model: string;
   qualityTier: string;
   aspectRatio: string;
@@ -123,6 +135,8 @@ export async function insertMarketingGenerationJob(
       job_status: 'pending',
       prompt: input.prompt,
       negative_prompt: input.negativePrompt ?? null,
+      enhanced_prompt: input.enhancedPrompt ?? null,
+      prompt_enhanced: input.promptEnhanced ?? false,
       model: input.model,
       quality_tier: input.qualityTier,
       aspect_ratio: input.aspectRatio,

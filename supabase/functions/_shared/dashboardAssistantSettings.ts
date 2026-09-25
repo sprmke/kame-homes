@@ -154,7 +154,7 @@ function monthStartIso(): string {
  * Message/day and message/month spam-abuse guard (prevents burst chat-turn spam) — NOT the
  * billing-relevant limit. The authoritative, billing-relevant check is the shared
  * `ai_platform_*` credit/cost quota (`assertOrgAndPropertyAiQuota` in aiUsageService.ts),
- * already invoked every round via `callGeminiToolCall()`. This function's counts are a
+ * already invoked every round by the AI gateway (`_shared/ai/llmTools.ts`). This function's counts are a
  * cheap pre-check that runs before the tool-calling loop starts, independent of it.
  */
 export async function checkDashboardAssistantQuota(
@@ -209,38 +209,45 @@ export async function checkDashboardAssistantQuota(
   };
 }
 
+/** Atomic counter increment (single upsert RPC — no lost counts under concurrent turns). */
 export async function incrementDashboardAssistantUsage(
   organizationId: string,
   input: { message?: boolean; writeAction?: boolean; creditsConsumed?: number }
 ): Promise<void> {
-  const sb = createServiceClient();
-  const today = todayIso();
-
-  const { data: existing } = await sb
-    .from('ai_dashboard_assistant_usage_daily')
-    .select('message_count, write_action_count, credits_consumed')
-    .eq('organization_id', organizationId)
-    .eq('usage_date', today)
-    .maybeSingle();
-
-  const messageCount = Number(existing?.message_count ?? 0) + (input.message ? 1 : 0);
-  const writeActionCount = Number(existing?.write_action_count ?? 0) + (input.writeAction ? 1 : 0);
-  const creditsConsumed = Number(existing?.credits_consumed ?? 0) + (input.creditsConsumed ?? 0);
-
-  const { error } = await sb.from('ai_dashboard_assistant_usage_daily').upsert(
+  const { error } = await createServiceClient().rpc(
+    'increment_ai_dashboard_assistant_usage_daily',
     {
-      organization_id: organizationId,
-      usage_date: today,
-      message_count: messageCount,
-      write_action_count: writeActionCount,
-      credits_consumed: creditsConsumed,
-    },
-    { onConflict: 'organization_id,usage_date' }
+      p_organization_id: organizationId,
+      p_usage_date: todayIso(),
+      p_messages: input.message ? 1 : 0,
+      p_write_actions: input.writeAction ? 1 : 0,
+      p_credits: input.creditsConsumed ?? 0,
+    }
   );
   if (error) {
     console.error('[dashboardAssistantSettings] usage increment failed:', error.message);
   }
 }
+
+/**
+ * Daily cap on assistant-executed writes (org setting `daily_write_action_limit`). Checked before
+ * any write runs — confirmed Tier-2 actions and committed Tier-1 writes alike.
+ */
+export async function remainingDashboardAssistantWrites(
+  organizationId: string,
+  orgSettings: DashboardAssistantOrgSettings
+): Promise<number> {
+  const { data } = await createServiceClient()
+    .from('ai_dashboard_assistant_usage_daily')
+    .select('write_action_count')
+    .eq('organization_id', organizationId)
+    .eq('usage_date', todayIso())
+    .maybeSingle();
+  return Math.max(0, orgSettings.dailyWriteActionLimit - Number(data?.write_action_count ?? 0));
+}
+
+export const DASHBOARD_ASSISTANT_WRITE_LIMIT_MESSAGE =
+  "You've reached today's limit for changes made through the assistant. Make this change in the dashboard, or try again tomorrow.";
 
 export type DashboardAssistantUsageSummary = {
   todayMessageCount: number;

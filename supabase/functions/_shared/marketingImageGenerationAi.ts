@@ -1,9 +1,9 @@
 /**
  * Gemini image generation for the Marketing Studio Generate tab.
  *
- * Deliberately uses the classic `models/{model}:generateContent` envelope rather than
- * the newer `/v1beta/interactions`: `geminiGenerateContentUrl` already builds that URL
- * and `extractGeminiUsage` already parses its `usageMetadata`, so token metering works
+ * Uses the classic `models/{model}:generateContent` envelope through the shared AI transport
+ * (_shared/ai/llmTransport.ts: per-attempt timeout, one same-key retry on 429/5xx, key rotation,
+ * key in header). `extractGeminiUsage` parses its `usageMetadata`, so token metering works
  * verbatim through the existing pipeline.
  *
  * Swapping providers means rewriting this one file plus MARKETING_IMAGE_MODELS in
@@ -12,20 +12,12 @@
 
 import type { SupabaseClient } from './supabaseJs.ts';
 
-import {
-  type AiImageModelConfig,
-  estimateTokenCostUsd,
-  geminiGenerateContentUrl,
-} from './aiModelRouter.ts';
-import {
-  extractGeminiUsage,
-  getGeminiApiKeys,
-  nextGeminiKeyStartIndex,
-  providerError,
-  shouldTryNextProvider,
-} from './aiGeminiKeys.ts';
+import { AiProviderError, geminiModelPath, geminiRequest, isGeminiConfigured } from './ai/llmTransport.ts';
+import { type AiImageModelConfig, estimateTokenCostUsd } from './aiModelRouter.ts';
+import { extractGeminiUsage } from './aiGeminiKeys.ts';
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
 import { readImageDimensions } from './marketingGenerationStorage.ts';
+import { IMAGE_SYSTEM_INSTRUCTION } from './marketingImagePromptBuilder.ts';
 
 /** Google's own wording for a safety stop, surfaced to the host as rephrase-and-retry. */
 export class GenerationSafetyError extends Error {
@@ -43,6 +35,19 @@ export class GenerationProviderError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'GenerationProviderError';
+  }
+}
+
+/** Phase 4b — the provider returned 200 with bytes that don't look like a valid
+ *  image (too small, unreadable dimensions, or wildly wrong shape). Thrown before
+ *  upload/billing so the job fails and the reservation is freed instead of storing
+ *  and charging for garbage. See isDegenerateGeneratedImage. */
+export class GenerationOutputError extends Error {
+  readonly code = 'invalid_output';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'GenerationOutputError';
   }
 }
 
@@ -99,12 +104,24 @@ export async function loadReferenceInlineData(
   );
 }
 
-function buildPromptText(prompt: string, negativePrompt?: string | null): string {
-  const trimmed = prompt.trim();
+/**
+ * Gemini's image endpoint has no dedicated negative-prompt channel. Appending
+ * "Avoid: X" as prose to a diffusion-style model can paradoxically make it more
+ * likely to render X, since the concept is still present in the input. Folding it
+ * into the system instruction as a direct, positive-voiced instruction (closer to
+ * "never do X" than "please avoid X") is Gemini 3's own preference — direct beats
+ * persuasive — and keeps it out of the user-content prompt entirely.
+ */
+function buildSystemInstruction(negativePrompt?: string | null): string {
   const negative = negativePrompt?.trim();
-  if (!negative) return trimmed;
-  return `${trimmed}\n\nAvoid: ${negative}`;
+  if (!negative) return IMAGE_SYSTEM_INSTRUCTION;
+  return `${IMAGE_SYSTEM_INSTRUCTION} Additionally, this image must not contain: ${negative}.`;
 }
+
+/** Caps a single provider attempt so one hung request can't hold the job open (Phase 4c). A
+ *  timed-out key is treated like any other failed attempt and rotation proceeds. The transport
+ *  also gives each key one same-key retry on 429/5xx before rotating (Phase 4a). */
+const PROVIDER_TIMEOUT_MS = 45_000;
 
 export type GenerateMarketingImageInput = {
   config: AiImageModelConfig;
@@ -118,17 +135,17 @@ export type GenerateMarketingImageInput = {
 export async function generateMarketingImage(
   input: GenerateMarketingImageInput
 ): Promise<GeneratedImage> {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) {
+  if (!isGeminiConfigured()) {
     throw new GenerationProviderError('Image generation is not configured');
   }
 
   const body = {
+    systemInstruction: { parts: [{ text: buildSystemInstruction(input.negativePrompt) }] },
     contents: [
       {
         role: 'user',
         parts: [
-          { text: buildPromptText(input.prompt, input.negativePrompt) },
+          { text: input.prompt.trim() },
           ...input.references.map((reference) => ({ inlineData: reference })),
         ],
       },
@@ -142,73 +159,58 @@ export async function generateMarketingImage(
     },
   };
 
-  const url = geminiGenerateContentUrl(input.config.model);
-  const start = nextGeminiKeyStartIndex(keys.length);
-  let lastError = 'Image generation failed';
-
-  for (let attempt = 0; attempt < keys.length; attempt += 1) {
-    const key = keys[(start + attempt) % keys.length]!;
-    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  let raw: Record<string, unknown>;
+  try {
+    raw = await geminiRequest(geminiModelPath(input.config.model, 'generateContent'), body, {
+      timeoutMs: PROVIDER_TIMEOUT_MS,
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = null;
-      }
-      lastError = providerError(parsed, `Image generation failed (${res.status})`);
-      if (shouldTryNextProvider(res.status) && attempt < keys.length - 1) continue;
-      throw new GenerationProviderError(lastError);
+  } catch (err) {
+    if (err instanceof AiProviderError) {
+      throw new GenerationProviderError(
+        err.code === 'timeout' ? 'Image generation timed out' : err.message
+      );
     }
-
-    const json = (await res.json()) as {
-      candidates?: Array<{
-        finishReason?: string;
-        content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
-      }>;
-      promptFeedback?: { blockReason?: string };
-    };
-
-    if (json.promptFeedback?.blockReason) {
-      throw new GenerationSafetyError();
-    }
-
-    const candidate = json.candidates?.[0];
-    const finishReason = candidate?.finishReason ?? '';
-    if (
-      finishReason === 'SAFETY' ||
-      finishReason === 'PROHIBITED_CONTENT' ||
-      finishReason === 'IMAGE_SAFETY'
-    ) {
-      throw new GenerationSafetyError();
-    }
-
-    const imagePart = candidate?.content?.parts?.find((part) => part.inlineData?.data);
-    if (!imagePart?.inlineData?.data) {
-      throw new GenerationProviderError('The model did not return an image. Try rephrasing.');
-    }
-
-    const bytes = base64ToBytes(imagePart.inlineData.data);
-    const dimensions = readImageDimensions(bytes);
-    const { inputTokens, outputTokens } = extractGeminiUsage(json);
-
-    return {
-      bytes,
-      mimeType: imagePart.inlineData.mimeType ?? 'image/png',
-      width: dimensions?.width ?? null,
-      height: dimensions?.height ?? null,
-      inputTokens,
-      outputTokens,
-      model: input.config.model,
-      estimatedCostUsd: estimateTokenCostUsd(input.config, inputTokens, outputTokens),
-    };
+    throw err;
   }
 
-  throw new GenerationProviderError(lastError);
+  const json = raw as {
+    candidates?: Array<{
+      finishReason?: string;
+      content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
+    }>;
+    promptFeedback?: { blockReason?: string };
+  };
+  if (json.promptFeedback?.blockReason) {
+    throw new GenerationSafetyError();
+  }
+
+  const candidate = json.candidates?.[0];
+  const finishReason = candidate?.finishReason ?? '';
+  if (
+    finishReason === 'SAFETY' ||
+    finishReason === 'PROHIBITED_CONTENT' ||
+    finishReason === 'IMAGE_SAFETY'
+  ) {
+    throw new GenerationSafetyError();
+  }
+
+  const imagePart = candidate?.content?.parts?.find((part) => part.inlineData?.data);
+  if (!imagePart?.inlineData?.data) {
+    throw new GenerationProviderError('The model did not return an image. Try rephrasing.');
+  }
+
+  const bytes = base64ToBytes(imagePart.inlineData.data);
+  const dimensions = readImageDimensions(bytes);
+  const { inputTokens, outputTokens } = extractGeminiUsage(json);
+
+  return {
+    bytes,
+    mimeType: imagePart.inlineData.mimeType ?? 'image/png',
+    width: dimensions?.width ?? null,
+    height: dimensions?.height ?? null,
+    inputTokens,
+    outputTokens,
+    model: input.config.model,
+    estimatedCostUsd: estimateTokenCostUsd(input.config, inputTokens, outputTokens),
+  };
 }

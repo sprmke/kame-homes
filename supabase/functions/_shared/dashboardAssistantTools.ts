@@ -138,7 +138,7 @@ import {
   humanizeTransitionError,
 } from './dashboardAssistantActionDisplay.ts';
 import { WorkflowOrchestrator } from './workflowOrchestrator.ts';
-import { buildActorContext } from './activityLog.ts';
+import { buildActorContext, logActivity } from './activityLog.ts';
 import {
   classifyActionRisk,
   READ_TOOL_NAMES,
@@ -259,6 +259,7 @@ import {
 } from './dashboardAssistantGuidanceTools.ts';
 import { downloadAssistantAttachment } from './assistantAttachmentApply.ts';
 import { uploadMarketingMediaFromAssistantBytes } from './marketingMediaUpload.ts';
+import { validateToolArgs } from './ai/toolArgs.ts';
 
 export type ToolExecutionContext = {
   req: Request;
@@ -267,7 +268,10 @@ export type ToolExecutionContext = {
   userEmail: string;
   pageContext: { propertyId?: string | null; parkingId?: string | null; bookingId?: string | null };
   attachedContext: AttachedContextItem[];
-  /** True when the model requested more than one write tool call this turn — forces Tier 2. */
+  /**
+   * Forces Tier 2 (host confirm): more than one write this turn, or the turn already read
+   * guest-written content (prompt-injection escalation; see UNTRUSTED_CONTENT_TOOL_NAMES).
+   */
   isBulk: boolean;
   /** When true, Tier-1 writes queue until end-of-turn commit (cancel-safe). */
   deferWritesUntilCommit?: boolean;
@@ -277,6 +281,36 @@ export type ToolExecutionContext = {
   /** Storage paths attached on this user turn (host uploaded this message). */
   turnAttachmentPaths?: string[];
 };
+
+/** Writes whose own execution path already records activity (workflow orchestrator). */
+const SELF_AUDITED_TOOL_NAMES = new Set(['propose_transition_booking', 'propose_cancel_booking']);
+
+/**
+ * One org activity-feed event per assistant-executed write, emitted from the two chokepoints
+ * every write passes (Tier-1 commit in dashboard-assistant-chat, Tier-2 dashboard-assistant-confirm)
+ * so no individual tool can forget it. Never throws (logActivity swallows).
+ */
+export async function logAssistantWriteActivity(
+  ctx: ToolExecutionContext,
+  toolName: string,
+  result: ToolResult,
+  riskTier: 'tier1_auto' | 'tier2_confirmed'
+): Promise<void> {
+  if (!result.ok || result.proposed || SELF_AUDITED_TOOL_NAMES.has(toolName)) return;
+  await logActivity({
+    action: 'ai.assistant_action_executed',
+    organizationId: ctx.organizationId,
+    propertyId: result.auditPropertyId ?? null,
+    actor: assistantActorContext(ctx),
+    targetType: result.auditBookingId ? 'booking' : 'assistant_action',
+    targetId: result.auditBookingId ?? null,
+    metadata: {
+      tool: toolName,
+      action: toolName.replace(/^propose_/, '').replace(/_/g, ' '),
+      risk_tier: riskTier,
+    },
+  });
+}
 
 /** Activity-log actor for an AI-assistant-initiated write — single emit path,
  *  attributed to `ai_assistant` with the conversation id + initiating user. */
@@ -394,14 +428,21 @@ async function resolveBookingProperty(
 async function toolSearchKnowledgeBase(args: Record<string, unknown>): Promise<ToolResult> {
   const query = str(args, 'query');
   if (!query) return { ok: false, error: 'query is required' };
-  const sb = createServiceClient();
-  const { data, error } = await sb
-    .from('ai_dashboard_assistant_knowledge_base')
-    .select('question, answer, route_path')
-    .or(`question.ilike.%${query}%,answer.ilike.%${query}%`)
-    .limit(5);
+  // Parameterized, ranked FTS (never interpolate model/user text into a PostgREST filter).
+  const { data, error } = await createServiceClient().rpc('search_ai_assistant_knowledge_base', {
+    p_query: query,
+    p_limit: 5,
+  });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, data: data ?? [] };
+  return {
+    ok: true,
+    data: ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      question: row.question,
+      answer: row.answer,
+      route_path: row.route_path,
+      source: row.route_guide_path,
+    })),
+  };
 }
 
 function toolExplainBookingStatus(args: Record<string, unknown>): ToolResult {
@@ -4301,220 +4342,139 @@ export async function executeConfirmedAction(
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
+type ToolHandler = (
+  ctx: ToolExecutionContext,
+  args: Record<string, unknown>
+) => ToolResult | Promise<ToolResult>;
+
+/**
+ * Tool registry: every executable tool name maps to exactly one handler. `executeTool` validates
+ * arguments against the tool's declared schema before dispatch; handlers re-check authorization.
+ */
+const TOOL_HANDLERS: Record<string, ToolHandler> = {
+  search_knowledge_base: (_ctx, args) => toolSearchKnowledgeBase(args),
+  explain_booking_status: (_ctx, args) => toolExplainBookingStatus(args),
+  get_booking: (ctx, args) => toolGetBooking(ctx, args),
+  get_booking_documents: (ctx, args) => toolGetBookingDocuments(ctx, args),
+  list_bookings: (ctx, args) => toolListBookings(ctx, args),
+  get_available_transitions: (ctx, args) => toolGetAvailableTransitions(ctx, args),
+  plan_booking_journey: (ctx, args) => toolPlanBookingJourney(ctx, args),
+  get_available_dates: (ctx, args) => toolGetAvailableDates(ctx, args),
+  get_dashboard_stats: (ctx, args) => toolGetDashboardStats(ctx, args),
+  get_finance_summary: (ctx, args) => toolGetFinanceSummary(ctx, args),
+  list_finance_bookings: (ctx, args) => toolListFinanceBookings(ctx, args),
+  get_maintenance_summary: (ctx, args) => toolGetMaintenanceSummary(ctx, args),
+  list_maintenance_items: (ctx, args) => toolListMaintenanceItems(ctx, args),
+  run_receipt_validation: (ctx, args) => toolRunReceiptValidation(ctx, args),
+  propose_transition_booking: (ctx, args) => toolProposeTransitionBooking(ctx, args),
+  propose_cancel_booking: (ctx, args) => toolProposeCancelBooking(ctx, args),
+  propose_add_finance_line_item: (ctx, args) => toolProposeAddFinanceLineItem(ctx, args),
+  propose_create_maintenance_item: (ctx, args) => toolProposeCreateMaintenanceItem(ctx, args),
+  get_org_profile: (ctx) => toolGetOrgProfile(ctx),
+  get_org_verification_status: (ctx) => toolGetOrgVerificationStatus(ctx),
+  list_team_members: (ctx) => toolListTeamMembers(ctx),
+  list_pending_invitations: (ctx) => toolListPendingInvitations(ctx),
+  propose_update_org_profile: (ctx, args) => toolProposeUpdateOrgProfile(ctx, args),
+  propose_invite_team_member: (ctx, args) => toolProposeInviteTeamMember(ctx, args),
+  propose_update_team_member_role: (ctx, args) => toolProposeUpdateTeamMemberRole(ctx, args),
+  propose_revoke_invitation: (ctx, args) => toolProposeRevokeInvitation(ctx, args),
+  propose_remove_team_member: (ctx, args) => toolProposeRemoveTeamMember(ctx, args),
+  get_property_profile: (ctx, args) => toolGetPropertyProfile(ctx, args),
+  get_property_settings: (ctx, args) => toolGetPropertySettings(ctx, args),
+  list_property_team_members: (ctx, args) => toolListPropertyTeamMembers(ctx, args),
+  list_property_pending_invitations: (ctx, args) => toolListPropertyPendingInvitations(ctx, args),
+  propose_update_property_profile: (ctx, args) => toolProposeUpdatePropertyProfile(ctx, args),
+  propose_update_property_settings: (ctx, args) => toolProposeUpdatePropertySettings(ctx, args),
+  propose_revoke_property_invitation: (ctx, args) => toolProposeRevokePropertyInvitation(ctx, args),
+  propose_invite_property_team_member: (ctx, args) => toolProposeInvitePropertyTeamMember(ctx, args),
+  propose_update_property_team_member_role: (ctx, args) => toolProposeUpdatePropertyTeamMemberRole(ctx, args),
+  propose_remove_property_team_member: (ctx, args) => toolProposeRemovePropertyTeamMember(ctx, args),
+  list_parkings: (ctx) => toolListParkings(ctx),
+  get_parking_booking: (ctx, args) => toolGetParkingBooking(ctx, args),
+  list_parking_bookings: (ctx, args) => toolListParkingBookings(ctx, args),
+  get_parking_available_transitions: (ctx, args) => toolGetParkingAvailableTransitions(ctx, args),
+  propose_claim_parking_booking: (ctx, args) => toolProposeClaimParkingBooking(ctx, args),
+  propose_decline_parking_booking: (ctx, args) => toolProposeDeclineParkingBooking(ctx, args),
+  propose_transition_parking_booking: (ctx, args) => toolProposeTransitionParkingBooking(ctx, args),
+  get_property_pricing: (ctx, args) => toolGetPropertyPricing(ctx, args),
+  get_parking_pricing: (ctx, args) => toolGetParkingPricing(ctx, args),
+  propose_update_property_base_rate: (ctx, args) => toolProposeUpdatePropertyBaseRate(ctx, args),
+  propose_set_property_date_rate_override: (ctx, args) => toolProposeSetPropertyDateRateOverride(ctx, args),
+  propose_add_property_holiday_rule: (ctx, args) => toolProposeAddPropertyHolidayRule(ctx, args),
+  propose_block_property_dates: (ctx, args) => toolProposeBlockPropertyDates(ctx, args),
+  propose_unblock_property_dates: (ctx, args) => toolProposeUnblockPropertyDates(ctx, args),
+  propose_update_parking_base_rate: (ctx, args) => toolProposeUpdateParkingBaseRate(ctx, args),
+  propose_set_parking_date_rate_override: (ctx, args) => toolProposeSetParkingDateRateOverride(ctx, args),
+  list_inbox_threads: (ctx, args) => toolListInboxThreads(ctx, args),
+  get_inbox_thread: (ctx, args) => toolGetInboxThread(ctx, args),
+  get_inbox_settings: (ctx, args) => toolGetInboxSettings(ctx, args),
+  list_inbox_quick_reply_templates: (ctx, args) => toolListInboxQuickReplyTemplates(ctx, args),
+  propose_mark_inbox_thread_read: (ctx, args) => toolProposeMarkInboxThreadRead(ctx, args),
+  draft_inbox_reply: (ctx, args) => toolDraftInboxReply(ctx, args),
+  propose_send_inbox_reply: (ctx, args) => toolProposeSendInboxReply(ctx, args),
+  list_support_tickets: (ctx, args) => toolListSupportTickets(ctx, args),
+  get_support_ticket: (ctx, args) => toolGetSupportTicket(ctx, args),
+  propose_create_support_ticket: (ctx, args) => toolProposeCreateSupportTicket(ctx, args),
+  list_host_announcements: (ctx, args) => toolListHostAnnouncements(ctx, args),
+  get_host_announcement: (ctx, args) => toolGetHostAnnouncement(ctx, args),
+  get_org_plan_snapshot: (ctx) => toolGetOrgPlanSnapshot(ctx),
+  list_marketing_templates: (ctx, args) => toolListMarketingTemplates(ctx, args),
+  get_marketing_publish_history: (ctx, args) => toolGetMarketingPublishHistory(ctx, args),
+  search_marketing_music: (ctx, args) => toolSearchMarketingMusic(ctx, args),
+  draft_marketing_caption: (ctx, args) => toolDraftMarketingCaption(ctx, args),
+  draft_marketing_template: (ctx, args) => toolDraftMarketingTemplate(ctx, args),
+  propose_publish_to_meta: (ctx, args) => toolProposePublishToMeta(ctx, args),
+  propose_apply_booking_attachment: (ctx, args) => toolProposeApplyBookingAttachment(ctx, args),
+  propose_send_workflow_email: (ctx, args) => toolProposeSendWorkflowEmail(ctx, args),
+  propose_apply_org_logo: (ctx, args) => toolProposeApplyOrgLogo(ctx, args),
+  propose_apply_property_media: (ctx, args) => toolProposeApplyPropertyMedia(ctx, args),
+  propose_apply_parking_media: (ctx, args) => toolProposeApplyParkingMedia(ctx, args),
+  propose_apply_app_settings_attachment: (ctx, args) => toolProposeApplyAppSettingsAttachment(ctx, args),
+  propose_apply_template_attachment: (ctx, args) => toolProposeApplyTemplateAttachment(ctx, args),
+  propose_apply_org_verification_attachment: (ctx, args) => toolProposeApplyOrgVerificationAttachment(ctx, args),
+  propose_submit_org_verification: (ctx, args) => toolProposeSubmitOrgVerification(ctx, args),
+  propose_apply_listing_authorization_attachment: (ctx, args) => toolProposeApplyListingAuthorizationAttachment(ctx, args),
+  propose_submit_listing_authorization: (ctx, args) => toolProposeSubmitListingAuthorization(ctx, args),
+  propose_stage_gcash_qr: (ctx, args) => toolProposeStageGcashQr(ctx, args),
+  get_channel_sync_status: (ctx, args) => toolGetChannelSyncStatus(ctx, args),
+  propose_run_channel_sync: (ctx, args) => toolProposeRunChannelSync(ctx, args),
+  get_public_pages_status: (ctx, args) => toolGetPublicPagesStatus(ctx, args),
+  propose_update_public_page_template: (ctx, args) => toolProposeUpdatePublicPageTemplate(ctx, args),
+  get_property_analytics: (ctx, args) => toolGetPropertyAnalytics(ctx, args),
+  explain_metric: (_ctx, args) => toolExplainAnalyticsMetric(args),
+  propose_update_finance_line_item: (ctx, args) => toolProposeUpdateFinanceLineItem(ctx, args),
+  propose_delete_finance_line_item: (ctx, args) => toolProposeDeleteFinanceLineItem(ctx, args),
+  propose_update_maintenance_item: (ctx, args) => toolProposeUpdateMaintenanceItem(ctx, args),
+  propose_delete_maintenance_item: (ctx, args) => toolProposeDeleteMaintenanceItem(ctx, args),
+  get_notification_preferences: (ctx, args) => toolGetNotificationPreferences(ctx, args),
+  guide_notification_settings: (ctx, args) => toolGuideNotificationSettings(ctx, args),
+  get_telegram_notification_settings: (ctx, args) => toolGetTelegramNotificationSettings(ctx, args),
+  guide_telegram_settings: (ctx, args) => toolGuideTelegramSettings(ctx, args),
+  guide_create_booking: (ctx, args) => toolGuideCreateBooking(ctx, args),
+  guide_import_bookings: (ctx, args) => toolGuideImportBookings(ctx, args),
+};
+
+/** Test/catalog helper: tool names that have an execution handler. */
+export function registeredToolNames(): string[] {
+  return Object.keys(TOOL_HANDLERS);
+}
+
 export async function executeTool(
   toolName: string,
-  args: Record<string, unknown>,
+  rawArgs: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<ToolResult> {
   if (!isKnownTool(toolName)) {
     return { ok: false, error: `Unknown tool: ${toolName}` };
   }
+  const validated = validateToolArgs(toolParameterSchema(toolName), rawArgs);
+  if (!validated.ok) return { ok: false, error: validated.error };
+  const args = validated.args;
 
   try {
-    switch (toolName) {
-      case 'search_knowledge_base':
-        return await toolSearchKnowledgeBase(args);
-      case 'explain_booking_status':
-        return toolExplainBookingStatus(args);
-      case 'get_booking':
-        return await toolGetBooking(ctx, args);
-      case 'get_booking_documents':
-        return await toolGetBookingDocuments(ctx, args);
-      case 'list_bookings':
-        return await toolListBookings(ctx, args);
-      case 'get_available_transitions':
-        return await toolGetAvailableTransitions(ctx, args);
-      case 'plan_booking_journey':
-        return await toolPlanBookingJourney(ctx, args);
-      case 'get_available_dates':
-        return await toolGetAvailableDates(ctx, args);
-      case 'get_dashboard_stats':
-        return await toolGetDashboardStats(ctx, args);
-      case 'get_finance_summary':
-        return await toolGetFinanceSummary(ctx, args);
-      case 'list_finance_bookings':
-        return await toolListFinanceBookings(ctx, args);
-      case 'get_maintenance_summary':
-        return await toolGetMaintenanceSummary(ctx, args);
-      case 'list_maintenance_items':
-        return await toolListMaintenanceItems(ctx, args);
-      case 'run_receipt_validation':
-        return await toolRunReceiptValidation(ctx, args);
-      case 'propose_transition_booking':
-        return await toolProposeTransitionBooking(ctx, args);
-      case 'propose_cancel_booking':
-        return await toolProposeCancelBooking(ctx, args);
-      case 'propose_add_finance_line_item':
-        return await toolProposeAddFinanceLineItem(ctx, args);
-      case 'propose_create_maintenance_item':
-        return await toolProposeCreateMaintenanceItem(ctx, args);
-      case 'get_org_profile':
-        return await toolGetOrgProfile(ctx);
-      case 'get_org_verification_status':
-        return await toolGetOrgVerificationStatus(ctx);
-      case 'list_team_members':
-        return await toolListTeamMembers(ctx);
-      case 'list_pending_invitations':
-        return await toolListPendingInvitations(ctx);
-      case 'propose_update_org_profile':
-        return await toolProposeUpdateOrgProfile(ctx, args);
-      case 'propose_invite_team_member':
-        return await toolProposeInviteTeamMember(ctx, args);
-      case 'propose_update_team_member_role':
-        return await toolProposeUpdateTeamMemberRole(ctx, args);
-      case 'propose_revoke_invitation':
-        return await toolProposeRevokeInvitation(ctx, args);
-      case 'propose_remove_team_member':
-        return await toolProposeRemoveTeamMember(ctx, args);
-      case 'get_property_profile':
-        return await toolGetPropertyProfile(ctx, args);
-      case 'get_property_settings':
-        return await toolGetPropertySettings(ctx, args);
-      case 'list_property_team_members':
-        return await toolListPropertyTeamMembers(ctx, args);
-      case 'list_property_pending_invitations':
-        return await toolListPropertyPendingInvitations(ctx, args);
-      case 'propose_update_property_profile':
-        return await toolProposeUpdatePropertyProfile(ctx, args);
-      case 'propose_update_property_settings':
-        return await toolProposeUpdatePropertySettings(ctx, args);
-      case 'propose_revoke_property_invitation':
-        return await toolProposeRevokePropertyInvitation(ctx, args);
-      case 'propose_invite_property_team_member':
-        return await toolProposeInvitePropertyTeamMember(ctx, args);
-      case 'propose_update_property_team_member_role':
-        return await toolProposeUpdatePropertyTeamMemberRole(ctx, args);
-      case 'propose_remove_property_team_member':
-        return await toolProposeRemovePropertyTeamMember(ctx, args);
-      case 'list_parkings':
-        return await toolListParkings(ctx);
-      case 'get_parking_booking':
-        return await toolGetParkingBooking(ctx, args);
-      case 'list_parking_bookings':
-        return await toolListParkingBookings(ctx, args);
-      case 'get_parking_available_transitions':
-        return await toolGetParkingAvailableTransitions(ctx, args);
-      case 'propose_claim_parking_booking':
-        return await toolProposeClaimParkingBooking(ctx, args);
-      case 'propose_decline_parking_booking':
-        return await toolProposeDeclineParkingBooking(ctx, args);
-      case 'propose_transition_parking_booking':
-        return await toolProposeTransitionParkingBooking(ctx, args);
-      case 'get_property_pricing':
-        return await toolGetPropertyPricing(ctx, args);
-      case 'get_parking_pricing':
-        return await toolGetParkingPricing(ctx, args);
-      case 'propose_update_property_base_rate':
-        return await toolProposeUpdatePropertyBaseRate(ctx, args);
-      case 'propose_set_property_date_rate_override':
-        return await toolProposeSetPropertyDateRateOverride(ctx, args);
-      case 'propose_add_property_holiday_rule':
-        return await toolProposeAddPropertyHolidayRule(ctx, args);
-      case 'propose_block_property_dates':
-        return await toolProposeBlockPropertyDates(ctx, args);
-      case 'propose_unblock_property_dates':
-        return await toolProposeUnblockPropertyDates(ctx, args);
-      case 'propose_update_parking_base_rate':
-        return await toolProposeUpdateParkingBaseRate(ctx, args);
-      case 'propose_set_parking_date_rate_override':
-        return await toolProposeSetParkingDateRateOverride(ctx, args);
-      case 'list_inbox_threads':
-        return await toolListInboxThreads(ctx, args);
-      case 'get_inbox_thread':
-        return await toolGetInboxThread(ctx, args);
-      case 'get_inbox_settings':
-        return await toolGetInboxSettings(ctx, args);
-      case 'list_inbox_quick_reply_templates':
-        return await toolListInboxQuickReplyTemplates(ctx, args);
-      case 'propose_mark_inbox_thread_read':
-        return await toolProposeMarkInboxThreadRead(ctx, args);
-      case 'draft_inbox_reply':
-        return await toolDraftInboxReply(ctx, args);
-      case 'propose_send_inbox_reply':
-        return await toolProposeSendInboxReply(ctx, args);
-      case 'list_support_tickets':
-        return await toolListSupportTickets(ctx, args);
-      case 'get_support_ticket':
-        return await toolGetSupportTicket(ctx, args);
-      case 'propose_create_support_ticket':
-        return await toolProposeCreateSupportTicket(ctx, args);
-      case 'list_host_announcements':
-        return await toolListHostAnnouncements(ctx, args);
-      case 'get_host_announcement':
-        return await toolGetHostAnnouncement(ctx, args);
-      case 'get_org_plan_snapshot':
-        return await toolGetOrgPlanSnapshot(ctx);
-      case 'list_marketing_templates':
-        return await toolListMarketingTemplates(ctx, args);
-      case 'get_marketing_publish_history':
-        return await toolGetMarketingPublishHistory(ctx, args);
-      case 'search_marketing_music':
-        return await toolSearchMarketingMusic(ctx, args);
-      case 'draft_marketing_caption':
-        return await toolDraftMarketingCaption(ctx, args);
-      case 'draft_marketing_template':
-        return await toolDraftMarketingTemplate(ctx, args);
-      case 'propose_publish_to_meta':
-        return await toolProposePublishToMeta(ctx, args);
-      case 'propose_apply_booking_attachment':
-        return await toolProposeApplyBookingAttachment(ctx, args);
-      case 'propose_send_workflow_email':
-        return await toolProposeSendWorkflowEmail(ctx, args);
-      case 'propose_apply_org_logo':
-        return await toolProposeApplyOrgLogo(ctx, args);
-      case 'propose_apply_property_media':
-        return await toolProposeApplyPropertyMedia(ctx, args);
-      case 'propose_apply_parking_media':
-        return await toolProposeApplyParkingMedia(ctx, args);
-      case 'propose_apply_app_settings_attachment':
-        return await toolProposeApplyAppSettingsAttachment(ctx, args);
-      case 'propose_apply_template_attachment':
-        return await toolProposeApplyTemplateAttachment(ctx, args);
-      case 'propose_apply_org_verification_attachment':
-        return await toolProposeApplyOrgVerificationAttachment(ctx, args);
-      case 'propose_submit_org_verification':
-        return await toolProposeSubmitOrgVerification(ctx, args);
-      case 'propose_apply_listing_authorization_attachment':
-        return await toolProposeApplyListingAuthorizationAttachment(ctx, args);
-      case 'propose_submit_listing_authorization':
-        return await toolProposeSubmitListingAuthorization(ctx, args);
-      case 'propose_stage_gcash_qr':
-        return await toolProposeStageGcashQr(ctx, args);
-      case 'get_channel_sync_status':
-        return await toolGetChannelSyncStatus(ctx, args);
-      case 'propose_run_channel_sync':
-        return await toolProposeRunChannelSync(ctx, args);
-      case 'get_public_pages_status':
-        return await toolGetPublicPagesStatus(ctx, args);
-      case 'propose_update_public_page_template':
-        return await toolProposeUpdatePublicPageTemplate(ctx, args);
-      case 'get_property_analytics':
-        return await toolGetPropertyAnalytics(ctx, args);
-      case 'explain_metric':
-        return toolExplainAnalyticsMetric(args);
-      case 'propose_update_finance_line_item':
-        return await toolProposeUpdateFinanceLineItem(ctx, args);
-      case 'propose_delete_finance_line_item':
-        return await toolProposeDeleteFinanceLineItem(ctx, args);
-      case 'propose_update_maintenance_item':
-        return await toolProposeUpdateMaintenanceItem(ctx, args);
-      case 'propose_delete_maintenance_item':
-        return await toolProposeDeleteMaintenanceItem(ctx, args);
-      case 'get_notification_preferences':
-        return await toolGetNotificationPreferences(ctx, args);
-      case 'guide_notification_settings':
-        return await toolGuideNotificationSettings(ctx, args);
-      case 'get_telegram_notification_settings':
-        return await toolGetTelegramNotificationSettings(ctx, args);
-      case 'guide_telegram_settings':
-        return await toolGuideTelegramSettings(ctx, args);
-      case 'guide_create_booking':
-        return await toolGuideCreateBooking(ctx, args);
-      case 'guide_import_bookings':
-        return await toolGuideImportBookings(ctx, args);
-      default:
-        return { ok: false, error: `Unhandled tool: ${toolName}` };
-    }
+    const handler = TOOL_HANDLERS[toolName];
+    if (!handler) return { ok: false, error: `Unhandled tool: ${toolName}` };
+    return await handler(ctx, args);
   } catch (err) {
     // A permission re-check failure (verifyPropertyAccess/verifyOrgAccess throwing a Response)
     // or any other tool error surfaces as a plain refusal — never a confirmation prompt.
@@ -4526,6 +4486,14 @@ export async function executeTool(
 }
 
 // ─── Gemini function declarations ────────────────────────────────────────────
+
+let toolParameterSchemas: Map<string, unknown> | null = null;
+
+/** Declared JSON schema for a tool's arguments (server-side validation source of truth). */
+function toolParameterSchema(toolName: string): unknown {
+  toolParameterSchemas ??= new Map(TOOL_DECLARATIONS.map((t) => [t.name, t.parameters]));
+  return toolParameterSchemas.get(toolName);
+}
 
 export const TOOL_DECLARATIONS = [
   {

@@ -13,6 +13,7 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
+import { samplePngLuminanceVariance } from './pngPixelSampler.ts';
 import { fetchPublicHttp, UnsafeOutboundUrlError } from './safeOutboundUrl.ts';
 import { UPLOAD_MAX_BYTES } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
@@ -268,6 +269,75 @@ export async function fetchGeneratedVideoBytes(
 
   const contentType = res.headers.get('content-type')?.split(';')[0]?.trim();
   return { bytes: new Uint8Array(buffer), mimeType: contentType || 'video/mp4' };
+}
+
+/**
+ * Below this luminance variance, a sampled frame is treated as blank/near-uniform.
+ * Calibrated against `pngPixelSampler_test.ts`'s ground-truth fixtures: a genuine
+ * solid-color frame measures exactly 0; real photographic content (even a flat sky
+ * or plain wall with natural noise/gradient) measures in the hundreds or higher.
+ * 5 gives real photos wide headroom while still catching a truly flat frame.
+ */
+const MIN_LUMINANCE_VARIANCE = 5;
+
+/**
+ * Output validation for Phase 4b. Two layers:
+ *
+ * 1. Header-level (always runs, any format): byte-size floor and requested-vs-actual
+ *    aspect ratio, from `readImageDimensions` alone — no decode needed.
+ * 2. Pixel-level (PNG only, via `pngPixelSampler.ts`): luminance variance across a
+ *    sampled grid, catching a blank/near-uniform frame that a valid header cannot
+ *    reveal. This is a narrow, dependency-free decoder scoped to what Gemini's image
+ *    endpoint actually returns — see that module's doc comment. When the sampler
+ *    reports `supported: false` (non-PNG, palette, interlaced, or an unexpected
+ *    layout), this is silently skipped: an unsupported format is "no signal," never
+ *    a rejection.
+ */
+export async function isDegenerateGeneratedImage(input: {
+  bytes: Uint8Array;
+  dimensions: { width: number; height: number } | null;
+  requestedAspectRatio: string;
+}): Promise<{ degenerate: true; reason: string } | { degenerate: false }> {
+  const MIN_BYTES = 2_048;
+  if (input.bytes.byteLength < MIN_BYTES) {
+    return { degenerate: true, reason: 'Generated image is too small to be valid' };
+  }
+
+  if (!input.dimensions || input.dimensions.width <= 0 || input.dimensions.height <= 0) {
+    return { degenerate: true, reason: 'Generated image has no readable dimensions' };
+  }
+
+  const match = /^(\d+):(\d+)$/.exec(input.requestedAspectRatio);
+  if (match) {
+    const wantedRatio = Number(match[1]) / Number(match[2]);
+    const actualRatio = input.dimensions.width / input.dimensions.height;
+    // 25% tolerance: Gemini's imageConfig.aspectRatio is a request, not a hard
+    // guarantee, and legitimate output can round to a slightly different ratio.
+    // This is only meant to catch a result that is a different shape entirely.
+    const deviation = Math.abs(actualRatio - wantedRatio) / wantedRatio;
+    if (deviation > 0.25) {
+      return {
+        degenerate: true,
+        reason: `Generated image shape (${input.dimensions.width}x${input.dimensions.height}) does not match the requested ${input.requestedAspectRatio} aspect ratio`,
+      };
+    }
+  }
+
+  try {
+    const sample = await samplePngLuminanceVariance(input.bytes);
+    if (sample.supported && sample.variance < MIN_LUMINANCE_VARIANCE) {
+      return {
+        degenerate: true,
+        reason: 'Generated image appears blank or near-uniform',
+      };
+    }
+  } catch (err) {
+    // The sampler itself never throws by contract, but this call must never be the
+    // reason a real generation gets rejected — treat any surprise here as "no signal."
+    console.warn('[marketingGenerationStorage] pixel sample failed (non-fatal):', err);
+  }
+
+  return { degenerate: false };
 }
 
 export function readImageDimensions(bytes: Uint8Array): { width: number; height: number } | null {

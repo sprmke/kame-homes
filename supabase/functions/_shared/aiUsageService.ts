@@ -182,7 +182,29 @@ export type RecordAiUsageInput = {
   actorType?: AiActorType;
   /** voice_receptionist only — duration-based cost basis instead of token estimate. */
   durationSeconds?: number;
+  /** Observability (set by the shared AI gateway, _shared/ai/llmClient.ts). */
+  trace?: AiCallTrace;
 };
+
+/** Per-call observability fields persisted on ai_platform_usage_events. Never prompt text. */
+export type AiCallTrace = {
+  promptId?: string | null;
+  promptVersion?: string | null;
+  latencyMs?: number | null;
+  requestId?: string | null;
+  fallbackUsed?: boolean;
+};
+
+function traceColumns(trace: AiCallTrace | undefined, cacheHit: boolean) {
+  return {
+    prompt_id: trace?.promptId ?? null,
+    prompt_version: trace?.promptVersion ?? null,
+    latency_ms: trace?.latencyMs == null ? null : Math.round(trace.latencyMs),
+    request_id: trace?.requestId ?? null,
+    fallback_used: trace?.fallbackUsed ?? false,
+    cache_hit: cacheHit,
+  };
+}
 
 export async function getAiPlatformGlobalSettings(): Promise<AiPlatformGlobalSettings> {
   const sb = db();
@@ -691,6 +713,7 @@ export async function getOrgAiUsageBreakdown(organizationId: string): Promise<{
     .from('ai_platform_usage_events')
     .select('feature, estimated_cost_usd')
     .eq('organization_id', organizationId)
+    .eq('status', 'success')
     .gte('created_at', today + 'T00:00:00Z');
   if (todayError) throw new Error(todayError.message);
 
@@ -698,6 +721,7 @@ export async function getOrgAiUsageBreakdown(organizationId: string): Promise<{
     .from('ai_platform_usage_events')
     .select('feature, estimated_cost_usd')
     .eq('organization_id', organizationId)
+    .eq('status', 'success')
     .gte('created_at', monthStart + 'T00:00:00Z');
   if (monthError) throw new Error(monthError.message);
 
@@ -951,6 +975,60 @@ export async function assertPropertyAiQuotaOptional(
   );
 }
 
+/**
+ * Records an AI call for cost observability WITHOUT touching org/property daily or
+ * monthly credit counters, and without ever debiting the purchased wallet.
+ *
+ * `recordAiUsage` is not a neutral logger — it increments
+ * `ai_platform_usage_daily`/`ai_platform_property_usage_daily` (the same counters the
+ * host-visible usage dashboards and `assertOrgAndPropertyAiQuota` read) and can debit
+ * `adjustOrgCreditWallet` once an org is over its allowance. A feature whose cost is
+ * meant to be absorbed by the platform — e.g. `marketing_image_prompt_enhance`, see
+ * "Decision 2" in docs/workflow/in-progress/marketing-ai-image-quality-hardening.md — must
+ * not go through that function, or a host generating images would silently eat the
+ * enhancement's credits too. This writes only the append-only audit row in
+ * `ai_platform_usage_events`, which is what `super-admin-ai-usage` and platform cost
+ * caps (`platformDailyCostUsdCap` / `sumPlatformDailyCostUsd`) already read from —
+ * so the spend stays visible to operators without ever reaching a host's balance.
+ *
+ * Best-effort: a failure here must never block or fail the caller's already-completed
+ * generation, so every error is caught and logged.
+ */
+export async function recordAiUsagePlatformOnly(input: RecordAiUsageInput): Promise<void> {
+  try {
+    const config = getModelConfig(input.feature);
+    const inputTokens = Math.max(0, input.inputTokens ?? 0);
+    const outputTokens = Math.max(0, input.outputTokens ?? 0);
+    const estimatedCostUsd =
+      input.estimatedCostUsd ?? estimateTokenCostUsd(config, inputTokens, outputTokens);
+
+    const sb = db();
+    const { error } = await sb.from('ai_platform_usage_events').insert({
+      organization_id: input.organizationId,
+      property_id: input.propertyId ?? null,
+      feature: input.feature,
+      provider: input.provider,
+      model: input.model,
+      input_tokens: inputTokens || null,
+      output_tokens: outputTokens || null,
+      estimated_cost_usd: estimatedCostUsd,
+      actor_user_id: input.actorUserId ?? null,
+      actor_type: input.actorType ?? null,
+      cost_basis: 'tokens',
+      credits_consumed: 0,
+      ...traceColumns(input.trace, Boolean(input.cacheHit)),
+    });
+    if (error) {
+      console.warn('[aiUsageService] platform-only usage insert failed:', error.message);
+    }
+  } catch (err) {
+    console.warn(
+      '[aiUsageService] recordAiUsagePlatformOnly failed (non-fatal):',
+      (err as Error).message
+    );
+  }
+}
+
 export async function recordAiUsage(
   input: RecordAiUsageInput
 ): Promise<{ creditsConsumed: number; usageEventId: string | null }> {
@@ -1066,6 +1144,7 @@ export async function recordAiUsage(
       duration_seconds: input.durationSeconds ?? null,
       cost_basis: costBasis,
       credits_consumed: creditsConsumed,
+      ...traceColumns(input.trace, Boolean(input.cacheHit)),
     })
     .select('id')
     .maybeSingle();
@@ -1126,6 +1205,46 @@ export async function recordAiUsage(
   }
 
   return { creditsConsumed, usageEventId: (eventRow?.id as string | undefined) ?? null };
+}
+
+/**
+ * Logs a failed provider call (status = 'error'). Zero cost and credits, and it never touches
+ * the daily rollups, so failures are visible in reporting without consuming anyone's quota.
+ * Best-effort: telemetry must never mask the original error.
+ */
+export async function recordAiFailure(input: {
+  organizationId: string;
+  propertyId?: string | null;
+  feature: AiFeature;
+  provider: 'gemini' | 'groq';
+  model: string;
+  errorCode: string;
+  actorUserId?: string | null;
+  actorType?: AiActorType;
+  trace?: AiCallTrace;
+}): Promise<void> {
+  try {
+    const { error } = await db()
+      .from('ai_platform_usage_events')
+      .insert({
+        organization_id: input.organizationId,
+        property_id: input.propertyId ?? null,
+        feature: input.feature,
+        provider: input.provider,
+        model: input.model,
+        estimated_cost_usd: 0,
+        credits_consumed: 0,
+        cost_basis: 'tokens',
+        actor_user_id: input.actorUserId ?? null,
+        actor_type: input.actorType ?? null,
+        status: 'error',
+        error_code: input.errorCode.slice(0, 64),
+        ...traceColumns(input.trace, false),
+      });
+    if (error) console.warn('[aiUsageService] failure event insert failed:', error.message);
+  } catch (err) {
+    console.warn('[aiUsageService] recordAiFailure failed (non-fatal):', (err as Error).message);
+  }
 }
 
 export async function recordAiUsageOptional(

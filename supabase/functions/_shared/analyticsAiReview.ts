@@ -6,23 +6,23 @@
  * things to avoid — each grounded in the actual numbers, state-appropriate (yield guidance
  * when fully booked, not a generic occupancy-boosting tip), and citing *why* a metric moved
  * when a matching activity_log event exists. Advisory only — NEVER writes a setting or rate.
- * Any failure (no keys, quota, kill switch, bad JSON) -> null; caller shows the deterministic
- * bundle only. Pattern mirrors smartPricingAi.ts exactly.
+ * Any failure (no keys, quota, kill switch, invalid output) -> null; caller shows the
+ * deterministic bundle only. Calls go through the AI gateway (_shared/ai/llmClient.ts).
  */
 
-import {
-  extractGeminiText,
-  extractGeminiUsage,
-  getGeminiApiKeys,
-  nextGeminiKeyStartIndex,
-} from './aiGeminiKeys.ts';
-import { geminiGenerateContentUrl, getModelConfig } from './aiModelRouter.ts';
+import { z } from 'zod';
+
+import { generateStructured } from './ai/llmClient.ts';
+import { definePrompt } from './ai/prompt.ts';
 import type { AnalyticsBundle } from './analyticsService.ts';
-import { assertOrgAndPropertyAiQuota, recordAiUsage } from './aiUsageService.ts';
+import { assertOrgAndPropertyAiQuota } from './aiUsageService.ts';
 
 const FEATURE = 'host_analytics' as const;
-const CONFIG = getModelConfig(FEATURE);
-const GEMINI_URL = geminiGenerateContentUrl(CONFIG.model);
+
+export const ANALYTICS_REVIEW_PROMPT = definePrompt({
+  id: 'host_analytics_review',
+  version: '2026-09-24.1',
+});
 
 /** Small allow-list the model picks from — never lets it emit an arbitrary URL. */
 export const ANALYTICS_DEEP_LINK_ROUTES = {
@@ -115,7 +115,20 @@ export type AnalyticsAiReviewOutput = {
 export type AnalyticsAiReviewResult = {
   output: AnalyticsAiReviewOutput;
   creditsConsumed: number;
+  /** Model that actually produced the review (router model or override). */
+  model: string;
 };
+
+/** Structural contract; field-level caps and allow-lists are applied in shapeOutput. */
+const AnalyticsReviewResponse = z
+  .object({
+    headline: z.string(),
+    score: z.number(),
+    strengths: z.array(z.unknown()),
+    improvements: z.array(z.unknown()),
+    avoid: z.array(z.unknown()).default([]),
+  })
+  .passthrough();
 
 function buildPrompt(args: {
   bundle: AnalyticsBundle;
@@ -171,13 +184,6 @@ function buildPrompt(args: {
   ].join('\n');
 
   return { system, user };
-}
-
-function parseJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed);
-  const candidate = fence?.[1]?.trim() || trimmed.match(/\{[\s\S]*\}/)?.[0] || trimmed;
-  return JSON.parse(candidate);
 }
 
 function resolveDeepLink(routeKey: unknown, orgSlug: string, propertySlug: string): string | null {
@@ -261,9 +267,6 @@ export async function maybeRunAnalyticsAiReview(args: {
    *  [] to skip article citation for this review. */
   playbookArticles?: AnalyticsPlaybookHint[];
 }): Promise<AnalyticsAiReviewResult | null> {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) return null;
-
   try {
     await assertOrgAndPropertyAiQuota(args.organizationId, args.propertyId, FEATURE);
   } catch {
@@ -279,56 +282,31 @@ export async function maybeRunAnalyticsAiReview(args: {
     activitySummaries: args.activitySummaries,
     playbookArticles,
   });
-  const startIdx = nextGeminiKeyStartIndex(keys.length);
-
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const apiKey = keys[(startIdx + attempt) % keys.length]!;
-    try {
-      const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: user }] }],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: CONFIG.defaultMaxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: RESPONSE_SCHEMA,
-            thinkingConfig: { thinkingBudget: CONFIG.thinkingBudget },
-          },
-        }),
-      });
-      if (res.status === 429) continue;
-      if (!res.ok) return null;
-
-      const json = await res.json();
-      const text = extractGeminiText(json);
-      if (!text) continue;
-
-      const parsed = parseJson(text);
-      const usage = extractGeminiUsage(json);
-      const { creditsConsumed } = await recordAiUsage({
+  try {
+    const result = await generateStructured({
+      feature: FEATURE,
+      prompt: ANALYTICS_REVIEW_PROMPT,
+      system,
+      user,
+      temperature: 0.4,
+      schema: AnalyticsReviewResponse,
+      jsonSchema: RESPONSE_SCHEMA,
+      billing: {
         organizationId: args.organizationId,
         propertyId: args.propertyId,
-        feature: FEATURE,
-        provider: 'gemini',
-        model: CONFIG.model,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
         actorType: 'system',
-      });
-
-      return {
-        output: shapeOutput(parsed, args.orgSlug, args.propertySlug, validArticleSlugs),
-        creditsConsumed,
-      };
-    } catch {
-      /* try next key */
-    }
+        quotaChecked: true,
+      },
+    });
+    return {
+      output: shapeOutput(result.data, args.orgSlug, args.propertySlug, validArticleSlugs),
+      creditsConsumed: result.creditsConsumed,
+      model: result.model,
+    };
+  } catch (err) {
+    console.warn('[analyticsAiReview] AI pass failed:', (err as Error).message);
+    return null;
   }
-
-  return null;
 }
 
 export type AnalyticsReviewRow = {

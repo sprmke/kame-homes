@@ -1,31 +1,27 @@
 /**
- * Smart Pricing — optional AI rationale + sanity pass (Gemini, Groq fallback).
+ * Smart Pricing — optional AI rationale + sanity pass (via the AI gateway).
  *
  * Additive only: takes the deterministic engine's computed curve and returns
  *   - a short plain-language rationale per season bucket
  *   - warnings where the curve looks off vs. the property's realised history
  *   - suggested min / max price when the host left them blank
- * It NEVER changes a rate. Any failure (no keys, quota, kill switch, bad JSON) → null,
+ * It NEVER changes a rate. Any failure (no keys, quota, kill switch, invalid output) → null,
  * and the caller falls back to engine-only output.
  */
 
-import {
-  extractGeminiText,
-  extractGeminiUsage,
-  getGeminiApiKeys,
-  nextGeminiKeyStartIndex,
-} from './aiGeminiKeys.ts';
-import { geminiGenerateContentUrl, getModelConfig } from './aiModelRouter.ts';
-import {
-  assertOrgAndPropertyAiQuota,
-  recordAiUsage,
-  resolveOrgIdForProperty,
-} from './aiUsageService.ts';
+import { z } from 'zod';
+
+import { generateStructured, parseModelJson } from './ai/llmClient.ts';
+import { definePrompt } from './ai/prompt.ts';
+import { assertOrgAndPropertyAiQuota, resolveOrgIdForProperty } from './aiUsageService.ts';
 import type { SmartPricingAiOutput, SmartPricingComputation } from './smartPricingRun.ts';
 
 const FEATURE = 'smart_pricing' as const;
-const CONFIG = getModelConfig(FEATURE);
-const GEMINI_URL = geminiGenerateContentUrl(CONFIG.model);
+
+export const SMART_PRICING_PROMPT = definePrompt({
+  id: 'smart_pricing_rationale',
+  version: '2026-09-24.1',
+});
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -114,17 +110,38 @@ export function buildSmartPricingAiPrompt(comp: SmartPricingComputation): {
   return { system, user };
 }
 
+/** Tolerant JSON parse (bare, fenced or embedded). Throws when nothing parses. */
 export function parseSmartPricingAiJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed);
-  const candidate = fence?.[1]?.trim() || trimmed.match(/\{[\s\S]*\}/)?.[0] || trimmed;
-  return JSON.parse(candidate);
+  const parsed = parseModelJson(text);
+  if (parsed === undefined) throw new SyntaxError('Smart pricing AI returned no JSON');
+  return parsed;
+}
+
+/**
+ * Business-rule bounds for the model's suggested floor/ceiling, relative to the property's own
+ * base rates: floor within [0.3x, 1x] of base, ceiling within [1x, 5x], and floor < ceiling.
+ * Anything outside is dropped rather than shown to the host.
+ */
+function clampSuggestedBounds(
+  min: number | null,
+  max: number | null,
+  base: { weekday: number; weekend: number } | undefined
+): { min: number | null; max: number | null } {
+  if (!base) return { min, max };
+  const low = Math.min(base.weekday, base.weekend);
+  const high = Math.max(base.weekday, base.weekend);
+  if (!(low > 0)) return { min, max };
+  const safeMin = min != null && min >= low * 0.3 && min <= high ? min : null;
+  const safeMax = max != null && max >= low && max <= high * 5 ? max : null;
+  if (safeMin != null && safeMax != null && safeMin >= safeMax) return { min: null, max: null };
+  return { min: safeMin, max: safeMax };
 }
 
 export function shapeSmartPricingAiOutput(
   raw: unknown,
   hostMinSet: boolean,
-  hostMaxSet: boolean
+  hostMaxSet: boolean,
+  baseRate?: { weekday: number; weekend: number }
 ): SmartPricingAiOutput {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const rationales = Array.isArray(obj.seasonRationales) ? obj.seasonRationales : [];
@@ -133,6 +150,11 @@ export function shapeSmartPricingAiOutput(
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
   };
+  const bounds = clampSuggestedBounds(
+    hostMinSet ? null : numOrNull(obj.suggestedMinPrice),
+    hostMaxSet ? null : numOrNull(obj.suggestedMaxPrice),
+    baseRate
+  );
   return {
     seasonRationales: rationales
       .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === 'object')
@@ -147,10 +169,20 @@ export function shapeSmartPricingAiOutput(
       .map((w) => w.slice(0, 240))
       .filter(Boolean)
       .slice(0, 4),
-    suggestedMinPrice: hostMinSet ? null : numOrNull(obj.suggestedMinPrice),
-    suggestedMaxPrice: hostMaxSet ? null : numOrNull(obj.suggestedMaxPrice),
+    suggestedMinPrice: bounds.min,
+    suggestedMaxPrice: bounds.max,
   };
 }
+
+/** Structural contract; caps, rounding and price bounds are applied in shapeSmartPricingAiOutput. */
+const SmartPricingAiResponse = z
+  .object({
+    seasonRationales: z.array(z.unknown()),
+    warnings: z.array(z.unknown()),
+    suggestedMinPrice: z.number().nullable().optional(),
+    suggestedMaxPrice: z.number().nullable().optional(),
+  })
+  .passthrough();
 
 export type SmartPricingAiResult = {
   output: SmartPricingAiOutput;
@@ -162,9 +194,6 @@ export async function maybeRunSmartPricingAi(
   propertyId: string,
   comp: SmartPricingComputation
 ): Promise<SmartPricingAiResult | null> {
-  const keys = getGeminiApiKeys();
-  if (keys.length === 0) return null;
-
   const organizationId = await resolveOrgIdForProperty(propertyId);
   if (!organizationId) return null;
 
@@ -175,58 +204,28 @@ export async function maybeRunSmartPricingAi(
   }
 
   const { system, user } = buildSmartPricingAiPrompt(comp);
-  const startIdx = nextGeminiKeyStartIndex(keys.length);
-
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const apiKey = keys[(startIdx + attempt) % keys.length]!;
-    try {
-      const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: user }] }],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: CONFIG.defaultMaxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: RESPONSE_SCHEMA,
-            thinkingConfig: { thinkingBudget: CONFIG.thinkingBudget },
-          },
-        }),
-      });
-      if (res.status === 429) continue;
-      if (!res.ok) return null;
-
-      const json = await res.json();
-      const text = extractGeminiText(json);
-      if (!text) continue;
-
-      const parsed = parseSmartPricingAiJson(text);
-      const usage = extractGeminiUsage(json);
-      const { creditsConsumed } = await recordAiUsage({
-        organizationId,
-        propertyId,
-        feature: FEATURE,
-        provider: 'gemini',
-        model: CONFIG.model,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        actorType: 'system',
-      });
-
-      return {
-        output: shapeSmartPricingAiOutput(
-          parsed,
-          comp.settings.minPrice != null,
-          comp.settings.maxPrice != null
-        ),
-        creditsConsumed,
-      };
-    } catch {
-      /* try next key */
-    }
+  try {
+    const result = await generateStructured({
+      feature: FEATURE,
+      prompt: SMART_PRICING_PROMPT,
+      system,
+      user,
+      temperature: 0.4,
+      schema: SmartPricingAiResponse,
+      jsonSchema: RESPONSE_SCHEMA,
+      billing: { organizationId, propertyId, actorType: 'system', quotaChecked: true },
+    });
+    return {
+      output: shapeSmartPricingAiOutput(
+        result.data,
+        comp.settings.minPrice != null,
+        comp.settings.maxPrice != null,
+        comp.base
+      ),
+      creditsConsumed: result.creditsConsumed,
+    };
+  } catch (err) {
+    console.warn('[smartPricingAi] AI pass failed:', (err as Error).message);
+    return null;
   }
-
-  return null;
 }

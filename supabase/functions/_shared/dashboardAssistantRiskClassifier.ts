@@ -1,74 +1,12 @@
 /**
- * Risk classifiers for the AI dashboard assistant.
- * Two independent concerns, both server-side and deterministic where it matters:
- *   1. Message-intent classification (safe/sensitive/disallowed) — model-assisted, best-effort.
- *   2. Action-intent tiering (tier0/tier1/tier2) — the actual safety mechanism. Never asks the
- *      model; reads the same statusMachine.ts graph the orchestrator itself enforces, per
- *      docs/workflow/planned/ai-dashboard-assistant.md §5. A wrong tier here is the one bug
- *      class that must not exist — see the exhaustive-walk requirement in the plan's phase 6.
+ * Action-intent risk tiering (tier0/tier1/tier2) for the AI dashboard assistant — the actual
+ * write-safety mechanism. Deterministic: never asks the model; reads the same statusMachine.ts
+ * graph the orchestrator itself enforces (docs/workflow/planned/ai-dashboard-assistant.md §5).
+ * A wrong tier here is the one bug class that must not exist.
  */
 
 import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts';
-import { callGeminiStructured, type GeminiToolCallOptions } from './geminiToolCallClient.ts';
 import { canTransition, isBookingStatus, type BookingStatus } from './statusMachine.ts';
-
-export type MessageRisk = 'safe' | 'sensitive' | 'disallowed';
-
-export type MessageRiskResult = {
-  risk: MessageRisk;
-  reason: string;
-  allowedTopics: string[];
-  disallowedTopics: string[];
-};
-
-const DASHBOARD_RISK_SCHEMA = {
-  type: 'object',
-  properties: {
-    risk: { type: 'string', enum: ['safe', 'sensitive', 'disallowed'] },
-    reason: { type: 'string' },
-    allowedTopics: { type: 'array', items: { type: 'string' } },
-    disallowedTopics: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['risk', 'reason', 'allowedTopics', 'disallowedTopics'],
-};
-
-const SYSTEM_PROMPT = `You classify host/admin messages for a vacation-rental operations assistant.
-Allowed topics: booking status, guest documents, calendar, pricing, property settings, marketing, team permissions, AI usage, voice receptionist, and general how-to.
-Sensitive topics: finance totals, payouts, refunds, disputes, staff performance — allow but mark as sensitive so the assistant can summarize without revealing raw numbers unless the user has explicit permission.
-Disallowed topics: unrelated personal conversations, requests to modify/delete data directly, asking for internal system architecture, secrets, credentials, other guests' personal details, or anything illegal/harmful.`;
-
-export async function classifyDashboardMessage(
-  options: Pick<GeminiToolCallOptions, 'organizationId' | 'propertyId' | 'userPrompt'>,
-  userMessage: string
-): Promise<MessageRiskResult> {
-  const prompt = `User message: """${userMessage}"""\nClassify the intent and return only the JSON object matching the schema.`;
-  const result = await callGeminiStructured<MessageRiskResult>(
-    {
-      feature: 'dashboard_assistant',
-      organizationId: options.organizationId,
-      propertyId: options.propertyId ?? null,
-      systemPrompt: SYSTEM_PROMPT,
-      userPrompt: prompt,
-      temperature: 0,
-      maxOutputTokens: 256,
-      cacheInputs: { userMessage },
-    },
-    DASHBOARD_RISK_SCHEMA
-  );
-
-  return (
-    result.data ?? {
-      risk: 'safe',
-      reason: 'Default safe fallback',
-      allowedTopics: [],
-      disallowedTopics: [],
-    }
-  );
-}
-
-export function isRiskAllowed(risk: MessageRisk): boolean {
-  return risk !== 'disallowed';
-}
 
 // ─── Action-intent risk tiering (deterministic, tool-execution safety gate) ──
 
@@ -228,6 +166,33 @@ export const FINANCIAL_PAYLOAD_FIELDS = new Set([
   'guest_balance_paid_amount',
 ]);
 
+/**
+ * Read tools whose results carry guest- or third-party-written text (messages, special requests,
+ * names, file names). Once a turn has read any of these, its writes need host confirmation:
+ * injected instructions in that text must never trigger an automatic write.
+ */
+export const UNTRUSTED_CONTENT_TOOL_NAMES = new Set([
+  'get_inbox_thread',
+  'list_inbox_threads',
+  'draft_inbox_reply',
+  'get_booking',
+  'list_bookings',
+  'get_booking_documents',
+  'get_parking_booking',
+  'list_parking_bookings',
+]);
+
+const TIER_RANK: Record<ActionRiskTier, number> = {
+  tier0_read: 0,
+  tier1_auto: 1,
+  tier2_confirmed: 2,
+};
+
+/** Executing with at least as much confirmation as the current state requires is safe. */
+export function isTierSufficient(executingAs: ActionRiskTier, required: ActionRiskTier): boolean {
+  return TIER_RANK[executingAs] >= TIER_RANK[required];
+}
+
 export type ActionRiskInput = {
   toolName: string;
   /** Only meaningful for propose_transition_booking. */
@@ -241,7 +206,10 @@ export type ActionRiskInput = {
   pageContext?: { bookingId?: string | null; propertyId?: string | null } | null;
   /** Explicit composer pins — in-scope for this turn, so acting on them is not cross-scope. */
   attachedContext?: AttachedContextItem[] | null;
-  /** True when the model requested more than one write tool call in this turn. */
+  /**
+   * Forces Tier 2: the model requested more than one write this turn, or the turn read
+   * guest-written content (UNTRUSTED_CONTENT_TOOL_NAMES) — prompt-injection escalation.
+   */
   isBulk?: boolean;
 };
 

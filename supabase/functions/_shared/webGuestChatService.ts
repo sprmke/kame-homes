@@ -12,6 +12,7 @@ import {
   updateConversationAfterMessage,
   upsertConversation,
 } from './socialInboxService.ts';
+import { runAfterResponse } from './backgroundTask.ts';
 import { maybeAutoReplyToWebInbound } from './webInboxAutoReply.ts';
 import {
   createOrCoalesceNotification,
@@ -454,11 +455,10 @@ export async function sendGuestWebMessage(
     unread_delta: 1,
   });
 
-  try {
-    await maybeAutoReplyToWebInbound(conv.organization_id, conv.id, externalId);
-  } catch (autoErr) {
-    console.warn('[webGuestChat] auto-reply:', autoErr);
-  }
+  // After the response — the guest's send must not wait on the AI model.
+  await runAfterResponse('webGuestChat auto-reply', () =>
+    maybeAutoReplyToWebInbound(conv.organization_id, conv.id, externalId)
+  );
 
   try {
     const { notifyTelegramChatInbound } = await import('./telegramChat.ts');

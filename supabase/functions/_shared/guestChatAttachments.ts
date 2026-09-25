@@ -38,12 +38,18 @@ export function parseGuestWebChatAttachments(raw: unknown): NormalizedInboxAttac
   return out;
 }
 
+/** Bounds stored chat text and what reaches the inbox AI transcript. */
+export const MAX_WEB_MESSAGE_CHARS = 4_000;
+
 export function assertGuestWebMessagePayload(
   text: string,
   attachments: NormalizedInboxAttachment[]
 ): void {
   if (!text.trim() && attachments.length === 0) {
     throw new Error('Message text or attachment required');
+  }
+  if (text.length > MAX_WEB_MESSAGE_CHARS) {
+    throw new Error(`Message is too long (max ${MAX_WEB_MESSAGE_CHARS} characters)`);
   }
   if (attachments.length > MAX_ATTACHMENTS) {
     throw new Error(`Up to ${MAX_ATTACHMENTS} attachments per message`);
