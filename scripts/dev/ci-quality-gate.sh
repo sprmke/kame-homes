@@ -50,6 +50,7 @@ run_step "vercel cache/security headers" bash scripts/dev/check-vercel-headers.s
 run_step "CSP theme script hash (production-readiness doc 22)" bash scripts/dev/check-csp-theme-hash.sh
 run_step "storage upload cacheControl" node scripts/dev/check-storage-cache-control.mjs
 run_step "edge serve-wrapper allowlist" node scripts/dev/audit-edge-functions.mjs --check
+run_step "AI gateway guard" node scripts/dev/check-ai-gateway.mjs
 run_step "auth matrix — zero-authz-signal guard (production-readiness doc 21)" \
   node scripts/dev/audit-auth-matrix.mjs --check
 run_step "edge handler tests (Deno)" bun run test:edge:handlers

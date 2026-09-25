@@ -101,6 +101,9 @@ jobs:
       - name: Edge function serve-wrapper allowlist
         run: node scripts/dev/audit-edge-functions.mjs --check
 
+      - name: AI gateway guard (all model calls via _shared/ai)
+        run: node scripts/dev/check-ai-gateway.mjs
+
       - name: Auth matrix — zero-authz-signal guard (production-readiness doc 21)
         run: node scripts/dev/audit-auth-matrix.mjs --check
 
