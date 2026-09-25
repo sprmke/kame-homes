@@ -54,6 +54,8 @@ function job(overrides: Partial<MarketingGenerationJob> = {}): MarketingGenerati
     jobStatus: 'completed',
     prompt: 'Balcony at dusk',
     negativePrompt: null,
+    enhancedPrompt: null,
+    promptEnhanced: false,
     model: 'gemini-3.1-flash-image',
     qualityTier: 'standard',
     aspectRatio: '4:5',

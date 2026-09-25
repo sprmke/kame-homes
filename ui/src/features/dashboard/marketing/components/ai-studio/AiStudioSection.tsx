@@ -18,6 +18,7 @@ import {
   fileNameForGeneratedReference,
   type AiStudioComposerDraft,
 } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
+import { maxReferencesForTier } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import { isGenerationInFlight } from '@/features/dashboard/marketing/lib/marketingGenerationProgress';
 import type {
   MarketingGenerationJob,
@@ -57,6 +58,7 @@ export function AiStudioSection({ onPublish }: Props) {
     reference: MarketingGenerationReference;
   } | null>(null);
   const [usingAsPhotoJobId, setUsingAsPhotoJobId] = useState<string | null>(null);
+  const [refiningJobId, setRefiningJobId] = useState<string | null>(null);
   const draftSeq = useRef(0);
   const photoSeq = useRef(0);
 
@@ -92,17 +94,26 @@ export function AiStudioSection({ onPublish }: Props) {
     scrollToComposer();
   };
 
+  /** Shared by Use photo and Refine — both need the completed output uploaded into
+   *  the reference library before it can be attached to a new generation. */
+  const uploadJobOutputAsReference = async (
+    job: MarketingGenerationJob
+  ): Promise<MarketingGenerationReference> => {
+    if (!job.outputUrl) throw new Error('This generation has no output to reuse');
+    const response = await fetch(job.outputUrl);
+    if (!response.ok) throw new Error('Could not load the generated file');
+    const blob = await response.blob();
+    const file = new File([blob], fileNameForGeneratedReference(job), {
+      type: blob.type || job.outputMimeType || 'image/jpeg',
+    });
+    return uploadReference.mutateAsync(file);
+  };
+
   const handleUseAsPhoto = async (job: MarketingGenerationJob) => {
     if (!job.outputUrl || job.mediaType !== 'image') return;
     setUsingAsPhotoJobId(job.id);
     try {
-      const response = await fetch(job.outputUrl);
-      if (!response.ok) throw new Error('Could not load the generated file');
-      const blob = await response.blob();
-      const file = new File([blob], fileNameForGeneratedReference(job), {
-        type: blob.type || job.outputMimeType || 'image/jpeg',
-      });
-      const reference = await uploadReference.mutateAsync(file);
+      const reference = await uploadJobOutputAsReference(job);
       photoSeq.current += 1;
       setPendingReference({ id: photoSeq.current, reference });
       scrollToComposer();
@@ -110,6 +121,48 @@ export function AiStudioSection({ onPublish }: Props) {
       toast.error((error as Error).message || 'Could not use that photo');
     } finally {
       setUsingAsPhotoJobId(null);
+    }
+  };
+
+  /**
+   * "Refine" — the closer of the two independent flows above to a reproducible
+   * re-roll (Gemini's image endpoint has no `seed` parameter, so anchoring the next
+   * generation to the exact output the host is refining, via the same inline-image
+   * mechanism the reference-photo flow already uses, is the real available lever).
+   * One action: restore the prompt/options into a fresh composer draft (same as
+   * Retry) AND seed the completed image itself as a reference (same upload as Use
+   * photo), so the host's next Generate is anchored to what they just got instead
+   * of starting over from a bare prompt.
+   */
+  const handleRefine = async (job: MarketingGenerationJob) => {
+    if (!job.outputUrl || job.mediaType !== 'image') return;
+    setRefiningJobId(job.id);
+    try {
+      const reference = await uploadJobOutputAsReference(job);
+
+      draftSeq.current += 1;
+      const baseValues = composerValuesFromJob(job, library, {
+        allowPremium: allowPremiumImage,
+        allowHighResolution: videoPlanAllowed,
+      });
+      const cap = maxReferencesForTier(baseValues.qualityTier);
+      setDraft({
+        id: draftSeq.current,
+        values: {
+          ...baseValues,
+          // Prefer the enhanced prompt the host actually got, when it ran — editing
+          // from the fuller description is a better refine starting point than
+          // re-typing the original shorthand. Falls back to the host's own prompt
+          // when enhancement was off, skipped, or failed open (enhancedPrompt null).
+          prompt: job.enhancedPrompt ?? job.prompt,
+          references: [reference, ...baseValues.references].slice(0, cap),
+        },
+      });
+      scrollToComposer();
+    } catch (error) {
+      toast.error((error as Error).message || 'Could not refine that generation');
+    } finally {
+      setRefiningJobId(null);
     }
   };
 
@@ -160,6 +213,8 @@ export function AiStudioSection({ onPublish }: Props) {
           onRetry={handleRetry}
           onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
           usingAsPhotoJobId={usingAsPhotoJobId}
+          onRefine={(job) => void handleRefine(job)}
+          refiningJobId={refiningJobId}
           pendingStage={
             showPendingCard ? (
               <AiStudioGeneratingStage variant="card" mediaType={pendingMediaType} />

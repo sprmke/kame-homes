@@ -60,12 +60,86 @@ export function maxReferencesForTier(tier: MarketingGenerationTier): number {
   return IMAGE_MAX_REFERENCES_BY_TIER[tier];
 }
 
-/** Prompt starters (chips). Keep shorter than the textarea placeholder. */
-export const IMAGE_PROMPT_STARTERS: string[] = [
-  'Bright living room, morning light',
-  'Poolside evening with warm lights',
-  'Cozy window seat on a rainy day',
-  'Entryway walk-in, soft daylight',
+export type ImageStylePreset = {
+  id: string;
+  title: string;
+  /** A fuller, tested scene-description fragment — not shorthand like the starters
+   *  above. Still runs through server-side prompt enhancement like anything else
+   *  the host submits, but is written to already carry real photographic direction
+   *  (lighting, camera framing, mood) rather than a bare subject. */
+  prompt: string;
+};
+
+/** Featured count shown before the composer's "More styles" toggle. */
+export const IMAGE_STYLE_PRESETS_PREVIEW_COUNT = 4;
+
+/**
+ * Curated photographic style presets for the Generate tab (Phase 3b of the
+ * quality-hardening plan) — real-estate/hospitality photography conventions:
+ * wide-angle interiors, golden-hour or bright diffused daylight, level verticals,
+ * styled-but-lived-in framing. First 4 are featured; the rest sit behind "More".
+ */
+export const IMAGE_STYLE_PRESETS: ImageStylePreset[] = [
+  {
+    id: 'golden-hour-interior',
+    title: 'Golden Hour Interior',
+    prompt:
+      'Wide-angle interior shot, warm late-afternoon sunlight streaming through the windows, long soft shadows, cozy and inviting, styled but lived-in',
+  },
+  {
+    id: 'bright-scandinavian',
+    title: 'Bright Scandinavian Morning',
+    prompt:
+      'Bright, airy interior in soft diffused morning daylight, clean minimal styling, light wood tones and white linens, calm and fresh',
+  },
+  {
+    id: 'poolside-evening',
+    title: 'Poolside Evening',
+    prompt:
+      'Poolside at dusk, warm string lights and ambient lounge lighting reflecting off the water, inviting resort atmosphere',
+  },
+  {
+    id: 'editorial-wide',
+    title: 'Editorial Wide',
+    prompt:
+      'Wide establishing shot of the space from a low, level angle, architectural composition, natural light, magazine-editorial feel',
+  },
+  {
+    id: 'rainy-day-cozy',
+    title: 'Rainy Day Cozy',
+    prompt:
+      'Interior view with a rain-streaked window in the frame, warm lamplight inside contrasting the gray daylight outside, cozy and intimate',
+  },
+  {
+    id: 'blue-hour-view',
+    title: 'Blue Hour View',
+    prompt:
+      'Balcony or rooftop view at blue hour just after sunset, city or skyline lights beginning to glow, cool ambient sky, warm interior light spilling out',
+  },
+  {
+    id: 'sunlit-detail',
+    title: 'Sunlit Detail',
+    prompt:
+      'Close-up detail shot of styling and textures — linens, ceramics, or furniture finish — in soft directional sunlight, shallow depth of field',
+  },
+  {
+    id: 'crisp-daylight-bedroom',
+    title: 'Crisp Daylight Bedroom',
+    prompt:
+      'Bedroom in crisp bright daylight, crisp white linens with visible fabric texture, minimal styling, calm and restful mood',
+  },
+  {
+    id: 'kitchen-afternoon-sun',
+    title: 'Kitchen Afternoon Sun',
+    prompt:
+      'Kitchen island scene in warm afternoon sun, natural light raking across the countertop, homey and welcoming',
+  },
+  {
+    id: 'moody-evening-lounge',
+    title: 'Moody Evening Lounge',
+    prompt:
+      'Living or lounge area at night with warm layered lamplight, dim ambient mood, relaxed and intimate atmosphere',
+  },
 ];
 
 /**

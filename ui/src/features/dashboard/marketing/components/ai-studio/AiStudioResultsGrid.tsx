@@ -19,6 +19,8 @@ type Props = {
   onRetry?: (job: MarketingGenerationJob) => void;
   onUseAsPhoto?: (job: MarketingGenerationJob) => void;
   usingAsPhotoJobId?: string | null;
+  onRefine?: (job: MarketingGenerationJob) => void;
+  refiningJobId?: string | null;
   emptyState: ReactNode;
   /** Optimistic generating card while the POST is in flight (before the job row exists). */
   pendingStage?: ReactNode;
@@ -37,6 +39,8 @@ export function AiStudioResultsGrid({
   onRetry,
   onUseAsPhoto,
   usingAsPhotoJobId = null,
+  onRefine,
+  refiningJobId = null,
   emptyState,
   pendingStage,
 }: Props) {
@@ -73,6 +77,8 @@ export function AiStudioResultsGrid({
             onRetry={onRetry}
             onUseAsPhoto={onUseAsPhoto}
             usingAsPhoto={usingAsPhotoJobId === job.id}
+            onRefine={onRefine}
+            refining={refiningJobId === job.id}
           />
         ))}
       </div>

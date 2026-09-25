@@ -1,6 +1,16 @@
 import { useState } from 'react';
 
-import { Download, Loader2, Send, Trash2, AlertTriangle, ImagePlus, RotateCcw } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Loader2,
+  Send,
+  Sparkles,
+  Trash2,
+  AlertTriangle,
+  ImagePlus,
+  RotateCcw,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
@@ -27,6 +37,8 @@ type Props = {
   onRetry?: (job: MarketingGenerationJob) => void;
   onUseAsPhoto?: (job: MarketingGenerationJob) => void;
   usingAsPhoto?: boolean;
+  onRefine?: (job: MarketingGenerationJob) => void;
+  refining?: boolean;
 };
 
 export function AiStudioJobCard({
@@ -38,6 +50,8 @@ export function AiStudioJobCard({
   onRetry,
   onUseAsPhoto,
   usingAsPhoto = false,
+  onRefine,
+  refining = false,
 }: Props) {
   const live = useMarketingGenerationJob(isGenerationInFlight(initialJob) ? initialJob.id : null);
   const job = live.data ?? initialJob;
@@ -55,6 +69,12 @@ export function AiStudioJobCard({
     job.mediaType === 'image' &&
     Boolean(job.outputUrl) &&
     Boolean(onUseAsPhoto);
+  const showRefine =
+    canGenerate &&
+    !inFlight &&
+    job.mediaType === 'image' &&
+    Boolean(job.outputUrl) &&
+    Boolean(onRefine);
 
   const handlePublish = async () => {
     if (!job.outputUrl) return;
@@ -67,6 +87,16 @@ export function AiStudioJobCard({
       toast.error((error as Error).message);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleCopyEnhancedPrompt = async () => {
+    if (!job.enhancedPrompt) return;
+    try {
+      await navigator.clipboard.writeText(job.enhancedPrompt);
+      toast.success('Prompt copied');
+    } catch {
+      toast.error('Could not copy the prompt');
     }
   };
 
@@ -111,6 +141,13 @@ export function AiStudioJobCard({
       <div className="space-y-2 p-3">
         <p className="text-foreground line-clamp-2 text-xs">{job.prompt}</p>
 
+        {job.promptEnhanced && job.enhancedPrompt && (
+          <EnhancedPromptDisclosure
+            enhancedPrompt={job.enhancedPrompt}
+            onCopy={() => void handleCopyEnhancedPrompt()}
+          />
+        )}
+
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
           <span>{generationStatusLabel(job)}</span>
           {job.creditsConsumed != null && <span>{job.creditsConsumed} credits</span>}
@@ -149,8 +186,25 @@ export function AiStudioJobCard({
           </div>
         )}
 
-        {(showRetry || showUseAsPhoto) && (
+        {(showRetry || showUseAsPhoto || showRefine) && (
           <div className="flex flex-wrap gap-1.5">
+            {showRefine && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-[44px] flex-1"
+                disabled={refining}
+                onClick={() => onRefine?.(job)}
+              >
+                {refining ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                Refine
+              </Button>
+            )}
             {showRetry && (
               <Button
                 type="button"
@@ -197,5 +251,39 @@ export function AiStudioJobCard({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Phase 6d transparency — shows the full scene description that actually reached
+ * the image model when enhancement ran, so the host can see what changed and copy
+ * it as a starting point. Collapsed by default: most hosts never need to look, and
+ * a card-sized prompt block would dominate the layout otherwise.
+ */
+function EnhancedPromptDisclosure({
+  enhancedPrompt,
+  onCopy,
+}: {
+  enhancedPrompt: string;
+  onCopy: () => void;
+}) {
+  return (
+    <details className="group">
+      <summary className="text-muted-foreground hover:text-foreground flex min-h-[44px] cursor-pointer list-none items-center gap-1 text-[11px] font-medium">
+        <Sparkles className="size-3" />
+        Enhanced prompt
+      </summary>
+      <div className="border-border/60 mt-1.5 space-y-1.5 rounded-lg border p-2">
+        <p className="text-muted-foreground text-[11px] leading-relaxed">{enhancedPrompt}</p>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="text-primary hover:text-primary/80 flex min-h-[44px] items-center gap-1 text-[11px] font-medium"
+        >
+          <Copy className="size-3" />
+          Copy
+        </button>
+      </div>
+    </details>
   );
 }

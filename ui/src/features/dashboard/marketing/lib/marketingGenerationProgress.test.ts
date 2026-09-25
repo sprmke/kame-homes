@@ -13,6 +13,8 @@ function job(overrides: Partial<MarketingGenerationJob>): MarketingGenerationJob
     jobStatus: 'failed',
     prompt: 'sunset patio',
     negativePrompt: null,
+    enhancedPrompt: null,
+    promptEnhanced: false,
     model: 'gemini-3.1-flash-image',
     qualityTier: 'standard',
     aspectRatio: '1:1',

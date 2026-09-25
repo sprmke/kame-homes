@@ -28,6 +28,9 @@ export type GenerateMarketingMediaPayload = {
   resolution?: VideoResolution;
   durationSeconds?: VideoDuration;
   referenceIds?: string[];
+  /** Image only. Defaults to true server-side — omit to get the default (Decision 1,
+   *  quality-hardening plan). Pass false to send the prompt verbatim, unenhanced. */
+  enhancePrompt?: boolean;
 };
 
 export function useGenerateMarketingMedia() {

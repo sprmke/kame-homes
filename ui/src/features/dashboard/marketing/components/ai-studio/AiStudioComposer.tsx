@@ -10,8 +10,9 @@ import { AiStudioVideoOptionsBar } from '@/features/dashboard/marketing/componen
 import type { GenerateMarketingMediaPayload } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
 import type { AiStudioComposerDraft } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
 import {
-  IMAGE_PROMPT_STARTERS,
   IMAGE_SIZE_LABELS,
+  IMAGE_STYLE_PRESETS,
+  IMAGE_STYLE_PRESETS_PREVIEW_COUNT,
   VIDEO_DURATION_LABELS,
   VIDEO_MAX_REFERENCES,
   VIDEO_PROMPT_STARTERS,
@@ -44,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +87,8 @@ export function AiStudioComposer({
   const [durationSeconds, setDurationSeconds] = useState<VideoDuration>(DEFAULT_VIDEO_DURATION);
   const [references, setReferences] = useState<MarketingGenerationReference[]>([]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [enhancePrompt, setEnhancePrompt] = useState(true);
+  const [stylesExpanded, setStylesExpanded] = useState(false);
 
   const videoPermissionBlocked = !canGenerateVideo;
   const videoPlanBlocked = !videoAllowed;
@@ -92,7 +96,6 @@ export function AiStudioComposer({
   const allowPremium = isVideo ? allowPremiumVideo : allowPremiumImage;
   const maxReferences = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(tier);
   const maxPromptChars = isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS;
-  const promptStarters = isVideo ? VIDEO_PROMPT_STARTERS : IMAGE_PROMPT_STARTERS;
   const promptPlaceholder = isVideo
     ? 'Slow pan across the living room at golden hour'
     : 'Balcony at golden hour with the skyline behind it';
@@ -218,6 +221,7 @@ export function AiStudioComposer({
           aspectRatio,
           imageSize,
           referenceIds: references.map((reference) => reference.id),
+          enhancePrompt,
         });
       }}
     >
@@ -255,9 +259,39 @@ export function AiStudioComposer({
           disabled={disabled || isGenerating}
           className="border-border/80 focus-visible:ring-primary/30 min-h-[120px] resize-y rounded-xl text-sm leading-relaxed"
         />
-        {prompt.length === 0 && (
+        {prompt.length === 0 && !isVideo && (
+          <div className="space-y-1.5 pt-0.5">
+            <div className="flex flex-wrap gap-1.5">
+              {(stylesExpanded
+                ? IMAGE_STYLE_PRESETS
+                : IMAGE_STYLE_PRESETS.slice(0, IMAGE_STYLE_PRESETS_PREVIEW_COUNT)
+              ).map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => setPrompt(preset.prompt)}
+                  disabled={disabled || isGenerating}
+                  className="border-border/70 text-muted-foreground hover:bg-muted/50 hover:text-foreground min-h-[36px] rounded-full border px-3 py-1.5 text-left text-xs transition-colors"
+                >
+                  {preset.title}
+                </button>
+              ))}
+              {IMAGE_STYLE_PRESETS.length > IMAGE_STYLE_PRESETS_PREVIEW_COUNT && (
+                <button
+                  type="button"
+                  onClick={() => setStylesExpanded((current) => !current)}
+                  disabled={disabled || isGenerating}
+                  className="text-primary hover:text-primary/80 min-h-[36px] rounded-full px-2 py-1.5 text-xs font-medium transition-colors"
+                >
+                  {stylesExpanded ? 'Fewer styles' : 'More styles'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {prompt.length === 0 && isVideo && (
           <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {promptStarters.slice(0, 2).map((starter) => (
+            {VIDEO_PROMPT_STARTERS.slice(0, 2).map((starter) => (
               <button
                 key={starter}
                 type="button"
@@ -325,14 +359,33 @@ export function AiStudioComposer({
               disabled={disabled || isGenerating}
             />
           ) : (
-            <AiStudioOptionsBar
-              tier={tier}
-              onTierChange={handleTierChange}
-              imageSize={imageSize}
-              onImageSizeChange={setImageSize}
-              allowPremium={allowPremium}
-              disabled={disabled || isGenerating}
-            />
+            <div className="space-y-4">
+              <AiStudioOptionsBar
+                tier={tier}
+                onTierChange={handleTierChange}
+                imageSize={imageSize}
+                onImageSizeChange={setImageSize}
+                allowPremium={allowPremium}
+                disabled={disabled || isGenerating}
+              />
+              <div className="border-border/80 bg-card flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3">
+                <div className="min-w-0">
+                  <Label htmlFor="ai-studio-enhance-prompt" className="settings-field-label">
+                    Enhance prompt
+                  </Label>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    Expands your prompt with photographic detail before generating. Turn off to use
+                    your exact wording.
+                  </p>
+                </div>
+                <Switch
+                  id="ai-studio-enhance-prompt"
+                  checked={enhancePrompt}
+                  onCheckedChange={setEnhancePrompt}
+                  disabled={disabled || isGenerating}
+                />
+              </div>
+            </div>
           )}
         </CollapsibleContent>
       </Collapsible>
@@ -349,6 +402,11 @@ export function AiStudioComposer({
         )}
         {isGenerating ? 'Generating' : `Generate · ${credits.toLocaleString()} credits`}
       </Button>
+      {!isVideo && (
+        <p className="text-muted-foreground -mt-2 text-center text-[11px]">
+          AI-generated images include an invisible SynthID watermark.
+        </p>
+      )}
     </form>
   );
 }
