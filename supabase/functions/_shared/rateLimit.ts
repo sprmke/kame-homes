@@ -15,10 +15,15 @@
  * table must never take down a booking form. CAPTCHA + bot heuristics still run.
  *
  * Fail-open vs fail-closed (production-readiness doc 23):
- * - This primitive (public GET/write, authenticated-wrapper log-only) fails OPEN.
+ * - This primitive (public GET/write, authenticated-wrapper default) fails OPEN
+ *   on a counter/DB error. Enforcement itself (429 vs log-only) is a separate,
+ *   super-admin-controlled switch — see `platform_settings.authenticated_rate_limit_enforce`
+ *   and `serveEdge.ts`'s `enforceOrLogRateCheck`.
  * - AI spend is a different control: `assertOrgAndPropertyAiQuota` fails CLOSED
  *   before the model call (`AiQuotaExceededError` / `AiPlatformDisabledError`).
  * - Cron secret gate fails CLOSED in production when the secret is unset.
+ * - The manual block list (`rate_limit_blocks`, `isIdentityBlocked`) fails OPEN
+ *   on a read error — an outage there must not block every authenticated request.
  */
 
 import { corsHeaders } from './cors.ts';
@@ -66,6 +71,57 @@ export function identityFromRequest(req: Request, user?: { id?: string | null } 
   const uid = user?.id?.trim();
   if (uid) return `u:${uid}`;
   return `ip:${clientIpFromRequest(req)}`;
+}
+
+/**
+ * Manual super-admin block list (`rate_limit_blocks`, doc 23 Phase 23.6) — checked
+ * ahead of the rolling-window count so a super admin can immediately cut off an
+ * actively-abusive identity without waiting for a window to roll over. Short
+ * isolate-local cache (block/unblock is rare and not latency-sensitive) so this
+ * never adds a DB round-trip to the hot path for the common "not blocked" case.
+ * Fails OPEN on any error — same posture as the rest of this module.
+ */
+const BLOCK_CACHE_TTL_MS = 30_000;
+let blockedCache: { at: number; identities: Set<string> } | null = null;
+
+async function loadBlockedIdentities(
+  supabase: ReturnType<typeof createServiceClient>
+): Promise<Set<string>> {
+  const now = Date.now();
+  if (blockedCache && now - blockedCache.at < BLOCK_CACHE_TTL_MS) {
+    return blockedCache.identities;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('rate_limit_blocks')
+      .select('identity, expires_at')
+      .or(`expires_at.is.null,expires_at.gt.${new Date(now).toISOString()}`);
+    if (error) throw error;
+    const identities = new Set((data ?? []).map((row) => row.identity as string));
+    blockedCache = { at: now, identities };
+    return identities;
+  } catch (error) {
+    await capturePostHogException(error, { logPrefix: 'rateLimit:blockList' });
+    // Fail open: an outage reading the (rarely-written) block list must not
+    // itself start blocking every authenticated request.
+    return blockedCache?.identities ?? new Set();
+  }
+}
+
+/** True when `identity` is on the manual super-admin block list right now. */
+export async function isIdentityBlocked(identity: string): Promise<boolean> {
+  try {
+    const supabase = createServiceClient();
+    const identities = await loadBlockedIdentities(supabase);
+    return identities.has(identity);
+  } catch {
+    return false;
+  }
+}
+
+/** Test helper — bust the isolate-local block-list cache between Deno tests. */
+export function resetBlockedIdentitiesCacheForTests(): void {
+  blockedCache = null;
 }
 
 async function maybeSweep(supabase: ReturnType<typeof createServiceClient>): Promise<void> {

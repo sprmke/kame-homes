@@ -515,6 +515,9 @@ verify_jwt = false
 [functions.super-admin-ai-usage]
 verify_jwt = false
 
+[functions.super-admin-rate-limits]
+verify_jwt = false
+
 [functions.list-super-admin-audit]
 verify_jwt = false
 

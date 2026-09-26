@@ -36,6 +36,10 @@ ALLOWLIST=(
   # expired rows, capped by the query_cache table's own TTL sweep). Doc 12, Phase 12.3.
   '_shared/queryCache.ts'
 
+  # Super-admin manual block list (`rate_limit_blocks`) — admin-curated, tiny table;
+  # all active rows loaded into a 30s isolate cache (doc 23), not tenant growth.
+  '_shared/rateLimit.ts'
+
   # Everything below is the corrected heuristic's honest current-state sweep (see the
   # header above) — NOT a hand-verified defect list. Some are real gaps; most are
   # false positives this line-scan can't resolve (a `.single()`/`.maybeSingle()` on a

@@ -8,7 +8,13 @@
 
 import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
-import { checkRateLimit, identityFromRequest, rateLimitGate } from './rateLimit.ts';
+import {
+  checkRateLimit,
+  identityFromRequest,
+  isIdentityBlocked,
+  rateLimitGate,
+  resetBlockedIdentitiesCacheForTests,
+} from './rateLimit.ts';
 
 const realFetch = globalThis.fetch;
 
@@ -67,3 +73,21 @@ Deno.test('rateLimitGate: returns null (proceed) when the check fails open', asy
     globalThis.fetch = realFetch;
   }
 });
+
+Deno.test(
+  'isIdentityBlocked: fails OPEN (not blocked) when the block-list read is unreachable',
+  async () => {
+    Deno.env.set('SUPABASE_URL', 'https://127.0.0.1:1');
+    Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'test-key');
+    resetBlockedIdentitiesCacheForTests();
+    globalThis.fetch = () =>
+      Promise.reject(new Error('network down')) as unknown as ReturnType<typeof realFetch>;
+    try {
+      const blocked = await isIdentityBlocked('u:some-user');
+      assertEquals(blocked, false);
+    } finally {
+      globalThis.fetch = realFetch;
+      resetBlockedIdentitiesCacheForTests();
+    }
+  }
+);

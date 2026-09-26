@@ -1,7 +1,8 @@
 /**
  * platform-settings — Super-admin GET/PUT for the `platform_settings` singleton:
  * signups on/off, maintenance mode + message, default plan code, support email,
- * legal URLs, public rate-limit ceiling. UI: `/admin/platform-settings`.
+ * legal URLs, public rate-limit ceiling, authenticated-wrapper rate-limit
+ * enforcement switch + limit (doc 23). UI: `/admin/platform-settings`.
  */
 
 import { createServiceClient } from '../_shared/orgAuth.ts';
@@ -25,6 +26,8 @@ function serialize(row: Record<string, unknown>) {
     legalTermsUrl: (row.legal_terms_url as string | null) ?? null,
     legalPrivacyUrl: (row.legal_privacy_url as string | null) ?? null,
     publicRateLimitPerMin: Number(row.public_rate_limit_per_min ?? 60),
+    authenticatedRateLimitEnforce: row.authenticated_rate_limit_enforce === true,
+    authenticatedRateLimitPerMin: Number(row.authenticated_rate_limit_per_min ?? 300),
     hostRewardEnabled: row.host_reward_enabled === true,
     hostRewardPlanCode: (row.host_reward_plan_code as string | null) ?? 'growth',
     hostRewardDurationDays: Number(row.host_reward_duration_days ?? 30),
@@ -35,8 +38,7 @@ function serialize(row: Record<string, unknown>) {
     hostRewardCampaignStart: (row.host_reward_campaign_start as string | null) ?? null,
     hostRewardCampaignEnd: (row.host_reward_campaign_end as string | null) ?? null,
     hostRewardMaxPerOrg: Number(row.host_reward_max_per_org ?? 1),
-    hostRewardApplyToPaidOrg:
-      row.host_reward_apply_to_paid_org === 'extend' ? 'extend' : 'skip',
+    hostRewardApplyToPaidOrg: row.host_reward_apply_to_paid_org === 'extend' ? 'extend' : 'skip',
     updatedAt: row.updated_at as string,
   };
 }
@@ -100,6 +102,19 @@ serveSuperAdmin('platform-settings', async (req, user) => {
       }
       patch.public_rate_limit_per_min = n;
     }
+    if (body.authenticatedRateLimitEnforce !== undefined) {
+      if (typeof body.authenticatedRateLimitEnforce !== 'boolean') {
+        return jsonError(req, 'authenticatedRateLimitEnforce must be a boolean');
+      }
+      patch.authenticated_rate_limit_enforce = body.authenticatedRateLimitEnforce;
+    }
+    if (body.authenticatedRateLimitPerMin != null) {
+      const n = Number(body.authenticatedRateLimitPerMin);
+      if (!Number.isInteger(n) || n < 1 || n > 100_000) {
+        return jsonError(req, 'authenticatedRateLimitPerMin must be 1–100000');
+      }
+      patch.authenticated_rate_limit_per_min = n;
+    }
 
     if (body.hostRewardEnabled !== undefined) {
       if (typeof body.hostRewardEnabled !== 'boolean') {
@@ -139,7 +154,10 @@ serveSuperAdmin('platform-settings', async (req, user) => {
       patch.host_reward_trigger = body.hostRewardTrigger;
     }
     if (body.hostRewardCampaignStart !== undefined) {
-      if (body.hostRewardCampaignStart !== null && typeof body.hostRewardCampaignStart !== 'string') {
+      if (
+        body.hostRewardCampaignStart !== null &&
+        typeof body.hostRewardCampaignStart !== 'string'
+      ) {
         return jsonError(req, 'hostRewardCampaignStart must be a string or null');
       }
       patch.host_reward_campaign_start = body.hostRewardCampaignStart;
