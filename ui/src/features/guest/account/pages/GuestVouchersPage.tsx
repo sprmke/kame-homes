@@ -10,24 +10,10 @@ import { useGuestVouchersQuery } from '@/features/guest/account/hooks/useGuestVo
 import { formatVoucherOfferLabel } from '@/features/guest/account/lib/voucherDiscount';
 import { guestFormPath } from '@/features/guest/lib/guestPublicPaths';
 
+import { GuestVouchersPageSkeleton } from '@/components/skeletons/GuestAccountSkeletons';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
 import { formatRelative } from '@/utils/format/bookingDisplay';
-
-function VoucherCardSkeleton() {
-  return (
-    <div className="border-border bg-card animate-pulse rounded-xl border px-3 py-2.5 shadow-sm">
-      <div className="flex items-center gap-2.5">
-        <div className="bg-muted size-8 shrink-0 rounded-lg" />
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="bg-muted h-3.5 w-24 rounded" />
-          <div className="bg-muted h-3 w-32 rounded" />
-        </div>
-        <div className="bg-muted h-5 w-14 rounded-md" />
-      </div>
-    </div>
-  );
-}
 
 function WalletVoucherRow({
   propertyName,
@@ -102,11 +88,7 @@ export function GuestVouchersPage() {
   if (isLoading) {
     return (
       <GuestAccountContentCard>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <VoucherCardSkeleton key={i} />
-          ))}
-        </div>
+        <GuestVouchersPageSkeleton rows={4} />
       </GuestAccountContentCard>
     );
   }

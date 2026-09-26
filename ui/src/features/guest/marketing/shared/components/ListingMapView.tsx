@@ -18,6 +18,7 @@ import {
 } from '@/features/guest/marketing/shared/lib/listingMapMarkers';
 import { resolveListingCoverImage } from '@/features/guest/marketing/shared/lib/mockListingImages';
 
+import { Skeleton } from '@/components/ui/skeleton';
 import { useGoogleMapsLoader } from '@/lib/google-maps/useGoogleMapsLoader';
 import { cn } from '@/lib/utils';
 
@@ -605,8 +606,8 @@ export function ListingMapView({
         : null}
 
       {!ready && (
-        <div
-          className="bg-muted absolute inset-0 z-10 animate-pulse"
+        <Skeleton
+          className="absolute inset-0 z-10 rounded-none"
           aria-busy="true"
           aria-label="Loading map"
         />
@@ -615,10 +616,7 @@ export function ListingMapView({
       <div className="absolute left-3 top-3 z-20 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4">
         <div className="border-border bg-background/95 flex items-center gap-2 rounded-full border px-3 py-2 text-sm shadow-md backdrop-blur-sm">
           {loading ? (
-            <span
-              className="bg-primary/40 size-4 shrink-0 animate-pulse rounded-full"
-              aria-hidden
-            />
+            <Skeleton className="size-4 shrink-0 rounded-full" aria-hidden />
           ) : (
             <MapPin className="text-primary h-4 w-4 shrink-0" aria-hidden />
           )}

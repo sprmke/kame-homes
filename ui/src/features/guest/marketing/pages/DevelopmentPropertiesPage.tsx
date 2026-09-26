@@ -25,8 +25,8 @@ import {
   type PropertiesListingQuery,
 } from '@/features/guest/marketing/properties/lib/propertiesQuery';
 
+import { PublicListingBrowseSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function DevelopmentPropertiesPage() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -57,11 +57,7 @@ export function DevelopmentPropertiesPage() {
   const hasParking = (parkingResult.data?.total ?? 0) > 0;
 
   if (isLoading) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
+    return <PublicListingBrowseSkeleton />;
   }
 
   if (isError || !development) {

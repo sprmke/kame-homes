@@ -7,7 +7,7 @@ import {
 } from '@/features/guest/marketing/developments/components';
 import { usePublicDevelopment } from '@/features/guest/marketing/developments/hooks/usePublicDevelopment';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { DevelopmentDetailPageSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 export function DevelopmentDetailPage() {
@@ -18,7 +18,7 @@ export function DevelopmentDetailPage() {
   if (isLoading) {
     return (
       <div className="bg-background min-h-screen">
-        <Skeleton className="h-64 w-full" />
+        <DevelopmentDetailPageSkeleton />
       </div>
     );
   }

@@ -28,8 +28,8 @@ import {
   toParkingListEntry,
 } from '@/features/guest/marketing/parkings/lib/parkingsQuery';
 
+import { PublicListingBrowseSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 
 function searchValuesFromParams(
   params: URLSearchParams,
@@ -112,11 +112,7 @@ export function DevelopmentParkingListPage() {
   }, [slots, filters, searchValues, sortBy, development, entries]);
 
   if (isLoading || parkingsResult.isLoading) {
-    return (
-      <div className="bg-background min-h-screen">
-        <Skeleton className="h-48 w-full" />
-      </div>
-    );
+    return <PublicListingBrowseSkeleton />;
   }
 
   if (isError || !development) {

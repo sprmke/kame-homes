@@ -17,6 +17,7 @@ import {
 } from '@/features/guest/account/lib/guestProfileValidation';
 import { useGuestSession } from '@/features/guest/auth/hooks/useGuestSession';
 
+import { GuestProfileFormSkeleton } from '@/components/skeletons/GuestAccountSkeletons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -349,32 +350,10 @@ export function GuestProfileForm({
   if (isLoading) {
     return (
       <div className={shellClassName}>
-        {embedded ? (
-          <div className={modalBodyClassName}>
-            <div className="flex justify-center px-1 pb-1 pt-2">
-              <div className="bg-muted size-24 animate-pulse rounded-full sm:size-28" />
-            </div>
-            <div className="space-y-4">
-              <div className="bg-muted h-10 animate-pulse rounded-md" />
-              <div className="bg-muted h-10 animate-pulse rounded-md" />
-              <div className="bg-muted h-[88px] animate-pulse rounded-md" />
-              <div className="bg-muted h-10 animate-pulse rounded-md" />
-              <div className="bg-muted h-10 animate-pulse rounded-md" />
-            </div>
-          </div>
-        ) : (
-          <div className={pageGridClassName}>
-            <div className="bg-muted size-28 shrink-0 animate-pulse rounded-full sm:size-32" />
-            <div className="space-y-3">
-              <div className="bg-muted h-10 animate-pulse rounded-md" />
-              <div className="bg-muted h-[120px] animate-pulse rounded-md" />
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-muted h-10 animate-pulse rounded-md" />
-                <div className="bg-muted h-10 animate-pulse rounded-md" />
-              </div>
-            </div>
-          </div>
-        )}
+        <GuestProfileFormSkeleton
+          embedded={embedded}
+          className={embedded ? modalBodyClassName : pageGridClassName}
+        />
       </div>
     );
   }

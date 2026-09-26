@@ -5,7 +5,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { GuestAccountMobileNav } from '@/features/guest/account/components/GuestAccountMobileNav';
 import { GuestAccountSidebar } from '@/features/guest/account/components/GuestAccountSidebar';
 
-import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
+import { GuestAccountRouteSuspenseFallback } from '@/components/skeletons/MarketingRouteFallback';
 import { cn } from '@/lib/utils';
 
 const MARKETING_HEADER_OFFSET = 'pt-16 lg:pt-24';
@@ -31,7 +31,7 @@ export function GuestAccountLayout() {
 
           <main className="w-full min-w-0 flex-1 pb-10 pt-5 sm:pb-12 sm:pt-6 lg:pb-14 lg:pt-0">
             <div className="w-full">
-              <Suspense fallback={<SectionLoadingFallback />}>
+              <Suspense fallback={<GuestAccountRouteSuspenseFallback />}>
                 <Outlet />
               </Suspense>
             </div>

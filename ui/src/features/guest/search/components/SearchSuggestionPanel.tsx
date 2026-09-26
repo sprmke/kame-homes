@@ -20,6 +20,7 @@ import type {
   SearchSuggestionKind,
 } from '@/features/guest/search/types/search';
 
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 /** Max rows shown per category in the typeahead (See all → full `/search` tab). */
@@ -140,10 +141,10 @@ function SuggestionSkeleton() {
     <ul className="space-y-2" aria-hidden>
       {Array.from({ length: 4 }).map((_, i) => (
         <li key={i} className="flex items-center gap-3 px-2 py-2">
-          <span className="bg-muted size-10 shrink-0 animate-pulse rounded-xl" />
+          <Skeleton className="size-10 shrink-0 rounded-xl" />
           <span className="min-w-0 flex-1 space-y-2">
-            <span className="bg-muted block h-3 w-2/3 animate-pulse rounded" />
-            <span className="bg-muted block h-2.5 w-1/2 animate-pulse rounded" />
+            <Skeleton className="h-3 w-2/3" />
+            <Skeleton className="h-2.5 w-1/2" />
           </span>
         </li>
       ))}
