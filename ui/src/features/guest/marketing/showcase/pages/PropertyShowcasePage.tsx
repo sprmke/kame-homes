@@ -8,6 +8,7 @@ import { PublicPagePlanAccessOverlay } from '@/features/guest/lib/PublicPagePlan
 import { useShowcaseData } from '@/features/guest/marketing/showcase/hooks/useShowcaseData';
 import { getShowcaseTemplate } from '@/features/guest/marketing/showcase/templates/registry';
 
+import { PublicFullBleedPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import { usePageTitle } from '@/lib/pageTitle';
 
 export function PropertyShowcasePage() {
@@ -23,12 +24,7 @@ export function PropertyShowcasePage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="bg-background flex min-h-[100dvh] items-center justify-center">
-        <div className="bg-muted h-8 w-8 animate-pulse rounded-full" aria-hidden />
-        <span className="sr-only">Loading</span>
-      </div>
-    );
+    return <PublicFullBleedPageSkeleton label="Loading showcase" />;
   }
 
   if (planAccessDenied && !isEditorPreview) {
@@ -66,13 +62,7 @@ export function PropertyShowcasePage() {
   const Template = entry.component;
 
   return (
-    <Suspense
-      fallback={
-        <div className="bg-background flex min-h-[100dvh] items-center justify-center">
-          <div className="bg-muted h-8 w-8 animate-pulse rounded-full" aria-hidden />
-        </div>
-      }
-    >
+    <Suspense fallback={<PublicFullBleedPageSkeleton label="Loading showcase" />}>
       <Template data={data} />
     </Suspense>
   );

@@ -8,6 +8,8 @@ import {
   useSuggestedCategoryListings,
 } from '@/features/guest/search/hooks/useSuggestedCategoryListings';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 const DESTINATION_ICONS: Record<(typeof suggestedDestinations)[number]['icon'], LucideIcon> = {
   nearby: Navigation,
   city: Building2,
@@ -41,7 +43,19 @@ export function SearchSuggestedEmptyPanel({
       <>
         <p className="text-foreground mb-3 text-xs font-semibold">{title}</p>
         {isLoading && items.length <= 1 ? (
-          <p className="text-muted-foreground px-2 py-3 text-sm">Loading…</p>
+          <ul
+            className="space-y-1"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading suggestions"
+          >
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li key={i} className="flex min-h-[44px] items-center gap-3 px-2 py-2" aria-hidden>
+                <Skeleton className="size-10 shrink-0 rounded-xl" />
+                <Skeleton className="h-4 w-36 max-w-full" />
+              </li>
+            ))}
+          </ul>
         ) : (
           <ul className="scrollbar-hide max-h-[min(42vh,300px)] space-y-1 overflow-y-auto">
             {items.map((item) => {

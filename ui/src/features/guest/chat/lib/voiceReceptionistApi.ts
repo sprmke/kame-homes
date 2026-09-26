@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase/client';
-import type { LiveVoiceConnectionDescriptor } from './liveVoiceProtocol';
+
 import { sanitizeVoiceReceptionistActions } from './voiceActions';
+
+import type { LiveVoiceConnectionDescriptor } from './liveVoiceProtocol';
 
 const FUNCTIONS_URL = (import.meta.env.VITE_SUPABASE_URL as string).replace(/\/$/, '');
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;

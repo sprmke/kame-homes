@@ -12,12 +12,20 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const PUBLIC_PROPERTY_QUERY_KEY = ['public-property'] as const;
 
-function publicPropertyUrl(slug: string): string {
-  return `${FUNCTIONS_URL}/get-public-property?property=${encodeURIComponent(slug)}`;
+function publicPropertyUrl(slug: string, previewJwt: string | null): string {
+  const params = new URLSearchParams({ property: slug });
+  if (previewJwt) {
+    params.set('preview', '1');
+    params.set('admin_jwt', previewJwt);
+  }
+  return `${FUNCTIONS_URL}/get-public-property?${params}`;
 }
 
-async function fetchPublicProperty(slug: string): Promise<ResolvedPropertyDetail | null> {
-  const res = await fetch(publicPropertyUrl(slug), {
+async function fetchPublicProperty(
+  slug: string,
+  previewJwt: string | null
+): Promise<ResolvedPropertyDetail | null> {
+  const res = await fetch(publicPropertyUrl(slug, previewJwt), {
     headers: {
       apikey: ANON_KEY,
       Authorization: `Bearer ${ANON_KEY}`,
@@ -79,14 +87,28 @@ function propertyLandingOverrideResult(
   } as UseQueryResult<ResolvedPropertyDetail | null, Error>;
 }
 
-export function usePublicPropertyDetail(propertySlug: string) {
+type PublicPropertyDetailOptions = {
+  /** Page Editor: session JWT so INACTIVE listings still load. `null` means still resolving. */
+  previewJwt?: string | null;
+};
+
+export function usePublicPropertyDetail(
+  propertySlug: string,
+  options?: PublicPropertyDetailOptions
+) {
   const override = usePreviewOverride();
   const hasOverride = override?.kind === 'property-landing';
+  const waitsForPreviewJwt = options != null && 'previewJwt' in options;
+  const previewJwt = options?.previewJwt ?? null;
 
   const query = useQuery({
-    queryKey: [...PUBLIC_PROPERTY_QUERY_KEY, propertySlug],
-    queryFn: () => fetchPublicProperty(propertySlug),
-    enabled: !hasOverride && Boolean(propertySlug),
+    queryKey: [
+      ...PUBLIC_PROPERTY_QUERY_KEY,
+      propertySlug,
+      waitsForPreviewJwt ? 'host-preview' : 'public',
+    ],
+    queryFn: () => fetchPublicProperty(propertySlug, waitsForPreviewJwt ? previewJwt : null),
+    enabled: !hasOverride && Boolean(propertySlug) && (!waitsForPreviewJwt || previewJwt !== null),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 1,

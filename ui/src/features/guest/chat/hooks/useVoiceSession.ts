@@ -7,6 +7,11 @@ import {
   GUEST_CHAT_MESSAGES_KEY,
   GUEST_CHAT_RESUME_KEY,
 } from '@/features/guest/chat/hooks/useGuestChat';
+import {
+  classifyLiveVoiceMessage,
+  describeLiveVoiceClose,
+  liveVoiceWebSocketUrl,
+} from '@/features/guest/chat/lib/liveVoiceProtocol';
 import { int16ToBase64 } from '@/features/guest/chat/lib/voiceAudioCodec';
 import {
   VoiceMicrophoneCapture,
@@ -24,11 +29,6 @@ import {
   type VoiceReceptionistRole,
   type VoiceReceptionistTranscriptTurn,
 } from '@/features/guest/chat/lib/voiceReceptionistApi';
-import {
-  classifyLiveVoiceMessage,
-  describeLiveVoiceClose,
-  liveVoiceWebSocketUrl,
-} from '@/features/guest/chat/lib/liveVoiceProtocol';
 import {
   voiceSessionPhaseReducer,
   type VoiceSessionPhase,

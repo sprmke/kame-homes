@@ -8,7 +8,6 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
 
 import { isGuestEmbedPreview } from '@/features/guest/lib/guestEmbedPreview';
 import {
@@ -21,6 +20,7 @@ import { PayParkingEmbedPreview } from '@/features/guest/pay-parking/components/
 import { fetchPayParking } from '@/features/guest/pay-parking/lib/api';
 
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MainLayout } from '@/layouts/MainLayout';
 
 export function PayParkingPage() {
@@ -48,8 +48,15 @@ export function PayParkingPage() {
   if (query.isLoading) {
     return (
       <MainLayout homeHref="/parkings">
-        <div className="flex min-h-[40vh] items-center justify-center p-8">
-          <Loader2 className="text-muted-foreground size-8 animate-spin" aria-label="Loading" />
+        <div
+          className="mx-auto w-full max-w-md space-y-3 p-6 sm:p-8"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading"
+        >
+          <Skeleton className="h-4 w-40" aria-hidden />
+          <Skeleton className="h-28 w-full rounded-xl" aria-hidden />
+          <Skeleton className="h-10 w-full rounded-lg" aria-hidden />
         </div>
       </MainLayout>
     );

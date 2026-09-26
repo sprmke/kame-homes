@@ -11,17 +11,13 @@ import {
 } from '@/features/guest/stay-guide/hooks/useGuestStayGuide';
 import { mapStayGuideData } from '@/features/guest/stay-guide/lib/mapStayGuideData';
 
+import { PublicFullBleedPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
 function StayGuideLoading() {
-  return (
-    <div className="bg-background flex min-h-[100dvh] items-center justify-center">
-      <div className="bg-muted h-8 w-8 animate-pulse rounded-full" aria-hidden />
-      <span className="sr-only">Loading stay guide</span>
-    </div>
-  );
+  return <PublicFullBleedPageSkeleton label="Loading stay guide" />;
 }
 
 function StayGuideUnavailable({ message }: { message: string }) {

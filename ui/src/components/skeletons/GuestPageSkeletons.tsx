@@ -308,6 +308,58 @@ export function PayParkingPageSkeleton({ title }: { title: string }) {
 }
 
 /**
+ * First viewport of Showcase and Stay Guide: header, full-bleed hero, then
+ * stacked sections that become a two-column block on desktop.
+ */
+export function PublicFullBleedPageSkeleton({ label = 'Loading page' }: { label?: string } = {}) {
+  return (
+    <div
+      className="bg-background min-h-[100dvh]"
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <Skeleton className="h-8 w-28 rounded-lg" />
+        <div className="hidden items-center gap-4 lg:flex">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-3 w-16" />
+          ))}
+        </div>
+        <Skeleton className="size-9 rounded-full lg:hidden" />
+      </div>
+      <Skeleton className="mx-4 min-h-[62dvh] rounded-2xl sm:mx-6 lg:mx-8 lg:min-h-[70dvh]" />
+      <div className="mx-auto max-w-4xl space-y-10 px-5 py-10 lg:max-w-6xl lg:px-8 lg:py-14">
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-2/3 max-w-md" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10">
+          <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+          <div className="space-y-3 py-1">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="mt-4 h-11 w-36 rounded-xl" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-48" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Mirrors `ParkingRequestStatusPage`: brand header + stay summary + status body
  * (same shell rhythm as the request form).
  */

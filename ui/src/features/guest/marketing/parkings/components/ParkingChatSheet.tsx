@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { Loader2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 import { useGuestAuth } from '@/features/guest/auth/context/GuestAuthContext';
 import {
@@ -132,9 +132,16 @@ export function ParkingChatSheet({
               <p className="text-muted-foreground text-sm">Sign in to chat with your host.</p>
             </div>
           ) : loading ? (
-            <div className="flex flex-1 items-center justify-center p-4">
-              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" aria-hidden />
-              <Skeleton className="sr-only" />
+            <div
+              className="flex flex-1 flex-col justify-end gap-3 p-4"
+              role="status"
+              aria-live="polite"
+              aria-label="Loading messages"
+            >
+              <Skeleton className="h-14 w-2/3 rounded-2xl" aria-hidden />
+              <Skeleton className="ml-auto h-14 w-1/2 rounded-2xl" aria-hidden />
+              <Skeleton className="h-14 w-3/5 rounded-2xl" aria-hidden />
+              <Skeleton className="ml-auto h-10 w-2/5 rounded-2xl" aria-hidden />
             </div>
           ) : (
             <GuestChatThread
