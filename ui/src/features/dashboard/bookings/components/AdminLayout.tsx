@@ -1,12 +1,4 @@
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -112,7 +104,6 @@ import { BottomBarSlotProvider } from '@/components/mobile/BottomBarSlot';
 import { BottomTabBar } from '@/components/mobile/BottomTabBar';
 import { MobileAppShell } from '@/components/mobile/ContextualActionBar';
 import { PageTransition } from '@/components/mobile/PageTransition';
-import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
 import { prefetchChunkOnce } from '@/hooks/usePrefetchOnIntent';
@@ -233,9 +224,7 @@ export function AdminLayout({ children, fillMain: fillMainProp = false }: Props)
 export function AdminLayoutOutlet() {
   return (
     <AdminLayout>
-      <Suspense fallback={<SectionLoadingFallback />}>
-        <Outlet />
-      </Suspense>
+      <Outlet />
     </AdminLayout>
   );
 }

@@ -118,7 +118,7 @@ import {
   MobileHeroActionMenu,
   type MobileHeroActionMenuItem,
 } from '@/components/mobile/MobileHeroActionButton';
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { resolveNameAvailabilityState } from '@/lib/availabilityCheckState';
@@ -1041,10 +1041,6 @@ export function PropertySettingsCard() {
     handleDeleteProperty,
   } = usePropertySettingsController();
 
-  if (appSettingsLoading) {
-    return <AppSettingsCardSkeleton />;
-  }
-
   const copyFromHref =
     orgSlug && property?.id && canCopyFromOtherProperty
       ? `${orgPropertiesPath(orgSlug)}?copyTarget=${encodeURIComponent(property.id)}`
@@ -1140,7 +1136,9 @@ export function PropertySettingsCard() {
         </p>
       ) : null}
 
-      {appSettings && operationalDraft ? (
+      {appSettingsLoading ? (
+        <AppSettingsNavLayoutSkeleton />
+      ) : appSettings && operationalDraft ? (
         <AdminSectionNavLayout
           className="min-h-0 flex-1"
           sections={navSections}

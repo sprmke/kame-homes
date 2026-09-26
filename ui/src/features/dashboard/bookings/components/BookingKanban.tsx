@@ -41,7 +41,7 @@ import {
 } from '@/features/dashboard/bookings/lib/documentRequirements';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
-import { BookingsCardGridSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { BookingsKanbanSkeleton } from '@/components/skeletons/BookingsExtrasSkeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -601,7 +601,7 @@ export function BookingKanban({
   }, [rows, documentRequirements]);
 
   if (error) return <BookingsErrorState error={error} />;
-  if (isLoading) return <BookingsCardGridSkeleton />;
+  if (isLoading) return <BookingsKanbanSkeleton />;
   if (rows.length === 0) return <BookingsEmptyState />;
 
   return (

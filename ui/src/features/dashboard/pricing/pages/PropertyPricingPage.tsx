@@ -70,7 +70,7 @@ import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPer
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
-import { BookingsCalendarSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton';
 import { Button } from '@/components/ui/button';
 
 /** A viewed month at/above this many bookings triggers the busy-month celebration. */
@@ -550,10 +550,6 @@ export function PropertyPricingPage() {
     return first ? baseNightlyForDate(first) : weekdayRate;
   }, [baseNightlyForDate, selectedDates, weekdayRate]);
 
-  if (isLoading && !hydratedRef.current) {
-    return <BookingsCalendarSkeleton />;
-  }
-
   if (isError) {
     return (
       <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
@@ -630,50 +626,58 @@ export function PropertyPricingPage() {
         heroTrailing={heroTrailing}
         desktopActions={desktopActions}
       >
-        <PricingStatsRow
-          weekdayRate={weekdayRate}
-          weekendRate={weekendRate}
-          customDatesCount={customDatePrices.size}
-          enabledFeesTotal={feesTotal}
-          smartDatesCount={smartPricingEnabled ? Object.keys(smartRecommendations ?? {}).length : 0}
-        />
-
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-5">
-          <PricingCalendarGrid
-            currentMonth={currentMonth}
-            selectedDates={selectedDates}
-            bookings={calendarBookings}
-            onMonthChange={setCurrentMonth}
-            onDateClick={handleDateClick}
-            onDateMouseDown={handleDateMouseDown}
-            onDateMouseEnter={handleDateMouseEnter}
-            onSelectionEnd={handleSelectionEnd}
-            onBookingClick={openBookingModal}
-            getPriceForDate={getPriceForDate}
-            getBookingStayTotal={getBookingDisplayTotal}
-          />
-
-          <div className="lg:sticky lg:top-5">
-            <PricingRatesFormCard
+        {isLoading && !hydratedRef.current ? (
+          <PricingPageBodySkeleton />
+        ) : (
+          <>
+            <PricingStatsRow
               weekdayRate={weekdayRate}
               weekendRate={weekendRate}
-              fees={fees}
-              readOnly={!canEditRates}
-              hasChanges={hasChanges}
-              saving={saveMutation.isPending}
-              onWeekdayChange={(value) => {
-                setWeekdayRate(value);
-                setHasChanges(true);
-              }}
-              onWeekendChange={(value) => {
-                setWeekendRate(value);
-                setHasChanges(true);
-              }}
-              onAmountChange={updateFeeAmount}
-              onSaveClick={handleSaveClick}
+              customDatesCount={customDatePrices.size}
+              enabledFeesTotal={feesTotal}
+              smartDatesCount={
+                smartPricingEnabled ? Object.keys(smartRecommendations ?? {}).length : 0
+              }
             />
-          </div>
-        </div>
+
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-5">
+              <PricingCalendarGrid
+                currentMonth={currentMonth}
+                selectedDates={selectedDates}
+                bookings={calendarBookings}
+                onMonthChange={setCurrentMonth}
+                onDateClick={handleDateClick}
+                onDateMouseDown={handleDateMouseDown}
+                onDateMouseEnter={handleDateMouseEnter}
+                onSelectionEnd={handleSelectionEnd}
+                onBookingClick={openBookingModal}
+                getPriceForDate={getPriceForDate}
+                getBookingStayTotal={getBookingDisplayTotal}
+              />
+
+              <div className="lg:sticky lg:top-5">
+                <PricingRatesFormCard
+                  weekdayRate={weekdayRate}
+                  weekendRate={weekendRate}
+                  fees={fees}
+                  readOnly={!canEditRates}
+                  hasChanges={hasChanges}
+                  saving={saveMutation.isPending}
+                  onWeekdayChange={(value) => {
+                    setWeekdayRate(value);
+                    setHasChanges(true);
+                  }}
+                  onWeekendChange={(value) => {
+                    setWeekendRate(value);
+                    setHasChanges(true);
+                  }}
+                  onAmountChange={updateFeeAmount}
+                  onSaveClick={handleSaveClick}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </AdminMobilePage>
 
       {canViewChannels ? (

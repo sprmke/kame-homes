@@ -7,6 +7,11 @@ import { helpSupportAnnouncementsRedirectRoute } from '@/features/dashboard/anno
 import { HelpSupportLayout } from '@/features/dashboard/help-support/components/HelpSupportLayout';
 import type { ParkingRouteFn, PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import {
+  OrgHelpSupportRouteSkeleton,
+  PropertyHelpSupportRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 const HelpDocumentationPage = lazy(() =>
   import('@/features/dashboard/help-support/pages/HelpDocumentationPage').then((m) => ({
     default: m.HelpDocumentationPage,
@@ -36,7 +41,14 @@ function helpSupportNestedRoutes(): ReactNode {
 
 export function helpSupportPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
   return (
-    <Route path="help-support" element={propertyRoute('help-support', <HelpSupportLayout />)}>
+    <Route
+      path="help-support"
+      element={propertyRoute(
+        'help-support',
+        <HelpSupportLayout />,
+        <PropertyHelpSupportRouteSkeleton />
+      )}
+    >
       {helpSupportNestedRoutes()}
     </Route>
   );
@@ -44,7 +56,10 @@ export function helpSupportPropertyRoute(propertyRoute: PropertyRouteFn): ReactN
 
 export function helpSupportParkingRoute(parkingRoute: ParkingRouteFn): ReactNode {
   return (
-    <Route path="help-support" element={parkingRoute('help-support', <HelpSupportLayout />)}>
+    <Route
+      path="help-support"
+      element={parkingRoute('help-support', <HelpSupportLayout />, <OrgHelpSupportRouteSkeleton />)}
+    >
       {helpSupportNestedRoutes()}
     </Route>
   );

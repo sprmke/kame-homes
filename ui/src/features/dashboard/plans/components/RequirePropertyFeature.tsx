@@ -11,7 +11,7 @@ import { featureGateCopy } from '@/features/dashboard/plans/lib/featureGateCopy'
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 import { Button } from '@/components/ui/button';
 
 type Props = {
@@ -34,7 +34,7 @@ export function RequirePropertyFeature({ feature, children }: Props) {
   }, [allowed, feature, isLoading, open]);
 
   if (isLoading) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (!allowed) {

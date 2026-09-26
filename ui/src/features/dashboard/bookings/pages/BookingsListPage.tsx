@@ -13,6 +13,7 @@ import { BookingDateRangeFilter } from '@/features/dashboard/bookings/components
 import { BookingFilters } from '@/features/dashboard/bookings/components/BookingFilters';
 import { BookingKanban } from '@/features/dashboard/bookings/components/BookingKanban';
 import { BookingsSummaryCards } from '@/features/dashboard/bookings/components/BookingsSummaryCards';
+import { BookingsStageSummarySkeleton } from '@/components/skeletons/BookingsExtrasSkeleton';
 import { BookingTable } from '@/features/dashboard/bookings/components/BookingTable';
 import type { BookingView } from '@/features/dashboard/bookings/components/BookingViewToggle';
 import {
@@ -256,7 +257,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
   });
 
   const { data, isLoading, isFetching, error } = useBookings(listQuery, { scope });
-  const { data: summaryData } = useBookings(summaryQuery, { scope });
+  const { data: summaryData, isLoading: isSummaryLoading } = useBookings(summaryQuery, { scope });
   // Resolved document requirements (§4.5) for the kanban view only — property-scoped,
   // disabled automatically when `usePropertyIdParam()` has no property (org scope).
   const { data: appSettings } = useAppSettings();
@@ -480,7 +481,11 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
         desktopActionsClassName="w-full sm:w-auto"
         dense
       >
-        <BookingsSummaryCards counts={stageCounts} activeStage={stage} onStageChange={setStage} />
+        {isSummaryLoading && !summaryData ? (
+          <BookingsStageSummarySkeleton />
+        ) : (
+          <BookingsSummaryCards counts={stageCounts} activeStage={stage} onStageChange={setStage} />
+        )}
 
         <FloatingToolbar>
           <BookingFilters

@@ -5,6 +5,11 @@ import { Navigate, Route } from 'react-router-dom';
 
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import {
+  PropertyCustomPagesRouteSkeleton,
+  PropertyPageEditorRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 const CustomPagesPage = lazy(() =>
   import('@/features/dashboard/custom-pages/pages/CustomPagesPage').then((m) => ({
     default: m.CustomPagesPage,
@@ -26,10 +31,21 @@ const PageEditorPage = lazy(() =>
 export function customPagesPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
   return (
     <>
-      <Route path="public-pages" element={propertyRoute('public-pages', <CustomPagesPage />)} />
+      <Route
+        path="public-pages"
+        element={propertyRoute(
+          'public-pages',
+          <CustomPagesPage />,
+          <PropertyCustomPagesRouteSkeleton />
+        )}
+      />
       <Route
         path="public-pages/:pageId/edit"
-        element={propertyRoute('public-pages', <PageEditorPage />)}
+        element={propertyRoute(
+          'public-pages',
+          <PageEditorPage />,
+          <PropertyPageEditorRouteSkeleton />
+        )}
       />
       <Route path="custom-pages" element={<Navigate to="../public-pages" replace />} />
     </>

@@ -5,6 +5,18 @@ import { Route } from 'react-router-dom';
 
 import type { ParkingRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import { RouteSkeletonBoundary } from '@/components/skeletons/RouteSkeleton';
+import {
+  ParkingBookingsRouteSkeleton,
+  ParkingBookingDetailRouteSkeleton,
+  ParkingDashboardRouteSkeleton,
+  ParkingFinanceRouteSkeleton,
+  ParkingInboxRouteSkeleton,
+  ParkingNotificationsRouteSkeleton,
+  ParkingPricingRouteSkeleton,
+  ParkingSettingsRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 const ParkingInboxPage = lazy(() =>
   import('@/features/dashboard/inbox/pages/ParkingInboxPage').then((m) => ({
     default: m.ParkingInboxPage,
@@ -49,14 +61,66 @@ const ParkingSettingsPage = lazy(() =>
 export function parkingAdminRoutes(parkingRoute: ParkingRouteFn): ReactNode {
   return (
     <>
-      <Route index element={<ParkingDashboardPage />} />
-      <Route path="bookings" element={<ParkingBookingsPage />} />
-      <Route path="bookings/:bookingId" element={<ParkingBookingDetailPage />} />
-      <Route path="finance" element={<ParkingFinancePage />} />
-      <Route path="pricing" element={<ParkingPricingPage />} />
-      <Route path="notifications" element={<ParkingNotificationsPage />} />
-      <Route path="settings" element={<ParkingSettingsPage />} />
-      <Route path="inbox" element={parkingRoute('inbox', <ParkingInboxPage />)} />
+      <Route
+        index
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingDashboardRouteSkeleton />}>
+            <ParkingDashboardPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="bookings"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingBookingsRouteSkeleton />}>
+            <ParkingBookingsPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="bookings/:bookingId"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingBookingDetailRouteSkeleton />}>
+            <ParkingBookingDetailPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="finance"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingFinanceRouteSkeleton />}>
+            <ParkingFinancePage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="pricing"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingPricingRouteSkeleton />}>
+            <ParkingPricingPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="notifications"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingNotificationsRouteSkeleton />}>
+            <ParkingNotificationsPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="settings"
+        element={
+          <RouteSkeletonBoundary skeleton={<ParkingSettingsRouteSkeleton />}>
+            <ParkingSettingsPage />
+          </RouteSkeletonBoundary>
+        }
+      />
+      <Route
+        path="inbox"
+        element={parkingRoute('inbox', <ParkingInboxPage />, <ParkingInboxRouteSkeleton />)}
+      />
     </>
   );
 }

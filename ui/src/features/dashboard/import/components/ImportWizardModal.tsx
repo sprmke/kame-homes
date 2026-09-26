@@ -64,6 +64,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ImportCommitStepSkeleton } from '@/components/skeletons/ImportWizardSkeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -425,12 +426,7 @@ function CommitStep({
   }, [rows]);
 
   if (isCommitting) {
-    return (
-      <div className="text-muted-foreground flex flex-col items-center gap-3 py-14">
-        <Loader2 className="text-primary size-7 animate-spin" aria-hidden />
-        <p className="text-sm">Adding {validCount.toLocaleString()} bookings…</p>
-      </div>
-    );
+    return <ImportCommitStepSkeleton rowCount={Math.min(COMMIT_PAGE_SIZE, validCount || 5)} />;
   }
 
   return (

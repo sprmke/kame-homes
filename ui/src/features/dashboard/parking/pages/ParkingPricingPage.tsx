@@ -36,7 +36,7 @@ import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { BookingsCalendarSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton';
 
 export function ParkingPricingPage() {
   const { data: orgAccess } = useOrgPermissions();
@@ -321,7 +321,7 @@ export function ParkingPricingPage() {
         subtitle="Manage pricing and availability."
         titleId="parking-pricing-heading"
       >
-        <BookingsCalendarSkeleton />
+        <PricingPageBodySkeleton />
       </AdminMobilePage>
     );
   }

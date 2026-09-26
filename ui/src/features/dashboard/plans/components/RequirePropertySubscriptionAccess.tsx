@@ -7,7 +7,7 @@ import { orgPlansPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePropertyEntitlements';
 import type { PropertySection } from '@/features/dashboard/team/lib/propertyPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 /** Suspended orgs keep Plans & Billing + Help reachable so hosts can pay or get support. */
 const ALLOWED_WHEN_SUSPENDED: PropertySection[] = ['announcements', 'help-support'];
@@ -23,7 +23,7 @@ export function RequirePropertySubscriptionAccess({ section, children }: Props) 
   const { data, isLoading } = usePropertyEntitlements();
 
   if (isLoading && !data) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   const status = data?.status;

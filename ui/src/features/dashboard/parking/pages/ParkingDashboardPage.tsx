@@ -28,6 +28,7 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { mobileHeroActionClassName } from '@/components/mobile/MobileHeroActionButton';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { detectPresetFromRange, fromIsoDate } from '@/lib/date/navigation';
+import { ParkingDashboardSkeleton } from '@/components/skeletons/ParkingSkeleton';
 import { cn } from '@/lib/utils';
 
 export function ParkingDashboardPage() {
@@ -70,7 +71,7 @@ export function ParkingDashboardPage() {
     dateNav.setDatePreset('year');
   }, [dateNav]);
 
-  const { data: statsData } = useParkingDashboardStats();
+  const { data: statsData, isLoading, error, refetch } = useParkingDashboardStats();
 
   const stats = useMemo(
     () => statsData ?? buildEmptyParkingDashboardStats(period, dateNav.datePreset),
@@ -134,17 +135,30 @@ export function ParkingDashboardPage() {
       dense
       className="min-w-0 max-w-full"
     >
-      <DashboardAttentionStrip items={stats.attention} />
+      {isLoading && !statsData ? (
+        <ParkingDashboardSkeleton />
+      ) : error ? (
+        <p className="text-destructive text-sm">
+          {error instanceof Error ? error.message : 'Could not load dashboard.'}
+          <button type="button" className="text-primary ml-2 underline" onClick={() => refetch()}>
+            Retry
+          </button>
+        </p>
+      ) : (
+        <>
+          <DashboardAttentionStrip items={stats.attention} />
 
-      <ParkingDashboardStatCards stats={stats} reservationsHref={reservationsHref} />
+          <ParkingDashboardStatCards stats={stats} reservationsHref={reservationsHref} />
 
-      {period.from && period.to ? (
-        <ParkingDashboardCalendarSection
-          from={period.from}
-          to={period.to}
-          datePreset={dateNav.datePreset}
-        />
-      ) : null}
+          {period.from && period.to ? (
+            <ParkingDashboardCalendarSection
+              from={period.from}
+              to={period.to}
+              datePreset={dateNav.datePreset}
+            />
+          ) : null}
+        </>
+      )}
     </AdminMobilePage>
   );
 }

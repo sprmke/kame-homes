@@ -15,6 +15,8 @@ import {
   playVoicePreviewAudio,
 } from '@/features/dashboard/org/lib/voiceReceptionistVoicePreview';
 
+import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,13 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 function VoiceReceptionistSectionSkeleton() {
-  return (
-    <div className="space-y-4" aria-hidden>
-      <div className="bg-muted h-10 animate-pulse rounded-lg" />
-      <div className="bg-muted h-10 animate-pulse rounded-lg" />
-      <div className="bg-muted h-24 animate-pulse rounded-lg" />
-    </div>
-  );
+  return <SettingsFormSkeleton columns={1} fields={3} toggle label="Loading voice receptionist" />;
 }
 
 function formatDurationShort(seconds: number): string {
@@ -62,9 +58,13 @@ function VoiceReceptionistUsagePanel() {
   if (isError) return null;
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6" aria-hidden>
+      <div
+        className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6"
+        aria-busy="true"
+        aria-label="Loading voice usage"
+      >
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-muted h-16 animate-pulse rounded-lg" />
+          <AdminMetricCardSkeleton key={i} />
         ))}
       </div>
     );

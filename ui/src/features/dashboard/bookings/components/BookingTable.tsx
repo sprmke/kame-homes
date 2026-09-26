@@ -50,7 +50,8 @@ export function BookingTable({
   resolveBookingHref,
 }: Props) {
   const navigate = useNavigate();
-  const showLoadingSkeleton = useDelayedLoading(isLoading);
+  const delayedSkeleton = useDelayedLoading(isLoading);
+  const showLoadingSkeleton = isLoading && (rows.length === 0 || delayedSkeleton);
 
   const openRow = (row: BookingRow) => {
     navigate(resolveBookingHref ? resolveBookingHref(row) : `/bookings/${row.id}`);

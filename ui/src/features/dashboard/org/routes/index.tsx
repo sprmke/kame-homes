@@ -13,6 +13,18 @@ import { ParkingAdminShell } from '@/features/dashboard/org/components/ParkingAd
 import { PropertyAdminShell } from '@/features/dashboard/org/components/PropertyAdminShell';
 import type { OrgRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import {
+  OrgAnalyticsRouteSkeleton,
+  OrgBookingsRouteSkeleton,
+  OrgDashboardRouteSkeleton,
+  OrgHelpSupportRouteSkeleton,
+  OrgParkingsRouteSkeleton,
+  OrgPlansRouteSkeleton,
+  OrgPropertiesRouteSkeleton,
+  OrgSettingsRouteSkeleton,
+  OrgTeamRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 const ActivityLogRedirect = lazy(() =>
   import('@/features/dashboard/activity/pages/ActivityLogRedirect').then((m) => ({
     default: m.ActivityLogRedirect,
@@ -81,18 +93,49 @@ export const orgOnboardingRoutes: ReactNode = (
 export function orgAdminRoutes(orgRoute: OrgRouteFn): ReactNode {
   return (
     <Route path="/org/:orgSlug" element={<OrgAdminShell />}>
-      <Route path="dashboard" element={orgRoute('dashboard', <OrgDashboardPage />)} />
-      <Route path="bookings" element={orgRoute('bookings', <OrgBookingsPage />)} />
-      <Route path="settings" element={orgRoute('settings', <OrgSettingsPage />)} />
-      <Route path="properties" element={orgRoute('properties', <OrgPropertiesPage />)} />
-      <Route path="parkings" element={orgRoute('parkings', <OrgParkingsPage />)} />
-      <Route path="team" element={orgRoute('team', <OrgTeamPage />)} />
-      <Route path="plans" element={orgRoute('plans', <OrgPlansPage />)} />
+      <Route
+        path="dashboard"
+        element={orgRoute('dashboard', <OrgDashboardPage />, <OrgDashboardRouteSkeleton />)}
+      />
+      <Route
+        path="bookings"
+        element={orgRoute('bookings', <OrgBookingsPage />, <OrgBookingsRouteSkeleton />)}
+      />
+      <Route
+        path="settings"
+        element={orgRoute('settings', <OrgSettingsPage />, <OrgSettingsRouteSkeleton />)}
+      />
+      <Route
+        path="properties"
+        element={orgRoute('properties', <OrgPropertiesPage />, <OrgPropertiesRouteSkeleton />)}
+      />
+      <Route
+        path="parkings"
+        element={orgRoute('parkings', <OrgParkingsPage />, <OrgParkingsRouteSkeleton />)}
+      />
+      <Route path="team" element={orgRoute('team', <OrgTeamPage />, <OrgTeamRouteSkeleton />)} />
+      <Route
+        path="plans"
+        element={orgRoute('plans', <OrgPlansPage />, <OrgPlansRouteSkeleton />)}
+      />
       {hostAnnouncementsOrgRoute(orgRoute)}
-      <Route path="analytics" element={orgRoute('analytics', <OrgAnalyticsPage />)} />
-      <Route path="activity" element={orgRoute('activity', <ActivityLogRedirect scope="org" />)} />
+      <Route
+        path="analytics"
+        element={orgRoute('analytics', <OrgAnalyticsPage />, <OrgAnalyticsRouteSkeleton />)}
+      />
+      <Route
+        path="activity"
+        element={orgRoute(
+          'activity',
+          <ActivityLogRedirect scope="org" />,
+          <OrgSettingsRouteSkeleton />
+        )}
+      />
       <Route path="inbox" element={<OrgInboxRedirect />} />
-      <Route path="help-support" element={orgRoute('help-support', <HelpSupportLayout />)}>
+      <Route
+        path="help-support"
+        element={orgRoute('help-support', <HelpSupportLayout />, <OrgHelpSupportRouteSkeleton />)}
+      >
         {helpSupportOrgNestedRoutes()}
       </Route>
     </Route>

@@ -107,7 +107,7 @@ import { planParkingSettingsSave } from '@/features/dashboard/parking/lib/parkin
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -775,9 +775,7 @@ export function ParkingSettingsCard() {
     setAutomationToggle,
   } = useParkingSettingsController();
 
-  if (settingsLoading || !settings || !operationalDraft) {
-    return <AppSettingsCardSkeleton />;
-  }
+  const settingsReady = !settingsLoading && settings && operationalDraft;
 
   return (
     <>
@@ -829,497 +827,511 @@ export function ParkingSettingsCard() {
           ) : undefined
         }
       >
-        <AdminSectionNavLayout
-          className="min-h-0 flex-1"
-          sections={navSections}
-          footer={
-            isDirty ? (
-              <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="size-2 animate-pulse rounded-full bg-amber-500" />
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                      Unsaved changes
+        {!settingsReady ? (
+          <AppSettingsNavLayoutSkeleton />
+        ) : (
+          <AdminSectionNavLayout
+            className="min-h-0 flex-1"
+            sections={navSections}
+            footer={
+              isDirty ? (
+                <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 animate-pulse rounded-full bg-amber-500" />
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        Unsaved changes
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => void handleSave()}
+                      disabled={saveDisabled}
+                      title={
+                        saveDisabledByValidation
+                          ? (draftCompletion.firstErrorMessage ?? 'Fix required fields to save')
+                          : undefined
+                      }
+                      className="min-h-[44px] w-full sm:w-auto"
+                      size="sm"
+                    >
+                      {busy ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null
+            }
+          >
+            <AdminSection
+              id="basic"
+              title="Basic Information"
+              icon={Info}
+              description="Brand color, description, and slot identity."
+            >
+              <SettingsField id="parking-code" label="Code">
+                <Input
+                  id="parking-code"
+                  value={parkingCode}
+                  readOnly
+                  aria-readonly="true"
+                  placeholder="-"
+                  className="bg-muted/40 text-muted-foreground h-10 cursor-default font-mono tabular-nums"
+                />
+              </SettingsField>
+
+              <SettingsField id="parking-slug" label="URL Slug">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <span className="text-muted-foreground truncate text-sm">
+                    {parkingSlugPrefix}
+                  </span>
+                  <Input
+                    id="parking-slug"
+                    value={parking.slug}
+                    readOnly
+                    disabled={busy}
+                    placeholder="parking-slug"
+                    className="bg-muted/40 max-w-xs"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-readonly="true"
+                  />
+                </div>
+              </SettingsField>
+
+              <BrandColorField
+                id="parking-brand-color"
+                value={profileDraft.brandColor}
+                resolvedColor={inheritedBrandColor}
+                resetValue={inheritedBrandColor}
+                disabled={busy}
+                help="Tints this parking slot's admin pages, guest listing, and accents."
+                onChange={(value) => {
+                  setProfileField('brandColor', value);
+                  setBrandColorPreview(value.trim() || inheritedBrandColor);
+                }}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5">
+                <SettingsField
+                  id="settings-parking-type"
+                  label="Parking type"
+                  required
+                  error={resolveFieldError('settings-parking-type')}
+                  help="Set at creation and can't be changed."
+                >
+                  <Input
+                    id="settings-parking-type"
+                    value={parkingTypeLabel(profileDraft.parkingType)}
+                    readOnly
+                    disabled={busy}
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className={readOnlyFieldClass}
+                  />
+                </SettingsField>
+
+                <SettingsField
+                  id="settings-residence"
+                  label="Residence"
+                  required
+                  error={resolveFieldError('settings-residence')}
+                  help="Set at creation and can't be changed."
+                >
+                  <Input
+                    id="settings-residence"
+                    value={profileDraft.residenceName.trim() || DEFAULT_PARKING_RESIDENCE_NAME}
+                    readOnly
+                    disabled={busy}
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className={readOnlyFieldClass}
+                  />
+                </SettingsField>
+
+                <SettingsField
+                  id="settings-tower"
+                  label="Tower"
+                  required
+                  error={resolveFieldError('settings-tower')}
+                  help="Set at creation and can't be changed."
+                >
+                  <Input
+                    id="settings-tower"
+                    value={profileDraft.tower}
+                    readOnly
+                    disabled={busy}
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className={readOnlyFieldClass}
+                  />
+                </SettingsField>
+
+                <SettingsField
+                  id="settings-level"
+                  label="Level"
+                  required
+                  error={resolveFieldError('settings-level')}
+                  help="Set at creation and can't be changed."
+                >
+                  <Input
+                    id="settings-level"
+                    value={profileDraft.level}
+                    readOnly
+                    disabled={busy}
+                    tabIndex={-1}
+                    aria-readonly="true"
+                    className={readOnlyFieldClass}
+                  />
+                </SettingsField>
+              </div>
+
+              <SettingsField
+                id="settings-slot"
+                label="Slot number"
+                required
+                error={resolveFieldError('settings-slot')}
+                help="Set at creation and can't be changed."
+              >
+                <Input
+                  id="settings-slot"
+                  value={profileDraft.slotNumber}
+                  readOnly
+                  disabled={busy}
+                  tabIndex={-1}
+                  aria-readonly="true"
+                  className={cn(readOnlyFieldClass, 'tabular-nums')}
+                />
+              </SettingsField>
+
+              <SettingsField id="parking-description" label="Description">
+                <Textarea
+                  id="parking-description"
+                  value={profileDraft.description}
+                  onChange={(event) => setProfileField('description', event.target.value)}
+                  disabled={busy}
+                  rows={6}
+                  maxLength={PARKING_DESCRIPTION_MAX}
+                  className="min-h-[140px] resize-y"
+                />
+                <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
+                  {profileDraft.description.length}/{PARKING_DESCRIPTION_MAX} characters
+                </p>
+              </SettingsField>
+            </AdminSection>
+
+            <AdminSection
+              id="media"
+              title="Photos"
+              icon={ImageIcon}
+              description="Cover photo for the public listing."
+            >
+              {parkingSettingsSectionBanner('media', draftCompletion.sectionMessages) ? (
+                <PropertySettingsSectionAlert
+                  message={parkingSettingsSectionBanner('media', draftCompletion.sectionMessages)!}
+                />
+              ) : null}
+              <ParkingMediaUpload
+                coverImage={coverImage}
+                onCoverChange={setCoverImage}
+                disabled={busy}
+              />
+            </AdminSection>
+
+            <ParkingDetailsSection
+              draft={detailsDraft}
+              onChange={setDetailsDraft}
+              disabled={busy}
+              resolveFieldError={resolveFieldError}
+              markFieldInteracted={markFieldInteracted}
+            />
+
+            <ParkingFeaturesSection
+              draft={featuresDraft}
+              onChange={setFeaturesDraft}
+              disabled={busy}
+              newCustomInput={newCustomFeatureInput}
+              onNewCustomInputChange={setNewCustomFeatureInput}
+              banner={parkingSettingsSectionBanner('features', draftCompletion.sectionMessages)}
+            />
+
+            <AdminSection
+              id="location"
+              title="Location"
+              icon={MapPin}
+              description="Address and map pin."
+            >
+              <PropertyLocationPicker
+                disabled={busy}
+                value={locationDraft}
+                onChange={(patch) => setLocationDraft((current) => ({ ...current, ...patch }))}
+                addressError={resolveFieldError('property-address')}
+                mapError={resolveFieldError('property-location-map')}
+                onFieldInteract={markFieldInteracted}
+              />
+            </AdminSection>
+
+            <AdminSection
+              id="payment"
+              title="Payment"
+              icon={Wallet}
+              description="How guests pay for parking."
+            >
+              <PropertyPaymentMethodsSection
+                data={parkingPaymentSettingsDto(settings)}
+                methods={operationalDraft.paymentMethods}
+                disabled={busy}
+                resolveFieldError={resolveFieldError}
+                markFieldInteracted={markFieldInteracted}
+                onChange={setPaymentMethods}
+                onMethodQrFile={(methodId, file) => {
+                  markFieldInteracted(`payment-method-${methodId}-qr`);
+                  setQrUploadingMethodId(methodId);
+                  void uploadQr
+                    .mutateAsync(file)
+                    .then((uploaded) => {
+                      setPaymentMethods(
+                        setPaymentMethodQrUrl(
+                          operationalDraft.paymentMethods,
+                          methodId,
+                          uploaded.url
+                        )
+                      );
+                    })
+                    .catch((err) => {
+                      toast.error(friendlyToastError(err, 'Upload failed'));
+                    })
+                    .finally(() => {
+                      setQrUploadingMethodId(null);
+                    });
+                }}
+                qrUploadingMethodId={qrUploadingMethodId}
+              />
+            </AdminSection>
+
+            <AdminSection
+              id="email"
+              title="Email"
+              icon={Mail}
+              description="Reservation and booking status emails."
+            >
+              <ParkingEmailAutomationSection
+                value={automationDraft}
+                disabled={busy}
+                onChange={setAutomationToggle}
+              />
+            </AdminSection>
+
+            <AdminSection
+              id="booking-automation"
+              title="Booking Automation"
+              icon={Zap}
+              description="Automate host-side actions on new requests."
+            >
+              <ParkingBookingAutomationSection
+                value={automationDraft}
+                disabled={busy}
+                onChange={setAutomationToggle}
+              />
+            </AdminSection>
+
+            <AdminSection
+              id="integrations"
+              title="Integrations"
+              icon={Globe}
+              description="Telegram and AI service status."
+            >
+              {settings.parkingIntegrations ? (
+                <PropertyIntegrationsPanel
+                  status={settings.parkingIntegrations}
+                  aiKeys={{
+                    primaryKeysConfigured:
+                      settings.platformSecrets?.geminiApiKeyConfigured ?? false,
+                    fallbackKeyConfigured: settings.platformSecrets?.groqApiKeyConfigured ?? false,
+                  }}
+                  telegramLayout="parking"
+                  notificationsPath={(module) =>
+                    parkingNotificationsPath(
+                      orgSlug,
+                      parking.slug,
+                      module === 'finance' ? 'finance' : undefined
+                    )
+                  }
+                />
+              ) : null}
+            </AdminSection>
+
+            <AdminSection id="activity" title="Activity" icon={ScrollText}>
+              <ActivitySettingsSection scope="parking" />
+            </AdminSection>
+
+            <AdminSection
+              id="danger"
+              title="Danger Zone"
+              icon={AlertTriangle}
+              description="Archive or permanently delete this slot."
+              className="border-destructive/50"
+            >
+              <div className="space-y-3">
+                <div className="flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold sm:text-sm">
+                      {isArchived ? 'Restore parking' : 'Archive parking'}
+                    </p>
+                    <p className="text-card-description">
+                      {isArchived
+                        ? 'Sets status to Active. Shows this slot on the public listing again.'
+                        : 'Sets status to Inactive. Hides this slot from the public listing. Bookings and settings are kept.'}
+                    </p>
+                  </div>
+                  {isArchived ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy || updateParking.isPending}
+                      className="settings-action w-full sm:w-auto"
+                      onClick={() => setRestoreOpen(true)}
+                    >
+                      {updateParking.isPending ? 'Restoring…' : 'Restore'}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy || updateParking.isPending}
+                      className="settings-action w-full sm:w-auto"
+                      onClick={() => setArchiveOpen(true)}
+                    >
+                      {updateParking.isPending ? 'Archiving…' : 'Archive'}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="border-destructive/50 flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                  <div className="space-y-0.5">
+                    <p className="text-destructive text-xs font-semibold sm:text-sm">
+                      Delete parking
+                    </p>
+                    <p className="text-card-description">
+                      Permanently removes this parking slot and its settings. This cannot be undone.
                     </p>
                   </div>
                   <Button
                     type="button"
-                    onClick={() => void handleSave()}
-                    disabled={saveDisabled}
-                    title={
-                      saveDisabledByValidation
-                        ? (draftCompletion.firstErrorMessage ?? 'Fix required fields to save')
-                        : undefined
-                    }
-                    className="min-h-[44px] w-full sm:w-auto"
-                    size="sm"
-                  >
-                    {busy ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : null
-          }
-        >
-          <AdminSection
-            id="basic"
-            title="Basic Information"
-            icon={Info}
-            description="Brand color, description, and slot identity."
-          >
-            <SettingsField id="parking-code" label="Code">
-              <Input
-                id="parking-code"
-                value={parkingCode}
-                readOnly
-                aria-readonly="true"
-                placeholder="-"
-                className="bg-muted/40 text-muted-foreground h-10 cursor-default font-mono tabular-nums"
-              />
-            </SettingsField>
-
-            <SettingsField id="parking-slug" label="URL Slug">
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-                <span className="text-muted-foreground truncate text-sm">{parkingSlugPrefix}</span>
-                <Input
-                  id="parking-slug"
-                  value={parking.slug}
-                  readOnly
-                  disabled={busy}
-                  placeholder="parking-slug"
-                  className="bg-muted/40 max-w-xs"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-readonly="true"
-                />
-              </div>
-            </SettingsField>
-
-            <BrandColorField
-              id="parking-brand-color"
-              value={profileDraft.brandColor}
-              resolvedColor={inheritedBrandColor}
-              resetValue={inheritedBrandColor}
-              disabled={busy}
-              help="Tints this parking slot's admin pages, guest listing, and accents."
-              onChange={(value) => {
-                setProfileField('brandColor', value);
-                setBrandColorPreview(value.trim() || inheritedBrandColor);
-              }}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5">
-              <SettingsField
-                id="settings-parking-type"
-                label="Parking type"
-                required
-                error={resolveFieldError('settings-parking-type')}
-                help="Set at creation and can't be changed."
-              >
-                <Input
-                  id="settings-parking-type"
-                  value={parkingTypeLabel(profileDraft.parkingType)}
-                  readOnly
-                  disabled={busy}
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  className={readOnlyFieldClass}
-                />
-              </SettingsField>
-
-              <SettingsField
-                id="settings-residence"
-                label="Residence"
-                required
-                error={resolveFieldError('settings-residence')}
-                help="Set at creation and can't be changed."
-              >
-                <Input
-                  id="settings-residence"
-                  value={profileDraft.residenceName.trim() || DEFAULT_PARKING_RESIDENCE_NAME}
-                  readOnly
-                  disabled={busy}
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  className={readOnlyFieldClass}
-                />
-              </SettingsField>
-
-              <SettingsField
-                id="settings-tower"
-                label="Tower"
-                required
-                error={resolveFieldError('settings-tower')}
-                help="Set at creation and can't be changed."
-              >
-                <Input
-                  id="settings-tower"
-                  value={profileDraft.tower}
-                  readOnly
-                  disabled={busy}
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  className={readOnlyFieldClass}
-                />
-              </SettingsField>
-
-              <SettingsField
-                id="settings-level"
-                label="Level"
-                required
-                error={resolveFieldError('settings-level')}
-                help="Set at creation and can't be changed."
-              >
-                <Input
-                  id="settings-level"
-                  value={profileDraft.level}
-                  readOnly
-                  disabled={busy}
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  className={readOnlyFieldClass}
-                />
-              </SettingsField>
-            </div>
-
-            <SettingsField
-              id="settings-slot"
-              label="Slot number"
-              required
-              error={resolveFieldError('settings-slot')}
-              help="Set at creation and can't be changed."
-            >
-              <Input
-                id="settings-slot"
-                value={profileDraft.slotNumber}
-                readOnly
-                disabled={busy}
-                tabIndex={-1}
-                aria-readonly="true"
-                className={cn(readOnlyFieldClass, 'tabular-nums')}
-              />
-            </SettingsField>
-
-            <SettingsField id="parking-description" label="Description">
-              <Textarea
-                id="parking-description"
-                value={profileDraft.description}
-                onChange={(event) => setProfileField('description', event.target.value)}
-                disabled={busy}
-                rows={6}
-                maxLength={PARKING_DESCRIPTION_MAX}
-                className="min-h-[140px] resize-y"
-              />
-              <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
-                {profileDraft.description.length}/{PARKING_DESCRIPTION_MAX} characters
-              </p>
-            </SettingsField>
-          </AdminSection>
-
-          <AdminSection
-            id="media"
-            title="Photos"
-            icon={ImageIcon}
-            description="Cover photo for the public listing."
-          >
-            {parkingSettingsSectionBanner('media', draftCompletion.sectionMessages) ? (
-              <PropertySettingsSectionAlert
-                message={parkingSettingsSectionBanner('media', draftCompletion.sectionMessages)!}
-              />
-            ) : null}
-            <ParkingMediaUpload
-              coverImage={coverImage}
-              onCoverChange={setCoverImage}
-              disabled={busy}
-            />
-          </AdminSection>
-
-          <ParkingDetailsSection
-            draft={detailsDraft}
-            onChange={setDetailsDraft}
-            disabled={busy}
-            resolveFieldError={resolveFieldError}
-            markFieldInteracted={markFieldInteracted}
-          />
-
-          <ParkingFeaturesSection
-            draft={featuresDraft}
-            onChange={setFeaturesDraft}
-            disabled={busy}
-            newCustomInput={newCustomFeatureInput}
-            onNewCustomInputChange={setNewCustomFeatureInput}
-            banner={parkingSettingsSectionBanner('features', draftCompletion.sectionMessages)}
-          />
-
-          <AdminSection
-            id="location"
-            title="Location"
-            icon={MapPin}
-            description="Address and map pin."
-          >
-            <PropertyLocationPicker
-              disabled={busy}
-              value={locationDraft}
-              onChange={(patch) => setLocationDraft((current) => ({ ...current, ...patch }))}
-              addressError={resolveFieldError('property-address')}
-              mapError={resolveFieldError('property-location-map')}
-              onFieldInteract={markFieldInteracted}
-            />
-          </AdminSection>
-
-          <AdminSection
-            id="payment"
-            title="Payment"
-            icon={Wallet}
-            description="How guests pay for parking."
-          >
-            <PropertyPaymentMethodsSection
-              data={parkingPaymentSettingsDto(settings)}
-              methods={operationalDraft.paymentMethods}
-              disabled={busy}
-              resolveFieldError={resolveFieldError}
-              markFieldInteracted={markFieldInteracted}
-              onChange={setPaymentMethods}
-              onMethodQrFile={(methodId, file) => {
-                markFieldInteracted(`payment-method-${methodId}-qr`);
-                setQrUploadingMethodId(methodId);
-                void uploadQr
-                  .mutateAsync(file)
-                  .then((uploaded) => {
-                    setPaymentMethods(
-                      setPaymentMethodQrUrl(operationalDraft.paymentMethods, methodId, uploaded.url)
-                    );
-                  })
-                  .catch((err) => {
-                    toast.error(friendlyToastError(err, 'Upload failed'));
-                  })
-                  .finally(() => {
-                    setQrUploadingMethodId(null);
-                  });
-              }}
-              qrUploadingMethodId={qrUploadingMethodId}
-            />
-          </AdminSection>
-
-          <AdminSection
-            id="email"
-            title="Email"
-            icon={Mail}
-            description="Reservation and booking status emails."
-          >
-            <ParkingEmailAutomationSection
-              value={automationDraft}
-              disabled={busy}
-              onChange={setAutomationToggle}
-            />
-          </AdminSection>
-
-          <AdminSection
-            id="booking-automation"
-            title="Booking Automation"
-            icon={Zap}
-            description="Automate host-side actions on new requests."
-          >
-            <ParkingBookingAutomationSection
-              value={automationDraft}
-              disabled={busy}
-              onChange={setAutomationToggle}
-            />
-          </AdminSection>
-
-          <AdminSection
-            id="integrations"
-            title="Integrations"
-            icon={Globe}
-            description="Telegram and AI service status."
-          >
-            {settings.parkingIntegrations ? (
-              <PropertyIntegrationsPanel
-                status={settings.parkingIntegrations}
-                aiKeys={{
-                  primaryKeysConfigured: settings.platformSecrets?.geminiApiKeyConfigured ?? false,
-                  fallbackKeyConfigured: settings.platformSecrets?.groqApiKeyConfigured ?? false,
-                }}
-                telegramLayout="parking"
-                notificationsPath={(module) =>
-                  parkingNotificationsPath(
-                    orgSlug,
-                    parking.slug,
-                    module === 'finance' ? 'finance' : undefined
-                  )
-                }
-              />
-            ) : null}
-          </AdminSection>
-
-          <AdminSection id="activity" title="Activity" icon={ScrollText}>
-            <ActivitySettingsSection scope="parking" />
-          </AdminSection>
-
-          <AdminSection
-            id="danger"
-            title="Danger Zone"
-            icon={AlertTriangle}
-            description="Archive or permanently delete this slot."
-            className="border-destructive/50"
-          >
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-semibold sm:text-sm">
-                    {isArchived ? 'Restore parking' : 'Archive parking'}
-                  </p>
-                  <p className="text-card-description">
-                    {isArchived
-                      ? 'Sets status to Active. Shows this slot on the public listing again.'
-                      : 'Sets status to Inactive. Hides this slot from the public listing. Bookings and settings are kept.'}
-                  </p>
-                </div>
-                {isArchived ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={busy || updateParking.isPending}
-                    className="settings-action w-full sm:w-auto"
-                    onClick={() => setRestoreOpen(true)}
-                  >
-                    {updateParking.isPending ? 'Restoring…' : 'Restore'}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={busy || updateParking.isPending}
-                    className="settings-action w-full sm:w-auto"
-                    onClick={() => setArchiveOpen(true)}
-                  >
-                    {updateParking.isPending ? 'Archiving…' : 'Archive'}
-                  </Button>
-                )}
-              </div>
-
-              <div className="border-destructive/50 flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-                <div className="space-y-0.5">
-                  <p className="text-destructive text-xs font-semibold sm:text-sm">
-                    Delete parking
-                  </p>
-                  <p className="text-card-description">
-                    Permanently removes this parking slot and its settings. This cannot be undone.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={busy || deleteParking.isPending}
-                  className="settings-action w-full sm:w-auto"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  {deleteParking.isPending ? 'Deleting…' : 'Delete parking'}
-                </Button>
-              </div>
-            </div>
-
-            <ResponsiveModal open={archiveOpen} onOpenChange={setArchiveOpen}>
-              <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-                <ResponsiveModalHeader>
-                  <ResponsiveModalTitle>
-                    Archive {displayName || parking.name}?
-                  </ResponsiveModalTitle>
-                  <ResponsiveModalDescription>
-                    This parking slot will be marked Inactive and hidden from the public listing.
-                    You can restore it anytime from this section.
-                  </ResponsiveModalDescription>
-                </ResponsiveModalHeader>
-                <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={updateParking.isPending}
-                    onClick={() => setArchiveOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={updateParking.isPending}
-                    onClick={() => void handleArchive()}
-                  >
-                    {updateParking.isPending ? 'Archiving…' : 'Archive parking'}
-                  </Button>
-                </ResponsiveModalFooter>
-              </ResponsiveModalContent>
-            </ResponsiveModal>
-
-            <ResponsiveModal open={restoreOpen} onOpenChange={setRestoreOpen}>
-              <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-                <ResponsiveModalHeader>
-                  <ResponsiveModalTitle>
-                    Restore {displayName || parking.name}?
-                  </ResponsiveModalTitle>
-                  <ResponsiveModalDescription>
-                    This parking slot will be marked Active and appear on the public listing again.
-                  </ResponsiveModalDescription>
-                </ResponsiveModalHeader>
-                <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={updateParking.isPending}
-                    onClick={() => setRestoreOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={updateParking.isPending}
-                    onClick={() => void handleRestore()}
-                  >
-                    {updateParking.isPending ? 'Restoring…' : 'Restore parking'}
-                  </Button>
-                </ResponsiveModalFooter>
-              </ResponsiveModalContent>
-            </ResponsiveModal>
-
-            <ResponsiveModal open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-                <ResponsiveModalHeader>
-                  <ResponsiveModalTitle>Delete {displayName || parking.name}?</ResponsiveModalTitle>
-                  <ResponsiveModalDescription>
-                    This parking slot and its settings will be permanently removed. This cannot be
-                    undone.
-                  </ResponsiveModalDescription>
-                </ResponsiveModalHeader>
-                <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={deleteParking.isPending}
-                    onClick={() => setDeleteOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
                     variant="destructive"
-                    className="min-h-[44px] w-full sm:w-auto"
-                    disabled={deleteParking.isPending}
-                    onClick={() => void handleDelete()}
+                    size="sm"
+                    disabled={busy || deleteParking.isPending}
+                    className="settings-action w-full sm:w-auto"
+                    onClick={() => setDeleteOpen(true)}
                   >
                     {deleteParking.isPending ? 'Deleting…' : 'Delete parking'}
                   </Button>
-                </ResponsiveModalFooter>
-              </ResponsiveModalContent>
-            </ResponsiveModal>
-          </AdminSection>
-        </AdminSectionNavLayout>
+                </div>
+              </div>
+
+              <ResponsiveModal open={archiveOpen} onOpenChange={setArchiveOpen}>
+                <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle>
+                      Archive {displayName || parking.name}?
+                    </ResponsiveModalTitle>
+                    <ResponsiveModalDescription>
+                      This parking slot will be marked Inactive and hidden from the public listing.
+                      You can restore it anytime from this section.
+                    </ResponsiveModalDescription>
+                  </ResponsiveModalHeader>
+                  <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={updateParking.isPending}
+                      onClick={() => setArchiveOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={updateParking.isPending}
+                      onClick={() => void handleArchive()}
+                    >
+                      {updateParking.isPending ? 'Archiving…' : 'Archive parking'}
+                    </Button>
+                  </ResponsiveModalFooter>
+                </ResponsiveModalContent>
+              </ResponsiveModal>
+
+              <ResponsiveModal open={restoreOpen} onOpenChange={setRestoreOpen}>
+                <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle>
+                      Restore {displayName || parking.name}?
+                    </ResponsiveModalTitle>
+                    <ResponsiveModalDescription>
+                      This parking slot will be marked Active and appear on the public listing
+                      again.
+                    </ResponsiveModalDescription>
+                  </ResponsiveModalHeader>
+                  <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={updateParking.isPending}
+                      onClick={() => setRestoreOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={updateParking.isPending}
+                      onClick={() => void handleRestore()}
+                    >
+                      {updateParking.isPending ? 'Restoring…' : 'Restore parking'}
+                    </Button>
+                  </ResponsiveModalFooter>
+                </ResponsiveModalContent>
+              </ResponsiveModal>
+
+              <ResponsiveModal open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
+                  <ResponsiveModalHeader>
+                    <ResponsiveModalTitle>
+                      Delete {displayName || parking.name}?
+                    </ResponsiveModalTitle>
+                    <ResponsiveModalDescription>
+                      This parking slot and its settings will be permanently removed. This cannot be
+                      undone.
+                    </ResponsiveModalDescription>
+                  </ResponsiveModalHeader>
+                  <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={deleteParking.isPending}
+                      onClick={() => setDeleteOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="min-h-[44px] w-full sm:w-auto"
+                      disabled={deleteParking.isPending}
+                      onClick={() => void handleDelete()}
+                    >
+                      {deleteParking.isPending ? 'Deleting…' : 'Delete parking'}
+                    </Button>
+                  </ResponsiveModalFooter>
+                </ResponsiveModalContent>
+              </ResponsiveModal>
+            </AdminSection>
+          </AdminSectionNavLayout>
+        )}
       </AdminMobilePage>
     </>
   );
