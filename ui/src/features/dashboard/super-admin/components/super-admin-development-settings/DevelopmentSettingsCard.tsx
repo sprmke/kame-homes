@@ -42,7 +42,7 @@ import {
 } from '@/features/dashboard/super-admin/lib/developmentSettingsForm';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -193,12 +193,11 @@ export function DevelopmentSettingsCard({ slug }: Props) {
     }
   };
 
-  if (isLoading || !draft || !development) {
-    if (error) {
-      return <p className="text-destructive text-sm">Development not found.</p>;
-    }
-    return <AppSettingsCardSkeleton />;
+  if (error && !development) {
+    return <p className="text-destructive text-sm">Development not found.</p>;
   }
+
+  const headerTitle = development?.name ?? 'Development';
 
   return (
     <>
@@ -216,10 +215,10 @@ export function DevelopmentSettingsCard({ slug }: Props) {
             </Link>
             <AdminPageHeader
               variant="compact"
-              title={development.name}
+              title={headerTitle}
               subtitle="Profile and media for this development."
               actions={
-                isDirty ? (
+                isDirty && draft ? (
                   <Button
                     type="button"
                     onClick={() => void handleSave()}
@@ -235,7 +234,7 @@ export function DevelopmentSettingsCard({ slug }: Props) {
           </div>
         }
         footer={
-          isDirty ? (
+          isDirty && draft ? (
             <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
@@ -258,43 +257,49 @@ export function DevelopmentSettingsCard({ slug }: Props) {
           ) : null
         }
       >
-        <DevelopmentProfileSections
-          developmentId={development.id}
-          draft={draft}
-          onChange={setDraftField}
-          disabled={busy}
-          deleteBlockedReason={deleteBlockedReason}
-          busy={busy}
-          onDelete={() => setDeleteOpen(true)}
-          onMediaPersisted={handleMediaPersisted}
-          onPersistMediaOrder={persistMediaOrder}
-          mediaGalleryBusy={mediaGalleryBusy}
-        />
+        {isLoading || !draft || !development ? (
+          <AppSettingsNavLayoutSkeleton />
+        ) : (
+          <DevelopmentProfileSections
+            developmentId={development.id}
+            draft={draft}
+            onChange={setDraftField}
+            disabled={busy}
+            deleteBlockedReason={deleteBlockedReason}
+            busy={busy}
+            onDelete={() => setDeleteOpen(true)}
+            onMediaPersisted={handleMediaPersisted}
+            onPersistMediaOrder={persistMediaOrder}
+            mediaGalleryBusy={mediaGalleryBusy}
+          />
+        )}
       </AdminSectionNavLayout>
 
-      <ResponsiveModal open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>Delete development?</ResponsiveModalTitle>
-          </ResponsiveModalHeader>
-          <p className="text-muted-foreground text-sm">
-            This permanently removes {development.name}. This cannot be undone.
-          </p>
-          <ResponsiveModalFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={busy}
-              onClick={() => void handleDelete()}
-            >
-              Delete
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModalContent>
-      </ResponsiveModal>
+      {development ? (
+        <ResponsiveModal open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
+            <ResponsiveModalHeader>
+              <ResponsiveModalTitle>Delete development?</ResponsiveModalTitle>
+            </ResponsiveModalHeader>
+            <p className="text-muted-foreground text-sm">
+              This permanently removes {development.name}. This cannot be undone.
+            </p>
+            <ResponsiveModalFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void handleDelete()}
+              >
+                Delete
+              </Button>
+            </ResponsiveModalFooter>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
+      ) : null}
     </>
   );
 }

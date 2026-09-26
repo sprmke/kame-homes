@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminHostCard,
   SuperAdminHostsEmptyState,
@@ -62,14 +62,13 @@ export function SuperAdminHostsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader title="Hosts" subtitle="All hosts on the platform." />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load hosts.</p>
       ) : (
         <>
-          <AdminPageHeader title="Hosts" subtitle="All hosts on the platform." />
-
           <SuperAdminHostsSummaryCards summary={summary} />
 
           <SuperAdminHostsToolbar

@@ -7,7 +7,7 @@ import { ChevronDown, Landmark, Megaphone, Plus } from 'lucide-react';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminAnnouncementCardGrid } from '@/features/dashboard/super-admin/components/super-admin-announcements/SuperAdminAnnouncementCardGrid';
 import {
   SuperAdminAnnouncementDialog,
@@ -205,18 +205,17 @@ export function SuperAdminAnnouncementsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Announcements"
+        subtitle="Platform-wide notices shown to every signed-in host."
+        actions={
+          <AddAnnouncementActions onCreatePlatform={() => setDialogState({ mode: 'create' })} />
+        }
+      />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : (
         <>
-          <AdminPageHeader
-            title="Announcements"
-            subtitle="Platform-wide notices shown to every signed-in host."
-            actions={
-              <AddAnnouncementActions onCreatePlatform={() => setDialogState({ mode: 'create' })} />
-            }
-          />
-
           <SuperAdminAnnouncementSummaryCards announcements={allAnnouncements} />
 
           <SuperAdminAnnouncementToolbar

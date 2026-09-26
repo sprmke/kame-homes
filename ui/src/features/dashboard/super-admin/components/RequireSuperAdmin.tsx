@@ -10,7 +10,7 @@ import { RequireAdminSignOutButton } from '@/features/dashboard/bookings/compone
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   children: ReactNode;
@@ -22,7 +22,7 @@ export function RequireSuperAdmin({ children }: Props) {
   const capabilities = useOrganizations({ enabled: status === 'admin' });
 
   if (status === 'loading' || capabilities.isLoading) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (status === 'signed-out') {

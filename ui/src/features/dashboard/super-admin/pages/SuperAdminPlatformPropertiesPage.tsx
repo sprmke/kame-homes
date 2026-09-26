@@ -8,7 +8,7 @@ import {
   OrgPropertiesEmptyState,
   OrgPropertyCard,
 } from '@/features/dashboard/org/components/org-properties/OrgPropertyCard';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPlatformPropertiesSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-platform-properties/SuperAdminPlatformPropertiesSummaryCards';
 import { SuperAdminPlatformPropertiesTable } from '@/features/dashboard/super-admin/components/super-admin-platform-properties/SuperAdminPlatformPropertiesTable';
 import {
@@ -129,14 +129,13 @@ export function SuperAdminPlatformPropertiesPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader title="Properties" subtitle="All properties across the platform." />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load properties.</p>
       ) : (
         <>
-          <AdminPageHeader title="Properties" subtitle="All properties across the platform." />
-
           <SuperAdminPlatformPropertiesSummaryCards properties={platformProperties} />
 
           <SuperAdminPlatformPropertiesToolbar

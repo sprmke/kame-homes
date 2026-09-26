@@ -6,7 +6,7 @@ import { ActivityDetailSheet } from '@/features/dashboard/activity/components/Ac
 import { ActivityFeedList } from '@/features/dashboard/activity/components/ActivityFeedList';
 import type { ActivityEvent } from '@/features/dashboard/activity/lib/activityCatalog';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
 import { useSuperAdminAudit } from '@/features/dashboard/super-admin/hooks/useSuperAdminAudit';
 import { useSuperAdminOrgActivity } from '@/features/dashboard/super-admin/hooks/useSuperAdminOrgActivity';
@@ -37,7 +37,7 @@ function PlatformActionsView({ orgId }: { orgId: string }) {
   });
   const events = data?.events ?? [];
 
-  if (isLoading) return <SuperAdminPageLoading />;
+  if (isLoading) return <SuperAdminAuditBodySkeleton />;
   if (error) return <p className="text-destructive text-sm">Could not load activity.</p>;
 
   return events.length === 0 ? (
@@ -69,7 +69,7 @@ function OrgActivityView({ orgId }: { orgId: string }) {
   const [selected, setSelected] = useState<ActivityEvent | null>(null);
   const events = useMemo(() => query.data?.pages.flatMap((p) => p.events) ?? [], [query.data]);
 
-  if (query.isLoading) return <SuperAdminPageLoading />;
+  if (query.isLoading) return <SuperAdminAuditBodySkeleton />;
   if (query.isError) return <p className="text-destructive text-sm">Could not load activity.</p>;
 
   return events.length === 0 ? (

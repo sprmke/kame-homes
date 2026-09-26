@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminOrgSubscriptionCard,
   SuperAdminOrgSubscriptionsEmptyState,
@@ -139,39 +139,38 @@ export function SuperAdminOrgSubscriptionsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Org subscriptions"
+        subtitle="Assign plans to organizations across the platform. Covers every property they own."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={superhostCron.isPending}
+              onClick={() => superhostCron.mutate()}
+            >
+              Run Superhost cron
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={billingCron.isPending}
+              onClick={() => billingCron.mutate()}
+            >
+              Run billing cron
+            </Button>
+          </div>
+        }
+      />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load org subscriptions.</p>
       ) : (
         <>
-          <AdminPageHeader
-            title="Org subscriptions"
-            subtitle="Assign plans to organizations across the platform. Covers every property they own."
-            actions={
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-[44px]"
-                  disabled={superhostCron.isPending}
-                  onClick={() => superhostCron.mutate()}
-                >
-                  Run Superhost cron
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-[44px]"
-                  disabled={billingCron.isPending}
-                  onClick={() => billingCron.mutate()}
-                >
-                  Run billing cron
-                </Button>
-              </div>
-            }
-          />
-
           <SuperAdminOrgSubscriptionsSummaryCards summary={summary} />
 
           <SuperAdminOrgSubscriptionsToolbar

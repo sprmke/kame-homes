@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { AddDevelopmentDialog } from '@/features/dashboard/super-admin/components/super-admin-developments/AddDevelopmentDialog';
 import {
   SuperAdminDevelopmentCard,
@@ -115,27 +115,22 @@ export function SuperAdminDevelopmentsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Developments"
+        subtitle="Buildings and developments on the platform."
+        actions={
+          <Button type="button" onClick={() => setAddOpen(true)} className="min-h-[44px] gap-1.5">
+            <Plus className="size-4" aria-hidden />
+            Add development
+          </Button>
+        }
+      />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load developments.</p>
       ) : (
         <>
-          <AdminPageHeader
-            title="Developments"
-            subtitle="Buildings and developments on the platform."
-            actions={
-              <Button
-                type="button"
-                onClick={() => setAddOpen(true)}
-                className="min-h-[44px] gap-1.5"
-              >
-                <Plus className="size-4" aria-hidden />
-                Add development
-              </Button>
-            }
-          />
-
           <SuperAdminDevelopmentsSummaryCards developments={developments} />
 
           <SuperAdminDevelopmentsToolbar

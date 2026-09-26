@@ -36,10 +36,11 @@ import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdmin
 
 import { StatCard } from '@/components/shared/StatCard';
 import {
+  AdminPageHeaderSkeleton,
   HostOrgCardGridSkeleton,
   ListingCardGridSkeleton,
-  RouteGuardSkeleton,
 } from '@/components/skeletons/AdminSkeletons';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -135,7 +136,12 @@ export function SuperAdminHostShell() {
     return <Navigate to={superAdminPaths.hosts} replace />;
   }
   if (isLoading) {
-    return <RouteGuardSkeleton />;
+    return (
+      <div className="space-y-3 sm:space-y-4">
+        <AdminPageHeaderSkeleton compact card />
+        <SuperAdminAdminListBodySkeleton metricCount={3} />
+      </div>
+    );
   }
   if (error || !host) {
     return <p className="text-destructive text-sm">Host not found.</p>;

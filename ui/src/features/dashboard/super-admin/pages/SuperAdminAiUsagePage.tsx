@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 
+import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
 import {
   useSuperAdminAiUsage,
@@ -73,7 +74,7 @@ export function SuperAdminAiUsagePage() {
         />
       }
       isLoading={isLoading && !data}
-      loadingMetricCount={4}
+      loadingBody={<SuperAdminOverviewBodySkeleton metricCount={4} />}
       error={error}
       errorMessage="Could not load AI usage."
     >

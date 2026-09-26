@@ -17,6 +17,8 @@ type SuperAdminPageProps = {
   isLoading?: boolean;
   /** Metric-card count for the loading skeleton (0 = list rows only). */
   loadingMetricCount?: number;
+  /** Override default list/metric loading body (header stays mounted). */
+  loadingBody?: ReactNode;
   /** Show a standard error message instead of `children`. */
   error?: unknown;
   errorMessage?: string;
@@ -35,6 +37,7 @@ export function SuperAdminPage({
   className,
   isLoading = false,
   loadingMetricCount = 0,
+  loadingBody,
   error,
   errorMessage,
 }: SuperAdminPageProps) {
@@ -42,7 +45,7 @@ export function SuperAdminPage({
     <div className={cn('space-y-3 sm:space-y-4', className)}>
       <AdminPageHeader title={title} subtitle={subtitle} actions={actions} />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={loadingMetricCount} />
+        (loadingBody ?? <SuperAdminPageLoading metricCount={loadingMetricCount} />)
       ) : error ? (
         <p className="text-destructive text-sm">
           {errorMessage ??

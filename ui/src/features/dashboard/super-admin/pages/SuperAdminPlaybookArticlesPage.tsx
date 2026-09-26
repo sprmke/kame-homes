@@ -11,7 +11,7 @@ import {
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPlaybookArticleEditorDialog } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminPlaybookArticleEditorDialog';
 import {
   useDeletePlaybookArticle,
@@ -185,7 +185,7 @@ export function SuperAdminPlaybookArticlesPage() {
       />
 
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load Playbook articles.</p>
       ) : (

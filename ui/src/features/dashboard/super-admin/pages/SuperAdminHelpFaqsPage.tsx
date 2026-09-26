@@ -28,7 +28,7 @@ import {
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminFaqEditorDialog } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminFaqEditorDialog';
 import { SuperAdminHelpFaqsSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminHelpFaqsSummaryCards';
 import {
@@ -280,7 +280,7 @@ export function SuperAdminHelpFaqsPage() {
       />
 
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load FAQs.</p>
       ) : (

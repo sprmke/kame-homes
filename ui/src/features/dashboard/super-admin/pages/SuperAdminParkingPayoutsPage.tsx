@@ -4,7 +4,8 @@ import { Wallet } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminSettingsCard,
   SuperAdminSettingsRow,
@@ -173,7 +174,6 @@ function ParkingSettingsCard() {
     setInitialized(true);
   }, [data, initialized]);
 
-  if (isLoading && !data) return <SuperAdminPageLoading metricCount={2} />;
   if (error) return <p className="text-destructive text-sm">Could not load parking settings.</p>;
 
   return (
@@ -196,76 +196,82 @@ function ParkingSettingsCard() {
         </Button>
       }
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SuperAdminSettingsRow stacked label="Commission (%)" htmlFor="commission-pct">
-          <Input
-            id="commission-pct"
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            value={commissionPct}
-            onChange={(event) => setCommissionPct(event.target.value)}
-          />
-        </SuperAdminSettingsRow>
-        <SuperAdminSettingsRow
-          stacked
-          label="Direct-link commission (%)"
-          htmlFor="direct-commission-pct"
-        >
-          <Input
-            id="direct-commission-pct"
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            value={directCommissionPct}
-            onChange={(event) => setDirectCommissionPct(event.target.value)}
-          />
-        </SuperAdminSettingsRow>
-        <SuperAdminSettingsRow
-          stacked
-          label="Guest rate weekday (₱/night)"
-          htmlFor="guest-rate-weekday"
-        >
-          <Input
-            id="guest-rate-weekday"
-            type="number"
-            min={0}
-            step={1}
-            value={weekday}
-            onChange={(event) => setWeekday(event.target.value)}
-          />
-        </SuperAdminSettingsRow>
-        <SuperAdminSettingsRow
-          stacked
-          label="Guest rate weekend (₱/night)"
-          htmlFor="guest-rate-weekend"
-        >
-          <Input
-            id="guest-rate-weekend"
-            type="number"
-            min={0}
-            step={1}
-            value={weekend}
-            onChange={(event) => setWeekend(event.target.value)}
-          />
-        </SuperAdminSettingsRow>
-      </div>
-      <SuperAdminSettingsRow
-        stacked
-        label="Support escalation phone"
-        htmlFor="support-escalation-phone"
-        description="Shown to guests on the parking status page for an unresponsive host. Optional."
-      >
-        <Input
-          id="support-escalation-phone"
-          type="tel"
-          placeholder="e.g. +63 900 000 0000"
-          value={escalationPhone}
-          onChange={(event) => setEscalationPhone(event.target.value)}
-        />
-      </SuperAdminSettingsRow>
+      {isLoading && !data ? (
+        <SectionContentSkeleton rows={4} />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <SuperAdminSettingsRow stacked label="Commission (%)" htmlFor="commission-pct">
+              <Input
+                id="commission-pct"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={commissionPct}
+                onChange={(event) => setCommissionPct(event.target.value)}
+              />
+            </SuperAdminSettingsRow>
+            <SuperAdminSettingsRow
+              stacked
+              label="Direct-link commission (%)"
+              htmlFor="direct-commission-pct"
+            >
+              <Input
+                id="direct-commission-pct"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={directCommissionPct}
+                onChange={(event) => setDirectCommissionPct(event.target.value)}
+              />
+            </SuperAdminSettingsRow>
+            <SuperAdminSettingsRow
+              stacked
+              label="Guest rate weekday (₱/night)"
+              htmlFor="guest-rate-weekday"
+            >
+              <Input
+                id="guest-rate-weekday"
+                type="number"
+                min={0}
+                step={1}
+                value={weekday}
+                onChange={(event) => setWeekday(event.target.value)}
+              />
+            </SuperAdminSettingsRow>
+            <SuperAdminSettingsRow
+              stacked
+              label="Guest rate weekend (₱/night)"
+              htmlFor="guest-rate-weekend"
+            >
+              <Input
+                id="guest-rate-weekend"
+                type="number"
+                min={0}
+                step={1}
+                value={weekend}
+                onChange={(event) => setWeekend(event.target.value)}
+              />
+            </SuperAdminSettingsRow>
+          </div>
+          <SuperAdminSettingsRow
+            stacked
+            label="Support escalation phone"
+            htmlFor="support-escalation-phone"
+            description="Shown to guests on the parking status page for an unresponsive host. Optional."
+          >
+            <Input
+              id="support-escalation-phone"
+              type="tel"
+              placeholder="e.g. +63 900 000 0000"
+              value={escalationPhone}
+              onChange={(event) => setEscalationPhone(event.target.value)}
+            />
+          </SuperAdminSettingsRow>
+        </>
+      )}
     </SuperAdminSettingsCard>
   );
 }
@@ -290,7 +296,7 @@ function PayoutStatusBadge({ txn }: { txn: ParkingPayoutTransaction }) {
 function PayoutsLedger() {
   const { data, isLoading, error } = useParkingPayouts();
 
-  if (isLoading && !data) return <SuperAdminPageLoading metricCount={3} />;
+  if (isLoading && !data) return <SuperAdminAdminListBodySkeleton metricCount={3} />;
   if (error) return <p className="text-destructive text-sm">Could not load the payout ledger.</p>;
 
   const transactions = data ?? [];

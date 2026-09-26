@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { EditPricingPlanDialog } from '@/features/dashboard/super-admin/components/super-admin-pricing/EditPricingPlanDialog';
 import {
   SuperAdminPricingPlanCard,
@@ -113,17 +113,16 @@ export function SuperAdminPricingPlansPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Pricing plans"
+        subtitle="Subscription tier catalog for host Plans & Billing."
+      />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load pricing plans.</p>
       ) : (
         <>
-          <AdminPageHeader
-            title="Pricing plans"
-            subtitle="Subscription tier catalog for host Plans & Billing."
-          />
-
           <SuperAdminPricingSummaryCards plans={plans} />
 
           <SuperAdminPricingPlansToolbar

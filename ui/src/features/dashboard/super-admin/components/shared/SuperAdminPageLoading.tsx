@@ -15,16 +15,11 @@ export function SuperAdminPageLoading({ metricCount = 0, metricGridClassName, cl
   return (
     <div className={cn('space-y-3 sm:space-y-4', className)} aria-busy="true" aria-label="Loading">
       {metricCount > 0 ? (
-        <>
-          <div className="bg-muted/60 h-14 animate-pulse rounded-xl" />
-          <div
-            className={metricGridClassName ?? 'grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4'}
-          >
-            {Array.from({ length: metricCount }).map((_, index) => (
-              <AdminMetricCardSkeleton key={index} />
-            ))}
-          </div>
-        </>
+        <div className={metricGridClassName ?? 'grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4'}>
+          {Array.from({ length: metricCount }).map((_, index) => (
+            <AdminMetricCardSkeleton key={index} />
+          ))}
+        </div>
       ) : null}
       <ListRowsSkeleton rows={6} />
     </div>

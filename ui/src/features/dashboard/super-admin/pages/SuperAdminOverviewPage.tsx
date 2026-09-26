@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminAiCostChart } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminAiCostChart';
 import { SuperAdminAttentionPanel } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminAttentionPanel';
 import { SuperAdminGrowthChart } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminGrowthChart';
@@ -47,10 +47,7 @@ export function SuperAdminOverviewPage() {
       />
 
       {isLoading && !data ? (
-        <SuperAdminPageLoading
-          metricCount={9}
-          metricGridClassName="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:gap-4"
-        />
+        <SuperAdminOverviewBodySkeleton metricCount={9} />
       ) : error ? (
         <p className="text-destructive text-sm">
           {error instanceof Error ? error.message : 'Could not load the platform overview.'}

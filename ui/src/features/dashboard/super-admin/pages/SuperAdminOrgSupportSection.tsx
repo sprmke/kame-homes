@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
 import { SuperAdminSupportCardGrid } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportCardGrid';
 import { SuperAdminTicketDetailDialog } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminTicketDetailDialog';
@@ -20,7 +20,7 @@ export function SuperAdminOrgSupportSection() {
 
   const tickets = data?.tickets ?? [];
 
-  if (isLoading) return <SuperAdminPageLoading />;
+  if (isLoading) return <SuperAdminAdminListBodySkeleton metricCount={0} />;
   if (error) return <p className="text-destructive text-sm">Could not load support tickets.</p>;
 
   return (

@@ -7,7 +7,7 @@ import { LifeBuoy } from 'lucide-react';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminSupportCardGrid } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportCardGrid';
 import { SuperAdminSupportSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportSummaryCards';
 import { SuperAdminSupportTable } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportTable';
@@ -124,17 +124,16 @@ export function SuperAdminSupportPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Support tickets"
+        subtitle="Host bug reports, suggestions, and inquiries."
+      />
       {isLoading ? (
-        <SuperAdminPageLoading metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={4} />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load support tickets.</p>
       ) : (
         <>
-          <AdminPageHeader
-            title="Support tickets"
-            subtitle="Host bug reports, suggestions, and inquiries."
-          />
-
           <SuperAdminSupportSummaryCards tickets={tickets} summary={ticketsSummary} />
 
           <SuperAdminSupportToolbar

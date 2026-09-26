@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminApprovalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalReviewDialog';
 import { SuperAdminApprovalsCardGrid } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalsCardGrid';
 import { SuperAdminExternalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminExternalReviewDialog';
@@ -45,7 +45,7 @@ export function SuperAdminOrgApprovalsSection() {
     setSelectedReview(isExternalReviewApprovalSummary(item) ? item : null);
   }
 
-  if (isLoading) return <SuperAdminPageLoading />;
+  if (isLoading) return <SuperAdminAdminListBodySkeleton metricCount={0} />;
   if (error) return <p className="text-destructive text-sm">Could not load approvals.</p>;
 
   return (

@@ -3,6 +3,17 @@ import type { ReactNode } from 'react';
 
 import { Navigate, Route, useParams } from 'react-router-dom';
 
+import { RouteSkeletonBoundary } from '@/components/skeletons/RouteSkeleton';
+import {
+  GenericAdminRouteSkeleton,
+  SuperAdminAuditRouteSkeleton,
+  SuperAdminHostShellRouteSkeleton,
+  SuperAdminListRouteSkeleton,
+  SuperAdminOrgShellRouteSkeleton,
+  SuperAdminOverviewRouteSkeleton,
+  SuperAdminSettingsRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 import { SuperAdminHostShell } from '@/features/dashboard/super-admin/components/super-admin-hosts/SuperAdminHostShell';
 import { SuperAdminOrgShell } from '@/features/dashboard/super-admin/components/super-admin-orgs/SuperAdminOrgShell';
 import { SuperAdminShell } from '@/features/dashboard/super-admin/components/SuperAdminShell';
@@ -123,32 +134,114 @@ function SuperAdminHostLegacySubrouteRedirect() {
   return <Navigate to={superAdminPaths.hostDetail(hostId)} replace />;
 }
 
+function superAdminRoute(page: ReactNode, skeleton: ReactNode) {
+  return <RouteSkeletonBoundary skeleton={skeleton}>{page}</RouteSkeletonBoundary>;
+}
+
 export const superAdminRoutes: ReactNode = (
   <Route path="/admin" element={<SuperAdminShell />}>
-    <Route index element={<SuperAdminOverviewPage />} />
-    <Route path="developments" element={<SuperAdminDevelopmentsPage />} />
-    <Route path="developments/:developmentSlug" element={<SuperAdminDevelopmentDetailPage />} />
-    <Route path="approvals" element={<SuperAdminApprovalsPage />} />
-    <Route path="support" element={<SuperAdminSupportPage />} />
-    <Route path="support/faqs" element={<SuperAdminHelpFaqsPage />} />
-    <Route path="playbook" element={<SuperAdminPlaybookArticlesPage />} />
-    <Route path="announcements" element={<SuperAdminAnnouncementsPage />} />
-    <Route path="hosts" element={<SuperAdminHostsPage />} />
-    <Route path="settings" element={<SuperAdminSettingsPage />} />
-    <Route path="ai-usage" element={<SuperAdminAiUsagePage />} />
-    <Route path="rate-limits" element={<SuperAdminRateLimitsPage />} />
-    <Route path="audit" element={<SuperAdminAuditPage />} />
-    <Route path="platform-settings" element={<SuperAdminPlatformSettingsPage />} />
-    <Route path="pricing/plans" element={<SuperAdminPricingPlansPage />} />
-    <Route path="pricing/payment-settings" element={<SuperAdminPaymentSettingsPage />} />
-    <Route path="pricing/subscriptions" element={<SuperAdminOrgSubscriptionsPage />} />
-    <Route path="parking/payouts" element={<SuperAdminParkingPayoutsPage />} />
-    <Route path="properties" element={<SuperAdminPlatformPropertiesPage />} />
-    <Route path="hosts/:hostId" element={<SuperAdminHostShell />} />
+    <Route
+      index
+      element={superAdminRoute(<SuperAdminOverviewPage />, <SuperAdminOverviewRouteSkeleton />)}
+    />
+    <Route
+      path="developments"
+      element={superAdminRoute(<SuperAdminDevelopmentsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="developments/:developmentSlug"
+      element={superAdminRoute(<SuperAdminDevelopmentDetailPage />, <GenericAdminRouteSkeleton />)}
+    />
+    <Route
+      path="approvals"
+      element={superAdminRoute(<SuperAdminApprovalsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="support"
+      element={superAdminRoute(<SuperAdminSupportPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="support/faqs"
+      element={superAdminRoute(<SuperAdminHelpFaqsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="playbook"
+      element={superAdminRoute(<SuperAdminPlaybookArticlesPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="announcements"
+      element={superAdminRoute(<SuperAdminAnnouncementsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="hosts"
+      element={superAdminRoute(<SuperAdminHostsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="settings"
+      element={superAdminRoute(<SuperAdminSettingsPage />, <SuperAdminSettingsRouteSkeleton />)}
+    />
+    <Route
+      path="ai-usage"
+      element={superAdminRoute(<SuperAdminAiUsagePage />, <SuperAdminOverviewRouteSkeleton />)}
+    />
+    <Route
+      path="rate-limits"
+      element={superAdminRoute(<SuperAdminRateLimitsPage />, <SuperAdminSettingsRouteSkeleton />)}
+    />
+    <Route
+      path="audit"
+      element={superAdminRoute(<SuperAdminAuditPage />, <SuperAdminAuditRouteSkeleton />)}
+    />
+    <Route
+      path="platform-settings"
+      element={superAdminRoute(
+        <SuperAdminPlatformSettingsPage />,
+        <SuperAdminSettingsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="pricing/plans"
+      element={superAdminRoute(<SuperAdminPricingPlansPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="pricing/payment-settings"
+      element={superAdminRoute(
+        <SuperAdminPaymentSettingsPage />,
+        <SuperAdminSettingsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="pricing/subscriptions"
+      element={superAdminRoute(<SuperAdminOrgSubscriptionsPage />, <SuperAdminListRouteSkeleton />)}
+    />
+    <Route
+      path="parking/payouts"
+      element={superAdminRoute(
+        <SuperAdminParkingPayoutsPage />,
+        <SuperAdminSettingsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="properties"
+      element={superAdminRoute(
+        <SuperAdminPlatformPropertiesPage />,
+        <SuperAdminListRouteSkeleton />
+      )}
+    />
+    <Route
+      path="hosts/:hostId"
+      element={superAdminRoute(<SuperAdminHostShell />, <SuperAdminHostShellRouteSkeleton />)}
+    />
     <Route path="hosts/:hostId/*" element={<SuperAdminHostLegacySubrouteRedirect />} />
-    <Route path="orgs" element={<SuperAdminOrgsPage />} />
+    <Route
+      path="orgs"
+      element={superAdminRoute(<SuperAdminOrgsPage />, <SuperAdminListRouteSkeleton />)}
+    />
     {/* Single-page hub — sections are in-page anchors (`#section-x`), not routes. */}
-    <Route path="orgs/:orgSlug" element={<SuperAdminOrgShell />} />
+    <Route
+      path="orgs/:orgSlug"
+      element={superAdminRoute(<SuperAdminOrgShell />, <SuperAdminOrgShellRouteSkeleton />)}
+    />
     <Route path="orgs/:orgSlug/*" element={<SuperAdminOrgLegacySubrouteRedirect />} />
   </Route>
 );

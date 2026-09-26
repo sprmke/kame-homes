@@ -34,7 +34,10 @@ import { SuperAdminOrgSettingsSection } from '@/features/dashboard/super-admin/p
 import { SuperAdminOrgSubscriptionSection } from '@/features/dashboard/super-admin/pages/SuperAdminOrgSubscriptionSection';
 import { SuperAdminOrgSupportSection } from '@/features/dashboard/super-admin/pages/SuperAdminOrgSupportSection';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import {
+  AdminPageHeaderSkeleton,
+  AppSettingsNavLayoutSkeleton,
+} from '@/components/skeletons/AdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 
 import type { LucideIcon } from 'lucide-react';
@@ -93,7 +96,12 @@ export function SuperAdminOrgShell() {
     return <Navigate to={superAdminPaths.organizations} replace />;
   }
   if (isLoading) {
-    return <RouteGuardSkeleton />;
+    return (
+      <div className="space-y-3 sm:space-y-4">
+        <AdminPageHeaderSkeleton compact card />
+        <AppSettingsNavLayoutSkeleton />
+      </div>
+    );
   }
   if (error || !org) {
     return <p className="text-destructive text-sm">Organization not found.</p>;

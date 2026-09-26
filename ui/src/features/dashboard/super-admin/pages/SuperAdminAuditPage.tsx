@@ -7,6 +7,7 @@ import {
   AdminListPerPageSelect,
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
+import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
 import { useAdminListPaginationParams } from '@/features/dashboard/super-admin/hooks/useAdminListPaginationParams';
 import { useSuperAdminAudit } from '@/features/dashboard/super-admin/hooks/useSuperAdminAudit';
@@ -57,6 +58,7 @@ export function SuperAdminAuditPage() {
       title="Audit log"
       subtitle="Every super-admin mutation: plan assigns, verification decisions, payout disbursements, AI settings, credit adjustments."
       isLoading={isLoading && !data}
+      loadingBody={<SuperAdminAuditBodySkeleton />}
       error={error}
       errorMessage="Could not load the audit log."
     >
