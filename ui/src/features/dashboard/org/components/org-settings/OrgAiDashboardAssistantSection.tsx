@@ -12,7 +12,7 @@ import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -124,7 +124,7 @@ export function OrgAiDashboardAssistantSection() {
   if (settingsLoading || !draft) {
     return (
       <AdminSection id="ai-assistant" title="AI dashboard assistant" icon={Sparkles}>
-        <SectionContentSkeleton rows={4} />
+        <SettingsFormSkeleton columns={2} fields={4} toggle label="Loading AI assistant" />
       </AdminSection>
     );
   }

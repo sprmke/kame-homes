@@ -9,7 +9,7 @@ import { useBookingAssetPreview } from '@/features/dashboard/bookings/hooks/useB
 import { statusLabel, type BookingStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { WorkflowSheetSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -156,7 +156,7 @@ export function BookingKanbanWorkflowModal({
           >
             {isLoading && !displayRow ? (
               <div className="flex-1 p-4 sm:p-5">
-                <SectionContentSkeleton rows={6} />
+                <WorkflowSheetSkeleton />
               </div>
             ) : null}
 

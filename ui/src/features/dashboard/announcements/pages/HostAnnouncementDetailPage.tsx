@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 
 import { Navigate, useParams } from 'react-router-dom';
 
+import { HostAnnouncementsBodySkeleton } from '@/features/dashboard/announcements/components/HostAnnouncementCard';
 import { HostAnnouncementDetailCard } from '@/features/dashboard/announcements/components/HostAnnouncementDetailCard';
 import { HostAnnouncementStatCards } from '@/features/dashboard/announcements/components/HostAnnouncementStatCards';
 import { useHostAnnouncementReadState } from '@/features/dashboard/announcements/hooks/useHostAnnouncementReadState';
@@ -87,10 +88,7 @@ export function HostAnnouncementDetailPage() {
         subtitle={HOST_ANNOUNCEMENTS_PAGE_SUBTITLE}
         titleId="host-announcement-detail-heading"
       >
-        <div className="flex flex-col gap-4 sm:gap-5">
-          <HelpBackControl label="Announcements" to={basePath} />
-          <p className="text-muted-foreground text-sm">Loading…</p>
-        </div>
+        <HostAnnouncementsBodySkeleton detail />
       </AdminMobilePage>
     );
   }

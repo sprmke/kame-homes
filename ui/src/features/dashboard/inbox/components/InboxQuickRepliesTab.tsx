@@ -91,11 +91,13 @@ export function InboxQuickRepliesTab({ templates, isLoading, saving, onSave, onD
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <p className="text-muted-foreground shrink-0 text-xs">
-              {isLoading
-                ? 'Loading…'
-                : `${filtered.length} ${filtered.length === 1 ? 'reply' : 'replies'}`}
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-3 w-16" aria-hidden />
+            ) : (
+              <p className="text-muted-foreground shrink-0 text-xs">
+                {`${filtered.length} ${filtered.length === 1 ? 'reply' : 'replies'}`}
+              </p>
+            )}
             <QuickReplyGroupFilters value={groupTab} onChange={setGroupTab} />
           </div>
           <Button

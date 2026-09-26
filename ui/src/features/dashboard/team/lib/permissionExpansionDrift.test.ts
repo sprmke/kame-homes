@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { expandAccessPhase6PermissionIds } from '@/features/dashboard/team/lib/accessPermissionExpansion';
 import { expandBookingsPhase3PermissionIds } from '@/features/dashboard/team/lib/bookingsPermissionExpansion';
 import { expandOpsPhase4PermissionIds } from '@/features/dashboard/team/lib/opsPermissionExpansion';
+import { expandLegacyOrgPermissionIds } from '@/features/dashboard/team/lib/orgLegacyPermissionExpansion';
 import {
   SETTINGS_SECTION_EDIT_IDS,
   expandSettingsPhase5PermissionIds,
 } from '@/features/dashboard/team/lib/settingsPermissionExpansion';
-import { expandLegacyOrgPermissionIds } from '@/features/dashboard/team/lib/orgLegacyPermissionExpansion';
 
 const ROOT = resolve(import.meta.dirname, '../../../../../..');
 

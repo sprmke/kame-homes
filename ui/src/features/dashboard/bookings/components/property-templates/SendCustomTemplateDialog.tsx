@@ -11,6 +11,7 @@ import { useBookings } from '@/features/dashboard/bookings/hooks/useBookings';
 import { useSendPropertyCustomTemplateEmail } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import { DEFAULT_BOOKINGS_QUERY, type BookingRow } from '@/features/dashboard/bookings/lib/types';
 
+import { ListRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -98,7 +99,11 @@ export function SendCustomTemplateDialog({ templateKey, templateName, open, onOp
             onValueChange={setQuery}
           />
           <CommandList className="max-h-none flex-1">
-            {!isLoading && filteredRows.length === 0 ? (
+            {isLoading ? (
+              <div className="px-3 py-2">
+                <ListRowsSkeleton rows={5} label="Loading bookings" />
+              </div>
+            ) : filteredRows.length === 0 ? (
               <CommandEmpty>No bookings</CommandEmpty>
             ) : null}
             <CommandGroup>

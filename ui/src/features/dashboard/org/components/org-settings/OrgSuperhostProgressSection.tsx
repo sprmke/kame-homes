@@ -1,4 +1,4 @@
-import { Award, CheckCircle2, Circle, Loader2, Shield } from 'lucide-react';
+import { Award, CheckCircle2, Circle, Shield } from 'lucide-react';
 
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { useOrgSuperhostProgress } from '@/features/dashboard/org/hooks/useOrgSuperhostProgress';
@@ -8,6 +8,7 @@ import type {
 } from '@/features/dashboard/org/lib/orgSuperhost';
 
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatAssessmentDate(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -92,9 +93,25 @@ export function OrgSuperhostProgressSection() {
   return (
     <AdminSection id="trust" title="Trust" icon={Shield}>
       {isLoading ? (
-        <div className="text-muted-foreground flex items-center gap-2 text-sm">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading…
+        <div className="space-y-4" role="status" aria-live="polite" aria-label="Loading Superhost">
+          <div className="flex flex-wrap items-center gap-2" aria-hidden>
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="border-border rounded-lg border px-3" aria-hidden>
+            {CRITERION_ROWS.map((row) => (
+              <div
+                key={row.key}
+                className="border-border flex items-start gap-2 border-b py-3 last:border-b-0"
+              >
+                <Skeleton className="mt-0.5 size-4 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-48 max-w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : isError || !data ? (
         <p className="text-destructive text-sm">Could not load Superhost progress.</p>

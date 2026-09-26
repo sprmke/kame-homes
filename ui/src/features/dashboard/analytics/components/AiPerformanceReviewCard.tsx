@@ -9,6 +9,7 @@ import type {
 import type { AnalyticsPlaybookArticle } from '@/features/dashboard/analytics/lib/types';
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const RING_SIZE = 64;
@@ -162,7 +163,25 @@ export function AiPerformanceReviewCard({
       />
 
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <div className="space-y-4" role="status" aria-live="polite" aria-label="Loading review">
+          <div className="flex items-center gap-3" aria-hidden>
+            <Skeleton className="size-16 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-40 max-w-full" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3" aria-hidden>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+                <Skeleton className="h-3 w-3/5" />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : !review ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <div className="bg-muted/60 flex size-10 items-center justify-center rounded-full">

@@ -269,6 +269,11 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
     description: 'Contact us (Facebook + phone numbers)',
     example: 'Smart / Globe lines',
   },
+  stay_guide_cta_section: {
+    group: 'Sections',
+    description: 'Guest stay guide button',
+    example: 'Stay guide button',
+  },
   decor_status: {
     group: 'Flags',
     description: 'Decor yes/no',
@@ -531,7 +536,8 @@ function inferGroupFromToken(name: string): (typeof GROUP_ORDER)[number] {
 
 function parsePlaceholderLine(line: string): { token: string; description?: string } {
   const trimmed = line.trim();
-  const rich = trimmed.match(/^(\{\{[^}]+\}\})\s*[—–-]\s*(.+)$/);
+  // Catalog lines use ":" (em dash was removed). Still accept a dash so older lines parse.
+  const rich = trimmed.match(/^(\{\{[^}]+\}\})\s*(?:[—–-]|:)\s*(.+)$/);
   if (rich) {
     return { token: rich[1], description: rich[2].trim() };
   }

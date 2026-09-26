@@ -816,6 +816,171 @@ export function RouteGuardSkeleton({ fullScreen = false }: { fullScreen?: boolea
   return <AppLoader fullScreen={fullScreen} />;
 }
 
+/**
+ * Page editor while config and preview load. Phone: header, full-width canvas,
+ * bottom dock. Desktop: header, 480px controls column, preview canvas.
+ */
+export function PageEditorSkeleton() {
+  return (
+    <div
+      className="border-border bg-card flex min-h-0 flex-1 flex-col overflow-hidden border max-lg:rounded-none max-lg:border-x-0 lg:h-[calc(100vh-120px)] lg:min-h-[520px] lg:flex-none lg:rounded-xl"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading editor"
+    >
+      <div className="border-border flex items-center justify-between gap-3 border-b px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Skeleton className="size-9 shrink-0 rounded-lg" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Skeleton className="hidden h-9 w-20 rounded-lg sm:block" />
+          <Skeleton className="size-9 rounded-lg" />
+        </div>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="border-border hidden w-[480px] shrink-0 flex-col gap-4 border-r p-4 lg:flex">
+          <Skeleton className="h-4 w-24" />
+          <SettingsFormSkeleton columns={1} fields={4} toggle label="Loading editor controls" />
+        </aside>
+        <div className="bg-muted/20 flex min-h-[min(70dvh,36rem)] min-w-0 flex-1 flex-col p-3 sm:p-4">
+          <div className="mb-3 hidden items-center justify-between gap-2 lg:flex">
+            <Skeleton className="h-8 w-32 rounded-md" />
+            <div className="flex gap-2">
+              <Skeleton className="size-8 rounded-md" />
+              <Skeleton className="size-8 rounded-md" />
+            </div>
+          </div>
+          <Skeleton className="min-h-[16rem] w-full flex-1 rounded-xl" />
+        </div>
+      </div>
+      <div className="border-border flex items-center gap-2 border-t px-3 py-2 lg:hidden">
+        <Skeleton className="h-11 min-w-0 flex-1 rounded-xl" />
+        <Skeleton className="size-11 shrink-0 rounded-xl" />
+        <Skeleton className="size-11 shrink-0 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/** Labeled inputs. One column on phone; 2 or 3 from `sm`. Optional leading switch row. */
+export function SettingsFormSkeleton({
+  columns = 2,
+  fields = 4,
+  toggle = false,
+  label = 'Loading settings',
+}: {
+  columns?: 1 | 2 | 3;
+  fields?: number;
+  toggle?: boolean;
+  label?: string;
+} = {}) {
+  const gridClass =
+    columns === 1
+      ? 'grid-cols-1'
+      : columns === 3
+        ? 'grid-cols-1 sm:grid-cols-3'
+        : 'grid-cols-1 sm:grid-cols-2';
+
+  return (
+    <div className="space-y-3" aria-busy="true" aria-label={label}>
+      {toggle ? (
+        <div className="flex min-h-[44px] items-center justify-between gap-3">
+          <Skeleton className="h-4 w-40 max-w-[60%]" />
+          <Skeleton className="h-6 w-11 shrink-0 rounded-full" />
+        </div>
+      ) : null}
+      <div className={cn('grid gap-3', gridClass)}>
+        {Array.from({ length: fields }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Settings rows: label on the left, switch on the right. */
+export function SettingsRowsSkeleton({
+  rows = 3,
+  label = 'Loading settings',
+}: {
+  rows?: number;
+  label?: string;
+} = {}) {
+  return (
+    <div className="space-y-2" aria-busy="true" aria-label={label}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex min-h-[44px] items-center justify-between gap-3 py-1">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-1/2 max-w-[12rem]" />
+            <Skeleton className="h-2.5 w-2/3 max-w-[16rem]" />
+          </div>
+          <Skeleton className="h-6 w-11 shrink-0 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Name, large figure, then a 3-column field row from `sm`. */
+export function WalletResultSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true" aria-label="Loading wallet">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-8 w-28 sm:h-9" />
+      </div>
+      <SettingsFormSkeleton columns={3} fields={3} label="Loading wallet fields" />
+    </div>
+  );
+}
+
+/** Review dialog body: document tiles, then stacked fields. Tiles sit side by side from `sm`. */
+export function ReviewDialogSkeleton() {
+  return (
+    <div className="space-y-5 py-2" aria-busy="true" aria-label="Loading review">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Skeleton key={i} className="aspect-video w-full rounded-xl" />
+        ))}
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-24" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-11 w-full rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Booking workflow sheet: status chips, then stacked detail cards. */
+export function WorkflowSheetSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true" aria-label="Loading booking">
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-24 rounded-lg" />
+        ))}
+      </div>
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} className="border-border/50 bg-card rounded-xl border p-4">
+          <Skeleton className="mb-3 h-4 w-32" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        </div>
+      ))}
+      <Skeleton className="h-11 w-full rounded-lg sm:w-40" />
+    </div>
+  );
+}
+
 /** Generic block of content rows — settings sections, modal bodies, misc panel content whose shape isn't worth a bespoke skeleton. */
 export function SectionContentSkeleton({
   rows = 3,

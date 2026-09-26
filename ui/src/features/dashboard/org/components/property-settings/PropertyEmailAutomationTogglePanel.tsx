@@ -102,7 +102,7 @@ function AutomationToggleRow({
         id={id}
         label={label}
         checked={planLocked ? false : checked}
-        disabled={disabled || planLocked}
+        disabled={disabled}
         onCheckedChange={(value) => {
           if (planLocked) {
             onUpgrade?.();

@@ -23,6 +23,8 @@ import {
 import { AdminSectionGroupHeading } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { useNotificationsOrgScope } from '@/features/dashboard/notifications/lib/notificationsScope';
 
+import { StatCardSkeleton } from '@/components/shared/StatCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 type HostAnnouncementListRowProps = {
@@ -170,6 +172,37 @@ function HostAnnouncementGroupSection({
         })}
       </div>
     </section>
+  );
+}
+
+export function HostAnnouncementsBodySkeleton({ detail = false }: { detail?: boolean } = {}) {
+  return (
+    <div
+      className="flex flex-col gap-4 sm:gap-5"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading announcements"
+    >
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4" aria-hidden>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+      {detail ? <Skeleton className="h-8 w-36 rounded-lg" aria-hidden /> : null}
+      <div className="surface-card divide-border/50 divide-y overflow-hidden" aria-hidden>
+        {Array.from({ length: detail ? 1 : 4 }).map((_, i) => (
+          <div key={i} className="flex gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
+            <Skeleton className="h-10 w-0.5 shrink-0 rounded-full sm:h-11" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-2/5 max-w-xs" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+              {detail ? <Skeleton className="h-3 w-3/5" /> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

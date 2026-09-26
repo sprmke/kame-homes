@@ -24,13 +24,9 @@ import type {
   MarketingGenerationJob,
   MarketingGenerationReference,
 } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
-import { PlanGatedText } from '@/features/dashboard/plans/components/PlanUpgradeLink';
-import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
-import { featureGateCopy } from '@/features/dashboard/plans/lib/featureGateCopy';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
-import { Button } from '@/components/ui/button';
 
 const IMAGE_FEATURE = 'aiMarketingImageGeneration' as const;
 const VIDEO_FEATURE = 'aiMarketingVideoGeneration' as const;
@@ -174,27 +170,22 @@ export function AiStudioSection({ onPublish }: Props) {
           mobileOnly
           className="lg:border-border/60 lg:bg-card lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm"
         >
-          {imageGateLoading || imageAllowed ? (
-            <>
-              <AiStudioComposer
-                onGenerate={(payload) => generate.mutate(payload)}
-                isGenerating={generate.isPending}
-                disabled={!canGenerate || imageGateLoading}
-                canGenerateVideo={canGenerateVideo}
-                videoAllowed={videoPlanAllowed}
-                allowPremiumImage={allowPremiumImage}
-                allowPremiumVideo={allowPremiumVideo}
-                draft={draft}
-                pendingReference={pendingReference}
-              />
-              {!canGenerate && (
-                <p className="text-muted-foreground mt-3 text-xs">
-                  You do not have permission to generate content for this property.
-                </p>
-              )}
-            </>
-          ) : (
-            <AiStudioUpgradePrompt feature={IMAGE_FEATURE} />
+          <AiStudioComposer
+            onGenerate={(payload) => generate.mutate(payload)}
+            isGenerating={generate.isPending}
+            disabled={!canGenerate || imageGateLoading || videoGateLoading}
+            canGenerateVideo={canGenerateVideo}
+            videoAllowed={videoPlanAllowed}
+            imageAllowed={imageAllowed}
+            allowPremiumImage={allowPremiumImage}
+            allowPremiumVideo={allowPremiumVideo}
+            draft={draft}
+            pendingReference={pendingReference}
+          />
+          {!canGenerate && (
+            <p className="text-muted-foreground mt-3 text-xs">
+              You do not have permission to generate content for this property.
+            </p>
           )}
         </FloatingPanel>
       </div>
@@ -208,7 +199,7 @@ export function AiStudioSection({ onPublish }: Props) {
           onLoadMore={() => void generations.fetchNextPage()}
           canPublish={canPublish}
           canDelete={canGenerate}
-          canGenerate={Boolean(canGenerate && (imageGateLoading || imageAllowed))}
+          canGenerate={canGenerate}
           onPublish={onPublish}
           onRetry={handleRetry}
           onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
@@ -229,23 +220,6 @@ export function AiStudioSection({ onPublish }: Props) {
           }
         />
       </div>
-    </div>
-  );
-}
-
-function AiStudioUpgradePrompt({ feature }: { feature: typeof IMAGE_FEATURE }) {
-  const { open: openUpgradeModal } = useUpgradeModal();
-  const copy = featureGateCopy(feature);
-
-  return (
-    <div className="py-6 text-center">
-      <p className="text-foreground text-sm font-semibold">{copy.title}</p>
-      <p className="text-caption mx-auto mt-1 max-w-sm">
-        <PlanGatedText text={copy.description} feature={feature} />
-      </p>
-      <Button className="mt-4 min-h-[44px]" onClick={() => openUpgradeModal(feature)}>
-        {copy.ctaLabel}
-      </Button>
     </div>
   );
 }

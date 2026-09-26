@@ -3,6 +3,7 @@ import { ActivityTimelineBlock } from '@/features/dashboard/ai-assistant/compone
 import { BookingCardBlock } from '@/features/dashboard/ai-assistant/components/blocks/BookingCardBlock';
 import { ChatCanvasCompactCard } from '@/features/dashboard/ai-assistant/components/blocks/ChatCanvasCompactCard';
 import { DataTableBlock } from '@/features/dashboard/ai-assistant/components/blocks/DataTableBlock';
+import { DiagramBlock } from '@/features/dashboard/ai-assistant/components/blocks/DiagramBlock';
 import { DynamicFormBlock } from '@/features/dashboard/ai-assistant/components/blocks/DynamicFormBlock';
 import { FileListBlock } from '@/features/dashboard/ai-assistant/components/blocks/FileListBlock';
 import { FlowBlock } from '@/features/dashboard/ai-assistant/components/blocks/FlowBlock';
@@ -14,7 +15,6 @@ import { StatListBlock } from '@/features/dashboard/ai-assistant/components/bloc
 import { StepperBlock } from '@/features/dashboard/ai-assistant/components/blocks/StepperBlock';
 import { TaskPlanBlock } from '@/features/dashboard/ai-assistant/components/blocks/TaskPlanBlock';
 import { TextBlock } from '@/features/dashboard/ai-assistant/components/blocks/TextBlock';
-import { DiagramBlock } from '@/features/dashboard/ai-assistant/components/blocks/DiagramBlock';
 import type {
   ChatBlock,
   ConfirmActionResponse,

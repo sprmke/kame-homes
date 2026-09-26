@@ -12,7 +12,7 @@ import {
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -151,7 +151,10 @@ export function PropertyAiPlatformSection() {
         icon={Sparkles}
         description="AI usage limits for this property."
       >
-        <SectionContentSkeleton rows={4} />
+        <div className="space-y-3">
+          <SettingsFormSkeleton columns={3} fields={3} toggle label="Loading AI overrides" />
+          <SettingsFormSkeleton columns={2} fields={2} label="Loading AI credit caps" />
+        </div>
       </AdminSection>
     );
   }

@@ -18,6 +18,7 @@ import {
 } from '@/features/dashboard/bookings/lib/storageUrls';
 
 import { DocThumbnailSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function getDocType(url: string): 'image' | 'pdf' | 'file' {
   const path = url.split('?')[0].toLowerCase();
@@ -143,10 +144,11 @@ export function DocPreview({
     if (needsSignedUrl && !displayUrl && !missingInStorage) {
       return (
         <div
-          className={`border-border bg-muted flex items-center justify-center overflow-hidden rounded-lg border ${widthClass}`}
+          className={`overflow-hidden rounded-lg ${widthClass}`}
+          role="status"
           aria-label={label}
         >
-          <Loader2 className="text-muted-foreground size-4 animate-spin" aria-hidden />
+          <Skeleton className="size-full rounded-lg" />
         </div>
       );
     }

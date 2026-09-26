@@ -39,7 +39,9 @@ import type {
   MarketingGenerationReference,
   MarketingGenerationTier,
 } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
+import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -55,6 +57,8 @@ type Props = {
   disabled?: boolean;
   canGenerateVideo: boolean;
   videoAllowed: boolean;
+  /** Image generation plan. False keeps the composer open; Generate opens the upgrade modal. */
+  imageAllowed?: boolean;
   allowPremiumImage?: boolean;
   allowPremiumVideo?: boolean;
   draft?: AiStudioComposerDraft | null;
@@ -72,6 +76,7 @@ export function AiStudioComposer({
   disabled,
   canGenerateVideo,
   videoAllowed,
+  imageAllowed = true,
   allowPremiumImage = false,
   allowPremiumVideo = false,
   draft,
@@ -90,9 +95,14 @@ export function AiStudioComposer({
   const [enhancePrompt, setEnhancePrompt] = useState(true);
   const [stylesExpanded, setStylesExpanded] = useState(false);
 
+  const isVideo = mediaType === 'video';
   const videoPermissionBlocked = !canGenerateVideo;
   const videoPlanBlocked = !videoAllowed;
-  const isVideo = mediaType === 'video';
+  const imagePlanBlocked = !imageAllowed;
+  const generateFeature: PlanFeatureKey = isVideo
+    ? 'aiMarketingVideoGeneration'
+    : 'aiMarketingImageGeneration';
+  const generatePlanBlocked = isVideo ? videoPlanBlocked : imagePlanBlocked;
   const allowPremium = isVideo ? allowPremiumVideo : allowPremiumImage;
   const maxReferences = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(tier);
   const maxPromptChars = isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS;
@@ -174,10 +184,6 @@ export function AiStudioComposer({
   const handleMediaTypeChange = (next: MarketingGenerationMediaType) => {
     if (next === 'video') {
       if (videoPermissionBlocked) return;
-      if (videoPlanBlocked) {
-        openUpgradeModal('aiMarketingVideoGeneration');
-        return;
-      }
     }
     applyMediaType(next);
   };
@@ -190,10 +196,7 @@ export function AiStudioComposer({
   };
 
   const canSubmit =
-    prompt.trim().length > 0 &&
-    !isGenerating &&
-    !disabled &&
-    (!isVideo || (!videoPermissionBlocked && !videoPlanBlocked));
+    prompt.trim().length > 0 && !isGenerating && !disabled && (!isVideo || !videoPermissionBlocked);
 
   return (
     <form
@@ -202,6 +205,10 @@ export function AiStudioComposer({
       onSubmit={(event) => {
         event.preventDefault();
         if (!canSubmit) return;
+        if (generatePlanBlocked) {
+          openUpgradeModal(generateFeature);
+          return;
+        }
         if (isVideo) {
           onGenerate({
             mediaType: 'video',
@@ -235,13 +242,11 @@ export function AiStudioComposer({
           { value: 'image', label: 'Image', disabled },
           {
             value: 'video',
-            label: videoPlanBlocked && !videoPermissionBlocked ? 'Video · Business' : 'Video',
+            label: 'Video',
             disabled: disabled || videoPermissionBlocked,
             ariaLabel: videoPermissionBlocked
               ? 'Video. You do not have permission to generate video for this property.'
-              : videoPlanBlocked
-                ? 'Video. Available on Business and above.'
-                : 'Video',
+              : 'Video',
           },
         ]}
       />
@@ -390,18 +395,20 @@ export function AiStudioComposer({
         </CollapsibleContent>
       </Collapsible>
 
-      <Button
-        type="submit"
-        disabled={!canSubmit}
-        className="min-h-[48px] w-full gap-2 text-sm font-semibold"
-      >
-        {isGenerating ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        ) : (
-          <Sparkles className="size-4" aria-hidden />
-        )}
-        {isGenerating ? 'Generating' : `Generate · ${credits.toLocaleString()} credits`}
-      </Button>
+      <TierBadgeAnchor feature={generateFeature} className="w-full">
+        <Button
+          type="submit"
+          disabled={!canSubmit}
+          className="min-h-[48px] w-full gap-2 text-sm font-semibold"
+        >
+          {isGenerating ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Sparkles className="size-4" aria-hidden />
+          )}
+          {isGenerating ? 'Generating' : `Generate · ${credits.toLocaleString()} credits`}
+        </Button>
+      </TierBadgeAnchor>
       {!isVideo && (
         <p className="text-muted-foreground -mt-2 text-center text-[11px]">
           AI-generated images include an invisible SynthID watermark.

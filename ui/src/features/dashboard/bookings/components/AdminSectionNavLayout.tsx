@@ -471,6 +471,7 @@ export function AdminSectionNavLayout({
             {/*
               Main column owns scroll + desktop sticky footer so the unsaved bar
               never spans under the secondary section nav (Integrations, etc.).
+              lg:pr-16 on the footer clears the fixed notification FAB.
             */}
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div
@@ -492,7 +493,7 @@ export function AdminSectionNavLayout({
               </div>
 
               {footer ? (
-                <div className="border-separator bg-background relative z-20 hidden shrink-0 border-t pt-3 lg:block">
+                <div className="border-separator bg-background relative z-20 hidden shrink-0 border-t pt-3 lg:block lg:pr-16">
                   <div className="mx-auto w-full max-w-4xl">{footer}</div>
                 </div>
               ) : null}

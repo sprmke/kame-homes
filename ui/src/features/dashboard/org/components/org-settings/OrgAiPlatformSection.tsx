@@ -12,7 +12,7 @@ import {
 import { PlanUpgradeLink } from '@/features/dashboard/plans/components/PlanUpgradeLink';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -111,7 +111,7 @@ export function OrgAiPlatformSection() {
   if (settingsLoading || usageLoading || !draft) {
     return (
       <AdminSection id="ai" title="AI usage" icon={Sparkles}>
-        <SectionContentSkeleton rows={4} />
+        <SettingsFormSkeleton columns={2} fields={4} toggle label="Loading AI usage" />
       </AdminSection>
     );
   }

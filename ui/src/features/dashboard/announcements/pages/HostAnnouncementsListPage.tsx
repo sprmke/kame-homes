@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 
 import { useParams } from 'react-router-dom';
 
-import { HostAnnouncementFeed } from '@/features/dashboard/announcements/components/HostAnnouncementCard';
+import {
+  HostAnnouncementFeed,
+  HostAnnouncementsBodySkeleton,
+} from '@/features/dashboard/announcements/components/HostAnnouncementCard';
 import { HostAnnouncementStatCards } from '@/features/dashboard/announcements/components/HostAnnouncementStatCards';
 import { useHostAnnouncements } from '@/features/dashboard/announcements/hooks/useHostAnnouncements';
 import { HOST_ANNOUNCEMENTS_PAGE_SUBTITLE } from '@/features/dashboard/announcements/lib/hostAnnouncementCopy';
@@ -52,7 +55,7 @@ export function HostAnnouncementsListPage() {
       titleId="host-announcements-heading"
     >
       {isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <HostAnnouncementsBodySkeleton />
       ) : isError ? (
         <div className="space-y-2">
           <p className="text-destructive text-sm">Could not load announcements.</p>
