@@ -48,7 +48,7 @@ import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPer
 import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton';
-import { DashboardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PropertyAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
 import { Button } from '@/components/ui/button';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { CHART_INCOME_COLOR, CHART_INFO_COLOR } from '@/lib/charts/chartStyles';
@@ -208,7 +208,7 @@ export function PropertyAnalyticsPage() {
     >
       <div className={SECTION_GAP}>
         {isLoading ? (
-          <DashboardSkeleton />
+          <PropertyAnalyticsSkeleton />
         ) : isError || !data ? (
           <div className="surface-card p-6 text-center">
             <p className="text-muted-foreground text-sm">

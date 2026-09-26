@@ -14,8 +14,8 @@ import { SlidingTabs } from '@/features/dashboard/marketing/components/shared/Ma
 import { MarketingStudioShell } from '@/features/dashboard/marketing/components/shared/MarketingStudioShell';
 import type { VideoExportPayload } from '@/features/dashboard/marketing/components/video-editor/VideoEditor';
 
+import { MarketingStudioSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { Skeleton } from '@/components/ui/skeleton';
 import { SlidingTabsContent } from '@/components/ui/sliding-tabs';
 
 // Lazy-loaded: Polotno (design editor) and Remotion/Blueprint (video editor) are heavy
@@ -38,15 +38,6 @@ const AiStudioSection = lazy(() =>
     default: m.AiStudioSection,
   }))
 );
-
-function StudioTabFallback() {
-  return (
-    <div className="flex flex-1 flex-col gap-3 p-4">
-      <Skeleton className="h-8 w-40 rounded-lg" />
-      <Skeleton className="h-64 w-full rounded-xl" />
-    </div>
-  );
-}
 
 export function MarketingStudioPage() {
   // Immersive editor — fill the admin main column on mobile (flex chain, not viewport
@@ -93,19 +84,19 @@ export function MarketingStudioPage() {
               </SlidingTabsContent>
 
               <SlidingTabsContent value="design" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<StudioTabFallback />}>
+                <Suspense fallback={<MarketingStudioSkeleton />}>
                   <DesignEditor onPublish={handleDesignPublish} />
                 </Suspense>
               </SlidingTabsContent>
 
               <SlidingTabsContent value="video" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<StudioTabFallback />}>
+                <Suspense fallback={<MarketingStudioSkeleton />}>
                   <VideoEditor onPublish={handleVideoPublish} />
                 </Suspense>
               </SlidingTabsContent>
 
               <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<StudioTabFallback />}>
+                <Suspense fallback={<MarketingStudioSkeleton />}>
                   <AiStudioSection onPublish={handleGeneratePublish} />
                 </Suspense>
               </SlidingTabsContent>

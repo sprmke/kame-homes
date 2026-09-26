@@ -43,7 +43,10 @@ import {
 import { MAINTENANCE_DEFAULT_REMINDER_TEMPLATE } from '@/features/dashboard/maintenance/lib/maintenanceReminderTemplate';
 import type { MaintenanceItem, MaintenanceQuery } from '@/features/dashboard/maintenance/lib/types';
 
-import { FinanceOperatingTabSkeleton } from '@/components/skeletons/AdminSkeletons';
+import {
+  FinanceOperatingTabSkeleton,
+  FinanceStaysCardGridSkeleton,
+} from '@/components/skeletons/AdminSkeletons';
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -229,6 +232,9 @@ export function MaintenanceRemindersTab({
   const tableColumnCount = showStatusColumn ? 6 : 5;
 
   if (isLoading && allItems.length === 0 && !showCalendarView) {
+    if (showCardView) {
+      return <FinanceStaysCardGridSkeleton />;
+    }
     return <FinanceOperatingTabSkeleton />;
   }
 

@@ -5,6 +5,8 @@ import { Route } from 'react-router-dom';
 
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import { PropertyAnalyticsRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
+
 const PropertyAnalyticsPage = lazy(() =>
   import('@/features/dashboard/analytics/pages/PropertyAnalyticsPage').then((m) => ({
     default: m.PropertyAnalyticsPage,
@@ -12,5 +14,14 @@ const PropertyAnalyticsPage = lazy(() =>
 );
 
 export function analyticsPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
-  return <Route path="analytics" element={propertyRoute('analytics', <PropertyAnalyticsPage />)} />;
+  return (
+    <Route
+      path="analytics"
+      element={propertyRoute(
+        'analytics',
+        <PropertyAnalyticsPage />,
+        <PropertyAnalyticsRouteSkeleton />
+      )}
+    />
+  );
 }

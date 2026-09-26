@@ -14,6 +14,8 @@ import type {
   PropertyRouteFn,
 } from '@/features/dashboard/org/routes/guards';
 
+import { PropertyAnnouncementsRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
+
 const HostAnnouncementDetailPage = lazy(() =>
   import('@/features/dashboard/announcements/pages/HostAnnouncementDetailPage').then((m) => ({
     default: m.HostAnnouncementDetailPage,
@@ -51,7 +53,10 @@ function hostAnnouncementsNestedRoutes(): ReactNode {
 
 export function hostAnnouncementsOrgRoute(orgRoute: OrgRouteFn): ReactNode {
   return (
-    <Route path="announcements" element={orgRoute('announcements', <Outlet />)}>
+    <Route
+      path="announcements"
+      element={orgRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+    >
       {hostAnnouncementsNestedRoutes()}
     </Route>
   );
@@ -60,7 +65,10 @@ export function hostAnnouncementsOrgRoute(orgRoute: OrgRouteFn): ReactNode {
 /** Deep-link fallback for property-only members (no org-hub nav entry). */
 export function hostAnnouncementsPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
   return (
-    <Route path="announcements" element={propertyRoute('announcements', <Outlet />)}>
+    <Route
+      path="announcements"
+      element={propertyRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+    >
       {hostAnnouncementsNestedRoutes()}
     </Route>
   );
@@ -69,7 +77,10 @@ export function hostAnnouncementsPropertyRoute(propertyRoute: PropertyRouteFn): 
 /** Deep-link fallback for parking team members (no org-hub nav entry). */
 export function hostAnnouncementsParkingRoute(parkingRoute: ParkingRouteFn): ReactNode {
   return (
-    <Route path="announcements" element={parkingRoute('announcements', <Outlet />)}>
+    <Route
+      path="announcements"
+      element={parkingRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+    >
       {hostAnnouncementsNestedRoutes()}
     </Route>
   );

@@ -10,7 +10,7 @@ import {
 } from '@/features/dashboard/analytics/lib/analyticsDateRange';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { DashboardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { OrgAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
 
 export function OrgAnalyticsPage() {
   const [preset, setPreset] = useState<AnalyticsRangePreset>('last-30d');
@@ -29,7 +29,7 @@ export function OrgAnalyticsPage() {
         </div>
 
         {isLoading ? (
-          <DashboardSkeleton />
+          <OrgAnalyticsSkeleton />
         ) : isError || !data ? (
           <div className="surface-card p-6 text-center">
             <p className="text-muted-foreground text-sm">

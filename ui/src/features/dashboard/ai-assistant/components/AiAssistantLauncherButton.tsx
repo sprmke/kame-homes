@@ -6,6 +6,7 @@ import { useAiAssistantAccess } from '@/features/dashboard/ai-assistant/hooks/us
 import { isAiAssistantFabVisible } from '@/features/dashboard/ai-assistant/lib/assistantFabLayout';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
+import { AiAssistantPanelSkeleton } from '@/components/skeletons/AiAssistantSkeleton';
 import { cn } from '@/lib/utils';
 
 // Chat composer/thread/canvas/history are a heavy subtree mounted in every dashboard
@@ -60,7 +61,7 @@ export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }
         </button>
       ) : null}
       {(hasOpenedOnce || open) && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<AiAssistantPanelSkeleton />}>
           <AiAssistantPanel
             open={open}
             onOpenChange={(next) => {
