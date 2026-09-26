@@ -8,7 +8,7 @@ import {
   useAiCreditWallet,
 } from '@/features/dashboard/super-admin/hooks/useAiCreditWallet';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { WalletResultSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
@@ -83,7 +83,7 @@ export function AiCreditWalletCard({ initialOrgId }: { initialOrgId?: string } =
         </Button>
       </div>
 
-      {isLoading ? <SectionContentSkeleton rows={2} className="py-4" /> : null}
+      {isLoading ? <WalletResultSkeleton /> : null}
 
       {isError ? (
         <p className="text-destructive text-sm">{friendlyToastError(error, 'Org not found')}</p>

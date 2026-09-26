@@ -62,7 +62,7 @@ import type {
   OrgApprovalUnitConflict,
 } from '@/features/dashboard/super-admin/types/approval';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { ReviewDialogSkeleton } from '@/components/skeletons/AdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -446,7 +446,7 @@ export function SuperAdminListingVerificationDialog({ approval, onOpenChange }: 
 
           <div className={superAdminApprovalDialogBodyClass}>
             {isLoading || !detail ? (
-              <SectionContentSkeleton rows={5} className="py-10" />
+              <ReviewDialogSkeleton />
             ) : panel === 'changes' ? (
               <div className="space-y-5">
                 <fieldset className="space-y-2">

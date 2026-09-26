@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+import { Gauge, Settings } from 'lucide-react';
 
 import { HostVerificationRewardCard } from '@/features/dashboard/super-admin/components/HostVerificationRewardCard';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
@@ -12,12 +14,12 @@ import {
   usePlatformSettings,
   useUpdatePlatformSettings,
 } from '@/features/dashboard/super-admin/hooks/usePlatformSettings';
+import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-
 
 export function SuperAdminPlatformSettingsPage() {
   const { data, isLoading, error } = usePlatformSettings();
@@ -31,6 +33,8 @@ export function SuperAdminPlatformSettingsPage() {
   const [legalTermsUrl, setLegalTermsUrl] = useState('');
   const [legalPrivacyUrl, setLegalPrivacyUrl] = useState('');
   const [rateLimit, setRateLimit] = useState('60');
+  const [authRateLimitEnforce, setAuthRateLimitEnforce] = useState(false);
+  const [authRateLimit, setAuthRateLimit] = useState('300');
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -43,6 +47,8 @@ export function SuperAdminPlatformSettingsPage() {
     setLegalTermsUrl(data.legalTermsUrl ?? '');
     setLegalPrivacyUrl(data.legalPrivacyUrl ?? '');
     setRateLimit(String(data.publicRateLimitPerMin ?? 60));
+    setAuthRateLimitEnforce(data.authenticatedRateLimitEnforce);
+    setAuthRateLimit(String(data.authenticatedRateLimitPerMin ?? 300));
     setInitialized(true);
   }, [data, initialized]);
 
@@ -165,6 +171,58 @@ export function SuperAdminPlatformSettingsPage() {
           </SuperAdminSettingsRow>
         </div>
       </SuperAdminSettingsCard>
+
+      <SuperAdminSettingsCard
+        title="Authenticated rate limiting"
+        description="Applies to every signed-in dashboard request by default. Off = observe only (console warning); on = the caller gets a 429. Flip off instantly if the limit misfires on real traffic — no deploy needed."
+        icon={<Gauge className="text-muted-foreground size-4" aria-hidden />}
+        headerAction={
+          <Button variant="outline" size="sm" className="min-h-[44px]" asChild>
+            <Link to={superAdminPaths.rateLimits}>View activity</Link>
+          </Button>
+        }
+        onSubmit={() =>
+          void save.mutateAsync({
+            authenticatedRateLimitEnforce: authRateLimitEnforce,
+            authenticatedRateLimitPerMin: Number(authRateLimit),
+          })
+        }
+        footer={
+          <Button type="submit" className="min-h-[44px]" disabled={save.isPending || !initialized}>
+            {save.isPending ? 'Saving…' : 'Save'}
+          </Button>
+        }
+      >
+        <SuperAdminSettingsRow
+          label="Enforce (return 429)"
+          description="Off keeps the original log-only rollout — nothing is ever blocked."
+          htmlFor="auth-rate-limit-enforce"
+        >
+          <Switch
+            id="auth-rate-limit-enforce"
+            checked={authRateLimitEnforce}
+            onCheckedChange={setAuthRateLimitEnforce}
+            aria-label="Enforce authenticated rate limit"
+          />
+        </SuperAdminSettingsRow>
+
+        <SuperAdminSettingsRow
+          stacked
+          label="Limit (requests / 60s per user)"
+          htmlFor="auth-rate-limit"
+          description="No measured hosted-traffic baseline exists yet — 300 is a reasoned, deliberately loose starting point. Raise it here if a legitimate workflow (bulk pricing edits, multi-tab polling) trips it."
+        >
+          <Input
+            id="auth-rate-limit"
+            type="number"
+            min={1}
+            max={100000}
+            value={authRateLimit}
+            onChange={(event) => setAuthRateLimit(event.target.value)}
+          />
+        </SuperAdminSettingsRow>
+      </SuperAdminSettingsCard>
+
       <HostVerificationRewardCard />
     </SuperAdminPage>
   );

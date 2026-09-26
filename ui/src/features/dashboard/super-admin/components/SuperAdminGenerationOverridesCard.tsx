@@ -12,7 +12,7 @@ import {
   type MarketingGenerationOverrideRow,
 } from '@/features/dashboard/super-admin/hooks/useAiPlatformGenerationOverrides';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SettingsRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -163,7 +163,7 @@ export function SuperAdminGenerationOverridesCard({ orgId }: { orgId: string }) 
   return (
     <SuperAdminSettingsCard title="Generate caps">
       {isLoading ? (
-        <SectionContentSkeleton rows={3} />
+        <SettingsRowsSkeleton rows={3} label="Loading generate caps" />
       ) : isError || !data ? (
         <p className="text-muted-foreground text-sm">Could not load Generate caps</p>
       ) : data.properties.length === 0 ? (

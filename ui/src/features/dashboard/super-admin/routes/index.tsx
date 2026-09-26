@@ -93,6 +93,11 @@ const SuperAdminPricingPlansPage = lazy(() =>
     default: m.SuperAdminPricingPlansPage,
   }))
 );
+const SuperAdminRateLimitsPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminRateLimitsPage').then((m) => ({
+    default: m.SuperAdminRateLimitsPage,
+  }))
+);
 const SuperAdminSettingsPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminSettingsPage').then((m) => ({
     default: m.SuperAdminSettingsPage,
@@ -131,6 +136,7 @@ export const superAdminRoutes: ReactNode = (
     <Route path="hosts" element={<SuperAdminHostsPage />} />
     <Route path="settings" element={<SuperAdminSettingsPage />} />
     <Route path="ai-usage" element={<SuperAdminAiUsagePage />} />
+    <Route path="rate-limits" element={<SuperAdminRateLimitsPage />} />
     <Route path="audit" element={<SuperAdminAuditPage />} />
     <Route path="platform-settings" element={<SuperAdminPlatformSettingsPage />} />
     <Route path="pricing/plans" element={<SuperAdminPricingPlansPage />} />

@@ -30,7 +30,7 @@ import {
 } from '@/features/dashboard/super-admin/hooks/useApprovals';
 import type { ExternalReviewApprovalSummary } from '@/features/dashboard/super-admin/types/approval';
 
-import { ListRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { ReviewDialogSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -146,7 +146,7 @@ export function SuperAdminExternalReviewDialog({ approval, onOpenChange }: Props
 
           <div className={superAdminApprovalDialogBodyClass}>
             {assets.isLoading ? (
-              <ListRowsSkeleton rows={4} className="py-10" />
+              <ReviewDialogSkeleton />
             ) : (
               <div className="space-y-6">
                 <section className="space-y-3">

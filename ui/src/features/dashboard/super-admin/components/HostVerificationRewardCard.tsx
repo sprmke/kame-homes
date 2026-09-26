@@ -16,6 +16,7 @@ import {
   useRevokeHostVerificationReward,
 } from '@/features/dashboard/super-admin/hooks/usePricingPlans';
 
+import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
 type Trigger = PlatformSettings['hostRewardTrigger'];
@@ -66,7 +68,22 @@ export function HostVerificationRewardCard() {
     setReady(true);
   }, [data, ready]);
 
-  if (isLoading && !data) return null;
+  if (isLoading && !data) {
+    return (
+      <SuperAdminSettingsCard
+        title="Host verification reward"
+        description="Time-limited plan grant for Recommended verification."
+        icon={<Gift className="text-muted-foreground size-4" aria-hidden />}
+      >
+        <SettingsFormSkeleton
+          columns={2}
+          fields={6}
+          toggle
+          label="Loading host verification reward"
+        />
+      </SuperAdminSettingsCard>
+    );
+  }
 
   return (
     <SuperAdminSettingsCard
@@ -183,7 +200,26 @@ export function HostVerificationRewardCard() {
       <div className="border-border space-y-3 border-t pt-4">
         <p className="text-sm font-medium">Live reward grants</p>
         {grantsLoading ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <ul
+            className="divide-border divide-y rounded-lg border"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading reward grants"
+          >
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li
+                key={i}
+                className="flex min-h-[44px] flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                aria-hidden
+              >
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-40 max-w-full" />
+                  <Skeleton className="h-3 w-52 max-w-full" />
+                </div>
+                <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
+              </li>
+            ))}
+          </ul>
         ) : grants.length === 0 ? (
           <p className="text-muted-foreground text-sm">None</p>
         ) : (

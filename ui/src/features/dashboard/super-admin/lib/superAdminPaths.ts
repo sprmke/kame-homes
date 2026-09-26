@@ -3,6 +3,7 @@ export const superAdminPaths = {
   aiUsage: '/admin/ai-usage',
   audit: '/admin/audit',
   platformSettings: '/admin/platform-settings',
+  rateLimits: '/admin/rate-limits',
   organizations: '/admin/orgs',
   organizationHub: (orgSlug: string) => `/admin/orgs/${orgSlug}`,
   /** Anchor into a section of the single-page organization hub (see `AdminSectionNavLayout`). */

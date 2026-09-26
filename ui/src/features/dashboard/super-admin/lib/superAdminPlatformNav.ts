@@ -7,6 +7,7 @@ import {
   Building,
   Building2,
   CreditCard,
+  Gauge,
   HelpCircle,
   Landmark,
   LifeBuoy,
@@ -76,6 +77,7 @@ export const SUPER_ADMIN_NAV_GROUPS: SuperAdminPlatformNavGroup[] = [
     items: [
       { label: 'AI Management', href: superAdminPaths.settings, Icon: Sparkles },
       { label: 'AI usage', href: superAdminPaths.aiUsage, Icon: Activity },
+      { label: 'Rate limits', href: superAdminPaths.rateLimits, Icon: Gauge },
       { label: 'Audit log', href: superAdminPaths.audit, Icon: ScrollText },
       { label: 'Platform settings', href: superAdminPaths.platformSettings, Icon: Settings },
     ],
