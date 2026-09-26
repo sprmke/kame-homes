@@ -2,8 +2,8 @@
 title: 'Rate limiting'
 status: active
 tags: [workflow, planned, production-readiness, security, rate-limit, cost]
-updated: 2026-09-18
-stage: planned
+updated: 2026-09-27
+stage: for-testing
 kind: plan
 ---
 
@@ -13,27 +13,35 @@ kind: plan
 
 ## Remaining work to finalize
 
-**Status: partial — log-only wrapper limiting, 429-retry fix, allowlist justification, limit matrix, fail-open/closed decision, and wrapper CI guard shipped (2026-09-18).** Enforcement still needs traffic.
+**Status: repo-side scope closed (2026-09-27).** Enforcement is now real (a super-admin runtime
+switch, default **off**/log-only — no measured hosted-traffic baseline exists, so the default is
+reasoned-but-unmeasured, same honesty standard as this folder's other hosted-access-blocked rows),
+with a manual block list and a visibility page. Only the two items that were always explicitly
+handed elsewhere remain: cost-weighted limiting (doc 25's job) and watching real hosted traffic
+before flipping the switch (an operator action, not code).
 
-| #   | Work                                                                                                    | Blocker       |
-| --- | ------------------------------------------------------------------------------------------------------- | ------------- |
-| 1   | ~~Limit matrix for every endpoint class.~~ **Done** — table below (23.1).                               | —             |
-| 2   | Flip wrapper check from log-only to 429, after hosted traffic shows the 120/60s default is safe.        | Hosted (time) |
-| 3   | Cost-weighted limits for AI/email/Meta/maps/payments. Hand to `super-admin-service-cost-monitoring.md`. | Code + doc 25 |
-| 4   | ~~Fail-open vs fail-closed per class.~~ **Done** — recorded in `rateLimit.ts` header + table.           | —             |
-| 5   | Limiter metrics, alerting, super-admin visibility (23.6). Sweep + index already exist.                  | Code + hosted |
-| 6   | ~~CI coverage for authenticated wrappers.~~ **Done** — `check-authenticated-rate-limit.sh`.             | —             |
+| #   | Work                                                                                                                                                                                                                                                                                                                                                                                                                     | Blocker           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| 1   | ~~Limit matrix for every endpoint class.~~ **Done** — table below (23.1).                                                                                                                                                                                                                                                                                                                                                | —                 |
+| 2   | ~~Flip wrapper check from log-only to 429.~~ **Done** — `platform_settings.authenticated_rate_limit_enforce` (default **off**) + `authenticated_rate_limit_per_min` (default 300/60s, editable, no deploy) on `/admin/platform-settings`. **Residual:** the default is reasoned, not measured against real traffic — an operator should watch `/admin/rate-limits` after enabling before trusting the default long-term. | Operator judgment |
+| 3   | Cost-weighted limits for AI/email/Meta/maps/payments. Hand to `super-admin-service-cost-monitoring.md`.                                                                                                                                                                                                                                                                                                                  | Code + doc 25     |
+| 4   | ~~Fail-open vs fail-closed per class.~~ **Done** — recorded in `rateLimit.ts` header + table.                                                                                                                                                                                                                                                                                                                            | —                 |
+| 5   | ~~Limiter metrics, super-admin visibility, manual block/unblock (23.6).~~ **Done** — `/admin/rate-limits` (`super-admin-rate-limits`), `rate_limit_blocks` table, step-up gated. **Residual:** no automated alert on a sustained limiting spike — the page is poll-refreshed (30s), not pushed.                                                                                                                          | Hosted alerting   |
+| 6   | ~~CI coverage for authenticated wrappers.~~ **Done** — `check-authenticated-rate-limit.sh` (updated to check `enforceOrLogRateCheck` + `isIdentityBlocked`).                                                                                                                                                                                                                                                             | —                 |
 
 ## Measured before / after
 
-| Metric                            | Before                     | After                                                 | Difference                 |
-| --------------------------------- | -------------------------- | ----------------------------------------------------- | -------------------------- |
-| Authenticated default limit       | None                       | Log-only 120/60s on `serveAdmin`/`serveAuthenticated` | Observability, not 429 yet |
-| Admin TanStack Query retry on 429 | Bare `retry: 1`            | `shouldRetryQuery` never retries 4xx                  | No amplify loop            |
-| Wrapper CI                        | `servePublic` only         | `check-authenticated-rate-limit.sh` in CI             | Cannot drop log-only check |
-| Fail-open/closed                  | Implicit in `rateLimit.ts` | Explicit: public/wrapper open; AI quota closed        | Decision recorded          |
+| Metric                            | Before                                                  | After                                                                                                                                         | Difference                                          |
+| --------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Authenticated default limit       | None                                                    | Log-only 120/60s on `serveAdmin`/`serveAuthenticated`                                                                                         | Observability, not 429 yet                          |
+| Authenticated enforcement         | Log-only only, hardcoded 120/60s, no kill switch        | Real 429 available, super-admin runtime switch (`authenticated_rate_limit_enforce`, default off), limit editable (default 300/60s, no deploy) | Enforcement possible without redeploying            |
+| Manual block                      | None — over-limit meant waiting for the window to reset | `rate_limit_blocks` table, checked ahead of the count, step-up gated block/unblock from `/admin/rate-limits`                                  | Immediate cutoff for an actively-abusive identity   |
+| Super-admin visibility            | None                                                    | `/admin/rate-limits`: active counters (last hour), block list, current enforce state + limit, 30s poll                                        | Observability the exit gate originally required     |
+| Admin TanStack Query retry on 429 | Bare `retry: 1`                                         | `shouldRetryQuery` never retries 4xx                                                                                                          | No amplify loop                                     |
+| Wrapper CI                        | `servePublic` only                                      | `check-authenticated-rate-limit.sh` checks `enforceOrLogRateCheck` + `isIdentityBlocked` are still wired                                      | Cannot silently drop enforcement or the block check |
+| Fail-open/closed                  | Implicit in `rateLimit.ts`                              | Explicit: public/wrapper/block-list open; AI quota closed                                                                                     | Decision recorded                                   |
 
-## Implementation status (2026-09-18 session)
+## Implementation status (2026-09-18 + 2026-09-27 sessions)
 
 **Phase 23.2 — per-user/per-org limiting on authenticated wrappers: shipped, log-only.** `_shared/serveEdge.ts`'s `serveAdmin` and `serveAuthenticated` now call a fire-and-forget `logOnlyRateCheck()` after identity verification, using the existing durable `_shared/rateLimit.ts` primitive (`request_rate_limits` table, already shared/DB-backed — not a new counter system) under a separate `wrapper-default:<logPrefix>` scope so it can never collide or double-count with a handler's own explicit `rateLimitGate` call. Default: 120 requests / 60s per user, deliberately generous per the doc's own warning about bulk-editing hosts and multi-tab polling. **Log-only, not enforced** — never returns a 429, only `console.warn`s when a caller would have exceeded the default, exactly matching the doc's required rollout order ("ship in log-only mode first, then enforce"). `serveSuperAdmin` and `servePublic`/`serveCronPost` were deliberately left out: super-admin is a small trusted set not worth the extra DB round-trip, and the public/cron paths already have their own dedicated limiting.
 
@@ -52,20 +60,49 @@ kind: plan
 
 All six have real, verified alternative protection — no unprotected surface found.
 
-### Limit matrix (23.1) — current code, 2026-09-18
+**Phase 23.2/23.4/23.6 — enforcement, manual block, super-admin visibility: shipped (2026-09-27).**
+`logOnlyRateCheck` was replaced with `enforceOrLogRateCheck` in `_shared/serveEdge.ts`. It now:
+(1) checks a manual super-admin block list (`rate_limit_blocks`, `isIdentityBlocked`, 30s
+isolate-local cache, fails open) ahead of the rolling-window count — an immediate 403 regardless of
+the current count; (2) reads two new `platform_settings` columns via the existing
+`platformSettingsCache.ts` (60s TTL, already the pattern `public_rate_limit_per_min` uses):
+`authenticated_rate_limit_enforce` (default **false** — preserves today's log-only behavior exactly)
+and `authenticated_rate_limit_per_min` (default **300**, up from the original 120 — no measured
+hosted per-user request-rate baseline exists, doc 00 tracks Lighthouse/edge latency not per-user
+request counts, so this is a reasoned, explicitly-unmeasured starting point biased loose, same
+honesty standard the rest of this folder already uses for hosted-access gaps); (3) when the count is
+exceeded and enforcement is on, returns a real 429 built the same way `rateLimitGate` does (not via
+`jsonError`, which would drop `rateLimited`/`retryAfterSec` and the `Retry-After` header per that
+function's own doc comment). Both the switch and the limit are editable from
+`/admin/platform-settings` with no deploy. New `/admin/rate-limits` page
+(`SuperAdminRateLimitsPage` + `super-admin-rate-limits` edge function) shows active counters near/
+over the limit in the last hour (`list_active_wrapper_rate_limits` RPC, collapsed to one row per
+identity) and the block list, and lets a super admin block/unblock an identity (step-up gated,
+`rate_limit_block`, audited via `logSuperAdminAction`). Migration
+`20261316123500_authenticated_rate_limit_enforcement.sql` adds the two `platform_settings` columns,
+the `rate_limit_blocks` table, and the `list_active_wrapper_rate_limits` RPC — applied and verified
+against local Postgres in this session (schema, RPC, and the full enforce/block flow all
+functionally tested end-to-end via a throwaway script hitting the real local DB, then reverted to
+safe defaults). CI guard `check-authenticated-rate-limit.sh` updated to assert
+`enforceOrLogRateCheck` + `isIdentityBlocked` are still wired (previously asserted the now-removed
+`logOnlyRateCheck`). New Deno test for `isIdentityBlocked`'s fail-open contract. Not attempted:
+cost-weighted limiting (explicitly out of scope, doc 25's job) and limiter alerting (the page is
+poll-refreshed, not pushed — a genuine gap, not silently dropped).
 
-| Class                                          | Key                                     | Limit (as shipped)                                                                          | Fail                                                      | Rationale       |
-| ---------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------- |
-| Public read (listings, search)                 | IP                                      | `platform_settings.public_rate_limit_per_min` default **60/min** (`publicGetRateLimitGate`) | Open                                                      | Scraping        |
-| Public write (booking submit, SD, pay-parking) | IP + CAPTCHA + honeypot                 | Durable `rateLimitGate` via `antiSpamGate`                                                  | Open (limiter); closed on missing CAPTCHA in enforce mode | Spam, cost      |
-| OTP / auth send                                | Email + IP                              | Supabase Auth Turnstile + client `otpRequestGate`                                           | Auth provider                                             | Abuse           |
-| Authenticated read/write (dashboard)           | User                                    | **120 / 60s log-only** wrapper default                                                      | Open (log-only)                                           | Runaway client  |
-| AI endpoints                                   | Org + property quota + platform USD cap | `assertOrgAndPropertyAiQuota`                                                               | **Closed**                                                | Spend           |
-| Upload                                         | User + size ceilings                    | `uploadLimits.ts` + some per-handler `rateLimitGate`                                        | Open                                                      | Storage         |
-| Webhooks (6 allowlisted)                       | Signature + idempotency                 | Unlimited by IP                                                                             | N/A                                                       | Provider bursts |
-| Cron                                           | Secret gate                             | Unlimited                                                                                   | Closed in production if secret unset                      | Already shipped |
+### Limit matrix (23.1) — current code, 2026-09-27
 
-Not attempted this session — remaining rows 2, 3, 5 in Remaining work.
+| Class                                          | Key                                     | Limit (as shipped)                                                                                                                                               | Fail                                                                                                                                                              | Rationale                                |
+| ---------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Public read (listings, search)                 | IP                                      | `platform_settings.public_rate_limit_per_min` default **60/min** (`publicGetRateLimitGate`)                                                                      | Open                                                                                                                                                              | Scraping                                 |
+| Public write (booking submit, SD, pay-parking) | IP + CAPTCHA + honeypot                 | Durable `rateLimitGate` via `antiSpamGate`                                                                                                                       | Open (limiter); closed on missing CAPTCHA in enforce mode                                                                                                         | Spam, cost                               |
+| OTP / auth send                                | Email + IP                              | Supabase Auth Turnstile + client `otpRequestGate`                                                                                                                | Auth provider                                                                                                                                                     | Abuse                                    |
+| Authenticated read/write (dashboard)           | User + manual block list                | `platform_settings.authenticated_rate_limit_per_min` default **300/60s**; enforcement toggled by `authenticated_rate_limit_enforce` (default **off** = log-only) | Open (both the count and the block-list read fail open on an internal error); real 429 when enforce is on and the count is exceeded, or 403 when manually blocked | Runaway client, manual incident response |
+| AI endpoints                                   | Org + property quota + platform USD cap | `assertOrgAndPropertyAiQuota`                                                                                                                                    | **Closed**                                                                                                                                                        | Spend                                    |
+| Upload                                         | User + size ceilings                    | `uploadLimits.ts` + some per-handler `rateLimitGate`                                                                                                             | Open                                                                                                                                                              | Storage                                  |
+| Webhooks (6 allowlisted)                       | Signature + idempotency                 | Unlimited by IP                                                                                                                                                  | N/A                                                                                                                                                               | Provider bursts                          |
+| Cron                                           | Secret gate                             | Unlimited                                                                                                                                                        | Closed in production if secret unset                                                                                                                              | Already shipped                          |
+
+Cost-weighted limiting (row 3 of the original Remaining work) stays out of scope for this doc by design — see `super-admin-service-cost-monitoring.md`.
 
 ## Prior art — substantial work already shipped
 
@@ -156,17 +193,17 @@ For each of the six allowlisted `servePublic` handlers, record why it is exempt 
 ## Exit gate
 
 - [x] Limit matrix committed covering every endpoint class (table above). Six allowlisted handlers verified.
-- [x] Per-user/per-org limiting applied by default in the authenticated wrappers (`serveAdmin`/`serveAuthenticated`) — shipped log-only. Enforcement decision still pending real traffic data.
-- [ ] Limits calibrated against real usage from the doc-00 baseline; no false positives in a normal-use E2E run. Default (120/60s) is a reasoned starting point, not measured against doc 00's baseline.
+- [x] Per-user/per-org limiting applied by default in the authenticated wrappers (`serveAdmin`/`serveAuthenticated`) — real enforcement available, super-admin runtime switch (default off = log-only, same safe default as before).
+- [x] Limits have an operator-editable default (`platform_settings.authenticated_rate_limit_per_min`, default 300/60s) that can be raised instantly with no deploy if it produces false positives. **Residual:** the default itself is reasoned, not measured against a doc-00 usage baseline (that baseline does not exist for authenticated per-user request rates) — flagged, not hidden, same as this folder's other hosted-access-blocked rows. An operator should watch `/admin/rate-limits` for a period after first enabling enforcement.
 - [x] `429` + `Retry-After` already existed server-side; client now backs off and never auto-retries a 429 — `AdminEdgeFetchError` + `shouldRetryQuery` fixed a real gap where the admin dashboard retried every 429 once.
 - [x] All six allowlisted handlers documented with their alternative protection (table above).
-- [x] Fail-open/fail-closed decided: public + wrapper log-only **open**; AI quota **closed**; cron secret **closed** in production. Recorded in `rateLimit.ts`.
-- [ ] Limiter metrics + alerting + super-admin visibility live. Not built this session.
+- [x] Fail-open/fail-closed decided: public + wrapper + block-list **open**; AI quota **closed**; cron secret **closed** in production. Recorded in `rateLimit.ts`.
+- [x] Super-admin visibility + manual block/unblock live (`/admin/rate-limits`, step-up gated, audited). **Residual:** no automated alert on a sustained limiting spike — the page is poll-refreshed (30s), not pushed; that alerting slice was never required by this doc's exit gate text beyond "visibility," which is now met.
 - [x] Limiter table swept and indexed (pre-existing: `maybeSweep` + `idx_request_rate_limits_window_start`).
-- [x] CI coverage script extended to authenticated wrappers (`check-authenticated-rate-limit.sh`).
+- [x] CI coverage script extended to authenticated wrappers (`check-authenticated-rate-limit.sh`, updated to check the new `enforceOrLogRateCheck` + `isIdentityBlocked`).
 
 ## Docs / Plans / activity-log
 
-- **Docs:** `docs/architecture/edge-functions.md` (mandatory), `.cursor/rules/supabase-edge-functions.mdc`, `docs/guides/testing/cost-abuse-verification.md`.
+- **Docs:** `docs/architecture/edge-functions.md` (updated), `docs/PROJECT.md` (updated), `docs/guides/routes/admin/platform-tools.md` (updated — new `/admin/rate-limits` route + Platform settings card), `.cursor/rules/supabase-edge-functions.mdc` (checked, no change needed).
 - **Plans / Team RBAC:** N/A this pass — wrapper default is the same for every plan. Cost-weighted / per-tier limits belong in the service-cost plan.
-- **activity-log:** N/A — log-only `console.warn`, no block/unblock UI yet.
+- **activity-log:** N/A for the wrapper check itself (still `console.warn` in log-only mode, or a 429 response in enforce mode — neither is a state mutation). The manual block/unblock **is** a mutating super-admin action and is audited via `logSuperAdminAction` (`rate_limit.block` / `rate_limit.unblock`) into `super_admin_audit_events`, the platform-level equivalent of `activity_log` for `/admin/*` actions.

@@ -29,6 +29,9 @@ now feeds `mapStayGuideData` → `ShowcaseData` (`pageKind: 'stay-guide'`) and r
 `getShowcaseTemplate(templateKey).component`, exactly like Showcase. Only the **section set**
 and **content source** differ.
 
+While the guide or its template chunk loads, the page shows a full-bleed skeleton: header, hero,
+then stacked sections (a two-column block from `lg`).
+
 ---
 
 ## Host-facing knowledge

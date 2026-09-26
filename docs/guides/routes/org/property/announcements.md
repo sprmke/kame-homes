@@ -24,7 +24,7 @@ Route: `/org/:orgSlug/property/:propertySlug/announcements` (+ `/announcements/:
 
 ## Overview
 
-Property-only team members can open this deep-link route to read platform maintenance, product updates, and development notices scoped to their property's linked development. Org hub members use the org **Announcements** sidebar instead. Notices appear **only** on this archive (and detail) — other dashboard pages do not show a top banner. A **red dot** on **Announcements** (sidebar and **More** menu) appears while any notice is unread — same indicator pattern as Settings issues. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. Visible to **every** non–plan-limited property team member (same baseline as Help & Support). Suspended orgs may still open Announcements.
+Property-only team members can open this deep-link route to read platform maintenance, product updates, and development notices scoped to their property's linked development. Org hub members use the org **Announcements** sidebar instead. Notices appear **only** on this archive (and detail) — other dashboard pages do not show a top banner. A **red dot** on **Announcements** (sidebar and **More** menu) appears while any notice is unread — same indicator pattern as Settings issues. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. While the list or detail loads, those cards and feed rows render as skeletons. Visible to **every** non–plan-limited property team member (same baseline as Help & Support). Suspended orgs may still open Announcements.
 
 ## Host-facing knowledge
 

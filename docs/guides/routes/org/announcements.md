@@ -26,7 +26,7 @@ Legacy redirect: `/org/:orgSlug/help-support/announcements` → org announcement
 
 Org hub members open **Announcements** from the org sidebar (between Plans & Billing and Settings) to read platform maintenance, product updates, and development notices for the whole organization. The feed merges **platform** notices with **development** notices matched from every property and parking `residence_name` in the org (`list-host-announcements` with `orgId` only).
 
-Notices appear only on this archive (and detail), not as a top banner on other pages. A **red dot** on **Announcements** (sidebar and **More** on phone) appears while any notice is unread. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed.
+Notices appear only on this archive (and detail), not as a top banner on other pages. A **red dot** on **Announcements** (sidebar and **More** on phone) appears while any notice is unread. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. While the list or detail loads, those cards and feed rows render as skeletons.
 
 **Page title:** `${Org Name} - Announcements`.
 

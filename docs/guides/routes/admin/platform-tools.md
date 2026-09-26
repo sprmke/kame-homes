@@ -1,29 +1,32 @@
 ---
-title: 'Super Admin — AI usage, Audit log, Platform settings — operator guide'
+title: 'Super Admin — AI usage, Rate limits, Audit log, Platform settings — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-05
+updated: 2026-09-27
 ---
 
-# Super Admin — AI usage, Audit log, Platform settings
+# Super Admin — AI usage, Rate limits, Audit log, Platform settings
 
 Routes:
 
 - `/admin/ai-usage` — platform AI cost console
+- `/admin/rate-limits` — authenticated-wrapper rate-limit activity + manual block/unblock
 - `/admin/audit` — super-admin action log
 - `/admin/platform-settings` — platform operational knobs
 - `⌘K` / `Ctrl-K` (any `/admin/*` page) — cross-entity search palette
 
-> **Status:** Documented · shipped in the Super Admin console overhaul, Phase 6.
+> **Status:** Documented · shipped in the Super Admin console overhaul, Phase 6 (AI usage / Audit
+> log / Platform settings); Rate limits shipped with production-readiness doc 23.
 
 ## Progress overview
 
-| Section           | E2E save | Validation | Docs | Notes                                                                                                                                                                   |
-| ----------------- | -------- | ---------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI usage          | n/a      | —          | Done | Spend trend + cost-by-feature charts + **Feature health** + top-orgs + quota breaches. Read-only.                                                                       |
-| Audit log         | n/a      | —          | Done | Search + paginated list; org-hub **Activity** tab filters to one org.                                                                                                   |
-| Platform settings | Done     | client     | Done | Signups, maintenance, default plan, support/legal, rate limit, **Host verification reward** card (config + live grants list with Revoke via `org-subscriptions-admin`). |
-| ⌘K search palette | n/a      | —          | Done | Fans out over orgs / properties / parkings / tickets; Enter navigates.                                                                                                  |
+| Section           | E2E save | Validation | Docs | Notes                                                                                                                                                     |
+| ----------------- | -------- | ---------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI usage          | n/a      | —          | Done | Spend trend + cost-by-feature charts + **Feature health** + top-orgs + quota breaches. Read-only.                                                         |
+| Rate limits       | Done     | server     | Done | Active per-user counters near/over the wrapper limit (last hour), manual block/unblock (step-up gated), current enforce state + limit.                    |
+| Audit log         | n/a      | —          | Done | Search + paginated list; org-hub **Activity** tab filters to one org.                                                                                     |
+| Platform settings | Done     | client     | Done | Signups, maintenance, default plan, support/legal, public rate limit, authenticated rate-limit enforce switch + limit, **Host verification reward** card. |
+| ⌘K search palette | n/a      | —          | Done | Fans out over orgs / properties / parkings / tickets; Enter navigates.                                                                                    |
 
 ---
 
@@ -62,17 +65,31 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
   sites can be added the same way as new mutations ship.
 - **Platform settings** (`SuperAdminPlatformSettingsPage`): singleton `platform_settings` row via
   `platform-settings` GET/PUT. No RLS read path — everything goes through the
-  `serveSuperAdmin`-gated function. **Storage + read/write are live; the signup gate, maintenance
-  banner, default-plan wiring, and public rate-limit enforcement are follow-ups** — saving a value
-  here does not yet change guest-facing behavior. See
-  [`docs/workflow/planned/super-admin-platform-settings.md`](../../../workflow/planned/super-admin-platform-settings.md).
+  `serveSuperAdmin`-gated function. Signup gate, maintenance banner, and default-plan wiring are
+  live. The **Authenticated rate limiting** card holds the doc-23 kill switch
+  (`authenticated_rate_limit_enforce`, default off = log-only) and the per-user limit
+  (`authenticated_rate_limit_per_min`, default 300/60s — a reasoned, explicitly-unmeasured starting
+  point, since no hosted per-user request-rate baseline exists). Flipping it takes effect on the
+  next `platform_settings` cache read (≤60s, `_shared/platformSettingsCache.ts`), no deploy needed.
+  "View activity" links to `/admin/rate-limits`.
+- **Rate limits** (`SuperAdminRateLimitsPage`): `super-admin-rate-limits` GET returns identities
+  currently at or near the wrapper-default limit in the last hour
+  (`list_active_wrapper_rate_limits` RPC over `request_rate_limits`, collapsed to one row per
+  identity), the manual block list (`rate_limit_blocks`), and the current enforce state + limit.
+  Blocking an identity (`u:<uuid>` or `ip:<addr>`, matching `identityFromRequest`'s shape) is
+  checked ahead of the rolling-window count on every `serveAdmin`/`serveAuthenticated` request
+  (`isIdentityBlocked`, 30s isolate-local cache) — an immediate 403 regardless of the current
+  count. Step-up gated (`rate_limit_block`); every block/unblock is audited via
+  `logSuperAdminAction`. The page does not resolve `u:` ids to a name — cross-reference via
+  Organizations/Hosts search if needed. Poll refetch every 30s.
 - **⌘K palette** (`SuperAdminCommandPalette`, mounted once in `SuperAdminShell`): debounced
   `super-admin-search?q=` fans out over `organizations`/`properties`/`parkings`/`support_tickets`
   with a small per-source `ilike` limit; results are grouped by type, Enter navigates.
 - **Step-up OTP** (`SuperAdminStepUpProvider`, mounted once in `SuperAdminShell`): saving
-  `platform-settings` here (like every gated `/admin/*` mutation) needs a fresh email
-  verification code — a ~15-min sudo window shared across all sensitive actions. Full list and
-  mechanics in [`overview.md`](overview.md#step-up-verification-all-admin-pages) and
+  `platform-settings` and blocking/unblocking on `super-admin-rate-limits` (like every gated
+  `/admin/*` mutation) needs a fresh email verification code — a ~15-min sudo window shared across
+  all sensitive actions. Full list and mechanics in
+  [`overview.md`](overview.md#step-up-verification-all-admin-pages) and
   `.cursor/rules/admin-auth.mdc` §8.
 
 ---
@@ -82,25 +99,29 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 | Method  | Endpoint                               | Notes                                                                                                                                                                             |
 | ------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `super-admin-ai-usage`                 | `?range=30d\|90d\|12mo` → `totals`, `dailySeries`, `featureBreakdown` (+ `errors`, `errorRatePct`, `fallbackRatePct`, `latencyP50Ms`, `latencyP95Ms`), `topOrgs`, `quotaBreaches` |
+| GET     | `super-admin-rate-limits`              | `{ enforceEnabled, limit, activeCounters[], blocks[] }` — counters from the last hour, floor count 1                                                                              |
+| POST    | `super-admin-rate-limits`              | `{ action: 'block'\|'unblock', identity, reason? }` — step-up gated (`rate_limit_block`)                                                                                          |
 | GET     | `list-super-admin-audit`               | `?q=`, `?actor=`, `?targetType=`, `?targetId=`, `?page=`, `?limit=`                                                                                                               |
 | GET     | `org-subscriptions-admin?rewards=true` | Live `source=reward` grants for Host verification reward card                                                                                                                     |
-| GET/PUT | `platform-settings`                    | Singleton row; PUT accepts a partial patch                                                                                                                                        |
+| GET/PUT | `platform-settings`                    | Singleton row; PUT accepts a partial patch; step-up gated (`platform_settings`)                                                                                                   |
 | GET     | `super-admin-search`                   | `?q=` (min 2 chars) → grouped `results[]` with `href`                                                                                                                             |
 
 ---
 
 ## Implementation map
 
-| Concern         | Path                                                                                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Pages           | `ui/src/features/dashboard/super-admin/pages/SuperAdmin{AiUsage,Audit,PlatformSettings}Page.tsx`                                   |
-| Org hub section | `ui/src/features/dashboard/super-admin/pages/SuperAdminOrgActivitySection.tsx`                                                     |
-| Palette         | `ui/src/features/dashboard/super-admin/components/SuperAdminCommandPalette.tsx`                                                    |
-| Hooks           | `ui/src/features/dashboard/super-admin/hooks/{useSuperAdminAiUsage,useSuperAdminAudit,usePlatformSettings,useSuperAdminSearch}.ts` |
-| Edge functions  | `supabase/functions/{super-admin-ai-usage,list-super-admin-audit,platform-settings,super-admin-search}/index.ts`                   |
-| Audit writer    | `supabase/functions/_shared/superAdminAudit.ts`                                                                                    |
-| Migrations      | `supabase/migrations/20261305130000_super_admin_audit_events.sql`, `20261305130100_platform_settings.sql`                          |
-| Routes / nav    | `super-admin/routes/index.tsx`, `super-admin/lib/superAdminPlatformNav.ts` (Platform group)                                        |
+| Concern         | Path                                                                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pages           | `ui/src/features/dashboard/super-admin/pages/SuperAdmin{AiUsage,RateLimits,Audit,PlatformSettings}Page.tsx`                                                          |
+| Org hub section | `ui/src/features/dashboard/super-admin/pages/SuperAdminOrgActivitySection.tsx`                                                                                       |
+| Palette         | `ui/src/features/dashboard/super-admin/components/SuperAdminCommandPalette.tsx`                                                                                      |
+| Hooks           | `ui/src/features/dashboard/super-admin/hooks/{useSuperAdminAiUsage,useSuperAdminRateLimits,useSuperAdminAudit,usePlatformSettings,useSuperAdminSearch}.ts`           |
+| Edge functions  | `supabase/functions/{super-admin-ai-usage,super-admin-rate-limits,list-super-admin-audit,platform-settings,super-admin-search}/index.ts`                             |
+| Rate-limit core | `supabase/functions/_shared/{rateLimit,serveEdge,platformSettingsCache}.ts`                                                                                          |
+| Audit writer    | `supabase/functions/_shared/superAdminAudit.ts`                                                                                                                      |
+| Migrations      | `supabase/migrations/20261305130000_super_admin_audit_events.sql`, `20261305130100_platform_settings.sql`, `20261316123500_authenticated_rate_limit_enforcement.sql` |
+| Routes / nav    | `super-admin/routes/index.tsx`, `super-admin/lib/superAdminPlatformNav.ts` (Platform group)                                                                          |
+| CI guard        | `scripts/dev/check-authenticated-rate-limit.sh`                                                                                                                      |
 
 ---
 
@@ -117,17 +138,20 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 ## Related docs
 
 - [Super Admin Overview](./overview.md) · [Organizations & Organization hub](./orgs.md)
-- [`docs/workflow/planned/super-admin-audit-log.md`](../../../workflow/planned/super-admin-audit-log.md) — remaining audit-log scope (more call sites, richer viewer)
-- [`docs/workflow/planned/super-admin-ai-usage-dashboard.md`](../../../workflow/planned/super-admin-ai-usage-dashboard.md)
-- [`docs/workflow/planned/super-admin-platform-settings.md`](../../../workflow/planned/super-admin-platform-settings.md) — consumer wiring remaining
-- [`docs/workflow/planned/super-admin-global-search.md`](../../../workflow/planned/super-admin-global-search.md)
+- [`docs/workflow/done/super-admin-audit-log.md`](../../../workflow/done/super-admin-audit-log.md)
+- [`docs/workflow/done/super-admin-ai-usage-dashboard.md`](../../../workflow/done/super-admin-ai-usage-dashboard.md)
+- [`docs/workflow/done/super-admin-platform-settings.md`](../../../workflow/done/super-admin-platform-settings.md)
+- [`docs/workflow/done/super-admin-global-search.md`](../../../workflow/done/super-admin-global-search.md)
+- [`docs/workflow/planned/production-readiness-checklist/23-rate-limiting.md`](../../../workflow/planned/production-readiness-checklist/23-rate-limiting.md) — rate-limit plan + exit gate
 
 ---
 
 ## Pending / follow-ups
 
-- [ ] Wire `platform_settings` consumers: signup gate, maintenance banner, default plan on org
-      create, public rate-limit enforcement.
 - [ ] Add `logSuperAdminAction` to more mutation sites (development CRUD, FAQ CRUD, host settings).
 - [ ] AI usage: per-org drill-down page; MRR-style revenue trend needs subscription-event history.
 - [ ] ⌘K: recent-searches, keyboard nav polish, mobile entry point (currently keyboard-shortcut only).
+- [ ] Rate limits: cost-weighted limiting (AI/email/Meta/maps/payments) is out of scope for this
+      page by design — see [`super-admin-service-cost-monitoring.md`](../../../workflow/planned/super-admin-service-cost-monitoring.md).
+      Limiter alerting (a sustained limiting spike) is not built; the page is poll-refreshed, not
+      pushed.

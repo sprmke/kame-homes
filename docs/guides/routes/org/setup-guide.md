@@ -2,7 +2,7 @@
 title: 'Setup Guide — operator guide'
 status: active
 tags: [guides, routes, org, onboarding]
-updated: 2026-09-10
+updated: 2026-09-25
 ---
 
 # Setup Guide — operator guide
@@ -28,7 +28,7 @@ After `/onboarding`, owners land on the listing dashboard with a **Setup Guide**
 
 **Step order:** Organization (Welcome, brand) → each property/parking block → Verification (go-live + Get Recommended) → Finish (team, done).
 
-**UI:** Wider desktop modal (`~76rem`). No top-left “Setup guide” title. Desktop split rail lists org steps (Welcome hidden from rail), then one row per listing with property/parking icon and `done/total`. Optional steps show an “Optional” sublabel; skipped optional steps show “Skipped”. Section headers show group progress. The content pane has no title bar or close control; listing steps pin only the sub-step stepper above the body. Footer stays pinned. Only the step body scrolls. Listing sub-steps use the shared **ParkingFlowStepper** with **active label only** (`n/total` + segmented bar). Verification and Get Recommended render inline (host ID / listing proof / Recommended docs, no nested dialog). Property/parking **pricing** embeds the same rates/fees cards as the Pricing page (no “Open pricing” link). **Team** embeds the invite form inline. Welcome and finish are cinematic moments with jump shortcuts. **You're all set** only checks when all required steps are complete. Footer **Skip** appears only on Verification, Get Recommended, and Team (advances to the next step; does not close the overlay). Close via **Finish** on the last step (or dismiss from outside the overlay). Reopen from Finish setup. Mobile uses a short horizontal rail (no header title).
+**UI:** Wider desktop modal (`~76rem`). No top-left “Setup guide” title. Desktop split rail lists org steps (Welcome hidden from rail), then one row per listing with property/parking icon and `done/total`. Optional steps show an “Optional” sublabel; skipped optional steps show “Skipped”. A rail step stays disabled until every earlier step is complete or skipped. Back still opens earlier steps. Save & continue and Skip move forward one step. Section headers show group progress. The content pane has no title bar or close control; listing steps pin only the sub-step stepper above the body. Footer stays pinned. Only the step body scrolls. While a step loads, the body shows a skeleton of that step's form (no settings-page sidebar). Listing sub-steps use the shared **ParkingFlowStepper** with **active label only** (`n/total` + segmented bar). Verification and Get Recommended render inline (host ID / listing proof / Recommended docs, no nested dialog). Property/parking **pricing** embeds the same rates/fees cards as the Pricing page (no “Open pricing” link). **Team** embeds the invite form inline. Welcome and finish are cinematic moments with jump shortcuts. **You're all set** only checks when all required steps are complete. Footer **Skip** appears only on Verification, Get Recommended, and Team (advances to the next step; does not close the overlay). Close via **Finish** on the last step (or dismiss from outside the overlay). Reopen from Finish setup. Mobile uses a short horizontal rail (no header title).
 
 **Plans / Team RBAC:** N/A for new keys — the guide only embeds existing settings surfaces. The Recommended reward is configured by super admin; grants are org subscriptions (`source=reward`).
 
@@ -48,6 +48,8 @@ The Setup Guide walks you through brand, each listing, and payments so guests se
   A: On Verification, Get Recommended, or Team, Skip moves to the next step without finishing that step. It does not close the guide.
 - Q: If I close the guide, do I lose progress?
   A: No. Saved settings stay saved. The guide remembers where you left off.
+- Q: Why can’t I open a later step?
+  A: Finish or skip the step you’re on first. You can still go back to earlier steps.
 - Q: Why is each listing only one row on the left?
   A: Open the listing. Its steps are the stepper on the page.
 - Q: When do I get the free Pro month?

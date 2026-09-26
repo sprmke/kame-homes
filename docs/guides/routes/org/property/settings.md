@@ -377,7 +377,7 @@ Per-property operational settings in `app_settings` (below Building Forms in the
 
 ### Automated sends
 
-Compact summary row on the Email automations card (`N of M email automations enabled`) with **Manage** in that row. Opens a `ResponsiveModal` with the full Team / Management / Guest toggle list (`PropertyEmailAutomationTogglePanel`). Master switches in `app_settings.automation_toggles` (JSONB). Missing keys default to **enabled**. Saved via **`app-settings` PATCH** with recipient/timing fields.
+Compact summary row on the Email automations card (`N of M email automations enabled`) with **Manage** in that row. Opens a `ResponsiveModal` with the full Team / Management / Guest toggle list (`PropertyEmailAutomationTogglePanel`). Master switches in `app_settings.automation_toggles` (JSONB). Missing keys default to **enabled**. Saved via **`app-settings` PATCH** with recipient/timing fields. Plan-gated rows stay visible with a plan pill. Turning one on below Starter opens the upgrade modal and does not save.
 
 ---
 

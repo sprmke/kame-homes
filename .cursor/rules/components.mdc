@@ -31,6 +31,7 @@ export function BookingCard({ booking, className }: BookingCardProps) {
 3. **Primitives:** reuse `ui/src/components/ui/*` before new markup.
 4. **Shared:** 2+ features need it → `ui/src/components/` or `ui/src/utils/`.
 5. **Loading / error / empty:** handle all three for async UI (see `state-management.mdc`).
+   Content, page, sheet, and section loads use a **skeleton that matches the loaded layout** at every breakpoint: same grids, row heights, and columns (`grid-cols-*` included). Do not put a centered spinner or a "Loading…" line where that content will appear. A spinner stays on the control that was pressed (save, submit, upload) while that action runs.
 6. **Mobile:** follow `mobile-responsive.mdc` — design at 375px first.
 7. **Copy:** follow `ui-minimal-copy.mdc` — labels and errors only unless asked.
 

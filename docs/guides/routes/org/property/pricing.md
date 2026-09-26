@@ -96,7 +96,7 @@ dates that should not be available to guests.
 
 ## Channel Sync (Airbnb iCal)
 
-**Channel sync** button in the Pricing page header (desktop outline button aligned with the title; mobile hero icon). Below Pro, a corner **Pro** pill signals the plan gate. Opens a **`ResponsiveModal`** (`ChannelSyncDialog`) with two tabs — **From Airbnb** and **To Airbnb**. Product scope is **Airbnb only** (Booking.com / VRBO / Other remain in the DB schema for future work; `calendar-sync-settings` `addFeed` rejects non-Airbnb providers). Plan feature **`calendarSync`** (Pro / `growth` and above) — modal is **preview-open** below Pro (full UI browsable); **Connect** and turning on **Share with Airbnb** open the upgrade modal. Server enforces the feature on writes (`calendar-sync-settings` PATCH, `calendar-sync-cron`).
+**Channel sync** button in the Pricing page header (desktop outline button aligned with the title; mobile hero icon). Below Pro, a corner **Pro** pill signals the plan gate. Opens a **`ResponsiveModal`** (`ChannelSyncDialog`) with two tabs — **From Airbnb** and **To Airbnb**. While settings load, the body is a skeleton of that tab bar, feed rows, and connect button. Product scope is **Airbnb only** (Booking.com / VRBO / Other remain in the DB schema for future work; `calendar-sync-settings` `addFeed` rejects non-Airbnb providers). Plan feature **`calendarSync`** (Pro / `growth` and above) — modal is **preview-open** below Pro (full UI browsable); **Connect** (Pro pill on the button) and turning on **Share with Airbnb** (Pro pill beside the label) open the upgrade modal. Server enforces the feature on writes (`calendar-sync-settings` PATCH, `calendar-sync-cron`).
 
 ### From Airbnb (import)
 
@@ -141,8 +141,9 @@ If Airbnb reports a night that already has a live Kame booking or manual block, 
 **Plan feature `smartPricing` — Pro (`growth`) and above**, same gate as Channel Sync.
 **Smart Pricing** button in the Pricing header (desktop outline button; mobile hero icon,
 `Wand2`) with a **Pro** `TierBadge` below the tier. Opens `SmartPricingDialog`
-(`AdminDialogShell`) — **preview-open** below Pro; **Enable** and any settings write open the
-upgrade modal.
+(`AdminDialogShell`) — **preview-open** below Pro. Strength, limits, and update mode stay
+editable in the dialog. **Turn on**, the enable switch, **Preview**, and **Apply** show a Pro
+pill and open the upgrade modal. Settings are not saved until the plan includes Smart Pricing.
 
 ### What it does
 
@@ -158,7 +159,8 @@ plain-language rationale and flags where the curve looks off; it never sets the 
 ### The panel
 
 `AdminDialogShell` (`42rem` wide): fixed title + footer, scrollable body. **No subtitle, no
-stepper, no marketing intro.**
+stepper, no marketing intro.** While settings load, the body and footer are skeletons of this panel: the toggle row, plus the
+three controls when that form will be on screen. Same grids at every width.
 
 **Off** — toggle + short status line + footer **Turn on**.
 

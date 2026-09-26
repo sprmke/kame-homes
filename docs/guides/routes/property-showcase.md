@@ -27,6 +27,8 @@ Route: `/properties/:propertySlug/showcase`
 
 Standalone shareable landing page for a property. Hosts pick one of six animated templates (Aurora, Monolith, Editorial, Verso, Atlas, Haven), configure sections/copy/images/style/motion, and publish a link guests can open outside the marketing and operational shells.
 
+While the page or its template chunk loads, guests see a full-bleed skeleton: header, hero, then stacked sections (a two-column block from `lg`).
+
 **Shared engine:** the [[stay-guide|Stay Guide]] renders through this same template registry + shell + palette/typography/motion system. `ShowcaseData.pageKind` (`'showcase'` \| `'stay-guide'`) and `section.kind` discriminate; Stay-Guide-only kinds (`passCard` / `checkInDocuments` / `chapter` / `quickNav`) render via `templates/shared/StayGuideSections.tsx`. Showcase behaviour is unchanged.
 
 ---
