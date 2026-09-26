@@ -151,3 +151,23 @@ export function deriveSetupGuideProgress(
 export function setupGuideRequiredComplete(progress: SetupGuideProgressResult): boolean {
   return progress.requiredRemaining === 0;
 }
+
+function isSetupGuideStepSettled(status: SetupGuideStepStatus): boolean {
+  return status === 'complete' || status === 'skipped' || status === 'not-applicable';
+}
+
+/** First step that still needs action. Equals `entries.length` when every step is settled. */
+export function setupGuideFrontierIndex(entries: readonly SetupGuideStepProgress[]): number {
+  const index = entries.findIndex((entry) => !isSetupGuideStepSettled(entry.status));
+  return index === -1 ? entries.length : index;
+}
+
+/** A step can be opened when every earlier step is complete or skipped. */
+export function isSetupGuideStepReachable(
+  entries: readonly SetupGuideStepProgress[],
+  stepId: string
+): boolean {
+  const index = entries.findIndex((entry) => entry.step.id === stepId);
+  if (index < 0) return false;
+  return index <= setupGuideFrontierIndex(entries);
+}

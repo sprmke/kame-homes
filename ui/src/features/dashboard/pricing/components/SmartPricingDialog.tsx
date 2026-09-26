@@ -42,6 +42,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveModalTitle } from '@/components/ui/responsive-modal';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
@@ -355,6 +356,55 @@ function ToneDot({ tone }: { tone: 'up' | 'down' | 'note' }) {
   );
 }
 
+function SmartPricingSettingsSkeleton({ expanded }: { expanded: boolean }) {
+  return (
+    <div className="space-y-5" role="status" aria-live="polite" aria-label="Loading Smart Pricing">
+      <div className="flex items-center justify-between gap-3" aria-hidden>
+        <div className="min-w-0 space-y-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-56 max-w-full" />
+        </div>
+        <Skeleton className="h-6 w-11 shrink-0 rounded-full" />
+      </div>
+
+      {expanded ? (
+        <div className="space-y-5" aria-hidden>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-3 w-64 max-w-full" />
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="min-h-[44px] rounded-lg" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-36" />
+            <div className="grid grid-cols-2 gap-2">
+              <Skeleton className="min-h-[44px] rounded-lg" />
+              <Skeleton className="min-h-[44px] rounded-lg" />
+            </div>
+            <Skeleton className="h-3 w-64 max-w-full" />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -363,7 +413,7 @@ export function SmartPricingDialog({ open, onOpenChange, readOnly }: Props) {
   const gate = useFeatureGate('smartPricing');
   const canWrite = !readOnly && gate.canUse;
 
-  const { data, isLoading } = useSmartPricingSettings({ enabled: open });
+  const { data, isLoading, isError, refetch } = useSmartPricingSettings({ enabled: open });
   const saveMut = useSaveSmartPricingSettings();
   const previewMut = usePreviewSmartPricing();
   const applyMut = useApplySmartPricing();
@@ -441,8 +491,13 @@ export function SmartPricingDialog({ open, onOpenChange, readOnly }: Props) {
     ? preview.diff.filter((r) => r.recommendedRate !== r.baseRate).length > 0
     : false;
 
-  const view: 'loading' | 'settings' | 'preview' =
-    isLoading || !s ? 'loading' : preview ? 'preview' : 'settings';
+  const view: 'loading' | 'error' | 'settings' | 'preview' = isLoading
+    ? 'loading'
+    : isError || !s
+      ? 'error'
+      : preview
+        ? 'preview'
+        : 'settings';
 
   const confirmDisable = () => {
     patch({ enabled: false });
@@ -452,7 +507,16 @@ export function SmartPricingDialog({ open, onOpenChange, readOnly }: Props) {
 
   const footer =
     view === 'loading' ? (
-      <div className="h-10" />
+      <Skeleton className="h-10 min-h-[44px] w-full rounded-lg sm:min-h-10 sm:w-24" aria-hidden />
+    ) : view === 'error' ? (
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-[44px] sm:min-h-10"
+        onClick={() => void refetch()}
+      >
+        Retry
+      </Button>
     ) : view === 'preview' ? (
       <>
         <Button
@@ -535,9 +599,9 @@ export function SmartPricingDialog({ open, onOpenChange, readOnly }: Props) {
         ) : null}
 
         {view === 'loading' ? (
-          <div className="text-muted-foreground flex items-center justify-center py-16">
-            <Loader2 className="size-5 animate-spin" aria-hidden />
-          </div>
+          <SmartPricingSettingsSkeleton expanded={canWrite} />
+        ) : view === 'error' ? (
+          <p className="text-destructive text-sm">Could not load Smart Pricing.</p>
         ) : view === 'preview' ? (
           <PreviewBody preview={preview!} mode={s!.mode} />
         ) : (

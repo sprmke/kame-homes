@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { CalendarRange, Check, Copy, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import {
@@ -41,6 +42,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -54,6 +56,32 @@ const HEALTH_TONE: Record<
   warning: { label: 'Retrying', variant: 'outline' },
   error: { label: 'Needs fix', variant: 'destructive' },
 };
+
+function ChannelSyncBodySkeleton() {
+  return (
+    <div className="space-y-5" role="status" aria-live="polite" aria-label="Loading channel sync">
+      <div
+        className="bg-muted grid h-10 w-full grid-cols-2 gap-1 rounded-lg p-1 max-lg:h-9"
+        aria-hidden
+      >
+        <Skeleton className="bg-background h-full rounded-md" />
+        <Skeleton className="h-full rounded-md" />
+      </div>
+      <div className="divide-border divide-y overflow-hidden rounded-xl border" aria-hidden>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-start gap-2 p-3">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="size-11 shrink-0 rounded-md" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="min-h-[44px] w-full rounded-lg" aria-hidden />
+    </div>
+  );
+}
 
 const FROM_AIRBNB_URL_HELP =
   'In Airbnb: open the listing Calendar → Availability → Connect calendars → Export calendar. Copy the link (starts with airbnb.com/calendar/ical/) and paste it here so those booked dates block here.';
@@ -239,13 +267,11 @@ export function ChannelSyncDialog({
             Cancel
           </Button>
         ) : null}
-        <Button
-          type="submit"
-          className={cn('min-h-[44px]', feeds.length > 0 ? 'flex-1' : 'w-full')}
-          disabled={!canConnect}
-        >
-          {addFeed.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Connect'}
-        </Button>
+        <TierBadgeAnchor feature="calendarSync" className={feeds.length > 0 ? 'flex-1' : 'w-full'}>
+          <Button type="submit" className="min-h-[44px] w-full" disabled={!canConnect}>
+            {addFeed.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Connect'}
+          </Button>
+        </TierBadgeAnchor>
       </div>
     </form>
   );
@@ -293,10 +319,7 @@ export function ChannelSyncDialog({
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] sm:px-5">
             {gate.isLoading || settings.isLoading ? (
-              <div className="text-muted-foreground flex items-center justify-center gap-2 py-12 text-sm">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Loading…
-              </div>
+              <ChannelSyncBodySkeleton />
             ) : settings.isError ? (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <p className="text-destructive text-sm">
@@ -441,12 +464,15 @@ export function ChannelSyncDialog({
 
                 <TabsContent value="export" className="mt-0 space-y-5 focus-visible:ring-0">
                   <div className="flex items-center justify-between gap-3">
-                    <FieldLabel
-                      htmlFor="channel-export-enabled"
-                      label="Share with Airbnb"
-                      help={SHARE_WITH_AIRBNB_HELP}
-                      className="mb-0"
-                    />
+                    <div className="flex min-w-0 items-center gap-2">
+                      <FieldLabel
+                        htmlFor="channel-export-enabled"
+                        label="Share with Airbnb"
+                        help={SHARE_WITH_AIRBNB_HELP}
+                        className="mb-0"
+                      />
+                      <TierBadge feature="calendarSync" />
+                    </div>
                     <Switch
                       id="channel-export-enabled"
                       checked={exportEnabled}

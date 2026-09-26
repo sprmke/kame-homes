@@ -55,7 +55,7 @@ import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePro
 import { isFeatureEnabled } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 function PageChrome({ children }: { children: React.ReactNode }) {
@@ -360,7 +360,7 @@ export function StayGuidePageEditor({
   if (isBootstrapping) {
     return (
       <PageChrome>
-        <SectionContentSkeleton rows={5} className="min-h-[50vh]" />
+        <PageEditorSkeleton />
       </PageChrome>
     );
   }

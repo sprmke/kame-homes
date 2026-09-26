@@ -37,11 +37,14 @@ import {
   SetupGuideParkingHost,
   SetupGuidePropertyHost,
 } from '@/features/dashboard/setup-guide/components/SetupGuideSettingsHost';
+import { SetupGuideStepSkeleton } from '@/features/dashboard/setup-guide/components/SetupGuideStepSkeleton';
 import { SetupGuideTeamEmbed } from '@/features/dashboard/setup-guide/components/SetupGuideTeamEmbed';
 import { useHostRewardOffer } from '@/features/dashboard/setup-guide/hooks/useHostRewardOffer';
-import type { SetupGuideStep } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
+import type {
+  SetupGuideStep,
+  SetupGuideStepKind,
+} from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Textarea } from '@/components/ui/textarea';
 
 function WelcomeStepBody() {
@@ -82,7 +85,7 @@ function OrgBrandStep() {
   useRegisterStepSave(save);
 
   if (isLoading || !profileDraft || !operatorDraft || !operatorData) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind="org.brand" />;
   }
 
   return (
@@ -118,10 +121,12 @@ function OrgBrandStep() {
 }
 
 function PropertySectionsInner({
+  kind,
   profileSectionIds,
   operationalSectionIds,
   showVoice = false,
 }: {
+  kind: SetupGuideStepKind;
   profileSectionIds?: readonly PropertySettingsSectionId[];
   operationalSectionIds?: readonly PropertySettingsSectionId[];
   showVoice?: boolean;
@@ -178,7 +183,7 @@ function PropertySectionsInner({
   useRegisterStepSave(save);
 
   if (appSettingsLoading || !operationalDraft || !appSettings) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind={kind} />;
   }
 
   return (
@@ -260,19 +265,25 @@ function PropertySectionsInner({
 }
 
 function PropertySectionsStep({
+  kind,
   propertyId,
   profileSectionIds,
   operationalSectionIds,
   showVoice,
 }: {
+  kind: SetupGuideStepKind;
   propertyId: string;
   profileSectionIds?: readonly PropertySettingsSectionId[];
   operationalSectionIds?: readonly PropertySettingsSectionId[];
   showVoice?: boolean;
 }) {
   return (
-    <SetupGuidePropertyHost propertyId={propertyId}>
+    <SetupGuidePropertyHost
+      propertyId={propertyId}
+      loadingFallback={<SetupGuideStepSkeleton kind={kind} />}
+    >
       <PropertySectionsInner
+        kind={kind}
         profileSectionIds={profileSectionIds}
         operationalSectionIds={operationalSectionIds}
         showVoice={showVoice}
@@ -283,7 +294,10 @@ function PropertySectionsStep({
 
 function PropertyPricingStep({ propertyId }: { propertyId: string }) {
   return (
-    <SetupGuidePropertyHost propertyId={propertyId}>
+    <SetupGuidePropertyHost
+      propertyId={propertyId}
+      loadingFallback={<SetupGuideStepSkeleton kind="property.pricing" />}
+    >
       <SetupGuidePropertyPricingEmbed propertyId={propertyId} />
     </SetupGuidePropertyHost>
   );
@@ -306,6 +320,7 @@ function ParkingSectionsInner({
   parkingId: string;
   mode: 'basics' | 'location' | 'photo' | 'payments' | 'email' | 'pricing';
 }) {
+  const kind = `parking.${mode}` as const;
   const {
     settings,
     settingsLoading,
@@ -351,7 +366,7 @@ function ParkingSectionsInner({
   useRegisterStepSave(mode === 'pricing' ? null : save);
 
   if (settingsLoading || !operationalDraft || !settings) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind={kind} />;
   }
 
   if (mode === 'pricing') {
@@ -490,7 +505,10 @@ function ParkingSectionsStep(props: {
   mode: 'basics' | 'location' | 'photo' | 'payments' | 'email' | 'pricing';
 }) {
   return (
-    <SetupGuideParkingHost parkingId={props.parkingId}>
+    <SetupGuideParkingHost
+      parkingId={props.parkingId}
+      loadingFallback={<SetupGuideStepSkeleton kind={`parking.${props.mode}`} />}
+    >
       <ParkingSectionsInner {...props} />
     </SetupGuideParkingHost>
   );
@@ -541,17 +559,23 @@ export function SetupGuideStepBody({ step }: { step: SetupGuideStep | undefined 
     case 'property.basics':
       return (
         <PropertySectionsStep
+          kind="property.basics"
           propertyId={step.propertyId!}
           profileSectionIds={['basic', 'details']}
         />
       );
     case 'property.location':
       return (
-        <PropertySectionsStep propertyId={step.propertyId!} profileSectionIds={['location']} />
+        <PropertySectionsStep
+          kind="property.location"
+          propertyId={step.propertyId!}
+          profileSectionIds={['location']}
+        />
       );
     case 'property.content':
       return (
         <PropertySectionsStep
+          kind="property.content"
           propertyId={step.propertyId!}
           profileSectionIds={['media', 'amenities', 'house-rules', 'cancellation']}
         />
@@ -560,11 +584,16 @@ export function SetupGuideStepBody({ step }: { step: SetupGuideStep | undefined 
       return <PropertyPricingStep propertyId={step.propertyId!} />;
     case 'property.payments':
       return (
-        <PropertySectionsStep propertyId={step.propertyId!} operationalSectionIds={['payment']} />
+        <PropertySectionsStep
+          kind="property.payments"
+          propertyId={step.propertyId!}
+          operationalSectionIds={['payment']}
+        />
       );
     case 'property.guestform':
       return (
         <PropertySectionsStep
+          kind="property.guestform"
           propertyId={step.propertyId!}
           profileSectionIds={['guest-form']}
           operationalSectionIds={['building-forms']}
@@ -574,6 +603,7 @@ export function SetupGuideStepBody({ step }: { step: SetupGuideStep | undefined 
     case 'property.email':
       return (
         <PropertySectionsStep
+          kind="property.email"
           propertyId={step.propertyId!}
           operationalSectionIds={['email-automations']}
         />

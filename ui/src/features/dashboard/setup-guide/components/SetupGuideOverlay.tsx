@@ -7,6 +7,8 @@ import {
   SetupGuideSaveProvider,
   useSetupGuideSaveBridge,
 } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
+import { SetupGuideStepSkeleton } from '@/features/dashboard/setup-guide/components/SetupGuideStepSkeleton';
+import { isSetupGuideStepReachable } from '@/features/dashboard/setup-guide/lib/setupGuideProgress';
 import { setupGuideStepShortTitle } from '@/features/dashboard/setup-guide/lib/setupGuideSteps';
 import type {
   SetupGuideStep,
@@ -14,7 +16,6 @@ import type {
 } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
 import { ParkingFlowStepper } from '@/components/parking/ParkingFlowStepper';
-import { SectionLoadingFallback } from '@/components/routing/RouteFallback';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -217,7 +218,7 @@ export function SetupGuideOverlay() {
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-3 sm:px-5 sm:py-4">
               <div key={activeStep?.id ?? 'setup'} className="motion-safe:animate-setup-guide-pane">
                 <SetupGuideSaveProvider registerSave={registerSave}>
-                  <Suspense fallback={<SectionLoadingFallback />}>
+                  <Suspense fallback={<SetupGuideStepSkeleton kind={activeStep?.kind} />}>
                     <SetupGuideStepBody step={activeStep} />
                   </Suspense>
                 </SetupGuideSaveProvider>
@@ -288,7 +289,7 @@ function SetupGuideNav({
     const alreadyInGroup = group.entries.some((entry) => entry.step.id === activeStepId);
     if (alreadyInGroup) return;
     const target = firstIncompleteStepId(group.entries);
-    if (target) onSelect(target);
+    if (target && isSetupGuideStepReachable(entries, target)) onSelect(target);
   };
 
   return (
@@ -316,6 +317,11 @@ function SetupGuideNav({
           const heading = !group.listing ? sectionHeading(group.entries[0]?.step.group.type) : null;
           const showListingsLabel = group.listing && group.key === firstListingKey;
           const listingActive = group.listing && group.key === activeGroupKey;
+          const listingTarget = firstIncompleteStepId(group.entries);
+          const listingLocked =
+            group.listing &&
+            !listingActive &&
+            !(listingTarget && isSetupGuideStepReachable(entries, listingTarget));
           const listingKind = group.entries[0]?.step.group.type;
           const ListingIcon = listingKind === 'parking' ? Car : Building2;
 
@@ -350,13 +356,17 @@ function SetupGuideNav({
                 <button
                   type="button"
                   onClick={() => openListing(group)}
+                  disabled={listingLocked}
                   className={cn(
                     'focus-visible:ring-ring relative flex min-h-11 min-w-[10.5rem] items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                     'lg:w-full lg:min-w-0',
+                    listingLocked && 'cursor-not-allowed opacity-45',
                     listingActive
                       ? 'bg-primary/10 text-foreground font-medium shadow-sm'
-                      : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
+                      : listingLocked
+                        ? 'text-muted-foreground'
+                        : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
                   )}
                   aria-current={listingActive ? 'step' : undefined}
                 >
@@ -394,18 +404,23 @@ function SetupGuideNav({
                   const done = entry.status === 'complete';
                   const skipped = entry.status === 'skipped';
                   const skippable = isSkippableStep(entry.step.requirement);
+                  const locked = !active && !isSetupGuideStepReachable(entries, entry.step.id);
                   return (
                     <button
                       key={entry.step.id}
                       type="button"
                       onClick={() => onSelect(entry.step.id)}
+                      disabled={locked}
                       className={cn(
                         'focus-visible:ring-ring relative flex min-h-10 min-w-[9.5rem] items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
                         'lg:w-full lg:min-w-0',
+                        locked && 'cursor-not-allowed opacity-45',
                         active
                           ? 'bg-primary/10 text-foreground font-medium shadow-sm'
-                          : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
+                          : locked
+                            ? 'text-muted-foreground'
+                            : 'text-muted-foreground hover:bg-background/80 hover:text-foreground'
                       )}
                       aria-current={active ? 'step' : undefined}
                     >
@@ -492,7 +507,8 @@ function SetupGuideListingStepper({
       showAllLabels={false}
       onStepSelect={(index) => {
         const target = entries[index];
-        if (target) onSelect(target.step.id);
+        if (!target || index > activeIndex) return;
+        onSelect(target.step.id);
       }}
     />
   );

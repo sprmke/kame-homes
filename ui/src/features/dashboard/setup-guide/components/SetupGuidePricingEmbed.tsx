@@ -39,13 +39,12 @@ import {
 } from '@/features/dashboard/pricing/lib/pricingSave';
 import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
+import { SetupGuideStepSkeleton } from '@/features/dashboard/setup-guide/components/SetupGuideStepSkeleton';
 import { useSetupGuideStateWrite } from '@/features/dashboard/setup-guide/hooks/useSetupGuideStateWrite';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
-
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
 
 function markPricingReviewed(
   write: ReturnType<typeof useSetupGuideStateWrite>,
@@ -172,7 +171,7 @@ export function SetupGuidePropertyPricingEmbed({ propertyId }: { propertyId: str
   useRegisterStepSave(save);
 
   if (isLoading && !hydratedRef.current) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind="property.pricing" />;
   }
 
   if (isError) {
@@ -290,7 +289,7 @@ export function SetupGuideParkingPricingEmbed({ parkingId }: { parkingId: string
   useRegisterStepSave(save);
 
   if (isLoading && !hydratedRef.current) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind="parking.pricing" />;
   }
 
   if (isError) {

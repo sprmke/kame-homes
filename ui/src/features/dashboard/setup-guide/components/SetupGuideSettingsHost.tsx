@@ -12,15 +12,18 @@ import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
 import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
-
 type PropertyHostProps = {
   propertyId: string;
   children: ReactNode;
+  loadingFallback: ReactNode;
 };
 
 /** Mount property-scoped settings hooks outside the property route shell. */
-export function SetupGuidePropertyHost({ propertyId, children }: PropertyHostProps) {
+export function SetupGuidePropertyHost({
+  propertyId,
+  children,
+  loadingFallback,
+}: PropertyHostProps) {
   const { org } = useSetupGuide();
   const orgSlug = org?.slug;
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations();
@@ -41,7 +44,7 @@ export function SetupGuidePropertyHost({ propertyId, children }: PropertyHostPro
   }, [org, orgSlug, orgsData, propsData, propertyId]);
 
   if (orgsLoading || propsLoading) {
-    return <RouteGuardSkeleton />;
+    return loadingFallback;
   }
 
   if (!value) {
@@ -54,10 +57,11 @@ export function SetupGuidePropertyHost({ propertyId, children }: PropertyHostPro
 type ParkingHostProps = {
   parkingId: string;
   children: ReactNode;
+  loadingFallback: ReactNode;
 };
 
 /** Mount parking-scoped settings hooks outside the parking route shell. */
-export function SetupGuideParkingHost({ parkingId, children }: ParkingHostProps) {
+export function SetupGuideParkingHost({ parkingId, children, loadingFallback }: ParkingHostProps) {
   const { org } = useSetupGuide();
   const orgSlug = org?.slug;
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations();
@@ -78,7 +82,7 @@ export function SetupGuideParkingHost({ parkingId, children }: ParkingHostProps)
   }, [org, orgSlug, orgsData, parkingsData, parkingId]);
 
   if (orgsLoading || parkingsLoading) {
-    return <RouteGuardSkeleton />;
+    return loadingFallback;
   }
 
   if (!value) {

@@ -16,6 +16,7 @@ import {
   clearSetupGuideRequiredRemaining,
   setSetupGuideRequiredRemaining,
 } from '@/features/dashboard/setup-guide/lib/setupGuideIssuesStore';
+import { isSetupGuideStepReachable } from '@/features/dashboard/setup-guide/lib/setupGuideProgress';
 import {
   isSetupGuideSessionSnoozed,
   setSetupGuideSessionSnoozed,
@@ -85,12 +86,16 @@ export function SetupGuideProvider({ children }: { children: ReactNode }) {
 
   const openGuide = useCallback(
     (stepId?: string | null) => {
-      const resume =
+      const requested =
         stepId ?? persisted.lastStepId ?? progress.resumeStepId ?? steps[0]?.id ?? null;
+      const resume =
+        requested && isSetupGuideStepReachable(progress.steps, requested)
+          ? requested
+          : (progress.resumeStepId ?? steps[0]?.id ?? null);
       setActiveStepId(resume);
       setOpen(true);
     },
-    [persisted.lastStepId, progress.resumeStepId, steps]
+    [persisted.lastStepId, progress.resumeStepId, progress.steps, steps]
   );
 
   const closeGuide = useCallback(
@@ -102,7 +107,7 @@ export function SetupGuideProvider({ children }: { children: ReactNode }) {
     [org?.id, write]
   );
 
-  const goToStep = useCallback(
+  const selectStep = useCallback(
     (stepId: string) => {
       setActiveStepId(stepId);
       write.setLastStepId(stepId);
@@ -110,19 +115,27 @@ export function SetupGuideProvider({ children }: { children: ReactNode }) {
     [write]
   );
 
+  const goToStep = useCallback(
+    (stepId: string) => {
+      if (!isSetupGuideStepReachable(progress.steps, stepId)) return;
+      selectStep(stepId);
+    },
+    [progress.steps, selectStep]
+  );
+
   const goNext = useCallback(() => {
     const ids = steps.map((step) => step.id);
     const idx = activeStepId ? ids.indexOf(activeStepId) : -1;
     const next = ids[Math.min(ids.length - 1, Math.max(0, idx + 1))];
-    if (next) goToStep(next);
-  }, [activeStepId, goToStep, steps]);
+    if (next) selectStep(next);
+  }, [activeStepId, selectStep, steps]);
 
   const goBack = useCallback(() => {
     const ids = steps.map((step) => step.id);
     const idx = activeStepId ? ids.indexOf(activeStepId) : -1;
     const prev = ids[Math.max(0, idx - 1)];
-    if (prev) goToStep(prev);
-  }, [activeStepId, goToStep, steps]);
+    if (prev) selectStep(prev);
+  }, [activeStepId, selectStep, steps]);
 
   const skipCurrent = useCallback(() => {
     if (!activeStepId) return;

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
+import { isSetupGuideStepReachable } from '@/features/dashboard/setup-guide/lib/setupGuideProgress';
 import type { SetupGuideStepProgress } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
 import { cn } from '@/lib/utils';
@@ -94,6 +95,7 @@ export function WelcomeStep() {
       <ul className="mt-6 grid w-full max-w-md grid-cols-2 gap-2">
         {paths.map((path, index) => {
           const Icon = path.icon;
+          const locked = !path.id || !isSetupGuideStepReachable(entries, path.id);
           return (
             <li
               key={path.label}
@@ -102,12 +104,15 @@ export function WelcomeStep() {
             >
               <button
                 type="button"
+                disabled={locked}
                 onClick={() => path.id && goToStep(path.id)}
                 className={cn(
-                  'border-border bg-card hover:border-primary/40 hover:bg-primary/5',
-                  'focus-visible:ring-ring flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left',
-                  'transition-[border-color,background-color,transform] duration-150',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 active:scale-[0.98]'
+                  'border-border bg-card flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left',
+                  'focus-visible:ring-ring transition-[border-color,background-color,transform] duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                  locked
+                    ? 'cursor-not-allowed opacity-45'
+                    : 'hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]'
                 )}
               >
                 <span
@@ -174,27 +179,35 @@ export function DoneStep() {
 
       {!complete && remaining.length > 0 ? (
         <ul className="mt-5 w-full max-w-md space-y-1.5 text-left">
-          {remaining.slice(0, 6).map((entry, index) => (
-            <li
-              key={entry.step.id}
-              className="motion-safe:animate-setup-guide-stagger"
-              style={{ animationDelay: `${60 + index * 50}ms` }}
-            >
-              <button
-                type="button"
-                onClick={() => goToStep(entry.step.id)}
-                className={cn(
-                  'border-border hover:bg-muted/60 focus-visible:ring-ring',
-                  'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm',
-                  'transition-[background-color,transform] duration-150 active:scale-[0.98]',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1'
-                )}
+          {remaining.slice(0, 6).map((entry, index) => {
+            const locked = !isSetupGuideStepReachable(progress.steps, entry.step.id);
+            return (
+              <li
+                key={entry.step.id}
+                className="motion-safe:animate-setup-guide-stagger"
+                style={{ animationDelay: `${60 + index * 50}ms` }}
               >
-                <span className="text-foreground min-w-0 flex-1 truncate">{entry.step.title}</span>
-                <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden />
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  disabled={locked}
+                  onClick={() => goToStep(entry.step.id)}
+                  className={cn(
+                    'border-border focus-visible:ring-ring',
+                    'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+                    locked
+                      ? 'cursor-not-allowed opacity-45'
+                      : 'hover:bg-muted/60 transition-[background-color,transform] duration-150 active:scale-[0.98]'
+                  )}
+                >
+                  <span className="text-foreground min-w-0 flex-1 truncate">
+                    {entry.step.title}
+                  </span>
+                  <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </div>

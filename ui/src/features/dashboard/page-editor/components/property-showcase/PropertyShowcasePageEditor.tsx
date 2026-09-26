@@ -25,6 +25,7 @@ import { PageEditorLeaveConfirmDialog } from '@/features/dashboard/page-editor/c
 import { PageEditorPreviewPane } from '@/features/dashboard/page-editor/components/PageEditorPreviewPane';
 import { PageEditorShell } from '@/features/dashboard/page-editor/components/PageEditorShell';
 import { PropertyShowcaseEditorPanel } from '@/features/dashboard/page-editor/components/property-showcase/PropertyShowcaseEditorPanel';
+import { useEditorPreviewJwt } from '@/features/dashboard/page-editor/hooks/useEditorPreviewJwt';
 import {
   mergePageEditorAutoSaveStatuses,
   usePageEditorAutoSave,
@@ -40,7 +41,7 @@ import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePro
 import { isFeatureEnabled } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 async function patchShowcaseTemplate(propertyId: string, templateKey: ShowcaseTemplateKey) {
@@ -80,7 +81,8 @@ export function PropertyShowcasePageEditor({
 
   const configQuery = usePublicPageConfig('property_showcase');
   const saveConfig = useSavePublicPageConfig('property_showcase');
-  const previewQuery = usePublicPropertyDetail(propertySlug);
+  const previewJwt = useEditorPreviewJwt();
+  const previewQuery = usePublicPropertyDetail(propertySlug, { previewJwt });
 
   const config = usePropertyShowcaseEditorStore((s) => s.config);
   const templateKey = usePropertyShowcaseEditorStore((s) => s.templateKey);
@@ -195,10 +197,21 @@ export function PropertyShowcasePageEditor({
     navigate(backHref);
   };
 
-  if (configQuery.isLoading || previewQuery.isLoading || !hydrated || !previewQuery.data) {
+  const previewPending = previewJwt === null || previewQuery.isLoading;
+  if (configQuery.isLoading || previewPending || !hydrated) {
     return (
       <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
-        <SectionContentSkeleton rows={5} className="min-h-[50vh]" />
+        <PageEditorSkeleton />
+      </AdminMobilePage>
+    );
+  }
+
+  if (previewQuery.isError || !previewQuery.data) {
+    return (
+      <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+        <p className="text-muted-foreground px-4 py-16 text-center text-sm">
+          Could not load this showcase.
+        </p>
       </AdminMobilePage>
     );
   }

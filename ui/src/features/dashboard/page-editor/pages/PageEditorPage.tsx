@@ -51,6 +51,7 @@ import {
 } from '@/features/dashboard/page-editor/components/property-landing/PropertyLandingEditorPanel';
 import { PropertyShowcasePageEditor } from '@/features/dashboard/page-editor/components/property-showcase/PropertyShowcasePageEditor';
 import { StayGuidePageEditor } from '@/features/dashboard/page-editor/components/stay-guide/StayGuidePageEditor';
+import { useEditorPreviewJwt } from '@/features/dashboard/page-editor/hooks/useEditorPreviewJwt';
 import {
   firstPageEditorAutoSaveError,
   mergePageEditorAutoSaveStatuses,
@@ -69,7 +70,7 @@ import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePrope
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { usePageTitle } from '@/lib/pageTitle';
 import { propertyBrandColorStoredValue } from '@/lib/theme/brandColor';
@@ -200,7 +201,8 @@ function PropertyLandingPageEditor({
   const { property } = useOrgContext();
   const configQuery = usePublicPageConfig('property_landing');
   const saveMutation = useSavePublicPageConfig('property_landing');
-  const previewQuery = usePublicPropertyDetail(propertySlug);
+  const previewJwt = useEditorPreviewJwt();
+  const previewQuery = usePublicPropertyDetail(propertySlug, { previewJwt });
   const updateProperty = useUpdateProperty(orgSlug);
   const { data: appSettings } = useAppSettings();
   const updateAppSettings = useUpdateAppSettings();
@@ -581,6 +583,7 @@ function PropertyLandingPageEditor({
 
   const isBootstrapping =
     (configQuery.isLoading && !configQuery.data) ||
+    previewJwt === null ||
     (previewQuery.isLoading && !previewQuery.data) ||
     !hydrated ||
     !brandHydrated ||
@@ -591,7 +594,7 @@ function PropertyLandingPageEditor({
   if (isBootstrapping) {
     return (
       <PageEditorChrome>
-        <SectionContentSkeleton rows={5} className="min-h-[50vh]" />
+        <PageEditorSkeleton />
       </PageEditorChrome>
     );
   }

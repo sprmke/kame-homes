@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import { useSetupGuide } from '@/features/dashboard/setup-guide/components/setupGuideContext';
 import { useRegisterStepSave } from '@/features/dashboard/setup-guide/components/SetupGuideSaveContext';
+import { SetupGuideStepSkeleton } from '@/features/dashboard/setup-guide/components/SetupGuideStepSkeleton';
 import { useSetupGuideStateWrite } from '@/features/dashboard/setup-guide/hooks/useSetupGuideStateWrite';
 import {
   defaultOrgInviteForm,
@@ -31,7 +32,6 @@ import {
 } from '@/features/dashboard/team/lib/teamInviteEmail';
 import { getRoleLabelForScope } from '@/features/dashboard/team/lib/teamRoleHelpers';
 
-import { AppSettingsCardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -110,7 +110,7 @@ export function SetupGuideTeamEmbed() {
   };
 
   if (!org || isLoading) {
-    return <AppSettingsCardSkeleton />;
+    return <SetupGuideStepSkeleton kind="org.team" />;
   }
 
   return (
