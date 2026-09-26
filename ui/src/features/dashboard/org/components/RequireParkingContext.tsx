@@ -8,7 +8,7 @@ import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
 import { setLastParkingContext } from '@/features/dashboard/org/lib/tenantPaths';
 import type { Organization, Parking } from '@/features/dashboard/org/types';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 export type ParkingContextValue = {
   org: Organization;
@@ -70,7 +70,7 @@ export function RequireParkingContext({ children }: Props) {
   }, [value]);
 
   if (orgsQuery.isLoading || parkingsQuery.isLoading) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (!orgSlug || !parkingSlug) {

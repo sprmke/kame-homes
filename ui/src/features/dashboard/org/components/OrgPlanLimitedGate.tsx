@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { TenantAccessDenied } from '@/features/dashboard/org/components/TenantAccessDenied';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   children: ReactNode;
@@ -14,7 +14,7 @@ export function OrgPlanLimitedGate({ children }: Props) {
   const { data, isPending, isError } = useOrgPermissions();
 
   if (isPending && !data) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (data?.planLimited) {

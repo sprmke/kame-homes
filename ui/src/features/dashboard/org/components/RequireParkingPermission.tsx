@@ -12,7 +12,7 @@ import {
   type ParkingSection,
 } from '@/features/dashboard/team/lib/parkingPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   section: ParkingSection;
@@ -25,7 +25,7 @@ export function RequireParkingPermission({ section, children }: Props) {
   const required = PARKING_SECTION_VIEW_PERMISSION[section];
 
   if (isLoading) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (isError || !data || !hasParkingPermission(data.permissions, required)) {

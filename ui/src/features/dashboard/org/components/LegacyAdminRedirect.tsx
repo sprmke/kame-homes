@@ -13,7 +13,7 @@ import {
   setLastTenantContext,
 } from '@/features/dashboard/org/lib/tenantPaths';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   toSection?:
@@ -49,7 +49,7 @@ export function LegacyAdminRedirect({ toSection = 'dashboard' }: Props) {
   }, [org, propsQuery.data]);
 
   if (orgsQuery.isLoading || (org && propsQuery.isLoading)) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (!org) {

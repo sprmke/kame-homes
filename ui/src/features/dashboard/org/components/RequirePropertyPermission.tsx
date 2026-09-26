@@ -12,7 +12,7 @@ import {
   type PropertySection,
 } from '@/features/dashboard/team/lib/propertyPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   section: PropertySection;
@@ -24,7 +24,7 @@ export function RequirePropertyPermission({ section, children }: Props) {
   const { data, isLoading, isError } = usePropertyPermissions();
 
   if (isLoading) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (data?.planLimited) {

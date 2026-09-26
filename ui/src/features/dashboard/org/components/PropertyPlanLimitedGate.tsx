@@ -4,7 +4,7 @@ import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgCon
 import { TenantAccessDenied } from '@/features/dashboard/org/components/TenantAccessDenied';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   children: ReactNode;
@@ -16,7 +16,7 @@ export function PropertyPlanLimitedGate({ children }: Props) {
   const { data, isPending, isError } = usePropertyPermissions();
 
   if (isPending && !data) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (data?.planLimited) {

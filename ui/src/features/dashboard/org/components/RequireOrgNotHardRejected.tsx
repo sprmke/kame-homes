@@ -7,7 +7,7 @@ import {
 } from '@/features/dashboard/org/lib/orgVerificationTiers';
 import { HostVerificationRejectedPage } from '@/features/dashboard/org/pages/HostVerificationRejectedPage';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ export function RequireOrgNotHardRejected({ children }: Props) {
   const orgsQuery = useOrganizations();
 
   if (orgsQuery.isLoading) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (!orgSlug) {

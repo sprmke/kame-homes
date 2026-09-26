@@ -11,7 +11,7 @@ import {
   setLastTenantContext,
 } from '@/features/dashboard/org/lib/tenantPaths';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   orgSlug: string;
@@ -37,7 +37,7 @@ export function PropertyMemberOrgRedirect({ orgSlug }: Props) {
   }, [data, isError, isLoading, navigate, orgSlug]);
 
   if (isLoading || orgsLoading) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (isError || !data?.properties.length) {
@@ -48,5 +48,5 @@ export function PropertyMemberOrgRedirect({ orgSlug }: Props) {
     return <TenantAccessDenied scope="org" orgSlug={orgSlug} />;
   }
 
-  return <RouteGuardSkeleton />;
+  return <RouteGuardLoading />;
 }

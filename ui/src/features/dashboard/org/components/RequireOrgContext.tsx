@@ -7,7 +7,7 @@ import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/
 import { setLastTenantContext } from '@/features/dashboard/org/lib/tenantPaths';
 import type { Organization, Property } from '@/features/dashboard/org/types';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 export type OrgContextValue = {
   org: Organization;
@@ -69,7 +69,7 @@ export function RequireOrgContext({ children }: Props) {
   }, [value]);
 
   if (orgsQuery.isLoading || propsQuery.isLoading) {
-    return <RouteGuardSkeleton fullScreen />;
+    return <RouteGuardLoading fullScreen />;
   }
 
   if (!orgSlug || !propertySlug) {

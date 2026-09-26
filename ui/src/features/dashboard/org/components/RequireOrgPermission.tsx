@@ -17,7 +17,7 @@ import {
   type OrgPermissionId,
 } from '@/features/dashboard/team/lib/orgPermissions';
 
-import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { RouteGuardLoading } from '@/components/skeletons/RouteGuardLoading';
 
 type Props = {
   section: keyof typeof ORG_SECTION_VIEW_PERMISSION;
@@ -32,7 +32,7 @@ export function RequireOrgPermission({ section, children }: Props) {
   const required = ORG_SECTION_VIEW_PERMISSION[section];
 
   if (sessionStatus === 'loading' || (isPending && !data)) {
-    return <RouteGuardSkeleton />;
+    return <RouteGuardLoading />;
   }
 
   if (sessionStatus === 'signed-out') {
