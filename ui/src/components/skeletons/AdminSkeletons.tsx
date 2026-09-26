@@ -2,11 +2,10 @@ import type { CSSProperties } from 'react';
 
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 
-import { AppLoader } from '@/components/branding/AppLoader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-function AdminPageHeaderSkeleton({
+export function AdminPageHeaderSkeleton({
   compact = false,
   card,
 }: {
@@ -813,7 +812,17 @@ export function DashboardSkeleton() {
 
 /** Shown while access is still resolving, before the target page's shape is known. */
 export function RouteGuardSkeleton({ fullScreen = false }: { fullScreen?: boolean } = {}) {
-  return <AppLoader fullScreen={fullScreen} />;
+  return (
+    <div
+      className={cn('flex flex-1 flex-col gap-3 p-4 sm:gap-4 sm:p-6', fullScreen && 'min-h-dvh')}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
+    >
+      <AdminPageHeaderSkeleton compact />
+      <SectionContentSkeleton rows={4} />
+    </div>
+  );
 }
 
 /**
