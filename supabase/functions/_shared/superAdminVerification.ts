@@ -45,6 +45,7 @@ export const GATED_SUPER_ADMIN_ACTIONS: Record<string, string> = {
   platform_host_settings: 'change platform host announcements',
   contract_consideration: 'decide a listing contract consideration',
   ai_generation_overrides: 'change per-property AI media generation caps or premium models',
+  rate_limit_block: 'block or unblock an identity from the platform',
 };
 
 export function superAdminActionLabel(action: string | null | undefined): string {

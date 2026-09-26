@@ -265,16 +265,23 @@ function resolvePublicUnitName(row: PropertyRow): string {
   return row.tower_and_unit?.trim() || row.name.trim() || 'this property';
 }
 
+export type LoadPublicPropertyOptions = {
+  /** Host preview only. Anonymous guests still get null for INACTIVE listings. */
+  allowInactive?: boolean;
+};
+
 export async function loadPublicPropertyBySlug(
-  slug: string
+  slug: string,
+  options?: LoadPublicPropertyOptions
 ): Promise<PublicPropertyDetailDto | null> {
   const propertyId = await resolvePropertyIdBySlug(slug.trim());
   if (!propertyId) return null;
-  return loadPublicPropertyById(propertyId);
+  return loadPublicPropertyById(propertyId, options);
 }
 
 export async function loadPublicPropertyById(
-  propertyId: string
+  propertyId: string,
+  options?: LoadPublicPropertyOptions
 ): Promise<PublicPropertyDetailDto | null> {
   const supabase = createServiceClient();
 
@@ -292,7 +299,7 @@ export async function loadPublicPropertyById(
   }
 
   const row = property as PropertyRow | null;
-  if (!row || row.status !== 'ACTIVE') return null;
+  if (!row || (row.status !== 'ACTIVE' && !options?.allowInactive)) return null;
 
   const settings = (row.settings ?? {}) as Record<string, unknown>;
   const enabledAmenities = readStringArray(settings, 'enabledAmenities');

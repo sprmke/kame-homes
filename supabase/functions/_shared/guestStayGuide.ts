@@ -367,12 +367,7 @@ async function resolveSectionHtml(
         })
       : { property_slug: propertySlug, form_url: '', sd_form_url: '', review_url: '' };
 
-  const placeholderVars = buildBookingPlaceholderVars(
-    booking,
-    settings,
-    guestLinkExtras,
-    branding
-  );
+  const placeholderVars = buildBookingPlaceholderVars(booking, settings, guestLinkExtras, branding);
 
   const withPlaceholders = applyPropertyTemplatePlaceholders(content, placeholderVars);
   const prepared = prepareConfigurableEmailBodyHtml(withPlaceholders, publicOrigin);
@@ -579,9 +574,12 @@ async function buildGuestStayGuidePayload(
     includeAllStandardSections?: boolean;
     expectedPropertySlug?: string | null;
     previewCheckInDocuments?: boolean;
+    allowInactive?: boolean;
   }
 ): Promise<GuestStayGuideDto | null> {
-  const property = await loadPublicPropertyById(propertyId);
+  const property = await loadPublicPropertyById(propertyId, {
+    allowInactive: options?.allowInactive,
+  });
   if (!property || property.status !== 'ACTIVE') return null;
 
   if (options?.expectedPropertySlug?.trim()) {
@@ -695,6 +693,7 @@ export async function loadGuestStayGuidePreview(
     includeAllStandardSections: true,
     expectedPropertySlug,
     previewCheckInDocuments: true,
+    allowInactive: true,
   });
 }
 

@@ -12,9 +12,12 @@ export type PlatformSettingsSnapshot = {
   maintenanceMessage: string | null;
   publicRateLimitPerMin: number;
   defaultPlanCode: string | null;
+  authenticatedRateLimitEnforce: boolean;
+  authenticatedRateLimitPerMin: number;
 };
 
 const DEFAULT_PUBLIC_RATE_LIMIT_PER_MIN = 60;
+const DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN = 300;
 const CACHE_TTL_MS = 60_000;
 
 let cached: { at: number; value: PlatformSettingsSnapshot } | null = null;
@@ -26,6 +29,10 @@ function compileDefaults(): PlatformSettingsSnapshot {
     maintenanceMessage: null,
     publicRateLimitPerMin: DEFAULT_PUBLIC_RATE_LIMIT_PER_MIN,
     defaultPlanCode: null,
+    // Fail open on a settings-read error: never start 429-ing authenticated
+    // traffic because the platform_settings read hiccuped.
+    authenticatedRateLimitEnforce: false,
+    authenticatedRateLimitPerMin: DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN,
   };
 }
 
@@ -40,7 +47,7 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
     const { data, error } = await sb
       .from('platform_settings')
       .select(
-        'signups_enabled, maintenance_mode, maintenance_message, public_rate_limit_per_min, default_plan_code'
+        'signups_enabled, maintenance_mode, maintenance_message, public_rate_limit_per_min, default_plan_code, authenticated_rate_limit_enforce, authenticated_rate_limit_per_min'
       )
       .eq('id', 1)
       .maybeSingle();
@@ -52,6 +59,9 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
     }
 
     const rawLimit = Number(data.public_rate_limit_per_min ?? DEFAULT_PUBLIC_RATE_LIMIT_PER_MIN);
+    const rawAuthLimit = Number(
+      data.authenticated_rate_limit_per_min ?? DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN
+    );
     const value: PlatformSettingsSnapshot = {
       signupsEnabled: data.signups_enabled !== false,
       maintenanceMode: data.maintenance_mode === true,
@@ -67,6 +77,11 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
         typeof data.default_plan_code === 'string' && data.default_plan_code.trim()
           ? data.default_plan_code.trim()
           : null,
+      authenticatedRateLimitEnforce: data.authenticated_rate_limit_enforce === true,
+      authenticatedRateLimitPerMin:
+        Number.isInteger(rawAuthLimit) && rawAuthLimit >= 1 && rawAuthLimit <= 100_000
+          ? rawAuthLimit
+          : DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN,
     };
     cached = { at: now, value };
     return value;

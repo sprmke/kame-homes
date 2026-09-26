@@ -7,8 +7,9 @@
  * Page Editor live canvas uses PreviewOverrideProvider and never hits this endpoint.
  * Unpublished → 200 with { published: false } and no property payload (no data leak).
  * `?preview=1`/`?embed=1` additionally require `?admin_jwt=<host session JWT>` proving
- * property access (see hasPreviewAccess below) — without it they're ignored and the
+ * property access (`hasHostPreviewAccess`) — without it they're ignored and the
  * request falls through to the same unpublished-safe response an anonymous guest gets.
+ * Verified host preview also loads INACTIVE listings (Page Editor / gallery iframes).
  */
 
 import {
@@ -22,45 +23,17 @@ import {
 } from '../_shared/publicPageConfigs.ts';
 import { resolveAppSettings } from '../_shared/appSettings.ts';
 import { loadGuestFacingContactInfo } from '../_shared/guestContactInfo.ts';
-import { verifyPropertyAccess } from '../_shared/orgAuth.ts';
+import { hasHostPreviewAccess } from '../_shared/hostPreviewAccess.ts';
 import { isFeatureEnabled } from '../_shared/planFeatures.ts';
 import { resolvePropertyEntitlements } from '../_shared/planEntitlements.ts';
+import { loadPublicPropertyById } from '../_shared/publicPropertyService.ts';
 import {
-  loadPublicPropertyById,
-  loadPublicPropertyBySlug,
-} from '../_shared/publicPropertyService.ts';
-import { readPropertyIdFromUrl, readPropertySlugFromUrl } from '../_shared/propertyScope.ts';
+  readPropertyIdFromUrl,
+  readPropertySlugFromUrl,
+  resolvePropertyIdBySlug,
+} from '../_shared/propertyScope.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
-
-/**
- * `?preview=1`/`?embed=1` reveal an unpublished draft (Lorem ipsum, stock photos,
- * host contact info) — never honor them without proof the caller has host access to
- * THIS property. The host dashboard passes its own Supabase session JWT via
- * `?admin_jwt=` (query, since this is a GET and the `Authorization` header is
- * reserved for the anon gateway key on this public route); we re-verify it through
- * the same `verifyPropertyAccess` path every admin endpoint uses, scoped to this
- * property's id, so a stolen/guessed preview URL alone grants nothing.
- */
-async function hasPreviewAccess(req: Request, propertyId: string): Promise<boolean> {
-  const adminJwt = new URL(req.url).searchParams.get('admin_jwt');
-  if (!adminJwt) return false;
-  // `Headers` iteration always yields lowercase keys, so spreading it into a plain
-  // object then adding `Authorization` (capitalized) leaves both the original
-  // lowercase `authorization` (anon gateway key) and this override as distinct
-  // object keys — `new Headers(...)` then joins same-name headers with a comma,
-  // corrupting the Bearer token. Build the Headers object directly and `set`
-  // instead, which correctly replaces the header case-insensitively.
-  const proxyHeaders = new Headers(req.headers);
-  proxyHeaders.set('Authorization', `Bearer ${adminJwt}`);
-  const proxyReq = new Request(req.url, { headers: proxyHeaders });
-  try {
-    await verifyPropertyAccess(proxyReq, propertyId);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 servePublic('get-public-showcase', async (req) => {
   if (req.method !== 'GET') {
@@ -80,16 +53,17 @@ servePublic('get-public-showcase', async (req) => {
     return jsonError(req, 'property or property_id query param is required', 400);
   }
 
-  const detail = propertyIdParam
-    ? await loadPublicPropertyById(propertyIdParam)
-    : await loadPublicPropertyBySlug(slug!);
+  const propertyId = propertyIdParam ?? (slug ? await resolvePropertyIdBySlug(slug) : null);
+  if (!propertyId) {
+    return jsonError(req, 'Property not found', 404);
+  }
+
+  const preview = previewRequested && (await hasHostPreviewAccess(req, propertyId));
+  const detail = await loadPublicPropertyById(propertyId, { allowInactive: preview });
 
   if (!detail) {
     return jsonError(req, 'Property not found', 404);
   }
-
-  const propertyId = detail.id;
-  const preview = previewRequested && (await hasPreviewAccess(req, propertyId));
   const entitlements = await resolvePropertyEntitlements(propertyId);
   if (!isFeatureEnabled(entitlements, 'propertyShowcase')) {
     // Locked-plan response — not worth caching publicly (rare path, and plan
