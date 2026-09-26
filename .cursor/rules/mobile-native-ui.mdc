@@ -38,9 +38,15 @@ Every **UI change** in `ui/src/**` must preserve the **native app** mobile exper
 - **Touch targets** ≥ 44×44px. Hero icons may use invisible hit pads (`MobileHeroActionButton`).
 - **Tab clearance:** `bottomTabBarOffsetClassName()` on the document scrollport or inner fill-main scrollport (not both wrongly).
 
+## Loading (skeletons)
+
+- Keep page chrome mounted; skeleton only the data region. See **`docs/architecture/skeleton-loaders.md`** and `ui/src/components/skeletons/`.
+- Route-level: `RouteSkeletonBoundary` + `RouteSkeletons.tsx`; marketing/account: path-aware fallbacks in `MarketingRouteFallback.tsx`.
+
 ## Before claiming UI work done
 
 - [ ] §11 checklist in `mobile-responsive.mdc` / skill (375px + 768px, no horizontal scroll, sheets not dropdowns on phone)
+- [ ] Initial load shows a layout-matched skeleton (not a generic spinner) where the route/page fetches data
 - [ ] Modals and menus open as **bottom sheets** on phone
 - [ ] Route guide updated if page UX changed (`route-guides` skill)
 

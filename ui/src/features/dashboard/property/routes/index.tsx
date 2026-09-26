@@ -5,6 +5,8 @@ import { Route } from 'react-router-dom';
 
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import { PropertyDashboardRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
+
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/property/pages/DashboardPage').then((m) => ({
     default: m.DashboardPage,
@@ -12,5 +14,10 @@ const DashboardPage = lazy(() =>
 );
 
 export function dashboardPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
-  return <Route index element={propertyRoute('dashboard', <DashboardPage />)} />;
+  return (
+    <Route
+      index
+      element={propertyRoute('dashboard', <DashboardPage />, <PropertyDashboardRouteSkeleton />)}
+    />
+  );
 }

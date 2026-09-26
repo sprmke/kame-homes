@@ -29,6 +29,7 @@ This document is the entry point for the **guest-form-management** architecture 
 | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions                       | [`docs/architecture/ai-dashboard-assistant.md`](architecture/ai-dashboard-assistant.md) |
 | Plan/tier feature matrix — entitlement keys per tier, gate/enforcement inventory          | [`docs/architecture/plans-feature-matrix.md`](architecture/plans-feature-matrix.md)     |
 | PWA — installable app, service worker, Web Push, offline read + outbox, kill-switch       | [`docs/architecture/pwa.md`](architecture/pwa.md)                                       |
+| Skeleton loaders — route registry, chrome invariant, module map                           | [`docs/architecture/skeleton-loaders.md`](architecture/skeleton-loaders.md)             |
 
 For booking status/transition/side-effect specifics, start at `.cursor/rules/booking-workflow.mdc` instead — it supersedes this doc for anything already implemented per that spec. See [`docs/README.md`](README.md) for the full documentation index.
 

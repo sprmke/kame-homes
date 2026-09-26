@@ -5,6 +5,8 @@ import { Route } from 'react-router-dom';
 
 import type { PropertyRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import { PropertyMarketingRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
+
 const MarketingStudioPage = lazy(() =>
   import('@/features/dashboard/marketing/pages/MarketingStudioPage').then((m) => ({
     default: m.MarketingStudioPage,
@@ -12,5 +14,14 @@ const MarketingStudioPage = lazy(() =>
 );
 
 export function marketingPropertyRoute(propertyRoute: PropertyRouteFn): ReactNode {
-  return <Route path="marketing" element={propertyRoute('marketing', <MarketingStudioPage />)} />;
+  return (
+    <Route
+      path="marketing"
+      element={propertyRoute(
+        'marketing',
+        <MarketingStudioPage />,
+        <PropertyMarketingRouteSkeleton />
+      )}
+    />
+  );
 }

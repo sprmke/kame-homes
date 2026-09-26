@@ -9,6 +9,12 @@ import type {
   PropertyRouteFn,
 } from '@/features/dashboard/org/routes/guards';
 
+import {
+  OrgTeamRouteSkeleton,
+  ParkingTeamRouteSkeleton,
+  PropertyTeamRouteSkeleton,
+} from '@/components/skeletons/RouteSkeletons';
+
 const AcceptInvitePage = lazy(() =>
   import('@/features/dashboard/team/pages/AcceptInvitePage').then((m) => ({
     default: m.AcceptInvitePage,
@@ -33,13 +39,28 @@ export const teamAuthRoutes: ReactNode = (
 );
 
 export function orgTeamRoute(orgRoute: OrgRouteFn): ReactNode {
-  return <Route path="/org/:orgSlug/team" element={orgRoute('team', <OrgTeamPage />)} />;
+  return (
+    <Route
+      path="/org/:orgSlug/team"
+      element={orgRoute('team', <OrgTeamPage />, <OrgTeamRouteSkeleton />)}
+    />
+  );
 }
 
 export function propertyTeamRoute(propertyRoute: PropertyRouteFn): ReactNode {
-  return <Route path="team" element={propertyRoute('team', <PropertyTeamPage />)} />;
+  return (
+    <Route
+      path="team"
+      element={propertyRoute('team', <PropertyTeamPage />, <PropertyTeamRouteSkeleton />)}
+    />
+  );
 }
 
 export function parkingTeamRoute(parkingRoute: ParkingRouteFn): ReactNode {
-  return <Route path="team" element={parkingRoute('team', <ParkingTeamPage />)} />;
+  return (
+    <Route
+      path="team"
+      element={parkingRoute('team', <ParkingTeamPage />, <ParkingTeamRouteSkeleton />)}
+    />
+  );
 }
