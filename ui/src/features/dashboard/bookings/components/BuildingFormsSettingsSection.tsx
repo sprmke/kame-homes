@@ -9,6 +9,7 @@ import type { GafDetailsValues } from '@/features/dashboard/bookings/lib/gafDefa
 import type { PetDetailsValues } from '@/features/dashboard/bookings/lib/petDefaults';
 import { SettingsField } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
@@ -45,6 +46,58 @@ type BuildingFormsSettingsSectionProps = {
   onSignatureInteracted?: () => void;
   resolveFieldError: (fieldId: string) => string | null;
 };
+
+/** Compact card summary — opens Manage modal from the settings page. */
+export function BuildingFormsSettingsSummary({
+  values,
+  towerUnitLabel,
+  signatureConfigured,
+  disabled,
+  onManage,
+}: {
+  values: GafDetailsValues;
+  towerUnitLabel: string;
+  signatureConfigured: boolean;
+  disabled?: boolean;
+  onManage: () => void;
+}) {
+  const owner = values.gafUnitOwner.trim() || 'No unit owner';
+  const unit = towerUnitLabel.trim() || 'No tower & unit';
+  const contact = values.gafGuestsOnsiteContactPerson.trim();
+  const phone = values.gafOwnerContactNumber.trim();
+  const detailParts = [
+    contact || null,
+    phone || null,
+    signatureConfigured ? 'Signature on file' : 'Signature missing',
+  ].filter(Boolean);
+
+  return (
+    <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-foreground min-w-0 truncate text-xs font-medium sm:text-sm">
+          {owner}
+          <span className="text-muted-foreground font-normal"> · </span>
+          {unit}
+        </p>
+        {detailParts.length > 0 ? (
+          <p className="text-muted-foreground min-w-0 truncate text-[11px] sm:text-xs">
+            {detailParts.join(' · ')}
+          </p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="settings-action shrink-0"
+        disabled={disabled}
+        onClick={onManage}
+      >
+        Manage
+      </Button>
+    </div>
+  );
+}
 
 function BuildingFormField({
   id,

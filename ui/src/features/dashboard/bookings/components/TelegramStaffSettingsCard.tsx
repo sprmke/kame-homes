@@ -41,6 +41,9 @@ import {
   telegramPlaceholderLinesByTab,
 } from '@/features/dashboard/bookings/lib/templatePlaceholderCatalog';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError, telegramScheduleSyncError } from '@/lib/feedback/toastMessages';
 
 const STAFF_TEMPLATES = [
@@ -81,6 +84,9 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -119,10 +125,10 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
     return map;
   }, [draft?.scenarios]);
 
-  const persistSettings = () => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      const result = await update.mutateAsync({
         enabled: draft.enabled,
         notifyOnSameDayCheckin: draft.notifyOnSameDayCheckin,
         notifyOnDailySummary: draft.notifyOnDailySummary,
@@ -131,19 +137,34 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
         dailySummaryNoBookingsTemplate: draft.dailySummaryNoBookingsTemplate,
         sameDayCheckinTemplate: draft.sameDayCheckinTemplate,
         dailySummaryTimeManila: draft.dailySummaryTimeManila,
-      },
-      {
-        onSuccess: (result: unknown) => {
-          const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
-          toast.success('Staff settings saved');
-          if (cronSync && cronSync.ok !== true) {
-            toast.error(telegramScheduleSyncError());
-          }
-        },
-        onError: (e: unknown) => toast.error(friendlyToastError(e, 'Could not save settings')),
+      });
+      markDraftSaved(draft);
+      const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
+      toast.success('Staff settings saved');
+      if (cronSync && cronSync.ok !== true) {
+        toast.error(telegramScheduleSyncError());
       }
-    );
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save settings'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({
+    isDirty,
+    onSave: persistSettings,
+    enabled: !templatesOpen && !scheduleOpen,
+  });
+  const { onOpenChange: onScheduleOpenChange, dialogProps: scheduleUnsavedProps } = useGuardedClose(
+    {
+      open: scheduleOpen,
+      onOpenChange: setScheduleOpen,
+      isDirty,
+      onSave: persistSettings,
+      onDiscard: discardDraft,
+    }
+  );
 
   const onSendDraftPreview = (scenario: StaffDraftScenario, text: string) => {
     if (!text.trim()) {
@@ -231,7 +252,8 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
 
           <TelegramManageDialog
             open={scheduleOpen}
-            onOpenChange={setScheduleOpen}
+            onOpenChange={onScheduleOpenChange}
+            nestedOverlayOpen={scheduleUnsavedProps.open}
             title="Schedule alerts"
             footer={
               <TelegramModalSaveFooter
@@ -262,6 +284,8 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
             />
           </TelegramManageDialog>
 
+          <UnsavedChangesDialog {...scheduleUnsavedProps} />
+
           <TelegramTemplatesManageDialog
             open={templatesOpen}
             onOpenChange={setTemplatesOpen}
@@ -269,6 +293,8 @@ export function TelegramStaffSettingsCard({ embedded: _embedded = true }: { embe
             previewSampleSet="staff"
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={STAFF_TEMPLATES.map((def) => {
               const { id, label, templateKey, scenario, toggleKey } = def;
               const meta = scenarioMetaById.get(id);

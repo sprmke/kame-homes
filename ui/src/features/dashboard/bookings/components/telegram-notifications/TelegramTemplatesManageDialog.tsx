@@ -9,6 +9,8 @@ import {
   type TelegramPreviewSampleSet,
 } from '@/features/dashboard/bookings/lib/telegramPreviewSamples';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { compactStatusBadgeClasses } from '@/lib/statusToneColors';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +34,12 @@ type Props = {
   placeholdersByTabId?: Record<string, readonly string[]>;
   previewSampleSet?: TelegramPreviewSampleSet;
   disabled?: boolean;
-  onSave?: () => void;
+  /** Return a promise resolving `false` when the save failed so the guard keeps the modal open. */
+  onSave?: () => void | boolean | Promise<boolean | void>;
+  /** Draft differs from the saved settings; closing then prompts. */
+  isDirty?: boolean;
+  /** Reset the draft to the saved settings. */
+  onDiscard?: () => void;
 };
 
 function tabBadgeClass(badge: string) {
@@ -153,7 +160,16 @@ export function TelegramTemplatesManageDialog({
   previewSampleSet,
   disabled,
   onSave,
+  isDirty = false,
+  onDiscard,
 }: Props) {
+  const { onOpenChange: guardedOpenChange, dialogProps: unsavedDialogProps } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty,
+    onSave: onSave ? async () => (await onSave()) !== false : undefined,
+    onDiscard,
+  });
   const placeholderSampleVars = React.useMemo(
     () => (previewSampleSet ? getTelegramPreviewSamples(previewSampleSet) : undefined),
     [previewSampleSet]
@@ -198,7 +214,8 @@ export function TelegramTemplatesManageDialog({
     <>
       <TelegramManageDialog
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={guardedOpenChange}
+        nestedOverlayOpen={unsavedDialogProps.open}
         title={title}
         size={useSidebarLayout ? 'sidebar' : 'full'}
         footer={
@@ -239,6 +256,8 @@ export function TelegramTemplatesManageDialog({
           </div>
         </TelegramTemplateDialogProvider>
       </TelegramManageDialog>
+
+      <UnsavedChangesDialog {...unsavedDialogProps} />
 
       <TelegramPlaceholdersNestedDialog
         open={placeholdersOpen}

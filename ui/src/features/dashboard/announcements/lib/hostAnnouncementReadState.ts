@@ -39,10 +39,20 @@ export function readHostAnnouncementReadKeys(orgId: string | null): Set<string> 
 }
 
 export function markHostAnnouncementRead(orgId: string, identityKey: string): void {
-  if (typeof localStorage === 'undefined') return;
+  markHostAnnouncementsRead(orgId, [identityKey]);
+}
+
+/** Mark many announcements read in one write (e.g. Read all on a feed group). */
+export function markHostAnnouncementsRead(orgId: string, identityKeys: readonly string[]): void {
+  if (typeof localStorage === 'undefined' || identityKeys.length === 0) return;
   const next = new Set(readRaw(orgId));
-  if (next.has(identityKey)) return;
-  next.add(identityKey);
+  let changed = false;
+  for (const key of identityKeys) {
+    if (!key || next.has(key)) continue;
+    next.add(key);
+    changed = true;
+  }
+  if (!changed) return;
   localStorage.setItem(storageKey(orgId), JSON.stringify([...next]));
   emit();
 }

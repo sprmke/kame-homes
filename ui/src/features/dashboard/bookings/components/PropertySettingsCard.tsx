@@ -15,7 +15,6 @@ import {
   ListChecks,
   Mail,
   MapPin,
-  Mic,
   Save,
   ScrollText,
   Share2,
@@ -49,7 +48,11 @@ import {
   applyBuildingFormsTeamDefaults,
   pickBuildingFormsTeamContact,
 } from '@/features/dashboard/bookings/lib/buildingFormsTeamDefaults';
-import { PropertyAiPlatformSection } from '@/features/dashboard/org/components/property-settings/PropertyAiPlatformSection';
+import { PropertyAiSettingsSection } from '@/features/dashboard/org/components/property-settings/PropertyAiSettingsSection';
+import {
+  AI_SETTINGS_NAV_LABEL,
+  AI_SETTINGS_SECTION_ID,
+} from '@/features/dashboard/org/lib/aiSettingsLabels';
 import { PropertyGuestRewardsSection } from '@/features/dashboard/org/components/property-settings/PropertyGuestRewardsSection';
 import {
   operationalSettingsDraftIsDirty,
@@ -61,12 +64,11 @@ import {
 } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
 import { PropertySettingsBrandColorPreview } from '@/features/dashboard/org/components/property-settings/PropertySettingsBrandColorPreview';
 import { PropertySocialsSection } from '@/features/dashboard/org/components/property-settings/PropertySocialsBrandingSection';
-import { PublicPagesCrossLink } from '@/features/dashboard/org/components/property-settings/PublicPagesCrossLink';
 import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useCheckPropertyName } from '@/features/dashboard/org/hooks/useCheckPropertyName';
-import { useDeleteProperty } from '@/features/dashboard/org/hooks/useDeleteProperty';
 import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
+import { useDeleteProperty } from '@/features/dashboard/org/hooks/useDeleteProperty';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import {
   orgSettingsToFormValues,
@@ -75,7 +77,6 @@ import {
 import { usePropertySettingsCompletionForDraft } from '@/features/dashboard/org/hooks/usePropertySettingsCompletion';
 import { useTowerUnitConflict } from '@/features/dashboard/org/hooks/useTowerUnitConflict';
 import { useUpdateProperty } from '@/features/dashboard/org/hooks/useUpdateProperty';
-import { publicPropertySlugUrlPrefix } from '@/features/dashboard/org/lib/guestPublicPaths';
 import { paymentMethodsDraftIsDirty } from '@/features/dashboard/org/lib/paymentMethods';
 import type { PropertyAutomationToggleKey } from '@/features/dashboard/org/lib/propertyEmailAutomation';
 import {
@@ -102,6 +103,7 @@ import {
 } from '@/features/dashboard/org/lib/propertySettingsSave';
 import { normalizePropertySocialLinksForSave } from '@/features/dashboard/org/lib/propertySocialLinks';
 import { computePaymentSettingsFingerprint } from '@/features/dashboard/org/lib/settingsVerificationFingerprint';
+import { rememberTenantSlugChange } from '@/features/dashboard/org/lib/tenantSlugRemap';
 import { orgPropertiesPath, propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
@@ -121,6 +123,7 @@ import {
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { resolveNameAvailabilityState } from '@/lib/availabilityCheckState';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { propertyBrandColorStoredValue } from '@/lib/theme/brandColor';
@@ -140,8 +143,7 @@ const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
   { id: 'building-forms', label: 'Building Forms', icon: ClipboardList },
   { id: 'email-automations', label: 'Email Automations', icon: Mail },
   { id: 'integrations', label: 'Integrations', icon: Globe },
-  { id: 'voice-receptionist', label: 'Voice Receptionist', icon: Mic },
-  { id: 'ai', label: 'AI Overrides', icon: Sparkles },
+  { id: AI_SETTINGS_SECTION_ID, label: AI_SETTINGS_NAV_LABEL, icon: Sparkles },
   { id: 'activity', label: 'Activity', icon: ScrollText },
   { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
@@ -158,10 +160,12 @@ function mergeProfileDraftAfterSave(
 
 export function usePropertySettingsController() {
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const { property, orgSlug, propertySlug } = useOrgContext();
   const { data: orgPropertiesData } = useProperties(orgSlug);
   const canCopyFromOtherProperty = (orgPropertiesData?.properties.length ?? 0) >= 2;
   const { data: propertyAccess } = usePropertyPermissions();
+  const canViewActivity = hasPropertyPermission(propertyAccess?.permissions, 'activity:view');
   const canEditSettingsSection = useCallback(
     (sectionId: PropertySettingsSectionId) => {
       const perm = SETTINGS_SECTION_EDIT_PERMISSION[sectionId];
@@ -183,6 +187,10 @@ export function usePropertySettingsController() {
     return locked;
   }, [canEditSettingsSection]);
   const canEditDangerZone = canEditSettingsSection('danger');
+  const canEditVoiceReceptionist = hasPropertyPermission(
+    propertyAccess?.permissions,
+    'settings.voiceReceptionist:edit'
+  );
   const canDeleteProperty =
     propertyAccess?.accessKind === 'owner' || propertyAccess?.accessKind === 'platform_admin';
   const {
@@ -486,21 +494,24 @@ export function usePropertySettingsController() {
     }
   }, [saveDisabledByValidation]);
 
-  const propertySlugPrefix = publicPropertySlugUrlPrefix();
-
   const slugPreview = propertySlugPreview(profileDraft.name, property.slug, profileBaseline.name);
 
   const navSections = useMemo((): AdminSectionNavItem[] => {
     const hidden = new Set<string>();
-    if (!canEnableReceptionist) hidden.add('voice-receptionist');
-    if (!canUseAiOverrides) hidden.add('ai');
+    if (!canUseAiOverrides && !canEnableReceptionist) hidden.add('ai');
+    if (!canViewActivity) hidden.add('activity');
     return SETTINGS_SECTIONS.filter((section) => !hidden.has(section.id)).map((section) => ({
       ...section,
       hasIssue: settingsCompletion.issueSectionIds.includes(
         section.id as PropertySettingsSectionId
       ),
     }));
-  }, [canEnableReceptionist, canUseAiOverrides, settingsCompletion.issueSectionIds]);
+  }, [
+    canEnableReceptionist,
+    canUseAiOverrides,
+    canViewActivity,
+    settingsCompletion.issueSectionIds,
+  ]);
 
   useEffect(() => {
     setPropertySettingsIssueSections(settingsCompletion.issueSectionIds);
@@ -708,9 +719,12 @@ export function usePropertySettingsController() {
         );
         savedSomething = true;
         if (profilePayload.name && result.property.slug !== propertySlug) {
-          navigate(propertySectionPath(orgSlug, result.property.slug, 'settings'), {
-            replace: true,
-          });
+          rememberTenantSlugChange('property', propertySlug, result.property.slug);
+          runUnguarded(() =>
+            navigate(propertySectionPath(orgSlug, result.property.slug, 'settings'), {
+              replace: true,
+            })
+          );
         }
       }
 
@@ -784,6 +798,8 @@ export function usePropertySettingsController() {
     }
   };
 
+  useUnsavedChangesGuard({ isDirty, onSave: () => handleSave() });
+
   const revertPaymentDraft = useCallback(() => {
     setOperationalDraft((current) => {
       if (!current || !operationalBaseline) return current;
@@ -855,15 +871,15 @@ export function usePropertySettingsController() {
   const handleDeleteProperty = async () => {
     await deleteProperty.mutateAsync(property.id);
     toast.success('Property deleted');
-    navigate(orgPropertiesPath(orgSlug));
+    runUnguarded(() => navigate(orgPropertiesPath(orgSlug)));
   };
 
   return {
     navigate,
     property,
     orgSlug,
-    propertySlug,
     canCopyFromOtherProperty,
+    propertySlug,
     propertyAccess,
     canEditSettingsSection,
     sectionEditLocked,
@@ -883,6 +899,7 @@ export function usePropertySettingsController() {
     voiceSettingsLoadError,
     updateVoiceSettings,
     canEnableReceptionist,
+    canEditVoiceReceptionist,
     receptionistEntitlementsLoading,
     canUseAiOverrides,
     openUpgradeModal,
@@ -951,9 +968,9 @@ export function usePropertySettingsController() {
     saveDisabledReason,
     busy,
     saveDisabled,
-    propertySlugPrefix,
     slugPreview,
     navSections,
+    canViewActivity,
     scrollToSettingsSection,
     setProfileField,
     handleMediaPersisted,
@@ -994,6 +1011,7 @@ export function PropertySettingsCard() {
     voiceSettingsError,
     voiceSettingsLoadError,
     canEnableReceptionist,
+    canEditVoiceReceptionist,
     canUseAiOverrides,
     inheritedBrandColor,
     orgSocialLinks,
@@ -1022,9 +1040,9 @@ export function PropertySettingsCard() {
     saveDisabledReason,
     busy,
     saveDisabled,
-    propertySlugPrefix,
     slugPreview,
     navSections,
+    canViewActivity,
     setProfileField,
     handleMediaPersisted,
     persistMediaOrder,
@@ -1172,7 +1190,6 @@ export function PropertySettingsCard() {
             onChange={setProfileField}
             disabled={busy}
             sectionEditLocked={sectionEditLocked}
-            propertySlugPrefix={propertySlugPrefix}
             slugPreview={slugPreview}
             towerConflict={towerConflict}
             nameUnavailable={nameUnavailable}
@@ -1214,7 +1231,6 @@ export function PropertySettingsCard() {
             markFieldInteracted={markFieldInteracted}
             onChange={setOperationalField}
             sectionMessages={settingsCompletion.sectionMessages}
-            headerAction={<PublicPagesCrossLink orgSlug={orgSlug} propertySlug={property.slug} />}
           />
 
           <PropertyGuestRewardsSection
@@ -1241,23 +1257,30 @@ export function PropertySettingsCard() {
             resolveFieldError={resolveFieldError}
             markFieldInteracted={markFieldInteracted}
             sectionMessages={settingsCompletion.sectionMessages}
-            showVoiceReceptionist={canEnableReceptionist}
-            voiceReceptionist={{
-              draft: voiceDraft,
-              propertyName: profileDraft.name.trim(),
-              availableVoices: voiceSettings?.availableVoices ?? [],
-              isLoading: voiceSettingsLoading,
-              isError: voiceSettingsError,
-              errorMessage: (voiceSettingsLoadError as Error)?.message ?? null,
-              onChange: setVoiceField,
-            }}
           />
 
-          {canUseAiOverrides ? <PropertyAiPlatformSection /> : null}
+          {canUseAiOverrides || canEnableReceptionist ? (
+            <PropertyAiSettingsSection
+              showUsage={canUseAiOverrides}
+              showVoiceReceptionist={canEnableReceptionist}
+              voiceDisabled={!canEditVoiceReceptionist}
+              voiceReceptionist={{
+                draft: voiceDraft,
+                propertyName: profileDraft.name.trim(),
+                availableVoices: voiceSettings?.availableVoices ?? [],
+                isLoading: voiceSettingsLoading,
+                isError: voiceSettingsError,
+                errorMessage: (voiceSettingsLoadError as Error)?.message ?? null,
+                onChange: setVoiceField,
+              }}
+            />
+          ) : null}
 
-          <AdminSection id="activity" title="Activity" icon={ScrollText}>
-            <ActivitySettingsSection scope="property" />
-          </AdminSection>
+          {canViewActivity ? (
+            <AdminSection id="activity" title="Activity" icon={ScrollText}>
+              <ActivitySettingsSection scope="property" />
+            </AdminSection>
+          ) : null}
 
           <PropertyDangerZoneSection
             propertyName={profileDraft.name.trim() || property.name}

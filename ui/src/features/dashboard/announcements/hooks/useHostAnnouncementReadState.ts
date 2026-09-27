@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   getHostAnnouncementReadRevision,
   markHostAnnouncementRead,
+  markHostAnnouncementsRead,
   pruneHostAnnouncementReadKeys,
   readHostAnnouncementReadKeys,
   subscribeHostAnnouncementRead,
@@ -39,10 +40,18 @@ export function useHostAnnouncementReadState(
     [orgId]
   );
 
+  const markAllRead = useCallback(
+    (identityKeys: readonly string[]) => {
+      if (!orgId) return;
+      markHostAnnouncementsRead(orgId, identityKeys);
+    },
+    [orgId]
+  );
+
   const unreadCount = useMemo(
     () => activeIdentityKeys.filter((key) => !readKeys.has(key)).length,
     [activeIdentityKeys, readKeys]
   );
 
-  return { readKeys, isUnread, markRead, unreadCount, hasUnread: unreadCount > 0 };
+  return { readKeys, isUnread, markRead, markAllRead, unreadCount, hasUnread: unreadCount > 0 };
 }

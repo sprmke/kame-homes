@@ -2,7 +2,6 @@ import type { KeyboardEvent } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-
 import { AdminTableFlagsCell } from '@/features/dashboard/bookings/components/AdminDataTable';
 import { BookingResourceLabel } from '@/features/dashboard/bookings/components/BookingResourceLabel';
 import { GuestAvatar } from '@/features/dashboard/bookings/components/GuestAvatar';

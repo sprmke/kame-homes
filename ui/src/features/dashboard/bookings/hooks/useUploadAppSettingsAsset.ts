@@ -6,7 +6,6 @@ import { useParams } from 'react-router-dom';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-
 import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 

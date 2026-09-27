@@ -16,13 +16,11 @@ export type VoiceReceptionistSettingsDto = {
   availableVoices: readonly string[];
 };
 
+/** Host-editable fields only. Session limits are platform-managed and read-only (DTO). */
 export type VoiceReceptionistFormValues = {
   enabled: boolean;
   voiceId: string;
   personaPrompt: string;
-  maxSessionSeconds: number;
-  maxSessionsPerGuestPerDay: number;
-  maxConcurrentSessions: number;
 };
 
 export function voiceReceptionistToFormValues(
@@ -32,9 +30,6 @@ export function voiceReceptionistToFormValues(
     enabled: data.enabled,
     voiceId: data.voiceId,
     personaPrompt: data.personaPrompt ?? '',
-    maxSessionSeconds: data.maxSessionSeconds,
-    maxSessionsPerGuestPerDay: data.maxSessionsPerGuestPerDay,
-    maxConcurrentSessions: data.maxConcurrentSessions,
   };
 }
 
@@ -45,10 +40,7 @@ export function voiceReceptionistFormIsDirty(
   return (
     draft.enabled !== baseline.enabled ||
     draft.voiceId !== baseline.voiceId ||
-    draft.personaPrompt.trim() !== baseline.personaPrompt.trim() ||
-    draft.maxSessionSeconds !== baseline.maxSessionSeconds ||
-    draft.maxSessionsPerGuestPerDay !== baseline.maxSessionsPerGuestPerDay ||
-    draft.maxConcurrentSessions !== baseline.maxConcurrentSessions
+    draft.personaPrompt.trim() !== baseline.personaPrompt.trim()
   );
 }
 
@@ -56,9 +48,6 @@ export type VoiceReceptionistSettingsPatch = Partial<{
   enabled: boolean;
   voiceId: string;
   personaPrompt: string | null;
-  maxSessionSeconds: number;
-  maxSessionsPerGuestPerDay: number;
-  maxConcurrentSessions: number;
 }>;
 
 export function buildVoiceReceptionistPatch(
@@ -68,9 +57,6 @@ export function buildVoiceReceptionistPatch(
     enabled: draft.enabled,
     voiceId: draft.voiceId,
     personaPrompt: draft.personaPrompt.trim() || null,
-    maxSessionSeconds: draft.maxSessionSeconds,
-    maxSessionsPerGuestPerDay: draft.maxSessionsPerGuestPerDay,
-    maxConcurrentSessions: draft.maxConcurrentSessions,
   };
 }
 

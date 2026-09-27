@@ -43,6 +43,9 @@ import {
   telegramPlaceholderLinesByTab,
 } from '@/features/dashboard/bookings/lib/templatePlaceholderCatalog';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError, telegramScheduleSyncError } from '@/lib/feedback/toastMessages';
 import { getManilaYmdToday, getManilaYmdTomorrow } from '@/utils/format/dates';
 
@@ -110,6 +113,9 @@ export function TelegramMarketingSettingsCard({
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -142,10 +148,10 @@ export function TelegramMarketingSettingsCard({
     []
   );
 
-  const persistSettings = () => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      const result = await update.mutateAsync({
         enabled: draft.enabled,
         notifyOnNewBooking: draft.notifyOnNewBooking,
         notifyOnCancellation: draft.notifyOnCancellation,
@@ -158,19 +164,34 @@ export function TelegramMarketingSettingsCard({
         dailyUrgencyTemplate: draft.dailyUrgencyTemplate,
         newBookingTemplate: draft.newBookingTemplate,
         cancellationTemplate: draft.cancellationTemplate,
-      },
-      {
-        onSuccess: (result: unknown) => {
-          const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
-          toast.success('Marketing settings saved');
-          if (cronSync && cronSync.ok !== true) {
-            toast.error(telegramScheduleSyncError());
-          }
-        },
-        onError: (e: unknown) => toast.error(friendlyToastError(e, 'Could not save settings')),
+      });
+      markDraftSaved(draft);
+      const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
+      toast.success('Marketing settings saved');
+      if (cronSync && cronSync.ok !== true) {
+        toast.error(telegramScheduleSyncError());
       }
-    );
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save settings'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({
+    isDirty,
+    onSave: persistSettings,
+    enabled: !templatesOpen && !scheduleOpen,
+  });
+  const { onOpenChange: onScheduleOpenChange, dialogProps: scheduleUnsavedProps } = useGuardedClose(
+    {
+      open: scheduleOpen,
+      onOpenChange: setScheduleOpen,
+      isDirty,
+      onSave: persistSettings,
+      onDiscard: discardDraft,
+    }
+  );
 
   const runDraftPreview = (text: string) => {
     const needsCancelDates = /\{\{cancellation_dates\}\}/.test(text);
@@ -263,7 +284,8 @@ export function TelegramMarketingSettingsCard({
 
           <TelegramManageDialog
             open={scheduleOpen}
-            onOpenChange={setScheduleOpen}
+            onOpenChange={onScheduleOpenChange}
+            nestedOverlayOpen={scheduleUnsavedProps.open}
             title="Schedule alerts"
             size="wide"
             footer={
@@ -326,6 +348,8 @@ export function TelegramMarketingSettingsCard({
             />
           </TelegramManageDialog>
 
+          <UnsavedChangesDialog {...scheduleUnsavedProps} />
+
           <TelegramTemplatesManageDialog
             open={templatesOpen}
             onOpenChange={setTemplatesOpen}
@@ -333,6 +357,8 @@ export function TelegramMarketingSettingsCard({
             previewSampleSet="marketing"
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={TEMPLATE_DEFS.map((def) => {
               const { id, label, badge, templateKey } = def;
               const toggleKey = def.toggleKey;

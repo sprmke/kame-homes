@@ -18,8 +18,7 @@ import {
   type PropertyTemplateDto,
 } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import { useUploadPropertyTemplateAsset } from '@/features/dashboard/bookings/hooks/useUploadPropertyTemplateAsset';
-import { normalizeBlockLevelPlaceholdersInHtml } from '@/features/dashboard/bookings/lib/normalizeBlockLevelPlaceholders';
-import { normalizeEmailCalloutPlaceholders } from '@/features/dashboard/bookings/lib/normalizeEmailCalloutPlaceholders';
+import { normalizePropertyTemplateEditorContent } from '@/features/dashboard/bookings/lib/normalizePropertyTemplateEditorContent';
 import {
   applyPropertyTemplatePlaceholders,
   PROPERTY_TEMPLATE_SAMPLE_VARS,
@@ -51,6 +50,7 @@ import {
   cardHeaderSegmentedListClassName,
   cardHeaderSegmentedTriggerClassName,
 } from '@/components/ui/sliding-tabs';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 
 type EditorTab = 'edit' | 'preview';
@@ -98,7 +98,9 @@ export function PropertyTemplateEditorCard({
   showSectionImage = true,
   canEdit = true,
 }: Props) {
-  const [content, setContent] = React.useState(template.content);
+  const [content, setContent] = React.useState(() =>
+    normalizePropertyTemplateEditorContent(template)
+  );
   const [sectionImageUrl, setSectionImageUrl] = React.useState(template.sectionImageUrl);
   const [sectionImagePreviewBust, setSectionImagePreviewBust] = React.useState(() =>
     template.updatedAt ? Date.parse(template.updatedAt) || 0 : 0
@@ -120,23 +122,16 @@ export function PropertyTemplateEditorCard({
     if (!canEdit) setActiveTab('preview');
   }, [canEdit]);
 
+  const baselineContent = React.useMemo(
+    () => normalizePropertyTemplateEditorContent(template),
+    [template.content, template.templateKey, template.category]
+  );
+
   React.useEffect(() => {
-    let next = normalizeBlockLevelPlaceholdersInHtml(template.content);
-    if (template.category === 'email') {
-      next = normalizeEmailCalloutPlaceholders(next, template.templateKey, {
-        ensureMissing: true,
-      });
-    }
-    setContent(next);
+    setContent(baselineContent);
     setSectionImageUrl(template.sectionImageUrl);
     setSectionImagePreviewBust(template.updatedAt ? Date.parse(template.updatedAt) || 0 : 0);
-  }, [
-    template.content,
-    template.templateKey,
-    template.category,
-    template.sectionImageUrl,
-    template.updatedAt,
-  ]);
+  }, [baselineContent, template.sectionImageUrl, template.updatedAt]);
 
   const handleSectionImageUrlChange = React.useCallback((url: string | null) => {
     setSectionImageUrl(url);
@@ -147,7 +142,7 @@ export function PropertyTemplateEditorCard({
     ? withStorageUrlCacheBust(sectionImageUrl, sectionImagePreviewBust || null)
     : null;
 
-  const hasChanges = content !== template.content || sectionImageUrl !== template.sectionImageUrl;
+  const hasChanges = content !== baselineContent || sectionImageUrl !== template.sectionImageUrl;
   const isEmail = template.category === 'email';
   const isCustom = template.category === 'custom';
   const isStandard = template.category === 'standard';
@@ -161,6 +156,20 @@ export function PropertyTemplateEditorCard({
     if (!customTemplatesLoading) openUpgradeModal('customTemplates');
     return true;
   }, [canUseCustomTemplates, customTemplatesLoading, openUpgradeModal, requiresStarterToPersist]);
+
+  useUnsavedChangesGuard({
+    isDirty: hasChanges,
+    enabled: canEdit,
+    onSave: async () => {
+      if (openStarterUpgradeIfNeeded()) return false;
+      try {
+        await onSave({ content, sectionImageUrl });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
 
   const placeholderLines = React.useMemo(
     () => propertyPlaceholderLinesForTemplate(template.templateKey, template.category),

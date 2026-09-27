@@ -131,6 +131,7 @@ import { usePropertyPricingDefaults } from '@/features/dashboard/pricing/hooks/u
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError, sdRefundCronSuccessMessage } from '@/lib/feedback/toastMessages';
 import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
@@ -331,7 +332,7 @@ function WorkflowPanelInner({
     isEditableWorkflowProgressContent(workflowActions.viewedContent);
 
   const handleProgressSave = useCallback(
-    async (opts?: { quiet?: boolean }) => {
+    async (opts?: { quiet?: boolean }): Promise<boolean> => {
       if (!opts?.quiet) {
         const content = workflowActions.viewedContent;
         const validatorId =
@@ -348,9 +349,9 @@ function WorkflowPanelInner({
           const ok = await validateById(validatorId);
           if (validatorId === 'pricing') {
             const decorOk = await validateById('surprise_decor');
-            if (!ok || !decorOk) return;
+            if (!ok || !decorOk) return false;
           } else if (!ok) {
-            return;
+            return false;
           }
         }
       }
@@ -366,7 +367,7 @@ function WorkflowPanelInner({
         if (!opts?.quiet) {
           toast.error('Fill in the required fields before saving');
         }
-        return;
+        return false;
       }
       try {
         await updateMut.mutateAsync({
@@ -378,9 +379,11 @@ function WorkflowPanelInner({
         subFormDrafts.clearProgressDirty();
         setLiveAutosaveFailed(false);
         if (!opts?.quiet) toast.success('Saved');
+        return true;
       } catch (err: unknown) {
         if (opts?.quiet) setLiveAutosaveFailed(true);
         toast.error(friendlyToastError(err, 'Could not save'));
+        return false;
       }
     },
     [
@@ -397,6 +400,14 @@ function WorkflowPanelInner({
       validateById,
     ]
   );
+
+  useUnsavedChangesGuard({
+    isDirty:
+      subFormDrafts.progressDirty &&
+      !workflowActions.contentReadOnly &&
+      isEditableWorkflowProgressContent(workflowActions.viewedContent),
+    onSave: () => handleProgressSave(),
+  });
 
   useEffect(() => {
     if (!liveProgressAutosave || !subFormDrafts.progressDirty) return;
@@ -722,7 +733,10 @@ function WorkflowPanelInner({
       }
     } catch (err: unknown) {
       if (
-        offerAiVerdictOverride(err, () => void handleMarkPendingDocSubStatusComplete(subStatus, true))
+        offerAiVerdictOverride(
+          err,
+          () => void handleMarkPendingDocSubStatusComplete(subStatus, true)
+        )
       ) {
         return;
       }

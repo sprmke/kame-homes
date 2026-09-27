@@ -32,6 +32,7 @@ type VerifyHandlers = {
 
 export type UpdateMutate = {
   mutate: (...args: any[]) => void;
+  mutateAsync: (...args: any[]) => Promise<any>;
   isPending: boolean;
 };
 
@@ -39,6 +40,13 @@ export type TestSendMutate = {
   mutate: (...args: any[]) => void;
   isPending: boolean;
 };
+
+/** Compare drafts ignoring fields that autosave on their own (credentials, master toggle). */
+function telegramDraftSnapshot(dto: TelegramSettingsDtoBase | null) {
+  if (!dto) return '';
+  const { credentials: _credentials, enabled: _enabled, ...rest } = dto;
+  return JSON.stringify(rest);
+}
 
 export function useTelegramNotificationModuleBase<TDto extends TelegramSettingsDtoBase>(config: {
   useSettings: () => {
@@ -63,6 +71,7 @@ export function useTelegramNotificationModuleBase<TDto extends TelegramSettingsD
     useFeatureGate('telegramNotifications');
   const { open: openUpgradeModal } = useUpgradeModal();
   const [draft, setDraft] = React.useState<TDto | null>(null);
+  const [baseline, setBaseline] = React.useState<TDto | null>(null);
   const { botToken, setBotToken, chatId, setChatId } = useTelegramCredentialFields(
     data?.credentials,
     globalBot.token
@@ -70,8 +79,19 @@ export function useTelegramNotificationModuleBase<TDto extends TelegramSettingsD
   const saveCredentials = useTelegramCredentialAutoSave(botToken, chatId, update);
 
   React.useEffect(() => {
-    if (data) setDraft(data);
+    if (data) {
+      setDraft(data);
+      setBaseline(data);
+    }
   }, [data]);
+
+  const isDirty = React.useMemo(
+    () => telegramDraftSnapshot(draft) !== telegramDraftSnapshot(baseline),
+    [draft, baseline]
+  );
+  const discardDraft = React.useCallback(() => setDraft(baseline), [baseline]);
+  /** Call after a successful save so `isDirty` clears before the refetch lands. */
+  const markDraftSaved = React.useCallback((saved: TDto) => setBaseline(saved), []);
 
   const runVerify = React.useCallback(
     (handlers: VerifyHandlers) => {
@@ -166,6 +186,9 @@ export function useTelegramNotificationModuleBase<TDto extends TelegramSettingsD
   return {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,

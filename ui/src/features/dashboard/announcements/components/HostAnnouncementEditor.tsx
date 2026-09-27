@@ -18,6 +18,7 @@ import {
   superAdminApprovalFooterButtonClass,
 } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalDialogLayout';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -62,20 +64,22 @@ export function HostAnnouncementEditor({
   trailingActions,
 }: Props) {
   const [draft, setDraft] = useState<HostAnnouncementDraft | null>(null);
+  const [baseline, setBaseline] = useState<HostAnnouncementDraft | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const closeDialog = () => {
     setDraft(null);
+    setBaseline(null);
     setIsNew(false);
   };
 
-  const handleSave = () => {
-    if (!draft) return;
+  const handleSave = (): boolean => {
+    if (!draft) return false;
     const validationError = validateHostAnnouncements([draft]);
     if (validationError) {
       toast.error(validationError);
-      return;
+      return false;
     }
     const saved = { ...draft, updatedAt: new Date().toISOString() };
     onChange(
@@ -84,7 +88,15 @@ export function HostAnnouncementEditor({
         : announcements.map((entry) => (entry.id === saved.id ? saved : entry))
     );
     closeDialog();
+    return true;
   };
+
+  const { onOpenChange, requestClose, dialogProps } = useGuardedClose({
+    open: draft !== null,
+    onOpenChange: (open) => !open && closeDialog(),
+    isDirty: draft !== null && JSON.stringify(draft) !== JSON.stringify(baseline),
+    onSave: handleSave,
+  });
 
   const handleRemove = () => {
     if (!draft) return;
@@ -100,6 +112,7 @@ export function HostAnnouncementEditor({
         emptyMessage="No announcements yet."
         onSelect={(announcement) => {
           setDraft(announcement);
+          setBaseline(announcement);
           setIsNew(false);
         }}
       />
@@ -110,7 +123,9 @@ export function HostAnnouncementEditor({
           className="min-h-[44px] gap-1.5"
           disabled={disabled}
           onClick={() => {
-            setDraft(emptyHostAnnouncement() as HostAnnouncementDraft);
+            const fresh = emptyHostAnnouncement() as HostAnnouncementDraft;
+            setDraft(fresh);
+            setBaseline(fresh);
             setIsNew(true);
           }}
         >
@@ -120,7 +135,7 @@ export function HostAnnouncementEditor({
         {trailingActions}
       </div>
 
-      <ResponsiveModal open={draft !== null} onOpenChange={(open) => !open && closeDialog()}>
+      <ResponsiveModal open={draft !== null} onOpenChange={onOpenChange}>
         <ResponsiveModalContent
           className={ANNOUNCEMENT_EDITOR_DIALOG_CONTENT_CLASS}
           sheetLayout="split"
@@ -160,7 +175,7 @@ export function HostAnnouncementEditor({
               type="button"
               variant="outline"
               className={superAdminApprovalFooterButtonClass}
-              onClick={closeDialog}
+              onClick={requestClose}
             >
               Cancel
             </Button>
@@ -175,6 +190,8 @@ export function HostAnnouncementEditor({
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
+
+      <UnsavedChangesDialog {...dialogProps} />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

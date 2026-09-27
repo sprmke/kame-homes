@@ -7,6 +7,7 @@ import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 
 type Props = {
   onAdd: (name: string, content: string) => Promise<void>;
@@ -41,13 +43,31 @@ export function AddCustomTemplateDialog({ onAdd, busy, trigger }: Props) {
     setOpen(true);
   }, [canUseCustomTemplates, customTemplatesLoading, openUpgradeModal]);
 
-  const handleAdd = async () => {
-    if (!name.trim()) return;
-    await onAdd(name.trim(), content);
+  const resetDraft = React.useCallback(() => {
     setName('');
     setContent('');
+  }, []);
+
+  const handleAdd = async (): Promise<boolean> => {
+    if (!name.trim()) return false;
+    try {
+      await onAdd(name.trim(), content);
+    } catch {
+      return false;
+    }
+    resetDraft();
     setOpen(false);
+    return true;
   };
+
+  const contentHasValue = /<img\b/i.test(content) || content.replace(/<[^>]*>/g, '').trim() !== '';
+  const { onOpenChange, requestClose, dialogProps } = useGuardedClose({
+    open,
+    onOpenChange: setOpen,
+    isDirty: name.trim() !== '' || contentHasValue,
+    onSave: name.trim() ? handleAdd : undefined,
+    onDiscard: resetDraft,
+  });
 
   const defaultTrigger = (
     <Button type="button" variant="outline" size="sm" className="min-h-[44px]">
@@ -81,16 +101,7 @@ export function AddCustomTemplateDialog({ onAdd, busy, trigger }: Props) {
         )}
       </TierBadgeAnchor>
 
-      <ResponsiveModal
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (!next) {
-            setName('');
-            setContent('');
-          }
-        }}
-      >
+      <ResponsiveModal open={open} onOpenChange={onOpenChange}>
         <ResponsiveModalContent
           sheetLayout="split"
           className="flex max-h-[min(92dvh,720px)] max-w-[min(calc(100vw-1.5rem),42rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(95vw,42rem)] sm:p-0"
@@ -113,7 +124,7 @@ export function AddCustomTemplateDialog({ onAdd, busy, trigger }: Props) {
             <RichTextEditor content={content} onChange={setContent} minHeight="240px" />
           </div>
           <ResponsiveModalFooter className="border-border/60 shrink-0 gap-2 border-t px-4 py-3 sm:px-5">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={requestClose}>
               Cancel
             </Button>
             <Button type="button" disabled={busy || !name.trim()} onClick={() => void handleAdd()}>
@@ -122,6 +133,7 @@ export function AddCustomTemplateDialog({ onAdd, busy, trigger }: Props) {
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
+      <UnsavedChangesDialog {...dialogProps} />
     </>
   );
 }

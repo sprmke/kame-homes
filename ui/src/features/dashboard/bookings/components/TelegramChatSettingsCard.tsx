@@ -25,12 +25,16 @@ import {
 } from '@/features/dashboard/bookings/lib/telegramPlaceholderGroups';
 import { TELEGRAM_CHAT_PLACEHOLDER_KEYS } from '@/features/dashboard/bookings/lib/templatePlaceholderCatalog';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 export function TelegramChatSettingsCard({ embedded: _embedded = true }: { embedded?: boolean }) {
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -67,19 +71,23 @@ export function TelegramChatSettingsCard({ embedded: _embedded = true }: { embed
     [placeholderLines]
   );
 
-  const persistSettings = React.useCallback(() => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = React.useCallback(async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      await update.mutateAsync({
         enabled: draft.enabled,
         newMessageTemplate: draft.newMessageTemplate,
-      },
-      {
-        onSuccess: () => toast.success('Settings saved'),
-        onError: (e: unknown) => toast.error(friendlyToastError(e, 'Could not save settings')),
-      }
-    );
-  }, [draft, update]);
+      });
+      markDraftSaved(draft);
+      toast.success('Settings saved');
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save settings'));
+      return false;
+    }
+  }, [draft, markDraftSaved, update]);
+
+  useUnsavedChangesGuard({ isDirty, onSave: persistSettings, enabled: !templatesOpen });
 
   return (
     <TelegramSettingsModuleGate
@@ -128,6 +136,8 @@ export function TelegramChatSettingsCard({ embedded: _embedded = true }: { embed
             previewSampleSet="chat"
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={[
               {
                 id: 'default',

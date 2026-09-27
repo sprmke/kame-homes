@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 export function TelegramGlobalBotTokenCard() {
@@ -39,38 +40,43 @@ export function TelegramGlobalBotTokenCard() {
   const showModuleSuggestion =
     !isLoading && !busy && !trimmed && !dirty && Boolean(connectedModule);
 
-  const onSaveAndTest = () => {
+  const onSaveAndTest = async (): Promise<boolean> => {
     if (!trimmed) {
       toast.error('Enter a bot token first');
-      return;
+      return false;
     }
 
-    verify.mutate(trimmed, {
-      onSuccess: (result) => {
-        const ok = Boolean(result.verify?.getMe?.ok);
-        if (!ok) {
-          toast.error(
-            friendlyToastError(
-              result.verify?.getMe?.error,
-              'Invalid bot token. Please double-check your token and try again.'
-            )
-          );
-          return;
-        }
+    let result: Awaited<ReturnType<typeof verify.mutateAsync>>;
+    try {
+      result = await verify.mutateAsync(trimmed);
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not verify bot token'));
+      return false;
+    }
 
-        save.mutate(trimmed, {
-          onSuccess: () => {
-            const username = result.verify?.getMe?.username;
-            toast.success(username ? `Saved (@${username})` : 'Shared bot token saved');
-          },
-          onError: (e) => toast.error(friendlyToastError(e, 'Could not save shared bot token')),
-        });
-      },
-      onError: (e) => {
-        toast.error(friendlyToastError(e, 'Could not verify bot token'));
-      },
-    });
+    const ok = Boolean(result.verify?.getMe?.ok);
+    if (!ok) {
+      toast.error(
+        friendlyToastError(
+          result.verify?.getMe?.error,
+          'Invalid bot token. Please double-check your token and try again.'
+        )
+      );
+      return false;
+    }
+
+    try {
+      await save.mutateAsync(trimmed);
+      const username = result.verify?.getMe?.username;
+      toast.success(username ? `Saved (@${username})` : 'Shared bot token saved');
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save shared bot token'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({ isDirty: dirty, onSave: onSaveAndTest, enabled: !isLoading });
 
   const actionLabel = verify.isPending ? 'Testing…' : save.isPending ? 'Saving…' : 'Save and test';
 
@@ -114,7 +120,7 @@ export function TelegramGlobalBotTokenCard() {
                 type="button"
                 disabled={busy || !trimmed}
                 className="min-h-[44px] w-full gap-2 md:w-auto md:min-w-[7.5rem] md:justify-self-end"
-                onClick={onSaveAndTest}
+                onClick={() => void onSaveAndTest()}
               >
                 {busy ? <Activity className="size-4 shrink-0 animate-pulse" aria-hidden /> : null}
                 {actionLabel}

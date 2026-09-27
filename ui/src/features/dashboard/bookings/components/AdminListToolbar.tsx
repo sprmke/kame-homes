@@ -265,13 +265,15 @@ type DesktopToolbarProps = {
   sort?: ReactNode;
   perPage?: ReactNode;
   view?: ReactNode;
+  /** Far-right action (e.g. Export) — separate from sort/view chrome. */
+  trailing?: ReactNode;
   className?: string;
   'aria-label'?: string;
 };
 
 /**
  * Desktop (`lg+`) list toolbar — three zones so controls aren’t one crowded strip:
- * [Status · Filters] · [search fills remaining width] · [Sort · per-page · View]
+ * [Status · Filters] · [search fills remaining width] · [Sort · per-page · View] · [trailing]
  */
 export function AdminListDesktopToolbar({
   search,
@@ -280,6 +282,7 @@ export function AdminListDesktopToolbar({
   sort,
   perPage,
   view,
+  trailing,
   className,
   'aria-label': ariaLabel = 'List filters',
 }: DesktopToolbarProps) {
@@ -292,7 +295,7 @@ export function AdminListDesktopToolbar({
         role="toolbar"
         aria-label={ariaLabel}
         aria-orientation="horizontal"
-        className={cn('hidden w-full min-w-0 items-center gap-3 lg:flex', className)}
+        className={cn('hidden w-full min-w-0 items-center gap-2 lg:flex', className)}
       >
         {hasFilters ? (
           <div role="group" aria-label="Filter by" className="flex shrink-0 items-center gap-2">
@@ -308,6 +311,12 @@ export function AdminListDesktopToolbar({
             {sort}
             {perPage}
             {view}
+          </div>
+        ) : null}
+
+        {trailing ? (
+          <div role="group" aria-label="Actions" className="flex shrink-0 items-center gap-2">
+            {trailing}
           </div>
         ) : null}
       </div>

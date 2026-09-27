@@ -14,6 +14,7 @@ import {
 import { ListingVerificationSidebarCta } from '@/features/dashboard/org/components/listing-authorization/ListingVerificationSidebarCta';
 import { SectionNavIssueDot } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 import { GetVerifiedSidebarCta } from '@/features/dashboard/org/components/verification/GetVerifiedModal';
+import { OrgPlanSidebarEntry } from '@/features/dashboard/plans/components/OrgPlanSidebarEntry';
 
 import { scrollAdminViewToTop } from '@/components/navigation/ScrollToTop';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -138,6 +139,12 @@ export function AdminMoreSheet({
         </nav>
 
         <div className="bg-card shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
+          {!superAdmin ? (
+            <div className="border-border/60 border-t py-1.5">
+              <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
+            </div>
+          ) : null}
+
           <div className="border-border/60 flex items-center gap-2 border-t py-2.5">
             <ThemeToggle
               variant="icon"

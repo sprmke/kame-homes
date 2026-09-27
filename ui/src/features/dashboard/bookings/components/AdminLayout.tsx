@@ -93,6 +93,7 @@ import {
   subscribeParkingSettingsIssues,
 } from '@/features/dashboard/parking/lib/parkingSettingsIssuesStore';
 import { UpgradeModalProvider } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import { OrgPlanSidebarEntry } from '@/features/dashboard/plans/components/OrgPlanSidebarEntry';
 import { SetupGuideProvider } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
 import { SetupGuideSidebarEntry } from '@/features/dashboard/setup-guide/components/SetupGuideSidebarEntry';
 import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
@@ -354,6 +355,7 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
   const {
     accessible: assistantAccessible,
     planGate,
+    permissionAllowed: assistantPermissionAllowed,
     settings: assistantSettings,
   } = useAiAssistantAccess(propertyId);
   const { data: notificationsPreview } = useNotificationsList('preview');
@@ -362,7 +364,8 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
   const showAssistantFab = isAiAssistantFabVisible(
     assistantAccessible,
     assistantSettings,
-    planGate.allowed
+    planGate.allowed,
+    assistantPermissionAllowed
   );
 
   useEffect(() => {
@@ -1005,6 +1008,8 @@ function AdminProfileFooter({
     <div
       className={cn('border-sidebar-border shrink-0 space-y-2 border-t', collapsed ? 'p-2' : 'p-3')}
     >
+      <OrgPlanSidebarEntry collapsed={collapsed} />
+
       {showThemeToggle && (
         <div className={cn(collapsed ? 'flex justify-center px-0' : 'px-1')}>
           <ThemeToggle

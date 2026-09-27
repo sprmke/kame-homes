@@ -32,6 +32,7 @@ import {
   telegramPlaceholderLinesByTab,
 } from '@/features/dashboard/bookings/lib/templatePlaceholderCatalog';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError, telegramScheduleSyncError } from '@/lib/feedback/toastMessages';
 
 type ScenarioKey =
@@ -125,6 +126,9 @@ export function TelegramAdminSettingsCard({ embedded: _embedded = true }: { embe
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -162,10 +166,10 @@ export function TelegramAdminSettingsCard({ embedded: _embedded = true }: { embe
     return map;
   }, [draft?.scenarios]);
 
-  const persistSettings = () => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      const result = await update.mutateAsync({
         enabled: draft.enabled,
         notifyOnNewBooking: draft.notifyOnNewBooking,
         notifyOnSdFormSubmitted: draft.notifyOnSdFormSubmitted,
@@ -180,23 +184,25 @@ export function TelegramAdminSettingsCard({ embedded: _embedded = true }: { embe
         sdFormSubmittedTemplate: draft.sdFormSubmittedTemplate,
         sdRefundPendingTemplate: draft.sdRefundPendingTemplate,
         resyncHourlyCron: true,
-      },
-      {
-        onSuccess: (result: unknown) => {
-          const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
-          toast.success('Operations settings saved');
-          if (cronSync && cronSync.ok !== true) {
-            toast.error(
-              telegramScheduleSyncError(
-                'Hourly reminders could not be updated. Your other changes were saved.'
-              )
-            );
-          }
-        },
-        onError: (e: unknown) => toast.error(friendlyToastError(e, 'Could not save settings')),
+      });
+      markDraftSaved(draft);
+      const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
+      toast.success('Operations settings saved');
+      if (cronSync && cronSync.ok !== true) {
+        toast.error(
+          telegramScheduleSyncError(
+            'Hourly reminders could not be updated. Your other changes were saved.'
+          )
+        );
       }
-    );
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save settings'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({ isDirty, onSave: persistSettings, enabled: !templatesOpen });
 
   const onSendDraftPreview = (scenario: AdminDraftScenario, text: string) => {
     if (!text.trim()) {
@@ -266,6 +272,8 @@ export function TelegramAdminSettingsCard({ embedded: _embedded = true }: { embe
             previewSampleSet="admin"
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={SCENARIO_ORDER.map((key) => {
               const cfg = SCENARIO_CONFIG[key];
               const meta = scenarioMetaById.get(cfg.scenarioId);

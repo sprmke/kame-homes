@@ -1,43 +1,58 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { subscribeHostAnnouncementRead, getHostAnnouncementReadRevision, readHostAnnouncementReadKeys, markHostAnnouncementRead, pruneHostAnnouncementReadKeys } from '@/features/dashboard/announcements/lib/hostAnnouncementReadState';
+import {
+  markHostAnnouncementRead,
+  markHostAnnouncementsRead,
+  readHostAnnouncementReadKeys,
+} from '@/features/dashboard/announcements/lib/hostAnnouncementReadState';
 
-describe('subscribeHostAnnouncementRead', () => {
+const ORG_ID = 'org-test-read-all';
 
-  it('subscribeHostAnnouncementRead is exported', () => {
-    expect(typeof subscribeHostAnnouncementRead).toBe('function');
-  });
+function installMemoryLocalStorage() {
+  const store = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+    key: (index: number) => [...store.keys()][index] ?? null,
+    get length() {
+      return store.size;
+    },
+  } satisfies Storage);
+}
 
+beforeEach(() => {
+  installMemoryLocalStorage();
 });
 
-describe('getHostAnnouncementReadRevision', () => {
-
-  it('getHostAnnouncementReadRevision is exported', () => {
-    expect(typeof getHostAnnouncementReadRevision).toBe('function');
-  });
-
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-describe('readHostAnnouncementReadKeys', () => {
-
-  it('readHostAnnouncementReadKeys is exported', () => {
-    expect(typeof readHostAnnouncementReadKeys).toBe('function');
+describe('markHostAnnouncementsRead', () => {
+  it('marks multiple unread keys in one write', () => {
+    markHostAnnouncementsRead(ORG_ID, ['a', 'b', 'c']);
+    const keys = readHostAnnouncementReadKeys(ORG_ID);
+    expect(keys.has('a')).toBe(true);
+    expect(keys.has('b')).toBe(true);
+    expect(keys.has('c')).toBe(true);
   });
 
-});
-
-describe('markHostAnnouncementRead', () => {
-
-  it('markHostAnnouncementRead is exported', () => {
-    expect(typeof markHostAnnouncementRead).toBe('function');
+  it('is a no-op when all keys are already read', () => {
+    markHostAnnouncementRead(ORG_ID, 'a');
+    markHostAnnouncementsRead(ORG_ID, ['a']);
+    expect([...readHostAnnouncementReadKeys(ORG_ID)]).toEqual(['a']);
   });
 
-});
-
-describe('pruneHostAnnouncementReadKeys', () => {
-
-  it('pruneHostAnnouncementReadKeys is exported', () => {
-    expect(typeof pruneHostAnnouncementReadKeys).toBe('function');
+  it('ignores empty keys', () => {
+    markHostAnnouncementsRead(ORG_ID, ['', 'x']);
+    expect([...readHostAnnouncementReadKeys(ORG_ID)]).toEqual(['x']);
   });
-
 });

@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { SectionNavIssueDot } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 
+import { FieldHelpTooltip } from '@/components/forms/FieldLabel';
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
@@ -524,10 +525,10 @@ export function AdminSectionGroupHeading({
 }: AdminSectionGroupHeadingProps) {
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-2', className)}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-baseline gap-2">
         <h2 className="text-section-title">{title}</h2>
         {count != null ? (
-          <span className="bg-muted text-muted-foreground inline-flex min-h-[22px] items-center rounded-full px-2 text-xs font-medium">
+          <span className="bg-muted text-muted-foreground inline-flex min-h-[22px] items-center self-center rounded-full px-2 text-xs font-medium">
             {count}
           </span>
         ) : null}
@@ -543,6 +544,8 @@ type AdminSectionProps = {
   title: string;
   icon?: LucideIcon;
   description?: string;
+  /** Optional ? tooltip next to the title (plain-language help). */
+  titleHelp?: string;
   /** e.g. a `<TierBadge>` next to the section title when this card requires a higher plan. */
   badge?: React.ReactNode;
   headerAction?: React.ReactNode;
@@ -557,12 +560,14 @@ export const AdminSection = React.memo(function AdminSection({
   title,
   icon: Icon,
   description,
+  titleHelp,
   badge,
   headerAction,
   children,
   className,
   dense = false,
 }: AdminSectionProps) {
+  const helpText = titleHelp?.trim() ?? '';
   return (
     <Card id={`section-${id}`} className={cn('scroll-mt-2', className)}>
       <CardHeader
@@ -575,6 +580,7 @@ export const AdminSection = React.memo(function AdminSection({
           <CardTitle className="flex items-center gap-2">
             {Icon ? <Icon className="size-4 shrink-0" aria-hidden /> : null}
             <span className="min-w-0">{title}</span>
+            {helpText ? <FieldHelpTooltip label={title} help={helpText} /> : null}
             {badge}
           </CardTitle>
           {description ? <CardDescription>{description}</CardDescription> : null}

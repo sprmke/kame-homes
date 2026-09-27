@@ -102,10 +102,12 @@ function HostAnnouncementGroupSection({
   group,
   basePath,
   isUnread,
+  markAllRead,
 }: {
   group: HostAnnouncementFeedGroup;
   basePath: string | null;
   isUnread: (identityKey: string) => boolean;
+  markAllRead: (identityKeys: readonly string[]) => void;
 }) {
   const [page, setPage] = useState(1);
   const count = group.announcements.length;
@@ -121,13 +123,36 @@ function HostAnnouncementGroupSection({
     return group.announcements.slice(start, start + HOST_ANNOUNCEMENT_FEED_PAGE_SIZE);
   }, [group.announcements, safePage]);
 
+  const unreadKeys = useMemo(
+    () =>
+      group.announcements
+        .map((entry) => hostAnnouncementIdentityKey(entry))
+        .filter((key) => isUnread(key)),
+    [group.announcements, isUnread]
+  );
+
   if (count === 0) return null;
 
   return (
-    <section aria-label={group.label}>
+    <section aria-label={group.label} className="surface-card overflow-hidden">
       <AdminSectionGroupHeading
-        className="mb-3 px-0.5"
+        className="border-border/50 border-b px-4 py-3 sm:px-5"
         title={group.label}
+        badge={
+          unreadKeys.length > 0 ? (
+            <button
+              type="button"
+              className={cn(
+                'text-primary hover:text-primary/80 relative inline-flex shrink-0 items-center px-0.5 text-xs font-semibold leading-none',
+                'after:absolute after:-inset-x-1.5 after:-inset-y-3 after:content-[""]',
+                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+              )}
+              onClick={() => markAllRead(unreadKeys)}
+            >
+              Read all
+            </button>
+          ) : null
+        }
         action={
           <PublicListingPagination
             variant="inline"
@@ -140,7 +165,7 @@ function HostAnnouncementGroupSection({
         }
       />
 
-      <div className="surface-card divide-border/50 divide-y overflow-hidden">
+      <div className="divide-border/50 divide-y">
         {pageAnnouncements.map((announcement) => {
           const identityKey = hostAnnouncementIdentityKey(announcement);
           return basePath ? (
@@ -188,19 +213,26 @@ export function HostAnnouncementsBodySkeleton({ detail = false }: { detail?: boo
           <StatCardSkeleton key={i} />
         ))}
       </div>
-      {detail ? <Skeleton className="h-8 w-36 rounded-lg" aria-hidden /> : null}
-      <div className="surface-card divide-border/50 divide-y overflow-hidden" aria-hidden>
-        {Array.from({ length: detail ? 1 : 4 }).map((_, i) => (
-          <div key={i} className="flex gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
-            <Skeleton className="h-10 w-0.5 shrink-0 rounded-full sm:h-11" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-2/5 max-w-xs" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-4/5" />
-              {detail ? <Skeleton className="h-3 w-3/5" /> : null}
-            </div>
+      <div className="surface-card overflow-hidden" aria-hidden>
+        {detail ? null : (
+          <div className="border-border/50 flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
+            <Skeleton className="h-5 w-40 rounded-md" />
+            <Skeleton className="size-8 shrink-0 rounded-full" />
           </div>
-        ))}
+        )}
+        <div className="divide-border/50 divide-y">
+          {Array.from({ length: detail ? 1 : 4 }).map((_, i) => (
+            <div key={i} className="flex gap-3 px-4 py-4 sm:gap-4 sm:px-5 sm:py-5">
+              <Skeleton className="h-10 w-0.5 shrink-0 rounded-full sm:h-11" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/5 max-w-xs" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+                {detail ? <Skeleton className="h-3 w-3/5" /> : null}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -218,7 +250,7 @@ export function HostAnnouncementFeed({
     () => announcements.map((entry) => hostAnnouncementIdentityKey(entry)),
     [announcements]
   );
-  const { isUnread } = useHostAnnouncementReadState(orgId, activeIdentityKeys);
+  const { isUnread, markAllRead } = useHostAnnouncementReadState(orgId, activeIdentityKeys);
 
   if (announcements.length === 0) {
     return (
@@ -239,6 +271,7 @@ export function HostAnnouncementFeed({
           group={group}
           basePath={basePath ?? null}
           isUnread={isUnread}
+          markAllRead={markAllRead}
         />
       ))}
     </div>

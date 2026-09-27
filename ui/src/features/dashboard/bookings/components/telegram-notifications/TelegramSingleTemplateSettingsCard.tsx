@@ -23,6 +23,7 @@ import {
   placeholderLinesFromKeys,
 } from '@/features/dashboard/bookings/lib/telegramPlaceholderGroups';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError, telegramScheduleSyncError } from '@/lib/feedback/toastMessages';
 
 import type { LucideIcon } from 'lucide-react';
@@ -81,6 +82,9 @@ export function TelegramSingleTemplateSettingsCard<TDto extends TelegramSingleTe
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -117,26 +121,28 @@ export function TelegramSingleTemplateSettingsCard<TDto extends TelegramSingleTe
     [placeholderLines]
   );
 
-  const persistSettings = React.useCallback(() => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = React.useCallback(async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      const result = await update.mutateAsync({
         enabled: draft.enabled,
         defaultReminderTemplate: draft.defaultReminderTemplate,
         dailyCheckTimeManila: draft.dailyCheckTimeManila,
-      },
-      {
-        onSuccess: (result: unknown) => {
-          const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
-          toast.success('Settings saved');
-          if (cronSync && cronSync.ok !== true) {
-            toast.error(telegramScheduleSyncError());
-          }
-        },
-        onError: (e: unknown) => toast.error(friendlyToastError(e, 'Could not save settings')),
+      });
+      markDraftSaved(draft);
+      const { cronSync } = (result ?? {}) as { cronSync?: { ok?: boolean } };
+      toast.success('Settings saved');
+      if (cronSync && cronSync.ok !== true) {
+        toast.error(telegramScheduleSyncError());
       }
-    );
-  }, [draft, update]);
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save settings'));
+      return false;
+    }
+  }, [draft, markDraftSaved, update]);
+
+  useUnsavedChangesGuard({ isDirty, onSave: persistSettings, enabled: !templatesOpen });
 
   return (
     <TelegramSettingsModuleGate
@@ -185,6 +191,8 @@ export function TelegramSingleTemplateSettingsCard<TDto extends TelegramSingleTe
             previewSampleSet={previewSampleSet}
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={[
               {
                 id: 'default',

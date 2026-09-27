@@ -16,13 +16,7 @@
 
 import React, { useRef, useState } from 'react';
 
-import {
-  useForm,
-  useWatch,
-  type FieldErrors,
-  type SubmitErrorHandler,
-  type SubmitHandler,
-} from 'react-hook-form';
+import { useForm, useWatch, type FieldErrors, type SubmitErrorHandler } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { normalizeBookingSource } from '@/features/guest/form/lib/bookingSourceFromSearchParams';
@@ -62,6 +56,7 @@ import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import { hasWorkflowSensitiveGuestFieldDiff } from '@/features/dashboard/bookings/lib/workflowSensitiveGuestDiff';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { captureAppEvent } from '@/lib/posthog/capture';
 import { normalizeDateString, type BookedDateRange } from '@/utils/format/dates';
@@ -505,7 +500,8 @@ export function BookingEditForm({
     onSaved(updated);
   };
 
-  const onSubmit: SubmitHandler<FormValues> = async (values) => {
+  /** Resolves `true` only when the booking was persisted (the save-choice prompt counts as not yet). */
+  const onSubmit = async (values: FormValues): Promise<boolean> => {
     const payload = buildPayloadFromValues(values);
     const needsSaveChoice =
       guestEditRevertPipeline &&
@@ -514,15 +510,28 @@ export function BookingEditForm({
     if (needsSaveChoice) {
       setPendingPayload(payload);
       setSaveChoiceOpen(true);
-      return;
+      return false;
     }
 
     try {
       await persistBooking(payload, false);
+      return true;
     } catch (err: unknown) {
       toast.error(friendlyToastError(err, 'Could not save booking'));
+      return false;
     }
   };
+
+  useUnsavedChangesGuard({
+    isDirty,
+    onSave: async () => {
+      let saved = false;
+      await handleSubmit(async (values) => {
+        saved = await onSubmit(values);
+      }, onInvalid)();
+      return saved;
+    },
+  });
 
   const handleSaveChoice = async (revertToPendingReview: boolean) => {
     if (!pendingPayload) return;
