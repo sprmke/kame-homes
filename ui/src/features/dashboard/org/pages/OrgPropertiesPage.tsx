@@ -1,9 +1,10 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { CopyPlus, Plus } from 'lucide-react';
 
+import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { AddPropertyDialog } from '@/features/dashboard/org/components/AddPropertyDialog';
@@ -12,22 +13,26 @@ import {
   type CopyPropertySettingsDialogProperty,
 } from '@/features/dashboard/org/components/org-properties/CopyPropertySettingsDialog';
 import { CopyPropertySettingsHistory } from '@/features/dashboard/org/components/org-properties/CopyPropertySettingsHistory';
-import { OrgPropertiesSummaryCards } from '@/features/dashboard/org/components/org-properties/OrgPropertiesSummaryCards';
 import {
-  OrgPropertiesResultsMeta,
-  OrgPropertiesToolbar,
-} from '@/features/dashboard/org/components/org-properties/OrgPropertiesToolbar';
+  orgListingGridClassName,
+  orgListingStackClassName,
+} from '@/features/dashboard/org/components/OrgListingToolbar';
+import { OrgPropertiesSummaryCards } from '@/features/dashboard/org/components/org-properties/OrgPropertiesSummaryCards';
+import { OrgPropertiesTable } from '@/features/dashboard/org/components/org-properties/OrgPropertiesTable';
+import { OrgPropertiesToolbar } from '@/features/dashboard/org/components/org-properties/OrgPropertiesToolbar';
 import {
   OrgPropertiesEmptyState,
   OrgPropertyCard,
   OrgPropertyListRow,
 } from '@/features/dashboard/org/components/org-properties/OrgPropertyCard';
+import { useOrgListingPagination } from '@/features/dashboard/org/hooks/useOrgListingPagination';
+import { useOrgListingViewMode } from '@/features/dashboard/org/hooks/useOrgListingViewMode';
 import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
+import { sliceOrgListingPage } from '@/features/dashboard/org/lib/orgListingPagination';
 import {
   filterOrgProperties,
   orgPropertiesHasActiveFilters,
   type OrgPropertiesFilters,
-  type OrgPropertiesViewMode,
 } from '@/features/dashboard/org/lib/orgPropertiesFilters';
 import {
   propertySectionPath,
@@ -45,11 +50,13 @@ import {
 } from '@/components/mobile/MobileHeroActionButton';
 import { ListingCardGridSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
+import { useIsBelowLg } from '@/hooks/useMediaQuery';
 
 export function OrgPropertiesPage() {
   const navigate = useNavigate();
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const isMobileLayout = useIsBelowLg();
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations();
   const { data: propsData, isLoading: propsLoading } = useProperties(orgSlug);
   const { data: orgAccess } = useOrgPermissions();
@@ -59,7 +66,6 @@ export function OrgPropertiesPage() {
   const [copyOpen, setCopyOpen] = useState(false);
   const [copySourcePropertyId, setCopySourcePropertyId] = useState<string | null>(null);
   const [copyLockedTargetId, setCopyLockedTargetId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<OrgPropertiesViewMode>('grid');
   const [filters, setFilters] = useState<OrgPropertiesFilters>({
     search: '',
     status: 'all',
@@ -68,15 +74,37 @@ export function OrgPropertiesPage() {
 
   const org = orgsData?.organizations.find((entry) => entry.slug === orgSlug);
   const properties = propsData?.properties ?? [];
+  const { viewMode, onViewModeChange } = useOrgListingViewMode(
+    properties.length,
+    propsLoading,
+    orgSlug,
+    { hideTable: isMobileLayout }
+  );
 
   const filteredProperties = useMemo(
     () => filterOrgProperties(properties, filters),
     [properties, filters]
   );
 
+  const filterKey = `${filters.search}|${filters.status}|${filters.type}`;
+  const pagination = useOrgListingPagination(filteredProperties.length, filterKey);
+  const pageProperties = useMemo(
+    () =>
+      sliceOrgListingPage(filteredProperties, {
+        page: pagination.page,
+        limit: pagination.limit,
+      }),
+    [filteredProperties, pagination.page, pagination.limit]
+  );
+
   const hasActiveFilters = orgPropertiesHasActiveFilters(filters);
   const isLoading = orgsLoading || propsLoading;
   const canCopySettings = properties.length >= 2;
+  const showPagination = filteredProperties.length > 0 && pagination.pageCount > 1;
+
+  const onSearchChange = useCallback((search: string) => {
+    setFilters((current) => ({ ...current, search }));
+  }, []);
 
   const copyDialogProperties = useMemo<CopyPropertySettingsDialogProperty[]>(
     () =>
@@ -174,6 +202,7 @@ export function OrgPropertiesPage() {
         titleId="org-properties-heading"
         heroTrailing={heroTrailing}
         desktopActions={desktopActions}
+        dense
       >
         {isLoading ? (
           <div className="space-y-3 sm:space-y-4">
@@ -194,37 +223,62 @@ export function OrgPropertiesPage() {
               <OrgPropertiesToolbar
                 filters={filters}
                 viewMode={viewMode}
-                onSearchChange={(search) => setFilters((current) => ({ ...current, search }))}
+                limit={pagination.limit}
+                hideTableView={isMobileLayout}
+                onSearchChange={onSearchChange}
                 onStatusChange={(status) => setFilters((current) => ({ ...current, status }))}
                 onTypeChange={(type) => setFilters((current) => ({ ...current, type }))}
-                onViewModeChange={setViewMode}
+                onViewModeChange={onViewModeChange}
+                onLimitChange={pagination.setLimit}
               />
             </FloatingToolbar>
 
             {filteredProperties.length > 0 ? (
-              viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredProperties.map((property) => (
-                    <OrgPropertyCard
-                      key={property.id}
-                      property={property}
-                      orgSlug={org.slug}
-                      onCopySettings={canCopySettings ? openCopySettings : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredProperties.map((property) => (
-                    <OrgPropertyListRow
-                      key={property.id}
-                      property={property}
-                      orgSlug={org.slug}
-                      onCopySettings={canCopySettings ? openCopySettings : undefined}
-                    />
-                  ))}
-                </div>
-              )
+              <>
+                {viewMode === 'table' && !isMobileLayout ? (
+                  <OrgPropertiesTable
+                    properties={pageProperties}
+                    orgSlug={org.slug}
+                    onCopySettings={canCopySettings ? openCopySettings : undefined}
+                  />
+                ) : null}
+
+                {viewMode === 'grid' ? (
+                  <div className={orgListingGridClassName}>
+                    {pageProperties.map((property) => (
+                      <OrgPropertyCard
+                        key={property.id}
+                        property={property}
+                        orgSlug={org.slug}
+                        onCopySettings={canCopySettings ? openCopySettings : undefined}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {viewMode === 'list' ? (
+                  <div className={orgListingStackClassName}>
+                    {pageProperties.map((property) => (
+                      <OrgPropertyListRow
+                        key={property.id}
+                        property={property}
+                        orgSlug={org.slug}
+                        onCopySettings={canCopySettings ? openCopySettings : undefined}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {showPagination ? (
+                  <AdminListPagination
+                    ariaLabel="Properties pagination"
+                    page={pagination.page}
+                    pageCount={pagination.pageCount}
+                    pageItems={pagination.pageItems}
+                    onPageChange={pagination.setPage}
+                  />
+                ) : null}
+              </>
             ) : (
               <OrgPropertiesEmptyState
                 filtered={hasActiveFilters}
@@ -232,11 +286,6 @@ export function OrgPropertiesPage() {
                 onAdd={() => setAddOpen(true)}
               />
             )}
-
-            <OrgPropertiesResultsMeta
-              visibleCount={filteredProperties.length}
-              totalCount={properties.length}
-            />
 
             <CopyPropertySettingsHistory orgSlug={org.slug} propertyNameById={propertyNameById} />
           </>

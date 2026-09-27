@@ -7,7 +7,6 @@ import { AlertCircle, Car, Check, Home, Loader2 } from 'lucide-react';
 
 import { hostLoginPath } from '@/features/guest/auth/lib/hostAuthPaths';
 
-
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 import { OnboardingFeatureShowcase } from '@/features/dashboard/org/components/onboarding/OnboardingFeatureShowcase';
@@ -94,6 +93,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import {
   resolveAsyncAvailabilityState,
   resolveNameAvailabilityState,
@@ -195,6 +195,7 @@ function HostModeOption({
 export function OnboardingPage() {
   usePageTitle(appPageTitle('Onboarding'));
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const queryClient = useQueryClient();
   const { email, name, session } = useAdminSession();
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations();
@@ -497,7 +498,7 @@ export function OnboardingPage() {
             });
             const landing = resolveOrgLandingPath(fresh.organizations ?? []);
             if (landing !== '/onboarding') {
-              navigate(landing, { replace: true });
+              runUnguarded(() => navigate(landing, { replace: true }));
               return;
             }
           }
@@ -549,17 +550,21 @@ export function OnboardingPage() {
 
       if (propertySlug) {
         setLastTenantContext(orgSlug, propertySlug);
-        navigate(propertySectionPath(orgSlug, propertySlug, 'dashboard'), { replace: true });
+        runUnguarded(() =>
+          navigate(propertySectionPath(orgSlug, propertySlug, 'dashboard'), { replace: true })
+        );
       } else if (parkingSlug) {
         setLastParkingContext(orgSlug, parkingSlug);
-        navigate(parkingSectionPath(orgSlug, parkingSlug, 'dashboard'), { replace: true });
+        runUnguarded(() =>
+          navigate(parkingSectionPath(orgSlug, parkingSlug, 'dashboard'), { replace: true })
+        );
       } else {
-        navigate(orgDashboardPath(orgSlug), { replace: true });
+        runUnguarded(() => navigate(orgDashboardPath(orgSlug), { replace: true }));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Setup failed';
       if (/session expired|sign in again/i.test(message)) {
-        navigate(hostLoginPath('/onboarding'), { replace: true });
+        runUnguarded(() => navigate(hostLoginPath('/onboarding'), { replace: true }));
         return;
       }
       setError(message);
@@ -567,6 +572,25 @@ export function OnboardingPage() {
       setSubmitting(false);
     }
   };
+
+  useUnsavedChangesGuard({
+    isDirty:
+      !submitting &&
+      !createdTenantRef.current &&
+      (step > 1 ||
+        orgName.trim() !== '' ||
+        contactName.trim() !== (name?.trim() ?? '') ||
+        contactPhone.trim() !== '' ||
+        hostProperty ||
+        hostParking ||
+        userRole !== '' ||
+        userContractEndDate !== '' ||
+        propertyName.trim() !== '' ||
+        unitNumber !== '' ||
+        slotNumber !== '' ||
+        validIdFile !== null ||
+        socialProofFile !== null),
+  });
 
   const submitLabel = step === 3 ? 'Finish setup' : 'Continue';
   const rightsKind = showParkingBlock && !showPropertyBlock ? 'parking' : 'property';

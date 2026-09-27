@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { AlertTriangle, Info, Save, ScrollText, Share2, Shield, Sparkles } from 'lucide-react';
+import { AlertTriangle, Award, Info, Save, ScrollText, Share2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ActivitySettingsSection } from '@/features/dashboard/activity/components/ActivitySettingsSection';
@@ -13,8 +13,11 @@ import {
 } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { storedOrgSettingsMediaUrl } from '@/features/dashboard/lib/storedMediaDisplay';
-import { OrgAiDashboardAssistantSection } from '@/features/dashboard/org/components/org-settings/OrgAiDashboardAssistantSection';
-import { OrgAiPlatformSection } from '@/features/dashboard/org/components/org-settings/OrgAiPlatformSection';
+import { OrgAiSettingsSection } from '@/features/dashboard/org/components/org-settings/OrgAiSettingsSection';
+import {
+  AI_SETTINGS_NAV_LABEL,
+  AI_SETTINGS_SECTION_ID,
+} from '@/features/dashboard/org/lib/aiSettingsLabels';
 import { OrgDangerZoneSection } from '@/features/dashboard/org/components/org-settings/OrgDangerZoneSection';
 import {
   OrgBasicInformationSection,
@@ -37,7 +40,7 @@ import {
   useSavedOrgSettingsCompletion,
 } from '@/features/dashboard/org/hooks/useOrgSettingsCompletion';
 import { useUpdateOrganization } from '@/features/dashboard/org/hooks/useUpdateOrganization';
-import { publicHostSlugUrlPrefix } from '@/features/dashboard/org/lib/guestPublicPaths';
+import { rememberTenantSlugChange } from '@/features/dashboard/org/lib/tenantSlugRemap';
 import { type OrgSettingsSectionId } from '@/features/dashboard/org/lib/orgSettingsCompletion';
 import { resolveOrgSettingsFieldError } from '@/features/dashboard/org/lib/orgSettingsFieldError';
 import {
@@ -50,11 +53,13 @@ import {
 import { setOrgSettingsIssueSections } from '@/features/dashboard/org/lib/orgSettingsIssuesStore';
 import { planOrgSettingsSave } from '@/features/dashboard/org/lib/orgSettingsSave';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
+import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
+import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { resolveNameAvailabilityState } from '@/lib/availabilityCheckState';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { usePageTitle } from '@/lib/pageTitle';
@@ -62,9 +67,8 @@ import { usePageTitle } from '@/lib/pageTitle';
 const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
   { id: 'basic', label: 'Basic information', icon: Info },
   { id: 'branding', label: 'Socials', icon: Share2 },
-  { id: 'trust', label: 'Trust', icon: Shield },
-  { id: 'ai', label: 'AI usage', icon: Sparkles },
-  { id: 'ai-assistant', label: 'AI assistant', icon: Sparkles },
+  { id: 'superhost', label: 'Superhost', icon: Award },
+  { id: AI_SETTINGS_SECTION_ID, label: AI_SETTINGS_NAV_LABEL, icon: Sparkles },
   { id: 'activity', label: 'Activity', icon: ScrollText },
   { id: 'danger', label: 'Danger zone', icon: AlertTriangle },
 ];
@@ -72,6 +76,7 @@ const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
 export function useOrgSettingsController() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const { data, isLoading: orgsLoading } = useOrganizations();
   const { isLoading: propsLoading } = useProperties(orgSlug);
   const { data: orgAccess } = useOrgPermissions();
@@ -91,6 +96,8 @@ export function useOrgSettingsController() {
   const canEditSocials = orgAccess?.canEditSocials ?? false;
   const canDeleteOrganization =
     orgAccess?.accessKind === 'owner' || orgAccess?.accessKind === 'platform_admin';
+  const canViewActivity =
+    canDeleteOrganization || hasOrgPermission(orgAccess?.permissions, 'org.activity:view');
 
   usePageTitle(org ? `${org.name} - Settings` : undefined);
 
@@ -231,8 +238,9 @@ export function useOrgSettingsController() {
         setProfileDraft(savedProfile);
         setProfileBaseline(savedProfile);
         const nextSlug = result.organization.slug;
-        if (nextSlug !== orgSlug) {
-          navigate(`/org/${nextSlug}/settings`, { replace: true });
+        if (orgSlug && nextSlug !== orgSlug) {
+          rememberTenantSlugChange('org', orgSlug, nextSlug);
+          runUnguarded(() => navigate(`/org/${nextSlug}/settings`, { replace: true }));
         }
         savedSomething = true;
       }
@@ -262,6 +270,8 @@ export function useOrgSettingsController() {
     }
   };
 
+  useUnsavedChangesGuard({ isDirty: canSaveAny, onSave: handleSave });
+
   const handleDeleteOrganization = async () => {
     if (!org) return;
     try {
@@ -273,8 +283,6 @@ export function useOrgSettingsController() {
       throw error;
     }
   };
-
-  const orgUrlPrefix = publicHostSlugUrlPrefix();
 
   const operatorSources = operatorData?.fieldSources;
   const formBusy = busy || isLoading;
@@ -304,14 +312,16 @@ export function useOrgSettingsController() {
 
   const navSections = useMemo((): AdminSectionNavItem[] => {
     return SETTINGS_SECTIONS.filter(
-      (section) => section.id !== 'danger' || canDeleteOrganization
+      (section) =>
+        (section.id !== 'danger' || canDeleteOrganization) &&
+        (section.id !== 'activity' || canViewActivity)
     ).map((section) => ({
       ...section,
       hasIssue:
         section.id !== 'danger' &&
         settingsCompletion.issueSectionIds.includes(section.id as OrgSettingsSectionId),
     }));
-  }, [settingsCompletion.issueSectionIds, canDeleteOrganization]);
+  }, [settingsCompletion.issueSectionIds, canDeleteOrganization, canViewActivity]);
 
   useEffect(() => {
     if (!profileDraft || !operatorDraft) return;
@@ -387,7 +397,6 @@ export function useOrgSettingsController() {
     scrollToOrgSettingsSection,
     handleSave,
     handleDeleteOrganization,
-    orgUrlPrefix,
     operatorSources,
     formBusy,
     slugPreview,
@@ -396,6 +405,7 @@ export function useOrgSettingsController() {
     completionInput,
     settingsCompletion,
     navSections,
+    canViewActivity,
     resolveFieldError,
     orgSlug,
   };
@@ -425,11 +435,11 @@ export function OrgSettingsPage() {
     setOperatorField,
     handleSave,
     handleDeleteOrganization,
-    orgUrlPrefix,
     operatorSources,
     formBusy,
     slugPreview,
     navSections,
+    canViewActivity,
     resolveFieldError,
   } = useOrgSettingsController();
 
@@ -473,27 +483,7 @@ export function OrgSettingsPage() {
         ) : !org || !profileDraft || !operatorDraft || !operatorData ? (
           <p className="text-muted-foreground text-sm">Organization not found.</p>
         ) : (
-          <AdminSectionNavLayout
-            className="min-h-0 flex-1"
-            sections={navSections}
-            footer={
-              canSaveAny ? (
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    Unsaved changes
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={busy || nameUnavailable || nameChecking}
-                    className="min-h-[44px] w-full sm:w-auto"
-                  >
-                    {busy ? 'Saving…' : 'Save changes'}
-                  </Button>
-                </div>
-              ) : null
-            }
-          >
+          <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
             {operatorError ? (
               <p className="text-destructive text-sm">
                 {(operatorLoadError as Error)?.message ?? 'Could not load organization settings'}
@@ -503,7 +493,6 @@ export function OrgSettingsPage() {
             <OrgBasicInformationSection
               draft={profileDraft}
               disabled={formBusy || !canEditBasicSettings}
-              orgUrlPrefix={orgUrlPrefix}
               slugPreview={slugPreview}
               logoSource={operatorSources?.emailLogoUrl}
               logoUrl={operatorData.emailLogoUrl}
@@ -525,13 +514,13 @@ export function OrgSettingsPage() {
 
             <OrgSuperhostProgressSection />
 
-            <OrgAiPlatformSection />
+            <OrgAiSettingsSection />
 
-            <OrgAiDashboardAssistantSection />
-
-            <AdminSection id="activity" title="Activity" icon={ScrollText}>
-              <ActivitySettingsSection scope="org" />
-            </AdminSection>
+            {canViewActivity ? (
+              <AdminSection id="activity" title="Activity" icon={ScrollText}>
+                <ActivitySettingsSection scope="org" />
+              </AdminSection>
+            ) : null}
 
             {canDeleteOrganization ? (
               <OrgDangerZoneSection

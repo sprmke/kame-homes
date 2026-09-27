@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { SETTINGS_FIELD_LABEL, SETTINGS_FIELD_LABEL_COMPACT } from '@/features/dashboard/org/lib/settingsFieldLabel';
+import {
+  SETTINGS_FIELD_LABEL,
+  SETTINGS_FIELD_LABEL_COMPACT,
+} from '@/features/dashboard/org/lib/settingsFieldLabel';
 
 describe('SETTINGS_FIELD_LABEL', () => {
   it('is defined', () => {
