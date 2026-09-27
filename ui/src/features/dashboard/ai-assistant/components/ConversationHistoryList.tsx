@@ -60,12 +60,10 @@ function groupByDay(rows: AiAssistantConversationSummary[]): DayGroup[] {
 }
 
 export function ConversationHistoryList({ activeConversationId, onSelect, onDeleted }: Props) {
-  const { data, isLoading, isError } = useAiAssistantConversations(true);
+  const { conversations, isLoading, isError } = useAiAssistantConversations(true);
   const deleteConversation = useDeleteAiAssistantConversation();
   const [q, setQ] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-
-  const conversations = data?.conversations ?? [];
   const needle = q.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!needle) return conversations;
