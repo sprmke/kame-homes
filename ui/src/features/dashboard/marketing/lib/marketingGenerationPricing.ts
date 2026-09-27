@@ -36,10 +36,7 @@ const IMAGE_COST_USD: Record<MarketingGenerationTier, Record<ImageSize, number>>
   premium: { '512px': 0.134, '1K': 0.134, '2K': 0.24, '4K': 0.24 },
 };
 
-const VIDEO_USD_PER_SECOND: Record<
-  MarketingGenerationTier,
-  Record<VideoResolution, number>
-> = {
+const VIDEO_USD_PER_SECOND: Record<MarketingGenerationTier, Record<VideoResolution, number>> = {
   draft: { '720p': 0.05, '1080p': 0.08 },
   standard: { '720p': 0.1, '1080p': 0.3 },
   premium: { '720p': 0.4, '1080p': 0.6 },

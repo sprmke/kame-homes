@@ -83,7 +83,11 @@ describe('marketingGenerationPricing parity', () => {
     for (const tier of TIERS) {
       for (const imageSize of IMAGE_SIZES) {
         expect(
-          estimateGenerationCredits({ mediaType: 'image', tier, imageSize: imageSize as ImageSize }),
+          estimateGenerationCredits({
+            mediaType: 'image',
+            tier,
+            imageSize: imageSize as ImageSize,
+          }),
           `${tier}/${imageSize}`
         ).toBe(creditsFromUsd(edge[tier][imageSize]));
       }
@@ -110,7 +114,9 @@ describe('marketingGenerationPricing parity', () => {
   });
 
   it('holds the published defaults', () => {
-    expect(estimateGenerationCredits({ mediaType: 'image', tier: 'standard', imageSize: '1K' })).toBe(45);
+    expect(
+      estimateGenerationCredits({ mediaType: 'image', tier: 'standard', imageSize: '1K' })
+    ).toBe(45);
     expect(
       estimateGenerationCredits({
         mediaType: 'video',
