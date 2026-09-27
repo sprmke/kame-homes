@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 export function SuperAdminPlatformSettingsPage() {
   const { data, isLoading, error } = usePlatformSettings();
@@ -52,6 +53,51 @@ export function SuperAdminPlatformSettingsPage() {
     setInitialized(true);
   }, [data, initialized]);
 
+  const accessInput = {
+    signupsEnabled,
+    maintenanceMode,
+    maintenanceMessage: maintenanceMessage.trim() || null,
+    defaultPlanCode: defaultPlanCode.trim() || null,
+    supportEmail: supportEmail.trim() || null,
+    legalTermsUrl: legalTermsUrl.trim() || null,
+    legalPrivacyUrl: legalPrivacyUrl.trim() || null,
+    publicRateLimitPerMin: Number(rateLimit),
+  };
+  const rateLimitInput = {
+    authenticatedRateLimitEnforce: authRateLimitEnforce,
+    authenticatedRateLimitPerMin: Number(authRateLimit),
+  };
+
+  const accessIsDirty =
+    !!data &&
+    initialized &&
+    (accessInput.signupsEnabled !== data.signupsEnabled ||
+      accessInput.maintenanceMode !== data.maintenanceMode ||
+      accessInput.maintenanceMessage !== (data.maintenanceMessage || null) ||
+      accessInput.defaultPlanCode !== (data.defaultPlanCode || null) ||
+      accessInput.supportEmail !== (data.supportEmail || null) ||
+      accessInput.legalTermsUrl !== (data.legalTermsUrl || null) ||
+      accessInput.legalPrivacyUrl !== (data.legalPrivacyUrl || null) ||
+      accessInput.publicRateLimitPerMin !== Number(data.publicRateLimitPerMin ?? 60));
+  const rateLimitIsDirty =
+    !!data &&
+    initialized &&
+    (rateLimitInput.authenticatedRateLimitEnforce !== data.authenticatedRateLimitEnforce ||
+      rateLimitInput.authenticatedRateLimitPerMin !==
+        Number(data.authenticatedRateLimitPerMin ?? 300));
+
+  const saveInput = async (input: Parameters<typeof save.mutateAsync>[0]): Promise<boolean> => {
+    try {
+      await save.mutateAsync(input);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  useUnsavedChangesGuard({ isDirty: accessIsDirty, onSave: () => saveInput(accessInput) });
+  useUnsavedChangesGuard({ isDirty: rateLimitIsDirty, onSave: () => saveInput(rateLimitInput) });
+
   return (
     <SuperAdminPage
       title="Platform settings"
@@ -64,18 +110,7 @@ export function SuperAdminPlatformSettingsPage() {
       <SuperAdminSettingsCard
         title="Access"
         icon={<Settings className="text-muted-foreground size-4" aria-hidden />}
-        onSubmit={() =>
-          void save.mutateAsync({
-            signupsEnabled,
-            maintenanceMode,
-            maintenanceMessage: maintenanceMessage.trim() || null,
-            defaultPlanCode: defaultPlanCode.trim() || null,
-            supportEmail: supportEmail.trim() || null,
-            legalTermsUrl: legalTermsUrl.trim() || null,
-            legalPrivacyUrl: legalPrivacyUrl.trim() || null,
-            publicRateLimitPerMin: Number(rateLimit),
-          })
-        }
+        onSubmit={() => void saveInput(accessInput)}
         footer={
           <Button type="submit" className="min-h-[44px]" disabled={save.isPending || !initialized}>
             {save.isPending ? 'Saving…' : 'Save'}
@@ -181,12 +216,7 @@ export function SuperAdminPlatformSettingsPage() {
             <Link to={superAdminPaths.rateLimits}>View activity</Link>
           </Button>
         }
-        onSubmit={() =>
-          void save.mutateAsync({
-            authenticatedRateLimitEnforce: authRateLimitEnforce,
-            authenticatedRateLimitPerMin: Number(authRateLimit),
-          })
-        }
+        onSubmit={() => void saveInput(rateLimitInput)}
         footer={
           <Button type="submit" className="min-h-[44px]" disabled={save.isPending || !initialized}>
             {save.isPending ? 'Saving…' : 'Save'}

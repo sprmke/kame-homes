@@ -1,5 +1,8 @@
 export const superAdminPaths = {
   root: '/admin',
+  ai: '/admin/ai',
+  aiTab: (tab: 'usage' | 'limits' | 'profiles' | 'wallets' | 'controls') => `/admin/ai?tab=${tab}`,
+  /** Legacy URLs, kept as redirects into the AI console. */
   aiUsage: '/admin/ai-usage',
   audit: '/admin/audit',
   platformSettings: '/admin/platform-settings',
@@ -21,6 +24,7 @@ export const superAdminPaths = {
   playbookArticles: '/admin/playbook',
   announcements: '/admin/announcements',
   hosts: '/admin/hosts',
+  /** Legacy AI Management URL; redirects to the AI console Controls tab. */
   settings: '/admin/settings',
   properties: '/admin/properties',
   hostDetail: (hostId: string) => `/admin/hosts/${hostId}`,

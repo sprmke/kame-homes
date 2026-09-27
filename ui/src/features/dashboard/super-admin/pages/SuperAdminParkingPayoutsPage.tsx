@@ -4,6 +4,7 @@ import { Wallet } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
+import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
 import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
@@ -20,6 +21,7 @@ import {
 } from '@/features/dashboard/super-admin/hooks/usePlatformParkingSettings';
 
 import { AdminDialogShell } from '@/components/AdminDialogShell';
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -35,6 +37,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 function formatPhp(value: number): string {
@@ -95,62 +99,84 @@ function RecordClawbackDialog({ transaction }: { transaction: ParkingPayoutTrans
   const [reason, setReason] = useState('');
   const recordClawback = useRecordParkingPayoutClawback();
 
+  const submitClawback = async (): Promise<boolean> => {
+    if (!amount || !reason.trim()) return false;
+    try {
+      await recordClawback.mutateAsync({
+        transactionId: transaction.id,
+        amount: Number(amount),
+        reason: reason.trim(),
+      });
+    } catch {
+      return false;
+    }
+    setOpen(false);
+    setAmount('');
+    setReason('');
+    return true;
+  };
+
+  const { onOpenChange: guardedOpenChange, dialogProps } = useGuardedClose({
+    open,
+    onOpenChange: setOpen,
+    isDirty: amount !== '' || reason !== '',
+    onSave: submitClawback,
+    onDiscard: () => {
+      setAmount('');
+      setReason('');
+    },
+  });
+
   return (
-    <AdminDialogShell
-      open={open}
-      onOpenChange={setOpen}
-      title="Record a clawback"
-      description="Audit trail only (e.g. a chargeback after disbursement). No automated collection happens here."
-      trigger={
-        <ResponsiveModalTrigger asChild>
-          <Button type="button" variant="outline" size="sm" className="min-h-[44px]">
-            Record clawback
+    <>
+      <AdminDialogShell
+        open={open}
+        onOpenChange={guardedOpenChange}
+        title="Record a clawback"
+        description="Audit trail only (e.g. a chargeback after disbursement). No automated collection happens here."
+        trigger={
+          <ResponsiveModalTrigger asChild>
+            <Button type="button" variant="outline" size="sm" className="min-h-[44px]">
+              Record clawback
+            </Button>
+          </ResponsiveModalTrigger>
+        }
+        footer={
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={recordClawback.isPending || !amount || !reason.trim()}
+            className="min-h-[44px]"
+            onClick={() => void submitClawback()}
+          >
+            Confirm clawback
           </Button>
-        </ResponsiveModalTrigger>
-      }
-      footer={
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={recordClawback.isPending || !amount || !reason.trim()}
-          className="min-h-[44px]"
-          onClick={async () => {
-            await recordClawback.mutateAsync({
-              transactionId: transaction.id,
-              amount: Number(amount),
-              reason: reason.trim(),
-            });
-            setOpen(false);
-            setAmount('');
-            setReason('');
-          }}
-        >
-          Confirm clawback
-        </Button>
-      }
-    >
-      <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="clawback-amount">Amount (₱)</Label>
-          <Input
-            id="clawback-amount"
-            type="number"
-            min={0.01}
-            step={0.01}
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
+        }
+      >
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="clawback-amount">Amount (₱)</Label>
+            <Input
+              id="clawback-amount"
+              type="number"
+              min={0.01}
+              step={0.01}
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="clawback-reason">Reason</Label>
+            <Textarea
+              id="clawback-reason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="clawback-reason">Reason</Label>
-          <Textarea
-            id="clawback-reason"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        </div>
-      </div>
-    </AdminDialogShell>
+      </AdminDialogShell>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }
 
@@ -174,6 +200,34 @@ function ParkingSettingsCard() {
     setInitialized(true);
   }, [data, initialized]);
 
+  const settingsInput = {
+    commissionPct: Number(commissionPct) / 100,
+    directCommissionPct: Number(directCommissionPct) / 100,
+    guestRateWeekday: Number(weekday),
+    guestRateWeekend: Number(weekend),
+    supportEscalationPhone: escalationPhone.trim(),
+  };
+  const isDirty =
+    !!data &&
+    initialized &&
+    (commissionPct !== String(Math.round(data.commissionPct * 1000) / 10) ||
+      directCommissionPct !== String(Math.round(data.directCommissionPct * 1000) / 10) ||
+      weekday !== String(data.guestRateWeekday) ||
+      weekend !== String(data.guestRateWeekend) ||
+      escalationPhone.trim() !== (data.supportEscalationPhone ?? '').trim());
+
+  const saveSettings = async (): Promise<boolean> => {
+    try {
+      await save.mutateAsync(settingsInput);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  useUnsavedChangesGuard({ isDirty, onSave: saveSettings });
+
+  if (isLoading && !data) return <SuperAdminPageLoading metricCount={2} />;
   if (error) return <p className="text-destructive text-sm">Could not load parking settings.</p>;
 
   return (
@@ -181,15 +235,7 @@ function ParkingSettingsCard() {
       title="Commission & guest rate"
       description="Guest rate is what riders are charged per night and doubles as the price cap that excludes hosts priced above it from matching. Commission is taken from the host's gross rate. Changes only apply to bookings created after saving. Already-paid transactions keep their snapshotted values."
       icon={<Wallet className="text-muted-foreground size-4" aria-hidden />}
-      onSubmit={() =>
-        void save.mutateAsync({
-          commissionPct: Number(commissionPct) / 100,
-          directCommissionPct: Number(directCommissionPct) / 100,
-          guestRateWeekday: Number(weekday),
-          guestRateWeekend: Number(weekend),
-          supportEscalationPhone: escalationPhone.trim(),
-        })
-      }
+      onSubmit={() => void saveSettings()}
       footer={
         <Button type="submit" className="min-h-[44px]" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save'}

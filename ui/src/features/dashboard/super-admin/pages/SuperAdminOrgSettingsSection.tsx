@@ -8,7 +8,6 @@ import {
 import { SuperAdminSettingsCard } from '@/features/dashboard/super-admin/components/shared/SuperAdminSettingsCard';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
 
-
 import { Button } from '@/components/ui/button';
 
 function ExternalLinkButton({ href, children }: { href: string; children: string }) {

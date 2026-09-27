@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 const RAIL_OPTIONS = [
@@ -46,6 +47,31 @@ export function SuperAdminPaymentSettingsPage() {
     );
   };
 
+  const input = {
+    enabledPaymentMethods: methods,
+    renewalLinkLeadDays: Number(leadDays),
+    gracePeriodDays: Number(graceDays),
+  };
+  const sameMethods = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((value) => b.includes(value));
+  const isDirty =
+    !!data &&
+    initialized &&
+    (!sameMethods(methods, data.enabledPaymentMethods ?? []) ||
+      input.renewalLinkLeadDays !== Number(data.renewalLinkLeadDays ?? 5) ||
+      input.gracePeriodDays !== Number(data.gracePeriodDays ?? 5));
+
+  const saveSettings = async (): Promise<boolean> => {
+    try {
+      await save.mutateAsync(input);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  useUnsavedChangesGuard({ isDirty, onSave: saveSettings });
+
   return (
     <SuperAdminPage
       title="Payment settings"
@@ -59,13 +85,7 @@ export function SuperAdminPaymentSettingsPage() {
         title="Enabled rails"
         description="Payment methods offered at subscription checkout."
         icon={<Wallet className="text-muted-foreground size-4" aria-hidden />}
-        onSubmit={() =>
-          void save.mutateAsync({
-            enabledPaymentMethods: methods,
-            renewalLinkLeadDays: Number(leadDays),
-            gracePeriodDays: Number(graceDays),
-          })
-        }
+        onSubmit={() => void saveSettings()}
         footer={
           <Button type="submit" className="min-h-[44px]" disabled={save.isPending}>
             {save.isPending ? 'Saving…' : 'Save'}

@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react';
 
 import {
-  Activity,
   BadgeCheck,
   BookOpen,
   Building,
@@ -75,8 +74,7 @@ export const SUPER_ADMIN_NAV_GROUPS: SuperAdminPlatformNavGroup[] = [
   {
     label: 'Platform',
     items: [
-      { label: 'AI Management', href: superAdminPaths.settings, Icon: Sparkles },
-      { label: 'AI usage', href: superAdminPaths.aiUsage, Icon: Activity },
+      { label: 'AI', href: superAdminPaths.ai, Icon: Sparkles },
       { label: 'Rate limits', href: superAdminPaths.rateLimits, Icon: Gauge },
       { label: 'Audit log', href: superAdminPaths.audit, Icon: ScrollText },
       { label: 'Platform settings', href: superAdminPaths.platformSettings, Icon: Settings },

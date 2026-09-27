@@ -183,13 +183,15 @@ export function SuperAdminPricingPlansPage() {
           if (!open) setEditing(null);
         }}
         onSave={async (patch) => {
-          if (!editing) return;
+          if (!editing) return false;
           try {
             await updatePlan.mutateAsync({ planId: editing.id, ...patch });
             toast.success('Plan saved');
             setEditing(null);
+            return true;
           } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Save failed');
+            return false;
           }
         }}
         isSaving={updatePlan.isPending}

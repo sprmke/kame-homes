@@ -19,9 +19,9 @@ import { SuperAdminOrgShell } from '@/features/dashboard/super-admin/components/
 import { SuperAdminShell } from '@/features/dashboard/super-admin/components/SuperAdminShell';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
-const SuperAdminAiUsagePage = lazy(() =>
-  import('@/features/dashboard/super-admin/pages/SuperAdminAiUsagePage').then((m) => ({
-    default: m.SuperAdminAiUsagePage,
+const SuperAdminAiPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminAiPage').then((m) => ({
+    default: m.SuperAdminAiPage,
   }))
 );
 const SuperAdminAnnouncementsPage = lazy(() =>
@@ -109,11 +109,6 @@ const SuperAdminRateLimitsPage = lazy(() =>
     default: m.SuperAdminRateLimitsPage,
   }))
 );
-const SuperAdminSettingsPage = lazy(() =>
-  import('@/features/dashboard/super-admin/pages/SuperAdminSettingsPage').then((m) => ({
-    default: m.SuperAdminSettingsPage,
-  }))
-);
 const SuperAdminSupportPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminSupportPage').then((m) => ({
     default: m.SuperAdminSupportPage,
@@ -177,13 +172,11 @@ export const superAdminRoutes: ReactNode = (
       element={superAdminRoute(<SuperAdminHostsPage />, <SuperAdminListRouteSkeleton />)}
     />
     <Route
-      path="settings"
-      element={superAdminRoute(<SuperAdminSettingsPage />, <SuperAdminSettingsRouteSkeleton />)}
+      path="ai"
+      element={superAdminRoute(<SuperAdminAiPage />, <SuperAdminSettingsRouteSkeleton />)}
     />
-    <Route
-      path="ai-usage"
-      element={superAdminRoute(<SuperAdminAiUsagePage />, <SuperAdminOverviewRouteSkeleton />)}
-    />
+    <Route path="settings" element={<Navigate to={superAdminPaths.aiTab('controls')} replace />} />
+    <Route path="ai-usage" element={<Navigate to={superAdminPaths.aiTab('usage')} replace />} />
     <Route
       path="rate-limits"
       element={superAdminRoute(<SuperAdminRateLimitsPage />, <SuperAdminSettingsRouteSkeleton />)}
