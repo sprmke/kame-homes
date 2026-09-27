@@ -52,7 +52,7 @@ export const ORG_NAV_VIEW_PERMISSION: Record<string, string> = {
   'Plans & Billing': 'org.plans:view',
   Announcements: 'org.dashboard:view',
   Analytics: 'org.analytics:view',
-  Activity: 'org.dashboard:view',
+  Activity: 'org.activity:view',
 };
 
 /** Minimum view permission per org route section. */
@@ -66,8 +66,7 @@ export const ORG_SECTION_VIEW_PERMISSION = {
   plans: 'org.plans:view',
   announcements: 'org.dashboard:view',
   analytics: 'org.analytics:view',
-  // Activity is a transparency / accountability surface — any org-hub member may view it.
-  activity: 'org.dashboard:view',
+  activity: 'org.activity:view',
   'help-support': 'org.dashboard:view',
 } as const satisfies Record<string, string>;
 

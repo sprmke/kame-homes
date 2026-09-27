@@ -3,6 +3,7 @@
  */
 
 import { ORG_TEAM_PERMISSIONS } from '@/features/dashboard/team/lib/orgTeamConstants';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 import type {
   PermissionAction,
   PermissionCatalogNode,
@@ -17,6 +18,8 @@ const MODULE_ORDER = [
   'parkings',
   'settings',
   'plans',
+  'analytics',
+  'activity',
   'team',
 ] as const;
 
@@ -27,6 +30,8 @@ const MODULE_LABELS: Record<string, string> = {
   parkings: 'Parkings',
   settings: 'Settings',
   plans: 'Plans & Billing',
+  analytics: 'Analytics',
+  activity: 'Activity',
   team: 'Team',
 };
 
@@ -37,6 +42,12 @@ const SENSITIVE_ORG_PERMISSION_IDS = new Set([
   'org.team.roles:edit',
   'org.team.roles:delete',
 ]);
+
+/** Org leaves whose action is plan-gated (mirrors property `COARSE_PLAN_FEATURES`). */
+const ORG_PLAN_FEATURES: Partial<Record<string, PlanFeatureKey>> = {
+  'org.analytics:export': 'analyticsInsights',
+  'org.settings.aiAssistant:edit': 'aiDashboardAssistant',
+};
 
 const ORG_CHIP_LABELS: Record<string, string> = {
   'org.dashboard:view': 'Open page',
@@ -49,6 +60,9 @@ const ORG_CHIP_LABELS: Record<string, string> = {
   'org.parkings:manage': 'Manage',
   'org.settings:view': 'Open page',
   'org.plans:view': 'Open page',
+  'org.analytics:view': 'Open page',
+  'org.analytics:export': 'Export',
+  'org.activity:view': 'Open page',
   'org.team:view': 'Open page',
   'org.team.invitations:add': 'Invite',
   'org.team.invitations:edit': 'Resend',
@@ -157,6 +171,7 @@ function buildOrgCatalog(): PermissionCatalogNode[] {
       action: actionFromPermissionId(permission.id),
       order: index,
       sensitive: SENSITIVE_ORG_PERMISSION_IDS.has(permission.id),
+      planFeatureKey: ORG_PLAN_FEATURES[permission.id],
     });
   });
 

@@ -31,6 +31,11 @@ type Props = {
   readOnly?: boolean;
   catalog?: PermissionCatalog;
   className?: string;
+  /**
+   * When set, only this catalog page is shown (wizard step mode).
+   * Hides search and the mobile page chip strip.
+   */
+  pageKey?: string;
   /** Called before enabling a sensitive leaf; return false to cancel. */
   onSensitiveEnable?: (permissionId: string) => boolean | Promise<boolean>;
 };
@@ -148,29 +153,44 @@ export function PermissionsTreeView({
   readOnly = false,
   catalog = PROPERTY_PERMISSION_CATALOG,
   className,
+  pageKey,
   onSensitiveEnable,
 }: Props) {
   const pages = useMemo(() => getCatalogPageNodes(catalog), [catalog]);
   const selected = useMemo(() => new Set(permissions), [permissions]);
+  const singlePageMode = Boolean(pageKey);
 
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(pages.map((page) => page.key))
   );
-  const [mobilePageKey, setMobilePageKey] = useState<string | null>(pages[0]?.key ?? null);
+  const [mobilePageKey, setMobilePageKey] = useState<string | null>(
+    () => pageKey ?? pages[0]?.key ?? null
+  );
 
   useEffect(() => {
+    if (pageKey) {
+      setMobilePageKey(pageKey);
+      return;
+    }
     if (!mobilePageKey && pages[0]) {
       setMobilePageKey(pages[0].key);
     }
-  }, [mobilePageKey, pages]);
+  }, [mobilePageKey, pageKey, pages]);
 
   useEffect(() => {
     setExpanded(new Set(pages.map((page) => page.key)));
   }, [pages]);
 
-  const visibleKeys = useMemo(() => filterCatalogBySearch(catalog, search), [catalog, search]);
-  const visiblePages = pages.filter((page) => visibleKeys.has(page.key));
+  const visibleKeys = useMemo(
+    () =>
+      singlePageMode ? filterCatalogBySearch(catalog, '') : filterCatalogBySearch(catalog, search),
+    [catalog, search, singlePageMode]
+  );
+  const visiblePages = pages.filter((page) => {
+    if (pageKey && page.key !== pageKey) return false;
+    return visibleKeys.has(page.key);
+  });
   const hasVisible = catalogHasAnyVisible(visibleKeys, catalog);
 
   const setPageExpanded = (key: string, open: boolean) => {
@@ -330,6 +350,22 @@ export function PermissionsTreeView({
       </div>
     );
   };
+
+  if (singlePageMode) {
+    const page = visiblePages[0];
+    return (
+      <div className={cn('flex flex-col gap-3', className)}>
+        {!page ? (
+          <p className="text-muted-foreground py-6 text-center text-sm">No permissions</p>
+        ) : (
+          <div className="rounded-lg border">
+            {renderPageHeader(page, { expand: false })}
+            <div className="border-t px-2 pb-2">{renderPageBody(page)}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>

@@ -50,10 +50,10 @@ function RoleGroup({
     <section className={cn('space-y-2', className)}>
       <div className="flex min-h-8 items-center justify-between gap-2 px-1 sm:px-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
             {title}
           </h3>
-          <span className="text-xs tabular-nums text-muted-foreground/80">{count}</span>
+          <span className="text-muted-foreground/80 text-xs tabular-nums">{count}</span>
         </div>
         {action}
       </div>
@@ -77,7 +77,7 @@ function BuiltinRoleRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
           <p className="shrink-0 text-sm font-medium">{label}</p>
-          <p className="text-xs leading-snug text-muted-foreground sm:truncate sm:text-sm">
+          <p className="text-muted-foreground text-xs leading-snug sm:truncate sm:text-sm">
             {description}
           </p>
         </div>
@@ -113,7 +113,7 @@ function RoleRow({
       : null;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-1 py-2.5 hover:bg-muted/40 sm:px-2">
+    <div className="hover:bg-muted/40 flex items-center gap-3 rounded-lg px-1 py-2.5 sm:px-2">
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <p className="truncate text-sm font-medium">{role.name}</p>
@@ -123,7 +123,7 @@ function RoleRow({
             </Badge>
           ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {role.permissions.length} permission
           {role.permissions.length === 1 ? '' : 's'}
           {listingLine ? ` · ${listingLine}` : null}
@@ -215,7 +215,7 @@ export function CustomRolesSection({
         {usesTemplates ? (
           <>
             <RoleGroup title="Default" count={defaultRoles.length}>
-              <ul className="divide-y divide-border rounded-lg border border-border">
+              <ul className="divide-border border-border divide-y rounded-lg border">
                 {defaultRoles.map((role) => (
                   <li key={role.id} className="px-1 sm:px-1.5">
                     <RoleRow
@@ -242,7 +242,7 @@ export function CustomRolesSection({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="min-h-[44px] shrink-0 text-muted-foreground"
+                      className="text-muted-foreground min-h-[44px] shrink-0"
                       onClick={onCreate}
                     >
                       <Plus className="mr-1.5 size-4" aria-hidden />
@@ -253,8 +253,8 @@ export function CustomRolesSection({
               }
             >
               {customOnly.length === 0 ? (
-                <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                  <p className="text-sm text-muted-foreground">
+                <div className="border-border bg-muted/30 flex flex-col items-start gap-3 rounded-lg border border-dashed px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                  <p className="text-muted-foreground text-sm">
                     Duplicate a default role, or create your own.
                   </p>
                   {canManage ? (
@@ -272,7 +272,7 @@ export function CustomRolesSection({
                   ) : null}
                 </div>
               ) : (
-                <ul className="divide-y divide-border rounded-lg border border-border">
+                <ul className="divide-border border-border divide-y rounded-lg border">
                   {customOnly.map((role) => (
                     <li key={role.id} className="px-1 sm:px-1.5">
                       <RoleRow

@@ -1,4 +1,4 @@
-import { Check, CircleOff, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 import type { TeamMemberStatus } from '@/features/dashboard/team/types/propertyTeam';
 
@@ -12,19 +12,11 @@ type Props = {
   planLimited?: boolean;
 };
 
+/**
+ * Status chrome for member rows. Active / manually disabled use row opacity only.
+ * Plan-limited inactive still shows a badge (reason is not obvious from muted chrome alone).
+ */
 export function TeamMemberStatusBadge({ status, planLimited = false }: Props) {
-  if (status === 'active') {
-    return (
-      <Badge
-        variant="outline"
-        className={cn('border-transparent', semanticBadgeClasses('success'))}
-      >
-        <Check className="mr-1 size-3" aria-hidden />
-        Active
-      </Badge>
-    );
-  }
-
   if (status === 'inactive' && planLimited) {
     return (
       <Tooltip>
@@ -44,21 +36,5 @@ export function TeamMemberStatusBadge({ status, planLimited = false }: Props) {
     );
   }
 
-  if (status === 'inactive') {
-    return (
-      <Badge
-        variant="outline"
-        className={cn('border-transparent', semanticBadgeClasses('neutral'))}
-      >
-        <CircleOff className="mr-1 size-3" aria-hidden />
-        Disabled
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="secondary" className="capitalize">
-      {status}
-    </Badge>
-  );
+  return null;
 }

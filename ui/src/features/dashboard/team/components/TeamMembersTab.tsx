@@ -138,8 +138,8 @@ export function TeamMembersTab({
   return (
     <div className="space-y-3 sm:space-y-4">
       {planLimitedCount > 0 ? (
-        <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 sm:p-4">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+        <div className="border-warning/30 bg-warning/10 flex items-start gap-2 rounded-lg border p-3 sm:p-4">
+          <Sparkles className="text-warning mt-0.5 size-4 shrink-0" aria-hidden />
           <p className="text-sm">
             <PlanGatedText
               feature="teamManagement"
@@ -157,7 +157,7 @@ export function TeamMembersTab({
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
               <div className="relative w-full sm:w-[260px]">
                 <Search
-                  className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                  className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2"
                   aria-hidden
                 />
                 <Input
@@ -198,146 +198,153 @@ export function TeamMembersTab({
             const canEditContact = canEditPropertyMemberContact(member, allowEditMembers);
             const contactLine = memberContactLabel(member);
 
+            const memberActions =
+              member.fromOrg && canOpenOrgTeam ? (
+                <>
+                  <div className="lg:hidden">
+                    <ResponsiveOverflowMenu
+                      label={`Manage ${member.name}`}
+                      actionGroups={[
+                        [
+                          {
+                            key: 'org-team',
+                            label: 'Manage in org',
+                            icon: <Building2 className="size-4 shrink-0" aria-hidden />,
+                            onSelect: () => navigate(orgTeamPath(orgSlug)),
+                          },
+                        ],
+                      ]}
+                    />
+                  </div>
+                  <div className="hidden lg:block">
+                    <OrgManagedMemberLink orgSlug={orgSlug} />
+                  </div>
+                </>
+              ) : canEditContact || allowEditMembers || allowDeleteMembers ? (
+                <ResponsiveOverflowMenu
+                  label={`Manage ${member.name}`}
+                  sheetTitle={`Manage ${member.name}`}
+                  actionGroups={[
+                    [
+                      ...(canEditContact
+                        ? [
+                            {
+                              key: 'host-details',
+                              label: 'Host details',
+                              onSelect: () => {
+                                window.setTimeout(() => onEditContact(member), 0);
+                              },
+                            },
+                          ]
+                        : []),
+                      ...(allowEditMembers
+                        ? [
+                            {
+                              key: 'toggle-status',
+                              label: isActive ? 'Deactivate' : 'Activate',
+                              onSelect: () => onToggleStatus(member),
+                            },
+                          ]
+                        : []),
+                    ],
+                    ...(allowDeleteMembers
+                      ? [
+                          [
+                            {
+                              key: 'remove',
+                              label: removeFromLabel,
+                              destructive: true,
+                              onSelect: () => {
+                                window.setTimeout(() => onRemove(member), 0);
+                              },
+                            },
+                          ],
+                        ]
+                      : []),
+                  ]}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className={cn(
+                        'admin-overflow-trigger',
+                        'lg:border-input lg:bg-card lg:text-foreground lg:hover:bg-accent lg:h-8 lg:w-auto lg:gap-1.5 lg:rounded-lg lg:border lg:px-3'
+                      )}
+                    >
+                      <MoreHorizontal className="size-3.5 lg:hidden" aria-hidden />
+                      <span className="hidden text-xs font-semibold lg:inline">Manage</span>
+                      <ChevronDown className="hidden size-3.5 lg:inline" aria-hidden />
+                    </Button>
+                  }
+                />
+              ) : null;
+
             return (
               <div
                 key={member.id}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-lg border border-border/60 px-2.5 py-2 sm:gap-3 sm:p-3',
+                  'border-border/60 flex items-start gap-2.5 rounded-lg border px-2.5 py-2 sm:items-center sm:gap-3 sm:p-3',
                   isCurrentUser && currentTeamMemberRowClassName,
-                  !isActive && 'opacity-80'
+                  !isActive && 'opacity-55'
                 )}
                 aria-current={isCurrentUser ? 'true' : undefined}
+                aria-disabled={!isActive || undefined}
               >
                 <Avatar className={cn('size-8 shrink-0 sm:size-9', !isActive && 'grayscale')}>
                   <AvatarImage src={member.avatar ?? undefined} />
-                  <AvatarFallback className="bg-primary/10 text-[10px] text-primary sm:text-xs">
+                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] sm:text-xs">
                     {memberInitials(member.name)}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold leading-tight text-foreground sm:text-sm">
-                    {member.name}
-                  </p>
-                  <p className="truncate text-[11px] leading-tight text-muted-foreground sm:text-xs">
-                    {member.email}
-                  </p>
-                  {contactLine ? (
-                    <p className="truncate text-[11px] tabular-nums leading-tight text-muted-foreground sm:text-xs">
-                      {contactLine}
+                <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+                      title={!isActive ? 'Role applies when member is active' : undefined}
+                    >
+                      <p
+                        className={cn(
+                          'truncate text-[13px] font-semibold leading-tight sm:text-sm',
+                          isActive ? 'text-foreground' : 'text-muted-foreground'
+                        )}
+                      >
+                        {member.name}
+                      </p>
+                      <RoleBadge
+                        scope={scope}
+                        roleId={member.role}
+                        customRoles={customRoles}
+                        muted={!isActive || member.planLimited}
+                      />
+                      <TeamMemberStatusBadge
+                        status={member.status}
+                        planLimited={member.planLimited}
+                      />
+                    </div>
+                    <p className="text-muted-foreground truncate text-[11px] leading-tight sm:text-xs">
+                      {member.email}
                     </p>
-                  ) : null}
-                  <div
-                    className={cn(
-                      'mt-1 flex flex-wrap items-center gap-1',
-                      !isActive && 'opacity-50'
-                    )}
-                    title={!isActive ? 'Role applies when member is active' : undefined}
-                  >
-                    <RoleBadge
-                      scope={scope}
-                      roleId={member.role}
-                      customRoles={customRoles}
-                      muted={!isActive || member.planLimited}
-                    />
-                    <TeamMemberStatusBadge
-                      status={member.status}
-                      planLimited={member.planLimited}
-                    />
+                    {contactLine ? (
+                      <p className="text-muted-foreground truncate text-[11px] tabular-nums leading-tight sm:text-xs">
+                        {contactLine}
+                      </p>
+                    ) : null}
                   </div>
+                  {memberActions ? <div className="shrink-0 lg:hidden">{memberActions}</div> : null}
                 </div>
 
-                <div className="flex shrink-0 items-center justify-end">
-                  {member.fromOrg ? (
-                    canOpenOrgTeam ? (
-                      <>
-                        <div className="lg:hidden">
-                          <ResponsiveOverflowMenu
-                            label={`Manage ${member.name}`}
-                            actionGroups={[
-                              [
-                                {
-                                  key: 'org-team',
-                                  label: 'Manage in org',
-                                  icon: <Building2 className="size-4 shrink-0" aria-hidden />,
-                                  onSelect: () => navigate(orgTeamPath(orgSlug)),
-                                },
-                              ],
-                            ]}
-                          />
-                        </div>
-                        <div className="hidden lg:block">
-                          <OrgManagedMemberLink orgSlug={orgSlug} />
-                        </div>
-                      </>
-                    ) : null
-                  ) : canEditContact || allowEditMembers || allowDeleteMembers ? (
-                    <ResponsiveOverflowMenu
-                      label={`Manage ${member.name}`}
-                      sheetTitle={`Manage ${member.name}`}
-                      actionGroups={[
-                        [
-                          ...(canEditContact
-                            ? [
-                                {
-                                  key: 'host-details',
-                                  label: 'Host details',
-                                  onSelect: () => {
-                                    window.setTimeout(() => onEditContact(member), 0);
-                                  },
-                                },
-                              ]
-                            : []),
-                          ...(allowEditMembers
-                            ? [
-                                {
-                                  key: 'toggle-status',
-                                  label: isActive ? 'Deactivate' : 'Activate',
-                                  onSelect: () => onToggleStatus(member),
-                                },
-                              ]
-                            : []),
-                        ],
-                        ...(allowDeleteMembers
-                          ? [
-                              [
-                                {
-                                  key: 'remove',
-                                  label: removeFromLabel,
-                                  destructive: true,
-                                  onSelect: () => {
-                                    window.setTimeout(() => onRemove(member), 0);
-                                  },
-                                },
-                              ],
-                            ]
-                          : []),
-                      ]}
-                      trigger={
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            'admin-overflow-trigger',
-                            'lg:h-8 lg:w-auto lg:gap-1.5 lg:rounded-lg lg:border lg:border-input lg:bg-card lg:px-3 lg:text-foreground lg:hover:bg-accent'
-                          )}
-                        >
-                          <MoreHorizontal className="size-3.5 lg:hidden" aria-hidden />
-                          <span className="hidden text-xs font-semibold lg:inline">Manage</span>
-                          <ChevronDown className="hidden size-3.5 lg:inline" aria-hidden />
-                        </Button>
-                      }
-                    />
-                  ) : null}
-                </div>
+                {memberActions ? (
+                  <div className="hidden shrink-0 lg:block">{memberActions}</div>
+                ) : null}
               </div>
             );
           })}
 
           {filteredMembers.length === 0 ? (
             <div className="py-10 text-center sm:py-12">
-              <Users className="mx-auto size-11 text-muted-foreground" aria-hidden />
+              <Users className="text-muted-foreground mx-auto size-11" aria-hidden />
               <h3 className="text-card-title mt-4">No members found</h3>
               {!searchQuery && canInvite ? (
                 <TeamInviteTierBadgeAnchor canInvite={canInviteByPlan} className="mt-4">

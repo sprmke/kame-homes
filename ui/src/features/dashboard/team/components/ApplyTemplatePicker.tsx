@@ -9,7 +9,7 @@ import type {
   PropertyRoleId,
 } from '@/features/dashboard/team/types/propertyTeam';
 
-import { Label } from '@/components/ui/label';
+import { FieldLabel } from '@/components/forms/FieldLabel';
 import {
   Select,
   SelectContent,
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select';
 
 const CUSTOM_VALUE = '__custom__';
+
+const BASED_ON_HELP = 'Copies checkboxes from this role. Adjust them below.';
 
 type Props = {
   roleId?: PropertyRoleId;
@@ -60,7 +62,7 @@ export function ApplyTemplatePicker({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="apply-baseline-role">Based on</Label>
+      <FieldLabel htmlFor="apply-baseline-role" label="Based on" help={BASED_ON_HELP} />
       <Select
         value={selectValue}
         onValueChange={(value) => {
