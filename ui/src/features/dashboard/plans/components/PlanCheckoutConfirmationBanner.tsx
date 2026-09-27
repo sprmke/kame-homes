@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import type { OrgPlanCheckoutConfirmationState } from '@/features/dashboard/plans/hooks/useOrgPlanCheckoutConfirmation';
 
@@ -32,17 +32,8 @@ export function PlanCheckoutConfirmationBanner({
   }
 
   if (state === 'success') {
-    return (
-      <div role="status" className={className}>
-        <FloatingPanel
-          padding="md"
-          className="border-success/30 bg-success/5 flex items-center gap-3"
-        >
-          <CheckCircle2 className="text-success size-5 shrink-0" aria-hidden />
-          <p className="text-foreground text-sm font-medium">Plan updated</p>
-        </FloatingPanel>
-      </div>
-    );
+    // Celebration modal owns the success moment; no inline banner.
+    return null;
   }
 
   if (state === 'timed_out') {

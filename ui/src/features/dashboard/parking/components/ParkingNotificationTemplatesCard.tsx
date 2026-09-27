@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 type Props = {
   embedded?: boolean;
@@ -29,15 +30,23 @@ export function ParkingNotificationTemplatesCard({ embedded = false }: Props) {
 
   const templates = { ...(data?.parkingNotificationTemplates ?? {}), ...draft };
 
-  const handleSave = async () => {
+  const isDirty = Object.entries(draft).some(
+    ([key, value]) => value !== (data?.parkingNotificationTemplates?.[key] ?? '')
+  );
+
+  const handleSave = async (): Promise<boolean> => {
     try {
       await updateSettings.mutateAsync({ parkingNotificationTemplates: templates });
       setDraft({});
       toast.success('Saved');
+      return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed');
+      return false;
     }
   };
+
+  useUnsavedChangesGuard({ isDirty, onSave: handleSave });
 
   const content = (
     <div className="space-y-4">

@@ -26,6 +26,7 @@ import {
 } from '@/features/dashboard/parking/hooks/useTelegramParkingSettings';
 import { PARKING_TELEGRAM_PLACEHOLDER_KEYS } from '@/features/dashboard/parking/lib/parkingTelegramPlaceholders';
 
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 const TEMPLATE_DEFAULTS = {
@@ -62,6 +63,9 @@ export function TelegramParkingSettingsCard() {
   const {
     draft,
     setDraft,
+    isDirty,
+    discardDraft,
+    markDraftSaved,
     botToken,
     setBotToken,
     chatId,
@@ -102,10 +106,10 @@ export function TelegramParkingSettingsCard() {
     ? TEMPLATE_TABS.filter((tab) => Boolean(draft[tab.notifyKey])).length
     : 0;
 
-  const persistSettings = () => {
-    if (!draft) return;
-    update.mutate(
-      {
+  const persistSettings = async (): Promise<boolean> => {
+    if (!draft) return false;
+    try {
+      await update.mutateAsync({
         enabled: draft.enabled,
         reservationRequestTemplate: draft.reservationRequestTemplate,
         checkInReminderTemplate: draft.checkInReminderTemplate,
@@ -113,14 +117,17 @@ export function TelegramParkingSettingsCard() {
         notifyOnReservationRequest: draft.notifyOnReservationRequest,
         notifyOnCheckInReminder: draft.notifyOnCheckInReminder,
         notifyOnPaymentReceived: draft.notifyOnPaymentReceived,
-      },
-      {
-        onSuccess: () => toast.success('Parking notifications saved'),
-        onError: (e: unknown) =>
-          toast.error(friendlyToastError(e, 'Could not save parking notifications')),
-      }
-    );
+      });
+      markDraftSaved(draft);
+      toast.success('Parking notifications saved');
+      return true;
+    } catch (e) {
+      toast.error(friendlyToastError(e, 'Could not save parking notifications'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({ isDirty, onSave: persistSettings, enabled: !templatesOpen });
 
   const onSendDraftPreview = (text: string) => {
     if (!text.trim()) {
@@ -186,6 +193,8 @@ export function TelegramParkingSettingsCard() {
             previewSampleSet="parking"
             disabled={busy}
             onSave={persistSettings}
+            isDirty={isDirty}
+            onDiscard={discardDraft}
             tabs={TEMPLATE_TABS.map((tab) => ({
               id: tab.id,
               label: tab.label,

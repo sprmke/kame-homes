@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeParkingSettingsCompletion, MIN_PARKING_AMENITIES } from '@/features/dashboard/parking/lib/parkingSettingsCompletion';
+import {
+  computeParkingSettingsCompletion,
+  MIN_PARKING_AMENITIES,
+} from '@/features/dashboard/parking/lib/parkingSettingsCompletion';
 
 describe('computeParkingSettingsCompletion', () => {
-
   it('computeParkingSettingsCompletion is exported', () => {
     expect(typeof computeParkingSettingsCompletion).toBe('function');
   });
-
 });
 
 describe('MIN_PARKING_AMENITIES', () => {

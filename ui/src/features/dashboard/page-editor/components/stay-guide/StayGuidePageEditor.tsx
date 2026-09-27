@@ -29,7 +29,6 @@ import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { PageEditorHeader } from '@/features/dashboard/page-editor/components/PageEditorHeader';
-import { PageEditorLeaveConfirmDialog } from '@/features/dashboard/page-editor/components/PageEditorLeaveConfirmDialog';
 import { PageEditorPreviewPane } from '@/features/dashboard/page-editor/components/PageEditorPreviewPane';
 import { PageEditorShell } from '@/features/dashboard/page-editor/components/PageEditorShell';
 import { StayGuideEditorPanel } from '@/features/dashboard/page-editor/components/stay-guide/StayGuideEditorPanel';
@@ -56,6 +55,7 @@ import { isFeatureEnabled } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 function PageChrome({ children }: { children: React.ReactNode }) {
@@ -133,8 +133,6 @@ export function StayGuidePageEditor({
     ? isFeatureEnabled(entitlements.data, 'publicPagesAutosave')
     : false;
   const { open: openUpgradeModal } = useUpgradeModal();
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [isSavingBeforeLeave, setIsSavingBeforeLeave] = useState(false);
 
   useEffect(() => () => reset(), [reset]);
 
@@ -242,16 +240,6 @@ export function StayGuidePageEditor({
     ? status === 'pending' || status === 'error'
     : storeDirty || contentDirty;
 
-  useEffect(() => {
-    const handler = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
   const mergedPreview = useMemo(() => {
     if (!previewQuery.data) return null;
     const sections = previewQuery.data.sections.map((section) => {
@@ -307,31 +295,22 @@ export function StayGuidePageEditor({
     }
   };
 
-  const handleBack = () => {
-    if (isDirty) {
-      setShowLeaveConfirm(true);
-      return;
-    }
-    navigate(backHref);
-  };
-
-  const handleSaveAndLeave = async () => {
-    if (!canAutosave) {
-      setShowLeaveConfirm(false);
-      openUpgradeModal('publicPagesAutosave');
-      return;
-    }
-    setIsSavingBeforeLeave(true);
-    try {
-      await saveAll();
-      navigate(backHref);
-    } catch (error) {
-      toast.error(friendlyToastError(error, 'Could not save changes'));
-    } finally {
-      setIsSavingBeforeLeave(false);
-      setShowLeaveConfirm(false);
-    }
-  };
+  useUnsavedChangesGuard({
+    isDirty,
+    onSave: async () => {
+      if (!canAutosave) {
+        openUpgradeModal('publicPagesAutosave');
+        return false;
+      }
+      try {
+        await saveAll();
+        return true;
+      } catch (error) {
+        toast.error(friendlyToastError(error, 'Could not save changes'));
+        return false;
+      }
+    },
+  });
 
   const handleDraftChange = (key: string, draft: StayGuideSectionDraft) => {
     setContentDrafts((current) => ({ ...current, [key]: draft }));
@@ -385,7 +364,7 @@ export function StayGuidePageEditor({
         header={
           <PageEditorHeader
             pageLabel="Stay Guide"
-            onBack={handleBack}
+            onBack={() => navigate(backHref)}
             autoSaveStatus={status}
             autoSaveError={errorMessage}
             openHref={publicLinks?.openHref}
@@ -417,16 +396,6 @@ export function StayGuidePageEditor({
             </PreviewOverrideProvider>
           </PageEditorPreviewPane>
         }
-      />
-      <PageEditorLeaveConfirmDialog
-        open={showLeaveConfirm}
-        onOpenChange={setShowLeaveConfirm}
-        isSaving={isSavingBeforeLeave}
-        onSaveAndLeave={() => void handleSaveAndLeave()}
-        onDiscardAndLeave={() => {
-          setShowLeaveConfirm(false);
-          navigate(backHref);
-        }}
       />
     </PageChrome>
   );

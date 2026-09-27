@@ -17,12 +17,14 @@ import {
 import { BOOKINGS_QUERY_KEY } from '@/features/dashboard/bookings/hooks/useBookings';
 import { parkingBookingDetailPath } from '@/features/dashboard/org/lib/tenantPaths';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 import { formatDateToLongFormat } from '@/utils/format/dates';
 
@@ -82,9 +84,12 @@ export function AdminParkingNewBookingModal({
   const [result, setResult] = useState<ParkingBookingResult | null>(null);
   const [formKey, setFormKey] = useState(0);
 
+  const [formDirty, setFormDirty] = useState(false);
+
   const resetState = useCallback(() => {
     setView('form');
     setResult(null);
+    setFormDirty(false);
   }, []);
 
   const handleOpenChange = useCallback(
@@ -94,6 +99,13 @@ export function AdminParkingNewBookingModal({
     },
     [onOpenChange, resetState]
   );
+
+  const { onOpenChange: guardedOpenChange, dialogProps } = useGuardedClose({
+    open,
+    onOpenChange: handleOpenChange,
+    isDirty: view === 'form' && formDirty,
+    onDiscard: () => setFormDirty(false),
+  });
 
   const handleSubmit = useCallback(
     async (values: ParkingRegistrationValues) => {
@@ -113,6 +125,7 @@ export function AdminParkingNewBookingModal({
           notes: values.notes,
         });
         void queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEY });
+        setFormDirty(false);
         setResult({ bookingId: submitResult.bookingId, values });
         setView('success');
       } catch (error) {
@@ -126,6 +139,7 @@ export function AdminParkingNewBookingModal({
   const handleAddAnother = useCallback(() => {
     setView('form');
     setResult(null);
+    setFormDirty(false);
     setFormKey((key) => key + 1);
   }, []);
 
@@ -136,7 +150,7 @@ export function AdminParkingNewBookingModal({
   }, [navigate, onOpenChange, orgSlug, parkingSlug, result]);
 
   return (
-    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+    <ResponsiveModal open={open} onOpenChange={guardedOpenChange}>
       <ResponsiveModalContent
         sheetLayout="split"
         className={cn(
@@ -163,10 +177,12 @@ export function AdminParkingNewBookingModal({
               key={formKey}
               towerLabel={towerLabel}
               onSubmit={handleSubmit}
+              onDirtyChange={setFormDirty}
             />
           ) : null}
         </div>
       </ResponsiveModalContent>
+      <UnsavedChangesDialog {...dialogProps} />
     </ResponsiveModal>
   );
 }

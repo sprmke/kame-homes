@@ -1,14 +1,9 @@
 import { PROPERTY_LANDING_OPTIONAL_SECTIONS } from '@/features/guest/marketing/properties/lib/propertyLandingSections';
 import type { PropertyLandingSectionId } from '@/features/guest/marketing/properties/types/publicProperty';
 
-import type {
-  AppSettingsDto,
-  AppSettingsFormValues,
-} from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { StyleSection } from '@/features/dashboard/marketing/components/calendar-builder/components/panels/StyleSection';
 import { PropertyCancellationPolicySection } from '@/features/dashboard/org/components/property-settings/PropertyCancellationPolicySection';
 import { PropertyMediaUpload } from '@/features/dashboard/org/components/property-settings/PropertyMediaUpload';
-import { PropertySocialsSection } from '@/features/dashboard/org/components/property-settings/PropertySocialsBrandingSection';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import type { CancellationPolicySettings } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
 import type { CustomHouseRule } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
@@ -16,7 +11,6 @@ import type {
   CustomAmenity,
   PropertyMediaItem,
 } from '@/features/dashboard/org/lib/propertySettingsConstants';
-import type { OrgSocialLinks } from '@/features/dashboard/org/lib/propertySocialLinks';
 import { SectionVisibilityList } from '@/features/dashboard/page-editor/components/controls/SectionVisibilityList';
 import { PropertyLandingAmenitiesControl } from '@/features/dashboard/page-editor/components/property-landing/PropertyLandingAmenitiesControl';
 import { PropertyLandingHouseRulesControl } from '@/features/dashboard/page-editor/components/property-landing/PropertyLandingHouseRulesControl';
@@ -57,13 +51,6 @@ type Props = {
     key: K,
     value: LandingProfileContent[K]
   ) => void;
-  socialDraft: AppSettingsFormValues;
-  appSettings: Pick<AppSettingsDto, 'updatedAt'>;
-  orgSocialLinks: OrgSocialLinks;
-  onSocialChange: <K extends keyof AppSettingsFormValues>(
-    key: K,
-    value: AppSettingsFormValues[K]
-  ) => void;
   resolveFieldError: (fieldId: string) => string | null;
   markFieldInteracted: (fieldId: string) => void;
 };
@@ -80,10 +67,6 @@ export function PropertyLandingEditorPanel({
   brandColorError = null,
   content,
   onContentChange,
-  socialDraft,
-  appSettings,
-  orgSocialLinks,
-  onSocialChange,
   resolveFieldError,
   markFieldInteracted,
 }: Props) {
@@ -187,21 +170,6 @@ export function PropertyLandingEditorPanel({
             resolveFieldError={resolveFieldError}
             markFieldInteracted={markFieldInteracted}
             onChange={(policy) => onContentChange('cancellationPolicy', policy)}
-          />
-        </StyleSection>
-      </PageEditorRevealTarget>
-
-      <PageEditorRevealTarget anchor="overview">
-        <StyleSection title="Socials">
-          <PropertySocialsSection
-            embedded
-            data={appSettings}
-            draft={socialDraft}
-            orgSocialLinks={orgSocialLinks}
-            resolveFieldError={resolveFieldError}
-            markFieldInteracted={markFieldInteracted}
-            onChange={onSocialChange}
-            sectionMessages={{}}
           />
         </StyleSection>
       </PageEditorRevealTarget>

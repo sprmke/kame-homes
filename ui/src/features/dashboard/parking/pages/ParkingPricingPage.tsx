@@ -37,6 +37,7 @@ import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 export function ParkingPricingPage() {
   const { data: orgAccess } = useOrgPermissions();
@@ -268,7 +269,7 @@ export function ParkingPricingPage() {
     );
   };
 
-  const handleSaveConfirm = (options: ParkingPricingSaveOptions) => {
+  const savePricing = async (options: ParkingPricingSaveOptions): Promise<boolean> => {
     const patch = buildParkingPricingSavePatch(
       {
         weekdayRate,
@@ -280,19 +281,25 @@ export function ParkingPricingPage() {
       options
     );
 
-    saveMutation.mutate(patch, {
-      onSuccess: (data) => {
-        setHasChanges(false);
-        setSaveDialogOpen(false);
-        setCustomDatePrices(new Map(Object.entries(data.dateOverrides)));
-        syncBaselineFromDto(data);
-        if (options.baseRateScope === 'all_future') {
-          const defaults = parkingPricingDefaultsFromDto(data);
-          setWeekdayRate(defaults.weekdayNightlyRate);
-          setWeekendRate(defaults.weekendNightlyRate);
-        }
-      },
-    });
+    try {
+      const data = await saveMutation.mutateAsync(patch);
+      setHasChanges(false);
+      setSaveDialogOpen(false);
+      setCustomDatePrices(new Map(Object.entries(data.dateOverrides)));
+      syncBaselineFromDto(data);
+      if (options.baseRateScope === 'all_future') {
+        const defaults = parkingPricingDefaultsFromDto(data);
+        setWeekdayRate(defaults.weekdayNightlyRate);
+        setWeekendRate(defaults.weekendNightlyRate);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSaveConfirm = (options: ParkingPricingSaveOptions) => {
+    void savePricing(options);
   };
 
   const handleSaveClick = () => {
@@ -313,6 +320,17 @@ export function ParkingPricingPage() {
       weekendNightlyRate: weekendRate,
     });
   }, [selectedDates, weekdayRate, weekendRate]);
+
+  const ratesDirty =
+    hasChanges &&
+    baselineRef.current != null &&
+    parkingPricingFormHasBaseRateChanges(baselineRef.current, weekdayRate, weekendRate);
+
+  useUnsavedChangesGuard({
+    isDirty: ratesDirty,
+    enabled: canEdit,
+    onSave: () => savePricing({ overrideCustomRates: false, baseRateScope: 'all_future' }),
+  });
 
   if (isLoading && !hydratedRef.current) {
     return (

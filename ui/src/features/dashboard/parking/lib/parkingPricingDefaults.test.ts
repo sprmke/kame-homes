@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { parkingPricingDefaultsFromDto, DEFAULT_PARKING_WEEKDAY_NIGHTLY_RATE, DEFAULT_PARKING_WEEKEND_NIGHTLY_RATE, STUB_GUEST_PARKING_RATE_WEEKDAY, STUB_GUEST_PARKING_RATE_WEEKEND, STUB_COMMISSION_PCT, STUB_DIRECT_COMMISSION_PCT } from '@/features/dashboard/parking/lib/parkingPricingDefaults';
+import {
+  parkingPricingDefaultsFromDto,
+  DEFAULT_PARKING_WEEKDAY_NIGHTLY_RATE,
+  DEFAULT_PARKING_WEEKEND_NIGHTLY_RATE,
+  STUB_GUEST_PARKING_RATE_WEEKDAY,
+  STUB_GUEST_PARKING_RATE_WEEKEND,
+  STUB_COMMISSION_PCT,
+  STUB_DIRECT_COMMISSION_PCT,
+} from '@/features/dashboard/parking/lib/parkingPricingDefaults';
 
 describe('parkingPricingDefaultsFromDto', () => {
-
   it('parkingPricingDefaultsFromDto is exported', () => {
     expect(typeof parkingPricingDefaultsFromDto).toBe('function');
   });
-
 });
 
 describe('DEFAULT_PARKING_WEEKDAY_NIGHTLY_RATE', () => {

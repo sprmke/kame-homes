@@ -21,7 +21,6 @@ import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { PageEditorHeader } from '@/features/dashboard/page-editor/components/PageEditorHeader';
-import { PageEditorLeaveConfirmDialog } from '@/features/dashboard/page-editor/components/PageEditorLeaveConfirmDialog';
 import { PageEditorPreviewPane } from '@/features/dashboard/page-editor/components/PageEditorPreviewPane';
 import { PageEditorShell } from '@/features/dashboard/page-editor/components/PageEditorShell';
 import { PropertyShowcaseEditorPanel } from '@/features/dashboard/page-editor/components/property-showcase/PropertyShowcaseEditorPanel';
@@ -42,6 +41,7 @@ import { isFeatureEnabled } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 async function patchShowcaseTemplate(propertyId: string, templateKey: ShowcaseTemplateKey) {
@@ -96,8 +96,6 @@ export function PropertyShowcasePageEditor({
   const redo = usePropertyShowcaseEditorStore((s) => s.redo);
   const markClean = usePropertyShowcaseEditorStore((s) => s.markClean);
 
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [isSavingBeforeLeave, setIsSavingBeforeLeave] = useState(false);
   const [templateLoaded, setTemplateLoaded] = useState(false);
 
   useEffect(() => {
@@ -189,13 +187,22 @@ export function PropertyShowcasePageEditor({
     markClean();
   };
 
-  const handleBack = () => {
-    if (hasUnsavedChanges) {
-      setShowLeaveConfirm(true);
-      return;
-    }
-    navigate(backHref);
-  };
+  useUnsavedChangesGuard({
+    isDirty: hasUnsavedChanges,
+    onSave: async () => {
+      if (!canAutosave) {
+        open('publicPagesAutosave');
+        return false;
+      }
+      try {
+        await saveAll();
+        return true;
+      } catch (error) {
+        toast.error(friendlyToastError(error, 'Could not save'));
+        return false;
+      }
+    },
+  });
 
   const previewPending = previewJwt === null || previewQuery.isLoading;
   if (configQuery.isLoading || previewPending || !hydrated) {
@@ -226,7 +233,7 @@ export function PropertyShowcasePageEditor({
         header={
           <PageEditorHeader
             pageLabel="Showcase"
-            onBack={handleBack}
+            onBack={() => navigate(backHref)}
             autoSaveStatus={status}
             autoSaveError={configSave.errorMessage ?? templateSave.errorMessage}
             openHref={publicLinks?.openHref}
@@ -272,33 +279,6 @@ export function PropertyShowcasePageEditor({
             )}
           </PageEditorPreviewPane>
         }
-      />
-      <PageEditorLeaveConfirmDialog
-        open={showLeaveConfirm}
-        onOpenChange={setShowLeaveConfirm}
-        isSaving={isSavingBeforeLeave}
-        onDiscardAndLeave={() => {
-          setShowLeaveConfirm(false);
-          navigate(backHref);
-        }}
-        onSaveAndLeave={() => {
-          void (async () => {
-            if (!canAutosave) {
-              setShowLeaveConfirm(false);
-              open('publicPagesAutosave');
-              return;
-            }
-            setIsSavingBeforeLeave(true);
-            try {
-              await saveAll();
-              navigate(backHref);
-            } catch (error) {
-              toast.error(friendlyToastError(error, 'Could not save'));
-            } finally {
-              setIsSavingBeforeLeave(false);
-            }
-          })();
-        }}
       />
     </AdminMobilePage>
   );

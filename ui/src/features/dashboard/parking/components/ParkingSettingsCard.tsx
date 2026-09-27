@@ -120,6 +120,7 @@ import {
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { cn } from '@/lib/utils';
 
@@ -774,6 +775,8 @@ export function ParkingSettingsCard() {
     handleRestore,
     setAutomationToggle,
   } = useParkingSettingsController();
+
+  useUnsavedChangesGuard({ isDirty, onSave: () => handleSave() });
 
   const settingsReady = !settingsLoading && settings && operationalDraft;
 

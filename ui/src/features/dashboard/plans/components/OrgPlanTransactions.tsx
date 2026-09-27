@@ -1,77 +1,84 @@
-import type { OrgPaymentTransactionDto } from '@/features/dashboard/plans/lib/orgPlanApi';
+import type {
+  OrgBundlePlanDto,
+  OrgPaymentTransactionDto,
+} from '@/features/dashboard/plans/lib/orgPlanApi';
+import {
+  paymentMethodIcon,
+  paymentMethodLabel,
+  transactionStatusMeta,
+  transactionTitle,
+} from '@/features/dashboard/plans/lib/orgPlanTransactionFormat';
+import {
+  PLANS_TAB_SECTION_TITLES,
+  planTabCardHeadingClass,
+} from '@/features/dashboard/plans/lib/planPresentation';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { Badge } from '@/components/ui/badge';
 import { formatManilaLongDate } from '@/utils/format/dates';
+import { formatMoneyCompact } from '@/utils/format/currency';
 
 type OrgPlanTransactionsProps = {
   transactions: OrgPaymentTransactionDto[];
+  plans?: OrgBundlePlanDto[];
 };
 
-type StatusMeta = {
-  label: string;
-  tone: 'success' | 'secondary' | 'destructive';
-};
-
-const STATUS_META: Record<string, StatusMeta> = {
-  paid: { label: 'Paid', tone: 'success' },
-  pending: { label: 'Pending', tone: 'secondary' },
-  failed: { label: 'Failed', tone: 'destructive' },
-  expired: { label: 'Expired', tone: 'secondary' },
-  cancelled: { label: 'Cancelled', tone: 'secondary' },
-};
-
-const METHOD_LABELS: Record<string, string> = {
-  qrph: 'QRPH',
-  gcash: 'GCash',
-  paymaya: 'Maya',
-  card: 'Card',
-  dob: 'Online banking',
-  dob_ubp: 'UnionBank',
-  brankas: 'Online banking',
-};
-
-function methodLabel(method: string | null): string | null {
-  if (!method) return null;
-  return METHOD_LABELS[method] ?? method.replace(/_/g, ' ');
-}
-
-export function OrgPlanTransactions({ transactions }: OrgPlanTransactionsProps) {
+export function OrgPlanTransactions({ transactions, plans = [] }: OrgPlanTransactionsProps) {
   if (transactions.length === 0) return null;
 
   return (
-    <FloatingPanel as="section" padding="lg" aria-labelledby="plan-payments-heading">
-      <h2 id="plan-payments-heading" className="text-section-title">
-        Recent payments
+    <FloatingPanel as="section" padding="lg" aria-labelledby="plans-billing-heading">
+      <h2 id="plans-billing-heading" className={planTabCardHeadingClass}>
+        {PLANS_TAB_SECTION_TITLES.billing}
       </h2>
-      <ul className="divide-border mt-3 max-h-[min(40vh,20rem)] divide-y overflow-y-auto overscroll-contain">
-        {transactions.map((txn) => {
-          const status = STATUS_META[txn.status] ?? {
-            label: txn.status,
-            tone: 'secondary' as const,
-          };
-          const method = methodLabel(txn.paymentMethodType);
-          /* An unpaid row has no paid_at — dating it by creation keeps the timeline honest. */
-          const date = formatManilaLongDate(txn.paidAt ?? txn.createdAt);
+      <div className="max-h-[min(40vh,20rem)] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+        <ul className="divide-border divide-y">
+          {transactions.map((txn) => {
+            const status = transactionStatusMeta(txn.status);
+            const method = paymentMethodLabel(txn.paymentMethodType);
+            const Icon = paymentMethodIcon(txn.paymentMethodType);
+            const title = transactionTitle(txn.planId, plans);
+            /* An unpaid row has no paid_at — dating it by creation keeps the timeline honest. */
+            const date = formatManilaLongDate(txn.paidAt ?? txn.createdAt);
 
-          return (
-            <li key={txn.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-              <div className="min-w-0">
-                <p className="text-foreground font-medium tabular-nums">
-                  ₱{txn.amount.toLocaleString('en-PH')}
-                </p>
-                <p className="text-muted-foreground mt-0.5 truncate text-xs">
-                  {date}
-                  {method ? ` · ${method}` : ''}
-                </p>
-              </div>
-              <Badge variant={status.tone} className="shrink-0">
-                {status.label}
-              </Badge>
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li key={txn.id} className="flex items-start gap-3 py-3.5 last:pb-0">
+                <span
+                  className="bg-muted text-muted-foreground mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full"
+                  aria-hidden
+                >
+                  <Icon className="size-4" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-foreground truncate text-sm font-medium">{title}</p>
+                  <p className="text-meta mt-0.5 truncate">
+                    {date}
+                    {method ? (
+                      <>
+                        <span aria-hidden> · </span>
+                        {method}
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-1 pl-3">
+                  <p className="text-foreground text-sm font-semibold tabular-nums">
+                    {formatMoneyCompact(txn.amount)}
+                  </p>
+                  <Badge
+                    variant={status.tone}
+                    className="h-5 shrink-0 px-1.5 text-[10px] leading-none"
+                  >
+                    {status.label}
+                  </Badge>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </FloatingPanel>
   );
 }

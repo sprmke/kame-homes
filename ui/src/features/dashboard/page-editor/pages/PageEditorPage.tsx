@@ -13,16 +13,11 @@ import {
   appSettingsToFormValues,
   useAppSettings,
   useUpdateAppSettings,
-  type AppSettingsFormValues,
 } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { PropertySettingsBrandColorPreview } from '@/features/dashboard/org/components/property-settings/PropertySettingsBrandColorPreview';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
-import {
-  orgSettingsToFormValues,
-  useOrgSettings,
-} from '@/features/dashboard/org/hooks/useOrgSettings';
 import { useUpdateProperty } from '@/features/dashboard/org/hooks/useUpdateProperty';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { validateOrgBrandColor } from '@/features/dashboard/org/lib/orgSettingsValidation';
@@ -39,10 +34,8 @@ import {
   propertyMediaFromProperty,
   propertyProfileDraftFromProperty,
 } from '@/features/dashboard/org/lib/propertySettingsForm';
-import { normalizePropertySocialLinksForSave } from '@/features/dashboard/org/lib/propertySocialLinks';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { PageEditorHeader } from '@/features/dashboard/page-editor/components/PageEditorHeader';
-import { PageEditorLeaveConfirmDialog } from '@/features/dashboard/page-editor/components/PageEditorLeaveConfirmDialog';
 import { PageEditorPreviewPane } from '@/features/dashboard/page-editor/components/PageEditorPreviewPane';
 import { PageEditorShell } from '@/features/dashboard/page-editor/components/PageEditorShell';
 import {
@@ -71,6 +64,7 @@ import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPer
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { PageEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { usePageTitle } from '@/lib/pageTitle';
 import { propertyBrandColorStoredValue } from '@/lib/theme/brandColor';
@@ -206,17 +200,8 @@ function PropertyLandingPageEditor({
   const updateProperty = useUpdateProperty(orgSlug);
   const { data: appSettings } = useAppSettings();
   const updateAppSettings = useUpdateAppSettings();
-  const { data: orgSettings } = useOrgSettings();
   const orgBrandColor = useOrgBrandColor();
   const inheritedBrandColor = appSettings?.inheritedBrandColor ?? orgBrandColor;
-  const orgSocialLinks = orgSettings
-    ? orgSettingsToFormValues(orgSettings)
-    : {
-        facebookPageUrl: '',
-        airbnbUrl: '',
-        instagramUrl: '',
-        tiktokUrl: '',
-      };
 
   const config = usePropertyLandingEditorStore((s) => s.config);
   const hydrated = usePropertyLandingEditorStore((s) => s.hydrated);
@@ -235,21 +220,18 @@ function PropertyLandingPageEditor({
   const [mediaBusy, setMediaBusy] = useState(false);
   const [brandColor, setBrandColor] = useState('');
   const [brandHydrated, setBrandHydrated] = useState(false);
+  const [brandBaseline, setBrandBaseline] = useState<string | null>(null);
   const [content, setContent] = useState<LandingProfileContent>(() =>
     contentFromProperty(property)
   );
   const [contentHydrated, setContentHydrated] = useState(false);
   const [contentBaselineFp, setContentBaselineFp] = useState<string | null>(null);
-  const [socialDraft, setSocialDraft] = useState<AppSettingsFormValues | null>(null);
-  const [socialBaseline, setSocialBaseline] = useState<AppSettingsFormValues | null>(null);
   const [interactedFields, setInteractedFields] = useState<Record<string, boolean>>({});
   const entitlements = usePropertyEntitlements(propertyId);
   const canAutosave = entitlements.data
     ? isFeatureEnabled(entitlements.data, 'publicPagesAutosave')
     : false;
   const { open: openUpgradeModal } = useUpgradeModal();
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [isSavingBeforeLeave, setIsSavingBeforeLeave] = useState(false);
 
   useEffect(() => {
     return () => reset();
@@ -274,9 +256,8 @@ function PropertyLandingPageEditor({
     if (!appSettings || brandHydrated) return;
     const values = appSettingsToFormValues(appSettings);
     setBrandColor(values.brandColor);
+    setBrandBaseline(values.brandColor);
     setBrandHydrated(true);
-    setSocialDraft(values);
-    setSocialBaseline(values);
   }, [appSettings, brandHydrated]);
 
   const fingerprint = useMemo(() => (hydrated ? JSON.stringify(config) : null), [config, hydrated]);
@@ -307,6 +288,7 @@ function PropertyLandingPageEditor({
       if (!appSettings) return;
       const stored = propertyBrandColorStoredValue(brandColor, inheritedBrandColor);
       await updateAppSettings.mutateAsync({ brandColor: stored, publicPagesAutosaveGate: true });
+      setBrandBaseline(brandColor);
     },
   });
 
@@ -343,99 +325,21 @@ function PropertyLandingPageEditor({
     },
   });
 
-  const socialFingerprint = useMemo(() => {
-    if (!socialDraft) return null;
-    return JSON.stringify({
-      facebookPageUrl: socialDraft.facebookPageUrl,
-      airbnbUrl: socialDraft.airbnbUrl,
-      instagramUrl: socialDraft.instagramUrl,
-      tiktokUrl: socialDraft.tiktokUrl,
-    });
-  }, [socialDraft]);
-
-  const socialBaselineFingerprint = useMemo(() => {
-    if (!socialBaseline) return null;
-    return JSON.stringify({
-      facebookPageUrl: socialBaseline.facebookPageUrl,
-      airbnbUrl: socialBaseline.airbnbUrl,
-      instagramUrl: socialBaseline.instagramUrl,
-      tiktokUrl: socialBaseline.tiktokUrl,
-    });
-  }, [socialBaseline]);
-
-  const socialSave = usePageEditorAutoSave({
-    enabled: canAutosave && Boolean(socialDraft && propertyId),
-    suspended: !socialDraft || !appSettings,
-    contentFingerprint: socialFingerprint,
-    debounceMs: 1000,
-    save: async () => {
-      if (!socialDraft) return;
-      const normalized = normalizePropertySocialLinksForSave(socialDraft, orgSocialLinks);
-      const saved = await updateAppSettings.mutateAsync({
-        facebookPageUrl: normalized.facebookPageUrl,
-        airbnbUrl: normalized.airbnbUrl,
-        instagramUrl: normalized.instagramUrl,
-        tiktokUrl: normalized.tiktokUrl,
-        publicPagesAutosaveGate: true,
-      });
-      const values = appSettingsToFormValues(saved);
-      setSocialDraft((current) =>
-        current
-          ? {
-              ...current,
-              facebookPageUrl: values.facebookPageUrl,
-              airbnbUrl: values.airbnbUrl,
-              instagramUrl: values.instagramUrl,
-              tiktokUrl: values.tiktokUrl,
-              brandColor: current.brandColor,
-            }
-          : values
-      );
-      setSocialBaseline(values);
-    },
-  });
-
   const status = mergePageEditorAutoSaveStatuses([
     configSave.status,
     brandSave.status,
     contentSave.status,
-    socialSave.status,
   ]);
-  const errorMessage = firstPageEditorAutoSaveError([
-    configSave,
-    brandSave,
-    contentSave,
-    socialSave,
-  ]);
+  const errorMessage = firstPageEditorAutoSaveError([configSave, brandSave, contentSave]);
   const profileDirty =
     Boolean(contentFingerprint && contentBaselineFp && contentFingerprint !== contentBaselineFp) ||
-    Boolean(socialBaseline && brandHydrated && brandColor !== socialBaseline.brandColor) ||
-    Boolean(
-      socialFingerprint &&
-      socialBaselineFingerprint &&
-      socialFingerprint !== socialBaselineFingerprint
-    );
+    Boolean(brandBaseline !== null && brandHydrated && brandColor !== brandBaseline);
   const isDirty = canAutosave
     ? status === 'pending' || status === 'error'
     : storeDirty || profileDirty;
 
-  useEffect(() => {
-    const handler = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
-
   const saveAllPending = () =>
-    Promise.all([
-      configSave.saveNow(),
-      brandSave.saveNow(),
-      contentSave.saveNow(),
-      socialSave.saveNow(),
-    ]);
+    Promise.all([configSave.saveNow(), brandSave.saveNow(), contentSave.saveNow()]);
 
   const handleMediaPersisted = (next: PropertyMediaItem[]) => {
     setMedia(next);
@@ -486,13 +390,6 @@ function PropertyLandingPageEditor({
     value: LandingProfileContent[K]
   ) => {
     setContent((current) => ({ ...current, [key]: value }));
-  };
-
-  const onSocialChange = <K extends keyof AppSettingsFormValues>(
-    key: K,
-    value: AppSettingsFormValues[K]
-  ) => {
-    setSocialDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
   const previewMedia = mediaItemsToPreview(media);
@@ -550,36 +447,22 @@ function PropertyLandingPageEditor({
     }
   };
 
-  const handleBack = () => {
-    if (isDirty) {
-      setShowLeaveConfirm(true);
-      return;
-    }
-    navigate(backHref);
-  };
-
-  const handleSaveAndLeave = async () => {
-    if (!canAutosave) {
-      setShowLeaveConfirm(false);
-      openUpgradeModal('publicPagesAutosave');
-      return;
-    }
-    setIsSavingBeforeLeave(true);
-    try {
-      await saveAllPending();
-      navigate(backHref);
-    } catch (error) {
-      toast.error(friendlyToastError(error, 'Could not save changes'));
-    } finally {
-      setIsSavingBeforeLeave(false);
-      setShowLeaveConfirm(false);
-    }
-  };
-
-  const handleDiscardAndLeave = () => {
-    setShowLeaveConfirm(false);
-    navigate(backHref);
-  };
+  useUnsavedChangesGuard({
+    isDirty,
+    onSave: async () => {
+      if (!canAutosave) {
+        openUpgradeModal('publicPagesAutosave');
+        return false;
+      }
+      try {
+        await saveAllPending();
+        return true;
+      } catch (error) {
+        toast.error(friendlyToastError(error, 'Could not save changes'));
+        return false;
+      }
+    },
+  });
 
   const isBootstrapping =
     (configQuery.isLoading && !configQuery.data) ||
@@ -588,7 +471,6 @@ function PropertyLandingPageEditor({
     !hydrated ||
     !brandHydrated ||
     !contentHydrated ||
-    !socialDraft ||
     !appSettings;
 
   if (isBootstrapping) {
@@ -623,7 +505,7 @@ function PropertyLandingPageEditor({
         header={
           <PageEditorHeader
             pageLabel={pageMeta.label}
-            onBack={handleBack}
+            onBack={() => navigate(backHref)}
             autoSaveStatus={status}
             autoSaveError={errorMessage}
             openHref={publicLinks?.openHref}
@@ -649,10 +531,6 @@ function PropertyLandingPageEditor({
             brandColorError={brandColorError}
             content={content}
             onContentChange={onContentChange}
-            socialDraft={socialDraft}
-            appSettings={appSettings}
-            orgSocialLinks={orgSocialLinks}
-            onSocialChange={onSocialChange}
             resolveFieldError={resolveFieldError}
             markFieldInteracted={markFieldInteracted}
           />
@@ -664,13 +542,6 @@ function PropertyLandingPageEditor({
             </PreviewOverrideProvider>
           </PageEditorPreviewPane>
         }
-      />
-      <PageEditorLeaveConfirmDialog
-        open={showLeaveConfirm}
-        onOpenChange={setShowLeaveConfirm}
-        onSaveAndLeave={() => void handleSaveAndLeave()}
-        onDiscardAndLeave={handleDiscardAndLeave}
-        isSaving={isSavingBeforeLeave}
       />
     </PageEditorChrome>
   );
