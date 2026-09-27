@@ -100,7 +100,7 @@ serveAuthenticated('generate-marketing-media', async (req) => {
   const mediaType = body.mediaType === 'video' ? 'video' : 'image';
   const isVideo = mediaType === 'video';
 
-  const permission = isVideo ? 'marketing.generate.video:add' : 'marketing.generate:add';
+  const permission = isVideo ? 'marketing.generate.video:add' : 'marketing.generate.image:add';
   const planFeature = isVideo ? 'aiMarketingVideoGeneration' : 'aiMarketingImageGeneration';
   const feature = isVideo ? 'marketing_video_generate' : 'marketing_image_generate';
 

@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
-
 import { motion, useTransform } from 'framer-motion';
 
 import { ShowcaseCanvas } from '@/features/guest/marketing/showcase/components/ShowcaseCanvas';

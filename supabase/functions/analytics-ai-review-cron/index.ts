@@ -14,6 +14,7 @@ import {
   maybeRunAnalyticsAiReview,
   writeLatestAnalyticsReview,
 } from '../_shared/analyticsAiReview.ts';
+import { currentAiReviewPeriodRange } from '../_shared/analyticsAiReviewPeriod.ts';
 import { computeAnalyticsBundle } from '../_shared/analyticsService.ts';
 import { manilaTodayIso } from '../_shared/bookingsListSort.ts';
 import { matchPlaybookArticles } from '../_shared/hostPlaybook.ts';
@@ -31,20 +32,18 @@ const NOTIFY_MIN_SCORE_DELTA = 8;
 function cronSecretOk(req: Request): boolean {
   // Fail-closed in production when the secret is unset (shared gate) — never burn AI credits or
   // run destructive jobs for an anonymous caller.
-  return verifyCronSecret(req, { envKey: 'ANALYTICS_AI_REVIEW_CRON_SECRET', headerName: 'x-analytics-ai-review-cron-secret' });
-}
-
-function addDaysIso(dateIso: string, days: number): string {
-  const d = new Date(`${dateIso}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return verifyCronSecret(req, {
+    envKey: 'ANALYTICS_AI_REVIEW_CRON_SECRET',
+    headerName: 'x-analytics-ai-review-cron-secret',
+  });
 }
 
 serveCronPost('analytics-ai-review-cron', cronSecretOk, async () => {
   const supabase = createServiceClient();
   const startedAt = Date.now();
   const today = manilaTodayIso();
-  const from = addDaysIso(today, -29);
+  // Weekly sweep uses the current Manila calendar month — same window hosts refresh on-demand.
+  const { from, to } = currentAiReviewPeriodRange('month', today);
 
   const { data: properties, error: propertiesError } = await supabase
     .from('properties')
@@ -110,7 +109,7 @@ serveCronPost('analytics-ai-review-cron', cronSecretOk, async () => {
         continue;
       }
 
-      const bundle = await computeAnalyticsBundle({ propertyId: property.id, from, to: today });
+      const bundle = await computeAnalyticsBundle({ propertyId: property.id, from, to });
       if (!bundle.sufficiency.enough) {
         skippedInsufficientData += 1;
         continue;

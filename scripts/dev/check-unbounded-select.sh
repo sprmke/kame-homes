@@ -40,6 +40,18 @@ ALLOWLIST=(
   # all active rows loaded into a 30s isolate cache (doc 23), not tenant growth.
   '_shared/rateLimit.ts'
 
+  # AI limit profiles/assignments — admin-curated catalog + keyed `.maybeSingle()` /
+  # `.in(id, …)` lookups; property matrix uses `.limit(200)`. Heuristic misses chained
+  # bounds on stored query builders.
+  '_shared/aiLimitResolver.ts'
+  '_shared/aiLimitAdmin.ts'
+
+  # Super-admin org name lookup — bounded by `.in('id', organizationIds)` from request.
+  'super-admin-ai-limits/index.ts'
+
+  # Paginated activity log — `.limit(limit + 1)` on a stored query builder (heuristic gap).
+  'list-activity-log/index.ts'
+
   # Everything below is the corrected heuristic's honest current-state sweep (see the
   # header above) — NOT a hand-verified defect list. Some are real gaps; most are
   # false positives this line-scan can't resolve (a `.single()`/`.maybeSingle()` on a

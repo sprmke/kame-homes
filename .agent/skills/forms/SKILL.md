@@ -47,3 +47,7 @@ Guest: included in FormData to `submit-form`. Admin assets: `upload-booking-asse
 ## Dev toggles
 
 Non-prod guest form checkboxes map to query params (`sendEmail`, `saveToDatabase`, …) — `admin-auth.mdc` §4.
+
+## Unsaved changes
+
+Every form with a manual Save must use the shared guard (`useUnsavedChangesGuard`, or `useGuardedClose` for modals). Invoke the `unsaved-changes-guard` skill. RHF: `isDirty` from `formState`, `onSave` wraps `handleSubmit` and returns whether it saved.

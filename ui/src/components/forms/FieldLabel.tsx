@@ -50,7 +50,8 @@ function pickHelpTooltipSide(trigger: DOMRect): HelpTooltipSide {
   return inlineEnd;
 }
 
-function FieldHelpTooltip({ label, help }: { label: string; help: string }) {
+/** Shared ? help control used by FieldLabel and section titles. */
+export function FieldHelpTooltip({ label, help }: { label: string; help: string }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [side, setSide] = useState<HelpTooltipSide>('right');
 

@@ -62,6 +62,8 @@ bun run test:edge             # Deno _shared
 bun run test:edge:handlers    # Deno handler tests (no live/integration)
 bun run test:e2e:smoke        # Playwright @smoke
 bun run test:e2e:ci           # Playwright @ci (develop)
+bun run test:e2e:plans        # Plan tiers: public pricing, Plans page, gates, review dialog
+bun run check:plan-catalog    # pricing_plans (local DB) vs golden tier matrix
 bun run ci:quality            # Full PR parity
 ```
 

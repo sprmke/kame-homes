@@ -1,9 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import {
-  installAdminApprovalsMocks,
-  mockPendingOrgApproval,
-} from './shared/adminApprovalsHarness';
+import { installAdminApprovalsMocks, mockPendingOrgApproval } from './shared/adminApprovalsHarness';
 
 test.describe('@ci super admin approvals', () => {
   test('approvals queue shell renders with mocked pending row', async ({ page }) => {

@@ -306,7 +306,6 @@ commit \
   ui/src/features/dashboard/org/components/property-settings/PropertyCancellationPolicySection.tsx \
   ui/src/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections.tsx \
   ui/src/features/dashboard/org/components/property-settings/PropertySocialsBrandingSection.tsx \
-  ui/src/features/dashboard/org/components/property-settings/PublicPagesCrossLink.tsx \
   ui/src/features/dashboard/org/hooks/useOrgDashboardStats.ts \
   ui/src/features/dashboard/org/hooks/useResidenceUnitTypes.ts \
   ui/src/features/dashboard/org/lib/propertyMedia.ts \

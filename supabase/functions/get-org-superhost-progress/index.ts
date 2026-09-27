@@ -1,5 +1,5 @@
 /**
- * get-org-superhost-progress — Live Superhost criteria snapshot for org settings Trust section.
+ * get-org-superhost-progress — Live Superhost criteria snapshot for org settings Superhost section.
  */
 
 import { createServiceClient, verifyOrgAccess } from '../_shared/orgAuth.ts';

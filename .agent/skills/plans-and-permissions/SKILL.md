@@ -50,6 +50,7 @@ Do **all** that apply:
 4. **Client** — `useFeatureGate('…')`; upgrade via `openUpgradeModal`; `TierBadge` / `TierBadgeAnchor` on entry actions; interactive-block on commit actions (not a blank locked page unless product requires hide).
 5. **Presentation** — `planPresentation.ts` (`PLAN_FEATURE_ROWS`, tier-card gains), `featureGateCopy.ts`, live **`/for-hosts/pricing`**.
 6. **Docs** — `docs/architecture/plans-feature-matrix.md` (+ gate inventory row if maintained), route guide, `docs/PROJECT.md` if API/env touched.
+7. **Tests** — update `plans/lib/planTierGolden.ts` (`GOLDEN_MINIMUM_TIER`), `planTierExpectations.ts` and the `GATE_COVERAGE` map in `planGateCoverage.test.ts`; add the gated surface to `ui/e2e/features/plans/gates/featureGates.spec.ts`; run `bun run check:plan-catalog` after `db:reset`.
 
 Canonical matrix: **`docs/architecture/plans-feature-matrix.md`**.
 
@@ -69,7 +70,9 @@ Do **all** that apply for the correct scope:
 
 Also:
 
-1. **Catalog** — group node + chip labels; wire `COARSE_PLAN_FEATURES` when the leaf is plan-gated (e.g. `pricing.channels:*` → `calendarSync`).
+1. **Catalog** — group node + chip labels. Plan pills come from `PLAN_FEATURE_PERMISSION_COVERAGE` (`ui/src/features/dashboard/plans/lib/planFeaturePermissions.ts`): map every new `PlanFeatureKey` to leaves (e.g. `calendarSync` → `pricing.channels:*`) or record an explicit N/A reason. `planFeaturePermissions.test.ts` fails otherwise.
+   1a. **Split leaves** — when a new leaf carves out of an existing one (e.g. `marketing.generate.image:add` from `marketing.generate:add`), ship a backfill migration granting it to holders of the source leaf. Do not use read-time expansion; the new leaf must stay revocable.
+   1b. **Credit-spending actions** get their own leaf (image, video, AI review, Smart Pricing) and are excluded from the seeded Operations template.
 2. **Seeded templates** — Full Access / Operations / Read Only grants in `SEEDED_TEMPLATE_PERMISSIONS` (and org/parking equivalents).
 3. **Server** — `resolveScopedPropertyAccess('…')` (or parking/org) on every mutating handler; never UI-only checks.
 4. **Client** — hide entry without `:view`; disable mutations without `:edit` / `:add` / `:delete`.

@@ -122,6 +122,65 @@ Deno.test('cancellation rate under 1% with min bookings', () => {
   assertEquals(clean.met, true);
 });
 
+Deno.test('cancellation: exact 1% fails; zero cancels with enough sample passes', () => {
+  const asOf = '2026-08-31';
+  // 1 of 100 = 1.00% → must fail (< 1% rule)
+  const atOnePercent = Array.from({ length: 100 }, (_, i) => ({
+    status: (i === 0 ? 'CANCELLED' : 'COMPLETED') as 'COMPLETED' | 'CANCELLED',
+    checkOutDate: `2026-06-${String((i % 28) + 1).padStart(2, '0')}`,
+    checkInDate: `2026-06-${String((i % 28) + 1).padStart(2, '0')}`,
+    numberOfNights: 2,
+  }));
+  const atCap = computeCancellationRateMetric(atOnePercent, asOf);
+  assertEquals(atCap.value, 0.01);
+  assertEquals(atCap.met, false);
+
+  const cleanHundred = computeCancellationRateMetric(
+    atOnePercent.map((b) => ({ ...b, status: 'COMPLETED' as const })),
+    asOf
+  );
+  assertEquals(cleanHundred.value, 0);
+  assertEquals(cleanHundred.met, true);
+});
+
+Deno.test('cancellation rate matches cancelled / (completed + cancelled)', () => {
+  const asOf = '2026-08-31';
+  // 7 cancelled + 17 completed = 24 → 7/24 ≈ 0.2917 → 29.2% display
+  const bookings = [
+    ...Array.from({ length: 17 }, (_, i) => ({
+      status: 'COMPLETED' as const,
+      checkOutDate: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`,
+      checkInDate: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`,
+      numberOfNights: 2,
+    })),
+    ...Array.from({ length: 7 }, (_, i) => ({
+      status: 'CANCELLED' as const,
+      checkOutDate: `2026-07-${String((i % 28) + 1).padStart(2, '0')}`,
+      checkInDate: `2026-07-${String((i % 28) + 1).padStart(2, '0')}`,
+      numberOfNights: 2,
+    })),
+  ];
+  const metric = computeCancellationRateMetric(bookings, asOf);
+  assertEquals(metric.sampleSize, 24);
+  assertEquals(metric.value, 0.2917);
+  assertEquals(metric.met, false);
+  assertEquals((metric.value * 100).toFixed(1), '29.2');
+});
+
+Deno.test('rating exact 4.8 with min reviews passes', () => {
+  const asOf = '2026-08-31T12:00:00+08:00';
+  const exact = computeRatingMetric(
+    [
+      { starRating: 4.8, createdAt: '2026-08-01T00:00:00Z' },
+      { starRating: 4.8, createdAt: '2026-08-02T00:00:00Z' },
+      { starRating: 4.8, createdAt: '2026-08-03T00:00:00Z' },
+    ],
+    asOf
+  );
+  assertEquals(exact.value, 4.8);
+  assertEquals(exact.met, true);
+});
+
 Deno.test('activity via ten stays or hundred nights', () => {
   const asOf = '2026-08-31';
   const tenStays = Array.from({ length: 10 }, (_, i) => ({

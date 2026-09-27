@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { SD_BANKS, refundBodySchema, sdFormSubmitSchema } from '@/features/guest/sd-form/lib/sdFormSchema';
+import {
+  SD_BANKS,
+  refundBodySchema,
+  sdFormSubmitSchema,
+} from '@/features/guest/sd-form/lib/sdFormSchema';
 
 describe('SD_BANKS', () => {
   it('is defined', () => {

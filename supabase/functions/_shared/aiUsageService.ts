@@ -21,6 +21,12 @@ import {
   estimateCreditsFromCostUsd,
   getOrgCreditWalletBalance,
 } from './aiCreditLedger.ts';
+import {
+  clearAiLimitCache,
+  limitNumber,
+  resolveOrgAiLimits,
+  resolvePropertyAiLimits,
+} from './aiLimitResolver.ts';
 
 export class AiQuotaExceededError extends Error {
   readonly code = 'AI_QUOTA_EXCEEDED';
@@ -130,6 +136,7 @@ export type AiPlatformOrgSettings = {
   dailyCreditLimit: number;
   monthlyCreditLimit: number;
   planTier: string;
+  overrideReason: string | null;
   updatedAt: string | null;
 };
 
@@ -391,42 +398,54 @@ export async function isFeatureEnabled(feature: AiFeature): Promise<boolean> {
   return global.allowedFeatures.includes(feature);
 }
 
+/**
+ * Effective org limits, resolved through aiLimitResolver (override → profiles → plan → global).
+ * Hosts never write these; only `enabled` is host-toggleable.
+ */
 export async function getAiPlatformOrgSettings(
   organizationId: string
 ): Promise<AiPlatformOrgSettings> {
-  const global = await getAiPlatformGlobalSettings();
   const sb = db();
-  const { data, error } = await sb
-    .from('ai_platform_org_settings')
-    .select(
-      'organization_id, enabled, daily_call_limit, monthly_call_limit, daily_cost_usd_limit, daily_credit_limit, monthly_credit_limit, plan_tier, updated_at'
-    )
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
+  const [{ limits, planTier }, rowRes] = await Promise.all([
+    resolveOrgAiLimits(organizationId),
+    sb
+      .from('ai_platform_org_settings')
+      .select('enabled, override_reason, updated_at')
+      .eq('organization_id', organizationId)
+      .maybeSingle(),
+  ]);
+  if (rowRes.error) throw new Error(rowRes.error.message);
+  const data = rowRes.data;
 
   return {
     organizationId,
     enabled: data?.enabled !== false,
-    dailyCallLimit: Number(data?.daily_call_limit ?? global.defaultDailyCallLimit),
-    monthlyCallLimit: Number(data?.monthly_call_limit ?? global.defaultMonthlyCallLimit),
-    dailyCostUsdLimit: Number(data?.daily_cost_usd_limit ?? global.defaultDailyCostUsdLimit),
-    dailyCreditLimit: Number(data?.daily_credit_limit ?? global.defaultDailyCreditLimit),
-    monthlyCreditLimit: Number(data?.monthly_credit_limit ?? global.defaultMonthlyCreditLimit),
-    planTier: String(data?.plan_tier ?? 'included'),
+    dailyCallLimit: limitNumber(limits, 'dailyCallLimit'),
+    monthlyCallLimit: limitNumber(limits, 'monthlyCallLimit'),
+    dailyCostUsdLimit: limitNumber(limits, 'dailyCostUsdLimit'),
+    dailyCreditLimit: limitNumber(limits, 'dailyCreditLimit'),
+    monthlyCreditLimit: limitNumber(limits, 'monthlyCreditLimit'),
+    planTier,
+    overrideReason: (data?.override_reason as string | null) ?? null,
     updatedAt: (data?.updated_at as string | null) ?? null,
   };
 }
 
+/**
+ * Writes org-level settings. `null` clears an override (inherit). Limit fields are super-admin /
+ * plan-sync only; the host endpoint passes `enabled` alone.
+ */
 export async function upsertAiPlatformOrgSettings(input: {
   organizationId: string;
   enabled?: boolean;
-  dailyCallLimit?: number;
-  monthlyCallLimit?: number;
-  dailyCostUsdLimit?: number;
-  dailyCreditLimit?: number;
-  monthlyCreditLimit?: number;
+  dailyCallLimit?: number | null;
+  monthlyCallLimit?: number | null;
+  dailyCostUsdLimit?: number | null;
+  dailyCreditLimit?: number | null;
+  monthlyCreditLimit?: number | null;
+  planCreditAllowance?: number | null;
   planTier?: string;
+  overrideReason?: string | null;
   updatedBy: string;
 }): Promise<AiPlatformOrgSettings> {
   const sb = db();
@@ -435,13 +454,17 @@ export async function upsertAiPlatformOrgSettings(input: {
     updated_by: input.updatedBy,
   };
   if (typeof input.enabled === 'boolean') row.enabled = input.enabled;
-  if (typeof input.dailyCallLimit === 'number') row.daily_call_limit = input.dailyCallLimit;
-  if (typeof input.monthlyCallLimit === 'number') row.monthly_call_limit = input.monthlyCallLimit;
-  if (typeof input.dailyCostUsdLimit === 'number')
-    row.daily_cost_usd_limit = input.dailyCostUsdLimit;
-  if (typeof input.dailyCreditLimit === 'number') row.daily_credit_limit = input.dailyCreditLimit;
-  if (typeof input.monthlyCreditLimit === 'number')
-    row.monthly_credit_limit = input.monthlyCreditLimit;
+  if (input.dailyCallLimit !== undefined) row.daily_call_limit = input.dailyCallLimit;
+  if (input.monthlyCallLimit !== undefined) row.monthly_call_limit = input.monthlyCallLimit;
+  if (input.dailyCostUsdLimit !== undefined) row.daily_cost_usd_limit = input.dailyCostUsdLimit;
+  if (input.dailyCreditLimit !== undefined) row.daily_credit_limit = input.dailyCreditLimit;
+  if (input.monthlyCreditLimit !== undefined) row.monthly_credit_limit = input.monthlyCreditLimit;
+  if (input.planCreditAllowance !== undefined)
+    row.plan_credit_allowance = input.planCreditAllowance;
+  if (input.overrideReason !== undefined) {
+    row.override_reason = input.overrideReason;
+    row.overridden_by = input.overrideReason === null ? null : input.updatedBy;
+  }
   if (typeof input.planTier === 'string' && input.planTier.trim())
     row.plan_tier = input.planTier.trim();
 
@@ -449,7 +472,32 @@ export async function upsertAiPlatformOrgSettings(input: {
     onConflict: 'organization_id',
   });
   if (error) throw new Error(error.message);
+  clearAiLimitCache();
   return getAiPlatformOrgSettings(input.organizationId);
+}
+
+/**
+ * Keep every property's AI switch in lockstep with the org master so hosts never flip
+ * two toggles. Best-effort: org PATCH still succeeds if this update fails.
+ */
+export async function syncPropertyAiEnabledForOrg(
+  organizationId: string,
+  enabled: boolean,
+  updatedBy: string
+): Promise<void> {
+  const sb = db();
+  const { error } = await sb
+    .from('ai_platform_property_settings')
+    .update({
+      enabled,
+      updated_by: updatedBy,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('organization_id', organizationId);
+  if (error) {
+    console.error('syncPropertyAiEnabledForOrg failed', error.message);
+  }
+  clearAiLimitCache();
 }
 
 export async function ensureAiPlatformPropertySettingsRow(
@@ -457,12 +505,15 @@ export async function ensureAiPlatformPropertySettingsRow(
   organizationId: string
 ): Promise<void> {
   const sb = db();
-  await sb
-    .from('ai_platform_property_settings')
-    .upsert(
-      { property_id: propertyId, organization_id: organizationId },
-      { onConflict: 'property_id', ignoreDuplicates: true }
-    );
+  const org = await getAiPlatformOrgSettings(organizationId);
+  await sb.from('ai_platform_property_settings').upsert(
+    {
+      property_id: propertyId,
+      organization_id: organizationId,
+      enabled: org.enabled,
+    },
+    { onConflict: 'property_id', ignoreDuplicates: true }
+  );
 }
 
 export async function getAiPlatformPropertySettings(
@@ -515,6 +566,7 @@ export async function upsertAiPlatformPropertySettings(input: {
   dailyCostUsdLimit?: number | null;
   dailyCreditLimit?: number | null;
   monthlyCreditLimit?: number | null;
+  overrideReason?: string | null;
   updatedBy: string;
 }): Promise<AiPlatformPropertySettings> {
   const sb = db();
@@ -529,6 +581,10 @@ export async function upsertAiPlatformPropertySettings(input: {
   if (input.dailyCostUsdLimit !== undefined) patch.daily_cost_usd_limit = input.dailyCostUsdLimit;
   if (input.dailyCreditLimit !== undefined) patch.daily_credit_limit = input.dailyCreditLimit;
   if (input.monthlyCreditLimit !== undefined) patch.monthly_credit_limit = input.monthlyCreditLimit;
+  if (input.overrideReason !== undefined) {
+    patch.override_reason = input.overrideReason;
+    patch.overridden_by = input.overrideReason === null ? null : input.updatedBy;
+  }
 
   const { data, error } = await sb
     .from('ai_platform_property_settings')
@@ -539,6 +595,7 @@ export async function upsertAiPlatformPropertySettings(input: {
     )
     .single();
   if (error) throw new Error(error.message);
+  clearAiLimitCache();
 
   return {
     propertyId: data.property_id as string,
@@ -796,8 +853,10 @@ export async function getPropertyAiUsageSummary(
   const resolvedOrgId = organizationId ?? (await resolveOrgIdForProperty(propertyId));
   if (!resolvedOrgId) throw new Error(`Could not resolve organization for property ${propertyId}`);
 
-  const orgSettings = await getAiPlatformOrgSettings(resolvedOrgId);
-  const propertySettings = await getAiPlatformPropertySettings(propertyId, resolvedOrgId);
+  const { limits: propertyLimits, planTier } = await resolvePropertyAiLimits(
+    resolvedOrgId,
+    propertyId
+  );
 
   const sb = db();
   const today = todayUtcDate();
@@ -817,11 +876,11 @@ export async function getPropertyAiUsageSummary(
   const monthCostUsd = await sumPropertyMonthCostUsd(propertyId);
   const monthCreditsConsumed = await sumPropertyMonthCreditsConsumed(propertyId);
 
-  const dailyCallLimit = propertySettings.dailyCallLimit ?? orgSettings.dailyCallLimit;
-  const monthlyCallLimit = propertySettings.monthlyCallLimit ?? orgSettings.monthlyCallLimit;
-  const dailyCostUsdLimit = propertySettings.dailyCostUsdLimit ?? orgSettings.dailyCostUsdLimit;
-  const dailyCreditLimit = propertySettings.dailyCreditLimit ?? orgSettings.dailyCreditLimit;
-  const monthlyCreditLimit = propertySettings.monthlyCreditLimit ?? orgSettings.monthlyCreditLimit;
+  const dailyCallLimit = limitNumber(propertyLimits, 'dailyCallLimit');
+  const monthlyCallLimit = limitNumber(propertyLimits, 'monthlyCallLimit');
+  const dailyCostUsdLimit = limitNumber(propertyLimits, 'dailyCostUsdLimit');
+  const dailyCreditLimit = limitNumber(propertyLimits, 'dailyCreditLimit');
+  const monthlyCreditLimit = limitNumber(propertyLimits, 'monthlyCreditLimit');
 
   const dailyRemaining = Math.max(0, dailyCallLimit - todayCallCount);
   const monthlyRemaining = Math.max(0, monthlyCallLimit - monthCallCount);
@@ -842,7 +901,7 @@ export async function getPropertyAiUsageSummary(
     dailyRemaining,
     monthlyRemaining,
     dailyCostRemaining,
-    planTier: orgSettings.planTier,
+    planTier,
     quotaExceeded: dailyRemaining <= 0 || monthlyRemaining <= 0 || dailyCostRemaining <= 0,
   };
 }
@@ -908,10 +967,9 @@ export async function assertOrgAndPropertyAiQuota(
     throw new AiQuotaExceededError('Daily AI cost limit reached for this organization');
   }
 
-  let propertySettings: AiPlatformPropertySettings | null = null;
   let propertySummary: AiUsageSummary | null = null;
   if (propertyId) {
-    propertySettings = await getAiPlatformPropertySettings(propertyId, organizationId);
+    const propertySettings = await getAiPlatformPropertySettings(propertyId, organizationId);
     if (!propertySettings.enabled) {
       throw new AiPlatformDisabledError('AI is disabled for this property');
     }
@@ -928,13 +986,9 @@ export async function assertOrgAndPropertyAiQuota(
   }
 
   const orgCreditStatus = creditAllowanceExceeded(orgSummary, orgSettings);
-  const propertyCreditStatus =
-    propertySettings && propertySummary
-      ? creditAllowanceExceeded(propertySummary, {
-          dailyCreditLimit: propertySettings.dailyCreditLimit ?? orgSettings.dailyCreditLimit,
-          monthlyCreditLimit: propertySettings.monthlyCreditLimit ?? orgSettings.monthlyCreditLimit,
-        })
-      : { exceeded: false as const, period: undefined };
+  const propertyCreditStatus = propertySummary
+    ? creditAllowanceExceeded(propertySummary, propertySummary)
+    : { exceeded: false as const, period: undefined };
 
   if (orgCreditStatus.exceeded || propertyCreditStatus.exceeded) {
     const walletBalance = await getOrgCreditWalletBalance(organizationId);
@@ -1172,10 +1226,6 @@ export async function recordAiUsage(
       let exceeded = creditAllowanceExceeded(priorOrgSummary, orgSettings).exceeded;
 
       if (!exceeded && input.propertyId) {
-        const propertySettings = await getAiPlatformPropertySettings(
-          input.propertyId,
-          input.organizationId
-        );
         const propertySummary = await getPropertyAiUsageSummary(
           input.propertyId,
           input.organizationId
@@ -1184,10 +1234,7 @@ export async function recordAiUsage(
           todayCreditsConsumed: propertySummary.todayCreditsConsumed - creditsConsumed,
           monthCreditsConsumed: propertySummary.monthCreditsConsumed - creditsConsumed,
         };
-        exceeded = creditAllowanceExceeded(priorPropertySummary, {
-          dailyCreditLimit: propertySettings.dailyCreditLimit ?? orgSettings.dailyCreditLimit,
-          monthlyCreditLimit: propertySettings.monthlyCreditLimit ?? orgSettings.monthlyCreditLimit,
-        }).exceeded;
+        exceeded = creditAllowanceExceeded(priorPropertySummary, propertySummary).exceeded;
       }
 
       if (exceeded) {

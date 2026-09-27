@@ -2,6 +2,13 @@
  * Shared org Plans & Billing Playwright fixtures — downgrade + checkout harnesses.
  */
 
+import { DEFAULT_PLAN_FEATURES } from '../../../../src/features/dashboard/plans/lib/planFeatures';
+import { discountedPlanPricePhp } from '../../../../src/features/dashboard/plans/lib/planPricing';
+import {
+  goldenPlanId,
+  goldenSoldPlanDtos,
+} from '../../../../src/features/dashboard/plans/lib/planTierGolden';
+
 import type { Page, Route } from '@playwright/test';
 
 export const PLANS_E2E_ORG_ID = 'org-plans-downgrade-e2e';
@@ -9,154 +16,30 @@ export const PLANS_E2E_ORG_SLUG = 'kame-homes-ph';
 export const PLANS_E2E_PROPERTY_ID = 'property-plans-downgrade-e2e';
 export const PLANS_E2E_PROPERTY_SLUG = 'solea-mactan';
 
-export const PLAN_FREE = 'plan-free';
-export const PLAN_STARTER = 'plan-starter';
-export const PLAN_GROWTH = 'plan-growth';
-export const PLAN_PRO = 'plan-pro';
+export const PLAN_FREE = goldenPlanId('free');
+export const PLAN_STARTER = goldenPlanId('starter');
+export const PLAN_GROWTH = goldenPlanId('growth');
+export const PLAN_PRO = goldenPlanId('pro');
+export const PLAN_MANAGED = goldenPlanId('managed');
 
 const SUPABASE_AUTH_STORAGE_KEY = 'sb-127-auth-token';
 
+/** All features off. Entitlement mocks that should not unlock anything spread this. */
 export function emptyPlanFeatures() {
-  return {
-    automatedBookingFlow: false,
-    verifiedBadgeEligible: false,
-    recommendedBadgeEligible: false,
-    telegramNotifications: false,
-    teamManagement: { enabled: false, maxMembers: null },
-    searchVisibilityTier: 'none' as const,
-    marketingPublishLimitPerGroup: 0,
-    aiValidations: false,
-    aiMonthlyCreditAllowance: 0,
-    marketingStudio: false,
-    aiMarketingImageGeneration: false,
-    customPages: false,
-    propertyShowcase: false,
-    aiDashboardAssistant: false,
-    aiReceptionist: false,
-    aiMarketingGeneration: false,
-    aiChatAutoReply: false,
-    fullyManagedByPlatform: false,
-    financeReporting: false,
-    maintenanceReporting: false,
-    metaChatChannel: false,
-    quickReplies: false,
-    customTemplates: false,
-    publicPagesAutosave: false,
-    bookingImport: false,
-    calendarSync: false,
-    smartPricing: false,
-    customRoles: false,
-    copyPropertySettings: false,
-  };
+  return { ...DEFAULT_PLAN_FEATURES, teamManagement: { ...DEFAULT_PLAN_FEATURES.teamManagement } };
 }
 
-function planFixture(input: {
-  id: string;
-  code: string;
-  name: string;
-  sortOrder: number;
-  pricePhp: number;
-  isDefault?: boolean;
-  features?: ReturnType<typeof emptyPlanFeatures>;
-}) {
-  return {
-    id: input.id,
-    code: input.code,
-    name: input.name,
-    tagline: null,
-    sortOrder: input.sortOrder,
-    pricingModel: 'subscription',
-    pricePhp: input.pricePhp,
-    discountPercent: 0,
-    volumeDiscountTiers: [],
-    volumeRampFloorPhp: 500,
-    volumeRampAtCount: 10,
-    features: input.features ?? emptyPlanFeatures(),
-    isDefault: Boolean(input.isDefault),
-  };
-}
+/**
+ * Plan catalog for every Plans / pricing E2E, built from the golden tier matrix
+ * (`planTierGolden.ts`, verified against the seed migrations by `bun run check:plan-catalog`).
+ * Never hand-write tier features here: that is how fixtures drift from the real tiers.
+ */
+export const PLANS_E2E_CATALOG = goldenSoldPlanDtos();
 
-function starterFeatures() {
-  return {
-    ...emptyPlanFeatures(),
-    financeReporting: true,
-    maintenanceReporting: true,
-    customTemplates: true,
-    telegramNotifications: true,
-    teamManagement: { enabled: true, maxMembers: 3 },
-    customRoles: true,
-    quickReplies: true,
-    bookingImport: true,
-  };
+/** What a host is actually charged per property: list price after the promo discount. */
+export function planChargedPhp(plan: { pricePhp: number | null; discountPercent: number }): number {
+  return discountedPlanPricePhp(plan.pricePhp, plan.discountPercent);
 }
-
-function growthFeatures() {
-  return {
-    ...starterFeatures(),
-    marketingStudio: true,
-    aiMarketingImageGeneration: true,
-    aiValidations: true,
-    propertyShowcase: true,
-    publicPagesAutosave: true,
-    calendarSync: true,
-    smartPricing: true,
-    copyPropertySettings: true,
-    searchVisibilityTier: 'top30' as const,
-    recommendedBadgeEligible: true,
-    teamManagement: { enabled: true, maxMembers: 5 },
-    aiMonthlyCreditAllowance: 1000,
-  };
-}
-
-function proFeatures() {
-  return {
-    ...growthFeatures(),
-    aiDashboardAssistant: true,
-    aiReceptionist: true,
-    aiMarketingGeneration: true,
-    aiChatAutoReply: true,
-    metaChatChannel: true,
-    customPages: true,
-    searchVisibilityTier: 'top15' as const,
-    teamManagement: { enabled: true, maxMembers: 10 },
-    aiMonthlyCreditAllowance: 10000,
-  };
-}
-
-export const PLANS_E2E_CATALOG = [
-  planFixture({
-    id: PLAN_FREE,
-    code: 'free',
-    name: 'Free',
-    sortOrder: 0,
-    pricePhp: 0,
-    isDefault: true,
-  }),
-  planFixture({
-    id: PLAN_STARTER,
-    code: 'starter',
-    name: 'Starter',
-    sortOrder: 10,
-    pricePhp: 399,
-    features: starterFeatures(),
-  }),
-  planFixture({
-    id: PLAN_GROWTH,
-    code: 'growth',
-    name: 'Pro',
-    sortOrder: 20,
-    pricePhp: 799,
-    features: growthFeatures(),
-  }),
-  planFixture({
-    id: PLAN_PRO,
-    code: 'pro',
-    name: 'Business',
-    sortOrder: 30,
-    pricePhp: 1439,
-    features: proFeatures(),
-  }),
-];
 
 export function e2eSupabaseAuthSession() {
   const nowSeconds = Math.floor(Date.now() / 1000);

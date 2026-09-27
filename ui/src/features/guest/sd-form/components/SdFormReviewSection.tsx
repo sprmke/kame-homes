@@ -18,6 +18,7 @@ import { useAntiSpamSubmit } from '@/components/security/useAntiSpamSubmit';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 export interface SdFormReviewSectionProps {
@@ -35,6 +36,7 @@ export function SdFormReviewSection({
   const [reviewText, setReviewText] = useState('');
   const [feedbackTagIds, setFeedbackTagIds] = useState<string[]>([]);
   const [mediaItems, setMediaItems] = useState<GuestReviewMediaItem[]>([]);
+  const [submitted, setSubmitted] = useState(false);
   const antiSpam = useAntiSpamSubmit({ action: 'submit-guest-review' });
 
   useEffect(() => {
@@ -60,12 +62,23 @@ export function SdFormReviewSection({
       }
     },
     onSuccess: () => {
+      setSubmitted(true);
       toast.success('Thanks for your review');
       onReviewSubmitted();
     },
     onError: (err: Error) => {
       toast.error(friendlyToastError(err, 'Could not submit review'));
     },
+  });
+
+  // Review draft is not persisted; Discard-only prompt (no save from here).
+  useUnsavedChangesGuard({
+    isDirty:
+      !submitted &&
+      (starRating > 0 ||
+        reviewText.trim() !== '' ||
+        feedbackTagIds.length > 0 ||
+        mediaItems.length > 0),
   });
 
   return (

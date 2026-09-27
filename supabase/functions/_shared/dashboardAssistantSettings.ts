@@ -4,10 +4,18 @@
  * Docs: docs/workflow/planned/ai-dashboard-assistant.md §1 step 2-3, §4, §6.
  */
 
+import {
+  clearAiLimitCache,
+  limitNumber,
+  resolveOrgAiLimits,
+  type ResolvedAiLimits,
+} from './aiLimitResolver.ts';
 import { createServiceClient } from './orgAuth.ts';
 
 export type DashboardAssistantGlobalSettings = {
   enabled: boolean;
+  /** Full-page AI chat mode (docs/workflow/in-progress/ai-chat-mode.md). Needs `enabled` too. */
+  aiModeEnabled: boolean;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -19,6 +27,7 @@ export type DashboardAssistantOrgSettings = {
   dailyMessageLimit: number;
   monthlyMessageLimit: number;
   dailyWriteActionLimit: number;
+  overrideReason: string | null;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -27,7 +36,7 @@ export async function getDashboardAssistantGlobalSettings(): Promise<DashboardAs
   const sb = createServiceClient();
   const { data, error } = await sb
     .from('ai_dashboard_assistant_global_settings')
-    .select('enabled, updated_by, updated_at')
+    .select('enabled, ai_mode_enabled, updated_by, updated_at')
     .eq('id', true)
     .maybeSingle();
   if (error) {
@@ -35,6 +44,7 @@ export async function getDashboardAssistantGlobalSettings(): Promise<DashboardAs
   }
   return {
     enabled: Boolean(data?.enabled),
+    aiModeEnabled: Boolean(data?.ai_mode_enabled),
     updatedBy: (data?.updated_by as string | null) ?? null,
     updatedAt: (data?.updated_at as string) ?? new Date().toISOString(),
   };
@@ -42,6 +52,7 @@ export async function getDashboardAssistantGlobalSettings(): Promise<DashboardAs
 
 export async function setDashboardAssistantGlobalSettings(input: {
   enabled?: boolean;
+  aiModeEnabled?: boolean;
   updatedBy: string;
 }): Promise<DashboardAssistantGlobalSettings> {
   const sb = createServiceClient();
@@ -50,18 +61,20 @@ export async function setDashboardAssistantGlobalSettings(input: {
     updated_at: new Date().toISOString(),
   };
   if (input.enabled !== undefined) patch.enabled = input.enabled;
+  if (input.aiModeEnabled !== undefined) patch.ai_mode_enabled = input.aiModeEnabled;
 
   const { data, error } = await sb
     .from('ai_dashboard_assistant_global_settings')
     .update(patch)
     .eq('id', true)
-    .select('enabled, updated_by, updated_at')
+    .select('enabled, ai_mode_enabled, updated_by, updated_at')
     .single();
   if (error) {
     throw new Error(`Failed to update dashboard assistant global settings: ${error.message}`);
   }
   return {
     enabled: Boolean(data.enabled),
+    aiModeEnabled: Boolean(data.ai_mode_enabled),
     updatedBy: (data.updated_by as string | null) ?? null,
     updatedAt: data.updated_at as string,
   };
@@ -69,42 +82,53 @@ export async function setDashboardAssistantGlobalSettings(input: {
 
 function mapOrgSettingsRow(
   organizationId: string,
-  row: Record<string, unknown> | null
+  row: Record<string, unknown> | null,
+  limits: ResolvedAiLimits
 ): DashboardAssistantOrgSettings {
   return {
     organizationId,
     enabled: Boolean(row?.enabled),
     disabledPropertyIds: ((row?.disabled_property_ids as string[] | null) ?? []) as string[],
-    dailyMessageLimit: Number(row?.daily_message_limit ?? 50),
-    monthlyMessageLimit: Number(row?.monthly_message_limit ?? 1000),
-    dailyWriteActionLimit: Number(row?.daily_write_action_limit ?? 20),
+    dailyMessageLimit: limitNumber(limits, 'assistantDailyMessageLimit'),
+    monthlyMessageLimit: limitNumber(limits, 'assistantMonthlyMessageLimit'),
+    dailyWriteActionLimit: limitNumber(limits, 'assistantDailyWriteActionLimit'),
+    overrideReason: (row?.override_reason as string | null) ?? null,
     updatedBy: (row?.updated_by as string | null) ?? null,
     updatedAt: (row?.updated_at as string) ?? new Date().toISOString(),
   };
 }
 
+/** Effective limits come from aiLimitResolver; hosts only own `enabled` + `disabledPropertyIds`. */
 export async function getDashboardAssistantOrgSettings(
   organizationId: string
 ): Promise<DashboardAssistantOrgSettings> {
   const sb = createServiceClient();
-  const { data, error } = await sb
-    .from('ai_dashboard_assistant_org_settings')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-  if (error) {
-    throw new Error(`Failed to load dashboard assistant org settings: ${error.message}`);
+  const [rowRes, { limits }] = await Promise.all([
+    sb
+      .from('ai_dashboard_assistant_org_settings')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .maybeSingle(),
+    resolveOrgAiLimits(organizationId),
+  ]);
+  if (rowRes.error) {
+    throw new Error(`Failed to load dashboard assistant org settings: ${rowRes.error.message}`);
   }
-  return mapOrgSettingsRow(organizationId, data);
+  return mapOrgSettingsRow(organizationId, rowRes.data, limits);
 }
 
+/**
+ * Host callers pass `enabled` / `disabledPropertyIds` only. Limit fields are super-admin writes
+ * (`null` clears the override so the profile chain applies again).
+ */
 export async function upsertDashboardAssistantOrgSettings(input: {
   organizationId: string;
   enabled?: boolean;
   disabledPropertyIds?: string[];
-  dailyMessageLimit?: number;
-  monthlyMessageLimit?: number;
-  dailyWriteActionLimit?: number;
+  dailyMessageLimit?: number | null;
+  monthlyMessageLimit?: number | null;
+  dailyWriteActionLimit?: number | null;
+  overrideReason?: string | null;
   updatedBy: string;
 }): Promise<DashboardAssistantOrgSettings> {
   const sb = createServiceClient();
@@ -121,16 +145,19 @@ export async function upsertDashboardAssistantOrgSettings(input: {
     patch.monthly_message_limit = input.monthlyMessageLimit;
   if (input.dailyWriteActionLimit !== undefined)
     patch.daily_write_action_limit = input.dailyWriteActionLimit;
+  if (input.overrideReason !== undefined) {
+    patch.override_reason = input.overrideReason;
+    patch.overridden_by = input.overrideReason === null ? null : input.updatedBy;
+  }
 
-  const { data, error } = await sb
+  const { error } = await sb
     .from('ai_dashboard_assistant_org_settings')
-    .upsert(patch, { onConflict: 'organization_id' })
-    .select('*')
-    .single();
+    .upsert(patch, { onConflict: 'organization_id' });
   if (error) {
     throw new Error(`Failed to update dashboard assistant org settings: ${error.message}`);
   }
-  return mapOrgSettingsRow(input.organizationId, data);
+  clearAiLimitCache();
+  return getDashboardAssistantOrgSettings(input.organizationId);
 }
 
 // ─── Quota (soft cap, no billing wiring — see plan's explicit non-goals) ────

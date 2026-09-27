@@ -317,6 +317,12 @@ serveSuperAdmin('org-subscriptions-admin', async (req, admin) => {
       .select('name')
       .eq('id', organizationId)
       .maybeSingle();
+    const { data: planRow } = await supabase
+      .from('pricing_plans')
+      .select('name')
+      .eq('id', planId)
+      .maybeSingle();
+    const planName = typeof planRow?.name === 'string' ? planRow.name : null;
     await logSuperAdminAction(admin, {
       action: 'org_subscription.assign',
       targetType: 'organization',
@@ -338,6 +344,7 @@ serveSuperAdmin('org-subscriptions-admin', async (req, admin) => {
         targetLabel: orgRow?.name ?? 'the organization',
         metadata: {
           to_plan: planId,
+          ...(planName ? { to_plan_name: planName } : {}),
           property_count: propertyIds.length,
           override_price_php: overridePricePhp,
         },

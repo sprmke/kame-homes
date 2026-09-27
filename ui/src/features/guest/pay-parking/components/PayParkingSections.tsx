@@ -63,7 +63,9 @@ function PayParkingDetailsCard({ data }: { data: PayParkingBootstrap }) {
           {formatStayDateRange(data.parking_check_in_date, data.parking_check_out_date)}
         </p>
         <div className="border-border/60 flex items-end justify-between gap-4 border-t pt-3">
-          <span className="truncate text-lg font-bold tabular-nums tracking-tight sm:text-2xl">{formatMoney(totalEstimate)}</span>
+          <span className="truncate text-lg font-bold tabular-nums tracking-tight sm:text-2xl">
+            {formatMoney(totalEstimate)}
+          </span>
           <p className="text-muted-foreground text-sm">{formatMoney(ratePerNight)} / night</p>
         </div>
       </div>

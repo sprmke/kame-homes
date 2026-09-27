@@ -39,6 +39,7 @@ export const TEAM_PERMISSION_IDS = [
   'pricing.blocks:delete',
   'pricing.channels:view',
   'pricing.channels:edit',
+  'pricing.smartPricing:edit',
   'maintenance:view',
   'maintenance.reminders:add',
   'maintenance.reminders:edit',
@@ -51,6 +52,7 @@ export const TEAM_PERMISSION_IDS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
+  'marketing.generate.image:add',
   'marketing.generate.video:add',
   'marketing.publish:add',
   'notifications:view',
@@ -106,6 +108,9 @@ export const TEAM_PERMISSION_IDS = [
   'inbox.automation:edit',
   'analytics:view',
   'analytics:export',
+  'analytics.aiReview:add',
+  'assistant:view',
+  'activity:view',
 ] as const;
 
 export type TeamPermissionId = (typeof TEAM_PERMISSION_IDS)[number];

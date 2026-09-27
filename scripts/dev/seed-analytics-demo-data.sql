@@ -324,6 +324,27 @@ BEGIN
     TRUE
   );
 
-  RAISE NOTICE 'seed-analytics-demo-data: loaded % bookings + page views + AI review for property % (%)',
+  -- "How you compare" needs ≥8 peer occupancy samples (BENCHMARK_MIN_SAMPLE). Local orgs rarely
+  -- have that many Pro listings with bookings, so seed the platform cache directly for QA.
+  INSERT INTO public.platform_analytics_benchmark_cache (
+    id, computed_at, sample_size, occupancy_values, adr_values, median_occupancy_rate, median_adr
+  ) VALUES (
+    'global',
+    NOW(),
+    12,
+    '[28, 35, 41, 48, 52, 55, 58, 62, 67, 71, 74, 81]'::jsonb,
+    '[2200, 2450, 2680, 2900, 3100, 3250, 3400, 3600, 3850, 4100, 4350, 4800]'::jsonb,
+    56.5,
+    3325
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    computed_at = EXCLUDED.computed_at,
+    sample_size = EXCLUDED.sample_size,
+    occupancy_values = EXCLUDED.occupancy_values,
+    adr_values = EXCLUDED.adr_values,
+    median_occupancy_rate = EXCLUDED.median_occupancy_rate,
+    median_adr = EXCLUDED.median_adr;
+
+  RAISE NOTICE 'seed-analytics-demo-data: loaded % bookings + page views + AI review + benchmark cache for property % (%)',
     22, v_prop_id, v_prop_slug;
 END $$;

@@ -16,8 +16,8 @@
  * not worth that much of it for what is one `fetch` of newline-delimited JSON.
  *
  * Note: this reports explicitly-passed errors, so it does not replace an SDK's
- * automatic `window.onerror` / `unhandledrejection` hooks. `AppErrorBoundary` is the
- * one caller today, matching the existing PostHog wiring.
+ * automatic `window.onerror` / `unhandledrejection` hooks. Callers today:
+ * `AppErrorBoundary` and `RouteErrorFallback` (data-router `errorElement`).
  */
 
 type ParsedDsn = { envelopeUrl: string; publicKey: string };

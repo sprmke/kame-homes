@@ -1,6 +1,5 @@
 import { statusTone, type StatusTone } from '@/features/dashboard/bookings/lib/bookingStatus';
 
-
 import type { PdfRgb } from '@/lib/pdf/pdfTheme';
 import { PDF_COLORS } from '@/lib/pdf/pdfTheme';
 import { STATUS_TONE_HEX } from '@/lib/statusToneColors';

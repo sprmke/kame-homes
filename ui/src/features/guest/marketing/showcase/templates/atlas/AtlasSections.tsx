@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-
 import { motion, useTransform } from 'framer-motion';
 import { ChevronDown, Compass, Navigation } from 'lucide-react';
 

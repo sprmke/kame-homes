@@ -31,7 +31,7 @@ serveAuthenticated('smart-pricing-preview', async (req, user) => {
 
   const { property, user: scopedUser } = await resolveScopedPropertyAccess(
     req,
-    'pricing.rates:edit'
+    'pricing.smartPricing:edit'
   );
   const actorUser = user ?? scopedUser;
 

@@ -1,4 +1,3 @@
-
 import { seedSupabaseAuthSession } from '../../../shared/authSeam';
 import { E2E_GUEST_USER_ID } from '../../../shared/ids';
 import { mockPublicPropertyBody } from '../../../shared/mockFixtures';

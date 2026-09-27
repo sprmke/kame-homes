@@ -1,7 +1,7 @@
 /**
- * dashboard-assistant-settings — Org GET/PATCH for the AI dashboard assistant opt-in, per-property
- * disable list, and message/write-action quotas. Independent of ai-platform-settings (Phase A) —
- * see docs/workflow/planned/ai-dashboard-assistant.md §6.
+ * dashboard-assistant-settings — Org GET/PATCH for the AI dashboard assistant opt-in and
+ * per-property disable list. Message/write-action limits are super-admin owned (resolved through
+ * `_shared/aiLimitResolver.ts`); PATCH rejects them with 403 `ai_limit_platform_managed`.
  */
 
 import {
@@ -10,6 +10,10 @@ import {
   getDashboardAssistantUsageSummary,
   upsertDashboardAssistantOrgSettings,
 } from '../_shared/dashboardAssistantSettings.ts';
+import {
+  HOST_ASSISTANT_LIMIT_FIELDS,
+  rejectPlatformManagedLimits,
+} from '../_shared/aiLimitGuard.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import {
   listPropertyIdsForOrganization,
@@ -18,12 +22,14 @@ import {
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
 
-function isPositiveInt(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0;
-}
-
 function isUuidArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+/** Internal override notes are for super admins; never send them to hosts. */
+function hostSafe(settings: Awaited<ReturnType<typeof getDashboardAssistantOrgSettings>>) {
+  const { overrideReason: _internal, ...rest } = settings;
+  return rest;
 }
 
 serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
@@ -38,8 +44,9 @@ serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
       includeUsage ? getDashboardAssistantUsageSummary(ctx.org.id) : Promise.resolve(null),
     ]);
     return jsonSuccess(req, {
-      ...settings,
+      ...hostSafe(settings),
       platformEnabled: global.enabled,
+      aiModeEnabled: global.enabled && global.aiModeEnabled,
       usage,
     });
   }
@@ -48,20 +55,13 @@ serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
 
   if (req.method === 'PATCH') {
     const body = await readJsonBody(req);
+    const rejected = rejectPlatformManagedLimits(req, body, HOST_ASSISTANT_LIMIT_FIELDS);
+    if (rejected) return rejected;
     if (body.enabled !== undefined && typeof body.enabled !== 'boolean') {
       return jsonError(req, 'enabled must be a boolean when provided', 400);
     }
     if (body.disabledPropertyIds !== undefined && !isUuidArray(body.disabledPropertyIds)) {
       return jsonError(req, 'disabledPropertyIds must be an array of strings when provided', 400);
-    }
-    if (body.dailyMessageLimit !== undefined && !isPositiveInt(body.dailyMessageLimit)) {
-      return jsonError(req, 'dailyMessageLimit must be a positive integer', 400);
-    }
-    if (body.monthlyMessageLimit !== undefined && !isPositiveInt(body.monthlyMessageLimit)) {
-      return jsonError(req, 'monthlyMessageLimit must be a positive integer', 400);
-    }
-    if (body.dailyWriteActionLimit !== undefined && !isPositiveInt(body.dailyWriteActionLimit)) {
-      return jsonError(req, 'dailyWriteActionLimit must be a positive integer', 400);
     }
 
     if (isUuidArray(body.disabledPropertyIds) && body.disabledPropertyIds.length > 0) {
@@ -82,13 +82,6 @@ serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
       disabledPropertyIds: isUuidArray(body.disabledPropertyIds)
         ? body.disabledPropertyIds
         : undefined,
-      dailyMessageLimit: isPositiveInt(body.dailyMessageLimit) ? body.dailyMessageLimit : undefined,
-      monthlyMessageLimit: isPositiveInt(body.monthlyMessageLimit)
-        ? body.monthlyMessageLimit
-        : undefined,
-      dailyWriteActionLimit: isPositiveInt(body.dailyWriteActionLimit)
-        ? body.dailyWriteActionLimit
-        : undefined,
       updatedBy: user.id,
     });
 
@@ -106,7 +99,7 @@ serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
         fields: Object.keys(body).filter((k) => k !== 'settingsVerificationToken'),
       },
     });
-    return jsonSuccess(req, settings);
+    return jsonSuccess(req, hostSafe(settings));
   }
 
   return jsonError(req, 'Method not allowed', 405);

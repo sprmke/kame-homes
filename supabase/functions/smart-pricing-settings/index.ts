@@ -61,7 +61,7 @@ serveAuthenticated('smart-pricing-settings', async (req) => {
   if (req.method !== 'PATCH') return jsonError(req, 'Method not allowed', 405);
 
   // ── PATCH ────────────────────────────────────────────────────────────────
-  const access = await resolveScopedPropertyAccess(req, 'pricing.rates:edit');
+  const access = await resolveScopedPropertyAccess(req, 'pricing.smartPricing:edit');
   const { property, user } = access;
 
   try {

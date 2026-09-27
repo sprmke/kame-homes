@@ -29,12 +29,7 @@ import {
   getAiPlatformOrgSettings,
   sumMonthCreditsConsumed,
 } from './aiUsageService.ts';
-import {
-  MARKETING_IMAGE_GENERATE_FEATURE,
-  MARKETING_VIDEO_GENERATE_FEATURE,
-  monthlyCreditCapForFeature,
-  parseMarketingGenerationOverrides,
-} from './marketingGenerationFeatureConfig.ts';
+import { resolvePropertyAiLimits } from './aiLimitResolver.ts';
 
 export const MAX_CONCURRENT_PER_PROPERTY = 2;
 export const MAX_CONCURRENT_PER_ORG = 5;
@@ -123,26 +118,23 @@ async function readMonthCreditsForFeature(
   return total;
 }
 
-/** Super-admin / host per-property override: feature_configs[feature].monthly_credit_cap. */
+/**
+ * Per-feature monthly credit cap, resolved by aiLimitResolver (property override → property /
+ * development / org / plan profile). Blank everywhere = 60% of the org allowance.
+ */
 async function readFeatureCreditCap(
+  organizationId: string,
   propertyId: string,
   feature: AiFeature,
   monthlyAllowance: number
 ): Promise<number> {
   const fallback = Math.floor(monthlyAllowance * DEFAULT_FEATURE_CREDIT_CAP_RATIO);
   try {
-    const sb = db();
-    const { data } = await sb
-      .from('ai_platform_property_settings')
-      .select('feature_configs')
-      .eq('property_id', propertyId)
-      .maybeSingle();
-    const overrides = parseMarketingGenerationOverrides(data?.feature_configs);
-    const mediaFeature =
+    const { limits } = await resolvePropertyAiLimits(organizationId, propertyId);
+    const cap =
       feature === 'marketing_video_generate'
-        ? MARKETING_VIDEO_GENERATE_FEATURE
-        : MARKETING_IMAGE_GENERATE_FEATURE;
-    const cap = monthlyCreditCapForFeature(overrides, mediaFeature);
+        ? limits.videoMonthlyCreditCap.value
+        : limits.imageMonthlyCreditCap.value;
     if (cap != null) return cap;
   } catch (err) {
     console.warn(
@@ -200,7 +192,12 @@ export async function assertMarketingGenerationBudget(
   }
 
   // 3. Per-feature sub-cap.
-  const featureCap = await readFeatureCreditCap(input.propertyId, input.feature, monthlyAllowance);
+  const featureCap = await readFeatureCreditCap(
+    input.organizationId,
+    input.propertyId,
+    input.feature,
+    monthlyAllowance
+  );
   if (monthFeatureCredits + input.estimatedCredits > featureCap + walletBalance) {
     throw new AiQuotaExceededError(
       'Monthly limit for AI media generation reached. Top up credits or upgrade to continue.'

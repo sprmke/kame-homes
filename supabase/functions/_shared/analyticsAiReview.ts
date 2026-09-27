@@ -316,10 +316,13 @@ export type AnalyticsReviewRow = {
   headline: string;
   score: number;
   score_delta: number | null;
+  period_start: string;
+  period_end: string;
   payload: unknown;
 };
 
-const REVIEW_ROW_COLUMNS = 'id, generated_at, model, headline, score, score_delta, payload';
+const REVIEW_ROW_COLUMNS =
+  'id, generated_at, model, headline, score, score_delta, period_start, period_end, payload';
 
 /**
  * Unsets the current is_latest row and inserts the new one. Not transactional (two sequential

@@ -59,6 +59,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { captureAppEvent } from '@/lib/posthog/capture';
@@ -232,6 +233,17 @@ export function SdFormPage() {
     onError: (err: Error) => {
       toast.error(friendlyToastError(err, 'Could not submit'));
     },
+  });
+
+  // Refund details are held in local state only; Discard-only prompt (no save from here).
+  useUnsavedChangesGuard({
+    isDirty:
+      step === 3 &&
+      !submitMut.isPending &&
+      (method !== 'same_phone' ||
+        bank !== SD_BANKS[0] ||
+        accountName.trim() !== '' ||
+        accountNumber.trim() !== ''),
   });
 
   if (embedPreview && !bookingId) {

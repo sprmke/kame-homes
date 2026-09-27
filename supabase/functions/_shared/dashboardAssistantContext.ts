@@ -3,6 +3,7 @@
  * Returns only the host/org metadata and recent aggregate metrics the assistant is allowed to reason about.
  */
 
+import { limitNumber, resolveOrgAiLimits } from './aiLimitResolver.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import {
@@ -131,11 +132,7 @@ export async function buildDashboardAssistantContext(
     .eq('date', todayStartIso.slice(0, 10))
     .maybeSingle();
 
-  const { data: orgSettings } = await sb
-    .from('ai_platform_org_settings')
-    .select('daily_call_limit')
-    .eq('organization_id', organizationId)
-    .maybeSingle();
+  const { limits: aiLimits } = await resolveOrgAiLimits(organizationId);
 
   const { data: member } = await sb
     .from('organization_members')
@@ -161,7 +158,7 @@ export async function buildDashboardAssistantContext(
     aiUsage: {
       callsToday: Number(usageRow?.call_count ?? 0),
       costTodayUsd: Number(usageRow?.cost_usd ?? 0),
-      dailyCallLimit: Number(orgSettings?.daily_call_limit ?? 200),
+      dailyCallLimit: limitNumber(aiLimits, 'dailyCallLimit'),
     },
     effectivePermissions,
   };

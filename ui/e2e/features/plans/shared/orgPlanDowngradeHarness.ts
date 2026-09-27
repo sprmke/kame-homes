@@ -20,6 +20,7 @@ import {
   PLANS_E2E_PROPERTY_ID,
   PLANS_E2E_PROPERTY_SLUG,
   plansE2ePaths,
+  planChargedPhp,
   emptyPlanFeatures,
 } from './orgPlanHarnessShared';
 
@@ -68,7 +69,7 @@ function orgPlanPayload(state: HarnessState) {
           planName: currentPlan.name,
           pricingModel: 'subscription',
           status: state.subscriptionStatus,
-          pricePhpSnapshot: currentPlan.pricePhp,
+          pricePhpSnapshot: planChargedPhp(currentPlan),
           currentPeriodStart: '2026-08-01T00:00:00.000Z',
           currentPeriodEnd: '2026-09-01T00:00:00.000Z',
           gracePeriodEndsAt: null,

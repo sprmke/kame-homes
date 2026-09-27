@@ -136,3 +136,5 @@ Plan / status: [`docs/workflow/in-progress/super-admin-step-up-otp.md`](../docs/
 ## Host Recommended reward carve-out (R3)
 
 `submit-org-verification` with `tier: 'enhanced'` normally requires plan feature `recommendedBadgeEligible`. When `platform_settings.host_reward_enabled` is true, the campaign window is open, and the org is under `host_reward_max_per_org`, that gate is **skipped** so Free hosts can submit Recommended for the campaign. Keep the gate for everyone else. Grant/expire/revoke live in `_shared/hostVerificationReward.ts` (not a general entitlement bypass).
+
+- **AI limits (`super-admin-ai-limits`)**: `serveSuperAdmin` + `requireSuperAdminStepUp(req, admin, 'ai_limits')` on every POST. Hosts never write AI limits; host AI endpoints accept the on/off toggle only (`_shared/aiLimitGuard.ts`).

@@ -29,4 +29,3 @@ describe('parkingStayDisplay', () => {
     expect(parkingBroadcastCountdownA11yLabel(120_000)).toBe('2 minutes remaining');
   });
 });
-

@@ -57,20 +57,6 @@ test.describe('@ci dashboard module shells', () => {
     });
   });
 
-  test('settings Photos & Videos links to Public Pages', async ({ page }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/settings');
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    const mediaCard = page.locator('#section-media');
-    await mediaCard.scrollIntoViewIfNeeded();
-    await mediaCard.getByRole('link', { name: 'Also in Public Pages' }).click();
-
-    await expect(page).toHaveURL(/\/public-pages$/);
-  });
-
   test('property notifications page loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     await page.goto('/org/kame-homes-ph/property/solea-mactan/notifications');
@@ -167,6 +153,8 @@ test.describe('@ci dashboard module shells', () => {
     await expect(page.getByRole('heading', { name: 'Activity', exact: true })).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page.getByRole('searchbox', { name: 'Search activity' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeVisible();
     await expect(page.getByText('No activity in this range.')).toBeVisible();
   });
 });

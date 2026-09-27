@@ -2,7 +2,7 @@
  * dashboard-assistant-chat — main AI dashboard assistant turn endpoint.
  * Docs: docs/workflow/planned/ai-dashboard-assistant.md §1 (turn flow), §2 (tools), §5 (guardrails).
  *
- * Body: { conversationId?, orgSlug, pageContext: { propertyId?, bookingId? }, attachedContext?: AttachedContextItem[], message, displayMessage?, attachments?: [{ name, mimeType, dataBase64 }], stream?: boolean, regenerate?: boolean }
+ * Body: { conversationId?, orgSlug, pageContext: { propertyId?, parkingId?, bookingId? }, attachedContext?: AttachedContextItem[], message, displayMessage?, attachments?: [{ name, mimeType, dataBase64 }], stream?: boolean, regenerate?: boolean, editMessageId?: string }
  *
  * `displayMessage` (optional) is the host-facing text stored on the user row / shown in History.
  * `message` is what the model receives for this turn (may include richer chip guidance).
@@ -10,6 +10,13 @@
  *
  * `regenerate: true` reuses the last user message in `conversationId`, deletes later assistant
  * rows, and does not insert a duplicate user message. Attachments are not supported on regenerate.
+ *
+ * `editMessageId` (edit & resend) deletes that user message and every later row in the
+ * conversation, expires their pending actions, then runs `message` as a normal new turn.
+ * Tier-1 writes that already ran are not undone.
+ *
+ * The response (JSON `data` or the terminal SSE `blocks` event) carries `messageId` (assistant
+ * row) and `userMessageId` so the client can attach feedback, copy and edit to real rows.
  *
  * Tier-2 actions are never executed here — a proposal short-circuits the tool loop and returns
  * an `action_confirmation` block with status "proposed"; dashboard-assistant-confirm executes it.
@@ -123,6 +130,7 @@ import {
 } from '../_shared/planEntitlements.ts';
 import { createServiceClient, verifyOrgAccess, verifyPropertyAccess } from '../_shared/orgAuth.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
+import { allTeamPermissions } from '../_shared/propertyTeamPermissions.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import {
@@ -190,36 +198,13 @@ async function resolveEffectivePermissions(
   if (propertyId) await assertPropertyInOrg(propertyId, organizationId);
   if (accessKind === 'owner' || accessKind === 'platform_admin' || accessKind === 'org_admin') {
     return {
-      permissions: [
-        'bookings:view',
-        'bookings.create:add',
-        'bookings.import:add',
-        'bookings.detail.stay:edit',
-        'bookings.detail.guests:edit',
-        'bookings.detail.parking:edit',
-        'bookings.detail.pets:edit',
-        'bookings.detail.pricing:edit',
-        'bookings.detail.workflow:edit',
-        'finance:view',
-        'finance.transactions:add',
-        'finance.transactions:edit',
-        'finance.transactions:delete',
-        'finance.export:view',
-        'maintenance:view',
-        'maintenance.reminders:add',
-        'maintenance.reminders:edit',
-        'maintenance.reminders:delete',
-        'maintenance.export:view',
-        'pricing:view',
-        'pricing.rates:edit',
-        'pricing.blocks:add',
-        'pricing.blocks:delete',
-      ],
+      permissions: allTeamPermissions(),
       propertyId: propertyId ?? null,
     };
   }
   if (propertyId) {
-    const access = await verifyPropertyAccess(req, propertyId);
+    // Members need the dedicated assistant leaf; owners / org admins are implicit above.
+    const access = await verifyPropertyAccess(req, propertyId, 'assistant:view');
     return { permissions: access.permissions, propertyId: access.property.id };
   }
   return { permissions: [], propertyId: null };
@@ -246,6 +231,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     }
     const conversationIdInput = body.conversationId ? String(body.conversationId).trim() : null;
     const regenerate = body.regenerate === true;
+    const editMessageId = body.editMessageId ? String(body.editMessageId).trim() : null;
     const incomingAttachments = parseIncomingAttachments(body.attachments);
     const pageContext = {
       propertyId: body.pageContext?.propertyId ? String(body.pageContext.propertyId) : null,
@@ -268,6 +254,9 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     }
     if (regenerate && incomingAttachments.length > 0) {
       return jsonError(req, 'attachments are not supported when regenerating', 400);
+    }
+    if (editMessageId && (regenerate || !conversationIdInput)) {
+      return jsonError(req, 'editMessageId needs a conversationId and cannot regenerate', 400);
     }
 
     const orgCtx = await verifyOrgAccess(req, { orgSlug });
@@ -429,6 +418,37 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         return jsonError(req, 'Cannot regenerate an empty message', 400);
       }
     } else {
+      if (editMessageId) {
+        const { data: edited, error: editedError } = await sb
+          .from('ai_dashboard_assistant_messages')
+          .select('id, role, conversation_id, created_at')
+          .eq('id', editMessageId)
+          .maybeSingle();
+        if (
+          editedError ||
+          !edited ||
+          edited.conversation_id !== conversationId ||
+          edited.role !== 'user'
+        ) {
+          return jsonError(req, 'Message to edit was not found', 404);
+        }
+        const { data: dropped } = await sb
+          .from('ai_dashboard_assistant_messages')
+          .select('id')
+          .eq('conversation_id', conversationId)
+          .gte('created_at', String(edited.created_at))
+          .limit(500);
+        const droppedIds = (dropped ?? []).map((row) => row.id as string);
+        if (droppedIds.length > 0) {
+          await sb
+            .from('ai_dashboard_assistant_pending_actions')
+            .update({ status: 'expired' })
+            .in('message_id', droppedIds)
+            .eq('status', 'pending');
+          await sb.from('ai_dashboard_assistant_messages').delete().in('id', droppedIds);
+        }
+      }
+
       try {
         const persisted = await persistAssistantAttachments({
           organizationId: orgCtx.org.id,
@@ -978,15 +998,21 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         { userMessage: turnMessage }
       );
 
-      await sb.from('ai_dashboard_assistant_messages').insert({
-        conversation_id: conversationId,
-        role: 'assistant',
-        content_text: finalText || null,
-        blocks: responseBlocks,
-        // Audit copy only (never fed back to the model) — contact / identity fields redacted.
-        tool_calls:
-          toolResultsForGrounding.length > 0 ? redactSensitiveFields(toolResultsForGrounding) : [],
-      });
+      const { data: assistantRow } = await sb
+        .from('ai_dashboard_assistant_messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content_text: finalText || null,
+          blocks: responseBlocks,
+          // Audit copy only (never fed back to the model) — contact / identity fields redacted.
+          tool_calls:
+            toolResultsForGrounding.length > 0
+              ? redactSensitiveFields(toolResultsForGrounding)
+              : [],
+        })
+        .select('id')
+        .single();
 
       await sb
         .from('ai_dashboard_assistant_conversations')
@@ -999,7 +1025,12 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       });
 
       turnCommitted = true;
-      return { conversationId, blocks: responseBlocks };
+      return {
+        conversationId,
+        blocks: responseBlocks,
+        messageId: (assistantRow?.id as string | undefined) ?? undefined,
+        userMessageId: userMessageRow.id,
+      };
     };
 
     if (wantsAssistantStream(req, body as { stream?: boolean })) {
@@ -1023,6 +1054,8 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
                 type: 'blocks',
                 conversationId: result.conversationId,
                 blocks: result.blocks,
+                messageId: result.messageId,
+                userMessageId: result.userMessageId,
               });
               controller.close();
             } catch (err) {
@@ -1064,7 +1097,12 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
     try {
       const result = await runTurn();
-      return jsonSuccess(req, { conversationId: result.conversationId, blocks: result.blocks });
+      return jsonSuccess(req, {
+        conversationId: result.conversationId,
+        blocks: result.blocks,
+        messageId: result.messageId,
+        userMessageId: result.userMessageId,
+      });
     } catch (err) {
       if (isAssistantTurnAbortedError(err)) {
         await cleanupAbortedTurn();

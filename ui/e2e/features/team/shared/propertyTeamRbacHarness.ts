@@ -68,6 +68,7 @@ export const FULL_ACCESS_PERMISSIONS = [
   'pricing.rates:edit',
   'pricing.blocks:add',
   'pricing.blocks:delete',
+  'pricing.smartPricing:edit',
   'maintenance:view',
   'maintenance.reminders:add',
   'maintenance.reminders:edit',
@@ -80,6 +81,7 @@ export const FULL_ACCESS_PERMISSIONS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
+  'marketing.generate.image:add',
   'marketing.generate.video:add',
   'marketing.publish:add',
   'notifications:view',
@@ -107,6 +109,11 @@ export const FULL_ACCESS_PERMISSIONS = [
   'inbox:view',
   'inbox.messages:edit',
   'inbox.channels:add',
+  'analytics:view',
+  'analytics:export',
+  'analytics.aiReview:add',
+  'assistant:view',
+  'activity:view',
 ] as const;
 
 /** Operations seeded template (ex-Staff) — includes Marketing; excludes Finance/Settings/Team manage. */
@@ -137,8 +144,10 @@ export const OPERATIONS_PERMISSIONS = [
   'marketing.templates:edit',
   'marketing.templates:delete',
   'marketing.generate:add',
-  'marketing.generate.video:add',
   'marketing.publish:add',
+  'analytics:view',
+  'assistant:view',
+  'activity:view',
 ] as const;
 
 /** Read Only seeded template — no Marketing, Finance, Settings. */
@@ -151,6 +160,7 @@ export const READ_ONLY_PERMISSIONS = [
   'pricing:view',
   'team:view',
   'inbox:view',
+  'activity:view',
 ] as const;
 
 export type TeamRbacTemplate = 'full_access' | 'operations' | 'read_only';
@@ -474,6 +484,7 @@ function entitlementsPayload(
     customRoles: true,
     calendarSync: true,
     smartPricing: true,
+    analyticsInsights: !freePlan,
     planId: PLAN_PRO,
     planCode: 'pro',
     planName: 'Business',
@@ -680,6 +691,9 @@ function orgAccessPayload(orgHub = false) {
       'org.settings.aiPlatform:edit',
       'org.settings.aiAssistant:edit',
       'org.plans:view',
+      'org.analytics:view',
+      'org.analytics:export',
+      'org.activity:view',
     ],
     memberId: null,
     canListAllProperties: true,

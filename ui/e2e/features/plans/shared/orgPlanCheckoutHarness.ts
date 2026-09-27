@@ -21,7 +21,7 @@ import {
   PLANS_E2E_PROPERTY_ID,
   PLANS_E2E_PROPERTY_SLUG,
   plansE2ePaths,
-  emptyPlanFeatures,
+  planChargedPhp,
 } from './orgPlanHarnessShared';
 
 export {
@@ -77,6 +77,10 @@ function planById(planId: string | null) {
   return PLANS_E2E_CATALOG.find((plan) => plan.id === planId) ?? null;
 }
 
+function effectivePlan(state: PlansCheckoutHarnessState) {
+  return planById(state.subscriptionPlanId) ?? planById(PLAN_FREE)!;
+}
+
 function orgPlanPayload(state: PlansCheckoutHarnessState) {
   const currentPlan = planById(state.subscriptionPlanId);
   const pendingUrl = state.pendingCheckout?.checkoutUrl ?? null;
@@ -100,7 +104,7 @@ function orgPlanPayload(state: PlansCheckoutHarnessState) {
           planName: currentPlan.name,
           pricingModel: 'subscription',
           status: state.subscriptionStatus,
-          pricePhpSnapshot: currentPlan.pricePhp,
+          pricePhpSnapshot: planChargedPhp(currentPlan),
           currentPeriodStart: '2026-08-01T00:00:00.000Z',
           currentPeriodEnd: '2026-09-01T00:00:00.000Z',
           gracePeriodEndsAt: null,
@@ -134,7 +138,7 @@ export function fulfillPendingCheckout(state: PlansCheckoutHarnessState, planId:
     state.transactions.unshift({
       id: txnId,
       planId,
-      amount: plan.pricePhp,
+      amount: planChargedPhp(plan),
       currency: 'PHP',
       status: 'paid',
       paymentMethodType: 'qrph',
@@ -155,7 +159,7 @@ function createPendingCheckout(state: PlansCheckoutHarnessState, planId: string)
   state.transactions.unshift({
     id: transactionId,
     planId,
-    amount: plan?.pricePhp ?? 0,
+    amount: plan ? planChargedPhp(plan) : 0,
     currency: 'PHP',
     status: 'pending',
     paymentMethodType: null,
@@ -276,7 +280,7 @@ export async function installPlansCheckoutMocks(
           {
             id: options.pendingCheckout.transactionId,
             planId: options.pendingCheckout.planId,
-            amount: planById(options.pendingCheckout.planId)?.pricePhp ?? 0,
+            amount: planChargedPhp(planById(options.pendingCheckout.planId)!),
             currency: 'PHP',
             status: 'pending',
             paymentMethodType: null,
@@ -404,10 +408,11 @@ export async function installPlansCheckoutMocks(
         await fulfillJson(route, {
           success: true,
           data: {
-            ...emptyPlanFeatures(),
-            planId: state.subscriptionPlanId ?? PLAN_STARTER,
-            planCode: planById(state.subscriptionPlanId)?.code ?? 'starter',
-            planName: planById(state.subscriptionPlanId)?.name ?? 'Starter',
+            // Entitlements follow the org's tier (Free when nothing is subscribed), like the server.
+            ...effectivePlan(state).features,
+            planId: effectivePlan(state).id,
+            planCode: effectivePlan(state).code,
+            planName: effectivePlan(state).name,
             pricingModel: 'subscription',
             status: state.subscriptionStatus,
             propertySubscriptionId: state.subscriptionId ?? '',

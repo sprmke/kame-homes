@@ -2,7 +2,6 @@ import { E2E_GUEST_USER_ID, E2E_HOST_USER_ID, SUPABASE_AUTH_STORAGE_KEY } from '
 
 import type { Page } from '@playwright/test';
 
-
 export type E2eAuthRole = 'host' | 'guest';
 
 function buildSession(role: E2eAuthRole) {

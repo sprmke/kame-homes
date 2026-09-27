@@ -7,8 +7,6 @@ import extraBoldFontUrl from '@/assets/fonts/PlusJakartaSans-ExtraBold.ttf?url';
 import regularFontUrl from '@/assets/fonts/PlusJakartaSans-Regular.ttf?url';
 import semiFontUrl from '@/assets/fonts/PlusJakartaSans-SemiBold.ttf?url';
 
-
-
 /** jsPDF style slots — mapped to static Plus Jakarta Sans cuts. */
 export type PdfFontWeight = 'normal' | 'semibold' | 'bold' | 'heavy';
 

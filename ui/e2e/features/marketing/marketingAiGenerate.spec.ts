@@ -52,7 +52,12 @@ test.describe('@ci marketing AI generate tab', () => {
     await expect(page.getByRole('option', { name: /High \(1080p\)/ })).toBeVisible();
   });
 
-  test('below Business, Video opens upgrade and Image stays usable', async ({ page }) => {
+  test('below Business, Video stays selectable and Generate does not submit', async ({ page }) => {
+    const generateCalls: string[] = [];
+    page.on('request', (req) => {
+      if (req.url().includes('/functions/v1/generate-marketing-media'))
+        generateCalls.push(req.url());
+    });
     await installPropertyTeamRbacMocks(page, 'full_access', { videoPlanAllowed: false });
     await page.goto(teamRbacPaths.marketing);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
@@ -62,18 +67,22 @@ test.describe('@ci marketing AI generate tab', () => {
     await page.getByRole('tab', { name: 'Generate' }).click();
 
     const mediaType = page.getByRole('tablist', { name: 'Media type' });
-    const videoToggle = mediaType.getByRole('tab', { name: /Video/ });
+    const videoToggle = mediaType.getByRole('tab', { name: /^Video/ });
     await expect(videoToggle).toBeEnabled();
     await videoToggle.click();
+    await expect(videoToggle).toHaveAttribute('aria-selected', 'true');
 
-    await expect(mediaType.getByRole('tab', { name: 'Image' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    await expect(page.getByPlaceholder(/balcony at golden hour/i)).toBeVisible();
+    await page.locator('#ai-studio-prompt').fill('Slow pan across the living room');
+    await page
+      .locator('#ai-studio-composer')
+      .getByRole('button', { name: /generate/i })
+      .click();
+    // The plan gate intercepts the submit: no generation request leaves the browser.
+    await page.waitForTimeout(500);
+    expect(generateCalls).toEqual([]);
   });
 
-  test('below Pro, the composer is gated but past generations stay visible and downloadable', async ({
+  test('below Pro, the composer stays open, Generate opens the upgrade modal, and past generations stay downloadable', async ({
     page,
   }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', {
@@ -87,10 +96,14 @@ test.describe('@ci marketing AI generate tab', () => {
 
     await page.getByRole('tab', { name: 'Generate' }).click();
 
-    await expect(page.getByText('AI image generation')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'View plans' })).toBeVisible();
-    await expect(page.getByPlaceholder(/balcony at golden hour/i)).toHaveCount(0);
+    await page.locator('#ai-studio-prompt').fill('Sunset over the rooftop pool');
+    await page
+      .locator('#ai-studio-composer')
+      .getByRole('button', { name: /generate/i })
+      .click();
+    await expect(page.getByRole('dialog')).toBeVisible();
 
+    await page.keyboard.press('Escape');
     await expect(page.getByText(SEEDED_PROMPT)).toBeVisible();
     await expect(page.getByRole('link', { name: /download/i })).toBeVisible();
   });
@@ -104,7 +117,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
     await page.getByRole('tab', { name: 'Generate' }).click();
     await page.getByRole('button', { name: 'Retry' }).click();
-    await expect(page.getByLabel('Prompt')).toHaveValue(SEEDED_PROMPT);
+    await expect(page.locator('#ai-studio-prompt')).toHaveValue(SEEDED_PROMPT);
   });
 
   test('Library drawer lists saved photos', async ({ page }) => {
@@ -130,5 +143,24 @@ test.describe('@ci marketing AI generate tab', () => {
     await page.getByRole('tab', { name: 'Generate' }).click();
     await page.getByRole('button', { name: 'Use photo' }).click();
     await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible();
+  });
+
+  test('a role without the image leaf cannot generate images', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'operations');
+    await page.goto(teamRbacPaths.marketing);
+    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('tab', { name: 'Generate' }).click();
+
+    const mediaType = page.getByRole('tablist', { name: 'Media type' });
+    await expect(
+      mediaType.getByRole('tab', { name: /Image\. You do not have permission/ })
+    ).toBeDisabled();
+    await expect(
+      mediaType.getByRole('tab', { name: /Video\. You do not have permission/ })
+    ).toBeDisabled();
+    await expect(page.getByText(/do not have permission to generate/i)).toBeVisible();
   });
 });

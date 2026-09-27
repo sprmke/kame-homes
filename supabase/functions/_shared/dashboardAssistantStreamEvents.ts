@@ -32,6 +32,10 @@ export type AssistantStreamEvent =
       conversationId: string;
       blocks: ChatBlock[];
       upgradeHook?: boolean;
+      /** Persisted assistant row id (feedback, copy, live refresh). */
+      messageId?: string;
+      /** Persisted user row id this turn answered (edit & resend). */
+      userMessageId?: string;
     }
   | {
       type: 'error';

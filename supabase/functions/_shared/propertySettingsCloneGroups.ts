@@ -623,6 +623,12 @@ const telegramNotificationsGroup: CloneGroup = {
   },
 };
 
+/**
+ * Copyable voice receptionist fields. Session limits are super-admin owned and must never travel
+ * through a host copy, so they are neither read nor written here.
+ */
+const VOICE_COPY_KEYS = ['enabled', 'voiceId', 'personaPrompt'] as const;
+
 const voiceReceptionistGroup: CloneGroup = {
   id: 'voiceReceptionist',
   label: 'Voice receptionist',
@@ -631,10 +637,10 @@ const voiceReceptionistGroup: CloneGroup = {
   defaultOn: true,
   async read(sourceCtx) {
     const settings = await getVoiceReceptionistSettings(sourceCtx.propertyId);
-    return { ...settings };
+    return pickKeys({ ...settings }, VOICE_COPY_KEYS);
   },
   sanitize(payload) {
-    return { ...payload };
+    return pickKeys(payload, VOICE_COPY_KEYS);
   },
   async hasNonDefault(targetCtx) {
     const settings = await getVoiceReceptionistSettings(targetCtx.propertyId);
@@ -645,16 +651,16 @@ const voiceReceptionistGroup: CloneGroup = {
       enabled: payload.enabled as boolean | undefined,
       voiceId: payload.voiceId as string | undefined,
       personaPrompt: payload.personaPrompt as string | undefined,
-      maxSessionSeconds: payload.maxSessionSeconds as number | undefined,
-      maxSessionsPerGuestPerDay: payload.maxSessionsPerGuestPerDay as number | undefined,
-      maxConcurrentSessions: payload.maxConcurrentSessions as number | undefined,
     });
   },
 };
 
+/** AI on/off is the only host-owned AI setting; limits and caps are never copied. */
+const AI_COPY_KEYS = ['enabled'] as const;
+
 const aiOverridesGroup: CloneGroup = {
   id: 'aiOverrides',
-  label: 'AI overrides',
+  label: 'AI',
   editLeaves: ['settings.aiOverrides:edit'],
   planFeature: 'aiMonthlyCreditAllowance',
   defaultOn: true,
@@ -663,63 +669,25 @@ const aiOverridesGroup: CloneGroup = {
       sourceCtx.propertyId,
       sourceCtx.organizationId
     );
-    const generation = await getMarketingGenerationOverrides(
-      sourceCtx.propertyId,
-      sourceCtx.organizationId
-    );
-    return {
-      enabled: settings.enabled,
-      dailyCallLimit: settings.dailyCallLimit,
-      monthlyCallLimit: settings.monthlyCallLimit,
-      dailyCostUsdLimit: settings.dailyCostUsdLimit,
-      dailyCreditLimit: settings.dailyCreditLimit,
-      monthlyCreditLimit: settings.monthlyCreditLimit,
-      imageMonthlyCreditCap: generation.imageMonthlyCreditCap,
-      videoMonthlyCreditCap: generation.videoMonthlyCreditCap,
-    };
+    return { enabled: settings.enabled };
   },
   sanitize(payload) {
-    return { ...payload };
+    return pickKeys(payload, AI_COPY_KEYS);
   },
   async hasNonDefault(targetCtx) {
     const settings = await getAiPlatformPropertySettings(
       targetCtx.propertyId,
       targetCtx.organizationId
     );
-    const generation = await getMarketingGenerationOverrides(
-      targetCtx.propertyId,
-      targetCtx.organizationId
-    );
-    return (
-      settings.enabled === false ||
-      settings.dailyCallLimit != null ||
-      settings.monthlyCallLimit != null ||
-      settings.dailyCostUsdLimit != null ||
-      generation.imageMonthlyCreditCap != null ||
-      generation.videoMonthlyCreditCap != null
-    );
+    return settings.enabled === false;
   },
   async write(payload, targetCtx, options) {
     const actorUserId = options.actorUserId;
-    if (!actorUserId) throw new Error('Missing actor for AI overrides copy');
+    if (!actorUserId) throw new Error('Missing actor for AI settings copy');
     await upsertAiPlatformPropertySettings({
       propertyId: targetCtx.propertyId,
       organizationId: targetCtx.organizationId,
       enabled: payload.enabled as boolean | undefined,
-      dailyCallLimit: payload.dailyCallLimit as number | null | undefined,
-      monthlyCallLimit: payload.monthlyCallLimit as number | null | undefined,
-      dailyCostUsdLimit: payload.dailyCostUsdLimit as number | null | undefined,
-      dailyCreditLimit: payload.dailyCreditLimit as number | null | undefined,
-      monthlyCreditLimit: payload.monthlyCreditLimit as number | null | undefined,
-      updatedBy: actorUserId,
-    });
-    await patchMarketingGenerationOverrides({
-      propertyId: targetCtx.propertyId,
-      organizationId: targetCtx.organizationId,
-      patch: {
-        imageMonthlyCreditCap: (payload.imageMonthlyCreditCap as number | null | undefined) ?? null,
-        videoMonthlyCreditCap: (payload.videoMonthlyCreditCap as number | null | undefined) ?? null,
-      },
       updatedBy: actorUserId,
     });
   },

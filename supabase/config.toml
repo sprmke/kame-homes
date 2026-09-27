@@ -1034,6 +1034,9 @@ verify_jwt = false
 [functions.ai-platform-credit-wallet]
 verify_jwt = false
 
+[functions.super-admin-ai-limits]
+verify_jwt = false
+
 [functions.pricing-plans]
 verify_jwt = false
 

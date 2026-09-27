@@ -7,6 +7,12 @@
  * `endVoiceReceptionistSession()` below.
  */
 
+import {
+  clearAiLimitCache,
+  limitNumber,
+  resolvePropertyAiLimits,
+  type ResolvedAiLimits,
+} from './aiLimitResolver.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { GEMINI_LIVE_VOICES, type GeminiLiveVoice } from './geminiLiveEphemeral.ts';
 import { getModelConfig, isValidAiFeature } from './aiModelRouter.ts';
@@ -322,9 +328,11 @@ function getVoiceFeatureConfig(row: Record<string, unknown> | null): VoiceFeatur
   };
 }
 
+/** Session limits are resolved (override → profiles → default); hosts never write them. */
 function serializeSettingsRow(
   propertyId: string,
-  row: Record<string, unknown> | null
+  row: Record<string, unknown> | null,
+  limits: ResolvedAiLimits
 ): VoiceReceptionistSettingsDto {
   const config = getVoiceFeatureConfig(row);
   const rowEnabled = row?.enabled as boolean | undefined;
@@ -333,9 +341,9 @@ function serializeSettingsRow(
     enabled: rowEnabled !== false && (config.enabled ?? false),
     voiceId: config.voiceId ?? 'Kore',
     personaPrompt: config.personaPrompt ?? null,
-    maxSessionSeconds: config.maxSessionSeconds ?? 300,
-    maxSessionsPerGuestPerDay: config.maxSessionsPerGuestPerDay ?? 3,
-    maxConcurrentSessions: config.maxConcurrentSessions ?? 3,
+    maxSessionSeconds: limitNumber(limits, 'voiceMaxSessionSeconds'),
+    maxSessionsPerGuestPerDay: limitNumber(limits, 'voiceMaxSessionsPerGuestPerDay'),
+    maxConcurrentSessions: limitNumber(limits, 'voiceMaxConcurrentSessions'),
     availableVoices: GEMINI_LIVE_VOICES,
   };
 }
@@ -373,16 +381,18 @@ export async function getVoiceReceptionistSettings(
     console.error('[voiceReceptionistService] load property settings:', error.message);
     throw new Error('Failed to load voice receptionist settings');
   }
-  return serializeSettingsRow(propertyId, data);
+  const { limits } = await resolvePropertyAiLimits(organizationId, propertyId);
+  return serializeSettingsRow(propertyId, data, limits);
 }
 
+/** Session limits are super-admin only; `null` clears the override so profiles apply again. */
 export type VoiceReceptionistSettingsPatch = {
   enabled?: boolean;
   voiceId?: string;
   personaPrompt?: string | null;
-  maxSessionSeconds?: number;
-  maxSessionsPerGuestPerDay?: number;
-  maxConcurrentSessions?: number;
+  maxSessionSeconds?: number | null;
+  maxSessionsPerGuestPerDay?: number | null;
+  maxConcurrentSessions?: number | null;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -484,14 +494,14 @@ export async function updateVoiceReceptionistSettings(
   if (patch.enabled !== undefined) updatedVoiceConfig.enabled = patch.enabled;
   if (patch.voiceId !== undefined) updatedVoiceConfig.voice_id = patch.voiceId;
   if (patch.personaPrompt !== undefined) updatedVoiceConfig.persona_prompt = patch.personaPrompt;
-  if (patch.maxSessionSeconds !== undefined)
-    updatedVoiceConfig.max_session_seconds = patch.maxSessionSeconds;
-  if (patch.maxSessionsPerGuestPerDay !== undefined) {
-    updatedVoiceConfig.max_sessions_per_guest_per_day = patch.maxSessionsPerGuestPerDay;
-  }
-  if (patch.maxConcurrentSessions !== undefined) {
-    updatedVoiceConfig.max_concurrent_sessions = patch.maxConcurrentSessions;
-  }
+  const setOrClear = (key: string, value: number | null | undefined) => {
+    if (value === undefined) return;
+    if (value === null) delete updatedVoiceConfig[key];
+    else updatedVoiceConfig[key] = value;
+  };
+  setOrClear('max_session_seconds', patch.maxSessionSeconds);
+  setOrClear('max_sessions_per_guest_per_day', patch.maxSessionsPerGuestPerDay);
+  setOrClear('max_concurrent_sessions', patch.maxConcurrentSessions);
 
   const updatedConfigs = { ...configs, [VOICE_FEATURE]: updatedVoiceConfig };
   const enabled = patch.enabled ?? (current?.enabled as boolean | undefined) ?? true;
@@ -511,7 +521,9 @@ export async function updateVoiceReceptionistSettings(
     console.error('[voiceReceptionistService] update property settings:', error.message);
     throw new Error('Failed to update voice receptionist settings');
   }
-  return serializeSettingsRow(propertyId, data);
+  clearAiLimitCache();
+  const { limits } = await resolvePropertyAiLimits(organizationId, propertyId);
+  return serializeSettingsRow(propertyId, data, limits);
 }
 
 /** Start of "today" in Manila as an ISO instant (no DST in Asia/Manila, fixed UTC+8). */

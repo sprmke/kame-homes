@@ -27,7 +27,7 @@ case "$norm" in
     ;;
 esac
 
-MSG="Mobile-native UI reminder: you edited ${file_path}. On max-lg use bottom sheets and shared mobile primitives (ResponsiveModal, MobileChoiceSheet, ResponsiveOverflowMenu, BottomTabBar, ContextualActionBar) — not centered Dialog or floating DropdownMenu. Invoke mobile-responsive skill before claiming UI done."
+MSG="Mobile-native UI reminder: you edited ${file_path}. On max-lg use bottom sheets and shared mobile primitives (ResponsiveModal, MobileChoiceSheet, ResponsiveOverflowMenu, BottomTabBar, ContextualActionBar) — not centered Dialog or floating DropdownMenu. Invoke mobile-responsive skill before claiming UI done. If this file has editable fields with a manual Save, it also needs the unsaved-changes guard (useUnsavedChangesGuard / useGuardedClose): invoke the unsaved-changes-guard skill."
 
 escape_for_json() {
   local s="$1"

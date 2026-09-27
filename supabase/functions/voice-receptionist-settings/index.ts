@@ -1,8 +1,10 @@
 /**
  * voice-receptionist-settings — Property-scoped GET/PATCH for AI voice receptionist config.
  * Auth: property team member (settings:view for GET, settings.voiceReceptionist:edit for PATCH).
+ * Session limits are super-admin owned; PATCH rejects them with 403 `ai_limit_platform_managed`.
  */
 
+import { HOST_VOICE_LIMIT_FIELDS, rejectPlatformManagedLimits } from '../_shared/aiLimitGuard.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
@@ -26,6 +28,8 @@ serveAuthenticated('voice-receptionist-settings', async (req, user) => {
 
   if (req.method === 'PATCH') {
     const body = await readJsonBody(req);
+    const rejected = rejectPlatformManagedLimits(req, body, HOST_VOICE_LIMIT_FIELDS);
+    if (rejected) return rejected;
     const { patch, error } = validateVoiceReceptionistPatch(body);
     if (error) return jsonError(req, error, 400);
     if (patch.enabled === true) {

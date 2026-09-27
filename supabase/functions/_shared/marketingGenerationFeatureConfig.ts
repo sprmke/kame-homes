@@ -13,6 +13,7 @@
 
 import { createClient } from './supabaseJs.ts';
 
+import { clearAiLimitCache } from './aiLimitResolver.ts';
 import { ensureAiPlatformPropertySettingsRow } from './aiUsageService.ts';
 
 export const MARKETING_IMAGE_GENERATE_FEATURE = 'marketing_image_generate' as const;
@@ -218,6 +219,7 @@ export async function patchMarketingGenerationOverrides(input: {
     .select('feature_configs')
     .single();
   if (error) throw new Error(error.message);
+  clearAiLimitCache();
   return parseMarketingGenerationOverrides(data.feature_configs);
 }
 

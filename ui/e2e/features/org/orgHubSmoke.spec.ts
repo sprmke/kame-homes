@@ -1,9 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import {
-  installPropertyTeamRbacMocks,
-  orgHubPaths,
-} from '../team/shared/propertyTeamRbacHarness';
+import { installPropertyTeamRbacMocks, orgHubPaths } from '../team/shared/propertyTeamRbacHarness';
 
 test.describe('@ci org hub shells', () => {
   test.describe.configure({ mode: 'serial' });
@@ -63,5 +60,7 @@ test.describe('@ci org hub shells', () => {
     await expect(page.getByRole('heading', { name: 'Activity', exact: true })).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page.getByRole('searchbox', { name: 'Search activity' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeVisible();
   });
 });

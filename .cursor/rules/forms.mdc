@@ -60,3 +60,7 @@ return (
 - `any` for form values — infer from Zod
 - Duplicate validation logic only in UI — mirror critical rules server-side
 - Uncontrolled file inputs without explicit RHF `Controller` / register pattern used elsewhere in the feature
+
+## Unsaved changes
+
+Every form with a manual Save must use the shared guard (`useUnsavedChangesGuard`, or `useGuardedClose` for modals). See `.cursor/rules/unsaved-changes.mdc` and the `unsaved-changes-guard` skill. RHF: `isDirty` from `formState`, `onSave` wraps `handleSubmit` and returns whether it saved.

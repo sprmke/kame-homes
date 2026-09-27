@@ -15,9 +15,10 @@
  * Keyset pagination on (created_at DESC, id DESC) — never OFFSET.
  */
 
+import { hasOrgPermission } from '../_shared/orgTeamPermissions.ts';
 import {
   createServiceClient,
-  resolveAssignedListingIdsForOrgUser,
+  resolveActivityViewableListingIdsForOrgUser,
   verifyOrgAccess,
 } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
@@ -41,13 +42,17 @@ serveAuthenticated('list-activity-log', async (req) => {
   const orgSlug = p.get('orgSlug')?.trim() ?? '';
   if (!orgId && !orgSlug) return jsonError(req, 'orgId or orgSlug is required');
 
-  const { user, org, accessKind } = await verifyOrgAccess(req, {
+  const { user, org, accessKind, permissions } = await verifyOrgAccess(req, {
     orgId: orgId || undefined,
     orgSlug: orgSlug || undefined,
   });
 
+  // Org admins need `org.activity:view` for the org-wide log; without it (or as a listing-scoped
+  // member) they fall back to rows for listings where they hold the listing-level `activity:view`.
   const isAdminView =
-    accessKind === 'owner' || accessKind === 'platform_admin' || accessKind === 'org_admin';
+    accessKind === 'owner' ||
+    accessKind === 'platform_admin' ||
+    (accessKind === 'org_admin' && hasOrgPermission(permissions, 'org.activity:view'));
 
   const limit = Math.min(
     MAX_LIMIT,
@@ -69,7 +74,7 @@ serveAuthenticated('list-activity-log', async (req) => {
 
   // ── Listing-scoped visibility ─────────────────────────────────────────────
   if (!isAdminView) {
-    const assigned = await resolveAssignedListingIdsForOrgUser(user.id, org.id);
+    const assigned = await resolveActivityViewableListingIdsForOrgUser(user.id, org.id);
     if (assigned.propertyIds.length === 0 && assigned.parkingIds.length === 0) {
       return jsonSuccess(req, { events: [], nextCursor: null });
     }
@@ -157,34 +162,89 @@ serveAuthenticated('list-activity-log', async (req) => {
   const page = hasMore ? rows.slice(0, limit) : rows;
   const last = page[page.length - 1];
 
+  const planIds = new Set<string>();
+  for (const row of page) {
+    const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+    for (const key of ['to_plan', 'from_plan', 'plan_id', 'planId'] as const) {
+      const value = metadata[key];
+      if (typeof value === 'string' && UUID_RE.test(value)) planIds.add(value);
+    }
+    const summary = typeof row.summary === 'string' ? row.summary : '';
+    for (const match of summary.matchAll(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi
+    )) {
+      planIds.add(match[0].toLowerCase());
+    }
+  }
+
+  const planNameById = new Map<string, string>();
+  if (planIds.size > 0) {
+    const { data: plans } = await supabase
+      .from('pricing_plans')
+      .select('id, name')
+      .in('id', [...planIds]);
+    for (const plan of plans ?? []) {
+      const id = typeof plan.id === 'string' ? plan.id : '';
+      const name = typeof plan.name === 'string' ? plan.name.trim() : '';
+      if (id && name) planNameById.set(id.toLowerCase(), name);
+    }
+  }
+
+  const uuidInText = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+
+  function enrichSummaryAndMetadata(
+    summary: string,
+    metadata: Record<string, unknown>
+  ): { summary: string; metadata: Record<string, unknown> } {
+    const nextMeta = { ...metadata };
+    for (const key of ['to_plan', 'from_plan'] as const) {
+      const id = nextMeta[key];
+      if (typeof id !== 'string' || !UUID_RE.test(id)) continue;
+      const name = planNameById.get(id.toLowerCase());
+      if (!name) continue;
+      if (key === 'to_plan' && !nextMeta.to_plan_name) nextMeta.to_plan_name = name;
+      if (key === 'from_plan' && !nextMeta.from_plan_name) nextMeta.from_plan_name = name;
+    }
+
+    let nextSummary = summary;
+    nextSummary = nextSummary.replace(uuidInText, (id) => {
+      return planNameById.get(id.toLowerCase()) ?? 'a plan';
+    });
+    return { summary: nextSummary, metadata: nextMeta };
+  }
+
   return jsonSuccess(req, {
-    events: page.map((row) => ({
-      id: row.id as string,
-      createdAt: row.created_at as string,
-      organizationId: row.organization_id as string,
-      propertyId: (row.property_id as string | null) ?? null,
-      parkingId: (row.parking_id as string | null) ?? null,
-      scope: row.scope as string,
-      actorType: row.actor_type as string,
-      actorUserId: (row.actor_user_id as string | null) ?? null,
-      actorEmail: (row.actor_email as string | null) ?? null,
-      actorDisplayName: (row.actor_display_name as string | null) ?? null,
-      actorRole: (row.actor_role as string | null) ?? null,
-      actorMemberId: (row.actor_member_id as string | null) ?? null,
-      action: row.action as string,
-      category: row.category as string,
-      severity: row.severity as string,
-      targetType: (row.target_type as string | null) ?? null,
-      targetId: (row.target_id as string | null) ?? null,
-      targetLabel: (row.target_label as string | null) ?? null,
-      summary: row.summary as string,
-      changes: (row.changes as unknown) ?? null,
-      metadata: (row.metadata as Record<string, unknown>) ?? {},
-      ipPrefix: (row.ip_prefix as string | null) ?? null,
-      userAgent: (row.user_agent as string | null) ?? null,
-      source: row.source as string,
-      requestId: (row.request_id as string | null) ?? null,
-    })),
+    events: page.map((row) => {
+      const rawMeta = (row.metadata as Record<string, unknown>) ?? {};
+      const enriched = enrichSummaryAndMetadata((row.summary as string) ?? '', rawMeta);
+      return {
+        id: row.id as string,
+        createdAt: row.created_at as string,
+        organizationId: row.organization_id as string,
+        propertyId: (row.property_id as string | null) ?? null,
+        parkingId: (row.parking_id as string | null) ?? null,
+        scope: row.scope as string,
+        actorType: row.actor_type as string,
+        actorUserId: (row.actor_user_id as string | null) ?? null,
+        actorEmail: (row.actor_email as string | null) ?? null,
+        actorDisplayName: (row.actor_display_name as string | null) ?? null,
+        actorRole: (row.actor_role as string | null) ?? null,
+        actorMemberId: (row.actor_member_id as string | null) ?? null,
+        action: row.action as string,
+        category: row.category as string,
+        severity: row.severity as string,
+        targetType: (row.target_type as string | null) ?? null,
+        targetId: (row.target_id as string | null) ?? null,
+        targetLabel: (row.target_label as string | null) ?? null,
+        summary: enriched.summary,
+        changes: (row.changes as unknown) ?? null,
+        metadata: enriched.metadata,
+        ipPrefix: (row.ip_prefix as string | null) ?? null,
+        userAgent: (row.user_agent as string | null) ?? null,
+        source: row.source as string,
+        requestId: (row.request_id as string | null) ?? null,
+      };
+    }),
     nextCursor: hasMore && last ? { ts: last.created_at as string, id: last.id as string } : null,
   });
 });

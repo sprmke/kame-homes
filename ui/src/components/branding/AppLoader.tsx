@@ -1,7 +1,6 @@
-import { createPortal } from 'react-dom';
+import { useLayoutEffect } from 'react';
 
-import { platformMarkInitial, platformWordmarkParts } from '@/lib/platformBranding';
-import { cn } from '@/lib/utils';
+import { acquireAppLoader, releaseAppLoader } from '@/components/branding/appLoaderHost';
 
 interface AppLoaderProps {
   /** Fills the viewport. Inline gates keep the same mark, still screen-centered. */
@@ -9,46 +8,18 @@ interface AppLoaderProps {
 }
 
 /**
- * Root / global loader. Portaled to the body so parent transitions cannot
- * slide it, and pinned to the viewport so it stays centered.
+ * Root / global loader. Renders nothing in React — it acquires a singleton DOM host
+ * on `document.body` so Suspense and nested route-guard remounts do not restart the
+ * sheen animation or flash a blank frame between handoffs.
+ *
+ * Uses `useLayoutEffect` so the host is on the body before the browser paints (a plain
+ * `useEffect` would leave one blank frame on every mount).
  */
 export function AppLoader({ fullScreen = false }: AppLoaderProps) {
-  const wordmark = platformWordmarkParts();
-  const initial = platformMarkInitial();
+  useLayoutEffect(() => {
+    acquireAppLoader({ fullScreen });
+    return () => releaseAppLoader();
+  }, [fullScreen]);
 
-  const loader = (
-    <div
-      className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center',
-        fullScreen && 'bg-background'
-      )}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading"
-    >
-      <div className="flex flex-col items-center gap-3 opacity-70">
-        <div
-          className="bg-primary/90 flex size-10 items-center justify-center rounded-xl"
-          aria-hidden
-        >
-          {initial ? (
-            <span className="text-lg font-semibold text-white">{initial}</span>
-          ) : (
-            <span className="bg-primary-foreground/90 size-2 rounded-full" />
-          )}
-        </div>
-
-        {wordmark ? (
-          <p className="text-muted-foreground text-sm font-medium tracking-tight">
-            {wordmark.primary}
-            {wordmark.accent ? <span className="text-primary/80"> {wordmark.accent}</span> : null}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-
-  if (typeof document === 'undefined') return loader;
-
-  return createPortal(loader, document.body);
+  return null;
 }

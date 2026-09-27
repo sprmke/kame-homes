@@ -45,7 +45,11 @@ serveAuthenticated('apply-org-plan-downgrade', async (req, user) => {
       targetType: 'subscription',
       targetId: organizationId,
       targetLabel: org.name ?? 'the organization',
-      metadata: { to_plan: planId, related_event_ref: { table: 'org_subscription_events' } },
+      metadata: {
+        to_plan: planId,
+        to_plan_name: result.planName,
+        related_event_ref: { table: 'org_subscription_events' },
+      },
     });
     return jsonSuccess(req, result);
   } catch (err) {

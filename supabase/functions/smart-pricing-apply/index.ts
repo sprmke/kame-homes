@@ -20,7 +20,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 serveAuthenticated('smart-pricing-apply', async (req) => {
   if (req.method !== 'POST') return jsonError(req, 'Method not allowed', 405);
 
-  const access = await resolveScopedPropertyAccess(req, 'pricing.rates:edit');
+  const access = await resolveScopedPropertyAccess(req, 'pricing.smartPricing:edit');
   const { property, user } = access;
 
   try {

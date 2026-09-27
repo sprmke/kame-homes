@@ -27,7 +27,9 @@ Reference implementation: **Airbnb Channel sync** — plan key `calendarSync` (P
 
 When Plans applies: migration on `pricing_plans.features`, typed keys in UI + edge `planFeatures.ts`, `useFeatureGate` / `requirePropertyFeature`, `docs/architecture/plans-feature-matrix.md`, `planPresentation` / public pricing when host-visible.
 
-When Team RBAC applies: UI `propertyTeamConstants` (and parking/org mirrors if needed) + edge `propertyTeamPermissions` (etc.) **in sync**, `propertyPermissionCatalog` (+ `COARSE_PLAN_FEATURES` when plan-linked), seeded templates, `resolveScoped*Access` on writes, route-guide permission table.
+Plan tests (Plans applies): update `ui/src/features/dashboard/plans/lib/planTierGolden.ts` (tier values, `GOLDEN_MINIMUM_TIER`), `planTierExpectations.ts` (literal card bullets, Compare rows, review-dialog unlock lists) and the `GATE_COVERAGE` map in `planGateCoverage.test.ts`; then run `bun run check:plan-catalog` against a fresh local DB. These fail when a key, tier, card bullet, Compare row or gate is added or changed without a decision.
+
+When Team RBAC applies: UI `propertyTeamConstants` (and parking/org mirrors if needed) + edge `propertyTeamPermissions` (etc.) **in sync**, `propertyPermissionCatalog` (plan pills derive from `PLAN_FEATURE_PERMISSION_COVERAGE` in `plans/lib/planFeaturePermissions.ts` — map every new `PlanFeatureKey` to leaves or an explicit N/A there; a unit test enforces it), a backfill migration when a leaf is split from an existing one (never read-time expansion for live leaves), seeded templates, `resolveScoped*Access` on writes, route-guide permission table.
 
 ## Related
 

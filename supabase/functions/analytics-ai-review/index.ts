@@ -1,29 +1,27 @@
 /**
  * analytics-ai-review — Host Analytics Phase 3.
- * GET: latest review for the property (or null). POST: regenerate on demand (rate-limited,
- * feature + AI-quota gated). Advisory only — never mutates a rate or setting.
+ * GET: latest review for the property (or null). POST: regenerate on demand (rate-limited
+ * once/day, feature + AI-quota + RBAC gated). Only the current Manila week / month / year.
+ * Advisory only — never mutates a rate or setting.
  */
 
 import { logActivity } from '../_shared/activityLog.ts';
-import { computeAnalyticsBundle } from '../_shared/analyticsService.ts';
+import { resolveCurrentAiReviewPeriod } from '../_shared/analyticsAiReviewPeriod.ts';
 import {
   maybeRunAnalyticsAiReview,
   writeLatestAnalyticsReview,
 } from '../_shared/analyticsAiReview.ts';
+import { computeAnalyticsBundle } from '../_shared/analyticsService.ts';
 import { manilaTodayIso } from '../_shared/bookingsListSort.ts';
 import { matchPlaybookArticles } from '../_shared/hostPlaybook.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
-import { createServiceClient } from '../_shared/orgAuth.ts';
+import { createServiceClient, verifyPropertyAccess } from '../_shared/orgAuth.ts';
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { readPropertyIdFromUrl, resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-function addDaysIso(dateIso: string, days: number): string {
-  const d = new Date(`${dateIso}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+const ONE_DAY_SEC = 86_400;
 
 async function loadRecentActivitySummaries(
   // deno-lint-ignore no-explicit-any
@@ -63,7 +61,9 @@ serveAuthenticated('analytics-ai-review', async (req) => {
   if (req.method === 'GET') {
     const { data, error } = await supabase
       .from('property_analytics_reviews')
-      .select('id, generated_at, model, headline, score, score_delta, payload')
+      .select(
+        'id, generated_at, model, headline, score, score_delta, period_start, period_end, payload'
+      )
       .eq('property_id', property.id)
       .eq('is_latest', true)
       .maybeSingle();
@@ -75,6 +75,9 @@ serveAuthenticated('analytics-ai-review', async (req) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
+  // Generating spends AI credits, so it needs the dedicated leaf, not just `analytics:view`.
+  await verifyPropertyAccess(req, property.id, 'analytics.aiReview:add');
+
   try {
     await requirePropertyFeature(property.id, 'analyticsInsights');
   } catch (err) {
@@ -83,20 +86,34 @@ serveAuthenticated('analytics-ai-review', async (req) => {
     throw err;
   }
 
+  const today = manilaTodayIso();
+  const period = resolveCurrentAiReviewPeriod(
+    url.searchParams.get('from'),
+    url.searchParams.get('to'),
+    today
+  );
+  if (!period.ok) {
+    return jsonError(req, 'AI review only covers the current week, month, or year.', 400);
+  }
+
+  // One regenerate per current period kind (week / month / year) per Manila day, so switching
+  // the date filter can still analyze the newly selected range without waiting until tomorrow.
   const limited = await rateLimitGate(req, {
     scope: 'analytics_ai_review_regenerate',
-    identity: property.id,
+    identity: `${property.id}:${period.kind}`,
     limit: 1,
-    windowSec: 3600,
+    windowSec: ONE_DAY_SEC,
   });
   if (limited) return limited;
 
-  const today = manilaTodayIso();
-  const from = addDaysIso(today, -29);
-  const bundle = await computeAnalyticsBundle({ propertyId: property.id, from, to: today });
+  const bundle = await computeAnalyticsBundle({
+    propertyId: property.id,
+    from: period.from,
+    to: period.to,
+  });
 
   const [activitySummaries, previous, playbookArticles] = await Promise.all([
-    loadRecentActivitySummaries(supabase, org.id, property.id, from),
+    loadRecentActivitySummaries(supabase, org.id, property.id, period.from),
     supabase
       .from('property_analytics_reviews')
       .select('score')
@@ -151,5 +168,5 @@ serveAuthenticated('analytics-ai-review', async (req) => {
     targetLabel: property.name,
   });
 
-  return jsonSuccess(req, { review: inserted, available: true });
+  return jsonSuccess(req, { review: inserted, available: true, periodKind: period.kind });
 });

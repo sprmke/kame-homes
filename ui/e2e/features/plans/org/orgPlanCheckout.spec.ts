@@ -46,7 +46,7 @@ test.describe('@ci org plan upgrade checkout', () => {
     await expect(page.getByRole('dialog').getByText(/You're on Pro/i)).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText('Plan updated')).toBeVisible();
+    await expect(page.getByText('Plan updated')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Start exploring' })).toBeVisible();
 
     await expect(page.getByRole('dialog').getByText('Content Studio')).toBeVisible();
@@ -120,7 +120,7 @@ test.describe('@ci org plan upgrade checkout', () => {
     });
 
     await openOrgPlansBilling(page);
-    await expect(page.getByText('Recent payments')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payment history' })).toBeVisible();
     await expect(page.getByText('Pending', { exact: true })).toBeVisible();
     await expect(page.getByText('₱799')).toBeVisible();
   });

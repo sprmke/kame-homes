@@ -24,11 +24,13 @@ import {
   allParkingTeamPermissions,
   BUILTIN_PARKING_ROLE_PERMISSIONS,
   effectiveMemberPermissions as effectiveParkingMemberPermissions,
+  normalizePermissionIds as normalizeParkingPermissionIds,
   type ParkingTeamPermissionId,
 } from './parkingTeamPermissions.ts';
 import {
   allTeamPermissions,
   effectiveMemberPermissions,
+  normalizePermissionIds,
   type TeamPermissionId,
 } from './propertyTeamPermissions.ts';
 import type { PlanFeatureKey } from './planFeatures.ts';
@@ -1023,6 +1025,58 @@ export async function resolveAssignedListingIdsForOrgUser(
     ],
     parkingIds: [
       ...new Set((parkingRows ?? []).map((row) => String(row.parking_id)).filter(Boolean)),
+    ],
+  };
+}
+
+/**
+ * Listings whose activity log this member may read: an active membership that carries the
+ * `activity:view` leaf. Owners, org admins, and platform admins bypass this (see list-activity-log).
+ */
+export async function resolveActivityViewableListingIdsForOrgUser(
+  userId: string,
+  orgId: string
+): Promise<{ propertyIds: string[]; parkingIds: string[] }> {
+  const supabase = createServiceClient();
+
+  const [{ data: propertyRows, error: propertyError }, { data: parkingRows, error: parkingError }] =
+    await Promise.all([
+      supabase
+        .from('property_members')
+        .select('property_id, permissions, properties!inner(organization_id)')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .eq('properties.organization_id', orgId),
+      supabase
+        .from('parking_members')
+        .select('parking_id, permissions, parkings!inner(organization_id)')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .eq('parkings.organization_id', orgId),
+    ]);
+
+  if (propertyError || parkingError) {
+    console.error(
+      '[orgAuth] activity-viewable listing lookup failed:',
+      (propertyError ?? parkingError)?.message
+    );
+    throw forbiddenResponse('Could not verify organization access');
+  }
+
+  return {
+    propertyIds: [
+      ...new Set(
+        (propertyRows ?? [])
+          .filter((row) => normalizePermissionIds(row.permissions).includes('activity:view'))
+          .map((row) => String(row.property_id))
+      ),
+    ],
+    parkingIds: [
+      ...new Set(
+        (parkingRows ?? [])
+          .filter((row) => normalizeParkingPermissionIds(row.permissions).includes('activity:view'))
+          .map((row) => String(row.parking_id))
+      ),
     ],
   };
 }

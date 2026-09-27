@@ -5,7 +5,7 @@
  * DELETE { jobId }                                 removes the object and the row
  *
  * The GET is gated on `marketing:view` only (no plan feature) so a downgraded org
- * keeps access to assets it already paid for. The DELETE needs `marketing.generate:add`.
+ * keeps access to assets it already paid for. The DELETE needs any AI generate leaf (text, image, or video).
  */
 
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
@@ -23,12 +23,19 @@ import { removeGenerationObjects } from '../_shared/marketingGenerationStorage.t
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 24;
 
+const MARKETING_GENERATE_LEAVES = [
+  'marketing.generate:add',
+  'marketing.generate.image:add',
+  'marketing.generate.video:add',
+] as const;
+
 serveAuthenticated('marketing-generations', async (req) => {
   if (req.method !== 'GET' && req.method !== 'DELETE') {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-  const permission = req.method === 'DELETE' ? 'marketing.generate:add' : 'marketing:view';
+  // DELETE: any AI generate leaf (text / image / video) may remove its own outputs; checked below.
+  const permission = 'marketing:view';
 
   let propertyId: string;
   let organizationId: string;
@@ -43,6 +50,12 @@ serveAuthenticated('marketing-generations', async (req) => {
     actorUserId = access.user.id;
     actorEmail = access.user.email;
     accessKind = access.accessKind;
+    if (
+      req.method === 'DELETE' &&
+      !MARKETING_GENERATE_LEAVES.some((leaf) => access.permissions.includes(leaf))
+    ) {
+      return jsonError(req, 'You do not have permission to remove generations', 403);
+    }
   } catch (err) {
     if (err instanceof Response) return err;
     throw err;

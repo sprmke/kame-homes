@@ -8,7 +8,7 @@
  * DELETE { referenceId }               → removes the object and the row
  *
  * Auth: resolveScopedPropertyAccess + requirePropertyPermissionAndFeature
- *       ('marketing.generate:add', 'aiMarketingImageGeneration').
+ *       ('marketing.generate.image:add', 'aiMarketingImageGeneration').
  *
  * activity-log: N/A — a reference upload is a staging artifact for a generation, not
  * a host-meaningful action. The generation that consumes it emits
@@ -47,12 +47,12 @@ serveAuthenticated('upload-marketing-generation-reference', async (req) => {
   let organizationId: string;
   let actorUserId: string;
   try {
-    const scoped = await resolveScopedPropertyAccess(req, 'marketing.generate:add');
+    const scoped = await resolveScopedPropertyAccess(req, 'marketing.generate.image:add');
     propertyId = scoped.property.id;
     const access = await requirePropertyPermissionAndFeature(
       req,
       propertyId,
-      'marketing.generate:add',
+      'marketing.generate.image:add',
       'aiMarketingImageGeneration'
     );
     actorUserId = access.user.id;

@@ -52,6 +52,9 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<SeededPropertyTemplateKey, Team
     'marketing.templates:delete',
     'marketing.generate:add',
     'marketing.publish:add',
+    'analytics:view',
+    'assistant:view',
+    'activity:view',
   ],
   READ_ONLY: [
     'bookings:view',
@@ -63,6 +66,8 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<SeededPropertyTemplateKey, Team
     'pricing.channels:view',
     'team:view',
     'inbox:view',
+    'analytics:view',
+    'activity:view',
   ],
 };
 

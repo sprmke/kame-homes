@@ -13,7 +13,6 @@ import {
 } from '@/lib/security/antiSpamRequest';
 import { antiSpamErrorMessage, isAntiSpamFailure } from '@/lib/security/antiSpamResponse';
 
-
 import type { SdBank } from './sdFormSchema';
 import type { VoucherRevealStyle } from './voucherRevealStyle';
 

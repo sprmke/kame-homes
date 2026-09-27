@@ -14,7 +14,9 @@ export async function expectNoPageHorizontalOverflow(page: Page): Promise<void> 
 
 export async function expectNoUnnamedInteractiveControls(page: Page): Promise<void> {
   const unnamed = await page
-    .locator('button:visible, a[href]:visible, input:not([type="hidden"]):visible, select:visible, textarea:visible')
+    .locator(
+      'button:visible, a[href]:visible, input:not([type="hidden"]):visible, select:visible, textarea:visible'
+    )
     .evaluateAll((elements) =>
       elements.flatMap((element) => {
         const html = element as HTMLElement;

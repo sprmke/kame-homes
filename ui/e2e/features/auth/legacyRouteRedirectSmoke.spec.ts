@@ -21,9 +21,7 @@ test.describe('@smoke @ci legacy route redirects', () => {
 
   test('property custom-pages redirects to public-pages', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(
-      '/org/kame-homes-ph/property/solea-mactan/custom-pages'
-    );
+    await page.goto('/org/kame-homes-ph/property/solea-mactan/custom-pages');
     await expect(page).toHaveURL(/\/public-pages/, { timeout: 20_000 });
   });
 

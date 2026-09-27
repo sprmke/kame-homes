@@ -12,7 +12,6 @@ import {
   UPLOAD_MAX_BYTES as EDGE_UPLOAD_MAX_BYTES,
 } from '../../../../supabase/functions/_shared/uploadLimits';
 
-
 function fakeFile(size: number): File {
   return { size } as File;
 }

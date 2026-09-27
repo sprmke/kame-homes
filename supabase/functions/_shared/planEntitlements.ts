@@ -1042,10 +1042,12 @@ export async function syncAiCreditsFromPlan(
   monthlyCreditAllowance: number,
   assignedBy: string
 ): Promise<void> {
+  // Plan allowance is its own layer in aiLimitResolver (below profiles), not an override:
+  // `monthly_credit_limit` stays reserved for super-admin overrides.
   await upsertAiPlatformOrgSettings({
     organizationId,
     planTier: planCode,
-    monthlyCreditLimit: monthlyCreditAllowance,
+    planCreditAllowance: monthlyCreditAllowance,
     updatedBy: assignedBy,
   });
 }
@@ -1550,7 +1552,7 @@ export async function applyOrgPlanDowngrade(
   organizationId: string,
   targetPlanId: string,
   changedBy: string | null
-): Promise<{ orgSubscriptionId: string | null; toFree: boolean }> {
+): Promise<{ orgSubscriptionId: string | null; toFree: boolean; planName: string }> {
   const sb = db();
 
   const live = await getOrgSubscriptionForSelfServeDowngrade(organizationId);
@@ -1622,7 +1624,7 @@ export async function applyOrgPlanDowngrade(
       toPlanName,
       toFree: true,
     });
-    return { orgSubscriptionId: live.id, toFree: true };
+    return { orgSubscriptionId: live.id, toFree: true, planName: toPlanName };
   }
 
   if (allOrgPropertyIds.length === 0) {
@@ -1636,7 +1638,7 @@ export async function applyOrgPlanDowngrade(
     toPlanName,
     toFree: false,
   });
-  return { orgSubscriptionId: live.id, toFree: false };
+  return { orgSubscriptionId: live.id, toFree: false, planName: toPlanName };
 }
 
 async function cancelOrgSubscriptionToFree(input: {

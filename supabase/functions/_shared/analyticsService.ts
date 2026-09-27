@@ -50,7 +50,7 @@ function calculatePercentageChange(current: number, previous: number): number | 
   return Math.round(((current - previous) / previous) * 10000) / 100;
 }
 
-function previousPeriodRange(from: string, to: string): AnalyticsPeriod {
+export function previousPeriodRange(from: string, to: string): AnalyticsPeriod {
   const length = daysInclusive(from, to);
   const prevTo = addDaysIso(from, -1);
   const prevFrom = addDaysIso(prevTo, -(length - 1));
@@ -1094,8 +1094,8 @@ function buildStateAssessment(
 
 // ─── org portfolio row (Phase 5 — lighter-weight than the full bundle) ─────
 
-export type PropertyPortfolioRow = {
-  propertyId: string;
+/** Shared metrics for property or parking org-rollup rows. */
+export type PortfolioListingMetrics = {
   occupancyRate: number;
   adr: number;
   revpar: number;
@@ -1103,8 +1103,183 @@ export type PropertyPortfolioRow = {
   reservations: number;
   cancellationRate: number;
   forwardOccupancyState30d: ForwardOccupancyState;
+  /** Share of the next 30 nights already booked (0-100). */
+  forwardOccupancyRate30d: number;
   balanceCollectionState: BalanceCollectionState;
+  /** Unpaid guest balances for check-ins in the next 14 days. */
+  unpaidBalanceUpcomingTotal: number;
+  unpaidBalanceUpcomingCount: number;
+  occupiedNights: number;
+  periodDays: number;
 };
+
+export type PropertyPortfolioRow = PortfolioListingMetrics & { propertyId: string };
+export type ParkingPortfolioRow = PortfolioListingMetrics & { parkingId: string };
+
+export function listingNeedsAttention(row: {
+  forwardOccupancyState30d: ForwardOccupancyState;
+  reservations?: number;
+  occupancyRate?: number;
+}): boolean {
+  if (row.forwardOccupancyState30d === 'underbooked') return true;
+  if (row.reservations === 0) return true;
+  if (row.occupancyRate !== undefined && row.occupancyRate < 40 && (row.reservations ?? 0) > 0) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Night-weighted portfolio rollup — occupancy is sum(occupied) / sum(available nights),
+ * never the mean of per-listing occupancy percentages.
+ */
+export function rollupOrgPortfolio(
+  rows: Array<{
+    occupiedNights: number;
+    periodDays: number;
+    grossRevenue: number;
+    reservations: number;
+    occupancyRate?: number;
+    forwardOccupancyState30d: ForwardOccupancyState;
+    unpaidBalanceUpcomingTotal?: number;
+  }>
+): {
+  unpaidBalanceTotal: number;
+  totalRevenue: number;
+  totalReservations: number;
+  avgOccupancy: number;
+  attentionCount: number;
+  totalOccupiedNights: number;
+  totalAvailableNights: number;
+} {
+  let totalRevenue = 0;
+  let totalReservations = 0;
+  let totalOccupiedNights = 0;
+  let totalAvailableNights = 0;
+  let attentionCount = 0;
+  let unpaidBalanceTotal = 0;
+  for (const row of rows) {
+    unpaidBalanceTotal = roundMoney(unpaidBalanceTotal + (row.unpaidBalanceUpcomingTotal ?? 0));
+    totalRevenue = roundMoney(totalRevenue + row.grossRevenue);
+    totalReservations += row.reservations;
+    totalOccupiedNights += row.occupiedNights;
+    totalAvailableNights += row.periodDays;
+    const occupancyRate =
+      row.occupancyRate ??
+      (row.periodDays > 0 ? roundMoney((row.occupiedNights / row.periodDays) * 100) : 0);
+    if (
+      listingNeedsAttention({
+        forwardOccupancyState30d: row.forwardOccupancyState30d,
+        reservations: row.reservations,
+        occupancyRate,
+      })
+    ) {
+      attentionCount += 1;
+    }
+  }
+  return {
+    unpaidBalanceTotal,
+    totalRevenue,
+    totalReservations,
+    avgOccupancy:
+      totalAvailableNights > 0 ? roundMoney((totalOccupiedNights / totalAvailableNights) * 100) : 0,
+    attentionCount,
+    totalOccupiedNights,
+    totalAvailableNights,
+  };
+}
+
+/** Build portfolio metrics from already-normalized booking rows (one DB load can feed current + prior). */
+function buildPortfolioMetricsFromRows(
+  rows: NormalizedRow[],
+  from: string,
+  to: string,
+  today: string = manilaTodayIso()
+): PortfolioListingMetrics {
+  const snapshot = computePeriodSnapshot(rows, from, to);
+
+  const trailingRate = computeTrailingOccupancyRate(rows, today);
+  const forwardRate30d = computeForwardOccupancyRate(rows, today, 30);
+  const forwardOccupancyState30d = classifyForwardOccupancyState(forwardRate30d, trailingRate);
+
+  const balanceHorizon = addDaysIso(today, 13);
+  let unpaidCount = 0;
+  let unpaidTotal = 0;
+  let atRisk = false;
+  for (const row of rows) {
+    if (CANCELLED.has(row.status) || row.status === 'COMPLETED') continue;
+    if (!row.checkInIso || row.checkInIso < today || row.checkInIso > balanceHorizon) continue;
+    const fin = computeBookingFinancials(row.raw);
+    if (fin.guestUnpaid != null && fin.guestUnpaid > 0) {
+      unpaidCount += 1;
+      unpaidTotal = roundMoney(unpaidTotal + fin.guestUnpaid);
+      if (row.checkInIso <= addDaysIso(today, 3)) atRisk = true;
+    }
+  }
+  const balanceCollectionState: BalanceCollectionState =
+    unpaidCount === 0 ? 'clear' : atRisk ? 'at_risk' : 'attention_needed';
+
+  return {
+    occupancyRate:
+      snapshot.periodDays > 0
+        ? roundMoney((snapshot.occupiedNights / snapshot.periodDays) * 100)
+        : 0,
+    adr: snapshot.ratedNights > 0 ? roundMoney(snapshot.ratedRevenue / snapshot.ratedNights) : 0,
+    revpar: snapshot.periodDays > 0 ? roundMoney(snapshot.ratedRevenue / snapshot.periodDays) : 0,
+    grossRevenue: snapshot.ratedRevenue,
+    reservations: snapshot.reservations,
+    cancellationRate:
+      snapshot.settled > 0 ? roundMoney((snapshot.cancelled / snapshot.settled) * 100) : 0,
+    forwardOccupancyState30d,
+    forwardOccupancyRate30d: Math.round(forwardRate30d * 100),
+    balanceCollectionState,
+    unpaidBalanceUpcomingTotal: unpaidTotal,
+    unpaidBalanceUpcomingCount: unpaidCount,
+    occupiedNights: snapshot.occupiedNights,
+    periodDays: snapshot.periodDays,
+  };
+}
+
+async function loadPortfolioBookingRows(
+  scope: { propertyId: string } | { parkingId: string }
+): Promise<NormalizedRow[]> {
+  const supabase = createServiceClient();
+  // Select must be an inline string literal for supabase-js row typing (variable → GenericStringError).
+  if ('propertyId' in scope) {
+    const { data: bookingRows, error } = await supabase
+      .from('guest_submissions')
+      .select(
+        'status, check_in_date, check_out_date, number_of_nights, created_at, ' +
+          'booking_rate, down_payment, balance, security_deposit, guest_additional_fee, pet_fee, ' +
+          'parking_rate_guest, parking_rate_paid, has_pets, need_parking, guest_balance_paid_amount, ' +
+          'sd_additional_expense_items, sd_additional_profit_items, sd_additional_expenses, ' +
+          'sd_additional_profits, next_stay_voucher_code, next_stay_voucher_amount'
+      )
+      .eq('property_id', scope.propertyId)
+      .order('created_at', { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+    return ((bookingRows ?? []) as unknown as Record<string, unknown>[])
+      .map(normalizeRow)
+      .filter((r) => r.checkInIso);
+  }
+  const { data: bookingRows, error } = await supabase
+    .from('guest_submissions')
+    .select(
+      'status, check_in_date, check_out_date, number_of_nights, created_at, ' +
+        'booking_rate, down_payment, balance, security_deposit, guest_additional_fee, pet_fee, ' +
+        'parking_rate_guest, parking_rate_paid, has_pets, need_parking, guest_balance_paid_amount, ' +
+        'sd_additional_expense_items, sd_additional_profit_items, sd_additional_expenses, ' +
+        'sd_additional_profits, next_stay_voucher_code, next_stay_voucher_amount'
+    )
+    .eq('parking_id', scope.parkingId)
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  if (error) throw new Error(error.message);
+  return ((bookingRows ?? []) as unknown as Record<string, unknown>[])
+    .map(normalizeRow)
+    .filter((r) => r.checkInIso);
+}
 
 /**
  * A single property's portfolio-comparison row — only what the org leaderboard needs, skipping
@@ -1117,61 +1292,54 @@ export async function computePropertyPortfolioRow(
   from: string,
   to: string
 ): Promise<PropertyPortfolioRow> {
+  const rows = await loadPortfolioBookingRows({ propertyId });
+  return { propertyId, ...buildPortfolioMetricsFromRows(rows, from, to) };
+}
+
+/**
+ * Parking portfolio row — same lodging snapshot math as properties (guest_submissions with
+ * parking_id). Used by org rollup; no dedicated parking Analytics page yet.
+ */
+export async function computeParkingPortfolioRow(
+  parkingId: string,
+  from: string,
+  to: string
+): Promise<ParkingPortfolioRow> {
+  const rows = await loadPortfolioBookingRows({ parkingId });
+  return { parkingId, ...buildPortfolioMetricsFromRows(rows, from, to) };
+}
+
+/**
+ * Load bookings once and return current + prior-period metrics (avoids a second DB round trip
+ * when the org rollup needs vs-prior portfolio deltas).
+ */
+export async function computePropertyPortfolioRowPair(
+  propertyId: string,
+  from: string,
+  to: string,
+  priorFrom: string,
+  priorTo: string
+): Promise<{ current: PropertyPortfolioRow; prior: PortfolioListingMetrics }> {
+  const rows = await loadPortfolioBookingRows({ propertyId });
   const today = manilaTodayIso();
-  const supabase = createServiceClient();
-
-  const { data: bookingRows, error } = await supabase
-    .from('guest_submissions')
-    .select(
-      'status, check_in_date, check_out_date, number_of_nights, created_at, ' +
-        'booking_rate, down_payment, balance, security_deposit, guest_additional_fee, pet_fee, ' +
-        'parking_rate_guest, parking_rate_paid, has_pets, need_parking, guest_balance_paid_amount, ' +
-        'sd_additional_expense_items, sd_additional_profit_items, sd_additional_expenses, ' +
-        'sd_additional_profits, next_stay_voucher_code, next_stay_voucher_amount'
-    )
-    .eq('property_id', propertyId)
-    .order('created_at', { ascending: false })
-    .limit(5000);
-  if (error) throw new Error(error.message);
-
-  const rows = (bookingRows ?? []).map(normalizeRow).filter((r) => r.checkInIso);
-  const snapshot = computePeriodSnapshot(rows, from, to);
-
-  const trailingRate = computeTrailingOccupancyRate(rows, today);
-  const forwardOccupancyState30d = classifyForwardOccupancyState(
-    computeForwardOccupancyRate(rows, today, 30),
-    trailingRate
-  );
-
-  const balanceHorizon = addDaysIso(today, 13);
-  let unpaidCount = 0;
-  let atRisk = false;
-  for (const row of rows) {
-    if (CANCELLED.has(row.status) || row.status === 'COMPLETED') continue;
-    if (!row.checkInIso || row.checkInIso < today || row.checkInIso > balanceHorizon) continue;
-    const fin = computeBookingFinancials(row.raw);
-    if (fin.guestUnpaid != null && fin.guestUnpaid > 0) {
-      unpaidCount += 1;
-      if (row.checkInIso <= addDaysIso(today, 3)) atRisk = true;
-    }
-  }
-  const balanceCollectionState: BalanceCollectionState =
-    unpaidCount === 0 ? 'clear' : atRisk ? 'at_risk' : 'attention_needed';
-
   return {
-    propertyId,
-    occupancyRate:
-      snapshot.periodDays > 0
-        ? roundMoney((snapshot.occupiedNights / snapshot.periodDays) * 100)
-        : 0,
-    adr: snapshot.ratedNights > 0 ? roundMoney(snapshot.ratedRevenue / snapshot.ratedNights) : 0,
-    revpar: snapshot.periodDays > 0 ? roundMoney(snapshot.ratedRevenue / snapshot.periodDays) : 0,
-    grossRevenue: snapshot.ratedRevenue,
-    reservations: snapshot.reservations,
-    cancellationRate:
-      snapshot.settled > 0 ? roundMoney((snapshot.cancelled / snapshot.settled) * 100) : 0,
-    forwardOccupancyState30d,
-    balanceCollectionState,
+    current: { propertyId, ...buildPortfolioMetricsFromRows(rows, from, to, today) },
+    prior: buildPortfolioMetricsFromRows(rows, priorFrom, priorTo, today),
+  };
+}
+
+export async function computeParkingPortfolioRowPair(
+  parkingId: string,
+  from: string,
+  to: string,
+  priorFrom: string,
+  priorTo: string
+): Promise<{ current: ParkingPortfolioRow; prior: PortfolioListingMetrics }> {
+  const rows = await loadPortfolioBookingRows({ parkingId });
+  const today = manilaTodayIso();
+  return {
+    current: { parkingId, ...buildPortfolioMetricsFromRows(rows, from, to, today) },
+    prior: buildPortfolioMetricsFromRows(rows, priorFrom, priorTo, today),
   };
 }
 

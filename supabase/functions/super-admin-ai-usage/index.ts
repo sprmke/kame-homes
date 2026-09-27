@@ -4,13 +4,13 @@
  * Read-only, super-admin only. Backs the numbers `super-admin-overview` only summarizes.
  */
 
+import { limitNumber, resolveOrgAiLimitsBatch } from '../_shared/aiLimitResolver.ts';
+import { platformDailyCostUsdCap } from '../_shared/aiUsageService.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
 
 const RANGE_DAYS: Record<string, number> = { '30d': 30, '90d': 90, '12mo': 365 };
-const DEFAULT_DAILY_LIMIT = 200;
-const DEFAULT_MONTHLY_LIMIT = 5000;
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -28,7 +28,7 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   const monthStart = isoDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
   const today = isoDate(now);
 
-  const [dailyRes, eventsRes, orgSettingsRes, orgsRes] = await Promise.all([
+  const [dailyRes, eventsRes, orgSettingsRes, monthRes, orgsRes] = await Promise.all([
     supabase
       .from('ai_platform_usage_daily')
       .select('usage_date, call_count, estimated_cost_usd, organization_id')
@@ -39,14 +39,22 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       .select('feature, estimated_cost_usd, organization_id, status, latency_ms, fallback_used')
       .gte('created_at', sinceIso)
       .limit(100_000),
+    supabase.from('ai_platform_org_settings').select('organization_id, enabled'),
     supabase
-      .from('ai_platform_org_settings')
-      .select('organization_id, daily_call_limit, monthly_call_limit, enabled'),
+      .from('ai_platform_usage_daily')
+      .select('estimated_cost_usd')
+      .gte('usage_date', monthStart)
+      .limit(100_000),
     supabase.from('organizations').select('id, name, slug').limit(10_000),
   ]);
 
   const firstError =
-    dailyRes.error ?? eventsRes.error ?? orgSettingsRes.error ?? orgsRes.error ?? null;
+    dailyRes.error ??
+    eventsRes.error ??
+    orgSettingsRes.error ??
+    monthRes.error ??
+    orgsRes.error ??
+    null;
   if (firstError) return jsonError(req, firstError.message, 500);
 
   const orgById = new Map(
@@ -55,15 +63,8 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       { name: o.name as string, slug: o.slug as string },
     ])
   );
-  const settingsByOrg = new Map(
-    (orgSettingsRes.data ?? []).map((s) => [
-      s.organization_id as string,
-      {
-        dailyLimit: Number(s.daily_call_limit ?? DEFAULT_DAILY_LIMIT),
-        monthlyLimit: Number(s.monthly_call_limit ?? DEFAULT_MONTHLY_LIMIT),
-        enabled: s.enabled !== false,
-      },
-    ])
+  const enabledByOrg = new Map(
+    (orgSettingsRes.data ?? []).map((s) => [s.organization_id as string, s.enabled !== false])
   );
 
   // Daily spend/calls trend (platform-wide)
@@ -148,34 +149,47 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     if (date === today) todayCallsByOrg.set(orgId, calls);
   }
 
-  const topOrgs = Array.from(byOrg.entries())
-    .map(([orgId, v]) => {
-      const org = orgById.get(orgId);
-      const settings = settingsByOrg.get(orgId);
-      const dailyLimit = settings?.dailyLimit ?? DEFAULT_DAILY_LIMIT;
-      const monthlyLimit = settings?.monthlyLimit ?? DEFAULT_MONTHLY_LIMIT;
-      const todayCalls = todayCallsByOrg.get(orgId) ?? 0;
-      const monthCalls = monthCallsByOrg.get(orgId) ?? 0;
-      return {
-        organizationId: orgId,
-        organizationName: org?.name ?? 'Unknown org',
-        organizationSlug: org?.slug ?? null,
-        costUsd: Math.round(v.costUsd * 10_000) / 10_000,
-        calls: v.calls,
-        aiEnabled: settings?.enabled ?? true,
-        dailyLimit,
-        monthlyLimit,
-        todayCalls,
-        monthCalls,
-        overDaily: todayCalls > dailyLimit,
-        overMonthly: monthCalls > monthlyLimit,
-      };
-    })
-    .sort((a, b) => b.costUsd - a.costUsd)
+  const topSpenders = Array.from(byOrg.entries())
+    .sort((a, b) => b[1].costUsd - a[1].costUsd)
     .slice(0, 25);
+  // Limits come from the resolver (override → profiles → plan → global), never a hard-coded default.
+  const resolvedLimits = await resolveOrgAiLimitsBatch(topSpenders.map(([orgId]) => orgId));
+
+  const topOrgs = topSpenders.map(([orgId, v]) => {
+    const org = orgById.get(orgId);
+    const resolved = resolvedLimits.get(orgId);
+    const dailyLimit = resolved ? limitNumber(resolved.limits, 'dailyCallLimit') : 0;
+    const monthlyLimit = resolved ? limitNumber(resolved.limits, 'monthlyCallLimit') : 0;
+    const todayCalls = todayCallsByOrg.get(orgId) ?? 0;
+    const monthCalls = monthCallsByOrg.get(orgId) ?? 0;
+    return {
+      organizationId: orgId,
+      organizationName: org?.name ?? 'Unknown org',
+      organizationSlug: org?.slug ?? null,
+      costUsd: Math.round(v.costUsd * 10_000) / 10_000,
+      calls: v.calls,
+      aiEnabled: enabledByOrg.get(orgId) ?? true,
+      profileCode: resolved?.orgProfileCode ?? resolved?.planProfileCode ?? null,
+      hasOverrides: resolved?.hasOverrides ?? false,
+      dailyLimit,
+      monthlyLimit,
+      todayCalls,
+      monthCalls,
+      overDaily: todayCalls > dailyLimit,
+      overMonthly: monthCalls > monthlyLimit,
+    };
+  });
 
   const quotaBreaches = topOrgs.filter((o) => o.overDaily || o.overMonthly);
   const totalCostUsd = dailySeries.reduce((sum, d) => sum + d.costUsd, 0);
+  const monthToDateUsd = (monthRes.data ?? []).reduce(
+    (sum, row) => sum + Number(row.estimated_cost_usd ?? 0),
+    0
+  );
+  const daysInMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  const projectedMonthEndUsd = (monthToDateUsd / now.getUTCDate()) * daysInMonth;
   const totalCalls = dailySeries.reduce((sum, d) => sum + d.calls, 0);
 
   return jsonSuccess(req, {
@@ -186,6 +200,9 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       calls: totalCalls,
       orgsWithUsage: byOrg.size,
       quotaBreaches: quotaBreaches.length,
+      monthToDateUsd: Math.round(monthToDateUsd * 100) / 100,
+      projectedMonthEndUsd: Math.round(projectedMonthEndUsd * 100) / 100,
+      platformDailyCapUsd: platformDailyCostUsdCap(),
     },
     dailySeries,
     featureBreakdown,

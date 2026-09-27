@@ -13,6 +13,7 @@
     ".cursor/rules/route-guides.mdc",
     ".cursor/rules/plans-and-permissions.mdc",
     ".cursor/rules/audit-logging.mdc",
+    ".cursor/rules/unsaved-changes.mdc",
     ".cursor/rules/testing.mdc",
     ".cursor/rules/mobile-native-ui.mdc",
     ".cursor/rules/karpathy-guidelines.mdc",

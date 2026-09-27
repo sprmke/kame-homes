@@ -2418,6 +2418,145 @@ input.ui-native-datetime[type='datetime-local']::-webkit-calendar-picker-indicat
   }
 }
 
+/* App loader (AppLoader.tsx) — light sweep only: a band of light crosses the mark, then
+   continues through the wordmark as a per-letter wave. No pulse, halo, or shadow.
+   Unlayered on purpose: the global prefers-reduced-motion reset below `@layer utilities`
+   is unlayered too, so a layered override here would lose to it. */
+.app-loader-lockup {
+  --app-loader-cycle: 3.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.app-loader-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.app-loader-mark__tile {
+  position: relative;
+  display: flex;
+  height: 3rem;
+  width: 3rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 4px);
+  background-image: var(--brand-gradient);
+}
+
+.app-loader-mark__sheen {
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  left: 0;
+  width: 55%;
+  background: linear-gradient(
+    90deg,
+    hsl(0 0% 100% / 0) 0%,
+    hsl(0 0% 100% / 0.22) 28%,
+    hsl(0 0% 100% / 0.7) 50%,
+    hsl(0 0% 100% / 0.22) 72%,
+    hsl(0 0% 100% / 0) 100%
+  );
+  transform: translate3d(-220%, 0, 0) skewX(-18deg);
+  animation: app-loader-sheen var(--app-loader-cycle) cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.app-loader-mark__initial {
+  position: relative;
+  z-index: 1;
+  color: hsl(var(--primary-foreground));
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.app-loader-mark__dot {
+  position: relative;
+  z-index: 1;
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--primary-foreground) / 0.9);
+}
+
+.app-loader-wordmark {
+  display: flex;
+  max-width: min(20rem, 82vw);
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 0.3em;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.app-loader-wordmark__word {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.app-loader-wordmark__letter {
+  --app-loader-letter-rest: hsl(var(--muted-foreground));
+  --app-loader-letter-peak: hsl(var(--foreground));
+  display: inline-block;
+  /* A long operator name animates word by word, so a single unbreakable token must
+     still wrap inside the lockup instead of running past the viewport. */
+  overflow-wrap: anywhere;
+  color: var(--app-loader-letter-rest);
+  animation: app-loader-letter var(--app-loader-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  /* Starts as the sheen exits the mark (~1.1s into the 3.2s cycle). */
+  animation-delay: calc(1.1s + var(--app-loader-letter-step, 0) * 48ms);
+}
+
+.app-loader-wordmark__letter--accent {
+  --app-loader-letter-rest: hsl(var(--primary) / 0.85);
+  --app-loader-letter-peak: hsl(var(--primary));
+}
+
+@keyframes app-loader-sheen {
+  0% {
+    transform: translate3d(-220%, 0, 0) skewX(-18deg);
+  }
+  38% {
+    transform: translate3d(280%, 0, 0) skewX(-18deg);
+  }
+  38.01%,
+  100% {
+    transform: translate3d(280%, 0, 0) skewX(-18deg);
+  }
+}
+
+@keyframes app-loader-letter {
+  0%,
+  28%,
+  100% {
+    color: var(--app-loader-letter-rest);
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    color: var(--app-loader-letter-peak);
+    transform: translate3d(0, -1.5px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loader-mark__sheen,
+  .app-loader-wordmark__letter {
+    animation: none !important;
+  }
+
+  .app-loader-mark__sheen {
+    display: none;
+  }
+}
+
 /* Google Places Autocomplete (legacy widget — property location picker). Soft chrome only. */
 .pac-container {
   z-index: 200 !important;

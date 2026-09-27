@@ -1,15 +1,34 @@
 /**
- * ai-platform-settings — Org GET/PATCH for per-org AI allowance and enable toggle.
+ * ai-platform-settings — Org GET/PATCH for the AI on/off toggle.
+ *
+ * Hosts can only switch AI on or off. Every numeric limit is resolved server-side from
+ * super-admin AI limit profiles (`_shared/aiLimitResolver.ts`); GET returns the resolved values
+ * read-only for the usage panel, and PATCH rejects any limit field with 403
+ * `ai_limit_platform_managed`.
  */
 
+import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
 import {
-  getAiPlatformGlobalSettings,
   getAiPlatformOrgSettings,
+  syncPropertyAiEnabledForOrg,
   upsertAiPlatformOrgSettings,
 } from '../_shared/aiUsageService.ts';
+import { HOST_ORG_AI_LIMIT_FIELDS, rejectPlatformManagedLimits } from '../_shared/aiLimitGuard.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { resolveOrgAccessContext } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+
+function toDto(settings: Awaited<ReturnType<typeof getAiPlatformOrgSettings>>) {
+  return {
+    organizationId: settings.organizationId,
+    enabled: settings.enabled,
+    dailyCallLimit: settings.dailyCallLimit,
+    monthlyCallLimit: settings.monthlyCallLimit,
+    dailyCostUsdLimit: settings.dailyCostUsdLimit,
+    planTier: settings.planTier,
+    updatedAt: settings.updatedAt,
+  };
+}
 
 serveAuthenticated('ai-platform-settings', async (req, user) => {
   const ctx = await resolveOrgAccessContext(
@@ -18,75 +37,41 @@ serveAuthenticated('ai-platform-settings', async (req, user) => {
   );
 
   if (req.method === 'GET') {
-    const settings = await getAiPlatformOrgSettings(ctx.org.id);
-    return jsonSuccess(req, {
-      organizationId: settings.organizationId,
-      enabled: settings.enabled,
-      dailyCallLimit: settings.dailyCallLimit,
-      monthlyCallLimit: settings.monthlyCallLimit,
-      dailyCostUsdLimit: settings.dailyCostUsdLimit,
-      planTier: settings.planTier,
-      updatedAt: settings.updatedAt,
-    });
+    return jsonSuccess(req, toDto(await getAiPlatformOrgSettings(ctx.org.id)));
   }
 
   if (req.method === 'PATCH') {
     const body = await readJsonBody(req);
-    if (body.enabled !== undefined && typeof body.enabled !== 'boolean') {
-      return jsonError(req, 'enabled must be a boolean when provided', 400);
-    }
-    const daily = body.dailyCallLimit !== undefined ? Number(body.dailyCallLimit) : undefined;
-    const monthly = body.monthlyCallLimit !== undefined ? Number(body.monthlyCallLimit) : undefined;
-    const dailyCost =
-      body.dailyCostUsdLimit !== undefined ? Number(body.dailyCostUsdLimit) : undefined;
-    if (
-      daily !== undefined &&
-      (!Number.isFinite(daily) || daily <= 0 || !Number.isInteger(daily))
-    ) {
-      return jsonError(req, 'dailyCallLimit must be a positive integer', 400);
-    }
-    if (
-      monthly !== undefined &&
-      (!Number.isFinite(monthly) || monthly <= 0 || !Number.isInteger(monthly))
-    ) {
-      return jsonError(req, 'monthlyCallLimit must be a positive integer', 400);
-    }
-    if (dailyCost !== undefined && (!Number.isFinite(dailyCost) || dailyCost <= 0)) {
-      return jsonError(req, 'dailyCostUsdLimit must be a positive number', 400);
+    const rejected = rejectPlatformManagedLimits(req, body, HOST_ORG_AI_LIMIT_FIELDS);
+    if (rejected) return rejected;
+    if (typeof body.enabled !== 'boolean') {
+      return jsonError(req, 'enabled must be a boolean', 400);
     }
 
-    // Org admins may tighten their AI limits, never raise them above the platform ceiling the
-    // super admin sets (ai_platform_global_settings defaults) — otherwise any org admin could
-    // lift their own spend guard.
-    const platform = await getAiPlatformGlobalSettings();
-    const ceilingError =
-      daily !== undefined && daily > platform.defaultDailyCallLimit
-        ? `dailyCallLimit cannot exceed ${platform.defaultDailyCallLimit}`
-        : monthly !== undefined && monthly > platform.defaultMonthlyCallLimit
-          ? `monthlyCallLimit cannot exceed ${platform.defaultMonthlyCallLimit}`
-          : dailyCost !== undefined && dailyCost > platform.defaultDailyCostUsdLimit
-            ? `dailyCostUsdLimit cannot exceed ${platform.defaultDailyCostUsdLimit}`
-            : null;
-    if (ceilingError) return jsonError(req, ceilingError, 400);
-
+    const before = await getAiPlatformOrgSettings(ctx.org.id);
     const settings = await upsertAiPlatformOrgSettings({
       organizationId: ctx.org.id,
-      enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
-      dailyCallLimit: daily,
-      monthlyCallLimit: monthly,
-      dailyCostUsdLimit: dailyCost,
+      enabled: body.enabled,
       updatedBy: user.id,
     });
 
-    return jsonSuccess(req, {
-      organizationId: settings.organizationId,
-      enabled: settings.enabled,
-      dailyCallLimit: settings.dailyCallLimit,
-      monthlyCallLimit: settings.monthlyCallLimit,
-      dailyCostUsdLimit: settings.dailyCostUsdLimit,
-      planTier: settings.planTier,
-      updatedAt: settings.updatedAt,
-    });
+    if (before.enabled !== settings.enabled) {
+      await syncPropertyAiEnabledForOrg(ctx.org.id, settings.enabled, user.id);
+      await logActivity({
+        action: 'ai.platform_toggled',
+        organizationId: ctx.org.id,
+        scope: 'org',
+        actor: buildActorContext('dashboard', { orgAccess: ctx }, req),
+        targetType: 'settings',
+        targetId: ctx.org.id,
+        targetLabel: ctx.org.name ?? 'the organization',
+        metadata: {
+          state: settings.enabled ? 'enabled' : 'disabled',
+          syncedProperties: true,
+        },
+      });
+    }
+    return jsonSuccess(req, toDto(settings));
   }
 
   return jsonError(req, 'Method not allowed', 405);

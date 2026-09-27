@@ -587,20 +587,27 @@ export const ACTIVITY_ACTION_CATALOG = {
     severity: 'destructive',
     targetType: 'subscription',
     summary: (c) =>
-      `${c.actorName} downgraded the plan to ${str(c.metadata, 'to_plan') ?? 'a lower tier'}`,
+      `${c.actorName} downgraded the plan to ${
+        str(c.metadata, 'to_plan_name') ?? str(c.metadata, 'plan') ?? 'a lower tier'
+      }`,
   },
   'billing.plan_overridden_by_platform': {
     category: 'plans_billing',
     severity: 'warning',
     targetType: 'subscription',
     summary: (c) =>
-      `${c.actorName} changed the plan to ${str(c.metadata, 'to_plan') ?? 'another tier'} (platform)`,
+      `${c.actorName} changed the plan to ${
+        str(c.metadata, 'to_plan_name') ?? str(c.metadata, 'plan') ?? 'another tier'
+      } (platform)`,
   },
   'billing.subscription_activated': {
     category: 'plans_billing',
     severity: 'notice',
     targetType: 'subscription',
-    summary: (c) => `Subscription activated on the ${str(c.metadata, 'plan') ?? 'paid'} plan`,
+    summary: (c) =>
+      `Subscription activated on the ${
+        str(c.metadata, 'plan_name') ?? str(c.metadata, 'plan') ?? 'paid'
+      } plan`,
   },
   'billing.payment_succeeded': {
     category: 'plans_billing',
@@ -774,6 +781,26 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} changed AI assistant settings for ${label(c, 'a listing')}` +
       (c.changeCount ? ` (${c.changeCount} field${c.changeCount === 1 ? '' : 's'})` : ''),
+  },
+  'ai.platform_toggled': {
+    category: 'settings',
+    severity: 'notice',
+    targetType: 'settings',
+    summary: (c) =>
+      `${c.actorName} ${str(c.metadata, 'state') ?? 'changed'} AI features for ${label(
+        c,
+        'a listing'
+      )}`,
+  },
+  'ai.limits_changed': {
+    category: 'settings',
+    severity: 'notice',
+    targetType: 'settings',
+    summary: (c) =>
+      `Platform ${str(c.metadata, 'change') ?? 'updated'} the AI limits for ${label(
+        c,
+        'a listing'
+      )}`,
   },
 
   // ── Guest / public ─────────────────────────────────────────────────────
