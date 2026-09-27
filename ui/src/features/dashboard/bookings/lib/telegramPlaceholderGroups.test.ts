@@ -52,6 +52,15 @@ describe('groupPlaceholders', () => {
   it('groupPlaceholders is exported', () => {
     expect(typeof groupPlaceholders).toBe('function');
   });
+
+  it('lists Blocks before Guest when both are present', () => {
+    const lines = placeholderLinesFromKeys([
+      'primary_guest_name',
+      'booking_acknowledgement_flow_section',
+    ]);
+    const groups = groupPlaceholders(enrichPlaceholderLines(lines));
+    expect(groups.map((g) => g.group)).toEqual(['Blocks', 'Guest']);
+  });
 });
 
 describe('filterPlaceholders', () => {

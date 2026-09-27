@@ -14,7 +14,6 @@ import {
 
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
-
 dayjs.extend(customParseFormat);
 
 /** Resolve optional city slug from property settings for stay-scoped find URLs. */
