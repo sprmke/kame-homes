@@ -764,7 +764,7 @@ const PLAN_HOST_PITCH: Record<string, string> = {
   free: 'Essential tools to manage your properties at no cost.',
   starter: 'Automate everyday operations and manage your team with ease.',
   growth: 'Reach more guests with greater publishing and search visibility.',
-  pro: '    Simplify your management with AI-powered features.',
+  pro: 'Simplify your management with AI-powered features.',
   managed: 'Let us handle your operations while you focus on growing your business.',
   commission: 'Pay only when you earn from a completed booking. No monthly fee.',
 };
@@ -902,6 +902,17 @@ export const PLAN_FAQ_ITEMS: PlanFaqItem[] = [
 /** Shared section heading for Plans / Compare / Billing tab bodies. */
 export const planTabSectionTitleClass =
   'text-foreground text-base font-semibold tracking-tight sm:text-lg';
+
+/** Shared in-card section title + spacing for org Plans tabs (Billing / Plans / Compare / FAQs). */
+export const planTabCardHeadingClass = `${planTabSectionTitleClass} mb-3 sm:mb-4`;
+
+/** Org Plans tab panel titles — rendered inside each tab's card with shared heading spacing. */
+export const PLANS_TAB_SECTION_TITLES = {
+  billing: 'Payment history',
+  plans: 'Choose your plan',
+  compare: 'Compare features',
+  faqs: 'Frequently asked questions',
+} as const;
 
 type SubscriptionStatusMeta = {
   label: string;

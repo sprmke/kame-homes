@@ -5,11 +5,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PlanTierCard } from '@/features/dashboard/plans/components/PlanTierCard';
 import type { OrgBundlePlanDto } from '@/features/dashboard/plans/lib/orgPlanApi';
 import {
-  planTabSectionTitleClass,
+  PLANS_TAB_SECTION_TITLES,
+  planTabCardHeadingClass,
   planTierFeatureAreaMinHeight,
   type PlanTier,
 } from '@/features/dashboard/plans/lib/planPresentation';
 
+import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { cn } from '@/lib/utils';
 
 type PlanTierRailProps = {
@@ -199,13 +201,21 @@ export function PlanTierRail({
   const translateX = slideStep > 0 ? -startIndex * slideStep : 0;
 
   return (
-    <div className="min-w-0">
-      <div className="mb-3 flex min-h-9 items-center justify-between gap-3 sm:mb-4">
-        <h2 id="choose-plan-heading" className={cn(planTabSectionTitleClass, 'min-w-0')}>
-          Choose your plan
+    <FloatingPanel
+      as="section"
+      padding="lg"
+      aria-labelledby="choose-plan-heading"
+      className="min-w-0"
+    >
+      <div className="relative">
+        <h2
+          id="choose-plan-heading"
+          className={cn(planTabCardHeadingClass, showPager && 'pr-[4.75rem]')}
+        >
+          {PLANS_TAB_SECTION_TITLES.plans}
         </h2>
         {showPager ? (
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="absolute right-0 top-0 flex h-[1.375rem] items-center gap-1.5 sm:h-7">
             <PlanCarouselArrow
               direction="previous"
               disabled={startIndex === 0}
@@ -264,6 +274,6 @@ export function PlanTierRail({
           {positionLabel}
         </p>
       ) : null}
-    </div>
+    </FloatingPanel>
   );
 }

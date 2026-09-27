@@ -80,6 +80,12 @@ export function useOrgPlanCheckoutConfirmation({
   }, [checkoutReturn, orgId, onCheckoutReturnHandled]);
 
   useEffect(() => {
+    if (state !== 'success') return;
+    const timer = window.setTimeout(() => setState('idle'), 0);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
+  useEffect(() => {
     if (!orgId || !data) return;
 
     if (pendingCheckoutUrl) {

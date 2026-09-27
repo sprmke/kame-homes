@@ -65,7 +65,7 @@ const DOW_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** No `pricing.rates:edit` permission — view-only. */
+  /** No `pricing.smartPricing:edit` permission — view-only. */
   readOnly?: boolean;
 };
 
@@ -593,7 +593,7 @@ export function SmartPricingDialog({ open, onOpenChange, readOnly }: Props) {
         {!canWrite ? (
           <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             {readOnly
-              ? 'View only. Pricing-rates permission required to edit.'
+              ? 'View only. Smart Pricing permission required to edit.'
               : 'Pro plan required to enable.'}
           </div>
         ) : null}

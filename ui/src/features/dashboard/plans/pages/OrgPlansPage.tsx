@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { FileText, LayoutGrid, Receipt } from 'lucide-react';
+import { FileText, HelpCircle, LayoutGrid, Receipt } from 'lucide-react';
 
 import {
   helpSupportNewTicketPath,
@@ -10,7 +10,10 @@ import {
 } from '@/features/dashboard/help-support/lib/helpSupportPaths';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 import { canManageOrgBilling } from '@/features/dashboard/org/lib/orgAccessKind';
-import { PlanBillingPanel } from '@/features/dashboard/plans/components/PlanBillingPanel';
+import {
+  PlanBillingHistory,
+  PlanBillingSummaryCard,
+} from '@/features/dashboard/plans/components/PlanBillingPanel';
 import { PlanCheckoutConfirmationBanner } from '@/features/dashboard/plans/components/PlanCheckoutConfirmationBanner';
 import { PlanFaqSection } from '@/features/dashboard/plans/components/PlanFaqSection';
 import { PlanFeatureMatrix } from '@/features/dashboard/plans/components/PlanFeatureMatrix';
@@ -34,7 +37,7 @@ import {
   MANAGED_PLAN_INQUIRY_SUBJECT,
   nextUpgradePlan,
   PLANS_PAGE_SUBTITLE,
-  planTabSectionTitleClass,
+  PLANS_TAB_SECTION_TITLES,
   resolveEffectiveCurrentPlan,
   resolveEffectiveCurrentPlanId,
   resolveDowngradeBlockedReason,
@@ -48,9 +51,8 @@ import { PlansPageSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { orgPageTitle, usePageTitle } from '@/lib/pageTitle';
-import { cn } from '@/lib/utils';
 
-type PlansTab = 'plans' | 'billing' | 'compare';
+type PlansTab = keyof typeof PLANS_TAB_SECTION_TITLES;
 
 /**
  * Org subscription hub — one plan covers every property in the org, priced per property with
@@ -196,7 +198,7 @@ export function OrgPlansPage() {
     const tab = searchParams.get('tab');
     if (tab === 'billing') {
       setActiveTab('billing');
-    } else if (tab === 'plans' || tab === 'compare') {
+    } else if (tab === 'plans' || tab === 'compare' || tab === 'faqs') {
       setActiveTab(tab);
     }
 
@@ -267,7 +269,33 @@ export function OrgPlansPage() {
           </p>
         </FloatingPanel>
       ) : (
-        <div className="native-stagger flex min-w-0 flex-col gap-5 sm:gap-6 lg:gap-8">
+        <div className="native-stagger flex min-w-0 flex-col gap-5 sm:gap-6">
+          <PlanCheckoutConfirmationBanner
+            state={checkoutConfirmation}
+            pendingCheckoutUrl={data?.pendingCheckoutUrl}
+            onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
+          />
+
+          {currentPlan || subscription ? (
+            <PlanBillingSummaryCard
+              plan={currentPlan}
+              subscription={subscription}
+              canManage={canManageBilling}
+              pendingCheckoutUrl={data?.pendingCheckoutUrl}
+              onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
+              isPaying={createCheckout.isPending}
+              upgradePlan={upgradeTarget}
+              onUpgrade={handleSelectPlan}
+              onManagePlans={() => setActiveTab('plans')}
+              uncoveredPropertyCount={uncoveredPropertyCount}
+              onCoverUncoveredProperties={
+                subscription && currentPlan && uncoveredPropertyCount > 0
+                  ? () => handleSelectPlan(currentPlan)
+                  : undefined
+              }
+            />
+          ) : null}
+
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as PlansTab)}
@@ -295,71 +323,45 @@ export function OrgPlansPage() {
                 <FileText className="size-4 shrink-0" aria-hidden />
                 <span>Compare</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="faqs"
+                className="gap-2 px-3 py-2 max-lg:gap-1.5 max-lg:px-2.5 max-lg:py-0 max-lg:text-[13px]"
+              >
+                <HelpCircle className="size-4 shrink-0" aria-hidden />
+                <span>FAQs</span>
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="billing" className="mt-5 sm:mt-6">
-              <section aria-labelledby="billing-tab-heading" className="min-w-0">
-                <h2 id="billing-tab-heading" className={cn(planTabSectionTitleClass, 'mb-4')}>
-                  Billing
-                </h2>
-
-                <PlanCheckoutConfirmationBanner
-                  state={checkoutConfirmation}
-                  pendingCheckoutUrl={data?.pendingCheckoutUrl}
-                  onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
-                  className="mb-4"
-                />
-
-                <PlanBillingPanel
-                  plan={currentPlan}
-                  subscription={subscription}
-                  transactions={data?.transactions ?? []}
-                  canManage={canManageBilling}
-                  pendingCheckoutUrl={data?.pendingCheckoutUrl}
-                  onResumePayment={canManageBilling ? resumePendingCheckout : undefined}
-                  isPaying={createCheckout.isPending}
-                  upgradePlan={upgradeTarget}
-                  onUpgrade={handleSelectPlan}
-                  onManagePlans={() => setActiveTab('plans')}
-                  uncoveredPropertyCount={uncoveredPropertyCount}
-                  onCoverUncoveredProperties={
-                    subscription && currentPlan && uncoveredPropertyCount > 0
-                      ? () => handleSelectPlan(currentPlan)
-                      : undefined
-                  }
-                />
-              </section>
+            <TabsContent value="billing" className="mt-3" aria-labelledby="plans-billing-heading">
+              <PlanBillingHistory
+                transactions={data?.transactions ?? []}
+                plans={data?.plans ?? []}
+              />
             </TabsContent>
 
-            <TabsContent value="plans" className="mt-5 space-y-6 sm:mt-6">
-              <section aria-labelledby="choose-plan-heading" className="min-w-0">
-                <PlanTierRail
-                  tiers={tiers}
-                  hasCurrentPlan={Boolean(effectiveCurrentPlanId)}
-                  canSelect={canManageBilling}
-                  onSelectPlan={handleSelectPlan}
-                />
-              </section>
+            <TabsContent value="plans" className="mt-3" aria-labelledby="choose-plan-heading">
+              <PlanTierRail
+                tiers={tiers}
+                hasCurrentPlan={Boolean(effectiveCurrentPlanId)}
+                canSelect={canManageBilling}
+                onSelectPlan={handleSelectPlan}
+              />
             </TabsContent>
 
-            <TabsContent value="compare" className="mt-5 sm:mt-6">
-              <section aria-labelledby="compare-features-heading" className="min-w-0">
-                <h2 id="compare-features-heading" className={cn(planTabSectionTitleClass, 'mb-4')}>
-                  Compare features
-                </h2>
+            <TabsContent value="compare" className="mt-3" aria-labelledby="plan-compare-heading">
+              <PlanFeatureMatrix
+                tiers={tiers}
+                hasCurrentPlan={Boolean(effectiveCurrentPlanId)}
+                canSelect={canManageBilling}
+                onSelectPlan={handleSelectPlan}
+                showHeading
+              />
+            </TabsContent>
 
-                <PlanFeatureMatrix
-                  tiers={tiers}
-                  hasCurrentPlan={Boolean(effectiveCurrentPlanId)}
-                  canSelect={canManageBilling}
-                  onSelectPlan={handleSelectPlan}
-                  className="border-border/80 shadow-sm"
-                />
-              </section>
+            <TabsContent value="faqs" className="mt-3" aria-labelledby="plan-faq-heading">
+              <PlanFaqSection />
             </TabsContent>
           </Tabs>
-
-          <PlanFaqSection />
         </div>
       )}
 

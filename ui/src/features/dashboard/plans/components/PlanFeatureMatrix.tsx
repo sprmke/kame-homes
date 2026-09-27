@@ -8,7 +8,9 @@ import {
   planDisplayName,
   planFeatureMatrixGroups,
   planPrice,
+  PLANS_TAB_SECTION_TITLES,
   planSelectButtonVariant,
+  planTabCardHeadingClass,
   type PlanFeatureRow,
   type PlanFeatureValue,
   type PlanTier,
@@ -24,6 +26,8 @@ type PlanFeatureMatrixProps = {
   canSelect: boolean;
   onSelectPlan: (plan: OrgBundlePlanDto) => void;
   className?: string;
+  /** When true, show the section title inside the card (org Plans Compare tab). */
+  showHeading?: boolean;
 };
 
 const STICKY_COLUMN = 'bg-card border-border/60 sticky left-0 z-10 border-r';
@@ -59,19 +63,26 @@ export function PlanFeatureMatrix({
   canSelect,
   onSelectPlan,
   className,
+  showHeading = false,
 }: PlanFeatureMatrixProps) {
   const groups = planFeatureMatrixGroups(tiers.map((tier) => tier.plan));
 
   return (
     <FloatingPanel
       as="section"
-      padding="none"
+      padding="lg"
       aria-labelledby="plan-compare-heading"
       className={cn('min-w-0 max-w-full overflow-hidden', className)}
     >
-      <h2 id="plan-compare-heading" className="sr-only">
-        Compare features across plans
-      </h2>
+      {showHeading ? (
+        <h2 id="plan-compare-heading" className={planTabCardHeadingClass}>
+          {PLANS_TAB_SECTION_TITLES.compare}
+        </h2>
+      ) : (
+        <h2 id="plan-compare-heading" className="sr-only">
+          Compare features across plans
+        </h2>
+      )}
 
       <div className="scrollbar-thin w-full min-w-0 max-w-full overflow-x-auto">
         <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-xs sm:min-w-[44rem] sm:text-sm">

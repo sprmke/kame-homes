@@ -1,6 +1,10 @@
-import { ChevronDown, HelpCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
-import { PLAN_FAQ_ITEMS } from '@/features/dashboard/plans/lib/planPresentation';
+import {
+  PLAN_FAQ_ITEMS,
+  PLANS_TAB_SECTION_TITLES,
+  planTabCardHeadingClass,
+} from '@/features/dashboard/plans/lib/planPresentation';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -18,19 +22,11 @@ export function PlanFaqSection({ className }: PlanFaqSectionProps) {
       aria-labelledby="plan-faq-heading"
       className={className}
     >
-      <h2
-        id="plan-faq-heading"
-        className="text-foreground flex items-center gap-2 text-base font-semibold tracking-tight sm:text-lg"
-      >
-        <HelpCircle
-          className="text-muted-foreground size-5 shrink-0"
-          strokeWidth={1.75}
-          aria-hidden
-        />
-        Frequently Asked Questions
+      <h2 id="plan-faq-heading" className={planTabCardHeadingClass}>
+        {PLANS_TAB_SECTION_TITLES.faqs}
       </h2>
 
-      <div className="mt-4 space-y-3 sm:mt-5">
+      <div className="space-y-3">
         {PLAN_FAQ_ITEMS.map((faq) => (
           <Collapsible key={faq.question}>
             <CollapsibleTrigger
