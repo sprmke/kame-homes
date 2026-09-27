@@ -1,4 +1,12 @@
-import { useEffect, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -15,6 +23,13 @@ import {
   RECURRENCE_SCOPE_OPTIONS,
   isRecurrenceScheduleDirty,
 } from '@/features/dashboard/finance/lib/recurrence';
+import { MaintenanceItemFormPreview } from '@/features/dashboard/maintenance/components/MaintenanceItemFormPreview';
+import {
+  buildMaintenanceItemFormSteps,
+  clampMaintenanceItemFormStepIndex,
+  MAINTENANCE_ITEM_STEP_FIELDS,
+  maintenanceItemFormStepLabels,
+} from '@/features/dashboard/maintenance/lib/maintenanceItemFormSteps';
 import { manilaTodayIso } from '@/features/dashboard/maintenance/lib/maintenancePeriod';
 import {
   MAINTENANCE_DEFAULT_REMINDER_TEMPLATE,
@@ -23,6 +38,7 @@ import {
 } from '@/features/dashboard/maintenance/lib/maintenanceReminderTemplate';
 import type { MaintenanceItem } from '@/features/dashboard/maintenance/lib/types';
 
+import { WizardStepHeading } from '@/components/wizard/WizardStepHeading';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IsoDateInput } from '@/components/ui/iso-date-input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -117,11 +133,28 @@ const CATEGORY_SUGGESTIONS = [
   'Other',
 ];
 
+export type MaintenanceItemFormWizardState = {
+  stepIndex: number;
+  stepLabels: string[];
+  isFirstStep: boolean;
+  isLastStep: boolean;
+};
+
+export type MaintenanceItemFormHandle = {
+  goNext: () => Promise<boolean>;
+  goBack: () => void;
+  /** Resolves true when validation passed and the submit handler did not report a failure. */
+  submit: () => Promise<boolean>;
+  getWizardState: () => MaintenanceItemFormWizardState;
+};
+
 type Props = {
   formId: string;
   initial?: MaintenanceItem | null;
   seriesRecurrenceUntil?: string | null;
-  onSubmit: (values: MaintenanceItemFormValues) => void;
+  onSubmit: (values: MaintenanceItemFormValues) => void | boolean | Promise<boolean | void>;
+  onWizardStateChange?: (state: MaintenanceItemFormWizardState) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 function defaultValues(
@@ -155,293 +188,302 @@ function defaultValues(
   };
 }
 
-export function MaintenanceItemForm({ formId, initial, seriesRecurrenceUntil, onSubmit }: Props) {
-  const isRecurringEdit = Boolean(initial?.recurrence_series_id);
-  const isEdit = Boolean(initial);
-  const { data: maintenanceSettings } = useTelegramMaintenanceSettings();
-  const globalDefaultMessageTemplate =
-    maintenanceSettings?.defaultReminderTemplate ?? MAINTENANCE_DEFAULT_REMINDER_TEMPLATE;
+export const MaintenanceItemForm = forwardRef<MaintenanceItemFormHandle, Props>(
+  function MaintenanceItemForm(
+    { formId, initial, seriesRecurrenceUntil, onSubmit, onWizardStateChange, onDirtyChange },
+    ref
+  ) {
+    const isRecurringEdit = Boolean(initial?.recurrence_series_id);
+    const isEdit = Boolean(initial);
+    const showRepeat = !isEdit || isRecurringEdit;
+    const { data: maintenanceSettings } = useTelegramMaintenanceSettings();
+    const globalDefaultMessageTemplate =
+      maintenanceSettings?.defaultReminderTemplate ?? MAINTENANCE_DEFAULT_REMINDER_TEMPLATE;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useForm<MaintenanceItemFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: defaultValues(initial, globalDefaultMessageTemplate, seriesRecurrenceUntil),
-  });
+    const [stepIndex, setStepIndex] = useState(0);
+    const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => {
-    reset(defaultValues(initial, globalDefaultMessageTemplate, seriesRecurrenceUntil), {
-      keepDefaultValues: false,
+    const steps = useMemo(() => buildMaintenanceItemFormSteps(), []);
+    const stepLabels = useMemo(() => maintenanceItemFormStepLabels(steps), [steps]);
+    const safeStepIndex = clampMaintenanceItemFormStepIndex(stepIndex, steps.length);
+    const activeStep = steps[safeStepIndex] ?? steps[0];
+    const isFirstStep = safeStepIndex === 0;
+    const isLastStep = safeStepIndex === steps.length - 1;
+
+    const {
+      register,
+      control,
+      handleSubmit,
+      reset,
+      watch,
+      setValue,
+      getValues,
+      trigger,
+      formState: { errors, isDirty },
+    } = useForm<MaintenanceItemFormValues>({
+      resolver: zodResolver(schema),
+      defaultValues: defaultValues(initial, globalDefaultMessageTemplate, seriesRecurrenceUntil),
     });
-  }, [initial, globalDefaultMessageTemplate, seriesRecurrenceUntil, reset]);
 
-  const recurrenceInterval = watch('recurrence_interval');
-  const recurrenceUntil = watch('recurrence_until');
-  const scheduledOn = watch('scheduled_on');
-  const telegramReminderEnabled = watch('telegram_reminder_enabled');
-  const telegramDaysBefore = watch('telegram_days_before');
-  const telegramReminderInterval = watch('telegram_reminder_interval');
+    useEffect(() => {
+      reset(defaultValues(initial, globalDefaultMessageTemplate, seriesRecurrenceUntil), {
+        keepDefaultValues: false,
+      });
+      setStepIndex(0);
+    }, [initial, globalDefaultMessageTemplate, seriesRecurrenceUntil, reset]);
 
-  const scheduleDirty = isRecurrenceScheduleDirty({
-    isRecurringEdit,
-    recurrenceInterval,
-    recurrenceUntil,
-    initialInterval: initial?.recurrence_interval,
-    initialUntil: seriesRecurrenceUntil,
-  });
+    useEffect(() => {
+      onDirtyChange?.(isDirty);
+    }, [isDirty, onDirtyChange]);
 
-  const repeatOptions = RECURRENCE_INTERVAL_OPTIONS.filter(
-    (opt) => !isRecurringEdit || opt.value !== 'none'
-  );
+    useEffect(() => {
+      const id = window.requestAnimationFrame(() => {
+        stepHeadingRef.current?.focus();
+      });
+      return () => window.cancelAnimationFrame(id);
+    }, [safeStepIndex]);
 
-  useEffect(() => {
-    // A repeat interval / end-date change is a series-level property — it can't
-    // apply to a single occurrence, so "this occurrence only" stops being a valid
-    // choice. Nudge off it, but still let the host pick this-and-future vs. all
-    // (the picker stays visible below, just scoped to those two options) instead
-    // of silently deciding for them.
-    if (scheduleDirty && getValues('edit_scope') === 'this') {
-      setValue('edit_scope', 'this_and_future');
-    }
-  }, [scheduleDirty, getValues, setValue]);
+    useEffect(() => {
+      onWizardStateChange?.({
+        stepIndex: safeStepIndex,
+        stepLabels,
+        isFirstStep,
+        isLastStep,
+      });
+    }, [safeStepIndex, stepLabels, isFirstStep, isLastStep, onWizardStateChange]);
 
-  useEffect(() => {
-    if (!telegramReminderEnabled) return;
-    const current = getValues('telegram_message_template')?.trim();
-    if (!current) {
-      setValue('telegram_message_template', globalDefaultMessageTemplate);
-    }
-  }, [telegramReminderEnabled, globalDefaultMessageTemplate, getValues, setValue]);
+    const recurrenceInterval = watch('recurrence_interval');
+    const recurrenceUntil = watch('recurrence_until');
+    const scheduledOn = watch('scheduled_on');
+    const telegramReminderEnabled = watch('telegram_reminder_enabled');
+    const telegramDaysBefore = watch('telegram_days_before');
+    const telegramReminderInterval = watch('telegram_reminder_interval');
+    const previewValues = watch();
 
-  useEffect(() => {
-    if (!isEdit && recurrenceInterval !== 'none' && scheduledOn) {
-      setValue('recurrence_until', defaultRecurrenceUntil(scheduledOn, recurrenceInterval));
-    }
-  }, [recurrenceInterval, scheduledOn, isEdit, setValue]);
+    const scheduleDirty = isRecurrenceScheduleDirty({
+      isRecurringEdit,
+      recurrenceInterval,
+      recurrenceUntil,
+      initialInterval: initial?.recurrence_interval,
+      initialUntil: seriesRecurrenceUntil,
+    });
 
-  return (
-    <form id={formId} className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-      <Field label="Label" required error={errors.label?.message}>
-        <input
-          className="border-input bg-card text-foreground field-focus h-10 w-full rounded-lg border px-3 text-sm transition-colors"
-          {...register('label')}
-        />
-      </Field>
+    const repeatOptions = RECURRENCE_INTERVAL_OPTIONS.filter(
+      (opt) => !isRecurringEdit || opt.value !== 'none'
+    );
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Category" required error={errors.category?.message}>
-          <Controller
-            name="category"
-            control={control}
-            render={({ field }) => (
-              <CategoryCombobox
-                value={field.value ?? ''}
-                onChange={field.onChange}
-                suggestions={CATEGORY_SUGGESTIONS}
-              />
-            )}
-          />
-        </Field>
+    useEffect(() => {
+      if (scheduleDirty && getValues('edit_scope') === 'this') {
+        setValue('edit_scope', 'this_and_future');
+      }
+    }, [scheduleDirty, getValues, setValue]);
 
-        <Field label="Date" error={errors.scheduled_on?.message}>
-          <Controller
-            name="scheduled_on"
-            control={control}
-            render={({ field }) => (
-              <IsoDateInput
-                value={field.value ?? ''}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-              />
-            )}
-          />
-        </Field>
-      </div>
+    useEffect(() => {
+      if (!telegramReminderEnabled) return;
+      const current = getValues('telegram_message_template')?.trim();
+      if (!current) {
+        setValue('telegram_message_template', globalDefaultMessageTemplate);
+      }
+    }, [telegramReminderEnabled, globalDefaultMessageTemplate, getValues, setValue]);
 
-      {!isEdit || isRecurringEdit ? (
-        <>
-          <Field label="Repeat" error={errors.recurrence_interval?.message}>
-            <Controller
-              name="recurrence_interval"
-              control={control}
-              render={({ field: { value, onChange } }) => (
-                <Select value={value} onValueChange={onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {repeatOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </Field>
+    useEffect(() => {
+      if (!isEdit && recurrenceInterval !== 'none' && scheduledOn) {
+        setValue('recurrence_until', defaultRecurrenceUntil(scheduledOn, recurrenceInterval));
+      }
+    }, [recurrenceInterval, scheduledOn, isEdit, setValue]);
 
-          {recurrenceInterval !== 'none' ? (
-            <Field label="Repeats until" error={errors.recurrence_until?.message}>
-              <Controller
-                name="recurrence_until"
-                control={control}
-                render={({ field }) => <IsoDateInput {...field} />}
-              />
-            </Field>
-          ) : null}
-        </>
-      ) : null}
+    useImperativeHandle(
+      ref,
+      () => ({
+        goNext: async () => {
+          const fields = MAINTENANCE_ITEM_STEP_FIELDS[activeStep?.kind ?? 'details'];
+          if (fields.length > 0) {
+            const ok = await trigger(fields as (keyof MaintenanceItemFormValues)[]);
+            if (!ok) return false;
+          }
+          setStepIndex((prev) => clampMaintenanceItemFormStepIndex(prev + 1, steps.length));
+          return true;
+        },
+        goBack: () => {
+          setStepIndex((prev) => clampMaintenanceItemFormStepIndex(prev - 1, steps.length));
+        },
+        submit: async () => {
+          let saved = false;
+          await handleSubmit(async (values) => {
+            saved = (await onSubmit(values)) !== false;
+          })();
+          return saved;
+        },
+        getWizardState: () => ({
+          stepIndex: safeStepIndex,
+          stepLabels,
+          isFirstStep,
+          isLastStep,
+        }),
+      }),
+      [
+        activeStep?.kind,
+        handleSubmit,
+        isFirstStep,
+        isLastStep,
+        onSubmit,
+        safeStepIndex,
+        stepLabels,
+        steps.length,
+        trigger,
+      ]
+    );
 
-      {isEdit && isRecurringEdit ? (
-        <fieldset className="space-y-2">
-          <legend className="text-overline mb-1.5 block">Apply changes to</legend>
-          {scheduleDirty ? (
-            <p className="text-muted-foreground text-caption -mt-1 mb-1.5">
-              A repeat schedule change can&apos;t apply to one occurrence only.
-            </p>
-          ) : null}
-          <Controller
-            name="edit_scope"
-            control={control}
-            render={({ field: { value, onChange } }) => (
-              <RadioGroup value={value} onValueChange={onChange} className="space-y-2">
-                {RECURRENCE_SCOPE_OPTIONS.filter(
-                  (opt) => !scheduleDirty || opt.value !== 'this'
-                ).map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={cn(
-                      'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors',
-                      value === opt.value
-                        ? 'border-primary/40 bg-primary/5'
-                        : 'border-border bg-muted/30 hover:bg-muted/50'
-                    )}
-                  >
-                    <RadioGroupItem value={opt.value} className="mt-1" />
-                    <span className="min-w-0">
-                      <span className="text-foreground block text-sm font-semibold">
-                        {opt.label}
-                      </span>
-                      <span className="text-caption text-muted-foreground mt-0.5 block">
-                        {opt.description}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </fieldset>
-      ) : null}
-
-      <Field label="Notes" error={errors.notes?.message}>
-        <textarea
-          rows={7}
-          className="border-input bg-card text-foreground field-focus w-full rounded-lg border px-3 py-2 text-sm transition-colors"
-          {...register('notes')}
-        />
-      </Field>
-
-      <fieldset className="border-border/50 bg-muted/20 space-y-3 rounded-xl border p-3">
-        <legend className="sr-only">Telegram reminders</legend>
-        <p className="text-overline">Telegram reminders</p>
-        <Controller
-          name="telegram_reminder_enabled"
-          control={control}
-          render={({ field: { value, onChange, onBlur, name } }) => (
-            <label className="flex min-h-[44px] cursor-pointer items-start gap-3">
-              <Checkbox
-                name={name}
-                checked={value}
-                onCheckedChange={onChange}
-                onBlur={onBlur}
-                className="mt-1"
-              />
-              <span className="min-w-0">
-                <span className="text-foreground block text-sm font-semibold">Send reminders</span>
-              </span>
-            </label>
-          )}
+    return (
+      <form
+        id={formId}
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (isLastStep) {
+            void handleSubmit(onSubmit)(event);
+          }
+        }}
+      >
+        <WizardStepHeading
+          title={activeStep?.label ?? 'Details'}
+          headingRef={stepHeadingRef}
+          className="mb-1"
         />
 
-        {telegramReminderEnabled ? (
+        {activeStep?.kind === 'details' ? (
           <div className="space-y-4">
-            <Field label="Days before due" error={errors.telegram_days_before?.message}>
+            <Field label="Label" required error={errors.label?.message}>
               <input
-                type="number"
-                min={0}
-                max={90}
-                className="border-input bg-card text-foreground field-focus h-10 w-full rounded-lg border px-3 text-sm"
-                {...register('telegram_days_before', { valueAsNumber: true })}
+                className="border-input bg-card text-foreground field-focus h-10 w-full rounded-lg border px-3 text-sm transition-colors"
+                {...register('label')}
               />
             </Field>
 
-            <Field label="How often to remind" error={errors.telegram_reminder_interval?.message}>
-              <Controller
-                name="telegram_reminder_interval"
-                control={control}
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <RadioGroup
-                    value={value}
-                    onValueChange={onChange}
-                    className="space-y-2"
-                    aria-label="How often to remind"
-                  >
-                    {FINANCE_REMINDER_INTERVAL_OPTIONS.map((opt) => (
-                      <label
-                        key={opt.value}
-                        className={cn(
-                          'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors',
-                          value === opt.value
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-border bg-muted/30 hover:bg-muted/50'
-                        )}
-                      >
-                        <RadioGroupItem value={opt.value} className="mt-1" onBlur={onBlur} />
-                        <span className="min-w-0">
-                          <span className="text-foreground block text-sm font-semibold">
-                            {opt.label}
-                          </span>
-                          <span className="text-caption text-muted-foreground mt-0.5 block">
-                            {opt.description}
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category" required error={errors.category?.message}>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <CategoryCombobox
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      suggestions={CATEGORY_SUGGESTIONS}
+                    />
+                  )}
+                />
+              </Field>
 
-            <TelegramReminderSchedulePreview
-              anchorDate={scheduledOn}
-              recurrenceInterval={recurrenceInterval}
-              recurrenceUntil={recurrenceUntil}
-              daysBefore={telegramDaysBefore}
-              reminderInterval={telegramReminderInterval}
-              singleOccurrenceOnly={isEdit}
-            />
+              <Field label="Date" error={errors.scheduled_on?.message}>
+                <Controller
+                  name="scheduled_on"
+                  control={control}
+                  render={({ field }) => (
+                    <IsoDateInput
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
+                />
+              </Field>
+            </div>
 
-            <Field label="Message" error={errors.telegram_message_template?.message}>
+            <Field label="Notes" error={errors.notes?.message}>
               <textarea
-                rows={9}
-                className="border-input bg-card text-foreground field-focus w-full rounded-lg border px-3 py-2 font-mono text-xs"
-                {...register('telegram_message_template')}
+                rows={5}
+                className="border-input bg-card text-foreground field-focus w-full rounded-lg border px-3 py-2 text-sm transition-colors"
+                {...register('notes')}
               />
             </Field>
+          </div>
+        ) : null}
 
-            {isEdit ? (
+        {activeStep?.kind === 'reminders' ? (
+          <div className="space-y-4">
+            {showRepeat ? (
+              <>
+                <Field label="Repeat" error={errors.recurrence_interval?.message}>
+                  <Controller
+                    name="recurrence_interval"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Select value={value} onValueChange={onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {repeatOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </Field>
+
+                {recurrenceInterval !== 'none' ? (
+                  <Field label="Repeats until" error={errors.recurrence_until?.message}>
+                    <Controller
+                      name="recurrence_until"
+                      control={control}
+                      render={({ field }) => <IsoDateInput {...field} />}
+                    />
+                  </Field>
+                ) : null}
+              </>
+            ) : null}
+
+            {isEdit && isRecurringEdit ? (
+              <fieldset className="space-y-2">
+                <legend className="text-overline mb-1.5 block">Apply changes to</legend>
+                {scheduleDirty ? (
+                  <p className="text-muted-foreground text-caption -mt-1 mb-1.5">
+                    A repeat schedule change can&apos;t apply to one occurrence only.
+                  </p>
+                ) : null}
+                <Controller
+                  name="edit_scope"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <RadioGroup value={value} onValueChange={onChange} className="space-y-2">
+                      {RECURRENCE_SCOPE_OPTIONS.filter(
+                        (opt) => !scheduleDirty || opt.value !== 'this'
+                      ).map((opt) => (
+                        <label
+                          key={opt.value}
+                          className={cn(
+                            'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors',
+                            value === opt.value
+                              ? 'border-primary/40 bg-primary/5'
+                              : 'border-border bg-muted/30 hover:bg-muted/50'
+                          )}
+                        >
+                          <RadioGroupItem value={opt.value} className="mt-1" />
+                          <span className="min-w-0">
+                            <span className="text-foreground block text-sm font-semibold">
+                              {opt.label}
+                            </span>
+                            <span className="text-caption text-muted-foreground mt-0.5 block">
+                              {opt.description}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  )}
+                />
+              </fieldset>
+            ) : null}
+
+            <fieldset className="border-border/50 bg-muted/20 space-y-3 rounded-xl border p-3">
+              <legend className="sr-only">Telegram reminders</legend>
               <Controller
-                name="marked_complete"
+                name="telegram_reminder_enabled"
                 control={control}
                 render={({ field: { value, onChange, onBlur, name } }) => (
                   <label className="flex min-h-[44px] cursor-pointer items-start gap-3">
@@ -454,19 +496,122 @@ export function MaintenanceItemForm({ formId, initial, seriesRecurrenceUntil, on
                     />
                     <span className="min-w-0">
                       <span className="text-foreground block text-sm font-semibold">
-                        Mark as done
+                        Send reminders
                       </span>
                     </span>
                   </label>
                 )}
               />
-            ) : null}
+
+              {telegramReminderEnabled ? (
+                <div className="space-y-4">
+                  <Field label="Days before due" error={errors.telegram_days_before?.message}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={90}
+                      className="border-input bg-card text-foreground field-focus h-10 w-full rounded-lg border px-3 text-sm"
+                      {...register('telegram_days_before', { valueAsNumber: true })}
+                    />
+                  </Field>
+
+                  <Field
+                    label="How often to remind"
+                    error={errors.telegram_reminder_interval?.message}
+                  >
+                    <Controller
+                      name="telegram_reminder_interval"
+                      control={control}
+                      render={({ field: { value, onChange, onBlur } }) => (
+                        <RadioGroup
+                          value={value}
+                          onValueChange={onChange}
+                          className="space-y-2"
+                          aria-label="How often to remind"
+                        >
+                          {FINANCE_REMINDER_INTERVAL_OPTIONS.map((opt) => (
+                            <label
+                              key={opt.value}
+                              className={cn(
+                                'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors',
+                                value === opt.value
+                                  ? 'border-primary/40 bg-primary/5'
+                                  : 'border-border bg-muted/30 hover:bg-muted/50'
+                              )}
+                            >
+                              <RadioGroupItem value={opt.value} className="mt-1" onBlur={onBlur} />
+                              <span className="min-w-0">
+                                <span className="text-foreground block text-sm font-semibold">
+                                  {opt.label}
+                                </span>
+                                <span className="text-caption text-muted-foreground mt-0.5 block">
+                                  {opt.description}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </RadioGroup>
+                      )}
+                    />
+                  </Field>
+
+                  <TelegramReminderSchedulePreview
+                    anchorDate={scheduledOn}
+                    recurrenceInterval={recurrenceInterval}
+                    recurrenceUntil={recurrenceUntil}
+                    daysBefore={telegramDaysBefore}
+                    reminderInterval={telegramReminderInterval}
+                    singleOccurrenceOnly={isEdit}
+                  />
+
+                  <Field label="Message" error={errors.telegram_message_template?.message}>
+                    <textarea
+                      rows={7}
+                      className="border-input bg-card text-foreground field-focus w-full rounded-lg border px-3 py-2 font-mono text-xs"
+                      {...register('telegram_message_template')}
+                    />
+                  </Field>
+
+                  {isEdit ? (
+                    <Controller
+                      name="marked_complete"
+                      control={control}
+                      render={({ field: { value, onChange, onBlur, name } }) => (
+                        <label className="flex min-h-[44px] cursor-pointer items-start gap-3">
+                          <Checkbox
+                            name={name}
+                            checked={value}
+                            onCheckedChange={onChange}
+                            onBlur={onBlur}
+                            className="mt-1"
+                          />
+                          <span className="min-w-0">
+                            <span className="text-foreground block text-sm font-semibold">
+                              Mark as done
+                            </span>
+                          </span>
+                        </label>
+                      )}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+            </fieldset>
           </div>
         ) : null}
-      </fieldset>
-    </form>
-  );
-}
+
+        {activeStep?.kind === 'preview' ? (
+          <MaintenanceItemFormPreview
+            values={previewValues}
+            isEdit={isEdit}
+            isRecurringEdit={isRecurringEdit}
+            showRepeat={showRepeat}
+          />
+        ) : null}
+      </form>
+    );
+  }
+);
 
 function Field({
   label,

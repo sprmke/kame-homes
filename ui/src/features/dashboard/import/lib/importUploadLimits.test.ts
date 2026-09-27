@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateImportCsvFile, IMPORT_MAX_FILE_BYTES, IMPORT_MAX_ROW_COUNT, IMPORT_ACCEPT, IMPORT_LIMITS_HINT } from '@/features/dashboard/import/lib/importUploadLimits';
+import {
+  validateImportCsvFile,
+  IMPORT_MAX_FILE_BYTES,
+  IMPORT_MAX_ROW_COUNT,
+  IMPORT_ACCEPT,
+  IMPORT_LIMITS_HINT,
+} from '@/features/dashboard/import/lib/importUploadLimits';
 
 describe('validateImportCsvFile', () => {
-
   it('validateImportCsvFile is exported', () => {
     expect(typeof validateImportCsvFile).toBe('function');
   });
-
 });
 
 describe('IMPORT_MAX_FILE_BYTES', () => {

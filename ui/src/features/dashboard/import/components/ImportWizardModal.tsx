@@ -54,6 +54,7 @@ import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +66,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ImportCommitStepSkeleton } from '@/components/skeletons/ImportWizardSkeleton';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -81,6 +82,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
 
@@ -640,7 +642,6 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
   const [commitResultError, setCommitResultError] = React.useState<string | null>(null);
   const [commitFailures, setCommitFailures] = React.useState<CommitImportBatchFailure[]>([]);
   const [previewRunKey, setPreviewRunKey] = React.useState(0);
-  const [discardOpen, setDiscardOpen] = React.useState(false);
   const [templateConfirmOpen, setTemplateConfirmOpen] = React.useState(false);
   const [showMissingRequired, setShowMissingRequired] = React.useState(false);
 
@@ -676,7 +677,6 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
     setCommitResultError(null);
     setCommitFailures([]);
     setPreviewRunKey(0);
-    setDiscardOpen(false);
     setTemplateConfirmOpen(false);
     setShowMissingRequired(false);
     previewMutation.reset();
@@ -745,28 +745,14 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
     setMappingState((prev) => ({ ...prev, [header]: target }));
   };
 
-  const finishClose = () => {
-    setDiscardOpen(false);
-    onOpenChange(false);
-  };
-
-  /** Cancel button + Escape inside the confirm dialog route through Radix, not our own handlers. */
-  const handleDiscardOpenChange = (nextOpen: boolean) => {
-    if (nextOpen || cancelMutation.isPending) return;
-    setDiscardOpen(false);
-  };
-
-  const discardAndClose = async () => {
+  /** Drop the staged batch when the user discards (route change or modal close). */
+  const cancelPendingBatch = () => {
     const batchId = pendingCancelBatchIdRef.current ?? parseResult?.batchId ?? null;
     pendingCancelBatchIdRef.current = null;
-    if (batchId) {
-      try {
-        await cancelMutation.mutateAsync(batchId);
-      } catch {
-        // Best effort — close anyway.
-      }
-    }
-    finishClose();
+    if (!batchId) return;
+    void cancelMutation.mutateAsync(batchId).catch(() => {
+      // Best effort cleanup.
+    });
   };
 
   const isBusy =
@@ -794,13 +780,16 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
     }
   };
 
+  const { requestClose: guardedRequestClose, dialogProps: leaveDialogProps } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty: parseResult !== null && !isBatchCommitted,
+    onDiscard: cancelPendingBatch,
+  });
+
   const requestClose = () => {
     if (isBusy) return;
-    if (pendingCancelBatchIdRef.current && !isBatchCommitted) {
-      setDiscardOpen(true);
-      return;
-    }
-    finishClose();
+    guardedRequestClose();
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -1000,7 +989,7 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
           showCloseButton={false}
           aria-label="AI-Assisted import bookings"
           onEscapeKeyDown={(event) => {
-            if (isBusy || discardOpen) {
+            if (isBusy || leaveDialogProps.open) {
               event.preventDefault();
               return;
             }
@@ -1008,7 +997,7 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
             requestClose();
           }}
           onPointerDownOutside={(event) => {
-            if (isBusy || discardOpen || isFromConfirmDialog(event)) {
+            if (isBusy || leaveDialogProps.open || isFromConfirmDialog(event)) {
               event.preventDefault();
               return;
             }
@@ -1016,7 +1005,7 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
             requestClose();
           }}
           onInteractOutside={(event) => {
-            if (isBusy || discardOpen || isFromConfirmDialog(event)) {
+            if (isBusy || leaveDialogProps.open || isFromConfirmDialog(event)) {
               event.preventDefault();
             }
           }}
@@ -1168,47 +1157,7 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={discardOpen} onOpenChange={handleDiscardOpenChange}>
-        <AlertDialogContent
-          overlayClassName="z-[110] pointer-events-auto"
-          className="pointer-events-auto z-[111] max-w-[min(calc(100vw-1.5rem),26rem)]"
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>Leave this import?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your file and column matches will be discarded. No bookings are added.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={cancelMutation.isPending}
-              onClick={() => setDiscardOpen(false)}
-            >
-              Keep working
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={cancelMutation.isPending}
-              className={cn(
-                buttonVariants({ variant: 'destructive' }),
-                '!bg-destructive hover:!bg-destructive/90 [background-image:none]'
-              )}
-              onClick={(event) => {
-                event.preventDefault();
-                void discardAndClose();
-              }}
-            >
-              {cancelMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden />
-                  Discarding…
-                </>
-              ) : (
-                'Discard import'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <UnsavedChangesDialog {...leaveDialogProps} />
     </>
   );
 }

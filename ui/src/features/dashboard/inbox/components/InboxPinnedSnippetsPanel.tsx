@@ -13,10 +13,12 @@ import { useOptionalOrgContext } from '@/features/dashboard/org/components/Requi
 import { useUpdateProperty } from '@/features/dashboard/org/hooks/useUpdateProperty';
 
 import { AdminDialogShell } from '@/components/AdminDialogShell';
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 
 function SnippetFormDialog({
   open,
@@ -29,7 +31,7 @@ function SnippetFormDialog({
   snippet: InboxPinnedSnippet | null;
   saving: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (snippet: InboxPinnedSnippet) => void;
+  onSave: (snippet: InboxPinnedSnippet) => Promise<boolean>;
 }) {
   const [title, setTitle] = useState('');
   const [bodyText, setBodyText] = useState('');
@@ -40,69 +42,84 @@ function SnippetFormDialog({
     setBodyText(snippet?.bodyText ?? '');
   }, [open, snippet]);
 
-  const handleSave = () => {
+  const handleSave = async (): Promise<boolean> => {
     const trimmedTitle = title.trim();
     const trimmedBody = bodyText.trim();
     if (!trimmedTitle || !trimmedBody) {
       toast.error('Title and message required');
-      return;
+      return false;
     }
-    onSave({
+    return onSave({
       id: snippet?.id ?? newInboxPinnedSnippetId(),
       title: trimmedTitle,
       bodyText: trimmedBody,
     });
   };
 
+  const initialTitle = snippet?.title ?? '';
+  const initialBody = snippet?.bodyText ?? '';
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty: title !== initialTitle || bodyText !== initialBody,
+    onSave: handleSave,
+    onDiscard: () => {
+      setTitle(initialTitle);
+      setBodyText(initialBody);
+    },
+  });
+
   return (
-    <AdminDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={snippet ? 'Edit pinned snippet' : 'New pinned snippet'}
-      sizeClassName="max-w-[min(calc(100vw-1.5rem),28rem)] sm:max-w-[min(90vw,36rem)]"
-      contentClassName="z-[104]"
-      footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={saving}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={saving || !title.trim() || !bodyText.trim()}
-            onClick={handleSave}
-          >
-            {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : 'Save'}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="pinned-snippet-title">Title</Label>
-          <Input
-            id="pinned-snippet-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="h-10"
-            autoFocus
-          />
+    <>
+      <AdminDialogShell
+        open={open}
+        onOpenChange={guardedOpenChange}
+        title={snippet ? 'Edit pinned snippet' : 'New pinned snippet'}
+        sizeClassName="max-w-[min(calc(100vw-1.5rem),28rem)] sm:max-w-[min(90vw,36rem)]"
+        contentClassName="z-[104]"
+        footer={
+          <>
+            <Button type="button" variant="outline" disabled={saving} onClick={requestClose}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={saving || !title.trim() || !bodyText.trim()}
+              onClick={() => void handleSave()}
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : 'Save'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="pinned-snippet-title">Title</Label>
+            <Input
+              id="pinned-snippet-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-10"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pinned-snippet-body">Message</Label>
+            <Textarea
+              id="pinned-snippet-body"
+              value={bodyText}
+              onChange={(e) => setBodyText(e.target.value)}
+              className="min-h-[120px] resize-none"
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="pinned-snippet-body">Message</Label>
-          <Textarea
-            id="pinned-snippet-body"
-            value={bodyText}
-            onChange={(e) => setBodyText(e.target.value)}
-            className="min-h-[120px] resize-none"
-          />
-        </div>
-      </div>
-    </AdminDialogShell>
+      </AdminDialogShell>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }
 
@@ -129,22 +146,24 @@ export function InboxPinnedSnippetsPanel() {
     });
   };
 
-  const handleSave = async (snippet: InboxPinnedSnippet) => {
+  const handleSave = async (snippet: InboxPinnedSnippet): Promise<boolean> => {
     const exists = snippets.some((row) => row.id === snippet.id);
     const next = exists
       ? snippets.map((row) => (row.id === snippet.id ? snippet : row))
       : [...snippets, snippet];
     if (next.length > INBOX_PINNED_SNIPPETS_MAX) {
       toast.error(`Max ${INBOX_PINNED_SNIPPETS_MAX} pinned snippets`);
-      return;
+      return false;
     }
     try {
       await persist(next);
       toast.success(exists ? 'Updated' : 'Saved');
       setFormOpen(false);
       setEditing(null);
+      return true;
     } catch (e) {
       toast.error((e as Error).message);
+      return false;
     }
   };
 
@@ -228,7 +247,7 @@ export function InboxPinnedSnippetsPanel() {
           setFormOpen(next);
           if (!next) setEditing(null);
         }}
-        onSave={(snippet) => void handleSave(snippet)}
+        onSave={handleSave}
       />
     </div>
   );

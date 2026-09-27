@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Search } from 'lucide-react';
 
-
 import { InboxFilterBar } from '@/features/dashboard/inbox/components/InboxFilterBar';
 import { InboxThreadListEmpty } from '@/features/dashboard/inbox/components/InboxThreadListEmpty';
 import { InboxThreadRow } from '@/features/dashboard/inbox/components/InboxThreadRow';

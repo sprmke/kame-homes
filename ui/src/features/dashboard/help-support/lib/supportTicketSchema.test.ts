@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSupportTicketDraftComplete, SUPPORT_TICKET_CATEGORIES, SUPPORT_TICKET_SEVERITIES, supportTicketDraftSchema, supportTicketFormSchema } from '@/features/dashboard/help-support/lib/supportTicketSchema';
+import {
+  isSupportTicketDraftComplete,
+  SUPPORT_TICKET_CATEGORIES,
+  SUPPORT_TICKET_SEVERITIES,
+  supportTicketDraftSchema,
+  supportTicketFormSchema,
+} from '@/features/dashboard/help-support/lib/supportTicketSchema';
 
 describe('isSupportTicketDraftComplete', () => {
-
   it('isSupportTicketDraftComplete is exported', () => {
     expect(typeof isSupportTicketDraftComplete).toBe('function');
   });
-
 });
 
 describe('SUPPORT_TICKET_CATEGORIES', () => {
