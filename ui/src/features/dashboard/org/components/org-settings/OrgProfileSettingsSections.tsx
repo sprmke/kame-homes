@@ -15,8 +15,10 @@ import {
   ORG_DESCRIPTION_MAX_LENGTH,
   ORG_TAGLINE_MAX_LENGTH,
 } from '@/features/dashboard/org/lib/orgSettingsValidation';
+import { absoluteGuestPath, guestHostPath } from '@/features/dashboard/org/lib/guestPublicPaths';
 
 import { AvailabilityCheckInput } from '@/components/AvailabilityCheckInput';
+import { ReadonlySlugField } from '@/components/forms/ReadonlySlugField';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,7 +30,6 @@ import { cn } from '@/lib/utils';
 export function OrgBasicInformationSection({
   draft,
   disabled,
-  orgUrlPrefix,
   slugPreview,
   logoSource,
   logoUrl,
@@ -41,7 +42,6 @@ export function OrgBasicInformationSection({
 }: {
   draft: OrgSettingsDraft;
   disabled?: boolean;
-  orgUrlPrefix: string;
   slugPreview: string;
   logoSource?: OrgSettingsFieldSource;
   logoUrl: string;
@@ -90,53 +90,46 @@ export function OrgBasicInformationSection({
         </OrgSettingsFieldSpan>
 
         <OrgSettingsFieldSpan>
-          <OrgSettingsField
-            id="org-name"
-            label="Organization name"
-            required
-            help="This is the name displayed to your team and in reports."
-          >
-            <AvailabilityCheckInput
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5">
+            <OrgSettingsField
               id="org-name"
-              value={draft.name}
-              onChange={(event) => {
-                markFieldInteracted('org-name');
-                onChange('name', event.target.value);
-              }}
-              disabled={disabled}
+              label="Organization name"
               required
-              placeholder="Enter organization name"
-              className={cn('h-10', (nameUnavailable || nameError) && 'border-destructive')}
-              maxLength={120}
-              aria-invalid={Boolean(nameUnavailable || nameError)}
-              checkState={nameAvailabilityState}
-            />
-            {nameError ? (
-              <p className="text-destructive text-xs">{nameError}</p>
-            ) : nameUnavailable ? (
-              <p className="text-destructive text-xs">
-                {nameConflictMessage ?? 'An organization with this name already exists.'}
-              </p>
-            ) : null}
-          </OrgSettingsField>
-        </OrgSettingsFieldSpan>
+              help="This is the name displayed to your team and in reports."
+            >
+              <AvailabilityCheckInput
+                id="org-name"
+                value={draft.name}
+                onChange={(event) => {
+                  markFieldInteracted('org-name');
+                  onChange('name', event.target.value);
+                }}
+                disabled={disabled}
+                required
+                placeholder="Enter organization name"
+                className={cn('h-10', (nameUnavailable || nameError) && 'border-destructive')}
+                maxLength={120}
+                aria-invalid={Boolean(nameUnavailable || nameError)}
+                checkState={nameAvailabilityState}
+              />
+              {nameError ? (
+                <p className="text-destructive text-xs">{nameError}</p>
+              ) : nameUnavailable ? (
+                <p className="text-destructive text-xs">
+                  {nameConflictMessage ?? 'An organization with this name already exists.'}
+                </p>
+              ) : null}
+            </OrgSettingsField>
 
-        <OrgSettingsFieldSpan>
-          <OrgSettingsField id="org-slug" label="URL slug">
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="text-muted-foreground truncate text-sm">{orgUrlPrefix}</span>
-              <Input
+            <OrgSettingsField id="org-slug" label="URL slug">
+              <ReadonlySlugField
                 id="org-slug"
                 value={slugPreview}
-                readOnly
+                copyUrl={absoluteGuestPath(guestHostPath(slugPreview))}
                 disabled={disabled}
-                className="bg-muted/40 h-10 sm:max-w-xs"
-                autoComplete="off"
-                spellCheck={false}
-                aria-readonly="true"
               />
-            </div>
-          </OrgSettingsField>
+            </OrgSettingsField>
+          </div>
         </OrgSettingsFieldSpan>
 
         <OrgSettingsFieldSpan>

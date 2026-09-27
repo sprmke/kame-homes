@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { VIDEO_TRANSITION_FRAMES, VIDEO_FPS, VIDEO_SCENE_DURATION, VIDEO_MUSIC_DEFAULT_VOLUME } from '@/features/dashboard/marketing/lib/video/videoProjectTypes';
+import {
+  VIDEO_TRANSITION_FRAMES,
+  VIDEO_FPS,
+  VIDEO_SCENE_DURATION,
+  VIDEO_MUSIC_DEFAULT_VOLUME,
+} from '@/features/dashboard/marketing/lib/video/videoProjectTypes';
 
 describe('VIDEO_TRANSITION_FRAMES', () => {
   it('is defined', () => {

@@ -71,7 +71,7 @@ type CopyPropertySettingsDialogProps = {
   orgSlug: string;
   properties: CopyPropertySettingsDialogProperty[];
   initialSourcePropertyId?: string | null;
-  /** When set, this property is the only target (Copy from… flow). */
+  /** When set, this property is the only target (locked-target deep link). */
   lockedTargetPropertyId?: string | null;
   canEditProperty?: (propertyId: string) => boolean;
 };
@@ -678,81 +678,81 @@ export function CopyPropertySettingsDialog({
           ) : null}
         </div>
 
-        <ResponsiveModalFooter className="border-border/60 shrink-0 flex-row gap-2 border-t px-5 py-3.5 sm:px-6">
-          {step > 0 ? (
+        <ResponsiveModalFooter className="border-border/60 shrink-0 flex-row items-center gap-2 border-t px-5 py-3.5 sm:px-6">
+          <div className="flex min-w-0 flex-1 justify-start">
+            {step > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px]"
+                disabled={isCopying}
+                onClick={() => {
+                  if (step === 3 && lockedTargetPropertyId) {
+                    setStep(1);
+                    return;
+                  }
+                  setStep((s) => (s - 1) as StepIndex);
+                }}
+              >
+                Back
+              </Button>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
-              className="min-h-[44px] flex-1 sm:flex-none"
-              disabled={isCopying}
-              onClick={() => {
-                if (step === 3 && lockedTargetPropertyId) {
-                  setStep(1);
-                  return;
-                }
-                setStep((s) => (s - 1) as StepIndex);
-              }}
-            >
-              Back
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] flex-1 sm:flex-none"
+              className="min-h-[44px]"
               disabled={isCopying}
               onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
-          )}
-          {step < 3 ? (
-            <Button
-              type="button"
-              className="min-h-[44px] flex-1 sm:flex-none"
-              disabled={!canGoNext || isCopying}
-              onClick={() => {
-                if (step === 1 && lockedTargetPropertyId) {
-                  if (lockedTargetPropertyId === sourcePropertyId) return;
-                  setTargetIds(new Set([lockedTargetPropertyId]));
-                  setStep(3);
-                  return;
-                }
-                setStep((s) => (s + 1) as StepIndex);
-              }}
-            >
-              Next
-            </Button>
-          ) : (
-            <TierBadgeAnchor
-              feature="copyPropertySettings"
-              className="min-h-[44px] flex-1 sm:flex-none"
-            >
+            {step < 3 ? (
               <Button
                 type="button"
-                className="min-h-[44px] w-full"
-                disabled={
-                  isCopying ||
-                  dryRunLoading ||
-                  Boolean(dryRunError) ||
-                  !dryRunResult ||
-                  (targetIds.size > 10 && !confirmLargeBatch)
-                }
-                onClick={() => void handleCopy()}
+                className="min-h-[44px]"
+                disabled={!canGoNext || isCopying}
+                onClick={() => {
+                  if (step === 1 && lockedTargetPropertyId) {
+                    if (lockedTargetPropertyId === sourcePropertyId) return;
+                    setTargetIds(new Set([lockedTargetPropertyId]));
+                    setStep(3);
+                    return;
+                  }
+                  setStep((s) => (s + 1) as StepIndex);
+                }}
               >
-                {isCopying ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Copying…
-                  </>
-                ) : dryRunLoading ? (
-                  'Preview…'
-                ) : (
-                  'Copy settings'
-                )}
+                Next
               </Button>
-            </TierBadgeAnchor>
-          )}
+            ) : (
+              <TierBadgeAnchor feature="copyPropertySettings" className="min-h-[44px]">
+                <Button
+                  type="button"
+                  className="min-h-[44px]"
+                  disabled={
+                    isCopying ||
+                    dryRunLoading ||
+                    Boolean(dryRunError) ||
+                    !dryRunResult ||
+                    (targetIds.size > 10 && !confirmLargeBatch)
+                  }
+                  onClick={() => void handleCopy()}
+                >
+                  {isCopying ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Copying…
+                    </>
+                  ) : dryRunLoading ? (
+                    'Preview…'
+                  ) : (
+                    'Copy settings'
+                  )}
+                </Button>
+              </TierBadgeAnchor>
+            )}
+          </div>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>

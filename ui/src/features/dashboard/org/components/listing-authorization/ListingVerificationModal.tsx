@@ -60,6 +60,7 @@ import {
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -68,6 +69,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { cn } from '@/lib/utils';
 
@@ -361,9 +363,9 @@ export function ListingVerificationModal({
     }
   };
 
-  const handleSubmitBase = async () => {
+  const handleSubmitBase = async (): Promise<boolean> => {
     setBaseTouched(true);
-    if (!rights || !canSubmitBase) return;
+    if (!rights || !canSubmitBase) return false;
     try {
       await submitBase.mutateAsync({
         relationship: rights,
@@ -371,12 +373,14 @@ export function ListingVerificationModal({
       });
       toast.success(renewMode ? 'Listing renewal submitted' : 'Listing verification submitted');
       onOpenChange(false);
+      return true;
     } catch (error) {
       if (isAiQuotaError(error)) {
         handleAiMutationError(error as Error);
-        return;
+        return false;
       }
       toast.error(friendlyToastError(error, 'Submit failed'));
+      return false;
     }
   };
 
@@ -399,6 +403,22 @@ export function ListingVerificationModal({
       toast.error(friendlyToastError(error, 'Submit failed'));
     }
   };
+
+  const isDirty =
+    open &&
+    baseEditable &&
+    (rights !== (remoteAuthorization.relationship ?? '') ||
+      contractEndDate !== (remoteAuthorization.contractEndDate ?? ''));
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty,
+    onSave: handleSubmitBase,
+  });
 
   const busy = upload.isPending || submitBase.isPending || submitRecommended.isPending;
   const showBaseSubmittedDocs = remoteAuthorization.baseStatus !== 'none';
@@ -608,63 +628,66 @@ export function ListingVerificationModal({
         : null;
 
   return (
-    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent
-        sheetLayout="split"
-        className={cn(
-          'flex h-[min(90dvh,40rem)] max-h-[min(90dvh,40rem)] w-[min(calc(100vw-1.5rem),40rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
-          'sm:h-[min(90dvh,42rem)] sm:max-h-[min(90dvh,42rem)] sm:w-[min(92vw,40rem)] sm:max-w-[40rem] sm:p-0'
-        )}
-      >
-        <ResponsiveModalHeader className="border-border shrink-0 space-y-3 border-b px-5 pb-3.5 pt-5 text-left sm:px-6">
-          <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
-            <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
-              <Home className="size-5" aria-hidden />
-            </span>
-            {listingVerificationModalTitle(listingKind)}
-          </ResponsiveModalTitle>
-          <VerificationTierProgress
-            tiers={tiers}
-            activeStep={activeStep}
-            onStepChange={setActiveStep}
-            hostRejectionKind={remoteAuthorization.baseRejectionKind}
-            verifiedRejectionKind={remoteAuthorization.recommendedRejectionKind}
-          />
-        </ResponsiveModalHeader>
+    <>
+      <ResponsiveModal open={open} onOpenChange={guardedOpenChange}>
+        <ResponsiveModalContent
+          sheetLayout="split"
+          className={cn(
+            'flex h-[min(90dvh,40rem)] max-h-[min(90dvh,40rem)] w-[min(calc(100vw-1.5rem),40rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
+            'sm:h-[min(90dvh,42rem)] sm:max-h-[min(90dvh,42rem)] sm:w-[min(92vw,40rem)] sm:max-w-[40rem] sm:p-0'
+          )}
+        >
+          <ResponsiveModalHeader className="border-border shrink-0 space-y-3 border-b px-5 pb-3.5 pt-5 text-left sm:px-6">
+            <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
+              <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+                <Home className="size-5" aria-hidden />
+              </span>
+              {listingVerificationModalTitle(listingKind)}
+            </ResponsiveModalTitle>
+            <VerificationTierProgress
+              tiers={tiers}
+              activeStep={activeStep}
+              onStepChange={setActiveStep}
+              hostRejectionKind={remoteAuthorization.baseRejectionKind}
+              verifiedRejectionKind={remoteAuthorization.recommendedRejectionKind}
+            />
+          </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
-          {activeStep === 0 ? baseForm : recommendedForm}
-        </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            {activeStep === 0 ? baseForm : recommendedForm}
+          </div>
 
-        <ResponsiveModalFooter className="border-border shrink-0 gap-2 border-t px-5 py-3 sm:px-6">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[44px]"
-            onClick={() => onOpenChange(false)}
-            disabled={busy}
-          >
-            Close
-          </Button>
-          {footerPrimary ? (
+          <ResponsiveModalFooter className="border-border shrink-0 gap-2 border-t px-5 py-3 sm:px-6">
             <Button
               type="button"
+              variant="outline"
               className="min-h-[44px]"
-              disabled={footerPrimary.disabled}
-              onClick={footerPrimary.onClick}
+              onClick={requestClose}
+              disabled={busy}
             >
-              {footerPrimary.pending ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Submitting…
-                </>
-              ) : (
-                footerPrimary.label
-              )}
+              Close
             </Button>
-          ) : null}
-        </ResponsiveModalFooter>
-      </ResponsiveModalContent>
-    </ResponsiveModal>
+            {footerPrimary ? (
+              <Button
+                type="button"
+                className="min-h-[44px]"
+                disabled={footerPrimary.disabled}
+                onClick={footerPrimary.onClick}
+              >
+                {footerPrimary.pending ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                    Submitting…
+                  </>
+                ) : (
+                  footerPrimary.label
+                )}
+              </Button>
+            ) : null}
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }

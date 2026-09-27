@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -88,6 +88,10 @@ type Props = {
   lifecycle: ContractLegLifecycle;
   /** When locked, only show if SA enabled override. */
   allowLockedOverride?: boolean;
+  /** Lets the host modal guard its close while this draft is unsent. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Filled with a submit that resolves false when blocked or failed. */
+  saveRef?: MutableRefObject<(() => Promise<boolean>) | null>;
 };
 
 export function ListingContractConsiderationForm({
@@ -97,6 +101,8 @@ export function ListingContractConsiderationForm({
   contractEndYmd,
   lifecycle,
   allowLockedOverride = false,
+  onDirtyChange,
+  saveRef,
 }: Props) {
   const today = todayManilaYmd();
   const qc = useQueryClient();
@@ -144,6 +150,24 @@ export function ListingContractConsiderationForm({
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const draftDirty = note.trim() !== '' || expectedDate !== '' || proofFile !== null;
+  useEffect(() => {
+    onDirtyChange?.(draftDirty);
+    return () => onDirtyChange?.(false);
+  }, [draftDirty, onDirtyChange]);
+
+  if (saveRef) {
+    saveRef.current = async () => {
+      if (!note.trim() || !expectedDate || !proofFile) return false;
+      try {
+        await submitMutation.mutateAsync();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+  }
 
   if (!canSubmit) return null;
 

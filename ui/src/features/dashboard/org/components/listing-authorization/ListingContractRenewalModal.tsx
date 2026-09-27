@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { AlertCircle } from 'lucide-react';
 
@@ -23,6 +23,7 @@ import {
 } from '@/features/dashboard/org/lib/listingContractRenewalDismiss';
 import { todayManilaYmd } from '@/features/dashboard/org/lib/orgVerification';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -31,6 +32,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 import { formatYmdToFullLongDate } from '@/utils/format/dates';
 
@@ -75,6 +77,8 @@ export function ListingContractRenewalModal({
 }: Props) {
   const today = todayManilaYmd();
   const [showConsideration, setShowConsideration] = useState(false);
+  const [considerationDirty, setConsiderationDirty] = useState(false);
+  const considerationSaveRef = useRef<(() => Promise<boolean>) | null>(null);
   const granted = hasActiveConsiderationGrant(lifecycle, today);
   const daysLeft =
     contractEndYmd && phase === 'pre_expiry' ? daysUntilContractEnd(contractEndYmd, today) : null;
@@ -83,13 +87,30 @@ export function ListingContractRenewalModal({
 
   const title = listingContractRenewalTitle(phase);
 
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open,
+    onOpenChange: (next) => {
+      onOpenChange(next);
+      if (!next) setShowConsideration(false);
+    },
+    isDirty: considerationDirty,
+    onSave: async () => (await considerationSaveRef.current?.()) ?? false,
+  });
+
   const handleOpenChange = (next: boolean) => {
     if (!dismissible && !next) return;
-    onOpenChange(next);
-    if (!next) setShowConsideration(false);
+    guardedOpenChange(next);
   };
 
   const handleDismiss = () => {
+    if (considerationDirty) {
+      requestClose();
+      return;
+    }
     if (persistsListingContractRenewalDailyDismiss(phase)) {
       dismissListingContractRenewalForToday(listingKind, listingId, today);
     }
@@ -102,106 +123,111 @@ export function ListingContractRenewalModal({
       (phase === 'locked' && lifecycle.consideration.allowConsiderationOverride));
 
   return (
-    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveModalContent
-        sheetLayout="split"
-        className={cn(
-          'flex max-h-[min(90dvh,32rem)] w-[min(calc(100vw-1.5rem),28rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
-          'sm:max-w-[28rem] sm:p-0'
-        )}
-        onPointerDownOutside={(e) => {
-          if (!dismissible) e.preventDefault();
-        }}
-        onEscapeKeyDown={(e) => {
-          if (!dismissible) e.preventDefault();
-        }}
-      >
-        <ResponsiveModalHeader className="border-border shrink-0 border-b px-5 pb-3.5 pt-5 text-left sm:px-6">
-          <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
-            <span
-              className={cn(
-                'flex size-9 shrink-0 items-center justify-center rounded-full',
-                renewalTitleIconClass(phase)
-              )}
-            >
-              <AlertCircle className="size-5" aria-hidden />
-            </span>
-            {title}
-          </ResponsiveModalTitle>
-        </ResponsiveModalHeader>
+    <>
+      <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+        <ResponsiveModalContent
+          sheetLayout="split"
+          className={cn(
+            'flex max-h-[min(90dvh,32rem)] w-[min(calc(100vw-1.5rem),28rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
+            'sm:max-w-[28rem] sm:p-0'
+          )}
+          onPointerDownOutside={(e) => {
+            if (!dismissible) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (!dismissible) e.preventDefault();
+          }}
+        >
+          <ResponsiveModalHeader className="border-border shrink-0 border-b px-5 pb-3.5 pt-5 text-left sm:px-6">
+            <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
+              <span
+                className={cn(
+                  'flex size-9 shrink-0 items-center justify-center rounded-full',
+                  renewalTitleIconClass(phase)
+                )}
+              >
+                <AlertCircle className="size-5" aria-hidden />
+              </span>
+              {title}
+            </ResponsiveModalTitle>
+          </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            <ListingContractRenewalModalBody
-              phase={phase}
-              listingName={listingName}
-              contractEndYmd={contractEndYmd}
-              daysUntilEnd={daysLeft}
-              daysUntilLock={daysUntilLock}
-            />
-          </p>
-
-          {granted && lifecycle.consideration.grantedUntil ? (
-            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              Temporary access until{' '}
-              {formatYmdToFullLongDate(lifecycle.consideration.grantedUntil) ||
-                lifecycle.consideration.grantedUntil}
-              .
-            </p>
-          ) : null}
-
-          {showConsiderationPanel ? (
-            <div className="mt-4">
-              <ListingContractConsiderationForm
-                listingKind={listingKind}
-                listingId={listingId}
-                orgId={orgId}
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              <ListingContractRenewalModalBody
+                phase={phase}
+                listingName={listingName}
                 contractEndYmd={contractEndYmd}
-                lifecycle={lifecycle}
-                allowLockedOverride={phase === 'locked'}
+                daysUntilEnd={daysLeft}
+                daysUntilLock={daysUntilLock}
               />
-            </div>
-          ) : null}
-        </div>
+            </p>
 
-        <ResponsiveModalFooter className="border-border shrink-0 flex-col gap-2 border-t px-5 py-3 sm:flex-col sm:px-6">
-          <Button type="button" className="min-h-[44px] w-full" onClick={onSubmitRenewal}>
-            {LISTING_CONTRACT_RENEWAL_PRIMARY}
-          </Button>
-          {phase === 'grace' && !showConsiderationPanel ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-full"
-              onClick={() => setShowConsideration(true)}
-            >
-              Request consideration
+            {granted && lifecycle.consideration.grantedUntil ? (
+              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                Temporary access until{' '}
+                {formatYmdToFullLongDate(lifecycle.consideration.grantedUntil) ||
+                  lifecycle.consideration.grantedUntil}
+                .
+              </p>
+            ) : null}
+
+            {showConsiderationPanel ? (
+              <div className="mt-4">
+                <ListingContractConsiderationForm
+                  listingKind={listingKind}
+                  listingId={listingId}
+                  orgId={orgId}
+                  contractEndYmd={contractEndYmd}
+                  lifecycle={lifecycle}
+                  allowLockedOverride={phase === 'locked'}
+                  onDirtyChange={setConsiderationDirty}
+                  saveRef={considerationSaveRef}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <ResponsiveModalFooter className="border-border shrink-0 flex-col gap-2 border-t px-5 py-3 sm:flex-col sm:px-6">
+            <Button type="button" className="min-h-[44px] w-full" onClick={onSubmitRenewal}>
+              {LISTING_CONTRACT_RENEWAL_PRIMARY}
             </Button>
-          ) : null}
-          {phase === 'locked' &&
-          lifecycle.consideration.allowConsiderationOverride &&
-          !showConsiderationPanel ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-full"
-              onClick={() => setShowConsideration(true)}
-            >
-              Request consideration
-            </Button>
-          ) : null}
-          {dismissible ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-[44px] w-full"
-              onClick={handleDismiss}
-            >
-              {LISTING_CONTRACT_RENEWAL_DISMISS}
-            </Button>
-          ) : null}
-        </ResponsiveModalFooter>
-      </ResponsiveModalContent>
-    </ResponsiveModal>
+            {phase === 'grace' && !showConsiderationPanel ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] w-full"
+                onClick={() => setShowConsideration(true)}
+              >
+                Request consideration
+              </Button>
+            ) : null}
+            {phase === 'locked' &&
+            lifecycle.consideration.allowConsiderationOverride &&
+            !showConsiderationPanel ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] w-full"
+                onClick={() => setShowConsideration(true)}
+              >
+                Request consideration
+              </Button>
+            ) : null}
+            {dismissible ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-[44px] w-full"
+                onClick={handleDismiss}
+              >
+                {LISTING_CONTRACT_RENEWAL_DISMISS}
+              </Button>
+            ) : null}
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }

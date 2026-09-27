@@ -42,6 +42,7 @@ import { useOrgPlan } from '@/features/dashboard/plans/hooks/useOrgPlan';
 
 import { AdminDialogShell } from '@/components/AdminDialogShell';
 import { AvailabilityCheckInput } from '@/components/AvailabilityCheckInput';
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useRunUnguarded } from '@/hooks/useUnsavedChangesGuard';
 import {
   resolveAsyncAvailabilityState,
   resolveNameAvailabilityState,
@@ -139,6 +142,7 @@ export function AddEntityDialog({
   onParkingCreated,
 }: Props) {
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const createProperty = useCreateProperty();
   const createParking = useCreateParking();
   const { data: orgPlan } = useOrgPlan(orgId);
@@ -241,6 +245,26 @@ export function AddEntityDialog({
     setError(null);
   }, [kind, tower, unitNumber, parkingTower, level, slotNumber, developmentName]);
 
+  const isDirty =
+    open &&
+    (tower !== '' ||
+      unitNumber !== '' ||
+      propertyDisplayName !== '' ||
+      slotNumber !== '' ||
+      developmentName !== DEFAULT_DEVELOPMENT_NAME ||
+      parkingTower !== DEFAULT_PARKING_TOWER ||
+      level !== DEFAULT_PARKING_LEVEL);
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty,
+    onSave: () => (canSubmit && !isPending ? handleSubmit() : false),
+  });
+
   const handleDevelopmentChange = (name: string) => {
     setDevelopmentName(name);
     setTower('');
@@ -257,19 +281,19 @@ export function AddEntityDialog({
     if (level && !levels.includes(level)) setLevel(DEFAULT_PARKING_LEVEL);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<boolean> => {
     if (activeKind === 'property') {
       setUnitTouched(true);
-      if (!propertyCanSubmit || !isPropertyTowerForResidence(tower, developmentName)) return;
+      if (!propertyCanSubmit || !isPropertyTowerForResidence(tower, developmentName)) return false;
 
       const resolvedName = propertyDisplayName.trim() || formatTowerAndUnit(tower, unitNumber);
       if (resolvedName.length < 2) {
         setError('Display name must be at least 2 characters');
-        return;
+        return false;
       }
       if (propertyNameBlocked) {
         setError(propertyNameBlockMessage ?? 'This name is reserved and cannot be used');
-        return;
+        return false;
       }
 
       setError(null);
@@ -282,24 +306,27 @@ export function AddEntityDialog({
           unitNumber,
           residenceName: developmentName,
         });
-        onOpenChange(false);
-        onPropertyCreated?.(result.property);
-        if (result.billingRequired) {
-          toast.message('Cover this property on your plan');
-          const planId = orgPlan?.subscription?.planId;
-          navigate(
-            planId
-              ? `${orgPlansPath(orgSlug)}?reviewPlan=${encodeURIComponent(planId)}`
-              : orgPlansPath(orgSlug)
-          );
-        }
+        runUnguarded(() => {
+          onOpenChange(false);
+          onPropertyCreated?.(result.property);
+          if (result.billingRequired) {
+            toast.message('Cover this property on your plan');
+            const planId = orgPlan?.subscription?.planId;
+            navigate(
+              planId
+                ? `${orgPlansPath(orgSlug)}?reviewPlan=${encodeURIComponent(planId)}`
+                : orgPlansPath(orgSlug)
+            );
+          }
+        });
+        return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to add property');
+        return false;
       }
-      return;
     }
 
-    if (!parkingCanSubmit || !parkingTower || !level || !parkingDisplayName) return;
+    if (!parkingCanSubmit || !parkingTower || !level || !parkingDisplayName) return false;
     setError(null);
     try {
       const { parking } = await createParking.mutateAsync({
@@ -312,10 +339,14 @@ export function AddEntityDialog({
         parkingType: inferParkingTypeForTower(parkingTower),
         residenceName: developmentName,
       });
-      onOpenChange(false);
-      onParkingCreated?.(parking);
+      runUnguarded(() => {
+        onOpenChange(false);
+        onParkingCreated?.(parking);
+      });
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add parking');
+      return false;
     }
   };
 
@@ -323,220 +354,226 @@ export function AddEntityDialog({
     towerUnitReady && propertyListed ? 'border-amber-500/40' : undefined;
 
   return (
-    <AdminDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title="New listing"
-      description={`Add to ${orgName}`}
-      sizeClassName="max-w-[min(calc(100vw-1.5rem),26rem)] sm:max-w-[min(90vw,28rem)]"
-      footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-            className="min-h-[44px]"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={!canSubmit || isPending}
-            className="min-h-[44px]"
-          >
-            {isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : activeKind === 'property' ? (
-              'Add property'
-            ) : (
-              'Add parking'
-            )}
-          </Button>
-        </>
-      }
-    >
-      {showKindToggle ? <KindToggle kind={kind} onKindChange={setKind} /> : null}
-
-      <div className={cn(showKindToggle && 'mt-3', 'space-y-3')}>
-        <DevelopmentField
-          id="add-entity-development"
-          value={developmentName}
-          onChange={handleDevelopmentChange}
-        />
-
-        {activeKind === 'property' ? (
+    <>
+      <AdminDialogShell
+        open={open}
+        onOpenChange={guardedOpenChange}
+        title="New listing"
+        description={`Add to ${orgName}`}
+        sizeClassName="max-w-[min(calc(100vw-1.5rem),26rem)] sm:max-w-[min(90vw,28rem)]"
+        footer={
           <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-entity-property-tower">Tower</Label>
-                <Select
-                  value={tower || undefined}
-                  onValueChange={(value) => setTower(value as PropertyTower)}
-                >
-                  <SelectTrigger
-                    id="add-entity-property-tower"
-                    className={cn('h-10', propertyFieldErrorClass)}
-                    aria-invalid={undefined}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={requestClose}
+              disabled={isPending}
+              className="min-h-[44px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={!canSubmit || isPending}
+              className="min-h-[44px]"
+            >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : activeKind === 'property' ? (
+                'Add property'
+              ) : (
+                'Add parking'
+              )}
+            </Button>
+          </>
+        }
+      >
+        {showKindToggle ? <KindToggle kind={kind} onKindChange={setKind} /> : null}
+
+        <div className={cn(showKindToggle && 'mt-3', 'space-y-3')}>
+          <DevelopmentField
+            id="add-entity-development"
+            value={developmentName}
+            onChange={handleDevelopmentChange}
+          />
+
+          {activeKind === 'property' ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-entity-property-tower">Tower</Label>
+                  <Select
+                    value={tower || undefined}
+                    onValueChange={(value) => setTower(value as PropertyTower)}
                   >
-                    <SelectValue placeholder="Select tower" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    {propertyTowerOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger
+                      id="add-entity-property-tower"
+                      className={cn('h-10', propertyFieldErrorClass)}
+                      aria-invalid={undefined}
+                    >
+                      <SelectValue placeholder="Select tower" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      {propertyTowerOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-entity-property-unit">Unit</Label>
+                  <AvailabilityCheckInput
+                    id="add-entity-property-unit"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={unitNumber}
+                    onChange={(e) => setUnitNumber(sanitizeUnitNumberInput(e.target.value))}
+                    onBlur={() => setUnitTouched(true)}
+                    placeholder={FORM_PLACEHOLDERS.unitNumber}
+                    maxLength={4}
+                    aria-invalid={unitInvalid || undefined}
+                    className={cn('h-10 tabular-nums', propertyFieldErrorClass)}
+                    checkState={unitAvailabilityState}
+                  />
+                  {unitInvalid ? (
+                    <p role="alert" className="text-destructive text-xs">
+                      Enter a 4-digit unit number
+                    </p>
+                  ) : null}
+                </div>
               </div>
+
+              {towerUnitReady && propertyListed ? (
+                <TowerUnitConflictAlert tower={tower} unitNumber={unitNumber} conflict={conflict} />
+              ) : null}
+
               <div className="space-y-1.5">
-                <Label htmlFor="add-entity-property-unit">Unit</Label>
+                <Label htmlFor="add-entity-property-name">Display name</Label>
                 <AvailabilityCheckInput
-                  id="add-entity-property-unit"
-                  inputMode="numeric"
+                  id="add-entity-property-name"
+                  value={propertyDisplayName}
+                  onChange={(e) => setPropertyDisplayName(e.target.value)}
+                  placeholder={
+                    towerUnitReady
+                      ? formatTowerAndUnit(tower, unitNumber)
+                      : FORM_PLACEHOLDERS.towerAndUnit
+                  }
+                  maxLength={120}
                   autoComplete="off"
-                  value={unitNumber}
-                  onChange={(e) => setUnitNumber(sanitizeUnitNumberInput(e.target.value))}
-                  onBlur={() => setUnitTouched(true)}
-                  placeholder={FORM_PLACEHOLDERS.unitNumber}
-                  maxLength={4}
-                  aria-invalid={unitInvalid || undefined}
-                  className={cn('h-10 tabular-nums', propertyFieldErrorClass)}
-                  checkState={unitAvailabilityState}
+                  aria-invalid={Boolean(propertyNameBlockMessage)}
+                  className={cn('h-10', propertyNameBlockMessage && 'border-destructive')}
+                  checkState={propertyNameAvailabilityState}
                 />
-                {unitInvalid ? (
+                {propertyNameBlockMessage ? (
                   <p role="alert" className="text-destructive text-xs">
-                    Enter a 4-digit unit number
+                    {propertyNameBlockMessage}
                   </p>
                 ) : null}
               </div>
-            </div>
-
-            {towerUnitReady && propertyListed ? (
-              <TowerUnitConflictAlert tower={tower} unitNumber={unitNumber} conflict={conflict} />
-            ) : null}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="add-entity-property-name">Display name</Label>
-              <AvailabilityCheckInput
-                id="add-entity-property-name"
-                value={propertyDisplayName}
-                onChange={(e) => setPropertyDisplayName(e.target.value)}
-                placeholder={
-                  towerUnitReady
-                    ? formatTowerAndUnit(tower, unitNumber)
-                    : FORM_PLACEHOLDERS.towerAndUnit
-                }
-                maxLength={120}
-                autoComplete="off"
-                aria-invalid={Boolean(propertyNameBlockMessage)}
-                className={cn('h-10', propertyNameBlockMessage && 'border-destructive')}
-                checkState={propertyNameAvailabilityState}
-              />
-              {propertyNameBlockMessage ? (
-                <p role="alert" className="text-destructive text-xs">
-                  {propertyNameBlockMessage}
-                </p>
-              ) : null}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-entity-parking-tower">Tower</Label>
-                <Select value={parkingTower || undefined} onValueChange={handleParkingTowerChange}>
-                  <SelectTrigger id="add-entity-parking-tower" className="h-10">
-                    <SelectValue placeholder="Tower" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {parkingTowerOptions.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-entity-parking-tower">Tower</Label>
+                  <Select
+                    value={parkingTower || undefined}
+                    onValueChange={handleParkingTowerChange}
+                  >
+                    <SelectTrigger id="add-entity-parking-tower" className="h-10">
+                      <SelectValue placeholder="Tower" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {parkingTowerOptions.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-entity-parking-level">Level</Label>
+                  <Select
+                    value={level || undefined}
+                    onValueChange={(value) => setLevel(value as typeof DEFAULT_PARKING_LEVEL)}
+                  >
+                    <SelectTrigger id="add-entity-parking-level" className="h-10">
+                      <SelectValue placeholder="Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {parkingLevelOptions.map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {l}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               <div className="space-y-1.5">
-                <Label htmlFor="add-entity-parking-level">Level</Label>
-                <Select
-                  value={level || undefined}
-                  onValueChange={(value) => setLevel(value as typeof DEFAULT_PARKING_LEVEL)}
-                >
-                  <SelectTrigger id="add-entity-parking-level" className="h-10">
-                    <SelectValue placeholder="Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {parkingLevelOptions.map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {l}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="add-entity-slot-number">Slot number</Label>
+                <AvailabilityCheckInput
+                  id="add-entity-slot-number"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={slotNumber}
+                  onChange={(e) => setSlotNumber(sanitizeParkingSlotNumber(e.target.value))}
+                  placeholder="26"
+                  maxLength={4}
+                  className={cn('h-10 tabular-nums', parkingDuplicate && 'border-destructive')}
+                  aria-invalid={Boolean(parkingDuplicate)}
+                  checkState={parkingSlotAvailabilityState}
+                />
+                {parkingDuplicate ? (
+                  <p role="alert" className="text-destructive text-xs">
+                    This slot is already registered
+                  </p>
+                ) : null}
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="add-entity-slot-number">Slot number</Label>
-              <AvailabilityCheckInput
-                id="add-entity-slot-number"
-                inputMode="numeric"
-                autoComplete="off"
-                value={slotNumber}
-                onChange={(e) => setSlotNumber(sanitizeParkingSlotNumber(e.target.value))}
-                placeholder="26"
-                maxLength={4}
-                className={cn('h-10 tabular-nums', parkingDuplicate && 'border-destructive')}
-                aria-invalid={Boolean(parkingDuplicate)}
-                checkState={parkingSlotAvailabilityState}
-              />
-              {parkingDuplicate ? (
-                <p role="alert" className="text-destructive text-xs">
-                  This slot is already registered
-                </p>
-              ) : null}
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-entity-parking-code">Code</Label>
+                <Input
+                  id="add-entity-parking-code"
+                  value={parkingCode}
+                  readOnly
+                  aria-readonly="true"
+                  placeholder="-"
+                  className="bg-muted/40 text-muted-foreground h-10 cursor-default font-mono tabular-nums"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="add-entity-parking-code">Code</Label>
-              <Input
-                id="add-entity-parking-code"
-                value={parkingCode}
-                readOnly
-                aria-readonly="true"
-                placeholder="-"
-                className="bg-muted/40 text-muted-foreground h-10 cursor-default font-mono tabular-nums"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="add-entity-parking-name">Display name</Label>
-              <Input
-                id="add-entity-parking-name"
-                value={parkingDisplayName}
-                readOnly
-                aria-readonly="true"
-                placeholder="-"
-                className="bg-muted/40 text-muted-foreground h-10 cursor-default"
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {error ? (
-        <div
-          className="border-destructive/20 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-xl border p-3"
-          role="alert"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <p className="text-[13px] leading-snug">{error}</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-entity-parking-name">Display name</Label>
+                <Input
+                  id="add-entity-parking-name"
+                  value={parkingDisplayName}
+                  readOnly
+                  aria-readonly="true"
+                  placeholder="-"
+                  className="bg-muted/40 text-muted-foreground h-10 cursor-default"
+                />
+              </div>
+            </>
+          )}
         </div>
-      ) : null}
-    </AdminDialogShell>
+
+        {error ? (
+          <div
+            className="border-destructive/20 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-xl border p-3"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <p className="text-[13px] leading-snug">{error}</p>
+          </div>
+        ) : null}
+      </AdminDialogShell>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { Navigate, useParams } from 'react-router-dom';
 
+import { TenantSlugRemapRedirect } from '@/features/dashboard/org/components/TenantSlugRemapRedirect';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 import {
   isHostVerificationHardRejected,
@@ -15,6 +16,14 @@ type Props = {
 
 /** Blocks org/property/parking shells when Tier 1 verification was hard-rejected. */
 export function RequireOrgNotHardRejected({ children }: Props) {
+  return (
+    <TenantSlugRemapRedirect>
+      <RequireOrgNotHardRejectedInner>{children}</RequireOrgNotHardRejectedInner>
+    </TenantSlugRemapRedirect>
+  );
+}
+
+function RequireOrgNotHardRejectedInner({ children }: Props) {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const orgsQuery = useOrganizations();
 

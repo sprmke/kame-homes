@@ -19,16 +19,16 @@ export function OrgParkingsSummaryCards({ parkings }: Props) {
     >
       <AdminMetricCard title="Total parkings" value={String(summary.total)} icon={Car} />
       <AdminMetricCard
-        title="Total Revenue"
+        title="Total revenue"
         value={formatOrgParkingCurrency(summary.totalRevenue)}
         icon={Coins}
       />
       <AdminMetricCard
-        title="Avg Monthly Revenue"
+        title="Avg monthly revenue"
         value={formatOrgParkingCurrency(summary.avgMonthlyRevenue)}
         icon={Calendar}
       />
-      <AdminMetricCard title="Avg Occupancy" value={`${summary.avgOccupancy}%`} icon={Percent} />
+      <AdminMetricCard title="Avg occupancy" value={`${summary.avgOccupancy}%`} icon={Percent} />
     </section>
   );
 }

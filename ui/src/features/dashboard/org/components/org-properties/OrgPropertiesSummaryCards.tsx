@@ -1,4 +1,4 @@
-import { Building2, Calendar, Coins, Users } from 'lucide-react';
+import { Building2, Calendar, Coins, Percent } from 'lucide-react';
 
 import { AdminMetricCard } from '@/features/dashboard/bookings/components/AdminMetricCard';
 import { orgPropertiesSummaryFromList } from '@/features/dashboard/org/lib/orgPropertyCardModel';
@@ -19,16 +19,16 @@ export function OrgPropertiesSummaryCards({ properties }: Props) {
     >
       <AdminMetricCard title="Total properties" value={String(summary.total)} icon={Building2} />
       <AdminMetricCard
-        title="Total Revenue"
+        title="Total revenue"
         value={formatOrgPropertyCurrency(summary.totalRevenue)}
         icon={Coins}
       />
       <AdminMetricCard
-        title="Avg Monthly Revenue"
+        title="Avg monthly revenue"
         value={formatOrgPropertyCurrency(summary.avgMonthlyRevenue)}
         icon={Calendar}
       />
-      <AdminMetricCard title="Avg Occupancy" value={`${summary.avgOccupancy}%`} icon={Users} />
+      <AdminMetricCard title="Avg occupancy" value={`${summary.avgOccupancy}%`} icon={Percent} />
     </section>
   );
 }
