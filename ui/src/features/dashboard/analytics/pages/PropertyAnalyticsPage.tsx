@@ -6,8 +6,8 @@ import { CalendarRange, Download, Loader2, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiPerformanceReviewCard } from '@/features/dashboard/analytics/components/AiPerformanceReviewCard';
-import { AnalyticsDistributionCard } from '@/features/dashboard/analytics/components/AnalyticsDistributionCard';
 import { AnalyticsEmptyState } from '@/features/dashboard/analytics/components/AnalyticsEmptyState';
+import { AnalyticsDistributionCard } from '@/features/dashboard/analytics/components/AnalyticsDistributionCard';
 import { AnalyticsGuestSignalsCard } from '@/features/dashboard/analytics/components/AnalyticsGuestSignalsCard';
 import { AnalyticsKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsKpiStrip';
 import { AnalyticsOverviewSection } from '@/features/dashboard/analytics/components/AnalyticsOverviewSection';
@@ -21,8 +21,16 @@ import { GuestAgeCard } from '@/features/dashboard/analytics/components/GuestAge
 import { GuestOriginsCard } from '@/features/dashboard/analytics/components/GuestOriginsCard';
 import { GuestPartySizeCard } from '@/features/dashboard/analytics/components/GuestPartySizeCard';
 import { PlaybookList } from '@/features/dashboard/analytics/components/PlaybookList';
-import { useAnalyticsAiReview } from '@/features/dashboard/analytics/hooks/useAnalyticsAiReview';
+import {
+  useAnalyticsAiReview,
+  useRegenerateAnalyticsAiReview,
+} from '@/features/dashboard/analytics/hooks/useAnalyticsAiReview';
 import { usePropertyAnalyticsSummary } from '@/features/dashboard/analytics/hooks/usePropertyAnalyticsSummary';
+import {
+  aiReviewMatchesPeriod,
+  resolveAiReviewPeriodApplicability,
+  wasAiReviewGeneratedTodayManila,
+} from '@/features/dashboard/analytics/lib/aiReviewPeriod';
 import {
   LEAD_TIME_BUCKET_ORDER,
   LENGTH_OF_STAY_BUCKET_ORDER,
@@ -32,6 +40,7 @@ import {
   resolveAnalyticsPeriod,
   writeAnalyticsPeriodParams,
 } from '@/features/dashboard/analytics/lib/analyticsPeriod';
+import { revealPlaybookArticle } from '@/features/dashboard/analytics/lib/playbookReveal';
 import { isFullAnalyticsBundle } from '@/features/dashboard/analytics/lib/types';
 import { BookingDateRangeFilter } from '@/features/dashboard/bookings/components/BookingDateRangeFilter';
 import {
@@ -50,7 +59,8 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton';
 import { PropertyAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
 import { Button } from '@/components/ui/button';
-import { useIsBelowMd } from '@/hooks/useMediaQuery';
+import { useIsBelowMd, usePrefersReducedMotion } from '@/hooks/useMediaQuery';
+import { AdminEdgeFetchError } from '@/lib/api/adminEdgeFetch';
 import { CHART_INCOME_COLOR, CHART_INFO_COLOR } from '@/lib/charts/chartStyles';
 import { detectPresetFromRange, fromIsoDate, formatDateRangeDisplay } from '@/lib/date/navigation';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
@@ -62,7 +72,9 @@ const SECTION_GAP = 'flex flex-col gap-2.5 sm:gap-3 lg:gap-4';
 export function PropertyAnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isBelowMd = useIsBelowMd();
+  const reducedMotion = usePrefersReducedMotion();
   const [section, setSection] = useState<AnalyticsSection>('overview');
+  const [openPlaybookSlug, setOpenPlaybookSlug] = useState<string | null>(null);
 
   const period = useMemo(() => resolveAnalyticsPeriod(searchParams), [searchParams]);
   const initialFrom = fromIsoDate(period.from);
@@ -96,20 +108,76 @@ export function PropertyAnalyticsPage() {
     dateNav.setDatePreset('month');
   }, [dateNav]);
 
+  // An AI review "Playbook: …" pill expands the matching article below, then scrolls to it —
+  // rAF so the reveal runs against the committed DOM, and on repeat clicks too.
+  const handleOpenPlaybook = useCallback(
+    (slug: string) => {
+      setOpenPlaybookSlug(slug);
+      requestAnimationFrame(() => revealPlaybookArticle(slug, { reducedMotion }));
+    },
+    [reducedMotion]
+  );
+
   const { data, isLoading, isError } = usePropertyAnalyticsSummary(period);
-  const { canUse: canExportByPlan, isLoading: exportPlanLoading } =
+  const { canUse: canInsightsByPlan, isLoading: insightsPlanLoading } =
     useFeatureGate('analyticsInsights');
   const { open: openUpgradeModal } = useUpgradeModal();
   const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview();
+  const regenerateAiReview = useRegenerateAnalyticsAiReview();
   const orgContext = useOptionalOrgContext();
   const brandColor = usePdfBrandColor();
   const { data: propertyAccess } = usePropertyPermissions();
   const canExportPdf = hasPropertyPermission(propertyAccess?.permissions, 'analytics:export');
+  const canRefreshAiReview = hasPropertyPermission(
+    propertyAccess?.permissions,
+    'analytics.aiReview:add'
+  );
+
+  const aiReviewPeriod = useMemo(
+    () => resolveAiReviewPeriodApplicability(period.from, period.to),
+    [period.from, period.to]
+  );
+  const reviewMatchesPeriod = aiReviewMatchesPeriod(aiReview, period.from, period.to);
+  const [aiReviewRateLimitedToday, setAiReviewRateLimitedToday] = useState(false);
+  useEffect(() => {
+    setAiReviewRateLimitedToday(false);
+  }, [period.from, period.to]);
+  const refreshUsedToday =
+    (reviewMatchesPeriod && wasAiReviewGeneratedTodayManila(aiReview?.generated_at)) ||
+    aiReviewRateLimitedToday;
+
+  const handleRefreshAiReview = useCallback(() => {
+    if (!aiReviewPeriod.applicable) return;
+    if (!data || !isFullAnalyticsBundle(data) || !data.sufficiency.enough) return;
+    if (!canInsightsByPlan) {
+      if (!insightsPlanLoading) openUpgradeModal('analyticsInsights');
+      return;
+    }
+    regenerateAiReview.mutate(
+      { from: period.from, to: period.to },
+      {
+        onError: (error) => {
+          if (error instanceof AdminEdgeFetchError && error.rateLimited) {
+            setAiReviewRateLimitedToday(true);
+          }
+        },
+      }
+    );
+  }, [
+    aiReviewPeriod.applicable,
+    data,
+    canInsightsByPlan,
+    insightsPlanLoading,
+    openUpgradeModal,
+    period.from,
+    period.to,
+    regenerateAiReview,
+  ]);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handleExportPdf = useCallback(async () => {
-    if (!canExportByPlan) {
-      if (!exportPlanLoading) openUpgradeModal('analyticsInsights');
+    if (!canInsightsByPlan) {
+      if (!insightsPlanLoading) openUpgradeModal('analyticsInsights');
       return;
     }
     if (!data || !isFullAnalyticsBundle(data)) return;
@@ -135,8 +203,8 @@ export function PropertyAnalyticsPage() {
       setIsExportingPdf(false);
     }
   }, [
-    canExportByPlan,
-    exportPlanLoading,
+    canInsightsByPlan,
+    insightsPlanLoading,
     openUpgradeModal,
     data,
     aiReview,
@@ -269,11 +337,23 @@ export function PropertyAnalyticsPage() {
             {section === 'ai-review' ? (
               <div className={SECTION_GAP}>
                 <AiPerformanceReviewCard
-                  review={aiReview ?? null}
-                  isLoading={isAiReviewLoading}
+                  review={aiReviewPeriod.applicable ? (aiReview ?? null) : null}
+                  isLoading={aiReviewPeriod.applicable && isAiReviewLoading}
+                  applicable={aiReviewPeriod.applicable}
+                  periodKind={aiReviewPeriod.applicable ? aiReviewPeriod.kind : null}
+                  reviewMatchesPeriod={aiReviewPeriod.applicable && reviewMatchesPeriod}
                   playbookArticles={data.playbook}
+                  onOpenPlaybook={handleOpenPlaybook}
+                  onRefresh={canRefreshAiReview ? handleRefreshAiReview : undefined}
+                  isRefreshing={regenerateAiReview.isPending}
+                  refreshUsedToday={refreshUsedToday}
+                  enoughHistory={data.sufficiency.enough}
                 />
-                <PlaybookList articles={data.playbook} />
+                <PlaybookList
+                  articles={data.playbook}
+                  openSlug={openPlaybookSlug}
+                  onOpenSlugChange={setOpenPlaybookSlug}
+                />
               </div>
             ) : null}
           </>

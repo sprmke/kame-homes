@@ -53,9 +53,13 @@ export async function fetchOrgAnalyticsSummary(
 }
 
 export async function regenerateAnalyticsAiReview(
-  propertyId: string | null
+  propertyId: string | null,
+  period: { from: string; to: string }
 ): Promise<{ review: AnalyticsAiReviewRecord | null; available: boolean }> {
-  const params = appendPropertyId(new URLSearchParams(), propertyId);
+  const params = appendPropertyId(
+    new URLSearchParams({ from: period.from, to: period.to }),
+    propertyId
+  );
   const json = await adminEdgeFetchJson<{
     data: { review: AnalyticsAiReviewRecord | null; available: boolean };
   }>(

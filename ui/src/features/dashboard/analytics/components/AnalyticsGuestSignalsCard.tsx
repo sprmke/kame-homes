@@ -69,6 +69,7 @@ function buildSignals(kpis: AnalyticsKpis): SignalBar[] {
 
 export function AnalyticsGuestSignalsCard({ kpis, className }: Props) {
   const signals = buildSignals(kpis);
+  const hasSignal = signals.some((signal) => signal.fillPct > 0);
 
   return (
     <section
@@ -84,31 +85,39 @@ export function AnalyticsGuestSignalsCard({ kpis, className }: Props) {
         iconClassName="bg-muted/80"
       />
 
-      <ul className="flex flex-1 flex-col justify-center gap-3.5">
-        {signals.map((signal) => (
-          <li
-            key={signal.key}
-            className="grid grid-cols-[minmax(0,7.25rem)_1fr_2.5rem] items-center gap-2 sm:grid-cols-[minmax(0,8.5rem)_1fr_2.75rem]"
-          >
-            <div className="flex min-w-0 items-center gap-0.5">
-              <span className="truncate text-sm">{signal.label}</span>
-              <MetricInfoDot metric={signal.metric} label={signal.label} />
-            </div>
-            <div className="bg-muted h-2 overflow-hidden rounded-full">
-              <div
-                className="h-full rounded-full transition-[width] duration-200"
-                style={{
-                  width: `${signal.fillPct > 0 ? Math.max(signal.fillPct, 2) : 0}%`,
-                  backgroundColor: signal.color,
-                }}
-              />
-            </div>
-            <span className="text-muted-foreground text-right text-xs tabular-nums">
-              {signal.display}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {!hasSignal ? (
+        <div className="border-border/60 flex min-h-[170px] flex-1 items-center justify-center rounded-lg border border-dashed px-4">
+          <p className="text-muted-foreground text-center text-xs">
+            No review data for this range yet
+          </p>
+        </div>
+      ) : (
+        <ul className="flex flex-1 flex-col justify-center gap-3.5">
+          {signals.map((signal) => (
+            <li
+              key={signal.key}
+              className="grid grid-cols-[minmax(0,7.25rem)_1fr_2.5rem] items-center gap-2 sm:grid-cols-[minmax(0,8.5rem)_1fr_2.75rem]"
+            >
+              <div className="flex min-w-0 items-center gap-0.5">
+                <span className="truncate text-sm">{signal.label}</span>
+                <MetricInfoDot metric={signal.metric} label={signal.label} />
+              </div>
+              <div className="bg-muted h-2 overflow-hidden rounded-full">
+                <div
+                  className="h-full rounded-full transition-[width] duration-200"
+                  style={{
+                    width: `${signal.fillPct > 0 ? Math.max(signal.fillPct, 2) : 0}%`,
+                    backgroundColor: signal.color,
+                  }}
+                />
+              </div>
+              <span className="text-muted-foreground text-right text-xs tabular-nums">
+                {signal.display}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

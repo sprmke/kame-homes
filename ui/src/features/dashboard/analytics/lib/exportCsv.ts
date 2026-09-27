@@ -1,4 +1,8 @@
-import type { OrgPortfolioRow } from '@/features/dashboard/analytics/lib/types';
+import {
+  orgPortfolioListingKind,
+  orgPortfolioListingName,
+  type OrgPortfolioRow,
+} from '@/features/dashboard/analytics/lib/types';
 
 function csvEscape(value: string | number): string {
   const str = String(value);
@@ -7,22 +11,26 @@ function csvEscape(value: string | number): string {
 
 export function orgPortfolioRowsToCsv(rows: OrgPortfolioRow[]): string {
   const header = [
-    'Property',
+    'Kind',
+    'Listing',
     'Occupancy %',
-    'ADR',
-    'RevPAR',
+    'Avg nightly rate',
+    'Revenue per night',
     'Revenue',
-    'Reservations',
+    'Bookings',
     'Cancellation %',
-    'Forward state',
-    'Balance state',
+    'Outlook',
+    'Forward occupancy %',
   ];
   const lines = rows.map((row) => {
+    const kind = orgPortfolioListingKind(row);
+    const name = orgPortfolioListingName(row);
     if (row.locked) {
-      return [row.propertyName, 'Locked', '', '', '', '', '', '', ''].map(csvEscape).join(',');
+      return [kind, name, 'Locked', '', '', '', '', '', '', ''].map(csvEscape).join(',');
     }
     return [
-      row.propertyName,
+      kind,
+      name,
       row.occupancyRate,
       row.adr,
       row.revpar,
@@ -30,7 +38,7 @@ export function orgPortfolioRowsToCsv(rows: OrgPortfolioRow[]): string {
       row.reservations,
       row.cancellationRate,
       row.forwardOccupancyState30d,
-      row.balanceCollectionState,
+      row.forwardOccupancyRate30d ?? '',
     ]
       .map(csvEscape)
       .join(',');

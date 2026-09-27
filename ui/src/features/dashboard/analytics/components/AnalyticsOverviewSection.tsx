@@ -7,37 +7,29 @@ import { PublicPagePerformanceCard } from '@/features/dashboard/analytics/compon
 import type { AnalyticsBundle } from '@/features/dashboard/analytics/lib/types';
 
 const SECTION_GAP = 'flex flex-col gap-2.5 sm:gap-3 lg:gap-4';
+const CARD_GRID = 'grid gap-2.5 sm:gap-3 lg:grid-cols-3 lg:gap-4';
 
 type Props = {
   bundle: AnalyticsBundle;
 };
 
 export function AnalyticsOverviewSection({ bundle }: Props) {
-  const hasSources = bundle.distributions.channelMix.some((item) => item.count > 0);
-  const hasTraffic = bundle.publicPage.pageViews > 0 || bundle.publicPage.uniqueVisitors > 0;
-
   return (
     <div className={SECTION_GAP}>
-      <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-3 lg:gap-4">
+      <div className={CARD_GRID}>
         <GuestAgeCard guestAge={bundle.distributions.guestAge} />
         <GuestPartySizeCard partySize={bundle.distributions.partySize} />
         <GuestOriginsCard guestOrigins={bundle.distributions.guestOrigins} />
       </div>
 
-      {hasSources || hasTraffic || bundle.benchmark.available ? (
-        <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-2 lg:gap-4">
-          {hasSources ? (
-            <ChannelMixCard channelMix={bundle.distributions.channelMix} compact />
-          ) : null}
-          {hasTraffic ? <PublicPagePerformanceCard publicPage={bundle.publicPage} /> : null}
-          {bundle.benchmark.available ? (
-            <BenchmarkCard
-              benchmark={bundle.benchmark}
-              ownOccupancyRatePct={bundle.kpis.occupancyRate.value}
-            />
-          ) : null}
-        </div>
-      ) : null}
+      <div className={CARD_GRID}>
+        <ChannelMixCard channelMix={bundle.distributions.channelMix} compact />
+        <PublicPagePerformanceCard publicPage={bundle.publicPage} />
+        <BenchmarkCard
+          benchmark={bundle.benchmark}
+          ownOccupancyRatePct={bundle.kpis.occupancyRate.value}
+        />
+      </div>
     </div>
   );
 }

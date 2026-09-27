@@ -137,6 +137,10 @@ export function isFullAnalyticsBundle(
 
 /** Mirrors analytics-org-summary's response shape. */
 export type OrgPortfolioRowLocked = {
+  kind?: 'property' | 'parking';
+  id?: string;
+  name?: string;
+  slug?: string;
   propertyId: string;
   propertyName: string;
   propertySlug: string;
@@ -144,8 +148,15 @@ export type OrgPortfolioRowLocked = {
 };
 
 export type OrgPortfolioRowUnlocked = {
+  kind: 'property' | 'parking';
+  id: string;
+  name: string;
+  slug: string;
+  /** @deprecated Prefer `id` — kept for CSV/legacy. */
   propertyId: string;
+  /** @deprecated Prefer `name`. */
   propertyName: string;
+  /** @deprecated Prefer `slug`. */
   propertySlug: string;
   locked: false;
   occupancyRate: number;
@@ -154,20 +165,53 @@ export type OrgPortfolioRowUnlocked = {
   grossRevenue: number;
   reservations: number;
   cancellationRate: number;
+  /** Change in revenue vs the prior period; null when the prior period had none. */
+  revenueChangePct?: number | null;
   forwardOccupancyState30d: ForwardOccupancyState;
+  /** Share of the next 30 nights already booked (0-100). */
+  forwardOccupancyRate30d?: number;
   balanceCollectionState: BalanceCollectionState;
+  /** Unpaid guest balances for check-ins in the next 14 days. */
+  unpaidBalanceUpcomingTotal?: number;
+  unpaidBalanceUpcomingCount?: number;
+  occupiedNights: number;
+  periodDays: number;
 };
 
 export type OrgPortfolioRow = OrgPortfolioRowLocked | OrgPortfolioRowUnlocked;
 
 export type OrgAnalyticsSummary = {
   period: AnalyticsPeriod;
+  priorPeriod?: AnalyticsPeriod;
   portfolio: {
     totalRevenue: number;
-    totalReservations: number;
+    totalRevenueChangePct?: number | null;
     avgOccupancy: number;
+    avgOccupancyChangePts?: number | null;
+    totalReservations: number;
+    totalReservationsChangePct?: number | null;
     propertyCount: number;
+    parkingCount?: number;
+    listingCount?: number;
+    attentionCount?: number;
+    unpaidBalanceTotal?: number;
     entitledPropertyCount: number;
   };
   rows: OrgPortfolioRow[];
 };
+
+export function orgPortfolioListingId(row: OrgPortfolioRow): string {
+  return row.id ?? row.propertyId;
+}
+
+export function orgPortfolioListingName(row: OrgPortfolioRow): string {
+  return row.name ?? row.propertyName;
+}
+
+export function orgPortfolioListingSlug(row: OrgPortfolioRow): string {
+  return row.slug ?? row.propertySlug;
+}
+
+export function orgPortfolioListingKind(row: OrgPortfolioRow): 'property' | 'parking' {
+  return row.kind ?? 'property';
+}

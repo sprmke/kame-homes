@@ -19,6 +19,9 @@ type Props = {
   className?: string;
 };
 
+const EMPTY_CHART_SHELL =
+  'border-border/60 flex min-h-[188px] flex-1 items-center justify-center rounded-lg border border-dashed px-4';
+
 export function GuestPartySizeCard({ partySize, className }: Props) {
   const isBelowMd = useIsBelowMd();
   const chartData = useMemo(
@@ -36,55 +39,56 @@ export function GuestPartySizeCard({ partySize, className }: Props) {
     >
       <AdminSurfaceCardHeader icon={UsersRound} title="Party size" iconClassName="bg-muted/80" />
 
-      <div className="relative min-h-[188px] w-full flex-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ ...defaultChartMargin(isBelowMd), top: 8, bottom: 4 }}
-            barCategoryGap="18%"
-          >
-            <XAxis
-              dataKey="bucket"
-              tick={chartAxisTick(isBelowMd)}
-              tickLine={false}
-              axisLine={false}
-              interval={0}
-              tickMargin={8}
-              height={36}
-            />
-            <YAxis hide domain={[0, 'auto']} />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.[0]) return null;
-                const point = payload[0].payload as { bucket: string; count: number };
-                const label =
-                  point.bucket === '1'
-                    ? '1 guest'
-                    : point.bucket === '5+'
-                      ? '5+ guests'
-                      : `${point.bucket} guests`;
-                return (
-                  <div className="border-border bg-card rounded-lg border px-3 py-2 shadow-lg">
-                    <p className="text-foreground text-sm font-semibold">{label}</p>
-                    <p className="text-sm" style={{ color: CHART_INFO_COLOR }}>
-                      {point.count} {point.count === 1 ? 'booking' : 'bookings'}
-                    </p>
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="count" fill={CHART_INFO_COLOR} radius={[4, 4, 0, 0]} maxBarSize={36} />
-          </BarChart>
-        </ResponsiveContainer>
-        {!hasSignal ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
-            <p className="text-muted-foreground text-center text-xs">
-              No party size data for this range yet
-            </p>
-          </div>
-        ) : null}
-      </div>
+      {!hasSignal ? (
+        <div className={EMPTY_CHART_SHELL}>
+          <p className="text-muted-foreground text-center text-xs">
+            No party size data for this range yet
+          </p>
+        </div>
+      ) : (
+        <div className="min-h-[188px] w-full flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ ...defaultChartMargin(isBelowMd), top: 8, bottom: 4 }}
+              barCategoryGap="18%"
+            >
+              <XAxis
+                dataKey="bucket"
+                tick={chartAxisTick(isBelowMd)}
+                tickLine={false}
+                axisLine={false}
+                interval={0}
+                tickMargin={8}
+                height={36}
+              />
+              <YAxis hide domain={[0, 'auto']} />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.[0]) return null;
+                  const point = payload[0].payload as { bucket: string; count: number };
+                  const label =
+                    point.bucket === '1'
+                      ? '1 guest'
+                      : point.bucket === '5+'
+                        ? '5+ guests'
+                        : `${point.bucket} guests`;
+                  return (
+                    <div className="border-border bg-card rounded-lg border px-3 py-2 shadow-lg">
+                      <p className="text-foreground text-sm font-semibold">{label}</p>
+                      <p className="text-sm" style={{ color: CHART_INFO_COLOR }}>
+                        {point.count} {point.count === 1 ? 'booking' : 'bookings'}
+                      </p>
+                    </div>
+                  );
+                }}
+              />
+              <Bar dataKey="count" fill={CHART_INFO_COLOR} radius={[4, 4, 0, 0]} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </section>
   );
 }

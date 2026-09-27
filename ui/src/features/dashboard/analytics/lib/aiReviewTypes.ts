@@ -25,5 +25,8 @@ export type AnalyticsAiReviewRecord = {
   headline: string;
   score: number;
   score_delta: number | null;
+  /** Inclusive YYYY-MM-DD of the range this review was generated for. */
+  period_start: string;
+  period_end: string;
   payload: AnalyticsAiReviewPayload;
 };

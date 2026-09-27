@@ -22,6 +22,9 @@ type Props = {
   className?: string;
 };
 
+const EMPTY_CHART_SHELL =
+  'border-border/60 flex min-h-[170px] flex-1 items-center justify-center rounded-lg border border-dashed px-4';
+
 function MiniBarChart({
   data,
   dataKeyLabel,
@@ -33,10 +36,8 @@ function MiniBarChart({
   color: string;
   isBelowMd: boolean;
 }) {
-  const hasSignal = data.some((entry) => entry.count > 0);
-
   return (
-    <div className="relative h-[170px] w-full">
+    <div className="h-[170px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -70,11 +71,6 @@ function MiniBarChart({
           <Bar dataKey="count" fill={color} radius={[4, 4, 0, 0]} maxBarSize={44} />
         </BarChart>
       </ResponsiveContainer>
-      {!hasSignal ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
-          <p className="text-muted-foreground text-center text-xs">No data for this range yet</p>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -91,6 +87,7 @@ export function AnalyticsDistributionCard({
 }: Props) {
   const isBelowMd = useIsBelowMd();
   const chartData = useMemo(() => fillDistributionRange(data, bucketOrder), [data, bucketOrder]);
+  const hasSignal = chartData.some((entry) => entry.count > 0);
 
   return (
     <section
@@ -101,12 +98,18 @@ export function AnalyticsDistributionCard({
     >
       <AdminSurfaceCardHeader icon={icon} title={title} iconClassName="bg-muted/80" />
       <p className="text-muted-foreground mb-2 text-xs font-medium">{sectionLabel}</p>
-      <MiniBarChart
-        data={chartData}
-        dataKeyLabel={dataKeyLabel}
-        color={color}
-        isBelowMd={isBelowMd}
-      />
+      {hasSignal ? (
+        <MiniBarChart
+          data={chartData}
+          dataKeyLabel={dataKeyLabel}
+          color={color}
+          isBelowMd={isBelowMd}
+        />
+      ) : (
+        <div className={EMPTY_CHART_SHELL}>
+          <p className="text-muted-foreground text-center text-xs">No data for this range yet</p>
+        </div>
+      )}
     </section>
   );
 }
