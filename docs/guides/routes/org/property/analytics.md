@@ -2,7 +2,7 @@
 title: 'Analytics — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-23
+updated: 2026-09-27
 ---
 
 # Analytics — operator guide
@@ -16,27 +16,27 @@ Route: `/org/:orgSlug/property/:propertySlug/analytics`
 
 ## Progress overview
 
-| Section                                      | E2E save | Validation | Docs    | Notes                                                                                                                                                                                                                                                                                                    |
-| -------------------------------------------- | -------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Section tabs                                 | —        | —          | Done    | Overview / Trends / Guests / AI review (`AnalyticsSectionTabs`)                                                                                                                                                                                                                                          |
-| KPI strip                                    | —        | —          | Done    | **4 headline cards** — Occupancy, Avg nightly rate, Revenue per night, Bookings. Lead time / cancellations / rating / response rate live in Trends & Guests                                                                                                                                              |
-| State banner                                 | —        | —          | Removed | Former occupancy-outlook chips (Underbooked / Building / etc.) and unpaid-balance pill above the KPI grid retired; forward state assessment remains in the API bundle, PDF export, AI review, and playbook matching only                                                                                 |
-| Occupancy & revenue trend                    | —        | —          | Removed | Former Overview "This period" chart retired; period KPIs remain in the strip; booking pace stays on Trends                                                                                                                                                                                               |
-| Booking pace / pickup / next-90-days forward | —        | —          | Done    | Trends **New bookings** card (`BookingPaceCard`): daily/weekly created bookings vs last year. Pickup stays in API for PDF/AI/playbook                                                                                                                                                                    |
-| Booking source mix                           | —        | —          | Done    | Shared donut (`AnalyticsDonutChart`): center always = total bookings; hover tooltip for source / % / count. No legend. Compact on Overview; full on Guests                                                                                                                                               |
-| Listing page visits                          | —        | —          | Done    | Same donut: center always = page views; hover tooltip for referrer / % / count. Overview only when views or visitors > 0                                                                                                                                                                                 |
-| Do next                                      | —        | —          | Removed | Former Overview CTA list retired; guest insights moved to Overview instead                                                                                                                                                                                                                               |
-| Guests (age + origins)                       | —        | —          | Done    | **Guest age**, **Party size** (adults+children: 1–4, 5+), and **Guest origins** (max 6 distinct; last row **Others** when more exist) on Overview and Guests                                                                                                                                             |
-| Lead time & length of stay                   | —        | —          | Done    | Trends: lead-time + length-of-stay histograms fill a continuous bucket range (zeros between min–max hits, padded to ≥3); hover tooltip (no bar labels). Plus Reviews & response                                                                                                                          |
-| Date range control                           | —        | —          | Done    | Shared `BookingDateRangeFilter` (Week/Month/Year/Custom), `?from`/`?to` params — same as Bookings/Finance/Dashboard; default = current month                                                                                                                                                             |
-| Teaser (Free/Starter)                        | —        | —          | Removed | Full dashboard is preview-open; plan gate is Export PDF / CSV + AI review generate                                                                                                                                                                                                                       |
-| Empty state (new property)                   | —        | —          | Done    | Shown below 10 non-cancelled bookings ever                                                                                                                                                                                                                                                               |
-| Comparison toggle (prior vs last year)       | —        | —          | Removed | On-screen toggle dropped as redundant. KPI deltas are always vs-last-period; YoY still in the bundle for PDF + AI review                                                                                                                                                                                 |
-| AI Performance Review                        | —        | —          | Done    | Weekly cron + on-demand regenerate (1/hour); score dial, Working/Improve/Avoid columns. Local demo seed includes a mock latest review                                                                                                                                                                    |
-| Improvement Playbook                         | —        | —          | Done    | `PlaybookList`, matched via `_shared/hostPlaybook.ts` against the bundle, 17 seeded articles + super-admin CRUD                                                                                                                                                                                          |
-| Ask Analytics (AI Assistant integration)     | —        | —          | Done    | `get_property_analytics` + `explain_metric` Tier-0 read tools stay available via the global assistant FAB. The dedicated **Ask AI** toolbar button was **removed** (2026-09-10) — it opened the generic assistant with no analytics scope, so it added little over the glossary tooltips + AI review tab |
-| PDF export                                   | —        | —          | Done    | Client-side jsPDF report (state, KPIs, channel/origins, AI review, Playbook); gated by `analytics:export`                                                                                                                                                                                                |
-| Org portfolio rollup + export                | —        | —          | Done    | `/org/:orgSlug/analytics` — see [`../analytics.md`](../analytics.md)                                                                                                                                                                                                                                     |
+| Section                                      | E2E save | Validation | Docs    | Notes                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------- | -------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Section tabs                                 | —        | —          | Done    | Overview / Trends / Guests / AI review (`AnalyticsSectionTabs`)                                                                                                                                                                                                                                                                                                            |
+| KPI strip                                    | —        | —          | Done    | **4 headline cards** — Occupancy, Avg nightly rate, Revenue per night, Bookings. Lead time / cancellations / rating / response rate live in Trends & Guests                                                                                                                                                                                                                |
+| State banner                                 | —        | —          | Removed | Former occupancy-outlook chips (Underbooked / Building / etc.) and unpaid-balance pill above the KPI grid retired; forward state assessment remains in the API bundle, PDF export, AI review, and playbook matching only                                                                                                                                                   |
+| Occupancy & revenue trend                    | —        | —          | Removed | Former Overview "This period" chart retired; period KPIs remain in the strip; booking pace stays on Trends                                                                                                                                                                                                                                                                 |
+| Booking pace / pickup / next-90-days forward | —        | —          | Done    | Trends **New bookings** card (`BookingPaceCard`): daily/weekly created bookings vs last year. Pickup stays in API for PDF/AI/playbook                                                                                                                                                                                                                                      |
+| Booking source mix                           | —        | —          | Done    | Shared donut (`AnalyticsDonutChart`): center always = total bookings; hover tooltip for source / % / count. No legend. Always on Overview (compact) and Guests; empty donut when no bookings                                                                                                                                                                               |
+| Listing page visits                          | —        | —          | Done    | Same donut: center always = page views; hover tooltip for referrer / % / count. Always on Overview (empty when no views)                                                                                                                                                                                                                                                   |
+| Do next                                      | —        | —          | Removed | Former Overview CTA list retired; guest insights moved to Overview instead                                                                                                                                                                                                                                                                                                 |
+| Guests (age + origins)                       | —        | —          | Done    | **Guest age**, **Party size** (adults+children: 1–4, 5+), and **Guest origins** (max 6 distinct; last row **Others** when more exist) on Overview and Guests                                                                                                                                                                                                               |
+| Lead time & length of stay                   | —        | —          | Done    | Trends: lead-time + length-of-stay histograms fill a continuous bucket range (zeros between min–max hits, padded to ≥3); hover tooltip (no bar labels). Plus Reviews & response                                                                                                                                                                                            |
+| Date range control                           | —        | —          | Done    | Shared `BookingDateRangeFilter` (Week/Month/Year/Custom), `?from`/`?to` params — same as Bookings/Finance/Dashboard; default = current month                                                                                                                                                                                                                               |
+| Teaser (Free/Starter)                        | —        | —          | Removed | Full dashboard is preview-open; plan gate is Export PDF / CSV + AI review generate                                                                                                                                                                                                                                                                                         |
+| Empty state (new property)                   | —        | —          | Done    | Shown below 10 non-cancelled bookings ever                                                                                                                                                                                                                                                                                                                                 |
+| Comparison toggle (prior vs last year)       | —        | —          | Removed | On-screen toggle dropped as redundant. KPI deltas are always vs-last-period; YoY still in the bundle for PDF + AI review                                                                                                                                                                                                                                                   |
+| AI Performance Review                        | —        | —          | Done    | Cron (current month) + on-demand Analyze/Refresh (1/day per week, month, or year). Only the **current** Manila week/month/year; custom or shifted ranges show N/A. CTA follows the selected range; mismatched latest review does not render. Generating stage while POST runs. Plan `analyticsInsights` + leaf `analytics.aiReview:add`. Local demo seed for `monaco-2612` |
+| Improvement Playbook                         | —        | —          | Done    | `PlaybookList`, matched via `_shared/hostPlaybook.ts` against the bundle, 17 seeded articles + super-admin CRUD. Single-open accordion; an AI review `Playbook:` tip expands the matching article. `@ci` spec `ui/e2e/features/analytics/aiReviewPlaybook.spec.ts`                                                                                                         |
+| Ask Analytics (AI Assistant integration)     | —        | —          | Done    | `get_property_analytics` + `explain_metric` Tier-0 read tools stay available via the global assistant FAB. The dedicated **Ask AI** toolbar button was **removed** (2026-09-10) — it opened the generic assistant with no analytics scope, so it added little over the glossary tooltips + AI review tab                                                                   |
+| PDF export                                   | —        | —          | Done    | Client-side jsPDF report (state, KPIs, channel/origins, AI review, Playbook); gated by `analytics:export`                                                                                                                                                                                                                                                                  |
+| Org portfolio rollup + export                | —        | —          | Done    | `/org/:orgSlug/analytics` — see [`../analytics.md`](../analytics.md)                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -77,13 +77,14 @@ Below that, **four section tabs** (`AnalyticsSectionTabs`): Overview · Trends �
 Tabs and their contents:
 
 1. **Overview** (`AnalyticsOverviewSection`)
+   - Two 3-column rows; every card always renders (empty body when no data).
    - **Guest age** / **Party size** / **Guest origins** — separate cards (histograms + ranked list).
-   - **Where bookings come from** — compact channel donut (hover tooltip; no legend),
-     only when the period has bookings. Includes **Direct** (website) bookings; aliases
-     like `direct` / `website` roll up with `Direct`.
-   - **Listing visits** — matching donut with page views in the center and referrers on hover;
-     omitted when both views and visitors are 0.
-   - **How you compare** — "vs Kame median" benchmark, when enough peer listings exist.
+   - **Where bookings come from** — compact channel donut (hover tooltip; no legend). Includes
+     **Direct** (website) bookings; aliases like `direct` / `website` roll up with `Direct`.
+   - **Listing visits** — matching donut with page views in the center and referrers on hover
+     (empty donut when views are 0).
+   - **How you compare** — "vs Kame median" benchmark; dashed empty state when peer sample is
+     too small.
 2. **Trends**
    - **New bookings** — bookings **created** in the selected range (daily when ≤45 days, else
      weekly) as a monotone area/line chart (finance-style), optional dashed last-year series.
@@ -104,15 +105,44 @@ Tabs and their contents:
 4. **AI review**
    - **AI Performance Review** — a score (0–100), what's working, what to improve, and what to
      avoid. Each item is grounded in the numbers above and, when relevant, cites a recent change
-     (a rate update, a blocked date) that plausibly explains a metric move. Regenerates
-     automatically once a week (no manual regenerate in the UI). Advisory only: it never changes
-     a rate or a setting.
+     (a rate update, a blocked date) that plausibly explains a metric move. Advisory only: it
+     never changes a rate or a setting.
+     **Period gate:** only the **current** week, month, or year (Asia/Manila) is applicable.
+     Custom ranges and ←/→ shifts to other weeks/months/years show **Current period only** (no
+     review body, no Analyze/Refresh). Detection: `analytics/lib/aiReviewPeriod.ts` (client) mirrors
+     `_shared/analyticsAiReviewPeriod.ts` (server).
+     **Analyze / Refresh:** header CTA tracks the selected current period. When the latest review’s
+     `period_start`/`period_end` match the filter → **Refresh** (or **Refreshed** after a success
+     today). When they do not match (or there is no review) → **Analyze this week|month|year** and
+     the card body stays empty for that range (never shows another period’s review). While POST is
+     in flight, the body swaps to `AiPerformanceReviewGeneratingStage` (aurora + cycling status).
+     Rate limit: **once per Manila day per period kind** (`propertyId:week|month|year`). Requires
+     `analytics.aiReview:add` + `analyticsInsights` (`TierBadgeAnchor` / upgrade modal). **Analyze /
+     Refresh is disabled** when `sufficiency.enough` is false (fewer than 10 non-cancelled bookings
+     ever), matching the AI review cron skip, so hosts are not pushed into rate-limit or AI-down
+     toasts on sparse history. POST
+     `analytics-ai-review?from&to` with the selected current period; server rejects non-current
+     ranges (400). Weekly cron still regenerates entitled properties using the **current calendar
+     month**.
+     Layout: a **summary band** (score dial + headline + "vs last review" delta) spans the full
+     card width, with **Working / Improve / Avoid** below it as three bordered panels
+     (`lg:grid-cols-3`; stacked below `lg`).
+     Each actionable item is a **read → do → go** stack: title + evidence first, then a quiet
+     footer (hairline divider) with the recommendation, a named deep link (`Go to Pricing`, from
+     `analytics/lib/aiReviewDeepLink.ts`, falling back to `Go there`), and a secondary playbook tip
+     (text button, not a filled chip). Working items that have no next step omit the footer.
      Local QA: `bun run seed:analytics-demo` inserts a mock latest review for `monaco-2612`
-     (model `analytics-demo`) so this card renders without waiting for the weekly cron or Gemini.
+     (model `analytics-demo`) so this card renders without waiting for the weekly cron or Gemini,
+     and seeds `platform_analytics_benchmark_cache` so **How you compare** has a peer sample.
    - **Improvement Playbook** — expandable tip cards, matched against this property's current
      numbers (occupancy state, response rate, channel concentration, etc.) from a curated
      17-article seed set. Not personalized by AI — a deterministic condition matcher.
      Super admins manage the article catalog at `/admin/playbook`.
+     One article is open at a time. The open article is owned by `PropertyAnalyticsPage`, so a
+     `Playbook:` tip in the AI review above **expands** the matching card, moves focus to its
+     disclosure button, and scrolls it into view (`analytics/lib/playbookReveal.ts`). Clicking the
+     same tip again re-scrolls rather than collapsing. Article bodies are authored as plain text
+     and rendered with preserved line breaks.
 
 **Export PDF** (toolbar, requires `analytics:export`) renders a client-side report (jsPDF, same
 toolkit as Finance/Maintenance exports) from the data already on the page — current state, KPIs
@@ -140,19 +170,23 @@ for `analytics:view`. Same action-level pattern as Finance export.
 
 ## Permission table
 
-| Permission         | Grants                                                       |
-| ------------------ | ------------------------------------------------------------ |
-| `analytics:view`   | View the Analytics page (any tier)                           |
-| `analytics:export` | Show the **Export PDF** button (plan still applies on click) |
+| Permission               | Grants                                                                                                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `analytics:view`         | View the Analytics page (any tier)                                                                                                                                                |
+| `analytics:export`       | Show the **Export PDF** button (plan still applies on click)                                                                                                                      |
+| `analytics.aiReview:add` | Show **Analyze / Refresh** and call `POST analytics-ai-review` (spends AI credits; `analyticsInsights` plan still applies). Viewing a matching review needs only `analytics:view` |
 
-Seeded role templates: Full Access → both; Operations and Read Only → `analytics:view` only;
+Seeded role templates: Full Access → all three; Operations and Read Only → `analytics:view` only;
 other custom roles → none by default (configurable per org).
 
 ## States
 
 - **Loading**: `DashboardSkeleton` (shared skeleton, KPI cards + chart placeholders).
-- **Empty**: fewer than 10 non-cancelled bookings ever → "Not enough booking history yet" with
-  the current count.
+- **Sparse / empty period**: full layout still renders (KPIs, tabs, charts). Values and series
+  may be zeros or empty when there is little booking history; no full-page "not enough history"
+  gate. Chart cards with no signal use a **dashed empty body** (no axis labels or zero-filled
+  bars) so empty Overview / Trends cards stay readable. AI review cron still skips properties
+  with fewer than 10 non-cancelled bookings ever (`sufficiency.enough`).
 - **Error**: generic retry message.
 
 ## Host-facing knowledge
@@ -180,12 +214,30 @@ rates, bookings, and guest mix.
   alongside OTAs and social sources.
 - Q: Can I download a report on Free?
   A: **Export PDF** is on Pro. The button still shows; tapping it opens Plans.
+- Q: What does How you compare mean?
+  A: It shows your occupancy and average nightly rate against the median of other active Pro
+  listings on Kame (not named competitors). It stays empty until enough peer listings have
+  bookings in the same kind of period, so one or two other hosts are never exposed as "the
+  market."
 - Q: Does the AI review change my rates or settings?
-  A: No. It's advisory only — it can suggest an action (e.g. "raise your weekend rate") but
-  never applies one. You'd still make that change yourself on the Pricing page.
-- Q: Why does "Regenerate" sometimes say it's unavailable?
-  A: It's rate-limited to once an hour per property, and if the AI service is briefly
-  unreachable it falls back to your last review rather than erroring.
+  A: No. It's advisory only. It can suggest an action (e.g. raise your weekend rate) but never
+  applies one. You'd still make that change yourself on the Pricing page.
+- Q: What do the "Playbook:" tips under a suggestion do?
+  A: They open the matching tip in the Improvement Playbook card below and scroll you to it, so
+  you can read the how-to without hunting for it.
+- Q: Why does the AI review say Current period only?
+  A: AI review only covers the current week, month, or year. Switch the date filter back to
+  this week, this month, or this year.
+- Q: How often can I analyze the AI review?
+  A: Once a day for each of this week, this month, and this year. After you analyze a range, that
+  button shows Refreshed until tomorrow. A weekly background pass also updates Pro listings for
+  the current month.
+- Q: I switched from month to week and the review disappeared. Why?
+  A: The last review was for a different range. Use **Analyze this week** to generate one for the
+  week you have selected.
+- Q: Why does analyze sometimes say it's unavailable?
+  A: You can analyze each range once a day. If the AI service is briefly unreachable it keeps
+  your last review instead of erroring.
 - Q: Where did the "Ask AI" button go?
   A: It was removed — it just opened the general assistant without focusing it on this page. For
   a plain-language explanation of any metric, hover the small ⓘ next to its name; for a written

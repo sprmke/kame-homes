@@ -2,7 +2,7 @@
 title: 'Organization Properties — operator guide'
 status: active
 tags: [guides, routes, org, properties]
-updated: 2026-09-06
+updated: 2026-09-27
 ---
 
 # Organization Properties — operator guide
@@ -13,20 +13,20 @@ Route: `/org/:orgSlug/properties`
 
 ## Progress overview
 
-| Section           | E2E save | Validation | Docs | Notes                                                                                              |
-| ----------------- | -------- | ---------- | ---- | -------------------------------------------------------------------------------------------------- |
-| Summary cards     | Done     | —          | Done | Total, total revenue, avg monthly revenue, avg occupancy                                           |
-| Search & filters  | Done     | —          | Done | Name, slug, tower, address, status, type                                                           |
-| Grid / list views | Done     | —          | Done | Gallery carousel + booking KPIs                                                                    |
-| Property cards    | Done     | —          | Done | Name title, tower/unit subtitle                                                                    |
-| Add property      | Done     | Done       | Done | Dialog → settings on create                                                                        |
-| Copy settings     | Done     | Done       | Done | 4-step wizard; Phases 0–4 coded; see [[workflow/for-testing/property-settings-copy-to-properties]] |
+| Section             | E2E save | Validation | Docs | Notes                                                                                              |
+| ------------------- | -------- | ---------- | ---- | -------------------------------------------------------------------------------------------------- |
+| Summary cards       | Done     | —          | Done | Total, total revenue, avg monthly revenue, avg occupancy                                           |
+| Search & filters    | Done     | —          | Done | Name, slug, tower, address, status, type; bookings-style toolbar                                   |
+| Table / grid / list | Done     | —          | Done | Table (desktop), grid cards, list rows; client pagination                                          |
+| Property cards      | Done     | —          | Done | Name title, tower/unit subtitle                                                                    |
+| Add property        | Done     | Done       | Done | Dialog → settings on create                                                                        |
+| Copy settings       | Done     | Done       | Done | 4-step wizard; Phases 0–4 coded; see [[workflow/for-testing/property-settings-copy-to-properties]] |
 
 ---
 
 ## Overview
 
-Org-level inventory of all properties. On **phone/tablet**, uses the shared **brand hero** shell (`AdminMobilePage`) with **Add property** as a hero icon when permitted; filters sit in a floating toolbar. Cards surface profile data from `properties` + `properties.settings` and booking KPIs for the **current Manila calendar month** (not all-time).
+Org-level inventory of all properties. On **phone/tablet**, uses the shared **brand hero** shell (`AdminMobilePage`, `dense`) with a **`MobileHeroActionMenu`** (Copy settings / Add property when permitted). Filters sit in a **`FloatingToolbar`** via shared **`OrgListingToolbar`** (Bookings chrome: search + refine + view toggle; desktop Status + Filters popover + per-page + View). Cards / list / table surface profile data from `properties` + `properties.settings` and booking KPIs for the **current Manila calendar month** (not all-time). Large catalogs paginate client-side (31 / 50 / 100); no always-on results count meta. Table is desktop-only (`lg+`).
 
 **Access:** Requires **`org.properties:view`** (org owner, org hub member with the leaf, platform admin). **Property-only members** (`accessKind: property_member`) cannot open org routes — `RequireOrgPermission` redirects them to an assigned property dashboard. Scoped org admins (`all_listings = false`) only see assigned properties.
 
@@ -72,7 +72,7 @@ All revenue and occupancy figures on this page use the **current calendar month 
 | **Total properties**    | Count of all org properties (`ACTIVE` + `INACTIVE`).                            |
 | **Total revenue**       | Sum of each property’s `stats.monthlyRevenue` for the **current Manila month**. |
 | **Avg monthly revenue** | `totalRevenue ÷ totalProperties` (includes properties with ₱0).                 |
-| **Avg. occupancy**      | Mean of each property’s `stats.occupancyRate` for the **current Manila month**. |
+| **Avg occupancy**       | Mean of each property’s `stats.occupancyRate` for the **current Manila month**. |
 
 ---
 
@@ -97,15 +97,17 @@ Cards omit type and bed/bath/guest chips (type remains available via the toolbar
 
 ## Filters
 
-| Control | Behavior                                    |
-| ------- | ------------------------------------------- |
-| Search  | Name, slug, tower, unit, residence, address |
-| Status  | `ACTIVE` / `INACTIVE`                       |
-| Type    | Case-insensitive match on `properties.type` |
-| View    | Grid or list                                |
+| Control  | Behavior                                                                                                                      |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Search   | Name, slug, tower, unit, residence, address (debounced; clear control)                                                        |
+| Status   | `ACTIVE` / `INACTIVE` — desktop leading filter; in refine sheet on phone                                                      |
+| Type     | Case-insensitive match on `properties.type` — desktop Filters popover; in refine sheet on phone                               |
+| Per page | 31 / 50 / 100 (same sizes as Bookings); resets to page 1                                                                      |
+| View     | **Table** (desktop only), **Grid**, **List**. Default list when fewer than five properties; table (or grid on phone) at five+ |
 
-On phone/tablet (`max-lg`) Status + Type collapse into a single **refine sheet** (`AdminListRefineSheet`, opened from a filter icon beside the search box, with an active-count badge and **Clear**); the inline `Select` strip is desktop-only (`lg+`).
+Toolbar layout matches Bookings / Finance: phone uses search + refine icon + segmented view toggle; desktop uses `AdminListDesktopToolbar` (Status · Filters · search · per-page · View).
 
+**Pagination:** client-side over the filtered list. Page controls appear when there is more than one page (same pattern as Bookings; no always-on count meta above the list).
 ---
 
 ## Actions menu
@@ -128,14 +130,14 @@ On phone/tablet (`max-lg`) Status + Type collapse into a single **refine sheet**
 
 ## Copy settings
 
-**Entry:** Header **Copy settings** (desktop) / hero ⋯ (mobile), or property card/list **⋯ → Copy settings**. Visible when `properties.length >= 2`. Property **Settings → Copy from…** opens the same dialog with that property locked as the only target (`?copyTarget=` on the Properties route).
+**Entry:** Header **Copy settings** (desktop) / hero ⋯ (mobile), or property card/list **⋯ → Copy settings**. Visible when `properties.length >= 2`.
 
 **Wizard (`CopyPropertySettingsDialog`)** — four steps:
 
-1. **Source** — pre-filled from the card menu; otherwise pick from ACTIVE/INACTIVE org properties. Skipped when launched via **Copy from…** (targets step is locked instead).
+1. **Source** — pre-filled from the card menu; otherwise pick from ACTIVE/INACTIVE org properties.
 2. **Groups** — checkbox tree by property sidebar module (**Settings** first, then Pricing, Team, Marketing, Inbox, Notifications, Templates, Public Pages, Finance, Maintenance). Child labels match Settings sections / page headings (e.g. Email Automations, Telegram notifications, Pinned snippets). Nested opt-ins appear under their parent when checked: **Include email recipients** (under Email Automations), **Include Telegram credentials** (under Telegram notifications). Separate **Options**: **Override existing settings** (on by default; turn off to leave target groups that already have values unchanged). Contact details stay off by default under Settings.
-3. **Targets** — multi-select of other org properties; **Select all** / **Clear** toggle; search when the list is long; scrollable list. Locked to one property when opened via **Copy from…**.
-4. **Confirm** — loads a dry-run preview per target (will copy / skipped / failed / unchanged). Primary **Copy settings** runs the real copy. Preview uses a separate request from the copy mutation so the footer does not show “Copying…” during preview. Batches over 10 targets require an extra confirm checkbox. **Back** stays available while the preview loads.
+3. **Targets** — multi-select of other org properties; **Select all** / **Clear** toggle; search when the list is long; scrollable list.
+4. **Confirm** — loads a dry-run preview per target (will copy / skipped / failed / unchanged). Primary **Copy settings** runs the real copy. Preview uses a separate request from the copy mutation so the footer does not show “Copying…” during preview. Batches over 10 targets require an extra confirm checkbox. Footer: **Back** (left after step 1) · **Cancel** + **Next** / **Copy settings** (right). **Back** stays available while the preview loads.
 
 **What is copied (when selected):** listing details and content, amenities, house rules, cancellation, brand/socials, photos/videos, guest-form toggles, building-form fields (+ signature assets), email automation timing/toggles (+ recipients if opted in), pricing rates/fees/holiday rules, Smart Pricing settings, voucher config, Telegram notification config (+ shared bot token; per-module credentials if opted in), inbox snippets, templates (incl. section images), public-page template/config (showcase stays unpublished), marketing designs, voice receptionist + AI overrides, custom team **role definitions**, recurring finance/maintenance **series definitions** (new series on the target from the next due date).
 
@@ -174,17 +176,20 @@ Server: `list-properties` loads org properties, batch-loads `guest_submissions` 
 
 ---
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern                  | Path                                                                                                                                                                      |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                     | `ui/src/features/dashboard/org/pages/OrgPropertiesPage.tsx`                                                                                                               |
-| Cards / list             | `ui/src/features/dashboard/org/components/org-properties/OrgPropertyCard.tsx`                                                                                             |
+| Cards / list / table     | `OrgPropertyCard.tsx`, `OrgPropertiesTable.tsx`                                                                                                                           |
 | Copy settings UI         | `ui/src/features/dashboard/org/components/org-properties/CopyPropertySettingsDialog.tsx`                                                                                  |
 | Copy history UI          | `ui/src/features/dashboard/org/components/org-properties/CopyPropertySettingsHistory.tsx`                                                                                 |
 | Copy settings hook / API | `ui/src/features/dashboard/org/hooks/useCopyPropertySettings.ts`, `usePropertySettingsCopyLogs.ts`, `lib/copyPropertySettingsApi.ts`, `lib/copyPropertySettingsGroups.ts` |
 | Carousel                 | `ui/src/features/dashboard/org/components/org-properties/OrgPropertyImageCarousel.tsx`                                                                                    |
-| Summary / toolbar        | `ui/src/features/dashboard/org/components/org-properties/OrgPropertiesSummaryCards.tsx`, `OrgPropertiesToolbar.tsx`                                                       |
+| Summary / toolbar        | `OrgPropertiesSummaryCards.tsx`, `OrgPropertiesToolbar.tsx` → shared `OrgListingToolbar.tsx`                                                                              |
+| Pagination / view mode   | `orgListingPagination.ts`, `useOrgListingPagination.ts`, `orgListingViewMode.ts`, `useOrgListingViewMode.ts`, `OrgListingViewToggle.tsx`                                  |
 | Card model               | `ui/src/features/dashboard/org/lib/orgPropertyCardModel.ts`                                                                                                               |
 | Title helpers            | `ui/src/features/dashboard/org/lib/propertyDisplay.ts`                                                                                                                    |
 | Stats aggregation        | `supabase/functions/_shared/propertyListStats.ts`, `dashboardService.ts#computePropertyPeriodStats`                                                                       |
@@ -197,6 +202,7 @@ Server: `list-properties` loads org properties, batch-loads `guest_submissions` 
 
 | Layer | Path / spec                                                                      | Manual                   |
 | ----- | -------------------------------------------------------------------------------- | ------------------------ |
+| Unit  | `orgListingViewMode.test.ts`, `orgListingPagination.test.ts`                     | —                        |
 | Unit  | `supabase/functions/_shared/propertySettingsClone_test.ts`                       | —                        |
 | E2E   | `ui/e2e/features/org/orgHubSmoke.spec.ts` inventory shell load (`@ci`)           | —                        |
 | E2E   | `ui/e2e/features/org/copyPropertySettingsDryRun.spec.ts` dry-run preview (`@ci`) | Real multi-property copy |

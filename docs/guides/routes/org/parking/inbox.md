@@ -60,6 +60,8 @@ Parking **Guest Inbox** is for website chat with parking guests; Facebook and In
 - Failed thread loads show a retryable load error instead of the generic empty state.
 - Query/body: `parking_id`; auth via `verifyParkingTeamAccess` + `inbox:*`.
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Area                    | Path                                                                   |

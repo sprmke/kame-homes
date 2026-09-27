@@ -77,14 +77,15 @@ dates that should not be available to guests.
 
 ## Permissions
 
-| Capability                    | Required permission     |
-| ----------------------------- | ----------------------- |
-| Open Pricing route            | `pricing:view`          |
-| Edit rates / fees / overrides | `pricing.rates:edit`    |
-| Block dates                   | `pricing.blocks:add`    |
-| Unblock dates                 | `pricing.blocks:delete` |
-| View Channel Sync             | `pricing.channels:view` |
-| Connect / edit / sync feeds   | `pricing.channels:edit` |
+| Capability                               | Required permission         |
+| ---------------------------------------- | --------------------------- |
+| Open Pricing route                       | `pricing:view`              |
+| Edit rates / fees / overrides            | `pricing.rates:edit`        |
+| Block dates                              | `pricing.blocks:add`        |
+| Unblock dates                            | `pricing.blocks:delete`     |
+| View Channel Sync                        | `pricing.channels:view`     |
+| Connect / edit / sync feeds              | `pricing.channels:edit`     |
+| Smart Pricing (settings, preview, apply) | `pricing.smartPricing:edit` |
 
 - Without rate/block leaves, the calendar and fee sidebar stay read-only for that action.
 - Server: GET → `pricing.channels:view` + `calendarSync` plan; PATCH → `pricing.channels:edit` + `calendarSync`. Legacy stored `pricing:edit` still expands to all three rate/block leaves.
@@ -238,8 +239,10 @@ a **Smart Pricing** card counting the applied nights in view.
 
 ### Permissions
 
-Managing Smart Pricing uses **`pricing.rates:edit`** (same as editing rates) — no separate
-permission. Members without it do not see the button.
+Managing Smart Pricing uses its own leaf, **`pricing.smartPricing:edit`**, because autopilot can
+rewrite every rate and calls the AI. Editing rates by hand stays on `pricing.rates:edit`.
+Members without the Smart Pricing leaf do not see the button; the server checks it on settings
+PATCH, preview, and apply. Existing roles that had `pricing.rates:edit` were backfilled.
 
 ### API and data
 
@@ -354,6 +357,8 @@ unavailable alongside existing bookings, **regardless of source** — so an OTA-
 double-booking-safe the moment it syncs in.
 
 ---
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

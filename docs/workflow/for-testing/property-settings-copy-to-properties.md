@@ -222,7 +222,7 @@ Legend: **COPY** (config, in a group) · **SKIP** (operational data, never copie
 ### Phase 4 — polish
 
 - [x] Optional `plpgsql` RPCs for atomic multi-row groups (team roles, recurring series). **Deferred / skipped for v1.**
-- [x] "Copy from…" affordance on the target property's own Settings header (inverse direction), same dialog (`?copyTarget=` + locked target step).
+- [x] ~~"Copy from…" on the target property Settings header~~ — **removed**; copy stays on org Properties only.
 - [x] Per-group "only where the target is still default" toggle (`skipAlreadyCustomized`).
 - [x] `property_settings_copy_log` viewer (last runs) — org Properties **Copy history** via `action: 'listLogs'`.
 - [x] Confirm step when targets > 10 (extra checkbox before copy).
@@ -231,7 +231,7 @@ Legend: **COPY** (config, in a group) · **SKIP** (operational data, never copie
 
 - [x] `docs/PROJECT.md` — `copy-property-settings` function, `property_settings_copy_log` table, registry summary (link here for the full table).
 - [x] `docs/guides/routes/org/properties.md` — the **Copy settings** entry point, wizard, what is / isn't copied, per-target plan/permission skips (invoke `route-guides`).
-- [x] `docs/guides/routes/org/property/settings.md` — note values can be seeded from another property; **Copy from…** on Settings header.
+- [x] `docs/guides/routes/org/property/settings.md` — note values can be seeded via org **Properties → Copy settings** (no Settings header button).
 - [x] `docs/guides/routes/org/property/{pricing,templates,notifications,public-pages,marketing,team,finance,maintenance}.md` — one line each: bulk-copyable via org Properties → Copy settings.
 - [x] `.cursor/rules/supabase-edge-functions.mdc` — add `copy-property-settings` + JWT policy row.
 - [x] `.cursor/rules/admin-auth.mdc` — new endpoint + the per-target leaf-check pattern.

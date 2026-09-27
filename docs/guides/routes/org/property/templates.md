@@ -157,6 +157,8 @@ Admin-authored HTML is trusted (not stripped). Plain placeholder **values** are 
 
 Table **`property_template_contents`**: `property_id`, `template_key`, `category`, `name` (custom only), `content`, `updated_at`.
 
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Dirty compares the draft to the **normalized** editor baseline (`normalizePropertyTemplateEditorContent`), not raw stored HTML — load-time callout/block normalize alone must not prompt. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Layer                       | Path                                                                                                                                                      |

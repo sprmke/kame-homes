@@ -2,7 +2,7 @@
 title: 'Finance — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-10
+updated: 2026-09-27
 ---
 
 # Finance — operator guide
@@ -122,10 +122,12 @@ Charts (`FinanceTransactionsChart`) plot the same underlying data as cash-flow (
 
 ### Save path
 
-1. **Add Transaction** (page header) or **Edit** on a ledger row opens `OperatingLineItemForm`.
-2. Submit → **`finance-line-items`** POST (create) or PATCH (update).
-3. Recurring items generate/extend a series (`recurrence_series_id`); editing/deleting prompts an **edit scope**: this occurrence only, this and future, or the whole series (`RecurringSeriesModal`, `RecurringDeleteDialog`).
-4. Delete → **`finance-line-items`** DELETE, same edit-scope prompt for recurring items.
+1. **Add Transaction** (page header) or **Edit** on a ledger row opens a stepper modal (`OperatingLineItemForm` via `FinanceTransactionModals`).
+2. Steps: **Details** (kind, label, amount, category, date, notes) → **Repeat** (create + recurring edit only) → **Reminders** (Telegram) → **Preview**. One-shot edits skip Repeat.
+3. Footer is **Back** (left, after step 1) · **Cancel** + **Next** (right), then **Add transaction** or **Save** on Preview. Activity history for an existing entry appears on the Preview step.
+4. Submit → **`finance-line-items`** POST (create) or PATCH (update).
+5. Recurring items generate/extend a series (`recurrence_series_id`); editing/deleting prompts an **edit scope**: this occurrence only, this and future, or the whole series (`RecurringSeriesModal`, `RecurringDeleteDialog`).
+6. Delete → **`finance-line-items`** DELETE, same edit-scope prompt for recurring items.
 
 ### Behavior / edge cases
 
@@ -178,6 +180,8 @@ Legacy stored `finance:edit` expands to all transaction + export leaves. Parking
 
 ---
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern             | Path                                                                                                                                                                                                                                                          |
@@ -202,17 +206,17 @@ Legacy stored `finance:edit` expands to all transaction + export leaves. Parking
 
 ## Entry activity history
 
-The **Edit transaction** modal (`FinanceTransactionModals`) embeds `<EntityActivityHistory targetType="finance_entry" targetId={editingItem.id} />` below the form — the recent `finance.entry_created` / `_updated` events for that line item (`list-activity-log`). Read-only; only shown when editing an existing entry.
+The **Edit transaction** modal (`FinanceTransactionModals`) embeds `<EntityActivityHistory targetType="finance_entry" targetId={editingItem.id} />` on the **Preview** step — the recent `finance.entry_created` / `_updated` events for that line item (`list-activity-log`). Read-only; only shown when editing an existing entry.
 
 ---
 
 ## Testing
 
-| Layer | Path / spec                                                                     | Manual |
-| ----- | ------------------------------------------------------------------------------- | ------ |
-| Unit  | `supabase/functions/_shared/financeRecurrence_test.ts`                          | —      |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` finance shell (`@ci`) | —      |
-| N/A   | Telegram finance reminders, PDF export pixel checks                             | Manual |
+| Layer | Path / spec                                                                                  | Manual |
+| ----- | -------------------------------------------------------------------------------------------- | ------ |
+| Unit  | `operatingLineItemFormSteps.test.ts`; `supabase/functions/_shared/financeRecurrence_test.ts` | —      |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` finance shell (`@ci`)              | —      |
+| N/A   | Telegram finance reminders, PDF export pixel checks                                          | Manual |
 
 ---
 

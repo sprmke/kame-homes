@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-09-25
+updated: 2026-09-28
 stage: in-progress
 kind: reference
 ---
@@ -25,8 +25,13 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved in 2026-09-23:** [`marketing-ai-image-quality-hardening.md`](./marketing-ai-image-quality-hardening.md) ← [`../planned/`](../planned/) — Phases 1–6 implemented. 2026-09-24: property context now reads real amenity settings and includes the listing name and brand color. Still open: the 20-prompt blind image score (user is the judge) before this can move to done.
 
+**Moved out 2026-09-27:** [`org-portfolio-analytics-redesign.md`](../for-testing/org-portfolio-analytics-redesign.md) → for-testing (`ci:quality` green; manual QA remaining).
+
+**Moved in 2026-09-27:** [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md) ← [`../planned/`](../planned/) — Activity Manage modal toolbar, refine, modal-scroll virtualization, friendly summaries.
+
 | Doc                                                                                    | Summary                                                                                               |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md)                         | Activity Manage modal UI/UX polish (org/property/parking)                                             |
 | [`ai-receptionist-production-readiness.md`](./ai-receptionist-production-readiness.md) | Core hardening implemented; local DB, hosted canary, real-device baselines, and pilot evidence remain |
 | [`ci-cd-environments/`](./ci-cd-environments/README.md)                                | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                 |
 | See [`../done/`](../done/) for completed work.                                         |

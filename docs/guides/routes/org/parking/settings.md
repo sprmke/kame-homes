@@ -2,7 +2,7 @@
 title: 'Parking settings — operator guide'
 status: active
 tags: [guides, routes, org, parking]
-updated: 2026-09-10
+updated: 2026-09-27
 ---
 
 # Parking settings — operator guide
@@ -13,19 +13,19 @@ Route: `/org/:orgSlug/parking/:parkingSlug/settings`
 
 ## Progress overview
 
-| Section            | E2E save  | Validation | Docs | Notes                                                                                 |
-| ------------------ | --------- | ---------- | ---- | ------------------------------------------------------------------------------------- |
-| Basic Information  | Done      | Done       | Done | Parking type/residence/tower/level/slot are read-only                                 |
-| Photos             | Done      | Done       | Done | Single cover photo required                                                           |
-| Parking Details    | Done      | Done       | Done | Check-in/out required; dimensions optional                                            |
-| Amenities          | Done      | Done       | Done | At least 1 amenity required                                                           |
-| Location           | Done      | Done       | Done | Address + map pin required                                                            |
-| Payment            | Done      | Done       | Done | Server-enforced; QR via upload only                                                   |
-| Email              | Done      | N/A        | Done | Reservation / confirmed / no-host automation toggles                                  |
-| Booking Automation | Done      | N/A        | Done | Auto-accept top match toggle (Phase 5)                                                |
-| Integrations       | Done      | N/A        | Done | Telegram + AI optional; status/shortcuts only                                         |
-| Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full parking activity feed (`ActivityLogPanel`) |
-| Danger Zone        | Done      | N/A        | Done | Archive, restore, delete with confirmation                                            |
+| Section            | E2E save  | Validation | Docs | Notes                                                                                                                          |
+| ------------------ | --------- | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Basic Information  | Done      | Done       | Done | Parking type/residence/tower/level/slot are read-only                                                                          |
+| Photos             | Done      | Done       | Done | Single cover photo required                                                                                                    |
+| Parking Details    | Done      | Done       | Done | Check-in/out required; dimensions optional                                                                                     |
+| Amenities          | Done      | Done       | Done | At least 1 amenity required                                                                                                    |
+| Location           | Done      | Done       | Done | Address + map pin required                                                                                                     |
+| Payment            | Done      | Done       | Done | Server-enforced; QR via upload only                                                                                            |
+| Email              | Done      | N/A        | Done | Reservation / confirmed / no-host automation toggles                                                                           |
+| Booking Automation | Done      | N/A        | Done | Auto-accept top match toggle (Phase 5)                                                                                         |
+| Integrations       | Done      | N/A        | Done | Telegram + AI optional; status/shortcuts only                                                                                  |
+| Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full parking activity feed (`ActivityLogPanel`). Section shown only with `activity:view` |
+| Danger Zone        | Done      | N/A        | Done | Archive, restore, delete with confirmation                                                                                     |
 
 ## Overview
 
@@ -56,7 +56,7 @@ Parking **Settings** is where you set up a single slot before guests can book it
 
 ## Setup completeness
 
-**Save Changes** is blocked while any required field is incomplete — the button stays visible but **disabled** (tooltip names the first issue), matching [Property Settings](../property/settings.md#setup-completeness). Incomplete sections show a **red dot** on the in-page section nav (desktop `lg+` sidebar) and on the sidebar **Settings** link, driven by the saved parking snapshot outside the editor and by the live draft while editing.
+**Save Changes** is blocked while any required field is incomplete — the button stays visible but **disabled** (tooltip names the first issue), matching [Property Settings](../property/settings.md#setup-completeness). Incomplete sections show a **red dot** on the in-page section nav (desktop `lg+` sidebar) and on the sidebar **Settings** link, driven by the saved parking snapshot outside the editor and by the live draft while editing. On phone, Save is a hero icon when dirty; on desktop it appears in the page header actions (no separate sticky footer bar).
 
 | Rule                                                     | Required? |
 | -------------------------------------------------------- | --------- |
@@ -93,14 +93,15 @@ Logic: `ui/src/features/dashboard/parking/lib/parkingSettingsCompletion.ts`, `ui
 
 ### Basic info fields
 
-| Field                | Storage                                                                                                                                                                       | Public page                                       |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| URL Slug             | `parkings.slug` (read-only; fixed at creation, never regenerates)                                                                                                             | `/parkings/:slug`                                 |
-| Brand color          | `parkings.settings.brandColor` (empty = inherit org). Where it applies is a **?** tooltip on the label (`FieldLabel`). Admin and listing accents use that hex as `--primary`. | Listing accents via **`ParkingPublicBrandShell`** |
-| Parking type         | `parkings.parking_type` — **read-only** in settings (set at creation)                                                                                                         | Type badge on **`ParkingOverview`**               |
-| Residence            | `parkings.residence_name` — **read-only** in settings (set at creation)                                                                                                       | Development link in **`ListingPlaceMeta`**        |
-| Tower / Level / Slot | `parkings.tower`, `level`, `slot_label` — **read-only** in settings (set at creation)                                                                                         | **`ListingPlaceMeta`** placement labels           |
-| Description          | `parkings.settings.description` (legacy `notes` migrated on save)                                                                                                             | **About this parking** section                    |
+| Field                | Storage                                                                                                                                                                                                       | Public page                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Code                 | Derived display code from tower / level / slot (read-only)                                                                                                                                                    | —                                                 |
+| URL Slug             | `parkings.slug` (read-only; fixed at creation, never regenerates). Beside Code on desktop (`sm` 50/50); copy button copies the absolute public parking URL (`/parkings/:slug`). Toast: **Public URL copied**. | `/parkings/:slug`                                 |
+| Brand color          | `parkings.settings.brandColor` (empty = inherit org). Where it applies is a **?** tooltip on the label (`FieldLabel`). Admin and listing accents use that hex as `--primary`.                                 | Listing accents via **`ParkingPublicBrandShell`** |
+| Parking type         | `parkings.parking_type` — **read-only** in settings (set at creation)                                                                                                                                         | Type badge on **`ParkingOverview`**               |
+| Residence            | `parkings.residence_name` — **read-only** in settings (set at creation)                                                                                                                                       | Development link in **`ListingPlaceMeta`**        |
+| Tower / Level / Slot | `parkings.tower`, `level`, `slot_label` — **read-only** in settings (set at creation)                                                                                                                         | **`ListingPlaceMeta`** placement labels           |
+| Description          | `parkings.settings.description` (legacy `notes` migrated on save)                                                                                                                                             | **About this parking** section                    |
 
 Parking type, residence, tower, level, and slot number can only be set when the slot is created (`useCreateParking`). They render read-only in Settings, same as property's type/residence/tower/unit — see [Property Settings § Basic Information](../property/settings.md#basic-information).
 
@@ -134,6 +135,8 @@ Parking type, residence, tower, level, and slot number can only be set when the 
 Since parking type, residence, tower, level, and slot number can't change in Settings, the slug is fixed at creation and Settings never navigates to a new URL.
 
 ---
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

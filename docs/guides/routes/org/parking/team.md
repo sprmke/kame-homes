@@ -2,7 +2,7 @@
 title: 'Parking Team — operator guide'
 status: active
 tags: [guides, routes, org, parking]
-updated: 2026-08-17
+updated: 2026-09-27
 ---
 
 # Parking Team — operator guide
@@ -33,7 +33,7 @@ Parking-scoped team management mirrors the property team page:
 - Built-in roles: **Manager**, **Staff**, **Viewer**
 - **Custom roles** with editable permission presets (`parking_custom_roles`)
 - Org owner and org admins appear virtually as **Manager** (`fromOrg: true`) — not editable from parking team
-- Members / Invitations / Permissions tabs, invite flow, and custom role form match property team UX (parking-scoped permission catalog only). Member **role** changes via **Host details**; permissions always follow the role template (no per-member permission tree).
+- Members / Invitations / Permissions tabs, invite flow, and custom role form match property team UX (parking-scoped permission catalog only). **New / Edit role** uses the same multi-step wizard: **Details** (name) → **Permissions** (Based on + checkboxes, defaults to Full Access) → **Preview**. Member **role** changes via **Host details**; permissions always follow the role template (no per-member permission tree).
 
 ---
 
@@ -64,6 +64,8 @@ Permission presets: `ui/src/features/dashboard/team/lib/parkingTeamConstants.ts`
 
 Custom roles store a JSON permission array validated against the same parking catalog.
 
+The catalog includes **`activity:view`** (module "Activity") for Settings → Activity. Built-in Full Access, Operations, and Read Only include it, and existing members with `bookings:view` were backfilled by migration `20261316125000_team_permissions_plan_coverage_leaves.sql`. Parking has no AI assistant leaf: the assistant does not act for parking-only members.
+
 ---
 
 ## Edge functions
@@ -79,6 +81,8 @@ Custom roles store a JSON permission array validated against the same parking ca
 Query/body scope: **`parking_id`** / **`parkingId`**.
 
 ---
+
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

@@ -2,7 +2,7 @@
 title: 'Organization Settings — operator guide'
 status: active
 tags: [guides, routes, org, settings]
-updated: 2026-09-10
+updated: 2026-09-27
 ---
 
 # Organization Settings — operator guide
@@ -13,15 +13,14 @@ Route: `/org/:orgSlug/settings`
 
 ## Progress overview
 
-| Section                | E2E save  | Validation   | Docs | Notes                                                                                                            |
-| ---------------------- | --------- | ------------ | ---- | ---------------------------------------------------------------------------------------------------------------- |
-| Basic information      | Yes       | Yes          | Done | Logo, name, slug, brand color, tagline, description, contact info                                                |
-| Socials                | Yes       | Yes          | Done | Social URLs (at least one required)                                                                              |
-| Trust                  | Read-only | Server       | Done | Earned Superhost badge progress (four criteria, next assessment) — no save path                                  |
-| AI platform            | Yes       | Server       | Done | Per-org usage quotas and enabled features; read-only when platform AI off                                        |
-| AI dashboard assistant | Yes       | Server       | Done | Opt-in + quotas; chat starters, file attach, per-page pin + Search all modules, canvas Open/Back, history delete |
-| Activity               | Read-only | n/a          | Done | Summary row + **Manage** → modal with full org activity feed (`ActivityLogPanel`)                                |
-| Danger zone            | Partial   | Slug confirm | Done | Delete when no bookings; finance/maintenance can block; see § Danger zone                                        |
+| Section           | E2E save  | Validation   | Docs | Notes                                                                                                                                          |
+| ----------------- | --------- | ------------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Basic information | Yes       | Yes          | Done | Logo, name, slug, brand color, tagline, description, contact info                                                                              |
+| Socials           | Yes       | Yes          | Done | Social URLs (at least one required)                                                                                                            |
+| Superhost         | Read-only | Server       | Done | Earned Superhost badge progress (four criteria, next assessment). No save path                                                                 |
+| AI features       | Yes       | Server       | Done | Org master syncs all properties; Usage + Dashboard assistant with progressive disclosure                                                       |
+| Activity          | Read-only | n/a          | Done | Summary row + **Manage** → modal with full org activity feed (`ActivityLogPanel`). Section shown only with `org.activity:view` (owners always) |
+| Danger zone       | Partial   | Slug confirm | Done | Delete when no bookings; finance/maintenance can block; see § Danger zone                                                                      |
 
 ---
 
@@ -29,7 +28,9 @@ Route: `/org/:orgSlug/settings`
 
 **Browser tab title:** `${Org Name} - Settings` (org-scoped); fallback `Kame Homes` while loading.
 
-Organization settings uses `AdminSectionNavLayout` with **two save paths**. The desktop **Unsaved changes** footer stays in the main content column (aligned to `max-w-4xl`) so the secondary section nav stays fully usable. Field helpers use a **?** beside the label (`FieldLabel` / `OrgSettingsField` `help`) — not muted text under the control.
+Organization settings uses `AdminSectionNavLayout`. **Save** lives only in the page header (desktop button / phone hero icon) when the form is dirty — no sticky footer bar. Field helpers use a **?** beside the label (`FieldLabel` / `OrgSettingsField` `help`) — not muted text under the control.
+
+Persistence uses **two APIs**:
 
 1. **Profile** (`organizations` + `organizations.settings` JSONB) → `update-organization` (`org.settings.basic:edit`)
 2. **Operator** (`org_settings` row) → `org-settings` — social links + team logo only (email automations live on each property); PATCH requires `org.settings.socials:edit`
@@ -38,7 +39,7 @@ Logo upload is immediate via `upload-org-settings-asset` (`team_logo` → `org_s
 
 **Email routing, SD cron tuning, parking defaults, and automation toggles** are **per property** in **`app_settings`** — see **[[guides/routes/org/property/settings|Property Settings — operator guide]]** § Email automations.
 
-**AI platform quotas** are set per organization and inherited by all properties unless overridden per property — see § AI platform.
+**AI features** (platform usage + dashboard assistant) live in one card — see § AI features.
 
 ### Permissions
 
@@ -67,6 +68,8 @@ Organization settings control your brand identity and public presence: logo, nam
   A: Deletion is permanent and only allowed when there is no booking history (and no blocking finance or maintenance records). You must type the organization slug to confirm. Your Google sign-in account stays; only this org and its properties are removed.
 - Q: Does changing brand color affect every property?
   A: Org brand color tints organization-level admin pages and can serve as a fallback. Each property can still set its own color for guest pages and property admin. Buttons and selected nav use the exact color you pick; gradient buttons are a slight sheen of that same color.
+- Q: What happens if I rename the organization?
+  A: The URL slug updates from the new name. You land on the new settings URL, and for this browser session Back from older pages opens the same screen under the new slug instead of an access error.
 - Q: Why does my logo look cropped in settings?
   A: The logo preview is a square, same as guest forms and your public host page. Upload a square image so nothing important sits at the edges.
 - Q: Do I need a logo?
@@ -87,6 +90,10 @@ Organization settings control your brand identity and public presence: logo, nam
   A: When the answer comes from the help guides, the assistant links the pages it used so you can open them directly.
 - Q: Can I delete an old assistant chat?
   A: Yes. Open History (clock), then the trash on that conversation. That chat is gone for good.
+- Q: What is the Superhost section?
+  A: It shows your progress toward the Superhost badge. Tap or hover the ? next to Superhost or any goal for a short explanation. Each goal shows Met, Needs work, or Keep going. The badge updates on the next quarterly check.
+- Q: How do I earn Superhost?
+  A: Meet all four goals (rating, inbox replies within 24 hours, low cancellations, completed stays). We check your last year of activity each quarter. When you earn it, guests see the badge on your listings.
 
 ---
 
@@ -98,7 +105,7 @@ Organization settings control your brand identity and public presence: logo, nam
 | ----------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Organization logo | `org_settings.email_logo_url`, `organizations.logo_url` | **Required** for settings completion. JPEG/PNG/WebP via `upload-org-settings-asset` (immediate; min **8×8** px — rejects 1×1 placeholders). Preview is a square (`object-cover`). Missing logos show **initials** from the org name on the brand color in the dashboard (sidebar + settings). Platform default logo does not count. Clear/delete is blocked (UI + `org-settings` PATCH) — after upload, hosts can only **replace**. Guest emails use the uploaded logo (or platform default until first upload). |
 | Organization name | `organizations.name`                                    | 2–120 chars; globally unique (case-insensitive); **reserved names blocked** (see [onboarding.md](../onboarding.md) § Reserved organization / property names)                                                                                                                                                                                                                                                                                                                                                     |
-| URL slug          | `organizations.slug`                                    | Read-only preview; re-allocated on name change                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| URL slug          | `organizations.slug`                                    | Read-only preview beside the name from `sm` up (50/50 row); copy button copies the absolute public host URL (`/hosts/:slug`). Toast: **Public URL copied**. Re-allocated on name change. Save navigates to `/org/:newSlug/settings` with `replace: true`; a **session** remap (`tenantSlugRemap.ts`) rewrites Back/Forward hits on the old `/org/:slug/…` path so history does not land on a missing org                                                                                                         |
 | Brand color       | `organizations.settings.brandColor`                     | Optional hex `#RRGGBB`; defaults to `#24a88e` when unset. Tints **org-scoped admin pages** only (org hub redirect, org dashboard, org settings, org properties) using that hex as `--primary`. Property guest pages and property admin use per-property `app_settings.brand_color` (falls back here when unset). Where it applies is a **?** tooltip on the label (`FieldLabel`).                                                                                                                                |
 | Tagline           | `organizations.settings.tagline`                        | Max 60 chars                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Description       | `organizations.description`                             | Max 500 chars + counter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -122,9 +129,9 @@ Properties inherit org social URLs when their `app_settings` columns are empty �
 
 Mobile field chrome matches property Socials: `settings-field-label` + `h-9` inputs (`OrgSocialsSection`).
 
-### Trust (Superhost)
+### Superhost
 
-Read-only progress for the **earned** Superhost badge (org-wide; all properties inherit). No save path on this page.
+Read-only progress for the **earned** Superhost badge (org-wide; all properties inherit). No save path on this page. Settings nav label and card title: **Superhost** (`#section-superhost`).
 
 | Surface          | API / storage                                  | Notes                                                                                                                      |
 | ---------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -132,45 +139,56 @@ Read-only progress for the **earned** Superhost badge (org-wide; all properties 
 | Live progress    | `GET get-org-superhost-progress`               | Rolling **365 days**, org-wide metrics; hook `useOrgSuperhostProgress.ts`                                                  |
 | Response rate    | `inbox_thread_metrics`                         | Upserted on first guest inbound + first host reply per inbox thread                                                        |
 | Rating           | `guest_reviews.star_rating`                    | Kame reviews only (≥ 3 reviews, avg ≥ 4.8)                                                                                 |
-| Cancellations    | `guest_submissions` `CANCELLED` vs `COMPLETED` | Host cancel rate **< 1%**, min 10 bookings in window                                                                       |
+| Cancellations    | `guest_submissions` `CANCELLED` vs `COMPLETED` | Host cancel rate **< 1%**, min 10 bookings in window. OTA calendar feed-drop auto-cancels excluded                         |
 | Activity         | `guest_submissions` `COMPLETED`                | ≥ 10 completed stays **or** ≥ 3 stays totaling ≥ 100 nights                                                                |
 | Assessment dates | `settings.superhost.nextAssessmentAt`          | Jan 1, Apr 1, Jul 1, Oct 1 (Asia/Manila)                                                                                   |
 
+**UI copy:** status banner has three states: **You're a Superhost** (earned), **Ready for the next check** (all live criteria met, badge pending assessment), **Not a Superhost yet** (progress bar of goals met). Criterion rows show Met / Needs work / Keep going with green / amber / muted treatment. List values stay plain (`4.75 average`, `29.2% cancelled`, `17 stays completed`, or sample-building lines like `8 bookings so far`). Thresholds live in **?** tooltips (`orgSuperhostDisplay.ts`). Card title uses `AdminSection` `titleHelp`.
+
+**Calculation (edge `_shared/superhostMetrics.ts`):** rating = mean of in-window reviews; response = share of eligible threads replied within 24h (pending under 24h excluded); cancellation = `CANCELLED / (COMPLETED + CANCELLED)` by check-out in window, feed-drop cancels excluded, met only when sample ≥ 10 and rate **< 1%**; activity = completed stays in window (10 stays or 3+ stays totaling 100 nights).
+
 Public listings read **`isSuperhost`** from org earned flag via `_shared/orgSuperhost.ts` (`get-public-property`, search cards, showcase). There is **no** Airbnb proof import or super-admin Superhost moderation queue.
 
-**Host-facing:** Superhost is earned automatically from performance — reply to inbox messages within 24h, keep cancellations low, collect strong guest reviews, and complete stays on Kame. Progress and next assessment date appear in **Trust** on this page.
+**Host-facing:** Superhost is earned automatically from performance. Progress and next check date appear in **Superhost** on this page; use the **?** icons for how each goal is scored.
 
 **App origin** (email links, default GCash QR base URL) is **not** per-org — set deployment env **`PUBLIC_GUEST_APP_ORIGIN`**. Legacy `org_settings.public_guest_app_origin` is used only when the env var is unset.
 
-### AI platform
+### AI features
 
-| Field                | Storage                                         | Notes                                                                                     |
-| -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Platform AI enabled  | `ai_platform_global_settings.enabled`           | Read-only; controlled by super-admin. Section is disabled when false.                     |
-| Allowed features     | `ai_platform_global_settings.allowed_features`  | Read-only; controlled by super-admin.                                                     |
-| Daily call limit     | `ai_platform_org_settings.daily_call_limit`     | Default 200; blank falls back to platform default.                                        |
-| Monthly call limit   | `ai_platform_org_settings.monthly_call_limit`   | Default 5000; blank falls back to platform default.                                       |
-| Daily cost USD limit | `ai_platform_org_settings.daily_cost_usd_limit` | Default 10; blank falls back to platform default.                                         |
-| Voice receptionist   | inherited from platform allowlist               | Can be enabled per property only when the platform allows the voice receptionist feature. |
+One settings card (`#section-ai`, title **AI features**). **Enable AI for organization** is the only platform master switch. Turning it on or off also syncs `ai_platform_property_settings.enabled` for every property in the org, so hosts never flip a second kill switch on each listing.
 
-Save path: section-local **Save** button → `PATCH ai-platform-settings` (org owner / org admin only). Hook: `useAiPlatformSettings.ts`. **Ceiling:** the three limits may be lowered but never raised above the platform defaults; a higher value returns 400 (`dailyCallLimit cannot exceed …`).
+Progressive disclosure:
 
-Usage summary: `GET ai-platform-usage` (today, this month, per-feature breakdown, per-property breakdown, **`monthCreditsConsumed`**/**`monthlyCreditLimit`**, **`walletBalanceCredits`**). The section shows **Credits used this month** as a progress bar against the monthly credit allowance, with the top-up wallet balance shown once non-zero. Credit-based enforcement is **live** (org daily/monthly, inherited by properties unless overridden) — once exceeded, calls draw from the org's credit wallet if it has a positive balance, else fail with the same upgrade-hook toast as call/cost limits. The default daily/monthly credit limits ship deliberately generous (not real pricing numbers — see the linked plan doc) so this gate is inert under today's usage until pricing is confirmed; there is no org-editable UI for these limits yet, only super-admin defaults + manual wallet top-ups. Hook: `useAiPlatformSettings.ts`.
+1. Master off → only the org enable toggle (no usage or feature blocks).
+2. Master on → **Usage** (calls, cost, credits) + **Dashboard assistant** group.
+3. Assistant off → only the assistant enable toggle inside that group.
+4. Assistant on → assistant usage, per-property disable list, **Save assistant settings**.
 
-### AI dashboard assistant
+**Master toggle and platform usage**
 
-Independent of **AI platform** (receipt validation, marketing, inbox). Off by default per org; also gated by a super-admin kill switch.
+| Field               | Storage                                        | Notes                                                                            |
+| ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| Platform AI enabled | `ai_platform_global_settings.enabled`          | Read-only; controlled by super-admin. Section is disabled when false.            |
+| Allowed features    | `ai_platform_global_settings.allowed_features` | Read-only; controlled by super-admin.                                            |
+| AI enabled          | `ai_platform_org_settings.enabled`             | Org master switch. Saves on toggle.                                              |
+| Limits and usage    | resolved by `aiLimitResolver`                  | Read-only usage panel: calls, cost, credits vs the limits Kame set for the plan. |
+
+Save path: master toggle → `PATCH ai-platform-settings` with `{ enabled }` only (`org.settings.aiPlatform:edit`). Limits are platform-managed (**403** `ai_limit_platform_managed`). Activity: `ai.platform_toggled`. Hook: `useAiPlatformSettings.ts`.
+
+Usage summary: `GET ai-platform-usage` (today, this month, per-feature breakdown, per-property breakdown, **`monthCreditsConsumed`**/**`monthlyCreditLimit`**, **`walletBalanceCredits`**). Credits bar + wallet balance when non-zero. Hook: `useAiPlatformSettings.ts`.
+
+**Dashboard assistant (nested)**
+
+Independent opt-in inside the same card. Also gated by a super-admin kill switch.
 
 | Field                    | Storage                                                     | Notes                                                                                                                                                 |
 | ------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Assistant enabled        | `ai_dashboard_assistant_org_settings.enabled`               | Org owner/admin; hidden on `/admin/*` regardless                                                                                                      |
 | Disable on properties    | `ai_dashboard_assistant_org_settings.disabled_property_ids` | Per-property opt-out                                                                                                                                  |
-| Daily / monthly messages | `…daily_message_limit`, `…monthly_message_limit`            | Hitting the cap shows an upgrade line in the chat panel                                                                                               |
-| Daily write-action limit | `…daily_write_action_limit`                                 | Counts confirmed/auto-executed writes. Enforced server-side (atomic counter): once reached, the assistant commits no more writes that day and says so |
+| Daily / monthly messages | resolved limit (read-only)                                  | Set by the platform. Hitting the cap shows an upgrade line in the chat panel                                                                          |
+| Daily write-action limit | resolved limit (read-only)                                  | Counts confirmed/auto-executed writes. Enforced server-side (atomic counter): once reached, the assistant commits no more writes that day and says so |
 
-Save path: section-local **Save assistant settings** → `PATCH dashboard-assistant-settings` (`org.settings.aiAssistant:edit`). Hook: `useAiDashboardAssistantSettings.ts`.
-
-When **Assistant enabled** is on, the section also shows read-only usage for this month: messages, write actions, and **credits consumed** (from `ai_dashboard_assistant_usage_daily.credits_consumed`, reconciled with platform AI metering). Opt-in via `GET dashboard-assistant-settings?includeUsage=true`.
+Save path: **Save assistant settings** → `PATCH dashboard-assistant-settings` with `enabled` / `disabledPropertyIds` only (`org.settings.aiAssistant:edit`). Hook: `useAiDashboardAssistantSettings.ts`. Opt-in usage via `GET dashboard-assistant-settings?includeUsage=true`.
 
 **Chat panel** (not this page): floating sparkles button → slide-over (`sm:max-w-xl` chat-only; wider when canvas is open). Empty chat centers a **Questions / Actions** mode switch (5 randomized prompt cards from `assistantSuggestions.ts`). Tap sends the prompt. While the assistant is working, a left-aligned message bubble with sparkles and bouncing dots appears in the thread (not a floating “Thinking…” line). Composer text is full-width and left-aligned; it grows up to 10 lines, then scrolls. Attach, context pin, and send sit on a row under the text. Paperclip (JPEG/PNG/WebP/PDF, max 3 × 4 MB) + **context pin hub** (`ChatComposerContextHub` — bookmark icon opens module list, drill into items, **Back** returns to modules; current-page module labeled **This page**; max 8 chips) + **Search all modules…** / **Cmd/Ctrl+K** command palette (`ChatContextCommandPalette`, same two-step drill-down) + **mic (speech-to-text**, Chrome/Safari/Edge on HTTPS — tap to start/stop, appends to existing text, stops on send) + send. Pins travel as `attachedContext[]` and do not overwrite the current page's `pageContext`. Asking for a booking file (approved GAF, receipt, ID) shows a preview card from the Files tab, not only a status summary. A booking journey or a table with more than 8 rows shows **Open** → `ChatCanvasOverlay` (split at `lg` / replace below). Suggested chips fill the composer. History (clock) lists your chats grouped by day, with search, wrapping titles, and delete (confirm).
 
@@ -238,6 +256,8 @@ All of the above are removed via **ON DELETE CASCADE** from `organizations` → 
 | Edge function | `supabase/functions/delete-organization/index.ts`                                                                                                                |
 | FK / cascade  | `supabase/migrations/20260629180000_multi_tenancy_foundation.sql`, `20260703150000_org_settings.sql`, `20260821120000_multi_tenancy_late_tables_property_id.sql` |
 
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Validation
 
 Save runs **`planOrgSettingsSave`** (client) before PATCH. Only **dirty** sections that pass validation are saved — basic info and socials can save independently. Within basic information, only **changed fields** are validated for that save (contact info can save without completing unrelated basic fields). Inline field errors appear **on change** once a field has been edited, or on invalid dirty sections after a failed save.
@@ -265,9 +285,8 @@ Danger zone: slug confirmation + `delete-organization`; blocked when booking his
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                                | `ui/src/features/dashboard/org/pages/OrgSettingsPage.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Basic + socials + email sections    | `ui/src/features/dashboard/org/components/org-settings/OrgProfileSettingsSections.tsx`                                                                                                                                                                                                                                                                                                                                                                                                  |
-| AI platform section                 | `ui/src/features/dashboard/org/components/org-settings/OrgAiPlatformSection.tsx`                                                                                                                                                                                                                                                                                                                                                                                                        |
-| AI dashboard assistant section      | `ui/src/features/dashboard/org/components/org-settings/OrgAiDashboardAssistantSection.tsx`                                                                                                                                                                                                                                                                                                                                                                                              |
-| Trust (Superhost progress)          | `ui/src/features/dashboard/org/components/org-settings/OrgSuperhostProgressSection.tsx`, `useOrgSuperhostProgress.ts`, `GET get-org-superhost-progress`                                                                                                                                                                                                                                                                                                                                 |
+| AI section (platform + assistant)   | `ui/src/features/dashboard/org/components/org-settings/OrgAiSettingsSection.tsx`                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Superhost progress                  | `ui/src/features/dashboard/org/components/org-settings/OrgSuperhostProgressSection.tsx`, `useOrgSuperhostProgress.ts`, `GET get-org-superhost-progress`                                                                                                                                                                                                                                                                                                                                 |
 | Assistant chat panel                | `ui/src/features/dashboard/ai-assistant/components/AiAssistantPanel.tsx`, `ChatComposer.tsx`, `ChatComposerContextHub.tsx`, `ChatContextPickerPanel.tsx`, `ChatContextCommandPalette.tsx`, `ChatCanvasOverlay.tsx`, `ChatBlockRenderer.tsx`, `blocks/{ImageBlock,StepperBlock,QuickActionsBlock,ChatCanvasCompactCard}.tsx`, `ConversationHistoryList.tsx`, `lib/assistantSuggestions.ts`, `lib/chatAttachments.ts`, `lib/contextPickerRegistry.ts`, `ui/src/components/ui/command.tsx` |
 | Client validation                   | `ui/src/features/dashboard/org/lib/orgSettingsCompletion.ts`, `ui/src/features/dashboard/org/lib/orgSettingsFieldError.ts`, `ui/src/features/dashboard/org/lib/orgSettingsSave.ts`                                                                                                                                                                                                                                                                                                      |
 | Sidebar issue sync                  | `ui/src/features/dashboard/org/components/OrgSettingsIssuesSync.tsx`, `ui/src/features/dashboard/org/lib/orgSettingsIssuesStore.ts`                                                                                                                                                                                                                                                                                                                                                     |
@@ -309,8 +328,8 @@ Danger zone: slug confirmation + `delete-organization`; blocked when booking his
 ## Related docs
 
 - [Route index](../README.md)
-- [Property Settings — AI overrides](./property/settings.md) § AI Overrides
-- [Super Admin AI Management — Platform AI](../admin/settings.md) § Platform AI
+- [Property Settings — AI features](./property/settings.md) § AI features
+- [Super Admin AI](../admin/ai.md)
 - [AI dashboard assistant — feature list](../../../workflow/done/ai-dashboard-assistant-features.md)
 - [AI dashboard assistant — manual tests](../../testing/ai-dashboard-assistant-manual.md)
 - [`docs/architecture/validation-and-env.md`](../../../architecture/validation-and-env.md) — `PUBLIC_GUEST_APP_ORIGIN`, `FACEBOOK_REVIEWS_URL`

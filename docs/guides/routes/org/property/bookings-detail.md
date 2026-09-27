@@ -345,6 +345,8 @@ This is the page a host opens to manage one specific booking end to end: guest d
 
 ---
 
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern                                      | Path                                                                                                                                                                                                                                                                        |

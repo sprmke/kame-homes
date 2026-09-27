@@ -84,7 +84,7 @@ Until the first assessment runs (or a super-admin **`reassess-org-superhost`** c
 
 ```text
 Host operates on Kame (bookings, reviews, inbox replies, low cancels)
-  → Org Settings → Trust shows 4 criteria + progress
+  → Org Settings → Superhost shows 4 criteria + progress
   → Quarterly cron evaluates org
   → All four met → Superhost earned → badge on public listings
   → Next quarter: re-evaluated; can lose badge if metrics slip
@@ -194,7 +194,7 @@ Badge unchanged on property detail, search cards, showcase, host cards — label
 
 | Task                              | Paths                                |
 | --------------------------------- | ------------------------------------ |
-| `OrgSuperhostProgressSection.tsx` | org settings Trust section           |
+| `OrgSuperhostProgressSection.tsx` | org settings Superhost section       |
 | `useOrgSuperhostProgress.ts`      | hook                                 |
 | Route guide                       | `docs/guides/routes/org/settings.md` |
 

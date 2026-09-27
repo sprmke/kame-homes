@@ -119,6 +119,8 @@ Empty and load-error states stay inside the list pane under **My Tickets** (icon
 | Reopen closed ticket | `POST reopen-support-ticket`            |
 | Upload attachment    | `POST upload-support-ticket-attachment` |
 
+**Unsaved changes.** Leaving after editing asks to **Discard** or **Keep editing** (nothing is saved until you submit). Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern            | Path                                                                                                                                                                                                                                                                                                           |

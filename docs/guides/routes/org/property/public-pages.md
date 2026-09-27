@@ -2,7 +2,7 @@
 title: 'Public Pages'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-20
+updated: 2026-09-27
 ---
 
 # Public Pages
@@ -35,7 +35,7 @@ Template choice and page config are bulk-copyable via org **Properties → Copy 
 
 **Explore-open (every plan):** Free / Starter / Commission hosts can open `/public-pages` and the Page Editor for **Showcase**, **Stay Guide**, and **Property**. **Saving** requires **`publicPagesAutosave`** (Pro+). **Live / Open / iframe preview URLs** for Showcase (`propertyShowcase`) and Stay Guide host preview (`publicPagesAutosave`) show a non-dismissible blurred plan-lock overlay when the property is below Pro — including `?preview=1` / `?embed=1`. Page Editor canvas still works via `PreviewOverrideProvider`. Showcase and Property editors load listing data with a host preview JWT, including when the property is **INACTIVE** (anonymous `get-public-property` stays **404**). Booking-token Stay Guide emails (`get-guest-stay-guide`) stay open for operational guests. Stay Guide host preview (`preview-guest-stay-guide`) also loads **INACTIVE** properties.
 
-**Stay Guide** and **Property** (listing) cards use **Edit** → Page Editor (`/public-pages/:pageId/edit`). The listing editor covers gallery, brand color, description, amenities, house rules, cancellation, socials, and optional section visibility (amenities / location / rules / reviews — fixed order; gallery + overview always on) — the same content fields as **Property Settings** (single storage; Settings has no live preview). Stay Guide body copy and section images edit in the Stay Guide Page Editor (**Content**); Templates still has standard body copy without section images. Property Settings surfaces the reverse direction: its Photos & Videos, Amenities, House Rules, Cancellation, and Socials cards each show an **"Also in Public Pages"** link (`PublicPagesCrossLink`) back to this page.
+**Stay Guide** and **Property** (listing) cards use **Edit** → Page Editor (`/public-pages/:pageId/edit`). The listing editor covers gallery, brand color, description, amenities, house rules, cancellation, and optional section visibility (amenities / location / rules / reviews — fixed order; gallery + overview always on) — the same content fields as **Property Settings** (single storage; Settings has no live preview). Social URLs are **Property Settings → Socials** only. Stay Guide body copy and section images edit in the Stay Guide Page Editor (**Content**); Templates still has standard body copy without section images.
 
 ## Host-facing knowledge
 
@@ -124,6 +124,8 @@ Rows are **lazily created on first read**. Showcase `template_key` ∈ `showcase
 | `get-public-showcase`   | GET        | anon                                                                                                                                                  | `?property=` (+ embed/preview)                               |
 
 `custom-pages-settings` returns `{ pages: [{ pageType, templateKey, updatedAt }] }`. `public-page-configs` owns section visibility/order/style (`stay_guide` / `property_landing` / `property_showcase`).
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

@@ -81,7 +81,7 @@ Org **delete**, **Plans checkout/downgrade**, and org settings PATCH remain **ow
 - Owner appears in the list with **Full Access** (no separate Owner badge).
 - Invited members show their template role badge (**Full Access** / **Operations** / **Read Only** / custom).
 - Single **Manage** dropdown per row: **Member details** (opens manage dialog — contact only for owner; contact + role + permissions + listings for others), **Deactivate** / **Activate**, **Remove from Organization** (non-owners with manage access).
-- Org permissions tree: one module per org hub page (**Dashboard**, **Bookings**, **Properties**, etc.) with **Open page** access control plus granular actions; counts show selected/total leaf permissions (no empty 0/0 modules).
+- Org permissions tree: one module per org hub page (**Dashboard**, **Bookings**, **Properties**, etc.) with **Open page** access control plus granular actions; counts show selected/total leaf permissions (no empty 0/0 modules). Modules: Dashboard, Bookings, Properties, Parkings, Settings, Plans & Billing, **Analytics** (`org.analytics:view`, `org.analytics:export` with a plan pill), **Activity** (`org.activity:view`), Team. Analytics and Activity are org leaves that gate the org Analytics page and the Settings → Activity section; the Full Access preset includes both.
 
 ### Invitations
 
@@ -138,9 +138,16 @@ On accept, `accept-org-invite` upserts `organization_members` and calls **`syncO
 
 ## New / Edit role dialog
 
-Dialog order: **Role name** → **Listing access** (org scope only) → **Based on** template picker → **Org permissions** tree.
+Multi-step wizard (`CustomRoleFormDialog` + `SegmentedStepProgress`), shared with property/parking Team:
 
-Same permissions tree as the **Permissions** tab role editor (not used on members). **Based on** loads checkboxes from an existing template or **Custom**. **Listing access** — card with **All listings** / **Choose listings** radio options; choose mode lists org properties and parkings (with selection counts) and **Full Access** / **Operations** / **Read Only** per listing. Name required; at least one org permission required to save. Listing scope is optional (no listings = org hub only until invite overrides).
+1. **Details** — role name only. Next stays disabled until the name is filled. Invalid name uses the shared input error style (red border + message).
+2. **Listings** (org only) — **Listing access**; new roles default to **All listings**.
+3. **Permissions** — **Based on** (defaults to **Full Access**; ? help) above the full org permissions tree. Changing Based on updates the checkboxes on this step.
+4. **Preview** — role card summary (name, permission count, listing scope, baseline) plus per-module selected counts.
+
+Footer: Back (left) · Cancel + Next (right); Create/Save on Preview. Leaving Permissions requires at least one permission. Create/Save re-checks name + permissions. Step resets when the dialog reopens; focus moves to the step heading.
+
+Same permission leaves as the **Permissions** tab role editor (not used on members). **Based on** loads checkboxes from an existing template or **Custom**. **Listing access** — **All listings** / **Choose listings**; choose mode lists org properties and parkings with **Full Access** / **Operations** / **Read Only** per listing. Listing scope is optional (no listings = org hub only until invite overrides).
 
 ## Manage member dialog
 
@@ -186,6 +193,8 @@ When org access is revoked (deactivated org admin, removed member), **`RequireOr
 Migration: `supabase/migrations/20261209130000_org_team_granular_permissions.sql`
 
 ---
+
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

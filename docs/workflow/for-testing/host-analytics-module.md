@@ -433,10 +433,10 @@ composed of section cards (reuse `recharts`, `ui/src/lib/charts/` palette + styl
 13. **Playbook** — matched tip/tutorial cards.
 
 States: **loading** skeletons per card; **teaser** (Free/Starter) — KPI strip live, rest
-behind a blurred lock + `FeatureGate` CTA; **empty** — "Not enough booking history yet"
-with the sample-size needed; **AI-unavailable** — card falls back to deterministic bundle
-with a quiet "AI review paused" note. Mobile: single column, each chart in an
-`overflow-x:auto` container, 44px targets (`mobile-responsive`).
+behind a blurred lock + `FeatureGate` CTA; **sparse history** — full layout still shows with
+zeros/empty series (no full-page empty gate); **AI-unavailable** — card falls back to
+deterministic bundle with a quiet "AI review paused" note. Mobile: single column, each chart
+in an `overflow-x:auto` container, 44px targets (`mobile-responsive`).
 
 ### Edge functions
 

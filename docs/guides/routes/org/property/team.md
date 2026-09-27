@@ -97,7 +97,7 @@ Additional custom templates can be created by admins with `team.customRoles:add`
 
 Canonical list (keep in sync with `propertyTeamConstants.ts` and `_shared/propertyTeamPermissions.ts`). Phases 3–7 use granular leaves through Marketing Studio.
 
-`bookings:view`, `bookings.create:add`, `bookings.import:add`, `bookings.detail.stay:edit`, `bookings.detail.guests:edit`, `bookings.detail.parking:edit`, `bookings.detail.pets:edit`, `bookings.detail.pricing:edit`, `bookings.detail.workflow:edit`, `finance:view`, `finance.transactions:add`, `finance.transactions:edit`, `finance.transactions:delete`, `finance.export:view`, `pricing:view`, `pricing.rates:edit`, `pricing.blocks:add`, `pricing.blocks:delete`, `maintenance:view`, `maintenance.reminders:add`, `maintenance.reminders:edit`, `maintenance.reminders:delete`, `maintenance.export:view`, `marketing:view`, `marketing.content:add`, `marketing.content:edit`, `marketing.templates:add`, `marketing.templates:edit`, `marketing.templates:delete`, `marketing.generate:add`, `marketing.publish:add`, `notifications:view`, `notifications.chat:edit`, `notifications.marketing:edit`, `notifications.staff:edit`, `notifications.operations:edit`, `notifications.finance:edit`, `notifications.maintenance:edit`, `templates:view`, `templates.standard:edit`, `templates.email:edit`, `templates.custom:add`, `templates.custom:edit`, `templates.custom:delete`, `publicPages:view`, `publicPages.property:edit`, `publicPages.stayGuide:edit`, `settings:view`, `settings.integrations:view`, `settings.basicInfo:edit`, `settings.media:edit`, `settings.propertyDetails:edit`, `settings.amenities:edit`, `settings.houseRules:edit`, `settings.guestForm:edit`, `settings.cancellationPolicy:edit`, `settings.location:edit`, `settings.socials:edit`, `settings.payment:edit`, `settings.buildingForms:edit`, `settings.emailAutomations:edit`, `settings.voiceReceptionist:edit`, `settings.aiOverrides:edit`, `settings.dangerZone:edit`, `team:view`, `team.invitations:add`, `team.invitations:edit`, `team.invitations:delete`, `team.members:edit`, `team.members:delete`, `team.customRoles:add`, `team.customRoles:edit`, `team.customRoles:delete`, `inbox:view`, `inbox.messages:edit`, `inbox.channels:add`, `inbox.channels:delete`, `inbox.quickReplies:add`, `inbox.quickReplies:edit`, `inbox.quickReplies:delete`, `inbox.automation:edit`
+`bookings:view`, `bookings.create:add`, `bookings.import:add`, `bookings.detail.stay:edit`, `bookings.detail.guests:edit`, `bookings.detail.parking:edit`, `bookings.detail.pets:edit`, `bookings.detail.pricing:edit`, `bookings.detail.workflow:edit`, `finance:view`, `finance.transactions:add`, `finance.transactions:edit`, `finance.transactions:delete`, `finance.export:view`, `pricing:view`, `pricing.rates:edit`, `pricing.blocks:add`, `pricing.blocks:delete`, `pricing.channels:view`, `pricing.channels:edit`, `pricing.smartPricing:edit`, `maintenance:view`, `maintenance.reminders:add`, `maintenance.reminders:edit`, `maintenance.reminders:delete`, `maintenance.export:view`, `marketing:view`, `marketing.content:add`, `marketing.content:edit`, `marketing.templates:add`, `marketing.templates:edit`, `marketing.templates:delete`, `marketing.generate:add`, `marketing.generate.image:add`, `marketing.generate.video:add`, `marketing.publish:add`, `notifications:view`, `notifications.chat:edit`, `notifications.marketing:edit`, `notifications.staff:edit`, `notifications.operations:edit`, `notifications.finance:edit`, `notifications.maintenance:edit`, `templates:view`, `templates.standard:edit`, `templates.email:edit`, `templates.custom:add`, `templates.custom:edit`, `templates.custom:delete`, `publicPages:view`, `publicPages.property:edit`, `publicPages.stayGuide:edit`, `publicPages.showcase:edit`, `settings:view`, `settings.integrations:view`, `settings.basicInfo:edit`, `settings.media:edit`, `settings.propertyDetails:edit`, `settings.amenities:edit`, `settings.houseRules:edit`, `settings.guestForm:edit`, `settings.cancellationPolicy:edit`, `settings.location:edit`, `settings.socials:edit`, `settings.payment:edit`, `settings.buildingForms:edit`, `settings.emailAutomations:edit`, `settings.voiceReceptionist:edit`, `settings.aiOverrides:edit`, `settings.dangerZone:edit`, `team:view`, `team.invitations:add`, `team.invitations:edit`, `team.invitations:delete`, `team.members:edit`, `team.members:delete`, `team.customRoles:add`, `team.customRoles:edit`, `team.customRoles:delete`, `inbox:view`, `inbox.messages:edit`, `inbox.channels:add`, `inbox.channels:delete`, `inbox.quickReplies:add`, `inbox.quickReplies:edit`, `inbox.quickReplies:delete`, `inbox.automation:edit`, `analytics:view`, `analytics:export`, `analytics.aiReview:add`, `assistant:view`, `activity:view`.
 
 Legacy stored ids still expand on read (Phases 3–6): e.g. `notifications:edit` → six module edits; `inbox:reply` → `inbox.messages:edit`; `inbox:manage` → channels/quickReplies/automation leaves; `team:invite` → invitations leaves; `team:manage` → members/customRoles leaves; plus earlier Phase 3–5 umbrellas.
 
@@ -106,6 +106,10 @@ Legacy stored ids still expand on read (Phases 3–6): e.g. `notifications:edit`
 **Template change:** Server always resets member `permissions` from the selected role template. Per-member `permissions[]` overrides on invite or member PATCH are rejected. Edit grants on the role template (Permissions tab); members on that role sync when the template is saved (matching prior permission key).
 
 **Custom template edit:** When a custom template definition changes, server updates `permissions` on all **active** members with that template `role_id`. Inactive members restore the updated preset on activate (not the old snapshot).
+
+**Added leaves (plan coverage audit):** `marketing.generate.image:add` (Generate tab images, separate from text `marketing.generate:add` and video), `pricing.smartPricing:edit` (Smart Pricing settings, preview, apply), `analytics.aiReview:add` (run the AI review, spends credits), `assistant:view` (dashboard AI assistant), `activity:view` (Settings → Activity). These are **not** read-time expansions: they stay individually revocable. Migration `20261316125000_team_permissions_plan_coverage_leaves.sql` backfilled them onto existing members, roles, and invites that already held the matching source leaf (`marketing.generate:add`, `pricing.rates:edit`, `analytics:export`, `bookings:view`) so nobody lost access.
+
+**Plan pills:** the Team role editor shows each plan-gated leaf with its tier from `PLAN_FEATURE_PERMISSION_COVERAGE` (`ui/src/features/dashboard/plans/lib/planFeaturePermissions.ts`). Every plan feature key is either mapped to leaves or marked N/A there, and a unit test fails when a new plan key is added without a decision.
 
 ### Seeded template presets
 
@@ -192,7 +196,7 @@ When access is revoked (deactivated member, removed from property, or lost org m
 
 - Search by name or email; filter by role (`Full Access`, `Operations`, `Read Only`, custom).
 - Non-org members: role badge (read-only) and a single **Manage** dropdown — **Host details** (name, phone, **role**), **Deactivate** / **Activate**, **Remove from Property**.
-- Deactivated members: **Disabled** badge. Deactivated by team-seat reconciliation instead of an admin: **Plan limit** badge (tooltip explains why) instead of the plain Disabled one.
+- Deactivated members: muted row (lower opacity, grayscale avatar, muted name). Deactivated by team-seat reconciliation: **Plan limit** badge (tooltip explains why) in addition to the muted state.
 - When 1+ members are currently plan-limited, a banner above the list shows the count with an **Upgrade** button (opens the upgrade modal targeted at `teamManagement`).
 - Org owner and org admins (virtual, `fromOrg: true`): no separate Org badge (role + status already convey access). **Manage in org** goes to `/org/:orgSlug/team` when viewer has `org:team:view` — full outline button on `sm+`, compact **⋯** menu on phone (no property-level contact edit).
 - Property-managed members: **Manage** outline control on `sm+`; phone uses the same menu behind **⋯**.
@@ -232,7 +236,13 @@ To change what a role can do, edit the role on the **Permissions** tab or create
 
 ### New / Edit role dialog
 
-Permissions tree for **role templates** only (not per member). **Based on** loads checkboxes from Full Access / Operations / Read Only / another custom role, or **Custom** to start blank. Name required; at least one permission required to save.
+Multi-step wizard for **role templates** only (not per member), shared via `CustomRoleFormDialog`:
+
+1. **Details** — role name. Next disabled until name is filled.
+2. **Permissions** — **Based on** (defaults to Full Access) above the full permissions tree; changing it updates checkboxes here.
+3. **Preview** — role summary + per-module selected counts.
+
+Back (left) · Cancel + Next (right); Create or Save on Preview. Name required to leave Details; at least one permission required to leave Permissions / save.
 
 ---
 
@@ -275,6 +285,8 @@ Auth: Bearer JWT + `verifyPropertyAccess` (`_shared/orgAuth.ts`). `property_id` 
 **Invite email:** On create/resend, `propertyTeamInviteEmail.ts` sends via Resend using the configurable template shell. **Subject:** `{Org name} - {Property name} - Team Invitation`. **Body:** inviter name; `{property} - {unit}` join line as `{name} invites you to join … as {role}`; role description paragraph (Admin or template name from `property_custom_roles`; custom permission sets — scoped-permissions line); expiry; Google sign-in note; accept CTA. Link: **`{PUBLIC_GUEST_APP_ORIGIN}/accept-invite?token=…`**. Deliverability: verify Resend domain (SPF/DKIM/DMARC) on the sending domain to reduce spam-folder placement.
 
 ---
+
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 
