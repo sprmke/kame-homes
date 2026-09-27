@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 type Trigger = PlatformSettings['hostRewardTrigger'];
 
@@ -54,6 +55,7 @@ export function HostVerificationRewardCard() {
   const [applyToPaid, setApplyToPaid] = useState<'skip' | 'extend'>('skip');
   const [ready, setReady] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [baseline, setBaseline] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data || ready) return;
@@ -65,8 +67,53 @@ export function HostVerificationRewardCard() {
     setCampaignEnd(data.hostRewardCampaignEnd?.slice(0, 16) ?? '');
     setMaxPerOrg(String(data.hostRewardMaxPerOrg ?? 1));
     setApplyToPaid(data.hostRewardApplyToPaidOrg ?? 'skip');
+    setBaseline(
+      JSON.stringify([
+        Boolean(data.hostRewardEnabled),
+        data.hostRewardPlanCode ?? 'growth',
+        String(data.hostRewardDurationDays ?? 30),
+        data.hostRewardTrigger ?? 'recommended_verification_approved',
+        data.hostRewardCampaignStart?.slice(0, 16) ?? '',
+        data.hostRewardCampaignEnd?.slice(0, 16) ?? '',
+        String(data.hostRewardMaxPerOrg ?? 1),
+        data.hostRewardApplyToPaidOrg ?? 'skip',
+      ])
+    );
     setReady(true);
   }, [data, ready]);
+
+  const draftKey = JSON.stringify([
+    enabled,
+    planCode,
+    durationDays,
+    trigger,
+    campaignStart,
+    campaignEnd,
+    maxPerOrg,
+    applyToPaid,
+  ]);
+  const isDirty = ready && baseline !== null && draftKey !== baseline;
+
+  const saveReward = async (): Promise<boolean> => {
+    try {
+      await save.mutateAsync({
+        hostRewardEnabled: enabled,
+        hostRewardPlanCode: planCode.trim() || 'growth',
+        hostRewardDurationDays: Number(durationDays),
+        hostRewardTrigger: trigger,
+        hostRewardCampaignStart: campaignStart ? new Date(campaignStart).toISOString() : null,
+        hostRewardCampaignEnd: campaignEnd ? new Date(campaignEnd).toISOString() : null,
+        hostRewardMaxPerOrg: Number(maxPerOrg),
+        hostRewardApplyToPaidOrg: applyToPaid,
+      });
+      setBaseline(draftKey);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  useUnsavedChangesGuard({ isDirty, onSave: saveReward });
 
   if (isLoading && !data) {
     return (
@@ -90,18 +137,7 @@ export function HostVerificationRewardCard() {
       title="Host verification reward"
       description="Time-limited plan grant for Recommended verification."
       icon={<Gift className="text-muted-foreground size-4" aria-hidden />}
-      onSubmit={() =>
-        void save.mutateAsync({
-          hostRewardEnabled: enabled,
-          hostRewardPlanCode: planCode.trim() || 'growth',
-          hostRewardDurationDays: Number(durationDays),
-          hostRewardTrigger: trigger,
-          hostRewardCampaignStart: campaignStart ? new Date(campaignStart).toISOString() : null,
-          hostRewardCampaignEnd: campaignEnd ? new Date(campaignEnd).toISOString() : null,
-          hostRewardMaxPerOrg: Number(maxPerOrg),
-          hostRewardApplyToPaidOrg: applyToPaid,
-        })
-      }
+      onSubmit={() => void saveReward()}
       footer={
         <Button type="submit" className="min-h-[44px]" disabled={save.isPending || !ready}>
           {save.isPending ? 'Saving…' : 'Save'}

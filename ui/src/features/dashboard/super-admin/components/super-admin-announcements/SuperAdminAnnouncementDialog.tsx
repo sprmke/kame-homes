@@ -20,6 +20,7 @@ import {
   useUpdatePlatformHostSettings,
 } from '@/features/dashboard/super-admin/hooks/usePlatformHostSettings';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ import {
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { cn } from '@/lib/utils';
 
@@ -62,6 +64,7 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
   const { data, isLoading } = usePlatformHostSettings();
   const updateSettings = useUpdatePlatformHostSettings();
   const [draft, setDraft] = useState<HostAnnouncementDraft | null>(null);
+  const [baseline, setBaseline] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const isCreate = state?.mode === 'create';
@@ -70,20 +73,23 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
   useEffect(() => {
     if (!state || !data) return;
     if (state.mode === 'create') {
-      setDraft(emptyHostAnnouncement() as HostAnnouncementDraft);
+      const empty = emptyHostAnnouncement() as HostAnnouncementDraft;
+      setDraft(empty);
+      setBaseline(JSON.stringify(empty));
       return;
     }
     const existing = data.announcements.find((entry) => entry.id === state.id);
     setDraft(existing ?? null);
+    setBaseline(existing ? JSON.stringify(existing) : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateKey, data?.updatedAt]);
 
-  const handleSave = async () => {
-    if (!draft || !data) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!draft || !data) return false;
     const validationError = validateHostAnnouncements([draft]);
     if (validationError) {
       toast.error(validationError);
-      return;
+      return false;
     }
     const saved = { ...draft, updatedAt: new Date().toISOString() };
     const nextAnnouncements = isCreate
@@ -93,10 +99,24 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
       await updateSettings.mutateAsync({ announcements: nextAnnouncements });
       toast.success(isCreate ? 'Announcement added' : 'Announcement saved');
       onOpenChange(false);
+      return true;
     } catch (err) {
       toast.error(friendlyToastError(err, 'Could not save announcement'));
+      return false;
     }
   };
+
+  const isDirty = state !== null && draft !== null && JSON.stringify(draft) !== baseline;
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open: state !== null,
+    onOpenChange,
+    isDirty,
+    onSave: handleSave,
+  });
 
   const handleDelete = async () => {
     if (!draft || !data) return;
@@ -117,7 +137,7 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
 
   return (
     <>
-      <ResponsiveModal open={state !== null} onOpenChange={onOpenChange}>
+      <ResponsiveModal open={state !== null} onOpenChange={guardedOpenChange}>
         <ResponsiveModalContent className={ANNOUNCEMENT_DIALOG_CONTENT_CLASS} sheetLayout="split">
           <ResponsiveModalHeader className={superAdminApprovalDialogHeaderClass}>
             <ResponsiveModalTitle className="pr-8 [overflow-wrap:anywhere]">
@@ -165,7 +185,7 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
               variant="outline"
               className={superAdminApprovalFooterButtonClass}
               disabled={busy}
-              onClick={() => onOpenChange(false)}
+              onClick={requestClose}
             >
               Cancel
             </Button>
@@ -180,6 +200,7 @@ export function SuperAdminAnnouncementDialog({ state, onOpenChange }: Props) {
           </ResponsiveModalFooter>
         </ResponsiveModalContent>
       </ResponsiveModal>
+      <UnsavedChangesDialog {...dialogProps} />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

@@ -168,7 +168,13 @@ export function SetupGuidePropertyPricingEmbed({ propertyId }: { propertyId: str
     write,
   ]);
 
-  useRegisterStepSave(save);
+  const pricingDirty = Boolean(
+    hasChanges &&
+    baselineRef.current &&
+    (pricingFormHasBaseRateChanges(baselineRef.current, weekdayRate, weekendRate) ||
+      pricingFormHasFeeChanges(baselineRef.current, fees))
+  );
+  useRegisterStepSave(save, { isDirty: pricingDirty });
 
   if (isLoading && !hydratedRef.current) {
     return <SetupGuideStepSkeleton kind="property.pricing" />;
@@ -286,7 +292,12 @@ export function SetupGuideParkingPricingEmbed({ parkingId }: { parkingId: string
     write,
   ]);
 
-  useRegisterStepSave(save);
+  const pricingDirty = Boolean(
+    hasChanges &&
+    baselineRef.current &&
+    parkingPricingFormHasBaseRateChanges(baselineRef.current, weekdayRate, weekendRate)
+  );
+  useRegisterStepSave(save, { isDirty: pricingDirty });
 
   if (isLoading && !hydratedRef.current) {
     return <SetupGuideStepSkeleton kind="parking.pricing" />;

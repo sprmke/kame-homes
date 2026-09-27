@@ -135,9 +135,9 @@ function SlugField() {
   return (
     <div className="space-y-2">
       <Skeleton className="h-3.5 w-20" />
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-        <Skeleton className="h-4 w-full max-w-[16rem]" />
-        <Skeleton className="h-10 w-full rounded-md sm:max-w-xs" />
+      <div className="flex min-w-0 items-center gap-2">
+        <Skeleton className="h-10 min-w-0 flex-1 rounded-md" />
+        <Skeleton className="size-11 shrink-0 rounded-md" />
       </div>
     </div>
   );
@@ -171,8 +171,10 @@ function PropertyBasicsSkeleton() {
   return (
     <>
       <SectionShell>
-        <Field labelClassName="w-32" />
-        <SlugField />
+        <FieldGrid>
+          <Field labelClassName="w-32" />
+          <SlugField />
+        </FieldGrid>
         <BrandSwatches includePhoto />
         <FieldGrid>
           <Field labelClassName="w-28" />
@@ -208,8 +210,10 @@ function OrgBrandSkeleton() {
           labelClassName="w-36"
           control={<Skeleton className="size-40 rounded-xl sm:size-44" />}
         />
-        <Field labelClassName="w-36" />
-        <SlugField />
+        <FieldGrid>
+          <Field labelClassName="w-36" />
+          <SlugField />
+        </FieldGrid>
         <BrandSwatches />
         <Field labelClassName="w-16" />
         <TextBlock className="h-36" />

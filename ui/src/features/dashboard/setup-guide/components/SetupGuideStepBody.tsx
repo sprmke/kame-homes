@@ -6,6 +6,7 @@ import {
   OrgSocialsBrandingSection,
 } from '@/features/dashboard/org/components/org-settings/OrgProfileSettingsSections';
 import { PropertyLocationPicker } from '@/features/dashboard/org/components/property-settings/PropertyLocationPicker';
+import { PropertyAiSettingsSection } from '@/features/dashboard/org/components/property-settings/PropertyAiSettingsSection';
 import { PropertyOperationalSettingsSections } from '@/features/dashboard/org/components/property-settings/PropertyOperationalSettingsSections';
 import { PropertyPaymentMethodsSection } from '@/features/dashboard/org/components/property-settings/PropertyPaymentMethodsSection';
 import { PropertyProfileMainSections } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
@@ -71,7 +72,6 @@ function OrgBrandStep() {
     setProfileField,
     setOperatorField,
     handleSave,
-    orgUrlPrefix,
     operatorSources,
     formBusy,
     slugPreview,
@@ -82,7 +82,7 @@ function OrgBrandStep() {
     if (!canSaveAny) return true;
     return handleSave();
   }, [canSaveAny, handleSave]);
-  useRegisterStepSave(save);
+  useRegisterStepSave(save, { isDirty: canSaveAny, selfGuarded: true });
 
   if (isLoading || !profileDraft || !operatorDraft || !operatorData) {
     return <SetupGuideStepSkeleton kind="org.brand" />;
@@ -98,7 +98,6 @@ function OrgBrandStep() {
       <OrgBasicInformationSection
         draft={profileDraft}
         disabled={formBusy || !canEditBasicSettings || busy}
-        orgUrlPrefix={orgUrlPrefix}
         slugPreview={slugPreview}
         logoSource={operatorSources?.emailLogoUrl}
         logoUrl={operatorData.emailLogoUrl}
@@ -160,7 +159,6 @@ function PropertySectionsInner({
     resolveFieldError,
     isDirty,
     busy,
-    propertySlugPrefix,
     slugPreview,
     setProfileField,
     handleMediaPersisted,
@@ -180,7 +178,7 @@ function PropertySectionsInner({
     if (!isDirty) return true;
     return handleSave();
   }, [handleSave, isDirty]);
-  useRegisterStepSave(save);
+  useRegisterStepSave(save, { isDirty, selfGuarded: true });
 
   if (appSettingsLoading || !operationalDraft || !appSettings) {
     return <SetupGuideStepSkeleton kind={kind} />;
@@ -194,7 +192,6 @@ function PropertySectionsInner({
           onChange={setProfileField}
           disabled={busy}
           sectionEditLocked={sectionEditLocked}
-          propertySlugPrefix={propertySlugPrefix}
           slugPreview={slugPreview}
           towerConflict={towerConflict}
           nameUnavailable={nameUnavailable}
@@ -237,7 +234,15 @@ function PropertySectionsInner({
           resolveFieldError={resolveFieldError}
           markFieldInteracted={markFieldInteracted}
           sectionMessages={settingsCompletion.sectionMessages}
-          showVoiceReceptionist={showVoice && canEnableReceptionist}
+          visibleSectionIds={operationalSectionIds}
+          embedded
+        />
+      ) : null}
+
+      {showVoice && canEnableReceptionist ? (
+        <PropertyAiSettingsSection
+          showUsage={false}
+          showVoiceReceptionist
           voiceReceptionist={{
             draft: voiceDraft,
             propertyName: profileDraft.name.trim(),
@@ -247,8 +252,6 @@ function PropertySectionsInner({
             errorMessage: (voiceSettingsLoadError as Error)?.message ?? null,
             onChange: setVoiceField,
           }}
-          visibleSectionIds={operationalSectionIds}
-          embedded
         />
       ) : null}
 
@@ -363,7 +366,9 @@ function ParkingSectionsInner({
     }
     return handleSave({ scopeSectionIds: [...SETUP_GUIDE_PARKING_SAVE_SCOPE[mode]] });
   }, [handleSave, isDirty, mode]);
-  useRegisterStepSave(mode === 'pricing' ? null : save);
+  useRegisterStepSave(mode === 'pricing' ? null : save, {
+    isDirty: mode !== 'pricing' && isDirty,
+  });
 
   if (settingsLoading || !operationalDraft || !settings) {
     return <SetupGuideStepSkeleton kind={kind} />;

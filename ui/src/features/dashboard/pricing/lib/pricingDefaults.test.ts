@@ -1,21 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { feesFromPricingDefaults, pricingPatchFromUiState, DEFAULT_WEEKDAY_NIGHTLY_RATE, DEFAULT_WEEKEND_NIGHTLY_RATE, DEFAULT_DOWN_PAYMENT, DEFAULT_SECURITY_DEPOSIT, DEFAULT_PET_FEE, DEFAULT_PARKING_GUEST_FEE, DEFAULT_GUEST_ADDITIONAL_FEE } from '@/features/dashboard/pricing/lib/pricingDefaults';
+import {
+  feesFromPricingDefaults,
+  pricingPatchFromUiState,
+  DEFAULT_WEEKDAY_NIGHTLY_RATE,
+  DEFAULT_WEEKEND_NIGHTLY_RATE,
+  DEFAULT_DOWN_PAYMENT,
+  DEFAULT_SECURITY_DEPOSIT,
+  DEFAULT_PET_FEE,
+  DEFAULT_PARKING_GUEST_FEE,
+  DEFAULT_GUEST_ADDITIONAL_FEE,
+} from '@/features/dashboard/pricing/lib/pricingDefaults';
 
 describe('feesFromPricingDefaults', () => {
-
   it('feesFromPricingDefaults is exported', () => {
     expect(typeof feesFromPricingDefaults).toBe('function');
   });
-
 });
 
 describe('pricingPatchFromUiState', () => {
-
   it('pricingPatchFromUiState is exported', () => {
     expect(typeof pricingPatchFromUiState).toBe('function');
   });
-
 });
 
 describe('DEFAULT_WEEKDAY_NIGHTLY_RATE', () => {

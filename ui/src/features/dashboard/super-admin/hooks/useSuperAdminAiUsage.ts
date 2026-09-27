@@ -7,7 +7,15 @@ export type SuperAdminAiUsageRange = '30d' | '90d' | '12mo';
 export type SuperAdminAiUsage = {
   range: SuperAdminAiUsageRange;
   generatedAt: string;
-  totals: { costUsd: number; calls: number; orgsWithUsage: number; quotaBreaches: number };
+  totals: {
+    costUsd: number;
+    calls: number;
+    orgsWithUsage: number;
+    quotaBreaches: number;
+    monthToDateUsd: number;
+    projectedMonthEndUsd: number;
+    platformDailyCapUsd: number;
+  };
   dailySeries: { date: string; costUsd: number; calls: number }[];
   featureBreakdown: {
     feature: string;
@@ -26,6 +34,8 @@ export type SuperAdminAiUsage = {
     costUsd: number;
     calls: number;
     aiEnabled: boolean;
+    profileCode: string | null;
+    hasOverrides: boolean;
     dailyLimit: number;
     monthlyLimit: number;
     todayCalls: number;

@@ -44,7 +44,6 @@ import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdmin
 
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -52,6 +51,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
@@ -75,6 +75,7 @@ type Props = {
 
 export function DevelopmentSettingsCard({ slug }: Props) {
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const { data: development, isLoading, error } = useDevelopment(slug);
   const updateDevelopment = useUpdateDevelopment(slug);
   const deleteDevelopment = useDeleteDevelopment();
@@ -156,12 +157,12 @@ export function DevelopmentSettingsCard({ slug }: Props) {
     }
   };
 
-  const handleSave = async () => {
-    if (!development || !draft) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!development || !draft) return false;
     const validationError = validateDevelopmentProfileDraft(draft);
     if (validationError) {
       toast.error(validationError);
-      return;
+      return false;
     }
     try {
       const result = await updateDevelopment.mutateAsync({
@@ -172,20 +173,26 @@ export function DevelopmentSettingsCard({ slug }: Props) {
       setBaseline(saved);
       setDraft(saved);
       if (result.slug !== slug) {
-        navigate(superAdminPaths.developmentDetail(result.slug), { replace: true });
+        runUnguarded(() =>
+          navigate(superAdminPaths.developmentDetail(result.slug), { replace: true })
+        );
       }
       toast.success('Settings saved');
+      return true;
     } catch (err) {
       toast.error(friendlyToastError(err, 'Could not save settings'));
+      return false;
     }
   };
+
+  useUnsavedChangesGuard({ isDirty, onSave: handleSave });
 
   const handleDelete = async () => {
     if (!development) return;
     try {
       await deleteDevelopment.mutateAsync(development.id);
       toast.success('Development deleted');
-      navigate(superAdminPaths.developments, { replace: true });
+      runUnguarded(() => navigate(superAdminPaths.developments, { replace: true }));
     } catch (err) {
       toast.error(friendlyToastError(err, 'Could not delete development'));
     } finally {
@@ -223,7 +230,7 @@ export function DevelopmentSettingsCard({ slug }: Props) {
                     type="button"
                     onClick={() => void handleSave()}
                     disabled={busy}
-                    className="min-h-[44px] gap-1.5 lg:hidden"
+                    className="min-h-[44px] gap-1.5"
                   >
                     <Save className="size-4" aria-hidden />
                     {busy ? 'Saving…' : 'Save Changes'}
@@ -232,29 +239,6 @@ export function DevelopmentSettingsCard({ slug }: Props) {
               }
             />
           </div>
-        }
-        footer={
-          isDirty && draft ? (
-            <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-2 animate-pulse rounded-full bg-amber-500" />
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    Unsaved changes
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={busy}
-                  className="min-h-[44px] w-full sm:w-auto"
-                  size="sm"
-                >
-                  {busy ? 'Saving…' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null
         }
       >
         {isLoading || !draft || !development ? (

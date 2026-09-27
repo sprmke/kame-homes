@@ -16,6 +16,7 @@ import { SettingsRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 type Draft = {
@@ -76,25 +77,28 @@ function PropertyOverrideRow({
     row.propertyName,
   ]);
 
-  const handleSave = () => {
+  const handleSave = async (): Promise<boolean> => {
     const imageCap = parseCap(draft.imageMonthlyCreditCap, 'Image cap');
-    if (!imageCap.ok) return;
+    if (!imageCap.ok) return false;
     const videoCap = parseCap(draft.videoMonthlyCreditCap, 'Video cap');
-    if (!videoCap.ok) return;
-    patch.mutate(
-      {
+    if (!videoCap.ok) return false;
+    try {
+      await patch.mutateAsync({
         propertyId: row.propertyId,
         imageMonthlyCreditCap: imageCap.value,
         videoMonthlyCreditCap: videoCap.value,
         allowPremiumImage: draft.allowPremiumImage,
         allowPremiumVideo: draft.allowPremiumVideo,
-      },
-      {
-        onSuccess: () => toast.success('Saved'),
-        onError: (err: unknown) => toast.error(friendlyToastError(err, 'Could not save')),
-      }
-    );
+      });
+      toast.success('Saved');
+      return true;
+    } catch (err: unknown) {
+      toast.error(friendlyToastError(err, 'Could not save'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({ isDirty: dirty, onSave: handleSave });
 
   return (
     <div className="border-border/70 space-y-3 rounded-xl border p-3">
@@ -148,7 +152,7 @@ function PropertyOverrideRow({
           type="button"
           className="min-h-[44px]"
           disabled={patch.isPending}
-          onClick={handleSave}
+          onClick={() => void handleSave()}
         >
           {patch.isPending ? 'Saving' : 'Save'}
         </Button>

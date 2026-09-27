@@ -13,9 +13,9 @@ export function AiDashboardAssistantKillSwitchCard() {
   const { data, isLoading } = useAiDashboardAssistantGlobalSettings();
   const update = useUpdateAiDashboardAssistantGlobalSettings();
 
-  const handleEnabledChange = (enabled: boolean) => {
+  const save = (patch: { enabled?: boolean; aiModeEnabled?: boolean }) => {
     update.mutate(
-      { enabled },
+      patch,
       {
         onSuccess: () => toast.success('AI dashboard assistant settings updated'),
         onError: (err: unknown) => toast.error(friendlyToastError(err, 'Could not save setting')),
@@ -39,8 +39,17 @@ export function AiDashboardAssistantKillSwitchCard() {
         <Switch
           checked={Boolean(data?.enabled)}
           disabled={isLoading || update.isPending}
-          onCheckedChange={handleEnabledChange}
+          onCheckedChange={(enabled) => save({ enabled })}
           aria-label="Enable AI dashboard assistant platform-wide"
+        />
+      </label>
+      <label className="flex min-h-[44px] items-center justify-between gap-3 text-sm">
+        <span className={data?.enabled ? undefined : 'text-muted-foreground'}>AI mode</span>
+        <Switch
+          checked={Boolean(data?.enabled && data?.aiModeEnabled)}
+          disabled={isLoading || update.isPending || !data?.enabled}
+          onCheckedChange={(aiModeEnabled) => save({ aiModeEnabled })}
+          aria-label="Enable full-page AI mode platform-wide"
         />
       </label>
     </div>

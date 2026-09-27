@@ -85,10 +85,8 @@ export function SetupGuideTeamEmbed() {
     await markReviewed();
     return true;
   }, [markReviewed]);
-  useRegisterStepSave(save);
-
-  const handleInvite = async () => {
-    if (!canSubmit || !org) return;
+  const handleInvite = async (): Promise<boolean> => {
+    if (!canSubmit || !org) return false;
     setSubmitting(true);
     try {
       await inviteMember.mutateAsync({
@@ -102,12 +100,18 @@ export function SetupGuideTeamEmbed() {
       toast.success('Invitation sent');
       setForm(defaultOrgInviteForm(customRoles));
       await markReviewed();
+      return true;
     } catch (error) {
       toast.error((error as Error).message || 'Could not send invitation');
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
+
+  const inviteDraftDirty =
+    canInvite && (form.email.trim() !== '' || form.contactPhone.trim() !== '');
+  useRegisterStepSave(save, { isDirty: inviteDraftDirty, onSave: handleInvite });
 
   if (!org || isLoading) {
     return <SetupGuideStepSkeleton kind="org.team" />;

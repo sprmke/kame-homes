@@ -72,6 +72,7 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton';
 import { Button } from '@/components/ui/button';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 /** A viewed month at/above this many bookings triggers the busy-month celebration. */
 const BUSY_MONTH_CELEBRATION_THRESHOLD = 20;
@@ -80,6 +81,7 @@ export function PropertyPricingPage() {
   const { data: access } = usePropertyPermissions();
   const permissions = access?.permissions;
   const canEditRates = hasPropertyPermission(permissions, 'pricing.rates:edit');
+  const canSmartPricing = hasPropertyPermission(permissions, 'pricing.smartPricing:edit');
   const canBlockDates = hasPropertyPermission(permissions, 'pricing.blocks:add');
   const canUnblockDates = hasPropertyPermission(permissions, 'pricing.blocks:delete');
   const canViewChannels = hasPropertyPermission(permissions, 'pricing.channels:view');
@@ -482,7 +484,7 @@ export function PropertyPricingPage() {
     setHasChanges(true);
   };
 
-  const handleSaveConfirm = (options: PricingSaveOptions) => {
+  const savePricing = async (options: PricingSaveOptions): Promise<boolean> => {
     const patch = buildPricingSavePatch(
       {
         weekdayRate,
@@ -496,33 +498,45 @@ export function PropertyPricingPage() {
       options
     );
 
-    saveMutation.mutate(patch, {
-      onSuccess: (data) => {
-        setHasChanges(false);
-        setSaveDialogOpen(false);
-        setCustomDatePrices(new Map(Object.entries(data.dateOverrides)));
-        syncBaselineFromDto(data);
-        if (options.baseRateScope === 'all_future') {
-          const defaults = propertyPricingDefaultsFromDto(data);
-          setWeekdayRate(defaults.weekdayNightlyRate);
-          setWeekendRate(defaults.weekendNightlyRate);
-        }
-        setFees(feesFromPricingDefaults(propertyPricingDefaultsFromDto(data)));
-      },
-    });
+    try {
+      const data = await saveMutation.mutateAsync(patch);
+      setHasChanges(false);
+      setSaveDialogOpen(false);
+      setCustomDatePrices(new Map(Object.entries(data.dateOverrides)));
+      syncBaselineFromDto(data);
+      if (options.baseRateScope === 'all_future') {
+        const defaults = propertyPricingDefaultsFromDto(data);
+        setWeekdayRate(defaults.weekdayNightlyRate);
+        setWeekendRate(defaults.weekendNightlyRate);
+      }
+      setFees(feesFromPricingDefaults(propertyPricingDefaultsFromDto(data)));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSaveConfirm = (options: PricingSaveOptions) => {
+    void savePricing(options);
+  };
+
+  const saveFeesOnly = async (): Promise<boolean> => {
+    try {
+      const data = await saveMutation.mutateAsync(buildFeesOnlySavePatch(fees));
+      setHasChanges(false);
+      syncBaselineFromDto(data);
+      setFees(feesFromPricingDefaults(propertyPricingDefaultsFromDto(data)));
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleFeesOnlySave = () => {
     const baseline = baselineRef.current;
     if (!baseline || !pricingFormHasFeeChanges(baseline, fees)) return;
 
-    saveMutation.mutate(buildFeesOnlySavePatch(fees), {
-      onSuccess: (data) => {
-        setHasChanges(false);
-        syncBaselineFromDto(data);
-        setFees(feesFromPricingDefaults(propertyPricingDefaultsFromDto(data)));
-      },
-    });
+    void saveFeesOnly();
   };
 
   const handleSaveClick = () => {
@@ -550,6 +564,28 @@ export function PropertyPricingPage() {
     return first ? baseNightlyForDate(first) : weekdayRate;
   }, [baseNightlyForDate, selectedDates, weekdayRate]);
 
+  const baselineForGuard = baselineRef.current;
+  const baseRatesDirty =
+    baselineForGuard != null &&
+    pricingFormHasBaseRateChanges(baselineForGuard, weekdayRate, weekendRate);
+  const ratesDirty =
+    hasChanges &&
+    baselineForGuard != null &&
+    (baseRatesDirty || pricingFormHasFeeChanges(baselineForGuard, fees));
+
+  useUnsavedChangesGuard({
+    isDirty: ratesDirty,
+    enabled: canEditRates,
+    onSave: () =>
+      baseRatesDirty
+        ? savePricing({ overrideCustomRates: false, baseRateScope: 'all_future' })
+        : saveFeesOnly(),
+  });
+
+  if (isLoading && !hydratedRef.current) {
+    return <PricingPageBodySkeleton />;
+  }
+
   if (isError) {
     return (
       <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
@@ -558,7 +594,7 @@ export function PropertyPricingPage() {
     );
   }
 
-  const smartPricingHeroAction = canEditRates ? (
+  const smartPricingHeroAction = canSmartPricing ? (
     <span className="relative inline-flex">
       <MobileHeroActionButton aria-label="Smart Pricing" onClick={() => setSmartPricingOpen(true)}>
         <Wand2 className="size-5" aria-hidden />
@@ -586,9 +622,9 @@ export function PropertyPricingPage() {
     ) : undefined;
 
   const desktopActions =
-    canViewChannels || canEditRates ? (
+    canViewChannels || canSmartPricing ? (
       <span className="inline-flex items-center gap-2">
-        {canEditRates ? (
+        {canSmartPricing ? (
           <TierBadgeAnchor feature="smartPricing">
             <Button
               type="button"
@@ -688,7 +724,7 @@ export function PropertyPricingPage() {
         />
       ) : null}
 
-      {canEditRates ? (
+      {canSmartPricing ? (
         <SmartPricingDialog open={smartPricingOpen} onOpenChange={setSmartPricingOpen} />
       ) : null}
 

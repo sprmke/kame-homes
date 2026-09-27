@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 
 import { Building2, Car, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -15,6 +15,7 @@ import type {
   SetupGuideStepProgress,
 } from '@/features/dashboard/setup-guide/lib/setupGuideTypes';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { ParkingFlowStepper } from '@/components/parking/ParkingFlowStepper';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,7 @@ import {
   ResponsiveModalDescription,
   ResponsiveModalFooter,
 } from '@/components/ui/responsive-modal';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 
 function groupLabel(step: SetupGuideStep): string {
@@ -126,8 +128,25 @@ function sectionHeading(type: SetupGuideStep['group']['type']): string | null {
 export function SetupGuideOverlay() {
   const { open, closeGuide, steps, progress, activeStepId, goToStep, goNext, goBack, skipCurrent } =
     useSetupGuide();
-  const { registerSave, runSave, hasSave } = useSetupGuideSaveBridge();
+  const { registerSave, runSave, runGuardSave, hasSave, guard } = useSetupGuideSaveBridge();
   const [saving, setSaving] = useState(false);
+  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  // Radix can fire a stray outside-dismiss right after the confirm unmounts; ignore it.
+  const ignoreCloseUntilRef = useRef(0);
+  const stepDirty = Boolean(guard?.isDirty);
+
+  useUnsavedChangesGuard({
+    isDirty: open && stepDirty && !guard?.selfGuarded,
+    onSave: runGuardSave,
+  });
+
+  /** Runs `action` now, or after the user resolves the unsaved-changes prompt. */
+  const guardLeave = (action: () => void) => {
+    if (stepDirty) setPendingLeave(() => action);
+    else action();
+  };
+  const guardedGoToStep = (stepId: string) => guardLeave(() => goToStep(stepId));
 
   const activeIndex = Math.max(
     0,
@@ -175,88 +194,126 @@ export function SetupGuideOverlay() {
   };
 
   return (
-    <ResponsiveModal
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) closeGuide({ dismiss: true });
-      }}
-    >
-      <ResponsiveModalContent
-        sheetLayout="split"
-        showCloseButton={false}
-        className={cn(
-          'flex max-h-[min(92dvh,860px)] w-[min(100vw-1rem,72rem)] flex-col gap-0 overflow-hidden p-0 sm:p-0',
-          'sm:max-w-[min(100vw-1.5rem,72rem)] lg:max-w-[min(100vw-2rem,76rem)]'
-        )}
+    <>
+      <ResponsiveModal
+        open={open}
+        onOpenChange={(next) => {
+          if (next || Date.now() < ignoreCloseUntilRef.current) return;
+          guardLeave(() => closeGuide({ dismiss: true }));
+        }}
       >
-        <ResponsiveModalDescription className="sr-only">
-          Guided setup for your organization and listings.
-        </ResponsiveModalDescription>
+        <ResponsiveModalContent
+          sheetLayout="split"
+          showCloseButton={false}
+          className={cn(
+            'flex max-h-[min(92dvh,860px)] w-[min(100vw-1rem,72rem)] flex-col gap-0 overflow-hidden p-0 sm:p-0',
+            'sm:max-w-[min(100vw-1.5rem,72rem)] lg:max-w-[min(100vw-2rem,76rem)]'
+          )}
+        >
+          <ResponsiveModalDescription className="sr-only">
+            Guided setup for your organization and listings.
+          </ResponsiveModalDescription>
 
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <SetupGuideNav
-            entries={progress.steps}
-            activeStepId={activeStep?.id ?? null}
-            onSelect={goToStep}
-          />
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            <SetupGuideNav
+              entries={progress.steps}
+              activeStepId={activeStep?.id ?? null}
+              onSelect={guardedGoToStep}
+            />
 
-          <div className="bg-background flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {listingActive && listingEntries.length > 1 ? (
-              <header className="border-border bg-background shrink-0 border-b px-3 py-3 sm:px-5">
-                <SetupGuideListingStepper
-                  entries={listingEntries}
-                  activeStepId={activeStep?.id ?? null}
-                  onSelect={goToStep}
-                />
-              </header>
-            ) : cinematic ? (
-              <ResponsiveModalDescription className="sr-only">
-                {activeStep?.title ?? 'Setup'}
-              </ResponsiveModalDescription>
-            ) : null}
-
-            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-3 sm:px-5 sm:py-4">
-              <div key={activeStep?.id ?? 'setup'} className="motion-safe:animate-setup-guide-pane">
-                <SetupGuideSaveProvider registerSave={registerSave}>
-                  <Suspense fallback={<SetupGuideStepSkeleton kind={activeStep?.kind} />}>
-                    <SetupGuideStepBody step={activeStep} />
-                  </Suspense>
-                </SetupGuideSaveProvider>
-              </div>
-            </div>
-
-            <ResponsiveModalFooter className="border-border bg-background shrink-0 gap-2 border-t px-3 py-2.5 sm:px-4">
-              {footerSkip && !isLast ? (
-                <Button type="button" variant="ghost" className="min-h-11" onClick={skipCurrent}>
-                  Skip
-                </Button>
+            <div className="bg-background flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              {listingActive && listingEntries.length > 1 ? (
+                <header className="border-border bg-background shrink-0 border-b px-3 py-3 sm:px-5">
+                  <SetupGuideListingStepper
+                    entries={listingEntries}
+                    activeStepId={activeStep?.id ?? null}
+                    onSelect={guardedGoToStep}
+                  />
+                </header>
+              ) : cinematic ? (
+                <ResponsiveModalDescription className="sr-only">
+                  {activeStep?.title ?? 'Setup'}
+                </ResponsiveModalDescription>
               ) : null}
-              <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  disabled={isFirst}
-                  onClick={goBack}
+
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-3 sm:px-5 sm:py-4">
+                <div
+                  key={activeStep?.id ?? 'setup'}
+                  className="motion-safe:animate-setup-guide-pane"
                 >
-                  <ChevronLeft className="size-4" aria-hidden />
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  className="min-h-11"
-                  onClick={() => void handlePrimary()}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving…' : isLast ? 'Finish' : hasSave ? 'Save & continue' : 'Next'}
-                  {!saving && !isLast ? <ChevronRight className="size-4" aria-hidden /> : null}
-                </Button>
+                  <SetupGuideSaveProvider registerSave={registerSave}>
+                    <Suspense fallback={<SetupGuideStepSkeleton kind={activeStep?.kind} />}>
+                      <SetupGuideStepBody step={activeStep} />
+                    </Suspense>
+                  </SetupGuideSaveProvider>
+                </div>
               </div>
-            </ResponsiveModalFooter>
+
+              <ResponsiveModalFooter className="border-border bg-background shrink-0 gap-2 border-t px-3 py-2.5 sm:px-4">
+                {footerSkip && !isLast ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => guardLeave(skipCurrent)}
+                  >
+                    Skip
+                  </Button>
+                ) : null}
+                <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11"
+                    disabled={isFirst}
+                    onClick={() => guardLeave(goBack)}
+                  >
+                    <ChevronLeft className="size-4" aria-hidden />
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    className="min-h-11"
+                    onClick={() => void handlePrimary()}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving…' : isLast ? 'Finish' : hasSave ? 'Save & continue' : 'Next'}
+                    {!saving && !isLast ? <ChevronRight className="size-4" aria-hidden /> : null}
+                  </Button>
+                </div>
+              </ResponsiveModalFooter>
+            </div>
           </div>
-        </div>
-      </ResponsiveModalContent>
-    </ResponsiveModal>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+      <UnsavedChangesDialog
+        open={pendingLeave !== null}
+        action="close"
+        isSaving={leaveSaving}
+        onKeepEditing={() => {
+          ignoreCloseUntilRef.current = Date.now() + 400;
+          setPendingLeave(null);
+        }}
+        onDiscard={() => {
+          const action = pendingLeave;
+          setPendingLeave(null);
+          action?.();
+        }}
+        onSave={async () => {
+          const action = pendingLeave;
+          setLeaveSaving(true);
+          try {
+            const ok = await runGuardSave();
+            setPendingLeave(null);
+            if (ok) action?.();
+          } catch {
+            setPendingLeave(null);
+          } finally {
+            setLeaveSaving(false);
+          }
+        }}
+      />
+    </>
   );
 }
 

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 /** UI toggles — each row maps to one or more `AiFeature` ids from the server allowlist. */
@@ -71,7 +72,7 @@ export function AiPlatformKillSwitchCard() {
     });
   };
 
-  const saveVoiceAllowlist = () => {
+  const saveVoiceAllowlist = async (): Promise<boolean> => {
     const ids = Array.from(
       new Set(
         voiceAllowlistDraft
@@ -87,10 +88,22 @@ export function AiPlatformKillSwitchCard() {
       )
     ) {
       toast.error('Enter valid property IDs');
-      return;
+      return false;
     }
-    save({ voiceReceptionistRolloutPropertyIds: ids });
+    try {
+      await update.mutateAsync({ voiceReceptionistRolloutPropertyIds: ids });
+      toast.success('AI platform settings updated');
+      return true;
+    } catch (err: unknown) {
+      toast.error(friendlyToastError(err, 'Could not save setting'));
+      return false;
+    }
   };
+
+  useUnsavedChangesGuard({
+    isDirty: voiceAllowlistDraft !== (data?.voiceReceptionistRolloutPropertyIds ?? []).join('\n'),
+    onSave: saveVoiceAllowlist,
+  });
 
   const handleEnabledChange = (enabled: boolean) => {
     save({ enabled });
@@ -350,7 +363,7 @@ export function AiPlatformKillSwitchCard() {
         type="button"
         variant="outline"
         disabled={featuresDisabled}
-        onClick={saveVoiceAllowlist}
+        onClick={() => void saveVoiceAllowlist()}
         className="min-h-[44px] self-start"
       >
         Save allowlist

@@ -85,7 +85,7 @@ export function SuperAdminOverviewKpis({ kpis }: { kpis: SuperAdminOverview['kpi
       <StatCard
         title="AI spend"
         value={`$${kpis.aiSpendUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-        to={superAdminPaths.settings}
+        to={superAdminPaths.aiTab('usage')}
         icon={Sparkles}
         iconClassName="text-violet-600 dark:text-violet-400"
         iconBgClassName="bg-violet-100 dark:bg-violet-900/30"
