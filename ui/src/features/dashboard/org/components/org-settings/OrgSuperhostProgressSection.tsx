@@ -1,86 +1,154 @@
-import { Award, CheckCircle2, Circle, Shield } from 'lucide-react';
+import { AlertCircle, Award, CheckCircle2, Circle } from 'lucide-react';
 
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { useOrgSuperhostProgress } from '@/features/dashboard/org/hooks/useOrgSuperhostProgress';
-import type {
-  OrgSuperhostCriteriaSnapshot,
-  OrgSuperhostCriterionSnapshot,
-} from '@/features/dashboard/org/lib/orgSuperhost';
+import type { OrgSuperhostCriterionSnapshot } from '@/features/dashboard/org/lib/orgSuperhost';
+import {
+  countMetCriteria,
+  formatSuperhostAssessmentDate,
+  getSuperhostCriterionDisplay,
+  getSuperhostOverallState,
+  SUPERHOST_CRITERION_HELP,
+  SUPERHOST_CRITERION_LABELS,
+  SUPERHOST_SECTION_HELP,
+  type OrgSuperhostCriterionKey,
+  type SuperhostCriterionOutcome,
+  type SuperhostOverallState,
+} from '@/features/dashboard/org/lib/orgSuperhostDisplay';
 
-import { Badge } from '@/components/ui/badge';
+import { FieldHelpTooltip } from '@/components/forms/FieldLabel';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
-function formatAssessmentDate(iso: string | null | undefined): string {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('en-PH', {
-    timeZone: 'Asia/Manila',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+const CRITERION_KEYS = Object.keys(SUPERHOST_CRITERION_LABELS) as OrgSuperhostCriterionKey[];
+const TOTAL_GOALS = CRITERION_KEYS.length;
+
+function CriterionStatusIcon({ outcome }: { outcome: SuperhostCriterionOutcome }) {
+  if (outcome === 'met') {
+    return <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden />;
+  }
+  if (outcome === 'needs_work') {
+    return <AlertCircle className="size-4 shrink-0 text-amber-600" aria-hidden />;
+  }
+  return <Circle className="text-muted-foreground size-4 shrink-0" aria-hidden />;
 }
-
-function formatCriterionValue(key: string, row: OrgSuperhostCriterionSnapshot): string {
-  if (key === 'rating') return row.sampleSize > 0 ? row.value.toFixed(2) : '-';
-  if (key === 'responseRate') {
-    return row.sampleSize > 0 ? `${Math.round(row.value * 100)}%` : '-';
-  }
-  if (key === 'cancellationRate') {
-    return row.sampleSize > 0 ? `${(row.value * 100).toFixed(1)}%` : '-';
-  }
-  if (key === 'activity') {
-    if (row.metVia === 'hundred_nights') return `${row.totalNights ?? row.value} nights`;
-    return `${row.value} stays`;
-  }
-  return String(row.value);
-}
-
-function formatRequired(key: string, row: OrgSuperhostCriterionSnapshot): string {
-  if (key === 'rating') return `≥ ${row.required.toFixed(1)}`;
-  if (key === 'responseRate') return `≥ ${Math.round(row.required * 100)}%`;
-  if (key === 'cancellationRate') return `< ${row.required * 100}%`;
-  if (key === 'activity') {
-    return '≥ 10 stays or ≥ 100 nights';
-  }
-  return String(row.required);
-}
-
-const CRITERION_ROWS: { key: keyof OrgSuperhostCriteriaSnapshot; label: string }[] = [
-  { key: 'rating', label: 'Overall rating' },
-  { key: 'responseRate', label: 'Inbox response (24h)' },
-  { key: 'cancellationRate', label: 'Cancellation rate' },
-  { key: 'activity', label: 'Completed stays' },
-];
 
 function CriterionRow({
-  label,
   criterionKey,
   row,
 }: {
-  label: string;
-  criterionKey: string;
+  criterionKey: OrgSuperhostCriterionKey;
   row: OrgSuperhostCriterionSnapshot;
 }) {
-  const Icon = row.met ? CheckCircle2 : Circle;
+  const label = SUPERHOST_CRITERION_LABELS[criterionKey];
+  const help = SUPERHOST_CRITERION_HELP[criterionKey];
+  const display = getSuperhostCriterionDisplay(criterionKey, row);
+
   return (
-    <div className="border-border flex items-start justify-between gap-3 border-b py-3 last:border-b-0">
-      <div className="flex min-w-0 items-start gap-2">
-        <Icon
-          className={
-            row.met
-              ? 'mt-0.5 size-4 shrink-0 text-emerald-600'
-              : 'text-muted-foreground mt-0.5 size-4 shrink-0'
-          }
-          aria-hidden
-        />
+    <div
+      className={cn(
+        'flex items-center justify-between gap-3 border-b px-3 py-3 last:border-b-0',
+        display.outcome === 'met' && 'bg-emerald-500/[0.04]',
+        display.outcome === 'needs_work' && 'bg-amber-500/[0.04]'
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2.5">
+        <CriterionStatusIcon outcome={display.outcome} />
         <div className="min-w-0">
-          <p className="text-sm font-medium">{label}</p>
-          <p className="text-muted-foreground text-xs">
-            {formatCriterionValue(criterionKey, row)} · need {formatRequired(criterionKey, row)}
-            {row.sampleSize > 0 ? ` · n=${row.sampleSize}` : ''}
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <p className="text-sm font-medium">{label}</p>
+            <FieldHelpTooltip label={label} help={help} />
+          </div>
+          <p className="text-muted-foreground mt-0.5 text-xs">{display.summary}</p>
+        </div>
+      </div>
+      <span
+        className={cn(
+          'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums',
+          display.outcome === 'met' && 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+          display.outcome === 'needs_work' && 'bg-amber-500/15 text-amber-900 dark:text-amber-300',
+          display.outcome === 'building' && 'bg-muted text-muted-foreground'
+        )}
+      >
+        {display.outcomeLabel}
+      </span>
+    </div>
+  );
+}
+
+function SuperhostStatusBanner({
+  state,
+  metCount,
+  nextCheckLabel,
+}: {
+  state: SuperhostOverallState;
+  metCount: number;
+  nextCheckLabel: string;
+}) {
+  if (state === 'earned') {
+    return (
+      <div
+        className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-3"
+        role="status"
+      >
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+          <Award className="size-4" aria-hidden />
+        </div>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+            You&apos;re a Superhost
           </p>
+          <p className="text-muted-foreground text-xs">
+            Guests see your badge on listings. Next check · {nextCheckLabel}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'ready') {
+    return (
+      <div
+        className="border-primary/20 bg-primary/5 flex gap-3 rounded-xl border px-3.5 py-3"
+        role="status"
+      >
+        <div className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
+          <CheckCircle2 className="size-4" aria-hidden />
+        </div>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-semibold">Ready for the next check</p>
+          <p className="text-muted-foreground text-xs">
+            All {TOTAL_GOALS} goals met. Badge updates on {nextCheckLabel}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-muted/40 flex gap-3 rounded-xl border px-3.5 py-3" role="status">
+      <div className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
+        <Award className="size-4" aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="space-y-0.5">
+          <p className="text-sm font-semibold">Not a Superhost yet</p>
+          <p className="text-muted-foreground text-xs">
+            {metCount} of {TOTAL_GOALS} goals met. Next check · {nextCheckLabel}
+          </p>
+        </div>
+        <div
+          className="bg-muted h-1.5 overflow-hidden rounded-full"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={TOTAL_GOALS}
+          aria-valuenow={metCount}
+          aria-label={`${metCount} of ${TOTAL_GOALS} Superhost goals met`}
+        >
+          <div
+            className="bg-primary h-full rounded-full transition-[width] duration-300 ease-out"
+            style={{ width: `${(metCount / TOTAL_GOALS) * 100}%` }}
+          />
         </div>
       </div>
     </div>
@@ -91,24 +159,22 @@ export function OrgSuperhostProgressSection() {
   const { data, isLoading, isError } = useOrgSuperhostProgress();
 
   return (
-    <AdminSection id="trust" title="Trust" icon={Shield}>
+    <AdminSection id="superhost" title="Superhost" icon={Award} titleHelp={SUPERHOST_SECTION_HELP}>
       {isLoading ? (
         <div className="space-y-4" role="status" aria-live="polite" aria-label="Loading Superhost">
-          <div className="flex flex-wrap items-center gap-2" aria-hidden>
-            <Skeleton className="h-6 w-24 rounded-full" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <div className="border-border rounded-lg border px-3" aria-hidden>
-            {CRITERION_ROWS.map((row) => (
+          <Skeleton className="h-[4.5rem] w-full rounded-xl" aria-hidden />
+          <div className="border-border overflow-hidden rounded-lg border" aria-hidden>
+            {CRITERION_KEYS.map((key) => (
               <div
-                key={row.key}
-                className="border-border flex items-start gap-2 border-b py-3 last:border-b-0"
+                key={key}
+                className="border-border flex items-start gap-2.5 border-b px-3 py-3 last:border-b-0"
               >
                 <Skeleton className="mt-0.5 size-4 shrink-0 rounded-full" />
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <Skeleton className="h-4 w-36" />
                   <Skeleton className="h-3 w-48 max-w-full" />
                 </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
               </div>
             ))}
           </div>
@@ -117,23 +183,18 @@ export function OrgSuperhostProgressSection() {
         <p className="text-destructive text-sm">Could not load Superhost progress.</p>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {data.earned ? (
-              <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500">
-                <Award className="size-3.5" aria-hidden />
-                Superhost
-              </Badge>
-            ) : (
-              <Badge variant="secondary">Not earned</Badge>
-            )}
-            <span className="text-muted-foreground text-sm">
-              Next assessment · {formatAssessmentDate(data.nextAssessmentAt)}
-            </span>
-          </div>
+          <SuperhostStatusBanner
+            state={getSuperhostOverallState({
+              earned: data.earned,
+              allCriteriaMet: data.allCriteriaMet,
+            })}
+            metCount={countMetCriteria(data.criteria)}
+            nextCheckLabel={formatSuperhostAssessmentDate(data.nextAssessmentAt)}
+          />
 
-          <div className="border-border rounded-lg border px-3">
-            {CRITERION_ROWS.map(({ key, label }) => (
-              <CriterionRow key={key} label={label} criterionKey={key} row={data.criteria[key]} />
+          <div className="border-border overflow-hidden rounded-lg border">
+            {CRITERION_KEYS.map((key) => (
+              <CriterionRow key={key} criterionKey={key} row={data.criteria[key]} />
             ))}
           </div>
         </div>

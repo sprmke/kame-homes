@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { OtpCodeInput } from '@/features/guest/auth/components/OtpCodeInput';
 
-
 import {
   useSettingsVerification,
   type SettingsVerificationScope,

@@ -48,8 +48,6 @@ type Props = {
   onChange: (policy: CancellationPolicySettings) => void;
   /** When true, render controls only (no AdminSection card) for Page Editor. */
   embedded?: boolean;
-  /** Public Pages cross-link shown in the card header (Settings page only). */
-  headerAction?: ReactNode;
 };
 
 function graceLabel(hours: number): string {
@@ -114,7 +112,6 @@ export function PropertyCancellationPolicySection({
   markFieldInteracted,
   onChange,
   embedded = false,
-  headerAction,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const normalized = normalizeCancellationPolicySettings(policy);
@@ -322,7 +319,6 @@ export function PropertyCancellationPolicySection({
       title="Cancellation policy"
       icon={Shield}
       description="Refund rules when a guest cancels."
-      headerAction={headerAction}
     >
       <CancellationPolicyPreview
         policy={normalized}

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { MarketingResetConfirmDialog } from '@/features/dashboard/marketing/components/shared/MarketingResetConfirmDialog';
 import { PropertyLocationPicker } from '@/features/dashboard/org/components/property-settings/PropertyLocationPicker';
 import {
   buildGoogleMapsUrl,
@@ -14,6 +13,7 @@ import {
   type PropertyLocationFields,
 } from '@/features/dashboard/org/lib/propertyLocation';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -22,6 +22,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -48,16 +49,7 @@ export function PropertyLocationSettingsBlock({
   const [manageOpen, setManageOpen] = useState(false);
   const [session, setSession] = useState<PropertyLocationFields | null>(null);
   const [sessionBaseline, setSessionBaseline] = useState<PropertyLocationFields | null>(null);
-  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const suppressManageCloseRef = useRef(false);
-
-  const armSuppressManageClose = () => {
-    suppressManageCloseRef.current = true;
-    window.setTimeout(() => {
-      suppressManageCloseRef.current = false;
-    }, 0);
-  };
 
   const summaryAddress = value.address.trim() || 'No address set';
   const mapsUrl =
@@ -96,30 +88,15 @@ export function PropertyLocationSettingsBlock({
     setManageOpen(false);
     setSession(null);
     setSessionBaseline(null);
-    setDiscardConfirmOpen(false);
     setSaving(false);
   };
 
-  const requestCloseManage = () => {
-    if (saving) return;
-    if (!sessionDirty) {
-      closeManageClean();
-      return;
-    }
-    setDiscardConfirmOpen(true);
-  };
-
-  const discardManageSession = () => {
-    armSuppressManageClose();
-    closeManageClean();
-  };
-
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     if (!session || !canSave) {
       for (const fieldId of PROPERTY_LOCATION_MANAGE_FIELD_IDS) {
         onFieldInteract?.(fieldId);
       }
-      return;
+      return false;
     }
     const next = clonePropertyLocationFields(session);
     for (const fieldId of PROPERTY_LOCATION_MANAGE_FIELD_IDS) {
@@ -128,18 +105,30 @@ export function PropertyLocationSettingsBlock({
     if (!onPersist) {
       onChange(next);
       closeManageClean();
-      return;
+      return true;
     }
     setSaving(true);
     try {
       await onPersist(next);
       closeManageClean();
+      return true;
     } catch {
       // Parent surfaces toast; keep modal open with session intact.
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  const { onOpenChange: guardedOpenChange, dialogProps } = useGuardedClose({
+    open: manageOpen,
+    onOpenChange: (next) => {
+      if (next) openManage();
+      else closeManageClean();
+    },
+    isDirty: sessionDirty,
+    onSave: handleSave,
+  });
 
   const applySessionPatch = (patch: Partial<PropertyLocationFields>) => {
     setSession((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -227,12 +216,8 @@ export function PropertyLocationSettingsBlock({
       <ResponsiveModal
         open={manageOpen}
         onOpenChange={(open) => {
-          if (open) {
-            openManage();
-            return;
-          }
-          if (suppressManageCloseRef.current || discardConfirmOpen || saving) return;
-          requestCloseManage();
+          if (!open && saving) return;
+          guardedOpenChange(open);
         }}
       >
         <ResponsiveModalContent
@@ -273,19 +258,7 @@ export function PropertyLocationSettingsBlock({
         </ResponsiveModalContent>
       </ResponsiveModal>
 
-      <MarketingResetConfirmDialog
-        open={discardConfirmOpen}
-        onOpenChange={(open) => {
-          if (!open) armSuppressManageClose();
-          setDiscardConfirmOpen(open);
-        }}
-        title="Discard unsaved changes?"
-        description="Make sure you fill up all required fields and save your changes."
-        confirmLabel="Discard"
-        overlayClassName="z-[110]"
-        contentClassName="z-[111]"
-        onConfirm={discardManageSession}
-      />
+      <UnsavedChangesDialog {...dialogProps} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { orgParkingSearchHaystack } from '@/features/dashboard/org/lib/orgParkingDisplay';
 import type { Parking } from '@/features/dashboard/org/types';
 
-export type OrgParkingsViewMode = 'grid' | 'list';
+export type OrgParkingsViewMode = 'table' | 'grid' | 'list';
 
 export type OrgParkingsFilters = {
   search: string;

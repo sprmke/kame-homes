@@ -58,6 +58,7 @@ import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeMo
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import { useHostRewardOffer } from '@/features/dashboard/setup-guide/hooks/useHostRewardOffer';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -66,6 +67,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import { PLATFORM_APP_NAME, platformProductLabel } from '@/lib/platformBranding';
 import { cn } from '@/lib/utils';
@@ -669,12 +671,6 @@ export function GetVerifiedModal({
 
   const resolvedOpen = embedded || open;
 
-  const handleOpenChange = (next: boolean) => {
-    if (embedded) return;
-    if (blockDismiss && !next) return;
-    onOpenChange(next);
-  };
-
   const [validId, setValidId] = useState<ProofSlot>(emptySlot);
   const [socialProof, setSocialProof] = useState<ProofSlot>(emptySlot);
 
@@ -686,6 +682,34 @@ export function GetVerifiedModal({
   const [hostTouched, setHostTouched] = useState(false);
   const [verifiedTouched, setVerifiedTouched] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const isDirty = [validId, socialProof, selfie, platformAdmin, businessPermit].some(
+    (slot) => slot.file !== null
+  );
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open: resolvedOpen,
+    onOpenChange,
+    isDirty,
+    onSave: async () => {
+      if (validId.file || socialProof.file) {
+        if (!(await handleSubmitHost())) return false;
+      }
+      if (selfie.file || platformAdmin.file || businessPermit.file) {
+        if (!(await handleSubmitVerified())) return false;
+      }
+      return true;
+    },
+  });
+
+  const handleOpenChange = (next: boolean) => {
+    if (embedded) return;
+    if (blockDismiss && !next) return;
+    guardedOpenChange(next);
+  };
 
   useEffect(() => {
     if (!resolvedOpen || !org) return;
@@ -754,10 +778,10 @@ export function GetVerifiedModal({
     setter({ file, previewUrl, path: null });
   };
 
-  const handleSubmitHost = async () => {
+  const handleSubmitHost = async (): Promise<boolean> => {
     setHostTouched(true);
     setUploadError(null);
-    if (!org || !canSubmitHost) return;
+    if (!org || !canSubmitHost) return false;
     setSubmitting('base');
     try {
       if (validId.file) {
@@ -779,23 +803,25 @@ export function GetVerifiedModal({
       await queryClient.invalidateQueries({ queryKey: ORGANIZATIONS_QUERY_KEY });
       toast.success(hostChangesRequested ? 'Verification resubmitted' : 'Verification submitted');
       if (!embedded) onOpenChange(false);
+      return true;
     } catch (err) {
       if (isAiQuotaError(err)) {
         handleAiMutationError(err as Error);
-        return;
+        return false;
       }
       toast.error(err instanceof Error ? err.message : 'Submission failed');
+      return false;
     } finally {
       setSubmitting(null);
     }
   };
 
-  const handleSubmitVerified = async () => {
+  const handleSubmitVerified = async (): Promise<boolean> => {
     setVerifiedTouched(true);
-    if (!org || !canSubmitVerified) return;
+    if (!org || !canSubmitVerified) return false;
     if (!canSubmitRecommended) {
       if (!recommendedEntitlementsLoading) openUpgradeModal('recommendedBadgeEligible');
-      return;
+      return false;
     }
     setSubmitting('enhanced');
     try {
@@ -835,13 +861,15 @@ export function GetVerifiedModal({
           query.queryKey.some((part) => part === 'entitlements' || part === 'org-plan'),
       });
       toast.success('Recommended tier submitted');
-      if (!embedded) handleOpenChange(false);
+      if (!embedded && !blockDismiss) onOpenChange(false);
+      return true;
     } catch (err) {
       if (isAiQuotaError(err)) {
         handleAiMutationError(err as Error);
-        return;
+        return false;
       }
       toast.error(err instanceof Error ? err.message : 'Submission failed');
+      return false;
     } finally {
       setSubmitting(null);
     }
@@ -1005,81 +1033,84 @@ export function GetVerifiedModal({
   }
 
   return (
-    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveModalContent
-        sheetLayout="split"
-        showCloseButton={!blockDismiss}
-        onPointerDownOutside={(event) => {
-          if (blockDismiss) event.preventDefault();
-        }}
-        onInteractOutside={(event) => {
-          if (blockDismiss) event.preventDefault();
-        }}
-        onEscapeKeyDown={(event) => {
-          if (blockDismiss) event.preventDefault();
-        }}
-        className={cn(
-          'flex h-[min(90dvh,40rem)] max-h-[min(90dvh,40rem)] w-[min(calc(100vw-1.5rem),40rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
-          'sm:h-[min(90dvh,42rem)] sm:max-h-[min(90dvh,42rem)] sm:w-[min(92vw,40rem)] sm:max-w-[40rem] sm:p-0'
-        )}
-      >
-        <ResponsiveModalHeader
+    <>
+      <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
+        <ResponsiveModalContent
+          sheetLayout="split"
+          showCloseButton={!blockDismiss}
+          onPointerDownOutside={(event) => {
+            if (blockDismiss) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (blockDismiss) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (blockDismiss) event.preventDefault();
+          }}
           className={cn(
-            'border-border shrink-0 space-y-3 border-b px-5 pb-3.5 pt-5 text-left sm:px-6',
-            blockDismiss && 'pr-5 sm:pr-6'
+            'flex h-[min(90dvh,40rem)] max-h-[min(90dvh,40rem)] w-[min(calc(100vw-1.5rem),40rem)] max-w-none flex-col gap-0 overflow-hidden p-0',
+            'sm:h-[min(90dvh,42rem)] sm:max-h-[min(90dvh,42rem)] sm:w-[min(92vw,40rem)] sm:max-w-[40rem] sm:p-0'
           )}
         >
-          <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
-            <span
-              className={cn(
-                'flex size-9 shrink-0 items-center justify-center rounded-full',
-                hostChangesRequested
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                  : 'bg-primary/10 text-primary'
-              )}
-            >
-              {hostChangesRequested ? (
-                <AlertCircle className="size-5" aria-hidden />
-              ) : (
-                <BadgeCheck className="size-5" aria-hidden />
-              )}
-            </span>
-            {hostChangesRequested
-              ? 'Changes requested'
-              : stepIndex === 1
-                ? 'Get Recommended'
-                : 'Get Verified'}
-          </ResponsiveModalTitle>
-          {!blockDismiss && lockedStep == null ? (
-            <VerificationTierProgress
-              tiers={tiers}
-              activeStep={activeStep}
-              onStepChange={setActiveStep}
-              hostRejectionKind={detail.baseRejectionKind}
-              verifiedRejectionKind={detail.enhancedRejectionKind}
-            />
-          ) : null}
-        </ResponsiveModalHeader>
+          <ResponsiveModalHeader
+            className={cn(
+              'border-border shrink-0 space-y-3 border-b px-5 pb-3.5 pt-5 text-left sm:px-6',
+              blockDismiss && 'pr-5 sm:pr-6'
+            )}
+          >
+            <ResponsiveModalTitle className="flex items-center gap-2.5 text-left text-base font-semibold sm:text-lg">
+              <span
+                className={cn(
+                  'flex size-9 shrink-0 items-center justify-center rounded-full',
+                  hostChangesRequested
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                    : 'bg-primary/10 text-primary'
+                )}
+              >
+                {hostChangesRequested ? (
+                  <AlertCircle className="size-5" aria-hidden />
+                ) : (
+                  <BadgeCheck className="size-5" aria-hidden />
+                )}
+              </span>
+              {hostChangesRequested
+                ? 'Changes requested'
+                : stepIndex === 1
+                  ? 'Get Recommended'
+                  : 'Get Verified'}
+            </ResponsiveModalTitle>
+            {!blockDismiss && lockedStep == null ? (
+              <VerificationTierProgress
+                tiers={tiers}
+                activeStep={activeStep}
+                onStepChange={setActiveStep}
+                hostRejectionKind={detail.baseRejectionKind}
+                verifiedRejectionKind={detail.enhancedRejectionKind}
+              />
+            ) : null}
+          </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 py-4 [-webkit-overflow-scrolling:touch] sm:px-6">
-          <div className="pb-1">{flowBody}</div>
-        </div>
+          <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 py-4 [-webkit-overflow-scrolling:touch] sm:px-6">
+            <div className="pb-1">{flowBody}</div>
+          </div>
 
-        <ResponsiveModalFooter className="border-border shrink-0 gap-2 border-t px-5 py-3.5 sm:flex-row sm:justify-end sm:px-6 sm:py-4">
-          {!blockDismiss ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={submitting !== null}
-            >
-              Close
-            </Button>
-          ) : null}
-          {submitActions}
-        </ResponsiveModalFooter>
-      </ResponsiveModalContent>
-    </ResponsiveModal>
+          <ResponsiveModalFooter className="border-border shrink-0 gap-2 border-t px-5 py-3.5 sm:flex-row sm:justify-end sm:px-6 sm:py-4">
+            {!blockDismiss ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={requestClose}
+                disabled={submitting !== null}
+              >
+                Close
+              </Button>
+            ) : null}
+            {submitActions}
+          </ResponsiveModalFooter>
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }
 

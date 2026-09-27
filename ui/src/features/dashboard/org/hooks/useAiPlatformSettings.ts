@@ -9,6 +9,7 @@ import {
 
 import { supabase } from '@/lib/supabase/client';
 
+/** `enabled` is the only host-writable field; limits are platform-managed (read-only). */
 export type AiPlatformOrgSettingsDto = {
   organizationId: string;
   enabled: boolean;
@@ -102,12 +103,7 @@ export function useUpdateAiPlatformSettings() {
   const { orgSlug, orgId } = useOrgScopeKey();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: {
-      enabled?: boolean;
-      dailyCallLimit?: number;
-      monthlyCallLimit?: number;
-      dailyCostUsdLimit?: number;
-    }) =>
+    mutationFn: (patch: { enabled: boolean }) =>
       fetchOrgAi<AiPlatformOrgSettingsDto>(
         scopedOrgFunctionsUrl('ai-platform-settings', orgSlug, orgId),
         {
@@ -118,6 +114,8 @@ export function useUpdateAiPlatformSettings() {
     onSuccess: (data) => {
       qc.setQueryData(settingsKey(orgSlug, orgId), data);
       qc.invalidateQueries({ queryKey: usageKey(orgSlug, orgId) });
+      // Org master syncs every property.enabled — refresh property AI caches.
+      qc.invalidateQueries({ queryKey: ['property'], exact: false });
     },
   });
 }
@@ -139,13 +137,6 @@ export type AiPlatformPropertySettingsDto = {
   propertyId: string;
   organizationId: string;
   enabled: boolean;
-  dailyCallLimit: number | null;
-  monthlyCallLimit: number | null;
-  dailyCostUsdLimit: number | null;
-  imageMonthlyCreditCap: number | null;
-  videoMonthlyCreditCap: number | null;
-  allowPremiumImage: boolean;
-  allowPremiumVideo: boolean;
   updatedAt: string | null;
 };
 
@@ -168,14 +159,7 @@ export function useUpdateAiPlatformPropertySettings() {
   const propertyId = usePropertyIdParam();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: {
-      enabled?: boolean;
-      dailyCallLimit?: number | null;
-      monthlyCallLimit?: number | null;
-      dailyCostUsdLimit?: number | null;
-      imageMonthlyCreditCap?: number | null;
-      videoMonthlyCreditCap?: number | null;
-    }) =>
+    mutationFn: (patch: { enabled: boolean }) =>
       fetchOrgAi<AiPlatformPropertySettingsDto>(
         scopedFunctionsUrl('/ai-platform-property-settings', propertyId),
         {

@@ -30,12 +30,11 @@ import {
   PropertySettingsSectionAlert,
   SettingsField,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
-import { PublicPagesCrossLink } from '@/features/dashboard/org/components/property-settings/PublicPagesCrossLink';
-import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { TowerUnitConflictAlert } from '@/features/dashboard/org/components/TowerUnitConflictAlert';
 import { useResidenceUnitTypes } from '@/features/dashboard/org/hooks/useResidenceUnitTypes';
 import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
+import { absoluteGuestPropertyUrl } from '@/features/dashboard/org/lib/guestPublicPaths';
 import {
   HOUSE_RULE_CUSTOM_MAX_LENGTH,
   MUTUALLY_EXCLUSIVE_HOUSE_RULES,
@@ -67,6 +66,7 @@ import { isValidUnitNumber } from '@/features/dashboard/org/lib/propertyTowerUni
 import type { PropertyTowerUnitConflict } from '@/features/dashboard/org/lib/propertyTowerUnitConflict';
 
 import { AvailabilityCheckInput } from '@/components/AvailabilityCheckInput';
+import { ReadonlySlugField } from '@/components/forms/ReadonlySlugField';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -99,7 +99,6 @@ type ProfileSectionsProps = {
   draft: PropertyProfileDraft;
   onChange: <K extends keyof PropertyProfileDraft>(key: K, value: PropertyProfileDraft[K]) => void;
   disabled?: boolean;
-  propertySlugPrefix: string;
   slugPreview: string;
   towerConflict: PropertyTowerUnitConflict | null;
   nameUnavailable?: boolean;
@@ -133,7 +132,6 @@ export function PropertyProfileMainSections({
   draft,
   onChange,
   disabled = false,
-  propertySlugPrefix,
   slugPreview,
   towerConflict,
   nameUnavailable = false,
@@ -165,13 +163,6 @@ export function PropertyProfileMainSections({
   const fieldError = resolveFieldError;
   const lock = (sectionId: PropertySettingsSectionId) =>
     disabled || Boolean(sectionEditLocked[sectionId]);
-
-  /** Shown only on the full Settings page (not Setup Guide's embedded/inline mode). */
-  const orgContext = useOptionalOrgContext();
-  const publicPagesCrossLink =
-    !embedded && orgContext ? (
-      <PublicPagesCrossLink orgSlug={orgContext.orgSlug} propertySlug={orgContext.propertySlug} />
-    ) : null;
 
   const setField = <K extends keyof PropertyProfileDraft>(
     key: K,
@@ -313,49 +304,44 @@ export function PropertyProfileMainSections({
           icon={Info}
           description="Name, contact details, and brand color."
         >
-          <SettingsField
-            id="property-name"
-            label="Property Name"
-            required
-            error={
-              fieldError('property-name') ??
-              (nameUnavailable
-                ? (nameConflictMessage ?? 'A property with this name already exists')
-                : null)
-            }
-            help="This is the name guests will see when searching for your property."
-          >
-            <AvailabilityCheckInput
+          <FieldGrid>
+            <SettingsField
               id="property-name"
-              value={draft.name}
-              onChange={(event) => setField('name', event.target.value, 'property-name')}
-              disabled={lock('basic')}
-              placeholder="Enter property name"
-              maxLength={120}
-              aria-invalid={Boolean(fieldError('property-name') || nameUnavailable)}
-              className={cn(
-                (fieldError('property-name') || nameUnavailable) && 'border-destructive'
-              )}
-              checkState={nameAvailabilityState}
-            />
-          </SettingsField>
+              label="Property Name"
+              required
+              error={
+                fieldError('property-name') ??
+                (nameUnavailable
+                  ? (nameConflictMessage ?? 'A property with this name already exists')
+                  : null)
+              }
+              help="This is the name guests will see when searching for your property."
+            >
+              <AvailabilityCheckInput
+                id="property-name"
+                value={draft.name}
+                onChange={(event) => setField('name', event.target.value, 'property-name')}
+                disabled={lock('basic')}
+                placeholder="Enter property name"
+                maxLength={120}
+                aria-invalid={Boolean(fieldError('property-name') || nameUnavailable)}
+                className={cn(
+                  (fieldError('property-name') || nameUnavailable) && 'border-destructive'
+                )}
+                checkState={nameAvailabilityState}
+              />
+            </SettingsField>
 
-          <SettingsField id="property-slug" label="URL Slug">
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="text-muted-foreground truncate text-sm">{propertySlugPrefix}</span>
-              <Input
+            <SettingsField id="property-slug" label="URL Slug">
+              <ReadonlySlugField
                 id="property-slug"
                 value={slugPreview}
-                readOnly
+                copyUrl={absoluteGuestPropertyUrl(slugPreview)}
                 disabled={lock('basic')}
                 placeholder="property-slug"
-                className="bg-muted/40 max-w-xs"
-                autoComplete="off"
-                spellCheck={false}
-                aria-readonly="true"
               />
-            </div>
-          </SettingsField>
+            </SettingsField>
+          </FieldGrid>
 
           <BrandColorField
             id="property-brand-color"
@@ -718,7 +704,6 @@ export function PropertyProfileMainSections({
           title="Photos & Videos"
           icon={ImageIcon}
           description="Listing photos and videos."
-          headerAction={publicPagesCrossLink}
         >
           {propertySettingsSectionBanner('media', sectionMessages) ? (
             <PropertySettingsSectionAlert
@@ -741,7 +726,6 @@ export function PropertyProfileMainSections({
           title="Amenities"
           icon={Sparkles}
           description="What's included with the stay."
-          headerAction={publicPagesCrossLink}
         >
           {propertySettingsSectionBanner('amenities', sectionMessages) ? (
             <PropertySettingsSectionAlert
@@ -804,7 +788,6 @@ export function PropertyProfileMainSections({
           title="House Rules"
           icon={ListChecks}
           description="Rules guests see before they book."
-          headerAction={publicPagesCrossLink}
         >
           {embedded ? (
             <PropertyHouseRulesManageDialog
@@ -873,7 +856,6 @@ export function PropertyProfileMainSections({
           resolveFieldError={fieldError}
           markFieldInteracted={markFieldInteracted}
           onChange={(policy) => onChange('cancellationPolicy', policy)}
-          headerAction={publicPagesCrossLink}
         />
       ) : null}
 

@@ -193,7 +193,7 @@ export const COPY_PROPERTY_SETTINGS_GROUPS: CopyPropertySettingsGroupMeta[] = [
   },
   {
     id: 'aiOverrides',
-    label: 'AI Overrides',
+    label: 'AI features',
     category: 'settings',
     defaultOn: true,
     planFeature: 'aiMonthlyCreditAllowance',

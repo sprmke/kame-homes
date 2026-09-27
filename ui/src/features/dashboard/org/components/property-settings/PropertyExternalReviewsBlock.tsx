@@ -26,6 +26,7 @@ import {
   type PropertyExternalReview,
 } from '@/features/dashboard/org/lib/propertyExternalReviews';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -737,19 +738,15 @@ export function PropertyExternalReviewsBlock({
         }}
       />
 
-      <MarketingResetConfirmDialog
+      <UnsavedChangesDialog
         open={discardConfirmOpen}
-        onOpenChange={(open) => {
-          if (!open) armSuppressManageClose();
-          setDiscardConfirmOpen(open);
-          if (!open) setPendingLeave(null);
+        action="close"
+        onKeepEditing={() => {
+          armSuppressManageClose();
+          setDiscardConfirmOpen(false);
+          setPendingLeave(null);
         }}
-        title="Discard unsaved changes?"
-        description="Make sure you fill up all required fields and save your changes."
-        confirmLabel="Discard"
-        overlayClassName="z-[110]"
-        contentClassName="z-[111]"
-        onConfirm={() => {
+        onDiscard={() => {
           armSuppressManageClose();
           const action = pendingLeave;
           setPendingLeave(null);
