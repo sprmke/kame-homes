@@ -4,9 +4,11 @@ import {
   BookOpen,
   DollarSign,
   FileText,
+  History,
   Inbox,
   Megaphone,
   Settings,
+  Sparkles,
   Tags,
   Upload,
   Users,
@@ -160,6 +162,13 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
     icon: Tags,
   },
   {
+    id: 'pricing.smartPricing:edit',
+    name: 'Manage Smart Pricing',
+    description: 'Turn on autopilot, preview, and apply AI-suggested rates',
+    category: 'Pricing',
+    icon: Tags,
+  },
+  {
     id: 'maintenance:view',
     name: 'View Maintenance',
     description: 'View upkeep reminders',
@@ -238,8 +247,15 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
   },
   {
     id: 'marketing.generate:add',
-    name: 'Generate with AI',
-    description: 'AI calendar, design, and video generation',
+    name: 'Generate AI text',
+    description: 'AI captions and template designs',
+    category: 'Marketing',
+    icon: Megaphone,
+  },
+  {
+    id: 'marketing.generate.image:add',
+    name: 'Generate AI image',
+    description: 'AI image generation on the Generate tab (uses AI credits)',
     category: 'Marketing',
     icon: Megaphone,
   },
@@ -483,8 +499,8 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
   },
   {
     id: 'settings.aiOverrides:edit',
-    name: 'Edit AI overrides',
-    description: 'Property AI platform overrides',
+    name: 'Toggle AI',
+    description: 'Turn AI on or off for the property',
     category: 'Settings',
     icon: Settings,
   },
@@ -628,6 +644,27 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
     category: 'Analytics',
     icon: BarChart3,
   },
+  {
+    id: 'analytics.aiReview:add',
+    name: 'Generate AI review',
+    description: 'Run the AI performance review (uses AI credits)',
+    category: 'Analytics',
+    icon: BarChart3,
+  },
+  {
+    id: 'assistant:view',
+    name: 'Use AI Assistant',
+    description: 'Open the dashboard AI assistant',
+    category: 'AI Assistant',
+    icon: Sparkles,
+  },
+  {
+    id: 'activity:view',
+    name: 'View Activity',
+    description: 'View the activity and audit log for this property',
+    category: 'Activity',
+    icon: History,
+  },
 ];
 
 /** Seeded template grants (Phase 3–6 leaves). */
@@ -662,9 +699,10 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<string, string[]> = {
     'marketing.templates:edit',
     'marketing.templates:delete',
     'marketing.generate:add',
-    'marketing.generate.video:add',
     'marketing.publish:add',
     'analytics:view',
+    'assistant:view',
+    'activity:view',
   ],
   'Read Only': [
     'bookings:view',
@@ -677,6 +715,7 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<string, string[]> = {
     'team:view',
     'inbox:view',
     'analytics:view',
+    'activity:view',
   ],
 };
 

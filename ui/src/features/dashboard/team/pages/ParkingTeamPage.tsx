@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { Mail, Shield, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ import {
   useParkingTeamMutations,
 } from '@/features/dashboard/team/hooks/useParkingTeam';
 import { hasParkingPermission } from '@/features/dashboard/team/lib/parkingPermissions';
+import { defaultBaselineRolePermissions } from '@/features/dashboard/team/lib/customRoleFormSteps';
 import { isTeamMemberActive } from '@/features/dashboard/team/lib/teamMemberAccess';
 import { canEditPropertyMemberContact } from '@/features/dashboard/team/lib/teamMemberContact';
 import { countMembersWithRole } from '@/features/dashboard/team/lib/teamRoleHelpers';
@@ -39,7 +40,6 @@ import type { EditMemberContactSaveInput } from '@/features/dashboard/team/types
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { TeamPageSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SlidingTabs, SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
@@ -104,9 +104,9 @@ export function ParkingTeamPage() {
     setShowInviteDialog(true);
   };
 
-  const handleInvite = async () => {
+  const handleInvite = async (): Promise<boolean> => {
     const email = inviteEmail.trim();
-    if (!email) return;
+    if (!email) return false;
 
     try {
       await inviteMember.mutateAsync({
@@ -115,8 +115,10 @@ export function ParkingTeamPage() {
         roleId: inviteRoleId,
       });
       setShowInviteDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -137,9 +139,9 @@ export function ParkingTeamPage() {
     setShowContactDialog(true);
   };
 
-  const handleSaveContact = async (input: EditMemberContactSaveInput) => {
-    if (!selectedMember) return;
-    if (!canEditPropertyMemberContact(selectedMember, canManage)) return;
+  const handleSaveContact = async (input: EditMemberContactSaveInput): Promise<boolean> => {
+    if (!selectedMember) return false;
+    if (!canEditPropertyMemberContact(selectedMember, canManage)) return false;
 
     try {
       await updateMember.mutateAsync({
@@ -151,8 +153,10 @@ export function ParkingTeamPage() {
       toast.success('Member updated');
       setShowContactDialog(false);
       setSelectedMember(null);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -191,7 +195,7 @@ export function ParkingTeamPage() {
     setCustomRoleFormMode('create');
     setEditingCustomRoleId(null);
     setCustomRoleName('');
-    setCustomRolePermissions([]);
+    setCustomRolePermissions(defaultBaselineRolePermissions(customRoles));
     setShowCustomRoleDialog(true);
   };
 
@@ -207,9 +211,9 @@ export function ParkingTeamPage() {
     setShowCustomRoleDialog(true);
   };
 
-  const handleSaveCustomRole = async () => {
+  const handleSaveCustomRole = async (): Promise<boolean> => {
     const name = customRoleName.trim();
-    if (!name || customRolePermissions.length === 0) return;
+    if (!name || customRolePermissions.length === 0) return false;
 
     try {
       if (customRoleFormMode === 'create') {
@@ -225,8 +229,10 @@ export function ParkingTeamPage() {
         });
       }
       setShowCustomRoleDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -253,8 +259,6 @@ export function ParkingTeamPage() {
         : [...prev, permissionId]
     );
   };
-
-  const customRoleCount = useMemo(() => customRoles.length, [customRoles]);
 
   const inviteAction = canInvite ? (
     <TeamInviteTierBadgeAnchor className="w-full sm:w-auto">
@@ -310,43 +314,21 @@ export function ParkingTeamPage() {
                 value={selectedTab}
                 onValueChange={(value) => setSelectedTab(value as TeamTab)}
               >
-                <SlidingTabsList
-                  size="primary"
-                  remeasureDeps={[
-                    canInvite,
-                    canViewTeam,
-                    customRoleCount,
-                    members.length,
-                    invitations.length,
-                  ]}
-                >
+                <SlidingTabsList size="primary" remeasureDeps={[canInvite, canViewTeam]}>
                   <SlidingTabsTrigger value="members">
                     <Users className="size-4" aria-hidden />
                     <span className="hidden sm:inline">Members</span>
-                    <Badge variant="secondary" className="ml-1">
-                      {members.length}
-                    </Badge>
                   </SlidingTabsTrigger>
                   {canInvite ? (
                     <SlidingTabsTrigger value="invitations">
                       <Mail className="size-4" aria-hidden />
                       <span className="hidden sm:inline">Invitations</span>
-                      {invitations.length > 0 ? (
-                        <Badge variant="secondary" className="ml-1">
-                          {invitations.length}
-                        </Badge>
-                      ) : null}
                     </SlidingTabsTrigger>
                   ) : null}
                   {canViewTeam ? (
                     <SlidingTabsTrigger value="permissions">
                       <Shield className="size-4" aria-hidden />
                       <span className="hidden sm:inline">Permissions</span>
-                      {customRoleCount > 0 ? (
-                        <Badge variant="secondary" className="ml-1">
-                          +{customRoleCount}
-                        </Badge>
-                      ) : null}
                     </SlidingTabsTrigger>
                   ) : null}
                 </SlidingTabsList>
@@ -453,9 +435,11 @@ export function ParkingTeamPage() {
           mode={customRoleFormMode}
           name={customRoleName}
           permissions={customRolePermissions}
+          roles={customRoles}
           onOpenChange={setShowCustomRoleDialog}
           onNameChange={setCustomRoleName}
           onTogglePermission={toggleCustomRolePermission}
+          onPermissionsChange={setCustomRolePermissions}
           onSubmit={handleSaveCustomRole}
           submitPending={createCustomRole.isPending || updateCustomRole.isPending}
         />

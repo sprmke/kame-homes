@@ -64,7 +64,7 @@ The browser never holds a provider key. Gemini Live uses a server-minted, single
 - AI crons fail closed via `verifyCronSecret`.
 - Rate limits (per user): `dashboard-assistant-chat` 30/10 min, `dashboard-assistant-confirm` 30/10 min, `booking-ai-review` 20/10 min, `validate-booking-receipts` 20/10 min, `import-ai-map-columns` 20/hour.
 - **Inbox auto-reply** (`_shared/inboxAutoReplyPolicy.ts`): 90 s cooldown and at most 10 AI replies per conversation per hour. Drafts the guard flags, and the canned fallback line, are **not** sent; the thread stays pending for the host. Meta webhook and web chat run the AI step after responding (`runAfterResponse`, §7).
-- Org-editable AI limits in `ai-platform-settings` are capped at the platform defaults.
+- **AI limits are super-admin owned.** Hosts toggle AI on or off (`ai-platform-settings`, `ai-platform-property-settings`, `dashboard-assistant-settings`, `voice-receptionist-settings`) and read usage; any limit field in a host PATCH returns 403 `ai_limit_platform_managed` (`_shared/aiLimitGuard.ts`). Every number is resolved by `_shared/aiLimitResolver.ts`: org scope = override, org profile, plan profile, plan credit allowance (monthly credits), default profile, platform defaults; property scope = override, property profile, development profile, then the org chain. Profiles and assignments live in `ai_limit_profiles` / `ai_limit_assignments`; the only write surface is `super-admin-ai-limits` (step-up OTP `ai_limits`), console at `/admin/ai`. Resolved limits are memoized for 5 s per edge isolate (`withAiLimitCache`, cleared by every in-isolate writer), so a change applies within seconds.
 
 ## 6. Observability
 

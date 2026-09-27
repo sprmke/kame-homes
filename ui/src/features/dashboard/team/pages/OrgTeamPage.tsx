@@ -28,6 +28,7 @@ import { OrgTeamStatsCards } from '@/features/dashboard/team/components/OrgTeamS
 import { RemoveMemberDialog } from '@/features/dashboard/team/components/RemoveMemberDialog';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { useOrgTeam, useOrgTeamMutations } from '@/features/dashboard/team/hooks/useOrgTeam';
+import { defaultBaselineRolePermissions } from '@/features/dashboard/team/lib/customRoleFormSteps';
 import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 import { orgListingAssignmentsFromPayload } from '@/features/dashboard/team/lib/orgRoleListingScope';
 import { countOrgMembersWithTemplateRole } from '@/features/dashboard/team/lib/orgTeamRoles';
@@ -40,7 +41,6 @@ import type {
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { TeamPageSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SlidingTabs, SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
@@ -95,7 +95,7 @@ export function OrgTeamPage() {
   const [editingCustomRoleId, setEditingCustomRoleId] = useState<string | null>(null);
   const [customRoleName, setCustomRoleName] = useState('');
   const [customRolePermissions, setCustomRolePermissions] = useState<string[]>([]);
-  const [customRoleAllListings, setCustomRoleAllListings] = useState(false);
+  const [customRoleAllListings, setCustomRoleAllListings] = useState(true);
   const [customRoleListingAssignments, setCustomRoleListingAssignments] =
     useState<OrgListingAssignments>(emptyOrgListingAssignments());
 
@@ -111,10 +111,10 @@ export function OrgTeamPage() {
     setShowInviteDialog(true);
   };
 
-  const handleInvite = async () => {
+  const handleInvite = async (): Promise<boolean> => {
     if (!canInviteByPlan) {
       openUpgradeModal('teamManagement');
-      return;
+      return false;
     }
 
     try {
@@ -127,8 +127,10 @@ export function OrgTeamPage() {
         listingAssignments: inviteForm.listingAssignments,
       });
       setShowInviteDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -162,14 +164,16 @@ export function OrgTeamPage() {
     permissions: string[];
     allListings: boolean;
     listingAssignments: OrgInviteFormState['listingAssignments'];
-  }) => {
+  }): Promise<boolean> => {
     try {
       await updateMember.mutateAsync(input);
       toast.success('Member updated');
       setShowManageDialog(false);
       setSelectedMember(null);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -192,8 +196,8 @@ export function OrgTeamPage() {
     setCustomRoleFormMode('create');
     setEditingCustomRoleId(null);
     setCustomRoleName('');
-    setCustomRolePermissions([]);
-    setCustomRoleAllListings(false);
+    setCustomRolePermissions(defaultBaselineRolePermissions(customRoles));
+    setCustomRoleAllListings(true);
     setCustomRoleListingAssignments(emptyOrgListingAssignments());
     setShowCustomRoleDialog(true);
   };
@@ -226,9 +230,9 @@ export function OrgTeamPage() {
     setShowCustomRoleDialog(true);
   };
 
-  const handleSaveCustomRole = async () => {
+  const handleSaveCustomRole = async (): Promise<boolean> => {
     const name = customRoleName.trim();
-    if (!name || customRolePermissions.length === 0) return;
+    if (!name || customRolePermissions.length === 0) return false;
 
     const listingPayload = {
       allListings: customRoleAllListings,
@@ -253,8 +257,10 @@ export function OrgTeamPage() {
         });
       }
       setShowCustomRoleDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -344,25 +350,14 @@ export function OrgTeamPage() {
                 value={selectedTab}
                 onValueChange={(value) => setSelectedTab(value as OrgTeamTab)}
               >
-                <SlidingTabsList
-                  size="primary"
-                  remeasureDeps={[members.length, invitations.length, customRoles.length]}
-                >
+                <SlidingTabsList size="primary">
                   <SlidingTabsTrigger value="members">
                     <Users className="size-4" aria-hidden />
                     <span className="hidden sm:inline">Members</span>
-                    <Badge variant="secondary" className="ml-1">
-                      {members.length}
-                    </Badge>
                   </SlidingTabsTrigger>
                   <SlidingTabsTrigger value="invitations">
                     <Mail className="size-4" aria-hidden />
                     <span className="hidden sm:inline">Invitations</span>
-                    {invitations.length > 0 ? (
-                      <Badge variant="secondary" className="ml-1">
-                        {invitations.length}
-                      </Badge>
-                    ) : null}
                   </SlidingTabsTrigger>
                   <SlidingTabsTrigger value="permissions">
                     <Shield className="size-4" aria-hidden />

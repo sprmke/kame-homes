@@ -68,7 +68,6 @@ export const SETTINGS_SECTION_EDIT_PERMISSION = {
   'building-forms': 'settings.buildingForms:edit',
   'email-automations': 'settings.emailAutomations:edit',
   integrations: null,
-  'voice-receptionist': 'settings.voiceReceptionist:edit',
   ai: 'settings.aiOverrides:edit',
   danger: 'settings.dangerZone:edit',
 } as const satisfies Record<
@@ -180,7 +179,7 @@ export const PROPERTY_NAV_VIEW_PERMISSION: Record<string, TeamPermissionId> = {
   Team: 'team:view',
   Settings: 'settings:view',
   Inbox: 'inbox:view',
-  Activity: 'bookings:view',
+  Activity: 'activity:view',
   Announcements: 'bookings:view',
 };
 
@@ -200,8 +199,8 @@ export const PROPERTY_SECTION_VIEW_PERMISSION = {
   team: 'team:view',
   settings: 'settings:view',
   inbox: 'inbox:view',
-  // Activity is a transparency surface — any member who can see bookings can see it.
-  activity: 'bookings:view',
+  // Audit data (who changed what) has its own view leaf; backfilled to existing bookings viewers.
+  activity: 'activity:view',
   // Help + Announcements stay baseline for any active property member (RequirePropertyPermission special-cases them).
   announcements: 'bookings:view',
   'help-support': 'bookings:view',

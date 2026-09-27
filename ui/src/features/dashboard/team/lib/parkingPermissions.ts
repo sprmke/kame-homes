@@ -37,7 +37,8 @@ export type ParkingPermissionId =
   | 'team:manage'
   | 'inbox:view'
   | 'inbox:reply'
-  | 'inbox:manage';
+  | 'inbox:manage'
+  | 'activity:view';
 
 export function hasParkingPermission(
   permissions: readonly string[] | undefined,
@@ -57,7 +58,7 @@ export const PARKING_NAV_VIEW_PERMISSION: Record<string, ParkingPermissionId> = 
   Team: 'team:view',
   Settings: 'settings:view',
   Inbox: 'inbox:view',
-  Activity: 'bookings:view',
+  Activity: 'activity:view',
   Announcements: 'bookings:view',
 };
 
@@ -71,7 +72,7 @@ export const PARKING_SECTION_VIEW_PERMISSION = {
   team: 'team:view',
   settings: 'settings:view',
   inbox: 'inbox:view',
-  activity: 'bookings:view',
+  activity: 'activity:view',
   announcements: 'bookings:view',
   'help-support': 'bookings:view',
 } as const satisfies Record<ParkingSection, ParkingPermissionId>;

@@ -16,7 +16,6 @@ import {
 } from '@/features/dashboard/team/lib/propertyTeamConstants';
 import type { TeamPermission } from '@/features/dashboard/team/types/propertyTeam';
 
-
 export type TeamScope = 'property' | 'parking' | 'org';
 
 export type BuiltinRoleOption = {

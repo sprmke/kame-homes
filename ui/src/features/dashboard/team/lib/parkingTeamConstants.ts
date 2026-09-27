@@ -1,4 +1,4 @@
-import { Bell, BookOpen, DollarSign, Inbox, Settings, Tags, Users } from 'lucide-react';
+import { Bell, BookOpen, DollarSign, History, Inbox, Settings, Tags, Users } from 'lucide-react';
 
 import type { TeamPermission } from '@/features/dashboard/team/types/propertyTeam';
 
@@ -138,6 +138,13 @@ export const PARKING_TEAM_PERMISSIONS: TeamPermission[] = [
     category: 'Inbox',
     icon: Inbox,
   },
+  {
+    id: 'activity:view',
+    name: 'View Activity',
+    description: 'View the activity and audit log for this parking slot',
+    category: 'Activity',
+    icon: History,
+  },
 ];
 
 export const PARKING_ROLE_PERMISSIONS: Record<ParkingBuiltinRole, string[]> = {
@@ -149,8 +156,16 @@ export const PARKING_ROLE_PERMISSIONS: Record<ParkingBuiltinRole, string[]> = {
     'pricing:view',
     'inbox:view',
     'inbox:reply',
+    'activity:view',
   ],
-  VIEWER: ['bookings:view', 'notifications:view', 'pricing:view', 'team:view', 'inbox:view'],
+  VIEWER: [
+    'bookings:view',
+    'notifications:view',
+    'pricing:view',
+    'team:view',
+    'inbox:view',
+    'activity:view',
+  ],
 };
 
 export const PARKING_PERMISSION_CATEGORIES = [

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { Mail, Shield, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ import {
   usePropertyTeamMutations,
 } from '@/features/dashboard/team/hooks/usePropertyTeam';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
+import { defaultBaselineRolePermissions } from '@/features/dashboard/team/lib/customRoleFormSteps';
 import {
   countMembersWithRole,
   getRolePermissions,
@@ -42,7 +43,6 @@ import type { EditMemberContactSaveInput } from '@/features/dashboard/team/types
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { TeamPageSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SlidingTabs, SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
@@ -119,13 +119,13 @@ export function PropertyTeamPage() {
     setShowInviteDialog(true);
   };
 
-  const handleInvite = async () => {
+  const handleInvite = async (): Promise<boolean> => {
     const email = inviteEmail.trim();
-    if (!email) return;
+    if (!email) return false;
 
     if (!canInviteByPlan) {
       openUpgradeModal('teamManagement');
-      return;
+      return false;
     }
 
     try {
@@ -136,8 +136,10 @@ export function PropertyTeamPage() {
         permissions: getRolePermissions(inviteRoleId, customRoles),
       });
       setShowInviteDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -163,9 +165,9 @@ export function PropertyTeamPage() {
     setShowContactDialog(true);
   };
 
-  const handleSaveContact = async (input: EditMemberContactSaveInput) => {
-    if (!selectedMember) return;
-    if (!canEditPropertyMemberContact(selectedMember, canEditMembers)) return;
+  const handleSaveContact = async (input: EditMemberContactSaveInput): Promise<boolean> => {
+    if (!selectedMember) return false;
+    if (!canEditPropertyMemberContact(selectedMember, canEditMembers)) return false;
 
     try {
       await updateMember.mutateAsync({
@@ -177,8 +179,10 @@ export function PropertyTeamPage() {
       toast.success('Member updated');
       setShowContactDialog(false);
       setSelectedMember(null);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -217,7 +221,7 @@ export function PropertyTeamPage() {
     setCustomRoleFormMode('create');
     setEditingCustomRoleId(null);
     setCustomRoleName('');
-    setCustomRolePermissions([]);
+    setCustomRolePermissions(defaultBaselineRolePermissions(customRoles));
     setShowCustomRoleDialog(true);
   };
 
@@ -245,9 +249,9 @@ export function PropertyTeamPage() {
     setShowCustomRoleDialog(true);
   };
 
-  const handleSaveCustomRole = async () => {
+  const handleSaveCustomRole = async (): Promise<boolean> => {
     const name = customRoleName.trim();
-    if (!name || customRolePermissions.length === 0) return;
+    if (!name || customRolePermissions.length === 0) return false;
 
     try {
       if (customRoleFormMode === 'create') {
@@ -263,8 +267,10 @@ export function PropertyTeamPage() {
         });
       }
       setShowCustomRoleDialog(false);
+      return true;
     } catch {
       /* toast handled in mutation */
+      return false;
     }
   };
 
@@ -291,8 +297,6 @@ export function PropertyTeamPage() {
         : [...prev, permissionId]
     );
   };
-
-  const customRoleCount = useMemo(() => customRoles.length, [customRoles]);
 
   const inviteAction = canInvite ? (
     <TeamInviteTierBadgeAnchor canInvite={teamInviteCapacityKnown} className="w-full sm:w-auto">
@@ -351,41 +355,22 @@ export function PropertyTeamPage() {
               >
                 <SlidingTabsList
                   size="primary"
-                  remeasureDeps={[
-                    canInvite,
-                    canViewTeam,
-                    customRoleCount,
-                    members.length,
-                    invitations.length,
-                  ]}
+                  remeasureDeps={[canInvite, canViewTeam, invitations.length > 0]}
                 >
                   <SlidingTabsTrigger value="members">
                     <Users className="size-4" aria-hidden />
                     <span className="hidden sm:inline">Members</span>
-                    <Badge variant="secondary" className="ml-1">
-                      {members.length}
-                    </Badge>
                   </SlidingTabsTrigger>
                   {canInvite || canResendInvite || canCancelInvite || invitations.length > 0 ? (
                     <SlidingTabsTrigger value="invitations">
                       <Mail className="size-4" aria-hidden />
                       <span className="hidden sm:inline">Invitations</span>
-                      {invitations.length > 0 ? (
-                        <Badge variant="secondary" className="ml-1">
-                          {invitations.length}
-                        </Badge>
-                      ) : null}
                     </SlidingTabsTrigger>
                   ) : null}
                   {canViewTeam ? (
                     <SlidingTabsTrigger value="permissions">
                       <Shield className="size-4" aria-hidden />
                       <span className="hidden sm:inline">Permissions</span>
-                      {customRoleCount > 0 ? (
-                        <Badge variant="secondary" className="ml-1">
-                          +{customRoleCount}
-                        </Badge>
-                      ) : null}
                     </SlidingTabsTrigger>
                   ) : null}
                 </SlidingTabsList>

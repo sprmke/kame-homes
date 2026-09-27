@@ -5,6 +5,7 @@
  * Phase 3–6: Bookings through Team/Notifications/Inbox use leaves.
  */
 
+import { planFeatureByPermissionLeaf } from '@/features/dashboard/plans/lib/planFeaturePermissions';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 import { TEAM_PERMISSIONS } from '@/features/dashboard/team/lib/propertyTeamConstants';
 
@@ -38,6 +39,8 @@ const MODULE_ORDER = [
   'settings',
   'team',
   'inbox',
+  'assistant',
+  'activity',
 ] as const;
 
 const CATEGORY_TO_MODULE: Record<string, string> = {
@@ -53,6 +56,8 @@ const CATEGORY_TO_MODULE: Record<string, string> = {
   Settings: 'settings',
   Team: 'team',
   Inbox: 'inbox',
+  'AI Assistant': 'assistant',
+  Activity: 'activity',
 };
 
 const MODULE_LABELS: Record<string, string> = {
@@ -68,46 +73,12 @@ const MODULE_LABELS: Record<string, string> = {
   settings: 'Settings',
   team: 'Team',
   inbox: 'Inbox',
+  assistant: 'AI Assistant',
+  activity: 'Activity',
 };
 
-const COARSE_PLAN_FEATURES: Partial<Record<string, PlanFeatureKey>> = {
-  'bookings.import:add': 'bookingImport',
-  'finance.export:view': 'financeReporting',
-  'maintenance.export:view': 'maintenanceReporting',
-  'notifications.chat:edit': 'telegramNotifications',
-  'notifications.marketing:edit': 'telegramNotifications',
-  'notifications.staff:edit': 'telegramNotifications',
-  'notifications.operations:edit': 'telegramNotifications',
-  'notifications.finance:edit': 'telegramNotifications',
-  'notifications.maintenance:edit': 'telegramNotifications',
-  'inbox.channels:add': 'metaChatChannel',
-  'inbox.channels:delete': 'metaChatChannel',
-  'inbox.quickReplies:add': 'quickReplies',
-  'inbox.quickReplies:edit': 'quickReplies',
-  'inbox.automation:edit': 'aiChatAutoReply',
-  'team.invitations:add': 'teamManagement',
-  'team.customRoles:add': 'customRoles',
-  'team.customRoles:edit': 'customRoles',
-  'team.customRoles:delete': 'customRoles',
-  'templates.custom:add': 'customTemplates',
-  'templates.email:edit': 'customTemplates',
-  'marketing:view': 'marketingStudio',
-  'marketing.content:add': 'marketingStudio',
-  'marketing.content:edit': 'marketingStudio',
-  'marketing.templates:add': 'customTemplates',
-  'marketing.templates:edit': 'customTemplates',
-  'marketing.generate:add': 'aiMarketingGeneration',
-  'marketing.generate.video:add': 'aiMarketingVideoGeneration',
-  'marketing.publish:add': 'marketingPublishLimitPerGroup',
-  'publicPages.property:edit': 'publicPagesAutosave',
-  'publicPages.stayGuide:edit': 'publicPagesAutosave',
-  'publicPages.showcase:edit': 'propertyShowcase',
-  'pricing.channels:view': 'calendarSync',
-  'pricing.channels:edit': 'calendarSync',
-  'analytics:export': 'analyticsInsights',
-  'settings.voiceReceptionist:edit': 'aiReceptionist',
-  'settings.aiOverrides:edit': 'aiMonthlyCreditAllowance',
-};
+/** Derived from `PLAN_FEATURE_PERMISSION_COVERAGE` so plan keys and Team leaves cannot drift. */
+const COARSE_PLAN_FEATURES: Partial<Record<string, PlanFeatureKey>> = planFeatureByPermissionLeaf();
 
 const SENSITIVE_PERMISSION_IDS = new Set([
   'team.members:edit',
@@ -159,8 +130,9 @@ function chipLabelFromPermission(name: string, id: string): string {
     'marketing.templates:add': 'Add',
     'marketing.templates:edit': 'Edit',
     'marketing.templates:delete': 'Delete',
-    'marketing.generate:add': 'Generate',
-    'marketing.generate.video:add': 'Generate video',
+    'marketing.generate:add': 'Text',
+    'marketing.generate.image:add': 'Image',
+    'marketing.generate.video:add': 'Video',
     'marketing.publish:add': 'Publish',
     'pricing:view': 'Open page',
     'pricing.rates:edit': 'Rates',
@@ -168,6 +140,7 @@ function chipLabelFromPermission(name: string, id: string): string {
     'pricing.blocks:delete': 'Unblock',
     'pricing.channels:view': 'View',
     'pricing.channels:edit': 'Manage',
+    'pricing.smartPricing:edit': 'Manage',
     'templates:view': 'Open page',
     'templates.standard:edit': 'Standard',
     'templates.email:edit': 'Email',
@@ -204,6 +177,9 @@ function chipLabelFromPermission(name: string, id: string): string {
     'inbox.quickReplies:edit': 'Edit',
     'inbox.quickReplies:delete': 'Delete',
     'inbox.automation:edit': 'Automation',
+    'analytics.aiReview:add': 'AI review',
+    'assistant:view': 'Open assistant',
+    'activity:view': 'Open page',
   };
 
   const exact = exactLabels[id];
@@ -336,6 +312,22 @@ function buildCatalog(): PermissionCatalogNode[] {
     },
     {
       id: null,
+      key: 'pricing.smartPricing',
+      parentKey: 'pricing',
+      module: 'pricing',
+      label: 'Smart Pricing',
+      order: 2,
+    },
+    {
+      id: null,
+      key: 'analytics.aiReview',
+      parentKey: 'analytics',
+      module: 'analytics',
+      label: 'AI review',
+      order: 0,
+    },
+    {
+      id: null,
       key: 'templates.standard',
       parentKey: 'templates',
       module: 'templates',
@@ -433,6 +425,9 @@ function buildCatalog(): PermissionCatalogNode[] {
     'finance.export:view': 'finance',
     'analytics:view': 'analytics',
     'analytics:export': 'analytics',
+    'analytics.aiReview:add': 'analytics.aiReview',
+    'assistant:view': 'assistant',
+    'activity:view': 'activity',
     'maintenance:view': 'maintenance',
     'maintenance.reminders:add': 'maintenance.reminders',
     'maintenance.reminders:edit': 'maintenance.reminders',
@@ -445,6 +440,7 @@ function buildCatalog(): PermissionCatalogNode[] {
     'marketing.templates:edit': 'marketing.templates',
     'marketing.templates:delete': 'marketing.templates',
     'marketing.generate:add': 'marketing.generate',
+    'marketing.generate.image:add': 'marketing.generate',
     'marketing.generate.video:add': 'marketing.generate',
     'marketing.publish:add': 'marketing.publish',
     'pricing:view': 'pricing',
@@ -453,6 +449,7 @@ function buildCatalog(): PermissionCatalogNode[] {
     'pricing.blocks:delete': 'pricing.calendar',
     'pricing.channels:view': 'pricing.channels',
     'pricing.channels:edit': 'pricing.channels',
+    'pricing.smartPricing:edit': 'pricing.smartPricing',
     'templates:view': 'templates',
     'templates.standard:edit': 'templates.standard',
     'templates.email:edit': 'templates.email',
