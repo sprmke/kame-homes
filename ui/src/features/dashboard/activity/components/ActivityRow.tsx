@@ -9,7 +9,9 @@ import {
 import {
   activityAbsoluteTime,
   activityRelativeTime,
+  activitySummaryWithoutLeadingActor,
   changeSummary,
+  friendlyActivitySummary,
 } from '@/features/dashboard/activity/lib/activityFormat';
 
 import { cn } from '@/lib/utils';
@@ -30,6 +32,12 @@ export function ActivityRow({ event, onSelect, variant = 'default' }: Props) {
   const changes = changeSummary(event.changes);
   const compact = variant === 'compact';
   const isDestructive = event.severity === 'destructive';
+  const rawSummary = friendlyActivitySummary(event.summary, event.metadata);
+  const summaryIncludesActor =
+    Boolean(actor) && rawSummary.toLowerCase().startsWith(actor.toLowerCase());
+  const summary = summaryIncludesActor
+    ? activitySummaryWithoutLeadingActor(rawSummary, actor)
+    : rawSummary;
 
   return (
     <button
@@ -39,7 +47,7 @@ export function ActivityRow({ event, onSelect, variant = 'default' }: Props) {
         'flex w-full items-start gap-3 text-left transition-colors',
         'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
         'min-h-[44px]',
-        compact ? 'px-1 py-2.5' : 'px-3 py-3 sm:px-4',
+        compact ? 'px-1 py-2.5' : 'px-3 py-3 sm:px-3.5',
         !compact && 'hover:bg-muted/40 active:bg-muted/50',
         isDestructive && !compact && 'bg-destructive/[0.03] hover:bg-destructive/[0.06]'
       )}
@@ -56,30 +64,32 @@ export function ActivityRow({ event, onSelect, variant = 'default' }: Props) {
         <Icon className={compact ? 'size-3.5' : 'size-4'} aria-hidden />
       </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <span className="min-w-0 flex-1 space-y-1">
+        <span className="flex items-start gap-2">
           <span
             className={cn(
-              'text-foreground font-medium',
-              compact ? 'text-[13px] leading-snug' : 'text-sm leading-snug'
+              'text-foreground min-w-0 flex-1 font-medium',
+              compact
+                ? 'line-clamp-2 text-[13px] leading-snug'
+                : 'line-clamp-2 text-sm leading-snug'
             )}
           >
-            {event.summary}
+            {summary}
           </span>
-          {event.severity !== 'info' && (
+          {event.severity !== 'info' ? (
             <span
               className={cn(
-                'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
+                'mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide',
                 severity.badge
               )}
             >
               {severity.label}
             </span>
-          )}
+          ) : null}
         </span>
         <span
           className={cn(
-            'text-muted-foreground mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5',
+            'text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-0.5',
             compact ? 'text-[11px]' : 'text-xs'
           )}
         >
@@ -95,7 +105,7 @@ export function ActivityRow({ event, onSelect, variant = 'default' }: Props) {
               <span aria-hidden className="text-muted-foreground/40">
                 ·
               </span>
-              <span className="max-w-[14rem] truncate sm:max-w-xs">{event.targetLabel}</span>
+              <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{event.targetLabel}</span>
             </>
           ) : null}
           {changes && !compact ? (
@@ -103,7 +113,7 @@ export function ActivityRow({ event, onSelect, variant = 'default' }: Props) {
               <span aria-hidden className="text-muted-foreground/40">
                 ·
               </span>
-              <span className="text-muted-foreground/90 max-w-[12rem] truncate sm:max-w-md">
+              <span className="text-muted-foreground/90 max-w-[10rem] truncate sm:max-w-xs">
                 {changes}
               </span>
             </>

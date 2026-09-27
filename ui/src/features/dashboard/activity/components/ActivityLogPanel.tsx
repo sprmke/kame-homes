@@ -65,6 +65,9 @@ export function ActivityLogPanel({ scope, className }: Props) {
   const { open: openUpgradeModal } = useUpgradeModal();
   const [exporting, setExporting] = useState(false);
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   const handleExport = async () => {
     if (!canExport) {
       if (!exportGateLoading) openUpgradeModal('activityLogExport');
@@ -83,9 +86,9 @@ export function ActivityLogPanel({ scope, className }: Props) {
   const events = useMemo(() => query.data?.pages.flatMap((p) => p.events) ?? [], [query.data]);
   const filtersActive = hasActivityFilters(effectiveFilters);
 
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const node = sentinelRef.current;
+    const root = scrollRef.current;
     if (!node || !query.hasNextPage) return;
     const io = new IntersectionObserver(
       (entries) => {
@@ -93,11 +96,11 @@ export function ActivityLogPanel({ scope, className }: Props) {
           void query.fetchNextPage();
         }
       },
-      { rootMargin: '600px' }
+      { root, rootMargin: '320px', threshold: 0 }
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [query.hasNextPage, query.isFetchingNextPage, query]);
+  }, [query.hasNextPage, query.isFetchingNextPage, query, events.length]);
 
   const exportDisabled = exporting || (canExport && events.length === 0);
 
@@ -105,57 +108,79 @@ export function ActivityLogPanel({ scope, className }: Props) {
     <Button
       type="button"
       variant="outline"
-      className="native-cta-secondary shrink-0 sm:w-auto sm:px-3.5"
+      size="sm"
+      className="h-10 min-h-[44px] shrink-0 gap-1.5 rounded-lg px-3 text-[13px] font-semibold lg:text-sm"
       onClick={() => void handleExport()}
       disabled={exportDisabled}
+      aria-label={exporting ? 'Exporting CSV' : 'Export CSV'}
+    >
+      <Download className="size-3.5 shrink-0" aria-hidden />
+      <span className="hidden sm:inline">{exporting ? 'Exporting…' : 'Export CSV'}</span>
+    </Button>
+  );
+
+  const mobileExportButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="size-11 shrink-0 rounded-xl p-0"
+      onClick={() => void handleExport()}
+      disabled={exportDisabled}
+      aria-label={exporting ? 'Exporting CSV' : 'Export CSV'}
     >
       <Download className="size-4" aria-hidden />
-      {exporting ? 'Exporting…' : 'Export CSV'}
     </Button>
   );
 
   return (
-    <div className={cn('flex min-h-0 flex-col gap-3', className)}>
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-        <ActivityFilters filters={filters} onChange={setFilters} className="min-w-0 flex-1" />
-        {exportButton}
+    <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
+      <div className="border-border/60 shrink-0 space-y-2 border-b pb-3">
+        <ActivityFilters
+          filters={filters}
+          onChange={setFilters}
+          trailing={exportButton}
+          mobileTrailing={mobileExportButton}
+        />
       </div>
 
-      {query.isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
-          ))}
-        </div>
-      ) : query.isError ? (
-        <ActivityEmptyState
-          message="Could not load activity."
-          onRetry={() => void query.refetch()}
-        />
-      ) : events.length === 0 ? (
-        <ActivityEmptyState
-          message={
-            filtersActive ? 'No activity matches these filters.' : 'No activity in this range.'
-          }
-          onClearFilters={
-            filtersActive ? () => setFilters(clearActivityFilters(filters)) : undefined
-          }
-        />
-      ) : (
-        <ActivityFeedList events={events} onSelect={setSelected} />
-      )}
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-0 pb-4 pt-3"
+      >
+        {query.isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
+            ))}
+          </div>
+        ) : query.isError ? (
+          <ActivityEmptyState
+            message="Could not load activity."
+            onRetry={() => void query.refetch()}
+          />
+        ) : events.length === 0 ? (
+          <ActivityEmptyState
+            message={
+              filtersActive ? 'No activity matches these filters.' : 'No activity in this range.'
+            }
+            onClearFilters={
+              filtersActive ? () => setFilters(clearActivityFilters(filters)) : undefined
+            }
+          />
+        ) : (
+          <ActivityFeedList events={events} onSelect={setSelected} scrollParentRef={scrollRef} />
+        )}
 
-      <div ref={sentinelRef} aria-hidden className="h-px" />
-      {query.isFetchingNextPage ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
-          ))}
-        </div>
-      ) : null}
-      {!query.hasNextPage && events.length > 0 ? (
-        <p className="text-muted-foreground py-2 text-center text-xs">End of activity</p>
-      ) : null}
+        <div ref={sentinelRef} aria-hidden className="h-px" />
+        {query.isFetchingNextPage ? (
+          <div className="mt-2 space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <ActivityDetailSheet event={selected} onOpenChange={(open) => !open && setSelected(null)} />
     </div>

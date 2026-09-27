@@ -51,7 +51,8 @@ export function useAiDashboardAssistantGlobalSettings() {
 export function useUpdateAiDashboardAssistantGlobalSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { enabled?: boolean }) => updateAiDashboardAssistantGlobalSettings(patch),
+    mutationFn: (patch: { enabled?: boolean; aiModeEnabled?: boolean }) =>
+      updateAiDashboardAssistantGlobalSettings(patch),
     onSuccess: (data) => {
       qc.setQueryData(globalSettingsKey, data);
     },

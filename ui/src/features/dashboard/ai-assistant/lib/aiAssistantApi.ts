@@ -139,7 +139,11 @@ export type ChatAttachmentMeta = {
   path?: string;
 };
 
-export type PageContext = { propertyId?: string | null; bookingId?: string | null };
+export type PageContext = {
+  propertyId?: string | null;
+  parkingId?: string | null;
+  bookingId?: string | null;
+};
 
 export type ChatTurnResponse = {
   conversationId: string;
@@ -174,11 +178,14 @@ export type AiDashboardAssistantOrgSettings = {
   updatedBy: string | null;
   updatedAt: string;
   platformEnabled: boolean;
+  /** Platform switch for full-page AI mode (already false when `platformEnabled` is false). */
+  aiModeEnabled?: boolean;
   usage: AiDashboardAssistantUsageSummary | null;
 };
 
 export type AiDashboardAssistantGlobalSettings = {
   enabled: boolean;
+  aiModeEnabled: boolean;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -274,6 +281,7 @@ export function fetchAiDashboardAssistantGlobalSettings(): Promise<AiDashboardAs
 
 export function updateAiDashboardAssistantGlobalSettings(patch: {
   enabled?: boolean;
+  aiModeEnabled?: boolean;
 }): Promise<AiDashboardAssistantGlobalSettings> {
   return callAiAssistantFn<AiDashboardAssistantGlobalSettings>(
     `${baseUrl()}/dashboard-assistant-global-settings`,
@@ -290,7 +298,16 @@ export type AiAssistantConversationSummary = {
   property_id: string | null;
   last_message_at: string;
   created_at: string;
+  pinned_at?: string | null;
+  archived_at?: string | null;
 };
+
+export type AiAssistantConversationPage = {
+  conversations: AiAssistantConversationSummary[];
+  nextOffset: number | null;
+};
+
+export type AssistantFeedbackRating = 1 | -1;
 
 export type AiAssistantMessageRow = {
   id: string;
@@ -303,16 +320,22 @@ export type AiAssistantMessageRow = {
 
 export function fetchAiAssistantConversations(
   orgSlug: string | null,
-  orgId: string | null
-): Promise<{ conversations: AiAssistantConversationSummary[] }> {
-  return callAiAssistantFn(
-    scopedOrgFunctionsUrl('dashboard-assistant-conversations', orgSlug, orgId)
-  );
+  orgId: string | null,
+  options: { offset?: number; q?: string; archived?: boolean } = {}
+): Promise<AiAssistantConversationPage> {
+  const url = new URL(scopedOrgFunctionsUrl('dashboard-assistant-conversations', orgSlug, orgId));
+  if (options.offset) url.searchParams.set('offset', String(options.offset));
+  if (options.q?.trim()) url.searchParams.set('q', options.q.trim());
+  if (options.archived) url.searchParams.set('archived', 'true');
+  return callAiAssistantFn(url.toString());
 }
 
-export function fetchAiAssistantConversationMessages(
-  conversationId: string
-): Promise<{ conversation: AiAssistantConversationSummary; messages: AiAssistantMessageRow[] }> {
+export function fetchAiAssistantConversationMessages(conversationId: string): Promise<{
+  conversation: AiAssistantConversationSummary;
+  messages: AiAssistantMessageRow[];
+  /** The caller's own rating per assistant message id. */
+  feedback?: Record<string, AssistantFeedbackRating>;
+}> {
   return callAiAssistantFn(
     `${baseUrl()}/dashboard-assistant-conversations?conversation_id=${encodeURIComponent(conversationId)}`
   );
@@ -325,4 +348,64 @@ export function deleteAiAssistantConversation(
     `${baseUrl()}/dashboard-assistant-conversations?conversation_id=${encodeURIComponent(conversationId)}`,
     { method: 'DELETE' }
   );
+}
+
+export function updateAiAssistantConversation(
+  conversationId: string,
+  patch: { title?: string; pinned?: boolean; archived?: boolean }
+): Promise<{ conversation: AiAssistantConversationSummary }> {
+  return callAiAssistantFn(
+    `${baseUrl()}/dashboard-assistant-conversations?conversation_id=${encodeURIComponent(conversationId)}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+}
+
+export function sendAssistantFeedback(input: {
+  messageId: string;
+  rating: AssistantFeedbackRating | 0;
+  reason?: string;
+}): Promise<{ messageId: string; rating: AssistantFeedbackRating | 0 }> {
+  return callAiAssistantFn(`${baseUrl()}/dashboard-assistant-feedback`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export type AssistantBriefingCard = {
+  id: string;
+  label: string;
+  count: number;
+  severity: 'critical' | 'warning' | 'info';
+  prompt: string;
+  /** Legacy flat dashboard href (`/bookings?…`); resolve with `resolveScopedDashboardHref`. */
+  href: string;
+};
+
+export function fetchAssistantBriefing(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope: { propertyId?: string | null; parkingId?: string | null }
+): Promise<{ cards: AssistantBriefingCard[]; manilaDate: string | null }> {
+  const url = new URL(scopedOrgFunctionsUrl('dashboard-assistant-briefing', orgSlug, orgId));
+  if (scope.propertyId) url.searchParams.set('property_id', scope.propertyId);
+  else if (scope.parkingId) url.searchParams.set('parking_id', scope.parkingId);
+  return callAiAssistantFn(url.toString());
+}
+
+export type UserUiPreferences = {
+  dashboardMode: 'advanced' | 'ai';
+  updatedAt: string | null;
+};
+
+export function fetchUserUiPreferences(): Promise<UserUiPreferences> {
+  return callAiAssistantFn(`${baseUrl()}/user-ui-preferences`);
+}
+
+export function updateUserUiPreferences(patch: {
+  dashboardMode: 'advanced' | 'ai';
+}): Promise<UserUiPreferences> {
+  return callAiAssistantFn(`${baseUrl()}/user-ui-preferences`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
 }

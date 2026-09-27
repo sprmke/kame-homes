@@ -21,8 +21,10 @@ export const notificationFabStackedBottomClassName =
 export function isAiAssistantFabVisible(
   accessible: boolean,
   settings: AiDashboardAssistantOrgSettings | undefined,
-  planGateAllowed: boolean
+  planGateAllowed: boolean,
+  permissionAllowed = true
 ): boolean {
+  if (!permissionAllowed) return false;
   const killSwitchOff = Boolean(settings && (!settings.platformEnabled || !settings.enabled));
   if (!accessible && (killSwitchOff || planGateAllowed)) return false;
   return true;

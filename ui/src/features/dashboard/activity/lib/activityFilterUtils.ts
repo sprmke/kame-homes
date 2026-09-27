@@ -4,7 +4,7 @@ import type { ActivityLogFilters } from '@/features/dashboard/activity/lib/activ
 export function activityRefineFilterCount(filters: ActivityLogFilters): number {
   let count = 0;
   if ((filters.category ?? []).length > 0) count += 1;
-  if (filters.severity === 'destructive') count += 1;
+  if (filters.severity) count += 1;
   if (filters.dateFrom || filters.dateTo) count += 1;
   return count;
 }
@@ -12,7 +12,7 @@ export function activityRefineFilterCount(filters: ActivityLogFilters): number {
 export function hasActivityFilters(filters: ActivityLogFilters): boolean {
   return (
     (filters.category ?? []).length > 0 ||
-    filters.severity === 'destructive' ||
+    Boolean(filters.severity) ||
     Boolean(filters.q) ||
     Boolean(filters.dateFrom) ||
     Boolean(filters.dateTo)

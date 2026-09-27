@@ -2,9 +2,14 @@ import { useCallback, useRef, useState } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
+import { aiAssistantConversationsQueryKey } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantConversations';
 import {
   confirmAssistantAction,
   fetchAiAssistantConversationMessages,
+  sendAssistantFeedback,
+  type AiAssistantConversationSummary,
+  type AiAssistantMessageRow,
+  type AssistantFeedbackRating,
   type ChatAttachmentMeta,
   type ChatBlock,
   type PageContext,
@@ -19,6 +24,7 @@ import {
   AssistantStreamInterruptedError,
   type AssistantAppliedEffect,
   type AssistantStreamEvent,
+  type StreamChatMessageResult,
   type TurnProgressLiveState,
 } from '@/features/dashboard/ai-assistant/lib/assistantStream';
 import type { AttachedContextItem } from '@/features/dashboard/ai-assistant/lib/attachedContext';
@@ -37,10 +43,29 @@ export type ChatThreadMessage = {
   blocks: ChatBlock[];
   attachments?: ChatAttachmentMeta[];
   attachedContext?: AttachedContextItem[];
+  /** True once `id` is the persisted row id (feedback, edit, copy link). */
+  persisted?: boolean;
 };
+
+/** Text + pins of a turn the host stopped before it was saved — offered back to the composer. */
+export type CancelledDraft = { text: string; attachedContext: AttachedContextItem[] };
+
+/** Last turn that errored; `started` means the server already saved the user message. */
+type FailedTurn = { payload: ChatSendInput; started: boolean; localUserId?: string };
 
 const settingsQueryPrefix = (orgSlug: string | null, orgId: string | null) =>
   ['org', orgSlug ?? orgId, 'ai-dashboard-assistant-settings'] as const;
+
+function rowsToThread(rows: AiAssistantMessageRow[]): ChatThreadMessage[] {
+  return rows.map((row) => ({
+    id: row.id,
+    role: row.role,
+    text: row.role === 'user' ? hostFacingUserMessageText(row.content_text) : row.content_text,
+    blocks: row.blocks,
+    attachments: row.attachments,
+    persisted: true,
+  }));
+}
 
 export function useAiAssistantChat(pageContext: PageContext) {
   const orgSlug = useOrgSlugParam();
@@ -48,7 +73,9 @@ export function useAiAssistantChat(pageContext: PageContext) {
   const queryClient = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<AiAssistantConversationSummary | null>(null);
   const [messages, setMessages] = useState<ChatThreadMessage[]>([]);
+  const [feedback, setFeedbackState] = useState<Record<string, AssistantFeedbackRating>>({});
   const [pending, setPending] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendStartedAtMs, setSendStartedAtMs] = useState<number | null>(null);
@@ -59,54 +86,66 @@ export function useAiAssistantChat(pageContext: PageContext) {
     null
   );
   const [upgradeHook, setUpgradeHook] = useState(false);
+  const [cancelledDraft, setCancelledDraft] = useState<CancelledDraft | null>(null);
+  const [failedTurn, setFailedTurn] = useState<FailedTurn | null>(null);
 
   const invalidateUsage = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: settingsQueryPrefix(orgSlug, orgId) });
   }, [queryClient, orgSlug, orgId]);
 
-  const loadConversation = useCallback(async (id: string) => {
-    abortRef.current?.abort();
-    abortRef.current = null;
+  const invalidateConversations = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: aiAssistantConversationsQueryKey(orgSlug, orgId),
+    });
+  }, [queryClient, orgSlug, orgId]);
+
+  const resetTurnState = useCallback(() => {
     setSending(false);
     setSendStartedAtMs(null);
     setTurnProgress(null);
     setStreamingText('');
-    setPending(true);
-    setError(null);
-    try {
-      const { messages: rows } = await fetchAiAssistantConversationMessages(id);
-      setConversationId(id);
-      setMessages(
-        rows.map((row) => ({
-          id: row.id,
-          role: row.role,
-          text:
-            row.role === 'user' ? hostFacingUserMessageText(row.content_text) : row.content_text,
-          blocks: row.blocks,
-          attachments: row.attachments,
-        }))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load conversation');
-    } finally {
-      setPending(false);
-    }
   }, []);
+
+  const loadConversation = useCallback(
+    async (id: string) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      resetTurnState();
+      setPending(true);
+      setError(null);
+      setCancelledDraft(null);
+      setFailedTurn(null);
+      setPartialCancelEffects(null);
+      try {
+        const res = await fetchAiAssistantConversationMessages(id);
+        setConversationId(id);
+        setConversation(res.conversation);
+        setMessages(rowsToThread(res.messages));
+        setFeedbackState(res.feedback ?? {});
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load conversation');
+      } finally {
+        setPending(false);
+      }
+    },
+    [resetTurnState]
+  );
 
   const startNewConversation = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setConversationId(null);
+    setConversation(null);
     setMessages([]);
+    setFeedbackState({});
     setError(null);
     setUpgradeHook(false);
-    setSending(false);
-    setSendStartedAtMs(null);
-    setTurnProgress(null);
-    setStreamingText('');
+    resetTurnState();
     setPartialCancelEffects(null);
+    setCancelledDraft(null);
+    setFailedTurn(null);
     setPending(false);
-  }, []);
+  }, [resetTurnState]);
 
   const cancelTurn = useCallback(() => {
     abortRef.current?.abort();
@@ -115,7 +154,11 @@ export function useAiAssistantChat(pageContext: PageContext) {
   const runTurn = useCallback(
     async (
       payload: ChatSendInput,
-      options?: { skipUserBubble?: boolean; regenerate?: boolean; localUserId?: string }
+      options?: {
+        skipUserBubble?: boolean;
+        regenerate?: boolean;
+        editMessageId?: string;
+      }
     ) => {
       const text = (payload.text ?? '').trim();
       const displayText = (payload.displayText ?? text).trim();
@@ -131,9 +174,12 @@ export function useAiAssistantChat(pageContext: PageContext) {
       setError(null);
       setPartialCancelEffects(null);
       setUpgradeHook(false);
+      setCancelledDraft(null);
+      setFailedTurn(null);
+      let turnStarted = false;
 
       const attachedContext = payload.attachedContext ?? [];
-      let localUserId = options?.localUserId;
+      let localUserId: string | undefined;
       if (!options?.skipUserBubble) {
         localUserId = `local-${Date.now()}`;
         const userMessage: ChatThreadMessage = {
@@ -150,24 +196,35 @@ export function useAiAssistantChat(pageContext: PageContext) {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const applySuccessfulTurn = (res: {
-        conversationId: string;
-        blocks: ChatBlock[];
-        upgradeHook?: boolean;
-      }) => {
+      const applySuccessfulTurn = (res: StreamChatMessageResult) => {
+        const isNewConversation = res.conversationId !== conversationId;
         setConversationId(res.conversationId);
         setUpgradeHook(Boolean(res.upgradeHook));
         setMessages((prev) => [
-          ...prev,
-          { id: `assistant-${Date.now()}`, role: 'assistant', text: null, blocks: res.blocks },
+          ...prev.map((msg) =>
+            msg.id === localUserId && res.userMessageId
+              ? { ...msg, id: res.userMessageId, persisted: true }
+              : msg
+          ),
+          {
+            id: res.messageId ?? `assistant-${Date.now()}`,
+            role: 'assistant',
+            text: null,
+            blocks: res.blocks,
+            persisted: Boolean(res.messageId),
+          },
         ]);
         invalidateUsage();
+        // New threads get a title server-side; recency order changes on every turn.
+        invalidateConversations();
+        if (isNewConversation) setConversation(null);
       };
 
       const streamHandlers = {
         signal: controller.signal,
         onEvent: (event: AssistantStreamEvent) => {
           if (event.type === 'turn_started' && event.conversationId) {
+            turnStarted = true;
             setConversationId(event.conversationId);
             return;
           }
@@ -194,30 +251,28 @@ export function useAiAssistantChat(pageContext: PageContext) {
             displayMessage: displayText || undefined,
             attachments: attachments.length > 0 ? attachments : undefined,
             regenerate: options?.regenerate === true,
+            editMessageId: options?.editMessageId,
           },
           streamHandlers
         );
         applySuccessfulTurn(res);
       } catch (err) {
         if (isAbortError(err)) {
-          if (err instanceof AssistantStreamAbortedError && err.appliedEffects?.length) {
-            setPartialCancelEffects(err.appliedEffects);
+          const appliedEffects =
+            err instanceof AssistantStreamAbortedError ? (err.appliedEffects ?? []) : [];
+          if (appliedEffects.length > 0) setPartialCancelEffects(appliedEffects);
+          // Nothing was applied: the server dropped the user row, so hand the text back.
+          if (appliedEffects.length === 0 && !options?.regenerate && displayText) {
+            setCancelledDraft({ text: displayText, attachedContext });
           }
-          if (conversationId) {
+          const reloadId =
+            conversationId ??
+            (err instanceof AssistantStreamInterruptedError ? err.conversationId : null);
+          if (reloadId) {
             try {
-              const { messages: rows } = await fetchAiAssistantConversationMessages(conversationId);
-              setMessages(
-                rows.map((row) => ({
-                  id: row.id,
-                  role: row.role,
-                  text:
-                    row.role === 'user'
-                      ? hostFacingUserMessageText(row.content_text)
-                      : row.content_text,
-                  blocks: row.blocks,
-                  attachments: row.attachments,
-                }))
-              );
+              const res = await fetchAiAssistantConversationMessages(reloadId);
+              setMessages(rowsToThread(res.messages));
+              setFeedbackState(res.feedback ?? {});
             } catch {
               if (localUserId) {
                 setMessages((prev) => prev.filter((msg) => msg.id !== localUserId));
@@ -263,6 +318,7 @@ export function useAiAssistantChat(pageContext: PageContext) {
             return;
           } catch (retryErr) {
             if (isAbortError(retryErr)) return;
+            setFailedTurn({ payload, started: true, localUserId });
             setError(humanizeAssistantStreamError(retryErr));
             if (retryErr instanceof Error && 'upgradeHook' in retryErr && retryErr.upgradeHook) {
               setUpgradeHook(true);
@@ -271,20 +327,19 @@ export function useAiAssistantChat(pageContext: PageContext) {
           }
         }
 
-        setError(humanizeAssistantStreamError(err));
-        if (err instanceof Error && 'upgradeHook' in err && err.upgradeHook) {
-          setUpgradeHook(true);
+        const isUpgradeHook = err instanceof Error && 'upgradeHook' in err && err.upgradeHook;
+        if (!isUpgradeHook && !options?.regenerate && !options?.editMessageId) {
+          setFailedTurn({ payload, started: turnStarted, localUserId });
         }
+        setError(humanizeAssistantStreamError(err));
+        if (isUpgradeHook) setUpgradeHook(true);
       } finally {
         if (abortRef.current === controller) abortRef.current = null;
-        setSending(false);
-        setSendStartedAtMs(null);
-        setTurnProgress(null);
-        setStreamingText('');
+        resetTurnState();
         setPending(false);
       }
     },
-    [orgSlug, conversationId, pageContext, invalidateUsage]
+    [orgSlug, conversationId, pageContext, invalidateUsage, invalidateConversations, resetTurnState]
   );
 
   const sendMessage = useCallback(
@@ -335,6 +390,23 @@ export function useAiAssistantChat(pageContext: PageContext) {
     );
   }, [messages, runTurn, sending, pending]);
 
+  /** Edit & resend: drop `messageId` and everything after it, then send the new text. */
+  const editAndResend = useCallback(
+    async (messageId: string, nextText: string) => {
+      if (sending || pending) return;
+      const index = messages.findIndex((msg) => msg.id === messageId);
+      const target = messages[index];
+      if (index < 0 || !target || target.role !== 'user' || !target.persisted) return;
+      if (!nextText.trim()) return;
+      setMessages((prev) => prev.slice(0, index));
+      await runTurn(
+        { text: nextText, attachedContext: target.attachedContext },
+        { editMessageId: messageId }
+      );
+    },
+    [messages, pending, runTurn, sending]
+  );
+
   const resolveAction = useCallback(async (actionId: string, confirm: boolean) => {
     setPending(true);
     try {
@@ -363,6 +435,51 @@ export function useAiAssistantChat(pageContext: PageContext) {
     }
   }, []);
 
+  /** Thumbs up / down; tapping the active rating again clears it. Optimistic with rollback. */
+  const rateMessage = useCallback(
+    async (messageId: string, rating: AssistantFeedbackRating) => {
+      const previous = feedback[messageId];
+      const next = previous === rating ? 0 : rating;
+      setFeedbackState((prev) => {
+        const copy = { ...prev };
+        if (next === 0) delete copy[messageId];
+        else copy[messageId] = next;
+        return copy;
+      });
+      try {
+        await sendAssistantFeedback({ messageId, rating: next });
+      } catch {
+        setFeedbackState((prev) => {
+          const copy = { ...prev };
+          if (previous) copy[messageId] = previous;
+          else delete copy[messageId];
+          return copy;
+        });
+        throw new Error('Could not save feedback');
+      }
+    },
+    [feedback]
+  );
+
+  const consumeCancelledDraft = useCallback(() => setCancelledDraft(null), []);
+
+  /** Retry after an error: regenerate when the user row was saved, else resend it fresh. */
+  const retryFailedTurn = useCallback(async () => {
+    if (!failedTurn || sending || pending) return;
+    const { payload, started, localUserId } = failedTurn;
+    setFailedTurn(null);
+    if (started && conversationId) {
+      setMessages((prev) => {
+        const index = prev.findIndex((msg) => msg.id === localUserId);
+        return index >= 0 ? prev.slice(0, index + 1) : prev;
+      });
+      await runTurn(payload, { skipUserBubble: true, regenerate: true });
+      return;
+    }
+    setMessages((prev) => prev.filter((msg) => msg.id !== localUserId));
+    await runTurn(payload);
+  }, [conversationId, failedTurn, pending, runTurn, sending]);
+
   const canRegenerate = (() => {
     if (sending || pending || messages.length < 2) return false;
     if (messages[messages.length - 1]?.role !== 'assistant') return false;
@@ -376,7 +493,9 @@ export function useAiAssistantChat(pageContext: PageContext) {
 
   return {
     conversationId,
+    conversation,
     messages,
+    feedback,
     pending,
     sending,
     sendStartedAtMs,
@@ -386,12 +505,20 @@ export function useAiAssistantChat(pageContext: PageContext) {
     partialCancelEffects,
     upgradeHook,
     canRegenerate,
+    cancelledDraft,
+    canRetry: failedTurn != null && !sending && !pending,
+    retryFailedTurn,
     sendMessage,
     submitDynamicForm,
     cancelTurn,
     regenerateLastTurn,
+    editAndResend,
     resolveAction,
+    rateMessage,
     loadConversation,
     startNewConversation,
+    consumeCancelledDraft,
   };
 }
+
+export type AiAssistantChatState = ReturnType<typeof useAiAssistantChat>;

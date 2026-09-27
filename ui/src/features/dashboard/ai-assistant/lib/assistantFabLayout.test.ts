@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { isAiAssistantFabVisible, AI_ASSISTANT_FAB_SIZE_PX, AI_ASSISTANT_FAB_STACK_GAP_PX, notificationFabStackedBottomClassName } from '@/features/dashboard/ai-assistant/lib/assistantFabLayout';
+import {
+  isAiAssistantFabVisible,
+  AI_ASSISTANT_FAB_SIZE_PX,
+  AI_ASSISTANT_FAB_STACK_GAP_PX,
+  notificationFabStackedBottomClassName,
+} from '@/features/dashboard/ai-assistant/lib/assistantFabLayout';
 
 describe('isAiAssistantFabVisible', () => {
-
   it('isAiAssistantFabVisible is exported', () => {
     expect(typeof isAiAssistantFabVisible).toBe('function');
   });
-
 });
 
 describe('AI_ASSISTANT_FAB_SIZE_PX', () => {

@@ -35,6 +35,10 @@ export type AssistantStreamEvent =
       conversationId: string;
       blocks: ChatBlock[];
       upgradeHook?: boolean;
+      /** Persisted assistant row id (feedback, copy, live refresh). */
+      messageId?: string;
+      /** Persisted user row id this turn answered (edit & resend). */
+      userMessageId?: string;
     }
   | {
       type: 'error';
@@ -61,6 +65,16 @@ export type StreamChatMessageInput = {
   attachments?: Array<{ name: string; mimeType: string; dataBase64: string }>;
   /** Re-run the last user turn without inserting a duplicate user message. */
   regenerate?: boolean;
+  /** Edit & resend: drop this user message and everything after it, then send `message`. */
+  editMessageId?: string;
+};
+
+export type StreamChatMessageResult = {
+  conversationId: string;
+  blocks: ChatBlock[];
+  upgradeHook?: boolean;
+  messageId?: string;
+  userMessageId?: string;
 };
 
 export type StreamChatMessageHandlers = {
@@ -149,7 +163,7 @@ export function humanizeAssistantStreamError(err: unknown): string {
 export async function streamChatMessage(
   input: StreamChatMessageInput,
   handlers: StreamChatMessageHandlers = {}
-): Promise<{ conversationId: string; blocks: ChatBlock[]; upgradeHook?: boolean }> {
+): Promise<StreamChatMessageResult> {
   const jwt = await getSessionJwt();
   const res = await fetch(`${baseUrl()}/dashboard-assistant-chat`, {
     method: 'POST',
@@ -171,7 +185,7 @@ export async function streamChatMessage(
     const json = (await res.json()) as {
       success?: boolean;
       error?: string;
-      data?: { conversationId: string; blocks: ChatBlock[]; upgradeHook?: boolean };
+      data?: StreamChatMessageResult;
       upgradeHook?: boolean;
     };
     if (!res.ok || !json.success) {
@@ -188,6 +202,8 @@ export async function streamChatMessage(
       conversationId: data.conversationId,
       blocks: data.blocks,
       upgradeHook: data.upgradeHook,
+      messageId: data.messageId,
+      userMessageId: data.userMessageId,
     };
   }
 
@@ -199,8 +215,7 @@ export async function streamChatMessage(
   const decoder = new TextDecoder();
   let buffer = '';
   let seenConversationId: string | null = input.conversationId ?? null;
-  let finalResult: { conversationId: string; blocks: ChatBlock[]; upgradeHook?: boolean } | null =
-    null;
+  let finalResult: StreamChatMessageResult | null = null;
 
   try {
     let streamDone = false;
@@ -232,6 +247,8 @@ export async function streamChatMessage(
             conversationId: event.conversationId,
             blocks: event.blocks,
             upgradeHook: event.upgradeHook,
+            messageId: event.messageId,
+            userMessageId: event.userMessageId,
           };
         }
         if (event.type === 'error') {

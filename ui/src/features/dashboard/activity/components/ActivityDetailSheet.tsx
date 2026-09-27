@@ -8,8 +8,13 @@ import {
 } from '@/features/dashboard/activity/lib/activityCatalog';
 import {
   activityAbsoluteTime,
+  activitySummaryWithoutLeadingActor,
+  formatActivityActorParts,
   formatChangeValue,
-  humanizeAction,
+  friendlyActivitySummary,
+  friendlyDeviceLabel,
+  friendlyMetadataFacts,
+  friendlySourceLabel,
 } from '@/features/dashboard/activity/lib/activityFormat';
 
 import {
@@ -38,6 +43,31 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
 
 export function ActivityDetailSheet({ event, onOpenChange }: Props) {
   const meta = event ? ACTIVITY_SEVERITY_META[event.severity] : null;
+  const summary = event
+    ? (() => {
+        const friendly = friendlyActivitySummary(event.summary, event.metadata);
+        const actorPrimary =
+          event.actorDisplayName?.trim() ||
+          event.actorEmail?.trim() ||
+          activityActorLabel(event.actorType);
+        return friendly.toLowerCase().startsWith(actorPrimary.toLowerCase())
+          ? activitySummaryWithoutLeadingActor(friendly, actorPrimary)
+          : friendly;
+      })()
+    : '';
+  const actorParts = event
+    ? formatActivityActorParts({
+        displayName: event.actorDisplayName,
+        email: event.actorEmail,
+        typeLabel: activityActorLabel(event.actorType),
+        role: event.actorRole,
+      })
+    : null;
+  const device = event ? friendlyDeviceLabel(event.userAgent) : null;
+  const detailFacts = event ? friendlyMetadataFacts(event.metadata) : [];
+  const target =
+    event?.targetLabel?.trim() ||
+    (event?.targetId && !/^[0-9a-f-]{36}$/i.test(event.targetId) ? event.targetId : null);
 
   return (
     <ResponsiveModal open={Boolean(event)} onOpenChange={onOpenChange}>
@@ -46,14 +76,14 @@ export function ActivityDetailSheet({ event, onOpenChange }: Props) {
         className="flex max-h-[min(92dvh,720px)] flex-col gap-0 p-0 sm:max-w-lg"
         showCloseButton
       >
-        {event && meta ? (
+        {event && meta && actorParts ? (
           <>
             <ResponsiveModalHeader className="border-border/60 shrink-0 space-y-1 border-b px-4 pb-3 pt-4 text-left sm:px-5">
               <ResponsiveModalTitle className="text-base leading-snug">
-                {event.summary}
+                {summary}
               </ResponsiveModalTitle>
               <ResponsiveModalDescription>
-                {humanizeAction(event.action)} · {activityCategoryLabel(event.category)}
+                {activityCategoryLabel(event.category)}
               </ResponsiveModalDescription>
             </ResponsiveModalHeader>
 
@@ -71,26 +101,23 @@ export function ActivityDetailSheet({ event, onOpenChange }: Props) {
                   label="Actor"
                   value={
                     <>
-                      {event.actorDisplayName ||
-                        event.actorEmail ||
-                        activityActorLabel(event.actorType)}
-                      <span className="text-muted-foreground ml-1 text-xs">
-                        ({activityActorLabel(event.actorType)}
-                        {event.actorRole ? ` · ${event.actorRole}` : ''})
-                      </span>
+                      {actorParts.primary}
+                      {actorParts.secondary ? (
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          ({actorParts.secondary})
+                        </span>
+                      ) : null}
                     </>
                   }
                 />
                 <Field label="When" value={activityAbsoluteTime(event.createdAt)} />
-                <Field label="Source" value={event.source.replace(/_/g, ' ')} />
-                <Field label="Target" value={event.targetLabel ?? event.targetId} />
+                <Field label="Source" value={friendlySourceLabel(event.source)} />
+                <Field label="Target" value={target} />
                 <Field label="From" value={event.ipPrefix} />
-                {event.userAgent ? (
-                  <Field
-                    label="Device"
-                    value={<span className="text-muted-foreground text-xs">{event.userAgent}</span>}
-                  />
-                ) : null}
+                <Field label="Device" value={device} />
+                {detailFacts.map((fact) => (
+                  <Field key={fact.label} label={fact.label} value={fact.value} />
+                ))}
               </div>
 
               {event.changes && event.changes.length > 0 ? (
@@ -120,15 +147,6 @@ export function ActivityDetailSheet({ event, onOpenChange }: Props) {
                       </tbody>
                     </table>
                   </div>
-                </div>
-              ) : null}
-
-              {Object.keys(event.metadata ?? {}).length > 0 ? (
-                <div className="mt-5">
-                  <h3 className="text-section-title mb-2">Details</h3>
-                  <pre className="bg-muted/30 overflow-x-auto rounded-lg border p-3 text-xs">
-                    {JSON.stringify(event.metadata, null, 2)}
-                  </pre>
                 </div>
               ) : null}
             </div>
