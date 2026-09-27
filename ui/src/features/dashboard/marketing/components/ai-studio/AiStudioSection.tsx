@@ -40,7 +40,8 @@ type Props = {
  * control rail. Plan gate covers the composer only so a downgraded org keeps past assets.
  */
 export function AiStudioSection({ onPublish }: Props) {
-  const { canGenerate, canGenerateVideo, canPublish } = useMarketingPermissions();
+  const { canGenerateImage, canGenerateVideo, canPublish } = useMarketingPermissions();
+  const canGenerate = canGenerateImage || canGenerateVideo;
   const { allowed: imageAllowed, isLoading: imageGateLoading } = useFeatureGate(IMAGE_FEATURE);
   const { allowed: videoAllowed, isLoading: videoGateLoading } = useFeatureGate(VIDEO_FEATURE);
   const generate = useGenerateMarketingMedia();
@@ -174,6 +175,7 @@ export function AiStudioSection({ onPublish }: Props) {
             onGenerate={(payload) => generate.mutate(payload)}
             isGenerating={generate.isPending}
             disabled={!canGenerate || imageGateLoading || videoGateLoading}
+            canGenerateImage={canGenerateImage}
             canGenerateVideo={canGenerateVideo}
             videoAllowed={videoPlanAllowed}
             imageAllowed={imageAllowed}

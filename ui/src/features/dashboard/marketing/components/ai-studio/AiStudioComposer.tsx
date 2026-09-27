@@ -55,6 +55,7 @@ type Props = {
   onGenerate: (payload: GenerateMarketingMediaPayload) => void;
   isGenerating: boolean;
   disabled?: boolean;
+  canGenerateImage: boolean;
   canGenerateVideo: boolean;
   videoAllowed: boolean;
   /** Image generation plan. False keeps the composer open; Generate opens the upgrade modal. */
@@ -74,6 +75,7 @@ export function AiStudioComposer({
   onGenerate,
   isGenerating,
   disabled,
+  canGenerateImage,
   canGenerateVideo,
   videoAllowed,
   imageAllowed = true,
@@ -96,6 +98,7 @@ export function AiStudioComposer({
   const [stylesExpanded, setStylesExpanded] = useState(false);
 
   const isVideo = mediaType === 'video';
+  const imagePermissionBlocked = !canGenerateImage;
   const videoPermissionBlocked = !canGenerateVideo;
   const videoPlanBlocked = !videoAllowed;
   const imagePlanBlocked = !imageAllowed;
@@ -182,11 +185,18 @@ export function AiStudioComposer({
   };
 
   const handleMediaTypeChange = (next: MarketingGenerationMediaType) => {
-    if (next === 'video') {
-      if (videoPermissionBlocked) return;
-    }
+    if (next === 'video' && videoPermissionBlocked) return;
+    if (next === 'image' && imagePermissionBlocked) return;
     applyMediaType(next);
   };
+
+  // A video-only role should land on the Video tab instead of a locked Image tab.
+  useEffect(() => {
+    if (imagePermissionBlocked && !videoPermissionBlocked && mediaType === 'image') {
+      applyMediaType('video');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyMediaType is recreated per render
+  }, [imagePermissionBlocked, videoPermissionBlocked, mediaType]);
 
   const handleTierChange = (next: MarketingGenerationTier) => {
     setTier(next);
@@ -196,7 +206,10 @@ export function AiStudioComposer({
   };
 
   const canSubmit =
-    prompt.trim().length > 0 && !isGenerating && !disabled && (!isVideo || !videoPermissionBlocked);
+    prompt.trim().length > 0 &&
+    !isGenerating &&
+    !disabled &&
+    (isVideo ? !videoPermissionBlocked : !imagePermissionBlocked);
 
   return (
     <form
@@ -239,7 +252,14 @@ export function AiStudioComposer({
         fullWidth
         aria-label="Media type"
         options={[
-          { value: 'image', label: 'Image', disabled },
+          {
+            value: 'image',
+            label: 'Image',
+            disabled: disabled || imagePermissionBlocked,
+            ariaLabel: imagePermissionBlocked
+              ? 'Image. You do not have permission to generate images for this property.'
+              : 'Image',
+          },
           {
             value: 'video',
             label: 'Video',

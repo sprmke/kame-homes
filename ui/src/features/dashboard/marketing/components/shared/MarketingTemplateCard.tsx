@@ -93,9 +93,9 @@ function TemplatePreviewFrame({
       className={cn(
         'relative mx-auto overflow-hidden rounded-lg transition-all duration-200',
         'bg-gradient-to-br from-neutral-900/[0.06] via-neutral-900/[0.04] to-neutral-900/[0.02]',
-        'shadow-sm ring-1 ring-border/60',
-        selected && 'shadow-md ring-2 ring-primary',
-        !selected && 'group-hover:shadow group-hover:ring-primary/35'
+        'ring-border/60 shadow-sm ring-1',
+        selected && 'ring-primary shadow-md ring-2',
+        !selected && 'group-hover:ring-primary/35 group-hover:shadow'
       )}
       style={previewFrameStyle(frame)}
       aria-busy={thumbnailLoading || !thumbnailUrl}
@@ -122,8 +122,8 @@ function TemplatePreviewFrame({
       ) : null}
 
       {selected ? (
-        <span className="absolute left-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-primary shadow-sm">
-          <Check className="size-3 text-primary-foreground" strokeWidth={3} aria-hidden />
+        <span className="bg-primary absolute left-1 top-1 z-10 flex size-5 items-center justify-center rounded-full shadow-sm">
+          <Check className="text-primary-foreground size-3" strokeWidth={3} aria-hidden />
         </span>
       ) : null}
     </div>
@@ -185,7 +185,7 @@ export function MarketingTemplateCard({
             }}
             aria-label={`Customize ${name}`}
             title="Settings"
-            className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md bg-card/95 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-white sm:min-h-[32px] sm:min-w-[32px]"
+            className="bg-card/95 text-foreground flex min-h-[36px] min-w-[36px] items-center justify-center rounded-md shadow-sm backdrop-blur-sm transition-colors hover:bg-white sm:min-h-[32px] sm:min-w-[32px]"
           >
             <Settings2 className="size-3.5" aria-hidden />
           </button>
@@ -226,8 +226,8 @@ export function MarketingTemplateCard({
             className={cn(
               'relative shrink-0 overflow-hidden rounded-md',
               'bg-gradient-to-br from-neutral-900/[0.06] to-neutral-900/[0.02]',
-              'ring-1 ring-border/60',
-              selected && 'ring-2 ring-primary'
+              'ring-border/60 ring-1',
+              selected && 'ring-primary ring-2'
             )}
             style={rowThumbStyle}
             aria-busy={thumbnailLoading || !thumbnailUrl}
@@ -248,7 +248,7 @@ export function MarketingTemplateCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn('truncate text-xs font-medium', selected && 'text-primary')}>{name}</p>
-            {meta ? <p className="truncate text-[10px] text-muted-foreground">{meta}</p> : null}
+            {meta ? <p className="text-muted-foreground truncate text-[10px]">{meta}</p> : null}
           </div>
         </button>
         {actionBar}
@@ -288,7 +288,7 @@ export function MarketingTemplateCard({
           </p>
           {meta ? (
             <p
-              className="mt-0.5 line-clamp-1 text-center text-[10px] text-muted-foreground"
+              className="text-muted-foreground mt-0.5 line-clamp-1 text-center text-[10px]"
               aria-label={meta}
               title={meta}
             >

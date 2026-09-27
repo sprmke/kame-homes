@@ -1215,16 +1215,7 @@ export function MarketingAiGeneratePanel({
         </div>
 
         <ResponsiveModalFooter className="border-border/60 shrink-0 gap-2 border-t px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[44px]"
-            disabled={generating}
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <div className="flex w-full gap-2 sm:w-auto sm:justify-end">
+          <div className="flex min-w-0 flex-1 justify-start">
             {!isFirstStep ? (
               <Button
                 type="button"
@@ -1237,20 +1228,31 @@ export function MarketingAiGeneratePanel({
                 Back
               </Button>
             ) : null}
+          </div>
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={generating}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
             {!isLastStep ? (
               <Button
                 type="button"
-                className="min-h-[44px] flex-1 sm:flex-none"
+                className="min-h-[44px]"
                 disabled={generating || !canAdvanceFromCurrentStep}
                 onClick={goNext}
               >
                 Next
               </Button>
             ) : (
-              <TierBadgeAnchor feature="aiMarketingGeneration" className="flex-1 sm:flex-none">
+              <TierBadgeAnchor feature="aiMarketingGeneration">
                 <Button
                   type="button"
-                  className="min-h-[44px] w-full gap-2"
+                  className="min-h-[44px] gap-2"
                   disabled={!canGenerate}
                   onClick={() => void handleGenerate()}
                 >

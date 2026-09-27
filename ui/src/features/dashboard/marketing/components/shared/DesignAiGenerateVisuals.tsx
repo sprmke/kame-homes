@@ -14,7 +14,6 @@ import { CAMPAIGN_CATEGORY_LABELS } from '@/features/dashboard/marketing/lib/des
 
 import { cn } from '@/lib/utils';
 
-
 export { VisualChoiceButton, marketingAiSuggestionPreviewFrameClass };
 
 /** Mini Quiet Coast editorial promo — eyebrow, serif headline, accent rule, outline CTA. */

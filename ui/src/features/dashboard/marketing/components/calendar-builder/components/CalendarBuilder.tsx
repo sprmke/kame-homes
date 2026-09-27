@@ -94,6 +94,7 @@ import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/component
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 
 import { CalendarFormatPicker } from './CalendarFormatPicker';
@@ -309,6 +310,7 @@ export function CalendarBuilder({
     status: autoSaveStatus,
     errorMessage: autoSaveError,
     markBaseline,
+    saveNow: saveAutoSaveNow,
   } = useMarketingAutoSave({
     enabled: calendarAutosaveEnabled,
     suspended: autoSaveSuspended,
@@ -364,6 +366,15 @@ export function CalendarBuilder({
       sourcePresetId: CALENDAR_CUSTOM_PRESET_ID,
     };
   }, [styles]);
+
+  // Autosave presets: only the pending / error window can lose edits. Blank canvas has a
+  // manual Save (name dialog), so leaving offers Discard only.
+  useUnsavedChangesGuard({
+    isDirty: calendarAutosaveEnabled
+      ? autoSaveStatus === 'pending' || autoSaveStatus === 'error'
+      : manualSaveEnabled,
+    onSave: calendarAutosaveEnabled ? saveAutoSaveNow : undefined,
+  });
 
   const handleCustomTemplateSaved = useCallback(
     (record: { id: string }) => {

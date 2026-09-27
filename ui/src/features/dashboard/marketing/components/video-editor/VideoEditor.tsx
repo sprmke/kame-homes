@@ -153,6 +153,7 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 import { formatMoneyCompact } from '@/utils/format/currency';
 
@@ -501,6 +502,7 @@ export function VideoEditor({ onPublish }: Props) {
     status: autoSaveStatus,
     errorMessage: autoSaveError,
     markBaseline,
+    saveNow: saveAutoSaveNow,
   } = useMarketingAutoSave({
     contentFingerprint: videoFingerprint,
     templateId: savedTemplateId,
@@ -523,6 +525,12 @@ export function VideoEditor({ onPublish }: Props) {
         },
       };
     },
+  });
+
+  // Autosave is debounced: only the pending / error window can lose edits.
+  useUnsavedChangesGuard({
+    isDirty: autoSaveStatus === 'pending' || autoSaveStatus === 'error',
+    onSave: saveAutoSaveNow,
   });
 
   const autoSaveResumeRef = useRef(false);

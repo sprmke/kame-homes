@@ -88,6 +88,72 @@ export function useMarketingAutoSave({
     }
   }, [suspended, contentFingerprint]);
 
+  /** Persists the current content. Resolves true when saved (or nothing to save), false on failure/superseded. */
+  const performSave = useCallback(
+    async (fingerprintAtSave: string): Promise<boolean> => {
+      saveGenerationRef.current += 1;
+      const generation = saveGenerationRef.current;
+      setStatus('saving');
+
+      try {
+        const payload = buildSavePayloadRef.current();
+        if (!payload) {
+          setStatus('idle');
+          return true;
+        }
+
+        let record: MarketingTemplateRecord;
+        const activeId = templateIdRef.current ?? resolveTemplateIdRef.current?.() ?? null;
+
+        if (activeId) {
+          record = await updateMarketingTemplate(propertyId, {
+            id: activeId,
+            name: payload.name,
+            designJson: payload.designJson,
+            aspectPreset: payload.aspectPreset,
+            platform: payload.platform,
+          });
+          if (!templateIdRef.current) {
+            templateIdRef.current = activeId;
+            onTemplateIdChangeRef.current?.(activeId);
+          }
+        } else {
+          record = await saveMarketingTemplate(propertyId, {
+            name: payload.name,
+            contentType: payload.contentType,
+            designJson: payload.designJson,
+            aspectPreset: payload.aspectPreset,
+            platform: payload.platform,
+          });
+          templateIdRef.current = record.id;
+          onTemplateIdChangeRef.current?.(record.id);
+        }
+
+        if (generation !== saveGenerationRef.current) return false;
+
+        lastSavedFingerprintRef.current = fingerprintAtSave;
+        onSavedRef.current?.(record);
+
+        void queryClient.invalidateQueries({ queryKey: ['marketing-templates', propertyId] });
+
+        setStatus('saved');
+        if (savedFlashTimerRef.current) {
+          window.clearTimeout(savedFlashTimerRef.current);
+        }
+        savedFlashTimerRef.current = window.setTimeout(() => {
+          setStatus((current) => (current === 'saved' ? 'idle' : current));
+        }, SAVED_FLASH_MS);
+        return true;
+      } catch (error) {
+        if (generation !== saveGenerationRef.current) return false;
+        setStatus('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Save failed');
+        return false;
+      }
+    },
+    [propertyId, queryClient]
+  );
+
   useEffect(() => {
     if (!enabled || suspended || !contentFingerprint) return;
 
@@ -99,71 +165,19 @@ export function useMarketingAutoSave({
     setErrorMessage(null);
 
     const timer = window.setTimeout(() => {
-      saveGenerationRef.current += 1;
-      const generation = saveGenerationRef.current;
-      const fingerprintAtSave = contentFingerprint;
-
-      void (async () => {
-        setStatus('saving');
-
-        try {
-          const payload = buildSavePayloadRef.current();
-          if (!payload) {
-            setStatus('idle');
-            return;
-          }
-
-          let record: MarketingTemplateRecord;
-          const activeId = templateIdRef.current ?? resolveTemplateIdRef.current?.() ?? null;
-
-          if (activeId) {
-            record = await updateMarketingTemplate(propertyId, {
-              id: activeId,
-              name: payload.name,
-              designJson: payload.designJson,
-              aspectPreset: payload.aspectPreset,
-              platform: payload.platform,
-            });
-            if (!templateIdRef.current) {
-              templateIdRef.current = activeId;
-              onTemplateIdChangeRef.current?.(activeId);
-            }
-          } else {
-            record = await saveMarketingTemplate(propertyId, {
-              name: payload.name,
-              contentType: payload.contentType,
-              designJson: payload.designJson,
-              aspectPreset: payload.aspectPreset,
-              platform: payload.platform,
-            });
-            templateIdRef.current = record.id;
-            onTemplateIdChangeRef.current?.(record.id);
-          }
-
-          if (generation !== saveGenerationRef.current) return;
-
-          lastSavedFingerprintRef.current = fingerprintAtSave;
-          onSavedRef.current?.(record);
-
-          void queryClient.invalidateQueries({ queryKey: ['marketing-templates', propertyId] });
-
-          setStatus('saved');
-          if (savedFlashTimerRef.current) {
-            window.clearTimeout(savedFlashTimerRef.current);
-          }
-          savedFlashTimerRef.current = window.setTimeout(() => {
-            setStatus((current) => (current === 'saved' ? 'idle' : current));
-          }, SAVED_FLASH_MS);
-        } catch (error) {
-          if (generation !== saveGenerationRef.current) return;
-          setStatus('error');
-          setErrorMessage(error instanceof Error ? error.message : 'Save failed');
-        }
-      })();
+      void performSave(contentFingerprint);
     }, debounceMs);
 
     return () => window.clearTimeout(timer);
-  }, [enabled, suspended, contentFingerprint, debounceMs, propertyId, queryClient, templateId]);
+  }, [enabled, suspended, contentFingerprint, debounceMs, performSave, templateId]);
+
+  /** Saves right away, bypassing the debounce (leave-confirm "Save"). Resolves false when it failed. */
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    const fingerprint = contentFingerprintRef.current;
+    if (!enabled || suspended || !fingerprint) return true;
+    if (fingerprint === lastSavedFingerprintRef.current) return true;
+    return performSave(fingerprint);
+  }, [enabled, suspended, performSave]);
 
   useEffect(
     () => () => {
@@ -183,5 +197,5 @@ export function useMarketingAutoSave({
     }
   }, []);
 
-  return { status, errorMessage, markBaseline };
+  return { status, errorMessage, markBaseline, saveNow };
 }

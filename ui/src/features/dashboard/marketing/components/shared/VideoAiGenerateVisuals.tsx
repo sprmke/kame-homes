@@ -13,7 +13,6 @@ import type {
 
 import { cn } from '@/lib/utils';
 
-
 export { VisualChoiceButton, marketingAiSuggestionPreviewFrameClass };
 
 /** Mini video frame — photo wash, bottom scrim, headline, scene filmstrip (Quiet Coast Motion). */

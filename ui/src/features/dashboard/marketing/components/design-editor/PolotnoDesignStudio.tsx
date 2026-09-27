@@ -113,6 +113,7 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 import { formatMoneyCompact } from '@/utils/format/currency';
 
@@ -415,6 +416,7 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
     status: autoSaveStatus,
     errorMessage: autoSaveError,
     markBaseline,
+    saveNow: saveAutoSaveNow,
   } = useMarketingAutoSave({
     contentFingerprint: storeReady ? designFingerprint : null,
     templateId: savedTemplateId,
@@ -446,6 +448,12 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
         },
       };
     },
+  });
+
+  // Autosave is debounced: only the pending / error window can lose edits.
+  useUnsavedChangesGuard({
+    isDirty: autoSaveStatus === 'pending' || autoSaveStatus === 'error',
+    onSave: saveAutoSaveNow,
   });
 
   const handleSavedTemplateCreated = useCallback(

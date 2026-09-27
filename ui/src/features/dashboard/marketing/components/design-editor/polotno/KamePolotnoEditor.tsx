@@ -30,7 +30,6 @@ import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/po
 import { polotnoWorkspaceChrome } from '@/features/dashboard/marketing/lib/polotno/polotnoWorkspaceTheme';
 import { propertyMediaItems } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 
-
 import { useTheme } from '@/components/theme/ThemeProvider';
 
 type Props = {
