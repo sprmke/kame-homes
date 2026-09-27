@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { LocationSearchInput } from '@/lib/google-maps/LocationSearchInput';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ export type GuestProfileFormState = {
   isPending: boolean;
   reset: () => void;
   save: () => void;
+  saveAsync: () => Promise<boolean>;
 };
 
 export function GuestProfileForm({
@@ -114,32 +116,38 @@ export function GuestProfileForm({
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSave = useCallback(() => {
-    if (!isGuestProfileDraftValid(draft) || updateProfile.isPending) return;
+  const saveDraft = useCallback(async (): Promise<boolean> => {
+    if (!isGuestProfileDraftValid(draft) || updateProfile.isPending) return false;
 
     const normalizedPhone = draft.phone.trim() ? normalizePhoneDigits(draft.phone.trim()) : null;
 
-    updateProfile.mutate(
-      {
+    try {
+      await updateProfile.mutateAsync({
         displayName: draft.displayName.trim(),
         bio: draft.bio.trim() || null,
         phone: normalizedPhone,
         locationLabel: draft.locationLabel.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          const trimmed: ProfileDraft = {
-            displayName: draft.displayName.trim(),
-            bio: draft.bio.trim(),
-            phone: normalizedPhone ?? '',
-            locationLabel: draft.locationLabel.trim(),
-          };
-          setDraft(trimmed);
-          setSavedDraft(trimmed);
-        },
-      }
-    );
+      });
+    } catch {
+      return false;
+    }
+    const trimmed: ProfileDraft = {
+      displayName: draft.displayName.trim(),
+      bio: draft.bio.trim(),
+      phone: normalizedPhone ?? '',
+      locationLabel: draft.locationLabel.trim(),
+    };
+    setDraft(trimmed);
+    setSavedDraft(trimmed);
+    return true;
   }, [draft, updateProfile]);
+
+  const handleSave = useCallback(() => {
+    void saveDraft();
+  }, [saveDraft]);
+
+  // Embedded (modal) usage is guarded by GuestProfileModal.
+  useUnsavedChangesGuard({ isDirty, onSave: saveDraft, enabled: !embedded });
 
   const resetDraft = useCallback(() => {
     setDraft(savedDraft);
@@ -153,6 +161,7 @@ export function GuestProfileForm({
       isPending: updateProfile.isPending,
       reset: resetDraft,
       save: handleSave,
+      saveAsync: saveDraft,
     });
   }, [
     embedded,
@@ -162,6 +171,7 @@ export function GuestProfileForm({
     updateProfile.isPending,
     resetDraft,
     handleSave,
+    saveDraft,
   ]);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {

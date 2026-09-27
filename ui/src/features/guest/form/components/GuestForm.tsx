@@ -102,7 +102,6 @@ import {
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 import { GuestStayContextBar } from '@/features/guest/property/components/GuestStayContextBar';
 
-
 import {
   computeDefaultBookingRate,
   FALLBACK_PROPERTY_PRICING_DEFAULTS,
@@ -134,6 +133,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
+import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import { setAnalyticsScope } from '@/lib/posthog/context';
@@ -255,6 +255,8 @@ export type GuestFormEmbed = {
   skipAuthGate?: boolean;
   /** When set, submission success is reported here instead of navigating to the public success page. */
   onSubmitSuccess?: (result: GuestFormSubmitSuccess) => void;
+  /** Reports whether the embedded form holds unsaved edits so the host modal can guard closing. */
+  onDirtyChange?: (isDirty: boolean) => void;
 };
 
 export type GuestFormProps = {
@@ -309,6 +311,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     action: isCompletionMode ? 'submit-form-completion' : 'submit-form',
   });
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const skipAuthGate = Boolean(embed?.skipAuthGate);
   const { status: guestAuthStatus, requireGuestAuth, formSubmitResumeTick } = useGuestAuth();
 
@@ -434,6 +437,18 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     defaultValues: seededDefaultsRef.current ?? defaultFormValues,
     mode: 'all',
   });
+
+  // No draft is persisted, so leaving mid-form loses it. Discard-only prompt (no save from here).
+  useUnsavedChangesGuard({
+    isDirty: form.formState.isDirty,
+    enabled: !embed && !isSubmitting,
+  });
+
+  const onDirtyChange = embed?.onDirtyChange;
+  const embedDirty = form.formState.isDirty && !isSubmitting;
+  useEffect(() => {
+    onDirtyChange?.(embedDirty);
+  }, [embedDirty, onDirtyChange]);
 
   const checkInWatched = useWatch({ control: form.control, name: 'checkInDate' });
   const checkOutWatched = useWatch({ control: form.control, name: 'checkOutDate' });
@@ -902,12 +917,14 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       // Back to calendar; drop bookingId + stripped legacy keys; keep source / dates.
       const next = stripLegacyFromQueryParam(new URLSearchParams(scopedSearchParams));
       next.delete('bookingId');
-      navigate(
-        propertySlug
-          ? guestCalendarPath(propertySlug, next)
-          : next.toString()
-            ? `/properties?${next.toString()}`
-            : '/properties'
+      runUnguarded(() =>
+        navigate(
+          propertySlug
+            ? guestCalendarPath(propertySlug, next)
+            : next.toString()
+              ? `/properties?${next.toString()}`
+              : '/properties'
+        )
       );
     } catch (error) {
       console.error('Cancel booking error:', error);
@@ -1142,14 +1159,16 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         }
 
         // Redirect to success page with booking data
-        navigate(
-          guestSuccessPath(
-            propertySlug,
-            new URLSearchParams({ bookingId: currentBookingId ?? '' })
-          ),
-          {
-            state: { bookingData },
-          }
+        runUnguarded(() =>
+          navigate(
+            guestSuccessPath(
+              propertySlug,
+              new URLSearchParams({ bookingId: currentBookingId ?? '' })
+            ),
+            {
+              state: { bookingData },
+            }
+          )
         );
         return;
       }
@@ -1175,11 +1194,16 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       }
 
       // Redirect to success page with bookingId and booking data
-      navigate(
-        guestSuccessPath(propertySlug, new URLSearchParams({ bookingId: currentBookingId ?? '' })),
-        {
-          state: { bookingData },
-        }
+      runUnguarded(() =>
+        navigate(
+          guestSuccessPath(
+            propertySlug,
+            new URLSearchParams({ bookingId: currentBookingId ?? '' })
+          ),
+          {
+            state: { bookingData },
+          }
+        )
       );
     } catch (error: unknown) {
       console.error('Error submitting form:', {

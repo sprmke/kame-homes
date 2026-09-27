@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { isGuestAccountPath, GUEST_ACCOUNT_PATH, GUEST_ACCOUNT_PROFILE_PATH, GUEST_ACCOUNT_STAYS_PATH, GUEST_ACCOUNT_TRIPS_PATH, GUEST_ACCOUNT_MESSAGES_PATH, GUEST_ACCOUNT_FAVORITES_PATH, GUEST_ACCOUNT_WISHLIST_PATH, GUEST_ACCOUNT_TICKETS_PATH, GUEST_ACCOUNT_VOUCHERS_PATH, GUEST_ACCOUNT_SETTINGS_PATH } from '@/features/guest/account/lib/guestAccountPaths';
+import {
+  isGuestAccountPath,
+  GUEST_ACCOUNT_PATH,
+  GUEST_ACCOUNT_PROFILE_PATH,
+  GUEST_ACCOUNT_STAYS_PATH,
+  GUEST_ACCOUNT_TRIPS_PATH,
+  GUEST_ACCOUNT_MESSAGES_PATH,
+  GUEST_ACCOUNT_FAVORITES_PATH,
+  GUEST_ACCOUNT_WISHLIST_PATH,
+  GUEST_ACCOUNT_TICKETS_PATH,
+  GUEST_ACCOUNT_VOUCHERS_PATH,
+  GUEST_ACCOUNT_SETTINGS_PATH,
+} from '@/features/guest/account/lib/guestAccountPaths';
 
 describe('isGuestAccountPath', () => {
-
   it('isGuestAccountPath is exported', () => {
     expect(typeof isGuestAccountPath).toBe('function');
   });
-
 });
 
 describe('GUEST_ACCOUNT_PATH', () => {

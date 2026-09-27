@@ -132,9 +132,9 @@ export function GuestChatHeaderBar({
       {leading}
       {avatar}
       <div className="min-w-0 flex-1 overflow-hidden">
-        <p className="truncate text-sm font-semibold leading-tight text-foreground">{title}</p>
+        <p className="text-foreground truncate text-sm font-semibold leading-tight">{title}</p>
         {subtitle ? (
-          <p className="truncate text-xs leading-tight text-muted-foreground">{subtitle}</p>
+          <p className="text-muted-foreground truncate text-xs leading-tight">{subtitle}</p>
         ) : null}
         {awaitingReply ? <GuestChatAwaitingReplyBadge className="mt-0.5" /> : null}
       </div>
