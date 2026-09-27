@@ -14,7 +14,6 @@ import {
   type SupportTicketScopeParams,
 } from '../lib/supportTicketApi';
 
-
 import type { SupportTicketAttachmentDraft } from '../lib/supportTicketSchema';
 
 function scopeKey(scope: SupportTicketScopeParams) {

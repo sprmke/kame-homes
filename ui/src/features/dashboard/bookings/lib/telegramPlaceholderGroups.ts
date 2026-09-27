@@ -6,12 +6,12 @@ export type TelegramPlaceholderItem = {
 };
 
 const GROUP_ORDER = [
+  'Blocks',
   'Guest',
   'Stay',
   'Booking',
   'Chat',
   'Flags',
-  'Sections',
   'Workflow',
   'Payments',
   'SD refund',
@@ -145,7 +145,7 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
     example: 'Jun 15, 2026, 3:42 PM',
   },
   booking_vehicle_copy: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Parking broadcast copy block',
     example: 'Unit · dates · guest · vehicle',
   },
@@ -190,87 +190,87 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
     example: 'message us on Facebook or Airbnb',
   },
   update_notice: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'GAF/pet/parking resubmit notice (empty on first send)',
     example: 'Updated request copy',
   },
   new_booking_detail_tables: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Stay, guest, and notable detail tables',
     example: 'Rendered tables',
   },
   downpayment_receipt_ai_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Downpayment receipt AI check table',
     example: 'Verdict + summary',
   },
   booking_link_cta: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Admin “View Booking Details” button',
     example: 'CTA button',
   },
   document_reminders_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'GAF/parking/pet reminder card',
     example: 'Reminder list',
   },
   payment_breakdown_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Payment breakdown table',
     example: 'Rate, DP, balance, SD',
   },
   gcash_payment_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Payment accounts (+ QR when uploaded)',
     example: 'Account details (± QR)',
   },
   sd_refund_checklist_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Check-out checklist table',
     example: '8-step checklist',
   },
   sd_refund_details_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'SD refund amount copy + form CTA button',
     example: 'Refund details + button',
   },
   pet_details_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Pet details table (name, type, breed, age, vax date)',
     example: 'Styled table',
   },
   pet_attachments_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Attachments included list (pet form, vax, photo)',
     example: 'Bulleted list',
   },
   parking_reply_callout_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Parking reply-with-rate callout',
     example: 'Blue callout',
   },
   email_signature_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Best regards sign-off (unit owner from settings)',
     example: 'Name + unit role',
   },
   booking_acknowledgement_flow_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Summary callout + What’s next step cards',
     example: '3 numbered steps',
   },
   ready_for_checkin_booking_summary_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Unit, check-in/out, guests table',
     example: 'Booking summary table',
   },
   ready_for_checkin_contact_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Contact us (Facebook + phone numbers)',
     example: 'Smart / Globe lines',
   },
   stay_guide_cta_section: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Guest stay guide button',
     example: 'Stay guide button',
   },
@@ -350,7 +350,7 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
     example: 'ABC 1234',
   },
   urgent_notice: {
-    group: 'Sections',
+    group: 'Blocks',
     description: 'Same-day check-in urgent banner (empty when not same-day)',
     example: 'Urgent callout',
   },
@@ -526,7 +526,7 @@ function inferGroupFromToken(name: string): (typeof GROUP_ORDER)[number] {
       name
     )
   ) {
-    return 'Sections';
+    return 'Blocks';
   }
   if (/^(status|pending_docs|urgent_)/.test(name)) return 'Workflow';
   if (/^(amount|dp_receipt|balance_receipt)/.test(name)) return 'Payments';

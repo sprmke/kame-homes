@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Loader2 } from 'lucide-react';
 
@@ -8,17 +8,8 @@ import {
 } from '@/features/dashboard/help-support/components/TicketComposeForm';
 import type { SupportTicketCategory } from '@/features/dashboard/help-support/lib/supportTicketSchema';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -26,6 +17,8 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useRunUnguarded } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 
 const FORM_ID = 'new-support-ticket-form';
@@ -53,35 +46,39 @@ export function NewTicketModal({
   defaultCategory,
 }: Props) {
   const [status, setStatus] = useState<TicketComposeStatus>(IDLE_STATUS);
-  const [discardOpen, setDiscardOpen] = useState(false);
+  const runUnguarded = useRunUnguarded();
 
   useEffect(() => {
     if (open) return;
     setStatus(IDLE_STATUS);
-    setDiscardOpen(false);
   }, [open]);
 
   const blocked = status.submitting || status.uploading;
 
-  const close = useCallback(() => {
-    onOpenChange(false);
-  }, [onOpenChange]);
+  // Closing navigates (compose lives in the URL); skip the route guard for that hop.
+  const {
+    onOpenChange: guardedOpenChange,
+    requestClose: guardedRequestClose,
+    dialogProps,
+  } = useGuardedClose({
+    open,
+    onOpenChange: (next) => runUnguarded(() => onOpenChange(next)),
+    isDirty: status.dirty,
+  });
+  const discardOpen = dialogProps.open;
 
-  const requestClose = useCallback(() => {
+  const requestClose = () => {
     if (blocked) return;
-    if (status.dirty) {
-      setDiscardOpen(true);
-      return;
-    }
-    close();
-  }, [blocked, close, status.dirty]);
+    guardedRequestClose();
+  };
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
       onOpenChange(true);
       return;
     }
-    requestClose();
+    if (blocked) return;
+    guardedOpenChange(false);
   };
 
   return (
@@ -125,7 +122,7 @@ export function NewTicketModal({
                 formId={FORM_ID}
                 hideSubmit
                 onStatusChange={setStatus}
-                onSubmitted={onSubmitted}
+                onSubmitted={(id) => runUnguarded(() => onSubmitted(id))}
                 defaultSubject={defaultSubject}
                 defaultCategory={defaultCategory}
               />
@@ -146,29 +143,7 @@ export function NewTicketModal({
         </ResponsiveModalContent>
       </ResponsiveModal>
 
-      <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
-        <AlertDialogContent
-          overlayClassName="z-[110] pointer-events-auto"
-          className="pointer-events-auto z-[111] max-w-[min(calc(100vw-1.5rem),26rem)]"
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discard this ticket?</AlertDialogTitle>
-            <AlertDialogDescription>Your draft will be lost.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="min-h-11">Keep editing</AlertDialogCancel>
-            <AlertDialogAction
-              className={cn(
-                buttonVariants({ variant: 'destructive' }),
-                '!bg-destructive hover:!bg-destructive/90 min-h-11 [background-image:none]'
-              )}
-              onClick={close}
-            >
-              Discard
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <UnsavedChangesDialog {...dialogProps} />
     </>
   );
 }
