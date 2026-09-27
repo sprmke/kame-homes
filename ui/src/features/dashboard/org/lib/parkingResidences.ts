@@ -56,4 +56,3 @@ export function isAzureNorthParkingLevel(value: string): value is AzureNorthPark
 export function getParkingResidenceNames(): string[] {
   return [DEFAULT_PARKING_RESIDENCE_NAME];
 }
-

@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveAmenityLabels, PROPERTY_TYPES, PROPERTY_STATUS_OPTIONS, PROPERTY_CONTACT_ROLES, PROPERTY_CONTACT_ROLE_VALUES, CUSTOM_AMENITY_MAX_LENGTH, INITIAL_ENABLED_AMENITIES } from '@/features/dashboard/org/lib/propertySettingsConstants';
+import {
+  resolveAmenityLabels,
+  PROPERTY_TYPES,
+  PROPERTY_STATUS_OPTIONS,
+  PROPERTY_CONTACT_ROLES,
+  PROPERTY_CONTACT_ROLE_VALUES,
+  CUSTOM_AMENITY_MAX_LENGTH,
+  INITIAL_ENABLED_AMENITIES,
+} from '@/features/dashboard/org/lib/propertySettingsConstants';
 
 describe('resolveAmenityLabels', () => {
-
   it('resolveAmenityLabels is exported', () => {
     expect(typeof resolveAmenityLabels).toBe('function');
   });
-
 });
 
 describe('PROPERTY_TYPES', () => {

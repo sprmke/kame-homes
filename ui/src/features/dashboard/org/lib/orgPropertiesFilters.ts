@@ -1,7 +1,7 @@
 import { orgPropertySearchHaystack } from '@/features/dashboard/org/lib/orgPropertyDisplay';
 import type { Property } from '@/features/dashboard/org/types';
 
-export type OrgPropertiesViewMode = 'grid' | 'list';
+export type OrgPropertiesViewMode = 'table' | 'grid' | 'list';
 
 export type OrgPropertiesFilters = {
   search: string;

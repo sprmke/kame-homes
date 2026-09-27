@@ -91,7 +91,6 @@ export type PropertySettingsSectionId =
   | 'building-forms'
   | 'email-automations'
   | 'integrations'
-  | 'voice-receptionist'
   | 'ai'
   | 'danger';
 
