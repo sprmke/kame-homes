@@ -102,6 +102,8 @@ ordering (articles are matched/filtered by condition, not browsed top-to-bottom 
 | Update article (also reorder / toggle)        | `POST update-host-playbook-article`                  |
 | Delete article                                | `POST delete-host-playbook-article`                  |
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern            | Path                                                                                                              |

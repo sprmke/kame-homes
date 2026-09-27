@@ -646,6 +646,12 @@ Notes:
 
 ---
 
+## 11d. Additive: AI limit profiles (September 2026)
+
+Migration `20261316124000_ai_limit_profiles.sql`. Adds `ai_limit_profiles`, `ai_limit_assignments`, `pricing_plans.ai_limit_profile_id`; makes the org/assistant limit columns nullable overrides; moves plan-synced `monthly_credit_limit` into `plan_credit_allowance`; stamps legacy host-set limits with `override_reason = 'Migrated from host-set limit'`. Effective limits are unchanged at apply time (values equal to the old defaults become NULL and inherit them).
+
+Post-apply check: snapshot effective limits for every org before and after (`resolveOrgAiLimitsBatch`) and confirm no diff. Deploy the edge functions and UI together: old clients that PATCH limits now get 403 `ai_limit_platform_managed`. Rollback: restore the backup; the migration is not reversible in place.
+
 ## 11. Production configuration & secrets (Supabase, Google, hosting)
 
 Use this **after** migrations (**§5**) and Edge Function deploys. Canonical env templates: **[`supabase/.env.example`](../../supabase/.env.example)** (Edge secrets — mirror into Dashboard) and **[`ui/.env.example`](../../ui/.env.example)** (Vite / SPA). Full narrative also lives in **[`docs/architecture/validation-and-env.md`](../architecture/validation-and-env.md)** and **[`docs/architecture/deployment.md`](../architecture/deployment.md)**.
@@ -752,3 +758,7 @@ Full SQL patterns, security notes, and local curl testing: **[[scheduled-jobs-an
 - [ ] After **`pg_cron`** is live, confirm **`gmail-listener`** / **`sd-refund-cron`** invocations in **Edge Logs** on schedule.
 
 **Templates:** [`supabase/.env.example`](../../supabase/.env.example) · [`ui/.env.example`](../../ui/.env.example) · **[`docs/architecture/validation-and-env.md`](../architecture/validation-and-env.md)** · **[[scheduled-jobs-and-testing|Scheduled jobs (cron) and how to test them]]**
+
+### Team permission leaf backfill (`20261316125000_team_permissions_plan_coverage_leaves.sql`)
+
+Adds `marketing.generate.image:add`, `pricing.smartPricing:edit`, `analytics.aiReview:add`, `assistant:view`, `activity:view` (property), `activity:view` (parking) and `org.activity:view` (org) to every stored `permissions` / `saved_permissions` array (members, custom roles, invitations) that already holds the source leaf (`marketing.generate:add`, `pricing.rates:edit`, `analytics:export`, `bookings:view`, `org.dashboard:view`). Idempotent (re-running adds nothing), touches only JSONB arrays, drops its helper function at the end. Deploy the edge functions and UI **after** the migration so no member is briefly locked out of Activity or the assistant. Verify: `SELECT count(*) FROM property_members WHERE permissions ? 'bookings:view' AND NOT permissions ? 'activity:view';` should be 0.

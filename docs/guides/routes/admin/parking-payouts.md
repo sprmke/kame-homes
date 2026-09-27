@@ -92,6 +92,8 @@ Two things on one page, per Phase 4 of the parking marketplace build:
 
 ---
 
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Layer                                     | Path                                                                                                                           |

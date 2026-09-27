@@ -2,7 +2,7 @@
 title: 'Development Settings — operator guide'
 status: active
 tags: [guides, routes, admin, developments]
-updated: 2026-09-04
+updated: 2026-09-27
 ---
 
 # Development Settings — operator guide
@@ -33,7 +33,7 @@ Route: `/admin/developments/:developmentSlug`
 
 ## Overview
 
-Single-development settings page for a super admin to edit a development's public profile and manage its lifecycle. All sections save together via one **Save Changes** action, except the media gallery, which persists immediately on upload/reorder/delete.
+Single-development settings page for a super admin to edit a development's public profile and manage its lifecycle. All sections save together via one **Save Changes** action in the page header when dirty (no sticky footer), except the media gallery, which persists immediately on upload/reorder/delete.
 
 **Access:** `RequireSuperAdmin` (`SUPER_ADMIN_EMAILS`).
 
@@ -220,6 +220,8 @@ Three free-text tag lists stored in `developments.settings`: `propertyTowers`, `
 | Delete media | `DELETE upload-development-media?development_id=` — `{ storagePath                        | mediaId }` |
 
 ---
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

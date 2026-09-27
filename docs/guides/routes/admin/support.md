@@ -106,6 +106,8 @@ First-class Platform nav item and overview card (label **FAQs**). Category-group
 | Update FAQ (also reorder)                     | `POST update-help-center-faq`                                                   |
 | Delete FAQ                                    | `POST delete-help-center-faq`                                                   |
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern            | Path                                                                                                                                                   |

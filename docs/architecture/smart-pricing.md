@@ -197,7 +197,7 @@ org's `aiMonthlyCreditAllowance` via the shared `ai_platform_*` system.
 - **Platform allowlist:** `assertOrgAndPropertyAiQuota` respects
   `ai_platform_global_settings.allowed_features` — an empty array means "all features on"; a
   non-empty array must include `smart_pricing` or the pass silently degrades to engine-only.
-  Set this from the super-admin AI Management page when enabling the AI rationale in prod.
+  Set this from the super-admin AI console (`/admin/ai`, Controls tab) when enabling the AI rationale in prod.
   (Verified locally: with `smart_pricing` in the allowlist, a real Gemini `2.5-flash` call
   returned 3 season rationales + suggested min/max, recorded 1 credit in
   `ai_platform_usage_events`.)

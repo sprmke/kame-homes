@@ -44,6 +44,8 @@ Same as the property-level page: documentation, AI Assistant, and support ticket
 Same as [Property Help & Support](./property/help-support.md) — org-scoped calls use `orgId`/`orgSlug` instead of `propertyId`.
 ---
 
+**Unsaved changes.** Leaving after editing asks to **Discard** or **Keep editing** (nothing is saved until you submit). Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Testing
 
 | Layer | Path / spec            | Manual                      |

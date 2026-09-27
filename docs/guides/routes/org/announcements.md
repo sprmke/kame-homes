@@ -2,7 +2,7 @@
 title: 'Org Announcements'
 status: active
 tags: [guides, routes, org, announcements]
-updated: 2026-09-10
+updated: 2026-09-27
 ---
 
 # Org Announcements
@@ -26,7 +26,7 @@ Legacy redirect: `/org/:orgSlug/help-support/announcements` → org announcement
 
 Org hub members open **Announcements** from the org sidebar (between Plans & Billing and Settings) to read platform maintenance, product updates, and development notices for the whole organization. The feed merges **platform** notices with **development** notices matched from every property and parking `residence_name` in the org (`list-host-announcements` with `orgId` only).
 
-Notices appear only on this archive (and detail), not as a top banner on other pages. A **red dot** on **Announcements** (sidebar and **More** on phone) appears while any notice is unread. Opening a notice marks it read (device-local). Four summary stat cards sit above the feed. While the list or detail loads, those cards and feed rows render as skeletons.
+Notices appear only on this archive (and detail), not as a top banner on other pages. A **red dot** on **Announcements** (sidebar and **More** on phone) appears while any notice is unread. Opening a notice marks it read (device-local). **Read all** beside each group title marks every unread notice in that group. Four summary stat cards sit above the feed. Each feed group is one **parent card**: development/platform title, **Read all**, and pager arrows sit in the card header; announcement rows sit below in the same surface. While the list or detail loads, those cards and feed rows render as skeletons.
 
 **Page title:** `${Org Name} - Announcements`.
 
@@ -34,14 +34,16 @@ Property-only team members who cannot open org routes still reach announcements 
 
 ## Host-facing knowledge
 
-This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read.
+This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group.
 
 **Common host questions**
 
 - Q: Where do I find announcements?
   A: Open **Announcements** from the org sidebar (or **More** on phone). A red dot means you still have unread notices.
 - Q: What does the red dot on Announcements mean?
-  A: You have at least one unread notice. Open each notice to clear the unread state.
+  A: You have at least one unread notice. Open each notice, or use **Read all** on a group, to clear the unread state.
+- Q: Can I mark everything read at once?
+  A: Yes. Next to each group title (Platform or a development name), tap **Read all** when that group has unread notices.
 - Q: What's the difference between Platform and a development name?
   A: **Platform** applies to all hosts. A development name applies only to properties or parkings linked to that development.
 
@@ -51,6 +53,8 @@ This is where you read official notices from Kame Homes — scheduled maintenanc
 | ------------- | -------- | ----------------------------------------------- |
 | **Plans**     | N/A      | Not tier-gated                                  |
 | **Team RBAC** | N/A      | `org.dashboard:view` baseline (org hub members) |
+
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

@@ -11,6 +11,8 @@ Per-page documentation mirrors the app routes. Each guide tracks **behavior**, *
 
 **Template:** [`../_template.md`](../_template.md) · **Workflow:** [`.cursor/skills/route-guides/SKILL.md`](../../../.cursor/skills/route-guides/SKILL.md)
 
+> **Unsaved changes.** Any page or modal with a manual Save prompts before edits are lost. Each guide notes it under its Save flow; the mechanism is in [`architecture/unsaved-changes.md`](../../architecture/unsaved-changes.md). New guides for editable pages must include the same note.
+
 ## Admin (authenticated)
 
 | Route                                                                                                             | Guide                                                                | Status                                                                                                   |
@@ -30,7 +32,7 @@ Per-page documentation mirrors the app routes. Each guide tracks **behavior**, *
 | `/org/:orgSlug/activity`                                                                                          | [org/activity.md](./org/activity.md)                                 | Redirect → `/org/:orgSlug/settings?open=activity` (modal); primary entry is Settings → Activity → Manage |
 | `/org/:orgSlug/plans`                                                                                             | [org/plans.md](./org/plans.md)                                       | Documented — org-level billing only (org sidebar)                                                        |
 | `/org/:orgSlug/announcements` (+ `/:announcementId`)                                                              | [org/announcements.md](./org/announcements.md)                       | Documented — org sidebar; aggregates platform + all org developments                                     |
-| `/org/:orgSlug/analytics`                                                                                         | [org/analytics.md](./org/analytics.md)                               | Documented — portfolio KPI rollup + property comparison table, CSV export, mixed-entitlement rows locked |
+| `/org/:orgSlug/analytics`                                                                                         | [org/analytics.md](./org/analytics.md)                               | Documented — night-weighted KPIs + Needs attention + properties/parkings listings, header date+CSV       |
 | `/org/:orgSlug/inbox`                                                                                             | [org/inbox.md](./org/inbox.md)                                       | Removed — redirects to Properties; use property inbox                                                    |
 | `/org/:orgSlug/help-support` (+ `/docs`, `/tickets`, `/tickets/new`, `/tickets/:ticketId`)                        | [org/help-support.md](./org/help-support.md)                         | Documented — `/help-support/announcements` → org `/announcements`                                        |
 | `/org/:orgSlug/property/:propertySlug/inbox`                                                                      | [org/property/inbox.md](./org/property/inbox.md)                     | Documented — Messages + Manage (Channels / Quick replies / Automation)                                   |
@@ -87,8 +89,9 @@ Platform-level control panel, distinct from org/property admin and the legacy `A
 | `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                         | Documented — FAQ editor                                                                      |
 | `/admin/playbook`                                | [admin/playbook.md](./admin/playbook.md)                       | Documented — Host Analytics Improvement Playbook article editor                              |
 | `/admin/announcements`                           | [admin/announcements.md](./admin/announcements.md)             | Documented — platform-wide host notices (Announcements page)                                 |
-| `/admin/settings`                                | [admin/settings.md](./admin/settings.md)                       | Documented — AI Management                                                                   |
-| `/admin/ai-usage`                                | [admin/platform-tools.md](./admin/platform-tools.md)           | Documented — platform AI cost console                                                        |
+| `/admin/ai`                                      | [admin/ai.md](./admin/ai.md)                                   | Documented — AI console: Usage, Limits, Profiles, Wallets, Controls                          |
+| `/admin/settings`                                | [admin/settings.md](./admin/settings.md)                       | Redirects to `/admin/ai?tab=controls`                                                        |
+| `/admin/ai-usage`                                | [admin/platform-tools.md](./admin/platform-tools.md)           | Redirects to `/admin/ai?tab=usage`                                                           |
 | `/admin/audit`                                   | [admin/platform-tools.md](./admin/platform-tools.md)           | Documented — super-admin action log                                                          |
 | `/admin/platform-settings`                       | [admin/platform-tools.md](./admin/platform-tools.md)           | Documented — signups/maintenance/default plan/support/legal/rate limit                       |
 | `/admin/pricing/plans`                           | [admin/pricing-plans.md](./admin/pricing-plans.md)             | Documented — tier catalog CRUD                                                               |

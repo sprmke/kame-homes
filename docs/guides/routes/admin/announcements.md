@@ -77,6 +77,8 @@ Filters (search / severity / status), page, and page size live in the URL (`?sea
 
 ---
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern                                       | Path                                                                                                                                                                                                                                         |

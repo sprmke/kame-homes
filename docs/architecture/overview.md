@@ -365,6 +365,7 @@ Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need th
 | Validation + env vars         | [`validation-and-env.md`](validation-and-env.md)         |
 | Deploy / dual-track           | [`deployment.md`](deployment.md)                         |
 | PWA                           | [`pwa.md`](pwa.md)                                       |
+| Unsaved-changes guard         | [`unsaved-changes.md`](unsaved-changes.md)               |
 | Plans / entitlements          | [`plans-feature-matrix.md`](plans-feature-matrix.md)     |
 | AI platform (gateway, evals)  | [`ai-platform.md`](ai-platform.md)                       |
 | AI dashboard assistant        | [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md) |

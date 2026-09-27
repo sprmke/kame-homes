@@ -130,6 +130,8 @@ Shown on the last step, never gated by `?dev=true`. Checkboxes (all on by defaul
 
 ---
 
+**Unsaved changes.** Leaving after editing asks to **Discard** or **Keep editing** (nothing is saved until you submit). Shared guard: [`unsaved-changes.md`](../../architecture/unsaved-changes.md).
+
 ## Implementation map
 
 | Concern                        | Path                                                                                              |

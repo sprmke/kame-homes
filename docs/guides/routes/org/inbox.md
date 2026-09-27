@@ -21,6 +21,8 @@ The old URL `/org/:orgSlug/inbox` **redirects** to `/org/:orgSlug/properties`.
 Parking Inbox remains at `/org/:orgSlug/parking/:parkingSlug/inbox` (Channels only; quick replies / automation are managed on a property inbox).
 ---
 
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+
 ## Testing
 
 | Layer | Path / spec                                                                    | Manual |

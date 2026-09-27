@@ -27,7 +27,7 @@ Routes: `/terms` · `/privacy` · `/cookies` · `/about` · `/contact` · `/supp
 
 ## Overview
 
-Footer links from **`MarketingFooter`**. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Homes**; guest fallback **hello@kamehomes.com**.
+Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Homes**; guest fallback **hello@kamehomes.com**.
 
 Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host Resources were removed from the footer (no backing content).
 

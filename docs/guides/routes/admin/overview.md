@@ -60,7 +60,7 @@ The Platform sidebar is driven by `SUPER_ADMIN_NAV_GROUPS` (`superAdminPlatformN
 | Billing & catalog | Pricing plans `/admin/pricing/plans` · Subscriptions `/admin/pricing/subscriptions` · Payment settings `/admin/pricing/payment-settings` · Parking payouts `/admin/parking/payouts` |
 | Operations        | Approvals `/admin/approvals` · Support tickets `/admin/support`                                                                                                                     |
 | Content           | Announcements `/admin/announcements` · FAQs `/admin/support/faqs`                                                                                                                   |
-| Platform          | AI Management `/admin/settings`                                                                                                                                                     |
+| Platform          | AI `/admin/ai`                                                                                                                                                                      |
 
 `SUPER_ADMIN_PLATFORM_DESTINATIONS` (flat, group order) has no consumer today — the Overview page's
 "Jump to" grid that used it was removed for being redundant with the sidebar — but it stays

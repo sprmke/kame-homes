@@ -2,7 +2,7 @@
 title: 'Parking Announcements'
 status: active
 tags: [guides, routes, org, parking, announcements]
-updated: 2026-09-05
+updated: 2026-09-27
 ---
 
 # Parking Announcements (deep-link fallback)
@@ -21,6 +21,8 @@ Same UI as [Property Announcements](../property/announcements.md), scoped to the
 
 Same as [Property Announcements](../property/announcements.md).
 ---
+
+**Unsaved changes.** Closing with unsaved edits (X, Esc, outside click, Cancel, or leaving the page) asks to **Save & close**, **Discard**, or **Keep editing**. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Testing
 

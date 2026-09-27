@@ -75,13 +75,12 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
   — the hub's own left nav card is the only secondary nav, so there's nothing stacked at the
   bottom of the main sidebar.
 - Cross-page deep links to one section (`superAdminPaths.organizationHubSection(slug, 'ai')` →
-  `/admin/orgs/:slug#section-ai`, used by the Overview attention list and the AI usage top-orgs
-  table) work from anywhere: the shell watches `location.hash` and scrolls the target section into
+  `/admin/orgs/:slug#section-ai`, used by the Overview attention list) work from anywhere: the shell watches `location.hash` and scrolls the target section into
   view once its content has mounted.
 - **Subscription** section assigns a plan with no `propertyIds` → server default = every property
   the org owns. It invalidates `['super-admin','org-detail',slug]` on success so the header/plan
   badge refresh.
-- **AI credits** section: wallet card plus **Generate caps** (per-property monthly image/video credit caps and Premium hatch). Cap PATCH is OTP-gated.
+- **AI credits** section: read-only **AI limits** (resolved values with where each came from, **Manage** opens the AI console Limits tab), wallet card, plus **Generate caps** (per-property monthly image/video credit caps and Premium hatch). Cap PATCH is OTP-gated.
 - **Activity** section (`SuperAdminOrgActivitySection`) has a two-tab toggle. **Platform actions**
   (default) is the unchanged `super_admin_audit_events` view for this org. **Org activity** calls
   `list-activity-log` with an explicit `orgId` (`useSuperAdminOrgActivity`) — a super-admin

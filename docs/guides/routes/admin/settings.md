@@ -26,7 +26,7 @@ Route: `/admin/settings`
 
 ## Overview
 
-Platform-wide AI controls for the super-admin team. Sidebar and overview label: **AI Management**. Changes apply across all organizations and properties immediately. Three cards: Platform AI, AI credit wallet, and AI dashboard assistant.
+**Moved:** `/admin/settings` now redirects to **`/admin/ai?tab=controls`** (see [AI console](./ai.md)); the kill switches live on the **Controls** tab and the credit wallet on **Wallets**. Platform-wide AI controls for the super-admin team. Changes apply across all organizations and properties immediately. Three cards: Platform AI, AI credit wallet, and AI dashboard assistant.
 
 Host-facing announcements are managed per development on **`/admin/developments/:slug`** — see [Development Settings](./development-detail.md). Platform-wide notices for all hosts live on **[Announcements](./announcements.md)** (`/admin/announcements`).
 
@@ -127,6 +127,8 @@ Independent of Platform AI. Org-level opt-in still lives on organization Setting
 | Read / update dashboard assistant kill | `GET` / `PATCH dashboard-assistant-global-settings` |
 
 ---
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

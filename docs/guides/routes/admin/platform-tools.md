@@ -9,7 +9,7 @@ updated: 2026-09-27
 
 Routes:
 
-- `/admin/ai-usage` — platform AI cost console
+- `/admin/ai-usage` — redirects to `/admin/ai?tab=usage` (see [AI console](./ai.md))
 - `/admin/rate-limits` — authenticated-wrapper rate-limit activity + manual block/unblock
 - `/admin/audit` — super-admin action log
 - `/admin/platform-settings` — platform operational knobs
@@ -47,7 +47,7 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 
 ## Behavior notes
 
-- **AI usage** (`SuperAdminAiUsagePage`): `super-admin-ai-usage?range=30d|90d|12mo` sums
+- **AI usage** (`AiUsageTab`, `components/super-admin-ai/`); adds a **Projected this month** stat and per-org profile / override badges: `super-admin-ai-usage?range=30d|90d|12mo` sums
   `ai_platform_usage_daily` for the trend, `ai_platform_usage_events` for cost-by-feature and the
   top-25-orgs table, and compares each org's today/month call counts against
   `ai_platform_org_settings` (falling back to the platform defaults — 200/day, 5000/month) to flag
@@ -107,6 +107,8 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 | GET     | `super-admin-search`                   | `?q=` (min 2 chars) → grouped `results[]` with `href`                                                                                                                             |
 
 ---
+
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 
