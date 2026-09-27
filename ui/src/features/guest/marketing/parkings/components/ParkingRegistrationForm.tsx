@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { parkingFlowStep, parkingFlowTransition } from '@/lib/parking/parkingFlowMotion';
 import { cn } from '@/lib/utils';
@@ -81,6 +82,8 @@ interface ParkingRegistrationFormProps {
    * on phone/tablet, same as the property booking form.
    */
   mobileVariant?: 'modal' | 'page';
+  /** Reports unsaved edits so a host modal can guard its own close. */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 function clearLinkedFields(form: ReturnType<typeof useForm<ParkingRegistrationValues>>) {
@@ -121,6 +124,7 @@ export function ParkingRegistrationForm({
   preferredLinkStayId = null,
   onSubmit,
   mobileVariant = 'modal',
+  onDirtyChange,
 }: ParkingRegistrationFormProps) {
   const reduceMotion = useReducedMotion();
   const antiSpamFields = useAntiSpamFields();
@@ -150,6 +154,13 @@ export function ParkingRegistrationForm({
     },
     mode: 'all',
   });
+
+  // Route guard only on the standalone page; the modal host guards its own close.
+  const isFormDirty = form.formState.isDirty && !isSubmitting;
+  useUnsavedChangesGuard({ isDirty: isFormDirty, enabled: mobileVariant === 'page' });
+  useEffect(() => {
+    onDirtyChange?.(isFormDirty);
+  }, [isFormDirty, onDirtyChange]);
 
   const canProceed = isParkingStepComplete(currentStep, form.getValues());
   const linkedBooking =

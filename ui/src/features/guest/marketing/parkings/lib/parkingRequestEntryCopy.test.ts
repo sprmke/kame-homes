@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { PARKING_STAY_CHOOSER_TITLE, PARKING_MANUAL_BOOKING_OPTION_LABEL, PARKING_LINKED_CONFIRM_TITLE } from '@/features/guest/marketing/parkings/lib/parkingRequestEntryCopy';
+import {
+  PARKING_STAY_CHOOSER_TITLE,
+  PARKING_MANUAL_BOOKING_OPTION_LABEL,
+  PARKING_LINKED_CONFIRM_TITLE,
+} from '@/features/guest/marketing/parkings/lib/parkingRequestEntryCopy';
 
 describe('PARKING_STAY_CHOOSER_TITLE', () => {
   it('is defined', () => {

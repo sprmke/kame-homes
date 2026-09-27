@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { PARKING_REGISTRATION_FORM_NAME, PARKING_REGISTRATION_SUCCESS_TITLE, PARKING_REGISTRATION_SUCCESS_MESSAGE } from '@/features/guest/marketing/forms/lib/parkingFormCopy';
+import {
+  PARKING_REGISTRATION_FORM_NAME,
+  PARKING_REGISTRATION_SUCCESS_TITLE,
+  PARKING_REGISTRATION_SUCCESS_MESSAGE,
+} from '@/features/guest/marketing/forms/lib/parkingFormCopy';
 
 describe('PARKING_REGISTRATION_FORM_NAME', () => {
   it('is defined', () => {

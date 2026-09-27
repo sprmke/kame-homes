@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -16,7 +16,10 @@ import {
 import type { ParkingRegistrationValues } from '@/features/guest/marketing/parkings/lib/parkingRegistrationSchema';
 import { GuestDialogShell } from '@/features/guest/marketing/shared/components/GuestDialogShell';
 
+import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { ResponsiveModalTitle } from '@/components/ui/responsive-modal';
+import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { useRunUnguarded } from '@/hooks/useUnsavedChangesGuard';
 import { dateToString } from '@/utils/format/dates';
 
 /** Server error codes/messages mapped to guest-facing copy — anything unmapped falls back to a generic message. */
@@ -46,6 +49,8 @@ export function ParkingBookingFormModal({
   checkOut,
 }: ParkingBookingFormModalProps) {
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
+  const [isDirty, setIsDirty] = useState(false);
   const [searchParams] = useSearchParams();
   const preferredLinkStayId = useMemo(() => getParkingLinkStayId(searchParams), [searchParams]);
   const submitRequest = useSubmitParkingBookingRequest();
@@ -56,6 +61,13 @@ export function ParkingBookingFormModal({
   const checkInDate = checkIn ? dateToString(checkIn) : '';
   const checkOutDate = checkOut ? dateToString(checkOut) : '';
   const formKey = `${parkingId}:${checkInDate}:${checkOutDate}:${preferredLinkStayId ?? ''}`;
+
+  const { onOpenChange: handleOpenChange, dialogProps } = useGuardedClose({
+    open,
+    onOpenChange,
+    isDirty,
+    onDiscard: () => setIsDirty(false),
+  });
 
   const handleSubmit = async (
     values: ParkingRegistrationValues,
@@ -83,8 +95,9 @@ export function ParkingBookingFormModal({
         ...(antiSpam ?? {}),
       });
       clearParkingLinkStayId();
+      setIsDirty(false);
       onOpenChange(false);
-      navigate(guestParkingRequestStatusPath(result.bookingId));
+      runUnguarded(() => navigate(guestParkingRequestStatusPath(result.bookingId)));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not submit parking request';
       toast.error(GUEST_FACING_SUBMIT_ERRORS[message] ?? 'Could not submit parking request');
@@ -92,29 +105,33 @@ export function ParkingBookingFormModal({
   };
 
   return (
-    <GuestDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={
-        <ResponsiveModalTitle className="text-foreground text-base font-semibold">
-          Request parking
-        </ResponsiveModalTitle>
-      }
-      sizeClassName="max-w-[min(calc(100vw-1.5rem),36rem)] sm:max-w-[min(90vw,40rem)]"
-      heightClassName="max-h-[min(92dvh,48rem)]"
-      bodyClassName="px-5 py-4 sm:px-6"
-    >
-      {open ? (
-        <ParkingRegistrationForm
-          key={formKey}
-          defaultValues={{ checkInDate, checkOutDate }}
-          towerLabel={towerLabel}
-          linkableBookings={linkableBookingsQuery.data ?? []}
-          isLinkableLoading={isAuthenticated && linkableBookingsQuery.isPending}
-          preferredLinkStayId={preferredLinkStayId}
-          onSubmit={handleSubmit}
-        />
-      ) : null}
-    </GuestDialogShell>
+    <>
+      <GuestDialogShell
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={
+          <ResponsiveModalTitle className="text-foreground text-base font-semibold">
+            Request parking
+          </ResponsiveModalTitle>
+        }
+        sizeClassName="max-w-[min(calc(100vw-1.5rem),36rem)] sm:max-w-[min(90vw,40rem)]"
+        heightClassName="max-h-[min(92dvh,48rem)]"
+        bodyClassName="px-5 py-4 sm:px-6"
+      >
+        {open ? (
+          <ParkingRegistrationForm
+            key={formKey}
+            defaultValues={{ checkInDate, checkOutDate }}
+            towerLabel={towerLabel}
+            linkableBookings={linkableBookingsQuery.data ?? []}
+            isLinkableLoading={isAuthenticated && linkableBookingsQuery.isPending}
+            preferredLinkStayId={preferredLinkStayId}
+            onSubmit={handleSubmit}
+            onDirtyChange={setIsDirty}
+          />
+        ) : null}
+      </GuestDialogShell>
+      <UnsavedChangesDialog {...dialogProps} />
+    </>
   );
 }

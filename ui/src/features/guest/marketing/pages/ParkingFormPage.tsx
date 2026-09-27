@@ -22,6 +22,7 @@ import type { ParkingRegistrationValues } from '@/features/guest/marketing/parki
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
 import { ParkingStaySummary } from '@/components/parking/ParkingStaySummary';
 import { GuestFormPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
+import { useRunUnguarded } from '@/hooks/useUnsavedChangesGuard';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useFavicon } from '@/lib/favicon';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
@@ -39,6 +40,7 @@ export function ParkingFormPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const runUnguarded = useRunUnguarded();
   const { status: guestAuthStatus, requireGuestAuth } = useGuestAuth();
   const { data, isLoading, isError } = usePublicParkingDetail(parkingSlug);
   const submitRequest = useSubmitParkingBookingRequest();
@@ -120,7 +122,9 @@ export function ParkingFormPage() {
       });
       clearParkingLinkStayId();
       // Same as Reserve modal: skip the false "done" screen — status page is the real next step.
-      navigate(guestParkingRequestStatusPath(result.bookingId), { replace: true });
+      runUnguarded(() =>
+        navigate(guestParkingRequestStatusPath(result.bookingId), { replace: true })
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not submit parking request';
       toast.error(GUEST_FACING_SUBMIT_ERRORS[message] ?? 'Could not submit parking request');

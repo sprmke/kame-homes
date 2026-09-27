@@ -1,4 +1,3 @@
-
 import { Pencil } from 'lucide-react';
 
 import type { LinkableParkingBooking } from '@/features/guest/marketing/parkings/hooks/useLinkableParkingBookings';
