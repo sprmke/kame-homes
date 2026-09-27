@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { showcaseMobileMenuItemStandardClass, showcaseMobileMenuItemSerifClass, showcaseMobileMenuItemCapsClass, showcaseMobileMenuTitleClass, showcaseMobileMenuTitleSerifClass, showcaseMobileMenuEyebrowClass, showcaseMobileMenuIndexClass, showcaseMobileMenuItemPadClass } from '@/features/guest/marketing/showcase/lib/showcaseMobileMenuTypography';
+import {
+  showcaseMobileMenuItemStandardClass,
+  showcaseMobileMenuItemSerifClass,
+  showcaseMobileMenuItemCapsClass,
+  showcaseMobileMenuTitleClass,
+  showcaseMobileMenuTitleSerifClass,
+  showcaseMobileMenuEyebrowClass,
+  showcaseMobileMenuIndexClass,
+  showcaseMobileMenuItemPadClass,
+} from '@/features/guest/marketing/showcase/lib/showcaseMobileMenuTypography';
 
 describe('showcaseMobileMenuItemStandardClass', () => {
   it('is defined', () => {

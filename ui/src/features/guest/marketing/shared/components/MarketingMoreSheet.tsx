@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react';
 
 import { Link, useLocation } from 'react-router-dom';
 
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { Facebook, Instagram, LayoutDashboard, LogOut, Mail, Phone, Twitter } from 'lucide-react';
 
 import { useGuestSignOut } from '@/features/guest/account/hooks/useGuestSignOut';
 import {
@@ -13,6 +13,14 @@ import { getAppModeFromPath } from '@/features/guest/auth/config/mode-switch';
 import { useGuestSession } from '@/features/guest/auth/hooks/useGuestSession';
 import { ModeSwitcher } from '@/features/guest/marketing/shared/components/ModeSwitcher';
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
+import { marketingGuestNavLinks } from '@/features/guest/marketing/shared/lib/marketingGuestNavLinks';
+import {
+  marketingCompanyLinks,
+  marketingContactPhone,
+  marketingHostLinks,
+  marketingLegalLinks,
+  marketingSocialLinks,
+} from '@/features/guest/marketing/shared/lib/marketingSiteLinks';
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 
@@ -25,41 +33,29 @@ import {
   BottomSheetTitle,
 } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
+import { PLATFORM_CONTACT_EMAIL, platformCopyrightLine } from '@/lib/platformBranding';
 import { cn } from '@/lib/utils';
 
-const linkGroups: { title: string; links: { href: string; label: string }[] }[] = [
+const linkGroups: { title: string; links: readonly { href: string; label: string }[] }[] = [
   {
-    title: 'For hosts',
-    links: [
-      { href: '/for-hosts', label: 'Become a host' },
-      { href: '/for-hosts/pricing', label: 'Pricing' },
-      { href: '/services', label: 'Services' },
-      { href: '/support', label: 'Support' },
-    ],
+    title: 'Explore',
+    links: marketingGuestNavLinks.filter(
+      (l) => l.href === '/developments' || l.href === '/services'
+    ),
   },
-  {
-    title: 'Company',
-    links: [
-      { href: '/about', label: 'About us' },
-      { href: '/contact', label: 'Contact' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { href: '/privacy', label: 'Privacy policy' },
-      { href: '/terms', label: 'Terms of service' },
-      { href: '/cookies', label: 'Cookie policy' },
-    ],
-  },
+  { title: 'For hosts', links: marketingHostLinks },
+  { title: 'Company', links: marketingCompanyLinks },
+  { title: 'Legal', links: marketingLegalLinks },
 ];
+
+const socialIcons = { Facebook, Instagram, Twitter } as const;
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-/** Secondary marketing links + theme + mode switch + sign out — the overflow of `MarketingBottomNav`. */
+/** Secondary marketing links + contact/socials/copyright (the phone replacement for `MarketingFooter`) + theme + mode switch + sign out — the overflow of `MarketingBottomNav`. */
 export function MarketingMoreSheet({ open, onOpenChange }: Props) {
   const { pathname } = useLocation();
   const { status: guestStatus } = useGuestSession();
@@ -141,6 +137,47 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
               </div>
             </div>
           ))}
+
+          <div className="border-border/60 space-y-2 border-t pb-2 pt-3">
+            <div className="text-muted-foreground flex flex-col text-sm">
+              <a
+                href={`mailto:${PLATFORM_CONTACT_EMAIL}`}
+                className="flex min-h-[44px] items-center gap-2 px-2.5"
+              >
+                <Mail className="text-primary size-4 shrink-0" aria-hidden />
+                <span className="min-w-0 truncate">{PLATFORM_CONTACT_EMAIL}</span>
+              </a>
+              {marketingContactPhone ? (
+                <a
+                  href={marketingContactPhone.href}
+                  className="flex min-h-[44px] items-center gap-2 px-2.5"
+                >
+                  <Phone className="text-primary size-4 shrink-0" aria-hidden />
+                  {marketingContactPhone.label}
+                </a>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-3 px-2.5">
+              <p className="text-muted-foreground min-w-0 text-xs">{platformCopyrightLine()}</p>
+              <div className="flex shrink-0 items-center gap-1">
+                {marketingSocialLinks.map((social) => {
+                  const Icon = socialIcons[social.label];
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.label}
+                      className="text-muted-foreground hover:text-foreground flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors"
+                    >
+                      <Icon className="size-5" />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </nav>
 
         <div className="bg-card shrink-0 space-y-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5">

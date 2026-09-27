@@ -8,32 +8,24 @@ import { getAppModeFromPath } from '@/features/guest/auth/config/mode-switch';
 import { MarketingBrandLogo } from '@/features/guest/marketing/shared/components/MarketingBrandLogo';
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 import { marketingGuestNavLinks } from '@/features/guest/marketing/shared/lib/marketingGuestNavLinks';
+import {
+  marketingCompanyLinks,
+  marketingContactPhone,
+  marketingHostLinks,
+  marketingLegalLinks,
+  marketingSocialLinks,
+} from '@/features/guest/marketing/shared/lib/marketingSiteLinks';
 
 import { PLATFORM_CONTACT_EMAIL, platformCopyrightLine } from '@/lib/platformBranding';
 
 const footerLinks = {
   explore: marketingGuestNavLinks,
-  company: [
-    { href: '/about', label: 'About Us' },
-    { href: '/contact', label: 'Contact' },
-  ],
-  hosts: [
-    { href: '/for-hosts', label: 'Become a Host', switchesToHost: true },
-    { href: '/for-hosts/pricing', label: 'Pricing' },
-    { href: '/support', label: 'Support' },
-  ],
-  legal: [
-    { href: '/privacy', label: 'Privacy Policy' },
-    { href: '/terms', label: 'Terms of Service' },
-    { href: '/cookies', label: 'Cookie Policy' },
-  ],
+  company: marketingCompanyLinks,
+  hosts: marketingHostLinks,
+  legal: marketingLegalLinks,
 };
 
-const socialLinks = [
-  { href: 'https://facebook.com', icon: Facebook, label: 'Facebook' },
-  { href: 'https://instagram.com', icon: Instagram, label: 'Instagram' },
-  { href: 'https://twitter.com', icon: Twitter, label: 'Twitter' },
-];
+const socialIcons = { Facebook, Instagram, Twitter } as const;
 
 const linkClassName = 'text-muted-foreground hover:text-foreground text-sm transition-colors';
 
@@ -55,7 +47,7 @@ export function MarketingFooter() {
   };
 
   return (
-    <footer className="bg-muted text-foreground border-border border-t">
+    <footer className="bg-muted text-foreground border-border hidden border-t lg:block">
       <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-6 lg:gap-12">
           <div className="col-span-2">
@@ -82,12 +74,14 @@ export function MarketingFooter() {
                   {PLATFORM_CONTACT_EMAIL}
                 </a>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="text-primary h-4 w-4 shrink-0" aria-hidden />
-                <a href="tel:+639123456789" className={linkClassName}>
-                  +63 912 345 6789
-                </a>
-              </div>
+              {marketingContactPhone ? (
+                <div className="flex items-center gap-2">
+                  <Phone className="text-primary h-4 w-4 shrink-0" aria-hidden />
+                  <a href={marketingContactPhone.href} className={linkClassName}>
+                    {marketingContactPhone.label}
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -125,7 +119,7 @@ export function MarketingFooter() {
                   <Link
                     to={link.href}
                     className={linkClassName}
-                    onClick={'switchesToHost' in link ? handleBecomeHost : undefined}
+                    onClick={link.switchesToHost ? handleBecomeHost : undefined}
                   >
                     {link.label}
                   </Link>
@@ -154,18 +148,21 @@ export function MarketingFooter() {
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-muted-foreground text-sm">{platformCopyrightLine()}</p>
             <div className="flex items-center gap-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-5 w-5" />
-                </a>
-              ))}
+              {marketingSocialLinks.map((social) => {
+                const Icon = socialIcons[social.label];
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors"
+                    aria-label={social.label}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>

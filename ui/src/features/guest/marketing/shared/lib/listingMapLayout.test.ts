@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { listingMapCanvasClass, listingMapMinHeightClass } from '@/features/guest/marketing/shared/lib/listingMapLayout';
+import {
+  listingMapCanvasClass,
+  listingMapMinHeightClass,
+} from '@/features/guest/marketing/shared/lib/listingMapLayout';
 
 describe('listingMapCanvasClass', () => {
   it('is defined', () => {

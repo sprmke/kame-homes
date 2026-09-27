@@ -2,7 +2,6 @@ import { SHOWCASE_PREVIEW_MOCK_MESSAGE } from '@/features/guest/marketing/showca
 
 import { cn } from '@/lib/utils';
 
-
 type Props = {
   className?: string;
   /** Prefer auto — follows `data-showcase-surface` / palette ink. */
