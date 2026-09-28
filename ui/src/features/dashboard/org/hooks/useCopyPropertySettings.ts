@@ -28,7 +28,6 @@ function invalidateTargetCaches(
   void queryClient.invalidateQueries({ queryKey: ['app-settings'] });
   void queryClient.invalidateQueries({ queryKey: PROPERTY_TEMPLATES_QUERY_KEY });
   void queryClient.invalidateQueries({ queryKey: [SMART_PRICING_QUERY_KEY] });
-  void queryClient.invalidateQueries({ queryKey: ['voice-receptionist-settings'] });
   void queryClient.invalidateQueries({ queryKey: ['telegram-admin-settings'] });
   void queryClient.invalidateQueries({ queryKey: ['telegram-staff-settings'] });
   void queryClient.invalidateQueries({ queryKey: ['telegram-marketing-settings'] });
@@ -41,12 +40,6 @@ function invalidateTargetCaches(
     void queryClient.invalidateQueries({ queryKey: ['app-settings', propertyId] });
     void queryClient.invalidateQueries({
       queryKey: [...PROPERTY_TEMPLATES_QUERY_KEY, propertyId],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['property', propertyId, 'ai-platform-property-settings'],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['voice-receptionist-settings', propertyId],
     });
   }
 }

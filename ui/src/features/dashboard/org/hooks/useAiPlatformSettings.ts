@@ -1,11 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  scopedFunctionsUrl,
-  scopedOrgFunctionsUrl,
-  useOrgScopeKey,
-  usePropertyIdParam,
-} from '@/features/dashboard/org/lib/adminApiScope';
+import { scopedOrgFunctionsUrl, useOrgScopeKey } from '@/features/dashboard/org/lib/adminApiScope';
 
 import { supabase } from '@/lib/supabase/client';
 
@@ -116,6 +111,13 @@ export function useUpdateAiPlatformSettings() {
       qc.invalidateQueries({ queryKey: usageKey(orgSlug, orgId) });
       // Org master syncs every property.enabled — refresh property AI caches.
       qc.invalidateQueries({ queryKey: ['property'], exact: false });
+      // The assistant swaps its composer for a turn-on card while org AI is off.
+      qc.invalidateQueries({
+        queryKey: ['org', orgSlug ?? orgId, 'ai-dashboard-assistant-settings'],
+      });
+      qc.invalidateQueries({
+        queryKey: ['org', orgSlug ?? orgId, 'ai-dashboard-assistant-access'],
+      });
     },
   });
 }
@@ -130,46 +132,5 @@ export function useAiPlatformUsage() {
         scopedOrgFunctionsUrl('ai-platform-usage', orgSlug, orgId)
       ),
     staleTime: 30_000,
-  });
-}
-
-export type AiPlatformPropertySettingsDto = {
-  propertyId: string;
-  organizationId: string;
-  enabled: boolean;
-  updatedAt: string | null;
-};
-
-const propertySettingsKey = (propertyId: string | null) =>
-  ['property', propertyId, 'ai-platform-property-settings'] as const;
-
-export function useAiPlatformPropertySettings() {
-  const propertyId = usePropertyIdParam();
-  return useQuery({
-    queryKey: propertySettingsKey(propertyId),
-    enabled: Boolean(propertyId),
-    queryFn: () =>
-      fetchOrgAi<AiPlatformPropertySettingsDto>(
-        scopedFunctionsUrl('/ai-platform-property-settings', propertyId)
-      ),
-  });
-}
-
-export function useUpdateAiPlatformPropertySettings() {
-  const propertyId = usePropertyIdParam();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (patch: { enabled: boolean }) =>
-      fetchOrgAi<AiPlatformPropertySettingsDto>(
-        scopedFunctionsUrl('/ai-platform-property-settings', propertyId),
-        {
-          method: 'PATCH',
-          body: JSON.stringify(patch),
-        }
-      ),
-    onSuccess: (data) => {
-      qc.setQueryData(propertySettingsKey(propertyId), data);
-      qc.invalidateQueries({ queryKey: usageKey(data.organizationId, null) });
-    },
   });
 }

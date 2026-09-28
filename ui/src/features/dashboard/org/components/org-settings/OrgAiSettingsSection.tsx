@@ -8,6 +8,7 @@ import {
   useUpdateAiDashboardAssistantSettings,
 } from '@/features/dashboard/ai-assistant/hooks/useAiDashboardAssistantSettings';
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
+import { OrgVoiceReceptionistGroup } from '@/features/dashboard/org/components/org-settings/OrgVoiceReceptionistGroup';
 import {
   AiSettingsCreditsBar,
   AiSettingsFeatureGroup,
@@ -66,6 +67,7 @@ export function OrgAiSettingsSection() {
 
   const [assistantDraft, setAssistantDraft] = React.useState<AssistantDraft | null>(null);
   const [assistantBaseline, setAssistantBaseline] = React.useState<AssistantDraft | null>(null);
+  const [assistantUserEdited, setAssistantUserEdited] = React.useState(false);
 
   React.useEffect(() => {
     if (!assistantSettings) return;
@@ -108,6 +110,7 @@ export function OrgAiSettingsSection() {
       };
       setAssistantDraft(next);
       setAssistantBaseline(next);
+      setAssistantUserEdited(false);
       toast.success('Assistant settings saved');
       return true;
     } catch (err: unknown) {
@@ -117,7 +120,7 @@ export function OrgAiSettingsSection() {
   };
 
   useUnsavedChangesGuard({
-    isDirty: assistantDirty && !assistantReadOnly,
+    isDirty: assistantDirty && assistantUserEdited && !assistantReadOnly,
     onSave: handleAssistantSave,
   });
 
@@ -212,9 +215,10 @@ export function OrgAiSettingsSection() {
                 label={AI_SETTINGS_ASSISTANT_TOGGLE_LABEL}
                 checked={assistantDraft.enabled}
                 disabled={assistantReadOnly}
-                onCheckedChange={(enabled) =>
-                  setAssistantDraft((current) => (current ? { ...current, enabled } : current))
-                }
+                onCheckedChange={(enabled) => {
+                  setAssistantUserEdited(true);
+                  setAssistantDraft((current) => (current ? { ...current, enabled } : current));
+                }}
               />
 
               {assistantOn ? (
@@ -254,7 +258,8 @@ export function OrgAiSettingsSection() {
                             <Checkbox
                               checked={assistantDraft.disabledPropertyIds.includes(property.id)}
                               disabled={assistantReadOnly}
-                              onCheckedChange={(checked) =>
+                              onCheckedChange={(checked) => {
+                                setAssistantUserEdited(true);
                                 setAssistantDraft((current) => {
                                   if (!current) return current;
                                   const next = checked
@@ -263,8 +268,8 @@ export function OrgAiSettingsSection() {
                                         (id) => id !== property.id
                                       );
                                   return { ...current, disabledPropertyIds: next };
-                                })
-                              }
+                                });
+                              }}
                               aria-label={`Disable dashboard assistant on ${property.name}`}
                             />
                             {property.name}
@@ -287,6 +292,8 @@ export function OrgAiSettingsSection() {
                 </>
               ) : null}
             </AiSettingsFeatureGroup>
+
+            <OrgVoiceReceptionistGroup properties={properties} readOnly={platformReadOnly} />
           </>
         ) : null}
       </div>
