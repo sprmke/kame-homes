@@ -29,6 +29,7 @@ import type {
 } from '@/features/dashboard/property/lib/types';
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { formatDateRangeDisplay, fromIsoDate, type DatePreset } from '@/lib/date/navigation';
 
 type Props = {
@@ -62,10 +63,13 @@ export function DashboardFinanceCalendarSection({
   canViewFinance = true,
   canViewMaintenance = true,
 }: Props) {
+  const compactChrome = useDashboardCompactChrome();
   const rangeFrom = fromIsoDate(from);
   const rangeTo = fromIsoDate(to);
   const rangeLabel =
-    rangeFrom && rangeTo ? formatDateRangeDisplay(rangeFrom, rangeTo, datePreset) : '';
+    rangeFrom && rangeTo
+      ? formatDateRangeDisplay(rangeFrom, rangeTo, datePreset, { compact: compactChrome })
+      : '';
 
   const financeQuery = useMemo(
     (): FinanceQuery => ({

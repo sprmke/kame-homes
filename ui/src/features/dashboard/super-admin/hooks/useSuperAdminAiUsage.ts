@@ -44,6 +44,27 @@ export type SuperAdminAiUsage = {
     overMonthly: boolean;
   }[];
   quotaBreaches: SuperAdminAiUsage['topOrgs'];
+  /** Thumbs on AI assistant replies in the range (absent on older deploys). */
+  assistantFeedback?: {
+    up: number;
+    down: number;
+    positivePct: number | null;
+    recentNegative: Array<{ reason: string | null; createdAt: string; orgName: string | null }>;
+  };
+  /** Latest assistant golden eval runs, newest first (`eval:ai --suite assistant --record`). */
+  assistantEvalRuns?: AssistantEvalRun[];
+};
+
+export type AssistantEvalRun = {
+  id: string;
+  createdAt: string;
+  routed: boolean;
+  passed: number;
+  total: number;
+  avgToolsSent: number | null;
+  promptVersion: string | null;
+  modules: Array<{ module: string; passed: number; total: number }>;
+  failedCaseIds: string[];
 };
 
 export function useSuperAdminAiUsage(range: SuperAdminAiUsageRange) {

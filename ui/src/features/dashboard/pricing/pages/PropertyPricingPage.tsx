@@ -24,6 +24,8 @@ import { PricingDateModal } from '@/features/dashboard/pricing/components/Pricin
 import { PricingRatesFormCard } from '@/features/dashboard/pricing/components/PricingRatesFormCard';
 import { PricingSaveDialog } from '@/features/dashboard/pricing/components/PricingSaveDialog';
 import { PricingStatsRow } from '@/features/dashboard/pricing/components/PricingStatsRow';
+import { pricingCalendarFormGridClassName } from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { SmartPricingDialog } from '@/features/dashboard/pricing/components/SmartPricingDialog';
 import {
   usePropertyPricing,
@@ -78,6 +80,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 const BUSY_MONTH_CELEBRATION_THRESHOLD = 20;
 
 export function PropertyPricingPage() {
+  const compactChrome = useDashboardCompactChrome();
   const { data: access } = usePropertyPermissions();
   const permissions = access?.permissions;
   const canEditRates = hasPropertyPermission(permissions, 'pricing.rates:edit');
@@ -676,7 +679,7 @@ export function PropertyPricingPage() {
               }
             />
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-5">
+            <div className={pricingCalendarFormGridClassName(compactChrome)}>
               <PricingCalendarGrid
                 currentMonth={currentMonth}
                 selectedDates={selectedDates}

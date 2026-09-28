@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminHostCard,
   SuperAdminHostsEmptyState,
@@ -21,6 +20,7 @@ import {
   type SuperAdminHostsViewMode,
 } from '@/features/dashboard/super-admin/lib/superAdminHostsFilters';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { buildPageItems } from '@/lib/table/pagination';

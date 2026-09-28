@@ -43,6 +43,11 @@ import type { PropertyPricingCalendarBooking } from '@/features/dashboard/pricin
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
+import {
+  pricingCalendarOutsideCellClassName,
+  pricingCalendarWeekGapClassName,
+} from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { formatMoneyCompact } from '@/utils/format/currency';
@@ -155,6 +160,9 @@ export function PricingCalendarGrid({
   // breakpoint (see the `event.detail === 0` branch in PricingDayCell's onClick),
   // since they have no drag gesture either.
   const isBelowLg = useIsBelowLg();
+  const compactChrome = useDashboardCompactChrome();
+  const denseCalendar = isBelowLg || compactChrome;
+  const monthLabel = format(currentMonth, denseCalendar ? 'MMM yyyy' : 'MMMM yyyy');
   const [touchAnchor, setTouchAnchor] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -173,7 +181,7 @@ export function PricingCalendarGrid({
   };
 
   return (
-    <section className="surface-card min-w-0 p-4 sm:p-5">
+    <section className={cn('surface-card min-w-0', denseCalendar ? 'p-3 sm:p-4' : 'p-4 sm:p-5')}>
       <AdminSurfaceCardHeader
         icon={CalendarDays}
         title={
@@ -195,8 +203,16 @@ export function PricingCalendarGrid({
             >
               <ChevronLeft className="size-3.5 sm:size-4" />
             </Button>
-            <span className="min-w-[5.75rem] truncate text-center text-[13px] font-semibold tabular-nums sm:min-w-[9.5rem] sm:text-sm">
-              {format(currentMonth, isBelowLg ? 'MMM yyyy' : 'MMMM yyyy')}
+            <span
+              className={cn(
+                'truncate text-center text-[13px] font-semibold tabular-nums sm:text-sm',
+                denseCalendar
+                  ? 'min-w-[5.25rem] sm:min-w-[5.75rem]'
+                  : 'min-w-[5.75rem] sm:min-w-[9.5rem]'
+              )}
+              title={compactChrome && !isBelowLg ? format(currentMonth, 'MMMM yyyy') : undefined}
+            >
+              {monthLabel}
             </span>
             <Button
               type="button"
@@ -222,7 +238,9 @@ export function PricingCalendarGrid({
           onMouseUp={isBelowLg ? undefined : onSelectionEnd}
           onMouseLeave={isBelowLg ? undefined : onSelectionEnd}
         >
-          <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
+          <div
+            className={cn('mb-2 grid grid-cols-7', pricingCalendarWeekGapClassName(denseCalendar))}
+          >
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
               <div key={day} className="text-muted-foreground py-1 text-center text-xs font-medium">
                 {day}
@@ -230,10 +248,15 @@ export function PricingCalendarGrid({
             ))}
           </div>
 
-          <div className="flex flex-col gap-1.5 sm:gap-2">
+          <div className={cn('flex flex-col', denseCalendar ? 'gap-1' : 'gap-1.5 sm:gap-2')}>
             {weeks.map((week) => (
               <div key={week.weekIndex} className="relative overflow-visible">
-                <div className="relative z-0 grid grid-cols-7 gap-1.5 overflow-visible sm:gap-2">
+                <div
+                  className={cn(
+                    'relative z-0 grid grid-cols-7 overflow-visible',
+                    pricingCalendarWeekGapClassName(denseCalendar)
+                  )}
+                >
                   {week.days.map((day) =>
                     isSameMonth(day, currentMonth) ? (
                       <PricingDayCell
@@ -252,11 +275,12 @@ export function PricingCalendarGrid({
                         onDateMouseDown={onDateMouseDown}
                         onDateMouseEnter={onDateMouseEnter}
                         onBookingClick={onBookingClick}
+                        denseCalendar={denseCalendar}
                       />
                     ) : (
                       <div
                         key={day.toISOString()}
-                        className="aspect-square min-h-[3.5rem] sm:min-h-[4.5rem]"
+                        className={pricingCalendarOutsideCellClassName(denseCalendar)}
                         aria-hidden
                       />
                     )
@@ -361,6 +385,7 @@ function PricingDayCell({
   onDateMouseDown,
   onDateMouseEnter,
   onBookingClick,
+  denseCalendar = false,
 }: {
   day: Date;
   selectedDates: Date[];
@@ -368,6 +393,7 @@ function PricingDayCell({
   getPriceForDate: (date: Date) => PricingDayState;
   touchMode?: boolean;
   touchArmed?: boolean;
+  denseCalendar?: boolean;
   onTouchSelect?: (date: Date) => void;
   onCancelTouchAnchor?: () => void;
   onDateClick: (date: Date) => void;
@@ -395,7 +421,10 @@ function PricingDayCell({
     <button
       type="button"
       className={cn(
-        'border-border bg-card relative flex aspect-square min-h-[3.5rem] min-w-0 flex-col rounded-lg border p-1 text-left transition-colors sm:min-h-[4.5rem] sm:p-2',
+        'border-border bg-card relative flex aspect-square min-w-0 flex-col rounded-lg border text-left transition-colors',
+        denseCalendar
+          ? 'min-h-[3rem] p-0.5 sm:min-h-[3.25rem]'
+          : 'min-h-[3.5rem] p-1 sm:min-h-[4.5rem] sm:p-2',
         isPast && !isBooked && 'cursor-not-allowed opacity-45',
         isPast && isBooked && 'bg-muted/40',
         !isLocked && isBlocked && 'bg-muted border-muted-foreground/20',

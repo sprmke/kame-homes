@@ -6,7 +6,6 @@ import { Plus } from 'lucide-react';
 
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { AddDevelopmentDialog } from '@/features/dashboard/super-admin/components/super-admin-developments/AddDevelopmentDialog';
 import {
   SuperAdminDevelopmentCard,
@@ -26,6 +25,7 @@ import {
 } from '@/features/dashboard/super-admin/lib/superAdminDevelopmentsFilters';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';

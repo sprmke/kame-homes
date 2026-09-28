@@ -1,6 +1,11 @@
 import { Loader2, Save } from 'lucide-react';
 
 import type { PropertyFeeConfig } from '@/features/dashboard/pricing/lib/pricingDefaults';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
+import {
+  pricingRatesFormStackClassName,
+  pricingRatesFormSurfaceClassName,
+} from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,9 +76,11 @@ export function PricingRatesFormCard({
   onAmountChange,
   onSaveClick,
 }: Props) {
+  const compactChrome = useDashboardCompactChrome();
+
   return (
-    <section className="surface-card p-4 sm:p-5">
-      <div className="space-y-5">
+    <section className={pricingRatesFormSurfaceClassName(compactChrome)}>
+      <div className={pricingRatesFormStackClassName(compactChrome)}>
         <div>
           <h3 className="text-foreground text-sm font-semibold">Base rates</h3>
           <div className="mt-3 space-y-4">

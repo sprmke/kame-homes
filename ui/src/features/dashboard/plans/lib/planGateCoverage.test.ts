@@ -86,7 +86,7 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     server: ['dashboard-assistant-chat', 'dashboard-assistant-confirm'],
   },
   aiReceptionist: {
-    client: ['dashboard/bookings/components/PropertySettingsCard.tsx'],
+    client: ['dashboard/org/components/org-settings/OrgVoiceReceptionistGroup.tsx'],
     server: ['voice-receptionist-settings', 'voice-receptionist-start'],
   },
   aiMarketingGeneration: {
@@ -124,7 +124,8 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
   },
   quickReplies: {
     client: ['dashboard/inbox/components/InboxInsertMenu.tsx'],
-    server: ['social-inbox-templates'],
+    // Gate lives in the shared module used by social-inbox-templates and the assistant tool.
+    server: ['_shared/inboxQuickReplyTemplates.ts'],
   },
   customTemplates: {
     client: ['dashboard/bookings/pages/TemplatesPage.tsx'],

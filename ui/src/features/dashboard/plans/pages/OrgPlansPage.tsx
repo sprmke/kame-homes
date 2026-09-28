@@ -37,7 +37,7 @@ import {
   MANAGED_PLAN_INQUIRY_SUBJECT,
   nextUpgradePlan,
   PLANS_PAGE_SUBTITLE,
-  PLANS_TAB_SECTION_TITLES,
+  type PLANS_TAB_SECTION_TITLES,
   resolveEffectiveCurrentPlan,
   resolveEffectiveCurrentPlanId,
   resolveDowngradeBlockedReason,
@@ -231,7 +231,13 @@ export function OrgPlansPage() {
 
   if (isBootstrapping) {
     return (
-      <AdminMobilePage title="Plans & Billing" subtitle={PLANS_PAGE_SUBTITLE}>
+      <AdminMobilePage
+        title="Plans & Billing"
+        subtitle={PLANS_PAGE_SUBTITLE}
+        titleId="org-plans-heading"
+        dense
+        className="min-w-0 max-w-full"
+      >
         <PlansPageSkeleton />
       </AdminMobilePage>
     );
@@ -269,7 +275,7 @@ export function OrgPlansPage() {
           </p>
         </FloatingPanel>
       ) : (
-        <div className="native-stagger flex min-w-0 flex-col gap-5 sm:gap-6">
+        <div className="native-stagger flex min-w-0 flex-col gap-4 sm:gap-5">
           <PlanCheckoutConfirmationBanner
             state={checkoutConfirmation}
             pendingCheckoutUrl={data?.pendingCheckoutUrl}

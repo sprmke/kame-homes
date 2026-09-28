@@ -7,7 +7,6 @@ import { ChevronDown, Landmark, Megaphone, Plus } from 'lucide-react';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminAnnouncementCardGrid } from '@/features/dashboard/super-admin/components/super-admin-announcements/SuperAdminAnnouncementCardGrid';
 import {
   SuperAdminAnnouncementDialog,
@@ -30,6 +29,7 @@ import {
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

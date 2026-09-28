@@ -15,7 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
+import { AssistantEvalRunsCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantEvalRunsCard';
 import {
   useSuperAdminAiUsage,
   type SuperAdminAiUsageRange,
@@ -24,6 +24,7 @@ import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdmin
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
 import { StatCard } from '@/components/shared/StatCard';
+import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
@@ -340,6 +341,45 @@ export function AiUsageTab() {
               </Card>
             )}
           </div>
+
+          {data.assistantFeedback ? (
+            <section className="surface-card min-w-0 p-3 sm:p-4" aria-label="Assistant feedback">
+              <AdminSurfaceCardHeader
+                title="Assistant feedback"
+                description={
+                  data.assistantFeedback.positivePct == null
+                    ? 'No ratings yet'
+                    : `${data.assistantFeedback.positivePct}% helpful · ${data.assistantFeedback.up} up · ${data.assistantFeedback.down} down`
+                }
+              />
+              {data.assistantFeedback.recentNegative.length > 0 ? (
+                <ul className="divide-border/60 mt-2 divide-y text-sm">
+                  {data.assistantFeedback.recentNegative.map((item) => (
+                    <li
+                      key={`${item.createdAt}-${item.orgName ?? ''}`}
+                      className="flex min-w-0 items-center gap-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate" title={item.reason ?? undefined}>
+                        {item.reason ?? 'No reason given'}
+                      </span>
+                      <span className="text-muted-foreground shrink-0 truncate text-xs">
+                        {item.orgName ?? 'Unknown org'}
+                      </span>
+                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {new Date(item.createdAt).toLocaleDateString('en-PH', {
+                          timeZone: 'Asia/Manila',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
+
+          {data.assistantEvalRuns ? <AssistantEvalRunsCard runs={data.assistantEvalRuns} /> : null}
         </>
       ) : null}
     </div>

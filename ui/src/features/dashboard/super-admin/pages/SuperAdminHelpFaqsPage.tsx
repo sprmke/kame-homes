@@ -28,7 +28,6 @@ import {
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminFaqEditorDialog } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminFaqEditorDialog';
 import { SuperAdminHelpFaqsSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminHelpFaqsSummaryCards';
 import {
@@ -38,6 +37,7 @@ import {
   type AdminHelpCenterFaq,
 } from '@/features/dashboard/super-admin/hooks/useHelpCenterFaqsAdmin';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,

@@ -7,11 +7,11 @@ import {
   AdminListPerPageSelect,
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
 import { useAdminListPaginationParams } from '@/features/dashboard/super-admin/hooks/useAdminListPaginationParams';
 import { useSuperAdminAudit } from '@/features/dashboard/super-admin/hooks/useSuperAdminAudit';
 
+import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { buildPageItems } from '@/lib/table/pagination';

@@ -14,13 +14,10 @@ export function AiDashboardAssistantKillSwitchCard() {
   const update = useUpdateAiDashboardAssistantGlobalSettings();
 
   const save = (patch: { enabled?: boolean; aiModeEnabled?: boolean }) => {
-    update.mutate(
-      patch,
-      {
-        onSuccess: () => toast.success('AI dashboard assistant settings updated'),
-        onError: (err: unknown) => toast.error(friendlyToastError(err, 'Could not save setting')),
-      }
-    );
+    update.mutate(patch, {
+      onSuccess: () => toast.success('AI dashboard assistant settings updated'),
+      onError: (err: unknown) => toast.error(friendlyToastError(err, 'Could not save setting')),
+    });
   };
 
   return (

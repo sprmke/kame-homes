@@ -439,6 +439,37 @@ export function planFeatureMatrixGroups(plans: OrgBundlePlanDto[]): PlanFeatureM
   }).filter((entry) => entry.rows.length > 0);
 }
 
+export type PlanIncludedFeatureGroup = {
+  group: PlanFeatureGroup;
+  label: string;
+  features: PlanFeatureChange[];
+};
+
+/**
+ * Every capability the plan includes (baseline + tier unlocks), grouped by product module.
+ * Measured rows use the plan's own wording (`Up to 5 team members`, `1,000 AI credits per month`).
+ */
+export function planIncludedFeatureGroups(plan: OrgBundlePlanDto): PlanIncludedFeatureGroup[] {
+  return PLAN_FEATURE_GROUP_ORDER.map((group) => {
+    const features: PlanFeatureChange[] = [
+      ...PLAN_BASELINE_MATRIX_ROWS.filter((row) => row.group === group).map((row) => ({
+        key: row.key,
+        label: row.label,
+      })),
+      ...PLAN_STARTER_MATRIX_ROWS.filter(
+        (row) => row.group === group && !plan.isDefault && plan.sortOrder >= row.minSortOrder
+      ).map((row) => ({ key: row.key, label: row.label })),
+      ...PLAN_FEATURE_ROWS.filter((row) => row.group === group && row.rank(plan.features) > 0).map(
+        (row) => ({ key: row.key, label: row.describe(plan.features) })
+      ),
+      ...(group === 'managed' && plan.code === MANAGED_PLAN_CODE
+        ? PLAN_MANAGED_MATRIX_ROWS.map((row) => ({ key: row.key, label: row.label }))
+        : []),
+    ];
+    return { group, label: PLAN_FEATURE_GROUP_LABELS[group], features };
+  }).filter((entry) => entry.features.length > 0);
+}
+
 export type PlanFeatureChange = {
   key: string;
   label: string;

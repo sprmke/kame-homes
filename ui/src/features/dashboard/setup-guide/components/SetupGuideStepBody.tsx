@@ -6,7 +6,6 @@ import {
   OrgSocialsBrandingSection,
 } from '@/features/dashboard/org/components/org-settings/OrgProfileSettingsSections';
 import { PropertyLocationPicker } from '@/features/dashboard/org/components/property-settings/PropertyLocationPicker';
-import { PropertyAiSettingsSection } from '@/features/dashboard/org/components/property-settings/PropertyAiSettingsSection';
 import { PropertyOperationalSettingsSections } from '@/features/dashboard/org/components/property-settings/PropertyOperationalSettingsSections';
 import { PropertyPaymentMethodsSection } from '@/features/dashboard/org/components/property-settings/PropertyPaymentMethodsSection';
 import { PropertyProfileMainSections } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
@@ -123,25 +122,17 @@ function PropertySectionsInner({
   kind,
   profileSectionIds,
   operationalSectionIds,
-  showVoice = false,
 }: {
   kind: SetupGuideStepKind;
   profileSectionIds?: readonly PropertySettingsSectionId[];
   operationalSectionIds?: readonly PropertySettingsSectionId[];
-  showVoice?: boolean;
 }) {
   const {
     appSettings,
     appSettingsLoading,
-    voiceSettings,
-    voiceSettingsLoading,
-    voiceSettingsError,
-    voiceSettingsLoadError,
-    canEnableReceptionist,
     inheritedBrandColor,
     profileDraft,
     operationalDraft,
-    voiceDraft,
     newCustomAmenityInputs,
     setNewCustomAmenityInputs,
     newCustomHouseRuleInputs,
@@ -167,7 +158,6 @@ function PropertySectionsInner({
     persistLocation,
     setOperationalField,
     setAutomationToggle,
-    setVoiceField,
     handleSave,
     handlePaymentOtpOpenChange,
     handlePaymentOtpVerified,
@@ -239,22 +229,6 @@ function PropertySectionsInner({
         />
       ) : null}
 
-      {showVoice && canEnableReceptionist ? (
-        <PropertyAiSettingsSection
-          showUsage={false}
-          showVoiceReceptionist
-          voiceReceptionist={{
-            draft: voiceDraft,
-            propertyName: profileDraft.name.trim(),
-            availableVoices: voiceSettings?.availableVoices ?? [],
-            isLoading: voiceSettingsLoading,
-            isError: voiceSettingsError,
-            errorMessage: (voiceSettingsLoadError as Error)?.message ?? null,
-            onChange: setVoiceField,
-          }}
-        />
-      ) : null}
-
       <SensitiveSettingsOtpDialog
         open={paymentOtpOpen}
         onOpenChange={handlePaymentOtpOpenChange}
@@ -272,13 +246,11 @@ function PropertySectionsStep({
   propertyId,
   profileSectionIds,
   operationalSectionIds,
-  showVoice,
 }: {
   kind: SetupGuideStepKind;
   propertyId: string;
   profileSectionIds?: readonly PropertySettingsSectionId[];
   operationalSectionIds?: readonly PropertySettingsSectionId[];
-  showVoice?: boolean;
 }) {
   return (
     <SetupGuidePropertyHost
@@ -289,7 +261,6 @@ function PropertySectionsStep({
         kind={kind}
         profileSectionIds={profileSectionIds}
         operationalSectionIds={operationalSectionIds}
-        showVoice={showVoice}
       />
     </SetupGuidePropertyHost>
   );
@@ -602,7 +573,6 @@ export function SetupGuideStepBody({ step }: { step: SetupGuideStep | undefined 
           propertyId={step.propertyId!}
           profileSectionIds={['guest-form']}
           operationalSectionIds={['building-forms']}
-          showVoice
         />
       );
     case 'property.email':
