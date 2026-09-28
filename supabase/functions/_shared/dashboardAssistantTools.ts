@@ -257,6 +257,13 @@ import {
   toolGuideNotificationSettings,
   toolGuideTelegramSettings,
 } from './dashboardAssistantGuidanceTools.ts';
+import { OPEN_PAGE_TOOL_DECLARATION, toolOpenPage } from './dashboardAssistantNavigationTools.ts';
+import {
+  executeParityConfirmedAction,
+  isParityTool,
+  PARITY_TOOL_DECLARATIONS,
+  runParityTool,
+} from './dashboardAssistantParityTools.ts';
 import { downloadAssistantAttachment } from './assistantAttachmentApply.ts';
 import { uploadMarketingMediaFromAssistantBytes } from './marketingMediaUpload.ts';
 import { validateToolArgs } from './ai/toolArgs.ts';
@@ -301,6 +308,7 @@ export async function logAssistantWriteActivity(
     action: 'ai.assistant_action_executed',
     organizationId: ctx.organizationId,
     propertyId: result.auditPropertyId ?? null,
+    parkingId: result.auditParkingId ?? null,
     actor: assistantActorContext(ctx),
     targetType: result.auditBookingId ? 'booking' : 'assistant_action',
     targetId: result.auditBookingId ?? null,
@@ -340,6 +348,9 @@ export type ToolResult = {
   deferred?: boolean;
   auditPropertyId?: string | null;
   auditBookingId?: string | null;
+  auditParkingId?: string | null;
+  /** Server-built line shown on an executed confirm card (never model-written). */
+  resultNote?: string;
 };
 
 const ALL_TOOL_NAMES = new Set([
@@ -617,6 +628,7 @@ async function toolListBookings(
           statusLabel: isBookingStatus(rowStatus) ? STATUS_HUMAN_LABEL[rowStatus] : rowStatus,
           checkIn: r.check_in_date,
           checkOut: r.check_out_date,
+          propertyId: r.property_id ?? null,
           propertyName: nameById.get(String(r.property_id ?? '')) ?? '',
         };
       }),
@@ -735,6 +747,7 @@ async function toolGetAvailableDates(
     checkOut: string;
     status: string;
     statusLabel: string;
+    propertyId: string;
   }> = [];
 
   for (const booking of bookings ?? []) {
@@ -757,6 +770,7 @@ async function toolGetAvailableDates(
       checkOut: formatDateKey(co),
       status: rowStatus,
       statusLabel: isBookingStatus(rowStatus) ? STATUS_HUMAN_LABEL[rowStatus] : rowStatus,
+      propertyId,
     });
 
     let night = ci > availabilityFrom ? ci : availabilityFrom;
@@ -1271,6 +1285,7 @@ async function toolListParkingBookings(
           status: rowStatus,
           checkIn,
           checkOut,
+          parkingId: r.parking_id ?? null,
         };
       }),
     },
@@ -3227,6 +3242,8 @@ export async function executeConfirmedAction(
   inputPayload: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<ToolResult> {
+  if (isParityTool(toolName)) return executeParityConfirmedAction(toolName, inputPayload, ctx);
+
   if (toolName === 'propose_cancel_booking') {
     const bookingId = str(inputPayload, 'bookingId');
     if (!bookingId) return { ok: false, error: 'bookingId is required' };
@@ -4386,9 +4403,12 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   propose_update_property_profile: (ctx, args) => toolProposeUpdatePropertyProfile(ctx, args),
   propose_update_property_settings: (ctx, args) => toolProposeUpdatePropertySettings(ctx, args),
   propose_revoke_property_invitation: (ctx, args) => toolProposeRevokePropertyInvitation(ctx, args),
-  propose_invite_property_team_member: (ctx, args) => toolProposeInvitePropertyTeamMember(ctx, args),
-  propose_update_property_team_member_role: (ctx, args) => toolProposeUpdatePropertyTeamMemberRole(ctx, args),
-  propose_remove_property_team_member: (ctx, args) => toolProposeRemovePropertyTeamMember(ctx, args),
+  propose_invite_property_team_member: (ctx, args) =>
+    toolProposeInvitePropertyTeamMember(ctx, args),
+  propose_update_property_team_member_role: (ctx, args) =>
+    toolProposeUpdatePropertyTeamMemberRole(ctx, args),
+  propose_remove_property_team_member: (ctx, args) =>
+    toolProposeRemovePropertyTeamMember(ctx, args),
   list_parkings: (ctx) => toolListParkings(ctx),
   get_parking_booking: (ctx, args) => toolGetParkingBooking(ctx, args),
   list_parking_bookings: (ctx, args) => toolListParkingBookings(ctx, args),
@@ -4399,12 +4419,14 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   get_property_pricing: (ctx, args) => toolGetPropertyPricing(ctx, args),
   get_parking_pricing: (ctx, args) => toolGetParkingPricing(ctx, args),
   propose_update_property_base_rate: (ctx, args) => toolProposeUpdatePropertyBaseRate(ctx, args),
-  propose_set_property_date_rate_override: (ctx, args) => toolProposeSetPropertyDateRateOverride(ctx, args),
+  propose_set_property_date_rate_override: (ctx, args) =>
+    toolProposeSetPropertyDateRateOverride(ctx, args),
   propose_add_property_holiday_rule: (ctx, args) => toolProposeAddPropertyHolidayRule(ctx, args),
   propose_block_property_dates: (ctx, args) => toolProposeBlockPropertyDates(ctx, args),
   propose_unblock_property_dates: (ctx, args) => toolProposeUnblockPropertyDates(ctx, args),
   propose_update_parking_base_rate: (ctx, args) => toolProposeUpdateParkingBaseRate(ctx, args),
-  propose_set_parking_date_rate_override: (ctx, args) => toolProposeSetParkingDateRateOverride(ctx, args),
+  propose_set_parking_date_rate_override: (ctx, args) =>
+    toolProposeSetParkingDateRateOverride(ctx, args),
   list_inbox_threads: (ctx, args) => toolListInboxThreads(ctx, args),
   get_inbox_thread: (ctx, args) => toolGetInboxThread(ctx, args),
   get_inbox_settings: (ctx, args) => toolGetInboxSettings(ctx, args),
@@ -4429,17 +4451,22 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   propose_apply_org_logo: (ctx, args) => toolProposeApplyOrgLogo(ctx, args),
   propose_apply_property_media: (ctx, args) => toolProposeApplyPropertyMedia(ctx, args),
   propose_apply_parking_media: (ctx, args) => toolProposeApplyParkingMedia(ctx, args),
-  propose_apply_app_settings_attachment: (ctx, args) => toolProposeApplyAppSettingsAttachment(ctx, args),
+  propose_apply_app_settings_attachment: (ctx, args) =>
+    toolProposeApplyAppSettingsAttachment(ctx, args),
   propose_apply_template_attachment: (ctx, args) => toolProposeApplyTemplateAttachment(ctx, args),
-  propose_apply_org_verification_attachment: (ctx, args) => toolProposeApplyOrgVerificationAttachment(ctx, args),
+  propose_apply_org_verification_attachment: (ctx, args) =>
+    toolProposeApplyOrgVerificationAttachment(ctx, args),
   propose_submit_org_verification: (ctx, args) => toolProposeSubmitOrgVerification(ctx, args),
-  propose_apply_listing_authorization_attachment: (ctx, args) => toolProposeApplyListingAuthorizationAttachment(ctx, args),
-  propose_submit_listing_authorization: (ctx, args) => toolProposeSubmitListingAuthorization(ctx, args),
+  propose_apply_listing_authorization_attachment: (ctx, args) =>
+    toolProposeApplyListingAuthorizationAttachment(ctx, args),
+  propose_submit_listing_authorization: (ctx, args) =>
+    toolProposeSubmitListingAuthorization(ctx, args),
   propose_stage_gcash_qr: (ctx, args) => toolProposeStageGcashQr(ctx, args),
   get_channel_sync_status: (ctx, args) => toolGetChannelSyncStatus(ctx, args),
   propose_run_channel_sync: (ctx, args) => toolProposeRunChannelSync(ctx, args),
   get_public_pages_status: (ctx, args) => toolGetPublicPagesStatus(ctx, args),
-  propose_update_public_page_template: (ctx, args) => toolProposeUpdatePublicPageTemplate(ctx, args),
+  propose_update_public_page_template: (ctx, args) =>
+    toolProposeUpdatePublicPageTemplate(ctx, args),
   get_property_analytics: (ctx, args) => toolGetPropertyAnalytics(ctx, args),
   explain_metric: (_ctx, args) => toolExplainAnalyticsMetric(args),
   propose_update_finance_line_item: (ctx, args) => toolProposeUpdateFinanceLineItem(ctx, args),
@@ -4452,7 +4479,13 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   guide_telegram_settings: (ctx, args) => toolGuideTelegramSettings(ctx, args),
   guide_create_booking: (ctx, args) => toolGuideCreateBooking(ctx, args),
   guide_import_bookings: (ctx, args) => toolGuideImportBookings(ctx, args),
+  open_page: (ctx, args) => toolOpenPage(ctx, args),
 };
+
+// Parity tools (ai-chat-mode.md Phase 7) share one runner for tiering + the safety guard.
+for (const declaration of PARITY_TOOL_DECLARATIONS) {
+  TOOL_HANDLERS[declaration.name] = (ctx, args) => runParityTool(declaration.name, ctx, args);
+}
 
 /** Test/catalog helper: tool names that have an execution handler. */
 export function registeredToolNames(): string[] {
@@ -4605,7 +4638,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'get_finance_summary',
     description:
-      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for a property. Defaults to this calendar month and the current page property. Use display.* ₱ strings and netProfit for host answers — do not invent Grand Net.',
+      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for ONE property. Defaults to this calendar month and the current page property. With no property in scope, pass propertyId or use get_org_portfolio_analytics for org-wide revenue. Use display.* ₱ strings and netProfit for host answers — do not invent Grand Net.',
     parameters: {
       type: 'object',
       properties: {
@@ -5349,4 +5382,6 @@ export const TOOL_DECLARATIONS = [
   GUIDE_IMPORT_BOOKINGS_TOOL_DECLARATION,
   GET_PROPERTY_ANALYTICS_TOOL_DECLARATION,
   EXPLAIN_ANALYTICS_METRIC_TOOL_DECLARATION,
+  OPEN_PAGE_TOOL_DECLARATION,
+  ...PARITY_TOOL_DECLARATIONS,
 ];

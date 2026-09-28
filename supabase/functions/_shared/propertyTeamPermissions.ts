@@ -86,8 +86,6 @@ export const TEAM_PERMISSION_IDS = [
   'settings.payment:edit',
   'settings.buildingForms:edit',
   'settings.emailAutomations:edit',
-  'settings.voiceReceptionist:edit',
-  'settings.aiOverrides:edit',
   'settings.dangerZone:edit',
   'team:view',
   'team.invitations:add',

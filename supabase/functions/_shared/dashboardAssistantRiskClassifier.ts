@@ -6,6 +6,12 @@
  */
 
 import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts';
+import {
+  PARITY_READ_TOOL_NAMES,
+  PARITY_TIER1_TOOL_NAMES,
+  PARITY_TIER2_TOOL_NAMES,
+  PARITY_UNTRUSTED_CONTENT_TOOL_NAMES,
+} from './dashboardAssistantParityToolNames.ts';
 import { canTransition, isBookingStatus, type BookingStatus } from './statusMachine.ts';
 
 // ─── Action-intent risk tiering (deterministic, tool-execution safety gate) ──
@@ -64,6 +70,8 @@ export const READ_TOOL_NAMES = new Set([
   'guide_telegram_settings',
   'guide_create_booking',
   'guide_import_bookings',
+  'open_page',
+  ...PARITY_READ_TOOL_NAMES,
   'get_property_analytics',
   'explain_metric',
 ]);
@@ -75,6 +83,7 @@ export const TIER1_ONLY_TOOL_NAMES = new Set([
   'propose_revoke_invitation',
   'propose_revoke_property_invitation',
   'propose_mark_inbox_thread_read',
+  ...PARITY_TIER1_TOOL_NAMES,
 ]);
 
 /** Always tier2, regardless of payload — destructive by definition. */
@@ -126,6 +135,7 @@ export const TIER2_ONLY_TOOL_NAMES = new Set([
   'propose_update_finance_line_item',
   'propose_update_public_page_template',
   'propose_run_channel_sync',
+  ...PARITY_TIER2_TOOL_NAMES,
 ]);
 
 /**
@@ -180,6 +190,7 @@ export const UNTRUSTED_CONTENT_TOOL_NAMES = new Set([
   'get_booking_documents',
   'get_parking_booking',
   'list_parking_bookings',
+  ...PARITY_UNTRUSTED_CONTENT_TOOL_NAMES,
 ]);
 
 const TIER_RANK: Record<ActionRiskTier, number> = {

@@ -22,9 +22,17 @@ export type AssistantStreamEvent =
   | { type: 'turn_started'; conversationId: string }
   | { type: 'phase'; phase: AssistantStreamPhase; label?: string }
   | { type: 'tool_start'; toolName: string; label: string; stepId?: string }
-  | { type: 'tool_done'; toolName: string; ok: boolean; durationMs: number; stepId?: string }
+  | {
+      type: 'tool_done';
+      toolName: string;
+      ok: boolean;
+      durationMs: number;
+      stepId?: string;
+      /** Host-facing reason when `ok` is false (`assistantToolFailureReason.ts`). */
+      reason?: string;
+    }
   | { type: 'plan'; title: string; steps: AssistantStreamTaskPlanStep[] }
-  | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus }
+  | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus; reason?: string }
   | { type: 'text_start' }
   | { type: 'text_chunk'; delta: string }
   | {
@@ -41,6 +49,8 @@ export type AssistantStreamEvent =
       type: 'error';
       message: string;
       upgradeHook?: boolean;
+      /** Which AI switch is off. `organization` / `property`: the UI links to AI settings; `platform`: plain error. */
+      aiBlocker?: 'platform' | 'organization' | 'property';
       aborted?: boolean;
       appliedEffects?: AssistantAppliedEffect[];
     };

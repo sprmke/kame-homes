@@ -4,10 +4,6 @@
  */
 
 import {
-  getAiPlatformPropertySettings,
-  upsertAiPlatformPropertySettings,
-} from './aiUsageService.ts';
-import {
   getMarketingGenerationOverrides,
   patchMarketingGenerationOverrides,
 } from './marketingGenerationFeatureConfig.ts';
@@ -33,10 +29,6 @@ import {
   loadSmartPricingSettings,
   saveSmartPricingSettings,
 } from './smartPricing.ts';
-import {
-  getVoiceReceptionistSettings,
-  updateVoiceReceptionistSettings,
-} from './voiceReceptionistService.ts';
 import {
   denylistCopyTableRow,
   loadAppSettingsColumns,
@@ -623,76 +615,6 @@ const telegramNotificationsGroup: CloneGroup = {
   },
 };
 
-/**
- * Copyable voice receptionist fields. Session limits are super-admin owned and must never travel
- * through a host copy, so they are neither read nor written here.
- */
-const VOICE_COPY_KEYS = ['enabled', 'voiceId', 'personaPrompt'] as const;
-
-const voiceReceptionistGroup: CloneGroup = {
-  id: 'voiceReceptionist',
-  label: 'Voice receptionist',
-  editLeaves: ['settings.voiceReceptionist:edit'],
-  planFeature: 'aiReceptionist',
-  defaultOn: true,
-  async read(sourceCtx) {
-    const settings = await getVoiceReceptionistSettings(sourceCtx.propertyId);
-    return pickKeys({ ...settings }, VOICE_COPY_KEYS);
-  },
-  sanitize(payload) {
-    return pickKeys(payload, VOICE_COPY_KEYS);
-  },
-  async hasNonDefault(targetCtx) {
-    const settings = await getVoiceReceptionistSettings(targetCtx.propertyId);
-    return Boolean(settings.enabled) || Boolean(settings.personaPrompt?.trim());
-  },
-  async write(payload, targetCtx) {
-    await updateVoiceReceptionistSettings(targetCtx.propertyId, {
-      enabled: payload.enabled as boolean | undefined,
-      voiceId: payload.voiceId as string | undefined,
-      personaPrompt: payload.personaPrompt as string | undefined,
-    });
-  },
-};
-
-/** AI on/off is the only host-owned AI setting; limits and caps are never copied. */
-const AI_COPY_KEYS = ['enabled'] as const;
-
-const aiOverridesGroup: CloneGroup = {
-  id: 'aiOverrides',
-  label: 'AI',
-  editLeaves: ['settings.aiOverrides:edit'],
-  planFeature: 'aiMonthlyCreditAllowance',
-  defaultOn: true,
-  async read(sourceCtx) {
-    const settings = await getAiPlatformPropertySettings(
-      sourceCtx.propertyId,
-      sourceCtx.organizationId
-    );
-    return { enabled: settings.enabled };
-  },
-  sanitize(payload) {
-    return pickKeys(payload, AI_COPY_KEYS);
-  },
-  async hasNonDefault(targetCtx) {
-    const settings = await getAiPlatformPropertySettings(
-      targetCtx.propertyId,
-      targetCtx.organizationId
-    );
-    return settings.enabled === false;
-  },
-  async write(payload, targetCtx, options) {
-    const actorUserId = options.actorUserId;
-    if (!actorUserId) throw new Error('Missing actor for AI settings copy');
-    await upsertAiPlatformPropertySettings({
-      propertyId: targetCtx.propertyId,
-      organizationId: targetCtx.organizationId,
-      enabled: payload.enabled as boolean | undefined,
-      updatedBy: actorUserId,
-    });
-  },
-};
-
 const teamRolesGroup: CloneGroup = {
   id: 'teamRoles',
   label: 'Custom team roles',
@@ -815,8 +737,6 @@ export const PHASE1_CLONE_GROUPS: CloneGroup[] = [
     keys: INBOX_SNIPPET_KEYS,
     defaultOn: true,
   }),
-  voiceReceptionistGroup,
-  aiOverridesGroup,
   teamRolesGroup,
 ];
 

@@ -25,8 +25,6 @@ export const CLONE_GROUP_IDS = [
   'templates',
   'telegramNotifications',
   'inboxSnippets',
-  'voiceReceptionist',
-  'aiOverrides',
   'teamRoles',
   'media',
   'buildingForms',

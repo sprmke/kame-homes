@@ -1,5 +1,5 @@
 /**
- * AI Voice Receptionist — global kill switch, per-property settings, and session caps.
+ * AI Voice Receptionist — global kill switch, org settings (resolved per property), and session caps.
  * Mirrors the social_inbox_settings ensure/get/patch pattern.
  *
  * Cost note: session cost is a per-minute estimate (`cost_basis: 'duration'`), not real
@@ -306,41 +306,96 @@ export function resolveVoiceReceptionistSessionBudget(
   return { effectiveMaxSeconds, denialCode: null };
 }
 
-type VoiceFeatureConfig = {
-  enabled?: boolean;
-  voiceId?: string;
-  personaPrompt?: string | null;
-  maxSessionSeconds?: number;
-  maxSessionsPerGuestPerDay?: number;
-  maxConcurrentSessions?: number;
+export type VoiceReceptionistOrgSettingsDto = {
+  organizationId: string;
+  enabled: boolean;
+  voiceId: string;
+  personaPrompt: string | null;
+  disabledPropertyIds: string[];
+  availableVoices: readonly string[];
 };
 
-function getVoiceFeatureConfig(row: Record<string, unknown> | null): VoiceFeatureConfig {
-  const configs = (row?.feature_configs as Record<string, unknown> | undefined) ?? {};
-  const config = configs[VOICE_FEATURE] as Record<string, unknown> | undefined;
+function serializeOrgRow(
+  organizationId: string,
+  row: Record<string, unknown> | null
+): VoiceReceptionistOrgSettingsDto {
   return {
-    enabled: config?.enabled as boolean | undefined,
-    voiceId: config?.voice_id as string | undefined,
-    personaPrompt: config?.persona_prompt as string | null | undefined,
-    maxSessionSeconds: config?.max_session_seconds as number | undefined,
-    maxSessionsPerGuestPerDay: config?.max_sessions_per_guest_per_day as number | undefined,
-    maxConcurrentSessions: config?.max_concurrent_sessions as number | undefined,
+    organizationId,
+    enabled: (row?.enabled as boolean | undefined) ?? false,
+    voiceId: (row?.voice_id as string | undefined) ?? 'Kore',
+    personaPrompt: (row?.persona_prompt as string | null | undefined) ?? null,
+    disabledPropertyIds: ((row?.disabled_property_ids as string[] | undefined) ?? []).map(String),
+    availableVoices: GEMINI_LIVE_VOICES,
   };
 }
 
-/** Session limits are resolved (override → profiles → default); hosts never write them. */
+export async function getVoiceReceptionistOrgSettings(
+  organizationId: string
+): Promise<VoiceReceptionistOrgSettingsDto> {
+  const { data, error } = await db()
+    .from('ai_voice_receptionist_org_settings')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+  if (error) {
+    console.error('[voiceReceptionistService] load org settings:', error.message);
+    throw new Error('Failed to load voice receptionist settings');
+  }
+  return serializeOrgRow(organizationId, data);
+}
+
+export type VoiceReceptionistOrgSettingsPatch = {
+  enabled?: boolean;
+  voiceId?: string;
+  personaPrompt?: string | null;
+  disabledPropertyIds?: string[];
+};
+
+export async function updateVoiceReceptionistOrgSettings(input: {
+  organizationId: string;
+  patch: VoiceReceptionistOrgSettingsPatch;
+  updatedBy: string;
+}): Promise<VoiceReceptionistOrgSettingsDto> {
+  const { organizationId, patch, updatedBy } = input;
+  const row: Record<string, unknown> = {
+    organization_id: organizationId,
+    updated_by: updatedBy,
+  };
+  if (patch.enabled !== undefined) row.enabled = patch.enabled;
+  if (patch.voiceId !== undefined) row.voice_id = patch.voiceId;
+  if (patch.personaPrompt !== undefined) row.persona_prompt = patch.personaPrompt;
+  if (patch.disabledPropertyIds !== undefined) {
+    row.disabled_property_ids = [...new Set(patch.disabledPropertyIds)];
+  }
+  const { data, error } = await db()
+    .from('ai_voice_receptionist_org_settings')
+    .upsert(row, { onConflict: 'organization_id' })
+    .select('*')
+    .single();
+  if (error) {
+    console.error('[voiceReceptionistService] update org settings:', error.message);
+    throw new Error('Failed to update voice receptionist settings');
+  }
+  return serializeOrgRow(organizationId, data);
+}
+
+/**
+ * Effective per-property config for the guest runtime. Voice and persona come from the org;
+ * a property answers only when org AI (synced property switch), org voice, and the property is
+ * not opted out. Session limits are resolved (override → profiles → default).
+ */
 function serializeSettingsRow(
   propertyId: string,
-  row: Record<string, unknown> | null,
+  propertyRow: Record<string, unknown> | null,
+  org: VoiceReceptionistOrgSettingsDto,
   limits: ResolvedAiLimits
 ): VoiceReceptionistSettingsDto {
-  const config = getVoiceFeatureConfig(row);
-  const rowEnabled = row?.enabled as boolean | undefined;
+  const propertyAiEnabled = (propertyRow?.enabled as boolean | undefined) !== false;
   return {
     propertyId,
-    enabled: rowEnabled !== false && (config.enabled ?? false),
-    voiceId: config.voiceId ?? 'Kore',
-    personaPrompt: config.personaPrompt ?? null,
+    enabled: propertyAiEnabled && org.enabled && !org.disabledPropertyIds.includes(propertyId),
+    voiceId: org.voiceId,
+    personaPrompt: org.personaPrompt,
     maxSessionSeconds: limitNumber(limits, 'voiceMaxSessionSeconds'),
     maxSessionsPerGuestPerDay: limitNumber(limits, 'voiceMaxSessionsPerGuestPerDay'),
     maxConcurrentSessions: limitNumber(limits, 'voiceMaxConcurrentSessions'),
@@ -381,25 +436,26 @@ export async function getVoiceReceptionistSettings(
     console.error('[voiceReceptionistService] load property settings:', error.message);
     throw new Error('Failed to load voice receptionist settings');
   }
-  const { limits } = await resolvePropertyAiLimits(organizationId, propertyId);
-  return serializeSettingsRow(propertyId, data, limits);
+  const [org, { limits }] = await Promise.all([
+    getVoiceReceptionistOrgSettings(organizationId),
+    resolvePropertyAiLimits(organizationId, propertyId),
+  ]);
+  return serializeSettingsRow(propertyId, data, org, limits);
 }
 
-/** Session limits are super-admin only; `null` clears the override so profiles apply again. */
+/** Host-editable fields (org scope). Session limits are platform-managed. */
 export type VoiceReceptionistSettingsPatch = {
   enabled?: boolean;
   voiceId?: string;
   personaPrompt?: string | null;
+};
+
+/** Super-admin per-property session limit overrides; `null` clears so profiles apply again. */
+export type VoiceReceptionistPropertyLimitsPatch = {
   maxSessionSeconds?: number | null;
   maxSessionsPerGuestPerDay?: number | null;
   maxConcurrentSessions?: number | null;
 };
-
-function isPositiveInt(value: unknown): value is number {
-  return (
-    typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) && value > 0
-  );
-}
 
 export function validateVoiceReceptionistPatch(body: Record<string, unknown>): {
   patch: VoiceReceptionistSettingsPatch;
@@ -437,63 +493,33 @@ export function validateVoiceReceptionistPatch(body: Record<string, unknown>): {
       return { patch, error: 'personaPrompt must be a string or null' };
     }
   }
-  if (body.maxSessionSeconds !== undefined) {
-    if (!isPositiveInt(body.maxSessionSeconds)) {
-      return { patch, error: 'maxSessionSeconds must be a positive integer' };
-    }
-    if (body.maxSessionSeconds < 60 || body.maxSessionSeconds > 3600) {
-      return { patch, error: 'maxSessionSeconds must be between 60 and 3600' };
-    }
-    patch.maxSessionSeconds = body.maxSessionSeconds;
-  }
-  if (body.maxSessionsPerGuestPerDay !== undefined) {
-    if (!isPositiveInt(body.maxSessionsPerGuestPerDay)) {
-      return { patch, error: 'maxSessionsPerGuestPerDay must be a positive integer' };
-    }
-    if (body.maxSessionsPerGuestPerDay > 999) {
-      return { patch, error: 'maxSessionsPerGuestPerDay must be between 1 and 999' };
-    }
-    patch.maxSessionsPerGuestPerDay = body.maxSessionsPerGuestPerDay;
-  }
-  if (body.maxConcurrentSessions !== undefined) {
-    if (!isPositiveInt(body.maxConcurrentSessions)) {
-      return { patch, error: 'maxConcurrentSessions must be a positive integer' };
-    }
-    if (body.maxConcurrentSessions > 50) {
-      return { patch, error: 'maxConcurrentSessions must be between 1 and 50' };
-    }
-    patch.maxConcurrentSessions = body.maxConcurrentSessions;
-  }
 
   return { patch, error: null };
 }
 
-export async function updateVoiceReceptionistSettings(
+/** Super-admin only: writes session limit overrides into the property's feature_configs. */
+export async function updateVoiceReceptionistPropertyLimits(
   propertyId: string,
-  patch: VoiceReceptionistSettingsPatch
-): Promise<VoiceReceptionistSettingsDto> {
+  patch: VoiceReceptionistPropertyLimitsPatch
+): Promise<void> {
   const organizationId = await getOrganizationIdForProperty(propertyId);
   await ensureVoiceReceptionistSettingsRow(propertyId, organizationId);
   const sb = db();
 
   const { data: current, error: readError } = await sb
     .from('ai_platform_property_settings')
-    .select('*')
+    .select('feature_configs')
     .eq('property_id', propertyId)
     .eq('organization_id', organizationId)
     .single();
   if (readError) {
     console.error('[voiceReceptionistService] read property settings:', readError.message);
-    throw new Error('Failed to update voice receptionist settings');
+    throw new Error('Failed to update voice receptionist limits');
   }
 
   const configs = (current?.feature_configs as Record<string, unknown> | undefined) ?? {};
   const voiceConfig = (configs[VOICE_FEATURE] as Record<string, unknown> | undefined) ?? {};
-
   const updatedVoiceConfig: Record<string, unknown> = { ...voiceConfig };
-  if (patch.enabled !== undefined) updatedVoiceConfig.enabled = patch.enabled;
-  if (patch.voiceId !== undefined) updatedVoiceConfig.voice_id = patch.voiceId;
-  if (patch.personaPrompt !== undefined) updatedVoiceConfig.persona_prompt = patch.personaPrompt;
   const setOrClear = (key: string, value: number | null | undefined) => {
     if (value === undefined) return;
     if (value === null) delete updatedVoiceConfig[key];
@@ -503,27 +529,19 @@ export async function updateVoiceReceptionistSettings(
   setOrClear('max_sessions_per_guest_per_day', patch.maxSessionsPerGuestPerDay);
   setOrClear('max_concurrent_sessions', patch.maxConcurrentSessions);
 
-  const updatedConfigs = { ...configs, [VOICE_FEATURE]: updatedVoiceConfig };
-  const enabled = patch.enabled ?? (current?.enabled as boolean | undefined) ?? true;
-
-  const { data, error } = await sb
+  const { error } = await sb
     .from('ai_platform_property_settings')
     .update({
-      enabled,
-      feature_configs: updatedConfigs,
+      feature_configs: { ...configs, [VOICE_FEATURE]: updatedVoiceConfig },
       updated_at: new Date().toISOString(),
     })
     .eq('property_id', propertyId)
-    .eq('organization_id', organizationId)
-    .select('*')
-    .single();
+    .eq('organization_id', organizationId);
   if (error) {
-    console.error('[voiceReceptionistService] update property settings:', error.message);
-    throw new Error('Failed to update voice receptionist settings');
+    console.error('[voiceReceptionistService] update property limits:', error.message);
+    throw new Error('Failed to update voice receptionist limits');
   }
   clearAiLimitCache();
-  const { limits } = await resolvePropertyAiLimits(organizationId, propertyId);
-  return serializeSettingsRow(propertyId, data, limits);
 }
 
 /** Start of "today" in Manila as an ISO instant (no DST in Asia/Manila, fixed UTC+8). */
@@ -1004,7 +1022,7 @@ export type VoiceReceptionistUsageSummary = {
  * volume and rough spend at a glance, not a full analytics product (last 30 days window).
  */
 export async function getVoiceReceptionistUsageSummary(
-  propertyId: string
+  propertyIds: string[]
 ): Promise<VoiceReceptionistUsageSummary> {
   const sb = db();
   const since30dIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -1014,7 +1032,10 @@ export async function getVoiceReceptionistUsageSummary(
     .select(
       'started_at, ended_at, duration_seconds, end_reason, estimated_cost_usd, status, handoff_at'
     )
-    .eq('property_id', propertyId)
+    .in(
+      'property_id',
+      propertyIds.length > 0 ? propertyIds : ['00000000-0000-0000-0000-000000000000']
+    )
     .gte('started_at', since30dIso)
     .order('started_at', { ascending: false });
   if (error) {

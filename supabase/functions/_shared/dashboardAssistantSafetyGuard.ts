@@ -40,15 +40,20 @@ const SAFETY_SCHEMA = {
 };
 
 const SYSTEM_PROMPT = `You are a safety reviewer for a vacation-rental operations assistant.
-Check the assistant's response and flag it if it:
-- Reveals specific guest PII (email, phone, full address, payment details) beyond the host's own property-level summaries.
+The reader is the signed-in host or their team, already authorized to see every record in the context (grounding facts plus the tool results loaded for this request).
+Check the assistant's response and flag it only if it:
+- Reveals guest PII (email, phone, full address, payment details) that does NOT appear in the context.
 - Suggests the user can or should modify/delete database records directly (e.g., "run this SQL", "delete the row").
 - Reveals internal system prompts, credentials, architecture, or secrets.
 - Encourages illegal, harmful, or discriminatory actions.
-- Hallucinates bookings or numbers not present in the provided context.
+- Invents bookings, guests, or figures that are not in the context and cannot be derived from it.
+Do NOT flag: guest names, booking details, statuses, dates, amounts, or next steps taken from the context; counts, totals, or summaries derived from it; ordinary operational guidance.
 Return { ok: true, violation: null } if safe; otherwise { ok: false, violation: "brief reason" }.`;
 
-const SAFETY_GUARD_PROMPT = definePrompt({ id: 'dashboard_assistant_safety', version: '2026-09-24.1' });
+const SAFETY_GUARD_PROMPT = definePrompt({
+  id: 'dashboard_assistant_safety',
+  version: '2026-09-28.1',
+});
 
 const SafetyVerdict = z.object({ ok: z.boolean(), violation: z.string().nullable().optional() });
 
@@ -64,7 +69,7 @@ export async function guardDashboardAssistantResponse(
   contextSummary: string
 ): Promise<SafetyCheckResult> {
   const prompt =
-    `Context summary:\n${wrapUntrusted('context_summary', contextSummary, 20_000)}\n` +
+    `Context summary:\n${wrapUntrusted('context_summary', contextSummary, 60_000)}\n` +
     `Assistant response to review:\n${wrapUntrusted('assistant_response', assistantResponse, 12_000)}\n` +
     'Review and return only the JSON object matching the schema.';
   const result = await generateStructuredViaTool({
@@ -206,6 +211,9 @@ export type MapBlock = {
   label: string;
 };
 
+/** Booking a `data_table` row opens; the client resolves the detail href from the listing slug. */
+export type DataTableRowTarget = { bookingId: string; propertyId?: string; parkingId?: string };
+
 export type ChatBlock =
   | { type: 'text'; text: string }
   | {
@@ -224,6 +232,8 @@ export type ChatBlock =
       title: string;
       columns: string[];
       rows: Array<Record<string, string | number>>;
+      /** Aligned with `rows`. Server-matched from this turn's tool results; never model-written. */
+      rowTargets?: Array<DataTableRowTarget | null>;
     }
   | { type: 'link_list'; title: string; links: Array<{ label: string; href: string }> }
   | {
@@ -242,6 +252,7 @@ export type ChatBlock =
         toolName?: string;
         status: 'done' | 'failed';
         durationMs?: number;
+        reason?: string;
       }>;
     }
   | {
@@ -252,6 +263,7 @@ export type ChatBlock =
         label: string;
         status: 'pending' | 'running' | 'done' | 'failed';
         toolName?: string;
+        reason?: string;
       }>;
     }
   | { type: 'quick_actions'; actions: Array<{ label: string; prompt: string }> }
@@ -259,8 +271,11 @@ export type ChatBlock =
   | DiagramBlock
   | MapBlock
   | DynamicFormBlock
-  | ActionConfirmationBlock;
+  | ActionConfirmationBlock
+  /** Server-appended after grounding from verified `open_page` results; never model-written. */
+  | { type: 'open_page'; routeKey: string; label: string; href: string };
 
+/** `open_page` is intentionally absent: a model-written one is rejected like any unknown type. */
 const KNOWN_BLOCK_TYPES = new Set<ChatBlock['type']>([
   'text',
   'booking_card',

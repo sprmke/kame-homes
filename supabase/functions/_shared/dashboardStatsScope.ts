@@ -9,8 +9,8 @@
  */
 
 import { computeDashboardStats, type DashboardStats } from './dashboardService.ts';
-import { resolveAssignedListingIdsForOrgUser } from './orgAuth.ts';
-import { readParkingIdFromUrl, resolveScopedParkingAccess } from './parkingScope.ts';
+import { resolveAssignedListingIdsForOrgUser, verifyParkingTeamAccess } from './orgAuth.ts';
+import { readParkingIdFromUrl } from './parkingScope.ts';
 import {
   readOrgIdFromUrl,
   readOrgSlugFromUrl,
@@ -26,6 +26,8 @@ import { buildCacheKey, readThrough } from './queryCache.ts';
 export const DASHBOARD_STATS_CACHE_TTL_MS = 45_000;
 
 export type DashboardStatsScope = {
+  /** Org the verified scope belongs to (every branch). */
+  organizationId: string;
   propertyId?: string;
   parkingId?: string;
   orgId?: string;
@@ -50,24 +52,32 @@ export async function resolveDashboardStatsScope(
   const orgIdParam = readOrgIdFromUrl(url);
 
   if (explicitParkingId) {
-    await resolveScopedParkingAccess(req, 'bookings:view');
-    return { parkingId: explicitParkingId, permissionScope: null };
+    // Parking team RBAC (owner, org admins by listing assignment, parking members), same gate as
+    // list-bookings. The old org-permission check only let owners / platform admins through.
+    const access = await verifyParkingTeamAccess(req, explicitParkingId, 'bookings:view');
+    return {
+      organizationId: access.org.id,
+      parkingId: explicitParkingId,
+      permissionScope: null,
+    };
   }
   if (explicitPropertyId) {
-    const { property } = await resolveScopedPropertyAccess(
+    const { property, org } = await resolveScopedPropertyAccess(
       req,
       'bookings:view',
       explicitPropertyId
     );
-    return { propertyId: property.id, permissionScope: null };
+    return { organizationId: org.id, propertyId: property.id, permissionScope: null };
   }
   if (orgSlug || orgIdParam) {
-    const ctx = await resolveOrgAccessContext(req, 'org:dashboard:view');
+    // Legacy coarse id, expanded to org.dashboard:view at runtime (orgLegacyPermissionExpansion).
+    const ctx = await resolveOrgAccessContext(req, 'org:dashboard:view' as 'org.dashboard:view');
     if (ctx.canListAllProperties) {
-      return { orgId: ctx.org.id, permissionScope: ['all_listings'] };
+      return { organizationId: ctx.org.id, orgId: ctx.org.id, permissionScope: ['all_listings'] };
     }
     const assigned = await resolveAssignedListingIdsForOrgUser(ctx.user.id, ctx.org.id);
     return {
+      organizationId: ctx.org.id,
       orgId: ctx.org.id,
       scopedPropertyIds: assigned.propertyIds,
       scopedParkingIds: assigned.parkingIds,
