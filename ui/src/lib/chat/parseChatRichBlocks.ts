@@ -3,8 +3,9 @@
  * No HTML — detectors only. Maps → map card; lists → ul/ol; https → linkify.
  */
 
-export type ChatRichSegment =
-  { type: 'text'; text: string } | { type: 'link'; href: string; text: string };
+import { type InlineSegment, parseInlineMarkdown } from '@/lib/chat/inlineMarkdown';
+
+export type ChatRichSegment = InlineSegment;
 
 export type ChatUrlLinkResourceKind =
   | 'calendar'
@@ -21,6 +22,9 @@ export type ChatUrlLinkResourceKind =
 
 export type ChatRichBlock =
   | { type: 'paragraph'; segments: ChatRichSegment[] }
+  | { type: 'heading'; level: number; segments: ChatRichSegment[] }
+  | { type: 'quote'; segments: ChatRichSegment[] }
+  | { type: 'divider' }
   | { type: 'list'; ordered: boolean; items: ChatRichSegment[][] }
   | { type: 'flow'; title?: string; steps: string[] }
   | { type: 'diagram'; title?: string; format: 'mermaid' | 'text'; source: string }
@@ -68,6 +72,10 @@ const FENCED_BLOCK_RE = /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g;
 
 const LIST_UNORDERED_RE = /^\s*([-•*])\s+(.*)$/;
 const LIST_ORDERED_RE = /^\s*(\d+)[.)]\s+(.*)$/;
+const HEADING_RE = /^\s{0,3}(#{1,6})\s+(.+?)(?:\s+#+)?\s*$/;
+const DIVIDER_RE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
+const QUOTE_RE = /^\s{0,3}>\s?(.*)$/;
+const TABLE_LINE_RE = /^\s*\|.*\|\s*$/;
 
 function isSafeHttpsUrl(href: string): boolean {
   try {
@@ -304,7 +312,7 @@ function blocksFromProse(text: string): ChatRichBlock[] {
       else cleaned = [...cleaned.slice(0, -1), { type: 'text', text: t }];
     }
     if (!cleaned.length || isBlankSegments(cleaned)) return;
-    out.push({ type: 'paragraph', segments: cleaned });
+    out.push({ type: 'paragraph', segments: expandInlineMarkdown(cleaned) });
   };
 
   URL_RE.lastIndex = 0;
@@ -318,6 +326,8 @@ function blocksFromProse(text: string): ChatRichBlock[] {
     if (!isSafeHttpsUrl(href)) continue;
 
     const start = match.index;
+    // `[label](https://…)` stays inline; the markdown pass turns it into a link.
+    if (src.slice(Math.max(0, start - 2), start) === '](') continue;
     if (start > last) {
       segments.push({ type: 'text', text: src.slice(last, start) });
     }
@@ -363,6 +373,10 @@ function isBlankSegments(segments: ChatRichSegment[]): boolean {
   return segments.every((s) => s.type === 'text' && !s.text.trim());
 }
 
+function expandInlineMarkdown(segments: ChatRichSegment[]): ChatRichSegment[] {
+  return segments.flatMap((s) => (s.type === 'text' ? parseInlineMarkdown(s.text) : [s]));
+}
+
 type LineKind =
   | { kind: 'unordered'; body: string }
   | { kind: 'ordered'; body: string; n: number }
@@ -396,7 +410,7 @@ function flushList(ordered: boolean, items: string[], out: ChatRichBlock[]) {
       if (b.type === 'paragraph') segs.push(...b.segments);
       else if (b.type === 'mapLink') afterMaps.push(b);
     }
-    parsedItems.push(segs.length ? segs : [{ type: 'text', text: item }]);
+    parsedItems.push(segs.length ? segs : parseInlineMarkdown(item));
   }
 
   out.push({ type: 'list', ordered, items: parsedItems });
@@ -423,7 +437,56 @@ function parsePlainTextBlocks(raw: string): ChatRichBlock[] {
     listItems = [];
   };
 
-  for (const line of lines) {
+  const endBlock = () => {
+    endList();
+    flushParagraph(paragraphBuf, out);
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+
+    const heading = line.match(HEADING_RE);
+    if (heading) {
+      endBlock();
+      out.push({
+        type: 'heading',
+        level: heading[1]?.length ?? 1,
+        segments: parseInlineMarkdown(heading[2] ?? ''),
+      });
+      continue;
+    }
+
+    if (DIVIDER_RE.test(line)) {
+      endBlock();
+      out.push({ type: 'divider' });
+      continue;
+    }
+
+    if (QUOTE_RE.test(line)) {
+      endBlock();
+      const quoteLines: string[] = [];
+      while (i < lines.length && QUOTE_RE.test(lines[i] ?? '')) {
+        quoteLines.push((lines[i] ?? '').match(QUOTE_RE)?.[1] ?? '');
+        i++;
+      }
+      i--;
+      const body = quoteLines.join('\n').trim();
+      if (body) out.push({ type: 'quote', segments: parseInlineMarkdown(body) });
+      continue;
+    }
+
+    if (TABLE_LINE_RE.test(line)) {
+      let end = i;
+      while (end < lines.length && TABLE_LINE_RE.test(lines[end] ?? '')) end++;
+      const table = parseTableBlock(lines.slice(i, end).join('\n'));
+      if (table) {
+        endBlock();
+        out.push(table);
+        i = end - 1;
+        continue;
+      }
+    }
+
     const kind = classifyLine(line);
 
     if (kind.kind === 'unordered' || kind.kind === 'ordered') {

@@ -114,14 +114,25 @@ export function navigateReferenceDate(
  * Adapted verbatim from property-management-app's `formatDateRangeDisplay`
  * so behavior matches the calendar dashboard exactly.
  */
-export function formatDateRangeDisplay(from: Date, to: Date, preset: DatePreset): string {
+export type DateRangeDisplayOptions = {
+  /** Shorter month labels (e.g. Sep 2026) for narrow dashboard chrome. */
+  compact?: boolean;
+};
+
+export function formatDateRangeDisplay(
+  from: Date,
+  to: Date,
+  preset: DatePreset,
+  options?: DateRangeDisplayOptions
+): string {
+  const compact = options?.compact ?? false;
   switch (preset) {
     case 'week':
     case 'custom':
     default:
       return formatDateRangeFromDates(from, to);
     case 'month': {
-      return format(from, 'MMMM yyyy');
+      return format(from, compact ? 'MMM yyyy' : 'MMMM yyyy');
     }
     case 'year': {
       return format(from, 'yyyy');

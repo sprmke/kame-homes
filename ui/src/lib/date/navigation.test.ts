@@ -32,6 +32,13 @@ describe('formatDateRangeDisplay', () => {
   it('formatDateRangeDisplay is exported', () => {
     expect(typeof formatDateRangeDisplay).toBe('function');
   });
+
+  it('uses abbreviated month in compact mode', () => {
+    const from = new Date(2026, 8, 1);
+    const to = new Date(2026, 8, 30);
+    expect(formatDateRangeDisplay(from, to, 'month')).toBe('September 2026');
+    expect(formatDateRangeDisplay(from, to, 'month', { compact: true })).toBe('Sep 2026');
+  });
 });
 
 describe('isCurrentPeriod', () => {

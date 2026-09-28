@@ -2853,3 +2853,85 @@ html.guest-embed-preview *::-webkit-scrollbar {
   margin-inline: 0 !important;
   padding-inline: 0 !important;
 }
+
+/* ── AI mode switch (docs/workflow/in-progress/ai-chat-mode.md, Phase 4) ─────────────────────
+ * `runModeViewTransition` sets html[data-mode-transition]. Named groups morph between modes:
+ * dashboard-main (page ↔ canvas), dashboard-rail (sidebar ↔ rail); dashboard-chat enters.
+ * Only transform / opacity are animated by the browser snapshots. Reduced motion: 150ms fade. */
+html[data-mode-transition='full']::view-transition-group(*) {
+  animation-duration: 420ms;
+  /* Close to spring.mode (stiffness 380, damping 36): quick settle, no overshoot. */
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+html[data-mode-transition='full']::view-transition-new(dashboard-chat) {
+  animation: ai-chat-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-mode-transition='full']::view-transition-old(dashboard-chat) {
+  animation: ai-chat-fall 110ms ease-in both;
+}
+html[data-mode-transition='reduced']::view-transition-group(*),
+html[data-mode-transition='reduced']::view-transition-old(*),
+html[data-mode-transition='reduced']::view-transition-new(*) {
+  animation-duration: 150ms;
+  animation-timing-function: linear;
+}
+@keyframes ai-chat-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes ai-chat-fall {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+/* Framer fallback (no View Transitions): freeze in-page transitions while the layout moves. */
+[data-transitioning='true'] [data-dashboard-freeze],
+[data-transitioning='true'] .native-page-canvas * {
+  transition: none !important;
+}
+@media (max-width: 1023px) {
+  /* Phone / tablet: the page slides back (scale 0.94) as the chat rises. */
+  html[data-mode-transition='full']::view-transition-old(dashboard-main) {
+    animation: ai-page-recede 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes ai-page-recede {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* ── AI mode canvas layout (ai-chat-mode.md, container pass) ────────────────────────────────
+ * Pages use viewport breakpoints, so inside the canvas pane `lg:` still thinks the page is
+ * ~1000px wide. The pane is never under 560px (canvasWidth.ts; the rail collapses on small
+ * laptops instead), and AdminLayout sets data-canvas-size="medium" below 760px, where these rules
+ * collapse 3–5 column grids to fit. Desktop only: below lg the canvas is full screen and the
+ * normal breakpoints are right. No container queries: containment would trap in-page
+ * `position: fixed` overlays inside the pane. `wide` (≥ 760px) keeps page layouts as authored. */
+@media (min-width: 1024px) {
+  [data-canvas-size='medium']
+    :is(.lg\:grid-cols-3, .lg\:grid-cols-4, .lg\:grid-cols-5, .xl\:grid-cols-3, .xl\:grid-cols-4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-canvas-size='medium']
+    :is(
+      [class^='lg:grid-cols-['],
+      [class*=' lg:grid-cols-['],
+      [class^='xl:grid-cols-['],
+      [class*=' xl:grid-cols-[']
+    ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Spans authored for 3–5 columns would add implicit tracks in the collapsed grid. */
+  [data-canvas-size='medium'] :is(.lg\:col-span-2, .lg\:col-span-3) {
+    grid-column: 1 / -1;
+  }
+  /* Settings / Templates section nav: tablet layout (stacked sections) so forms keep their width. */
+  [data-canvas-size='medium'] [data-section-nav-aside] {
+    display: none;
+  }
+}

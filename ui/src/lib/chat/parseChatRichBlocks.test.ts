@@ -118,6 +118,85 @@ describe('parseChatRichBlocks', () => {
     expect(blocks[2]).toMatchObject({ type: 'paragraph' });
     expect(blocks[3]).toMatchObject({ type: 'mapLink' });
   });
+
+  it('renders bold markers in paragraphs and list items', () => {
+    const blocks = parseChatRichBlocks(
+      'Of these, 17 are **Imported**.\n- 1 is **Pending Review**\n* 2 are *done*'
+    );
+    expect(blocks[0]).toEqual({
+      type: 'paragraph',
+      segments: [
+        { type: 'text', text: 'Of these, 17 are ' },
+        { type: 'text', text: 'Imported', marks: ['bold'] },
+        { type: 'text', text: '.' },
+      ],
+    });
+    expect(blocks[1]).toEqual({
+      type: 'list',
+      ordered: false,
+      items: [
+        [
+          { type: 'text', text: '1 is ' },
+          { type: 'text', text: 'Pending Review', marks: ['bold'] },
+        ],
+        [
+          { type: 'text', text: '2 are ' },
+          { type: 'text', text: 'done', marks: ['italic'] },
+        ],
+      ],
+    });
+  });
+
+  it('parses headings, quotes and dividers', () => {
+    const blocks = parseChatRichBlocks(
+      '## Summary\n> Guest asked for **late** check-out\n---\nDone'
+    );
+    expect(blocks).toEqual([
+      { type: 'heading', level: 2, segments: [{ type: 'text', text: 'Summary' }] },
+      {
+        type: 'quote',
+        segments: [
+          { type: 'text', text: 'Guest asked for ' },
+          { type: 'text', text: 'late', marks: ['bold'] },
+          { type: 'text', text: ' check-out' },
+        ],
+      },
+      { type: 'divider' },
+      { type: 'paragraph', segments: [{ type: 'text', text: 'Done' }] },
+    ]);
+  });
+
+  it('keeps hashtags as text', () => {
+    expect(parseChatRichBlocks('#beachfront stay')[0]).toMatchObject({ type: 'paragraph' });
+  });
+
+  it('parses unfenced markdown tables', () => {
+    const blocks = parseChatRichBlocks(
+      'Here you go:\n| Guest | Status |\n| --- | --- |\n| Ana | **Imported** |\nThanks'
+    );
+    expect(blocks[1]).toEqual({
+      type: 'dataTable',
+      title: undefined,
+      columns: ['Guest', 'Status'],
+      rows: [['Ana', '**Imported**']],
+    });
+    expect(blocks[0]).toMatchObject({ type: 'paragraph' });
+    expect(blocks[2]).toMatchObject({ type: 'paragraph' });
+  });
+
+  it('keeps markdown https links inline instead of a link card', () => {
+    const blocks = parseChatRichBlocks('Read [the guide](https://example.com/guide) first.');
+    expect(blocks).toEqual([
+      {
+        type: 'paragraph',
+        segments: [
+          { type: 'text', text: 'Read ' },
+          { type: 'link', href: 'https://example.com/guide', text: 'the guide' },
+          { type: 'text', text: ' first.' },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('osmStaticMapUrl', () => {
