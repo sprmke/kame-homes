@@ -1,9 +1,5 @@
-import {
-  AdminPageHeaderSkeleton,
-  SectionContentSkeleton,
-} from '@/components/skeletons/AdminSkeletons';
+import { AppLoader } from '@/components/branding/AppLoader';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 
 /**
@@ -42,15 +38,5 @@ export function PageLoadingFallback() {
   const show = useShowAfterDelay();
   if (!show) return null;
 
-  return (
-    <div
-      className={cn('flex min-h-dvh flex-col gap-3 p-4 sm:gap-4 sm:p-6')}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading page"
-    >
-      <AdminPageHeaderSkeleton />
-      <SectionContentSkeleton rows={5} />
-    </div>
-  );
+  return <AppLoader fullScreen />;
 }

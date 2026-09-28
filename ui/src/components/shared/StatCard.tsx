@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 
 import { TrendingDown, TrendingUp } from 'lucide-react';
 
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
@@ -63,9 +65,11 @@ export function StatCard({
   const hasChange = change !== undefined;
   const isPositive = change !== undefined && change >= 0;
   const interactive = onClick !== undefined || to !== undefined;
+  const compactChrome = useDashboardCompactChrome();
+  const showIcon = Icon && !compactChrome;
 
   const shellClassName = cn(
-    'surface-card group relative w-full overflow-hidden p-3 transition-all duration-300 sm:p-3.5 md:p-5',
+    'surface-card group relative flex h-full w-full flex-col items-start justify-start overflow-hidden p-3 text-left transition-all duration-300 sm:p-3.5 md:p-5',
     interactive && 'native-press',
     'sm:hover:shadow-elevated-lg sm:hover:-translate-y-0.5',
     interactive &&
@@ -78,8 +82,13 @@ export function StatCard({
   const body = (
     <>
       <div className="from-primary/5 pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent opacity-0 transition-opacity group-hover:opacity-100 max-lg:hidden" />
-      <div className={cn('relative', footer && 'space-y-2 sm:space-y-2.5')}>
-        <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+      <div
+        className={cn(
+          'relative flex w-full flex-col items-start justify-start',
+          footer && 'space-y-2 sm:space-y-2.5'
+        )}
+      >
+        <div className="flex w-full items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
             <div className="flex items-start gap-0.5">
               <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
@@ -123,8 +132,9 @@ export function StatCard({
               </div>
             ) : null}
           </div>
-          {Icon ? (
+          {showIcon ? (
             <div
+              data-stat-card-icon
               className={cn(
                 'native-icon-tile hidden transition-transform sm:group-hover:scale-110 lg:flex',
                 iconBgClassName
@@ -134,7 +144,7 @@ export function StatCard({
             </div>
           ) : null}
         </div>
-        {footer}
+        {footer ? <div className="w-full shrink-0 self-start">{footer}</div> : null}
       </div>
     </>
   );
@@ -203,7 +213,7 @@ export function StatCardGrid({ children, className }: { children: ReactNode; cla
   return (
     <div
       className={cn(
-        'native-stagger grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4',
+        'native-stagger grid grid-cols-2 items-start gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4',
         className
       )}
     >

@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function BookingsStageSummarySkeleton() {
   return (
     <div
-      className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4"
+      className="grid grid-cols-2 items-start gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4"
       aria-busy="true"
       aria-label="Loading summary"
     >

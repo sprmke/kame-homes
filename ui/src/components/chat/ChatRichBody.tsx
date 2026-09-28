@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import { ChatMapLinkCard } from '@/components/chat/ChatMapLinkCard';
 import { ChatUrlLinkCard } from '@/components/chat/ChatUrlLinkCard';
+import { type InlineMark, parseInlineMarkdown } from '@/lib/chat/inlineMarkdown';
 import { parseChatRichBlocks, type ChatRichSegment } from '@/lib/chat/parseChatRichBlocks';
 import { cn } from '@/lib/utils';
 
@@ -15,12 +16,33 @@ type Props = {
   onCalendarLinkClick?: (href: string) => void;
 };
 
+function withMarks(text: string, marks: InlineMark[] | undefined, outbound: boolean): ReactNode {
+  if (!marks?.length) return text;
+  let node: ReactNode = text;
+  if (marks.includes('code')) {
+    node = (
+      <code
+        className={cn(
+          'rounded px-1 py-0.5 font-mono text-[0.85em]',
+          outbound ? 'bg-primary-foreground/15' : 'bg-muted'
+        )}
+      >
+        {node}
+      </code>
+    );
+  }
+  if (marks.includes('strike')) node = <s>{node}</s>;
+  if (marks.includes('italic')) node = <em>{node}</em>;
+  if (marks.includes('bold')) node = <strong className="font-semibold">{node}</strong>;
+  return node;
+}
+
 function RichSegments({ segments, outbound }: { segments: ChatRichSegment[]; outbound: boolean }) {
   return (
     <>
       {segments.map((seg, i) => {
         if (seg.type === 'text') {
-          return <span key={i}>{seg.text}</span>;
+          return <span key={i}>{withMarks(seg.text, seg.marks, outbound)}</span>;
         }
         return (
           <a
@@ -35,12 +57,18 @@ function RichSegments({ segments, outbound }: { segments: ChatRichSegment[]; out
                 : 'text-primary decoration-primary/40'
             )}
           >
-            {seg.text}
+            {withMarks(seg.text, seg.marks, outbound)}
           </a>
         );
       })}
     </>
   );
+}
+
+/** One line of chat text with inline markdown (bold, italic, code, strike, links) rendered. */
+export function InlineRichText({ text, outbound = false }: { text: string; outbound?: boolean }) {
+  const segments = useMemo(() => parseInlineMarkdown(text), [text]);
+  return <RichSegments segments={segments} outbound={outbound} />;
 }
 
 export function ChatRichBody({
@@ -67,7 +95,7 @@ export function ChatRichBody({
               <ol className="space-y-1.5 pl-4">
                 {block.steps.map((step, stepIndex) => (
                   <li key={`${step}-${stepIndex}`} className="list-decimal">
-                    {step}
+                    <InlineRichText text={step} outbound={outbound} />
                   </li>
                 ))}
               </ol>
@@ -98,11 +126,13 @@ export function ChatRichBody({
                 {block.fields.map((field, fieldIndex) => (
                   <li key={`${field.label}-${fieldIndex}`} className="text-sm">
                     <span className="font-medium">
-                      {field.label}
+                      <InlineRichText text={field.label} outbound={outbound} />
                       {field.required ? <span className="text-destructive"> *</span> : null}
                     </span>
                     {field.hint ? (
-                      <span className="text-muted-foreground">: {field.hint}</span>
+                      <span className="text-muted-foreground">
+                        : <InlineRichText text={field.hint} outbound={outbound} />
+                      </span>
                     ) : null}
                   </li>
                 ))}
@@ -126,7 +156,7 @@ export function ChatRichBody({
                           key={`${column}-${colIndex}`}
                           className="whitespace-nowrap px-2.5 py-2 font-semibold"
                         >
-                          {column}
+                          <InlineRichText text={column} outbound={outbound} />
                         </th>
                       ))}
                     </tr>
@@ -139,7 +169,7 @@ export function ChatRichBody({
                             key={`cell-${rowIndex}-${colIndex}`}
                             className="px-2.5 py-2 align-top"
                           >
-                            {row[colIndex] ?? ''}
+                            <InlineRichText text={row[colIndex] ?? ''} outbound={outbound} />
                           </td>
                         ))}
                       </tr>
@@ -187,6 +217,45 @@ export function ChatRichBody({
                     : 'border-white/15 bg-white/5 text-[#F5F2EA] [&_span]:text-[#F5F2EA]/70'
                   : undefined
               }
+            />
+          );
+        }
+
+        if (block.type === 'heading') {
+          return (
+            <p
+              key={`h-${i}`}
+              className={cn(
+                'font-semibold leading-snug first:pt-0',
+                block.level <= 2 ? 'pt-1 text-[15px]' : 'pt-0.5'
+              )}
+            >
+              <RichSegments segments={block.segments} outbound={outbound} />
+            </p>
+          );
+        }
+
+        if (block.type === 'quote') {
+          return (
+            <blockquote
+              key={`q-${i}`}
+              className={cn(
+                'whitespace-pre-wrap border-l-2 pl-3',
+                outbound
+                  ? 'border-primary-foreground/40 text-primary-foreground/85'
+                  : 'border-border text-muted-foreground'
+              )}
+            >
+              <RichSegments segments={block.segments} outbound={outbound} />
+            </blockquote>
+          );
+        }
+
+        if (block.type === 'divider') {
+          return (
+            <hr
+              key={`hr-${i}`}
+              className={outbound ? 'border-primary-foreground/25' : 'border-border/60'}
             />
           );
         }

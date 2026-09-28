@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 
+import { AppLoader } from '@/components/branding/AppLoader';
+import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -212,6 +214,32 @@ export function ParkingBookingDetailPageSkeleton() {
   );
 }
 
+/**
+ * List toolbar inside `FloatingToolbar` (Bookings, org Properties / Parkings / Analytics).
+ * Phone: search + refine button, then view segments. Desktop: filters · search · per-page · view.
+ */
+export function AdminListToolbarSkeleton({ sort = false }: { sort?: boolean } = {}) {
+  return (
+    <FloatingToolbar>
+      <div className="space-y-2.5 lg:hidden" aria-hidden>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-11 min-w-0 flex-1 rounded-2xl sm:h-10 sm:rounded-xl" />
+          <Skeleton className="size-11 shrink-0 rounded-xl" />
+        </div>
+        <Skeleton className="h-8 w-full rounded-lg" />
+      </div>
+      <div className="hidden w-full min-w-0 items-center gap-2 lg:flex" aria-hidden>
+        <Skeleton className="h-11 w-[9.5rem] shrink-0 rounded-lg" />
+        <Skeleton className="h-11 w-24 shrink-0 rounded-lg" />
+        <Skeleton className="h-11 min-w-0 flex-1 rounded-lg" />
+        {sort ? <Skeleton className="h-11 w-28 shrink-0 rounded-lg" /> : null}
+        <Skeleton className="h-11 w-16 shrink-0 rounded-xl" />
+        <Skeleton className="h-11 w-24 shrink-0 rounded-lg" />
+      </div>
+    </FloatingToolbar>
+  );
+}
+
 export function BookingsTableSkeleton() {
   return (
     <div
@@ -354,93 +382,61 @@ export function MaintenanceOverviewSkeleton() {
   );
 }
 
+/** Org Plans default view: billing summary card, Billing | Plans | Compare | FAQs tabs, then
+ * the Billing tab's payment history card. */
 export function PlansPageSkeleton() {
   return (
     <div
-      className="space-y-5 sm:space-y-6 lg:space-y-8"
+      className="flex min-w-0 flex-col gap-4 sm:gap-5"
       aria-busy="true"
       aria-label="Loading plans"
     >
-      <div className="border-border/50 bg-card rounded-2xl border p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-          <div className="flex items-start gap-4">
-            <Skeleton className="size-12 rounded-2xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-8 w-48" />
+      <div className="surface-card flex min-w-0 items-center justify-between gap-3 p-3 sm:gap-4 sm:p-3.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <Skeleton className="size-9 shrink-0 rounded-xl" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-5 w-14 rounded-md" />
             </div>
+            <Skeleton className="h-5 w-24 sm:h-6" />
+            <Skeleton className="h-3 w-44 max-w-full" />
           </div>
-          <div className="grid shrink-0 grid-cols-3 gap-4 lg:gap-6">
+        </div>
+        <Skeleton className="h-11 w-20 shrink-0 rounded-md sm:w-44" />
+      </div>
+
+      <div className="min-w-0">
+        <div className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-md p-1 sm:w-auto lg:h-11">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="h-7 flex-1 rounded-sm sm:w-20 sm:flex-none lg:h-9 lg:w-24"
+            />
+          ))}
+        </div>
+
+        <div className="surface-card mt-3 p-4 md:p-5">
+          <Skeleton className="mb-3 h-5 w-24 sm:mb-4" />
+          <div className="divide-border divide-y">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-16" />
+              <div
+                key={i}
+                className="flex items-start gap-3 py-3.5 last:pb-0"
+                style={{ opacity: 1 - i * 0.08 }}
+              >
+                <Skeleton className="mt-0.5 size-9 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-40 max-w-full" />
+                  <Skeleton className="h-3 w-28 max-w-full" />
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1 pl-3">
+                  <Skeleton className="h-3.5 w-16" />
+                  <Skeleton className="h-5 w-12 rounded-md" />
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <Skeleton className="h-9 w-24 rounded-lg" />
-        <Skeleton className="h-9 w-24 rounded-lg" />
-        <Skeleton className="h-9 w-28 rounded-lg" />
-      </div>
-
-      {/* Plan tier rail — title + prev/next arrows, 1/2/3 cards visible by breakpoint (no dots). */}
-      <div className="min-w-0">
-        <div className="mb-3 flex min-h-9 items-center justify-between gap-3 sm:mb-4">
-          <Skeleton className="h-5 w-36" />
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Skeleton className="size-9 shrink-0 rounded-full" />
-            <Skeleton className="size-9 shrink-0 rounded-full" />
-          </div>
-        </div>
-        <div className="flex items-stretch gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                'border-border/70 bg-card min-w-0 flex-1 space-y-4 rounded-2xl border p-4 sm:p-5',
-                i === 1 && 'hidden md:block',
-                i === 2 && 'hidden lg:block'
-              )}
-              style={{ opacity: 1 - i * 0.08 }}
-            >
-              <div className="flex items-center gap-2.5">
-                <Skeleton className="size-9 shrink-0 rounded-lg" />
-                <Skeleton className="h-5 w-24" />
-              </div>
-              <Skeleton className="h-8 w-28" />
-              <div className="space-y-3 pt-1">
-                {Array.from({ length: 6 }).map((__, row) => (
-                  <Skeleton
-                    key={row}
-                    className="h-3.5 w-full"
-                    style={{ opacity: 1 - row * 0.08 }}
-                  />
-                ))}
-              </div>
-              <Skeleton className="h-11 w-full rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* FAQ section — icon + title header, bordered accordion rows. */}
-      <div className="border-border/50 bg-card rounded-2xl border p-4 sm:p-5">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-5 shrink-0 rounded" />
-          <Skeleton className="h-5 w-56 max-w-full" />
-        </div>
-        <div className="mt-4 space-y-3 sm:mt-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className="min-h-11 w-full rounded-lg"
-              style={{ opacity: 1 - i * 0.08 }}
-            />
-          ))}
         </div>
       </div>
     </div>
@@ -812,17 +808,7 @@ export function DashboardSkeleton() {
 
 /** Shown while access is still resolving, before the target page's shape is known. */
 export function RouteGuardSkeleton({ fullScreen = false }: { fullScreen?: boolean } = {}) {
-  return (
-    <div
-      className={cn('flex flex-1 flex-col gap-3 p-4 sm:gap-4 sm:p-6', fullScreen && 'min-h-dvh')}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading"
-    >
-      <AdminPageHeaderSkeleton compact />
-      <SectionContentSkeleton rows={4} />
-    </div>
-  );
+  return <AppLoader fullScreen={fullScreen} />;
 }
 
 /**

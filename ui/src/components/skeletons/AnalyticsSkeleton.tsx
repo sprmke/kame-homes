@@ -1,7 +1,10 @@
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
+import type { OrgListingViewMode } from '@/features/dashboard/org/lib/orgListingViewMode';
 
+import { StatCardSkeleton } from '@/components/shared/StatCard';
+import { AdminListToolbarSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { OrgListingViewSkeleton } from '@/components/skeletons/OrgListingSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 /** Matches `AnalyticsKpiStrip`: 2×2 on phone, 4 across on lg. */
 export function AnalyticsKpiStripSkeleton() {
@@ -27,61 +30,24 @@ export function AnalyticsSectionTabsSkeleton() {
   );
 }
 
-/** Org portfolio comparison table (Property + metric columns). */
-export function OrgPropertyComparisonTableSkeleton() {
-  return (
-    <section
-      className="surface-card overflow-hidden"
-      aria-busy="true"
-      aria-label="Loading portfolio comparison"
-    >
-      <div className="border-separator flex items-center justify-between gap-3 border-b px-3 py-3 sm:px-4">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="size-9 shrink-0 rounded-lg" />
-      </div>
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
-          <div className="border-separator bg-muted/30 flex gap-4 border-b px-4 py-2.5">
-            {[120, 64, 48, 48, 72, 56].map((w, i) => (
-              <Skeleton
-                key={i}
-                className={cn('h-2.5 shrink-0 rounded-full', i > 2 && 'hidden sm:block')}
-                style={{ width: w }}
-              />
-            ))}
-          </div>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                'flex items-center gap-4 px-4 py-3',
-                i > 0 && 'border-separator border-t'
-              )}
-              style={{ opacity: 1 - i * 0.08 }}
-            >
-              <Skeleton className="h-3.5 w-32 max-w-[40%] flex-1" />
-              <Skeleton className="hidden h-3 w-12 sm:block" />
-              <Skeleton className="hidden h-3 w-14 md:block" />
-              <Skeleton className="hidden h-3 w-14 md:block" />
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-3 w-10" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function OrgAnalyticsSkeleton() {
+/** Org analytics: `OrgAnalyticsKpiCards` (trend StatCards), then the listings section
+ * (toolbar + listings in the default org listing view). */
+export function OrgAnalyticsSkeleton({ view }: { view: OrgListingViewMode }) {
   return (
     <div
-      className="flex flex-col gap-2.5 sm:gap-3 lg:gap-4"
+      className="flex min-w-0 flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading portfolio analytics"
     >
-      <AnalyticsKpiStripSkeleton />
-      <OrgPropertyComparisonTableSkeleton />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4" aria-hidden>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <StatCardSkeleton key={i} showTrend style={{ opacity: 1 - i * 0.05 }} />
+        ))}
+      </div>
+      <div className="flex min-w-0 flex-col gap-2.5 sm:gap-3">
+        <AdminListToolbarSkeleton />
+        <OrgListingViewSkeleton view={view} variant="analytics" label="Loading listings" />
+      </div>
     </div>
   );
 }

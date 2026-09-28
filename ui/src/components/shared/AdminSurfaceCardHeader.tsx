@@ -16,8 +16,9 @@ type Props = {
 
 /**
  * Title row for admin surface cards (charts, calendar, transactions, …).
- * Title left + action right on one row at every breakpoint (segmented toggles stay
- * compact and right-aligned on phone — never stacked under the title).
+ * Title left + action right on one row (segmented toggles stay compact and right-aligned on
+ * phone). The action wraps below only when the card is too narrow for both, e.g. a two-column
+ * row at 1024px; the title keeps its longest word's width so it never runs under the action.
  * Desktop: larger icon well; start-aligned when a description is present.
  */
 export function AdminSurfaceCardHeader({
@@ -31,14 +32,14 @@ export function AdminSurfaceCardHeader({
   return (
     <div
       className={cn(
-        'mb-2.5 flex shrink-0 items-center justify-between gap-2 sm:mb-3 sm:gap-3',
+        'mb-2.5 flex shrink-0 flex-wrap items-center justify-between gap-2 sm:mb-3 sm:gap-3',
         description ? 'lg:mb-3.5 lg:items-start' : null,
         className
       )}
     >
       <div
         className={cn(
-          'flex min-w-0 flex-1 gap-2.5',
+          'flex flex-1 gap-2.5',
           /* Center through tablet — description only appears at lg. */
           description ? 'items-center lg:items-start' : 'items-center'
         )}
@@ -63,7 +64,7 @@ export function AdminSurfaceCardHeader({
           ) : null}
         </div>
       </div>
-      {action ? <div className="shrink-0 self-center lg:self-start">{action}</div> : null}
+      {action ? <div className="ml-auto shrink-0 self-center lg:self-start">{action}</div> : null}
     </div>
   );
 }
