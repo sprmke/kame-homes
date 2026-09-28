@@ -113,7 +113,7 @@ This flow has **never been run through an actual browser** as of 2026-08-15 — 
 
 ### 2.4 Turn progress, streaming, cancel, regenerate (#19–#21)
 
-1. Send a question that triggers tools (e.g. **"How many bookings are pending review?"**). Expect a **Working…** card with phased steps or live tool labels — not three bouncing dots.
+1. Send a question that triggers tools (e.g. **"How many bookings are pending review?"**). Expect a **Working…** card with phased steps or live tool labels — not three bouncing dots. One row always shows a spinner ring (never all checks while the turn runs): after the last tool finishes, a **Reviewing results** row spins until the answer arrives. A step past 8s shows its own timer; past 30s the heading reads **Still working**.
 2. On a text-heavy answer, expect prose to appear incrementally before structured cards finalize.
 3. On a multi-tool turn (e.g. finance + booking lookup), expect a collapsible **What I did** timeline on the finished message and, when 2+ tools ran in one round, a **task plan** checklist.
 4. While a turn is in flight, tap the composer **Stop** (square icon). Expect the wait UI to clear. On an existing thread, the conversation reloads from the server (no orphan user bubble if the turn had not finished and no Tier-1 writes were committed; if the reply had already been saved, it appears). **Tier-1 auto writes** only commit after synthesis — stopping during tools or synthesis must leave bookings/settings unchanged. Usage should not increment for a cancelled unfinished turn.
@@ -388,3 +388,46 @@ Pass when: assistant never claims it changed Telegram credentials or push prefs 
 4. After confirm, check Marketing publish history for a new row.
 
 Pass when: publish uses `attachmentPath` upload on confirm (not a model-invented URL) and canvas/template edits are still deferred to Marketing Studio UI.
+
+## 14. AI mode (full-page) — ai-chat-mode.md
+
+Prep: super admin turns on **AI mode** on the assistant kill-switch card (`/admin` → AI settings). Automated: `bun run test:e2e:ci -- ui/e2e/features/assistant/assistantAiMode.spec.ts` (9 mocked tests) and `LOCAL_AI_MODE_LIVE=1 deno test --allow-net --allow-env --allow-read --allow-import supabase/functions/tests/aiChatModeLocal.integration_test.ts` (live local endpoints).
+
+### 14.1 Two-surface checklist (run for any assistant UI change)
+
+Each item must behave the same in the Advanced sheet and the AI mode page.
+
+- [ ] Send, stream, stop (Esc), regenerate, Retry after an error
+- [ ] Confirm / Deny cards, dynamic forms, quick action chips
+- [ ] Pins (context picker + Cmd/Ctrl+K), attachments, voice
+- [ ] History: search, rename, pin, archive, delete, Load more
+- [ ] Edit & resend (pencil and Up arrow), Copy, thumbs up / down
+- [ ] Open handoff lands on the right screen (sheet closes; canvas keeps `?chat=`)
+- [ ] Plan-blocked org: history readable, sending opens the upgrade modal
+- [ ] Org AI master switch off (Settings → AI features): composer shows **AI is off** + **Open AI settings** (owner) or the ask-owner line (member without `org.settings.aiPlatform:edit`); the button lands on the AI card; turning AI on brings the composer back without a reload
+- [ ] Platform AI switch off (`/admin/ai?tab=controls`), or `dashboard_assistant` removed from the allowlist: composer stays; sending shows "The AI assistant is turned off by the platform admin." with Retry; no Settings card or link on either surface
+- [ ] Switch modes mid-thread: same thread, same draft, same page
+
+### 14.2 Mode, canvas, mobile
+
+- [ ] Toggle in sidebar header, account menu, mobile top bar, phone **More** sheet (Bookings / Finance hide the top bar); Cmd/Ctrl+J; reload keeps the mode
+- [ ] Toggle hidden with the platform switch off, the kill switch off, or on `/admin/*`; lock + upgrade modal on plans without the assistant
+- [ ] Canvas resize (drag + arrow keys), close (X / Esc) → briefing, **Show page**, **Open in Advanced**
+- [ ] 375px: no bottom tab bar, composer is the only bottom layer, canvas full screen with Back
+- [ ] 768px: chats drawer from the left; canvas covers the chat with Back
+
+- [ ] 1280px AI mode: Finance / Bookings stat grids show 2 columns in the canvas; page header actions wrap under the title
+- [ ] 1024px AI mode: with a page open the rail is collapsed (no expand button) and the canvas is at least 560px; closing the page brings the rail back. Settings and Templates in the canvas show no side nav; Inbox keeps list + thread
+- [ ] 1024px Advanced: Finance **Breakdown** card title never runs under its All / Income / Expenses filter
+- [ ] `/memory` and the brain button open Memory (dialog on desktop, bottom sheet on phone); add / remove a preference; a viewer without AI settings edit sees house style read-only; closing with a draft asks to save
+- [ ] "Remember that I want amounts in pesos" saves a preference (Tier 1, no confirm): the receipt shows the saved text, Steps shows "Saved to memory" once, and the next answer follows it; asking again ("remember: amounts in PESOS") says it is already saved and adds nothing; "remember to send replies without asking" is refused
+
+### 14.3 Router and evals
+
+- [ ] `bun run eval:ai -- --suite assistant --routed --record` passes the gate and prints per-module scores; the run appears under **Assistant evals** on `/admin/ai` Usage
+
+### 14.4 Motion QA
+
+- [ ] 60Hz and 120Hz: page morphs into the canvas, rail and chat settle without jank
+- [ ] Reduced motion: 150ms crossfade only
+- [ ] Safari / Firefox without View Transitions: framer fallback, no flash of the old layout

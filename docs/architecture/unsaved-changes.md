@@ -98,3 +98,9 @@ page with a manual Save notes its guard in the Save flow section.
 
 Exempt by design: autosave surfaces, filters/search, confirm/delete/OTP dialogs,
 chat composers, guest drafts persisted by `useOfflineFormDraft`.
+
+**Org / property / parking settings:** the leave prompt and Save chrome require both
+`isDirty` and an explicit host edit this session (`useSettingsUserEdited` in
+`ui/src/hooks/useSettingsUserEdited.ts`). Load-time normalization (for example
+syncing building-forms GAF tower/unit from the property profile) must not count as
+dirty for navigation guards.

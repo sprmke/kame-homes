@@ -101,7 +101,7 @@ granted by default.
 
 ## States
 
-- **Loading**: shared `DashboardSkeleton` (same dense chrome as Org Dashboard).
+- **Loading**: `OrgAnalyticsSkeleton` keeps the hero and date filter, then shows KPI cards, the listings toolbar, and listings in the default view (list under 5 listings, table at 5+ on desktop, grid at 5+ on phone).
 - **Error**: centered panel with Retry (refetch), matching Org Dashboard recovery.
 - **Empty org**: KPI zeros and "No listings yet". Filters with no match show "No listings match your filters".
 - **Period change**: `keepPreviousData` keeps prior KPIs visible while the next range loads.

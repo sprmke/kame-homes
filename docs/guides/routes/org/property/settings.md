@@ -29,7 +29,7 @@ Route: `/org/:orgSlug/property/:propertySlug/settings`
 | Building Forms     | Done      | Done       | Done | Compact summary + Manage modal (form + live PDF preview)                                                                        |
 | Email automations  | Done      | Done       | Done | Recipients + timing inline; Automated sends via Manage modal                                                                    |
 | Integrations       | Done      | Done       | Done | Telegram + AI optional; GAF/pet via Resend inbound                                                                              |
-| AI features        | Done      | Done       | Done | Inherits org master; Usage + Voice receptionist with progressive disclosure (Business+)                                         |
+| AI features        | Moved     | n/a        | Done | Removed from property settings; configured in org Settings → AI features                                                        |
 | Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full property activity feed (`ActivityLogPanel`). Section shown only with `activity:view` |
 | Danger Zone        | Done      | Done       | Done | Archive + delete with confirmations                                                                                             |
 
@@ -398,35 +398,11 @@ Production GAF/pet approvals use **Resend inbound** (`approval-email-webhook`); 
 
 ## AI features
 
-One settings card (`#section-ai`, title **AI features**). There is **no** property-level platform master toggle. AI on/off is owned by organization Settings → AI features; toggling there syncs every property.
+**Moved to organization Settings.** Property Settings has no AI section. AI on/off, usage, the dashboard assistant, and the voice receptionist (voice, persona, per-property opt-out) are all configured in [organization Settings → AI features](../settings.md#ai-features).
 
-Progressive disclosure:
+A property's voice receptionist answers only when org AI is on, org voice is on, the property is not in the org opt-out list, and the property's plan includes `aiReceptionist`. Per-property session limits (`ai_platform_property_settings.feature_configs.voice_receptionist.max_*`) are platform-managed; see [Super Admin AI](../../admin/ai.md).
 
-1. Org AI off → short note + link to org settings (no usage or voice config).
-2. Org AI on → **Usage** readout (when entitled) + **Voice receptionist** group (Business+).
-3. Voice off → only **Enable voice receptionist**.
-4. Voice on → voice picker, Test voice, persona prompt, usage stats.
-
-**Plan gating:** Nav and card show when the property has AI credits and/or `aiReceptionist`. Usage needs credits entitlement; voice needs `aiReceptionist`.
-
-Every limit (calls, cost, credits, voice session caps) is platform-managed; see [Super Admin AI](../../admin/ai.md).
-
-| Field               | Storage path                                                               | Notes                                                                             |
-| ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Enable              | `ai_platform_property_settings.feature_configs.voice_receptionist.enabled` | Also gated by the platform-wide AI kill switch + `voice_receptionist` allowlist   |
-| Voice               | `voice_id`                                                                 | Gemini Live prebuilt voice; options from `availableVoices` (labeled in UI)        |
-| Persona prompt      | `persona_prompt`                                                           | Optional tone guidance, max 300 characters; policy/tool override text is rejected |
-| Max session (sec)   | `max_session_seconds`                                                      | Default 300; allowed **60–3600**, currently capped to 540 at session start        |
-| Max per guest / day | `max_sessions_per_guest_per_day`                                           | Default 3; allowed **1–999**                                                      |
-| Max concurrent      | `max_concurrent_sessions`                                                  | Default 3, property-wide; allowed **1–50**                                        |
-
-Save path: page **Save Changes** → `PATCH voice-receptionist-settings?property_id=` when voice fields are dirty (`settings.voiceReceptionist:edit`; enabling also requires plan `aiReceptionist`). Hook: `useVoiceReceptionistSettings.ts`. UI: nested in `PropertyAiSettingsSection.tsx` via `PropertyVoiceReceptionistFields.tsx`.
-
-**Copy settings:** the **AI features** and **Voice receptionist** groups still copy `enabled` (plus voice and persona) only. Limits never travel through a copy.
-
-**Test voice** — outline button beside the voice picker. `POST voice-receptionist-voice-preview?property_id=` (`settings.voiceReceptionist:edit`) runs a short Gemini TTS sample using the **Basic Information property name** (not tower + unit) and the selected prebuilt voice. Hook: `usePreviewVoiceReceptionistVoice`.
-
-**Usage panel** — shown only when voice is enabled. `GET voice-receptionist-usage?property_id=` (`settings:view`), hook `useVoiceReceptionistUsage`.
+The retired leaves `settings.voiceReceptionist:edit` and `settings.aiOverrides:edit` are no longer in the catalog; stored custom roles drop them on read (`normalizePermissionIds`). Copy settings no longer has **Voice receptionist** or **AI features** groups.
 
 **Guest-side hardening:** sessions end after 45 seconds without guest or assistant speech. Mic permission is requested before reserving provider capacity, stale sessions are reaped, and failed connections offer Retry or text handoff.
 
@@ -472,10 +448,6 @@ Read-only. Summary: "Who did what on this property." **Manage** opens a large mo
 | Payment OTP (org owner)                                           | `POST settings-verification?property_id=` (`send_otp`, `verify_otp`)                   |
 | Media upload/delete                                               | `POST` / `DELETE upload-property-media?property_id=`                                   |
 | Payment QR / signature                                            | `POST upload-app-settings-asset?property_id=`                                          |
-| AI toggle (property)                                              | `GET`/`PATCH ai-platform-property-settings?property_id=`                               |
-| Voice receptionist settings                                       | `GET`/`PATCH voice-receptionist-settings?property_id=`                                 |
-| Voice receptionist voice preview (TTS)                            | `POST voice-receptionist-voice-preview?property_id=`                                   |
-| Voice receptionist usage/cost read                                | `GET voice-receptionist-usage?property_id=`                                            |
 | Archive                                                           | `PATCH update-property` `{ status: "INACTIVE" }`                                       |
 | Restore                                                           | `PATCH update-property` `{ status: "ACTIVE" }`                                         |
 | Delete                                                            | `DELETE delete-property` `{ propertyId }`                                              |
@@ -499,7 +471,7 @@ Keep UI and edge copies in sync when changing rules.
 
 ---
 
-**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing** only after you change a field on this visit (load-time sync such as GAF tower/unit from profile does not prompt). Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Testing
 

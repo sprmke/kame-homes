@@ -18,7 +18,7 @@ Route: `/org/:orgSlug/settings`
 | Basic information | Yes       | Yes          | Done | Logo, name, slug, brand color, tagline, description, contact info                                                                              |
 | Socials           | Yes       | Yes          | Done | Social URLs (at least one required)                                                                                                            |
 | Superhost         | Read-only | Server       | Done | Earned Superhost badge progress (four criteria, next assessment). No save path                                                                 |
-| AI features       | Yes       | Server       | Done | Org master syncs all properties; Usage + Dashboard assistant with progressive disclosure                                                       |
+| AI features       | Yes       | Server       | Done | Org master syncs all properties; Usage + Dashboard assistant + Voice receptionist with progressive disclosure                                  |
 | Activity          | Read-only | n/a          | Done | Summary row + **Manage** → modal with full org activity feed (`ActivityLogPanel`). Section shown only with `org.activity:view` (owners always) |
 | Danger zone       | Partial   | Slug confirm | Done | Delete when no bookings; finance/maintenance can block; see § Danger zone                                                                      |
 
@@ -39,7 +39,7 @@ Logo upload is immediate via `upload-org-settings-asset` (`team_logo` → `org_s
 
 **Email routing, SD cron tuning, parking defaults, and automation toggles** are **per property** in **`app_settings`** — see **[[guides/routes/org/property/settings|Property Settings — operator guide]]** § Email automations.
 
-**AI features** (platform usage + dashboard assistant) live in one card — see § AI features.
+**AI features** (platform usage, dashboard assistant, voice receptionist) live in one card — see § AI features.
 
 ### Permissions
 
@@ -49,6 +49,7 @@ Logo upload is immediate via `upload-org-settings-asset` (`team_logo` → `org_s
 | Basic information + logo | `org.settings.basic:edit`       |
 | Socials                  | `org.settings.socials:edit`     |
 | AI usage (platform)      | `org.settings.aiPlatform:edit`  |
+| Voice receptionist       | `org.settings.aiPlatform:edit`  |
 | AI assistant             | `org.settings.aiAssistant:edit` |
 | Danger zone (delete org) | Owner / platform admin only     |
 
@@ -62,6 +63,8 @@ Organization settings control your brand identity and public presence: logo, nam
 
 **Common host questions**
 
+- Q: Where do I set up the AI voice receptionist?
+  A: Here, under **AI features → Voice receptionist**. One voice and persona apply to all your properties. Tick a property under **Disable on specific properties** to keep it off there. The receptionist is included on the Business plan and above.
 - Q: Where do I set the email address guests see on booking messages?
   A: That's set in per-property settings and team contact info, not on this org profile page. Update the property’s operator settings or the owner’s contact row on **Org team**.
 - Q: What happens if I delete the organization?
@@ -157,12 +160,17 @@ Public listings read **`isSuperhost`** from org earned flag via `_shared/orgSupe
 
 One settings card (`#section-ai`, title **AI features**). **Enable AI for organization** is the only platform master switch. Turning it on or off also syncs `ai_platform_property_settings.enabled` for every property in the org, so hosts never flip a second kill switch on each listing.
 
+Deep link: `/org/:orgSlug/settings#section-ai` scrolls to this card once the page loads (the assistant's **AI is off** card links here). Any `#section-<id>` hash works the same way. Saving the master switch also refetches the assistant settings and access queries, so the assistant composer returns without a reload.
+
 Progressive disclosure:
 
 1. Master off → only the org enable toggle (no usage or feature blocks).
-2. Master on → **Usage** (calls, cost, credits) + **Dashboard assistant** group.
-3. Assistant off → only the assistant enable toggle inside that group.
+2. Master on → **Usage** (calls, cost, credits) + **Dashboard assistant** group + **Voice receptionist** group.
+3. Assistant / voice off → only that feature's enable toggle inside its group.
 4. Assistant on → assistant usage, per-property disable list, **Save assistant settings**.
+5. Voice on → voice picker, **Test voice**, persona prompt, per-property disable list, 30-day usage, **Save voice settings**.
+
+All AI configuration lives here. Property Settings has no AI section.
 
 **Master toggle and platform usage**
 
@@ -189,6 +197,28 @@ Independent opt-in inside the same card. Also gated by a super-admin kill switch
 | Daily write-action limit | resolved limit (read-only)                                  | Counts confirmed/auto-executed writes. Enforced server-side (atomic counter): once reached, the assistant commits no more writes that day and says so |
 
 Save path: **Save assistant settings** → `PATCH dashboard-assistant-settings` with `enabled` / `disabledPropertyIds` only (`org.settings.aiAssistant:edit`). Hook: `useAiDashboardAssistantSettings.ts`. Opt-in usage via `GET dashboard-assistant-settings?includeUsage=true`.
+
+**Voice receptionist (nested)**
+
+One org-wide config for the guest voice receptionist, with a per-property opt-out. A property answers calls only when org AI is on, org voice is on, the property is not opted out, and the property's plan includes `aiReceptionist` (Business+).
+
+| Field                 | Storage                                                                  | Notes                                                                             |
+| --------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Enabled               | `ai_voice_receptionist_org_settings.enabled`                             | Enabling needs at least one property on a plan with `aiReceptionist`              |
+| Voice                 | `ai_voice_receptionist_org_settings.voice_id`                            | Gemini Live prebuilt voice; options from `availableVoices` (labeled in UI)        |
+| Persona prompt        | `ai_voice_receptionist_org_settings.persona_prompt`                      | Optional tone guidance, max 300 characters; policy/tool override text is rejected |
+| Disable on properties | `ai_voice_receptionist_org_settings.disabled_property_ids`               | Per-property opt-out; ids must belong to the org                                  |
+| Session limits        | `ai_platform_property_settings.feature_configs.voice_receptionist.max_*` | Platform-managed per property (super-admin only); PATCH rejects them with **403** |
+
+Plan lock: when no org property has `aiReceptionist`, the group shows a disabled toggle and "Not included in your plan. Upgrade" (opens the upgrade modal). The GET response carries `planAllowed`.
+
+Save path: **Save voice settings** → `PATCH voice-receptionist-settings?org_slug=` with `enabled` / `voiceId` / `personaPrompt` / `disabledPropertyIds` (`org.settings.aiPlatform:edit`). Activity: `ai.config_changed` (`metadata.feature = 'voice_receptionist'`). Unsaved edits are guarded (`useUnsavedChangesGuard`). Hook: `useVoiceReceptionistOrgSettings.ts`. UI: `OrgVoiceReceptionistGroup.tsx`.
+
+**Test voice** → `POST voice-receptionist-voice-preview?org_slug=` (`org.settings.aiPlatform:edit`). Short Gemini TTS greeting using the organization name. Rate limited (20/hour/user), counts against org AI quota.
+
+**Usage** → `GET voice-receptionist-usage?org_slug=` (`org.settings:view`): last-30-day sessions, average length, estimated cost, failure and handoff rates across all org properties.
+
+The dashboard assistant can read and change this config (`get_voice_receptionist_settings`, `propose_update_voice_receptionist`; passing a property flips only that property's opt-out).
 
 **Chat panel** (not this page): floating sparkles button → slide-over (`sm:max-w-xl` chat-only; wider when canvas is open). Empty chat centers a **Questions / Actions** mode switch (5 randomized prompt cards from `assistantSuggestions.ts`). Tap sends the prompt. While the assistant is working, a left-aligned message bubble with sparkles and bouncing dots appears in the thread (not a floating “Thinking…” line). Composer text is full-width and left-aligned; it grows up to 10 lines, then scrolls. Attach, context pin, and send sit on a row under the text. Paperclip (JPEG/PNG/WebP/PDF, max 3 × 4 MB) + **context pin hub** (`ChatComposerContextHub` — bookmark icon opens module list, drill into items, **Back** returns to modules; current-page module labeled **This page**; max 8 chips) + **Search all modules…** / **Cmd/Ctrl+K** command palette (`ChatContextCommandPalette`, same two-step drill-down) + **mic (speech-to-text**, Chrome/Safari/Edge on HTTPS — tap to start/stop, appends to existing text, stops on send) + send. Pins travel as `attachedContext[]` and do not overwrite the current page's `pageContext`. Asking for a booking file (approved GAF, receipt, ID) shows a preview card from the Files tab, not only a status summary. A booking journey or a table with more than 8 rows shows **Open** → `ChatCanvasOverlay` (split at `lg` / replace below). Suggested chips fill the composer. History (clock) lists your chats grouped by day, with search, wrapping titles, and delete (confirm).
 
@@ -303,6 +333,7 @@ Danger zone: slug confirmation + `delete-organization`; blocked when booking his
 | `ai-platform-credit-wallet`         | `supabase/functions/ai-platform-credit-wallet/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `_shared/aiCreditLedger.ts`         | Credit conversion + wallet/ledger helpers                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `dashboard-assistant-settings`      | `supabase/functions/dashboard-assistant-settings/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Voice receptionist (org)            | UI `org/components/org-settings/OrgVoiceReceptionistGroup.tsx`, `org/hooks/useVoiceReceptionistOrgSettings.ts`; edge `voice-receptionist-settings`, `voice-receptionist-voice-preview`, `voice-receptionist-usage`, `_shared/voiceReceptionistService.ts`; migration `20261316126200_ai_voice_receptionist_org_settings.sql`                                                                                                                                                            |
 | `dashboard-assistant-chat`          | `supabase/functions/dashboard-assistant-chat/index.ts`, `_shared/dashboardAssistantAttachments.ts`                                                                                                                                                                                                                                                                                                                                                                                      |
 | `dashboard-assistant-conversations` | `supabase/functions/dashboard-assistant-conversations/index.ts`                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Assistant attachments migration     | `supabase/migrations/20261019120000_ai_assistant_attachments.sql`                                                                                                                                                                                                                                                                                                                                                                                                                       |

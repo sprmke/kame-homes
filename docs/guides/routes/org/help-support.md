@@ -24,6 +24,8 @@ Announcements live on the org hub — see [Org Announcements](./announcements.md
 
 Identical feature to [Property Help & Support](./property/help-support.md), mounted at the org level instead — tickets filed here have `property_id`/`parking_id` left null (org-level). Visible to every org team member, not gated behind a specific permission (`org:dashboard:view` baseline, same as Dashboard).
 
+**Loading:** the route skeleton shows the hero, module tiles, section intro, and the active section's content. Switching FAQs / Guides / Tickets keeps the layout mounted; only the section body shows a skeleton while its chunk loads.
+
 ## FAQs
 
 Common FAQs here are scoped to the **organization** mount: **Getting Started** first (ownership, Owner vs Admin, invites, delete org, add property), then portfolio **Parking** questions from the org Parkings list (add a slot, standalone vs stay parking). AI Assistant and property/parking-ops FAQs stay on those Help pages.

@@ -186,7 +186,9 @@ other custom roles → none by default (configurable per org).
   may be zeros or empty when there is little booking history; no full-page "not enough history"
   gate. Chart cards with no signal use a **dashed empty body** (no axis labels or zero-filled
   bars) so empty Overview / Trends cards stay readable. AI review cron still skips properties
-  with fewer than 10 non-cancelled bookings ever (`sufficiency.enough`).
+  with fewer than 10 non-cancelled bookings ever (`sufficiency.enough`). Regression: `@ci`
+  "renders the full dashboard with little booking history" in
+  `ui/e2e/features/analytics/aiReviewPlaybook.spec.ts`.
 - **Error**: generic retry message.
 
 ## Host-facing knowledge

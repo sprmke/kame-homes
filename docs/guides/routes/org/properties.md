@@ -34,6 +34,8 @@ Org-level inventory of all properties. On **phone/tablet**, uses the shared **br
 
 **Copy settings:** Shown when the org has **at least two** properties (header button + property ⋯ menu). Server enforces per-target edit permissions and plan gates (skip + report).
 
+**Loading:** hero stays mounted; summary cards, toolbar, and listings render as `OrgListingPageSkeleton` in the default view (list under five, table on desktop / grid on phone at five+, from the cached property count). Same on Parkings.
+
 ---
 
 ## Host-facing knowledge
