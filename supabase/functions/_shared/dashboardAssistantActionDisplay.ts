@@ -35,6 +35,7 @@ const HIDDEN_DETAIL_KEYS = new Set([
   'mimeType',
   'previousUrl',
   'hostLabel',
+  'displayDetails',
 ]);
 
 /** Prefer these over camelCase-splitting for known API field keys. */
@@ -219,6 +220,19 @@ export function buildActionConfirmationDetails(
     toolName === 'propose_transition_parking_booking'
   ) {
     return [];
+  }
+
+  // Parity tools supply host-facing rows themselves (no ids, human labels).
+  if (Array.isArray(payload.displayDetails)) {
+    return (payload.displayDetails as unknown[])
+      .filter(
+        (row): row is { label: string; value: string } =>
+          Boolean(row) &&
+          typeof (row as { label?: unknown }).label === 'string' &&
+          typeof (row as { value?: unknown }).value === 'string'
+      )
+      .slice(0, 12)
+      .map((row) => ({ label: row.label.slice(0, 60), value: row.value.slice(0, 240) }));
   }
 
   const details: Array<{ label: string; value: string }> = [];

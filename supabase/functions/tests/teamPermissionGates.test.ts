@@ -135,7 +135,14 @@ Deno.test('marketing-generations DELETE accepts any of the three generate leaves
 });
 
 Deno.test('list-activity-log scopes non-admins by the activity:view leaf', async () => {
-  const source = await Deno.readTextFile(new URL('../list-activity-log/index.ts', import.meta.url));
+  // The endpoint and the assistant's list_activity_log share this module.
+  const source = await Deno.readTextFile(
+    new URL('../_shared/activityLogVisibility.ts', import.meta.url)
+  );
   assert(source.includes('resolveActivityViewableListingIdsForOrgUser'));
   assert(source.includes("'org.activity:view'"));
+  const endpoint = await Deno.readTextFile(
+    new URL('../list-activity-log/index.ts', import.meta.url)
+  );
+  assert(endpoint.includes('activityLogVisibility.ts'));
 });

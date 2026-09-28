@@ -20,6 +20,8 @@ export type ActivityTimelineEntry = {
   toolName?: string;
   status: 'done' | 'failed';
   durationMs?: number;
+  /** Host-facing reason for a failed tool row. */
+  reason?: string;
 };
 
 export type TaskPlanStep = {
@@ -27,6 +29,7 @@ export type TaskPlanStep = {
   label: string;
   status: TaskPlanStepStatus;
   toolName?: string;
+  reason?: string;
 };
 
 const PHASE_STREAM_MAP: Record<
@@ -86,12 +89,23 @@ export class TurnActivityRecorder {
     });
   }
 
-  recordToolComplete(toolName: string, ok: boolean, startedAtMs: number, stepId?: string): void {
+  recordToolComplete(
+    toolName: string,
+    ok: boolean,
+    startedAtMs: number,
+    stepId?: string,
+    failureReason?: string,
+    /** Queued Tier 1 writes: stream progress only; the commit adds the timeline row. */
+    options: { omitFromTimeline?: boolean } = {}
+  ): void {
     const durationMs = Math.max(0, Date.now() - startedAtMs);
+    const reason = ok ? undefined : failureReason;
     const label = getAssistantToolActivityLabel(toolName, ok ? 'done' : 'failed');
     const last = this.entries[this.entries.length - 1];
-    // Collapse consecutive identical tool rows (e.g. list_bookings called in two rounds).
-    if (
+    if (options.omitFromTimeline) {
+      // Nothing is applied yet, so a "done" row here would claim a change that may never commit.
+    } else if (
+      // Collapse consecutive identical tool rows (e.g. list_bookings called in two rounds).
       last &&
       last.phase === 'tool' &&
       last.toolName === toolName &&
@@ -107,11 +121,24 @@ export class TurnActivityRecorder {
         toolName,
         status: ok ? 'done' : 'failed',
         durationMs,
+        ...(reason ? { reason } : {}),
       });
     }
-    this.emit?.({ type: 'tool_done', toolName, ok, durationMs, stepId });
+    this.emit?.({
+      type: 'tool_done',
+      toolName,
+      ok,
+      durationMs,
+      stepId,
+      ...(reason ? { reason } : {}),
+    });
     if (stepId) {
-      this.emit?.({ type: 'plan_update', stepId, status: ok ? 'done' : 'failed' });
+      this.emit?.({
+        type: 'plan_update',
+        stepId,
+        status: ok ? 'done' : 'failed',
+        ...(reason ? { reason } : {}),
+      });
     }
   }
 
@@ -186,9 +213,14 @@ export class TurnTaskPlanRecorder {
     this.emit?.({ type: 'plan_update', stepId, status: 'running' });
   }
 
-  markDone(stepId: string, ok: boolean): void {
+  markDone(stepId: string, ok: boolean, failureReason?: string): void {
     if (!this.active) return;
     this.updateStep(stepId, ok ? 'done' : 'failed');
+    const step = this.steps.find((s) => s.id === stepId);
+    if (step) {
+      if (!ok && failureReason) step.reason = failureReason;
+      else delete step.reason;
+    }
   }
 
   markSynthRunning(): void {

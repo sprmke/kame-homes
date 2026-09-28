@@ -38,10 +38,15 @@ export class AiQuotaExceededError extends Error {
   }
 }
 
+export type AiFeatureBlocker = 'platform' | 'organization' | 'property';
+
 export class AiPlatformDisabledError extends Error {
   readonly code = 'AI_PLATFORM_DISABLED';
 
-  constructor(message = 'AI features are temporarily unavailable') {
+  constructor(
+    message = 'AI features are temporarily unavailable',
+    readonly scope: AiFeatureBlocker = 'platform'
+  ) {
     super(message);
     this.name = 'AiPlatformDisabledError';
   }
@@ -49,6 +54,7 @@ export class AiPlatformDisabledError extends Error {
 
 export class AiFeatureDisabledError extends Error {
   readonly code = 'AI_FEATURE_DISABLED';
+  readonly scope: AiFeatureBlocker = 'platform';
 
   constructor(feature: AiFeature) {
     super(`AI feature "${feature}" is currently disabled`);
@@ -927,6 +933,23 @@ function creditAllowanceExceeded(
   return { exceeded: false };
 }
 
+/**
+ * Same on/off layers as the start of `assertOrgAndPropertyAiQuota`, without throwing, so a UI can
+ * say who has to turn `feature` on: a super admin (`platform`) or the org's AI switch.
+ */
+export async function resolveAiFeatureBlocker(
+  organizationId: string,
+  feature: AiFeature
+): Promise<AiFeatureBlocker | null> {
+  const global = await getAiPlatformGlobalSettings();
+  if (!global.enabled) return 'platform';
+  if (global.allowedFeatures.length > 0 && !global.allowedFeatures.includes(feature)) {
+    return 'platform';
+  }
+  const orgSettings = await getAiPlatformOrgSettings(organizationId);
+  return orgSettings.enabled ? null : 'organization';
+}
+
 /** Fail closed when platform/org/property disabled or quota exceeded. */
 export async function assertOrgAndPropertyAiQuota(
   organizationId: string,
@@ -943,7 +966,7 @@ export async function assertOrgAndPropertyAiQuota(
 
   const orgSettings = await getAiPlatformOrgSettings(organizationId);
   if (!orgSettings.enabled) {
-    throw new AiPlatformDisabledError('AI is disabled for this organization');
+    throw new AiPlatformDisabledError('AI is disabled for this organization', 'organization');
   }
 
   if (!global.enforceQuotas) return;
@@ -971,7 +994,7 @@ export async function assertOrgAndPropertyAiQuota(
   if (propertyId) {
     const propertySettings = await getAiPlatformPropertySettings(propertyId, organizationId);
     if (!propertySettings.enabled) {
-      throw new AiPlatformDisabledError('AI is disabled for this property');
+      throw new AiPlatformDisabledError('AI is disabled for this property', 'property');
     }
     propertySummary = await getPropertyAiUsageSummary(propertyId, organizationId);
     if (propertySummary.dailyRemaining <= 0) {
@@ -1312,4 +1335,10 @@ export function isAiPlatformDisabledError(error: unknown): error is AiPlatformDi
 
 export function isAiFeatureDisabledError(error: unknown): error is AiFeatureDisabledError {
   return error instanceof AiFeatureDisabledError;
+}
+
+/** Which switch blocked the call, or null when `error` is not an AI on/off error. */
+export function aiDisabledScope(error: unknown): AiFeatureBlocker | null {
+  if (isAiPlatformDisabledError(error) || isAiFeatureDisabledError(error)) return error.scope;
+  return null;
 }

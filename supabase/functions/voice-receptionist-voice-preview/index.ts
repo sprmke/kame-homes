@@ -1,6 +1,7 @@
 /**
  * voice-receptionist-voice-preview — Short Gemini TTS sample for the selected Live voice.
- * Auth: property team member (settings:edit) — preview spends API tokens.
+ * Auth: org member with `org.settings.aiPlatform:edit` — preview spends API tokens.
+ * The sample greets with the organization name (voice config is org-wide).
  */
 
 import {
@@ -12,7 +13,7 @@ import {
 import { jsonError, jsonSuccess, jsonUpgradeHook, readJsonBody } from '../_shared/httpResponse.ts';
 import { previewGeminiLiveVoice } from '../_shared/geminiLiveVoicePreview.ts';
 import { resolvePropertyGuestName } from '../_shared/propertyGuestName.ts';
-import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { resolveOrgAccessContext } from '../_shared/propertyScope.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -29,10 +30,10 @@ serveAuthenticated('voice-receptionist-voice-preview', async (req, user) => {
   });
   if (limited) return limited;
 
-  const access = await resolveScopedPropertyAccess(req, 'settings.voiceReceptionist:edit');
+  const ctx = await resolveOrgAccessContext(req, 'org.settings.aiPlatform:edit');
 
   try {
-    await assertOrgAndPropertyAiQuota(access.org.id, access.property.id, 'voice_receptionist');
+    await assertOrgAndPropertyAiQuota(ctx.org.id, null, 'voice_receptionist');
   } catch (err) {
     if (isAiQuotaError(err) || isAiPlatformDisabledError(err)) {
       return jsonUpgradeHook(req, err.message, { feature: 'aiReceptionist' });
@@ -46,20 +47,14 @@ serveAuthenticated('voice-receptionist-voice-preview', async (req, user) => {
     return jsonError(req, 'voiceId is required', 400);
   }
 
-  const bodyPropertyName =
-    typeof body.propertyName === 'string'
-      ? body.propertyName
-      : typeof body.property_name === 'string'
-        ? body.property_name
-        : '';
-  const propertyName = resolvePropertyGuestName(access.property, bodyPropertyName);
+  const greetingName = resolvePropertyGuestName({ name: ctx.org.name ?? null });
 
   try {
-    const data = await previewGeminiLiveVoice(voiceId, propertyName);
+    const data = await previewGeminiLiveVoice(voiceId, greetingName);
     try {
       await recordAiUsage({
-        organizationId: access.org.id,
-        propertyId: access.property.id,
+        organizationId: ctx.org.id,
+        propertyId: null,
         feature: 'voice_receptionist',
         provider: 'gemini',
         model: 'gemini-2.5-flash-preview-tts',

@@ -38,6 +38,7 @@ import {
 import type {
   ChatBlock,
   ActionConfirmationBlock,
+  DataTableRowTarget,
   DynamicFormField,
   DynamicFormFieldType,
   StepperStep,
@@ -308,12 +309,111 @@ function sanitizeDataTable(block: Extract<ChatBlock, { type: 'data_table' }>): C
   }
   if (columns.length === 0) return null;
 
-  const rows = rawRows
-    .map((row) => rowToRecord(row, columns))
-    .filter((row): row is Record<string, string | number> => row != null);
+  const targets = Array.isArray(block.rowTargets) ? block.rowTargets : [];
+  const kept = rawRows
+    .map((row, i) => ({ row: rowToRecord(row, columns), target: asRowTarget(targets[i]) }))
+    .filter(
+      (
+        entry
+      ): entry is { row: Record<string, string | number>; target: DataTableRowTarget | null } =>
+        entry.row != null
+    );
 
-  if (rows.length === 0) return null;
-  return { ...block, columns, rows };
+  if (kept.length === 0) return null;
+  const { rowTargets: _rowTargets, ...rest } = block;
+  const rows = kept.map((entry) => entry.row);
+  const rowTargets = kept.map((entry) => entry.target);
+  return rowTargets.some(Boolean)
+    ? { ...rest, columns, rows, rowTargets }
+    : { ...rest, columns, rows };
+}
+
+function asRowTarget(value: unknown): DataTableRowTarget | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const bookingId = asDisplay(raw.bookingId);
+  const propertyId = asDisplay(raw.propertyId);
+  const parkingId = asDisplay(raw.parkingId);
+  if (!bookingId || (!propertyId && !parkingId)) return null;
+  return propertyId ? { bookingId, propertyId } : { bookingId, parkingId };
+}
+
+type BookingRowCandidate = {
+  bookingId: string;
+  guestName: string;
+  checkIn: string;
+  source: Record<string, unknown>;
+};
+
+/** Bookings this turn's tools returned, in order: single lookups, `bookings[]`, `bookedStays[]`. */
+function bookingRowCandidates(records: Record<string, unknown>[]): BookingRowCandidate[] {
+  const out: BookingRowCandidate[] = [];
+  const push = (raw: unknown) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+    const source = raw as Record<string, unknown>;
+    const bookingId = asDisplay(source.bookingId);
+    if (!bookingId || out.some((c) => c.bookingId === bookingId)) return;
+    out.push({
+      bookingId,
+      guestName: asDisplay(source.guestName).toLowerCase(),
+      checkIn: asDisplay(source.checkIn),
+      source,
+    });
+  };
+  for (const record of records) {
+    if (record.guestName) push(record);
+    for (const key of ['bookings', 'bookedStays'] as const) {
+      const list = record[key];
+      if (Array.isArray(list)) list.forEach(push);
+    }
+  }
+  return out;
+}
+
+function rowMentionsDate(rowText: string, isoDate: string): boolean {
+  if (!isoDate) return false;
+  if (rowText.includes(isoDate)) return true;
+  const short = formatStayDateShort(isoDate);
+  if (!short) return false;
+  return new RegExp(`${short.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\d)`).test(rowText);
+}
+
+/**
+ * Matches each table row to one booking (each booking used at most once): a cell holding the
+ * booking id wins, else the guest name, with the check-in date breaking ties for repeat guests.
+ */
+function matchTableRowsToBookings(
+  block: Extract<ChatBlock, { type: 'data_table' }>,
+  candidates: BookingRowCandidate[]
+): Array<BookingRowCandidate | null> {
+  const columns = block.columns ?? [];
+  const guestCol = columns.find((col) => /^guest(\s*name)?$/i.test(col.trim()));
+  const used = new Set<string>();
+  return (block.rows ?? []).map((row) => {
+    const cells = columns.map((col) => asDisplay(row[col]));
+    const open = candidates.filter((c) => !used.has(c.bookingId));
+    let match = open.find((c) => cells.includes(c.bookingId)) ?? null;
+    if (!match && guestCol) {
+      const guest = asDisplay(row[guestCol]).toLowerCase();
+      const sameGuest = guest ? open.filter((c) => c.guestName === guest) : [];
+      const rowText = cells.join(' ');
+      match = sameGuest.find((c) => rowMentionsDate(rowText, c.checkIn)) ?? sameGuest[0] ?? null;
+    }
+    if (match) used.add(match.bookingId);
+    return match;
+  });
+}
+
+/** Replaces any model-supplied `rowTargets` with targets matched from real tool results. */
+function withBookingRowTargets(
+  block: Extract<ChatBlock, { type: 'data_table' }>,
+  candidates: BookingRowCandidate[]
+): Extract<ChatBlock, { type: 'data_table' }> {
+  const { rowTargets: _rowTargets, ...rest } = block;
+  const rowTargets = matchTableRowsToBookings(block, candidates).map((match) =>
+    match ? asRowTarget(match.source) : null
+  );
+  return rowTargets.some(Boolean) ? { ...rest, rowTargets } : rest;
 }
 
 /**
@@ -690,11 +790,7 @@ export function hydrateAssistantBlocksFromTools(
     Array.isArray(record.bookings) ? record.bookings : []
   ) as Array<Record<string, unknown>>;
 
-  const bookingByGuest = new Map<string, Record<string, unknown>>();
-  for (const row of listedBookings) {
-    const guest = asDisplay(row.guestName).toLowerCase();
-    if (guest) bookingByGuest.set(guest, row);
-  }
+  const rowCandidates = bookingRowCandidates(records);
 
   // Ensure booking pickers show Status (and human dates) even when the model omitted them.
   next = next.map((block) => {
@@ -703,12 +799,12 @@ export function hydrateAssistantBlocksFromTools(
     const guestCol = columns.find((col) => /^guest$/i.test(col.trim()));
     if (!guestCol || listedBookings.length === 0) return block;
 
+    const matches = matchTableRowsToBookings(block, rowCandidates);
     const hasStatus = columns.some((col) => /^status$/i.test(col.trim()));
     const nextColumns = hasStatus ? columns : [...columns, 'Status'];
-    const rows = (block.rows ?? []).map((row) => {
+    const rows = (block.rows ?? []).map((row, rowIndex) => {
       const nextRow: Record<string, string | number> = { ...row };
-      const guest = asDisplay(nextRow[guestCol]);
-      const match = bookingByGuest.get(guest.toLowerCase());
+      const match = matches[rowIndex]?.source;
       const statusCode = asDisplay(match?.status);
       const statusHuman = asDisplay(
         match?.statusLabel ?? match?.status ?? nextRow.Status ?? nextRow.status
@@ -749,6 +845,10 @@ export function hydrateAssistantBlocksFromTools(
       })),
     });
   }
+
+  next = next.map((block) =>
+    block.type === 'data_table' ? withBookingRowTargets(block, rowCandidates) : block
+  );
 
   // Stay-picker chips only when choosing among bookings — never after a journey is already shown.
   const existingQuickActions = next.flatMap((block) =>

@@ -25,7 +25,7 @@ import {
 import { upsertAiPlatformOrgSettings, upsertAiPlatformPropertySettings } from './aiUsageService.ts';
 import { upsertDashboardAssistantOrgSettings } from './dashboardAssistantSettings.ts';
 import { createServiceClient } from './orgAuth.ts';
-import { updateVoiceReceptionistSettings } from './voiceReceptionistService.ts';
+import { updateVoiceReceptionistPropertyLimits } from './voiceReceptionistService.ts';
 import { patchMarketingGenerationOverrides } from './marketingGenerationFeatureConfig.ts';
 
 export const MAX_BULK_TARGETS = 200;
@@ -485,7 +485,7 @@ async function setPropertyOverrides(
     });
   }
   if (Object.keys(voice).length > 0) {
-    await updateVoiceReceptionistSettings(propertyId, {
+    await updateVoiceReceptionistPropertyLimits(propertyId, {
       maxSessionSeconds: voice.voiceMaxSessionSeconds,
       maxSessionsPerGuestPerDay: voice.voiceMaxSessionsPerGuestPerDay,
       maxConcurrentSessions: voice.voiceMaxConcurrentSessions,

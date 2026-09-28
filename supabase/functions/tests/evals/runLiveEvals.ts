@@ -6,6 +6,9 @@
  *   bun run eval:ai                          # all suites
  *   bun run eval:ai -- --suite inbox         # one suite: inbox | import | assistant | documents
  *   bun run eval:ai -- --threshold 0.9       # override the default pass-rate gate
+ *   bun run eval:ai -- --suite assistant --routed          # send only the router's modules
+ *   bun run eval:ai -- --suite assistant --routed --record # also store the per-module summary
+ *                                                          # in ai_assistant_eval_runs (SUPABASE_URL)
  *
  * Reads GEMINI_API_KEY(S) / GROQ_API_KEY from the environment or supabase/.env.local.
  * Writes a JSON report to tmp/ai-evals/ (gitignored) and exits 1 when a suite misses its gate.
@@ -21,7 +24,17 @@ import {
   SYSTEM_PROMPT_PREFIX,
 } from '../../_shared/ai/prompts/dashboardAssistant.ts';
 import { buildInboxReplyPrompt, INBOX_REPLY_PROMPT } from '../../_shared/ai/prompts/inboxReply.ts';
+import {
+  averageToolsSent,
+  evalCaseModule,
+  summarizeEvalByModule,
+} from '../../_shared/assistantEvalSummary.ts';
 import { TOOL_DECLARATIONS } from '../../_shared/dashboardAssistantTools.ts';
+import {
+  routeAssistantModules,
+  selectToolDeclarations,
+} from '../../_shared/dashboardAssistantToolRouter.ts';
+import { createServiceClient } from '../../_shared/orgAuth.ts';
 import { mapColumnsWithModel } from '../../_shared/importColumnMappingAi.ts';
 import { assertSafeGuestReply } from '../../_shared/inboxAiSafetyGuard.ts';
 import {
@@ -30,7 +43,15 @@ import {
 } from '../../_shared/receiptValidationService.ts';
 import { readJsonl } from './evalDatasets.ts';
 
-type CaseResult = { id: string; pass: boolean; latencyMs: number; note?: string };
+type CaseResult = {
+  id: string;
+  pass: boolean;
+  latencyMs: number;
+  note?: string;
+  /** Assistant suite: router module of the expected tool, and how many tools were sent. */
+  module?: string;
+  toolsSent?: number;
+};
 type SuiteResult = { suite: string; gate: number; cases: CaseResult[] };
 
 const DEFAULT_GATES: Record<string, number> = {
@@ -154,32 +175,50 @@ async function importSuite(): Promise<CaseResult[]> {
 }
 
 async function assistantSuite(): Promise<CaseResult[]> {
-  type Row = { id: string; message: string; expectToolsAny?: string[]; forbidTools?: string[] };
+  type Row = {
+    id: string;
+    message: string;
+    module?: string;
+    expectToolsAny?: string[];
+    forbidTools?: string[];
+  };
   const rows = await readJsonl<Row>('assistant_tool_selection.jsonl');
+  const routed = Deno.args.includes('--routed');
   const out: CaseResult[] = [];
   for (const row of rows) {
-    out.push(
-      await runCase(row.id, async () => {
-        const result = await generateWithTools({
-          feature: 'dashboard_assistant',
-          prompt: DASHBOARD_ASSISTANT_PROMPT,
-          system: `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\nOrganization: Kame Test Stays. One property: Azure North 1204.`,
-          user: row.message,
-          tools: TOOL_DECLARATIONS,
-          toolMode: 'auto',
-          maxOutputTokens: 512,
-          billing: { organizationId: null },
-        });
-        const called = result.toolCalls.map((c) => c.name);
-        const expectOk =
-          !row.expectToolsAny || called.some((name) => row.expectToolsAny!.includes(name));
-        const forbidOk = !called.some((name) => (row.forbidTools ?? []).includes(name));
-        return {
-          pass: expectOk && forbidOk,
-          note: expectOk && forbidOk ? undefined : `called: ${called.join(', ') || '(none)'}`,
-        };
-      })
-    );
+    // --routed: send only the router's modules (same as dashboard-assistant-chat).
+    const tools = routed
+      ? selectToolDeclarations(
+          TOOL_DECLARATIONS,
+          routeAssistantModules({
+            message: row.message,
+            attachedTypes: [],
+            pageContext: {},
+            recentToolNames: [],
+          })
+        )
+      : TOOL_DECLARATIONS;
+    const result = await runCase(row.id, async () => {
+      const response = await generateWithTools({
+        feature: 'dashboard_assistant',
+        prompt: DASHBOARD_ASSISTANT_PROMPT,
+        system: `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\nOrganization: Kame Test Stays. One property: Azure North 1204.`,
+        user: row.message,
+        tools,
+        toolMode: 'auto',
+        maxOutputTokens: 512,
+        billing: { organizationId: null },
+      });
+      const called = response.toolCalls.map((c) => c.name);
+      const expectOk =
+        !row.expectToolsAny || called.some((name) => row.expectToolsAny!.includes(name));
+      const forbidOk = !called.some((name) => (row.forbidTools ?? []).includes(name));
+      return {
+        pass: expectOk && forbidOk,
+        note: expectOk && forbidOk ? undefined : `called: ${called.join(', ') || '(none)'}`,
+      };
+    });
+    out.push({ ...result, module: evalCaseModule(row), toolsSent: tools.length });
   }
   return out;
 }
@@ -235,6 +274,14 @@ const thresholdOverride = args.includes('--threshold')
   ? Number(args[args.indexOf('--threshold') + 1])
   : null;
 
+// --record needs a real service key; check before spending model tokens.
+if (args.includes('--record') && Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') === 'eval-placeholder') {
+  console.error(
+    '--record needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (local: bun run status:supabase -- -o env).'
+  );
+  Deno.exit(2);
+}
+
 const results: SuiteResult[] = [];
 for (const [suite, run] of Object.entries(SUITES)) {
   if (onlySuite && suite !== onlySuite) continue;
@@ -256,6 +303,36 @@ for (const r of results) {
       `p50 ${percentile(latencies, 0.5)}ms  p95 ${percentile(latencies, 0.95)}ms`
   );
   for (const c of r.cases.filter((c) => !c.pass)) console.log(`        ✗ ${c.id}: ${c.note ?? ''}`);
+  if (r.suite === 'assistant') {
+    for (const m of summarizeEvalByModule(r.cases)) {
+      console.log(`        ${m.module.padEnd(12)} ${m.passed}/${m.total}`);
+    }
+    const avg = averageToolsSent(r.cases);
+    if (avg != null)
+      console.log(`        tools sent per case: ${avg} of ${TOOL_DECLARATIONS.length}`);
+  }
+}
+
+// --record: store the assistant summary for super-admin AI usage (no tenant data).
+const assistantResult = results.find((r) => r.suite === 'assistant');
+if (args.includes('--record') && assistantResult && assistantResult.cases.length > 0) {
+  const { error } = await createServiceClient()
+    .from('ai_assistant_eval_runs')
+    .insert({
+      routed: args.includes('--routed'),
+      passed: assistantResult.cases.filter((c) => c.pass).length,
+      total: assistantResult.cases.length,
+      avg_tools_sent: averageToolsSent(assistantResult.cases),
+      prompt_version: DASHBOARD_ASSISTANT_PROMPT.version,
+      modules: summarizeEvalByModule(assistantResult.cases),
+      failed_case_ids: assistantResult.cases.filter((c) => !c.pass).map((c) => c.id),
+    });
+  if (error) {
+    console.error(`\nRecord failed: ${error.message}`);
+    failedGate = true;
+  } else {
+    console.log('\nRecorded to ai_assistant_eval_runs');
+  }
 }
 
 const reportDir = new URL('../../../../tmp/ai-evals/', import.meta.url);

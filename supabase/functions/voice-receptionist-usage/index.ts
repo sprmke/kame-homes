@@ -1,11 +1,14 @@
 /**
- * voice-receptionist-usage — Property-scoped read-only usage/cost summary for AI voice
- * receptionist sessions (last 30 days). Visibility only — not a full analytics product.
- * Auth: property team member (settings:view).
+ * voice-receptionist-usage — Org-scoped read-only usage/cost summary for AI voice
+ * receptionist sessions across the org's properties (last 30 days).
+ * Auth: org member (org.settings:view).
  */
 
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
-import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import {
+  listPropertyIdsForOrganization,
+  resolveOrgAccessContext,
+} from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { getVoiceReceptionistUsageSummary } from '../_shared/voiceReceptionistService.ts';
 
@@ -14,7 +17,8 @@ serveAuthenticated('voice-receptionist-usage', async (req) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-  const { property } = await resolveScopedPropertyAccess(req, 'settings:view');
-  const data = await getVoiceReceptionistUsageSummary(property.id);
+  const ctx = await resolveOrgAccessContext(req, 'org.settings:view');
+  const propertyIds = await listPropertyIdsForOrganization(ctx.org.id);
+  const data = await getVoiceReceptionistUsageSummary(propertyIds);
   return jsonSuccess(req, data);
 });

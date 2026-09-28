@@ -1114,6 +1114,18 @@ verify_jwt = false
 [functions.dashboard-assistant-conversations]
 verify_jwt = false
 
+[functions.user-ui-preferences]
+verify_jwt = false
+
+[functions.dashboard-assistant-feedback]
+verify_jwt = false
+
+[functions.dashboard-assistant-briefing]
+verify_jwt = false
+
+[functions.dashboard-assistant-memory]
+verify_jwt = false
+
 [functions.get-booking-ai-assistant-audit]
 verify_jwt = false
 
