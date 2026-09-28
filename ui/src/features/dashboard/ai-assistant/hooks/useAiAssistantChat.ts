@@ -14,7 +14,9 @@ import {
   type ChatBlock,
   type PageContext,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
+import type { AssistantAiBlocker } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
 import {
+  aiBlockerFromError,
   buildTurnProgressFromStreamEvent,
   humanizeAssistantStreamError,
   isAbortError,
@@ -55,6 +57,8 @@ type FailedTurn = { payload: ChatSendInput; started: boolean; localUserId?: stri
 
 const settingsQueryPrefix = (orgSlug: string | null, orgId: string | null) =>
   ['org', orgSlug ?? orgId, 'ai-dashboard-assistant-settings'] as const;
+const accessQueryPrefix = (orgSlug: string | null, orgId: string | null) =>
+  ['org', orgSlug ?? orgId, 'ai-dashboard-assistant-access'] as const;
 
 function rowsToThread(rows: AiAssistantMessageRow[]): ChatThreadMessage[] {
   return rows.map((row) => ({
@@ -86,12 +90,23 @@ export function useAiAssistantChat(pageContext: PageContext) {
     null
   );
   const [upgradeHook, setUpgradeHook] = useState(false);
+  /** AI switch the last turn hit. Org / property blocks show the Settings card instead of an error. */
+  const [aiBlocker, setAiBlocker] = useState<AssistantAiBlocker | null>(null);
   const [cancelledDraft, setCancelledDraft] = useState<CancelledDraft | null>(null);
   const [failedTurn, setFailedTurn] = useState<FailedTurn | null>(null);
 
   const invalidateUsage = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: settingsQueryPrefix(orgSlug, orgId) });
   }, [queryClient, orgSlug, orgId]);
+
+  const handleAiBlocked = useCallback(
+    (blocker: AssistantAiBlocker) => {
+      setAiBlocker(blocker);
+      void queryClient.invalidateQueries({ queryKey: settingsQueryPrefix(orgSlug, orgId) });
+      void queryClient.invalidateQueries({ queryKey: accessQueryPrefix(orgSlug, orgId) });
+    },
+    [queryClient, orgSlug, orgId]
+  );
 
   const invalidateConversations = useCallback(() => {
     void queryClient.invalidateQueries({
@@ -174,6 +189,7 @@ export function useAiAssistantChat(pageContext: PageContext) {
       setError(null);
       setPartialCancelEffects(null);
       setUpgradeHook(false);
+      setAiBlocker(null);
       setCancelledDraft(null);
       setFailedTurn(null);
       let turnStarted = false;
@@ -319,6 +335,9 @@ export function useAiAssistantChat(pageContext: PageContext) {
           } catch (retryErr) {
             if (isAbortError(retryErr)) return;
             setFailedTurn({ payload, started: true, localUserId });
+            const retryBlocker = aiBlockerFromError(retryErr);
+            if (retryBlocker) handleAiBlocked(retryBlocker);
+            if (retryBlocker && retryBlocker !== 'platform') return;
             setError(humanizeAssistantStreamError(retryErr));
             if (retryErr instanceof Error && 'upgradeHook' in retryErr && retryErr.upgradeHook) {
               setUpgradeHook(true);
@@ -331,6 +350,9 @@ export function useAiAssistantChat(pageContext: PageContext) {
         if (!isUpgradeHook && !options?.regenerate && !options?.editMessageId) {
           setFailedTurn({ payload, started: turnStarted, localUserId });
         }
+        const blocker = aiBlockerFromError(err);
+        if (blocker) handleAiBlocked(blocker);
+        if (blocker && blocker !== 'platform') return;
         setError(humanizeAssistantStreamError(err));
         if (isUpgradeHook) setUpgradeHook(true);
       } finally {
@@ -339,7 +361,15 @@ export function useAiAssistantChat(pageContext: PageContext) {
         setPending(false);
       }
     },
-    [orgSlug, conversationId, pageContext, invalidateUsage, invalidateConversations, resetTurnState]
+    [
+      orgSlug,
+      conversationId,
+      pageContext,
+      invalidateUsage,
+      invalidateConversations,
+      resetTurnState,
+      handleAiBlocked,
+    ]
   );
 
   const sendMessage = useCallback(
@@ -421,7 +451,8 @@ export function useAiAssistantChat(pageContext: PageContext) {
                   msg.blocks,
                   actionId,
                   result.status,
-                  result.ok === false ? result.error : undefined
+                  result.ok === false ? result.error : undefined,
+                  result.ok !== false ? result.resultNote : undefined
                 ),
         }))
       );
@@ -504,6 +535,7 @@ export function useAiAssistantChat(pageContext: PageContext) {
     error,
     partialCancelEffects,
     upgradeHook,
+    aiBlocker,
     canRegenerate,
     cancelledDraft,
     canRetry: failedTurn != null && !sending && !pending,

@@ -24,6 +24,7 @@ export function ActionConfirmationBlock({
   status,
   isExternalSend,
   errorMessage,
+  resultNote,
   onResolve,
 }: Props) {
   const [busy, setBusy] = useState<'confirm' | 'deny' | null>(null);
@@ -116,7 +117,9 @@ export function ActionConfirmationBlock({
         </div>
       )}
 
-      {status === 'executed' && <p className="text-success pl-6 text-xs font-medium">Done.</p>}
+      {status === 'executed' && (
+        <p className="text-success pl-6 text-xs font-medium">{resultNote || 'Done.'}</p>
+      )}
       {status === 'denied' && errorMessage && (
         <p className="text-destructive pl-6 text-xs leading-snug">
           {humanizeAssistantStatusText(errorMessage)}

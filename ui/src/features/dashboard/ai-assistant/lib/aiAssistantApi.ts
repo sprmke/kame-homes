@@ -1,3 +1,4 @@
+import type { AssistantAiBlocker } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
 import type { AttachedContextItem } from '@/features/dashboard/ai-assistant/lib/attachedContext';
 import { scopedOrgFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
@@ -12,6 +13,8 @@ export type ActionConfirmationBlock = {
   status: 'proposed' | 'confirmed' | 'executed' | 'denied' | 'expired';
   isExternalSend?: boolean;
   errorMessage?: string;
+  /** Server-built outcome line after Confirm (e.g. "Applied to 42 nights."). */
+  resultNote?: string;
 };
 
 export type ActivityPhase = 'understanding' | 'tool' | 'synthesizing' | 'safety';
@@ -23,6 +26,8 @@ export type ActivityTimelineEntry = {
   toolName?: string;
   status: 'done' | 'failed';
   durationMs?: number;
+  /** Host-facing reason for a failed tool row. */
+  reason?: string;
 };
 
 export type TaskPlanStepStatus = 'pending' | 'running' | 'done' | 'failed';
@@ -32,6 +37,7 @@ export type TaskPlanStep = {
   label: string;
   status: TaskPlanStepStatus;
   toolName?: string;
+  reason?: string;
 };
 
 export type StepperStep = {
@@ -96,8 +102,17 @@ export type MapBlock = {
   label: string;
 };
 
+/** Server-built handoff to an allowlisted dashboard screen (`open_page` tool). */
+export type OpenPageBlock = {
+  type: 'open_page';
+  routeKey: string;
+  label: string;
+  href: string;
+};
+
 export type ChatBlock =
   | { type: 'text'; text: string }
+  | OpenPageBlock
   | {
       type: 'booking_card';
       bookingId: string;
@@ -114,6 +129,8 @@ export type ChatBlock =
       title: string;
       columns: string[];
       rows: Array<Record<string, string | number>>;
+      /** Aligned with `rows`; set by the server for rows that map to a booking. */
+      rowTargets?: Array<{ bookingId: string; propertyId?: string; parkingId?: string } | null>;
     }
   | { type: 'link_list'; title: string; links: Array<{ label: string; href: string }> }
   | {
@@ -157,6 +174,7 @@ export type ConfirmActionResponse = {
   error?: string | null;
   data?: unknown;
   alreadyResolved?: boolean;
+  resultNote?: string | null;
 };
 
 export type AiDashboardAssistantUsageSummary = {
@@ -180,6 +198,8 @@ export type AiDashboardAssistantOrgSettings = {
   platformEnabled: boolean;
   /** Platform switch for full-page AI mode (already false when `platformEnabled` is false). */
   aiModeEnabled?: boolean;
+  /** AI platform layer that turns the assistant off: super admin (`platform`) or the org AI switch. */
+  aiBlocker?: AssistantAiBlocker | null;
   usage: AiDashboardAssistantUsageSummary | null;
 };
 
@@ -408,4 +428,45 @@ export function updateUserUiPreferences(patch: {
     method: 'PATCH',
     body: JSON.stringify(patch),
   });
+}
+
+export type AssistantMemoryItem = {
+  id: string;
+  kind: 'preference' | 'house_style';
+  content: string;
+  createdAt: string;
+};
+
+export type AssistantMemory = {
+  preferences: AssistantMemoryItem[];
+  houseStyle: AssistantMemoryItem[];
+  canManageHouseStyle: boolean;
+};
+
+export function fetchAssistantMemory(
+  orgSlug: string | null,
+  orgId: string | null
+): Promise<AssistantMemory> {
+  return callAiAssistantFn(scopedOrgFunctionsUrl('dashboard-assistant-memory', orgSlug, orgId));
+}
+
+export function addAssistantMemory(
+  orgSlug: string | null,
+  orgId: string | null,
+  input: { kind: 'preference' | 'house_style'; content: string }
+): Promise<{ memory: AssistantMemoryItem }> {
+  return callAiAssistantFn(scopedOrgFunctionsUrl('dashboard-assistant-memory', orgSlug, orgId), {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteAssistantMemory(
+  orgSlug: string | null,
+  orgId: string | null,
+  id: string
+): Promise<{ deleted: boolean }> {
+  const url = new URL(scopedOrgFunctionsUrl('dashboard-assistant-memory', orgSlug, orgId));
+  url.searchParams.set('id', id);
+  return callAiAssistantFn(url.toString(), { method: 'DELETE' });
 }

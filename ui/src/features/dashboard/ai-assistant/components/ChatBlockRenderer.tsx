@@ -10,6 +10,7 @@ import { FlowBlock } from '@/features/dashboard/ai-assistant/components/blocks/F
 import { ImageBlock } from '@/features/dashboard/ai-assistant/components/blocks/ImageBlock';
 import { LinkListBlock } from '@/features/dashboard/ai-assistant/components/blocks/LinkListBlock';
 import { MapBlock } from '@/features/dashboard/ai-assistant/components/blocks/MapBlock';
+import { OpenPageBlock } from '@/features/dashboard/ai-assistant/components/blocks/OpenPageBlock';
 import { QuickActionsBlock } from '@/features/dashboard/ai-assistant/components/blocks/QuickActionsBlock';
 import { StatListBlock } from '@/features/dashboard/ai-assistant/components/blocks/StatListBlock';
 import { StepperBlock } from '@/features/dashboard/ai-assistant/components/blocks/StepperBlock';
@@ -61,6 +62,8 @@ export function ChatBlockRenderer({
             return <DataTableBlock key={i} {...block} />;
           case 'link_list':
             return <LinkListBlock key={i} {...block} />;
+          case 'open_page':
+            return <OpenPageBlock key={i} {...block} />;
           case 'file_list':
             return <FileListBlock key={i} {...block} />;
           case 'image':

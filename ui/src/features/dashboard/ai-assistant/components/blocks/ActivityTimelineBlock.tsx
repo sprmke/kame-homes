@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Check, ChevronRight, ListTree, X } from 'lucide-react';
 
+import { StepFailureHint } from '@/features/dashboard/ai-assistant/components/StepFailureHint';
 import type { ActivityTimelineEntry } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 
 import { cn } from '@/lib/utils';
@@ -76,11 +77,14 @@ export function ActivityTimelineBlock({
                     <Check className="text-primary size-3.5" aria-hidden />
                   )}
                 </span>
-                <span className="text-muted-foreground min-w-0 flex-1 leading-snug">
-                  {entry.label}
-                </span>
+                <span className="text-muted-foreground min-w-0 leading-snug">{entry.label}</span>
+                {entry.status === 'failed' ? (
+                  <StepFailureHint reason={entry.reason} className="-my-0.5" />
+                ) : null}
                 {duration ? (
-                  <span className="text-muted-foreground/80 shrink-0 tabular-nums">{duration}</span>
+                  <span className="text-muted-foreground/80 ml-auto shrink-0 tabular-nums">
+                    {duration}
+                  </span>
                 ) : null}
               </li>
             );

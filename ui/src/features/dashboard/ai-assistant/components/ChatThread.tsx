@@ -1,175 +1,212 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { FileText, ImagePlus, RotateCcw } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { AssistantMessageCard } from '@/features/dashboard/ai-assistant/components/AssistantMessageCard';
 import { AssistantSuggestionGroups } from '@/features/dashboard/ai-assistant/components/AssistantSuggestionGroups';
 import { AssistantTurnProgress } from '@/features/dashboard/ai-assistant/components/AssistantTurnProgress';
 import { TextBlock } from '@/features/dashboard/ai-assistant/components/blocks/TextBlock';
-import type { ChatThreadMessage } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantChat';
-import type {
-  ChatBlock,
-  ConfirmActionResponse,
-} from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
-import type { TurnProgressLiveState } from '@/features/dashboard/ai-assistant/lib/assistantStream';
-import type { AssistantSuggestion } from '@/features/dashboard/ai-assistant/lib/assistantSuggestions';
-import { isAssistantImageMime } from '@/features/dashboard/ai-assistant/lib/chatAttachments';
+import { ChatMessageActions } from '@/features/dashboard/ai-assistant/components/ChatMessageActions';
+import { UserMessageBubble } from '@/features/dashboard/ai-assistant/components/UserMessageBubble';
+import { useAiAssistantSession } from '@/features/dashboard/ai-assistant/lib/aiAssistantSessionContext';
+import {
+  MESSAGE_ENTRANCE_RISE_PX,
+  assistantMicro,
+  messageEntranceDelay,
+} from '@/features/dashboard/ai-assistant/lib/assistantMotion';
+import { useAssistantSurface } from '@/features/dashboard/ai-assistant/lib/assistantSurfaceContext';
 import { assistantBubbleWidthClass } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
+import { assistantBlocksToPlainText } from '@/features/dashboard/ai-assistant/lib/messagePlainText';
 
-import { Button } from '@/components/ui/button';
+import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
+import { cn } from '@/lib/utils';
 
 type Props = {
-  messages: ChatThreadMessage[];
-  pending: boolean;
-  sending?: boolean;
-  sendStartedAtMs?: number | null;
-  turnProgress?: TurnProgressLiveState | null;
-  streamingText?: string;
-  canRegenerate?: boolean;
-  onRegenerate?: () => void;
-  onResolveAction: (actionId: string, confirm: boolean) => Promise<ConfirmActionResponse | null>;
-  onRunQuickAction?: (action: { label: string; prompt: string }) => void;
-  quickActionsDisabled?: boolean;
-  onOpenCanvas?: (block: ChatBlock) => void;
-  onSubmitForm?: (
-    block: Extract<ChatBlock, { type: 'dynamic_form' }>,
-    values: Record<string, string>
-  ) => void;
-  questions: AssistantSuggestion[];
-  actions: AssistantSuggestion[];
-  onPickSuggestion: (prompt: string) => void;
+  /** Replaces the starter suggestions on an empty thread (AI mode briefing home). */
+  emptyState?: ReactNode;
+  className?: string;
 };
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-export function ChatThread({
-  messages,
-  pending,
-  sending = false,
-  sendStartedAtMs = null,
-  turnProgress = null,
-  streamingText = '',
-  canRegenerate = false,
-  onRegenerate,
-  onResolveAction,
-  onRunQuickAction,
-  quickActionsDisabled = false,
-  onOpenCanvas,
-  onSubmitForm,
-  questions,
-  actions,
-  onPickSuggestion,
-}: Props) {
+/**
+ * Shared message list for both assistant surfaces. Reads the session directly so behavior is
+ * identical in the sheet and the full page; `surface` only changes density and width.
+ */
+export function ChatThread({ emptyState, className }: Props) {
+  const session = useAiAssistantSession();
+  const {
+    conversationId,
+    messages,
+    pending,
+    sending,
+    sendStartedAtMs,
+    turnProgress,
+    streamingText,
+    canRegenerate,
+    feedback,
+    readOnly,
+    editingMessageId,
+    questions,
+    actions,
+    regenerate,
+    confirmAction,
+    runQuickAction,
+    setCanvasBlock,
+    submitForm,
+    pickSuggestion,
+    rateMessage,
+    setEditingMessageId,
+    submitEdit,
+  } = session;
+  const { surface } = useAssistantSurface();
+  const reducedMotion = usePrefersReducedMotion();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const full = surface === 'full';
+
+  // Only messages that arrive after a thread is shown animate; loaded history appears at once.
+  const seenIdsRef = useRef<{ conversationId: string | null; ids: Set<string> }>({
+    conversationId,
+    ids: new Set(messages.map((message) => message.id)),
+  });
+  if (seenIdsRef.current.conversationId !== conversationId && !sending) {
+    seenIdsRef.current = { conversationId, ids: new Set(messages.map((message) => message.id)) };
+  }
+  const newIds = messages
+    .map((message) => message.id)
+    .filter((id) => !seenIdsRef.current.ids.has(id));
+  useEffect(() => {
+    for (const message of messages) seenIdsRef.current.ids.add(message.id);
+  }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      behavior: reducedMotion ? 'auto' : 'smooth',
       block: 'end',
     });
-  }, [messages.length, sending, turnProgress?.steps.length, streamingText.length]);
+  }, [messages.length, sending, turnProgress?.steps.length, streamingText.length, reducedMotion]);
+
+  // Screen readers hear the finished answer once, not every streamed chunk.
+  const [announcement, setAnnouncement] = useState('');
+  const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant');
+  const lastAssistantId = lastAssistant?.id;
+  useEffect(() => {
+    if (sending || !lastAssistant || !newIds.includes(lastAssistant.id)) return;
+    setAnnouncement(assistantBlocksToPlainText(lastAssistant.blocks).slice(0, 600));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- announce once per new reply
+  }, [lastAssistantId, sending]);
 
   const lastMessageIndex = messages.length - 1;
+  const busy = sending || pending;
 
   if (messages.length === 0 && !sending) {
     return (
-      <AssistantSuggestionGroups
-        questions={questions}
-        actions={actions}
-        onPick={onPickSuggestion}
-        disabled={pending}
-      />
+      emptyState ?? (
+        <AssistantSuggestionGroups
+          questions={questions}
+          actions={actions}
+          onPick={(prompt) => pickSuggestion(prompt)}
+          disabled={pending}
+        />
+      )
     );
   }
 
   return (
     <div
-      className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3"
-      aria-live="polite"
+      className={cn('min-h-0 flex-1 overflow-y-auto', className)}
       aria-busy={sending}
+      data-testid="assistant-thread"
     >
-      {messages.map((msg, index) => (
-        <div
-          key={msg.id}
-          className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
-        >
-          <div
-            className={
-              msg.role === 'user'
-                ? 'bg-primary text-primary-foreground max-w-[85%] rounded-2xl rounded-br-md px-3 py-2'
-                : `group min-w-0 ${assistantBubbleWidthClass(msg.blocks)}`
-            }
-          >
-            {msg.role === 'user' ? (
-              <div className="space-y-1.5">
-                {msg.attachedContext && msg.attachedContext.length > 0 ? (
-                  <p className="text-primary-foreground/80 text-xs">
-                    {msg.attachedContext.map((item) => item.label).join(' · ')}
-                  </p>
-                ) : null}
-                {msg.attachments && msg.attachments.length > 0 ? (
-                  <ul className="flex flex-wrap gap-1">
-                    {msg.attachments.map((file, index) => (
-                      <li
-                        key={`${file.name}-${index}`}
-                        className="bg-primary-foreground/15 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                      >
-                        {isAssistantImageMime(file.mimeType) ? (
-                          <ImagePlus className="h-3 w-3 shrink-0" aria-hidden />
-                        ) : (
-                          <FileText className="h-3 w-3 shrink-0" aria-hidden />
-                        )}
-                        <span className="truncate">{file.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {msg.text ? (
-                  <p className="whitespace-pre-line break-words text-sm">{msg.text}</p>
-                ) : null}
-              </div>
-            ) : (
-              <>
-                <AssistantMessageCard
-                  blocks={msg.blocks}
-                  onResolveAction={onResolveAction}
-                  onRunQuickAction={onRunQuickAction}
-                  quickActionsDisabled={quickActionsDisabled}
-                  onOpenCanvas={onOpenCanvas}
-                  onSubmitForm={onSubmitForm}
+      <div
+        className={cn('space-y-4', full ? 'mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6' : 'p-3')}
+      >
+        {messages.map((message, index) => {
+          const newIndex = newIds.indexOf(message.id);
+          const animate = newIndex >= 0 && !reducedMotion;
+          const isUser = message.role === 'user';
+          return (
+            <motion.div
+              key={message.id}
+              initial={animate ? { opacity: 0, y: MESSAGE_ENTRANCE_RISE_PX } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                ...assistantMicro.enter,
+                delay: animate ? messageEntranceDelay(newIndex, newIds.length) : 0,
+              }}
+              className={isUser ? 'flex justify-end' : 'flex justify-start'}
+            >
+              {isUser ? (
+                <UserMessageBubble
+                  message={message}
+                  surface={surface}
+                  canEdit={
+                    !readOnly &&
+                    !busy &&
+                    Boolean(message.persisted) &&
+                    !message.attachments?.length &&
+                    Boolean(message.text?.trim())
+                  }
+                  editing={editingMessageId === message.id}
+                  onStartEdit={() => setEditingMessageId(message.id)}
+                  onCancelEdit={() => setEditingMessageId(null)}
+                  onSubmitEdit={(text) => submitEdit(message.id, text)}
                 />
-                {canRegenerate && index === lastMessageIndex && onRegenerate ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground mt-1 h-8 px-2 text-xs sm:opacity-0 sm:transition-opacity sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
-                    onClick={onRegenerate}
-                    aria-label="Regenerate response"
-                  >
-                    <RotateCcw className="mr-1.5 size-3.5" aria-hidden />
-                    Regenerate
-                  </Button>
-                ) : null}
-              </>
-            )}
-          </div>
-        </div>
-      ))}
-      {sending ? (
-        streamingText ? (
-          <div className="flex justify-start">
-            <div className="border-border/60 bg-card w-full max-w-[92%] rounded-2xl rounded-bl-md border p-3 shadow-sm">
-              <TextBlock text={streamingText} />
+              ) : (
+                <div
+                  className={cn(
+                    'group min-w-0',
+                    full ? 'w-full' : assistantBubbleWidthClass(message.blocks)
+                  )}
+                >
+                  <AssistantMessageCard
+                    blocks={message.blocks}
+                    unboxed={full}
+                    onResolveAction={confirmAction}
+                    onRunQuickAction={runQuickAction}
+                    quickActionsDisabled={busy}
+                    onOpenCanvas={setCanvasBlock}
+                    onSubmitForm={submitForm}
+                  />
+                  <ChatMessageActions
+                    copyText={assistantBlocksToPlainText(message.blocks)}
+                    messageId={message.persisted ? message.id : null}
+                    rating={feedback[message.id]}
+                    onRate={rateMessage}
+                    onRegenerate={
+                      canRegenerate && index === lastMessageIndex ? regenerate : undefined
+                    }
+                    disabled={busy}
+                  />
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+        {sending ? (
+          streamingText ? (
+            <div className="flex justify-start">
+              <div
+                className={cn(
+                  full
+                    ? 'w-full'
+                    : 'border-border/60 bg-card w-full max-w-[92%] rounded-2xl rounded-bl-md border p-3 shadow-sm'
+                )}
+              >
+                <TextBlock text={streamingText} />
+                <span
+                  className="bg-primary ml-0.5 inline-block h-4 w-0.5 animate-pulse align-text-bottom motion-reduce:animate-none"
+                  aria-hidden
+                />
+              </div>
             </div>
-          </div>
-        ) : (
-          <AssistantTurnProgress live={turnProgress} startedAtMs={sendStartedAtMs ?? undefined} />
-        )
-      ) : null}
-      <div ref={bottomRef} />
+          ) : (
+            <AssistantTurnProgress live={turnProgress} startedAtMs={sendStartedAtMs ?? undefined} />
+          )
+        ) : null}
+        <div ref={bottomRef} />
+      </div>
+      <p className="sr-only" aria-live="polite">
+        {announcement}
+      </p>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { FileText, ImagePlus, Paperclip, Send, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,6 +8,14 @@ import { ChatComposerSearchAllProvider } from '@/features/dashboard/ai-assistant
 import { ChatComposerVoiceButton } from '@/features/dashboard/ai-assistant/components/ChatComposerVoiceButton';
 import { ChatContextCommandPalette } from '@/features/dashboard/ai-assistant/components/ChatContextCommandPalette';
 import { ChatContextPillSuggestions } from '@/features/dashboard/ai-assistant/components/ChatContextPillSuggestions';
+import {
+  ComposerSuggestionMenu,
+  type ComposerSuggestion,
+} from '@/features/dashboard/ai-assistant/components/ComposerSuggestionMenu';
+import {
+  MentionCandidatesLoader,
+  type MentionCandidate,
+} from '@/features/dashboard/ai-assistant/components/MentionCandidatesLoader';
 import { useSpeechToText } from '@/features/dashboard/ai-assistant/hooks/useSpeechToText';
 import {
   ATTACHED_CONTEXT_MAX,
@@ -25,6 +33,13 @@ import {
   type ChatAttachmentPayload,
   type ChatSendInput,
 } from '@/features/dashboard/ai-assistant/lib/chatAttachments';
+import {
+  composerSuggestionOptionId,
+  detectComposerTrigger,
+  filterSlashCommands,
+  removeTriggerToken,
+  type SlashCommand,
+} from '@/features/dashboard/ai-assistant/lib/composerTriggers';
 import { ATTACHED_CONTEXT_ICONS } from '@/features/dashboard/ai-assistant/lib/contextPickerIcons';
 
 import { Button } from '@/components/ui/button';
@@ -32,14 +47,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { cn } from '@/lib/utils';
 
-const COMPOSER_MAX_ROWS = 10;
 const COMPOSER_MIN_HEIGHT_PX = 40;
 
-function syncComposerHeight(textarea: HTMLTextAreaElement | null) {
+function syncComposerHeight(textarea: HTMLTextAreaElement | null, maxRows: number) {
   if (!textarea) return;
   textarea.style.height = 'auto';
   const computedMax = Number.parseFloat(window.getComputedStyle(textarea).maxHeight);
-  const fallbackMax = COMPOSER_MAX_ROWS * 20 + 16;
+  const fallbackMax = maxRows * 20 + 16;
   const cap = Number.isFinite(computedMax) && computedMax > 0 ? computedMax : fallbackMax;
   const next = Math.min(Math.max(textarea.scrollHeight, COMPOSER_MIN_HEIGHT_PX), cap);
   textarea.style.height = `${next}px`;
@@ -48,34 +62,70 @@ function syncComposerHeight(textarea: HTMLTextAreaElement | null) {
 
 type Props = {
   onSend: (input: ChatSendInput) => void;
+  /** Draft text — owned by the assistant session so it survives mode switches. */
+  value: string;
+  onValueChange: (value: string) => void;
+  /** Pinned context — owned by the assistant session. */
+  attachedContext: AttachedContextItem[];
+  onAttachedContextChange: (items: AttachedContextItem[]) => void;
   disabled?: boolean;
   sending?: boolean;
   onCancel?: () => void;
-  pageBookingId?: string | null;
   overlayContainer?: HTMLElement | null;
-  onAttachedContextChange?: (items: AttachedContextItem[]) => void;
   /** Mid-conversation suggestion pick from a pinned pill. Defaults to sending with current context. */
   onPickSuggestion?: (prompt: string, attachedContext: AttachedContextItem[]) => void;
+  /** Up arrow in an empty composer. Return true when an edit started. */
+  onEditLast?: () => boolean;
+  /** Autosize cap in lines (sheet 10, full page 8). */
+  maxRows?: number;
+  autoFocus?: boolean;
+  placeholder?: string;
+  className?: string;
+  /** `/` commands offered in this surface (omit to disable slash commands). */
+  slashCommands?: SlashCommand[];
+  onSlashCommand?: (command: SlashCommand) => void;
 };
 
 export function ChatComposer({
   onSend,
+  value,
+  onValueChange,
+  attachedContext,
+  onAttachedContextChange,
   disabled,
   sending = false,
   onCancel,
-  pageBookingId: _pageBookingId,
   overlayContainer,
-  onAttachedContextChange,
   onPickSuggestion,
+  onEditLast,
+  maxRows = 10,
+  autoFocus = false,
+  placeholder = 'Ask about bookings, finance, or maintenance…',
+  className,
+  slashCommands,
+  onSlashCommand,
 }: Props) {
-  const [value, setValue] = useState('');
-  const [attachedContext, setAttachedContext] = useState<AttachedContextItem[]>([]);
+  const setValue = onValueChange;
+  const attachedContextRef = useRef(attachedContext);
+  attachedContextRef.current = attachedContext;
+  const setAttachedContext = useCallback(
+    (update: (prev: AttachedContextItem[]) => AttachedContextItem[]) =>
+      onAttachedContextChange(update(attachedContextRef.current)),
+    [onAttachedContextChange]
+  );
   const [attachments, setAttachments] = useState<ChatAttachmentPayload[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteMounted, setPaletteMounted] = useState(false);
   const [pillSuggestionType, setPillSuggestionType] = useState<AttachedContextItem | null>(null);
   const reactId = useId();
+  const menuId = `${reactId}-suggestions`;
+  const [caret, setCaret] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  /** Esc hides the menu for this trigger until the host types something new. */
+  const [dismissedTrigger, setDismissedTrigger] = useState<string | null>(null);
+  const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
+  const [mentionLoading, setMentionLoading] = useState(false);
   const imageInputId = `${reactId}-image`;
   const fileInputId = `${reactId}-file`;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -114,15 +164,15 @@ export function ChatComposer({
   }, []);
 
   useLayoutEffect(() => {
-    const sync = () => syncComposerHeight(textareaRef.current);
+    const sync = () => syncComposerHeight(textareaRef.current, maxRows);
     sync();
     window.addEventListener('resize', sync);
     return () => window.removeEventListener('resize', sync);
-  }, [value]);
+  }, [value, maxRows]);
 
   useEffect(() => {
-    onAttachedContextChange?.(attachedContext);
-  }, [attachedContext, onAttachedContextChange]);
+    if (autoFocus) textareaRef.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
 
   const addFiles = async (fileList: FileList | null) => {
     if (!fileList?.length) return;
@@ -153,6 +203,74 @@ export function ChatComposer({
     });
   };
 
+  const trigger = disabled ? null : detectComposerTrigger(value, caret);
+  const triggerKey = trigger ? `${trigger.kind}:${trigger.start}:${trigger.query}` : null;
+  const slashEnabled = Boolean(slashCommands?.length && onSlashCommand);
+  const slashMatches =
+    trigger?.kind === 'slash' && slashEnabled
+      ? filterSlashCommands(trigger.query, slashCommands)
+      : [];
+  const menuOpen =
+    trigger != null &&
+    triggerKey !== dismissedTrigger &&
+    (trigger.kind === 'mention' || slashEnabled);
+  const menuItems: ComposerSuggestion[] = !menuOpen
+    ? []
+    : trigger?.kind === 'slash'
+      ? slashMatches.map((command) => ({
+          key: command.id,
+          label: command.label,
+          hint: command.hint,
+        }))
+      : mentionCandidates.map(({ item, subtitle }) => {
+          const Icon = ATTACHED_CONTEXT_ICONS[item.type];
+          return {
+            key: `${item.type}:${item.id}`,
+            label: item.label,
+            hint: subtitle,
+            icon: <Icon className="size-4" aria-hidden />,
+          };
+        });
+  const safeActiveIndex = Math.min(activeIndex, Math.max(0, menuItems.length - 1));
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [triggerKey]);
+
+  const onMentionCandidates = useCallback((next: MentionCandidate[], loading: boolean) => {
+    setMentionCandidates(next);
+    setMentionLoading(loading);
+  }, []);
+
+  const placeCaret = (position: number) => {
+    setCaret(position);
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(position, position);
+    });
+  };
+
+  const pickSuggestion = (index: number) => {
+    if (!trigger) return;
+    if (trigger.kind === 'slash') {
+      const command = slashMatches[index];
+      if (!command || !onSlashCommand) return;
+      const next = removeTriggerToken(value, trigger);
+      setValue(next.value);
+      placeCaret(next.caret);
+      onSlashCommand(command);
+      return;
+    }
+    const candidate = mentionCandidates[index];
+    if (!candidate) return;
+    const next = removeTriggerToken(value, trigger);
+    setValue(next.value);
+    placeCaret(next.caret);
+    addContext(candidate.item);
+  };
+
   const submit = () => {
     const trimmed = value.trim();
     if (disabled) return;
@@ -163,7 +281,6 @@ export function ChatComposer({
       attachedContext,
       attachments,
     });
-    setValue('');
     setAttachments([]);
   };
 
@@ -182,7 +299,7 @@ export function ChatComposer({
 
   return (
     <ChatComposerSearchAllProvider onSearchAll={openPalette}>
-      <div className="border-border/60 shrink-0 border-t p-3">
+      <div className={cn('border-border/60 shrink-0 border-t p-3', className)}>
         {(attachedContext.length > 0 || attachments.length > 0) && (
           <div className="mb-2 flex flex-wrap gap-1.5">
             {attachedContext.map((item) => {
@@ -270,11 +387,26 @@ export function ChatComposer({
 
         <div
           className={cn(
-            'border-border bg-background focus-within:ring-ring flex flex-col rounded-xl border p-1.5 focus-within:ring-2',
+            'border-border bg-background focus-within:ring-ring relative flex flex-col rounded-xl border p-1.5 focus-within:ring-2',
             listening &&
               'border-destructive/40 ring-destructive/30 focus-within:ring-destructive/30 ring-2'
           )}
         >
+          {menuOpen ? (
+            <ComposerSuggestionMenu
+              id={menuId}
+              label={trigger?.kind === 'slash' ? 'Commands' : 'Mention'}
+              items={menuItems}
+              activeIndex={safeActiveIndex}
+              onPick={pickSuggestion}
+              onHover={setActiveIndex}
+              loading={trigger?.kind === 'mention' && mentionLoading}
+              emptyText={trigger?.kind === 'slash' ? 'No commands' : 'No matches'}
+            />
+          ) : null}
+          {trigger?.kind === 'mention' && menuOpen ? (
+            <MentionCandidatesLoader query={trigger.query} onChange={onMentionCandidates} />
+          ) : null}
           <input
             id={imageInputId}
             type="file"
@@ -307,23 +439,73 @@ export function ChatComposer({
             onChange={(e) => {
               if (listening) stopSpeech();
               setValue(e.target.value);
+              setCaret(e.target.selectionStart ?? e.target.value.length);
+              setDismissedTrigger(null);
             }}
+            onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+              if (menuOpen) {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDismissedTrigger(triggerKey);
+                  return;
+                }
+                if (menuItems.length > 0) {
+                  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const delta = e.key === 'ArrowDown' ? 1 : -1;
+                    setActiveIndex((safeActiveIndex + delta + menuItems.length) % menuItems.length);
+                    return;
+                  }
+                  if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+                    e.preventDefault();
+                    pickSuggestion(safeActiveIndex);
+                    return;
+                  }
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 submit();
+                return;
+              }
+              if (e.key === 'Escape' && sending && onCancel) {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+                return;
+              }
+              if (
+                e.key === 'ArrowUp' &&
+                !value &&
+                !e.shiftKey &&
+                !e.altKey &&
+                !e.metaKey &&
+                !e.ctrlKey &&
+                onEditLast?.()
+              ) {
+                e.preventDefault();
               }
             }}
-            placeholder={listening ? 'Listening…' : 'Ask about bookings, finance, or maintenance…'}
+            data-assistant-composer="true"
+            aria-autocomplete="list"
+            aria-controls={menuOpen ? menuId : undefined}
+            aria-activedescendant={
+              menuOpen && menuItems.length > 0
+                ? composerSuggestionOptionId(menuId, safeActiveIndex)
+                : undefined
+            }
+            placeholder={listening ? 'Listening…' : placeholder}
             aria-label={listening ? 'Message, voice input active' : 'Message'}
             rows={1}
             disabled={disabled}
             className="text-foreground placeholder:text-muted-foreground min-h-10 w-full resize-none overflow-hidden bg-transparent px-2.5 pb-1 pt-1.5 text-left text-sm leading-5 [overflow-wrap:anywhere] focus-visible:outline-none disabled:opacity-50"
-            style={{ maxHeight: `min(calc(${COMPOSER_MAX_ROWS}lh + 1rem), 40dvh)` }}
+            style={{ maxHeight: `min(calc(${maxRows}lh + 1rem), 40dvh)` }}
           />
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ChatComposerContextHub
               selectedKeys={selectedKeys}
               onSelect={addContext}

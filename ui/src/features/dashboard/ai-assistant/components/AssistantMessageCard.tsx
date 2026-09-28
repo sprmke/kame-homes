@@ -20,6 +20,8 @@ type Props = {
     values: Record<string, string>
   ) => void;
   className?: string;
+  /** Full-page surface: no card chrome, full column width. */
+  unboxed?: boolean;
 };
 
 /** Groups steps, answer, and suggested actions into one assistant turn card. */
@@ -31,6 +33,7 @@ export function AssistantMessageCard({
   onOpenCanvas,
   onSubmitForm,
   className,
+  unboxed = false,
 }: Props) {
   const { stepEntries, content, quickActions } = partitionAssistantBlocks(blocks);
   const hasContent = content.length > 0;
@@ -42,8 +45,12 @@ export function AssistantMessageCard({
   return (
     <div
       className={cn(
-        'border-border/60 bg-card w-full overflow-hidden rounded-2xl rounded-bl-md border shadow-sm',
-        hasDynamicForm ? 'max-w-full' : 'max-w-[92%]',
+        unboxed
+          ? 'w-full max-w-full'
+          : cn(
+              'border-border/60 bg-card w-full overflow-hidden rounded-2xl rounded-bl-md border shadow-sm',
+              hasDynamicForm ? 'max-w-full' : 'max-w-[92%]'
+            ),
         className
       )}
     >
@@ -52,7 +59,7 @@ export function AssistantMessageCard({
       ) : null}
 
       {hasContent ? (
-        <div className={cn('space-y-2 p-3', stepEntries && 'pt-2')}>
+        <div className={cn('space-y-2', unboxed ? 'py-1' : 'p-3', stepEntries && 'pt-2')}>
           <ChatBlockRenderer
             blocks={content}
             onResolveAction={onResolveAction}
@@ -68,7 +75,8 @@ export function AssistantMessageCard({
       {hasFooter ? (
         <div
           className={cn(
-            'border-border/60 border-t px-3 py-2.5',
+            'border-border/60 border-t py-2.5',
+            unboxed ? 'px-0' : 'px-3',
             !hasContent && !stepEntries && 'border-t-0'
           )}
         >

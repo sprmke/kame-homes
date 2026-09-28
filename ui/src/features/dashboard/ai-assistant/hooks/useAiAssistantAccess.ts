@@ -39,5 +39,7 @@ export function useAiAssistantAccess(propertyId?: string | null) {
     permissionAllowed
   );
 
-  return { ...query, accessible, settings, planGate, permissionAllowed };
+  const permissionLoading = Boolean(propertyId) && propertyAccess.isPending && !propertyAccess.data;
+
+  return { ...query, accessible, settings, planGate, permissionAllowed, permissionLoading };
 }

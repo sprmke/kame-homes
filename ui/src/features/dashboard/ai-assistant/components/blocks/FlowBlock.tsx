@@ -1,3 +1,5 @@
+import { InlineRichText } from '@/components/chat/ChatRichBody';
+
 type Props = {
   title?: string;
   steps: string[];
@@ -13,7 +15,7 @@ export function FlowBlock({ title, steps }: Props) {
       <ol className="space-y-1.5 pl-4 text-sm leading-relaxed">
         {safeSteps.map((step, index) => (
           <li key={`${step}-${index}`} className="list-decimal">
-            {step}
+            <InlineRichText text={step} />
           </li>
         ))}
       </ol>

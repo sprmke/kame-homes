@@ -1,5 +1,7 @@
 import type { ChatBlock } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 
+import { InlineRichText } from '@/components/chat/ChatRichBody';
+
 type Props = Extract<ChatBlock, { type: 'stat_list' }>;
 
 export function StatListBlock({ title, items }: Props) {
@@ -12,8 +14,12 @@ export function StatListBlock({ title, items }: Props) {
       <dl className="grid grid-cols-2 gap-2">
         {visibleItems.map((item) => (
           <div key={item.label} className="space-y-0.5">
-            <dt className="text-muted-foreground text-xs">{item.label}</dt>
-            <dd className="text-foreground text-sm font-semibold tabular-nums">{item.value}</dd>
+            <dt className="text-muted-foreground text-xs">
+              <InlineRichText text={item.label} />
+            </dt>
+            <dd className="text-foreground text-sm font-semibold tabular-nums">
+              <InlineRichText text={item.value} />
+            </dd>
           </div>
         ))}
       </dl>

@@ -24,7 +24,10 @@ type Props = {
   showFab?: boolean;
 };
 
-/** Mounted once in AdminLayout — visible only when both kill-switch layers are on for this org. */
+/**
+ * Mounted once in AdminLayout (Advanced mode) — visible only when both kill-switch layers are on
+ * for this org. Plan-blocked hosts get a read-only session (history visible, sends open upgrade).
+ */
 export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }: Props) {
   const propertyId = usePropertyIdParam();
   const { accessible, settings, planGate, permissionAllowed } = useAiAssistantAccess(propertyId);
@@ -33,9 +36,6 @@ export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }
 
   if (!isAiAssistantFabVisible(accessible, settings, planGate.allowed, permissionAllowed))
     return null;
-
-  // Blocked only by plan tier: keep past conversation history viewable, block new messages.
-  const readOnly = !accessible;
 
   return (
     <>
@@ -69,7 +69,6 @@ export function AiAssistantLauncherButton({ open, onOpenChange, showFab = true }
               if (next) setHasOpenedOnce(true);
               onOpenChange(next);
             }}
-            readOnly={readOnly}
           />
         </Suspense>
       )}

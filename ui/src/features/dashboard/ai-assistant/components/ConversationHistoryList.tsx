@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
 
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
-import { Loader2, MessageCircle, Search, Trash2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Archive, Loader2, MessageCircle, Pencil, Pin, PinOff, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
   useAiAssistantConversations,
   useDeleteAiAssistantConversation,
+  useUpdateAiAssistantConversation,
 } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantConversations';
 import type { AiAssistantConversationSummary } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
+import { groupConversations } from '@/features/dashboard/ai-assistant/lib/conversationGroups';
 import { displayConversationTitle } from '@/features/dashboard/ai-assistant/lib/conversationTitle';
 
+import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,56 +27,64 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 
 type Props = {
   activeConversationId: string | null;
   onSelect: (conversationId: string) => void;
   onDeleted: (conversationId: string) => void;
+  /** `rail`: compact rows for the AI mode side rail; `sheet`: card rows in the sheet. */
+  variant?: 'sheet' | 'rail';
 };
 
-type DayGroup = {
-  key: string;
-  label: string;
-  rows: AiAssistantConversationSummary[];
-};
+const TITLE_MAX = 80;
 
-function dayGroup(iso: string): { key: string; label: string } {
-  const date = new Date(iso);
-  if (isToday(date)) return { key: 'today', label: 'Today' };
-  if (isYesterday(date)) return { key: 'yesterday', label: 'Yesterday' };
-  return { key: format(date, 'yyyy-MM-dd'), label: format(date, 'MMMM d, yyyy') };
-}
-
-function groupByDay(rows: AiAssistantConversationSummary[]): DayGroup[] {
-  const map = new Map<string, DayGroup>();
-  for (const row of rows) {
-    const { key, label } = dayGroup(row.last_message_at);
-    const existing = map.get(key);
-    if (existing) {
-      existing.rows.push(row);
-    } else {
-      map.set(key, { key, label, rows: [row] });
-    }
-  }
-  return [...map.values()];
-}
-
-export function ConversationHistoryList({ activeConversationId, onSelect, onDeleted }: Props) {
-  const { conversations, isLoading, isError } = useAiAssistantConversations(true);
-  const deleteConversation = useDeleteAiAssistantConversation();
+export function ConversationHistoryList({
+  activeConversationId,
+  onSelect,
+  onDeleted,
+  variant = 'sheet',
+}: Props) {
   const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, 250);
+  const {
+    conversations,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetching,
+  } = useAiAssistantConversations(true, { q: debouncedQ });
+  const deleteConversation = useDeleteAiAssistantConversation();
+  const updateConversation = useUpdateAiAssistantConversation();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const needle = q.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    if (!needle) return conversations;
-    return conversations.filter((row) => {
-      const raw = (row.title ?? '').toLowerCase();
-      const display = displayConversationTitle(row.title).toLowerCase();
-      return raw.includes(needle) || display.includes(needle);
-    });
-  }, [conversations, needle]);
-  const grouped = useMemo(() => groupByDay(filtered), [filtered]);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const groups = useMemo(() => groupConversations(conversations), [conversations]);
+  const rail = variant === 'rail';
+  const searching = debouncedQ.trim().length > 0;
+
+  const update = (
+    conversationId: string,
+    patch: { title?: string; pinned?: boolean; archived?: boolean },
+    failure: string
+  ) => {
+    updateConversation.mutate({ conversationId, patch }, { onError: () => toast.error(failure) });
+  };
+
+  const commitRename = (row: AiAssistantConversationSummary) => {
+    const title = renameValue.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX);
+    setRenamingId(null);
+    if (!title || title === row.title) return;
+    update(row.id, { title }, "Couldn't rename conversation");
+  };
+
+  const archive = (row: AiAssistantConversationSummary) => {
+    update(row.id, { archived: true }, "Couldn't archive conversation");
+    if (row.id === activeConversationId) onDeleted(row.id);
+  };
 
   const confirmDelete = () => {
     if (!pendingDeleteId) return;
@@ -83,131 +94,239 @@ export function ConversationHistoryList({ activeConversationId, onSelect, onDele
         setPendingDeleteId(null);
         onDeleted(id);
       },
-      onError: () => {
-        toast.error("Couldn't delete conversation.");
-      },
+      onError: () => toast.error("Couldn't delete conversation"),
     });
   };
 
+  const searchBox = (
+    <div className={cn('relative shrink-0', rail ? 'px-2 pb-2' : 'border-border/60 border-b p-2')}>
+      <Search
+        className={cn(
+          'text-muted-foreground pointer-events-none absolute top-1/2 size-4 -translate-y-1/2',
+          rail ? 'start-4' : 'start-4'
+        )}
+        aria-hidden
+      />
+      <Input
+        value={q}
+        onChange={(event) => setQ(event.target.value)}
+        placeholder="Search"
+        aria-label="Search conversations"
+        className={cn('ps-9', rail ? 'h-9' : 'h-10')}
+      />
+      {isFetching && searching ? (
+        <Loader2
+          className="text-muted-foreground absolute end-4 top-1/2 size-4 -translate-y-1/2 animate-spin"
+          aria-hidden
+        />
+      ) : null}
+    </div>
+  );
+
+  let body;
   if (isLoading) {
-    return (
-      <div className="min-h-0 min-w-0 flex-1 space-y-2 overflow-hidden p-3" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-xl" />
+    body = (
+      <div className="space-y-2 p-2" aria-busy="true" aria-label="Loading conversations">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className={cn('w-full rounded-lg', rail ? 'h-9' : 'h-16 rounded-xl')} />
         ))}
       </div>
     );
-  }
-
-  if (isError) {
-    return (
-      <div className="text-muted-foreground flex min-h-0 min-w-0 flex-1 items-center justify-center px-6 text-center text-sm">
-        Couldn&apos;t load past conversations.
+  } else if (isError) {
+    body = (
+      <p className="text-muted-foreground px-4 py-8 text-center text-sm">
+        Couldn&apos;t load conversations.
+      </p>
+    );
+  } else if (conversations.length === 0) {
+    body = searching ? (
+      <p className="text-muted-foreground px-4 py-8 text-center text-sm">No conversations</p>
+    ) : (
+      <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-sm">
+        <MessageCircle className="size-6" aria-hidden />
+        <p>No conversations yet</p>
       </div>
     );
-  }
+  } else {
+    body = (
+      <div className="p-2">
+        {groups.map((group) => (
+          <section key={group.key} className="mt-2 first:mt-0" aria-label={group.label}>
+            <h3
+              className={cn(
+                'text-muted-foreground sticky top-0 z-[1] px-2 py-1.5 text-xs font-medium',
+                rail ? 'bg-sidebar' : 'bg-card'
+              )}
+            >
+              {group.label}
+            </h3>
+            <ul className={cn('flex min-w-0 flex-col', rail ? 'gap-0.5' : 'gap-1.5')}>
+              {group.rows.map((row) => {
+                const title = displayConversationTitle(row.title);
+                const isActive = row.id === activeConversationId;
+                const isDeleting =
+                  deleteConversation.isPending && deleteConversation.variables === row.id;
 
-  if (conversations.length === 0) {
-    return (
-      <div className="text-muted-foreground flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-sm">
-        <MessageCircle className="h-6 w-6" aria-hidden />
-        <p>No past conversations yet.</p>
+                if (renamingId === row.id) {
+                  return (
+                    <li key={row.id} className="px-1">
+                      <Input
+                        autoFocus
+                        value={renameValue}
+                        maxLength={TITLE_MAX}
+                        aria-label="Conversation name"
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={() => commitRename(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            commitRename(row);
+                          }
+                          if (event.key === 'Escape') {
+                            event.preventDefault();
+                            setRenamingId(null);
+                          }
+                        }}
+                        className="h-9"
+                      />
+                    </li>
+                  );
+                }
+
+                return (
+                  <li key={row.id} className="min-w-0">
+                    <div
+                      className={cn(
+                        'group flex min-w-0 items-center gap-0.5 rounded-lg transition-colors duration-150 motion-reduce:transition-none',
+                        !rail && 'surface-card native-press',
+                        isActive
+                          ? 'bg-primary/10 ring-primary/20 ring-1'
+                          : '[@media(hover:hover)]:hover:bg-muted/60'
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSelect(row.id)}
+                        aria-current={isActive ? 'true' : undefined}
+                        className={cn(
+                          'focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                          rail ? 'min-h-[40px] px-2 py-1.5' : 'min-h-[44px] px-3 py-2.5'
+                        )}
+                      >
+                        {!rail ? (
+                          <span className="bg-primary/12 text-primary inline-flex size-8 shrink-0 items-center justify-center rounded-lg">
+                            <MessageCircle className="size-4" aria-hidden />
+                          </span>
+                        ) : null}
+                        <span className="min-w-0 flex-1">
+                          <span
+                            title={row.title ?? title}
+                            className={cn(
+                              'block truncate text-sm',
+                              rail ? 'font-normal' : 'font-medium'
+                            )}
+                          >
+                            {title}
+                          </span>
+                          {!rail ? (
+                            <span className="text-muted-foreground mt-0.5 block text-xs">
+                              {formatDistanceToNow(new Date(row.last_message_at), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                      {isDeleting ? (
+                        <Loader2
+                          className="text-muted-foreground mx-3 size-4 animate-spin"
+                          aria-hidden
+                        />
+                      ) : (
+                        <ResponsiveOverflowMenu
+                          label={`Actions for ${title}`}
+                          sheetTitle={title}
+                          triggerClassName={cn(
+                            'shrink-0',
+                            rail &&
+                              '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100'
+                          )}
+                          actionGroups={[
+                            [
+                              {
+                                key: 'rename',
+                                label: 'Rename',
+                                icon: <Pencil className="size-4" aria-hidden />,
+                                onSelect: () => {
+                                  setRenameValue(row.title ?? '');
+                                  setRenamingId(row.id);
+                                },
+                              },
+                              {
+                                key: 'pin',
+                                label: row.pinned_at ? 'Unpin' : 'Pin',
+                                icon: row.pinned_at ? (
+                                  <PinOff className="size-4" aria-hidden />
+                                ) : (
+                                  <Pin className="size-4" aria-hidden />
+                                ),
+                                onSelect: () =>
+                                  update(
+                                    row.id,
+                                    { pinned: !row.pinned_at },
+                                    "Couldn't update conversation"
+                                  ),
+                              },
+                              {
+                                key: 'archive',
+                                label: 'Archive',
+                                icon: <Archive className="size-4" aria-hidden />,
+                                onSelect: () => archive(row),
+                              },
+                            ],
+                            [
+                              {
+                                key: 'delete',
+                                label: 'Delete',
+                                destructive: true,
+                                icon: <Trash2 className="size-4" aria-hidden />,
+                                onSelect: () => setPendingDeleteId(row.id),
+                              },
+                            ],
+                          ]}
+                        />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+        {hasNextPage ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground mt-2 min-h-[40px] w-full"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+          >
+            {isFetchingNextPage ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              'Load more'
+            )}
+          </Button>
+        ) : null}
       </div>
     );
   }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="border-border/60 relative shrink-0 border-b p-2">
-        <Search
-          className="text-muted-foreground pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2"
-          aria-hidden
-        />
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search"
-          aria-label="Search conversations"
-          className="h-10 ps-9"
-        />
-      </div>
-
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-2">
-        {filtered.length === 0 ? (
-          <p className="text-muted-foreground px-2 py-8 text-center text-sm">No conversations</p>
-        ) : (
-          grouped.map((group) => (
-            <section key={group.key} className="mt-1 first:mt-0">
-              <h3 className="text-muted-foreground bg-card sticky top-0 z-[1] px-2 py-1.5 text-xs font-medium">
-                {group.label}
-              </h3>
-              <ul className="flex min-w-0 flex-col gap-1.5">
-                {group.rows.map((conversation) => {
-                  const title = displayConversationTitle(conversation.title);
-                  const isActive = conversation.id === activeConversationId;
-                  const isDeleting =
-                    deleteConversation.isPending &&
-                    deleteConversation.variables === conversation.id;
-
-                  return (
-                    <li key={conversation.id} className="min-w-0">
-                      <div
-                        className={cn(
-                          'surface-card native-press group flex min-w-0 items-center gap-0.5',
-                          'transition-[background-color,box-shadow,border-color] duration-200 ease-out motion-reduce:transition-none',
-                          !isActive && '[@media(hover:hover)]:hover:bg-muted/50',
-                          'lg:[@media(hover:hover)]:hover:border-primary/20 lg:[@media(hover:hover)]:hover:shadow-card-hover',
-                          'dark:lg:[@media(hover:hover)]:hover:border-[hsl(0_0%_100%_/_0.08)]',
-                          isActive && 'bg-primary/10 ring-primary/20 ring-1'
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => onSelect(conversation.id)}
-                          aria-current={isActive ? 'true' : undefined}
-                          className="focus-visible:ring-ring flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-                        >
-                          <span className="bg-primary/12 text-primary [@media(hover:hover)]:group-hover:bg-primary/18 mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 motion-reduce:transition-none">
-                            <MessageCircle className="size-4" aria-hidden />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span
-                              title={conversation.title ?? title}
-                              className="line-clamp-2 text-sm font-medium leading-snug [overflow-wrap:anywhere]"
-                            >
-                              {title}
-                            </span>
-                            <span className="text-muted-foreground mt-0.5 block text-xs">
-                              {formatDistanceToNow(new Date(conversation.last_message_at), {
-                                addSuffix: true,
-                              })}
-                            </span>
-                          </span>
-                        </button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={isDeleting}
-                          className="text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] shrink-0"
-                          aria-label="Delete conversation"
-                          onClick={() => setPendingDeleteId(conversation.id)}
-                        >
-                          {isDeleting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                          ) : (
-                            <Trash2 className="h-4 w-4" aria-hidden />
-                          )}
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))
-        )}
-      </div>
+      {searchBox}
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{body}</div>
 
       <AlertDialog
         open={pendingDeleteId !== null}

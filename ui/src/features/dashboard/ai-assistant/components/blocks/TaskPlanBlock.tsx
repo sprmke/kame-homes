@@ -1,5 +1,6 @@
 import { Check, Loader2, X } from 'lucide-react';
 
+import { StepFailureHint } from '@/features/dashboard/ai-assistant/components/StepFailureHint';
 import type { TaskPlanStepStatus } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 
 import { cn } from '@/lib/utils';
@@ -9,6 +10,7 @@ type TaskPlanStep = {
   label: string;
   status: TaskPlanStepStatus;
   toolName?: string;
+  reason?: string;
 };
 
 type Props = {
@@ -40,15 +42,18 @@ export function TaskPlanBlock({ title, steps }: Props) {
             </span>
             <span
               className={cn(
-                'min-w-0 flex-1 leading-snug',
+                'min-w-0 leading-snug',
                 step.status === 'running' && 'text-foreground font-medium',
                 step.status === 'done' && 'text-muted-foreground',
                 step.status === 'pending' && 'text-muted-foreground/70',
-                step.status === 'failed' && 'text-destructive'
+                step.status === 'failed' && 'text-muted-foreground'
               )}
             >
               {step.label}
             </span>
+            {step.status === 'failed' ? (
+              <StepFailureHint reason={step.reason} className="-my-0.5" />
+            ) : null}
           </li>
         ))}
       </ol>
