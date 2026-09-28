@@ -101,7 +101,10 @@ import {
   renderDesignStoreThumbnail,
   waitForThumbnailPaint,
 } from '@/features/dashboard/marketing/lib/renderMarketingDesignThumbnail';
-import type { DesignTemplateFormat } from '@/features/dashboard/marketing/lib/templateRegistry';
+import {
+  DESIGN_PRESET_FORMATS,
+  type DesignTemplateFormat,
+} from '@/features/dashboard/marketing/lib/templateRegistry';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import { useOrgSettings } from '@/features/dashboard/org/hooks/useOrgSettings';
@@ -129,11 +132,14 @@ export type DesignExportPayload = {
 
 type Props = {
   onPublish?: (payload: DesignExportPayload) => void;
+  /** Saved design to open once templates load (Generate tab → AI Post → Edit). */
+  openTemplateId?: string | null;
+  onOpenTemplateHandled?: () => void;
 };
 
 const CATEGORIES: CampaignCategory[] = ['promo', 'slots', 'giveaway', 'fully-booked', 'reviews'];
 
-export function PolotnoDesignStudio({ onPublish }: Props) {
+export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateHandled }: Props) {
   const { property, org } = useOrgContext();
   const catalog = useMarketingCatalog('design');
   const { data: appSettings } = useAppSettings();
@@ -372,6 +378,14 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
     },
     [beginAutoSaveSuspension, category, endAutoSaveSuspension, format]
   );
+
+  useEffect(() => {
+    if (!openTemplateId || !storeReady) return;
+    const record = savedTemplates.find((item) => item.id === openTemplateId);
+    if (!record) return;
+    onOpenTemplateHandled?.();
+    void applySavedTemplate(record);
+  }, [openTemplateId, storeReady, savedTemplates, applySavedTemplate, onOpenTemplateHandled]);
 
   useEffect(() => {
     if (startFrom !== 'templates') return;
@@ -892,12 +906,15 @@ export function PolotnoDesignStudio({ onPublish }: Props) {
 
   const formatOptions = useMemo<MarketingFormatOption[]>(
     () =>
-      (Object.keys(DESIGN_FORMAT_DIMENSIONS) as DesignTemplateFormat[]).map((key) => ({
+      (DESIGN_PRESET_FORMATS.includes(format)
+        ? DESIGN_PRESET_FORMATS
+        : [...DESIGN_PRESET_FORMATS, format]
+      ).map((key) => ({
         value: key,
         width: DESIGN_FORMAT_DIMENSIONS[key].width,
         height: DESIGN_FORMAT_DIMENSIONS[key].height,
       })),
-    []
+    [format]
   );
 
   const presetTemplates = useMemo<PresetTemplateItem[]>(

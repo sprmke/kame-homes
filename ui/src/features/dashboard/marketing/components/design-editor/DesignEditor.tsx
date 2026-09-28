@@ -9,6 +9,8 @@ export type { DesignExportPayload };
 
 type Props = {
   onPublish?: (payload: DesignExportPayload) => void;
+  openTemplateId?: string | null;
+  onOpenTemplateHandled?: () => void;
 };
 
 function loadPolotnoDesignStudio() {

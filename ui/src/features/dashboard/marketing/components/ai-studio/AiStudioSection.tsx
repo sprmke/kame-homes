@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { toast } from 'sonner';
 
+import { AiPostPanel } from '@/features/dashboard/marketing/components/ai-studio/AiPostPanel';
 import { AiStudioComposer } from '@/features/dashboard/marketing/components/ai-studio/AiStudioComposer';
 import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
@@ -24,22 +25,41 @@ import type {
   MarketingGenerationJob,
   MarketingGenerationReference,
 } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
+import { SegmentedControl } from '@/components/ui/sliding-tabs';
 
 const IMAGE_FEATURE = 'aiMarketingImageGeneration' as const;
 const VIDEO_FEATURE = 'aiMarketingVideoGeneration' as const;
 
 type Props = {
   onPublish: (payload: { blob: Blob; mediaType: 'image' | 'video' }) => void;
+  /** AI Post "Edit": open the saved poster in the Design tab. */
+  onOpenInDesign: (templateId: string) => void;
 };
+
+type GenerateMode = 'post' | 'media';
+
+const MODE_OPTIONS: Array<{ value: GenerateMode; label: string }> = [
+  { value: 'post', label: 'AI Post' },
+  { value: 'media', label: 'Photo & video' },
+];
 
 /**
  * Generate tab — results are the hero (gallery / generating stage). Composer is the
  * control rail. Plan gate covers the composer only so a downgraded org keeps past assets.
  */
-export function AiStudioSection({ onPublish }: Props) {
+export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
+  const propertyId = usePropertyIdParam();
+  // AI Post (finished, editable posts from real photos) is the default when the plan
+  // includes it (`aiMarketingGeneration`, Business+). Pro hosts, who only have image
+  // generation, land on Photo & video instead of a mode they cannot use.
+  const { allowed: postAllowed, isLoading: postGateLoading } =
+    useFeatureGate('aiMarketingGeneration');
+  const [chosenMode, setChosenMode] = useState<GenerateMode | null>(null);
+  const mode: GenerateMode = chosenMode ?? (postGateLoading || postAllowed ? 'post' : 'media');
   const { canGenerateImage, canGenerateVideo, canPublish } = useMarketingPermissions();
   const canGenerate = canGenerateImage || canGenerateVideo;
   const { allowed: imageAllowed, isLoading: imageGateLoading } = useFeatureGate(IMAGE_FEATURE);
@@ -164,64 +184,83 @@ export function AiStudioSection({ onPublish }: Props) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 sm:p-4 lg:flex-row lg:gap-6 lg:overflow-hidden lg:p-6">
-      <div className="lg:max-h-full lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto">
-        <FloatingPanel
-          padding="md"
-          mobileOnly
-          className="lg:border-border/60 lg:bg-card lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm"
-        >
-          <AiStudioComposer
-            onGenerate={(payload) => generate.mutate(payload)}
-            isGenerating={generate.isPending}
-            disabled={!canGenerate || imageGateLoading || videoGateLoading}
-            canGenerateImage={canGenerateImage}
-            canGenerateVideo={canGenerateVideo}
-            videoAllowed={videoPlanAllowed}
-            imageAllowed={imageAllowed}
-            allowPremiumImage={allowPremiumImage}
-            allowPremiumVideo={allowPremiumVideo}
-            draft={draft}
-            pendingReference={pendingReference}
-          />
-          {!canGenerate && (
-            <p className="text-muted-foreground mt-3 text-xs">
-              You do not have permission to generate content for this property.
-            </p>
-          )}
-        </FloatingPanel>
-      </div>
-
-      <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto">
-        <AiStudioResultsGrid
-          jobs={jobs}
-          isLoading={generations.isLoading}
-          hasNextPage={Boolean(generations.hasNextPage)}
-          isFetchingNextPage={generations.isFetchingNextPage}
-          onLoadMore={() => void generations.fetchNextPage()}
-          canPublish={canPublish}
-          canDelete={canGenerate}
-          canGenerate={canGenerate}
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4 lg:overflow-hidden lg:p-6">
+      <SegmentedControl
+        value={mode}
+        onChange={setChosenMode}
+        options={MODE_OPTIONS}
+        aria-label="Generate mode"
+        className="self-start"
+      />
+      {mode === 'post' ? (
+        <AiPostPanel
+          // Remount per property: posters (and their Edit target) never carry across.
+          key={propertyId ?? 'property'}
+          onOpenInDesign={onOpenInDesign}
           onPublish={onPublish}
-          onRetry={handleRetry}
-          onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
-          usingAsPhotoJobId={usingAsPhotoJobId}
-          onRefine={(job) => void handleRefine(job)}
-          refiningJobId={refiningJobId}
-          pendingStage={
-            showPendingCard ? (
-              <AiStudioGeneratingStage variant="card" mediaType={pendingMediaType} />
-            ) : null
-          }
-          emptyState={
-            generate.isPending ? (
-              <AiStudioGeneratingStage variant="hero" mediaType={pendingMediaType} />
-            ) : (
-              <AiStudioEmptyState />
-            )
-          }
+          canPublish={canPublish}
         />
-      </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
+          <div className="lg:max-h-full lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto">
+            <FloatingPanel
+              padding="md"
+              mobileOnly
+              className="lg:border-border/60 lg:bg-card lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm"
+            >
+              <AiStudioComposer
+                onGenerate={(payload) => generate.mutate(payload)}
+                isGenerating={generate.isPending}
+                disabled={!canGenerate || imageGateLoading || videoGateLoading}
+                canGenerateImage={canGenerateImage}
+                canGenerateVideo={canGenerateVideo}
+                videoAllowed={videoPlanAllowed}
+                imageAllowed={imageAllowed}
+                allowPremiumImage={allowPremiumImage}
+                allowPremiumVideo={allowPremiumVideo}
+                draft={draft}
+                pendingReference={pendingReference}
+              />
+              {!canGenerate && (
+                <p className="text-muted-foreground mt-3 text-xs">
+                  You do not have permission to generate content for this property.
+                </p>
+              )}
+            </FloatingPanel>
+          </div>
+
+          <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto">
+            <AiStudioResultsGrid
+              jobs={jobs}
+              isLoading={generations.isLoading}
+              hasNextPage={Boolean(generations.hasNextPage)}
+              isFetchingNextPage={generations.isFetchingNextPage}
+              onLoadMore={() => void generations.fetchNextPage()}
+              canPublish={canPublish}
+              canDelete={canGenerate}
+              canGenerate={canGenerate}
+              onPublish={onPublish}
+              onRetry={handleRetry}
+              onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
+              usingAsPhotoJobId={usingAsPhotoJobId}
+              onRefine={(job) => void handleRefine(job)}
+              refiningJobId={refiningJobId}
+              pendingStage={
+                showPendingCard ? (
+                  <AiStudioGeneratingStage variant="card" mediaType={pendingMediaType} />
+                ) : null
+              }
+              emptyState={
+                generate.isPending ? (
+                  <AiStudioGeneratingStage variant="hero" mediaType={pendingMediaType} />
+                ) : (
+                  <AiStudioEmptyState />
+                )
+              }
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

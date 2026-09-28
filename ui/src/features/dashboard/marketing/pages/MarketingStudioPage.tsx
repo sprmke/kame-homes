@@ -47,6 +47,12 @@ export function MarketingStudioPage() {
   const [tab, setTab] = useState('calendar');
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMedia, setPublishMedia] = useState<PublishMedia | null>(null);
+  const [openDesignTemplateId, setOpenDesignTemplateId] = useState<string | null>(null);
+
+  const openInDesign = (templateId: string) => {
+    setOpenDesignTemplateId(templateId);
+    setTab('design');
+  };
 
   const openPublishWithBlob = (blob: Blob, mediaType: 'image' | 'video', templateId?: string) => {
     setPublishMedia({ blob, mediaType, templateId });
@@ -85,7 +91,11 @@ export function MarketingStudioPage() {
 
               <SlidingTabsContent value="design" className="mt-0 flex min-h-0 flex-1 flex-col">
                 <Suspense fallback={<MarketingStudioSkeleton />}>
-                  <DesignEditor onPublish={handleDesignPublish} />
+                  <DesignEditor
+                    onPublish={handleDesignPublish}
+                    openTemplateId={openDesignTemplateId}
+                    onOpenTemplateHandled={() => setOpenDesignTemplateId(null)}
+                  />
                 </Suspense>
               </SlidingTabsContent>
 
@@ -97,7 +107,10 @@ export function MarketingStudioPage() {
 
               <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
                 <Suspense fallback={<MarketingStudioSkeleton />}>
-                  <AiStudioSection onPublish={handleGeneratePublish} />
+                  <AiStudioSection
+                    onPublish={handleGeneratePublish}
+                    onOpenInDesign={openInDesign}
+                  />
                 </Suspense>
               </SlidingTabsContent>
             </MarketingStudioShell>

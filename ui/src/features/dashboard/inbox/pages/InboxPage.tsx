@@ -339,7 +339,7 @@ export function InboxPage({
           </div>
         )}
 
-        <div className="border-border/80 bg-card relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+        <div className="border-border/80 bg-card @container relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
           <InboxPlatformTabs
             value={platformFilter}
             onChange={setPlatformFilter}
@@ -349,8 +349,8 @@ export function InboxPage({
           <div className="flex min-h-0 flex-1">
             <div
               className={cn(
-                'border-border/80 flex h-full min-h-0 w-full shrink-0 flex-col border-r lg:w-[min(100%,400px)]',
-                mobileShowConversation ? 'hidden lg:flex' : 'flex'
+                'border-border/80 @2xl:w-[17rem] @4xl:w-[400px] flex h-full min-h-0 w-full shrink-0 flex-col border-r',
+                mobileShowConversation ? '@2xl:flex hidden' : 'flex'
               )}
             >
               <InboxThreadList
@@ -383,7 +383,7 @@ export function InboxPage({
             <div
               className={cn(
                 'flex h-full min-h-0 min-w-0 flex-1 flex-col',
-                mobileShowConversation ? 'flex' : 'hidden lg:flex'
+                mobileShowConversation ? 'flex' : '@2xl:flex hidden'
               )}
             >
               <InboxConversationView

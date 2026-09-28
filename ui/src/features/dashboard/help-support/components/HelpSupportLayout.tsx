@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
@@ -12,6 +14,7 @@ import { useOptionalParkingContext } from '@/features/dashboard/org/components/R
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
+import { HelpSupportSectionSkeleton } from '@/components/skeletons/HelpSupportSkeleton';
 import {
   orgPageTitle,
   parkingDashboardPageTitle,
@@ -95,7 +98,9 @@ export function HelpSupportLayout() {
             />
           </div>
           <div className={cn(isTickets && 'flex min-h-0 flex-1 flex-col overflow-hidden')}>
-            <Outlet />
+            <Suspense fallback={<HelpSupportSectionSkeleton section={section} />}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </div>

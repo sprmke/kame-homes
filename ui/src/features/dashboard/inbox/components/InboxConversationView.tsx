@@ -547,7 +547,7 @@ export function InboxConversationView({
             type="button"
             variant="ghost"
             size="icon"
-            className="min-h-[44px] min-w-[44px] lg:hidden"
+            className="@2xl:hidden min-h-[44px] min-w-[44px]"
             onClick={onBack}
             aria-label="Back to list"
           >
@@ -600,7 +600,9 @@ export function InboxConversationView({
             {windowLabel && conversation.conversation_type === 'dm' && (
               <>
                 <span aria-hidden>·</span>
-                <span className={windowOpen ? undefined : 'text-destructive font-medium'}>
+                <span
+                  className={cn('whitespace-nowrap', !windowOpen && 'text-destructive font-medium')}
+                >
                   {windowLabel}
                 </span>
               </>
