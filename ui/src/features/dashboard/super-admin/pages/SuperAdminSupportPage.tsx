@@ -7,7 +7,6 @@ import { LifeBuoy } from 'lucide-react';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminSupportCardGrid } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportCardGrid';
 import { SuperAdminSupportSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportSummaryCards';
 import { SuperAdminSupportTable } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminSupportTable';
@@ -27,6 +26,7 @@ import {
   type SuperAdminSupportViewMode,
 } from '@/features/dashboard/super-admin/lib/superAdminSupportFilters';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import {

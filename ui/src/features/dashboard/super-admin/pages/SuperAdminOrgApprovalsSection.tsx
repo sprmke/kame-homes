@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminApprovalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalReviewDialog';
 import { SuperAdminApprovalsCardGrid } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalsCardGrid';
 import { SuperAdminExternalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminExternalReviewDialog';
@@ -22,6 +21,8 @@ import type {
   ListingVerificationApprovalSummary,
   OrgApprovalSummary,
 } from '@/features/dashboard/super-admin/types/approval';
+
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 
 export function SuperAdminOrgApprovalsSection() {
   const { org } = useSuperAdminOrgContext();

@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { EditPricingPlanDialog } from '@/features/dashboard/super-admin/components/super-admin-pricing/EditPricingPlanDialog';
 import {
   SuperAdminPricingPlanCard,
@@ -31,6 +30,7 @@ import {
 } from '@/features/dashboard/super-admin/lib/superAdminPricingFilters';
 import type { PricingPlan } from '@/features/dashboard/super-admin/types/pricingPlan';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';

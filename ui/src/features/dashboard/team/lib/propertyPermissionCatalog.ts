@@ -474,8 +474,6 @@ function buildCatalog(): PermissionCatalogNode[] {
     'settings.payment:edit': 'settings.sections',
     'settings.buildingForms:edit': 'settings.sections',
     'settings.emailAutomations:edit': 'settings.sections',
-    'settings.voiceReceptionist:edit': 'settings.sections',
-    'settings.aiOverrides:edit': 'settings.sections',
     'settings.dangerZone:edit': 'settings.sections',
     'notifications:view': 'notifications',
     'notifications.chat:edit': 'notifications.modules',

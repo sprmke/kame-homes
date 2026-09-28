@@ -15,8 +15,6 @@ export const SETTINGS_SECTION_EDIT_IDS = [
   'settings.payment:edit',
   'settings.buildingForms:edit',
   'settings.emailAutomations:edit',
-  'settings.voiceReceptionist:edit',
-  'settings.aiOverrides:edit',
   'settings.dangerZone:edit',
 ] as const;
 

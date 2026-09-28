@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminOrgSubscriptionCard,
   SuperAdminOrgSubscriptionsEmptyState,
@@ -36,6 +35,7 @@ import {
   type SuperAdminOrgSubscriptionsViewMode,
 } from '@/features/dashboard/super-admin/lib/superAdminPricingFilters';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';

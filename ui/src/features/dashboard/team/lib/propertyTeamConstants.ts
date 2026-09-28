@@ -491,20 +491,6 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
     icon: Settings,
   },
   {
-    id: 'settings.voiceReceptionist:edit',
-    name: 'Edit voice receptionist',
-    description: 'AI voice receptionist settings',
-    category: 'Settings',
-    icon: Settings,
-  },
-  {
-    id: 'settings.aiOverrides:edit',
-    name: 'Toggle AI',
-    description: 'Turn AI on or off for the property',
-    category: 'Settings',
-    icon: Settings,
-  },
-  {
     id: 'settings.dangerZone:edit',
     name: 'Archive / restore',
     description: 'Archive or restore property (not delete)',

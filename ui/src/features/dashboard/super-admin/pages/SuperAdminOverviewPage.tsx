@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminAiCostChart } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminAiCostChart';
 import { SuperAdminAttentionPanel } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminAttentionPanel';
 import { SuperAdminGrowthChart } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminGrowthChart';
@@ -13,6 +12,7 @@ import {
   type SuperAdminOverviewRange,
 } from '@/features/dashboard/super-admin/hooks/useSuperAdminOverview';
 
+import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 
 const RANGE_LABELS: Record<SuperAdminOverviewRange, string> = {

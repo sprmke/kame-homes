@@ -68,7 +68,6 @@ export const SETTINGS_SECTION_EDIT_PERMISSION = {
   'building-forms': 'settings.buildingForms:edit',
   'email-automations': 'settings.emailAutomations:edit',
   integrations: null,
-  ai: 'settings.aiOverrides:edit',
   danger: 'settings.dangerZone:edit',
 } as const satisfies Record<
   import('@/features/dashboard/org/lib/propertySettingsCompletion').PropertySettingsSectionId,

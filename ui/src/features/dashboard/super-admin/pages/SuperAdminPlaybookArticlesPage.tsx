@@ -11,7 +11,6 @@ import {
 } from '@/features/dashboard/bookings/components/AdminListToolbar';
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPlaybookArticleEditorDialog } from '@/features/dashboard/super-admin/components/super-admin-support/SuperAdminPlaybookArticleEditorDialog';
 import {
   useDeletePlaybookArticle,
@@ -20,6 +19,7 @@ import {
   type AdminPlaybookArticle,
 } from '@/features/dashboard/super-admin/hooks/useHostPlaybookArticlesAdmin';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,

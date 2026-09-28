@@ -8,7 +8,6 @@ import {
   OrgPropertiesEmptyState,
   OrgPropertyCard,
 } from '@/features/dashboard/org/components/org-properties/OrgPropertyCard';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SuperAdminPlatformPropertiesSummaryCards } from '@/features/dashboard/super-admin/components/super-admin-platform-properties/SuperAdminPlatformPropertiesSummaryCards';
 import { SuperAdminPlatformPropertiesTable } from '@/features/dashboard/super-admin/components/super-admin-platform-properties/SuperAdminPlatformPropertiesTable';
 import {
@@ -26,6 +25,7 @@ import {
 } from '@/features/dashboard/super-admin/lib/superAdminPlatformPropertiesFilters';
 import type { PlatformProperty } from '@/features/dashboard/super-admin/types/platformProperty';
 
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useAdminMobileGridViewGuard } from '@/hooks/useAdminMobileGridViewGuard';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import {

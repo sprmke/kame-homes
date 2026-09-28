@@ -5,8 +5,6 @@ import { Wallet } from 'lucide-react';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
 import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   SuperAdminSettingsCard,
   SuperAdminSettingsRow,
@@ -22,6 +20,8 @@ import {
 
 import { AdminDialogShell } from '@/components/AdminDialogShell';
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

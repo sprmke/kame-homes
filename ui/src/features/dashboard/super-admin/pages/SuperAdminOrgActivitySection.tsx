@@ -6,11 +6,11 @@ import { ActivityDetailSheet } from '@/features/dashboard/activity/components/Ac
 import { ActivityFeedList } from '@/features/dashboard/activity/components/ActivityFeedList';
 import type { ActivityEvent } from '@/features/dashboard/activity/lib/activityCatalog';
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
 import { useSuperAdminAudit } from '@/features/dashboard/super-admin/hooks/useSuperAdminAudit';
 import { useSuperAdminOrgActivity } from '@/features/dashboard/super-admin/hooks/useSuperAdminOrgActivity';
 
+import { SuperAdminAuditBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';

@@ -179,18 +179,18 @@ flowchart TB
 
 Entry: `ui/src/main.tsx` → `App.tsx` → `ui/src/routes/index.tsx` merges `guestRoutes` + `dashboardRoutes`.
 
-| Capability            | What it is                                            | Gate                                                   |
-| --------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
-| Booking workflow      | GAF / pet / parking docs, emails, SD refund, vouchers | `bookings:*` leaves                                    |
-| Calendar sync         | Two-way iCal (Airbnb / Booking.com / Vrbo)            | `calendarSync` (Pro+)                                  |
-| Smart pricing         | AI nightly rates + autopilot cron                     | `smartPricing`                                         |
-| Guest Inbox           | Meta + web chat, AI replies                           | inbox leaves                                           |
-| Marketing Studio      | Polotno, Remotion, Gemini/Veo generate, Meta publish  | `marketingStudio` + generate keys                      |
-| Finance / Maintenance | Line items, recurrence, Telegram reminders            | matching leaves                                        |
-| Parking marketplace   | Broadcast, claim, PayMongo, endorsement               | parking RBAC                                           |
-| AI assistant          | Dashboard chat + tools, credit wallet                 | org credits + allowlist                                |
-| Host Analytics        | Occupancy / ADR bundle, AI review                     | view free; `analyticsInsights` on export / AI generate |
-| PWA                   | Install, offline read, inbox outbox, Web Push         | deepest on host dashboard                              |
+| Capability            | What it is                                                                                                            | Gate                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Booking workflow      | GAF / pet / parking docs, emails, SD refund, vouchers                                                                 | `bookings:*` leaves                                                                |
+| Calendar sync         | Two-way iCal (Airbnb / Booking.com / Vrbo)                                                                            | `calendarSync` (Pro+)                                                              |
+| Smart pricing         | AI nightly rates + autopilot cron                                                                                     | `smartPricing`                                                                     |
+| Guest Inbox           | Meta + web chat, AI replies                                                                                           | inbox leaves                                                                       |
+| Marketing Studio      | Polotno, Remotion, Gemini/Veo generate, AI Post posters ([poster studio](./marketing-poster-studio.md)), Meta publish | `marketingStudio` + generate keys                                                  |
+| Finance / Maintenance | Line items, recurrence, Telegram reminders                                                                            | matching leaves                                                                    |
+| Parking marketplace   | Broadcast, claim, PayMongo, endorsement                                                                               | parking RBAC                                                                       |
+| AI assistant          | Dashboard chat + tools (sheet in Advanced mode, full-page AI mode with page canvas), credit wallet                    | org credits + allowlist; `aiDashboardAssistant` plan gate; AI mode platform switch |
+| Host Analytics        | Occupancy / ADR bundle, AI review                                                                                     | view free; `analyticsInsights` on export / AI generate                             |
+| PWA                   | Install, offline read, inbox outbox, Web Push                                                                         | deepest on host dashboard                                                          |
 
 **Billing is org-level only** (`org_subscriptions`). A property left out of enrollment resolves to Free. Plans UI: `/org/:orgSlug/plans`. Matrix: [`plans-feature-matrix.md`](plans-feature-matrix.md).
 
@@ -229,14 +229,14 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 
 **Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
 
-| Cluster  | Examples                                                              | Access                                    |
-| -------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations       | Edge + membership                         |
-| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews        | Scoped RLS on some reads; writes via edge |
-| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`           | Service role                              |
-| Inbox    | `social_*` conversations and messages                                 | Service role                              |
-| AI       | credit wallet / ledger, assistant messages, marketing generation jobs | Service role                              |
-| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`   | Service role                              |
+| Cluster  | Examples                                                                                                                                                                                                       | Access                                    |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations                                                                                                                                                | Edge + membership                         |
+| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews                                                                                                                                                 | Scoped RLS on some reads; writes via edge |
+| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                                                                    | Service role                              |
+| Inbox    | `social_*` conversations and messages                                                                                                                                                                          | Service role                              |
+| AI       | credit wallet / ledger, assistant messages + feedback + memory (per-user preferences, org house style), per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
+| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`                                                                                                                                            | Service role                              |
 
 Schema: [`data-model.md`](data-model.md).
 
