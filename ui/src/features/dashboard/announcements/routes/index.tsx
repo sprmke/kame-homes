@@ -14,7 +14,7 @@ import type {
   PropertyRouteFn,
 } from '@/features/dashboard/org/routes/guards';
 
-import { PropertyAnnouncementsRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
+import { HostAnnouncementsRouteSkeleton } from '@/components/skeletons/RouteSkeletons';
 
 const HostAnnouncementDetailPage = lazy(() =>
   import('@/features/dashboard/announcements/pages/HostAnnouncementDetailPage').then((m) => ({
@@ -55,7 +55,7 @@ export function hostAnnouncementsOrgRoute(orgRoute: OrgRouteFn): ReactNode {
   return (
     <Route
       path="announcements"
-      element={orgRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+      element={orgRoute('announcements', <Outlet />, <HostAnnouncementsRouteSkeleton />)}
     >
       {hostAnnouncementsNestedRoutes()}
     </Route>
@@ -67,7 +67,7 @@ export function hostAnnouncementsPropertyRoute(propertyRoute: PropertyRouteFn): 
   return (
     <Route
       path="announcements"
-      element={propertyRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+      element={propertyRoute('announcements', <Outlet />, <HostAnnouncementsRouteSkeleton />)}
     >
       {hostAnnouncementsNestedRoutes()}
     </Route>
@@ -79,7 +79,7 @@ export function hostAnnouncementsParkingRoute(parkingRoute: ParkingRouteFn): Rea
   return (
     <Route
       path="announcements"
-      element={parkingRoute('announcements', <Outlet />, <PropertyAnnouncementsRouteSkeleton />)}
+      element={parkingRoute('announcements', <Outlet />, <HostAnnouncementsRouteSkeleton />)}
     >
       {hostAnnouncementsNestedRoutes()}
     </Route>

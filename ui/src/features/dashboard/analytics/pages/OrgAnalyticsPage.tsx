@@ -18,6 +18,7 @@ import {
   useDateNavigation,
   useSyncDateRangeWithQuery,
 } from '@/features/dashboard/bookings/hooks/useDateNavigation';
+import { useOrgListingSkeletonView } from '@/features/dashboard/org/hooks/useOrgListingSkeletonView';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
@@ -70,6 +71,7 @@ export function OrgAnalyticsPage() {
   }, [dateNav]);
 
   const { data, isLoading, isError, refetch } = useOrgAnalyticsSummary(period);
+  const skeletonView = useOrgListingSkeletonView('listings');
   const { data: access } = useOrgPermissions();
   const canExport = hasOrgPermission(access?.permissions, 'org.analytics:export');
   const { canUse: canExportByPlan, isLoading: exportPlanLoading } =
@@ -144,7 +146,7 @@ export function OrgAnalyticsPage() {
       className="min-w-0 max-w-full"
     >
       {isLoading && !data ? (
-        <OrgAnalyticsSkeleton />
+        <OrgAnalyticsSkeleton view={skeletonView} />
       ) : isError && !data ? (
         <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-16 text-center">
           <p className="text-foreground text-sm font-semibold">Could not load analytics</p>

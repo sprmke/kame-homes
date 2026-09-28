@@ -458,7 +458,11 @@ export function AdminSectionNavLayout({
           ) : null}
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row lg:gap-8 xl:gap-10">
-            <aside className="bg-background relative z-10 hidden w-56 shrink-0 lg:block lg:self-start">
+            {/* Hidden in a medium AI canvas (index.css), like tablets: the content needs the room. */}
+            <aside
+              data-section-nav-aside
+              className="bg-background relative z-10 hidden w-56 shrink-0 lg:block lg:self-start"
+            >
               <Card>
                 <CardContent
                   data-section-nav-scroll

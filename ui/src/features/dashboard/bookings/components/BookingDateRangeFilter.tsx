@@ -12,6 +12,7 @@ import {
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ui/button-group';
 import { Calendar } from '@/components/ui/calendar';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { useIsBelowLg, useIsBelowMd } from '@/hooks/useMediaQuery';
 import {
   type DateNavigationState,
@@ -65,6 +66,7 @@ export function BookingDateRangeFilter({
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobileLayout = useIsBelowLg();
   const isBelowMd = useIsBelowMd();
+  const compactChrome = useDashboardCompactChrome();
 
   const isCurrent = isCurrentPeriod(dateRange.from, datePreset);
   const popoverAlign = fullWidth ? 'start' : 'end';
@@ -112,7 +114,9 @@ export function BookingDateRangeFilter({
   };
 
   const triggerLabel = isActive
-    ? formatDateRangeDisplay(dateRange.from, dateRange.to, datePreset)
+    ? formatDateRangeDisplay(dateRange.from, dateRange.to, datePreset, {
+        compact: compactChrome,
+      })
     : 'Date';
 
   const triggerActive = isActive || open || calendarOpen;
@@ -251,20 +255,39 @@ export function BookingDateRangeFilter({
       onClick={() => (isCustomMode && isActive ? setCalendarOpen((v) => !v) : setOpen((v) => !v))}
       aria-expanded={open || calendarOpen}
       aria-haspopup="dialog"
+      title={
+        compactChrome && isActive
+          ? formatDateRangeDisplay(dateRange.from, dateRange.to, datePreset)
+          : undefined
+      }
       className={cn(
-        'select-none gap-1.5 whitespace-nowrap',
+        'select-none whitespace-nowrap',
+        compactChrome ? 'gap-1' : 'gap-1.5',
         showNav && fullWidth && 'w-full justify-center',
         !showNav && fullWidth && 'w-full justify-center'
       )}
     >
-      <CalendarDays
+      {compactChrome ? null : (
+        <CalendarDays
+          className={cn(
+            'size-3.5 shrink-0',
+            triggerActive ? 'text-foreground' : 'text-muted-foreground'
+          )}
+          aria-hidden
+        />
+      )}
+      <span
         className={cn(
-          'size-3.5 shrink-0',
-          triggerActive ? 'text-foreground' : 'text-muted-foreground'
+          'truncate',
+          compactChrome
+            ? fullWidth
+              ? 'max-w-[min(100%,11rem)]'
+              : 'max-w-[11rem]'
+            : fullWidth
+              ? 'max-w-[min(100%,14rem)]'
+              : 'max-w-[180px]'
         )}
-        aria-hidden
-      />
-      <span className={cn('truncate', fullWidth ? 'max-w-[min(100%,14rem)]' : 'max-w-[180px]')}>
+      >
         {triggerLabel}
       </span>
       <ChevronDown

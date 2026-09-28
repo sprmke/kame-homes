@@ -1,8 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import { motion } from 'framer-motion';
 import { ChevronUp, ChevronLeft, ChevronRight, LogOut, User } from 'lucide-react';
 
 import { AccountAvatar } from '@/features/guest/account/components/AccountAvatar';
@@ -12,16 +22,25 @@ import { hostLoginPath } from '@/features/guest/auth/lib/hostAuthPaths';
 import { ModeSwitcher } from '@/features/guest/marketing/shared/components/ModeSwitcher';
 
 import { AiAssistantLauncherButton } from '@/features/dashboard/ai-assistant/components/AiAssistantLauncherButton';
+import { AiAssistantSessionProvider } from '@/features/dashboard/ai-assistant/components/AiAssistantSessionProvider';
+import { DashboardModeProvider } from '@/features/dashboard/ai-assistant/components/DashboardModeProvider';
+import { DashboardModeToggle } from '@/features/dashboard/ai-assistant/components/DashboardModeToggle';
 import { useAiAssistantAccess } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantAccess';
+import { useCanvasResize } from '@/features/dashboard/ai-assistant/hooks/useCanvasResize';
 import {
   isAiAssistantFabVisible,
   notificationFabStackedBottomClassName,
 } from '@/features/dashboard/ai-assistant/lib/assistantFabLayout';
+import { assistantSpring } from '@/features/dashboard/ai-assistant/lib/assistantMotion';
 import {
   getAssistantOpenRequestId,
   subscribeAssistantOpenRequest,
 } from '@/features/dashboard/ai-assistant/lib/assistantOpenStore';
+import { isCanvasOpen } from '@/features/dashboard/ai-assistant/lib/assistantScope';
+import { canvasSizeBucket } from '@/features/dashboard/ai-assistant/lib/canvasWidth';
+import { useDashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardModeContext';
 import { useHostAnnouncementHasUnread } from '@/features/dashboard/announcements/hooks/useHostAnnouncementHasUnread';
+import { DashboardChromeProvider } from '@/features/dashboard/lib/dashboardChromeContext';
 import {
   AdminBrandTheme,
   useAdminBrandThemeStyle,
@@ -92,8 +111,8 @@ import {
   hasParkingSettingsIssues,
   subscribeParkingSettingsIssues,
 } from '@/features/dashboard/parking/lib/parkingSettingsIssuesStore';
-import { UpgradeModalProvider } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { OrgPlanSidebarEntry } from '@/features/dashboard/plans/components/OrgPlanSidebarEntry';
+import { UpgradeModalProvider } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { SetupGuideProvider } from '@/features/dashboard/setup-guide/components/SetupGuideProvider';
 import { SetupGuideSidebarEntry } from '@/features/dashboard/setup-guide/components/SetupGuideSidebarEntry';
 import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
@@ -105,7 +124,9 @@ import { BottomBarSlotProvider } from '@/components/mobile/BottomBarSlot';
 import { BottomTabBar } from '@/components/mobile/BottomTabBar';
 import { MobileAppShell } from '@/components/mobile/ContextualActionBar';
 import { PageTransition } from '@/components/mobile/PageTransition';
+import { AiAssistantPanelSkeleton } from '@/components/skeletons/AiAssistantSkeleton';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
 import { prefetchChunkOnce } from '@/hooks/usePrefetchOnIntent';
 import { useSlidingActivePill } from '@/hooks/useSlidingActivePill';
@@ -121,6 +142,18 @@ import { PostHogAdminScopeSync } from '@/lib/posthog/PostHogAdminScopeSync';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_COLLAPSED_KEY = 'kame-admin-sidebar-collapsed';
+const AI_RAIL_COLLAPSED_KEY = 'kame-ai-rail-collapsed';
+
+// AI mode chrome is its own chunk; Advanced-mode users never download it.
+const loadAiModeChrome = () =>
+  import('@/features/dashboard/ai-assistant/components/full-page/AiModeChrome');
+const AiModeRail = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiModeRail })));
+const AiModeMobileTopBar = lazy(() =>
+  loadAiModeChrome().then((m) => ({ default: m.AiModeMobileTopBar }))
+);
+const AiChatColumn = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiChatColumn })));
+const AiCanvasHeader = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiCanvasHeader })));
+const AiModeSurface = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiModeSurface })));
 
 const SIDEBAR_EXPANDED_WIDTH = 260;
 const SIDEBAR_COLLAPSED_WIDTH = 72;
@@ -134,6 +167,7 @@ function readSidebarCollapsed(): boolean {
 }
 
 function resolveAdminPageTitle(
+  pageNameOverride: string | null,
   pathname: string,
   navSections: SidebarNavSection[],
   activeNavHref: string | null,
@@ -149,7 +183,7 @@ function resolveAdminPageTitle(
   const activeItem = navSections
     .flatMap((s) => s.items)
     .find((item) => item.href && item.href === activeNavHref);
-  const pageName = activeItem?.label;
+  const pageName = pageNameOverride ?? activeItem?.label;
 
   if (isSuperAdminPath(pathname)) {
     return appPageTitle(pageName ?? 'Admin');
@@ -203,6 +237,10 @@ export function AdminLayout({ children, fillMain: fillMainProp = false }: Props)
     setFillMainOptIn(fillCountRef.current > 0);
   }, []);
   const fillMain = fillMainProp || fillMainOptIn;
+  const location = useLocation();
+  const { session } = useAdminSession();
+  const superAdmin = isSuperAdminPath(location.pathname);
+  const shell = <AdminLayoutShell fillMain={fillMain}>{children}</AdminLayoutShell>;
 
   return (
     <AdminLayoutFillMainContext.Provider value={setFill}>
@@ -211,7 +249,14 @@ export function AdminLayout({ children, fillMain: fillMainProp = false }: Props)
           <UpgradeModalProvider>
             <ListingContractRenewalProvider>
               <SetupGuideProvider>
-                <AdminLayoutShell fillMain={fillMain}>{children}</AdminLayoutShell>
+                <DashboardModeProvider userId={session?.user.id ?? null} superAdmin={superAdmin}>
+                  {/* One assistant session per shell, shared by the sheet and AI mode. */}
+                  {superAdmin ? (
+                    shell
+                  ) : (
+                    <AiAssistantSessionProvider>{shell}</AiAssistantSessionProvider>
+                  )}
+                </DashboardModeProvider>
               </SetupGuideProvider>
             </ListingContractRenewalProvider>
           </UpgradeModalProvider>
@@ -351,6 +396,16 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
+  const [railCollapsed, setRailCollapsed] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem(AI_RAIL_COLLAPSED_KEY) === 'true'
+  );
+  const { mode, availability, transitioning, onTransitionEnd } = useDashboardMode();
+  const aiMode = mode === 'ai' && !isSuperAdminPath(location.pathname);
+  const canvasOpen = isCanvasOpen(location.search);
+  const canvasResize = useCanvasResize({
+    railPreferenceCollapsed: railCollapsed,
+    canvasOpen: aiMode && canvasOpen,
+  });
   const propertyId = usePropertyIdParam();
   const {
     accessible: assistantAccessible,
@@ -406,6 +461,7 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
   const pageTitle = useMemo(
     () =>
       resolveAdminPageTitle(
+        aiMode && !canvasOpen ? 'Assistant' : null,
         location.pathname,
         navSections,
         activeNavHref,
@@ -419,6 +475,8 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
         routeParkingSlug
       ),
     [
+      aiMode,
+      canvasOpen,
       location.pathname,
       navSections,
       activeNavHref,
@@ -540,9 +598,45 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
-  const mobileTabBar = (
+  // AI mode: the composer dock is the only bottom layer on phone.
+  const mobileTabBar = aiMode ? null : (
     <BottomTabBar items={tabItemsWithBadges} activeKey={tabActiveKey} aria-label="Admin" />
   );
+  const activeNavLabel =
+    navSections.flatMap((section) => section.items).find((item) => item.href === activeNavHref)
+      ?.label ?? undefined;
+
+  // Warm the AI mode chunk once the toggle is usable so the first switch is instant.
+  useEffect(() => {
+    if (availability !== 'available' || aiMode) return;
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    idle(() => void loadAiModeChrome());
+  }, [availability, aiMode]);
+
+  // Leaving AI mode: move focus to the page so keyboard users land somewhere sensible.
+  const mainRef = useRef<HTMLDivElement>(null);
+  const prevAiModeRef = useRef(aiMode);
+  useEffect(() => {
+    if (prevAiModeRef.current && !aiMode) mainRef.current?.focus({ preventScroll: true });
+    prevAiModeRef.current = aiMode;
+    if (aiMode) {
+      setAssistantOpen(false);
+      // Switched from the phone More sheet: the AI chrome replaces the sheet's nav.
+      setMoreSheetOpen(false);
+    }
+  }, [aiMode]);
+
+  const toggleRailCollapsed = useCallback(() => {
+    setRailCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AI_RAIL_COLLAPSED_KEY, String(next));
+      } catch {
+        // per-viewer convenience
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <>
@@ -550,126 +644,218 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
       {isOrgAdminPath(location.pathname) ? <OrgSettingsIssuesSync /> : null}
       {!superAdmin ? <HostVerificationChangesGate /> : null}
       {!superAdmin ? <NotificationsProvider /> : null}
-      <BottomBarSlotProvider tabBar={mobileTabBar}>
-        <div className="bg-background flex h-screen overflow-hidden" style={brandStyle}>
-          <div className="relative flex min-w-0 flex-1">
-            {/* Desktop sidebar */}
-            <aside
-              className="border-sidebar-border bg-sidebar hidden h-screen shrink-0 flex-col border-r transition-[width] duration-300 ease-out lg:flex"
-              style={{ width: sidebarWidth }}
-              aria-label="Admin navigation"
-              aria-expanded={!sidebarCollapsed}
-            >
-              <AdminSidebarContent
-                navSections={navSections}
-                activeNavHref={activeNavHref}
-                navHrefsKey={navHrefsKey}
-                pathname={location.pathname}
-                propertySettingsHasIssues={propertySettingsHasIssues}
-                parkingSettingsHasIssues={parkingSettingsHasIssues}
-                orgSettingsHasIssues={orgSettingsHasIssues}
-                hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
-                displayName={displayName}
-                avatarUrl={avatarUrl}
-                initials={initials}
-                email={email}
-                signOut={signOut}
-                onOpenProfile={openProfileModal}
-                collapsed={sidebarCollapsed}
-                superAdmin={superAdmin}
-              />
-            </aside>
-
-            <button
-              type="button"
-              onClick={toggleSidebarCollapsed}
-              style={{
-                left: sidebarWidth,
-                top: sidebarCollapsed ? SIDEBAR_TOGGLE_TOP_COLLAPSED : SIDEBAR_TOGGLE_TOP_EXPANDED,
-              }}
-              className={cn(
-                'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground shadow-elevated',
-                'absolute z-30 hidden min-h-[28px] min-w-[28px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-300 ease-out lg:flex',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
-              )}
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="h-3 w-3" aria-hidden />
+      <DashboardChromeProvider aiMode={aiMode} canvasOpen={canvasOpen}>
+        <BottomBarSlotProvider tabBar={mobileTabBar}>
+          <div
+            className="bg-background flex h-screen overflow-hidden"
+            style={brandStyle}
+            data-dashboard-mode={aiMode ? 'ai' : 'advanced'}
+            data-transitioning={transitioning ? 'true' : undefined}
+          >
+            <div className="relative flex min-w-0 flex-1">
+              {aiMode ? (
+                <Suspense fallback={<AiRailFallback />}>
+                  <AiModeRail
+                    collapsed={canvasResize.railCollapsed}
+                    onToggleCollapsed={canvasResize.railLocked ? undefined : toggleRailCollapsed}
+                    footer={
+                      <AdminProfileFooter
+                        collapsed={canvasResize.railCollapsed}
+                        showThemeToggle={false}
+                        displayName={displayName}
+                        avatarUrl={avatarUrl}
+                        initials={initials}
+                        email={email}
+                        signOut={signOut}
+                        onOpenProfile={openProfileModal}
+                      />
+                    }
+                  />
+                </Suspense>
               ) : (
-                <ChevronLeft className="h-3 w-3" aria-hidden />
+                /* Desktop sidebar */
+                <aside
+                  className="border-sidebar-border bg-sidebar hidden h-screen shrink-0 flex-col border-r transition-[width] duration-300 ease-out lg:flex"
+                  style={{ width: sidebarWidth, viewTransitionName: 'dashboard-rail' }}
+                  aria-label="Admin navigation"
+                  aria-expanded={!sidebarCollapsed}
+                >
+                  <AdminSidebarContent
+                    navSections={navSections}
+                    activeNavHref={activeNavHref}
+                    navHrefsKey={navHrefsKey}
+                    pathname={location.pathname}
+                    propertySettingsHasIssues={propertySettingsHasIssues}
+                    parkingSettingsHasIssues={parkingSettingsHasIssues}
+                    orgSettingsHasIssues={orgSettingsHasIssues}
+                    hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
+                    displayName={displayName}
+                    avatarUrl={avatarUrl}
+                    initials={initials}
+                    email={email}
+                    signOut={signOut}
+                    onOpenProfile={openProfileModal}
+                    collapsed={sidebarCollapsed}
+                    superAdmin={superAdmin}
+                  />
+                </aside>
               )}
-            </button>
 
-            <div className="admin-mobile-shell-column flex min-w-0 flex-1 flex-col overflow-hidden">
-              <AdminMobileTopBar superAdmin={superAdmin} />
+              {aiMode ? null : (
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapsed}
+                  style={{
+                    left: sidebarWidth,
+                    top: sidebarCollapsed
+                      ? SIDEBAR_TOGGLE_TOP_COLLAPSED
+                      : SIDEBAR_TOGGLE_TOP_EXPANDED,
+                  }}
+                  className={cn(
+                    'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground shadow-elevated',
+                    'absolute z-30 hidden min-h-[28px] min-w-[28px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-300 ease-out lg:flex',
+                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                  )}
+                  aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                >
+                  {sidebarCollapsed ? (
+                    <ChevronRight className="h-3 w-3" aria-hidden />
+                  ) : (
+                    <ChevronLeft className="h-3 w-3" aria-hidden />
+                  )}
+                </button>
+              )}
 
-              <AdminMainColumn fillMain={fillMain} pathname={location.pathname}>
-                {children}
-              </AdminMainColumn>
+              <div className="admin-mobile-shell-column relative flex min-w-0 flex-1 flex-col overflow-hidden">
+                {aiMode ? (
+                  <Suspense fallback={null}>
+                    <AiModeMobileTopBar />
+                  </Suspense>
+                ) : (
+                  <AdminMobileTopBar superAdmin={superAdmin} />
+                )}
+
+                <div className="flex min-h-0 min-w-0 flex-1">
+                  {aiMode ? (
+                    <Suspense fallback={<AiChatFallback />}>
+                      <AiModeSurface>
+                        <AiChatColumn canvasOpen={canvasOpen} />
+                      </AiModeSurface>
+                    </Suspense>
+                  ) : null}
+                  {aiMode && canvasOpen ? (
+                    <div
+                      {...canvasResize.gutterProps}
+                      className="focus-visible:ring-ring group hidden w-2 shrink-0 cursor-col-resize items-center justify-center focus-visible:outline-none focus-visible:ring-2 lg:flex"
+                    >
+                      <span className="bg-border group-hover:bg-primary/50 group-data-[dragging=true]:bg-primary h-10 w-1 rounded-full transition-colors" />
+                    </div>
+                  ) : null}
+
+                  {/* Stable tree position in both modes: the page stays mounted across a switch. */}
+                  <motion.div
+                    ref={mainRef}
+                    tabIndex={-1}
+                    layout={transitioning ? 'position' : false}
+                    transition={assistantSpring.mode}
+                    onLayoutAnimationComplete={onTransitionEnd}
+                    style={{
+                      viewTransitionName: 'dashboard-main',
+                      width: aiMode && canvasOpen ? canvasResize.width : undefined,
+                    }}
+                    data-assistant-canvas={aiMode ? (canvasOpen ? 'open' : 'closed') : undefined}
+                    data-canvas-size={
+                      aiMode && canvasOpen ? canvasSizeBucket(canvasResize.width) : undefined
+                    }
+                    className={cn(
+                      'flex min-h-0 min-w-0 flex-col outline-none',
+                      !aiMode && 'flex-1',
+                      aiMode &&
+                        (canvasOpen
+                          ? 'bg-background lg:bg-card lg:border-border/60 max-lg:absolute max-lg:inset-0 max-lg:z-30 max-lg:!w-auto lg:my-2 lg:mr-2 lg:shrink-0 lg:overflow-hidden lg:rounded-xl lg:border lg:shadow-sm'
+                          : 'hidden'),
+                      canvasResize.dragging && 'select-none'
+                    )}
+                  >
+                    {aiMode ? (
+                      <Suspense fallback={null}>
+                        <AiCanvasHeader title={activeNavLabel} />
+                      </Suspense>
+                    ) : null}
+                    <AdminMainColumn
+                      fillMain={fillMain}
+                      pathname={location.pathname}
+                      tabBarOffset={!aiMode}
+                      canvas={aiMode}
+                    >
+                      {children}
+                    </AdminMainColumn>
+                  </motion.div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <AdminMoreSheet
-          open={moreSheetOpen}
-          onOpenChange={(open) => {
-            setMoreSheetOpen(open);
-            if (open) {
-              setAssistantOpen(false);
-              setNotificationsOpen(false);
-            }
-          }}
-          moreItems={moreItems}
-          activeNavHref={activeNavHref}
-          pathname={location.pathname}
-          propertySettingsHasIssues={propertySettingsHasIssues}
-          parkingSettingsHasIssues={parkingSettingsHasIssues}
-          orgSettingsHasIssues={orgSettingsHasIssues}
-          hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
-          displayName={displayName}
-          avatarUrl={avatarUrl}
-          initials={initials}
-          email={email}
-          signOut={signOut}
-          onOpenProfile={() => {
-            setMoreSheetOpen(false);
-            openProfileModal();
-          }}
-          onSignOutNavigate={() => navigate(hostLoginPath(), { replace: true })}
-          superAdmin={superAdmin}
-        />
-
-        <GuestProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} />
-
-        {!superAdmin ? (
-          <NotificationBell
-            variant="fab"
-            open={notificationsOpen}
+          <AdminMoreSheet
+            open={moreSheetOpen}
             onOpenChange={(open) => {
+              setMoreSheetOpen(open);
               if (open) {
-                setMoreSheetOpen(false);
                 setAssistantOpen(false);
-              }
-              setNotificationsOpen(open);
-            }}
-            className={showAssistantFab ? notificationFabStackedBottomClassName : undefined}
-          />
-        ) : null}
-        {!superAdmin ? (
-          <AiAssistantLauncherButton
-            open={assistantOpen}
-            onOpenChange={(open) => {
-              if (open) {
-                setMoreSheetOpen(false);
                 setNotificationsOpen(false);
               }
-              setAssistantOpen(open);
             }}
+            moreItems={moreItems}
+            activeNavHref={activeNavHref}
+            pathname={location.pathname}
+            propertySettingsHasIssues={propertySettingsHasIssues}
+            parkingSettingsHasIssues={parkingSettingsHasIssues}
+            orgSettingsHasIssues={orgSettingsHasIssues}
+            hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            initials={initials}
+            email={email}
+            signOut={signOut}
+            onOpenProfile={() => {
+              setMoreSheetOpen(false);
+              openProfileModal();
+            }}
+            onSignOutNavigate={() => navigate(hostLoginPath(), { replace: true })}
+            superAdmin={superAdmin}
           />
-        ) : null}
-      </BottomBarSlotProvider>
+
+          <GuestProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} />
+
+          {!superAdmin && !aiMode ? (
+            <NotificationBell
+              variant="fab"
+              open={notificationsOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setMoreSheetOpen(false);
+                  setAssistantOpen(false);
+                }
+                setNotificationsOpen(open);
+              }}
+              className={showAssistantFab ? notificationFabStackedBottomClassName : undefined}
+            />
+          ) : null}
+          {!superAdmin && !aiMode ? (
+            <AiAssistantLauncherButton
+              open={assistantOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setMoreSheetOpen(false);
+                  setNotificationsOpen(false);
+                }
+                setAssistantOpen(open);
+              }}
+            />
+          ) : null}
+        </BottomBarSlotProvider>
+      </DashboardChromeProvider>
     </>
   );
 }
@@ -684,7 +870,33 @@ function AdminMobileTopBar({ superAdmin }: { superAdmin: boolean }) {
           <SidebarTenantScope collapsed={false} />
         )}
       </div>
+      {superAdmin ? null : <DashboardModeToggle size="compact" />}
     </header>
+  );
+}
+
+/** Rail-shaped placeholder while the AI mode chunk loads (layout-matched, chrome stays put). */
+function AiRailFallback() {
+  return (
+    <div
+      className="border-sidebar-border bg-sidebar hidden h-screen w-[264px] shrink-0 flex-col gap-3 border-r p-3 lg:flex"
+      aria-busy="true"
+      aria-label="Loading"
+    >
+      <Skeleton className="h-10 w-full rounded-xl" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Skeleton key={i} className="h-8 w-full rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
+function AiChatFallback() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading assistant">
+      <AiAssistantPanelSkeleton />
+    </div>
   );
 }
 
@@ -692,10 +904,16 @@ function AdminMainColumn({
   children,
   fillMain,
   pathname,
+  tabBarOffset = true,
+  canvas = false,
 }: {
   children: ReactNode;
   fillMain: boolean;
   pathname: string;
+  /** False in AI mode: there is no tab bar to clear. */
+  tabBarOffset?: boolean;
+  /** AI mode canvas pane: tighter desktop gutters. */
+  canvas?: boolean;
 }) {
   return (
     <main
@@ -707,11 +925,12 @@ function AdminMainColumn({
       <MobileAppShell
         /* Fill-main pages clear the tab bar on their inner scrollport — shell `pb` here
          * would shrink the flex area into a dead white gap and clip mid-card. */
-        withTabBarOffset={!fillMain}
+        withTabBarOffset={tabBarOffset && !fillMain}
         className={cn(
           /* Mobile px/pt live in index.css (`.admin-mobile-main-shell`) — not Tailwind utilities,
            * or pt-3.5 wins over the hero-page :has() zero-padding rule in the bundle. */
-          'admin-mobile-main-shell native-page-canvas mx-auto w-full max-w-7xl lg:px-8 lg:py-5',
+          'admin-mobile-main-shell native-page-canvas mx-auto w-full max-w-7xl lg:py-5',
+          canvas ? 'lg:px-5' : 'lg:px-8',
           fillMain && 'flex min-h-0 flex-1 flex-col'
         )}
       >
@@ -793,6 +1012,7 @@ function AdminSidebarContent({
         ) : (
           <SidebarTenantScope collapsed={collapsed} />
         )}
+        {!superAdmin && !collapsed && !onClose ? <DashboardModeToggle className="mt-2" /> : null}
       </div>
 
       <nav
@@ -1052,8 +1272,9 @@ function AdminProfileFooter({
               </div>
             ) : null}
 
-            <div className={cn('px-3 py-3', collapsed && 'border-border/50 border-t')}>
+            <div className={cn('space-y-2 px-3 py-3', collapsed && 'border-border/50 border-t')}>
               <ModeSwitcher className="w-full" />
+              <DashboardModeToggle />
             </div>
 
             <div className="border-border/50 border-t p-1.5">

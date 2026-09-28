@@ -2,10 +2,7 @@ import { useMemo } from 'react';
 
 import { useParams } from 'react-router-dom';
 
-import {
-  HostAnnouncementFeed,
-  HostAnnouncementsBodySkeleton,
-} from '@/features/dashboard/announcements/components/HostAnnouncementCard';
+import { HostAnnouncementFeed } from '@/features/dashboard/announcements/components/HostAnnouncementCard';
 import { HostAnnouncementStatCards } from '@/features/dashboard/announcements/components/HostAnnouncementStatCards';
 import { useHostAnnouncements } from '@/features/dashboard/announcements/hooks/useHostAnnouncements';
 import { HOST_ANNOUNCEMENTS_PAGE_SUBTITLE } from '@/features/dashboard/announcements/lib/hostAnnouncementCopy';
@@ -16,6 +13,7 @@ import { useOptionalParkingContext } from '@/features/dashboard/org/components/R
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
+import { HostAnnouncementsBodySkeleton } from '@/components/skeletons/AnnouncementsSkeleton';
 import {
   orgPageTitle,
   parkingDashboardPageTitle,

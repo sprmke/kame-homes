@@ -37,22 +37,9 @@ import {
   type AppSettingsFormValues,
 } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import {
-  buildVoiceReceptionistPatch,
-  useUpdateVoiceReceptionistSettings,
-  useVoiceReceptionistSettings,
-  voiceReceptionistFormIsDirty,
-  voiceReceptionistToFormValues,
-  type VoiceReceptionistFormValues,
-} from '@/features/dashboard/bookings/hooks/useVoiceReceptionistSettings';
-import {
   applyBuildingFormsTeamDefaults,
   pickBuildingFormsTeamContact,
 } from '@/features/dashboard/bookings/lib/buildingFormsTeamDefaults';
-import { PropertyAiSettingsSection } from '@/features/dashboard/org/components/property-settings/PropertyAiSettingsSection';
-import {
-  AI_SETTINGS_NAV_LABEL,
-  AI_SETTINGS_SECTION_ID,
-} from '@/features/dashboard/org/lib/aiSettingsLabels';
 import { PropertyGuestRewardsSection } from '@/features/dashboard/org/components/property-settings/PropertyGuestRewardsSection';
 import {
   operationalSettingsDraftIsDirty,
@@ -87,6 +74,7 @@ import type { PropertyLocationFields } from '@/features/dashboard/org/lib/proper
 import { type PropertySettingsSectionId } from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import { resolvePropertySettingsFieldError } from '@/features/dashboard/org/lib/propertySettingsFieldError';
 import {
+  applyDerivedGafTowerToOperationalForm,
   gafTowerUnitFromProfile,
   propertyProfileDraftFromProperty,
   propertyProfileDraftIsDirty,
@@ -106,8 +94,6 @@ import { computePaymentSettingsFingerprint } from '@/features/dashboard/org/lib/
 import { rememberTenantSlugChange } from '@/features/dashboard/org/lib/tenantSlugRemap';
 import { orgPropertiesPath, propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
-import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
-import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { usePropertyTeam } from '@/features/dashboard/team/hooks/usePropertyTeam';
 import {
@@ -122,8 +108,8 @@ import {
 } from '@/components/mobile/MobileHeroActionButton';
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useSettingsUserEdited } from '@/hooks/useSettingsUserEdited';
 import { resolveNameAvailabilityState } from '@/lib/availabilityCheckState';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { propertyBrandColorStoredValue } from '@/lib/theme/brandColor';
@@ -143,7 +129,6 @@ const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
   { id: 'building-forms', label: 'Building Forms', icon: ClipboardList },
   { id: 'email-automations', label: 'Email Automations', icon: Mail },
   { id: 'integrations', label: 'Integrations', icon: Globe },
-  { id: AI_SETTINGS_SECTION_ID, label: AI_SETTINGS_NAV_LABEL, icon: Sparkles },
   { id: 'activity', label: 'Activity', icon: ScrollText },
   { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
@@ -187,10 +172,6 @@ export function usePropertySettingsController() {
     return locked;
   }, [canEditSettingsSection]);
   const canEditDangerZone = canEditSettingsSection('danger');
-  const canEditVoiceReceptionist = hasPropertyPermission(
-    propertyAccess?.permissions,
-    'settings.voiceReceptionist:edit'
-  );
   const canDeleteProperty =
     propertyAccess?.accessKind === 'owner' || propertyAccess?.accessKind === 'platform_admin';
   const {
@@ -203,17 +184,6 @@ export function usePropertySettingsController() {
   const updateProperty = useUpdateProperty(orgSlug);
   const deleteProperty = useDeleteProperty(orgSlug);
   const updateAppSettings = useUpdateAppSettings();
-  const {
-    data: voiceSettings,
-    isLoading: voiceSettingsLoading,
-    isError: voiceSettingsError,
-    error: voiceSettingsLoadError,
-  } = useVoiceReceptionistSettings();
-  const updateVoiceSettings = useUpdateVoiceReceptionistSettings();
-  const { canUse: canEnableReceptionist, isLoading: receptionistEntitlementsLoading } =
-    useFeatureGate('aiReceptionist');
-  const { canUse: canUseAiOverrides } = useFeatureGate('aiMonthlyCreditAllowance');
-  const { open: openUpgradeModal } = useUpgradeModal();
   const orgBrandColor = useOrgBrandColor();
   const inheritedBrandColor = appSettings?.inheritedBrandColor ?? orgBrandColor;
   const { data: orgSettings } = useOrgSettings();
@@ -238,8 +208,6 @@ export function usePropertySettingsController() {
   const [operationalBaseline, setOperationalBaseline] = useState<AppSettingsFormValues | null>(
     null
   );
-  const [voiceDraft, setVoiceDraft] = useState<VoiceReceptionistFormValues | null>(null);
-  const [voiceBaseline, setVoiceBaseline] = useState<VoiceReceptionistFormValues | null>(null);
   const [newCustomAmenityInputs, setNewCustomAmenityInputs] = useState<Record<string, string>>({});
   const [newCustomHouseRuleInputs, setNewCustomHouseRuleInputs] = useState<Record<string, string>>(
     {}
@@ -254,16 +222,21 @@ export function usePropertySettingsController() {
     resolve: (ok: boolean) => void;
   } | null>(null);
 
-  const markFieldInteracted = useCallback((fieldId: string) => {
-    setInteractedFields((current) => {
-      if (current[fieldId]) return current;
-      return { ...current, [fieldId]: true };
-    });
-  }, []);
+  const { userEdited, markUserEdited, resetUserEdited } = useSettingsUserEdited();
+
+  const markFieldInteracted = useCallback(
+    (fieldId: string) => {
+      markUserEdited();
+      setInteractedFields((current) => {
+        if (current[fieldId]) return current;
+        return { ...current, [fieldId]: true };
+      });
+    },
+    [markUserEdited]
+  );
 
   const profileDirtyRef = useRef(false);
   const operationalDirtyRef = useRef(false);
-  const voiceDirtyRef = useRef(false);
   const skipProfileSyncRef = useRef(false);
   const [mediaGalleryBusy, setMediaGalleryBusy] = useState(false);
 
@@ -286,17 +259,10 @@ export function usePropertySettingsController() {
       ? pickBuildingFormsTeamContact(propertyTeam.members)
       : null;
     values = applyBuildingFormsTeamDefaults(values, appSettings.fieldSources, teamDefaults);
+    values = applyDerivedGafTowerToOperationalForm(values, profileDraft);
     setOperationalDraft(values);
     setOperationalBaseline(values);
   }, [appSettings, propertyTeam?.members]);
-
-  useEffect(() => {
-    if (!voiceSettings) return;
-    if (voiceDirtyRef.current) return;
-    const values = voiceReceptionistToFormValues(voiceSettings);
-    setVoiceDraft(values);
-    setVoiceBaseline(values);
-  }, [voiceSettings]);
 
   const gafTowerUnit = useMemo(
     () => gafTowerUnitFromProfile(profileDraft),
@@ -304,10 +270,12 @@ export function usePropertySettingsController() {
   );
 
   useEffect(() => {
-    setOperationalDraft((current) => {
+    const syncGafTower = (current: AppSettingsFormValues | null): AppSettingsFormValues | null => {
       if (!current || current.gafTowerAndUnitNumber === gafTowerUnit) return current;
       return { ...current, gafTowerAndUnitNumber: gafTowerUnit };
-    });
+    };
+    setOperationalDraft(syncGafTower);
+    setOperationalBaseline(syncGafTower);
   }, [gafTowerUnit]);
 
   const profileDirty = propertyProfileDraftIsDirty(profileDraft, profileBaseline);
@@ -424,10 +392,8 @@ export function usePropertySettingsController() {
       setSavingReviewId(null);
     }
   };
-  const voiceDirty =
-    voiceDraft && voiceBaseline ? voiceReceptionistFormIsDirty(voiceDraft, voiceBaseline) : false;
-  voiceDirtyRef.current = voiceDirty;
-  const isDirty = profileDirty || operationalDirty || voiceDirty;
+  const isDirty = profileDirty || operationalDirty;
+  const showSaveActions = isDirty && userEdited;
 
   const savePlan = useMemo(() => {
     if (!operationalDraft || !operationalBaseline || !appSettings) return null;
@@ -461,7 +427,7 @@ export function usePropertySettingsController() {
 
   const saveDisabledByValidation =
     Boolean(paymentBlocksSave) ||
-    (Boolean(isDirty) && !voiceDirty && Boolean(savePlan) && !savePlan!.hasSavableWork);
+    (Boolean(isDirty) && Boolean(savePlan) && !savePlan!.hasSavableWork);
 
   const saveDisabledReason = (() => {
     if (!saveDisabledByValidation) return undefined;
@@ -481,7 +447,6 @@ export function usePropertySettingsController() {
   const busy =
     appSettingsLoading ||
     updateAppSettings.isPending ||
-    updateVoiceSettings.isPending ||
     deleteProperty.isPending ||
     (updateProperty.isPending && !mediaGalleryBusy);
 
@@ -498,7 +463,6 @@ export function usePropertySettingsController() {
 
   const navSections = useMemo((): AdminSectionNavItem[] => {
     const hidden = new Set<string>();
-    if (!canUseAiOverrides && !canEnableReceptionist) hidden.add('ai');
     if (!canViewActivity) hidden.add('activity');
     return SETTINGS_SECTIONS.filter((section) => !hidden.has(section.id)).map((section) => ({
       ...section,
@@ -506,12 +470,7 @@ export function usePropertySettingsController() {
         section.id as PropertySettingsSectionId
       ),
     }));
-  }, [
-    canEnableReceptionist,
-    canUseAiOverrides,
-    canViewActivity,
-    settingsCompletion.issueSectionIds,
-  ]);
+  }, [canViewActivity, settingsCompletion.issueSectionIds]);
 
   useEffect(() => {
     setPropertySettingsIssueSections(settingsCompletion.issueSectionIds);
@@ -530,6 +489,7 @@ export function usePropertySettingsController() {
     key: K,
     value: PropertyProfileDraft[K]
   ) => {
+    markUserEdited();
     setProfileDraft((current) => ({ ...current, [key]: value }));
   };
 
@@ -539,6 +499,7 @@ export function usePropertySettingsController() {
   };
 
   const persistMediaOrder = async (media: PropertyProfileDraft['media']) => {
+    markUserEdited();
     skipProfileSyncRef.current = true;
     setMediaGalleryBusy(true);
     try {
@@ -556,6 +517,7 @@ export function usePropertySettingsController() {
   const [locationPersistPending, setLocationPersistPending] = useState(false);
 
   const persistLocation = async (fields: PropertyLocationFields) => {
+    markUserEdited();
     if (!canEditSettingsSection('location')) {
       toast.error('You do not have permission to save location');
       throw new Error('location permission denied');
@@ -599,10 +561,12 @@ export function usePropertySettingsController() {
     key: K,
     value: AppSettingsFormValues[K]
   ) => {
+    markUserEdited();
     setOperationalDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
   const setAutomationToggle = (key: PropertyAutomationToggleKey, value: boolean) => {
+    markUserEdited();
     setOperationalDraft((current) =>
       current
         ? {
@@ -611,17 +575,6 @@ export function usePropertySettingsController() {
           }
         : current
     );
-  };
-
-  const setVoiceField = <K extends keyof VoiceReceptionistFormValues>(
-    key: K,
-    value: VoiceReceptionistFormValues[K]
-  ) => {
-    if (key === 'enabled' && value === true && !canEnableReceptionist) {
-      if (!receptionistEntitlementsLoading) openUpgradeModal('aiReceptionist');
-      return;
-    }
-    setVoiceDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
   const handleSave = async (options?: {
@@ -659,11 +612,11 @@ export function usePropertySettingsController() {
       return false;
     }
 
-    if (!plan.hasSavableWork && !voiceDirty) {
+    if (!plan.hasSavableWork) {
       setShowValidationErrors(true);
       if (plan.firstBlockedMessage) {
         toast.error(plan.firstBlockedMessage);
-      } else if (!profileDirty && !operationalDirty && !voiceDirty) {
+      } else if (!profileDirty && !operationalDirty) {
         toast.message('No changes to save');
       }
       if (plan.firstBlockedSectionId) {
@@ -695,8 +648,7 @@ export function usePropertySettingsController() {
       if (
         (plan.profileSections.length > 0 || plan.operationalSections.length > 0) &&
         savedProfileSections.length === 0 &&
-        savedOperationalSections.length === 0 &&
-        !voiceDirty
+        savedOperationalSections.length === 0
       ) {
         toast.error('You do not have permission to save these settings');
         return false;
@@ -761,22 +713,9 @@ export function usePropertySettingsController() {
         savedSomething = true;
       }
 
-      if (voiceDirty && voiceDraft) {
-        if (voiceDraft.enabled && !canEnableReceptionist) {
-          if (!receptionistEntitlementsLoading) openUpgradeModal('aiReceptionist');
-          return false;
-        }
-        const saved = await updateVoiceSettings.mutateAsync(
-          buildVoiceReceptionistPatch(voiceDraft)
-        );
-        const values = voiceReceptionistToFormValues(saved);
-        setVoiceDraft(values);
-        setVoiceBaseline(values);
-        savedSomething = true;
-      }
-
       if (savedSomething) {
         setInteractedFields({});
+        resetUserEdited();
         if (plan.blockedSections.length > 0) {
           toast.success('New changes has been saved.');
           scrollToSettingsSection(plan.blockedSections[0]!);
@@ -798,7 +737,10 @@ export function usePropertySettingsController() {
     }
   };
 
-  useUnsavedChangesGuard({ isDirty, onSave: () => handleSave() });
+  useUnsavedChangesGuard({
+    isDirty: isDirty && userEdited,
+    onSave: () => handleSave(),
+  });
 
   const revertPaymentDraft = useCallback(() => {
     setOperationalDraft((current) => {
@@ -893,16 +835,6 @@ export function usePropertySettingsController() {
     updateProperty,
     deleteProperty,
     updateAppSettings,
-    voiceSettings,
-    voiceSettingsLoading,
-    voiceSettingsError,
-    voiceSettingsLoadError,
-    updateVoiceSettings,
-    canEnableReceptionist,
-    canEditVoiceReceptionist,
-    receptionistEntitlementsLoading,
-    canUseAiOverrides,
-    openUpgradeModal,
     orgBrandColor,
     inheritedBrandColor,
     orgSettings,
@@ -915,10 +847,6 @@ export function usePropertySettingsController() {
     setOperationalDraft,
     operationalBaseline,
     setOperationalBaseline,
-    voiceDraft,
-    setVoiceDraft,
-    voiceBaseline,
-    setVoiceBaseline,
     newCustomAmenityInputs,
     setNewCustomAmenityInputs,
     newCustomHouseRuleInputs,
@@ -937,7 +865,6 @@ export function usePropertySettingsController() {
     markFieldInteracted,
     profileDirtyRef,
     operationalDirtyRef,
-    voiceDirtyRef,
     skipProfileSyncRef,
     mediaGalleryBusy,
     setMediaGalleryBusy,
@@ -959,8 +886,8 @@ export function usePropertySettingsController() {
     resolveFieldError,
     operationalDirty,
     handleSaveExternalReview,
-    voiceDirty,
     isDirty,
+    showSaveActions,
     savePlan,
     paymentDirty,
     paymentBlocksSave,
@@ -980,7 +907,6 @@ export function usePropertySettingsController() {
     persistLocation,
     setOperationalField,
     setAutomationToggle,
-    setVoiceField,
     handleSave,
     revertPaymentDraft,
     handlePaymentOtpOpenChange,
@@ -1006,19 +932,11 @@ export function PropertySettingsCard() {
     appSettingsLoadError,
     updateProperty,
     deleteProperty,
-    voiceSettings,
-    voiceSettingsLoading,
-    voiceSettingsError,
-    voiceSettingsLoadError,
-    canEnableReceptionist,
-    canEditVoiceReceptionist,
-    canUseAiOverrides,
     inheritedBrandColor,
     orgSocialLinks,
     profileDraft,
     operationalDraft,
     operationalBaseline,
-    voiceDraft,
     newCustomAmenityInputs,
     setNewCustomAmenityInputs,
     newCustomHouseRuleInputs,
@@ -1036,7 +954,7 @@ export function PropertySettingsCard() {
     settingsCompletion,
     resolveFieldError,
     handleSaveExternalReview,
-    isDirty,
+    showSaveActions,
     saveDisabledReason,
     busy,
     saveDisabled,
@@ -1050,7 +968,6 @@ export function PropertySettingsCard() {
     persistLocation,
     setOperationalField,
     setAutomationToggle,
-    setVoiceField,
     handleSave,
     handlePaymentOtpOpenChange,
     handlePaymentOtpVerified,
@@ -1079,7 +996,7 @@ export function PropertySettingsCard() {
         onSelect: goCopyFrom,
       });
     }
-    if (isDirty) {
+    if (showSaveActions) {
       items.push({
         key: 'save',
         label: busy ? 'Saving' : 'Save changes',
@@ -1103,7 +1020,7 @@ export function PropertySettingsCard() {
         ) : undefined
       }
       desktopActions={
-        copyFromHref || isDirty ? (
+        copyFromHref || showSaveActions ? (
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             {copyFromHref ? (
               <TierBadgeAnchor feature="copyPropertySettings">
@@ -1118,7 +1035,7 @@ export function PropertySettingsCard() {
                 </Button>
               </TierBadgeAnchor>
             ) : null}
-            {isDirty ? (
+            {showSaveActions ? (
               <Button
                 type="button"
                 onClick={() => void handleSave()}
@@ -1157,34 +1074,7 @@ export function PropertySettingsCard() {
       {appSettingsLoading ? (
         <AppSettingsNavLayoutSkeleton />
       ) : appSettings && operationalDraft ? (
-        <AdminSectionNavLayout
-          className="min-h-0 flex-1"
-          sections={navSections}
-          footer={
-            isDirty ? (
-              <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="size-2 animate-pulse rounded-full bg-amber-500" />
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                      Unsaved changes
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={saveDisabled}
-                    title={saveDisabledReason}
-                    className="min-h-[44px] w-full sm:w-auto"
-                    size="sm"
-                  >
-                    {busy ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : null
-          }
-        >
+        <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
           <PropertyProfileMainSections
             draft={profileDraft}
             onChange={setProfileField}
@@ -1258,23 +1148,6 @@ export function PropertySettingsCard() {
             markFieldInteracted={markFieldInteracted}
             sectionMessages={settingsCompletion.sectionMessages}
           />
-
-          {canUseAiOverrides || canEnableReceptionist ? (
-            <PropertyAiSettingsSection
-              showUsage={canUseAiOverrides}
-              showVoiceReceptionist={canEnableReceptionist}
-              voiceDisabled={!canEditVoiceReceptionist}
-              voiceReceptionist={{
-                draft: voiceDraft,
-                propertyName: profileDraft.name.trim(),
-                availableVoices: voiceSettings?.availableVoices ?? [],
-                isLoading: voiceSettingsLoading,
-                isError: voiceSettingsError,
-                errorMessage: (voiceSettingsLoadError as Error)?.message ?? null,
-                onChange: setVoiceField,
-              }}
-            />
-          ) : null}
 
           {canViewActivity ? (
             <AdminSection id="activity" title="Activity" icon={ScrollText}>

@@ -6,7 +6,6 @@ import { CalendarRange, Download, Loader2, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiPerformanceReviewCard } from '@/features/dashboard/analytics/components/AiPerformanceReviewCard';
-import { AnalyticsEmptyState } from '@/features/dashboard/analytics/components/AnalyticsEmptyState';
 import { AnalyticsDistributionCard } from '@/features/dashboard/analytics/components/AnalyticsDistributionCard';
 import { AnalyticsGuestSignalsCard } from '@/features/dashboard/analytics/components/AnalyticsGuestSignalsCard';
 import { AnalyticsKpiStrip } from '@/features/dashboard/analytics/components/AnalyticsKpiStrip';
@@ -59,6 +58,7 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton';
 import { PropertyAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
 import { Button } from '@/components/ui/button';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { useIsBelowMd, usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { AdminEdgeFetchError } from '@/lib/api/adminEdgeFetch';
 import { CHART_INCOME_COLOR, CHART_INFO_COLOR } from '@/lib/charts/chartStyles';
@@ -72,6 +72,7 @@ const SECTION_GAP = 'flex flex-col gap-2.5 sm:gap-3 lg:gap-4';
 export function PropertyAnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isBelowMd = useIsBelowMd();
+  const compactChrome = useDashboardCompactChrome();
   const reducedMotion = usePrefersReducedMotion();
   const [section, setSection] = useState<AnalyticsSection>('overview');
   const [openPlaybookSlug, setOpenPlaybookSlug] = useState<string | null>(null);
@@ -191,7 +192,8 @@ export function PropertyAnalyticsPage() {
         periodLabel: formatDateRangeDisplay(
           dateNav.dateRange.from,
           dateNav.dateRange.to,
-          dateNav.datePreset
+          dateNav.datePreset,
+          { compact: compactChrome }
         ),
         scopeLabel: orgContext?.property ? pdfPropertyScope(orgContext.property).label : null,
         brandColor,
@@ -283,8 +285,6 @@ export function PropertyAnalyticsPage() {
               Couldn't load analytics. Try again shortly.
             </p>
           </div>
-        ) : data.sufficiency.sampleSize < 10 ? (
-          <AnalyticsEmptyState sampleSize={data.sufficiency.sampleSize} />
         ) : !isFullDashboard ? (
           <div className="surface-card p-6 text-center">
             <p className="text-muted-foreground text-sm">

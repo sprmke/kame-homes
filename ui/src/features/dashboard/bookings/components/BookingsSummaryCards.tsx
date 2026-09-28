@@ -55,7 +55,7 @@ function StatusFooter({ statuses }: { statuses: readonly BookingStatus[] }) {
   if (statuses.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1 max-lg:hidden">
+    <div className="flex w-full flex-wrap content-start items-start gap-1 max-lg:hidden">
       {statuses.map((status) => (
         <span
           key={status}
@@ -76,7 +76,7 @@ export function BookingsSummaryCards({
   hideStatusFooter = false,
 }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
+    <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
       {CARD_STAGES.map((stage) => {
         const meta = STAGE_META[stage];
         const iconStyles = STAGE_ICON_STYLES[stage];

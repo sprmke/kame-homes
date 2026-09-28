@@ -43,13 +43,14 @@ export function AdminPageHeader({
     <div
       className={cn(
         rowWithActions
-          ? 'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'
-          : 'flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4',
+          ? 'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between'
+          : 'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4',
         compact && !rowWithActions && 'sm:items-center',
         !useCard && className
       )}
     >
-      <div className="min-w-0 space-y-0.5">
+      {/* Actions wrap below the title when both don't fit (narrow panes, AI mode canvas). */}
+      <div className="min-w-0 flex-1 space-y-0.5 sm:min-w-[14rem]">
         <div className="flex items-center gap-2.5">
           <h1 id={id} className="text-admin-page-title">
             {title}
