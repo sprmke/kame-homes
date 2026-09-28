@@ -28,11 +28,23 @@ export type PropertyTeamRbacMockOpts = {
   /** Force the video plan gate independently of freePlan (default: !freePlan). Lets a test
    *  simulate a Pro-tier org that has images but not video, without a new template. */
   videoPlanAllowed?: boolean;
+  /** Plan key for AI template generation + Generate tab AI Post (default: true). */
+  aiMarketingGenerationAllowed?: boolean;
   /** Templates page: seed one custom template + one booking (Send to guest flow). */
   customTemplateSeeded?: boolean;
   /** Inbox cross-property switcher: seed a booking on the second property (needs multiProperty) matching the mock "Maria Santos" Facebook thread. */
   crossPropertyBookingSeeded?: boolean;
+  /** AI chat mode platform switch (dashboard-assistant-settings `aiModeEnabled`). */
+  aiModeEnabled?: boolean;
+  /** Server-saved dashboard mode returned by user-ui-preferences GET. */
+  savedDashboardMode?: 'advanced' | 'ai';
 };
+
+/** Last dashboard mode PATCHed to user-ui-preferences in this test (mock server state). */
+let savedDashboardModeState: 'advanced' | 'ai' = 'advanced';
+export function mockedSavedDashboardMode() {
+  return savedDashboardModeState;
+}
 
 const SUPABASE_AUTH_STORAGE_KEY = 'sb-127-auth-token';
 
@@ -42,6 +54,17 @@ type AssistantChatBlock = {
 };
 
 let assistantChatBlocks: AssistantChatBlock[] = [];
+type MockAssistantMemory = {
+  id: string;
+  kind: 'preference' | 'house_style';
+  content: string;
+  createdAt: string;
+};
+let assistantMemoryState: MockAssistantMemory[] = [];
+/** Memory rows the assistant-memory mock holds (reset by installPropertyTeamRbacMocks). */
+export function mockedAssistantMemory() {
+  return assistantMemoryState;
+}
 
 /** Set mocked assistant turn blocks for the next dashboard-assistant-chat POST. */
 export function queueAssistantChatBlocksForMocks(blocks: AssistantChatBlock[]) {
@@ -453,7 +476,8 @@ function orgPlanPayload(multiProperty = false, freePlan = false) {
 function entitlementsPayload(
   freePlan = false,
   assistantEnabled = false,
-  videoPlanAllowed = !freePlan
+  videoPlanAllowed = !freePlan,
+  aiMarketingGenerationAllowed = true
 ) {
   return {
     automatedBookingFlow: !freePlan,
@@ -471,7 +495,7 @@ function entitlementsPayload(
     customPages: true,
     aiDashboardAssistant: assistantEnabled,
     aiReceptionist: false,
-    aiMarketingGeneration: true,
+    aiMarketingGeneration: aiMarketingGenerationAllowed,
     aiChatAutoReply: false,
     fullyManagedByPlatform: false,
     financeReporting: true,
@@ -724,6 +748,18 @@ function aiPlatformSettingsPayload() {
     dailyCostUsdLimit: 10,
     planTier: 'pro',
     updatedAt: null,
+  };
+}
+
+function voiceReceptionistOrgSettingsPayload() {
+  return {
+    organizationId: ORG_ID,
+    enabled: true,
+    voiceId: 'Kore',
+    personaPrompt: null,
+    disabledPropertyIds: [],
+    availableVoices: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'],
+    planAllowed: true,
   };
 }
 
@@ -1057,10 +1093,15 @@ export async function installPropertyTeamRbacMocks(
   const freePlan = Boolean(opts?.freePlan);
   const assistantEnabled = Boolean(opts?.assistantEnabled);
   const videoPlanAllowed = opts?.videoPlanAllowed ?? !freePlan;
+  const aiMarketingGenerationAllowed = opts?.aiMarketingGenerationAllowed ?? true;
   const multiProperty = Boolean(opts?.multiProperty);
   const orgHub = Boolean(opts?.orgHub);
   const customTemplateSeeded = Boolean(opts?.customTemplateSeeded);
   const crossPropertyBookingSeeded = Boolean(opts?.crossPropertyBookingSeeded);
+  const aiModeEnabled = Boolean(opts?.aiModeEnabled);
+  savedDashboardModeState = opts?.savedDashboardMode ?? 'advanced';
+  assistantMemoryState = [];
+  let assistantTurn = 0;
   let orgSettingsState = orgSettingsPayload();
   let marketingGenerationJobs = opts?.marketingGenerationSeeded
     ? [marketingGenerationJobFixture()]
@@ -1090,7 +1131,12 @@ export async function installPropertyTeamRbacMocks(
       case 'property-entitlements':
         await fulfillJson(route, {
           success: true,
-          data: entitlementsPayload(freePlan, assistantEnabled, videoPlanAllowed),
+          data: entitlementsPayload(
+            freePlan,
+            assistantEnabled,
+            videoPlanAllowed,
+            aiMarketingGenerationAllowed
+          ),
         });
         return;
       case 'dashboard-stats':
@@ -1123,6 +1169,34 @@ export async function installPropertyTeamRbacMocks(
         return;
       case 'ai-platform-usage':
         await fulfillJson(route, { success: true, data: aiPlatformUsagePayload() });
+        return;
+      case 'voice-receptionist-settings':
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            ...voiceReceptionistOrgSettingsPayload(),
+            ...((route.request().postDataJSON() ?? {}) as Record<string, unknown>),
+          },
+        });
+        return;
+      case 'voice-receptionist-usage':
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            sessionsToday: 0,
+            sessionsLast7Days: 0,
+            sessionsLast30Days: 0,
+            totalDurationSeconds: 0,
+            avgDurationSeconds: 0,
+            estimatedCostUsdLast30Days: 0,
+            failedSessionsLast30Days: 0,
+            handoffsLast30Days: 0,
+            failureRate: 0,
+            handoffRate: 0,
+            endReasonCounts: {},
+            recentSessions: [],
+          },
+        });
         return;
       case 'property-templates-settings':
         await fulfillJson(route, {
@@ -1185,8 +1259,8 @@ export async function installPropertyTeamRbacMocks(
         await fulfillJson(route, {
           success: true,
           data:
-            orgHub || assistantEnabled
-              ? assistantOrgSettingsPayload()
+            orgHub || assistantEnabled || aiModeEnabled
+              ? { ...assistantOrgSettingsPayload(), aiModeEnabled }
               : { enabled: false, disabledPropertyIds: [] },
         });
         return;
@@ -1201,24 +1275,124 @@ export async function installPropertyTeamRbacMocks(
         return;
       case 'dashboard-assistant-conversations':
         if (route.request().method() === 'GET') {
-          await fulfillJson(route, { success: true, data: { conversations: [] } });
+          if (url.searchParams.get('conversation_id')) {
+            await fulfillJson(route, {
+              success: true,
+              data: {
+                conversation: {
+                  id: url.searchParams.get('conversation_id'),
+                  title: 'E2E conversation',
+                  property_id: null,
+                  last_message_at: '2026-09-28T00:00:00.000Z',
+                  created_at: '2026-09-28T00:00:00.000Z',
+                  pinned_at: null,
+                  archived_at: null,
+                },
+                messages: [],
+                feedback: {},
+              },
+            });
+            return;
+          }
+          await fulfillJson(route, {
+            success: true,
+            data: { conversations: [], nextOffset: null },
+          });
           return;
         }
         await fulfillJson(route, { success: true, data: {} });
         return;
       case 'dashboard-assistant-chat':
         if (route.request().method() === 'POST') {
+          assistantTurn += 1;
           await fulfillJson(route, {
             success: true,
             data: {
               conversationId: 'conv-e2e-assistant-001',
               blocks: assistantChatBlocks,
+              messageId: `msg-e2e-assistant-${assistantTurn}`,
+              userMessageId: `msg-e2e-user-${assistantTurn}`,
             },
           });
           return;
         }
         await fulfillJson(route, { success: true, data: {} });
         return;
+      case 'dashboard-assistant-feedback': {
+        const body = route.request().postDataJSON() as { messageId?: string; rating?: number };
+        await fulfillJson(route, { success: true, data: body });
+        return;
+      }
+      case 'dashboard-assistant-memory': {
+        const method = route.request().method();
+        if (method === 'POST') {
+          const body = route.request().postDataJSON() as {
+            kind: 'preference' | 'house_style';
+            content: string;
+          };
+          const memory = {
+            id: `mem-e2e-${assistantMemoryState.length + 1}`,
+            kind: body.kind,
+            content: body.content.trim(),
+            createdAt: '2026-09-28T00:00:00Z',
+          };
+          assistantMemoryState.push(memory);
+          await fulfillJson(route, { success: true, data: { memory } });
+          return;
+        }
+        if (method === 'DELETE') {
+          const id = new URL(route.request().url()).searchParams.get('id');
+          assistantMemoryState = assistantMemoryState.filter((m) => m.id !== id);
+          await fulfillJson(route, { success: true, data: { deleted: true } });
+          return;
+        }
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            preferences: assistantMemoryState.filter((m) => m.kind === 'preference'),
+            houseStyle: assistantMemoryState.filter((m) => m.kind === 'house_style'),
+            canManageHouseStyle: true,
+          },
+        });
+        return;
+      }
+      case 'dashboard-assistant-briefing':
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            manilaDate: '2026-09-28',
+            cards: [
+              {
+                id: 'pending-review',
+                label: 'Pending review',
+                count: 2,
+                severity: 'critical',
+                prompt: 'Which bookings are waiting for my review, and what does each one need?',
+                href: '/bookings?status=PENDING_REVIEW',
+              },
+              {
+                id: 'check-ins-today',
+                label: 'Check-ins today',
+                count: 1,
+                severity: 'warning',
+                prompt: 'Who is checking in today, and is anything missing?',
+                href: '/bookings',
+              },
+            ],
+          },
+        });
+        return;
+      case 'user-ui-preferences': {
+        if (route.request().method() === 'PATCH') {
+          const body = route.request().postDataJSON() as { dashboardMode?: 'advanced' | 'ai' };
+          if (body.dashboardMode) savedDashboardModeState = body.dashboardMode;
+        }
+        await fulfillJson(route, {
+          success: true,
+          data: { dashboardMode: savedDashboardModeState, updatedAt: null },
+        });
+        return;
+      }
       case 'dashboard-assistant-confirm': {
         const body = route.request().postDataJSON() as {
           actionId?: string;
@@ -1440,7 +1614,7 @@ function adminNavEntry(root: ReturnType<typeof adminNav>, label: string) {
   return root.getByRole('link', { name: label }).or(root.getByRole('listitem', { name: label }));
 }
 
-async function openAdminMoreSheet(page: Page) {
+export async function openAdminMoreSheet(page: Page) {
   if (await moreNav(page).isVisible()) return;
   await dismissInstallPromptIfPresent(page);
   await adminNav(page)

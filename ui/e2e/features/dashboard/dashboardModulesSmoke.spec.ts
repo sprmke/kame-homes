@@ -21,6 +21,25 @@ test.describe('@ci dashboard module shells', () => {
     });
   });
 
+  test('finance card header titles never sit under their filter at 1024px', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await installPropertyTeamRbacMocks(page, 'full_access');
+    await page.goto('/org/kame-homes-ph/property/solea-mactan/finance');
+    const filter = page.getByRole('tablist', { name: 'Breakdown filter' });
+    await expect(filter).toBeVisible({ timeout: 20_000 });
+    const title = page.getByText('Breakdown', { exact: true });
+    // Measure the rendered text, not the <p> box: a shrunk box lets the text spill under the filter.
+    const text = await title.evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const { right, bottom } = range.getBoundingClientRect();
+      return { right, bottom };
+    });
+    const filterBox = await filter.boundingBox();
+    // Side by side, or the filter wrapped onto its own row: either way, never on top of the text.
+    expect(text.right <= filterBox!.x || text.bottom <= filterBox!.y).toBe(true);
+  });
+
   test('property dashboard loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     await openPropertyDashboard(page);

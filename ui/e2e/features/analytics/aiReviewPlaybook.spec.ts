@@ -75,6 +75,14 @@ test.describe('@ci analytics AI review', () => {
     await expect(page.getByText('Occupancy cooled after a full August')).toHaveCount(0);
   });
 
+  test('renders the full dashboard with little booking history', async ({ page }) => {
+    await installAnalyticsAiReviewMocks(page, { sampleSize: 5 });
+    await page.goto(analyticsPaths.analytics);
+
+    await expect(page.getByRole('tab', { name: 'AI review' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Not enough booking history yet')).toHaveCount(0);
+  });
+
   test('shows not applicable for a prior month', async ({ page }) => {
     await installAnalyticsAiReviewMocks(page);
     await openAiReviewTab(page, '?from=2026-08-01&to=2026-08-31');

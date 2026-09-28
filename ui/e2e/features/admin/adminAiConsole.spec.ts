@@ -52,6 +52,17 @@ test.describe('@ci super admin AI console', () => {
     await expectNoPageHorizontalOverflow(page);
   });
 
+  test('usage tab shows assistant evals per module, weakest first', async ({ page }) => {
+    await installConsoleMocks(page);
+    await page.goto('/admin/ai?tab=usage');
+    const evals = page.getByRole('region', { name: 'Assistant evals' });
+    await expect(evals).toBeVisible({ timeout: 20_000 });
+    await expect(evals.getByText('25/26 passed · routed · 21.1 tools per turn')).toBeVisible();
+    await expect(evals.getByText('Failed: maintenance-create')).toBeVisible();
+    await expect(evals.getByText('100% (26/26)')).toBeVisible();
+    await expectNoPageHorizontalOverflow(page);
+  });
+
   test('legacy AI URLs redirect into the console', async ({ page }) => {
     await installConsoleMocks(page);
     await page.goto('/admin/ai-usage');

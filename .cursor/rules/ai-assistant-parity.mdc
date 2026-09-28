@@ -20,6 +20,9 @@ Choose **one** and document it in the PR / architecture catalog:
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Assistant tool** | Add propose (+ execute if Tier 2) in `_shared/dashboardAssistant*.ts`, register in `TOOL_DECLARATIONS` + risk classifier + tool labels (edge + UI), update `docs/architecture/ai-dashboard-assistant.md` + manual test note. Prefer shared upload/service helpers — never a weaker chat-only path. |
 | **Exclusion**      | Add a row under Explicit exclusions (or “Not built”) in `docs/architecture/ai-dashboard-assistant.md` with rationale, and a Host-facing knowledge Q&A (or KB sync) explaining how to finish in the UI.                                                                                             |
+| **Handoff**        | Add a `handoff(routeKey, reason)` entry so `open_page` can send the host to the exact screen (route must be in `_shared/dashboardAssistantRoutes.ts`).                                                                                                                                             |
+
+**Machine check:** every edge function must have an entry in `supabase/functions/_shared/dashboardAssistantParity.ts` (`tool` / `handoff` / `excluded` / `read` / non-host kind) unless it is served by `serveSuperAdmin` / `serveCronPost` / `servePublic`. `supabase/functions/tests/assistantParityManifest.test.ts` (runs in `bun run test:edge:handlers`) fails on a missing or stale entry, an undeclared tool, a non-allowlisted route, or a never-build write that is not `excluded`.
 
 ## Safety invariants (do not weaken)
 
@@ -35,6 +38,6 @@ New host-visible data surfaces should get a read tool **or** knowledge-base cove
 
 ## Related
 
-- Plan: `docs/workflow/in-progress/ai-assistant-attachment-actions-and-coverage.md` § Phase 7
+- Plan: `docs/workflow/in-progress/ai-chat-mode.md` § Phase 7 (parity manifest)
 - Catalog: `docs/architecture/ai-dashboard-assistant.md`
 - Always-on plans/RBAC: `plans-and-permissions.mdc`

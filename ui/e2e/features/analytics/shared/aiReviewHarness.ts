@@ -1,7 +1,7 @@
 /**
- * Mocked property analytics harness focused on the AI review tab: a full bundle (so the page
- * clears its sample-size gate), two matched Playbook articles, and one latest AI review whose
- * improvements cite those articles and deep-link to Pricing.
+ * Mocked property analytics harness focused on the AI review tab: a full bundle, two matched
+ * Playbook articles, and one latest AI review whose improvements cite those articles and
+ * deep-link to Pricing. `sampleSize` below 10 mocks a property with little booking history.
  */
 
 import { expect, type Page } from '@playwright/test';
@@ -43,7 +43,9 @@ const kpi = (value: number) => ({
   changePctVsLastYear: null,
 });
 
-function analyticsBundle() {
+type AnalyticsMockOptions = { sampleSize?: number };
+
+function analyticsBundle({ sampleSize = 42 }: AnalyticsMockOptions = {}) {
   return {
     tier: 'full',
     period: { from: '2026-09-01', to: '2026-09-30' },
@@ -93,7 +95,7 @@ function analyticsBundle() {
       unpaidBalanceUpcomingTotal: 3900,
       unpaidBalanceUpcomingCount: 1,
     },
-    sufficiency: { sampleSize: 42, enough: true },
+    sufficiency: { sampleSize, enough: sampleSize >= 10 },
     publicPage: { pageViews: 0, uniqueVisitors: 0, topReferrers: [] },
     playbook: [PLAYBOOK_BLOCKED_DATES, PLAYBOOK_UNPAID_BALANCES],
     benchmark: {
@@ -191,13 +193,13 @@ function propertyAccessWithAnalytics() {
   };
 }
 
-export async function installAnalyticsAiReviewMocks(page: Page) {
+export async function installAnalyticsAiReviewMocks(page: Page, options?: AnalyticsMockOptions) {
   await installPropertyTeamRbacMocks(page, 'full_access');
-  await installAnalyticsAiReviewRoutes(page);
+  await installAnalyticsAiReviewRoutes(page, options);
 }
 
 /** Analytics routes only, for callers that install their own RBAC/plan harness first. */
-export async function installAnalyticsAiReviewRoutes(page: Page) {
+export async function installAnalyticsAiReviewRoutes(page: Page, options?: AnalyticsMockOptions) {
   // Registered last, so it wins over the shared harness handler; everything else falls through.
   await page.route('**/functions/v1/**', async (route) => {
     const url = new URL(route.request().url());
@@ -215,7 +217,7 @@ export async function installAnalyticsAiReviewRoutes(page: Page) {
     }
     const body =
       endpoint === 'analytics-summary'
-        ? analyticsBundle()
+        ? analyticsBundle(options)
         : endpoint === 'analytics-ai-review'
           ? { review: aiReviewRecord() }
           : endpoint === 'property-access'

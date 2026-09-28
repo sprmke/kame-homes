@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import {
   installPropertyTeamRbacMocks,
@@ -11,6 +11,12 @@ import {
  */
 const SEEDED_PROMPT = 'E2E fixture: sunset shot of the rooftop pool deck';
 
+/** Generate opens on AI Post when the plan has it; these specs cover Photo & video. */
+async function openPhotoAndVideo(page: Page) {
+  await page.getByRole('tab', { name: 'Generate' }).click();
+  await page.getByRole('tab', { name: 'Photo & video' }).click();
+}
+
 test.describe('@ci marketing AI generate tab', () => {
   test('Pro+ composer is usable and the gallery shows a completed generation', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
@@ -19,7 +25,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
 
     await expect(page.getByPlaceholder(/balcony at golden hour/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /generate/i })).toBeVisible();
@@ -37,7 +43,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
 
     const mediaType = page.getByRole('tablist', { name: 'Media type' });
     const videoToggle = mediaType.getByRole('tab', { name: /^Video/ });
@@ -64,7 +70,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
 
     const mediaType = page.getByRole('tablist', { name: 'Media type' });
     const videoToggle = mediaType.getByRole('tab', { name: /^Video/ });
@@ -94,7 +100,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
 
     await page.locator('#ai-studio-prompt').fill('Sunset over the rooftop pool');
     await page
@@ -115,7 +121,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.locator('#ai-studio-prompt')).toHaveValue(SEEDED_PROMPT);
   });
@@ -127,7 +133,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
     await page.getByRole('button', { name: 'Library' }).click();
     await expect(page.getByRole('dialog', { name: 'Library' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Use balcony\.jpg/i })).toBeVisible();
@@ -140,7 +146,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
     await page.getByRole('button', { name: 'Use photo' }).click();
     await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible();
   });
@@ -152,7 +158,7 @@ test.describe('@ci marketing AI generate tab', () => {
       timeout: 20_000,
     });
 
-    await page.getByRole('tab', { name: 'Generate' }).click();
+    await openPhotoAndVideo(page);
 
     const mediaType = page.getByRole('tablist', { name: 'Media type' });
     await expect(

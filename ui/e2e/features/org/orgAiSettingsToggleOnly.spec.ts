@@ -14,7 +14,9 @@ test.describe('@ci host AI settings are toggle-only', () => {
     });
 
     await page.locator('#section-ai').scrollIntoViewIfNeeded();
-    await expect(page.getByRole('heading', { name: 'AI features', exact: true })).toBeVisible();
+    await expect(
+      page.locator('#section-ai').getByText('AI features', { exact: true })
+    ).toBeVisible();
     await expect(page.getByLabel('Enable AI for organization')).toBeVisible();
     // Progressive disclosure: assistant + usage only when org AI is on (mock defaults on).
     await expect(page.getByLabel('Enable dashboard assistant')).toBeVisible();
@@ -47,5 +49,27 @@ test.describe('@ci host AI settings are toggle-only', () => {
     await page.getByLabel('Enable AI for organization').click();
     const body = (await patch).postDataJSON() as Record<string, unknown>;
     expect(body).toEqual({ enabled: false });
+  });
+
+  test('voice receptionist is configured on the org card', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access', { orgHub: true });
+    await page.goto(`/org/${TEAM_E2E_ORG_SLUG}/settings`);
+    await page.locator('#section-ai').scrollIntoViewIfNeeded();
+
+    await expect(
+      page.getByRole('heading', { name: 'Voice receptionist', exact: true })
+    ).toBeVisible();
+    await expect(page.getByLabel('Enable voice receptionist')).toBeChecked();
+    await expect(page.getByLabel('Persona prompt')).toBeVisible();
+
+    const patch = page.waitForRequest(
+      (req) =>
+        req.url().includes('/functions/v1/voice-receptionist-settings') && req.method() === 'PATCH'
+    );
+    await page.getByLabel('Persona prompt').fill('Warm and brief');
+    await page.getByRole('button', { name: 'Save voice settings' }).click();
+    const body = (await patch).postDataJSON() as Record<string, unknown>;
+    expect(body).toMatchObject({ enabled: true, voiceId: 'Kore', personaPrompt: 'Warm and brief' });
+    expect(body).not.toHaveProperty('maxSessionSeconds');
   });
 });

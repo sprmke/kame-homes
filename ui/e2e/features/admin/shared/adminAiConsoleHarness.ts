@@ -155,6 +155,55 @@ const orgDetail = {
   },
 };
 
+const aiUsage = {
+  success: true,
+  data: {
+    range: '30d',
+    generatedAt: '2026-09-28T00:00:00Z',
+    totals: {
+      costUsd: 12.5,
+      calls: 420,
+      orgsWithUsage: 2,
+      quotaBreaches: 0,
+      monthToDateUsd: 12.5,
+      projectedMonthEndUsd: 14,
+      platformDailyCapUsd: 50,
+    },
+    dailySeries: [],
+    featureBreakdown: [],
+    topOrgs: [],
+    quotaBreaches: [],
+    assistantFeedback: { up: 9, down: 1, positivePct: 90, recentNegative: [] },
+    assistantEvalRuns: [
+      {
+        id: 'run-2',
+        createdAt: '2026-09-28T01:00:00Z',
+        routed: true,
+        passed: 25,
+        total: 26,
+        avgToolsSent: 21.1,
+        promptVersion: '2026-09-28.1',
+        modules: [
+          { module: 'bookings', passed: 1, total: 2 },
+          { module: 'finance', passed: 1, total: 1 },
+        ],
+        failedCaseIds: ['maintenance-create'],
+      },
+      {
+        id: 'run-1',
+        createdAt: '2026-09-27T01:00:00Z',
+        routed: false,
+        passed: 26,
+        total: 26,
+        avgToolsSent: 127,
+        promptVersion: '2026-09-24.1',
+        modules: [],
+        failedCaseIds: [],
+      },
+    ],
+  },
+};
+
 async function json(route: Route, body: unknown) {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
@@ -167,6 +216,7 @@ export async function installConsoleMocks(page: Page) {
       name: 'list-organizations',
       body: { success: true, data: { organizations: [], isSuperAdmin: true } },
     },
+    { name: 'super-admin-ai-usage', body: aiUsage },
     {
       name: 'super-admin-ai-limits',
       handler: async (route) => {
