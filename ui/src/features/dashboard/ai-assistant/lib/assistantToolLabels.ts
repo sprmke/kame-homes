@@ -497,6 +497,141 @@ const TOOL_LABELS: Record<string, { progress: string; done: string; failed: stri
     done: 'Loaded import guide',
     failed: 'Import guide failed',
   },
+  open_page: {
+    progress: 'Finding the page…',
+    done: 'Found the page',
+    failed: 'Page lookup failed',
+  },
+  list_parking_team: {
+    progress: 'Checking the parking team…',
+    done: 'Checked the parking team',
+    failed: 'Parking team check failed',
+  },
+  propose_invite_parking_team_member: {
+    progress: 'Preparing the invite…',
+    done: 'Prepared the invite',
+    failed: 'Invite failed',
+  },
+  propose_update_parking_team_member: {
+    progress: 'Preparing the role change…',
+    done: 'Prepared the role change',
+    failed: 'Role change failed',
+  },
+  propose_remove_parking_team_member: {
+    progress: 'Preparing the removal…',
+    done: 'Prepared the removal',
+    failed: 'Removal failed',
+  },
+  propose_revoke_parking_invitation: {
+    progress: 'Cancelling the invitation…',
+    done: 'Cancelled the invitation',
+    failed: 'Could not cancel the invitation',
+  },
+  get_automation_settings: {
+    progress: 'Checking automatic emails…',
+    done: 'Checked automatic emails',
+    failed: 'Automatic email check failed',
+  },
+  propose_update_automation_toggles: {
+    progress: 'Preparing email settings…',
+    done: 'Prepared email settings',
+    failed: 'Email settings failed',
+  },
+  propose_block_parking_dates: {
+    progress: 'Preparing the date block…',
+    done: 'Prepared the date block',
+    failed: 'Date block failed',
+  },
+  propose_unblock_parking_dates: {
+    progress: 'Preparing to unblock dates…',
+    done: 'Prepared to unblock dates',
+    failed: 'Unblock failed',
+  },
+  propose_add_parking_finance_line_item: {
+    progress: 'Preparing the finance entry…',
+    done: 'Prepared the finance entry',
+    failed: 'Finance entry failed',
+  },
+  get_org_portfolio_analytics: {
+    progress: 'Checking portfolio analytics…',
+    done: 'Checked portfolio analytics',
+    failed: 'Portfolio analytics failed',
+  },
+  list_activity_log: {
+    progress: 'Checking recent activity…',
+    done: 'Checked recent activity',
+    failed: 'Activity check failed',
+  },
+  get_guest_link: {
+    progress: 'Getting the guest link…',
+    done: 'Got the guest link',
+    failed: 'Could not get the guest link',
+  },
+  get_booking_ai_review: {
+    progress: 'Checking the AI review…',
+    done: 'Checked the AI review',
+    failed: 'AI review check failed',
+  },
+  propose_run_booking_ai_review: {
+    progress: 'Preparing the AI review…',
+    done: 'Prepared the AI review',
+    failed: 'AI review failed',
+  },
+  get_smart_pricing_preview: {
+    progress: 'Calculating Smart Pricing…',
+    done: 'Calculated Smart Pricing',
+    failed: 'Smart Pricing preview failed',
+  },
+  propose_apply_smart_pricing: {
+    progress: 'Preparing Smart Pricing…',
+    done: 'Prepared Smart Pricing',
+    failed: 'Smart Pricing failed',
+  },
+  get_voice_receptionist_settings: {
+    progress: 'Checking the voice receptionist…',
+    done: 'Checked the voice receptionist',
+    failed: 'Voice receptionist check failed',
+  },
+  propose_update_voice_receptionist: {
+    progress: 'Preparing receptionist changes…',
+    done: 'Prepared receptionist changes',
+    failed: 'Receptionist update failed',
+  },
+  propose_manage_quick_reply_template: {
+    progress: 'Preparing the quick reply…',
+    done: 'Prepared the quick reply',
+    failed: 'Quick reply failed',
+  },
+  propose_manage_custom_role: {
+    progress: 'Preparing the role…',
+    done: 'Prepared the role',
+    failed: 'Role update failed',
+  },
+  guide_create_listing: {
+    progress: 'Loading the listing guide…',
+    done: 'Loaded the listing guide',
+    failed: 'Listing guide failed',
+  },
+  propose_reply_support_ticket: {
+    progress: 'Preparing your reply…',
+    done: 'Prepared your reply',
+    failed: 'Reply failed',
+  },
+  propose_reopen_support_ticket: {
+    progress: 'Reopening the ticket…',
+    done: 'Reopened the ticket',
+    failed: 'Could not reopen the ticket',
+  },
+  propose_mark_notifications_read: {
+    progress: 'Marking notifications read…',
+    done: 'Marked notifications read',
+    failed: 'Could not mark notifications read',
+  },
+  remember_preference: {
+    progress: 'Saving to memory…',
+    done: 'Saved to memory',
+    failed: 'Could not save to memory',
+  },
 };
 
 /** Short audit-card label (past tense, no ellipsis). */

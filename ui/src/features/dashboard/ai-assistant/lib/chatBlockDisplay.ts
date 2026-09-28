@@ -232,12 +232,14 @@ export function patchActionConfirmationStatus(
   blocks: ChatBlock[],
   actionId: string,
   status: ActionConfirmationBlock['status'],
-  errorMessage?: string | null
+  errorMessage?: string | null,
+  resultNote?: string | null
 ): ChatBlock[] {
   const patchBlock = (block: ActionConfirmationBlock): ActionConfirmationBlock => ({
     ...block,
     status,
     ...(errorMessage ? { errorMessage } : {}),
+    ...(resultNote ? { resultNote } : {}),
   });
 
   return blocks.map((block) => {

@@ -5,6 +5,7 @@
 
 import type { ChatBlock } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import type { PageContext } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
+import type { AssistantAiBlocker } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
 import { getAssistantToolActivityLabel } from '@/features/dashboard/ai-assistant/lib/assistantToolLabels';
 import type { AttachedContextItem } from '@/features/dashboard/ai-assistant/lib/attachedContext';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
@@ -25,9 +26,17 @@ export type AssistantStreamEvent =
   | { type: 'turn_started'; conversationId: string }
   | { type: 'phase'; phase: AssistantStreamPhase; label?: string }
   | { type: 'tool_start'; toolName: string; label: string; stepId?: string }
-  | { type: 'tool_done'; toolName: string; ok: boolean; durationMs: number; stepId?: string }
+  | {
+      type: 'tool_done';
+      toolName: string;
+      ok: boolean;
+      durationMs: number;
+      stepId?: string;
+      /** Host-facing reason when `ok` is false. */
+      reason?: string;
+    }
   | { type: 'plan'; title: string; steps: AssistantStreamTaskPlanStep[] }
-  | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus }
+  | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus; reason?: string }
   | { type: 'text_start' }
   | { type: 'text_chunk'; delta: string }
   | {
@@ -44,6 +53,7 @@ export type AssistantStreamEvent =
       type: 'error';
       message: string;
       upgradeHook?: boolean;
+      aiBlocker?: AssistantAiBlocker;
       aborted?: boolean;
       appliedEffects?: AssistantAppliedEffect[];
     };
@@ -152,6 +162,15 @@ export function isInterruptedStreamError(err: unknown): boolean {
   );
 }
 
+/** Which AI switch blocked the turn, or null when the turn failed for another reason. */
+export function aiBlockerFromError(err: unknown): AssistantAiBlocker | null {
+  if (!(err instanceof Error) || !('aiBlocker' in err)) return null;
+  const blocker = err.aiBlocker;
+  return blocker === 'platform' || blocker === 'organization' || blocker === 'property'
+    ? blocker
+    : null;
+}
+
 export function humanizeAssistantStreamError(err: unknown): string {
   if (isInterruptedStreamError(err)) {
     return 'Connection interrupted. Try again.';
@@ -187,14 +206,17 @@ export async function streamChatMessage(
       error?: string;
       data?: StreamChatMessageResult;
       upgradeHook?: boolean;
+      aiBlocker?: AssistantAiBlocker;
     };
     if (!res.ok || !json.success) {
       const err = new Error(json.error ?? 'Request failed') as Error & {
         status?: number;
         upgradeHook?: boolean;
+        aiBlocker?: AssistantAiBlocker;
       };
       err.status = res.status;
       err.upgradeHook = json.upgradeHook === true;
+      err.aiBlocker = json.aiBlocker;
       throw err;
     }
     const data = json.data!;
@@ -255,8 +277,12 @@ export async function streamChatMessage(
           if (event.aborted) {
             throw new AssistantStreamAbortedError(event.message, event.appliedEffects);
           }
-          const err = new Error(event.message) as Error & { upgradeHook?: boolean };
+          const err = new Error(event.message) as Error & {
+            upgradeHook?: boolean;
+            aiBlocker?: AssistantAiBlocker;
+          };
           err.upgradeHook = event.upgradeHook;
+          err.aiBlocker = event.aiBlocker;
           throw err;
         }
       }
@@ -292,9 +318,28 @@ export type TurnProgressLiveState = {
     label: string;
     status: 'pending' | 'active' | 'done' | 'failed';
     toolName?: string;
+    /** Why a failed step was skipped (shown in the step's help hint). */
+    reason?: string;
   }>;
   planTitle?: string;
 };
+
+/**
+ * The turn is still running while this card shows, so exactly one row must read as in progress.
+ * Between tool rounds the server is silent: promote the next planned step, or add a trailing row.
+ */
+export function withActiveTurnStep(
+  steps: TurnProgressLiveState['steps']
+): TurnProgressLiveState['steps'] {
+  if (steps.length === 0 || steps.some((step) => step.status === 'active')) return steps;
+  const nextIndex = steps.findIndex((step) => step.status === 'pending');
+  if (nextIndex >= 0) {
+    return steps.map((step, index) =>
+      index === nextIndex ? { ...step, status: 'active' as const } : step
+    );
+  }
+  return [...steps, { id: 'phase-reviewing', label: 'Reviewing results', status: 'active' }];
+}
 
 function phaseProgressLabel(phase: AssistantStreamPhase, explicit?: string): string {
   if (explicit && !/^(Understood|Prepared|Checked|Applying|Gathered)/.test(explicit)) {
@@ -359,7 +404,8 @@ export function buildTurnProgressFromStreamEvent(
       steps: prev.steps.map((step) => {
         if (step.id !== event.stepId) return step;
         const status = mapPlanStepStatus(event.status);
-        const next = { ...step, status };
+        const reason = status === 'failed' ? (event.reason ?? step.reason) : undefined;
+        const next = { ...step, status, reason };
         return { ...next, label: labelForStepStatus(next) };
       }),
     };
@@ -393,6 +439,7 @@ export function buildTurnProgressFromStreamEvent(
             toolName: event.toolName,
             status: 'active' as const,
             label: event.label,
+            reason: undefined,
           };
           return { ...active, label: labelForStepStatus(active) };
         }
@@ -431,6 +478,7 @@ export function buildTurnProgressFromStreamEvent(
   if (event.type === 'tool_done') {
     const steps = prev?.steps ?? [];
     const targetId = event.stepId ?? event.toolName;
+    const reason = event.ok ? undefined : event.reason;
     if (steps.length === 0) {
       const status = event.ok ? ('done' as const) : ('failed' as const);
       const base = {
@@ -438,6 +486,7 @@ export function buildTurnProgressFromStreamEvent(
         label: getAssistantToolActivityLabel(event.toolName, event.ok ? 'done' : 'failed'),
         toolName: event.toolName,
         status,
+        reason,
       };
       return { steps: [base] };
     }
@@ -446,7 +495,7 @@ export function buildTurnProgressFromStreamEvent(
       steps: steps.map((step) => {
         if (step.id !== targetId) return step;
         const status = event.ok ? ('done' as const) : ('failed' as const);
-        const next = { ...step, toolName: step.toolName ?? event.toolName, status };
+        const next = { ...step, toolName: step.toolName ?? event.toolName, status, reason };
         return { ...next, label: labelForStepStatus(next) };
       }),
     };
