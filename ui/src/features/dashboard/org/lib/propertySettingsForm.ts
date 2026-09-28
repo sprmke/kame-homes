@@ -430,6 +430,16 @@ export function gafTowerUnitFromProfile(profile: PropertyProfileDraft): string {
   return '';
 }
 
+/** Apply profile-derived GAF tower/unit to operational form values (draft + baseline on load). */
+export function applyDerivedGafTowerToOperationalForm<T extends { gafTowerAndUnitNumber: string }>(
+  values: T,
+  profile: PropertyProfileDraft
+): T {
+  const derived = gafTowerUnitFromProfile(profile);
+  if (values.gafTowerAndUnitNumber === derived) return values;
+  return { ...values, gafTowerAndUnitNumber: derived };
+}
+
 /** Live slug preview while editing; falls back to saved slug when name is unchanged. */
 export function propertySlugPreview(
   draftName: string,

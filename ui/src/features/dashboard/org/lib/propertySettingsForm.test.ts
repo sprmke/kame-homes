@@ -9,8 +9,10 @@ import {
   propertyProfileDraftIsDirty,
   propertyProfileSettingsPatch,
   propertyProfileDraftToUpdatePayload,
+  applyDerivedGafTowerToOperationalForm,
   gafTowerUnitFromProfile,
   propertySlugPreview,
+  type PropertyProfileDraft,
 } from '@/features/dashboard/org/lib/propertySettingsForm';
 
 describe('propertyMediaFromProperty', () => {
@@ -64,6 +66,26 @@ describe('propertyProfileDraftToUpdatePayload', () => {
 describe('gafTowerUnitFromProfile', () => {
   it('gafTowerUnitFromProfile is exported', () => {
     expect(typeof gafTowerUnitFromProfile).toBe('function');
+  });
+});
+
+describe('applyDerivedGafTowerToOperationalForm', () => {
+  const profile = {
+    tower: 'Monaco',
+    unitNumber: '2612',
+  } as PropertyProfileDraft;
+
+  it('replaces stale stored GAF tower/unit with profile-derived label', () => {
+    const values = { gafTowerAndUnitNumber: 'legacy value', emailReplyTo: '' };
+    const next = applyDerivedGafTowerToOperationalForm(values, profile);
+    expect(next.gafTowerAndUnitNumber).toBe(gafTowerUnitFromProfile(profile));
+    expect(next.emailReplyTo).toBe('');
+  });
+
+  it('returns the same object when already in sync', () => {
+    const derived = gafTowerUnitFromProfile(profile);
+    const values = { gafTowerAndUnitNumber: derived, emailReplyTo: 'a@b.c' };
+    expect(applyDerivedGafTowerToOperationalForm(values, profile)).toBe(values);
   });
 });
 

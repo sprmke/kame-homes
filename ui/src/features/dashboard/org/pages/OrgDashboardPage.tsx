@@ -42,6 +42,7 @@ import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButt
 import { OrgDashboardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { detectPresetFromRange, formatDateRangeDisplay, fromIsoDate } from '@/lib/date/navigation';
 
 /**
@@ -57,6 +58,7 @@ export function OrgDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [addAssetOpen, setAddAssetOpen] = useState(false);
   const isBelowMd = useIsBelowMd();
+  const compactChrome = useDashboardCompactChrome();
   const { data: orgsData } = useOrganizations();
   const { data: orgAccess } = useOrgPermissions();
   const { data, isLoading, error, refetch } = useOrgDashboardStats();
@@ -104,8 +106,8 @@ export function OrgDashboardPage() {
     const from = fromIsoDate(period.from);
     const to = fromIsoDate(period.to);
     if (!from || !to) return '';
-    return formatDateRangeDisplay(from, to, dateNav.datePreset);
-  }, [dateNav.datePreset, period.from, period.to]);
+    return formatDateRangeDisplay(from, to, dateNav.datePreset, { compact: compactChrome });
+  }, [compactChrome, dateNav.datePreset, period.from, period.to]);
   const hasParking = (data?.parkingCount ?? 0) > 0;
   const subtitle = hasParking
     ? 'Performance across all properties and parking.'

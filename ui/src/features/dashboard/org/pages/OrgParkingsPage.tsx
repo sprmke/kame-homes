@@ -5,7 +5,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 
 import { AdminListPagination } from '@/features/dashboard/bookings/components/AdminListToolbar';
-import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { AddParkingDialog } from '@/features/dashboard/org/components/AddParkingDialog';
 import {
@@ -21,6 +20,7 @@ import { OrgParkingsSummaryCards } from '@/features/dashboard/org/components/org
 import { OrgParkingsTable } from '@/features/dashboard/org/components/org-parkings/OrgParkingsTable';
 import { OrgParkingsToolbar } from '@/features/dashboard/org/components/org-parkings/OrgParkingsToolbar';
 import { useOrgListingPagination } from '@/features/dashboard/org/hooks/useOrgListingPagination';
+import { useOrgListingSkeletonView } from '@/features/dashboard/org/hooks/useOrgListingSkeletonView';
 import { useOrgListingViewMode } from '@/features/dashboard/org/hooks/useOrgListingViewMode';
 import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
@@ -43,7 +43,7 @@ import {
   MobileHeroActionMenu,
   type MobileHeroActionMenuItem,
 } from '@/components/mobile/MobileHeroActionButton';
-import { ListingCardGridSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { OrgListingPageSkeleton } from '@/components/skeletons/OrgListingSkeleton';
 import { Button } from '@/components/ui/button';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 
@@ -62,6 +62,8 @@ export function OrgParkingsPage() {
     status: 'all',
     type: 'all',
   });
+
+  const skeletonView = useOrgListingSkeletonView('parkings');
 
   const org = orgsData?.organizations.find((entry) => entry.slug === orgSlug);
   const parkings = parkingsData?.parkings ?? [];
@@ -131,14 +133,7 @@ export function OrgParkingsPage() {
         dense
       >
         {isLoading ? (
-          <div className="space-y-3 sm:space-y-4">
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <AdminMetricCardSkeleton key={index} />
-              ))}
-            </div>
-            <ListingCardGridSkeleton count={8} label="Loading parkings" />
-          </div>
+          <OrgListingPageSkeleton view={skeletonView} label="Loading parkings" />
         ) : !org ? (
           <p className="text-muted-foreground text-sm">Organization not found.</p>
         ) : (

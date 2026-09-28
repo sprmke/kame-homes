@@ -31,14 +31,16 @@ export const PLAN_FEATURE_PERMISSION_COVERAGE: Record<
   aiValidations: {
     na: 'Runs inside bookings.detail.stay:edit and bookings.detail.pricing:edit, both edit-level.',
   },
-  aiMonthlyCreditAllowance: { leaves: ['settings.aiOverrides:edit'] },
+  aiMonthlyCreditAllowance: {
+    na: 'Org-level AI settings, gated by org.settings.aiPlatform:edit.',
+  },
   marketingStudio: {
     leaves: ['marketing:view', 'marketing.content:add', 'marketing.content:edit'],
   },
   customPages: { na: 'Explore-open on every plan; saving is gated by publicPagesAutosave.' },
   propertyShowcase: { leaves: ['publicPages.showcase:edit'] },
   aiDashboardAssistant: { leaves: ['assistant:view'] },
-  aiReceptionist: { leaves: ['settings.voiceReceptionist:edit'] },
+  aiReceptionist: { na: 'Org-level AI settings, gated by org.settings.aiPlatform:edit.' },
   aiMarketingGeneration: { leaves: ['marketing.generate:add'] },
   aiMarketingImageGeneration: { leaves: ['marketing.generate.image:add'] },
   aiMarketingVideoGeneration: { leaves: ['marketing.generate.video:add'] },

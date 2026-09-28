@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { AlertTriangle, Award, Info, Save, ScrollText, Share2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,6 +59,7 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
+import { useSettingsUserEdited } from '@/hooks/useSettingsUserEdited';
 import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { resolveNameAvailabilityState } from '@/lib/availabilityCheckState';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
@@ -111,12 +112,18 @@ export function useOrgSettingsController() {
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [interactedFields, setInteractedFields] = useState<Record<string, boolean>>({});
 
-  const markFieldInteracted = useCallback((fieldId: string) => {
-    setInteractedFields((current) => {
-      if (current[fieldId]) return current;
-      return { ...current, [fieldId]: true };
-    });
-  }, []);
+  const { userEdited, markUserEdited, resetUserEdited } = useSettingsUserEdited();
+
+  const markFieldInteracted = useCallback(
+    (fieldId: string) => {
+      markUserEdited();
+      setInteractedFields((current) => {
+        if (current[fieldId]) return current;
+        return { ...current, [fieldId]: true };
+      });
+    },
+    [markUserEdited]
+  );
 
   const profileDirtyRef = useRef(false);
   const operatorDirtyRef = useRef(false);
@@ -181,6 +188,7 @@ export function useOrgSettingsController() {
     key: K,
     value: OrgSettingsDraft[K]
   ) => {
+    markUserEdited();
     setProfileDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
@@ -188,6 +196,7 @@ export function useOrgSettingsController() {
     key: K,
     value: OrgOperatorSettingsFormValues[K]
   ) => {
+    markUserEdited();
     setOperatorDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
@@ -255,6 +264,7 @@ export function useOrgSettingsController() {
 
       if (savedSomething) {
         setInteractedFields({});
+        resetUserEdited();
         if (plan.blockedSections.length > 0) {
           toast.success('New changes has been saved.');
           scrollToOrgSettingsSection(plan.blockedSections[0]!);
@@ -270,7 +280,10 @@ export function useOrgSettingsController() {
     }
   };
 
-  useUnsavedChangesGuard({ isDirty: canSaveAny, onSave: handleSave });
+  useUnsavedChangesGuard({
+    isDirty: canSaveAny && userEdited,
+    onSave: handleSave,
+  });
 
   const handleDeleteOrganization = async () => {
     if (!org) return;
@@ -384,6 +397,7 @@ export function useOrgSettingsController() {
     canSaveProfile,
     canSaveOperator,
     canSaveAny,
+    userEdited,
     nameChanged,
     nameCheck,
     nameUnavailable,
@@ -425,6 +439,7 @@ export function OrgSettingsPage() {
     operatorDraft,
     markFieldInteracted,
     canSaveAny,
+    userEdited,
     nameUnavailable,
     nameConflictMessage,
     nameChecking,
@@ -442,6 +457,16 @@ export function OrgSettingsPage() {
     canViewActivity,
     resolveFieldError,
   } = useOrgSettingsController();
+  const location = useLocation();
+
+  // Deep links (e.g. the assistant's "Open AI settings") land with `#section-<id>`.
+  useEffect(() => {
+    if (isLoading || !org || !location.hash) return;
+    const el = document.getElementById(location.hash.slice(1));
+    if (!el) return;
+    const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    return () => clearTimeout(timer);
+  }, [isLoading, org, location.hash]);
 
   return (
     <RequireAdmin>
@@ -451,7 +476,7 @@ export function OrgSettingsPage() {
         titleId="org-settings-heading"
         className="flex min-h-0 flex-1 flex-col"
         heroTrailing={
-          canSaveAny && profileDraft ? (
+          canSaveAny && userEdited && profileDraft ? (
             <MobileHeroActionButton
               aria-label={busy ? 'Saving' : 'Save changes'}
               disabled={busy || nameUnavailable || nameChecking}
@@ -462,7 +487,7 @@ export function OrgSettingsPage() {
           ) : undefined
         }
         desktopActions={
-          canSaveAny && profileDraft ? (
+          canSaveAny && userEdited && profileDraft ? (
             <Button
               type="button"
               onClick={() => void handleSave()}

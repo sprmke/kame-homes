@@ -26,8 +26,6 @@ const EDGE_CLONE_GROUP_IDS = [
   'templates',
   'telegramNotifications',
   'inboxSnippets',
-  'voiceReceptionist',
-  'aiOverrides',
   'teamRoles',
   'media',
   'buildingForms',

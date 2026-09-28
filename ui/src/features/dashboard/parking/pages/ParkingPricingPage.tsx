@@ -31,6 +31,8 @@ import {
   dateKey,
 } from '@/features/dashboard/pricing/lib/pricingCalendarUtils';
 import { mergeDateRateOverrides } from '@/features/dashboard/pricing/lib/pricingCalendarUtils';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
+import { pricingCalendarFormGridClassName } from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { hasOrgPermission } from '@/features/dashboard/team/lib/orgPermissions';
 
@@ -40,6 +42,7 @@ import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton'
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 export function ParkingPricingPage() {
+  const compactChrome = useDashboardCompactChrome();
   const { data: orgAccess } = useOrgPermissions();
   const canEdit = hasOrgPermission(orgAccess?.permissions, 'org:parkings:manage');
 
@@ -374,7 +377,7 @@ export function ParkingPricingPage() {
           customDatesCount={customDatePrices.size}
         />
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-5">
+        <div className={pricingCalendarFormGridClassName(compactChrome)}>
           <PricingCalendarGrid
             currentMonth={currentMonth}
             selectedDates={selectedDates}

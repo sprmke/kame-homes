@@ -15,6 +15,7 @@ import { parkingSectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { DashboardTransactionsDueCard } from '@/features/dashboard/property/components/DashboardTransactionsDueCard';
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
+import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { formatDateRangeDisplay, fromIsoDate, type DatePreset } from '@/lib/date/navigation';
 
@@ -26,10 +27,13 @@ type Props = {
 
 export function ParkingDashboardCalendarSection({ from, to, datePreset }: Props) {
   const { orgSlug, parkingSlug } = useParkingContext();
+  const compactChrome = useDashboardCompactChrome();
   const rangeFrom = fromIsoDate(from);
   const rangeTo = fromIsoDate(to);
   const rangeLabel =
-    rangeFrom && rangeTo ? formatDateRangeDisplay(rangeFrom, rangeTo, datePreset) : '';
+    rangeFrom && rangeTo
+      ? formatDateRangeDisplay(rangeFrom, rangeTo, datePreset, { compact: compactChrome })
+      : '';
   const financeHref = `${parkingSectionPath(orgSlug, parkingSlug, 'finance')}?from=${from}&to=${to}`;
 
   const chartData = useMemo(() => buildFinanceChartData([], [], from, to, 'completed'), [from, to]);

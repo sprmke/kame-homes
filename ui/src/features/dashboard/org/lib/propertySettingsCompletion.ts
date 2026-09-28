@@ -91,7 +91,6 @@ export type PropertySettingsSectionId =
   | 'building-forms'
   | 'email-automations'
   | 'integrations'
-  | 'ai'
   | 'danger';
 
 export type PropertySettingsCompletionInput = {

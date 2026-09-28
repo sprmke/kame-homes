@@ -2,20 +2,17 @@ import { useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import { ArrowUpRight, Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 
 import { useResolvedOrgId, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { PlanTierIconWell } from '@/features/dashboard/plans/components/PlanTierIconWell';
 import { useOrgPlan } from '@/features/dashboard/plans/hooks/useOrgPlan';
 import {
-  buildPlanTiers,
-  nextUpgradePlan,
   planDisplayName,
   planDisplayNameFromSubscription,
-  planPrice,
+  planIncludedFeatureGroups,
   planTierPitch,
   resolveEffectiveCurrentPlan,
-  resolveEffectiveCurrentPlanId,
   subscriptionStatusMeta,
 } from '@/features/dashboard/plans/lib/planPresentation';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
@@ -36,66 +33,20 @@ import { cn } from '@/lib/utils';
 
 type Props = {
   collapsed?: boolean;
-  /** Dense row for the mobile More sheet footer. */
+  /** Row for the mobile More sheet footer. */
   variant?: 'sidebar' | 'more';
   className?: string;
   /** Called when navigating to Plans & Billing (e.g. close the More sheet). */
   onNavigateToPlans?: () => void;
 };
 
-function OrgPlanChipSkeleton({
-  collapsed,
-  variant,
-  className,
-}: {
-  collapsed: boolean;
-  variant: 'sidebar' | 'more';
-  className?: string;
-}) {
-  if (variant === 'more') {
-    return (
-      <div
-        className={cn(
-          'flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-2 py-1.5',
-          className
-        )}
-        aria-hidden
-      >
-        <Skeleton className="size-9 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <Skeleton className="h-2.5 w-10" />
-          <Skeleton className="h-3.5 w-16" />
-        </div>
-      </div>
-    );
-  }
+type PlansTab = 'plans' | 'compare' | 'billing';
 
-  if (collapsed) {
-    return (
-      <Skeleton className={cn('mx-auto size-10 shrink-0 rounded-xl', className)} aria-hidden />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        'border-border/40 flex min-h-[3.25rem] w-full items-center gap-2.5 rounded-xl border px-2.5 py-2',
-        className
-      )}
-      aria-hidden
-    >
-      <Skeleton className="size-9 shrink-0 rounded-xl" />
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <Skeleton className="h-2.5 w-14" />
-        <Skeleton className="h-3.5 w-20" />
-      </div>
-    </div>
-  );
-}
+const CHIP_ICON_CLASS = 'size-6 rounded-md [&_svg]:size-3.5';
 
 /**
- * Sidebar / More-sheet control: current org plan name. Opens a sheet with
- * included features and a link to org Plans & Billing.
+ * Sidebar / More-sheet row with the org's current plan. Opens a sheet listing
+ * every feature on that plan, with links into org Plans & Billing.
  */
 export function OrgPlanSidebarEntry({
   collapsed = false,
@@ -115,18 +66,10 @@ export function OrgPlanSidebarEntry({
     () => (data ? resolveEffectiveCurrentPlan(data.plans, data.subscription?.planId) : null),
     [data]
   );
-
-  const currentTier = useMemo(() => {
-    if (!data || !currentPlan) return null;
-    const planId = resolveEffectiveCurrentPlanId(data.plans, data.subscription?.planId);
-    return buildPlanTiers(data.plans, planId).find((tier) => tier.isCurrent) ?? null;
-  }, [data, currentPlan]);
-
-  const upgradePlan = useMemo(() => {
-    if (!data || !currentPlan) return null;
-    const planId = resolveEffectiveCurrentPlanId(data.plans, data.subscription?.planId);
-    return nextUpgradePlan(data.plans, planId);
-  }, [data, currentPlan]);
+  const featureGroups = useMemo(
+    () => (currentPlan ? planIncludedFeatureGroups(currentPlan) : []),
+    [currentPlan]
+  );
 
   if (!orgId || !orgSlug) return null;
   if (isLoading) {
@@ -139,122 +82,114 @@ export function OrgPlanSidebarEntry({
     : planDisplayNameFromSubscription(data.subscription) || 'Free';
   const planCode = currentPlan?.code ?? data.subscription?.planCode ?? 'free';
   const pitch = currentPlan ? planTierPitch(currentPlan) : null;
-  const gains = currentTier?.gains ?? [];
-  const inheritsFrom = currentTier?.inheritsFrom ?? null;
-  const price = currentPlan
-    ? planPrice(
-        data.subscription?.pricePhpSnapshot != null && data.subscription.pricePhpSnapshot > 0
-          ? { ...currentPlan, chargedPricePhp: data.subscription.pricePhpSnapshot }
-          : currentPlan
-      )
-    : null;
   const status = data.subscription ? subscriptionStatusMeta(data.subscription.status) : null;
   const needsAttention = status?.tone === 'destructive';
-  const ctaLabel = upgradePlan && currentPlan?.isDefault ? 'Upgrade' : 'Plans & billing';
+  const isFree = currentPlan?.isDefault ?? planCode === 'free';
+  const chipLabel = `${planName} plan`;
+  const triggerLabel = needsAttention
+    ? `${chipLabel}, ${status?.label ?? 'needs attention'}. View features`
+    : `${chipLabel}. View features`;
 
-  const openDetails = () => setOpen(true);
-
-  const goToPlans = () => {
+  const goToPlans = (tab: PlansTab) => {
     setOpen(false);
     onNavigateToPlans?.();
-    navigate(orgSectionPath(orgSlug, 'plans'));
+    navigate(`${orgSectionPath(orgSlug, 'plans')}?tab=${tab}`);
   };
 
-  const triggerLabel = needsAttention
-    ? `Current plan ${planName}, ${status?.label ?? 'needs attention'}`
-    : `Current plan, ${planName}`;
+  const attentionDot = needsAttention ? (
+    <span className="bg-destructive size-1.5 shrink-0 rounded-full" aria-hidden />
+  ) : null;
 
   const details = (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
       <ResponsiveModalContent
         sheetLayout="split"
         className={cn(
-          'flex max-h-[min(92dvh,40rem)] w-[min(calc(100vw-1.5rem),28rem)] max-w-none',
-          'flex-col gap-0 overflow-hidden p-0 sm:max-w-[28rem] sm:p-0'
+          'flex max-h-[min(92dvh,52rem)] w-[min(calc(100vw-2rem),56rem)] max-w-none',
+          'flex-col gap-0 overflow-hidden p-0 sm:max-w-[56rem] sm:p-0'
         )}
       >
-        <ResponsiveModalHeader className="border-border/60 from-primary/[0.06] to-card shrink-0 border-b bg-gradient-to-b px-4 py-4 sm:px-5 sm:py-5">
-          <div className="flex items-start gap-3.5 pr-8">
-            <PlanTierIconWell planCode={planCode} size="lg" className="rounded-2xl shadow-sm" />
-            <div className="min-w-0 flex-1 space-y-1.5">
+        <ResponsiveModalHeader className="border-border/60 shrink-0 space-y-0 border-b px-5 py-4 text-left sm:px-6">
+          <div className="flex items-center gap-3 pr-8">
+            <PlanTierIconWell planCode={planCode} size="md" />
+            <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <ResponsiveModalTitle className="truncate text-lg sm:text-xl">
-                  {planName}
+                <ResponsiveModalTitle className="truncate text-lg font-semibold tracking-tight sm:text-lg">
+                  {chipLabel}
                 </ResponsiveModalTitle>
                 {needsAttention && status ? (
-                  <Badge
-                    variant={status.tone}
-                    className="h-5 shrink-0 px-1.5 text-[10px] leading-none"
-                  >
+                  <Badge variant={status.tone} className="shrink-0">
                     {status.label}
                   </Badge>
-                ) : (
-                  <Badge variant="success" className="h-5 shrink-0 px-1.5 text-[10px] leading-none">
-                    Current
-                  </Badge>
-                )}
+                ) : null}
               </div>
-              {price ? (
-                <p className="text-foreground text-sm font-semibold tabular-nums tracking-tight">
-                  {price.amount}
-                  {price.suffix ? (
-                    <span className="text-muted-foreground ml-1 text-xs font-medium">
-                      {price.suffix}
-                      {!currentPlan?.isDefault ? ' per property' : null}
-                    </span>
-                  ) : null}
-                </p>
-              ) : null}
               {pitch ? (
-                <ResponsiveModalDescription className="text-muted-foreground line-clamp-3 text-sm leading-relaxed">
+                <ResponsiveModalDescription className="text-muted-foreground mt-0.5 text-sm leading-snug">
                   {pitch}
                 </ResponsiveModalDescription>
               ) : (
                 <ResponsiveModalDescription className="sr-only">
-                  Features included in your plan
+                  Features on your plan
                 </ResponsiveModalDescription>
               )}
             </div>
           </div>
         </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
-          {inheritsFrom ? (
-            <p className="text-foreground mb-3 text-sm font-semibold leading-snug">
-              Everything in {inheritsFrom}, plus
-            </p>
-          ) : (
-            <p className="text-foreground mb-3 text-sm font-semibold leading-snug">Included</p>
-          )}
-          {gains.length > 0 ? (
-            <ul className="space-y-1">
-              {gains.map((gain) => (
-                <li
-                  key={gain.key}
-                  className="hover:bg-muted/40 flex items-start gap-3 rounded-lg px-1.5 py-2 text-sm leading-snug transition-colors"
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          {featureGroups.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {featureGroups.map((group) => (
+                <section
+                  key={group.group}
+                  aria-labelledby={`plan-feature-group-${group.group}`}
+                  className="border-border/60 bg-muted/30 rounded-xl border p-4"
                 >
-                  <span
-                    className="bg-primary/10 text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full"
-                    aria-hidden
+                  <h3
+                    id={`plan-feature-group-${group.group}`}
+                    className="text-muted-foreground mb-3 text-xs font-semibold uppercase tracking-wide"
                   >
-                    <Check className="size-3 stroke-[2.5]" />
-                  </span>
-                  <span className="text-foreground min-w-0 flex-1">{gain.label}</span>
-                </li>
+                    {group.label}
+                  </h3>
+                  <ul className="space-y-2">
+                    {group.features.map((feature) => (
+                      <li
+                        key={feature.key}
+                        className="text-foreground flex items-start gap-2.5 text-sm leading-snug"
+                      >
+                        <Check
+                          className="text-primary mt-0.5 size-4 shrink-0"
+                          strokeWidth={2.25}
+                          aria-hidden
+                        />
+                        <span className="min-w-0">{feature.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              No feature list for this plan yet.
-            </p>
+            <p className="text-muted-foreground text-sm">Feature list unavailable.</p>
           )}
         </div>
 
         {canOpenPlans ? (
-          <ResponsiveModalFooter className="border-border/60 bg-card/80 shrink-0 gap-2 border-t px-4 py-3 sm:flex-col sm:px-5 sm:py-4">
-            <Button type="button" className="min-h-11 w-full" onClick={goToPlans}>
-              {upgradePlan ? <ArrowUpRight className="size-4 shrink-0" aria-hidden /> : null}
-              {ctaLabel}
+          <ResponsiveModalFooter className="border-border/60 shrink-0 flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-end sm:gap-2 sm:space-x-0 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full sm:min-h-10 sm:w-auto"
+              onClick={() => goToPlans('compare')}
+            >
+              Compare plans
+            </Button>
+            <Button
+              type="button"
+              className="min-h-11 w-full sm:min-h-10 sm:w-auto"
+              onClick={() => goToPlans(isFree ? 'plans' : 'billing')}
+            >
+              {isFree ? 'Upgrade plan' : 'Manage plan'}
             </Button>
           </ResponsiveModalFooter>
         ) : null}
@@ -262,36 +197,28 @@ export function OrgPlanSidebarEntry({
     </ResponsiveModal>
   );
 
+  const triggerBase = cn(
+    'focus-visible:ring-ring transition-colors focus-visible:outline-none focus-visible:ring-2'
+  );
+
   if (variant === 'more') {
     return (
       <>
         <button
           type="button"
-          onClick={openDetails}
+          onClick={() => setOpen(true)}
           aria-label={triggerLabel}
           aria-haspopup="dialog"
-          aria-expanded={open}
           className={cn(
-            'hover:bg-muted/60 active:bg-muted focus-visible:ring-ring flex min-h-[48px] w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            triggerBase,
+            'hover:bg-muted/60 active:bg-muted flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-left',
             className
           )}
         >
-          <PlanTierIconWell planCode={planCode} size="sm" className="size-9 rounded-xl shadow-sm" />
-          <span className="min-w-0 flex-1">
-            <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium leading-tight">
-              Current plan
-              {needsAttention && status ? (
-                <Badge variant={status.tone} className="h-4 px-1 text-[9px] leading-none">
-                  {status.label}
-                </Badge>
-              ) : null}
-            </span>
-            <span className="text-foreground mt-0.5 block truncate text-[13px] font-semibold leading-tight">
-              {planName}
-            </span>
-          </span>
-          <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden />
+          <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
+          <span className="text-foreground min-w-0 truncate text-sm font-medium">{chipLabel}</span>
+          {attentionDot}
+          <ChevronRight className="text-muted-foreground ml-auto size-4 shrink-0" aria-hidden />
         </button>
         {details}
       </>
@@ -303,27 +230,20 @@ export function OrgPlanSidebarEntry({
       <>
         <button
           type="button"
-          onClick={openDetails}
-          title={planName}
+          onClick={() => setOpen(true)}
+          title={chipLabel}
           aria-label={triggerLabel}
           aria-haspopup="dialog"
-          aria-expanded={open}
           className={cn(
-            'border-primary/25 from-primary/[0.14] to-primary/[0.04] text-primary',
-            'hover:from-primary/20 hover:to-primary/[0.08] focus-visible:ring-ring',
-            'relative mx-auto flex size-10 shrink-0 items-center justify-center rounded-xl border bg-gradient-to-br shadow-sm transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+            triggerBase,
+            'hover:bg-sidebar-accent relative mx-auto flex size-10 items-center justify-center rounded-lg',
             className
           )}
         >
-          <PlanTierIconWell
-            planCode={planCode}
-            size="sm"
-            className="size-8 rounded-lg border-0 bg-transparent shadow-none"
-          />
+          <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
           {needsAttention ? (
             <span
-              className="bg-destructive absolute right-0.5 top-0.5 size-2 rounded-full ring-2 ring-[hsl(var(--sidebar-background))]"
+              className="bg-destructive absolute right-1.5 top-1.5 size-1.5 rounded-full"
               aria-hidden
             />
           ) : null}
@@ -337,50 +257,59 @@ export function OrgPlanSidebarEntry({
     <>
       <button
         type="button"
-        onClick={openDetails}
+        onClick={() => setOpen(true)}
         aria-label={triggerLabel}
         aria-haspopup="dialog"
-        aria-expanded={open}
         className={cn(
-          'border-primary/20 from-primary/[0.10] via-primary/[0.04] group to-transparent',
-          'hover:border-primary/30 hover:from-primary/[0.14] focus-visible:ring-ring',
-          'flex min-h-[3.25rem] w-full items-center gap-2.5 rounded-xl border bg-gradient-to-br px-2.5 py-2.5 text-left shadow-sm',
-          'transition-[border-color,background-color,box-shadow] duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-          needsAttention && 'border-destructive/30 from-destructive/[0.08]',
+          triggerBase,
+          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group flex h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left',
           className
         )}
       >
-        <PlanTierIconWell planCode={planCode} size="sm" className="size-9 rounded-xl shadow-sm" />
-        <span className="min-w-0 flex-1">
-          <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-[11px] font-medium leading-tight">
-            <span className="truncate">Current plan</span>
-            {needsAttention && status ? (
-              <Badge variant={status.tone} className="h-4 shrink-0 px-1 text-[9px] leading-none">
-                {status.label}
-              </Badge>
-            ) : (
-              <Badge variant="success" className="h-4 shrink-0 px-1 text-[9px] leading-none">
-                Active
-              </Badge>
-            )}
-          </span>
-          <span className="text-foreground mt-0.5 block truncate text-sm font-semibold leading-tight tracking-tight">
-            {planName}
-          </span>
-          {price && !currentPlan?.isDefault ? (
-            <span className="text-muted-foreground mt-0.5 block truncate text-[11px] tabular-nums leading-tight">
-              {price.amount}
-              {price.suffix ? `${price.suffix}` : null}
-            </span>
-          ) : null}
-        </span>
+        <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
+        <span className="min-w-0 truncate text-sm font-medium">{chipLabel}</span>
+        {attentionDot}
         <ChevronRight
-          className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+          className="text-muted-foreground group-hover:text-foreground ml-auto size-4 shrink-0 transition-colors"
           aria-hidden
         />
       </button>
       {details}
     </>
+  );
+}
+
+function OrgPlanChipSkeleton({
+  collapsed,
+  variant,
+  className,
+}: {
+  collapsed: boolean;
+  variant: 'sidebar' | 'more';
+  className?: string;
+}) {
+  if (collapsed && variant === 'sidebar') {
+    return (
+      <div
+        className={cn('mx-auto flex size-10 items-center justify-center', className)}
+        aria-hidden
+      >
+        <Skeleton className="size-6 rounded-md" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex w-full items-center gap-2.5 px-2',
+        variant === 'more' ? 'min-h-11 gap-3' : 'h-10',
+        className
+      )}
+      aria-hidden
+    >
+      <Skeleton className="size-6 shrink-0 rounded-md" />
+      <Skeleton className="h-3.5 w-24" />
+    </div>
   );
 }

@@ -109,7 +109,6 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { AppSettingsNavLayoutSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   ResponsiveModal,
@@ -120,6 +119,7 @@ import {
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
 import { Textarea } from '@/components/ui/textarea';
+import { useSettingsUserEdited } from '@/hooks/useSettingsUserEdited';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { cn } from '@/lib/utils';
@@ -209,12 +209,18 @@ export function useParkingSettingsController() {
     resolve: (ok: boolean) => void;
   } | null>(null);
 
-  const markFieldInteracted = useCallback((fieldId: string) => {
-    setInteractedFields((current) => {
-      if (current[fieldId]) return current;
-      return { ...current, [fieldId]: true };
-    });
-  }, []);
+  const { userEdited, markUserEdited, resetUserEdited } = useSettingsUserEdited();
+
+  const markFieldInteracted = useCallback(
+    (fieldId: string) => {
+      markUserEdited();
+      setInteractedFields((current) => {
+        if (current[fieldId]) return current;
+        return { ...current, [fieldId]: true };
+      });
+    },
+    [markUserEdited]
+  );
 
   const profileDirtyRef = useRef(false);
   const operationalDirtyRef = useRef(false);
@@ -404,10 +410,12 @@ export function useParkingSettingsController() {
     key: K,
     value: ParkingProfileDraft[K]
   ) => {
+    markUserEdited();
     setProfileDraft((current) => ({ ...current, [key]: value }));
   };
 
   const setPaymentMethods = (methods: PropertyPaymentMethod[]) => {
+    markUserEdited();
     const legacy = syncLegacyPaymentFieldsFromMethods(methods);
     setOperationalDraft((current) =>
       current
@@ -534,6 +542,7 @@ export function useParkingSettingsController() {
 
       if (savedSomething) {
         setInteractedFields({});
+        resetUserEdited();
         toast.success('Settings saved');
         return true;
       }
@@ -620,7 +629,23 @@ export function useParkingSettingsController() {
   };
 
   const setAutomationToggle = (key: keyof ParkingAutomationToggles, enabled: boolean) => {
+    markUserEdited();
     setAutomationDraft((current) => ({ ...current, [key]: enabled }));
+  };
+
+  const setDetailsDraftTracked: typeof setDetailsDraft = (value) => {
+    markUserEdited();
+    setDetailsDraft(value);
+  };
+
+  const setFeaturesDraftTracked: typeof setFeaturesDraft = (value) => {
+    markUserEdited();
+    setFeaturesDraft(value);
+  };
+
+  const setLocationDraftTracked: typeof setLocationDraft = (value) => {
+    markUserEdited();
+    setLocationDraft(value);
   };
 
   return {
@@ -648,17 +673,17 @@ export function useParkingSettingsController() {
     featuresBaseline,
     setFeaturesBaseline,
     featuresDraft,
-    setFeaturesDraft,
+    setFeaturesDraft: setFeaturesDraftTracked,
     newCustomFeatureInput,
     setNewCustomFeatureInput,
     locationBaseline,
     setLocationBaseline,
     locationDraft,
-    setLocationDraft,
+    setLocationDraft: setLocationDraftTracked,
     detailsBaseline,
     setDetailsBaseline,
     detailsDraft,
-    setDetailsDraft,
+    setDetailsDraft: setDetailsDraftTracked,
     deleteOpen,
     setDeleteOpen,
     archiveOpen,
@@ -697,6 +722,7 @@ export function useParkingSettingsController() {
     locationDirty,
     detailsDirty,
     isDirty,
+    userEdited,
     isArchived,
     draftCompletion,
     savedCompletion,
@@ -758,6 +784,7 @@ export function ParkingSettingsCard() {
     parkingCode,
     parkingSlugPrefix,
     isDirty,
+    userEdited,
     isArchived,
     draftCompletion,
     resolveFieldError,
@@ -776,7 +803,12 @@ export function ParkingSettingsCard() {
     setAutomationToggle,
   } = useParkingSettingsController();
 
-  useUnsavedChangesGuard({ isDirty, onSave: () => handleSave() });
+  const showSaveActions = isDirty && userEdited;
+
+  useUnsavedChangesGuard({
+    isDirty: showSaveActions,
+    onSave: () => handleSave(),
+  });
 
   const settingsReady = !settingsLoading && settings && operationalDraft;
 
@@ -796,7 +828,7 @@ export function ParkingSettingsCard() {
         titleId="parking-settings-heading"
         className="flex min-h-0 flex-1 flex-col"
         heroTrailing={
-          isDirty ? (
+          showSaveActions ? (
             <MobileHeroActionButton
               aria-label={busy ? 'Saving' : 'Save changes'}
               disabled={saveDisabled}
@@ -812,7 +844,7 @@ export function ParkingSettingsCard() {
           ) : undefined
         }
         desktopActions={
-          isDirty ? (
+          showSaveActions ? (
             <Button
               type="button"
               onClick={() => void handleSave()}
@@ -833,38 +865,7 @@ export function ParkingSettingsCard() {
         {!settingsReady ? (
           <AppSettingsNavLayoutSkeleton />
         ) : (
-          <AdminSectionNavLayout
-            className="min-h-0 flex-1"
-            sections={navSections}
-            footer={
-              isDirty ? (
-                <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="size-2 animate-pulse rounded-full bg-amber-500" />
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                        Unsaved changes
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => void handleSave()}
-                      disabled={saveDisabled}
-                      title={
-                        saveDisabledByValidation
-                          ? (draftCompletion.firstErrorMessage ?? 'Fix required fields to save')
-                          : undefined
-                      }
-                      className="min-h-[44px] w-full sm:w-auto"
-                      size="sm"
-                    >
-                      {busy ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : null
-            }
-          >
+          <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
             <AdminSection
               id="basic"
               title="Basic Information"
