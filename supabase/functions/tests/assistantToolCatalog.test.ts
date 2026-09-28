@@ -36,13 +36,13 @@ const EXPECTED_WORKFLOW_EMAIL_KINDS = [
   'sd_refund_form_request',
 ] as const;
 
-Deno.test('tool catalog counts match architecture doc (101 total)', () => {
-  assertEquals(READ_TOOL_NAMES.size, 52);
-  assertEquals(TIER1_ONLY_TOOL_NAMES.size, 5);
-  assertEquals(TIER2_ONLY_TOOL_NAMES.size, 43);
+Deno.test('tool catalog counts match architecture doc (128 total)', () => {
+  assertEquals(READ_TOOL_NAMES.size, 62);
+  assertEquals(TIER1_ONLY_TOOL_NAMES.size, 9);
+  assertEquals(TIER2_ONLY_TOOL_NAMES.size, 56);
   assertEquals(
     READ_TOOL_NAMES.size + TIER1_ONLY_TOOL_NAMES.size + TIER2_ONLY_TOOL_NAMES.size + 1,
-    101
+    128
   );
 });
 
@@ -61,6 +61,7 @@ Deno.test('guidance tools are tier0 read', () => {
     'guide_telegram_settings',
     'guide_create_booking',
     'guide_import_bookings',
+    'open_page',
   ]) {
     assertEquals(READ_TOOL_NAMES.has(toolName), true);
   }
@@ -87,9 +88,7 @@ Deno.test('assistant tool registry — declarations and handlers stay in sync', 
     source.indexOf('const TOOL_HANDLERS'),
     source.indexOf('\n};', source.indexOf('const TOOL_HANDLERS'))
   );
-  const handlers = new Set(
-    [...registryBlock.matchAll(/^ {2}([a-z_0-9]+): \(/gm)].map((m) => m[1])
-  );
+  const handlers = new Set([...registryBlock.matchAll(/^ {2}([a-z_0-9]+): \(/gm)].map((m) => m[1]));
   // Declarations live in dashboardAssistantTools.ts (TOOL_DECLARATIONS) and the per-domain
   // *Tools.ts modules it spreads in.
   const declared = new Set<string>();

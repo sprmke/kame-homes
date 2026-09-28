@@ -7,10 +7,12 @@ import { seedDefaultInboxQuickRepliesIfEmpty } from '../_shared/inboxDefaultQuic
 import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import {
-  catchPlanFeatureError,
-  requireOrgPropertyFeature,
-  requirePropertyFeature,
-} from '../_shared/planEntitlements.ts';
+  createQuickReplyTemplate,
+  deleteQuickReplyTemplate,
+  requireQuickRepliesPlan,
+  updateQuickReplyTemplate,
+} from '../_shared/inboxQuickReplyTemplates.ts';
+import { catchPlanFeatureError } from '../_shared/planEntitlements.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('social-inbox-templates', async (req) => {
@@ -33,11 +35,7 @@ serveAuthenticated('social-inbox-templates', async (req) => {
 
   if (req.method === 'POST' || req.method === 'PATCH') {
     try {
-      if (ctx.propertyId) {
-        await requirePropertyFeature(ctx.propertyId, 'quickReplies');
-      } else {
-        await requireOrgPropertyFeature(ctx.orgId, 'quickReplies');
-      }
+      await requireQuickRepliesPlan(ctx);
     } catch (err) {
       const planErr = catchPlanFeatureError(req, err);
       if (planErr) return planErr;
@@ -65,56 +63,41 @@ serveAuthenticated('social-inbox-templates', async (req) => {
     if (!title || !bodyText) {
       return jsonError(req, 'title and bodyText required', 400);
     }
-    const { data, error } = await sb
-      .from('social_reply_templates')
-      .insert({
-        organization_id: ctx.orgId,
-        parking_id: ctx.parkingId,
+    try {
+      const template = await createQuickReplyTemplate(ctx, {
         title,
-        body_text: bodyText,
-        platform: body?.platform ?? null,
-        conversation_type: body?.conversationType ?? 'all',
-        sort_order: Number(body?.sortOrder ?? 0),
-      })
-      .select('*')
-      .single();
-    if (error) return jsonError(req, error.message, 500);
-    return jsonSuccess(req, { template: data });
+        bodyText,
+        platform: body?.platform,
+        conversationType: body?.conversationType,
+        sortOrder: body?.sortOrder,
+      });
+      return jsonSuccess(req, { template });
+    } catch (err) {
+      return jsonError(req, err instanceof Error ? err.message : 'Create failed', 500);
+    }
   }
 
   if (req.method === 'PATCH') {
     const id = String(body?.id ?? '').trim();
     if (!id) return jsonError(req, 'id required', 400);
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (typeof body?.title === 'string') patch.title = body.title.trim();
-    if (typeof body?.bodyText === 'string') patch.body_text = body.bodyText.trim();
-    if (typeof body?.body_text === 'string') patch.body_text = body.body_text.trim();
-    if (body?.platform !== undefined) patch.platform = body.platform;
-    if (body?.conversationType !== undefined) patch.conversation_type = body.conversationType;
-    if (body?.sortOrder !== undefined) patch.sort_order = Number(body.sortOrder);
-    if (body?.isActive !== undefined) patch.is_active = Boolean(body.isActive);
-    const { data, error } = await sb
-      .from('social_reply_templates')
-      .update(patch)
-      .eq('organization_id', ctx.orgId)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-    if (error) return jsonError(req, error.message, 500);
-    return jsonSuccess(req, { template: data });
+    try {
+      const template = await updateQuickReplyTemplate(ctx, id, body ?? {});
+      return jsonSuccess(req, { template });
+    } catch (err) {
+      return jsonError(req, err instanceof Error ? err.message : 'Update failed', 500);
+    }
   }
 
   if (req.method === 'DELETE') {
     const url = new URL(req.url);
     const id = url.searchParams.get('id')?.trim();
     if (!id) return jsonError(req, 'id required', 400);
-    const { error } = await sb
-      .from('social_reply_templates')
-      .delete()
-      .eq('organization_id', ctx.orgId)
-      .eq('id', id);
-    if (error) return jsonError(req, error.message, 500);
-    return jsonSuccess(req, { deleted: true });
+    try {
+      await deleteQuickReplyTemplate(ctx, id);
+      return jsonSuccess(req, { deleted: true });
+    } catch (err) {
+      return jsonError(req, err instanceof Error ? err.message : 'Delete failed', 500);
+    }
   }
 
   return jsonError(req, 'Method not allowed', 405);

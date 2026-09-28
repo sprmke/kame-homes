@@ -27,8 +27,12 @@ serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
     if (body.enabled !== undefined && typeof body.enabled !== 'boolean') {
       return jsonError(req, 'enabled must be a boolean when provided', 400);
     }
+    if (body.aiModeEnabled !== undefined && typeof body.aiModeEnabled !== 'boolean') {
+      return jsonError(req, 'aiModeEnabled must be a boolean when provided', 400);
+    }
     const settings = await setDashboardAssistantGlobalSettings({
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
+      aiModeEnabled: typeof body.aiModeEnabled === 'boolean' ? body.aiModeEnabled : undefined,
       updatedBy: user.id,
     });
     await logSuperAdminAction(user, {
@@ -36,7 +40,7 @@ serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
       targetType: 'platform',
       targetId: 'dashboard_assistant_global_settings',
       summary: 'Updated dashboard assistant kill switch',
-      metadata: { enabled: settings.enabled },
+      metadata: { enabled: settings.enabled, aiModeEnabled: settings.aiModeEnabled },
     });
     return jsonSuccess(req, settings);
   }

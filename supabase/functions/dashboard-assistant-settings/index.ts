@@ -14,6 +14,7 @@ import {
   HOST_ASSISTANT_LIMIT_FIELDS,
   rejectPlatformManagedLimits,
 } from '../_shared/aiLimitGuard.ts';
+import { resolveAiFeatureBlocker } from '../_shared/aiUsageService.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import {
   listPropertyIdsForOrganization,
@@ -38,15 +39,17 @@ serveAuthenticated('dashboard-assistant-settings', async (req, user) => {
     // assistant launcher should render, not just settings-page-capable admins.
     const ctx = await resolveOrgAccessContext(req);
     const includeUsage = new URL(req.url).searchParams.get('includeUsage') === 'true';
-    const [settings, global, usage] = await Promise.all([
+    const [settings, global, usage, aiBlocker] = await Promise.all([
       getDashboardAssistantOrgSettings(ctx.org.id),
       getDashboardAssistantGlobalSettings(),
       includeUsage ? getDashboardAssistantUsageSummary(ctx.org.id) : Promise.resolve(null),
+      resolveAiFeatureBlocker(ctx.org.id, 'dashboard_assistant'),
     ]);
     return jsonSuccess(req, {
       ...hostSafe(settings),
       platformEnabled: global.enabled,
       aiModeEnabled: global.enabled && global.aiModeEnabled,
+      aiBlocker,
       usage,
     });
   }

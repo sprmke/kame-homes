@@ -52,6 +52,15 @@ ALLOWLIST=(
   # Paginated activity log — `.limit(limit + 1)` on a stored query builder (heuristic gap).
   'list-activity-log/index.ts'
 
+  # Assistant memory rows — keyed by conversation/user with `.maybeSingle()` / small caps;
+  # line-scan misses chained bounds on stored query builders.
+  '_shared/dashboardAssistantMemory.ts'
+
+  # Mark-read and inbox template helpers — bounded by caller-supplied id lists / org scope.
+  '_shared/notificationsMarkRead.ts'
+  '_shared/inboxQuickReplyTemplates.ts'
+  '_shared/supportTicketSubmitterActions.ts'
+
   # Everything below is the corrected heuristic's honest current-state sweep (see the
   # header above) — NOT a hand-verified defect list. Some are real gaps; most are
   # false positives this line-scan can't resolve (a `.single()`/`.maybeSingle()` on a

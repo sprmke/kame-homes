@@ -41,7 +41,8 @@ function updateActionBlockStatus(
   blocks: unknown,
   actionId: string,
   status: string,
-  errorMessage?: string | null
+  errorMessage?: string | null,
+  resultNote?: string | null
 ) {
   if (!Array.isArray(blocks)) return blocks;
   return blocks.map((block) => {
@@ -55,6 +56,7 @@ function updateActionBlockStatus(
         ...block,
         status,
         ...(errorMessage ? { errorMessage: humanizeTransitionError(errorMessage) } : {}),
+        ...(resultNote ? { resultNote: resultNote.slice(0, 240) } : {}),
       };
     }
     if (
@@ -189,8 +191,15 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
       conversationId: pending.conversation_id as string,
     };
 
-    const orgSettings = await getDashboardAssistantOrgSettings(conversation.organization_id as string);
-    if ((await remainingDashboardAssistantWrites(conversation.organization_id as string, orgSettings)) < 1) {
+    const orgSettings = await getDashboardAssistantOrgSettings(
+      conversation.organization_id as string
+    );
+    if (
+      (await remainingDashboardAssistantWrites(
+        conversation.organization_id as string,
+        orgSettings
+      )) < 1
+    ) {
       return jsonError(req, DASHBOARD_ASSISTANT_WRITE_LIMIT_MESSAGE, 429);
     }
 
@@ -210,7 +219,12 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
     }
 
     const result = await executeConfirmedAction(pending.tool_name as string, inputPayload, toolCtx);
-    await logAssistantWriteActivity(toolCtx, pending.tool_name as string, result, 'tier2_confirmed');
+    await logAssistantWriteActivity(
+      toolCtx,
+      pending.tool_name as string,
+      result,
+      'tier2_confirmed'
+    );
     // The chat block keeps the existing UI contract (`denied` + errorMessage renders the failure);
     // the pending-action row records the truthful `failed` for reporting.
     const newStatus = result.ok ? 'executed' : 'denied';
@@ -242,7 +256,15 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
     if (msg) {
       await sb
         .from('ai_dashboard_assistant_messages')
-        .update({ blocks: updateActionBlockStatus(msg.blocks, actionId, newStatus, result.error) })
+        .update({
+          blocks: updateActionBlockStatus(
+            msg.blocks,
+            actionId,
+            newStatus,
+            result.error,
+            result.ok ? result.resultNote : null
+          ),
+        })
         .eq('id', msg.id);
     }
 
@@ -257,6 +279,7 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
       ok: result.ok,
       error: result.error,
       data: result.data,
+      resultNote: result.ok ? (result.resultNote ?? null) : null,
     });
   } catch (err) {
     return handleEdgeError(req, err, 'dashboard-assistant-confirm');

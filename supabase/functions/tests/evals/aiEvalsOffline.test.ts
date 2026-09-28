@@ -13,6 +13,8 @@ import {
   withUntrustedDataRule,
   wrapUntrusted,
 } from '../../_shared/ai/untrusted.ts';
+import { evalCaseModule } from '../../_shared/assistantEvalSummary.ts';
+import { ASSISTANT_TOOL_MODULES } from '../../_shared/dashboardAssistantToolRouter.ts';
 import { assertSafeGuestReply } from '../../_shared/inboxAiSafetyGuard.ts';
 import { readJsonl } from './evalDatasets.ts';
 
@@ -115,4 +117,20 @@ Deno.test('eval datasets are well-formed', async () => {
     const ids = new Set(rows.map((r) => r.id));
     assertEquals(ids.size, rows.length, `${file} has duplicate or missing ids`);
   }
+});
+
+Deno.test('assistant golden set names real tools and covers every router module', async () => {
+  const rows = await readJsonl<{ id: string; expectToolsAny?: string[]; forbidTools?: string[] }>(
+    'assistant_tool_selection.jsonl'
+  );
+  for (const row of rows) {
+    for (const tool of [...(row.expectToolsAny ?? []), ...(row.forbidTools ?? [])]) {
+      assert(ASSISTANT_TOOL_MODULES[tool], `${row.id}: unknown tool ${tool}`);
+    }
+  }
+  const covered = new Set(rows.map((row) => evalCaseModule(row)));
+  const missing = [...new Set(Object.values(ASSISTANT_TOOL_MODULES))].filter(
+    (m) => !covered.has(m)
+  );
+  assertEquals(missing, [], 'add a golden row for each module');
 });

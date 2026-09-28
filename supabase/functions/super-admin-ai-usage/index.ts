@@ -1,11 +1,17 @@
 /**
  * super-admin-ai-usage — GET the platform AI cost console for `/admin/ai-usage`.
  * Daily spend trend + cost-by-feature + top orgs by spend + current quota breaches.
+ * Also: assistant feedback + the latest assistant golden eval runs (per-module pass rates).
  * Read-only, super-admin only. Backs the numbers `super-admin-overview` only summarizes.
  */
 
 import { limitNumber, resolveOrgAiLimitsBatch } from '../_shared/aiLimitResolver.ts';
 import { platformDailyCostUsdCap } from '../_shared/aiUsageService.ts';
+import { mapEvalRunRow } from '../_shared/assistantEvalSummary.ts';
+import {
+  summarizeAssistantFeedback,
+  type AssistantFeedbackRow,
+} from '../_shared/assistantFeedbackSummary.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
@@ -28,25 +34,38 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   const monthStart = isoDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
   const today = isoDate(now);
 
-  const [dailyRes, eventsRes, orgSettingsRes, monthRes, orgsRes] = await Promise.all([
-    supabase
-      .from('ai_platform_usage_daily')
-      .select('usage_date, call_count, estimated_cost_usd, organization_id')
-      .gte('usage_date', sinceDate)
-      .limit(100_000),
-    supabase
-      .from('ai_platform_usage_events')
-      .select('feature, estimated_cost_usd, organization_id, status, latency_ms, fallback_used')
-      .gte('created_at', sinceIso)
-      .limit(100_000),
-    supabase.from('ai_platform_org_settings').select('organization_id, enabled'),
-    supabase
-      .from('ai_platform_usage_daily')
-      .select('estimated_cost_usd')
-      .gte('usage_date', monthStart)
-      .limit(100_000),
-    supabase.from('organizations').select('id, name, slug').limit(10_000),
-  ]);
+  const [dailyRes, eventsRes, orgSettingsRes, monthRes, orgsRes, feedbackRes, evalRunsRes] =
+    await Promise.all([
+      supabase
+        .from('ai_platform_usage_daily')
+        .select('usage_date, call_count, estimated_cost_usd, organization_id')
+        .gte('usage_date', sinceDate)
+        .limit(100_000),
+      supabase
+        .from('ai_platform_usage_events')
+        .select('feature, estimated_cost_usd, organization_id, status, latency_ms, fallback_used')
+        .gte('created_at', sinceIso)
+        .limit(100_000),
+      supabase.from('ai_platform_org_settings').select('organization_id, enabled'),
+      supabase
+        .from('ai_platform_usage_daily')
+        .select('estimated_cost_usd')
+        .gte('usage_date', monthStart)
+        .limit(100_000),
+      supabase.from('organizations').select('id, name, slug').limit(10_000),
+      supabase
+        .from('ai_dashboard_assistant_feedback')
+        .select('rating, reason, created_at, organization_id')
+        .gte('created_at', sinceIso)
+        .limit(20_000),
+      supabase
+        .from('ai_assistant_eval_runs')
+        .select(
+          'id, created_at, routed, passed, total, avg_tools_sent, prompt_version, modules, failed_case_ids'
+        )
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ]);
 
   const firstError =
     dailyRes.error ??
@@ -54,6 +73,7 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     orgSettingsRes.error ??
     monthRes.error ??
     orgsRes.error ??
+    feedbackRes.error ??
     null;
   if (firstError) return jsonError(req, firstError.message, 500);
 
@@ -95,8 +115,13 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   const byFeature = new Map<string, FeatureBucket>();
   for (const ev of eventsRes.data ?? []) {
     const feature = (ev.feature as string) || 'other';
-    const bucket =
-      byFeature.get(feature) ?? { costUsd: 0, calls: 0, errors: 0, fallbacks: 0, latencies: [] };
+    const bucket = byFeature.get(feature) ?? {
+      costUsd: 0,
+      calls: 0,
+      errors: 0,
+      fallbacks: 0,
+      latencies: [],
+    };
     if (ev.status === 'error') {
       bucket.errors += 1;
     } else {
@@ -208,5 +233,11 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     featureBreakdown,
     topOrgs,
     quotaBreaches,
+    assistantFeedback: summarizeAssistantFeedback(
+      (feedbackRes.data ?? []) as AssistantFeedbackRow[],
+      (orgId) => orgById.get(orgId)?.name ?? null
+    ),
+    // Best-effort: eval history is optional and must not break the cost console.
+    assistantEvalRuns: evalRunsRes.error ? [] : (evalRunsRes.data ?? []).map(mapEvalRunRow),
   });
 });

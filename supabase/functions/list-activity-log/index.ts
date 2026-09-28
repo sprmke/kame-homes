@@ -15,12 +15,11 @@
  * Keyset pagination on (created_at DESC, id DESC) — never OFFSET.
  */
 
-import { hasOrgPermission } from '../_shared/orgTeamPermissions.ts';
 import {
-  createServiceClient,
-  resolveActivityViewableListingIdsForOrgUser,
-  verifyOrgAccess,
-} from '../_shared/orgAuth.ts';
+  activityListingOrFilter,
+  resolveActivityVisibility,
+} from '../_shared/activityLogVisibility.ts';
+import { createServiceClient, verifyOrgAccess } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
 import { postgrestOrIlikeValue } from '../_shared/publicSearch.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -49,10 +48,13 @@ serveAuthenticated('list-activity-log', async (req) => {
 
   // Org admins need `org.activity:view` for the org-wide log; without it (or as a listing-scoped
   // member) they fall back to rows for listings where they hold the listing-level `activity:view`.
-  const isAdminView =
-    accessKind === 'owner' ||
-    accessKind === 'platform_admin' ||
-    (accessKind === 'org_admin' && hasOrgPermission(permissions, 'org.activity:view'));
+  const visibility = await resolveActivityVisibility({
+    userId: user.id,
+    orgId: org.id,
+    accessKind,
+    permissions,
+  });
+  if (visibility.kind === 'none') return jsonSuccess(req, { events: [], nextCursor: null });
 
   const limit = Math.min(
     MAX_LIMIT,
@@ -73,19 +75,8 @@ serveAuthenticated('list-activity-log', async (req) => {
     .limit(limit + 1);
 
   // ── Listing-scoped visibility ─────────────────────────────────────────────
-  if (!isAdminView) {
-    const assigned = await resolveActivityViewableListingIdsForOrgUser(user.id, org.id);
-    if (assigned.propertyIds.length === 0 && assigned.parkingIds.length === 0) {
-      return jsonSuccess(req, { events: [], nextCursor: null });
-    }
-    const clauses: string[] = [];
-    if (assigned.propertyIds.length > 0) {
-      clauses.push(`property_id.in.(${assigned.propertyIds.join(',')})`);
-    }
-    if (assigned.parkingIds.length > 0) {
-      clauses.push(`parking_id.in.(${assigned.parkingIds.join(',')})`);
-    }
-    query = query.neq('scope', 'org').or(clauses.join(','));
+  if (visibility.kind === 'listings') {
+    query = query.neq('scope', 'org').or(activityListingOrFilter(visibility));
   }
 
   // ── Filters ──────────────────────────────────────────────────────────────

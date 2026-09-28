@@ -35,6 +35,7 @@ import {
   TurnActivityRecorder,
   TurnTaskPlanRecorder,
 } from '../_shared/dashboardAssistantActivity.ts';
+import { hostFacingToolFailureReason } from '../_shared/assistantToolFailureReason.ts';
 import {
   AssistantTurnAbortedError,
   assistantStreamResponse,
@@ -69,7 +70,7 @@ import {
   TIER2_ONLY_TOOL_NAMES,
   UNTRUSTED_CONTENT_TOOL_NAMES,
 } from '../_shared/dashboardAssistantRiskClassifier.ts';
-import { isAiPlatformDisabledError, isAiQuotaError } from '../_shared/aiUsageService.ts';
+import { aiDisabledScope, isAiQuotaError } from '../_shared/aiUsageService.ts';
 import {
   buildActionConfirmationDetails,
   buildTier1ActionSummary,
@@ -100,6 +101,12 @@ import {
   parseIncomingAttachments,
   persistAssistantAttachments,
 } from '../_shared/dashboardAssistantAttachments.ts';
+import { listAssistantMemories, memoryPromptSection } from '../_shared/dashboardAssistantMemory.ts';
+import { openPageBlocksFromResults } from '../_shared/dashboardAssistantNavigationTools.ts';
+import {
+  routeAssistantModules,
+  selectToolDeclarations,
+} from '../_shared/dashboardAssistantToolRouter.ts';
 import {
   executeTool,
   logAssistantWriteActivity,
@@ -147,7 +154,11 @@ import {
   SYSTEM_PROMPT_PREFIX,
 } from '../_shared/ai/prompts/dashboardAssistant.ts';
 
-const MAX_TOOL_ROUNDS = 4;
+/**
+ * Adaptive loop: up to 8 rounds, but a turn ends as soon as the model stops calling tools or
+ * the turn history passes TURN_HISTORY_TOKEN_BUDGET, so simple answers still take one round.
+ */
+const MAX_TOOL_ROUNDS = 8;
 /** Host message cap — bounds prompt size / cost before any context is loaded. */
 const MAX_MESSAGE_CHARS = 4_000;
 /** Per-round tool budget — bounds latency/cost when the model fans out many calls at once. */
@@ -156,6 +167,8 @@ const MAX_TOOL_CALLS_PER_ROUND = 8;
 const PRIOR_HISTORY_TOKEN_BUDGET = 8_000;
 /** Whole-turn input budget; once tool results exceed it the turn stops calling tools and answers. */
 const TURN_HISTORY_TOKEN_BUDGET = 60_000;
+/** Hosts cannot turn a platform-level block back on, so the message names who did. */
+const AI_OFF_BY_PLATFORM_MESSAGE = 'The AI assistant is turned off by the platform admin.';
 const WRITE_TOOL_NAMES = new Set([
   ...TIER1_ONLY_TOOL_NAMES,
   ...TIER2_ONLY_TOOL_NAMES,
@@ -508,22 +521,36 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             )}\nWhen the host wants a file on a booking (approved GAF, valid ID, receipt, etc.), call propose_apply_booking_attachment. Set alsoMarkComplete=true only for approved_gaf/approved_pet when they also want that step marked complete. For "check this receipt" without uploading to the booking, run_receipt_validation is enough.`
         : '';
 
+    // Thread context and memory (Phase 6: preferences + org house style, never above safety rules)
+    // are independent reads; load them together. Either failing degrades to "none", not an error.
+    const [contextResult, memoryResult] = await Promise.allSettled([
+      loadConversationContext(sb, conversationId!, { excludeMessageId: userMessageRow.id }),
+      listAssistantMemories(orgCtx.org.id, user.id),
+    ]);
     let conversationSummary = '';
     let priorHistory: GeminiContent[] = [];
-    try {
-      const loaded = await loadConversationContext(sb, conversationId!, {
-        excludeMessageId: userMessageRow.id,
-      });
-      conversationSummary = loaded.summary;
-      priorHistory = loaded.priorHistory;
-    } catch (err) {
+    if (contextResult.status === 'fulfilled') {
+      conversationSummary = contextResult.value.summary;
+      priorHistory = contextResult.value.priorHistory;
+    } else {
+      const err = contextResult.reason;
       console.warn(
         'dashboard-assistant-chat: conversation context load failed',
         err instanceof Error ? err.message : err
       );
     }
+    let memorySection = '';
+    if (memoryResult.status === 'fulfilled') {
+      memorySection = memoryPromptSection(memoryResult.value);
+    } else {
+      const err = memoryResult.reason;
+      console.warn(
+        'dashboard-assistant-chat: memory load failed',
+        err instanceof Error ? err.message : err
+      );
+    }
 
-    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
+    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}${memorySection}`;
 
     /** True once the assistant reply + usage increment have been committed. */
     let turnCommitted = false;
@@ -610,7 +637,24 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         ...fitHistoryToTokenBudget(priorHistory, PRIOR_HISTORY_TOKEN_BUDGET),
         { role: 'user', parts: [{ text: userTurnText }, ...attachmentParts] },
       ];
+      // Phase 6 router: only the modules this turn needs (fails open to every tool).
+      const recentToolNames = priorHistory.flatMap((content) =>
+        (content.parts ?? []).flatMap((part) =>
+          part && typeof part === 'object' && 'functionCall' in part && part.functionCall
+            ? [String((part.functionCall as { name?: unknown }).name ?? '')]
+            : []
+        )
+      );
+      const toolRoute = routeAssistantModules({
+        message: userTurnText,
+        attachedTypes: attachedContext.map((item) => item.type),
+        pageContext,
+        recentToolNames: recentToolNames.slice(-12),
+      });
+      const turnTools = selectToolDeclarations(TOOL_DECLARATIONS, toolRoute);
       const toolResultsForGrounding: unknown[] = [];
+      /** `open_page` handoffs, appended as blocks after grounding (server-built hrefs only). */
+      const openPageResults: Array<{ toolName: string; ok: boolean; data?: unknown }> = [];
       let proposedAction: { toolName: string; result: ToolResult } | null = null;
       let executedActions: Array<{ toolName: string; result: ToolResult }> = [];
       let journeyGuidanceIntro: string | null = null;
@@ -633,7 +677,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           prompt: DASHBOARD_ASSISTANT_PROMPT,
           system: systemPrompt,
           user: userTurnText,
-          tools: TOOL_DECLARATIONS,
+          tools: turnTools,
           toolMode: 'auto',
           history,
           maxOutputTokens: 1024,
@@ -688,9 +732,15 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           activity.recordToolStart(call.name, stepId);
           taskPlan.markRunning(stepId);
           const result = await executeTool(call.name, call.arguments, toolCtx);
-          activity.recordToolComplete(call.name, result.ok, toolStartedAt, stepId);
-          taskPlan.markDone(stepId, result.ok);
+          const failureReason = result.ok ? undefined : hostFacingToolFailureReason(result.error);
+          activity.recordToolComplete(call.name, result.ok, toolStartedAt, stepId, failureReason, {
+            omitFromTimeline: result.ok && result.deferred === true,
+          });
+          taskPlan.markDone(stepId, result.ok, failureReason);
           toolResultsForGrounding.push(result.data ?? result.error);
+          if (call.name === 'open_page') {
+            openPageResults.push({ toolName: call.name, ok: result.ok, data: result.data });
+          }
           if (call.name === 'search_knowledge_base' && Array.isArray(result.data)) {
             knowledgeHits.push(...(result.data as Array<Record<string, unknown>>));
           }
@@ -922,7 +972,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
               signal: turnAbort.signal,
             },
             combinedText,
-            groundingPrompt
+            groundingText
           );
           turnCreditsConsumed += safetyCheck.creditsConsumed;
           assertTurnActive();
@@ -987,7 +1037,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
       await auditExecutedActions(executedActions, toolCtx);
 
-      const responseBlocks = finalizeAssistantBlocksForHost(
+      const finalizedBlocks = finalizeAssistantBlocksForHost(
         wrapBlocksWithJourneyGuidance(
           nestBookingJourneyStepper(blocks, toolResultsForGrounding, attachedContext),
           toolResultsForGrounding,
@@ -997,6 +1047,10 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         attachedContext,
         { userMessage: turnMessage }
       );
+      const responseBlocks: ChatBlock[] = [
+        ...finalizedBlocks,
+        ...openPageBlocksFromResults(openPageResults),
+      ];
 
       const { data: assistantRow } = await sb
         .from('ai_dashboard_assistant_messages')
@@ -1026,7 +1080,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
       turnCommitted = true;
       return {
-        conversationId,
+        conversationId: conversationId!,
         blocks: responseBlocks,
         messageId: (assistantRow?.id as string | undefined) ?? undefined,
         userMessageId: userMessageRow.id,
@@ -1076,9 +1130,16 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
                 }
                 return;
               }
+              const aiBlocker = aiDisabledScope(err);
               emit({
                 type: 'error',
-                message: err instanceof Error ? err.message : 'Turn failed',
+                message:
+                  aiBlocker === 'platform'
+                    ? AI_OFF_BY_PLATFORM_MESSAGE
+                    : err instanceof Error
+                      ? err.message
+                      : 'Turn failed',
+                ...(aiBlocker ? { aiBlocker } : {}),
               });
               try {
                 controller.close();
@@ -1121,8 +1182,17 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         429
       );
     }
-    if (isAiPlatformDisabledError(err)) {
-      return jsonError(req, (err as Error).message, 503);
+    const aiBlocker = aiDisabledScope(err);
+    if (aiBlocker) {
+      return jsonResponse(
+        req,
+        {
+          success: false,
+          error: aiBlocker === 'platform' ? AI_OFF_BY_PLATFORM_MESSAGE : (err as Error).message,
+          aiBlocker,
+        },
+        503
+      );
     }
     return handleEdgeError(req, err, 'dashboard-assistant-chat');
   }
