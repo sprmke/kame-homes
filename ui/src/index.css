@@ -2843,6 +2843,7 @@ html.guest-embed-preview *::-webkit-scrollbar {
 .turnstile-host [data-testid='turnstile-widget'] {
   padding-inline: 0;
   margin-inline: 0;
+  border-radius: 0;
 }
 
 .turnstile-host [data-testid='turnstile-widget'] > div,
@@ -2852,6 +2853,7 @@ html.guest-embed-preview *::-webkit-scrollbar {
   max-width: 100% !important;
   margin-inline: 0 !important;
   padding-inline: 0 !important;
+  border-radius: 0 !important;
 }
 
 /* ── AI mode switch (docs/workflow/in-progress/ai-chat-mode.md, Phase 4) ─────────────────────

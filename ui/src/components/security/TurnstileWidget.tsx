@@ -28,6 +28,8 @@ function fitTurnstileToHost(host: HTMLElement, mount: HTMLElement): void {
   injected.style.setProperty('max-width', '100%', 'important');
   injected.style.margin = '0';
   injected.style.padding = '0';
+  injected.style.borderRadius = '0';
+  iframe.style.borderRadius = '0';
   iframe.style.setProperty('width', '100%', 'important');
   iframe.style.setProperty('max-width', '100%', 'important');
   iframe.style.display = 'block';
@@ -238,8 +240,8 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
         data-testid="turnstile-widget"
         aria-hidden={!hasChallenge}
         className={cn(
-          'w-full transition-[min-height]',
-          hasChallenge ? 'min-h-[65px] overflow-hidden rounded-xl' : 'min-h-0 overflow-hidden p-0'
+          'w-full rounded-none transition-[min-height]',
+          hasChallenge ? 'min-h-[65px] overflow-x-hidden' : 'min-h-0 p-0'
         )}
       />
       {/* Announce only the interactive-challenge case; the invisible pass is silent. */}
