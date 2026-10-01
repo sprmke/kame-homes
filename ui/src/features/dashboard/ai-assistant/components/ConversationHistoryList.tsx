@@ -197,7 +197,7 @@ export function ConversationHistoryList({
                   <li key={row.id} className="min-w-0">
                     <div
                       className={cn(
-                        'group flex min-w-0 items-center gap-0.5 rounded-lg transition-colors duration-150 motion-reduce:transition-none',
+                        'group relative min-w-0 overflow-hidden rounded-lg transition-colors duration-150 motion-reduce:transition-none',
                         !rail && 'surface-card native-press',
                         isActive
                           ? 'bg-primary/10 ring-primary/20 ring-1'
@@ -209,8 +209,10 @@ export function ConversationHistoryList({
                         onClick={() => onSelect(row.id)}
                         aria-current={isActive ? 'true' : undefined}
                         className={cn(
-                          'focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
-                          rail ? 'min-h-[40px] px-2 py-1.5' : 'min-h-[44px] px-3 py-2.5'
+                          'focus-visible:ring-ring flex w-full min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                          rail ? 'min-h-[40px] px-2 py-1.5' : 'min-h-[44px] px-3 py-2.5',
+                          !isDeleting &&
+                            '[@media(hover:hover)]:group-hover:pe-8 [@media(hover:none)]:pe-8'
                         )}
                       >
                         {!rail ? (
@@ -239,62 +241,71 @@ export function ConversationHistoryList({
                       </button>
                       {isDeleting ? (
                         <Loader2
-                          className="text-muted-foreground mx-3 size-4 animate-spin"
+                          className="text-muted-foreground absolute end-2 top-1/2 size-4 -translate-y-1/2 animate-spin"
                           aria-hidden
                         />
                       ) : (
-                        <ResponsiveOverflowMenu
-                          label={`Actions for ${title}`}
-                          sheetTitle={title}
-                          triggerClassName={cn(
-                            'shrink-0',
-                            rail &&
-                              '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100'
+                        <div
+                          className={cn(
+                            'absolute inset-y-0 end-0 z-[1] flex items-center rounded-e-lg pe-0.5',
+                            '[@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0',
+                            '[@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100',
+                            '[@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:opacity-100',
+                            '[@media(hover:hover)]:group-hover:bg-gradient-to-l [@media(hover:hover)]:group-hover:to-transparent [@media(hover:hover)]:group-hover:ps-4',
+                            isActive
+                              ? '[@media(hover:hover)]:group-hover:from-primary/10 [@media(hover:hover)]:group-hover:via-primary/10'
+                              : '[@media(hover:hover)]:group-hover:from-muted/60 [@media(hover:hover)]:group-hover:via-muted/60'
                           )}
-                          actionGroups={[
-                            [
-                              {
-                                key: 'rename',
-                                label: 'Rename',
-                                icon: <Pencil className="size-4" aria-hidden />,
-                                onSelect: () => {
-                                  setRenameValue(row.title ?? '');
-                                  setRenamingId(row.id);
+                        >
+                          <ResponsiveOverflowMenu
+                            label={`Actions for ${title}`}
+                            sheetTitle={title}
+                            triggerClassName="rounded-e-lg rounded-s-md hover:bg-transparent"
+                            actionGroups={[
+                              [
+                                {
+                                  key: 'rename',
+                                  label: 'Rename',
+                                  icon: <Pencil className="size-4" aria-hidden />,
+                                  onSelect: () => {
+                                    setRenameValue(row.title ?? '');
+                                    setRenamingId(row.id);
+                                  },
                                 },
-                              },
-                              {
-                                key: 'pin',
-                                label: row.pinned_at ? 'Unpin' : 'Pin',
-                                icon: row.pinned_at ? (
-                                  <PinOff className="size-4" aria-hidden />
-                                ) : (
-                                  <Pin className="size-4" aria-hidden />
-                                ),
-                                onSelect: () =>
-                                  update(
-                                    row.id,
-                                    { pinned: !row.pinned_at },
-                                    "Couldn't update conversation"
+                                {
+                                  key: 'pin',
+                                  label: row.pinned_at ? 'Unpin' : 'Pin',
+                                  icon: row.pinned_at ? (
+                                    <PinOff className="size-4" aria-hidden />
+                                  ) : (
+                                    <Pin className="size-4" aria-hidden />
                                   ),
-                              },
-                              {
-                                key: 'archive',
-                                label: 'Archive',
-                                icon: <Archive className="size-4" aria-hidden />,
-                                onSelect: () => archive(row),
-                              },
-                            ],
-                            [
-                              {
-                                key: 'delete',
-                                label: 'Delete',
-                                destructive: true,
-                                icon: <Trash2 className="size-4" aria-hidden />,
-                                onSelect: () => setPendingDeleteId(row.id),
-                              },
-                            ],
-                          ]}
-                        />
+                                  onSelect: () =>
+                                    update(
+                                      row.id,
+                                      { pinned: !row.pinned_at },
+                                      "Couldn't update conversation"
+                                    ),
+                                },
+                                {
+                                  key: 'archive',
+                                  label: 'Archive',
+                                  icon: <Archive className="size-4" aria-hidden />,
+                                  onSelect: () => archive(row),
+                                },
+                              ],
+                              [
+                                {
+                                  key: 'delete',
+                                  label: 'Delete',
+                                  destructive: true,
+                                  icon: <Trash2 className="size-4" aria-hidden />,
+                                  onSelect: () => setPendingDeleteId(row.id),
+                                },
+                              ],
+                            ]}
+                          />
+                        </div>
                       )}
                     </div>
                   </li>

@@ -11,8 +11,8 @@ const CANVAS_DEFAULT_VW = 0.55;
 const CANVAS_DEFAULT_MAX_PX = 900;
 /** Keeps the chat column usable next to the canvas. */
 export const CHAT_MIN_PX = 360;
-/** Matches AiModeRail's animated width. */
-export const RAIL_EXPANDED_PX = 264;
+/** Matches AiModeRail's animated width: icon column + chats panel. */
+export const RAIL_EXPANDED_PX = 300;
 export const RAIL_COLLAPSED_PX = 64;
 /** Resize gutter + canvas inset. */
 const GUTTER_PX = 16;
@@ -20,7 +20,7 @@ const STORAGE_KEY = 'kame-ai-canvas-width';
 
 /**
  * True when the expanded rail would leave the canvas under CANVAS_MIN_PX next to the chat
- * (viewports below 1200px). The rail then stays collapsed while the canvas is open.
+ * (viewports below 1236px). The rail then stays collapsed while the canvas is open.
  */
 export function railMustCollapse(viewportWidth: number): boolean {
   return viewportWidth - RAIL_EXPANDED_PX - GUTTER_PX - CHAT_MIN_PX < CANVAS_MIN_PX;

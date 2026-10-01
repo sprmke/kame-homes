@@ -30,7 +30,7 @@ import { runModeViewTransition } from '@/features/dashboard/ai-assistant/lib/mod
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 
-import { useIsBelowLg, usePrefersReducedMotion } from '@/hooks/useMediaQuery';
+import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 
 const preferencesKey = (userId: string | null) => ['user-ui-preferences', userId] as const;
 
@@ -52,7 +52,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
   const queryClient = useQueryClient();
   const reducedMotion = usePrefersReducedMotion();
-  const belowLg = useIsBelowLg();
   const { open: openUpgradeModal } = useUpgradeModal();
   const [searchParams, setSearchParams] = useSearchParams();
   const [saved, setSaved] = useState<DashboardMode>(
@@ -112,8 +111,8 @@ export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
       persist.mutate({ dashboardMode: next });
       const apply = () => {
         setSaved(next);
-        // Phone / tablet: the chat rises and the page slides back, so start with the canvas closed.
-        if (next === 'ai' && belowLg) {
+        // Chat-first (full width): split view is opt-in via Split View or page nav.
+        if (next === 'ai') {
           setSearchParams(
             (prev) => {
               const params = new URLSearchParams(prev);
@@ -130,7 +129,7 @@ export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
         apply();
       }
     },
-    [belowLg, persist, reducedMotion, setSearchParams, userId]
+    [persist, reducedMotion, setSearchParams, userId]
   );
 
   const mode = resolveEffectiveDashboardMode(saved, availability);
@@ -166,6 +165,9 @@ export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
       (prev) => {
         const next = new URLSearchParams(prev);
         next.delete(MODE_SEARCH_PARAM);
+        if (modeParam === 'ai') {
+          next.set(CANVAS_SEARCH_PARAM, CANVAS_CLOSED_VALUE);
+        }
         return next;
       },
       { replace: true }

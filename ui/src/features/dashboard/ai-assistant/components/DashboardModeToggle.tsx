@@ -1,14 +1,11 @@
-import { Lock } from 'lucide-react';
+import { useId } from 'react';
 
-import type { DashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardMode';
+import { Lock, Sparkles } from 'lucide-react';
+
 import { useDashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardModeContext';
 
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-
-const OPTIONS: Array<{ value: DashboardMode; label: string }> = [
-  { value: 'advanced', label: 'Advanced' },
-  { value: 'ai', label: 'AI' },
-];
 
 function shortcutHint(): string {
   if (typeof navigator === 'undefined') return 'Ctrl+J';
@@ -17,53 +14,93 @@ function shortcutHint(): string {
 
 type Props = {
   className?: string;
-  /** `compact` fits the mobile top bar and the collapsed rail. */
-  size?: 'default' | 'compact';
+  /**
+   * `row` sits above the plan row in the sidebar / rail / More sheet footer.
+   * `icon` is the collapsed-rail form. `compact` fits the AI mode phone top bar.
+   */
+  variant?: 'row' | 'icon' | 'compact';
 };
 
-/** Segmented Advanced | AI switch. Hidden when AI mode is unavailable; locked when plan-blocked. */
-export function DashboardModeToggle({ className, size = 'default' }: Props) {
+/** "AI mode" on/off switch. Hidden when AI mode is unavailable; locked when plan-blocked. */
+export function DashboardModeToggle({ className, variant = 'row' }: Props) {
   const { mode, availability, setMode } = useDashboardMode();
+  const switchId = useId();
   if (availability === 'hidden' || availability === 'pending') return null;
   const locked = availability === 'locked';
-  const compact = size === 'compact';
+  const on = mode === 'ai';
+  const title = `AI mode (${shortcutHint()})`;
+  const onCheckedChange = (checked: boolean) => setMode(checked ? 'ai' : 'advanced');
 
+  if (variant === 'icon') {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label="AI mode"
+        title={title}
+        data-testid="dashboard-mode-toggle"
+        onClick={() => onCheckedChange(!on)}
+        className={cn(
+          'focus-visible:ring-ring relative mx-auto flex size-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2',
+          on
+            ? 'bg-primary/10 text-primary hover:bg-primary/15'
+            : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-foreground',
+          className
+        )}
+      >
+        <Sparkles className="size-4" aria-hidden />
+        {locked ? (
+          <Lock
+            className="bg-sidebar absolute bottom-1.5 right-1.5 size-2.5 rounded-sm"
+            aria-hidden
+          />
+        ) : null}
+      </button>
+    );
+  }
+
+  const compact = variant === 'compact';
   return (
-    <div
-      role="radiogroup"
-      aria-label="Dashboard mode"
-      title={`Switch mode (${shortcutHint()})`}
+    <label
+      htmlFor={switchId}
+      title={title}
       data-testid="dashboard-mode-toggle"
-      className={cn('bg-muted/70 relative flex rounded-full p-0.5', className)}
-      onKeyDown={(event) => {
-        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-        event.preventDefault();
-        setMode(mode === 'ai' ? 'advanced' : 'ai');
-      }}
+      className={cn(
+        'flex cursor-pointer select-none items-center rounded-lg transition-colors',
+        compact
+          ? 'min-h-[44px] shrink-0 gap-2 px-1.5'
+          : 'hover:bg-sidebar-accent h-10 w-full gap-2.5 px-2',
+        className
+      )}
     >
-      {OPTIONS.map(({ value, label }) => {
-        const active = mode === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            onClick={() => setMode(value)}
-            className={cn(
-              'focus-visible:ring-ring relative inline-flex flex-1 items-center justify-center gap-1 rounded-full font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2',
-              compact ? 'min-h-[36px] px-3 text-xs' : 'min-h-[36px] px-3.5 text-sm',
-              active
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {label}
-            {value === 'ai' && locked ? <Lock className="size-3" aria-label="Upgrade" /> : null}
-          </button>
-        );
-      })}
-    </div>
+      {compact ? null : (
+        <span
+          className={cn(
+            'flex size-6 shrink-0 items-center justify-center rounded-md transition-colors',
+            on ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+          )}
+          aria-hidden
+        >
+          <Sparkles className="size-3.5" />
+        </span>
+      )}
+      <span
+        className={cn(
+          'text-foreground flex min-w-0 items-center gap-1.5 font-medium',
+          compact ? 'text-xs' : 'flex-1 truncate text-sm'
+        )}
+      >
+        {compact ? 'AI' : 'AI mode'}
+        {locked ? <Lock className="text-muted-foreground size-3 shrink-0" aria-hidden /> : null}
+      </span>
+      <Switch
+        id={switchId}
+        checked={on}
+        className="aria-[checked=false]:bg-muted-foreground/25"
+        aria-label={locked ? 'AI mode, upgrade required' : 'AI mode'}
+        onCheckedChange={onCheckedChange}
+      />
+    </label>
   );
 }
