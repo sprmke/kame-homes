@@ -7,6 +7,11 @@ import { toast } from 'sonner';
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 
 import { useAppSettings } from '@/features/dashboard/bookings/hooks/useAppSettings';
+import {
+  AiStudioChoiceGroup,
+  AiStudioShapePreview,
+} from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
+import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
 import { useGeneratePosters } from '@/features/dashboard/marketing/hooks/useGeneratePosters';
 import { useMarketingCatalog } from '@/features/dashboard/marketing/hooks/useMarketingCatalog';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
@@ -39,9 +44,10 @@ import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -53,11 +59,16 @@ const GOALS: Array<{ value: PosterGoal; label: string }> = [
   { value: 'stay-info', label: 'Stay info' },
 ];
 
-const FORMATS: Array<{ value: DesignTemplateFormat; label: string }> = [
-  { value: 'instagram-portrait', label: 'Portrait' },
-  { value: 'instagram-post', label: 'Square' },
-  { value: 'instagram-story', label: 'Story' },
-  { value: 'facebook-post', label: 'Facebook' },
+const FORMATS: Array<{
+  value: DesignTemplateFormat;
+  label: string;
+  hint: string;
+  ratio: number;
+}> = [
+  { value: 'instagram-portrait', label: 'Portrait', hint: 'Feed post', ratio: 4 / 5 },
+  { value: 'instagram-post', label: 'Square', hint: 'Feed post', ratio: 1 },
+  { value: 'instagram-story', label: 'Story', hint: 'Stories', ratio: 9 / 16 },
+  { value: 'facebook-post', label: 'Facebook', hint: 'Page post', ratio: 40 / 21 },
 ];
 
 const PROMPT_PLACEHOLDER: Record<PosterGoal, string> = {
@@ -341,78 +352,104 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
       <div className="lg:max-h-full lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto">
-        <div className="lg:border-border/60 lg:bg-card flex flex-col gap-4 lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-foreground text-base font-semibold">AI Post</h2>
-            <TierBadge feature="aiMarketingGeneration" />
-          </div>
+        <FloatingPanel
+          padding="md"
+          mobileOnly
+          className="lg:border-border/60 lg:bg-card lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm"
+        >
+          <form
+            className="flex flex-col gap-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!disabled && !isGenerating && !rendering) void handleGenerate();
+            }}
+          >
+            {!canGenerate && (
+              <p className="bg-muted/60 text-muted-foreground rounded-lg px-3 py-2 text-xs">
+                You do not have permission to generate content for this property.
+              </p>
+            )}
 
-          <div className="flex flex-col gap-2">
-            <span className="text-muted-foreground text-xs font-medium">Goal</span>
-            <div className="flex flex-wrap gap-2">
-              {GOALS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setGoal(option.value)}
-                  aria-pressed={goal === option.value}
-                  className={cn(
-                    'min-h-9 rounded-full border px-3.5 text-sm transition-colors',
-                    goal === option.value
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background text-foreground hover:bg-muted'
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span id="ai-post-goal-label" className="settings-field-label">
+                  Goal
+                </span>
+                <TierBadge feature="aiMarketingGeneration" />
+              </div>
+              <div role="group" aria-labelledby="ai-post-goal-label" className="flex flex-wrap gap-1.5">
+                {GOALS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setGoal(option.value)}
+                    aria-pressed={goal === option.value}
+                    className={cn(
+                      'min-h-11 rounded-full border px-3.5 text-[13px] font-medium sm:min-h-9',
+                      'transition-[border-color,background-color,color] duration-150 ease-out',
+                      'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                      goal === option.value
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border/80 bg-background text-foreground hover:bg-muted/60'
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-muted-foreground text-xs font-medium">Format</span>
-            <SegmentedControl
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <Label htmlFor="ai-post-prompt" className="settings-field-label">
+                  What should the post say?
+                </Label>
+                <span className="text-muted-foreground text-xs">Optional</span>
+              </div>
+              <Textarea
+                id="ai-post-prompt"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value.slice(0, 500))}
+                placeholder={PROMPT_PLACEHOLDER[goal]}
+                rows={3}
+                className="border-border/80 focus-visible:ring-primary/30 min-h-[88px] resize-y rounded-xl text-sm leading-relaxed"
+              />
+            </div>
+
+            <AiStudioChoiceGroup
+              label="Format"
               value={format}
               onChange={handleFormatChange}
-              options={FORMATS}
-              fullWidth
-              aria-label="Format"
+              columns={4}
+              options={FORMATS.map((option) => ({
+                value: option.value,
+                label: option.label,
+                hint: option.hint,
+                visual: <AiStudioShapePreview ratio={option.ratio} />,
+              }))}
             />
-          </div>
 
-          <Textarea
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value.slice(0, 500))}
-            placeholder={PROMPT_PLACEHOLDER[goal]}
-            rows={3}
-            aria-label="What should the post say?"
-          />
-
-          <Button
-            onClick={() => void handleGenerate()}
-            disabled={disabled || isGenerating || rendering}
-            className="min-h-11 w-full"
-          >
-            {isGenerating || rendering ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Sparkles className="size-4" />
-            )}
-            {isGenerating ? 'Designing' : rendering ? 'Rendering' : 'Generate posts'}
-          </Button>
-          {!canGenerate && (
-            <p className="text-muted-foreground text-xs">
-              You do not have permission to generate content for this property.
-            </p>
-          )}
-        </div>
+            <div className="bg-card lg:border-border/60 pt-1 lg:sticky lg:bottom-0 lg:-mx-5 lg:-mb-5 lg:border-t lg:px-5 lg:pb-5 lg:pt-4">
+              <Button
+                type="submit"
+                disabled={disabled || isGenerating || rendering}
+                className="min-h-12 w-full gap-2 text-sm font-semibold"
+              >
+                {isGenerating || rendering ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="size-4" aria-hidden />
+                )}
+                {isGenerating ? 'Designing' : rendering ? 'Rendering' : 'Generate posts'}
+              </Button>
+            </div>
+          </form>
+        </FloatingPanel>
       </div>
 
       <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto">
         {variants.length === 0 && !isGenerating ? (
-          <div className="border-border/60 text-muted-foreground flex min-h-48 items-center justify-center rounded-2xl border border-dashed p-6 text-center text-sm">
-            Posts made from your listing photos show up here.
-          </div>
+          <AiStudioEmptyState kind="post" />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {(isGenerating ? Array.from({ length: 4 }, () => null) : variants).map(
@@ -434,7 +471,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                     <div className="flex flex-wrap gap-1.5 p-2.5">
                       <Button
                         size="sm"
-                        className="h-10 sm:h-9"
+                        className="min-h-11 sm:min-h-9"
                         variant="secondary"
                         disabled={!variant.preview || !canAddTemplate || busyKey !== null}
                         onClick={() => void handleEdit(variant)}
@@ -448,7 +485,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                       </Button>
                       <Button
                         size="sm"
-                        className="h-10 sm:h-9"
+                        className="min-h-11 sm:min-h-9"
                         variant="ghost"
                         disabled={!variant.preview || busyKey !== null}
                         onClick={() => void handleShuffle(variant)}
@@ -458,7 +495,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                       </Button>
                       <Button
                         size="sm"
-                        className="h-10 sm:h-9"
+                        className="min-h-11 sm:min-h-9"
                         variant="ghost"
                         disabled={!variant.preview || busyKey !== null}
                         onClick={() => void handleDownload(variant)}
@@ -469,7 +506,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                       {canPublish && (
                         <Button
                           size="sm"
-                          className="ml-auto h-10 sm:h-9"
+                          className="ml-auto min-h-11 sm:min-h-9"
                           variant="ghost"
                           disabled={!variant.preview || busyKey !== null}
                           onClick={() => void handlePublish(variant)}

@@ -5,6 +5,10 @@ import {
   fileNameForGeneratedReference,
   referencesMatchingJob,
 } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
+import {
+  GENERATION_LOOKS,
+  composeGenerationPrompt,
+} from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import type {
   MarketingGenerationJob,
   MarketingGenerationReference,
@@ -111,6 +115,17 @@ describe('composerValuesFromJob', () => {
     expect(values.aspectRatio).toBe('4:5');
     expect(values.imageSize).toBe('2K');
     expect(values.references.map((row) => row.id)).toEqual(['ref-1']);
+  });
+
+  it('splits a picked look back out of the sent prompt', () => {
+    const look = GENERATION_LOOKS[1]!;
+    const values = composerValuesFromJob(
+      job({ prompt: composeGenerationPrompt('Balcony at dusk', look.id) }),
+      library,
+      { allowPremium: false, allowHighResolution: true }
+    );
+    expect(values.prompt).toBe('Balcony at dusk');
+    expect(values.lookId).toBe(look.id);
   });
 
   it('falls premium back to standard when the hatch is off', () => {

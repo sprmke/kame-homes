@@ -1,22 +1,25 @@
 import { useState } from 'react';
 
 import {
+  AlertTriangle,
   Copy,
   Download,
-  Loader2,
-  Send,
-  Sparkles,
-  Trash2,
-  AlertTriangle,
   ImagePlus,
+  Loader2,
+  MoreHorizontal,
   RotateCcw,
+  Send,
+  Trash2,
+  Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
 import { AiStudioVideoProgress } from '@/features/dashboard/marketing/components/ai-studio/AiStudioVideoProgress';
+import { MarketingResetConfirmDialog } from '@/features/dashboard/marketing/components/shared/MarketingResetConfirmDialog';
 import { useMarketingGenerationJob } from '@/features/dashboard/marketing/hooks/useMarketingGenerationJob';
 import { useDeleteMarketingGeneration } from '@/features/dashboard/marketing/hooks/useMarketingGenerations';
+import { splitGenerationPrompt } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   META_REELS_SIZE_WARNING_BYTES,
   formatOutputSize,
@@ -26,6 +29,10 @@ import {
 } from '@/features/dashboard/marketing/lib/marketingGenerationProgress';
 import type { MarketingGenerationJob } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
 
+import {
+  ResponsiveOverflowMenu,
+  type ResponsiveOverflowAction,
+} from '@/components/mobile/ResponsiveOverflowMenu';
 import { Button } from '@/components/ui/button';
 
 type Props = {
@@ -41,6 +48,12 @@ type Props = {
   refining?: boolean;
 };
 
+const ACTION_BUTTON = 'min-h-11 sm:min-h-9';
+
+/**
+ * One generated photo or clip. The result is the hero; Publish and Download sit
+ * under it, and the follow-ups (edit, reuse, delete) live in one overflow menu.
+ */
 export function AiStudioJobCard({
   job: initialJob,
   canPublish,
@@ -57,24 +70,17 @@ export function AiStudioJobCard({
   const job = live.data ?? initialJob;
 
   const [publishing, setPublishing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteGeneration = useDeleteMarketingGeneration();
 
   const inFlight = isGenerationInFlight(job);
-  const oversizedForReels =
-    job.mediaType === 'video' && (job.outputBytes ?? 0) > META_REELS_SIZE_WARNING_BYTES;
-  const showRetry = canGenerate && !inFlight && Boolean(onRetry);
-  const showUseAsPhoto =
-    canGenerate &&
-    !inFlight &&
-    job.mediaType === 'image' &&
-    Boolean(job.outputUrl) &&
-    Boolean(onUseAsPhoto);
-  const showRefine =
-    canGenerate &&
-    !inFlight &&
-    job.mediaType === 'image' &&
-    Boolean(job.outputUrl) &&
-    Boolean(onRefine);
+  const failed = !job.outputUrl && !inFlight;
+  const isImage = job.mediaType === 'image';
+  const kind = isImage ? 'photo' : 'video';
+  const { description, look } = splitGenerationPrompt(job.prompt);
+  const busy = refining || usingAsPhoto;
+  const oversizedForReels = !isImage && (job.outputBytes ?? 0) > META_REELS_SIZE_WARNING_BYTES;
+  const canReuseImage = canGenerate && !inFlight && isImage && Boolean(job.outputUrl);
 
   const handlePublish = async () => {
     if (!job.outputUrl) return;
@@ -94,196 +100,202 @@ export function AiStudioJobCard({
     if (!job.enhancedPrompt) return;
     try {
       await navigator.clipboard.writeText(job.enhancedPrompt);
-      toast.success('Prompt copied');
+      toast.success('Description copied');
     } catch {
-      toast.error('Could not copy the prompt');
+      toast.error('Could not copy the description');
     }
   };
 
+  const reuseActions: ResponsiveOverflowAction[] = [
+    {
+      key: 'refine',
+      label: 'Edit this photo',
+      icon: <Wand2 className="size-4" aria-hidden />,
+      disabled: !canReuseImage || !onRefine || busy,
+      onSelect: () => onRefine?.(job),
+    },
+    {
+      key: 'retry',
+      label: 'Use these settings',
+      icon: <RotateCcw className="size-4" aria-hidden />,
+      disabled: !canGenerate || inFlight || failed || !onRetry,
+      onSelect: () => onRetry?.(job),
+    },
+    {
+      key: 'use-photo',
+      label: 'Add to my photos',
+      icon: <ImagePlus className="size-4" aria-hidden />,
+      disabled: !canReuseImage || !onUseAsPhoto || busy,
+      onSelect: () => onUseAsPhoto?.(job),
+    },
+    {
+      key: 'copy',
+      label: 'Copy improved description',
+      icon: <Copy className="size-4" aria-hidden />,
+      disabled: !job.promptEnhanced || !job.enhancedPrompt,
+      onSelect: () => void handleCopyEnhancedPrompt(),
+    },
+  ];
+  const deleteActions: ResponsiveOverflowAction[] = [
+    {
+      key: 'delete',
+      label: 'Delete',
+      icon: <Trash2 className="size-4" aria-hidden />,
+      destructive: true,
+      disabled: !canDelete || inFlight || deleteGeneration.isPending,
+      onSelect: () => setConfirmDelete(true),
+    },
+  ];
+
   return (
-    <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-sm">
+    <article className="border-border/70 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-sm">
       <div className="bg-muted/40 relative flex aspect-square items-center justify-center overflow-hidden">
-        {job.outputUrl && job.mediaType === 'image' && (
+        {job.outputUrl && isImage && (
           <img
             src={job.outputUrl}
-            alt={job.prompt}
+            alt={description}
             loading="lazy"
             className="size-full object-cover"
           />
         )}
-        {job.outputUrl && job.mediaType === 'video' && (
+        {job.outputUrl && !isImage && (
           <video src={job.outputUrl} controls playsInline className="size-full object-cover" />
         )}
-        {!job.outputUrl && inFlight && job.mediaType === 'video' && (
-          <AiStudioVideoProgress job={job} />
-        )}
-        {!job.outputUrl && inFlight && job.mediaType === 'image' && (
+        {!job.outputUrl && inFlight && !isImage && <AiStudioVideoProgress job={job} />}
+        {!job.outputUrl && inFlight && isImage && (
           <AiStudioGeneratingStage
             variant="card"
             mediaType="image"
             className="absolute inset-0 rounded-none border-0"
           />
         )}
-        {!job.outputUrl && !inFlight && (
-          <div className="text-muted-foreground flex flex-col items-center gap-2 p-4 text-center">
-            <AlertTriangle className="size-5" />
-            <span className="text-xs">{generationErrorMessage(job)}</span>
+        {failed && (
+          <div className="flex max-w-[16rem] flex-col items-center gap-2 p-4 text-center">
+            <span className="bg-warning/15 text-warning flex size-9 items-center justify-center rounded-full">
+              <AlertTriangle className="size-4" aria-hidden />
+            </span>
+            <span className="text-foreground text-sm font-medium">Not generated</span>
+            <span className="text-muted-foreground text-xs">{generationErrorMessage(job)}</span>
           </div>
         )}
-
+        {busy && (
+          <div
+            role="status"
+            className="bg-background/70 absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium backdrop-blur-[2px]"
+          >
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            {refining ? 'Opening in the form' : 'Adding to your photos'}
+          </div>
+        )}
         {job.outputUrl && (
-          <span className="bg-background/90 text-foreground absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-medium">
+          <span className="bg-background/90 text-foreground absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums">
             {job.aspectRatio}
           </span>
         )}
       </div>
 
-      <div className="space-y-2 p-3">
-        <p className="text-foreground line-clamp-2 text-xs">{job.prompt}</p>
-
-        {job.promptEnhanced && job.enhancedPrompt && (
-          <EnhancedPromptDisclosure
-            enhancedPrompt={job.enhancedPrompt}
-            onCopy={() => void handleCopyEnhancedPrompt()}
-          />
-        )}
+      <div className="flex flex-1 flex-col gap-2.5 p-3">
+        <p className="text-foreground line-clamp-2 text-[13px] leading-snug" title={description}>
+          {description}
+        </p>
 
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+          {look && (
+            <span className="bg-muted text-foreground rounded-full px-2 py-0.5 font-medium">
+              {look.title}
+            </span>
+          )}
           <span>{generationStatusLabel(job)}</span>
-          {job.creditsConsumed != null && <span>{job.creditsConsumed} credits</span>}
-          {formatOutputSize(job.outputBytes) && <span>{formatOutputSize(job.outputBytes)}</span>}
+          {job.creditsConsumed != null && (
+            <span className="tabular-nums">{job.creditsConsumed} credits</span>
+          )}
+          {formatOutputSize(job.outputBytes) && (
+            <span className="tabular-nums">{formatOutputSize(job.outputBytes)}</span>
+          )}
         </div>
 
         {oversizedForReels && (
-          <p className="text-xs text-amber-600 dark:text-amber-500">
-            Over 8 MB. Meta may reject this as a Reel.
-          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-500">Over 8 MB. Meta may reject this as a Reel.</p>
         )}
 
-        {job.outputUrl && (
-          <div className="flex flex-wrap gap-1.5">
-            <Button asChild variant="outline" size="sm" className="min-h-[44px] flex-1">
-              <a href={job.outputUrl} target="_blank" rel="noreferrer">
-                <Download className="size-4" />
-                Download
+        <div className="mt-auto flex items-center gap-1.5 pt-0.5">
+          {job.outputUrl && canPublish && (
+            <Button
+              size="sm"
+              className={`${ACTION_BUTTON} flex-1`}
+              disabled={publishing}
+              onClick={() => void handlePublish()}
+            >
+              {publishing ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Send className="size-4" aria-hidden />
+              )}
+              Publish
+            </Button>
+          )}
+          {job.outputUrl && (
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={
+                canPublish ? `${ACTION_BUTTON} min-w-11 px-0 sm:min-w-9` : `${ACTION_BUTTON} flex-1`
+              }
+            >
+              <a
+                href={job.outputUrl}
+                target="_blank"
+                rel="noreferrer"
+                download
+                aria-label={`Download ${kind}`}
+              >
+                <Download className="size-4" aria-hidden />
+                {!canPublish && 'Download'}
               </a>
             </Button>
-            {canPublish && (
-              <Button
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={publishing}
-                onClick={() => void handlePublish()}
-              >
-                {publishing ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4" />
-                )}
-                Publish
-              </Button>
-            )}
+          )}
+          {failed && canGenerate && onRetry && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={`${ACTION_BUTTON} flex-1`}
+              onClick={() => onRetry(job)}
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              Try again
+            </Button>
+          )}
+          <div className={job.outputUrl || (failed && canGenerate) ? undefined : 'ml-auto'}>
+            <ResponsiveOverflowMenu
+              label={`More actions for this ${kind}`}
+              sheetTitle={isImage ? 'Photo' : 'Video'}
+              actionGroups={[reuseActions, deleteActions]}
+              trigger={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={`${ACTION_BUTTON} min-w-11 px-0 sm:min-w-9`}
+                  aria-label={`More actions for this ${kind}`}
+                >
+                  <MoreHorizontal className="size-4" aria-hidden />
+                </Button>
+              }
+            />
           </div>
-        )}
-
-        {(showRetry || showUseAsPhoto || showRefine) && (
-          <div className="flex flex-wrap gap-1.5">
-            {showRefine && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={refining}
-                onClick={() => onRefine?.(job)}
-              >
-                {refining ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                Refine
-              </Button>
-            )}
-            {showRetry && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                onClick={() => onRetry?.(job)}
-              >
-                <RotateCcw className="size-4" />
-                Retry
-              </Button>
-            )}
-            {showUseAsPhoto && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-h-[44px] flex-1"
-                disabled={usingAsPhoto}
-                onClick={() => onUseAsPhoto?.(job)}
-              >
-                {usingAsPhoto ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ImagePlus className="size-4" />
-                )}
-                Use photo
-              </Button>
-            )}
-          </div>
-        )}
-
-        {canDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground min-h-[44px] w-full"
-            disabled={deleteGeneration.isPending || inFlight}
-            onClick={() => deleteGeneration.mutate(job.id)}
-          >
-            <Trash2 className="size-4" />
-            Delete
-          </Button>
-        )}
+        </div>
       </div>
-    </div>
-  );
-}
 
-/**
- * Phase 6d transparency — shows the full scene description that actually reached
- * the image model when enhancement ran, so the host can see what changed and copy
- * it as a starting point. Collapsed by default: most hosts never need to look, and
- * a card-sized prompt block would dominate the layout otherwise.
- */
-function EnhancedPromptDisclosure({
-  enhancedPrompt,
-  onCopy,
-}: {
-  enhancedPrompt: string;
-  onCopy: () => void;
-}) {
-  return (
-    <details className="group">
-      <summary className="text-muted-foreground hover:text-foreground flex min-h-[44px] cursor-pointer list-none items-center gap-1 text-[11px] font-medium">
-        <Sparkles className="size-3" />
-        Enhanced prompt
-      </summary>
-      <div className="border-border/60 mt-1.5 space-y-1.5 rounded-lg border p-2">
-        <p className="text-muted-foreground text-[11px] leading-relaxed">{enhancedPrompt}</p>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="text-primary hover:text-primary/80 flex min-h-[44px] items-center gap-1 text-[11px] font-medium"
-        >
-          <Copy className="size-3" />
-          Copy
-        </button>
-      </div>
-    </details>
+      <MarketingResetConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete this ${kind}?`}
+        description="It is removed from your gallery. Posts you already published stay up."
+        confirmLabel="Delete"
+        onConfirm={() => deleteGeneration.mutate(job.id)}
+      />
+    </article>
   );
 }

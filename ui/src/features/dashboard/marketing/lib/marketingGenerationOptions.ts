@@ -14,7 +14,7 @@ export type TierOption = {
 export const PREMIUM_TIER_OPTION: TierOption = {
   value: 'premium',
   label: 'Premium',
-  hint: 'Highest quality, highest cost',
+  hint: 'Most detail',
 };
 
 export function imageTierOptions(allowPremium: boolean): TierOption[] {
@@ -26,8 +26,8 @@ export function videoTierOptions(allowPremium: boolean): TierOption[] {
 }
 
 export const IMAGE_TIER_OPTIONS: TierOption[] = [
-  { value: 'draft', label: 'Draft', hint: 'Cheapest, good for trying ideas' },
-  { value: 'standard', label: 'Standard', hint: 'Best balance of quality and cost' },
+  { value: 'draft', label: 'Draft', hint: 'Try ideas' },
+  { value: 'standard', label: 'Standard', hint: 'Ready to post' },
 ];
 
 export type AspectRatioOption = {
@@ -41,13 +41,13 @@ export type AspectRatioOption = {
 export const IMAGE_ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
   { value: '1:1', label: 'Square', hint: 'Feed post', ratio: 1 },
   { value: '4:5', label: 'Portrait', hint: 'Feed post', ratio: 4 / 5 },
-  { value: '9:16', label: 'Story', hint: 'Story or Reel cover', ratio: 9 / 16 },
+  { value: '9:16', label: 'Story', hint: 'Stories', ratio: 9 / 16 },
   { value: '16:9', label: 'Landscape', hint: 'Cover photo', ratio: 16 / 9 },
 ];
 
 export const IMAGE_SIZE_LABELS: Record<ImageSize, string> = {
   '512px': 'Small',
-  '1K': 'Standard',
+  '1K': 'Medium',
   '2K': 'Large',
   '4K': 'Extra large',
 };
@@ -60,94 +60,103 @@ export function maxReferencesForTier(tier: MarketingGenerationTier): number {
   return IMAGE_MAX_REFERENCES_BY_TIER[tier];
 }
 
-export type ImageStylePreset = {
+/**
+ * Looks — lighting and mood only, never a subject, so a look stacks on top of whatever
+ * the host described instead of replacing it. Each carries tested photographic
+ * direction (real-estate/hospitality conventions: level verticals, natural light,
+ * styled-but-lived-in). Applied to images and video alike.
+ */
+export type GenerationLook = {
   id: string;
   title: string;
-  /** A fuller, tested scene-description fragment — not shorthand like the starters
-   *  above. Still runs through server-side prompt enhancement like anything else
-   *  the host submits, but is written to already carry real photographic direction
-   *  (lighting, camera framing, mood) rather than a bare subject. */
   prompt: string;
 };
 
-/** Featured count shown before the composer's "More styles" toggle. */
-export const IMAGE_STYLE_PRESETS_PREVIEW_COUNT = 4;
+export const GENERATION_LOOKS: GenerationLook[] = [
+  {
+    id: 'golden-hour',
+    title: 'Golden hour',
+    prompt:
+      'warm late-afternoon sunlight streaming in, long soft shadows, cozy and inviting, styled but lived-in',
+  },
+  {
+    id: 'bright-airy',
+    title: 'Bright and airy',
+    prompt:
+      'soft diffused morning daylight, clean minimal styling, light wood tones and white linens, calm and fresh',
+  },
+  {
+    id: 'evening-glow',
+    title: 'Evening glow',
+    prompt: 'night-time, warm layered lamplight, dim ambient mood, relaxed and intimate',
+  },
+  {
+    id: 'blue-hour',
+    title: 'Blue hour',
+    prompt:
+      'just after sunset, city lights beginning to glow, cool ambient sky, warm interior light spilling out',
+  },
+  {
+    id: 'rainy-cozy',
+    title: 'Rainy and cozy',
+    prompt:
+      'rain-streaked window in frame, warm lamplight inside against gray daylight outside, cozy and intimate',
+  },
+  {
+    id: 'editorial',
+    title: 'Magazine',
+    prompt:
+      'wide establishing shot from a low, level angle, architectural composition, natural light, magazine-editorial feel',
+  },
+  {
+    id: 'detail',
+    title: 'Close-up',
+    prompt:
+      'close-up detail of styling and textures in soft directional sunlight, shallow depth of field',
+  },
+];
 
-/**
- * Curated photographic style presets for the Generate tab (Phase 3b of the
- * quality-hardening plan) — real-estate/hospitality photography conventions:
- * wide-angle interiors, golden-hour or bright diffused daylight, level verticals,
- * styled-but-lived-in framing. First 4 are featured; the rest sit behind "More".
- */
-export const IMAGE_STYLE_PRESETS: ImageStylePreset[] = [
-  {
-    id: 'golden-hour-interior',
-    title: 'Golden Hour Interior',
-    prompt:
-      'Wide-angle interior shot, warm late-afternoon sunlight streaming through the windows, long soft shadows, cozy and inviting, styled but lived-in',
-  },
-  {
-    id: 'bright-scandinavian',
-    title: 'Bright Scandinavian Morning',
-    prompt:
-      'Bright, airy interior in soft diffused morning daylight, clean minimal styling, light wood tones and white linens, calm and fresh',
-  },
-  {
-    id: 'poolside-evening',
-    title: 'Poolside Evening',
-    prompt:
-      'Poolside at dusk, warm string lights and ambient lounge lighting reflecting off the water, inviting resort atmosphere',
-  },
-  {
-    id: 'editorial-wide',
-    title: 'Editorial Wide',
-    prompt:
-      'Wide establishing shot of the space from a low, level angle, architectural composition, natural light, magazine-editorial feel',
-  },
-  {
-    id: 'rainy-day-cozy',
-    title: 'Rainy Day Cozy',
-    prompt:
-      'Interior view with a rain-streaked window in the frame, warm lamplight inside contrasting the gray daylight outside, cozy and intimate',
-  },
-  {
-    id: 'blue-hour-view',
-    title: 'Blue Hour View',
-    prompt:
-      'Balcony or rooftop view at blue hour just after sunset, city or skyline lights beginning to glow, cool ambient sky, warm interior light spilling out',
-  },
-  {
-    id: 'sunlit-detail',
-    title: 'Sunlit Detail',
-    prompt:
-      'Close-up detail shot of styling and textures — linens, ceramics, or furniture finish — in soft directional sunlight, shallow depth of field',
-  },
-  {
-    id: 'crisp-daylight-bedroom',
-    title: 'Crisp Daylight Bedroom',
-    prompt:
-      'Bedroom in crisp bright daylight, crisp white linens with visible fabric texture, minimal styling, calm and restful mood',
-  },
-  {
-    id: 'kitchen-afternoon-sun',
-    title: 'Kitchen Afternoon Sun',
-    prompt:
-      'Kitchen island scene in warm afternoon sun, natural light raking across the countertop, homey and welcoming',
-  },
-  {
-    id: 'moody-evening-lounge',
-    title: 'Moody Evening Lounge',
-    prompt:
-      'Living or lounge area at night with warm layered lamplight, dim ambient mood, relaxed and intimate atmosphere',
-  },
+const LOOK_SEPARATOR = '\n\nStyle: ';
+
+/** Longest suffix a look can add, so the description box leaves room for it. */
+export const MAX_LOOK_SUFFIX_CHARS = Math.max(
+  ...GENERATION_LOOKS.map((look) => LOOK_SEPARATOR.length + look.prompt.length)
+);
+
+/** The prompt sent to the server: the host's description, plus the look when one is picked. */
+export function composeGenerationPrompt(description: string, lookId: string | null): string {
+  const trimmed = description.trim();
+  const look = GENERATION_LOOKS.find((item) => item.id === lookId);
+  return look ? `${trimmed}${LOOK_SEPARATOR}${look.prompt}` : trimmed;
+}
+
+/** Inverse of `composeGenerationPrompt`, for Retry / Refine and gallery captions. */
+export function splitGenerationPrompt(prompt: string): {
+  description: string;
+  look: GenerationLook | null;
+} {
+  const index = prompt.lastIndexOf(LOOK_SEPARATOR);
+  if (index === -1) return { description: prompt, look: null };
+  const suffix = prompt.slice(index + LOOK_SEPARATOR.length);
+  const look = GENERATION_LOOKS.find((item) => item.prompt === suffix) ?? null;
+  return look ? { description: prompt.slice(0, index), look } : { description: prompt, look: null };
+}
+
+/** Subject ideas shown while the description is empty. Short, host-language. */
+export const IMAGE_SUBJECT_IDEAS: string[] = [
+  'Living room with a view',
+  'Bedroom ready for guests',
+  'Pool deck with loungers',
+  'Balcony and skyline',
+  'Kitchen set for breakfast',
 ];
 
 /**
  * Video tier options. Premium is hidden unless a super-admin enables it per property.
  */
 export const VIDEO_TIER_OPTIONS: TierOption[] = [
-  { value: 'draft', label: 'Draft', hint: 'Cheapest, good for trying ideas' },
-  { value: 'standard', label: 'Standard', hint: 'Best balance of quality and cost' },
+  { value: 'draft', label: 'Draft', hint: 'Try ideas' },
+  { value: 'standard', label: 'Standard', hint: 'Ready to post' },
 ];
 
 /** Video only supports 16:9 or 9:16 (Veo's own limitation). 9:16 is the default — most
@@ -163,15 +172,15 @@ export const VIDEO_RESOLUTION_LABELS: Record<'720p' | '1080p', string> = {
 };
 
 export const VIDEO_DURATION_LABELS: Record<6 | 8, string> = {
-  6: '6 seconds',
-  8: '8 seconds',
+  6: '6 sec',
+  8: '8 sec',
 };
 
 /** Video accepts at most 3 reference images (Veo's own limitation) across every tier. */
 export const VIDEO_MAX_REFERENCES = 3;
 
-/** Prompt starters for video. Short, motion-oriented chips. */
-export const VIDEO_PROMPT_STARTERS: string[] = [
+/** Motion ideas shown while the video description is empty. */
+export const VIDEO_SUBJECT_IDEAS: string[] = [
   'Pan across the living room at golden hour',
   'Rise over the pool deck and skyline',
   'Push-in on the bedroom, soft breeze',

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 
+import { Clapperboard, ImageIcon, LayoutTemplate } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AiPostPanel } from '@/features/dashboard/marketing/components/ai-studio/AiPostPanel';
@@ -23,6 +24,7 @@ import { maxReferencesForTier } from '@/features/dashboard/marketing/lib/marketi
 import { isGenerationInFlight } from '@/features/dashboard/marketing/lib/marketingGenerationProgress';
 import type {
   MarketingGenerationJob,
+  MarketingGenerationMediaType,
   MarketingGenerationReference,
 } from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -31,39 +33,51 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 
-const IMAGE_FEATURE = 'aiMarketingImageGeneration' as const;
-const VIDEO_FEATURE = 'aiMarketingVideoGeneration' as const;
-
 type Props = {
   onPublish: (payload: { blob: Blob; mediaType: 'image' | 'video' }) => void;
   /** AI Post "Edit": open the saved poster in the Design tab. */
   onOpenInDesign: (templateId: string) => void;
 };
 
-type GenerateMode = 'post' | 'media';
+type GenerateMode = 'post' | MarketingGenerationMediaType;
 
-const MODE_OPTIONS: Array<{ value: GenerateMode; label: string }> = [
-  { value: 'post', label: 'AI Post' },
-  { value: 'media', label: 'Photo & video' },
+const MODE_OPTIONS = [
+  { value: 'post' as const, label: 'AI Post', icon: LayoutTemplate },
+  { value: 'image' as const, label: 'Photo', icon: ImageIcon },
+  { value: 'video' as const, label: 'Video', icon: Clapperboard },
 ];
 
 /**
- * Generate tab — results are the hero (gallery / generating stage). Composer is the
- * control rail. Plan gate covers the composer only so a downgraded org keeps past assets.
+ * Generate tab. One switch picks what to make: a finished post from listing photos,
+ * a new photo, or a short video. Photo and Video share the composer (left rail on
+ * `lg+`) and a gallery filtered to that media type. The plan gate lives on Generate
+ * only, so a downgraded org keeps past output.
  */
 export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
   const propertyId = usePropertyIdParam();
-  // AI Post (finished, editable posts from real photos) is the default when the plan
-  // includes it (`aiMarketingGeneration`, Business+). Pro hosts, who only have image
-  // generation, land on Photo & video instead of a mode they cannot use.
   const { allowed: postAllowed, isLoading: postGateLoading } =
     useFeatureGate('aiMarketingGeneration');
-  const [chosenMode, setChosenMode] = useState<GenerateMode | null>(null);
-  const mode: GenerateMode = chosenMode ?? (postGateLoading || postAllowed ? 'post' : 'media');
   const { canGenerateImage, canGenerateVideo, canPublish } = useMarketingPermissions();
   const canGenerate = canGenerateImage || canGenerateVideo;
-  const { allowed: imageAllowed, isLoading: imageGateLoading } = useFeatureGate(IMAGE_FEATURE);
-  const { allowed: videoAllowed, isLoading: videoGateLoading } = useFeatureGate(VIDEO_FEATURE);
+  const { allowed: imageAllowed, isLoading: imageGateLoading } = useFeatureGate(
+    'aiMarketingImageGeneration'
+  );
+  const { allowed: videoAllowed, isLoading: videoGateLoading } = useFeatureGate(
+    'aiMarketingVideoGeneration'
+  );
+
+  // AI Post is the default when the plan includes it (Business+). Pro hosts land on
+  // Photo, and a video-only role lands on Video instead of a form it cannot submit.
+  const [chosenMode, setChosenMode] = useState<GenerateMode | null>(null);
+  const defaultMode: GenerateMode =
+    postGateLoading || postAllowed
+      ? 'post'
+      : !canGenerateImage && canGenerateVideo
+        ? 'video'
+        : 'image';
+  const mode = chosenMode ?? defaultMode;
+  const mediaType: MarketingGenerationMediaType = mode === 'video' ? 'video' : 'image';
+
   const generate = useGenerateMarketingMedia();
   const generations = useMarketingGenerations();
   const libraryQuery = useMarketingGenerationReferences();
@@ -79,20 +93,38 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
   const draftSeq = useRef(0);
   const photoSeq = useRef(0);
 
-  const jobs = useMemo(
+  const allJobs = useMemo(
     () => generations.data?.pages.flatMap((page) => page.jobs) ?? [],
     [generations.data]
+  );
+  const jobs = useMemo(
+    () => allJobs.filter((job) => job.mediaType === mediaType),
+    [allJobs, mediaType]
   );
   const allowPremiumImage = Boolean(generations.data?.pages[0]?.allowPremiumImage);
   const allowPremiumVideo = Boolean(generations.data?.pages[0]?.allowPremiumVideo);
   const library = libraryQuery.data ?? [];
   const videoPlanAllowed = videoGateLoading ? true : videoAllowed;
 
-  const pendingMediaType = generate.variables?.mediaType ?? 'image';
+  const pendingMediaType = generate.variables?.mediaType ?? mediaType;
+  const pendingHere = generate.isPending && pendingMediaType === mediaType;
   const hasInFlightJob = jobs.some((job) => isGenerationInFlight(job) && !job.outputUrl);
-  const showPendingCard = generate.isPending && !hasInFlightJob;
+  const showPendingCard = pendingHere && !hasInFlightJob;
 
-  const scrollToComposer = () => {
+  const canGenerateHere = mediaType === 'video' ? canGenerateVideo : canGenerateImage;
+  const gateLoading = mediaType === 'video' ? videoGateLoading : imageGateLoading;
+  const planAllowed = mediaType === 'video' ? videoPlanAllowed : imageAllowed;
+
+  const changeMode = (next: GenerateMode) => {
+    setChosenMode(next);
+    // A remounted composer must not replay an old Retry / Use photo.
+    if (next === 'post') {
+      setDraft(null);
+      setPendingReference(null);
+    }
+  };
+
+  const focusComposer = () => {
     document.getElementById('ai-studio-composer')?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
@@ -101,6 +133,7 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
 
   const handleRetry = (job: MarketingGenerationJob) => {
     draftSeq.current += 1;
+    setChosenMode(job.mediaType);
     setDraft({
       id: draftSeq.current,
       values: composerValuesFromJob(job, library, {
@@ -108,11 +141,11 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
         allowHighResolution: videoPlanAllowed,
       }),
     });
-    scrollToComposer();
+    focusComposer();
   };
 
-  /** Shared by Use photo and Refine — both need the completed output uploaded into
-   *  the reference library before it can be attached to a new generation. */
+  /** Shared by Add to my photos and Edit this photo: both need the output in the
+   *  reference library before it can be attached to a new generation. */
   const uploadJobOutputAsReference = async (
     job: MarketingGenerationJob
   ): Promise<MarketingGenerationReference> => {
@@ -133,51 +166,43 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
       const reference = await uploadJobOutputAsReference(job);
       photoSeq.current += 1;
       setPendingReference({ id: photoSeq.current, reference });
-      scrollToComposer();
+      toast.success('Added to Your photos');
+      focusComposer();
     } catch (error) {
-      toast.error((error as Error).message || 'Could not use that photo');
+      toast.error((error as Error).message || 'Could not add that photo');
     } finally {
       setUsingAsPhotoJobId(null);
     }
   };
 
   /**
-   * "Refine" — the closer of the two independent flows above to a reproducible
-   * re-roll (Gemini's image endpoint has no `seed` parameter, so anchoring the next
-   * generation to the exact output the host is refining, via the same inline-image
-   * mechanism the reference-photo flow already uses, is the real available lever).
-   * One action: restore the prompt/options into a fresh composer draft (same as
-   * Retry) AND seed the completed image itself as a reference (same upload as Use
-   * photo), so the host's next Generate is anchored to what they just got instead
-   * of starting over from a bare prompt.
+   * "Edit this photo" — Gemini's image endpoint has no seed, so the real lever for a
+   * controlled change is anchoring the next run to this exact output. Restores the
+   * host's description, look and settings, and attaches the image itself as the
+   * first photo, so the host only types what should change.
    */
   const handleRefine = async (job: MarketingGenerationJob) => {
     if (!job.outputUrl || job.mediaType !== 'image') return;
     setRefiningJobId(job.id);
     try {
       const reference = await uploadJobOutputAsReference(job);
-
       draftSeq.current += 1;
       const baseValues = composerValuesFromJob(job, library, {
         allowPremium: allowPremiumImage,
         allowHighResolution: videoPlanAllowed,
       });
       const cap = maxReferencesForTier(baseValues.qualityTier);
+      setChosenMode('image');
       setDraft({
         id: draftSeq.current,
         values: {
           ...baseValues,
-          // Prefer the enhanced prompt the host actually got, when it ran — editing
-          // from the fuller description is a better refine starting point than
-          // re-typing the original shorthand. Falls back to the host's own prompt
-          // when enhancement was off, skipped, or failed open (enhancedPrompt null).
-          prompt: job.enhancedPrompt ?? job.prompt,
           references: [reference, ...baseValues.references].slice(0, cap),
         },
       });
-      scrollToComposer();
+      focusComposer();
     } catch (error) {
-      toast.error((error as Error).message || 'Could not refine that generation');
+      toast.error((error as Error).message || 'Could not open that photo');
     } finally {
       setRefiningJobId(null);
     }
@@ -187,10 +212,12 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4 lg:overflow-hidden lg:p-6">
       <SegmentedControl
         value={mode}
-        onChange={setChosenMode}
+        onChange={changeMode}
         options={MODE_OPTIONS}
-        aria-label="Generate mode"
-        className="self-start"
+        aria-label="What to generate"
+        className="w-full sm:w-auto sm:self-start"
+        listClassName="w-full sm:w-auto"
+        equalSegments
       />
       {mode === 'post' ? (
         <AiPostPanel
@@ -208,28 +235,33 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
               mobileOnly
               className="lg:border-border/60 lg:bg-card lg:rounded-2xl lg:border lg:p-5 lg:shadow-sm"
             >
+              {!canGenerateHere && (
+                <p className="bg-muted/60 text-muted-foreground mb-4 rounded-lg px-3 py-2 text-xs">
+                  You do not have permission to generate{' '}
+                  {mediaType === 'video' ? 'videos' : 'photos'} for this property.
+                </p>
+              )}
               <AiStudioComposer
+                mediaType={mediaType}
                 onGenerate={(payload) => generate.mutate(payload)}
                 isGenerating={generate.isPending}
-                disabled={!canGenerate || imageGateLoading || videoGateLoading}
-                canGenerateImage={canGenerateImage}
-                canGenerateVideo={canGenerateVideo}
-                videoAllowed={videoPlanAllowed}
-                imageAllowed={imageAllowed}
-                allowPremiumImage={allowPremiumImage}
-                allowPremiumVideo={allowPremiumVideo}
+                disabled={!canGenerateHere || gateLoading}
+                planAllowed={planAllowed}
+                allowPremium={mediaType === 'video' ? allowPremiumVideo : allowPremiumImage}
+                allowHighResolution={videoPlanAllowed}
                 draft={draft}
                 pendingReference={pendingReference}
               />
-              {!canGenerate && (
-                <p className="text-muted-foreground mt-3 text-xs">
-                  You do not have permission to generate content for this property.
-                </p>
-              )}
             </FloatingPanel>
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto">
+          <section
+            aria-labelledby="ai-studio-gallery-title"
+            className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto"
+          >
+            <h2 id="ai-studio-gallery-title" className="text-section-title mb-3">
+              {mediaType === 'video' ? 'Your videos' : 'Your photos'}
+            </h2>
             <AiStudioResultsGrid
               jobs={jobs}
               isLoading={generations.isLoading}
@@ -238,7 +270,7 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
               onLoadMore={() => void generations.fetchNextPage()}
               canPublish={canPublish}
               canDelete={canGenerate}
-              canGenerate={canGenerate}
+              canGenerate={canGenerateHere}
               onPublish={onPublish}
               onRetry={handleRetry}
               onUseAsPhoto={(job) => void handleUseAsPhoto(job)}
@@ -247,18 +279,18 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
               refiningJobId={refiningJobId}
               pendingStage={
                 showPendingCard ? (
-                  <AiStudioGeneratingStage variant="card" mediaType={pendingMediaType} />
+                  <AiStudioGeneratingStage variant="card" mediaType={mediaType} />
                 ) : null
               }
               emptyState={
-                generate.isPending ? (
-                  <AiStudioGeneratingStage variant="hero" mediaType={pendingMediaType} />
+                pendingHere ? (
+                  <AiStudioGeneratingStage variant="hero" mediaType={mediaType} />
                 ) : (
-                  <AiStudioEmptyState />
+                  <AiStudioEmptyState kind={mediaType} />
                 )
               }
             />
-          </div>
+          </section>
         </div>
       )}
     </div>

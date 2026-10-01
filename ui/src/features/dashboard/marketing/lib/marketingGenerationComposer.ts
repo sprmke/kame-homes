@@ -3,6 +3,7 @@ import {
   VIDEO_ASPECT_RATIO_OPTIONS,
   VIDEO_MAX_REFERENCES,
   maxReferencesForTier,
+  splitGenerationPrompt,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   DEFAULT_IMAGE_ASPECT_RATIO,
@@ -27,7 +28,9 @@ import type {
 
 export type AiStudioComposerValues = {
   mediaType: MarketingGenerationMediaType;
+  /** The host's own description, without the look suffix. */
   prompt: string;
+  lookId: string | null;
   qualityTier: MarketingGenerationTier;
   aspectRatio: string;
   imageSize: ImageSize;
@@ -98,10 +101,12 @@ export function composerValuesFromJob(
 
   const cap = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(qualityTier);
   const references = referencesMatchingJob(job, library).slice(0, cap);
+  const { description, look } = splitGenerationPrompt(job.prompt);
 
   return {
     mediaType: isVideo ? 'video' : 'image',
-    prompt: job.prompt,
+    prompt: description,
+    lookId: look?.id ?? null,
     qualityTier,
     aspectRatio,
     imageSize: qualityTier === 'draft' ? '1K' : requestedSize,

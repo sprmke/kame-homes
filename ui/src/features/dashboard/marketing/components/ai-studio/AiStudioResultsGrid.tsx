@@ -46,20 +46,34 @@ export function AiStudioResultsGrid({
 }: Props) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="aspect-square rounded-2xl" />
+          <Skeleton key={index} className="aspect-[4/5] rounded-2xl" />
         ))}
       </div>
     );
   }
 
-  if (jobs.length === 0 && !pendingStage) {
-    return <>{emptyState}</>;
-  }
+  const loadMore = hasNextPage ? (
+    <Button
+      variant="outline"
+      className="min-h-11 w-full"
+      disabled={isFetchingNextPage}
+      onClick={onLoadMore}
+    >
+      {isFetchingNextPage ? 'Loading' : 'Load older'}
+    </Button>
+  ) : null;
 
-  if (jobs.length === 0 && pendingStage) {
-    return <div className="w-full">{emptyState}</div>;
+  // Pages mix photos and videos, so this media type can be empty on page one while
+  // older pages still hold some: keep Load older reachable under the empty state.
+  if (jobs.length === 0) {
+    return (
+      <div className="space-y-3">
+        {emptyState}
+        {!pendingStage && loadMore}
+      </div>
+    );
   }
 
   return (
@@ -83,16 +97,7 @@ export function AiStudioResultsGrid({
         ))}
       </div>
 
-      {hasNextPage && (
-        <Button
-          variant="outline"
-          className="min-h-[44px] w-full"
-          disabled={isFetchingNextPage}
-          onClick={onLoadMore}
-        >
-          {isFetchingNextPage ? 'Loading' : 'Load more'}
-        </Button>
-      )}
+      {loadMore}
     </div>
   );
 }
