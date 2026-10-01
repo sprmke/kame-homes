@@ -19,7 +19,7 @@ Route: every `/org/:orgSlug/…`, `/org/:orgSlug/property/:propertySlug/…` and
 | Rail (chats, scope)         | Partial  | Done       | Done | Rename / pin / archive / delete / search; list is mocked |
 | Chat column + composer      | Done     | Done       | Done | Shared with the Advanced sheet                           |
 | Briefing home               | Done     | —          | Done | Read-only cards                                          |
-| Page canvas                 | Done     | —          | Done | Resize, close, Open in Advanced                          |
+| Page canvas                 | Done     | —          | Done | Resize, close, Full page                                 |
 | Open handoffs (`open_page`) | Done     | Done       | Done | Allowlisted screens, permission re-checked               |
 | Feedback                    | Done     | Done       | Done | Thumbs up / down per reply                               |
 | Phone / tablet              | Done     | —          | Done | Single bottom layer; canvas full screen with Back        |
@@ -71,7 +71,7 @@ AI mode turns the dashboard into a chat workspace. Ask questions or ask for chan
 - Q: Why does a step say it failed?
   A: Some checks only work in certain places, like a finance check that needs one listing. Hover or tap the ? next to the step to see why. The answer still uses what the other checks found.
 - Q: Can I make the page wider?
-  A: Yes. Drag the thin handle between the chat and the page. Close the page with the X, or bring it back with **Show page**.
+  A: Yes. Drag the thin handle between the chat and the page. Close the page with the X, or bring it back with **Split View**.
 
 This section is written for an AI assistant to quote directly to hosts — no code, no DB column names, no internal endpoint names.
 
@@ -87,7 +87,7 @@ This section is written for an AI assistant to quote directly to hosts — no co
 ### Save path
 
 1. Toggle / Cmd+J / `?mode=` → `PATCH user-ui-preferences { dashboardMode }` (fire and forget) + localStorage.
-2. The layout switches inside a View Transition (framer fallback, 150ms fade with reduced motion). On phone / tablet, entering AI adds `?canvas=off` so the chat shows first.
+2. The layout switches inside a View Transition (framer fallback, 150ms fade with reduced motion). Entering AI adds `?canvas=off` so the chat shows first (full width); use **Split View** or a rail page link to open the canvas.
 
 ### Gating
 
@@ -97,7 +97,7 @@ Hidden when the kill switch, the org assistant opt-in, the per-property disable 
 
 ## Rail (desktop) / chats drawer (phone, tablet)
 
-Scope switcher, **New chat**, notifications bell, chat list (Pinned, Today, Yesterday, Earlier; server search; Load more), mode toggle, usage (`today/limit`), account menu. Rail collapses to 64px (saved per viewer); below a 1200px screen it stays collapsed while a page is open, and its collapse button is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet).
+Scope switcher on top. A fixed 64px icon column holds **New chat**, notifications bell, Memory, then the sidebar page icons (**Pages** nav: opens the page in the canvas and keeps the chat; current page highlighted while the canvas is open). When expanded, a chats panel sits beside it: chat list (Pinned, Today, Yesterday, Earlier; server search; Load more). The footer is the same as Advanced mode: **AI mode** switch above the plan row, then the account menu. The daily usage count is not shown in the rail. Expand/collapse uses the same edge chevron as Advanced mode (hides the chats panel, not the icon column; saved per viewer). Below a 1236px screen the rail stays collapsed while a page is open, and that chevron is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet).
 
 ---
 
@@ -141,7 +141,7 @@ Greeting plus up to 6 cards from the same numbers as the dashboard (pending revi
 
 ## Page canvas
 
-The current route renders in a card beside the chat (desktop), resizable with the gutter or arrow keys (560px to 60vw, keeping the chat at least 360px; default 55vw capped at 900px, saved per viewer). Below a 1200px screen the left rail stays collapsed while a page is open so both fit; closing the page brings it back. Header: page title, **Open in Advanced**, close (X / Esc). Closing goes to the scope root with `?canvas=off`; **Show page** reopens it. Below `lg` the canvas covers the screen with **Back**. The page stays mounted when switching modes. The pane sets `data-canvas-size` (`medium` < 760px) so wide `lg:` / `xl:` grids collapse to 2 columns and Settings / Templates drop their side nav; page and card headers wrap their actions below the title.
+The current route renders in a card beside the chat (desktop), resizable with the gutter or arrow keys (560px to 60vw, keeping the chat at least 360px; default 55vw capped at 900px, saved per viewer). Below a 1236px screen the left rail stays collapsed while a page is open so both fit; closing the page brings it back. Header: page title, **Full page** (switches to Advanced mode on the same page), close (X / Esc). Closing goes to the scope root with `?canvas=off`; **Split View** reopens it. Below `lg` the canvas covers the screen with **Back**. The page stays mounted when switching modes. The pane sets `data-canvas-size` (`medium` < 760px) so wide `lg:` / `xl:` grids collapse to 2 columns and Settings / Templates drop their side nav; page and card headers wrap their actions below the title. Booking detail stacks the workflow panel under the main card in `medium` so guest/header copy is not squeezed beside Progress.
 
 ---
 
