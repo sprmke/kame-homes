@@ -69,7 +69,7 @@ AiPostPanel (goal · format · optional message)
 
 ## Plan default
 
-The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Business+), and on **Photo & video** otherwise. AI Post stays visible with its tier badge.
+The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. AI Post stays visible with its tier badge.
 
 ## Robustness
 
