@@ -412,7 +412,7 @@ Each item must behave the same in the Advanced sheet and the AI mode page.
 
 - [ ] Toggle in sidebar header, account menu, mobile top bar, phone **More** sheet (Bookings / Finance hide the top bar); Cmd/Ctrl+J; reload keeps the mode
 - [ ] Toggle hidden with the platform switch off, the kill switch off, or on `/admin/*`; lock + upgrade modal on plans without the assistant
-- [ ] Canvas resize (drag + arrow keys), close (X / Esc) → briefing, **Show page**, **Open in Advanced**
+- [ ] Canvas resize (drag + arrow keys), close (X / Esc) → briefing, **Split View**, **Full page**; entering AI starts chat-only (`canvas=off`); rail page icons switch the canvas page and keep the chat; **AI mode** switch sits above the plan row in both modes
 - [ ] 375px: no bottom tab bar, composer is the only bottom layer, canvas full screen with Back
 - [ ] 768px: chats drawer from the left; canvas covers the chat with Back
 

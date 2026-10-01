@@ -3,7 +3,7 @@ stage: in-progress
 title: 'AI chat mode vs Advanced mode'
 status: in-progress
 tags: [workflow, in-progress, ai, dashboard, ux, mobile]
-updated: 2026-09-30
+updated: 2026-10-01
 kind: plan
 ---
 
@@ -22,7 +22,7 @@ The switch animates smoothly between modes and keeps the conversation. The end g
 
 | Decision    | Choice                                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Layout      | Chat-first workspace with a rail. Real routes render in a canvas pane beside the chat, and **Open in Advanced** grows the canvas into the full page    |
+| Layout      | Chat-first workspace with a rail. Real routes render in a canvas pane beside the chat, and **Full page** grows the canvas into the full page           |
 | Persistence | Server-side per user (`user_ui_preferences`), cached in localStorage for instant first paint                                                           |
 | Parity      | "Never build" actions stay out of the tool catalog. The AI hands off with an **Open** block that loads the exact screen in the canvas                  |
 | Containers  | The existing sheet (`AiAssistantPanel`) is **kept as-is**. The full page is a **new** container (`AiChatWorkspace`). Both are built on one shared core |
@@ -38,7 +38,7 @@ The switch animates smoothly between modes and keeps the conversation. The end g
 | Topic                                                            | Decision                                                                                                                                                                                                                                                                                                                              |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Wave B create / edit / reschedule booking, bulk pricing (Wave C) | Stay **excluded** per architecture §5 (never-build wins over this plan). They are `open_page` handoffs in the parity manifest.                                                                                                                                                                                                        |
-| Canvas URL model                                                 | Canvas is open unless `?canvas=off`. Close → scope root with `canvas=off`; any in-app navigation reopens it. Phone / tablet start AI mode with the canvas closed.                                                                                                                                                                     |
+| Canvas URL model                                                 | Canvas is open unless `?canvas=off`. Entering AI (toggle or `?mode=ai`) sets `canvas=off` (chat-first). Close → scope root with `canvas=off`; **Split View**, rail page links, or in-app navigation reopens it.                                                                                                                       |
 | Plan-blocked                                                     | Toggle shows a lock and opens the upgrade modal; AI mode is never entered read-only. The sheet keeps its read-only history behavior.                                                                                                                                                                                                  |
 | Canvas default width                                             | 55vw capped at 900px (not 46vw / 760). Pages are laid out for ~760px of content; the narrower default wrapped headers badly (verified with screenshots). The chat keeps ≥ 360px.                                                                                                                                                      |
 | Live entity cards                                                | The existing `booking_card` became live (status from the `['booking', id]` query, invalidated after confirms) instead of a new `entityRef` block.                                                                                                                                                                                     |
@@ -143,7 +143,7 @@ flowchart LR
 - **URL is the source of truth for scope** (`/org/:orgSlug[/property|parking/:slug]/...`). The conversation lives in `?chat=<conversationId>`. Refreshing, sharing a link, and Back all work in both modes.
 - **Advanced to AI:** the current page shrinks into the canvas, the chat column slides in, and the sidebar collapses into the rail. The same conversation continues with `pageContext` set to that page.
 - **AI to Advanced:** the canvas expands to the full page. The chat stays reachable through the existing FAB and sheet, with the same thread and draft.
-- **Toggle:** a segmented control (`Advanced` | `AI`) in the desktop sidebar header, the mobile top bar, and the user menu, plus a shortcut (Cmd/Ctrl+J).
+- **Toggle:** one **AI mode** switch (shared `Switch`) directly above the plan row in the sidebar footer, in both modes (icon-only when the sidebar or rail is collapsed). On phone it sits above the plan row in the More sheet, and as a compact switch in the AI mode top bar. Shortcut: Cmd/Ctrl+J. Locked plans open the upgrade dialog.
 - **Gating:**
   - The toggle is hidden when the kill switch or `ai_mode_enabled` is off.
   - When plan-blocked, the toggle shows a lock and opens the upgrade modal.
@@ -166,13 +166,13 @@ flowchart LR
 - No gradients, glow, or purple "AI" styling.
 - The brand shows in the details: the teal focus ring, a teal streaming caret, and confirm cards tinted with the status color.
 
-**Desktop (1024px and up):** a grid `[rail 264px | chat minmax(0,1fr) | canvas 0 or clamp(560px,55vw,900px)]`. Below a 1200px viewport the rail is 64px while the canvas is open.
+**Desktop (1024px and up):** a grid `[rail 300px | chat minmax(0,1fr) | canvas 0 or clamp(560px,55vw,900px)]`. Below a 1236px viewport the rail is 64px while the canvas is open.
 
-- **Rail** (collapsible to 64px icons):
-  - The scope switcher (reusing the tenant switcher), then **New chat** (Cmd/Ctrl+Shift+O).
-  - Search (Cmd/Ctrl+K palette).
-  - Pinned chats and recent chats grouped by Today, Yesterday, and Earlier. The row overflow opens `ResponsiveOverflowMenu` (rename, pin, archive).
-  - At the bottom: the mode toggle, usage, and the user.
+- **Rail** (a fixed 64px icon column, plus a 200px chats panel when expanded):
+  - The scope switcher (reusing the tenant switcher) across the top.
+  - Icon column: **New chat** (Cmd/Ctrl+Shift+O), notifications, memory, a divider, then the sidebar page icons (**Pages** nav). A page icon opens that page in the canvas and keeps the chat; the current page is highlighted while the canvas is open. The chats panel expands/collapses with the same edge chevron as Advanced mode.
+  - Chats panel: search, then pinned chats and recent chats grouped by Today, Yesterday, and Earlier. The row overflow opens `ResponsiveOverflowMenu` (rename, pin, archive).
+  - At the bottom: the shared sidebar footer (**AI mode** switch, plan row, user), same spot as Advanced mode.
 - **Chat column:**
   - Max width 760px, centered, 24px gutters.
   - User bubbles right-aligned on the muted surface.
@@ -180,7 +180,7 @@ flowchart LR
   - A sticky composer docked 16px from the bottom. It autosizes from 1 to 8 lines, with chips above and a toolbar (pins, paperclip, mic, send/stop).
 - **Canvas pane:**
   - A card surface with a 12px radius, inset 8px.
-  - The header holds the route title, **Open in Advanced**, and close.
+  - The header holds the route title, **Full page** (leaves AI mode on the same page), and close.
   - The body is the real `<Outlet />` with its own scroll.
   - It is resizable with an 8px gutter, and the width is saved to localStorage (560px to 60vw).
 
@@ -232,7 +232,7 @@ flowchart LR
 
 **Copy** (human-copy rules, no em dashes):
 
-- `Advanced`, `AI`, `New chat`, `Open`, `Open in Advanced`, `Retry`, `You're offline`.
+- `AI mode`, `New chat`, `Collapse sidebar`, `Expand sidebar`, `Open`, `Full page`, `Retry`, `You're offline`.
 - No subtitles or helper paragraphs.
 
 ## 4. Implementation tasks
