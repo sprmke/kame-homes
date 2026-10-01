@@ -44,7 +44,10 @@ export function BookingDetailHeader({
 
   return (
     <BookingDetailShellHeader as="header" className={className}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+      <div
+        data-booking-detail-header
+        className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5"
+      >
         <div className="min-w-0 space-y-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
             <h1 className="text-foreground min-w-0 break-words text-lg font-bold leading-tight tracking-tight sm:text-xl md:text-2xl">

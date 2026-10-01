@@ -37,7 +37,11 @@ import {
   subscribeAssistantOpenRequest,
 } from '@/features/dashboard/ai-assistant/lib/assistantOpenStore';
 import { isCanvasOpen } from '@/features/dashboard/ai-assistant/lib/assistantScope';
-import { canvasSizeBucket } from '@/features/dashboard/ai-assistant/lib/canvasWidth';
+import {
+  canvasSizeBucket,
+  RAIL_COLLAPSED_PX,
+  RAIL_EXPANDED_PX,
+} from '@/features/dashboard/ai-assistant/lib/canvasWidth';
 import { useDashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardModeContext';
 import { useHostAnnouncementHasUnread } from '@/features/dashboard/announcements/hooks/useHostAnnouncementHasUnread';
 import { DashboardChromeProvider } from '@/features/dashboard/lib/dashboardChromeContext';
@@ -638,6 +642,10 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
     });
   }, []);
 
+  const aiRailWidth = canvasResize.railCollapsed ? RAIL_COLLAPSED_PX : RAIL_EXPANDED_PX;
+  const railEdgeCollapsed = canvasResize.railCollapsed;
+  const showRailCollapseToggle = aiMode && !canvasResize.railLocked;
+
   return (
     <>
       <PostHogAdminScopeSync />
@@ -656,8 +664,9 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
               {aiMode ? (
                 <Suspense fallback={<AiRailFallback />}>
                   <AiModeRail
+                    navSections={navSections}
+                    activeNavHref={canvasOpen ? activeNavHref : null}
                     collapsed={canvasResize.railCollapsed}
-                    onToggleCollapsed={canvasResize.railLocked ? undefined : toggleRailCollapsed}
                     footer={
                       <AdminProfileFooter
                         collapsed={canvasResize.railCollapsed}
@@ -701,13 +710,13 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
                 </aside>
               )}
 
-              {aiMode ? null : (
+              {aiMode && !showRailCollapseToggle ? null : (
                 <button
                   type="button"
-                  onClick={toggleSidebarCollapsed}
+                  onClick={aiMode ? toggleRailCollapsed : toggleSidebarCollapsed}
                   style={{
-                    left: sidebarWidth,
-                    top: sidebarCollapsed
+                    left: aiMode ? aiRailWidth : sidebarWidth,
+                    top: (aiMode ? railEdgeCollapsed : sidebarCollapsed)
                       ? SIDEBAR_TOGGLE_TOP_COLLAPSED
                       : SIDEBAR_TOGGLE_TOP_EXPANDED,
                   }}
@@ -716,10 +725,18 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
                     'absolute z-30 hidden min-h-[28px] min-w-[28px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-300 ease-out lg:flex',
                     'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
                   )}
-                  aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  aria-label={
+                    (aiMode ? railEdgeCollapsed : sidebarCollapsed)
+                      ? 'Expand sidebar'
+                      : 'Collapse sidebar'
+                  }
+                  title={
+                    (aiMode ? railEdgeCollapsed : sidebarCollapsed)
+                      ? 'Expand sidebar'
+                      : 'Collapse sidebar'
+                  }
                 >
-                  {sidebarCollapsed ? (
+                  {(aiMode ? railEdgeCollapsed : sidebarCollapsed) ? (
                     <ChevronRight className="h-3 w-3" aria-hidden />
                   ) : (
                     <ChevronLeft className="h-3 w-3" aria-hidden />
@@ -870,7 +887,6 @@ function AdminMobileTopBar({ superAdmin }: { superAdmin: boolean }) {
           <SidebarTenantScope collapsed={false} />
         )}
       </div>
-      {superAdmin ? null : <DashboardModeToggle size="compact" />}
     </header>
   );
 }
@@ -1012,7 +1028,6 @@ function AdminSidebarContent({
         ) : (
           <SidebarTenantScope collapsed={collapsed} />
         )}
-        {!superAdmin && !collapsed && !onClose ? <DashboardModeToggle className="mt-2" /> : null}
       </div>
 
       <nav
@@ -1228,6 +1243,7 @@ function AdminProfileFooter({
     <div
       className={cn('border-sidebar-border shrink-0 space-y-2 border-t', collapsed ? 'p-2' : 'p-3')}
     >
+      <DashboardModeToggle variant={collapsed ? 'icon' : 'row'} />
       <OrgPlanSidebarEntry collapsed={collapsed} />
 
       {showThemeToggle && (
@@ -1272,9 +1288,8 @@ function AdminProfileFooter({
               </div>
             ) : null}
 
-            <div className={cn('space-y-2 px-3 py-3', collapsed && 'border-border/50 border-t')}>
+            <div className={cn('px-3 py-3', collapsed && 'border-border/50 border-t')}>
               <ModeSwitcher className="w-full" />
-              <DashboardModeToggle />
             </div>
 
             <div className="border-border/50 border-t p-1.5">

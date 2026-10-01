@@ -452,7 +452,10 @@ export function BookingDetailPage() {
         )}
 
         {booking && (
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5 lg:gap-6">
+          <div
+            data-booking-detail-layout
+            className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5 lg:gap-6"
+          >
             {isMobileWorkflowFirst && (
               <BookingDetailMobileSummary
                 className="order-1 md:hidden"
@@ -554,6 +557,7 @@ export function BookingDetailPage() {
 
             {/* ── Workflow / Progress (before fold on mobile when past review) ── */}
             <div
+              data-booking-detail-workflow
               className={cn(
                 'w-full md:w-[min(100%,20rem)] md:shrink-0 lg:sticky lg:top-5 lg:max-h-[calc(100dvh-2.5rem)] lg:w-[min(100%,24rem)] lg:self-start xl:w-[27rem]',
                 isMobileWorkflowFirst && (mobileDetailsBeforeWorkflow ? 'order-3' : 'order-2'),

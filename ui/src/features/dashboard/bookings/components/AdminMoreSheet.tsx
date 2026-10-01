@@ -142,6 +142,7 @@ export function AdminMoreSheet({
         <div className="bg-card shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
           {!superAdmin ? (
             <div className="border-border/60 border-t py-1.5">
+              <DashboardModeToggle className="hover:bg-muted/60 h-auto min-h-11 gap-3" />
               <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
             </div>
           ) : null}
@@ -156,9 +157,6 @@ export function AdminMoreSheet({
             />
             <ModeSwitcher className="min-w-0 flex-1" />
           </div>
-
-          {/* Phone pages with their own hero hide the top bar toggle, so it is always here too. */}
-          {!superAdmin ? <DashboardModeToggle className="mb-2.5 w-full" /> : null}
 
           <div className="border-border/60 space-y-1.5 border-t pt-2.5">
             <div className="flex min-h-[44px] items-center gap-1 px-0.5">

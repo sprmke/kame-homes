@@ -2936,4 +2936,21 @@ html[data-mode-transition='reduced']::view-transition-new(*) {
   [data-canvas-size='medium'] [data-section-nav-aside] {
     display: none;
   }
+
+  /* Booking detail: viewport `md:`/`lg:` still apply inside the pane; stack so the guest
+   * column is not crushed beside the fixed-width workflow rail (~20–27rem). */
+  [data-canvas-size='medium'] [data-booking-detail-layout] {
+    flex-direction: column;
+  }
+  [data-canvas-size='medium'] [data-booking-detail-workflow] {
+    position: static;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    align-self: stretch;
+  }
+  [data-canvas-size='medium'] [data-booking-detail-header] {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
