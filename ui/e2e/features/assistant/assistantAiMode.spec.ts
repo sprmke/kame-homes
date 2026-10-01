@@ -17,11 +17,11 @@ import {
 
 const PROPERTY_ROOT = `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}`;
 
-function modeRadio(page: Page, label: 'AI' | 'Advanced') {
+function modeSwitch(page: Page) {
   return page
-    .getByRole('radiogroup', { name: 'Dashboard mode' })
-    .first()
-    .getByRole('radio', { name: label });
+    .getByRole('switch', { name: /^AI mode/ })
+    .filter({ visible: true })
+    .first();
 }
 
 function composer(page: Page) {
@@ -33,8 +33,13 @@ function canvas(page: Page) {
 }
 
 async function enterAiMode(page: Page) {
-  await modeRadio(page, 'AI').click();
+  await modeSwitch(page).click();
   await expect(composer(page)).toBeVisible({ timeout: 20_000 });
+}
+
+async function openSplitView(page: Page) {
+  await page.getByRole('button', { name: 'Split View' }).click();
+  await expect(canvas(page)).toBeVisible();
 }
 
 test.beforeEach(() => {
@@ -56,13 +61,15 @@ test.describe('@ci AI mode', () => {
     });
 
     await enterAiMode(page);
-    await expect(canvas(page)).toBeVisible();
+    await expect(page).toHaveURL(/canvas=off/);
+    await expect(page.getByTestId('assistant-briefing')).toBeVisible();
+    await openSplitView(page);
     await expect(page).toHaveURL(new RegExp(`${PROPERTY_ROOT}/bookings`));
     // Sheet launcher is hidden in AI mode; the chat is the full page.
     await expect(page.getByRole('button', { name: 'Open AI assistant' })).toHaveCount(0);
     await expect.poll(() => mockedSavedDashboardMode()).toBe('ai');
 
-    await modeRadio(page, 'Advanced').click();
+    await modeSwitch(page).click();
     await expect(page.getByRole('button', { name: 'Open AI assistant' })).toBeVisible({
       timeout: 20_000,
     });
@@ -80,7 +87,7 @@ test.describe('@ci AI mode', () => {
     await enterAiMode(page);
     await page.reload();
     await expect(composer(page)).toBeVisible({ timeout: 20_000 });
-    await expect(modeRadio(page, 'AI')).toHaveAttribute('aria-checked', 'true');
+    await expect(modeSwitch(page)).toHaveAttribute('aria-checked', 'true');
   });
 
   test('?mode=ai opens AI mode and the param is removed', async ({ page }) => {
@@ -92,9 +99,10 @@ test.describe('@ci AI mode', () => {
     await page.goto(`${PROPERTY_ROOT}/bookings?mode=ai`);
     await expect(composer(page)).toBeVisible({ timeout: 20_000 });
     await expect(page).not.toHaveURL(/mode=ai/);
+    await expect(page).toHaveURL(/canvas=off/);
   });
 
-  test('closing the canvas shows the briefing; Show page reopens it', async ({ page }) => {
+  test('closing the canvas shows the briefing; Split View reopens it', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await installPropertyTeamRbacMocks(page, 'full_access', {
       assistantEnabled: true,
@@ -102,6 +110,8 @@ test.describe('@ci AI mode', () => {
     });
     await openPropertyDashboard(page);
     await enterAiMode(page);
+    await expect(page).toHaveURL(/canvas=off/);
+    await openSplitView(page);
 
     await page.getByRole('button', { name: 'Close page' }).click();
     await expect(page).toHaveURL(/canvas=off/);
@@ -110,9 +120,31 @@ test.describe('@ci AI mode', () => {
     await expect(page.getByRole('button', { name: /Pending review/ })).toBeVisible();
     await expect(page).toHaveTitle(/Assistant/);
 
-    await page.getByRole('button', { name: 'Show page' }).click();
+    await page.getByRole('button', { name: 'Split View' }).click();
     await expect(page).not.toHaveURL(/canvas=off/);
     await expect(canvas(page)).toBeVisible();
+  });
+
+  test('rail page icons switch the canvas page without leaving AI mode', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await installPropertyTeamRbacMocks(page, 'full_access', {
+      assistantEnabled: true,
+      aiModeEnabled: true,
+    });
+    await openPropertyDashboard(page);
+    await enterAiMode(page);
+
+    const pages = page
+      .getByRole('complementary', { name: 'Assistant' })
+      .getByRole('navigation', { name: 'Pages' });
+    await pages.getByRole('link', { name: 'Finance' }).click();
+    await expect(page).toHaveURL(new RegExp(`${PROPERTY_ROOT}/finance`));
+    await expect(canvas(page)).toBeVisible();
+    await expect(composer(page)).toBeVisible();
+    await expect(pages.getByRole('link', { name: 'Finance' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
   });
 
   test('the conversation continues across a mode switch', async ({ page }) => {
@@ -133,7 +165,7 @@ test.describe('@ci AI mode', () => {
 
     // Draft survives the switch too.
     await composer(page).fill('and tomorrow?');
-    await modeRadio(page, 'Advanced').click();
+    await modeSwitch(page).click();
     await page.getByRole('button', { name: 'Open AI assistant' }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByText('Two bookings need your review.')).toBeVisible();
@@ -261,6 +293,7 @@ test.describe('@ci AI mode', () => {
     });
     await openPropertyDashboard(page);
     await enterAiMode(page);
+    await openSplitView(page);
     await expect(canvas(page)).toHaveAttribute('data-canvas-size', 'medium');
     const columns = await canvas(page).evaluate((pane) =>
       ['grid lg:grid-cols-4', 'grid lg:grid-cols-[minmax(0,1fr)_340px]'].map((className) => {
@@ -288,9 +321,12 @@ test.describe('@ci AI mode', () => {
     });
     await openPropertyDashboard(page);
     await enterAiMode(page);
+    await openSplitView(page);
     await expect(canvas(page)).toHaveAttribute('data-canvas-size', 'medium');
     const rail = page.getByRole('complementary', { name: 'Assistant' });
-    await expect(rail.getByRole('button', { name: 'Expand sidebar' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Expand sidebar' })).toHaveCount(0);
+    // Page icons stay reachable in the collapsed rail during split view.
+    await expect(rail.getByRole('navigation', { name: 'Pages' })).toBeVisible();
     await expect.poll(async () => (await rail.boundingBox())?.width).toBe(64);
     const canvasWidth = (await canvas(page).boundingBox())!.width;
     expect(canvasWidth).toBeGreaterThanOrEqual(560);
@@ -300,8 +336,8 @@ test.describe('@ci AI mode', () => {
 
     // Closing the page gives the rail its room back.
     await page.getByRole('button', { name: 'Close page' }).click();
-    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(264);
-    await expect(rail.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(300);
+    await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
 
     // Section-nav pages (Settings, Templates) drop the side nav so forms keep their width.
     await page.goto(`${PROPERTY_ROOT}/settings`);
@@ -323,13 +359,9 @@ test.describe('@ci AI mode', () => {
     await openPropertyDashboard(page);
     await expect(page.getByRole('navigation', { name: 'Admin' })).toBeVisible();
 
-    // Pages with their own phone hero hide the fallback top bar, so the toggle lives in More.
+    // Advanced on phone: the switch lives in the More sheet, above the plan row.
     await openAdminMoreSheet(page);
-    await page
-      .getByRole('radiogroup', { name: 'Dashboard mode' })
-      .filter({ visible: true })
-      .getByRole('radio', { name: 'AI' })
-      .click();
+    await modeSwitch(page).click();
     await expect(composer(page)).toBeVisible({ timeout: 20_000 });
     await expect(page).toHaveURL(/canvas=off/);
     await expect(page.getByRole('navigation', { name: 'Admin' })).toHaveCount(0);
@@ -349,14 +381,13 @@ test.describe('@ci AI mode', () => {
       freePlan: true,
     });
     await openPropertyDashboard(page);
-    const aiRadio = modeRadio(page, 'AI');
-    await expect(aiRadio).toBeVisible({ timeout: 20_000 });
-    await expect(aiRadio.getByLabel('Upgrade')).toBeVisible();
-    await aiRadio.click();
+    const aiSwitch = page.getByRole('switch', { name: 'AI mode, upgrade required' });
+    await expect(aiSwitch).toBeVisible({ timeout: 20_000 });
+    await aiSwitch.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(modeRadio(page, 'Advanced')).toHaveAttribute('aria-checked', 'true');
+    await expect(aiSwitch).toHaveAttribute('aria-checked', 'false');
     expect(mockedSavedDashboardMode()).toBe('advanced');
   });
 
@@ -371,6 +402,6 @@ test.describe('@ci AI mode', () => {
     await expect(page.getByRole('button', { name: 'Open AI assistant' })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole('radiogroup', { name: 'Dashboard mode' })).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: /^AI mode/ })).toHaveCount(0);
   });
 });

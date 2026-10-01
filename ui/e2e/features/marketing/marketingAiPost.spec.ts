@@ -224,12 +224,12 @@ test.describe('@ci marketing AI Post', () => {
     expect((designJson.polotno as { width: number; height: number }).height).toBe(1350);
   });
 
-  test('without the AI generation plan, Generate opens on Photo & video', async ({ page }) => {
+  test('without the AI generation plan, Generate opens on Photo', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', {
       aiMarketingGenerationAllowed: false,
     });
     await openGenerate(page);
-    await expect(page.getByRole('tab', { name: 'Photo & video' })).toHaveAttribute(
+    await expect(page.getByRole('tab', { name: 'Photo', exact: true })).toHaveAttribute(
       'aria-selected',
       'true',
       { timeout: 20_000 }
