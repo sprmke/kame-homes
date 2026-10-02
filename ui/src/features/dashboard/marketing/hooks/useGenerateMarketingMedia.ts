@@ -12,6 +12,10 @@ import type {
   VideoResolution,
 } from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
 import type {
+  VideoCameraMoveId,
+  VideoSoundMode,
+} from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
+import type {
   MarketingGenerationJob,
   MarketingGenerationMediaType,
   MarketingGenerationTier,
@@ -27,10 +31,13 @@ export type GenerateMarketingMediaPayload = {
   imageSize?: ImageSize;
   resolution?: VideoResolution;
   durationSeconds?: VideoDuration;
+  /** Video: the first id is the photo the clip starts from. */
   referenceIds?: string[];
-  /** Image only. Defaults to true server-side — omit to get the default (Decision 1,
-   *  quality-hardening plan). Pass false to send the prompt verbatim, unenhanced. */
+  /** Defaults to true server-side. Pass false to send the host's words without the
+   *  AI rewrite (guardrails are still appended). */
   enhancePrompt?: boolean;
+  cameraMove?: VideoCameraMoveId;
+  sound?: VideoSoundMode;
 };
 
 export function useGenerateMarketingMedia() {

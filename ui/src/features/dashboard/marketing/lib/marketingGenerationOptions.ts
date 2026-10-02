@@ -171,18 +171,44 @@ export const VIDEO_RESOLUTION_LABELS: Record<'720p' | '1080p', string> = {
   '1080p': 'High (1080p)',
 };
 
-export const VIDEO_DURATION_LABELS: Record<6 | 8, string> = {
-  6: '6 sec',
-  8: '8 sec',
-};
+/** A video starts from one photo (Veo's first frame); other photos would be ignored. */
+export const VIDEO_MAX_REFERENCES = 1;
 
-/** Video accepts at most 3 reference images (Veo's own limitation) across every tier. */
-export const VIDEO_MAX_REFERENCES = 3;
+/** Mirrors `VIDEO_PHOTO_DEFAULT_PROMPT` in `_shared/marketingVideoPromptBuilder.ts`. */
+export const VIDEO_PHOTO_DEFAULT_PROMPT = 'Bring this photo to life';
 
-/** Motion ideas shown while the video description is empty. */
+/** Mirrors `VIDEO_CAMERA_MOVE_IDS` in `_shared/marketingVideoPromptBuilder.ts`. */
+export const VIDEO_CAMERA_MOVES = [
+  { id: 'push-in', title: 'Push in' },
+  { id: 'pull-back', title: 'Pull back' },
+  { id: 'pan', title: 'Pan' },
+  { id: 'orbit', title: 'Orbit' },
+  { id: 'rise', title: 'Rise' },
+  { id: 'walkthrough', title: 'Walkthrough' },
+  { id: 'still', title: 'Still' },
+] as const;
+export type VideoCameraMoveId = (typeof VIDEO_CAMERA_MOVES)[number]['id'];
+export const DEFAULT_VIDEO_CAMERA_MOVE: VideoCameraMoveId = 'push-in';
+
+export const VIDEO_SOUND_MODES = [
+  { value: 'ambient', label: 'Ambient' },
+  { value: 'music', label: 'Music' },
+] as const;
+export type VideoSoundMode = (typeof VIDEO_SOUND_MODES)[number]['value'];
+export const DEFAULT_VIDEO_SOUND: VideoSoundMode = 'ambient';
+
+export function isVideoCameraMove(value: unknown): value is VideoCameraMoveId {
+  return VIDEO_CAMERA_MOVES.some((move) => move.id === value);
+}
+
+export function isVideoSoundMode(value: unknown): value is VideoSoundMode {
+  return VIDEO_SOUND_MODES.some((mode) => mode.value === value);
+}
+
+/** What moves in the scene. The camera move is picked separately. */
 export const VIDEO_SUBJECT_IDEAS: string[] = [
-  'Pan across the living room at golden hour',
-  'Rise over the pool deck and skyline',
-  'Push-in on the bedroom, soft breeze',
-  'Walkthrough from entry to kitchen',
+  'Curtains moving in a soft breeze',
+  'Sunlight drifting across the room',
+  'Pool water rippling in the sun',
+  'City lights coming on at dusk',
 ];

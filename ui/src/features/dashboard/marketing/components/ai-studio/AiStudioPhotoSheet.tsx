@@ -68,7 +68,8 @@ export function AiStudioPhotoSheet({
   const hasListing = listingLoading || listingPhotos.length > 0;
   const [source, setSource] = useState<Source>(hasListing ? 'listing' : 'uploads');
   const selectedIds = new Set(selected.map((reference) => reference.id));
-  const full = selected.length >= maxPhotos;
+  // With one photo allowed, picking another replaces it, so tiles never block.
+  const full = maxPhotos > 1 && selected.length >= maxPhotos;
 
   // Land on Uploads when this property has no listing photos.
   useEffect(() => {
@@ -80,10 +81,14 @@ export function AiStudioPhotoSheet({
       <ResponsiveModalContent sheetLayout="split" className="lg:max-w-2xl">
         <ResponsiveModalHeader className="space-y-3 px-4 pt-4 lg:px-0 lg:pt-0">
           <div className="flex items-baseline justify-between gap-3 pr-8 lg:pr-6">
-            <ResponsiveModalTitle>Choose photos</ResponsiveModalTitle>
-            <span className="text-muted-foreground text-xs tabular-nums" aria-live="polite">
-              {selected.length} of {maxPhotos}
-            </span>
+            <ResponsiveModalTitle>
+              {maxPhotos > 1 ? 'Choose photos' : 'Choose a photo'}
+            </ResponsiveModalTitle>
+            {maxPhotos > 1 && (
+              <span className="text-muted-foreground text-xs tabular-nums" aria-live="polite">
+                {selected.length} of {maxPhotos}
+              </span>
+            )}
           </div>
           {hasListing && (
             <SegmentedControl

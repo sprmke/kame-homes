@@ -12,6 +12,7 @@ import {
   AiStudioShapePreview,
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
 import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
+import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
 import { useGeneratePosters } from '@/features/dashboard/marketing/hooks/useGeneratePosters';
 import { useMarketingCatalog } from '@/features/dashboard/marketing/hooks/useMarketingCatalog';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
@@ -47,7 +48,6 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { FloatingPanel } from '@/components/mobile/FloatingPanel';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -98,7 +98,6 @@ function aspectClass(format: DesignTemplateFormat): string {
   if (format === 'instagram-portrait') return 'aspect-[4/5]';
   return 'aspect-square';
 }
-
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return (await fetch(dataUrl)).blob();
 }
@@ -350,8 +349,8 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
   const rendering = variants.some((variant) => !variant.preview);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
-      <div className="lg:max-h-full lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto">
+    <div className="@4xl:flex-row @4xl:gap-6 @4xl:overflow-hidden flex min-h-0 flex-1 flex-col gap-4">
+      <div className="@4xl:max-h-full @4xl:w-[26rem] @4xl:shrink-0 @4xl:overflow-y-auto">
         <FloatingPanel
           padding="md"
           mobileOnly
@@ -377,7 +376,11 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                 </span>
                 <TierBadge feature="aiMarketingGeneration" />
               </div>
-              <div role="group" aria-labelledby="ai-post-goal-label" className="flex flex-wrap gap-1.5">
+              <div
+                role="group"
+                aria-labelledby="ai-post-goal-label"
+                className="flex flex-wrap gap-1.5"
+              >
                 {GOALS.map((option) => (
                   <button
                     key={option.value}
@@ -447,11 +450,11 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
         </FloatingPanel>
       </div>
 
-      <div className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto">
+      <div className="@4xl:overflow-y-auto @container min-h-0 min-w-0 flex-1">
         {variants.length === 0 && !isGenerating ? (
           <AiStudioEmptyState kind="post" />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="@md:grid-cols-2 grid grid-cols-1 gap-4">
             {(isGenerating ? Array.from({ length: 4 }, () => null) : variants).map(
               (variant, index) => (
                 <div
@@ -462,10 +465,18 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                     <img
                       src={variant.preview}
                       alt={variant.spec.copy.headline}
-                      className={cn('block w-full object-cover', aspectClass(format))}
+                      className={cn(
+                        'animate-ai-gen-reveal block w-full object-cover',
+                        aspectClass(format)
+                      )}
                     />
                   ) : (
-                    <Skeleton className={cn('w-full rounded-none', aspectClass(format))} />
+                    <div className={cn('relative w-full', aspectClass(format))}>
+                      <AiStudioGeneratingStage
+                        variant="fill"
+                        label={isGenerating ? 'Designing post' : 'Rendering post'}
+                      />
+                    </div>
                   )}
                   {variant && (
                     <div className="flex flex-wrap gap-1.5 p-2.5">

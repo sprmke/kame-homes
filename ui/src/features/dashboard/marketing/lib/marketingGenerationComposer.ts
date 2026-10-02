@@ -1,22 +1,27 @@
 import {
+  DEFAULT_VIDEO_CAMERA_MOVE,
+  DEFAULT_VIDEO_SOUND,
   IMAGE_ASPECT_RATIO_OPTIONS,
   VIDEO_ASPECT_RATIO_OPTIONS,
   VIDEO_MAX_REFERENCES,
+  VIDEO_PHOTO_DEFAULT_PROMPT,
+  isVideoCameraMove,
+  isVideoSoundMode,
   maxReferencesForTier,
   splitGenerationPrompt,
+  type VideoCameraMoveId,
+  type VideoSoundMode,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   DEFAULT_IMAGE_ASPECT_RATIO,
   DEFAULT_IMAGE_SIZE,
   DEFAULT_TIER,
   DEFAULT_VIDEO_ASPECT_RATIO,
-  DEFAULT_VIDEO_DURATION,
   DEFAULT_VIDEO_RESOLUTION,
+  DRAFT_VIDEO_RESOLUTION,
   IMAGE_SIZES,
-  VIDEO_DURATIONS,
   VIDEO_RESOLUTIONS,
   type ImageSize,
-  type VideoDuration,
   type VideoResolution,
 } from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
 import type {
@@ -35,7 +40,8 @@ export type AiStudioComposerValues = {
   aspectRatio: string;
   imageSize: ImageSize;
   resolution: VideoResolution;
-  durationSeconds: VideoDuration;
+  cameraMove: VideoCameraMoveId;
+  sound: VideoSoundMode;
   references: MarketingGenerationReference[];
 };
 
@@ -48,7 +54,6 @@ const IMAGE_ASPECTS = new Set(IMAGE_ASPECT_RATIO_OPTIONS.map((option) => option.
 const VIDEO_ASPECTS = new Set(VIDEO_ASPECT_RATIO_OPTIONS.map((option) => option.value));
 const IMAGE_SIZE_SET = new Set<string>(IMAGE_SIZES);
 const VIDEO_RES_SET = new Set<string>(VIDEO_RESOLUTIONS);
-const VIDEO_DUR_SET = new Set<number>(VIDEO_DURATIONS);
 const TIERS: readonly MarketingGenerationTier[] = ['draft', 'standard', 'premium'];
 
 export function referencesMatchingJob(
@@ -90,28 +95,26 @@ export function composerValuesFromJob(
     job.resolution && VIDEO_RES_SET.has(job.resolution)
       ? (job.resolution as VideoResolution)
       : DEFAULT_VIDEO_RESOLUTION;
-  if (resolution === '1080p' && !options.allowHighResolution) {
-    resolution = DEFAULT_VIDEO_RESOLUTION;
+  if (qualityTier === 'draft' || !options.allowHighResolution) {
+    resolution = DRAFT_VIDEO_RESOLUTION;
   }
-
-  const durationSeconds =
-    job.durationSeconds != null && VIDEO_DUR_SET.has(job.durationSeconds)
-      ? (job.durationSeconds as VideoDuration)
-      : DEFAULT_VIDEO_DURATION;
 
   const cap = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(qualityTier);
   const references = referencesMatchingJob(job, library).slice(0, cap);
   const { description, look } = splitGenerationPrompt(job.prompt);
+  const cameraMove = job.generationOptions?.cameraMove;
+  const sound = job.generationOptions?.sound;
 
   return {
     mediaType: isVideo ? 'video' : 'image',
-    prompt: description,
+    prompt: isVideo && description === VIDEO_PHOTO_DEFAULT_PROMPT ? '' : description,
     lookId: look?.id ?? null,
     qualityTier,
     aspectRatio,
     imageSize: qualityTier === 'draft' ? '1K' : requestedSize,
     resolution,
-    durationSeconds,
+    cameraMove: isVideoCameraMove(cameraMove) ? cameraMove : DEFAULT_VIDEO_CAMERA_MOVE,
+    sound: isVideoSoundMode(sound) ? sound : DEFAULT_VIDEO_SOUND,
     references,
   };
 }

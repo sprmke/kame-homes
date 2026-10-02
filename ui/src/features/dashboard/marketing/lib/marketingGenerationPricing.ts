@@ -12,8 +12,8 @@ export const DEFAULT_CREDIT_UNIT_USD = 0.001;
 
 export const IMAGE_SIZES = ['512px', '1K', '2K', '4K'] as const;
 export const VIDEO_RESOLUTIONS = ['720p', '1080p'] as const;
-/** 4s is deliberately absent: Meta Reels requires 5-90s, so a 4s clip is unpublishable. */
-export const VIDEO_DURATIONS = [6, 8] as const;
+/** Veo requires 8s for 1080p; 4s is also too short for Meta Reels (5-90s). */
+export const VIDEO_DURATIONS = [8] as const;
 
 export type ImageSize = (typeof IMAGE_SIZES)[number];
 export type VideoResolution = (typeof VIDEO_RESOLUTIONS)[number];
@@ -26,7 +26,8 @@ export const MAX_NEGATIVE_PROMPT_CHARS = 500;
 export const DEFAULT_IMAGE_ASPECT_RATIO = '1:1';
 export const DEFAULT_VIDEO_ASPECT_RATIO = '9:16';
 export const DEFAULT_IMAGE_SIZE: ImageSize = '1K';
-export const DEFAULT_VIDEO_RESOLUTION: VideoResolution = '720p';
+export const DEFAULT_VIDEO_RESOLUTION: VideoResolution = '1080p';
+export const DRAFT_VIDEO_RESOLUTION: VideoResolution = '720p';
 export const DEFAULT_VIDEO_DURATION: VideoDuration = 8;
 export const DEFAULT_TIER: MarketingGenerationTier = 'standard';
 
@@ -38,8 +39,8 @@ const IMAGE_COST_USD: Record<MarketingGenerationTier, Record<ImageSize, number>>
 
 const VIDEO_USD_PER_SECOND: Record<MarketingGenerationTier, Record<VideoResolution, number>> = {
   draft: { '720p': 0.05, '1080p': 0.08 },
-  standard: { '720p': 0.1, '1080p': 0.3 },
-  premium: { '720p': 0.4, '1080p': 0.6 },
+  standard: { '720p': 0.1, '1080p': 0.12 },
+  premium: { '720p': 0.4, '1080p': 0.4 },
 };
 
 export const IMAGE_MODEL_BY_TIER: Record<MarketingGenerationTier, string> = {

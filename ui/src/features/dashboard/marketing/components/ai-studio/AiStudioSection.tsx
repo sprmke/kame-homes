@@ -209,7 +209,7 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4 lg:overflow-hidden lg:p-6">
+    <div className="lg:@container flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4 lg:p-6">
       <SegmentedControl
         value={mode}
         onChange={changeMode}
@@ -228,8 +228,8 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
           canPublish={canPublish}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
-          <div className="lg:max-h-full lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto">
+        <div className="@4xl:flex-row @4xl:gap-6 @4xl:overflow-hidden flex min-h-0 flex-1 flex-col gap-4">
+          <div className="@4xl:max-h-full @4xl:w-[26rem] @4xl:shrink-0 @4xl:overflow-y-auto">
             <FloatingPanel
               padding="md"
               mobileOnly
@@ -257,7 +257,7 @@ export function AiStudioSection({ onPublish, onOpenInDesign }: Props) {
 
           <section
             aria-labelledby="ai-studio-gallery-title"
-            className="min-h-0 min-w-0 flex-1 lg:overflow-y-auto"
+            className="@4xl:overflow-y-auto @container min-h-0 min-w-0 flex-1"
           >
             <h2 id="ai-studio-gallery-title" className="text-section-title mb-3">
               {mediaType === 'video' ? 'Your videos' : 'Your photos'}

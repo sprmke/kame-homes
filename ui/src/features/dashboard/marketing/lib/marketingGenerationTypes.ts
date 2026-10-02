@@ -15,12 +15,14 @@ export type MarketingGenerationJob = {
   jobStatus: MarketingGenerationStatus;
   prompt: string;
   negativePrompt: string | null;
-  /** The full scene description actually sent to the image model, when prompt
-   *  enhancement ran (image jobs only). Null when enhancement was off, not
-   *  applicable (video), or failed open — see marketingImagePromptBuilder.ts. */
+  /** The full prompt actually sent to the model, when prompt enhancement ran. Null
+   *  when enhancement was off or failed open. */
   enhancedPrompt: string | null;
   /** True only when enhancement actually ran and succeeded. */
   promptEnhanced: boolean;
+  /** Video: `{ cameraMove, sound }`. Empty for images and older video jobs; may be
+   *  missing on responses from an older edge deploy. */
+  generationOptions?: { cameraMove?: string; sound?: string };
   model: string;
   qualityTier: MarketingGenerationTier;
   aspectRatio: string;

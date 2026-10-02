@@ -8,25 +8,30 @@ import {
   AiStudioShapePreview,
   type AiStudioChoice,
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
+import { AiStudioCameraMovePicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioCameraMovePicker';
 import { AiStudioLookPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioLookPicker';
 import { AiStudioPhotoPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioPhotoPicker';
 import type { GenerateMarketingMediaPayload } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
 import type { AiStudioComposerDraft } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
 import {
+  DEFAULT_VIDEO_CAMERA_MOVE,
+  DEFAULT_VIDEO_SOUND,
   IMAGE_ASPECT_RATIO_OPTIONS,
   IMAGE_SIZE_LABELS,
   IMAGE_SUBJECT_IDEAS,
   MAX_LOOK_SUFFIX_CHARS,
   VIDEO_ASPECT_RATIO_OPTIONS,
-  VIDEO_DURATION_LABELS,
   VIDEO_MAX_REFERENCES,
   VIDEO_RESOLUTION_LABELS,
+  VIDEO_SOUND_MODES,
   VIDEO_SUBJECT_IDEAS,
   composeGenerationPrompt,
   imageSizeOptions,
   imageTierOptions,
   maxReferencesForTier,
   videoTierOptions,
+  type VideoCameraMoveId,
+  type VideoSoundMode,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   DEFAULT_IMAGE_ASPECT_RATIO,
@@ -35,12 +40,11 @@ import {
   DEFAULT_VIDEO_ASPECT_RATIO,
   DEFAULT_VIDEO_DURATION,
   DEFAULT_VIDEO_RESOLUTION,
+  DRAFT_VIDEO_RESOLUTION,
   MAX_IMAGE_PROMPT_CHARS,
   MAX_VIDEO_PROMPT_CHARS,
-  VIDEO_DURATIONS,
   estimateGenerationCredits,
   type ImageSize,
-  type VideoDuration,
   type VideoResolution,
 } from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
 import type {
@@ -76,7 +80,8 @@ type Props = {
 };
 
 const IMAGE_PLACEHOLDER = 'Balcony at golden hour with the skyline behind it';
-const VIDEO_PLACEHOLDER = 'Slow pan across the living room at golden hour';
+const VIDEO_PLACEHOLDER = 'Sunlit living room with a sea view';
+const VIDEO_PHOTO_PLACEHOLDER = 'What should move? Curtains, water, light';
 
 function formatCredits(credits: number): string {
   return `${credits.toLocaleString()} credits`;
@@ -84,8 +89,10 @@ function formatCredits(credits: number): string {
 
 /**
  * Photo / video composer. One column, top to bottom in the order a host thinks:
- * what to show → which of their photos → the look → where it will be posted → quality.
- * Size, resolution and prompt enhancement live under More options.
+ * what to show → which of their photos → the look (video: the camera move) → where it
+ * will be posted → quality. Size, resolution, sound and prompt enhancement live under
+ * More options. A video's photo is its first frame, so the look is hidden then: the
+ * photo already sets the light.
  */
 export function AiStudioComposer({
   mediaType,
@@ -108,7 +115,8 @@ export function AiStudioComposer({
   );
   const [imageSize, setImageSize] = useState<ImageSize>(DEFAULT_IMAGE_SIZE);
   const [resolution, setResolution] = useState<VideoResolution>(DEFAULT_VIDEO_RESOLUTION);
-  const [durationSeconds, setDurationSeconds] = useState<VideoDuration>(DEFAULT_VIDEO_DURATION);
+  const [cameraMove, setCameraMove] = useState<VideoCameraMoveId>(DEFAULT_VIDEO_CAMERA_MOVE);
+  const [sound, setSound] = useState<VideoSoundMode>(DEFAULT_VIDEO_SOUND);
   const [references, setReferences] = useState<MarketingGenerationReference[]>([]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [enhancePrompt, setEnhancePrompt] = useState(true);
@@ -129,7 +137,6 @@ export function AiStudioComposer({
     setAspectRatio(mediaType === 'video' ? DEFAULT_VIDEO_ASPECT_RATIO : DEFAULT_IMAGE_ASPECT_RATIO);
     setImageSize(DEFAULT_IMAGE_SIZE);
     setResolution(DEFAULT_VIDEO_RESOLUTION);
-    setDurationSeconds(DEFAULT_VIDEO_DURATION);
     const cap = mediaType === 'video' ? VIDEO_MAX_REFERENCES : maxReferencesForTier(DEFAULT_TIER);
     setReferences((current) => current.slice(0, cap));
   }, [mediaType]);
@@ -147,7 +154,8 @@ export function AiStudioComposer({
     setAspectRatio(values.aspectRatio);
     setImageSize(values.imageSize);
     setResolution(values.resolution);
-    setDurationSeconds(values.durationSeconds);
+    setCameraMove(values.cameraMove);
+    setSound(values.sound);
     setReferences(values.references);
     window.setTimeout(() => promptRef.current?.focus({ preventScroll: true }), 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- draft.id is the apply key
@@ -158,6 +166,10 @@ export function AiStudioComposer({
     if (pendingReferenceId == null || !pendingReference) return;
     const incoming = pendingReference.reference;
     if (references.some((row) => row.id === incoming.id)) return;
+    if (maxPhotos === 1) {
+      setReferences([incoming]);
+      return;
+    }
     if (references.length >= maxPhotos) {
       toast.error('Remove a photo first');
       return;
@@ -170,17 +182,19 @@ export function AiStudioComposer({
     if (!allowPremium && tier === 'premium') setTier(DEFAULT_TIER);
   }, [allowPremium, tier]);
 
-  useEffect(() => {
-    if (!allowHighResolution && resolution === '1080p') setResolution(DEFAULT_VIDEO_RESOLUTION);
-  }, [allowHighResolution, resolution]);
+  // Draft renders 720p only; the picked resolution comes back when switching up again.
+  const videoResolutionFor = (nextTier: MarketingGenerationTier): VideoResolution =>
+    nextTier === 'draft' || !allowHighResolution ? DRAFT_VIDEO_RESOLUTION : resolution;
+  const effectiveResolution = videoResolutionFor(tier);
+  const hasStartFrame = isVideo && references.length > 0;
 
   const creditsFor = (nextTier: MarketingGenerationTier) =>
     isVideo
       ? estimateGenerationCredits({
           mediaType: 'video',
           tier: nextTier,
-          resolution,
-          durationSeconds,
+          resolution: videoResolutionFor(nextTier),
+          durationSeconds: DEFAULT_VIDEO_DURATION,
         })
       : estimateGenerationCredits({
           mediaType: 'image',
@@ -208,12 +222,15 @@ export function AiStudioComposer({
   }));
 
   const sizeOptions = imageSizeOptions(tier);
-  const showMoreOptions = !isVideo || allowHighResolution;
   const moreSummary = useMemo(() => {
-    if (isVideo) return VIDEO_RESOLUTION_LABELS[resolution];
+    const autoImprove = `Auto-improve ${enhancePrompt ? 'on' : 'off'}`;
+    if (isVideo) {
+      const soundLabel = VIDEO_SOUND_MODES.find((mode) => mode.value === sound)?.label;
+      return `${VIDEO_RESOLUTION_LABELS[effectiveResolution]} · ${soundLabel} · ${autoImprove}`;
+    }
     const size = IMAGE_SIZE_LABELS[tier === 'draft' ? '1K' : imageSize];
-    return `${size} size · Auto-improve ${enhancePrompt ? 'on' : 'off'}`;
-  }, [isVideo, resolution, tier, imageSize, enhancePrompt]);
+    return `${size} size · ${autoImprove}`;
+  }, [isVideo, effectiveResolution, sound, tier, imageSize, enhancePrompt]);
 
   const handleTierChange = (next: MarketingGenerationTier) => {
     setTier(next);
@@ -227,7 +244,9 @@ export function AiStudioComposer({
   };
 
   const ideas = isVideo ? VIDEO_SUBJECT_IDEAS : IMAGE_SUBJECT_IDEAS;
-  const canSubmit = description.trim().length > 0 && !locked;
+  // A video that starts from a photo can go without a description.
+  const hasContent = description.trim().length > 0 || hasStartFrame;
+  const canSubmit = hasContent && !locked;
 
   return (
     <form
@@ -236,14 +255,14 @@ export function AiStudioComposer({
       onSubmit={(event) => {
         event.preventDefault();
         if (!canSubmit) {
-          if (!locked && description.trim().length === 0) promptRef.current?.focus();
+          if (!locked && !hasContent) promptRef.current?.focus();
           return;
         }
         if (!planAllowed) {
           openUpgradeModal(isVideo ? 'aiMarketingVideoGeneration' : 'aiMarketingImageGeneration');
           return;
         }
-        const prompt = composeGenerationPrompt(description, lookId);
+        const prompt = composeGenerationPrompt(description, hasStartFrame ? null : lookId);
         const referenceIds = references.map((reference) => reference.id);
         if (isVideo) {
           onGenerate({
@@ -251,9 +270,12 @@ export function AiStudioComposer({
             prompt,
             qualityTier: tier,
             aspectRatio,
-            resolution,
-            durationSeconds,
+            resolution: effectiveResolution,
+            durationSeconds: DEFAULT_VIDEO_DURATION,
             referenceIds,
+            cameraMove,
+            sound,
+            enhancePrompt,
           });
           return;
         }
@@ -273,10 +295,12 @@ export function AiStudioComposer({
           <Label className="settings-field-label" htmlFor="ai-studio-prompt">
             {isVideo ? 'Describe the clip' : 'Describe the photo'}
           </Label>
-          {description.length > maxDescriptionChars * 0.8 && (
+          {description.length > maxDescriptionChars * 0.8 ? (
             <span className="text-muted-foreground text-xs tabular-nums" aria-live="polite">
               {maxDescriptionChars - description.length} left
             </span>
+          ) : (
+            hasStartFrame && <span className="text-muted-foreground text-xs">Optional</span>
           )}
         </div>
         <Textarea
@@ -290,7 +314,13 @@ export function AiStudioComposer({
               event.currentTarget.form?.requestSubmit();
             }
           }}
-          placeholder={isVideo ? VIDEO_PLACEHOLDER : IMAGE_PLACEHOLDER}
+          placeholder={
+            hasStartFrame
+              ? VIDEO_PHOTO_PLACEHOLDER
+              : isVideo
+                ? VIDEO_PLACEHOLDER
+                : IMAGE_PLACEHOLDER
+          }
           rows={3}
           disabled={locked}
           className="border-border/80 focus-visible:ring-primary/30 min-h-[96px] resize-y rounded-xl text-sm leading-relaxed"
@@ -310,7 +340,7 @@ export function AiStudioComposer({
                   promptRef.current?.focus();
                 }}
                 disabled={locked}
-                className="border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-ring min-h-10 shrink-0 snap-start sm:min-h-9 whitespace-nowrap rounded-full border px-3 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:opacity-50"
+                className="border-border/70 text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:ring-ring min-h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-3 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset disabled:opacity-50 sm:min-h-9"
               >
                 {idea}
               </button>
@@ -323,6 +353,7 @@ export function AiStudioComposer({
         references={references}
         maxPhotos={maxPhotos}
         disabled={locked}
+        startFrame={isVideo}
         onAdd={(reference) =>
           setReferences((current) =>
             current.some((row) => row.id === reference.id) || current.length >= maxPhotos
@@ -335,7 +366,13 @@ export function AiStudioComposer({
         }
       />
 
-      <AiStudioLookPicker value={lookId} onChange={setLookId} disabled={locked} />
+      {isVideo && (
+        <AiStudioCameraMovePicker value={cameraMove} onChange={setCameraMove} disabled={locked} />
+      )}
+
+      {!hasStartFrame && (
+        <AiStudioLookPicker value={lookId} onChange={setLookId} disabled={locked} />
+      )}
 
       <AiStudioChoiceGroup
         label="Format"
@@ -355,98 +392,105 @@ export function AiStudioComposer({
         disabled={locked}
       />
 
-      {isVideo && (
-        <AiStudioChoiceGroup
-          label="Length"
-          value={String(durationSeconds)}
-          onChange={(next) => setDurationSeconds(Number(next) as VideoDuration)}
-          options={VIDEO_DURATIONS.map((seconds) => ({
-            value: String(seconds),
-            label: VIDEO_DURATION_LABELS[seconds],
-          }))}
+      <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
+        <CollapsibleTrigger
+          type="button"
           disabled={locked}
-        />
-      )}
-
-      {showMoreOptions && (
-        <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
-          <CollapsibleTrigger
-            type="button"
-            disabled={locked}
-            className="hover:bg-muted/40 focus-visible:ring-ring -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center justify-between gap-2 rounded-lg px-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
-          >
-            <span className="flex min-w-0 flex-col">
-              <span className="text-foreground text-sm font-medium">More options</span>
-              {!moreOpen && (
-                <span className="text-muted-foreground truncate text-xs">{moreSummary}</span>
+          className="hover:bg-muted/40 focus-visible:ring-ring -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center justify-between gap-2 rounded-lg px-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
+        >
+          <span className="flex min-w-0 flex-col">
+            <span className="text-foreground text-sm font-medium">More options</span>
+            {!moreOpen && (
+              <span className="text-muted-foreground truncate text-xs">{moreSummary}</span>
+            )}
+          </span>
+          <ChevronDown
+            className={cn(
+              'text-muted-foreground size-4 shrink-0 transition-transform duration-200',
+              moreOpen && 'rotate-180'
+            )}
+            aria-hidden
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-3">
+          {isVideo ? (
+            <>
+              {allowHighResolution && (
+                <div className="space-y-2">
+                  <span className="settings-field-label">Resolution</span>
+                  <SegmentedControl
+                    value={effectiveResolution}
+                    onChange={setResolution}
+                    size="dense"
+                    fullWidth
+                    aria-label="Resolution"
+                    options={(['720p', '1080p'] as const).map((value) => ({
+                      value,
+                      label: VIDEO_RESOLUTION_LABELS[value],
+                      disabled: locked || (tier === 'draft' && value === '1080p'),
+                    }))}
+                  />
+                  {tier === 'draft' && (
+                    <p className="text-muted-foreground text-xs">Draft is always 720p.</p>
+                  )}
+                </div>
               )}
-            </span>
-            <ChevronDown
-              className={cn(
-                'text-muted-foreground size-4 shrink-0 transition-transform duration-200',
-                moreOpen && 'rotate-180'
-              )}
-              aria-hidden
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 pt-3">
-            {isVideo ? (
               <div className="space-y-2">
-                <span className="settings-field-label">Resolution</span>
+                <span className="settings-field-label">Sound</span>
                 <SegmentedControl
-                  value={resolution}
-                  onChange={setResolution}
+                  value={sound}
+                  onChange={setSound}
                   size="dense"
                   fullWidth
-                  aria-label="Resolution"
-                  options={(['720p', '1080p'] as const).map((value) => ({
-                    value,
-                    label: VIDEO_RESOLUTION_LABELS[value],
+                  aria-label="Sound"
+                  options={VIDEO_SOUND_MODES.map((mode) => ({
+                    value: mode.value,
+                    label: mode.label,
                     disabled: locked,
                   }))}
                 />
               </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <span className="settings-field-label">Size</span>
-                  <SegmentedControl
-                    value={tier === 'draft' ? '1K' : imageSize}
-                    onChange={setImageSize}
-                    size="dense"
-                    fullWidth
-                    aria-label="Size"
-                    options={(['512px', '1K', '2K', '4K'] as const).map((value) => ({
-                      value,
-                      label: IMAGE_SIZE_LABELS[value],
-                      disabled: locked || !sizeOptions.includes(value),
-                    }))}
-                  />
-                  {tier === 'draft' && (
-                    <p className="text-muted-foreground text-xs">Draft is always Medium.</p>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <Label htmlFor="ai-studio-enhance-prompt" className="text-sm font-medium">
-                      Auto-improve description
-                    </Label>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      Adds lighting, camera and property detail. Off uses your exact words.
-                    </p>
-                  </div>
-                  <Switch
-                    id="ai-studio-enhance-prompt"
-                    checked={enhancePrompt}
-                    onCheckedChange={setEnhancePrompt}
-                    disabled={locked}
-                  />
-                </div>
-              </>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+            </>
+          ) : (
+            <div className="space-y-2">
+              <span className="settings-field-label">Size</span>
+              <SegmentedControl
+                value={tier === 'draft' ? '1K' : imageSize}
+                onChange={setImageSize}
+                size="dense"
+                fullWidth
+                aria-label="Size"
+                options={(['512px', '1K', '2K', '4K'] as const).map((value) => ({
+                  value,
+                  label: IMAGE_SIZE_LABELS[value],
+                  disabled: locked || !sizeOptions.includes(value),
+                }))}
+              />
+              {tier === 'draft' && (
+                <p className="text-muted-foreground text-xs">Draft is always Medium.</p>
+              )}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label htmlFor="ai-studio-enhance-prompt" className="text-sm font-medium">
+                Auto-improve description
+              </Label>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {isVideo
+                  ? 'Plans the motion from your photo and words. Off uses your exact words.'
+                  : 'Adds lighting, camera and property detail. Off uses your exact words.'}
+              </p>
+            </div>
+            <Switch
+              id="ai-studio-enhance-prompt"
+              checked={enhancePrompt}
+              onCheckedChange={setEnhancePrompt}
+              disabled={locked}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="bg-card lg:border-border/60 space-y-2 pt-1 lg:sticky lg:bottom-0 lg:-mx-5 lg:-mb-5 lg:border-t lg:px-5 lg:pb-5 lg:pt-4">
         <TierBadgeAnchor
@@ -470,11 +514,9 @@ export function AiStudioComposer({
             {isGenerating ? 'Generating' : `Generate · ${formatCredits(credits)}`}
           </Button>
         </TierBadgeAnchor>
-        {!isVideo && (
-          <p className="text-muted-foreground text-center text-[11px]">
-            AI images carry an invisible SynthID watermark.
-          </p>
-        )}
+        <p className="text-muted-foreground text-center text-[11px]">
+          {isVideo ? 'AI videos' : 'AI images'} carry an invisible SynthID watermark.
+        </p>
       </div>
     </form>
   );

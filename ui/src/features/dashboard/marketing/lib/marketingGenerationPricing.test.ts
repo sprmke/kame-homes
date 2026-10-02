@@ -121,9 +121,9 @@ describe('marketingGenerationPricing parity', () => {
       estimateGenerationCredits({
         mediaType: 'video',
         tier: 'standard',
-        resolution: '720p',
+        resolution: '1080p',
         durationSeconds: 8,
       })
-    ).toBe(800);
+    ).toBe(960);
   });
 });

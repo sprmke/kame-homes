@@ -26,15 +26,27 @@ type Props = {
   onRemove: (referenceId: string) => void;
   maxPhotos: number;
   disabled?: boolean;
+  /** Video: one photo that becomes the first frame. Veo takes JPEG, PNG or WebP only;
+   *  leaving HEIC out of `accept` makes iOS convert to JPEG on pick. */
+  startFrame?: boolean;
 };
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
+const START_FRAME_ACCEPT = 'image/jpeg,image/png,image/webp';
 
 /**
  * "Your photos": the shots the AI should base the result on. Hosts pick from their
  * listing photos or past uploads in one sheet, or drop files straight onto the field.
  */
-export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, disabled }: Props) {
+export function AiStudioPhotoPicker({
+  references,
+  onAdd,
+  onRemove,
+  maxPhotos,
+  disabled,
+  startFrame = false,
+}: Props) {
+  const accept = startFrame ? START_FRAME_ACCEPT : ACCEPT;
   const { property } = useOrgContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -62,21 +74,33 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
   const selectedListingUrls = new Set(listingPhotos.filter((url) => selectedListing(url)));
 
   const count = references.length;
+  const single = maxPhotos === 1;
   const full = count >= maxPhotos;
+  /** Single-photo mode swaps the current photo instead of refusing the pick. */
+  const makeRoom = () => {
+    if (single && references[0]) onRemove(references[0].id);
+  };
   const uploading = upload.isPending && pendingListingUrls.size === 0;
 
   const uploadFiles = async (files: FileList | null) => {
-    if (!files?.length || full) return;
-    const room = maxPhotos - count;
-    const picked = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (!files?.length || (full && !single)) return;
+    const room = single ? 1 : maxPhotos - count;
+    const picked = Array.from(files).filter((file) =>
+      startFrame ? accept.split(',').includes(file.type) : file.type.startsWith('image/')
+    );
     if (picked.length === 0) {
-      toast.error('Use a JPEG, PNG, WebP or HEIC photo');
+      toast.error(
+        startFrame ? 'Use a JPEG, PNG or WebP photo' : 'Use a JPEG, PNG, WebP or HEIC photo'
+      );
       return;
     }
     if (picked.length > room) toast.message(`Added ${room}. Remove a photo to add more.`);
     for (const file of picked.slice(0, room)) {
       const reference = await upload.mutateAsync(file).catch(() => null);
-      if (reference) onAdd(reference);
+      if (!reference) continue;
+      makeRoom();
+      onAdd(reference);
+      if (single) setSheetOpen(false);
     }
   };
 
@@ -86,10 +110,12 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
       onRemove(already.id);
       return;
     }
-    if (full) return;
+    if (full && !single) return;
     const remember = (reference: MarketingGenerationReference) => {
       setListingPicks((current) => new Map(current).set(url, reference.id));
+      makeRoom();
       onAdd(reference);
+      if (single) setSheetOpen(false);
     };
     const saved = findListingPhotoReference(library.data ?? [], url);
     if (saved) {
@@ -119,8 +145,15 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
   };
 
   const toggleUpload = (reference: MarketingGenerationReference) => {
-    if (references.some((row) => row.id === reference.id)) onRemove(reference.id);
-    else if (!full) onAdd(reference);
+    if (references.some((row) => row.id === reference.id)) {
+      onRemove(reference.id);
+    } else if (single) {
+      makeRoom();
+      onAdd(reference);
+      setSheetOpen(false);
+    } else if (!full) {
+      onAdd(reference);
+    }
   };
 
   const dropProps = {
@@ -143,9 +176,11 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="settings-field-label">Your photos</span>
+        <span className="settings-field-label">
+          {startFrame ? 'Start from a photo' : 'Your photos'}
+        </span>
         <span className="text-muted-foreground text-xs tabular-nums">
-          {count > 0 ? `${count} of ${maxPhotos}` : 'Optional'}
+          {count === 0 ? 'Optional' : maxPhotos > 1 ? `${count} of ${maxPhotos}` : null}
         </span>
       </div>
 
@@ -187,7 +222,7 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
           )}
           <span className="min-w-0">
             <span className="text-foreground block text-sm font-medium">
-              {busy ? 'Adding photo' : 'Add photos'}
+              {busy ? 'Adding photo' : maxPhotos > 1 ? 'Add photos' : 'Add a photo'}
             </span>
             <span className="text-muted-foreground block text-xs">
               {previews.length > 0 ? 'From your listing or your device' : 'From your device'}
@@ -247,8 +282,8 @@ export function AiStudioPhotoPicker({ references, onAdd, onRemove, maxPhotos, di
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
-        multiple
+        accept={accept}
+        multiple={maxPhotos > 1}
         className="hidden"
         onChange={(event) => {
           void uploadFiles(event.target.files);

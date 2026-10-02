@@ -15,7 +15,6 @@ import {
 import { toast } from 'sonner';
 
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
-import { AiStudioVideoProgress } from '@/features/dashboard/marketing/components/ai-studio/AiStudioVideoProgress';
 import { MarketingResetConfirmDialog } from '@/features/dashboard/marketing/components/shared/MarketingResetConfirmDialog';
 import { useMarketingGenerationJob } from '@/features/dashboard/marketing/hooks/useMarketingGenerationJob';
 import { useDeleteMarketingGeneration } from '@/features/dashboard/marketing/hooks/useMarketingGenerations';
@@ -34,6 +33,7 @@ import {
   type ResponsiveOverflowAction,
 } from '@/components/mobile/ResponsiveOverflowMenu';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type Props = {
   job: MarketingGenerationJob;
@@ -49,6 +49,9 @@ type Props = {
 };
 
 const ACTION_BUTTON = 'min-h-11 sm:min-h-9';
+const REVEAL =
+  'transition-[filter,opacity,transform] duration-700 ease-out motion-reduce:transition-none';
+const REVEAL_HIDDEN = 'opacity-0 blur-md';
 
 /**
  * One generated photo or clip. The result is the hero; Publish and Download sit
@@ -74,6 +77,8 @@ export function AiStudioJobCard({
   const deleteGeneration = useDeleteMarketingGeneration();
 
   const inFlight = isGenerationInFlight(job);
+  const [wasInFlight] = useState(inFlight);
+  const [revealed, setRevealed] = useState(false);
   const failed = !job.outputUrl && !inFlight;
   const isImage = job.mediaType === 'image';
   const kind = isImage ? 'photo' : 'video';
@@ -155,19 +160,21 @@ export function AiStudioJobCard({
             src={job.outputUrl}
             alt={description}
             loading="lazy"
-            className="size-full object-cover"
+            onLoad={() => setRevealed(true)}
+            onError={() => setRevealed(true)}
+            className={cn(REVEAL, 'size-full object-cover', !revealed && REVEAL_HIDDEN)}
           />
         )}
         {job.outputUrl && !isImage && (
-          <video src={job.outputUrl} controls playsInline className="size-full object-cover" />
-        )}
-        {!job.outputUrl && inFlight && !isImage && <AiStudioVideoProgress job={job} />}
-        {!job.outputUrl && inFlight && isImage && (
-          <AiStudioGeneratingStage
-            variant="card"
-            mediaType="image"
-            className="absolute inset-0 rounded-none border-0"
+          <video
+            src={job.outputUrl}
+            controls
+            playsInline
+            className={cn('size-full object-cover', wasInFlight && 'animate-ai-gen-reveal')}
           />
+        )}
+        {(inFlight || (wasInFlight && isImage && job.outputUrl && !revealed)) && (
+          <AiStudioGeneratingStage variant="fill" mediaType={job.mediaType} job={job} />
         )}
         {failed && (
           <div className="flex max-w-[16rem] flex-col items-center gap-2 p-4 text-center">
@@ -215,7 +222,9 @@ export function AiStudioJobCard({
         </div>
 
         {oversizedForReels && (
-          <p className="text-xs text-amber-700 dark:text-amber-500">Over 8 MB. Meta may reject this as a Reel.</p>
+          <p className="text-xs text-amber-700 dark:text-amber-500">
+            Over 8 MB. Meta may reject this as a Reel.
+          </p>
         )}
 
         <div className="mt-auto flex items-center gap-1.5 pt-0.5">

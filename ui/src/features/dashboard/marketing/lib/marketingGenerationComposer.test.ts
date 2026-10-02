@@ -7,6 +7,7 @@ import {
 } from '@/features/dashboard/marketing/lib/marketingGenerationComposer';
 import {
   GENERATION_LOOKS,
+  VIDEO_PHOTO_DEFAULT_PROMPT,
   composeGenerationPrompt,
 } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import type {
@@ -142,15 +143,53 @@ describe('composerValuesFromJob', () => {
         mediaType: 'video',
         aspectRatio: '9:16',
         resolution: '1080p',
-        durationSeconds: 6,
+        durationSeconds: 8,
       }),
       library,
       { allowPremium: true, allowHighResolution: false }
     );
     expect(values.mediaType).toBe('video');
     expect(values.resolution).toBe('720p');
-    expect(values.durationSeconds).toBe(6);
     expect(values.aspectRatio).toBe('9:16');
+  });
+
+  it('keeps draft video at 720p', () => {
+    const values = composerValuesFromJob(
+      job({ mediaType: 'video', aspectRatio: '9:16', qualityTier: 'draft', resolution: '1080p' }),
+      library,
+      { allowPremium: true, allowHighResolution: true }
+    );
+    expect(values.resolution).toBe('720p');
+  });
+
+  it('restores camera move and sound, defaulting unknown or missing values', () => {
+    const video = { mediaType: 'video' as const, aspectRatio: '9:16', resolution: '1080p' };
+    const restored = composerValuesFromJob(
+      job({ ...video, generationOptions: { cameraMove: 'orbit', sound: 'music' } }),
+      library,
+      { allowPremium: true, allowHighResolution: true }
+    );
+    expect(restored.cameraMove).toBe('orbit');
+    expect(restored.sound).toBe('music');
+    expect(restored.resolution).toBe('1080p');
+
+    const legacy = composerValuesFromJob(
+      job({ ...video, generationOptions: { cameraMove: 'crash-zoom' } }),
+      library,
+      { allowPremium: true, allowHighResolution: true }
+    );
+    expect(legacy.cameraMove).toBe('push-in');
+    expect(legacy.sound).toBe('ambient');
+  });
+
+  it('clears the server default description for a photo-only video', () => {
+    const values = composerValuesFromJob(
+      job({ mediaType: 'video', aspectRatio: '9:16', prompt: VIDEO_PHOTO_DEFAULT_PROMPT }),
+      library,
+      { allowPremium: true, allowHighResolution: true }
+    );
+    expect(values.prompt).toBe('');
+    expect(values.references.map((row) => row.id)).toEqual(['ref-1']);
   });
 
   it('locks draft image size to 1K', () => {
