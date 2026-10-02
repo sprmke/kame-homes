@@ -424,7 +424,12 @@ export function BookingDetailPage() {
         flush
         className="md:hidden"
       />
-      <div data-page-brand-hero className="space-y-4 max-md:px-3.5 max-md:pt-3">
+      {/* `!mt-0`: the hidden hero above is still a sibling, so the shell's `space-y-*` would add a top gap. */}
+      <div
+        data-page-brand-hero
+        data-booking-detail-page
+        className="!mt-0 space-y-4 max-md:px-3.5 max-md:pt-3"
+      >
         {/* Back nav */}
         <Link
           to="/bookings"

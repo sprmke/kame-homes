@@ -536,6 +536,56 @@
     animation: ai-gen-shimmer-sweep 2.2s ease-in-out infinite;
   }
 
+  /* Marketing AI Studio — generating stage (line-drawn home) */
+  @keyframes ai-gen-house-draw {
+    0% {
+      stroke-dashoffset: 1;
+    }
+    48%,
+    72% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: -1;
+    }
+  }
+
+  @keyframes ai-gen-status-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ai-gen-reveal {
+    from {
+      opacity: 0;
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+
+  .ai-gen-house {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    animation: ai-gen-house-draw 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+
+  .animate-ai-gen-status {
+    animation: ai-gen-status-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-ai-gen-reveal {
+    animation: ai-gen-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
@@ -1466,6 +1516,9 @@
     .animate-ai-gen-ring,
     .animate-ai-gen-spark,
     .animate-ai-gen-shimmer,
+    .ai-gen-house,
+    .animate-ai-gen-status,
+    .animate-ai-gen-reveal,
     .animate-notification-bell-nudge,
     .animate-notification-badge-pulse,
     .animate-setup-guide-check-in,
@@ -1485,6 +1538,10 @@
       animation: none !important;
       transform: none !important;
       opacity: 1 !important;
+    }
+
+    .ai-gen-house {
+      stroke-dashoffset: 0 !important;
     }
   }
 
@@ -2936,21 +2993,46 @@ html[data-mode-transition='reduced']::view-transition-new(*) {
   [data-canvas-size='medium'] [data-section-nav-aside] {
     display: none;
   }
+}
 
-  /* Booking detail: viewport `md:`/`lg:` still apply inside the pane; stack so the guest
-   * column is not crushed beside the fixed-width workflow rail (~20–27rem). */
-  [data-canvas-size='medium'] [data-booking-detail-layout] {
-    flex-direction: column;
+/* Booking detail (lg+): lay out by the page's own width, not the viewport, so it fills the AI
+ * canvas at any pane width and a 1024px screen with the sidebar open. Stacks below 56rem, then
+ * details + Progress side by side. A container query is safe here (unlike the whole pane):
+ * nothing inside renders `position: fixed` on lg+ (the edit ContextualActionBar is below lg;
+ * modals portal out). */
+@media (min-width: 1024px) {
+  [data-booking-detail-page] {
+    container: booking-detail / inline-size;
   }
-  [data-canvas-size='medium'] [data-booking-detail-workflow] {
-    position: static;
-    width: 100%;
-    max-width: none;
-    max-height: none;
-    align-self: stretch;
+  @container booking-detail (max-width: 55.99rem) {
+    [data-booking-detail-page] [data-booking-detail-layout] {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    [data-booking-detail-page] [data-booking-detail-workflow] {
+      position: static;
+      width: 100%;
+      max-width: none;
+      max-height: none;
+      align-self: stretch;
+    }
   }
-  [data-canvas-size='medium'] [data-booking-detail-header] {
-    flex-direction: column;
-    align-items: stretch;
+  @container booking-detail (min-width: 56rem) and (max-width: 71.99rem) {
+    [data-booking-detail-page] [data-booking-detail-workflow] {
+      width: 24rem;
+    }
+  }
+  @container booking-detail (max-width: 33.99rem) {
+    [data-booking-detail-page] [data-booking-detail-header] {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+  /* Side by side in the canvas: the sticky Progress rail must fit under the pane header. */
+  @container booking-detail (min-width: 56rem) {
+    [data-assistant-canvas='open'] [data-booking-detail-workflow],
+    [data-assistant-canvas='open'] [data-booking-detail-workflow] > aside {
+      max-height: calc(100dvh - 6.75rem);
+    }
   }
 }

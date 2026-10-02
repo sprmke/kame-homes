@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 import {
   PreviewViewportProvider,
@@ -33,19 +33,32 @@ function PreviewFrame({
     [api]
   );
 
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  // Guest templates size "full screen" sections from this var; `dvh` would be the
+  // admin window, not the frame.
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      el.style.setProperty('--page-editor-preview-h', `${entry.contentRect.height}px`);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const isMobile = viewport === 'mobile';
 
   // Bordered frame owns height. Scrollport + chrome host are absolute siblings so
   // guest header/menu can portal into the non-scrolling host (clipped, under admin
   // sheets) without using viewport-fixed coords that break when nested.
   return (
-    <div className={cn('min-h-0 flex-1 overflow-hidden p-3 sm:p-4', !isMobile && 'flex flex-col')}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-4">
       <div
+        ref={frameRef}
         className={cn(
-          'border-border bg-background relative isolate w-full overflow-hidden border shadow-sm',
-          isMobile
-            ? 'mx-auto h-[min(780px,calc(100dvh-12rem))] max-w-[420px]'
-            : 'mx-auto min-h-0 max-w-[1280px] flex-1'
+          'border-border bg-background relative isolate mx-auto min-h-0 w-full flex-1 overflow-hidden border shadow-sm',
+          isMobile ? 'max-h-[780px] max-w-[420px]' : 'max-w-[1280px]'
         )}
       >
         <div

@@ -12,7 +12,8 @@ export const SHOWCASE_HAVEN_HEADER_FLOAT_PX = 14;
  * Header is portaled `position:fixed` (out of flow) on live + Page Editor.
  * Hero copy (eyebrow / above-heading line) needs top inset so it clears the bar.
  */
-export const SHOWCASE_HERO_CONTAINED_CLASS = 'min-h-[min(100dvh,720px)]';
+export const SHOWCASE_HERO_CONTAINED_CLASS =
+  'min-h-[min(var(--page-editor-preview-h,100dvh),720px)]';
 export const SHOWCASE_HERO_LIVE_CLASS = 'min-h-[100dvh]';
 
 /** Page Editor / embed preview frame — same fixed header, shorter viewport. */
