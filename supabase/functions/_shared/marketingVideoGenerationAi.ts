@@ -1,18 +1,17 @@
 /**
  * Veo 3.1 video generation for the Marketing Studio Generate tab (Phase 2).
  *
- * Request/response envelope verified against Google's current Veo REST reference
- * (ai.google.dev/gemini-api/docs/veo, 2026-09):
+ * Request/response envelope (request shape: see `buildVeoRequestBody`):
  *   POST models/{model}:predictLongRunning
- *     { instances:[{ prompt, referenceImages?:[{ image:{inlineData}, referenceType:'asset' }] }],
+ *     { instances:[{ prompt, image?:{ bytesBase64Encoded, mimeType } }],
  *       parameters:{ aspectRatio, resolution, durationSeconds, personGeneration, negativePrompt? } }
  *   GET {operationName}
  *     { done, response?: { generateVideoResponse: { generatedSamples: [{ video: { uri } }] } },
  *       error?: { message } }
  *
- * Up to 3 `referenceImages` steer the subject/style; there is no multi-shot "starting
- * frame" support here (that would be the separate singular `image` field — a Phase 3
- * feature, not used yet).
+ * The host's photo is sent as the singular `image` (first frame), so the clip shows the
+ * real listing. Asset `referenceImages` are not used: they are meant for a person or
+ * product, and Veo Lite (Draft) rejects them.
  *
  * Two entry points:
  *   startMarketingVideoJob       — submits to :predictLongRunning, stores the operation name
@@ -33,7 +32,7 @@ import {
   isGeminiConfigured,
 } from './ai/llmTransport.ts';
 import { type AiVideoModelConfig } from './aiModelRouter.ts';
-import { recordAiUsage } from './aiUsageService.ts';
+import { recordAiUsage, recordAiUsagePlatformOnly } from './aiUsageService.ts';
 import {
   bumpMarketingVideoJobPoll,
   claimMarketingGenerationJobBilling,
@@ -52,6 +51,7 @@ import {
   uploadGenerationBytes,
 } from './marketingGenerationStorage.ts';
 import type { ReferenceInlineData } from './marketingImageGenerationAi.ts';
+import { isDegenerateGeneratedVideo, probeMp4 } from './mp4Probe.ts';
 
 /** Per-attempt cap for Veo submit / poll HTTP calls (the generation itself runs async). */
 const PROVIDER_TIMEOUT_MS = 30_000;
@@ -78,12 +78,6 @@ export function isGenerationSafetyError(error: unknown): error is GenerationSafe
   return error instanceof GenerationSafetyError;
 }
 
-/**
- * `personGeneration: 'allow_adult'` is sent unconditionally — required in EU/UK/CH/MENA,
- * harmless elsewhere, and we cannot reliably infer the caller's region server-side.
- */
-const PERSON_GENERATION = 'allow_adult';
-
 export type StartMarketingVideoJobInput = {
   config: AiVideoModelConfig;
   prompt: string;
@@ -91,8 +85,42 @@ export type StartMarketingVideoJobInput = {
   aspectRatio: string;
   resolution: '720p' | '1080p';
   durationSeconds: number;
-  references: ReferenceInlineData[];
+  /** Host photo used as Veo's first frame (image-to-video). */
+  startFrame: ReferenceInlineData | null;
 };
+
+/**
+ * The `:predictLongRunning` body. Checked against the live API on 2026-10-01 (the docs'
+ * REST samples are stale on two points):
+ * - images are `{ bytesBase64Encoded, mimeType }`; `inlineData` is rejected
+ * - `durationSeconds` must be a JSON number; a string is rejected
+ * - `personGeneration` is `allow_all` for text-to-video (`allow_adult` is rejected) and
+ *   `allow_adult` for image-to-video
+ */
+export function buildVeoRequestBody(input: Omit<StartMarketingVideoJobInput, 'config'>) {
+  return {
+    instances: [
+      {
+        prompt: input.prompt,
+        ...(input.startFrame
+          ? {
+              image: {
+                bytesBase64Encoded: input.startFrame.data,
+                mimeType: input.startFrame.mimeType,
+              },
+            }
+          : {}),
+      },
+    ],
+    parameters: {
+      aspectRatio: input.aspectRatio,
+      resolution: input.resolution,
+      durationSeconds: input.durationSeconds,
+      personGeneration: input.startFrame ? 'allow_adult' : 'allow_all',
+      ...(input.negativePrompt ? { negativePrompt: input.negativePrompt } : {}),
+    },
+  };
+}
 
 /** Submits the job to Veo and stores the returned long-running operation name. */
 export async function startMarketingVideoJob(
@@ -104,28 +132,7 @@ export async function startMarketingVideoJob(
     throw new GenerationProviderError('Video generation is not configured');
   }
 
-  const body = {
-    instances: [
-      {
-        prompt: input.prompt,
-        ...(input.references.length > 0
-          ? {
-              referenceImages: input.references.map((reference) => ({
-                image: { inlineData: reference },
-                referenceType: 'asset',
-              })),
-            }
-          : {}),
-      },
-    ],
-    parameters: {
-      aspectRatio: input.aspectRatio,
-      resolution: input.resolution,
-      durationSeconds: String(input.durationSeconds),
-      personGeneration: PERSON_GENERATION,
-      ...(input.negativePrompt ? { negativePrompt: input.negativePrompt } : {}),
-    },
-  };
+  const body = buildVeoRequestBody(input);
 
   let json: { name?: string };
   try {
@@ -154,6 +161,7 @@ type GoogleOperationResponse = {
     generateVideoResponse?: {
       generatedSamples?: Array<{ video?: { uri?: string } }>;
       raiMediaFilteredCount?: number;
+      raiMediaFilteredReasons?: string[];
     };
   };
 };
@@ -217,6 +225,12 @@ export async function pollAndFinalizeMarketingVideoJob(
 
   if (status.error || !status.response?.generateVideoResponse?.generatedSamples?.length) {
     const blocked = Number(status.response?.generateVideoResponse?.raiMediaFilteredCount ?? 0) > 0;
+    if (blocked) {
+      console.warn(
+        '[marketingVideoGenerationAi] safety filtered:',
+        JSON.stringify(status.response?.generateVideoResponse?.raiMediaFilteredReasons ?? [])
+      );
+    }
     const errorCode = blocked ? 'safety_blocked' : 'provider_error';
     const message = blocked
       ? 'That prompt was blocked. Try rephrasing.'
@@ -257,6 +271,37 @@ export async function pollAndFinalizeMarketingVideoJob(
     return { kind: 'not_finalized', job: claimed };
   }
 
+  const probe = probeMp4(bytes);
+  const check = isDegenerateGeneratedVideo({
+    bytes,
+    probe,
+    requestedAspectRatio: String(claimed.aspect_ratio ?? ''),
+    requestedDurationSeconds: Number(claimed.duration_seconds ?? 0),
+  });
+  if (check.degenerate) {
+    console.error('[marketingVideoGenerationAi] rejected output:', check.reason);
+    const failed = await failMarketingGenerationJob(
+      sb,
+      String(claimed.id),
+      'invalid_output',
+      check.reason
+    );
+    // Google still bills a rendered clip we reject, so the platform absorbs it (0 credits).
+    if (failed) {
+      await recordAiUsagePlatformOnly({
+        organizationId: String(claimed.organization_id),
+        propertyId: String(claimed.property_id),
+        feature: 'marketing_video_generate',
+        provider: 'gemini',
+        model: String(claimed.model),
+        estimatedCostUsd: Number(claimed.estimated_cost_usd ?? 0),
+        actorUserId: (claimed.triggered_by as string | null) ?? null,
+        actorType: 'staff',
+      });
+    }
+    return { kind: 'operation_failed', job: failed };
+  }
+
   const storagePath = marketingGenerationStoragePath(
     String(claimed.property_id),
     String(claimed.id),
@@ -286,6 +331,8 @@ export async function pollAndFinalizeMarketingVideoJob(
       outputUrl,
       outputMimeType: mimeType,
       outputBytes: bytes.byteLength,
+      outputWidth: probe.supported ? probe.width : null,
+      outputHeight: probe.supported ? probe.height : null,
       estimatedCostUsd,
     },
     claimToken
