@@ -15,6 +15,8 @@ import {
   YAxis,
 } from 'recharts';
 
+import { AiGenerationOutcomesCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AiGenerationOutcomesCard';
+import { AiPlanUsageCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AiPlanUsageCard';
 import { AssistantEvalRunsCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantEvalRunsCard';
 import {
   useSuperAdminAiUsage,
@@ -59,7 +61,7 @@ export function AiUsageTab() {
     <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted-foreground min-w-0 flex-1 text-sm">
-          Spend trend, cost by feature, top organizations, and current quota breaches.
+          Spend, credits, plans, and Marketing Studio jobs across every AI feature.
         </p>
         <SegmentedControl
           value={range}
@@ -88,8 +90,8 @@ export function AiUsageTab() {
               iconBgClassName="bg-violet-100 dark:bg-violet-900/30"
             />
             <StatCard
-              title="Calls"
-              value={data.totals.calls.toLocaleString('en-US')}
+              title="Credits"
+              value={(data.totals.credits ?? 0).toLocaleString('en-US')}
               iconBgClassName="bg-sky-100 dark:bg-sky-900/30"
             />
             <StatCard
@@ -240,7 +242,9 @@ export function AiUsageTab() {
                       <TableRow>
                         <TableHead>Feature</TableHead>
                         <TableHead>Calls</TableHead>
+                        <TableHead>Credits</TableHead>
                         <TableHead>Errors</TableHead>
+                        <TableHead className="hidden md:table-cell">Cache</TableHead>
                         <TableHead>Fallback</TableHead>
                         <TableHead className="hidden md:table-cell">p50</TableHead>
                         <TableHead>p95</TableHead>
@@ -252,7 +256,13 @@ export function AiUsageTab() {
                           <TableCell className="font-medium">{labelFeature(f.feature)}</TableCell>
                           <TableCell className="tabular-nums">{f.calls}</TableCell>
                           <TableCell className="tabular-nums">
+                            {(f.credits ?? 0).toLocaleString('en-US')}
+                          </TableCell>
+                          <TableCell className="tabular-nums">
                             {f.errors} ({f.errorRatePct}%)
+                          </TableCell>
+                          <TableCell className="hidden tabular-nums md:table-cell">
+                            {f.cacheHitRatePct ?? 0}%
                           </TableCell>
                           <TableCell className="tabular-nums">{f.fallbackRatePct}%</TableCell>
                           <TableCell className="hidden tabular-nums md:table-cell">
@@ -269,6 +279,12 @@ export function AiUsageTab() {
               </Card>
             </div>
           )}
+
+          {data.planUsage ? <AiPlanUsageCard rows={data.planUsage} /> : null}
+
+          {data.marketingGenerations ? (
+            <AiGenerationOutcomesCard summary={data.marketingGenerations} />
+          ) : null}
 
           <div className="space-y-3">
             <h2 className="text-section-title">Top organizations by spend</h2>

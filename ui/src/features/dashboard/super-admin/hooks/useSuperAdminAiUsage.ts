@@ -10,6 +10,7 @@ export type SuperAdminAiUsage = {
   totals: {
     costUsd: number;
     calls: number;
+    credits?: number;
     orgsWithUsage: number;
     quotaBreaches: number;
     monthToDateUsd: number;
@@ -20,10 +21,12 @@ export type SuperAdminAiUsage = {
   featureBreakdown: {
     feature: string;
     costUsd: number;
+    credits?: number;
     calls: number;
     errors: number;
     errorRatePct: number;
     fallbackRatePct: number;
+    cacheHitRatePct?: number;
     latencyP50Ms: number | null;
     latencyP95Ms: number | null;
   }[];
@@ -44,6 +47,14 @@ export type SuperAdminAiUsage = {
     overMonthly: boolean;
   }[];
   quotaBreaches: SuperAdminAiUsage['topOrgs'];
+  /** One row per active plan; orgs without a subscription count under the default plan. */
+  planUsage?: SuperAdminAiPlanUsage[];
+  /** Marketing Studio image/video jobs created in the range. */
+  marketingGenerations?: {
+    rows: SuperAdminAiGenerationRow[];
+    failureReasons: Array<{ code: string; count: number }>;
+    unbilledCompleted: number;
+  };
   /** Thumbs on AI assistant replies in the range (absent on older deploys). */
   assistantFeedback?: {
     up: number;
@@ -53,6 +64,36 @@ export type SuperAdminAiUsage = {
   };
   /** Latest assistant golden eval runs, newest first (`eval:ai --suite assistant --record`). */
   assistantEvalRuns?: AssistantEvalRun[];
+};
+
+export type SuperAdminAiPlanUsage = {
+  planCode: string;
+  planName: string;
+  orgCount: number;
+  activeOrgs: number;
+  calls: number;
+  credits: number;
+  costUsd: number;
+  creditAllowancePerOrg: number;
+  monthCredits: number;
+  orgsAtAllowance: number;
+};
+
+export type SuperAdminAiGenerationRow = {
+  mediaType: 'image' | 'video';
+  qualityTier: string;
+  resolution: string | null;
+  total: number;
+  completed: number;
+  failed: number;
+  blocked: number;
+  cancelled: number;
+  inFlight: number;
+  successRatePct: number;
+  credits: number;
+  costUsd: number;
+  renderP50Seconds: number | null;
+  renderP95Seconds: number | null;
 };
 
 export type AssistantEvalRun = {
