@@ -2,11 +2,11 @@ import * as React from 'react';
 
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { useDragControls, motion, type PanInfo } from 'framer-motion';
 import { X } from 'lucide-react';
 
-import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
+
+import { sheetHeightForDrag, shouldDismissSheetDrag } from './sheetDrag';
 
 const Sheet = SheetPrimitive.Root;
 
@@ -64,77 +64,130 @@ interface SheetContentProps
   disableDrag?: boolean;
 }
 
-/** Downward drag distance (px) past which a release dismisses the sheet. */
-const DRAG_CLOSE_DISTANCE = 120;
-/** Downward flick velocity (px/s) past which a release dismisses regardless of distance. */
-const DRAG_CLOSE_VELOCITY = 700;
+type DragSession = {
+  pointerId: number;
+  startY: number;
+  startHeight: number;
+  lastY: number;
+  lastTime: number;
+  velocityY: number;
+};
+
+type SheetHeightDrag = {
+  contentRef: React.MutableRefObject<HTMLDivElement | null>;
+  closeRef: React.MutableRefObject<HTMLButtonElement | null>;
+  dragStyle: React.CSSProperties | undefined;
+  onHandlePointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onHandlePointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onHandlePointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onHandlePointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void;
+};
+
+/**
+ * Pointer drag writes the sheet container's used height. The sheet is
+ * bottom-anchored, so a shorter height moves its top edge with the finger.
+ * A translate on an inner node leaves this container (and its background)
+ * at the resting height, which is the empty gap above the handle.
+ * Height is applied directly per move, not transitioned, so layout tracks
+ * the pointer instead of lagging a CSS height animation.
+ */
+function useSheetHeightDrag(enabled: boolean): SheetHeightDrag {
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const sessionRef = React.useRef<DragSession | null>(null);
+  const [dragHeight, setDragHeight] = React.useState<number | null>(null);
+
+  const onHandlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!enabled || event.button !== 0) return;
+    const el = contentRef.current;
+    if (!el) return;
+    const startHeight = el.offsetHeight;
+    sessionRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight,
+      lastY: event.clientY,
+      lastTime: performance.now(),
+      velocityY: 0,
+    };
+    setDragHeight(startHeight);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onHandlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const session = sessionRef.current;
+    if (!session || event.pointerId !== session.pointerId) return;
+    const now = performance.now();
+    const dt = now - session.lastTime;
+    if (dt > 0) {
+      session.velocityY = ((event.clientY - session.lastY) / dt) * 1000;
+    }
+    session.lastY = event.clientY;
+    session.lastTime = now;
+    setDragHeight(sheetHeightForDrag(session.startHeight, event.clientY - session.startY));
+  };
+
+  const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const session = sessionRef.current;
+    if (!session || event.pointerId !== session.pointerId) return;
+    sessionRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const deltaY = event.clientY - session.startY;
+    if (shouldDismissSheetDrag(deltaY, session.velocityY)) {
+      closeRef.current?.click();
+      return;
+    }
+    setDragHeight(null);
+  };
+
+  const dragStyle: React.CSSProperties | undefined =
+    dragHeight != null
+      ? {
+          height: dragHeight,
+          minHeight: 0,
+        }
+      : undefined;
+
+  return {
+    contentRef,
+    closeRef,
+    dragStyle,
+    onHandlePointerDown,
+    onHandlePointerMove,
+    onHandlePointerUp: finishDrag,
+    onHandlePointerCancel: finishDrag,
+  };
+}
 
 type DraggableSheetBodyProps = {
   children: React.ReactNode;
   /** Handle affordance rendered above `children`, inside the drag surface. */
   handle: React.ReactNode;
+  drag: SheetHeightDrag;
 };
 
 /**
- * Wraps bottom-sheet content so the sheet tracks a vertical drag that starts
- * on the handle — hold and slide down to dismiss, release early to snap
- * back. The drag listener lives only on the handle row, not the scrollable
- * body, so swiping inside form/list content keeps scrolling instead of
- * dragging the sheet. Closing goes through Radix's own Close control (a
- * synthetic click) so onOpenChange, focus return, and escape/overlay-click
- * behavior all stay unified.
+ * Handle-only pointer target. The listener stays off the scrollable body so
+ * swiping a form or list keeps scrolling. Dismiss goes through Radix Close
+ * so onOpenChange, focus return, and overlay/escape behavior stay unified.
  */
-function DraggableSheetBody({ children, handle }: DraggableSheetBodyProps) {
-  const closeRef = React.useRef<HTMLButtonElement>(null);
-  const dragControls = useDragControls();
-  const reduceMotion = usePrefersReducedMotion();
-
-  const handleDragEnd = (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
-    const shouldClose =
-      info.offset.y > DRAG_CLOSE_DISTANCE || info.velocity.y > DRAG_CLOSE_VELOCITY;
-
-    if (shouldClose) closeRef.current?.click();
-    // Otherwise let framer-motion's own drag constraint spring the element back to
-    // y:0 — do not also drive `y` via a separate `animate` prop/controls. Mixing an
-    // externally-created motion value with a declarative `animate` on the same
-    // transform is a known framer-motion footgun: drag's internal tracking and
-    // `controls.start` can desync, leaving the element visually offset after a drag
-    // that didn't cross the close threshold.
-  };
-
-  const closeButton = (
-    <SheetPrimitive.Close ref={closeRef} className="hidden" aria-hidden tabIndex={-1} />
-  );
-
-  if (reduceMotion) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {closeButton}
-        {handle}
-        {children}
-      </div>
-    );
-  }
-
+function DraggableSheetBody({ children, handle, drag }: DraggableSheetBodyProps) {
   return (
-    <motion.div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
-      drag="y"
-      dragListener={false}
-      dragControls={dragControls}
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 0.5 }}
-      onDragEnd={handleDragEnd}
-    >
-      {closeButton}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <SheetPrimitive.Close ref={drag.closeRef} className="hidden" aria-hidden tabIndex={-1} />
       <div
-        onPointerDown={(event) => dragControls.start(event)}
-        className="shrink-0 touch-none [cursor:grab] active:[cursor:grabbing]"
+        onPointerDown={drag.onHandlePointerDown}
+        onPointerMove={drag.onHandlePointerMove}
+        onPointerUp={drag.onHandlePointerUp}
+        onPointerCancel={drag.onHandlePointerCancel}
+        className="shrink-0 touch-none select-none [cursor:grab] active:[cursor:grabbing]"
       >
         {handle}
       </div>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -151,11 +204,21 @@ const SheetContent = React.forwardRef<
       showHandle = false,
       overlayClassName,
       disableDrag = false,
+      style,
       ...props
     },
     ref
   ) => {
     const isDraggableBottomSheet = side === 'bottom' && !disableDrag;
+    const drag = useSheetHeightDrag(isDraggableBottomSheet);
+    const setContentRef = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        drag.contentRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      },
+      [drag.contentRef, ref]
+    );
     const handle =
       showHandle || side === 'bottom' ? (
         <div className="flex justify-center pb-1 pt-3" aria-hidden>
@@ -167,9 +230,10 @@ const SheetContent = React.forwardRef<
       <SheetPortal>
         <SheetOverlay className={overlayClassName} />
         <SheetPrimitive.Content
-          ref={ref}
+          ref={setContentRef}
           className={cn(sheetVariants({ side }), className)}
           {...props}
+          style={{ ...style, ...drag.dragStyle }}
         >
           {!hideClose && side !== 'bottom' ? (
             <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none">
@@ -178,7 +242,9 @@ const SheetContent = React.forwardRef<
             </SheetPrimitive.Close>
           ) : null}
           {isDraggableBottomSheet ? (
-            <DraggableSheetBody handle={handle}>{children}</DraggableSheetBody>
+            <DraggableSheetBody drag={drag} handle={handle}>
+              {children}
+            </DraggableSheetBody>
           ) : (
             <>
               {handle}
