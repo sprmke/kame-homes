@@ -1,13 +1,21 @@
 /**
  * super-admin-ai-usage — GET the platform AI cost console for `/admin/ai-usage`.
- * Daily spend trend + cost-by-feature + top orgs by spend + current quota breaches.
+ * Daily spend trend + cost/credits by feature + usage by plan + Marketing Studio job
+ * outcomes + top orgs by spend + current quota breaches.
  * Also: assistant feedback + the latest assistant golden eval runs (per-module pass rates).
  * Read-only, super-admin only. Backs the numbers `super-admin-overview` only summarizes.
  */
 
 import { limitNumber, resolveOrgAiLimitsBatch } from '../_shared/aiLimitResolver.ts';
 import { platformDailyCostUsdCap } from '../_shared/aiUsageService.ts';
+import {
+  summarizeMarketingGenerations,
+  summarizeUsageByPlan,
+  type ConsoleGenerationJob,
+  type ConsoleUsageEvent,
+} from '../_shared/aiUsageConsoleSummary.ts';
 import { mapEvalRunRow } from '../_shared/assistantEvalSummary.ts';
+import { parsePlanFeatures } from '../_shared/planFeatures.ts';
 import {
   summarizeAssistantFeedback,
   type AssistantFeedbackRow,
@@ -34,38 +42,66 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   const monthStart = isoDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
   const today = isoDate(now);
 
-  const [dailyRes, eventsRes, orgSettingsRes, monthRes, orgsRes, feedbackRes, evalRunsRes] =
-    await Promise.all([
-      supabase
-        .from('ai_platform_usage_daily')
-        .select('usage_date, call_count, estimated_cost_usd, organization_id')
-        .gte('usage_date', sinceDate)
-        .limit(100_000),
-      supabase
-        .from('ai_platform_usage_events')
-        .select('feature, estimated_cost_usd, organization_id, status, latency_ms, fallback_used')
-        .gte('created_at', sinceIso)
-        .limit(100_000),
-      supabase.from('ai_platform_org_settings').select('organization_id, enabled'),
-      supabase
-        .from('ai_platform_usage_daily')
-        .select('estimated_cost_usd')
-        .gte('usage_date', monthStart)
-        .limit(100_000),
-      supabase.from('organizations').select('id, name, slug').limit(10_000),
-      supabase
-        .from('ai_dashboard_assistant_feedback')
-        .select('rating, reason, created_at, organization_id')
-        .gte('created_at', sinceIso)
-        .limit(20_000),
-      supabase
-        .from('ai_assistant_eval_runs')
-        .select(
-          'id, created_at, routed, passed, total, avg_tools_sent, prompt_version, modules, failed_case_ids'
-        )
-        .order('created_at', { ascending: false })
-        .limit(10),
-    ]);
+  const [
+    dailyRes,
+    eventsRes,
+    orgSettingsRes,
+    monthRes,
+    orgsRes,
+    feedbackRes,
+    evalRunsRes,
+    plansRes,
+    subscriptionsRes,
+    jobsRes,
+  ] = await Promise.all([
+    supabase
+      .from('ai_platform_usage_daily')
+      .select('usage_date, call_count, estimated_cost_usd, organization_id')
+      .gte('usage_date', sinceDate)
+      .limit(100_000),
+    supabase
+      .from('ai_platform_usage_events')
+      .select(
+        'feature, estimated_cost_usd, credits_consumed, organization_id, status, latency_ms, fallback_used, cache_hit'
+      )
+      .gte('created_at', sinceIso)
+      .limit(100_000),
+    supabase.from('ai_platform_org_settings').select('organization_id, enabled'),
+    supabase
+      .from('ai_platform_usage_daily')
+      .select('organization_id, estimated_cost_usd, credits_consumed')
+      .gte('usage_date', monthStart)
+      .limit(100_000),
+    supabase.from('organizations').select('id, name, slug').limit(10_000),
+    supabase
+      .from('ai_dashboard_assistant_feedback')
+      .select('rating, reason, created_at, organization_id')
+      .gte('created_at', sinceIso)
+      .limit(20_000),
+    supabase
+      .from('ai_assistant_eval_runs')
+      .select(
+        'id, created_at, routed, passed, total, avg_tools_sent, prompt_version, modules, failed_case_ids'
+      )
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('pricing_plans')
+      .select('id, code, name, sort_order, is_default, features')
+      .eq('is_active', true),
+    supabase
+      .from('org_subscriptions')
+      .select('organization_id, plan_id')
+      .in('status', ['active', 'trialing', 'past_due', 'suspended'])
+      .limit(10_000),
+    supabase
+      .from('marketing_generation_jobs')
+      .select(
+        'media_type, quality_tier, resolution, job_status, error_code, credits_consumed, estimated_cost_usd, usage_recorded_at, created_at, completed_at'
+      )
+      .gte('created_at', sinceIso)
+      .limit(50_000),
+  ]);
 
   const firstError =
     dailyRes.error ??
@@ -74,6 +110,9 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     monthRes.error ??
     orgsRes.error ??
     feedbackRes.error ??
+    plansRes.error ??
+    subscriptionsRes.error ??
+    jobsRes.error ??
     null;
   if (firstError) return jsonError(req, firstError.message, 500);
 
@@ -107,9 +146,11 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   // Cost + reliability by feature (gateway trace columns: status, latency_ms, fallback_used).
   type FeatureBucket = {
     costUsd: number;
+    credits: number;
     calls: number;
     errors: number;
     fallbacks: number;
+    cacheHits: number;
     latencies: number[];
   };
   const byFeature = new Map<string, FeatureBucket>();
@@ -117,9 +158,11 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     const feature = (ev.feature as string) || 'other';
     const bucket = byFeature.get(feature) ?? {
       costUsd: 0,
+      credits: 0,
       calls: 0,
       errors: 0,
       fallbacks: 0,
+      cacheHits: 0,
       latencies: [],
     };
     if (ev.status === 'error') {
@@ -127,7 +170,9 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     } else {
       bucket.calls += 1;
       bucket.costUsd += Number(ev.estimated_cost_usd ?? 0);
+      bucket.credits += Number(ev.credits_consumed ?? 0);
       if (ev.fallback_used === true) bucket.fallbacks += 1;
+      if (ev.cache_hit === true) bucket.cacheHits += 1;
       const latency = Number(ev.latency_ms);
       if (Number.isFinite(latency) && latency > 0) bucket.latencies.push(latency);
     }
@@ -143,10 +188,12 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       return {
         feature,
         costUsd: Math.round(v.costUsd * 10_000) / 10_000,
+        credits: v.credits,
         calls: v.calls,
         errors: v.errors,
         errorRatePct: ratio(v.errors, v.calls + v.errors),
         fallbackRatePct: ratio(v.fallbacks, v.calls),
+        cacheHitRatePct: ratio(v.cacheHits, v.calls),
         latencyP50Ms: percentile(sorted, 0.5),
         latencyP95Ms: percentile(sorted, 0.95),
       };
@@ -216,6 +263,36 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
   ).getUTCDate();
   const projectedMonthEndUsd = (monthToDateUsd / now.getUTCDate()) * daysInMonth;
   const totalCalls = dailySeries.reduce((sum, d) => sum + d.calls, 0);
+  const totalCredits = featureBreakdown.reduce((sum, f) => sum + f.credits, 0);
+
+  const monthCreditsByOrg = new Map<string, number>();
+  for (const row of monthRes.data ?? []) {
+    const orgId = row.organization_id as string;
+    monthCreditsByOrg.set(
+      orgId,
+      (monthCreditsByOrg.get(orgId) ?? 0) + Number(row.credits_consumed ?? 0)
+    );
+  }
+  const planUsage = summarizeUsageByPlan({
+    plans: (plansRes.data ?? []).map((p) => ({
+      id: p.id as string,
+      code: p.code as string,
+      name: p.name as string,
+      sortOrder: Number(p.sort_order ?? 0),
+      isDefault: p.is_default === true,
+      monthlyCreditAllowance: parsePlanFeatures(p.features).aiMonthlyCreditAllowance,
+    })),
+    orgIds: Array.from(orgById.keys()),
+    planIdByOrg: new Map(
+      (subscriptionsRes.data ?? []).map((s) => [s.organization_id as string, s.plan_id as string])
+    ),
+    events: (eventsRes.data ?? []) as ConsoleUsageEvent[],
+    monthCreditsByOrg,
+  });
+  const marketingGenerations = summarizeMarketingGenerations(
+    (jobsRes.data ?? []) as ConsoleGenerationJob[],
+    now
+  );
 
   return jsonSuccess(req, {
     range,
@@ -223,6 +300,7 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     totals: {
       costUsd: Math.round(totalCostUsd * 100) / 100,
       calls: totalCalls,
+      credits: totalCredits,
       orgsWithUsage: byOrg.size,
       quotaBreaches: quotaBreaches.length,
       monthToDateUsd: Math.round(monthToDateUsd * 100) / 100,
@@ -233,6 +311,8 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     featureBreakdown,
     topOrgs,
     quotaBreaches,
+    planUsage,
+    marketingGenerations,
     assistantFeedback: summarizeAssistantFeedback(
       (feedbackRes.data ?? []) as AssistantFeedbackRow[],
       (orgId) => orgById.get(orgId)?.name ?? null
