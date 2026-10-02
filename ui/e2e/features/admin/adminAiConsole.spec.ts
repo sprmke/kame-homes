@@ -63,6 +63,23 @@ test.describe('@ci super admin AI console', () => {
     await expectNoPageHorizontalOverflow(page);
   });
 
+  test('usage tab shows credits, usage by plan and Marketing Studio jobs', async ({ page }) => {
+    await installConsoleMocks(page);
+    await page.goto('/admin/ai?tab=usage');
+    await expect(page.getByRole('heading', { name: 'Usage by plan' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText('12,640')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Business' })).toBeVisible();
+    await expect(page.getByText('5,200 / 10,000')).toBeVisible();
+
+    await expect(page.getByRole('heading', { name: 'Marketing Studio jobs' })).toBeVisible();
+    await expect(page.getByText('Video · Standard · 1080p')).toBeVisible();
+    await expect(page.getByText('1 unbilled')).toBeVisible();
+    await expect(page.getByText('Bad output: 1')).toBeVisible();
+    await expectNoPageHorizontalOverflow(page);
+  });
+
   test('legacy AI URLs redirect into the console', async ({ page }) => {
     await installConsoleMocks(page);
     await page.goto('/admin/ai-usage');

@@ -53,10 +53,51 @@ test.describe('@ci marketing AI generate tab', () => {
     await openGenerateMode(page, 'Video');
 
     await expect(page.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Length' })).toBeVisible();
+    await expect(page.getByRole('radiogroup', { name: 'Camera' })).toBeVisible();
+    await expect(page.getByRole('radiogroup', { name: 'Length' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Add a photo/ })).toBeVisible();
     await page.getByRole('button', { name: /More options/ }).click();
     const resolution = page.getByRole('tablist', { name: 'Resolution' });
     await expect(resolution.getByRole('tab', { name: /High \(1080p\)/ })).toBeEnabled();
+    await expect(page.getByRole('tablist', { name: 'Sound' })).toBeVisible();
+  });
+
+  test('Video sends the camera move, sound and an 8s length', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access');
+    let sent: Record<string, unknown> | null = null;
+    await page.route('**/functions/v1/generate-marketing-media**', async (route) => {
+      sent = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'Generation failed' }),
+      });
+    });
+    await page.goto(teamRbacPaths.marketing);
+    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await openGenerateMode(page, 'Video');
+    await page.locator('#ai-studio-prompt').fill('Curtains moving in a soft breeze');
+    await page.getByRole('radio', { name: 'Orbit' }).click();
+    await page.getByRole('button', { name: /More options/ }).click();
+    await page.getByRole('tablist', { name: 'Sound' }).getByRole('tab', { name: 'Music' }).click();
+    await page
+      .locator('#ai-studio-composer')
+      .getByRole('button', { name: /generate/i })
+      .click();
+
+    await expect.poll(() => sent).not.toBeNull();
+    expect(sent).toMatchObject({
+      mediaType: 'video',
+      prompt: 'Curtains moving in a soft breeze',
+      cameraMove: 'orbit',
+      sound: 'music',
+      durationSeconds: 8,
+      resolution: '1080p',
+      enhancePrompt: true,
+    });
   });
 
   test('below Business, Video stays selectable and Generate does not submit', async ({ page }) => {
