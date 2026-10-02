@@ -92,11 +92,11 @@ export function TelegramGlobalBotTokenCard() {
           per module if needed.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="@container">
         {isLoading ? (
           <Skeleton className="h-10 w-full max-w-xl" aria-label="Loading shared bot token" />
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div className="@lg:grid-cols-[minmax(0,1fr)_auto] @lg:items-end grid grid-cols-1 gap-3">
             <TelegramSecretInput
               id="global-bot-token"
               label="Bot token"
@@ -111,7 +111,7 @@ export function TelegramGlobalBotTokenCard() {
             />
 
             {saved ? (
-              <span className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-emerald-600 md:justify-self-end">
+              <span className="@lg:justify-self-end inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-emerald-600">
                 <CheckCircle2 className="size-4 shrink-0" aria-hidden />
                 Saved
               </span>
@@ -119,7 +119,7 @@ export function TelegramGlobalBotTokenCard() {
               <Button
                 type="button"
                 disabled={busy || !trimmed}
-                className="min-h-[44px] w-full gap-2 md:w-auto md:min-w-[7.5rem] md:justify-self-end"
+                className="@lg:w-auto @lg:min-w-[7.5rem] @lg:justify-self-end min-h-[44px] w-full gap-2"
                 onClick={() => void onSaveAndTest()}
               >
                 {busy ? <Activity className="size-4 shrink-0 animate-pulse" aria-hidden /> : null}
@@ -130,7 +130,7 @@ export function TelegramGlobalBotTokenCard() {
             {showModuleSuggestion && connectedModule ? (
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground -mt-1 w-fit py-2 text-left text-sm underline underline-offset-4 md:col-span-2"
+                className="text-muted-foreground hover:text-foreground @lg:col-span-2 -mt-1 w-fit py-2 text-left text-sm underline underline-offset-4"
                 onClick={() => setBotToken(connectedModule.token)}
               >
                 Use the token from {connectedModule.moduleLabel} notifications

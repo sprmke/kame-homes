@@ -65,7 +65,7 @@ export function TelegramNotificationModuleLayout({
       variant={isConnected ? 'success' : connectionOk === false ? 'outline-destructive' : 'outline'}
       disabled={disabled || testPending || !credentialsReady || isConnected}
       className={cn(
-        'min-h-[44px] w-full gap-2 md:w-auto md:min-w-[7.5rem]',
+        '@lg:w-auto @lg:min-w-[7.5rem] min-h-[44px] w-full gap-2',
         isConnected && !testPending && 'pointer-events-none opacity-100'
       )}
       aria-label={

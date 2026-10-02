@@ -151,8 +151,8 @@ export function PropertyTelegramCredentialsFields({
   );
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+    <div className={cn('@container space-y-3', className)}>
+      <div className="@lg:grid-cols-2 @lg:items-end @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] grid grid-cols-1 gap-3">
         <TelegramSecretInput
           id={botTokenId}
           label="Bot token"
@@ -181,7 +181,11 @@ export function PropertyTelegramCredentialsFields({
           onChange={onChatIdChange}
         />
 
-        {connectAction ? <div className="min-w-0 md:justify-self-end">{connectAction}</div> : null}
+        {connectAction ? (
+          <div className="@lg:col-span-2 @lg:justify-self-end @2xl:col-span-1 min-w-0">
+            {connectAction}
+          </div>
+        ) : null}
       </div>
     </div>
   );

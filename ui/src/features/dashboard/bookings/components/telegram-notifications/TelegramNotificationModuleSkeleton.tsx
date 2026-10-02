@@ -32,9 +32,9 @@ export function TelegramNotificationModuleSkeleton({
         </div>
       </div>
 
-      <div className="border-border/60 bg-card space-y-3 rounded-xl border px-3 py-4 sm:px-4">
+      <div className="border-border/60 bg-card @container space-y-3 rounded-xl border px-3 py-4 sm:px-4">
         <Skeleton className="h-4 w-36" />
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+        <div className="@lg:grid-cols-2 @lg:items-end @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] grid grid-cols-1 gap-3">
           <div className="min-w-0 space-y-1.5">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="h-10 w-full rounded-xl" />
@@ -43,7 +43,7 @@ export function TelegramNotificationModuleSkeleton({
             <Skeleton className="h-3 w-14" />
             <Skeleton className="h-10 w-full rounded-xl" />
           </div>
-          <Skeleton className="h-11 w-full rounded-lg md:w-28" />
+          <Skeleton className="@lg:col-span-2 @lg:w-28 @lg:justify-self-end @2xl:col-span-1 h-11 w-full rounded-lg" />
         </div>
       </div>
 

@@ -172,20 +172,20 @@ export function TelegramChatIdField({
         <div className="relative">
           <div
             className={cn(
-              'border-input bg-background text-muted-foreground flex h-10 w-full items-center rounded-lg border px-3 text-sm',
-              canScan && 'pr-[6.75rem]',
+              'border-input bg-background text-muted-foreground flex h-10 w-full min-w-0 items-center rounded-lg border px-3 text-sm',
+              canScan && 'pr-[5rem]',
               disabled && 'cursor-not-allowed opacity-50'
             )}
           >
             {discover.isPending ? (
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex min-w-0 items-center gap-2">
                 <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                Scanning…
+                <span className="truncate">Scanning…</span>
               </span>
-            ) : !trimmedToken ? (
-              'Add bot token first'
             ) : (
-              'Scan to find chats'
+              <span className="truncate">
+                {!trimmedToken ? 'Add bot token first' : 'Scan to find chats'}
+              </span>
             )}
           </div>
           {canScan && !discover.isPending ? (
