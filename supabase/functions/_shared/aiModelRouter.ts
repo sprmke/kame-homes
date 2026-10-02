@@ -19,6 +19,7 @@ export const AI_FEATURES = [
   'marketing_caption',
   'marketing_template',
   'marketing_image_prompt_enhance',
+  'marketing_video_prompt_enhance',
   'import_column_map',
   'voice_polish',
   'ai_integration_verify',
@@ -135,6 +136,18 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
     timeoutMs: 8000,
+    groqFallback: false,
+  },
+  // Writes the Veo shot description, looking at the start-frame photo when there is one —
+  // see marketingVideoPromptBuilder.ts. Platform cost, same as the image enhancement.
+  marketing_video_prompt_enhance: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 10000,
     groqFallback: false,
   },
   import_column_map: {
@@ -316,7 +329,8 @@ export type AiImageModelConfig = AiModelConfig & {
 export type AiVideoModelConfig = {
   model: string;
   usdPerSecondByResolution: Record<'720p' | '1080p', number>;
-  maxReferenceImages: number;
+  /** Start-frame photos (Veo `image`). Asset `referenceImages` are not used: Lite rejects them. */
+  maxStartFrames: number;
   allowedDurations: readonly number[];
   allowedAspectRatios: readonly string[];
   allowedResolutions: readonly string[];
@@ -377,28 +391,33 @@ export const MARKETING_IMAGE_MODELS: Record<MarketingGenerationTier, AiImageMode
   },
 };
 
+/**
+ * Prices per Google's Gemini API pricing page (2026-10). 4k is not offered: Meta
+ * re-encodes Reels to 1080 wide, so 4k costs more and posts the same.
+ * 8s only: Veo requires 8s for 1080p, and 6s saved little while cutting Reel length.
+ */
 export const MARKETING_VIDEO_MODELS: Record<MarketingGenerationTier, AiVideoModelConfig> = {
   draft: {
     model: 'veo-3.1-lite-generate-preview',
     usdPerSecondByResolution: { '720p': 0.05, '1080p': 0.08 },
-    maxReferenceImages: 3,
-    allowedDurations: [6, 8],
+    maxStartFrames: 1,
+    allowedDurations: [8],
     allowedAspectRatios: ['16:9', '9:16'],
-    allowedResolutions: ['720p', '1080p'],
+    allowedResolutions: ['720p'],
   },
   standard: {
     model: 'veo-3.1-fast-generate-preview',
-    usdPerSecondByResolution: { '720p': 0.1, '1080p': 0.3 },
-    maxReferenceImages: 3,
-    allowedDurations: [6, 8],
+    usdPerSecondByResolution: { '720p': 0.1, '1080p': 0.12 },
+    maxStartFrames: 1,
+    allowedDurations: [8],
     allowedAspectRatios: ['16:9', '9:16'],
     allowedResolutions: ['720p', '1080p'],
   },
   premium: {
     model: 'veo-3.1-generate-preview',
-    usdPerSecondByResolution: { '720p': 0.4, '1080p': 0.6 },
-    maxReferenceImages: 3,
-    allowedDurations: [6, 8],
+    usdPerSecondByResolution: { '720p': 0.4, '1080p': 0.4 },
+    maxStartFrames: 1,
+    allowedDurations: [8],
     allowedAspectRatios: ['16:9', '9:16'],
     allowedResolutions: ['720p', '1080p'],
   },

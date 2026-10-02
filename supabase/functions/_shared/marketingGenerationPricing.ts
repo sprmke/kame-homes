@@ -23,8 +23,8 @@ export const DEFAULT_CREDIT_UNIT_USD = 0.001;
 export const GENERATION_TIERS = ['draft', 'standard', 'premium'] as const;
 export const IMAGE_SIZES = ['512px', '1K', '2K', '4K'] as const;
 export const VIDEO_RESOLUTIONS = ['720p', '1080p'] as const;
-/** 4s is deliberately absent: Meta Reels requires 5-90s, so a 4s clip is unpublishable. */
-export const VIDEO_DURATIONS = [6, 8] as const;
+/** Veo requires 8s for 1080p; 4s is also too short for Meta Reels (5-90s). */
+export const VIDEO_DURATIONS = [8] as const;
 
 export type ImageSize = (typeof IMAGE_SIZES)[number];
 export type VideoResolution = (typeof VIDEO_RESOLUTIONS)[number];
@@ -38,7 +38,9 @@ export const MAX_NEGATIVE_PROMPT_CHARS = 500;
 export const DEFAULT_IMAGE_ASPECT_RATIO = '1:1';
 export const DEFAULT_VIDEO_ASPECT_RATIO = '9:16';
 export const DEFAULT_IMAGE_SIZE: ImageSize = '1K';
-export const DEFAULT_VIDEO_RESOLUTION: VideoResolution = '720p';
+/** Reels are 1080x1920; on Fast, 1080p costs 20% more than 720p. Draft is 720p only. */
+export const DEFAULT_VIDEO_RESOLUTION: VideoResolution = '1080p';
+export const DRAFT_VIDEO_RESOLUTION: VideoResolution = '720p';
 export const DEFAULT_VIDEO_DURATION: VideoDuration = 8;
 export const DEFAULT_TIER: MarketingGenerationTier = 'standard';
 
@@ -161,20 +163,19 @@ export function assertValidVideoOptions(input: {
     throw new GenerationOptionError('Video must be 16:9 or 9:16');
   }
 
-  const resolution = (input.resolution?.trim() || DEFAULT_VIDEO_RESOLUTION) as VideoResolution;
+  const fallbackResolution = tier === 'draft' ? DRAFT_VIDEO_RESOLUTION : DEFAULT_VIDEO_RESOLUTION;
+  const resolution = (input.resolution?.trim() || fallbackResolution) as VideoResolution;
   if (!config.allowedResolutions.includes(resolution)) {
     throw new GenerationOptionError(`Resolution ${resolution} is not available on this quality`);
   }
 
   const durationSeconds = (input.durationSeconds ?? DEFAULT_VIDEO_DURATION) as VideoDuration;
   if (!config.allowedDurations.includes(durationSeconds)) {
-    throw new GenerationOptionError('Video length must be 6 or 8 seconds');
+    throw new GenerationOptionError('Video length must be 8 seconds');
   }
 
-  if (input.referenceCount > config.maxReferenceImages) {
-    throw new GenerationOptionError(
-      `Video accepts at most ${config.maxReferenceImages} reference images`
-    );
+  if (input.referenceCount > config.maxStartFrames) {
+    throw new GenerationOptionError('Video starts from one photo at most');
   }
 
   return { tier, config, aspectRatio, resolution, durationSeconds };

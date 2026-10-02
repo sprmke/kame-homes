@@ -13,7 +13,7 @@ import { HOST_FACING_GENERATION_FAILED, toHostFacingError } from './hostFacingEr
 
 export const MARKETING_GENERATION_JOB_COLUMNS = `
   id, organization_id, property_id, media_type, job_status, prompt, negative_prompt,
-  enhanced_prompt, prompt_enhanced,
+  enhanced_prompt, prompt_enhanced, generation_options,
   model, quality_tier, aspect_ratio, image_size, resolution, duration_seconds,
   reference_paths, reference_urls, provider, provider_operation_name, provider_poll_count,
   last_provider_poll_at, output_storage_path, output_url, output_mime_type, output_bytes,
@@ -32,13 +32,15 @@ export type MarketingGenerationJobDto = {
   jobStatus: 'pending' | 'processing' | 'finalizing' | 'completed' | 'failed' | 'cancelled';
   prompt: string;
   negativePrompt: string | null;
-  /** The full scene description actually sent to the image model, when prompt
-   *  enhancement ran (image jobs only) — see marketingImagePromptBuilder.ts. Null
-   *  when enhancement was off, not applicable (video), or failed open. */
+  /** The full prompt actually sent to the model when prompt enhancement ran (see
+   *  marketingImagePromptBuilder.ts / marketingVideoPromptBuilder.ts). Null when
+   *  enhancement was off or failed open. */
   enhancedPrompt: string | null;
   /** True only when `enhancedPrompt` is populated AND the enhancement call actually
    *  succeeded — never inferred from enhancedPrompt being non-null alone. */
   promptEnhanced: boolean;
+  /** Video: `{ cameraMove, sound }`. Empty for images and older video jobs. */
+  generationOptions: MarketingGenerationOptions;
   model: string;
   qualityTier: 'draft' | 'standard' | 'premium';
   aspectRatio: string;
@@ -62,6 +64,20 @@ export type MarketingGenerationJobDto = {
   updatedAt: string;
 };
 
+export type MarketingGenerationOptions = {
+  cameraMove?: string;
+  sound?: string;
+};
+
+function readGenerationOptions(value: unknown): MarketingGenerationOptions {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const options: MarketingGenerationOptions = {};
+  if (typeof raw.cameraMove === 'string') options.cameraMove = raw.cameraMove;
+  if (typeof raw.sound === 'string') options.sound = raw.sound;
+  return options;
+}
+
 export function toMarketingGenerationJobDto(row: MarketingGenerationJobRow) {
   const asNumber = (value: unknown): number | null =>
     value === null || value === undefined ? null : Number(value);
@@ -76,6 +92,7 @@ export function toMarketingGenerationJobDto(row: MarketingGenerationJobRow) {
     negativePrompt: (row.negative_prompt as string | null) ?? null,
     enhancedPrompt: (row.enhanced_prompt as string | null) ?? null,
     promptEnhanced: Boolean(row.prompt_enhanced),
+    generationOptions: readGenerationOptions(row.generation_options),
     model: String(row.model ?? ''),
     qualityTier: row.quality_tier as MarketingGenerationJobDto['qualityTier'],
     aspectRatio: String(row.aspect_ratio ?? ''),
@@ -108,6 +125,7 @@ export type InsertMarketingGenerationJobInput = {
   negativePrompt?: string | null;
   enhancedPrompt?: string | null;
   promptEnhanced?: boolean;
+  generationOptions?: MarketingGenerationOptions;
   model: string;
   qualityTier: string;
   aspectRatio: string;
@@ -137,6 +155,7 @@ export async function insertMarketingGenerationJob(
       negative_prompt: input.negativePrompt ?? null,
       enhanced_prompt: input.enhancedPrompt ?? null,
       prompt_enhanced: input.promptEnhanced ?? false,
+      generation_options: input.generationOptions ?? {},
       model: input.model,
       quality_tier: input.qualityTier,
       aspect_ratio: input.aspectRatio,

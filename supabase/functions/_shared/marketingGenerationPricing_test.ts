@@ -6,10 +6,7 @@
  * charged, and a silent drift here is invisible until the bill arrives.
  */
 
-import {
-  assertEquals,
-  assertThrows,
-} from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { assertEquals, assertThrows } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   GenerationOptionError,
   assertValidImageOptions,
@@ -36,18 +33,15 @@ Deno.test('video credits per tier, resolution and duration', () => {
   const video = (
     tier: 'draft' | 'standard' | 'premium',
     resolution: '720p' | '1080p',
-    durationSeconds: 6 | 8
+    durationSeconds: 8
   ) => estimateGenerationCredits({ mediaType: 'video', tier, resolution, durationSeconds });
 
-  assertEquals(video('draft', '720p', 6), 300);
+  // Google's published per-second rates: Lite 0.05/0.08, Fast 0.10/0.12, Veo 3.1 0.40/0.40.
   assertEquals(video('draft', '720p', 8), 400);
-  assertEquals(video('draft', '1080p', 6), 480);
-  assertEquals(video('draft', '1080p', 8), 640);
-  assertEquals(video('standard', '720p', 6), 600);
   assertEquals(video('standard', '720p', 8), 800);
-  assertEquals(video('standard', '1080p', 6), 1800);
-  assertEquals(video('standard', '1080p', 8), 2400);
+  assertEquals(video('standard', '1080p', 8), 960);
   assertEquals(video('premium', '720p', 8), 3200);
+  assertEquals(video('premium', '1080p', 8), 3200);
 });
 
 Deno.test('credits round up and never bill zero for a real cost', () => {
@@ -85,20 +79,37 @@ Deno.test('reference count is capped per image model', () => {
   assertEquals(assertValidImageOptions({ tier: 'draft', referenceCount: 14 }).tier, 'draft');
 });
 
-Deno.test('video defaults to a 9:16 8s 720p standard clip', () => {
+Deno.test('video defaults to a 9:16 8s 1080p standard clip', () => {
   const result = assertValidVideoOptions({ referenceCount: 0 });
   assertEquals(result.tier, 'standard');
   assertEquals(result.aspectRatio, '9:16');
-  assertEquals(result.resolution, '720p');
+  assertEquals(result.resolution, '1080p');
   assertEquals(result.durationSeconds, 8);
   assertEquals(result.config.model, 'veo-3.1-fast-generate-preview');
 });
 
-Deno.test('video rejects unpublishable lengths and unsupported aspect ratios', () => {
+Deno.test('draft video defaults to 720p and rejects 1080p', () => {
+  assertEquals(assertValidVideoOptions({ tier: 'draft', referenceCount: 0 }).resolution, '720p');
   assertThrows(
-    () => assertValidVideoOptions({ durationSeconds: 4, referenceCount: 0 }),
+    () => assertValidVideoOptions({ tier: 'draft', resolution: '1080p', referenceCount: 0 }),
     GenerationOptionError
   );
+});
+
+Deno.test('video starts from at most one photo on every tier', () => {
+  for (const tier of ['draft', 'standard', 'premium']) {
+    assertEquals(assertValidVideoOptions({ tier, referenceCount: 1 }).tier, tier);
+    assertThrows(() => assertValidVideoOptions({ tier, referenceCount: 2 }), GenerationOptionError);
+  }
+});
+
+Deno.test('video rejects lengths Veo cannot render at 1080p and unsupported aspect ratios', () => {
+  for (const durationSeconds of [4, 6]) {
+    assertThrows(
+      () => assertValidVideoOptions({ durationSeconds, referenceCount: 0 }),
+      GenerationOptionError
+    );
+  }
   assertThrows(
     () => assertValidVideoOptions({ aspectRatio: '1:1', referenceCount: 0 }),
     GenerationOptionError

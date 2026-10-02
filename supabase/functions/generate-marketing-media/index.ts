@@ -63,6 +63,7 @@ import {
   generateMarketingImage,
   isGenerationSafetyError,
   loadReferenceInlineData,
+  type ReferenceInlineData,
 } from '../_shared/marketingImageGenerationAi.ts';
 import {
   amenitiesFromPropertySettings,
@@ -71,6 +72,16 @@ import {
   type MarketingImagePropertyContext,
 } from '../_shared/marketingImagePromptBuilder.ts';
 import { startMarketingVideoJob } from '../_shared/marketingVideoGenerationAi.ts';
+import {
+  DEFAULT_VIDEO_CAMERA_MOVE,
+  DEFAULT_VIDEO_SOUND,
+  VIDEO_PHOTO_DEFAULT_PROMPT,
+  buildStructuredVideoPrompt,
+  buildVideoNegativePrompt,
+  enhanceMarketingVideoPrompt,
+  isVideoCameraMove,
+  isVideoSoundMode,
+} from '../_shared/marketingVideoPromptBuilder.ts';
 import {
   allowPremiumForFeature,
   peekMarketingGenerationOverrides,
@@ -88,6 +99,8 @@ import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.
 const MAX_REFERENCE_IDS = 14;
 /** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
 const VIDEO_JOB_TTL_MS = 45 * 60_000;
+/** Formats Veo accepts for the first frame. */
+const VIDEO_START_FRAME_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 type ReferenceRow = { id: string; storage_path: string; public_url: string; mime_type: string };
 
@@ -137,7 +150,11 @@ serveAuthenticated('generate-marketing-media', async (req) => {
 
   const maxPromptChars = isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS;
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
-  if (!prompt) return jsonError(req, 'Prompt is required', 400);
+  const hasReferenceIds = Array.isArray(body.referenceIds) && body.referenceIds.length > 0;
+  // A video that starts from a photo may leave the description empty.
+  if (!prompt && !(isVideo && hasReferenceIds)) {
+    return jsonError(req, 'Prompt is required', 400);
+  }
   if (prompt.length > maxPromptChars) {
     return jsonError(req, 'Prompt is too long', 400);
   }
@@ -508,6 +525,17 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     durationSeconds: options.durationSeconds,
   });
 
+  const startFrameReference = references[0] ?? null;
+  if (!prompt && !startFrameReference) return jsonError(req, 'Prompt is required', 400);
+  if (startFrameReference && !VIDEO_START_FRAME_MIME_TYPES.has(startFrameReference.mime_type)) {
+    return jsonError(req, 'Use a JPEG, PNG or WebP photo', 400);
+  }
+  const cameraMove = isVideoCameraMove(body.cameraMove)
+    ? body.cameraMove
+    : DEFAULT_VIDEO_CAMERA_MOVE;
+  const sound = isVideoSoundMode(body.sound) ? body.sound : DEFAULT_VIDEO_SOUND;
+  const hostPrompt = prompt || VIDEO_PHOTO_DEFAULT_PROMPT;
+
   const budgetError = await checkQuotaAndBudget(req, {
     organizationId,
     propertyId,
@@ -516,12 +544,54 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
   });
   if (budgetError) return budgetError;
 
+  // Read before the job row exists so an unreadable photo is a plain 400, not a failed job.
+  let startFrame: ReferenceInlineData | null = null;
+  if (startFrameReference) {
+    try {
+      [startFrame] = await loadReferenceInlineData(sb, [startFrameReference]);
+    } catch (err) {
+      return jsonError(req, (err as Error).message, 400);
+    }
+  }
+
+  const promptInput = {
+    prompt: hostPrompt,
+    cameraMove,
+    sound,
+    aspectRatio: options.aspectRatio,
+    property: await loadPropertyContextForPrompt(sb, propertyId),
+    hasStartFrame: startFrame !== null,
+  };
+  const enhancement =
+    body.enhancePrompt !== false
+      ? await enhanceMarketingVideoPrompt({
+          ...promptInput,
+          organizationId,
+          propertyId,
+          startFrame,
+          actorUserId,
+        })
+      : { prompt: buildStructuredVideoPrompt(promptInput), enhanced: false };
+
+  // The job row is the credit hold, so re-check right before inserting it: the photo
+  // read and the rewrite above take seconds, long enough for parallel requests to pass.
+  const recheckError = await checkQuotaAndBudget(req, {
+    organizationId,
+    propertyId,
+    feature: 'marketing_video_generate',
+    estimatedCredits,
+  });
+  if (recheckError) return recheckError;
+
   const job = await insertMarketingGenerationJob(sb, {
     organizationId,
     propertyId,
     mediaType: 'video',
-    prompt,
+    prompt: hostPrompt,
     negativePrompt,
+    enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
+    promptEnhanced: enhancement.enhanced,
+    generationOptions: { cameraMove, sound },
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,
@@ -537,15 +607,14 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
   const jobId = String(job.id);
 
   try {
-    const inlineReferences = await loadReferenceInlineData(sb, references);
     const processing = await startMarketingVideoJob(sb, jobId, {
       config: options.config,
-      prompt,
-      negativePrompt,
+      prompt: enhancement.prompt,
+      negativePrompt: buildVideoNegativePrompt(negativePrompt, startFrame !== null),
       aspectRatio: options.aspectRatio,
       resolution: options.resolution,
       durationSeconds: options.durationSeconds,
-      references: inlineReferences,
+      startFrame,
     });
 
     // Independent bookkeeping writes — run concurrently, neither depends on the other.
@@ -570,6 +639,10 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
           resolution: options.resolution,
           duration_seconds: options.durationSeconds,
           reference_count: references.length,
+          start_frame: startFrame !== null,
+          camera_move: cameraMove,
+          sound,
+          prompt_enhanced: enhancement.enhanced,
           estimated_credits: estimatedCredits,
         },
       }),
