@@ -1,22 +1,35 @@
 /**
- * Pure aggregations for the super-admin AI usage console (`super-admin-ai-usage`):
- * usage by plan and Marketing Studio generation outcomes. Read-only, no I/O.
+ * Shapes the SQL rollups behind the super-admin AI usage console (`super-admin-ai-usage`;
+ * functions in migration 20261316126700_super_admin_ai_usage_rollups.sql) into the
+ * response: usage by plan and Marketing Studio job outcomes. Pure, no I/O.
  */
 
-export type ConsoleUsageEvent = {
-  organization_id: string | null;
-  status: string | null;
-  estimated_cost_usd: number | string | null;
-  credits_consumed: number | string | null;
+type Numeric = number | string | null;
+
+const num = (value: Numeric | undefined): number => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
 };
+const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
 export type ConsolePlan = {
   id: string;
   code: string;
   name: string;
   sortOrder: number;
-  isDefault: boolean;
   monthlyCreditAllowance: number;
+};
+
+/** One row of `super_admin_ai_usage_by_plan`. */
+export type PlanRollupRow = {
+  plan_id: string;
+  org_count: Numeric;
+  active_orgs: Numeric;
+  calls: Numeric;
+  credits: Numeric;
+  cost_usd: Numeric;
+  month_credits: Numeric;
+  orgs_at_allowance: Numeric;
 };
 
 export type PlanUsageRow = {
@@ -32,91 +45,44 @@ export type PlanUsageRow = {
   orgsAtAllowance: number;
 };
 
-const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
-
-/**
- * One row per plan. Orgs without a live subscription count under the default plan.
- * `monthCreditsByOrg` is this calendar month's credits (allowance usage).
- */
-export function summarizeUsageByPlan(input: {
-  plans: ConsolePlan[];
-  orgIds: string[];
-  planIdByOrg: Map<string, string>;
-  events: ConsoleUsageEvent[];
-  monthCreditsByOrg: Map<string, number>;
-}): PlanUsageRow[] {
-  const defaultPlan = input.plans.find((p) => p.isDefault) ?? null;
-  const planById = new Map(input.plans.map((p) => [p.id, p]));
-  const planFor = (orgId: string): ConsolePlan | null =>
-    planById.get(input.planIdByOrg.get(orgId) ?? '') ?? defaultPlan;
-
-  type Bucket = PlanUsageRow & { active: Set<string>; sortOrder: number };
-  const buckets = new Map<string, Bucket>();
-  const bucketFor = (plan: ConsolePlan): Bucket => {
-    let b = buckets.get(plan.id);
-    if (!b) {
-      b = {
+/** Every active plan in sort order, zero-filled when no org is on it. */
+export function summarizeUsageByPlan(
+  plans: ConsolePlan[],
+  rollup: PlanRollupRow[]
+): PlanUsageRow[] {
+  const byPlan = new Map(rollup.map((r) => [r.plan_id, r]));
+  return [...plans]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((plan) => {
+      const r = byPlan.get(plan.id);
+      return {
         planCode: plan.code,
         planName: plan.name,
-        orgCount: 0,
-        activeOrgs: 0,
-        calls: 0,
-        credits: 0,
-        costUsd: 0,
+        orgCount: num(r?.org_count),
+        activeOrgs: num(r?.active_orgs),
+        calls: num(r?.calls),
+        credits: Math.round(num(r?.credits)),
+        costUsd: round4(num(r?.cost_usd)),
         creditAllowancePerOrg: plan.monthlyCreditAllowance,
-        monthCredits: 0,
-        orgsAtAllowance: 0,
-        active: new Set(),
-        sortOrder: plan.sortOrder,
+        monthCredits: Math.round(num(r?.month_credits)),
+        orgsAtAllowance: num(r?.orgs_at_allowance),
       };
-      buckets.set(plan.id, b);
-    }
-    return b;
-  };
-
-  for (const plan of input.plans) bucketFor(plan);
-  for (const orgId of input.orgIds) {
-    const plan = planFor(orgId);
-    if (!plan) continue;
-    const b = bucketFor(plan);
-    b.orgCount += 1;
-    const month = input.monthCreditsByOrg.get(orgId) ?? 0;
-    b.monthCredits += month;
-    if (plan.monthlyCreditAllowance > 0 && month >= plan.monthlyCreditAllowance) {
-      b.orgsAtAllowance += 1;
-    }
-  }
-  for (const ev of input.events) {
-    if (!ev.organization_id || ev.status === 'error') continue;
-    const plan = planFor(ev.organization_id);
-    if (!plan) continue;
-    const b = bucketFor(plan);
-    b.calls += 1;
-    b.credits += Number(ev.credits_consumed ?? 0);
-    b.costUsd += Number(ev.estimated_cost_usd ?? 0);
-    b.active.add(ev.organization_id);
-  }
-
-  return Array.from(buckets.values())
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map(({ active, sortOrder: _sortOrder, ...row }) => ({
-      ...row,
-      activeOrgs: active.size,
-      costUsd: round4(row.costUsd),
-    }));
+    });
 }
 
-export type ConsoleGenerationJob = {
+/** One row of `super_admin_marketing_generation_rollup`. */
+export type GenerationRollupRow = {
   media_type: string;
   quality_tier: string | null;
   resolution: string | null;
   job_status: string;
   error_code: string | null;
-  credits_consumed: number | null;
-  estimated_cost_usd: number | string | null;
-  usage_recorded_at: string | null;
-  created_at: string;
-  completed_at: string | null;
+  jobs: Numeric;
+  credits: Numeric;
+  cost_usd: Numeric;
+  render_p50_seconds: Numeric;
+  render_p95_seconds: Numeric;
+  unbilled: Numeric;
 };
 
 export type GenerationOutcomeRow = {
@@ -139,36 +105,22 @@ export type GenerationOutcomeRow = {
 export type GenerationSummary = {
   rows: GenerationOutcomeRow[];
   failureReasons: Array<{ code: string; count: number }>;
-  /** Completed over 10 minutes ago with no usage stamp: the sweeper still owes a charge. */
+  /** Completed over 10 minutes ago and still not charged; the sweeper owes a charge. */
   unbilledCompleted: number;
 };
 
 const IN_FLIGHT = new Set(['pending', 'processing', 'finalizing']);
-const UNBILLED_GRACE_MS = 10 * 60_000;
 
-function percentile(sorted: number[], p: number): number | null {
-  if (sorted.length === 0) return null;
-  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
-}
-
-export function summarizeMarketingGenerations(
-  jobs: ConsoleGenerationJob[],
-  now: Date = new Date()
-): GenerationSummary {
-  type Bucket = Omit<
-    GenerationOutcomeRow,
-    'successRatePct' | 'renderP50Seconds' | 'renderP95Seconds'
-  > & {
-    renders: number[];
-  };
-  const buckets = new Map<string, Bucket>();
+/** Credits and spend count completed jobs only; failures are never charged to the host. */
+export function summarizeMarketingGenerations(rollup: GenerationRollupRow[]): GenerationSummary {
+  const buckets = new Map<string, GenerationOutcomeRow>();
   const reasons = new Map<string, number>();
   let unbilledCompleted = 0;
 
-  for (const job of jobs) {
-    const mediaType = job.media_type === 'video' ? 'video' : 'image';
-    const qualityTier = job.quality_tier ?? 'standard';
-    const resolution = mediaType === 'video' ? (job.resolution ?? null) : null;
+  for (const r of rollup) {
+    const mediaType = r.media_type === 'video' ? 'video' : 'image';
+    const qualityTier = r.quality_tier ?? 'standard';
+    const resolution = mediaType === 'video' ? (r.resolution ?? null) : null;
     const key = `${mediaType}|${qualityTier}|${resolution ?? ''}`;
     let b = buckets.get(key);
     if (!b) {
@@ -182,52 +134,43 @@ export function summarizeMarketingGenerations(
         blocked: 0,
         cancelled: 0,
         inFlight: 0,
+        successRatePct: 0,
         credits: 0,
         costUsd: 0,
-        renders: [],
+        renderP50Seconds: null,
+        renderP95Seconds: null,
       };
       buckets.set(key, b);
     }
-    b.total += 1;
+    const jobs = num(r.jobs);
+    b.total += jobs;
 
-    if (job.job_status === 'completed') {
-      b.completed += 1;
-      b.credits += Number(job.credits_consumed ?? 0);
-      b.costUsd += Number(job.estimated_cost_usd ?? 0);
-      if (job.completed_at) {
-        const seconds = (Date.parse(job.completed_at) - Date.parse(job.created_at)) / 1000;
-        if (Number.isFinite(seconds) && seconds >= 0) b.renders.push(seconds);
-        if (
-          !job.usage_recorded_at &&
-          now.getTime() - Date.parse(job.completed_at) > UNBILLED_GRACE_MS
-        ) {
-          unbilledCompleted += 1;
-        }
-      }
-    } else if (job.job_status === 'failed') {
-      if (job.error_code === 'safety_blocked') b.blocked += 1;
-      else b.failed += 1;
-      const code = job.error_code || 'unknown';
-      reasons.set(code, (reasons.get(code) ?? 0) + 1);
-    } else if (job.job_status === 'cancelled') {
-      b.cancelled += 1;
-    } else if (IN_FLIGHT.has(job.job_status)) {
-      b.inFlight += 1;
+    if (r.job_status === 'completed') {
+      b.completed += jobs;
+      b.credits += Math.round(num(r.credits));
+      b.costUsd += num(r.cost_usd);
+      b.renderP50Seconds = r.render_p50_seconds == null ? null : num(r.render_p50_seconds);
+      b.renderP95Seconds = r.render_p95_seconds == null ? null : num(r.render_p95_seconds);
+      unbilledCompleted += num(r.unbilled);
+    } else if (r.job_status === 'failed') {
+      if (r.error_code === 'safety_blocked') b.blocked += jobs;
+      else b.failed += jobs;
+      const code = r.error_code || 'unknown';
+      reasons.set(code, (reasons.get(code) ?? 0) + jobs);
+    } else if (r.job_status === 'cancelled') {
+      b.cancelled += jobs;
+    } else if (IN_FLIGHT.has(r.job_status)) {
+      b.inFlight += jobs;
     }
   }
 
   const rows = Array.from(buckets.values())
-    .map(({ renders, ...b }) => {
-      const sorted = [...renders].sort((x, y) => x - y);
+    .map((b) => {
       const finished = b.completed + b.failed + b.blocked;
-      const p50 = percentile(sorted, 0.5);
-      const p95 = percentile(sorted, 0.95);
       return {
         ...b,
         successRatePct: finished === 0 ? 0 : Math.round((b.completed / finished) * 1000) / 10,
         costUsd: round4(b.costUsd),
-        renderP50Seconds: p50 == null ? null : Math.round(p50),
-        renderP95Seconds: p95 == null ? null : Math.round(p95),
       };
     })
     .sort((a, b) => b.total - a.total);

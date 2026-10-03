@@ -49,6 +49,10 @@ ALLOWLIST=(
   # Super-admin org name lookup — bounded by `.in('id', organizationIds)` from request.
   'super-admin-ai-limits/index.ts'
 
+  # Super-admin AI usage dashboard — catalog plans + feedback/eval capped with `.limit()`,
+  # org lookups via `.in('id', …)`; line-scan misses multi-branch query builders.
+  'super-admin-ai-usage/index.ts'
+
   # Paginated activity log — `.limit(limit + 1)` on a stored query builder (heuristic gap).
   'list-activity-log/index.ts'
 

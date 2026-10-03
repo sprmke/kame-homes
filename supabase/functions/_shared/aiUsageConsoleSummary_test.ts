@@ -3,141 +3,116 @@ import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   summarizeMarketingGenerations,
   summarizeUsageByPlan,
-  type ConsoleGenerationJob,
   type ConsolePlan,
+  type GenerationRollupRow,
 } from './aiUsageConsoleSummary.ts';
 
 const plans: ConsolePlan[] = [
-  {
-    id: 'p-pro',
-    code: 'pro',
-    name: 'Pro',
-    sortOrder: 2,
-    isDefault: false,
-    monthlyCreditAllowance: 1000,
-  },
-  {
-    id: 'p-free',
-    code: 'free',
-    name: 'Free',
-    sortOrder: 0,
-    isDefault: true,
-    monthlyCreditAllowance: 0,
-  },
-  {
-    id: 'p-biz',
-    code: 'business',
-    name: 'Business',
-    sortOrder: 3,
-    isDefault: false,
-    monthlyCreditAllowance: 5000,
-  },
+  { id: 'p-pro', code: 'pro', name: 'Pro', sortOrder: 2, monthlyCreditAllowance: 1000 },
+  { id: 'p-free', code: 'free', name: 'Free', sortOrder: 0, monthlyCreditAllowance: 0 },
+  { id: 'p-biz', code: 'business', name: 'Business', sortOrder: 3, monthlyCreditAllowance: 5000 },
 ];
 
-Deno.test('summarizeUsageByPlan: orgs without a subscription fall to the default plan', () => {
-  const rows = summarizeUsageByPlan({
-    plans,
-    orgIds: ['a', 'b', 'c'],
-    planIdByOrg: new Map([['a', 'p-pro']]),
-    events: [
-      { organization_id: 'a', status: 'success', estimated_cost_usd: 0.5, credits_consumed: 500 },
-      { organization_id: 'b', status: 'success', estimated_cost_usd: '0.01', credits_consumed: 10 },
-      { organization_id: 'b', status: 'error', estimated_cost_usd: 0, credits_consumed: 0 },
-    ],
-    monthCreditsByOrg: new Map([['a', 1200]]),
-  });
+Deno.test(
+  'summarizeUsageByPlan: every plan in sort order, numerics parsed, empty plans zeroed',
+  () => {
+    const rows = summarizeUsageByPlan(plans, [
+      {
+        plan_id: 'p-pro',
+        org_count: '3',
+        active_orgs: '1',
+        calls: '1500',
+        credits: '1440000.000',
+        cost_usd: '1440.000000',
+        month_credits: '1200.000',
+        orgs_at_allowance: '1',
+      },
+      {
+        plan_id: 'p-free',
+        org_count: 8,
+        active_orgs: 0,
+        calls: 0,
+        credits: 0,
+        cost_usd: 0,
+        month_credits: 0,
+        orgs_at_allowance: 0,
+      },
+    ]);
 
-  assertEquals(
-    rows.map((r) => r.planCode),
-    ['free', 'pro', 'business']
-  );
-  const free = rows[0];
-  assertEquals([free.orgCount, free.activeOrgs, free.calls, free.credits], [2, 1, 1, 10]);
-  const pro = rows[1];
-  assertEquals(pro.orgsAtAllowance, 1);
-  assertEquals(pro.monthCredits, 1200);
-  assertEquals(pro.costUsd, 0.5);
-  const business = rows[2];
-  assertEquals([business.orgCount, business.calls], [0, 0]);
-});
+    assertEquals(
+      rows.map((r) => r.planCode),
+      ['free', 'pro', 'business']
+    );
+    assertEquals(rows[1], {
+      planCode: 'pro',
+      planName: 'Pro',
+      orgCount: 3,
+      activeOrgs: 1,
+      calls: 1500,
+      credits: 1_440_000,
+      costUsd: 1440,
+      creditAllowancePerOrg: 1000,
+      monthCredits: 1200,
+      orgsAtAllowance: 1,
+    });
+    assertEquals([rows[2].orgCount, rows[2].calls, rows[2].credits], [0, 0, 0]);
+  }
+);
 
-Deno.test('summarizeUsageByPlan: a zero allowance never counts as at allowance', () => {
-  const rows = summarizeUsageByPlan({
-    plans,
-    orgIds: ['b'],
-    planIdByOrg: new Map(),
-    events: [],
-    monthCreditsByOrg: new Map([['b', 50]]),
-  });
-  assertEquals(rows[0].orgsAtAllowance, 0);
-});
-
-function job(overrides: Partial<ConsoleGenerationJob>): ConsoleGenerationJob {
+function rollup(overrides: Partial<GenerationRollupRow>): GenerationRollupRow {
   return {
     media_type: 'video',
     quality_tier: 'standard',
     resolution: '1080p',
     job_status: 'completed',
     error_code: null,
-    credits_consumed: 960,
-    estimated_cost_usd: 0.96,
-    usage_recorded_at: '2026-10-01T00:02:00Z',
-    created_at: '2026-10-01T00:00:00Z',
-    completed_at: '2026-10-01T00:01:30Z',
+    jobs: 1,
+    credits: 0,
+    cost_usd: 0,
+    render_p50_seconds: null,
+    render_p95_seconds: null,
+    unbilled: 0,
     ...overrides,
   };
 }
 
-Deno.test('summarizeMarketingGenerations: outcomes, render time and blocked vs failed', () => {
-  const now = new Date('2026-10-01T01:00:00Z');
-  const summary = summarizeMarketingGenerations(
-    [
-      job({}),
-      job({ completed_at: '2026-10-01T00:00:30Z' }),
-      job({ job_status: 'failed', error_code: 'safety_blocked', credits_consumed: null }),
-      job({ job_status: 'failed', error_code: 'invalid_output', credits_consumed: null }),
-      job({ job_status: 'processing', completed_at: null }),
-      job({
-        media_type: 'image',
-        resolution: '1K',
-        credits_consumed: 39,
-        estimated_cost_usd: 0.039,
-      }),
-    ],
-    now
-  );
+Deno.test('summarizeMarketingGenerations: folds status rows into one bucket per type', () => {
+  const summary = summarizeMarketingGenerations([
+    rollup({
+      jobs: '8',
+      credits: '7680',
+      cost_usd: '7.68',
+      render_p50_seconds: 75,
+      render_p95_seconds: 140,
+      unbilled: '1',
+    }),
+    rollup({ job_status: 'failed', error_code: 'safety_blocked', jobs: 1, cost_usd: 0.96 }),
+    rollup({ job_status: 'failed', error_code: 'invalid_output', jobs: 1, cost_usd: 0.96 }),
+    rollup({ job_status: 'processing', jobs: 2 }),
+    rollup({ media_type: 'image', resolution: '1K', jobs: 3, credits: 117, cost_usd: 0.117 }),
+  ]);
 
   const video = summary.rows.find((r) => r.mediaType === 'video')!;
   assertEquals(
     [video.total, video.completed, video.failed, video.blocked, video.inFlight],
-    [5, 2, 1, 1, 1]
+    [12, 8, 1, 1, 2]
   );
-  assertEquals(video.successRatePct, 50);
-  assertEquals(video.credits, 1920);
-  assertEquals(video.renderP50Seconds, 90);
+  assertEquals(video.successRatePct, 80);
+  assertEquals(video.credits, 7680);
+  assertEquals(video.costUsd, 7.68);
+  assertEquals([video.renderP50Seconds, video.renderP95Seconds], [75, 140]);
 
   const image = summary.rows.find((r) => r.mediaType === 'image')!;
-  assertEquals(image.resolution, null);
-  assertEquals(image.credits, 39);
+  assertEquals([image.resolution, image.credits, image.renderP50Seconds], [null, 117, null]);
 
   assertEquals(summary.failureReasons, [
     { code: 'safety_blocked', count: 1 },
     { code: 'invalid_output', count: 1 },
   ]);
-  assertEquals(summary.unbilledCompleted, 0);
+  assertEquals(summary.unbilledCompleted, 1);
 });
 
-Deno.test(
-  'summarizeMarketingGenerations: flags completed jobs still unbilled after 10 minutes',
-  () => {
-    const now = new Date('2026-10-01T01:00:00Z');
-    const summary = summarizeMarketingGenerations(
-      [
-        job({ usage_recorded_at: null, completed_at: '2026-10-01T00:30:00Z' }),
-        job({ usage_recorded_at: null, completed_at: '2026-10-01T00:55:00Z' }),
-      ],
-      now
-    );
-    assertEquals(summary.unbilledCompleted, 1);
-  }
-);
+Deno.test('summarizeMarketingGenerations: no finished jobs means 0% rather than NaN', () => {
+  const summary = summarizeMarketingGenerations([rollup({ job_status: 'pending', jobs: 2 })]);
+  assertEquals(summary.rows[0].successRatePct, 0);
+});
