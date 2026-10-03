@@ -1,56 +1,52 @@
 import type { ReactNode } from 'react';
 
 import {
+  BarChart3,
   Bell,
   BookOpen,
   Building2,
   Car,
-  ChevronRight,
   ChevronsUpDown,
   CreditCard,
   DollarSign,
   FileText,
   Globe,
   HelpCircle,
+  Home,
   Inbox,
   LayoutDashboard,
+  ListChecks,
   Megaphone,
   Settings,
-  Sparkles,
   Tags,
   Users,
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
-import { AbsoluteFill } from 'remotion';
 
-import { platformMarkInitial, platformWordmarkParts } from '@/lib/platformBranding';
 import { cn } from '@/lib/utils';
 
-const filmWordmark = platformWordmarkParts();
-const filmMarkInitial = platformMarkInitial();
-
-export type FilmShellContext = 'org' | 'property' | 'parking';
+export type FilmShellContext = 'org' | 'property';
 
 interface NavItem {
   label: string;
   icon: LucideIcon;
 }
 
-/** Mirrors buildPropertyNavSections() in ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts */
+/** Mirrors buildPropertyNavSections() in features/dashboard/bookings/lib/adminSidebarNav.ts */
 const PROPERTY_NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard },
   { label: 'Bookings', icon: BookOpen },
   { label: 'Finance', icon: DollarSign },
   { label: 'Maintenance', icon: Wrench },
   { label: 'Pricing', icon: Tags },
+  { label: 'Analytics', icon: BarChart3 },
   { label: 'Team', icon: Users },
   { label: 'Marketing', icon: Megaphone },
   { label: 'Inbox', icon: Inbox },
   { label: 'Notifications', icon: Bell },
   { label: 'Templates', icon: FileText },
   { label: 'Public Pages', icon: Globe },
-  { label: 'Plans & Billing', icon: CreditCard },
   { label: 'Settings', icon: Settings },
   { label: 'Help & Support', icon: HelpCircle },
 ];
@@ -61,149 +57,127 @@ const ORG_NAV: NavItem[] = [
   { label: 'Bookings', icon: BookOpen },
   { label: 'Properties', icon: Building2 },
   { label: 'Parkings', icon: Car },
+  { label: 'Analytics', icon: BarChart3 },
   { label: 'Team', icon: Users },
   { label: 'Plans & Billing', icon: CreditCard },
+  { label: 'Announcements', icon: Megaphone },
   { label: 'Settings', icon: Settings },
   { label: 'Help & Support', icon: HelpCircle },
 ];
 
-/** Mirrors buildParkingNavSections() */
-const PARKING_NAV: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard },
-  { label: 'Bookings', icon: BookOpen },
-  { label: 'Finance', icon: DollarSign },
-  { label: 'Pricing', icon: Tags },
-  { label: 'Team', icon: Users },
-  { label: 'Inbox', icon: Inbox },
-  { label: 'Notifications', icon: Bell },
-  { label: 'Settings', icon: Settings },
-  { label: 'Help & Support', icon: HelpCircle },
-];
-
-const NAV_BY_CONTEXT: Record<FilmShellContext, NavItem[]> = {
-  org: ORG_NAV,
-  property: PROPERTY_NAV,
-  parking: PARKING_NAV,
-};
+export const FILM_ORG_NAME = 'Azure North Rentals';
+export const FILM_PROPERTY_NAME = 'Monaco 2604';
 
 export interface FilmShellProps {
-  activeLabel: string;
-  children: ReactNode;
+  /** Sidebar item to mark active (solid primary pill, like the real sliding pill). */
+  active: string;
   context?: FilmShellContext;
-  /** Workspace switcher label — org name / property name / parking name. */
-  workspace?: string;
-  /** Small line above the workspace name (e.g. residence or org). */
-  workspaceKicker?: string;
+  title?: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  /** Shows the "Finish setup" entry above the account footer. */
+  setupRemaining?: number;
+  children: ReactNode;
+  /** Tighter page padding for dense scenes (editors, inbox). */
+  dense?: boolean;
 }
 
+/**
+ * The real admin shell at desktop size: `bg-sidebar` rail with the tenant scope on top, a solid
+ * `bg-primary` active pill, setup entry + account footer, and the page header above the body.
+ * No top bar on desktop, exactly like `AdminLayout`.
+ */
 export function FilmShell({
-  activeLabel,
-  children,
+  active,
   context = 'property',
-  workspace = 'Monaco 2604',
-  workspaceKicker = 'Azure North',
+  title,
+  subtitle,
+  actions,
+  setupRemaining,
+  children,
+  dense,
 }: FilmShellProps) {
-  const nav = NAV_BY_CONTEXT[context];
-  return (
-    <AbsoluteFill className="bg-[#f4f7f8] text-slate-950 dark:bg-slate-950 dark:text-slate-100">
-      <div className="flex h-full">
-        <aside className="flex w-[220px] shrink-0 flex-col border-r border-slate-200 bg-white px-3.5 py-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4 flex items-center gap-2.5 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-base font-black text-white shadow-lg shadow-teal-600/20">
-              {filmMarkInitial || '·'}
-            </div>
-            <div>
-              {filmWordmark ? (
-                <p className="text-[15px] font-extrabold leading-none tracking-tight">
-                  {filmWordmark.primary}
-                  {filmWordmark.accent ? (
-                    <span className="text-teal-600 dark:text-teal-400">{filmWordmark.accent}</span>
-                  ) : null}
-                </p>
-              ) : (
-                <p className="text-[15px] font-extrabold leading-none tracking-tight">
-                  Host workspace
-                </p>
-              )}
-              <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                Host workspace
-              </p>
-            </div>
-          </div>
+  const nav = context === 'org' ? ORG_NAV : PROPERTY_NAV;
+  const scopeName = context === 'org' ? FILM_ORG_NAME : FILM_PROPERTY_NAME;
+  const scopeKicker = context === 'org' ? 'Organization' : FILM_ORG_NAME;
+  const ScopeIcon = context === 'org' ? Building2 : Home;
 
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-600 text-[10px] font-black text-white">
-              {workspace.slice(0, 1)}
+  return (
+    <div className="bg-background text-foreground flex h-full w-full">
+      <aside className="border-sidebar-border bg-sidebar flex w-[248px] shrink-0 flex-col border-r">
+        <div className="border-sidebar-border border-b px-3 py-3">
+          <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+            <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+              <ScopeIcon className="size-[18px]" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-200">
-                {workspace}
-              </p>
-              <p className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                {context === 'org' ? 'Organization' : workspaceKicker}
-              </p>
+              <p className="text-foreground truncate text-sm font-semibold">{scopeName}</p>
+              <p className="text-sidebar-muted truncate text-xs">{scopeKicker}</p>
             </div>
-            <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+            <ChevronsUpDown className="text-sidebar-muted size-4" />
           </div>
+        </div>
 
-          <nav className="space-y-0.5 overflow-hidden">
+        <nav className="flex-1 overflow-hidden px-3 py-3">
+          <div className="space-y-0.5">
             {nav.map((item) => {
-              const active = item.label === activeLabel;
+              const isActive = item.label === active;
               return (
                 <div
                   key={item.label}
                   className={cn(
-                    'flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[12px] font-semibold',
-                    active
-                      ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300'
-                      : 'text-slate-500 dark:text-slate-400'
+                    'flex items-center gap-3 rounded-xl px-3 py-[7px] text-sm font-medium',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-sidebar-foreground'
                   )}
                 >
-                  <item.icon className="h-[15px] w-[15px] shrink-0" />
+                  <item.icon
+                    className={cn(
+                      'size-[18px] shrink-0',
+                      isActive ? 'text-primary-foreground' : 'text-sidebar-muted'
+                    )}
+                  />
                   <span className="truncate">{item.label}</span>
-                  {active ? <ChevronRight className="ml-auto h-3.5 w-3.5" /> : null}
                 </div>
               );
             })}
-          </nav>
-
-          <div className="mt-auto rounded-2xl border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-500/25 dark:bg-teal-500/10">
-            <div className="mb-2 flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-              <span className="text-[11px] font-bold text-teal-800 dark:text-teal-200">
-                Automation live
-              </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-teal-100 dark:bg-teal-500/20">
-              <div className="h-full w-[82%] rounded-full bg-teal-500" />
-            </div>
           </div>
-        </aside>
+        </nav>
 
-        <main className="min-w-0 flex-1">
-          <header className="flex h-[64px] items-center border-b border-slate-200 bg-white/95 px-7 dark:border-slate-800 dark:bg-slate-900/95">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                {context === 'org' ? 'Organization' : workspaceKicker}
-              </p>
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{workspace}</p>
+        {setupRemaining != null ? (
+          <div className="border-primary/20 from-primary/[0.10] to-primary/[0.03] mx-3 mb-2 flex items-center gap-2 rounded-xl border bg-gradient-to-br px-3 py-2.5">
+            <ListChecks className="text-primary size-4 shrink-0" />
+            <span className="text-foreground flex-1 text-sm font-medium">Finish setup</span>
+            <span className="text-muted-foreground text-xs tabular-nums">{setupRemaining}</span>
+          </div>
+        ) : null}
+
+        <div className="border-sidebar-border flex items-center gap-2.5 border-t p-3">
+          <span className="bg-muted text-foreground flex size-8 items-center justify-center rounded-full text-xs font-semibold">
+            MR
+          </span>
+          <div className="min-w-0">
+            <p className="text-foreground truncate text-sm font-semibold">Mika Reyes</p>
+            <p className="text-sidebar-muted truncate text-xs">mika@azurenorth.ph</p>
+          </div>
+        </div>
+      </aside>
+
+      <main className={cn('min-w-0 flex-1 overflow-hidden', dense ? 'px-6 py-5' : 'px-8 py-6')}>
+        {title ? (
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">{title}</h1>
+              {subtitle ? (
+                <p className="text-muted-foreground mt-0.5 text-[15px]">{subtitle}</p>
+              ) : null}
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              <div className="flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                All systems synced
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700">
-                <Bell className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold text-white dark:bg-slate-100 dark:text-slate-900">
-                M
-              </div>
-            </div>
-          </header>
-          <div className="h-[656px] overflow-hidden p-6">{children}</div>
-        </main>
-      </div>
-    </AbsoluteFill>
+            {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+          </div>
+        ) : null}
+        {children}
+      </main>
+    </div>
   );
 }

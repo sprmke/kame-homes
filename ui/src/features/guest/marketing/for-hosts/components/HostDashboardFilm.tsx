@@ -5,7 +5,10 @@ import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
 import { AbsoluteFill, Audio, Easing, Sequence, useVideoConfig } from 'remotion';
 
-import { SceneDurationContext } from '@/features/guest/marketing/for-hosts/components/film/FilmPrimitives';
+import {
+  SceneCaption,
+  SceneDurationContext,
+} from '@/features/guest/marketing/for-hosts/components/film/FilmPrimitives';
 import { filmScenes } from '@/features/guest/marketing/for-hosts/components/film/scenes/filmScenes';
 import {
   HOST_TOUR_NARRATION_START_DELAY,
@@ -40,10 +43,10 @@ export function HostDashboardFilm({ narrationMuted }: HostDashboardFilmProps) {
   const { fps } = useVideoConfig();
 
   return (
-    <AbsoluteFill className="bg-[#f4f7f8] dark:bg-slate-950">
+    <AbsoluteFill className="bg-muted">
       <TransitionSeries>
         {hostTourChapters.map((chapter, index) => {
-          const Scene = filmScenes[index] ?? filmScenes[0];
+          const Scene = filmScenes[chapter.id as keyof typeof filmScenes];
           return (
             <Fragment key={chapter.id}>
               {index > 0 && chapter.transitionInFrames > 0
@@ -60,6 +63,13 @@ export function HostDashboardFilm({ narrationMuted }: HostDashboardFilmProps) {
                 </Sequence>
                 <SceneDurationContext.Provider value={chapter.durationInFrames}>
                   <Scene />
+                  {chapter.bookend ? null : (
+                    <SceneCaption
+                      eyebrow={chapter.eyebrow}
+                      text={chapter.caption}
+                      icon={chapter.icon}
+                    />
+                  )}
                 </SceneDurationContext.Provider>
               </TransitionSeries.Sequence>
             </Fragment>

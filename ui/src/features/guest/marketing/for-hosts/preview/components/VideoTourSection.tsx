@@ -1,10 +1,10 @@
 import { HostDashboardTourPlayer } from '@/features/guest/marketing/for-hosts/components/HostDashboardTourPlayer';
+import { HOST_TOUR_FEATURE_COUNT } from '@/features/guest/marketing/for-hosts/data/hostTourChapters';
 import { Eyebrow } from '@/features/guest/marketing/for-hosts/preview/components/Eyebrow';
 import { Reveal } from '@/features/guest/marketing/for-hosts/preview/components/Reveal';
 
 /**
- * The full narrated product tour. Keeps the existing Remotion player (`variant="marketing"`);
- * only the framing around it is part of the redesign. `id="features"` matches the marketing
+ * The full narrated product tour (Remotion player, `variant="marketing"`). `id="features"` matches the marketing
  * nav anchor and the "full tour" links elsewhere on the page.
  */
 export function VideoTourSection() {
@@ -17,12 +17,11 @@ export function VideoTourSection() {
         <Reveal className="max-w-2xl">
           <Eyebrow>The full tour</Eyebrow>
           <h2 className="text-foreground mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Every screen a host touches, in three minutes
+            Every feature, in under three minutes
           </h2>
           <p className="text-muted-foreground mt-4 leading-relaxed">
-            A narrated walkthrough of all 19 features — the portfolio view, the booking pipeline,
-            pricing, finance, the guest inbox, marketing, and the AI assistant. Pause any chapter,
-            or jump straight to the one you care about.
+            A short narrated tour of all {HOST_TOUR_FEATURE_COUNT} features: bookings, pricing,
+            finance, the guest inbox, AI photos and video, and AI mode. Jump to any part.
           </p>
         </Reveal>
 

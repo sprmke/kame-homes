@@ -1,19 +1,27 @@
 import {
+  BarChart3,
   Bell,
   BookOpen,
-  Bot,
+  CalendarCheck,
   Building2,
-  CalendarClock,
+  Clapperboard,
   CreditCard,
   DollarSign,
+  FileSpreadsheet,
   FileText,
   Globe,
+  ImagePlus,
   Inbox,
+  KanbanSquare,
   LayoutDashboard,
-  LifeBuoy,
+  ListChecks,
   Megaphone,
+  MessageSquare,
   PhoneCall,
-  Sparkles,
+  Play,
+  RefreshCw,
+  Rocket,
+  Smartphone,
   Tags,
   Users,
   Wrench,
@@ -27,13 +35,9 @@ import {
 
 export const HOST_TOUR_FPS = 30;
 
-/** Legacy uniform fallback — kept only for reduced-motion hold math when a chapter has no duration. */
-export const HOST_TOUR_CHAPTER_FRAMES = 180;
-
 /**
  * Narration for each chapter starts this many frames after the chapter begins, so the
- * incoming transition has finished and the previous chapter's voice line has ended — no
- * two feature lines ever overlap.
+ * incoming transition has finished and the previous chapter's voice line has ended.
  */
 export const HOST_TOUR_NARRATION_START_DELAY = 14;
 
@@ -41,14 +45,21 @@ export type HostTourTransitionType = 'dissolve' | 'slide' | 'push';
 
 export interface HostTourChapter {
   id: string;
+  /** Short chip label (chapter strip, compact player). */
   label: string;
+  /** Small line above the on-screen caption. */
   eyebrow: string;
+  /** Big on-screen caption, 2–5 words. Carries the story when the tour plays muted. */
+  caption: string;
+  /** Player readout title + description (under the video). */
   title: string;
   description: string;
   narration: string;
   audioSrc: string;
   icon: LucideIcon;
-  /** Scene length in frames (variable pacing). */
+  /** Intro / outro title cards: no in-scene caption, hidden from the chapter strip. */
+  bookend?: boolean;
+  /** Scene length in frames — narration length + ~1.8s, so every line has room to land. */
   durationInFrames: number;
   /** Overlap (in frames) of the transition that plays *entering* this chapter. 0 for the first. */
   transitionInFrames: number;
@@ -57,237 +68,325 @@ export interface HostTourChapter {
 
 type ChapterMeta = Omit<HostTourChapter, 'narration' | 'audioSrc'>;
 
-const S = HOST_TOUR_FPS;
-const DISSOLVE = 15;
-const PUSH = 20;
+const FADE = 15;
+/** Act boundaries: a slightly longer cross-fade. A slide pushes the whole frame ~60px per
+ * 30fps step, which reads as a stutter, so every cut is a fade. */
+const ACT = 20;
 
 const chapterMeta: ChapterMeta[] = [
   {
-    id: 'portfolio',
-    label: 'Portfolio',
-    eyebrow: 'Organization workspace',
-    title: 'Run every property and parking listing in one place',
-    description:
-      'Switch listings, see revenue and occupancy across the whole organization, add a property or parking slot.',
-    icon: Building2,
-    durationInFrames: 8 * S,
+    id: 'intro',
+    label: 'Intro',
+    eyebrow: 'Kame Homes for hosts',
+    caption: 'Your rentals, run for you',
+    title: 'Everything you need to run your rentals',
+    description: 'Bookings, guests, money, marketing, and your team in one workspace.',
+    icon: Play,
+    bookend: true,
+    durationInFrames: 190,
     transitionInFrames: 0,
     transitionType: 'dissolve',
   },
   {
+    id: 'setup-guide',
+    label: 'Setup',
+    eyebrow: 'Setup guide',
+    caption: 'Set up in minutes',
+    title: 'Set up in minutes',
+    description: 'A guided checklist walks you through brand, listings, pricing, and team.',
+    icon: ListChecks,
+    durationInFrames: 212,
+    transitionInFrames: ACT,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'portfolio',
+    label: 'Portfolio',
+    eyebrow: 'Organization dashboard',
+    caption: 'Every listing, one view',
+    title: 'Every property and parking spot in one view',
+    description: 'Revenue and occupancy across your whole organization.',
+    icon: Building2,
+    durationInFrames: 208,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
     id: 'command-center',
-    label: 'Overview',
-    eyebrow: 'Property command center',
-    title: 'See the whole operation at a glance',
-    description:
-      'Live stays, revenue, occupancy, tasks, and guest activity for one property in a calm workspace.',
+    label: 'Dashboard',
+    eyebrow: 'Property dashboard',
+    caption: 'Your day at a glance',
+    title: 'Your day at a glance',
+    description: 'Earnings, the calendar, and what needs you today.',
     icon: LayoutDashboard,
-    durationInFrames: 8 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 218,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'booking-workflow',
     label: 'Bookings',
-    eyebrow: 'Automated booking flow',
-    title: 'Move every stay forward without loose ends',
-    description:
-      'Documents, receipt checks, pricing, calendar updates, and guest emails follow one visible pipeline.',
+    eyebrow: 'Bookings',
+    caption: 'Bookings that run themselves',
+    title: 'Bookings that run themselves',
+    description: 'Documents, receipt checks, and guest emails happen as each stay moves forward.',
     icon: BookOpen,
-    durationInFrames: 12 * S,
-    transitionInFrames: PUSH,
-    transitionType: 'push',
+    durationInFrames: 234,
+    transitionInFrames: ACT,
+    transitionType: 'dissolve',
   },
   {
     id: 'bookings-board',
     label: 'Board',
-    eyebrow: 'Work bookings your way',
-    title: 'Drag a stay forward, or add one by hand',
-    description:
-      'A kanban board you drag between stages, plus an in-dashboard booking form for walk-ins and calls.',
-    icon: BookOpen,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    eyebrow: 'Bookings board',
+    caption: 'Drag, drop, done',
+    title: 'Drag a booking forward, or add one by hand',
+    description: 'A board view for every stage, plus walk-in and phone bookings.',
+    icon: KanbanSquare,
+    durationInFrames: 205,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'data-import',
     label: 'AI import',
-    eyebrow: 'AI-assisted data import',
-    title: 'Bring your existing bookings in. AI maps the columns',
-    description:
-      'Upload any spreadsheet; AI matches your headers to the right fields and flags only the rows that need a look.',
-    icon: Sparkles,
-    durationInFrames: 10 * S,
-    transitionInFrames: DISSOLVE,
+    eyebrow: 'Import',
+    caption: 'Import with AI',
+    title: 'Bring your bookings over with AI',
+    description: 'Upload a spreadsheet. AI matches your columns to the right fields.',
+    icon: FileSpreadsheet,
+    durationInFrames: 191,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'channel-sync',
     label: 'Airbnb sync',
-    eyebrow: 'Two-way Airbnb calendar sync',
-    title: 'Airbnb and Kame, always in step',
-    description:
-      'Airbnb reservations flow in as bookings to review; your blocked and booked nights flow back out to Airbnb.',
-    icon: CalendarClock,
-    durationInFrames: 10 * S,
-    transitionInFrames: DISSOLVE,
+    eyebrow: 'Channel sync',
+    caption: 'Synced with Airbnb',
+    title: 'Two-way Airbnb sync',
+    description: 'Bookings and blocked dates stay in sync both ways.',
+    icon: RefreshCw,
+    durationInFrames: 213,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'pricing',
     label: 'Pricing',
-    eyebrow: 'Nightly pricing',
-    title: 'Tune rates directly on the calendar',
-    description:
-      'Set weekday, weekend, and date-specific rates with booked nights and blocked dates in view.',
+    eyebrow: 'Pricing',
+    caption: 'Smart Pricing with AI',
+    title: 'Rates on a calendar, or Smart Pricing',
+    description: 'Set rates by hand, or let AI suggest a rate for every night.',
     icon: Tags,
-    durationInFrames: 8 * S,
-    transitionInFrames: PUSH,
-    transitionType: 'push',
+    durationInFrames: 228,
+    transitionInFrames: ACT,
+    transitionType: 'dissolve',
   },
   {
     id: 'finance',
     label: 'Finance',
-    eyebrow: 'Finance and reporting',
-    title: 'Know what each stay actually earns',
-    description:
-      'Booking income lands automatically; add expenses, follow net profit, and export a report.',
+    eyebrow: 'Finance',
+    caption: 'Know your real profit',
+    title: 'Know your real profit',
+    description: 'Income records itself. Add expenses and export a report.',
     icon: DollarSign,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 212,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'maintenance',
     label: 'Maintenance',
-    eyebrow: 'Recurring upkeep',
-    title: 'Turn recurring upkeep into a routine',
-    description:
-      'Schedule property work, track completion, keep upcoming tasks from being missed, and export it.',
+    eyebrow: 'Maintenance',
+    caption: 'Upkeep on schedule',
+    title: 'Upkeep on schedule',
+    description: 'Recurring tasks, reminders, and a clear done list.',
     icon: Wrench,
-    durationInFrames: 8 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 186,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    eyebrow: 'Analytics',
+    caption: 'Insights, explained',
+    title: 'Analytics with an AI review',
+    description: 'Occupancy, rates, and guests, plus clear tips on what to improve.',
+    icon: BarChart3,
+    durationInFrames: 205,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'guest-inbox',
     label: 'Inbox',
-    eyebrow: 'Unified guest inbox',
-    title: 'AI suggests the reply, or sends it for you',
-    description:
-      'Website chat, Facebook, and Instagram in one place: review an AI-drafted reply, or let it answer on its own.',
+    eyebrow: 'Guest inbox',
+    caption: 'One inbox, AI replies',
+    title: 'One inbox with AI replies',
+    description: 'Facebook, Instagram, and website chat together. AI drafts every reply.',
     icon: Inbox,
-    durationInFrames: 13 * S,
-    transitionInFrames: PUSH,
-    transitionType: 'push',
-  },
-  {
-    id: 'ai-receptionist',
-    label: 'Receptionist',
-    eyebrow: 'AI voice receptionist',
-    title: 'Meet Kame, your guests’ voice receptionist',
-    description:
-      'Guests hold a live voice call with your animated AI receptionist, answered from your property’s own details.',
-    icon: PhoneCall,
-    durationInFrames: 12 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 238,
+    transitionInFrames: ACT,
     transitionType: 'dissolve',
   },
   {
-    id: 'marketing-studio',
-    label: 'Marketing',
-    eyebrow: 'Marketing Content Studio',
-    title: 'Calendars, graphics, and videos in one studio',
-    description:
-      'Switch between Calendar, Design, and Video builders, style with AI, then publish to Facebook and Instagram.',
-    icon: Megaphone,
-    durationInFrames: 12 * S,
-    transitionInFrames: DISSOLVE,
+    id: 'ai-receptionist',
+    label: 'AI receptionist',
+    eyebrow: 'Voice receptionist',
+    caption: 'An AI receptionist',
+    title: 'An AI receptionist for your guests',
+    description: 'Guests call Kame and get answers about your place, day or night.',
+    icon: PhoneCall,
+    durationInFrames: 243,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'public-pages',
-    label: 'Public Pages',
-    eyebrow: 'Public pages editor',
-    title: 'Edit your listing with a live preview',
-    description:
-      'Pick a section, edit the content, watch the guest-facing listing, stay guide, or showcase update as you type.',
+    label: 'Public pages',
+    eyebrow: 'Public pages',
+    caption: 'Pages that sell',
+    title: 'Pages that update as you type',
+    description: 'Listing, stay guide, and showcase page with a live preview.',
     icon: Globe,
-    durationInFrames: 10 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 195,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'guest-booking',
+    label: 'Book direct',
+    eyebrow: 'Guest booking page',
+    caption: 'Guests book direct',
+    title: 'Your own booking page',
+    description:
+      'Guests find you in search, see your photos and reviews, pick open dates, and book.',
+    icon: CalendarCheck,
+    durationInFrames: 240,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'guest-journey',
+    label: 'Guest stay',
+    eyebrow: 'Guest experience',
+    caption: 'From check-in to review',
+    title: 'A guided stay for every guest',
+    description: 'Stay guide, chat with you, then a review and a voucher for their next stay.',
+    icon: Smartphone,
+    durationInFrames: 240,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'templates',
     label: 'Templates',
-    eyebrow: 'Template management',
-    title: 'Edit every message, and preview it first',
-    description:
-      'Stay-guide sections and automated emails, each with placeholders, a live preview, and reset-to-default.',
+    eyebrow: 'Templates',
+    caption: 'Emails in your voice',
+    title: 'Guest emails in your voice',
+    description: 'Edit every email and preview exactly what guests receive.',
     icon: FileText,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 189,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'marketing-studio',
+    label: 'Content Studio',
+    eyebrow: 'Marketing',
+    caption: 'Content Studio',
+    title: 'Calendars, posts, and videos',
+    description: 'Make marketing content for your property and publish to Facebook and Instagram.',
+    icon: Megaphone,
+    durationInFrames: 211,
+    transitionInFrames: ACT,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'ai-photo',
+    label: 'AI photos',
+    eyebrow: 'AI Studio',
+    caption: 'AI photos and posts',
+    title: 'AI photos and posts from your own photos',
+    description: 'Describe a shot, add your photos, and get images that look like your place.',
+    icon: ImagePlus,
+    durationInFrames: 240,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'ai-video',
+    label: 'AI video',
+    eyebrow: 'AI Studio',
+    caption: 'Photos into video',
+    title: 'Turn a photo into a video clip',
+    description: 'Pick a photo and a camera move. AI makes a short clip.',
+    icon: Clapperboard,
+    durationInFrames: 228,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'team',
     label: 'Team',
-    eyebrow: 'Team and roles',
-    title: 'Bring people in with the right access',
-    description:
-      'Invite teammates, pick Full Access, Operations, or Read Only, or build a custom role.',
+    eyebrow: 'Team',
+    caption: 'Your team, your rules',
+    title: 'Your team, your rules',
+    description: 'Invite people and choose what each person can see and do.',
     icon: Users,
-    durationInFrames: 8 * S,
-    transitionInFrames: PUSH,
-    transitionType: 'push',
+    durationInFrames: 194,
+    transitionInFrames: ACT,
+    transitionType: 'dissolve',
   },
   {
     id: 'notifications',
     label: 'Alerts',
-    eyebrow: 'Telegram notifications',
-    title: 'Send the right reminder to the right team',
-    description:
-      'Route chat, marketing, staff, operations, finance, and maintenance alerts to Telegram automatically.',
+    eyebrow: 'Notifications',
+    caption: 'Alerts in Telegram',
+    title: 'Instant alerts in Telegram',
+    description: 'Bookings, messages, and maintenance sent to the right group.',
     icon: Bell,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 188,
+    transitionInFrames: FADE,
+    transitionType: 'dissolve',
+  },
+  {
+    id: 'ai-mode',
+    label: 'AI mode',
+    eyebrow: 'AI mode',
+    caption: 'Just ask',
+    title: 'Ask, and the right page opens',
+    description: 'Chat in plain words. Answers use your live data and open the page beside you.',
+    icon: MessageSquare,
+    durationInFrames: 222,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
     id: 'plans-billing',
     label: 'Plans',
-    eyebrow: 'Plans and billing',
-    title: 'Pick a plan priced per property',
-    description:
-      'Compare tiers feature by feature; billing covers every property in the organization at once.',
+    eyebrow: 'Plans & billing',
+    caption: 'Simple, fair pricing',
+    title: 'Simple plans, one bill',
+    description: 'Priced per property, with one bill for the whole organization.',
     icon: CreditCard,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    durationInFrames: 208,
+    transitionInFrames: FADE,
     transitionType: 'dissolve',
   },
   {
-    id: 'ai-assistant',
-    label: 'AI assistant',
-    eyebrow: 'AI dashboard assistant',
-    title: 'Ask your dashboard anything',
-    description:
-      'Answers from live data, attaches a booking or property for context, and jumps you straight to the page.',
-    icon: Bot,
-    durationInFrames: 11 * S,
-    transitionInFrames: PUSH,
-    transitionType: 'push',
-  },
-  {
-    id: 'help-support',
-    label: 'Help',
-    eyebrow: 'Help & Support',
-    title: 'FAQs, guides, updates, and a line to our team',
-    description:
-      'FAQs, per-page guides, product announcements, Ask AI, and support tickets tracked from your dashboard.',
-    icon: LifeBuoy,
-    durationInFrames: 9 * S,
-    transitionInFrames: DISSOLVE,
+    id: 'outro',
+    label: 'Start free',
+    eyebrow: 'Kame Homes',
+    caption: 'Start free today',
+    title: 'Start free today',
+    description: 'Set up your first property in minutes.',
+    icon: Rocket,
+    bookend: true,
+    durationInFrames: 225,
+    transitionInFrames: ACT,
     transitionType: 'dissolve',
   },
 ];
@@ -305,6 +404,11 @@ export const hostTourChapters: HostTourChapter[] = chapterMeta.map((chapter) => 
     audioSrc: hostTourNarrationAudioSrc(chapter.id),
   };
 });
+
+/** Feature chapters only (no intro/outro) — the "N features" count used in page copy. */
+export const HOST_TOUR_FEATURE_COUNT = hostTourChapters.filter(
+  (chapter) => !chapter.bookend
+).length;
 
 /** Per-chapter scene length, in frames. */
 export const HOST_TOUR_CHAPTER_DURATIONS: number[] = hostTourChapters.map(

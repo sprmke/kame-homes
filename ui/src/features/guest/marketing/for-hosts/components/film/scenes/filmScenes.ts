@@ -1,47 +1,52 @@
 import type { ComponentType } from 'react';
 
-import { CommandCenterScene, PortfolioScene } from './SceneAct1';
-import {
-  BookingsBoardScene,
-  BookingWorkflowScene,
-  ChannelSyncScene,
-  DataImportScene,
-} from './SceneAct2';
-import { FinanceScene, MaintenanceScene, PricingScene } from './SceneAct3';
-import {
-  AiReceptionistScene,
-  GuestInboxScene,
-  MarketingStudioScene,
-  PublicPagesScene,
-  TemplatesScene,
-} from './SceneAct4';
-import {
-  AiAssistantScene,
-  HelpSupportScene,
-  NotificationsScene,
-  PlansBillingScene,
-  TeamScene,
-} from './SceneAct5';
+import type { HostTourNarrationId } from '@/features/guest/marketing/for-hosts/data/hostTourNarration';
 
-/** Ordered to match `hostTourChapters` in data/hostTourChapters.ts (index-aligned). */
-export const filmScenes: ComponentType[] = [
-  PortfolioScene,
-  CommandCenterScene,
-  BookingWorkflowScene,
+import { IntroScene, OutroScene } from './SceneBookends';
+import {
   BookingsBoardScene,
-  DataImportScene,
+  BookingWorkflowScene,
   ChannelSyncScene,
-  PricingScene,
-  FinanceScene,
-  MaintenanceScene,
-  GuestInboxScene,
+  DataImportScene,
+} from './SceneBookings';
+import {
   AiReceptionistScene,
-  MarketingStudioScene,
+  GuestInboxScene,
   PublicPagesScene,
   TemplatesScene,
-  TeamScene,
-  NotificationsScene,
-  PlansBillingScene,
-  AiAssistantScene,
-  HelpSupportScene,
-];
+} from './SceneGuests';
+import { GuestBookingScene, GuestJourneyScene } from './SceneGuestSite';
+import { AiPhotoScene, AiVideoScene, MarketingStudioScene } from './SceneMarketing';
+import { AnalyticsScene, FinanceScene, MaintenanceScene, PricingScene } from './SceneMoney';
+import { CommandCenterScene, PortfolioScene, SetupGuideScene } from './SceneStart';
+import { AiModeScene, NotificationsScene, PlansBillingScene, TeamScene } from './SceneTeam';
+
+/** One scene per chapter id in `data/hostTourChapters.ts`. Keyed, so reordering chapters is safe. */
+export const filmScenes: Record<HostTourNarrationId, ComponentType> = {
+  intro: IntroScene,
+  'setup-guide': SetupGuideScene,
+  portfolio: PortfolioScene,
+  'command-center': CommandCenterScene,
+  'booking-workflow': BookingWorkflowScene,
+  'bookings-board': BookingsBoardScene,
+  'data-import': DataImportScene,
+  'channel-sync': ChannelSyncScene,
+  pricing: PricingScene,
+  finance: FinanceScene,
+  maintenance: MaintenanceScene,
+  analytics: AnalyticsScene,
+  'guest-inbox': GuestInboxScene,
+  'ai-receptionist': AiReceptionistScene,
+  'public-pages': PublicPagesScene,
+  'guest-booking': GuestBookingScene,
+  'guest-journey': GuestJourneyScene,
+  templates: TemplatesScene,
+  'marketing-studio': MarketingStudioScene,
+  'ai-photo': AiPhotoScene,
+  'ai-video': AiVideoScene,
+  team: TeamScene,
+  notifications: NotificationsScene,
+  'ai-mode': AiModeScene,
+  'plans-billing': PlansBillingScene,
+  outro: OutroScene,
+};

@@ -266,7 +266,7 @@ export function HostDashboardTourPlayer({
   ) => (
     <div
       className={cn(
-        'relative shrink-0 overflow-hidden bg-[#f4f7f8] dark:bg-slate-950',
+        'bg-muted relative shrink-0 overflow-hidden',
         options.roundedClass ?? (compact ? 'rounded-lg' : 'rounded-[1rem] sm:rounded-[1.4rem]')
       )}
     >
@@ -446,6 +446,8 @@ export function HostDashboardTourPlayer({
           aria-label="Dashboard tour chapters"
         >
           {hostTourChapters.map((chapter, index) => {
+            // Intro / outro title cards are not features; they stay off the strip.
+            if (chapter.bookend) return null;
             const active = index === activeChapterIndex;
             const complete = index < activeChapterIndex;
             return (

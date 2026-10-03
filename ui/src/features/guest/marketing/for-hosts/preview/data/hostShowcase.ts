@@ -15,6 +15,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { HOST_TOUR_FEATURE_COUNT } from '@/features/guest/marketing/for-hosts/data/hostTourChapters';
+
 /**
  * All copy and demo data for the ground-up `/for-hosts/preview` redesign lives here so the
  * words can be reviewed in one place. Every section component reads from this file.
@@ -30,7 +32,7 @@ export const heroContent = {
   headline: ['Every stay,', 'start to finish,', 'on one dashboard.'],
   lead: 'Kame Homes replaces the spreadsheet, the Airbnb tab, the Messenger threads, and the receipt folder with one workflow, and keeps it moving while you are away from your desk.',
   primaryCta: { label: 'Start free', to: '/for-hosts/login' },
-  secondaryCta: { label: 'Watch the 3-minute tour', sectionId: 'features' },
+  secondaryCta: { label: 'Watch the tour', sectionId: 'features' },
   trustLine: 'No card to start · Works on your phone · Cancel anytime',
 } as const;
 
@@ -121,7 +123,7 @@ export const showcaseContent = {
   title: 'The work of an operations team, grouped into six areas',
   lead: 'Scroll through what each area does. Every screen here is the real thing, not a diagram.',
   tourLink: {
-    label: 'See all 19 features in the full tour',
+    label: `See all ${HOST_TOUR_FEATURE_COUNT} features in the full tour`,
     sectionId: 'features',
   },
   stories: [

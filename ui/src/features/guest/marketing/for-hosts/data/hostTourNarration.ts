@@ -1,82 +1,110 @@
-/** Per-chapter voiceover lines for the Remotion host dashboard tour. */
+/** Per-chapter voiceover lines for the Remotion host dashboard tour. Short, plain, one idea each. */
 export const HOST_TOUR_NARRATION_PUBLIC_DIR = '/marketing/for-hosts/narration';
 
 export const hostTourNarration = [
   {
+    id: 'intro',
+    text: 'Meet Kame Homes. Everything you need to run your rentals, in one place.',
+  },
+  {
+    id: 'setup-guide',
+    text: 'Setup takes minutes. A guided checklist walks you through every step.',
+  },
+  {
     id: 'portfolio',
-    text: 'Every property and parking listing lives in one workspace, with revenue and occupancy rolled up across your whole organization.',
+    text: 'See all your properties and parking spots together, with revenue and occupancy.',
   },
   {
     id: 'command-center',
-    text: 'Each property opens on a calm command center: this month’s profit, occupancy, the calendar, and exactly what needs your attention today.',
+    text: 'Each property gets a simple home page: earnings, your calendar, and what needs you today.',
   },
   {
     id: 'booking-workflow',
-    text: 'Every booking moves down one visible pipeline. Documents, receipt checks, calendar updates, and guest emails happen automatically as it advances.',
+    text: 'Bookings move forward on their own. Documents, receipts, and guest emails are handled for you.',
   },
   {
     id: 'bookings-board',
-    text: 'Prefer a board? Drag a stay from one stage to the next, or add a walk-in or phone booking straight from the dashboard.',
+    text: 'Prefer a board? Drag a booking to its next step, or add one by hand.',
   },
   {
     id: 'data-import',
-    text: 'Already running bookings elsewhere? Upload any spreadsheet and AI maps your columns to the right fields, flagging only the rows that need a second look.',
+    text: 'Moving from a spreadsheet? Upload it, and AI fills in the right fields.',
   },
   {
     id: 'channel-sync',
-    text: 'Airbnb sync runs both ways: their reservations arrive as bookings to review, and every blocked or booked night is pushed straight back to Airbnb.',
+    text: 'Connect Airbnb once. Bookings and blocked dates stay in sync both ways.',
   },
   {
     id: 'pricing',
-    text: 'Set weekday, weekend, and single-night rates right on the calendar, block dates in a tap, and see every booked night in place.',
+    text: 'Set your rates on a calendar, or turn on Smart Pricing and let AI suggest them.',
   },
   {
     id: 'finance',
-    text: 'Booking income lands on its own. Add expenses, watch net profit update, and export a clean report for any date range.',
+    text: 'Income is recorded automatically. Add expenses and see your real profit.',
   },
   {
     id: 'maintenance',
-    text: 'Keep recurring upkeep scheduled, tracked, and marked done, with Telegram reminders and a report you can hand to your team.',
+    text: 'Schedule upkeep, get reminders, and check off tasks as you go.',
+  },
+  {
+    id: 'analytics',
+    text: 'Analytics shows how you are doing, and an AI review tells you what to improve.',
   },
   {
     id: 'guest-inbox',
-    text: 'Website chat, Facebook, and Instagram share one inbox. Review an AI-drafted reply before you send it, or switch on auto-reply and let it answer instantly.',
+    text: 'Facebook, Instagram, and website chat land in one inbox. AI drafts the replies.',
   },
   {
     id: 'ai-receptionist',
-    text: 'Guests can call and talk to Kame, your animated voice receptionist. It listens, answers from your property’s own details, and saves the transcript.',
-  },
-  {
-    id: 'marketing-studio',
-    text: 'The Content Studio has three builders: an availability calendar, social graphics, and short videos. Style them with AI, then publish to Facebook and Instagram.',
+    text: 'Guests can call Kame, your AI receptionist. It answers questions about your place, day or night.',
   },
   {
     id: 'public-pages',
-    text: 'Edit your public listing, stay guide, and showcase page section by section, with a live preview updating beside you as you type.',
+    text: 'Your listing, stay guide, and showcase page update live as you edit.',
+  },
+  {
+    id: 'guest-booking',
+    text: 'Guests find you in search or on your own page, pick open dates, and book in a few taps.',
+  },
+  {
+    id: 'guest-journey',
+    text: 'Once booked, guests get a stay guide, chat with you anytime, and earn a voucher when they leave a review.',
   },
   {
     id: 'templates',
-    text: 'Tune every guest email and stay-guide section with placeholders, preview exactly what guests receive, and reset any template to default.',
+    text: 'Customize every guest email, and preview exactly what guests will see.',
+  },
+  {
+    id: 'marketing-studio',
+    text: 'Content Studio makes calendars, social posts, and short videos for your property.',
+  },
+  {
+    id: 'ai-photo',
+    text: 'Describe a shot, add your photos, and AI creates posts and images that look like your place.',
+  },
+  {
+    id: 'ai-video',
+    text: 'Pick a photo and a camera move. AI turns it into a short video clip.',
   },
   {
     id: 'team',
-    text: 'Invite your team and give each person the right access: Full Access, Operations, Read Only, or a custom role you define.',
+    text: 'Invite your team, and choose exactly what each person can see and do.',
   },
   {
     id: 'notifications',
-    text: 'Route chat, marketing, staff, operations, finance, and maintenance alerts to the right Telegram group, delivered the moment something happens.',
+    text: 'Get instant Telegram alerts for bookings, messages, and maintenance.',
+  },
+  {
+    id: 'ai-mode',
+    text: 'Switch to AI mode, ask in plain words, and the right page opens beside the chat.',
   },
   {
     id: 'plans-billing',
-    text: 'Plans are priced per property, with volume discounts as you grow, and one bill that covers every property in the organization.',
+    text: 'Simple plans, priced per property, with one bill for your whole organization.',
   },
   {
-    id: 'ai-assistant',
-    text: 'Ask the dashboard assistant anything. It answers from your live numbers, pulls in a booking or property for context, and takes you straight to the page.',
-  },
-  {
-    id: 'help-support',
-    text: 'Help and Support brings together FAQs, a guide for every page, product updates, and support tickets you can track right from your dashboard.',
+    id: 'outro',
+    text: 'Kame Homes. Less busywork, more happy guests. Start free today.',
   },
 ] as const;
 
