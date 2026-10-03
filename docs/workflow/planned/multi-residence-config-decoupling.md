@@ -249,7 +249,7 @@ Audit each route against a fixed checklist — **(a)** hardcoded residence/tower
 
 **Super-admin:** `admin/developments`, `development-detail`, `orgs`, `hosts`, `host-detail`, `org-properties`, `platform-properties`, `approvals`, `settings`, `platform-tools`, `pricing-plans`, `org-subscriptions`, `parking-payouts`, `announcements`, `support`, `overview`, `playbook`.
 
-Known targets already spotted: `propertyOverviewStats.ts:12` gates a stat on `isKnownResidence`; `inboxMockData.ts`, `mockProperties.ts`, `mockDevelopments.ts`, `mockParkingSlots.ts` are Azure-shaped demo data; `SceneAct1/4/5.tsx` in the for-hosts film hardcode Azure copy.
+Known targets already spotted: `propertyOverviewStats.ts:12` gates a stat on `isKnownResidence`; `inboxMockData.ts`, `mockProperties.ts`, `mockDevelopments.ts`, `mockParkingSlots.ts` are Azure-shaped demo data; the for-hosts film scenes (`components/film/FilmShell.tsx` `FILM_ORG_NAME`, `scenes/Scene*.tsx`) hardcode Azure copy.
 
 Record findings as a checklist table in this doc rather than fixing inline, so the sweep stays reviewable.
 

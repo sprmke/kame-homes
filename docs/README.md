@@ -72,7 +72,8 @@ See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive
 
 ## Agent tooling
 
-| Resource                                                                      | Purpose              |
-| ----------------------------------------------------------------------------- | -------------------- |
-| [`.cursor/rules/README.md`](../.cursor/rules/README.md)                       | Rules + skills index |
-| [`.cursor/skills/docs-first/SKILL.md`](../.cursor/skills/docs-first/SKILL.md) | Docs-first workflow  |
+| Resource                                                                      | Purpose                                                                                      |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`.cursor/rules/README.md`](../.cursor/rules/README.md)                       | Rules + skills index                                                                         |
+| [`.cursor/skills/docs-first/SKILL.md`](../.cursor/skills/docs-first/SKILL.md) | Docs-first workflow                                                                          |
+| [`marketing/social/README.md`](../marketing/social/README.md)                 | Social creative studio (FB / IG / TikTok images + videos, Remotion), skill `social-creative` |
