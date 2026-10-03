@@ -1,0 +1,17 @@
+---
+description: Kame Homes social marketing creative (FB / IG / TikTok) built in marketing/social with Remotion. Brand teal system and a strict not-AI-looking checklist.
+globs:
+  - 'marketing/social/**'
+alwaysApply: false
+---
+
+# Social creative
+
+Follow skill **`social-creative`** (`.agent/skills/social-creative/SKILL.md`) for any off-app marketing image or video.
+
+- Build in `marketing/social/` (Remotion). Stills via `bun run render:stills`, videos via `bun run render:videos`.
+- Plus Jakarta Sans only, teal ramp from `src/theme.ts`, one tone per post, 88px margins, typographic wordmark (no turtle logo).
+- One idea per frame, hand-set line breaks, off-axis light, product fragments drawn in `src/fragments.tsx` (never screenshots), grain on.
+- No invented stats, testimonials or customer counts. No emoji, purple, neon, glassmorphism or gradient text. Copy per `human-copy` (no em dashes).
+- 9:16: copy and CTA between y=270 and y=1360.
+- Review every render (read the PNG or pull MP4 frames with ffmpeg) before calling it done.

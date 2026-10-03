@@ -2,14 +2,16 @@
 /**
  * Generate per-chapter MP3 voiceovers for the /for-hosts Remotion tour.
  *
- * Requires: `edge-tts` on PATH (pip install edge-tts).
+ * Requires: `edge-tts` on PATH (pip install edge-tts). `ffprobe` (optional) records each clip's
+ * length in manifest.json so chapter durations in `hostTourChapters.ts` can be paced to the voice.
+ * Files for chapters no longer in `hostTourNarration` are removed.
  *
  * Usage (from repo root):
  *   bun scripts/marketing/generate-host-tour-narration.ts
- *   bun scripts/marketing/generate-host-tour-narration.ts --voice en-US-GuyNeural --rate=+10%
+ *   bun scripts/marketing/generate-host-tour-narration.ts --voice en-US-AndrewMultilingualNeural --rate=+5%
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,8 +24,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT_DIR = join(ROOT, 'ui/public', HOST_TOUR_NARRATION_PUBLIC_DIR.replace(/^\//, ''));
 
 function parseArgs(argv: string[]) {
-  let voice = 'en-US-AriaNeural';
-  let rate = '+8%';
+  let voice = 'en-US-AvaMultilingualNeural';
+  let rate = '+4%';
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--voice') {
@@ -101,6 +103,16 @@ async function synthesize(opts: {
   }
 }
 
+function probeSeconds(file: string): number | null {
+  const probe = Bun.spawnSync(
+    ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file],
+    { stdout: 'pipe', stderr: 'pipe' }
+  );
+  if (probe.exitCode !== 0) return null;
+  const seconds = Number.parseFloat(probe.stdout.toString().trim());
+  return Number.isFinite(seconds) ? Math.round(seconds * 100) / 100 : null;
+}
+
 async function main() {
   const { voice, rate } = parseArgs(process.argv.slice(2));
   const edgeTts = await ensureEdgeTts();
@@ -109,7 +121,7 @@ async function main() {
   console.log(`Writing narration to ${OUT_DIR}`);
   console.log(`Voice=${voice} rate=${rate}`);
 
-  const manifest: Array<{ id: string; text: string; file: string }> = [];
+  const manifest: Array<{ id: string; text: string; file: string; seconds: number | null }> = [];
 
   for (const line of hostTourNarration) {
     const file = `${line.id}.mp3`;
@@ -122,7 +134,16 @@ async function main() {
       voice,
       rate,
     });
-    manifest.push({ id: line.id, text: line.text, file });
+    manifest.push({ id: line.id, text: line.text, file, seconds: probeSeconds(outMp3) });
+  }
+
+  const keep = new Set(hostTourNarration.flatMap((line) => [`${line.id}.mp3`, `${line.id}.vtt`]));
+  keep.add('manifest.json');
+  for (const name of await readdir(OUT_DIR)) {
+    if (!keep.has(name)) {
+      await rm(join(OUT_DIR, name));
+      console.log(`✕ removed stale ${name}`);
+    }
   }
 
   await writeFile(join(OUT_DIR, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);

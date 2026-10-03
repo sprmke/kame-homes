@@ -43,9 +43,9 @@ Run `node scripts/performance/<script>.mjs` directly, or via the `bun run perf:*
 
 ## Marketing (`scripts/marketing/`)
 
-| Script                            | Purpose                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `generate-host-tour-narration.ts` | Edge TTS → `ui/public/marketing/for-hosts/narration/{chapterId}.mp3` for the `/for-hosts` Remotion tour |
+| Script                            | Purpose                                                                                                                                                                                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `generate-host-tour-narration.ts` | Edge TTS (default voice `en-US-AvaMultilingualNeural`) → `ui/public/marketing/for-hosts/narration/{chapterId}.mp3` + `manifest.json` with each clip's length (via `ffprobe`) for the `/for-hosts` Remotion tour; removes files for chapters that no longer exist |
 
 Requires `pip3 install --user edge-tts`. Flags: `--voice` (default `en-US-AriaNeural`), `--rate` (default `+8%`).
 

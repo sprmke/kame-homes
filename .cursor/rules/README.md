@@ -13,6 +13,7 @@ Keep this list **small**. Heavy domain specs use globs.
 | `documentation-maintenance.mdc` | Sync docs with code                                                                 |
 | `ui-minimal-copy.mdc`           | No extra UI prose                                                                   |
 | `human-copy.mdc`                | Production-grade copy; no AI tells / em dashes                                      |
+| `social-creative.mdc`           | Social marketing creative in `marketing/social` (glob-scoped)                       |
 | `superpowers-opt-in.mdc`        | Superpowers opt-in only (see `/superpowers-*`)                                      |
 | `git-commits.mdc`               | Human-only commits; no co-author trailers; hook strips AI attribution               |
 | `no-prod-deploy.mdc`            | Block prod Supabase/DB deploys (unlock: **kamewave**)                               |
@@ -138,6 +139,7 @@ Run **`bun run check:ai-tooling-sync`** after changing hooks, commands, agents, 
 | `accessibility`               | WCAG deep patterns                                                                               |
 | `minimal-ui-copy`             | Sparse copy                                                                                      |
 | `human-copy`                  | Production-grade strings; no AI tells / em dashes (pairs with always-on `human-copy.mdc`)        |
+| `social-creative`             | FB / IG / TikTok creative via Remotion studio; brand + not-AI checklist                          |
 | `route-guides`                | `docs/guides/routes/*`                                                                           |
 | `performance`                 | Vite bundle, query tuning                                                                        |
 | `batch-commit`                | Daily N commits × 5–10 files (not whole tree)                                                    |
