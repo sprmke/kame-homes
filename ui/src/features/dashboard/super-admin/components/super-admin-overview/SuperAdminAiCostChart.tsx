@@ -11,31 +11,13 @@ import {
 } from 'recharts';
 
 import type { SuperAdminOverview } from '@/features/dashboard/super-admin/hooks/useSuperAdminOverview';
+import { labelAiFeature } from '@/features/dashboard/super-admin/lib/aiFeatureLabels';
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { CHART_HEIGHT_CLASS, defaultChartMargin } from '@/lib/charts/chartStyles';
 
 const PALETTE = ['#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b', '#f43f5e', '#64748b', '#f97316'];
-
-const FEATURE_LABELS: Record<string, string> = {
-  receipt_validation: 'Receipt validation',
-  inbox_suggest: 'Inbox suggest',
-  inbox_auto_reply: 'Inbox auto-reply',
-  marketing_caption: 'Marketing caption',
-  marketing_template: 'Marketing template',
-  marketing_image_generate: 'Marketing image',
-  marketing_video_generate: 'Marketing video',
-  import_column_map: 'Import mapping',
-  voice_polish: 'Voice polish',
-  voice_receptionist: 'Voice receptionist',
-  dashboard_assistant: 'Dashboard assistant',
-  ai_integration_verify: 'Integration verify',
-};
-
-function labelFeature(feature: string): string {
-  return FEATURE_LABELS[feature] ?? feature.replace(/_/g, ' ');
-}
 
 export function SuperAdminAiCostChart({
   data,
@@ -47,7 +29,7 @@ export function SuperAdminAiCostChart({
   const isBelowMd = useIsBelowMd();
   const chartData = data
     .filter((row) => row.costUsd > 0)
-    .map((row) => ({ ...row, name: labelFeature(row.feature) }));
+    .map((row) => ({ ...row, name: labelAiFeature(row.feature) }));
 
   return (
     <section className="surface-card flex h-full min-h-0 min-w-0 flex-col overflow-hidden p-3 sm:p-4">

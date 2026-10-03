@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import { Navigate, Route, useParams } from 'react-router-dom';
 
-
 import { SuperAdminHostShell } from '@/features/dashboard/super-admin/components/super-admin-hosts/SuperAdminHostShell';
 import { SuperAdminOrgShell } from '@/features/dashboard/super-admin/components/super-admin-orgs/SuperAdminOrgShell';
 import { SuperAdminShell } from '@/features/dashboard/super-admin/components/SuperAdminShell';

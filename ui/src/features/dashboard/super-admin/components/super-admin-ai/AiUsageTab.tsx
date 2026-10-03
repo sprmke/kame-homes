@@ -22,6 +22,7 @@ import {
   useSuperAdminAiUsage,
   type SuperAdminAiUsageRange,
 } from '@/features/dashboard/super-admin/hooks/useSuperAdminAiUsage';
+import { labelAiFeature } from '@/features/dashboard/super-admin/lib/aiFeatureLabels';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
@@ -42,10 +43,6 @@ import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { CHART_HEIGHT_CLASS, defaultChartMargin } from '@/lib/charts/chartStyles';
 
 const PALETTE = ['#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b', '#f43f5e', '#64748b', '#f97316'];
-
-function labelFeature(feature: string): string {
-  return feature.replace(/_/g, ' ');
-}
 
 function formatLatency(ms: number | null): string {
   if (ms == null) return '-';
@@ -175,7 +172,7 @@ export function AiUsageTab() {
                     <BarChart
                       data={data.featureBreakdown.slice(0, 10).map((r) => ({
                         ...r,
-                        name: labelFeature(r.feature),
+                        name: labelAiFeature(r.feature),
                       }))}
                       layout="vertical"
                       margin={{ ...defaultChartMargin(isBelowMd), left: 8 }}
@@ -253,7 +250,7 @@ export function AiUsageTab() {
                     <TableBody>
                       {data.featureBreakdown.map((f) => (
                         <TableRow key={f.feature}>
-                          <TableCell className="font-medium">{labelFeature(f.feature)}</TableCell>
+                          <TableCell className="font-medium">{labelAiFeature(f.feature)}</TableCell>
                           <TableCell className="tabular-nums">{f.calls}</TableCell>
                           <TableCell className="tabular-nums">
                             {(f.credits ?? 0).toLocaleString('en-US')}
