@@ -1,4 +1,8 @@
 1
-00:00:00,100 --> 00:00:09,181
-Airbnb sync runs both ways: their reservations arrive as bookings to review, and every blocked or booked night is pushed straight back to Airbnb.
+00:00:00,050 --> 00:00:01,862
+Connect Airbnb once.
+
+2
+00:00:01,862 --> 00:00:05,252
+Bookings and blocked dates stay in sync both ways.
 

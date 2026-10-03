@@ -1,8 +1,8 @@
 1
-00:00:00,100 --> 00:00:03,279
-Every booking moves down one visible pipeline.
+00:00:00,050 --> 00:00:02,055
+Bookings move forward on their own.
 
 2
-00:00:03,229 --> 00:00:09,884
-Documents, receipt checks, calendar updates, and guest emails happen automatically as it advances.
+00:00:02,055 --> 00:00:05,949
+Documents, receipts, and guest emails are handled for you.
 
