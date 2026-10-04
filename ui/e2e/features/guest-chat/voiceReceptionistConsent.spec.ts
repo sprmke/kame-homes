@@ -125,13 +125,30 @@ async function installLiveBrowserMocks(page: Page) {
       value: { getUserMedia: () => Promise.resolve({ getTracks: () => [track] }) },
     });
 
+    const mockNode = () => ({
+      connect: (target: unknown) => target,
+      disconnect: () => undefined,
+    });
     class MockAudioContext {
       state = 'running';
+      sampleRate = 48_000;
+      currentTime = 0;
+      destination = {};
       audioWorklet = { addModule: () => Promise.resolve() };
       createMediaStreamSource() {
-        return { connect: () => undefined, disconnect: () => undefined };
+        return mockNode();
+      }
+      createBiquadFilter() {
+        return { ...mockNode(), type: 'lowpass', frequency: { value: 0 } };
+      }
+      createAnalyser() {
+        return { ...mockNode(), fftSize: 0, getByteTimeDomainData: () => undefined };
+      }
+      resume() {
+        return Promise.resolve();
       }
       close() {
+        this.state = 'closed';
         return Promise.resolve();
       }
     }
@@ -361,9 +378,31 @@ test.describe('@smoke @ci voice receptionist consent', () => {
       .toBe('2');
 
     await page.clock.install();
-    await page.clock.fastForward(46_000);
+    await page.clock.fastForward(31_000);
+    await expect(page.getByText(/Still there\?/)).toBeVisible();
+    await page.clock.fastForward(15_000);
 
     await expect(page.getByText('Ended the call due to inactivity.')).toBeVisible();
     await expect(page.getByText('How can I help with your stay?')).toBeVisible();
+  });
+
+  test('ends with a text fallback when the connection stays offline', async ({ page, context }) => {
+    await installVoiceReceptionistMocks(page, { liveSession: true });
+    await installLiveBrowserMocks(page);
+    await page.goto('/properties/solea/messages?checkInDate=2026-10-01&checkOutDate=2026-10-03');
+
+    await page.getByRole('button', { name: 'Chat options' }).click();
+    await page.getByText('Talk to receptionist', { exact: true }).click();
+    await page.getByRole('button', { name: 'Start call' }).click();
+    await expect(page.getByText('How can I help with your stay?')).toBeVisible();
+
+    await page.clock.install();
+    await context.setOffline(true);
+    await expect(page.getByText('Waiting for your connection…')).toBeVisible();
+    await page.clock.fastForward(11_000);
+
+    await expect(page.getByRole('alert')).toContainText('You went offline');
+    await expect(page.getByRole('button', { name: 'Message host' })).toBeVisible();
+    await context.setOffline(false);
   });
 });

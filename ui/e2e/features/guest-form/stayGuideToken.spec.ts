@@ -10,14 +10,35 @@ test.describe('@ci stay guide token smoke', () => {
       {
         name: 'get-guest-stay-guide',
         status: 404,
-        body: { success: false, error: 'Stay guide not found' },
+        body: {
+          success: false,
+          error: 'This guide is not available. Please use the link from your check-in email.',
+        },
       },
     ]);
 
     await page.goto(`/properties/${PROPERTY_SLUG}/stay-guide?token=invalid-token`);
-    await expect(page.getByText('This stay guide is not available right now.')).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(
+      page.getByText('This guide is not available. Please use the link from your check-in email.')
+    ).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('host plan without the stay guide shows a host-contact message', async ({ page }) => {
+    await mockEdgeFunctions(page, [
+      {
+        name: 'get-guest-stay-guide',
+        status: 403,
+        body: {
+          success: false,
+          error: "This stay guide isn't available. Contact your host if you need it.",
+        },
+      },
+    ]);
+
+    await page.goto(`/properties/${PROPERTY_SLUG}/stay-guide?token=valid-token`);
+    await expect(
+      page.getByText("This stay guide isn't available. Contact your host if you need it.")
+    ).toBeVisible({ timeout: 20_000 });
   });
 
   test('valid token mock renders stay guide content', async ({ page }) => {

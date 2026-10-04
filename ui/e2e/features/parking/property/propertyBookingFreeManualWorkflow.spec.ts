@@ -74,7 +74,7 @@ test.describe('property booking Free-tier manual workflow', () => {
     await expect(page.getByText('Send manually', { exact: true })).toBeVisible();
     await expandAutomationTriggers(page);
     await expect(
-      page.getByLabel(/Automated workflow emails are not included on your plan/i)
+      page.getByLabel(/Automated workflow emails are not on your plan/i)
     ).toBeVisible();
     await captureParkingScreen(page, 'automation-triggers-expanded');
     await demoPause(page);
@@ -220,9 +220,7 @@ test.describe('property booking Free-tier manual workflow', () => {
     });
 
     await openPropertyBookingDetail(page);
-    await expect(
-      page.getByText('Workflow emails are not automatic on your plan', { exact: false })
-    ).toBeVisible();
+    await expect(page.getByText('Send manually', { exact: true })).toBeVisible();
     await expandAutomationTriggers(page);
 
     await page.getByRole('button', { name: 'Send Pet request' }).click();
@@ -269,7 +267,7 @@ test.describe('property booking Free-tier manual workflow', () => {
       )
       .click();
     await page.getByRole('button', { name: /Proceed to Pending Documents/i }).click();
-    await expect(page.getByRole('heading', { name: 'Proceed to Pending Documents' })).toBeVisible({
+    await expect(page.getByRole('dialog', { name: 'Proceed to Pending Documents' })).toBeVisible({
       timeout: 10_000,
     });
     await expect(
