@@ -117,7 +117,9 @@ export async function fetchGuestStayGuide(
   const json = (await res.json()) as ApiSuccess<GuestStayGuideDto> | ApiError;
   if (!res.ok || !json.success) {
     throw new Error(
-      ('message' in json && json.message) || 'This stay guide is not available right now.'
+      ('message' in json && json.message) ||
+        ('error' in json && json.error) ||
+        'This stay guide is not available right now.'
     );
   }
   return json.data;

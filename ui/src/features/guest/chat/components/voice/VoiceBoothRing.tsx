@@ -1,53 +1,52 @@
-import type { ReceptionistAvatarState } from '@/features/guest/chat/components/voice/ReceptionistAvatar';
+import type { ReceptionistAvatarState } from '@/features/guest/chat/components/voice/receptionistAvatarTypes';
 
 import { cn } from '@/lib/utils';
 
 type Props = {
   state: ReceptionistAvatarState;
-  /** 0..1 — drives speaking glow strength. */
-  amplitude?: number;
+  /** Show the orbiting arc (connecting, thinking, ending). */
+  busy: boolean;
   className?: string;
 };
 
+/** Circumference of r=47 is ~295; one short arc orbits while busy. */
+const ORBIT_DASH = '38 257';
+
 /**
- * Booth ring around the receptionist avatar.
- * Listening = soft pulse; thinking = spin chase; speaking = amplitude stroke.
- * Stroke color follows theme via `currentColor`.
+ * Booth ring around the receptionist. Both layers stay mounted and run continuously; state only
+ * changes color and the orbit's opacity, so switching states never restarts an animation.
+ * The ring scales with `--voice-amp` from the nearest meter host.
  */
-export function VoiceBoothRing({ state, amplitude = 0, className }: Props) {
-  const amp = Math.max(0, Math.min(1, amplitude));
-  const listening = state === 'listening' || state === 'idle';
-  const thinking = state === 'thinking' || state === 'connecting';
-  const speaking = state === 'speaking';
-  const errored = state === 'error';
+export function VoiceBoothRing({ state, busy, className }: Props) {
+  const tone = state === 'error' ? 'text-destructive' : busy ? 'text-warning' : 'text-primary';
 
   return (
     <svg
       viewBox="0 0 100 100"
       className={cn(
-        'pointer-events-none absolute inset-0 h-full w-full',
-        errored ? 'text-destructive' : thinking ? 'text-warning' : 'text-primary',
+        'pointer-events-none absolute inset-0 h-full w-full overflow-visible transition-colors duration-300',
+        tone,
         className
       )}
       aria-hidden
     >
-      <circle
-        cx="50"
-        cy="50"
-        r="47"
-        fill="none"
-        stroke="currentColor"
-        strokeOpacity={speaking ? 0.35 + amp * 0.5 : thinking ? 0.75 : 0.5}
-        strokeWidth={speaking ? 1.25 + amp * 2.5 : 1.5}
-        strokeLinecap="round"
-        strokeDasharray={thinking ? '10 8' : undefined}
-        className={cn(
-          'origin-center transition-[stroke-width,stroke-opacity] duration-150',
-          listening && 'motion-safe:animate-pulse',
-          thinking && 'motion-safe:animate-spin'
-        )}
-        style={{ transformOrigin: '50px 50px' }}
-      />
+      <g className="voice-ring-level">
+        <g className="voice-ring-breathe">
+          <circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </g>
+      </g>
+      <g className="voice-ring-orbit" style={{ opacity: busy ? 1 : 0 }}>
+        <circle
+          cx="50"
+          cy="50"
+          r="47"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeDasharray={ORBIT_DASH}
+        />
+      </g>
     </svg>
   );
 }

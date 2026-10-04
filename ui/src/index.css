@@ -406,6 +406,120 @@
     animation: voice-meter 0.9s ease-in-out infinite;
   }
 
+  /*
+   * Guest voice receptionist booth. `useVoiceSession` writes --voice-in / --voice-out /
+   * --voice-amp (0..1) once per frame on the booth root, so level-driven motion never
+   * re-renders React. Only transform and opacity animate (compositor-only, no layout).
+   * State changes crossfade always-mounted layers instead of swapping classes that
+   * restart animations.
+   */
+  @keyframes voice-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes voice-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes voice-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.018);
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes voice-orbit {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .voice-panel {
+    animation: voice-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition:
+      opacity 180ms ease-in,
+      transform 180ms ease-in;
+  }
+
+  .voice-panel[data-closing='true'] {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .voice-fade-up {
+    animation: voice-fade-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .voice-booth-glow {
+    opacity: calc(0.12 + var(--voice-amp, 0) * 0.55);
+    transform: scale(calc(0.92 + var(--voice-amp, 0) * 0.14));
+    will-change: transform, opacity;
+  }
+
+  .voice-ring-breathe {
+    transform-origin: 50% 50%;
+    animation: voice-breathe 3.2s ease-in-out infinite;
+  }
+
+  .voice-ring-level {
+    transform-origin: 50% 50%;
+    transform: scale(calc(1 + var(--voice-amp, 0) * 0.035));
+    will-change: transform;
+  }
+
+  .voice-ring-orbit {
+    transform-origin: 50% 50%;
+    animation: voice-orbit 1.6s linear infinite;
+    transition: opacity 320ms ease;
+  }
+
+  .voice-avatar-motion {
+    transform: translateY(calc(var(--voice-out, 0) * -1.5px))
+      scale(calc(1 + var(--voice-out, 0) * 0.025));
+    will-change: transform;
+  }
+
+  .voice-wave-bar {
+    transform: scaleY(calc(0.16 + var(--voice-amp, 0) * var(--voice-bar, 1)));
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .voice-panel,
+    .voice-fade-up,
+    .voice-ring-breathe,
+    .voice-ring-orbit {
+      animation: none;
+    }
+
+    .voice-panel[data-closing='true'],
+    .voice-booth-glow,
+    .voice-ring-level,
+    .voice-avatar-motion,
+    .voice-wave-bar {
+      transform: none;
+    }
+  }
+
   /* Notification bell — soft attention when unread (not continuous shake). */
   @keyframes notification-bell-nudge {
     0%,

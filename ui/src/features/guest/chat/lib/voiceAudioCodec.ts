@@ -9,10 +9,14 @@ export function floatTo16BitPCM(input: Float32Array): Int16Array {
   return out;
 }
 
+const BASE64_CHUNK = 0x2000;
+
 export function int16ToBase64(samples: Int16Array): string {
-  const bytes = new Uint8Array(samples.buffer);
+  const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
   let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  for (let i = 0; i < bytes.length; i += BASE64_CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + BASE64_CHUNK));
+  }
   return btoa(binary);
 }
 

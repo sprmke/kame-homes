@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   hasVoiceSessionIdled,
+  voiceIdleStage,
   shouldKeepInterruptedAssistantCaption,
   voiceReconnectDelayMs,
   voiceRemainingSeconds,
@@ -30,6 +31,16 @@ describe('voice session timing', () => {
     expect(hasVoiceSessionIdled({ phase: 'listening', lastActivityMs: 0, nowMs: 46_000 })).toBe(
       true
     );
+  });
+
+  it('warns before ending a silent call and ignores lifecycle phases', () => {
+    const at = (nowMs: number, phase = 'listening') =>
+      voiceIdleStage({ phase, lastActivityMs: 0, nowMs });
+    expect(at(29_000)).toBe('active');
+    expect(at(31_000)).toBe('warning');
+    expect(at(46_000)).toBe('idle');
+    expect(at(100_000, 'ending')).toBe('active');
+    expect(at(100_000, 'connecting')).toBe('active');
   });
 
   it('drops short interrupted assistant fragments', () => {

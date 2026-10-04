@@ -30,3 +30,16 @@ describe('computeRms', () => {
     expect(typeof computeRms).toBe('function');
   });
 });
+
+describe('PCM16 base64 round trip', () => {
+  it('preserves samples across the base64 boundary', () => {
+    const samples = new Int16Array(5000);
+    for (let i = 0; i < samples.length; i++) samples[i] = ((i * 37) % 65536) - 32768;
+    expect(Array.from(base64ToInt16(int16ToBase64(samples)))).toEqual(Array.from(samples));
+  });
+
+  it('encodes only the view of a larger buffer', () => {
+    const backing = new Int16Array([1, 2, 3, 4]);
+    expect(Array.from(base64ToInt16(int16ToBase64(backing.subarray(1, 3))))).toEqual([2, 3]);
+  });
+});

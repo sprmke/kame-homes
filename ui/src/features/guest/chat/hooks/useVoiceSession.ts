@@ -9,6 +9,7 @@ import {
 } from '@/features/guest/chat/hooks/useGuestChat';
 import {
   classifyLiveVoiceMessage,
+  decodeLiveVoiceFrame,
   describeLiveVoiceClose,
   liveVoiceWebSocketUrl,
 } from '@/features/guest/chat/lib/liveVoiceProtocol';
@@ -34,8 +35,10 @@ import {
   type VoiceSessionPhase,
 } from '@/features/guest/chat/lib/voiceSessionState';
 import {
-  hasVoiceSessionIdled,
   shouldKeepInterruptedAssistantCaption,
+  VOICE_OFFLINE_GRACE_MS,
+  VOICE_SEND_BUFFER_LIMIT_BYTES,
+  voiceIdleStage,
   voiceReconnectDelayMs,
   voiceRemainingSeconds,
 } from '@/features/guest/chat/lib/voiceSessionTiming';
@@ -52,7 +55,8 @@ import { captureAppEvent } from '@/lib/posthog/capture';
 
 export type { VoiceSessionPhase } from '@/features/guest/chat/lib/voiceSessionState';
 
-export type VoiceSessionCaption = { role: VoiceReceptionistRole; text: string };
+/** `id` is stable for a turn's lifetime (streaming → committed) so captions never remount. */
+export type VoiceSessionCaption = { id: string; role: VoiceReceptionistRole; text: string };
 export type VoiceSessionAction = VoiceReceptionistAction;
 
 type ToolCallMessage = { functionCalls?: VoiceToolFunctionCall[] };
@@ -65,11 +69,15 @@ type ServerContentMessage = {
   generationComplete?: boolean;
 };
 type SessionResumptionUpdate = { newHandle?: string; resumable?: boolean };
+type EndOptions = { notifyServer?: boolean };
 
 const AMPLITUDE_GAIN = 3.2;
 const AMPLITUDE_SMOOTHING = 0.72;
+/** Below this the meter is visually still; the loop stops after the call ends. */
+const AMPLITUDE_REST = 0.004;
 const CAPTION_HISTORY_LIMIT = 20;
-const MIC_ACTIVITY_RMS_THRESHOLD = 0.02;
+/** Countdown, idle, and offline checks. Not rAF: browsers pause rAF in background tabs. */
+const SESSION_CLOCK_INTERVAL_MS = 250;
 /** Local VAD (UI only) — hysteresis so status flips before Gemini commits end-of-speech. */
 const LOCAL_SPEAKING_ON_RMS = 0.022;
 const LOCAL_SPEAKING_OFF_RMS = 0.01;
@@ -77,11 +85,29 @@ const LOCAL_SPEAKING_OFF_RMS = 0.01;
 const LOCAL_SILENCE_TO_THINKING_MS = 550;
 /** Wait for late outputTranscription chunks after turnComplete before committing assistant text. */
 const ASSISTANT_FLUSH_DEBOUNCE_MS = 450;
+const CONNECT_TIMEOUT_MS = 8_000;
+const HEARTBEAT_INTERVAL_MS = 30_000;
 
+/** iOS 17+: route Web Audio as a call so the ringer switch does not silence the receptionist. */
+function setCallAudioSession(): void {
+  const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (!audioSession) return;
+  try {
+    audioSession.type = 'play-and-record';
+  } catch {
+    // unsupported value on this browser
+  }
+}
+
+/**
+ * Guest voice receptionist session: mic capture → Gemini Live WebSocket → gapless playback.
+ *
+ * Audio level never goes through React state. Attach `meterRef` to the element that hosts the
+ * visuals; one rAF loop writes `--voice-in`, `--voice-out`, and `--voice-amp` (0..1) on it.
+ */
 export function useVoiceSession(propertySlug: string) {
   const qc = useQueryClient();
   const [phase, dispatchPhase] = useReducer(voiceSessionPhaseReducer, 'idle');
-  const [amplitude, setAmplitude] = useState(0);
   const [muted, setMuted] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [captions, setCaptions] = useState<VoiceSessionCaption[]>([]);
@@ -89,10 +115,11 @@ export function useVoiceSession(propertySlug: string) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   /** True while local mic energy looks like guest speech (independent of Gemini VAD). */
   const [userSpeaking, setUserSpeaking] = useState(false);
-  /** True while getPropertyFact is in flight (Phase 6.2 / 6.3 status copy). */
   const [toolPending, setToolPending] = useState(false);
   const [actions, setActions] = useState<VoiceSessionAction[]>([]);
   const [audioGuidance, setAudioGuidance] = useState<string | null>(null);
+  /** Short notice for silence or a dropped network, cleared when the condition clears. */
+  const [notice, setNotice] = useState<'idle' | 'offline' | null>(null);
   const [endedSessionId, setEndedSessionId] = useState<string | null>(null);
   const [transcriptDeleted, setTranscriptDeleted] = useState(false);
 
@@ -105,6 +132,8 @@ export function useVoiceSession(propertySlug: string) {
   const lastCaptionRoleRef = useRef<VoiceReceptionistRole | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  /** False between socket open and `setupComplete`; audio sent then is a protocol error. */
+  const setupReadyRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const maxSessionSecondsRef = useRef(0);
   const startedAtMsRef = useRef(0);
@@ -113,26 +142,40 @@ export function useVoiceSession(propertySlug: string) {
   if (!microphoneRef.current) microphoneRef.current = new VoiceMicrophoneCapture();
   const micRmsRef = useRef(0);
 
+  const playbackHandlersRef = useRef({ onStart: () => {}, onIdle: () => {} });
   const playbackRef = useRef<VoicePlaybackQueue | null>(null);
-  if (!playbackRef.current) playbackRef.current = new VoicePlaybackQueue();
+  if (!playbackRef.current) {
+    playbackRef.current = new VoicePlaybackQueue({
+      onStart: () => playbackHandlersRef.current.onStart(),
+      onIdle: () => playbackHandlersRef.current.onIdle(),
+    });
+  }
 
+  const meterElRef = useRef<HTMLElement | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const lastRemainingRef = useRef(-1);
-  const smoothedAmpRef = useRef(0);
-  const lastSetAmpRef = useRef(0);
+  const meterRef = useRef({ input: 0, output: 0 });
   const lastActivityMsRef = useRef(Date.now());
 
   const currentInputBufferRef = useRef('');
   const currentOutputBufferRef = useRef('');
-  const transcriptRef = useRef<VoiceReceptionistTranscriptTurn[]>([]);
+  const inputTurnIdRef = useRef<string | null>(null);
+  const outputTurnIdRef = useRef<string | null>(null);
+  const turnSeqRef = useRef(0);
+  const transcriptRef = useRef<Array<VoiceReceptionistTranscriptTurn & { id: string }>>([]);
   const assistantFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const offlineSinceRef = useRef<number | null>(null);
+  const noticeRef = useRef<'idle' | 'offline' | null>(null);
   const setupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resumptionHandleRef = useRef<string | null>(null);
   const reconnectAttemptedRef = useRef(false);
   const reconnectRef = useRef<(() => Promise<void>) | null>(null);
   const greetingSentRef = useRef(false);
+  const acknowledgedRef = useRef(false);
   const interruptionCountRef = useRef(0);
+  const toolPendingRef = useRef(false);
   const metricsRef = useRef({
     requestedAt: 0,
     permissionAt: 0,
@@ -179,6 +222,15 @@ export function useVoiceSession(propertySlug: string) {
     setUserSpeaking(next);
   }, []);
 
+  playbackHandlersRef.current = {
+    onStart: () => {
+      setPhaseIfActive('speaking');
+      clearSilenceToThinkingTimer();
+      setUserSpeakingState(false);
+    },
+    onIdle: () => setPhaseIfActive('listening'),
+  };
+
   /**
    * Local RMS → UI speaking / thinking. Does not replace Gemini server VAD for the model;
    * only closes the "stuck on LISTENING" gap after the guest stops talking.
@@ -186,23 +238,13 @@ export function useVoiceSession(propertySlug: string) {
   const applyLocalVad = useCallback(
     (rms: number) => {
       if (mutedRef.current || endedRef.current) return;
-      const phase = phaseRef.current;
-      if (
-        phase === 'connecting' ||
-        phase === 'reconnecting' ||
-        phase === 'ending' ||
-        phase === 'ended' ||
-        phase === 'error'
-      ) {
-        return;
-      }
+      const current = phaseRef.current;
+      if (current !== 'listening' && current !== 'thinking' && current !== 'speaking') return;
 
       if (!userSpeakingRef.current && rms >= LOCAL_SPEAKING_ON_RMS) {
         clearSilenceToThinkingTimer();
         setUserSpeakingState(true);
-        if (phase === 'thinking' || phase === 'listening') {
-          setPhaseIfActive('listening');
-        }
+        if (current === 'thinking') setPhaseIfActive('listening');
         return;
       }
 
@@ -213,8 +255,8 @@ export function useVoiceSession(propertySlug: string) {
           setUserSpeakingState(false);
           if (
             !endedRef.current &&
-            playbackRef.current?.pendingCount === 0 &&
-            (phaseRef.current === 'listening' || phaseRef.current === 'thinking')
+            !playbackRef.current?.isPlaying &&
+            phaseRef.current === 'listening'
           ) {
             setPhaseIfActive('thinking');
           }
@@ -230,8 +272,16 @@ export function useVoiceSession(propertySlug: string) {
     lastActivityMsRef.current = Date.now();
   }, []);
 
+  /** Reuse the previous turn's id when the same role keeps talking, so the bubble stays mounted. */
+  const turnIdFor = useCallback((role: VoiceReceptionistRole): string => {
+    const last = transcriptRef.current[transcriptRef.current.length - 1];
+    if (last?.role === role) return last.id;
+    turnSeqRef.current += 1;
+    return `turn-${turnSeqRef.current}`;
+  }, []);
+
   /** Commit bounded local captions without an extra model call. */
-  const commitTurn = useCallback((role: VoiceReceptionistRole, rawText: string) => {
+  const commitTurn = useCallback((role: VoiceReceptionistRole, rawText: string, id: string) => {
     const raw = normalizeVoiceTranscriptText(rawText);
     if (!raw) return;
 
@@ -242,40 +292,41 @@ export function useVoiceSession(propertySlug: string) {
 
     const at = new Date().toISOString();
     const last = transcriptRef.current[transcriptRef.current.length - 1];
-    let nextText = raw;
+    let caption: VoiceSessionCaption;
     if (last?.role === role) {
-      nextText = mergeVoiceTranscription(last.text, raw);
-      if (nextText === last.text) {
-        setLiveCaption({ role, text: nextText });
-        return;
-      }
-      transcriptRef.current = [...transcriptRef.current.slice(0, -1), { role, text: nextText, at }];
+      const merged = mergeVoiceTranscription(last.text, raw);
+      caption = { id: last.id, role, text: merged };
+      transcriptRef.current = [...transcriptRef.current.slice(0, -1), { ...caption, at }];
     } else {
-      transcriptRef.current = [...transcriptRef.current, { role, text: nextText, at }];
+      caption = { id, role, text: raw };
+      transcriptRef.current = [...transcriptRef.current, { ...caption, at }];
     }
 
-    const caption: VoiceSessionCaption = { role, text: nextText };
     setCaptions((prev) => {
-      const prevLast = prev[prev.length - 1];
-      if (prevLast?.role === role) {
-        return [...prev.slice(0, -1), caption].slice(-CAPTION_HISTORY_LIMIT);
-      }
-      return [...prev, caption].slice(-CAPTION_HISTORY_LIMIT);
+      const next =
+        prev[prev.length - 1]?.id === caption.id
+          ? [...prev.slice(0, -1), caption]
+          : [...prev, caption];
+      return next.slice(-CAPTION_HISTORY_LIMIT);
     });
     setLiveCaption(caption);
   }, []);
 
   const flushInputBuffer = useCallback(() => {
     const text = currentInputBufferRef.current.trim();
+    const id = inputTurnIdRef.current;
     currentInputBufferRef.current = '';
-    if (text) commitTurn('guest', text);
+    inputTurnIdRef.current = null;
+    if (text && id) commitTurn('guest', text, id);
   }, [commitTurn]);
 
   const flushOutputBuffer = useCallback(() => {
     clearAssistantFlushTimer();
     const text = currentOutputBufferRef.current.trim();
+    const id = outputTurnIdRef.current;
     currentOutputBufferRef.current = '';
-    if (text) commitTurn('assistant', text);
+    outputTurnIdRef.current = null;
+    if (text && id) commitTurn('assistant', text, id);
   }, [clearAssistantFlushTimer, commitTurn]);
 
   const scheduleAssistantFlush = useCallback(() => {
@@ -286,12 +337,12 @@ export function useVoiceSession(propertySlug: string) {
     }, ASSISTANT_FLUSH_DEBOUNCE_MS);
   }, [clearAssistantFlushTimer, flushOutputBuffer]);
 
-  const stopMic = useCallback(() => {
-    microphoneRef.current?.stop();
-  }, []);
-
-  const stopPlayback = useCallback(() => {
-    playbackRef.current?.stop();
+  const writeMeter = useCallback((input: number, output: number) => {
+    const el = meterElRef.current;
+    if (!el) return;
+    el.style.setProperty('--voice-in', input.toFixed(3));
+    el.style.setProperty('--voice-out', output.toFixed(3));
+    el.style.setProperty('--voice-amp', Math.max(input, output).toFixed(3));
   }, []);
 
   const stopAmplitudeLoop = useCallback(() => {
@@ -301,10 +352,44 @@ export function useVoiceSession(propertySlug: string) {
     }
   }, []);
 
+  const clearSessionTimers = useCallback(() => {
+    if (clockTimerRef.current !== null) {
+      clearInterval(clockTimerRef.current);
+      clockTimerRef.current = null;
+    }
+    if (heartbeatTimerRef.current !== null) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+    if (setupTimeoutRef.current !== null) {
+      clearTimeout(setupTimeoutRef.current);
+      setupTimeoutRef.current = null;
+    }
+  }, []);
+
+  const closeSocket = useCallback(() => {
+    const ws = wsRef.current;
+    wsRef.current = null;
+    setupReadyRef.current = false;
+    if (!ws) return;
+    ws.onmessage = null;
+    ws.onclose = null;
+    ws.onerror = null;
+    try {
+      ws.close();
+    } catch {
+      // already closed
+    }
+  }, []);
+
   const endingPromiseRef = useRef<Promise<void> | null>(null);
 
   const end = useCallback(
-    (reason: VoiceReceptionistEndReason = 'guest_ended', message?: string): Promise<void> => {
+    (
+      reason: VoiceReceptionistEndReason = 'guest_ended',
+      message?: string,
+      options: EndOptions = {}
+    ): Promise<void> => {
       if (endedRef.current) return endingPromiseRef.current ?? Promise.resolve();
       endedRef.current = true;
       dispatchPhase({ type: 'begin_end' });
@@ -312,35 +397,27 @@ export function useVoiceSession(propertySlug: string) {
 
       flushInputBuffer();
       flushOutputBuffer();
-      clearAssistantFlushTimer();
       setLiveCaption(null);
       clearSilenceToThinkingTimer();
       setUserSpeakingState(false);
-      if (heartbeatTimerRef.current !== null) {
-        clearInterval(heartbeatTimerRef.current);
-        heartbeatTimerRef.current = null;
-      }
-      if (setupTimeoutRef.current !== null) {
-        clearTimeout(setupTimeoutRef.current);
-        setupTimeoutRef.current = null;
-      }
-
-      stopAmplitudeLoop();
-      stopMic();
-      stopPlayback();
-      try {
-        wsRef.current?.close();
-      } catch {
-        // already closed
-      }
-      wsRef.current = null;
+      clearSessionTimers();
+      offlineSinceRef.current = null;
+      noticeRef.current = null;
+      setNotice(null);
+      // The rAF loop keeps running so the meter eases to rest, then stops itself.
+      microphoneRef.current?.stop();
+      micRmsRef.current = 0;
+      playbackRef.current?.close();
+      closeSocket();
 
       const sessionId = sessionIdRef.current;
-      const transcript = transcriptRef.current;
+      const transcript = transcriptRef.current.map(({ role, text, at }) => ({ role, text, at }));
       sessionIdRef.current = null;
+      const failed =
+        reason === 'error' || reason === 'provider_error' || reason === 'provider_go_away';
 
       const finish = async () => {
-        if (sessionId) {
+        if (sessionId && options.notifyServer !== false) {
           try {
             await endVoiceReceptionistSession(sessionId, {
               endReason: reason,
@@ -361,43 +438,40 @@ export function useVoiceSession(propertySlug: string) {
             console.warn('[useVoiceSession] end call failed:', (e as Error).message);
           }
         }
-        const failed =
-          reason === 'error' || reason === 'provider_error' || reason === 'provider_go_away';
         dispatchPhase({ type: failed ? 'fail' : 'end_success' });
       };
 
       const promise = finish();
       endingPromiseRef.current = promise;
-      captureAppEvent(
-        reason === 'error' || reason === 'provider_error'
-          ? 'voice_session_failed'
-          : 'voice_session_ended',
-        {
-          reason,
-          duration_ms: startedAtMsRef.current ? Date.now() - startedAtMsRef.current : 0,
-        }
-      );
+      captureAppEvent(failed ? 'voice_session_failed' : 'voice_session_ended', {
+        reason,
+        duration_ms: startedAtMsRef.current ? Date.now() - startedAtMsRef.current : 0,
+      });
       return promise;
     },
     [
       qc,
-      clearAssistantFlushTimer,
+      clearSessionTimers,
       clearSilenceToThinkingTimer,
+      closeSocket,
       flushInputBuffer,
       flushOutputBuffer,
       setUserSpeakingState,
-      stopAmplitudeLoop,
-      stopMic,
-      stopPlayback,
     ]
   );
 
-  const startAmplitudeLoop = useCallback(() => {
-    lastRemainingRef.current = -1;
-    smoothedAmpRef.current = 0;
-    lastSetAmpRef.current = 0;
+  const updateNotice = useCallback((next: 'idle' | 'offline' | null) => {
+    if (noticeRef.current === next) return;
+    noticeRef.current = next;
+    setNotice(next);
+  }, []);
 
-    const tick = () => {
+  /** Session clock: countdown, idle warning/timeout, and the offline grace period. */
+  const startSessionClock = useCallback(() => {
+    if (clockTimerRef.current !== null) clearInterval(clockTimerRef.current);
+    lastRemainingRef.current = -1;
+    clockTimerRef.current = setInterval(() => {
+      if (endedRef.current) return;
       const nowMs = Date.now();
       const remaining = voiceRemainingSeconds({
         startedAtMs: startedAtMsRef.current,
@@ -407,95 +481,103 @@ export function useVoiceSession(propertySlug: string) {
       if (remaining !== lastRemainingRef.current) {
         lastRemainingRef.current = remaining;
         setRemainingSeconds(remaining);
-        if (remaining <= 0 && !endedRef.current) {
-          end('timeout');
+        if (remaining <= 0) {
+          void end('timeout');
           return;
         }
       }
 
-      if (
-        hasVoiceSessionIdled({
-          phase: phaseRef.current,
-          lastActivityMs: lastActivityMsRef.current,
-          nowMs,
-        })
-      ) {
-        end('idle_timeout', 'Ended the call due to inactivity.');
+      const offlineSince = offlineSinceRef.current;
+      if (offlineSince !== null) {
+        if (nowMs - offlineSince > VOICE_OFFLINE_GRACE_MS) {
+          void end('provider_error', 'You went offline. Continue in text chat when you are back.');
+          return;
+        }
+        // Silence while offline is not the guest's fault; keep the idle timer from firing.
+        lastActivityMsRef.current = nowMs;
+        updateNotice('offline');
         return;
       }
 
-      let target = 0;
-      if (phaseRef.current === 'speaking') {
-        target = playbackRef.current?.readRms() ?? 0;
-      } else if (
-        phaseRef.current === 'listening' ||
-        phaseRef.current === 'thinking' ||
-        userSpeakingRef.current
-      ) {
-        target = micRmsRef.current;
+      const stage = voiceIdleStage({
+        phase: phaseRef.current,
+        lastActivityMs: lastActivityMsRef.current,
+        nowMs,
+      });
+      if (stage === 'idle') {
+        void end('idle_timeout', 'Ended the call due to inactivity.');
+        return;
+      }
+      updateNotice(stage === 'warning' ? 'idle' : null);
+    }, SESSION_CLOCK_INTERVAL_MS);
+  }, [end, updateNotice]);
+
+  const startAmplitudeLoop = useCallback(() => {
+    stopAmplitudeLoop();
+    meterRef.current = { input: 0, output: 0 };
+
+    const tick = () => {
+      const current = phaseRef.current;
+      let inputTarget = 0;
+      let outputTarget = 0;
+
+      if (!endedRef.current) {
+        if (current === 'speaking') outputTarget = playbackRef.current?.readRms() ?? 0;
+        if (
+          !mutedRef.current &&
+          (current === 'listening' || current === 'thinking' || userSpeakingRef.current)
+        ) {
+          inputTarget = micRmsRef.current;
+        }
       }
 
-      const smoothed =
-        smoothedAmpRef.current * AMPLITUDE_SMOOTHING +
+      const ease = (value: number, target: number) =>
+        value * AMPLITUDE_SMOOTHING +
         Math.min(1, target * AMPLITUDE_GAIN) * (1 - AMPLITUDE_SMOOTHING);
-      smoothedAmpRef.current = smoothed;
-      if (Math.abs(smoothed - lastSetAmpRef.current) > 0.015) {
-        lastSetAmpRef.current = smoothed;
-        setAmplitude(smoothed);
-      }
+      const meter = meterRef.current;
+      meter.input = ease(meter.input, inputTarget);
+      meter.output = ease(meter.output, outputTarget);
 
+      if (endedRef.current && meter.input < AMPLITUDE_REST && meter.output < AMPLITUDE_REST) {
+        writeMeter(0, 0);
+        rafIdRef.current = null;
+        return;
+      }
+      writeMeter(meter.input, meter.output);
       rafIdRef.current = requestAnimationFrame(tick);
     };
 
     rafIdRef.current = requestAnimationFrame(tick);
-  }, [end]);
-
-  const playPcm16Base64 = useCallback(
-    async (b64: string) => {
-      await playbackRef.current?.enqueue(b64, {
-        onStart: () => {
-          setPhaseIfActive('speaking');
-          clearSilenceToThinkingTimer();
-          setUserSpeakingState(false);
-        },
-        onIdle: () => setPhaseIfActive('listening'),
-      });
-    },
-    [clearSilenceToThinkingTimer, setPhaseIfActive, setUserSpeakingState]
-  );
-
-  /**
-   * Requests mic permission up front — before minting a session/token — so a permission
-   * denial never consumes a guest daily-cap slot or leaves an orphaned session row.
-   */
-  const acquireMicStream = useCallback(async (): Promise<void> => {
-    await microphoneRef.current?.acquire(() => {
-      if (!endedRef.current) end('error', 'Microphone disconnected.');
-    });
-  }, [end]);
+  }, [stopAmplitudeLoop, writeMeter]);
 
   const attachMicWorklet = useCallback(async () => {
     await microphoneRef.current?.attach(({ pcm, rms }) => {
       micRmsRef.current = rms;
-      if (rms > MIC_ACTIVITY_RMS_THRESHOLD) markActivity();
+      // Raw mic level is not activity: room noise (boosted by auto gain) would keep a silent
+      // call open. Activity comes from recognized speech, replies, and tools.
       applyLocalVad(rms);
-      if (mutedRef.current) return;
-      if (wsRef.current?.readyState !== WebSocket.OPEN) return;
-      const data = int16ToBase64(pcm);
-      wsRef.current.send(
+      if (mutedRef.current || !setupReadyRef.current) return;
+      const ws = wsRef.current;
+      if (ws?.readyState !== WebSocket.OPEN) return;
+      if (ws.bufferedAmount > VOICE_SEND_BUFFER_LIMIT_BYTES) return;
+      ws.send(
         JSON.stringify({
           realtimeInput: {
-            audio: { mimeType: `audio/pcm;rate=${VOICE_MIC_SAMPLE_RATE}`, data },
+            audio: {
+              mimeType: `audio/pcm;rate=${VOICE_MIC_SAMPLE_RATE}`,
+              data: int16ToBase64(pcm),
+            },
           },
         })
       );
     });
-  }, [applyLocalVad, markActivity]);
+  }, [applyLocalVad]);
 
   const handleToolCall = useCallback(
     async (ws: WebSocket, toolCall: ToolCallMessage) => {
       const calls = toolCall.functionCalls ?? [];
       if (!calls.length) return;
+      toolPendingRef.current = true;
       setToolPending(true);
       setPhaseIfActive('thinking');
       const toolStartedAt = performance.now();
@@ -515,7 +597,7 @@ export function useVoiceSession(propertySlug: string) {
           });
         }
 
-        if (ws.readyState === WebSocket.OPEN) {
+        if (ws === wsRef.current && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
         }
         // Stay on thinking until AI audio (or the next listening cycle) — don't flash Listening.
@@ -527,58 +609,70 @@ export function useVoiceSession(propertySlug: string) {
         if (failedCount > 0) {
           captureAppEvent('voice_tool_failed', { failed_count: failedCount });
         }
+        toolPendingRef.current = false;
         setToolPending(false);
       }
     },
     [setPhaseIfActive]
   );
 
-  const handleSocketMessage = useCallback(
-    async (ws: WebSocket, event: MessageEvent) => {
-      let raw = event.data as string;
-      if (event.data instanceof Blob) raw = await event.data.text();
-      let msg: Record<string, unknown>;
+  const handleSetupComplete = useCallback(
+    async (ws: WebSocket) => {
+      if (setupTimeoutRef.current !== null) {
+        clearTimeout(setupTimeoutRef.current);
+        setupTimeoutRef.current = null;
+      }
+      const sessionId = sessionIdRef.current;
+      if (!sessionId) return;
+      setupReadyRef.current = true;
+
+      // Ack in the background: the first setup activates the lease, a resumed one only renews it.
+      const ack = acknowledgedRef.current ? 'heartbeat' : 'active';
+      acknowledgedRef.current = true;
+      void updateVoiceReceptionistSession(sessionId, ack).catch(() => {
+        void end('error', 'Voice session expired. Please try again.');
+      });
+      if (heartbeatTimerRef.current !== null) clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = setInterval(() => {
+        const activeSessionId = sessionIdRef.current;
+        if (!activeSessionId) return;
+        void updateVoiceReceptionistSession(activeSessionId, 'heartbeat').catch(() => {
+          void end('error', 'Voice session expired. Please try again.');
+        });
+      }, HEARTBEAT_INTERVAL_MS);
+
+      if (!greetingSentRef.current && ws.readyState === WebSocket.OPEN) {
+        greetingSentRef.current = true;
+        ws.send(JSON.stringify({ realtimeInput: { text: 'Start the call.' } }));
+      }
+
       try {
-        msg = JSON.parse(raw) as Record<string, unknown>;
+        if (!microphoneRef.current?.isAttached) await attachMicWorklet();
       } catch {
+        void end('error', 'Microphone access failed.');
         return;
       }
+      if (metricsRef.current.setupMs === null) {
+        metricsRef.current.setupMs = metricsRef.current.permissionAt
+          ? Date.now() - metricsRef.current.permissionAt
+          : null;
+        captureAppEvent('voice_setup_completed', { duration_ms: metricsRef.current.setupMs ?? 0 });
+      }
+      markActivity();
+      setPhaseIfActive('listening');
+    },
+    [attachMicWorklet, end, markActivity, setPhaseIfActive]
+  );
+
+  const handleSocketMessage = useCallback(
+    (ws: WebSocket, event: MessageEvent) => {
+      if (ws !== wsRef.current || endedRef.current) return;
+      const msg = decodeLiveVoiceFrame(event.data);
+      if (!msg) return;
       const messageKinds = classifyLiveVoiceMessage(msg);
 
       if (messageKinds.includes('setup_complete')) {
-        try {
-          if (setupTimeoutRef.current !== null) {
-            clearTimeout(setupTimeoutRef.current);
-            setupTimeoutRef.current = null;
-          }
-          const sessionId = sessionIdRef.current;
-          if (!sessionId) throw new Error('Voice session is no longer active.');
-          await updateVoiceReceptionistSession(sessionId, 'active');
-          if (!greetingSentRef.current && ws.readyState === WebSocket.OPEN) {
-            greetingSentRef.current = true;
-            ws.send(JSON.stringify({ realtimeInput: { text: 'Start the call.' } }));
-          }
-          if (heartbeatTimerRef.current !== null) clearInterval(heartbeatTimerRef.current);
-          heartbeatTimerRef.current = setInterval(() => {
-            const activeSessionId = sessionIdRef.current;
-            if (activeSessionId) {
-              void updateVoiceReceptionistSession(activeSessionId, 'heartbeat').catch(() => {
-                end('error', 'Voice session expired. Please try again.');
-              });
-            }
-          }, 30_000);
-          if (!microphoneRef.current?.isAttached) await attachMicWorklet();
-          metricsRef.current.setupMs = metricsRef.current.permissionAt
-            ? Date.now() - metricsRef.current.permissionAt
-            : null;
-          captureAppEvent('voice_setup_completed', {
-            duration_ms: metricsRef.current.setupMs ?? 0,
-          });
-          markActivity();
-          setPhaseIfActive('listening');
-        } catch (e) {
-          end('error', (e as Error).message || 'Microphone access failed.');
-        }
+        void handleSetupComplete(ws);
         return;
       }
 
@@ -590,12 +684,12 @@ export function useVoiceSession(propertySlug: string) {
         if (resumptionHandleRef.current && !reconnectAttemptedRef.current) {
           void reconnectRef.current?.();
         } else {
-          end('provider_go_away', 'Voice service is restarting. Continue in text chat.');
+          void end('provider_go_away', 'Voice service is restarting. Continue in text chat.');
         }
         return;
       }
       if (messageKinds.includes('provider_error')) {
-        end('provider_error', 'Voice service is unavailable. Continue in text chat.');
+        void end('provider_error', 'Voice service is unavailable. Continue in text chat.');
         return;
       }
 
@@ -616,7 +710,7 @@ export function useVoiceSession(propertySlug: string) {
         }
         markActivity();
         // Drop queued AI audio so barge-in feels immediate.
-        stopPlayback();
+        playbackRef.current?.interrupt();
         // Don't commit a half-spoken AI scrap ("Is there") after barge-in.
         const partialOut = currentOutputBufferRef.current.trim();
         if (partialOut) {
@@ -624,6 +718,7 @@ export function useVoiceSession(propertySlug: string) {
             flushOutputBuffer();
           } else {
             currentOutputBufferRef.current = '';
+            outputTurnIdRef.current = null;
           }
         }
         setPhaseIfActive('listening');
@@ -642,17 +737,16 @@ export function useVoiceSession(propertySlug: string) {
           flushOutputBuffer();
         }
         lastCaptionRoleRef.current = 'guest';
+        inputTurnIdRef.current ??= turnIdFor('guest');
         const merged = mergeVoiceTranscription(
           currentInputBufferRef.current,
           serverContent.inputTranscription.text
         );
         currentInputBufferRef.current = merged;
-        setLiveCaption({ role: 'guest', text: merged });
+        setLiveCaption({ id: inputTurnIdRef.current, role: 'guest', text: merged });
         setUserSpeakingState(true);
         clearSilenceToThinkingTimer();
-        if (phaseRef.current !== 'speaking' || playbackRef.current?.pendingCount === 0) {
-          setPhaseIfActive('listening');
-        }
+        if (!playbackRef.current?.isPlaying) setPhaseIfActive('listening');
       }
       if (serverContent.outputTranscription?.text) {
         markActivity();
@@ -662,61 +756,61 @@ export function useVoiceSession(propertySlug: string) {
           flushInputBuffer();
         }
         lastCaptionRoleRef.current = 'assistant';
+        outputTurnIdRef.current ??= turnIdFor('assistant');
         const merged = mergeVoiceTranscription(
           currentOutputBufferRef.current,
           serverContent.outputTranscription.text
         );
         currentOutputBufferRef.current = merged;
-        setLiveCaption({ role: 'assistant', text: merged });
+        setLiveCaption({ id: outputTurnIdRef.current, role: 'assistant', text: merged });
         setUserSpeakingState(false);
         clearSilenceToThinkingTimer();
       }
 
       const parts = serverContent.modelTurn?.parts ?? [];
       for (const part of parts) {
-        if (part.inlineData?.data) {
-          if (!metricsRef.current.firstAudioCaptured) {
-            metricsRef.current.firstAudioCaptured = true;
-            metricsRef.current.firstAudioMs = metricsRef.current.permissionAt
-              ? Date.now() - metricsRef.current.permissionAt
-              : null;
-            captureAppEvent('voice_first_audio', {
-              duration_ms: Date.now() - metricsRef.current.requestedAt,
-            });
-          }
-          markActivity();
-          void playPcm16Base64(part.inlineData.data);
+        if (!part.inlineData?.data) continue;
+        if (!metricsRef.current.firstAudioCaptured) {
+          metricsRef.current.firstAudioCaptured = true;
+          metricsRef.current.firstAudioMs = metricsRef.current.permissionAt
+            ? Date.now() - metricsRef.current.permissionAt
+            : null;
+          captureAppEvent('voice_first_audio', {
+            duration_ms: Date.now() - metricsRef.current.requestedAt,
+          });
         }
+        markActivity();
+        playbackRef.current?.enqueue(part.inlineData.data);
       }
 
       if (serverContent.turnComplete || serverContent.generationComplete) {
         flushInputBuffer();
         // Debounce assistant commit so late outputTranscription chunks can land.
-        if (currentOutputBufferRef.current.trim()) {
-          scheduleAssistantFlush();
-        }
+        if (currentOutputBufferRef.current.trim()) scheduleAssistantFlush();
         lastCaptionRoleRef.current = null;
-        if (playbackRef.current?.pendingCount === 0) {
-          if (phaseRef.current === 'thinking' || phaseRef.current === 'speaking') {
-            setPhaseIfActive('listening');
-          }
+        // Playback reports idle itself once queued speech drains.
+        if (
+          !playbackRef.current?.isPlaying &&
+          phaseRef.current === 'thinking' &&
+          !toolPendingRef.current
+        ) {
+          setPhaseIfActive('listening');
         }
       }
     },
     [
-      attachMicWorklet,
       clearAssistantFlushTimer,
       clearSilenceToThinkingTimer,
       end,
       flushInputBuffer,
       flushOutputBuffer,
+      handleSetupComplete,
       handleToolCall,
       markActivity,
-      playPcm16Base64,
       scheduleAssistantFlush,
       setPhaseIfActive,
       setUserSpeakingState,
-      stopPlayback,
+      turnIdFor,
     ]
   );
 
@@ -734,20 +828,26 @@ export function useVoiceSession(propertySlug: string) {
     transcriptRef.current = [];
     currentInputBufferRef.current = '';
     currentOutputBufferRef.current = '';
+    inputTurnIdRef.current = null;
+    outputTurnIdRef.current = null;
     lastCaptionRoleRef.current = null;
     clearAssistantFlushTimer();
     setCaptions([]);
     setLiveCaption(null);
     setErrorMessage(null);
-    setAmplitude(0);
     setUserSpeaking(false);
     userSpeakingRef.current = false;
     clearSilenceToThinkingTimer();
+    toolPendingRef.current = false;
     setToolPending(false);
     setActions([]);
     setAudioGuidance(null);
+    offlineSinceRef.current = null;
+    noticeRef.current = null;
+    setNotice(null);
     setEndedSessionId(null);
     setTranscriptDeleted(false);
+    setRemainingSeconds(null);
     metricsRef.current = {
       requestedAt: Date.now(),
       permissionAt: 0,
@@ -761,8 +861,14 @@ export function useVoiceSession(propertySlug: string) {
     reconnectAttemptedRef.current = false;
     resumptionHandleRef.current = null;
     greetingSentRef.current = false;
+    acknowledgedRef.current = false;
     interruptionCountRef.current = 0;
     dispatchPhase({ type: 'start' });
+
+    // Inside the tap: unlock both audio contexts (iOS) and start loading the mic worklet early.
+    setCallAudioSession();
+    microphoneRef.current?.prepare();
+    playbackRef.current?.unlock();
 
     void (async () => {
       try {
@@ -773,15 +879,31 @@ export function useVoiceSession(propertySlug: string) {
         // Ask for the mic before minting a session/token, so a permission denial never
         // consumes a guest daily-cap slot or leaves an orphaned session row server-side.
         try {
-          await acquireMicStream();
-          metricsRef.current.permissionAt = Date.now();
+          await microphoneRef.current?.acquire(() => {
+            if (!endedRef.current) void end('error', 'Microphone disconnected.');
+          });
           captureAppEvent('voice_mic_permission_outcome', { outcome: 'granted' });
+          // Closed while the permission prompt was open: release the mic right away.
+          if (endedRef.current) {
+            microphoneRef.current?.stop();
+            return;
+          }
+          metricsRef.current.permissionAt = Date.now();
         } catch (error) {
           captureAppEvent('voice_mic_permission_outcome', { outcome: 'denied' });
           throw error;
         }
 
         const minted = await startVoiceReceptionistSession(propertySlug);
+        if (endedRef.current) {
+          // Closed while minting: release the reservation instead of opening a socket.
+          await endVoiceReceptionistSession(minted.sessionId, {
+            endReason: 'guest_ended',
+            transcript: [],
+            metrics: { setupMs: null, firstAudioMs: null, reconnectCount: 0 },
+          }).catch(() => undefined);
+          return;
+        }
         sessionIdRef.current = minted.sessionId;
         maxSessionSecondsRef.current = minted.maxSessionSeconds;
         startedAtMsRef.current = Date.now();
@@ -793,26 +915,28 @@ export function useVoiceSession(propertySlug: string) {
             await new Promise((resolve) =>
               window.setTimeout(resolve, voiceReconnectDelayMs(Math.random()))
             );
+            if (endedRef.current) return;
           }
           const ws = new WebSocket(liveVoiceWebSocketUrl(minted));
+          ws.binaryType = 'arraybuffer';
           wsRef.current = ws;
-          ws.onmessage = (event) => void handleSocketMessage(ws, event);
-          ws.onerror = () => {
-            if (wsRef.current === ws && !endedRef.current) {
-              end('provider_error', 'Voice connection lost. Continue in text chat.');
-            }
-          };
+          setupReadyRef.current = false;
+          ws.onmessage = (event) => handleSocketMessage(ws, event);
           ws.onclose = (event) => {
-            if (wsRef.current === ws && !endedRef.current) {
-              const close = describeLiveVoiceClose(event);
-              end('provider_error', close.message);
+            if (wsRef.current !== ws || endedRef.current) return;
+            const close = describeLiveVoiceClose(event);
+            // A dropped connection with a resumption handle gets one resume, same as GoAway.
+            if (!close.expected && resumptionHandleRef.current && !reconnectAttemptedRef.current) {
+              void reconnectRef.current?.();
+              return;
             }
+            void end('provider_error', close.message);
           };
 
           await new Promise<void>((resolve, reject) => {
             const timeout = window.setTimeout(() => {
               reject(new Error('Voice connection timed out. Please try again.'));
-            }, 8_000);
+            }, CONNECT_TIMEOUT_MS);
             ws.addEventListener(
               'open',
               () => {
@@ -840,8 +964,8 @@ export function useVoiceSession(propertySlug: string) {
           ws.send(JSON.stringify({ setup }));
           if (setupTimeoutRef.current !== null) clearTimeout(setupTimeoutRef.current);
           setupTimeoutRef.current = setTimeout(() => {
-            end('provider_error', 'Voice setup timed out. Continue in text chat.');
-          }, 8_000);
+            void end('provider_error', 'Voice setup timed out. Continue in text chat.');
+          }, CONNECT_TIMEOUT_MS);
         };
 
         reconnectRef.current = async () => {
@@ -849,12 +973,8 @@ export function useVoiceSession(propertySlug: string) {
           reconnectAttemptedRef.current = true;
           metricsRef.current.reconnectCount += 1;
           captureAppEvent('voice_reconnect_started');
-          const previous = wsRef.current;
-          if (previous) {
-            previous.onclose = null;
-            previous.onerror = null;
-            previous.close();
-          }
+          playbackRef.current?.interrupt();
+          closeSocket();
           try {
             setPhaseIfActive('reconnecting');
             await connect(true);
@@ -865,51 +985,53 @@ export function useVoiceSession(propertySlug: string) {
           }
         };
 
+        startAmplitudeLoop();
+        startSessionClock();
         await connect(false);
         captureAppEvent('voice_provider_connected', {
           duration_ms: metricsRef.current.permissionAt
             ? Date.now() - metricsRef.current.permissionAt
             : 0,
         });
-
-        startAmplitudeLoop();
       } catch (e) {
         const message = (e as Error).message || 'Could not start the voice receptionist.';
         if (sessionIdRef.current) {
           await end('error', message);
-        } else {
-          stopMic();
+        } else if (!endedRef.current) {
+          endedRef.current = true;
+          microphoneRef.current?.stop();
+          playbackRef.current?.close();
+          stopAmplitudeLoop();
           setErrorMessage(message);
           dispatchPhase({ type: 'fail' });
         }
       }
     })();
   }, [
-    acquireMicStream,
     clearAssistantFlushTimer,
     clearSilenceToThinkingTimer,
+    closeSocket,
     end,
     handleSocketMessage,
     propertySlug,
     setPhaseIfActive,
     startAmplitudeLoop,
-    stopMic,
+    startSessionClock,
+    stopAmplitudeLoop,
   ]);
 
   const toggleMute = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      mutedRef.current = next;
-      if (next) {
-        clearSilenceToThinkingTimer();
-        setUserSpeakingState(false);
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
-        }
-      }
-      return next;
-    });
-  }, [clearSilenceToThinkingTimer, setUserSpeakingState]);
+    const next = !mutedRef.current;
+    mutedRef.current = next;
+    setMuted(next);
+    markActivity();
+    if (!next) return;
+    clearSilenceToThinkingTimer();
+    setUserSpeakingState(false);
+    if (setupReadyRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+    }
+  }, [clearSilenceToThinkingTimer, markActivity, setUserSpeakingState]);
 
   const deleteTranscript = useCallback(async () => {
     if (!endedSessionId || transcriptDeleted) return;
@@ -928,39 +1050,78 @@ export function useVoiceSession(propertySlug: string) {
     await end('guest_ended');
   }, [end]);
 
+  /** Callback ref for the element that hosts meter-driven visuals (`--voice-*` variables). */
+  const setMeterElement = useCallback(
+    (el: HTMLElement | null) => {
+      meterElRef.current = el;
+      if (el) writeMeter(meterRef.current.input, meterRef.current.output);
+    },
+    [writeMeter]
+  );
+
   useEffect(() => {
     return () => {
+      stopAmplitudeLoop();
       // Only end a real server session on unmount. Calling end() with no sessionId
       // still flips phase → 'ended', which auto-closes the overlay after Strict Mode
       // remount races (and burns UX when opening from a dropdown).
       if (sessionIdRef.current) {
-        end('guest_ended');
+        void end('guest_ended');
       } else {
-        stopMic();
-        try {
-          wsRef.current?.close();
-        } catch {
-          // already closed
-        }
-        wsRef.current = null;
+        endedRef.current = true;
+        microphoneRef.current?.stop();
+        playbackRef.current?.close();
+        closeSocket();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on unmount only
   }, []);
 
-  // Hard browser close/refresh doesn't unmount React — best-effort end call so the session
-  // row closes promptly instead of relying solely on the server's stale-session cap aging.
+  // Network drops: hold the call for a short grace period, then end with a text-chat fallback.
+  // Returning from the background: iOS suspends audio contexts, so resume both.
+  useEffect(() => {
+    const handleOffline = () => {
+      if (!sessionIdRef.current || endedRef.current) return;
+      offlineSinceRef.current ??= Date.now();
+      updateNotice('offline');
+    };
+    const handleOnline = () => {
+      offlineSinceRef.current = null;
+      lastActivityMsRef.current = Date.now();
+      if (noticeRef.current === 'offline') updateNotice(null);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible' || endedRef.current) return;
+      if (!sessionIdRef.current) return;
+      microphoneRef.current?.resume();
+      playbackRef.current?.unlock();
+    };
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [updateNotice]);
+
+  // Hard browser close/refresh doesn't unmount React. Send one keepalive end (the only request
+  // that survives unload) and tear down locally; the reaper remains the source of truth.
   useEffect(() => {
     const handlePageHide = () => {
       const sessionId = sessionIdRef.current;
-      if (sessionId) {
-        endVoiceReceptionistSessionKeepalive(sessionId, transcriptRef.current, {
+      if (!sessionId) return;
+      endVoiceReceptionistSessionKeepalive(
+        sessionId,
+        transcriptRef.current.map(({ role, text, at }) => ({ role, text, at })),
+        {
           setupMs: metricsRef.current.setupMs,
           firstAudioMs: metricsRef.current.firstAudioMs,
           reconnectCount: metricsRef.current.reconnectCount,
-        });
-      }
-      void end('page_closed');
+        }
+      );
+      void end('page_closed', undefined, { notifyServer: false });
     };
     window.addEventListener('pagehide', handlePageHide);
     return () => window.removeEventListener('pagehide', handlePageHide);
@@ -969,7 +1130,7 @@ export function useVoiceSession(propertySlug: string) {
 
   return {
     phase,
-    amplitude,
+    meterRef: setMeterElement,
     muted,
     toggleMute,
     remainingSeconds,
@@ -979,6 +1140,7 @@ export function useVoiceSession(propertySlug: string) {
     toolPending,
     actions,
     audioGuidance,
+    notice,
     hasEndedSession: Boolean(endedSessionId),
     canDeleteTranscript: Boolean(endedSessionId) && !transcriptDeleted,
     transcriptDeleted,

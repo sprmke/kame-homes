@@ -20,6 +20,27 @@ export type LiveVoiceEventKind =
   | 'provider_error'
   | 'unknown';
 
+const frameDecoder = new TextDecoder();
+
+/**
+ * Decode one Live WebSocket frame synchronously. Use with `binaryType = 'arraybuffer'`:
+ * awaiting `Blob.text()` lets later frames overtake earlier ones and reorders audio/captions.
+ */
+export function decodeLiveVoiceFrame(data: unknown): Record<string, unknown> | null {
+  let raw: string;
+  if (typeof data === 'string') raw = data;
+  else if (data instanceof ArrayBuffer) raw = frameDecoder.decode(data);
+  else return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function classifyLiveVoiceMessage(message: Record<string, unknown>): LiveVoiceEventKind[] {
   const kinds: LiveVoiceEventKind[] = [];
   if (message.setupComplete) kinds.push('setup_complete');

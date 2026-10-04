@@ -4,22 +4,20 @@ import { cn } from '@/lib/utils';
 
 type Props = {
   state: ReceptionistAvatarState;
-  amplitude?: number;
   size?: number;
   className?: string;
 };
 
 /**
- * WebGL / load failure fallback — refined 2D face plate (not the v1 turtle).
- * Driven by the same state + amplitude props as the 3D head.
+ * Media load failure fallback: a 2D face plate driven by the same state. The mouth follows
+ * `--voice-out` from the nearest meter host.
  */
-export function ReceptionistFacePlate({ state, amplitude = 0, size = 160, className }: Props) {
-  const amp = Math.max(0, Math.min(1, amplitude));
+export function ReceptionistFacePlate({ state, size = 160, className }: Props) {
   const speaking = state === 'speaking';
   const thinking = state === 'thinking';
   const listening = state === 'listening';
   const errored = state === 'error';
-  const mouthRy = speaking ? 4 + amp * 10 : thinking ? 2.5 : 3.5;
+  const mouthRy = speaking ? 5 : thinking ? 2.5 : 3.5;
 
   return (
     <div
@@ -71,10 +69,15 @@ export function ReceptionistFacePlate({ state, amplitude = 0, size = 160, classN
         <ellipse
           cx="100"
           cy="138"
-          rx={speaking ? 14 + amp * 4 : 12}
+          rx={speaking ? 14 : 12}
           ry={mouthRy}
           fill="#1A221C"
           opacity={speaking ? 0.85 : 0.45}
+          style={{
+            transformBox: 'fill-box',
+            transformOrigin: 'center',
+            transform: speaking ? 'scaleY(calc(1 + var(--voice-out, 0) * 1.8))' : undefined,
+          }}
         />
 
         {thinking ? (

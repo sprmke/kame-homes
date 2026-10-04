@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   classifyLiveVoiceMessage,
+  decodeLiveVoiceFrame,
   describeLiveVoiceClose,
   liveVoiceWebSocketUrl,
   SUPPORTED_VOICE_PROTOCOL_VERSION,
@@ -71,5 +72,21 @@ describe('describeLiveVoiceClose', () => {
     expect(result.expected).toBe(false);
     expect(result.message).toContain('Continue in text chat.');
     expect(result.message.length).toBeLessThan(230);
+  });
+});
+
+describe('decodeLiveVoiceFrame', () => {
+  it('decodes text and binary frames synchronously', () => {
+    const json = JSON.stringify({ setupComplete: {} });
+    expect(decodeLiveVoiceFrame(json)).toEqual({ setupComplete: {} });
+    expect(decodeLiveVoiceFrame(new TextEncoder().encode(json).buffer)).toEqual({
+      setupComplete: {},
+    });
+  });
+
+  it('ignores malformed and non-object frames', () => {
+    expect(decodeLiveVoiceFrame('{bad')).toBeNull();
+    expect(decodeLiveVoiceFrame('[1]')).toBeNull();
+    expect(decodeLiveVoiceFrame(42)).toBeNull();
   });
 });

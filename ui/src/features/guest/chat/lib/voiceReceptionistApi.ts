@@ -31,18 +31,46 @@ async function guestJwt(): Promise<string> {
   return token;
 }
 
-async function guestEdgePost(path: string, body: Record<string, unknown>) {
+/** Per-call budgets so a weak connection fails with a clear message instead of hanging. */
+const REQUEST_TIMEOUT_MS = {
+  start: 15_000,
+  tool: 12_000,
+  session: 8_000,
+  end: 10_000,
+} as const;
+
+async function guestEdgePost(
+  path: string,
+  body: Record<string, unknown>,
+  timeoutMs: number
+): Promise<Record<string, unknown>> {
   const jwt = await guestJwt();
-  const res = await fetch(`${FUNCTIONS_URL}/${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: ANON_KEY,
-      Authorization: `Bearer ${jwt}`,
-    },
-    body: JSON.stringify(body),
-  });
-  const json = (await res.json()) as EdgeJson;
+  let res: Response;
+  try {
+    res = await fetch(`${FUNCTIONS_URL}/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : '';
+    throw new Error(
+      name === 'TimeoutError' || name === 'AbortError'
+        ? 'The connection is too slow right now. Please try again.'
+        : 'Could not reach the receptionist. Check your connection and try again.'
+    );
+  }
+  let json: EdgeJson;
+  try {
+    json = (await res.json()) as EdgeJson;
+  } catch {
+    throw new Error('The receptionist is unavailable right now. Please try again.');
+  }
   return unwrapEdgePayload(json);
 }
 
@@ -62,7 +90,11 @@ export type VoiceReceptionistAction = {
 export async function startVoiceReceptionistSession(
   propertySlug: string
 ): Promise<VoiceReceptionistStartResult> {
-  const payload = await guestEdgePost('voice-receptionist-start', { propertySlug });
+  const payload = await guestEdgePost(
+    'voice-receptionist-start',
+    { propertySlug },
+    REQUEST_TIMEOUT_MS.start
+  );
   return payload as unknown as VoiceReceptionistStartResult;
 }
 
@@ -75,7 +107,11 @@ export async function callVoiceReceptionistTool(
   spokenText: string;
   actions: VoiceReceptionistAction[];
 }> {
-  const payload = await guestEdgePost('voice-receptionist-tool', { sessionId, toolName, args });
+  const payload = await guestEdgePost(
+    'voice-receptionist-tool',
+    { sessionId, toolName, args },
+    REQUEST_TIMEOUT_MS.tool
+  );
   return {
     toolName: String(payload.toolName ?? ''),
     spokenText: String(payload.spokenText ?? ''),
@@ -87,14 +123,19 @@ export async function updateVoiceReceptionistSession(
   sessionId: string,
   action: 'active' | 'heartbeat' | 'handoff'
 ): Promise<void> {
-  await guestEdgePost('voice-receptionist-session', { sessionId, action });
+  await guestEdgePost(
+    'voice-receptionist-session',
+    { sessionId, action },
+    REQUEST_TIMEOUT_MS.session
+  );
 }
 
 export async function deleteVoiceReceptionistTranscript(sessionId: string): Promise<void> {
-  await guestEdgePost('voice-receptionist-session', {
-    sessionId,
-    action: 'delete_transcript',
-  });
+  await guestEdgePost(
+    'voice-receptionist-session',
+    { sessionId, action: 'delete_transcript' },
+    REQUEST_TIMEOUT_MS.session
+  );
 }
 
 export type VoiceReceptionistRole = 'guest' | 'assistant';
@@ -127,12 +168,16 @@ export async function endVoiceReceptionistSession(
     metrics: VoiceReceptionistClientMetrics;
   }
 ): Promise<{ endedAt: string; durationSeconds: number }> {
-  const payload = await guestEdgePost('voice-receptionist-end', {
-    sessionId,
-    endReason: input.endReason,
-    transcript: input.transcript,
-    metrics: input.metrics,
-  });
+  const payload = await guestEdgePost(
+    'voice-receptionist-end',
+    {
+      sessionId,
+      endReason: input.endReason,
+      transcript: input.transcript,
+      metrics: input.metrics,
+    },
+    REQUEST_TIMEOUT_MS.end
+  );
   return payload as unknown as { endedAt: string; durationSeconds: number };
 }
 
