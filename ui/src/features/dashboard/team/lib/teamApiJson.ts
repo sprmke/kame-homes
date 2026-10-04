@@ -30,7 +30,7 @@ export async function parseTeamApiMutateData<T>(res: Response): Promise<T> {
     upgradeHook?: boolean;
     feature?: string;
   };
-  if (json.upgradeHook || res.status === 429) {
+  if (json.upgradeHook) {
     throwIfUpgradeHookFromJson(json, res);
   }
   if (!res.ok || !json.success) {

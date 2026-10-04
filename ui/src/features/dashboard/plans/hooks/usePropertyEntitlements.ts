@@ -15,6 +15,9 @@ export function usePropertyEntitlements(propertyIdOverride?: string | null) {
     queryFn: () => fetchPropertyEntitlements(propertyId!),
     enabled: Boolean(propertyId),
     staleTime: 60_000,
-    retry: false,
+    // A failed load must not leave a paying host on Free UI until a manual refresh:
+    // retry with backoff, then keep re-checking in the background until it succeeds.
+    retry: 2,
+    refetchInterval: (query) => (query.state.status === 'error' ? 30_000 : false),
   });
 }

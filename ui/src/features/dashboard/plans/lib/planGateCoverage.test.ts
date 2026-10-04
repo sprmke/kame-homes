@@ -78,8 +78,18 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     serverNa: 'Open on every plan. Saving is publicPagesAutosave.',
   },
   propertyShowcase: {
-    clientNa: 'Editor is explore-open; the live Showcase URL is gated server-side.',
-    server: ['public-page-configs', 'get-public-showcase'],
+    // Showcase editor stays explore-open; the per-booking stay guide link is Pro+. The public
+    // stay guide read, email CTA and guest-portal link check `propertyHasStayGuideAccess`
+    // in `_shared/guestStayGuide.ts`.
+    client: [
+      'dashboard/bookings/hooks/useBookingStayGuideLink.ts',
+      'dashboard/bookings/components/workflow-panel/WorkflowPanel.tsx',
+    ],
+    server: [
+      'public-page-configs',
+      'get-public-showcase',
+      'issue-guest-stay-guide-token',
+    ],
   },
   aiDashboardAssistant: {
     client: ['dashboard/ai-assistant/hooks/useAiAssistantAccess.ts'],

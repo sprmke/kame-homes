@@ -8,7 +8,7 @@ import {
 
 import { friendlyToastError, isTechnicalToastMessage } from '@/lib/feedback/toastMessages';
 
-/** Thrown when an edge function returns 429 + upgradeHook. */
+/** Thrown when an edge function returns `upgradeHook` (plan or AI credit limit). A bare 429 is a rate limit and stays a plain error. */
 export class AiQuotaExceededClientError extends Error {
   readonly upgradeHook = true;
 
@@ -91,15 +91,15 @@ export async function parseEdgeJsonOrQuota<T>(res: Response): Promise<T> {
 }
 
 /** Use after `res.json()` when the body may include upgradeHook (avoids reading the stream twice). */
-export function throwIfUpgradeHookFromJson(json: EdgeEnvelope, res: Response): void {
-  if (json.upgradeHook || res.status === 429) {
+export function throwIfUpgradeHookFromJson(json: EdgeEnvelope, _res?: Response): void {
+  if (json.upgradeHook) {
     throw new AiQuotaExceededClientError(json.error, parseFeatureKey(json.feature));
   }
 }
 
 /** Check a parsed edge envelope before unwrap (inbox-style responses). */
-export function throwIfAiQuota(json: EdgeEnvelope, res: Response): void {
-  if (json.upgradeHook || res.status === 429) {
+export function throwIfAiQuota(json: EdgeEnvelope, _res?: Response): void {
+  if (json.upgradeHook) {
     throw new AiQuotaExceededClientError(json.error, parseFeatureKey(json.feature));
   }
 }

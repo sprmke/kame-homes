@@ -118,7 +118,7 @@ async function authHeaders(): Promise<HeadersInit> {
 
 async function parse<T>(res: Response): Promise<T> {
   const json = await res.json().catch(() => ({}));
-  if (json?.upgradeHook || res.status === 429) {
+  if (json?.upgradeHook) {
     const err = new Error(json?.error ?? 'Upgrade required') as SmartPricingClientError;
     err.upgradeRequired = true;
     if (typeof json?.feature === 'string') err.feature = json.feature as PlanFeatureKey;

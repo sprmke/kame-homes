@@ -25,15 +25,23 @@ export function useFeatureGate(feature: PlanFeatureKey, propertyIdOverride?: str
     ? propertyQuery.data
     : deriveOrgEntitlementsFromPlan(orgPlanQuery.data);
 
-  const isLoading = propertyId ? propertyQuery.isLoading : orgPlanQuery.isLoading;
+  const query = propertyId ? propertyQuery : orgPlanQuery;
+  const isLoading = query.isLoading;
 
-  const allowed = entitlements ? isFeatureEnabled(entitlements, feature) : false;
-  const canUse = !isLoading && allowed && Boolean(entitlements);
+  // Plan could not be loaded even after retries: fail open. Every gate is also enforced
+  // server-side, so a paying host never sees Free-plan UI during an outage, and a Free host
+  // still gets the server's upgrade prompt on the action itself.
+  const planUnknown = query.isError && !query.data;
+
+  const allowed =
+    planUnknown || (entitlements ? isFeatureEnabled(entitlements, feature) : false);
+  const canUse = planUnknown || (!isLoading && allowed && Boolean(entitlements));
 
   return {
-    ...(propertyId ? propertyQuery : orgPlanQuery),
+    ...query,
     allowed,
     canUse,
     entitlements,
+    planUnknown,
   };
 }
