@@ -2,6 +2,7 @@
  * issue-guest-stay-guide-token — Admin-only: create or refresh guest stay guide link.
  *
  * POST { bookingId }
+ * Plan: `propertyShowcase` (Pro+) → 402 upgradeHook otherwise.
  * Booking must be READY_FOR_CHECKIN, READY_FOR_CHECKOUT, PENDING_SD_REFUND, or COMPLETED.
  */
 
@@ -17,6 +18,7 @@ import {
   resolveScopedPropertyAccess,
   verifyBookingBelongsToProperty,
 } from '../_shared/propertyScope.ts';
+import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import type { GuestSubmission } from '../_shared/types.ts';
 
@@ -24,6 +26,13 @@ serveAuthenticated('issue-guest-stay-guide-token', async (req) => {
   requireHttpMethod(req, 'POST');
   const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
   const propertyId = property.id;
+  try {
+    await requirePropertyFeature(propertyId, 'propertyShowcase');
+  } catch (err) {
+    const planErr = catchPlanFeatureError(req, err);
+    if (planErr) return planErr;
+    throw err;
+  }
   const body = await readJsonBody(req);
   const bookingId = body?.bookingId;
   if (!bookingId || typeof bookingId !== 'string') {

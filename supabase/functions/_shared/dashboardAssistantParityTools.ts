@@ -1002,6 +1002,7 @@ const getGuestLink = defineReadTool(
     );
     const bookingId = (booking as unknown as { id: string }).id;
     if (kind === 'stay_guide') {
+      await requirePropertyFeature(propertyId, 'propertyShowcase');
       const issued = await issueGuestStayGuideAccess(booking);
       if (!issued) fail('The stay guide link opens once the booking is ready for check-in.');
       return {

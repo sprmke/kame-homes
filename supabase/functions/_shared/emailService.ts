@@ -1,6 +1,6 @@
 import { guestBookingEmailLinkPlaceholderExtras } from './guestBookingEmailLinks.ts';
 import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
-import { buildGuestStayGuideUrl } from './guestStayGuide.ts';
+import { buildGuestStayGuideUrl, propertyHasStayGuideAccess } from './guestStayGuide.ts';
 import { buildApprovalInboundAddress } from './approvalInboundAddress.ts';
 import { resolvePropertySlugById } from './propertyScope.ts';
 import { createClient } from './supabaseJs.ts';
@@ -898,7 +898,8 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
     (booking as { stay_guide_token?: string | null }).stay_guide_token ?? ''
   ).trim();
   let stayGuideUrl = '';
-  if (stayGuideToken) {
+  // No CTA below Pro: the guide page would refuse the guest (`propertyShowcase`).
+  if (stayGuideToken && propertyId && (await propertyHasStayGuideAccess(propertyId))) {
     stayGuideUrl = (await buildGuestStayGuideUrl(booking, stayGuideToken)) ?? '';
   }
 

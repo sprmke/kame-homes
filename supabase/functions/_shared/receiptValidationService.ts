@@ -72,11 +72,6 @@ export async function verifyAiProviders(): Promise<AiProviderVerifyResult> {
   };
 }
 
-
-
-
-
-
 function skipped(summary = 'AI validation unavailable'): ReceiptValidationResult {
   return {
     verdict: 'skipped',
@@ -695,4 +690,34 @@ export function documentAiKindForAssetType(assetType: string): ReceiptBackfillKi
     return 'valid_id';
   }
   return receiptKindForAssetType(assetType);
+}
+
+/** Column prefix (`<prefix>_ai_verdict` / `<prefix>_ai_summary`) per uploaded document asset. */
+const DOCUMENT_AI_COLUMN_PREFIX: Record<string, string> = {
+  payment_receipt: 'dp_receipt',
+  guest_balance_payment_receipt: 'balance_receipt',
+  parking_payment_receipt: 'parking_receipt',
+  sd_refund_receipt: 'sd_refund_receipt',
+  valid_id: 'valid_id',
+  guest2_valid_id: 'guest2_valid_id',
+  guest3_valid_id: 'guest3_valid_id',
+  guest4_valid_id: 'guest4_valid_id',
+  guest5_valid_id: 'guest5_valid_id',
+};
+
+/**
+ * Verdict + summary patch for an uploaded document. Unlike `dbPatchForDocumentAiValidation`,
+ * guest 2-5 IDs write their own columns instead of the primary guest's. `null` result clears
+ * both, so a replaced file never inherits the previous file's verdict.
+ */
+export function documentAiValidationPatchForAssetType(
+  assetType: string,
+  result: Pick<ReceiptValidationResult, 'verdict' | 'summary'> | null
+): Record<string, string | null> | null {
+  const prefix = DOCUMENT_AI_COLUMN_PREFIX[assetType];
+  if (!prefix) return null;
+  return {
+    [`${prefix}_ai_verdict`]: result?.verdict ?? null,
+    [`${prefix}_ai_summary`]: result?.summary ?? null,
+  };
 }

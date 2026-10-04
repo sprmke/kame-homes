@@ -11,8 +11,8 @@ import { DatabaseService } from './databaseService.ts';
 import { resolveOrgIdForProperty } from './aiUsageService.ts';
 import {
   applyReceiptSanityChecks,
-  dbPatchForDocumentAiValidation,
   documentAiKindForAssetType,
+  documentAiValidationPatchForAssetType,
   type ReceiptValidationResult,
   shouldPersistReceiptValidation,
   validateReceiptFile,
@@ -177,6 +177,9 @@ export async function applyBookingAssetFromBytes(
 
   let receiptValidation: ReceiptValidationResult | undefined;
   const docAiKind = documentAiKindForAssetType(input.assetType);
+  // New file: drop the old file's verdict. Otherwise a stale `invalid` keeps blocking Proceed
+  // when this upload is not re-checked (plan without aiValidations, or an AI model error).
+  Object.assign(workflowUpdate, documentAiValidationPatchForAssetType(input.assetType, null));
   // Paid vision calls only for plans that include AI validations (same gate as
   // validate-booking-receipts); the upload itself never depends on it.
   if (
@@ -199,7 +202,10 @@ export async function applyBookingAssetFromBytes(
         receiptValidation
       );
       if (shouldPersistReceiptValidation(receiptValidation)) {
-        Object.assign(workflowUpdate, dbPatchForDocumentAiValidation(docAiKind, receiptValidation));
+        Object.assign(
+          workflowUpdate,
+          documentAiValidationPatchForAssetType(input.assetType, receiptValidation)
+        );
       }
       // Verdict only: the AI summary can echo guest ID / payment details.
       console.log(`${logPrefix} ${input.assetType} AI: ${receiptValidation.verdict}`);

@@ -76,14 +76,16 @@ serveAuthenticated('voice-receptionist-start', async (req, user) => {
   }
 
   try {
-    const global = await getGlobalVoiceReceptionistSettings();
     const sb = createServiceClient();
-    const { data: propertyRow, error: propertyError } = await sb
-      .from('properties')
-      .select('id, organization_id, name, tower, unit_number, tower_and_unit')
-      .eq('slug', propertySlug)
-      .eq('status', 'ACTIVE')
-      .maybeSingle();
+    const [global, { data: propertyRow, error: propertyError }] = await Promise.all([
+      getGlobalVoiceReceptionistSettings(),
+      sb
+        .from('properties')
+        .select('id, organization_id, name, tower, unit_number, tower_and_unit')
+        .eq('slug', propertySlug)
+        .eq('status', 'ACTIVE')
+        .maybeSingle(),
+    ]);
     if (propertyError || !propertyRow) {
       return jsonError(req, 'Property not found', 404);
     }
@@ -108,33 +110,46 @@ serveAuthenticated('voice-receptionist-start', async (req, user) => {
       return jsonError(req, message, 503);
     }
 
-    const settings = await getVoiceReceptionistSettings(propertyId);
+    // Read-only gate checks run together; they are evaluated in the same order as before so
+    // the recorded denial code does not change. Nothing is written until every gate passes.
+    const [settings, planGate, quotaGate, orgUsageResult] = await Promise.all([
+      getVoiceReceptionistSettings(propertyId),
+      requirePropertyFeature(propertyId, 'aiReceptionist').then(
+        () => null,
+        (err: unknown) => err
+      ),
+      assertOrgAndPropertyAiQuota(orgId, propertyId, 'voice_receptionist').then(
+        () => null,
+        (err: unknown) => err
+      ),
+      getOrgAiUsageSummary(orgId).then(
+        (usage) => ({ usage, error: null }),
+        (error: unknown) => ({ usage: null, error })
+      ),
+    ]);
     if (!settings.enabled) {
       await recordGateDenial('property_disabled');
       return jsonError(req, 'Voice receptionist is not enabled for this property.', 503);
     }
 
-    try {
-      await requirePropertyFeature(propertyId, 'aiReceptionist');
-    } catch (err) {
-      if (err instanceof PlanFeatureRequiredError) {
+    if (planGate) {
+      if (planGate instanceof PlanFeatureRequiredError) {
         await recordGateDenial('plan_required');
-        return jsonUpgradeHook(req, err.message, { feature: err.feature });
+        return jsonUpgradeHook(req, planGate.message, { feature: planGate.feature });
       }
-      throw err;
+      throw planGate;
     }
 
-    try {
-      await assertOrgAndPropertyAiQuota(orgId, propertyId, 'voice_receptionist');
-    } catch (err) {
-      if (isAiQuotaError(err) || isAiPlatformDisabledError(err)) {
-        await recordGateDenial(isAiQuotaError(err) ? 'quota_denied' : 'ai_platform_disabled');
-        return jsonUpgradeHook(req, (err as Error).message, { feature: 'aiReceptionist' });
+    if (quotaGate) {
+      if (isAiQuotaError(quotaGate) || isAiPlatformDisabledError(quotaGate)) {
+        await recordGateDenial(isAiQuotaError(quotaGate) ? 'quota_denied' : 'ai_platform_disabled');
+        return jsonUpgradeHook(req, (quotaGate as Error).message, { feature: 'aiReceptionist' });
       }
-      throw err;
+      throw quotaGate;
     }
 
-    const orgUsage = await getOrgAiUsageSummary(orgId);
+    if (orgUsageResult.error) throw orgUsageResult.error;
+    const orgUsage = orgUsageResult.usage!;
     const costRemaining = orgUsage.dailyCostRemaining;
     const sessionBudget = resolveVoiceReceptionistSessionBudget(
       settings.maxSessionSeconds,
@@ -148,12 +163,13 @@ serveAuthenticated('voice-receptionist-start', async (req, user) => {
     }
     const effectiveMaxSessionSeconds = sessionBudget.effectiveMaxSeconds;
 
-    const profile = await loadAuthUserProfile(sb, user.id);
-    const participantName = profile.name.trim() || profile.email.split('@')[0]?.trim() || 'Guest';
-
     // Reuse the guest's web-chat thread for inquiry context and text handoff.
     // Voice captions remain in the dedicated unverified transcript table.
-    const connection = await ensureWebChannelConnection(orgId);
+    const [profile, connection] = await Promise.all([
+      loadAuthUserProfile(sb, user.id),
+      ensureWebChannelConnection(orgId),
+    ]);
+    const participantName = profile.name.trim() || profile.email.split('@')[0]?.trim() || 'Guest';
     const threadId = buildWebThreadId(propertyId, user.id);
     const conversation = await upsertConversation({
       organization_id: orgId,

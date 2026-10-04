@@ -25,6 +25,8 @@ import {
   type PropertyTemplateKey,
 } from './propertyTemplates.ts';
 import { loadPublicPropertyById } from './publicPropertyService.ts';
+import { isFeatureEnabled } from './planFeatures.ts';
+import { resolvePropertyEntitlements } from './planEntitlements.ts';
 import { guestStayGuidePath } from './publicGuestPaths.ts';
 import { resolvePropertySlugById } from './propertyScope.ts';
 import { extractLeadingSectionHeading } from './stayGuideContent.ts';
@@ -132,6 +134,15 @@ export function isStayGuideAccessActive(row: {
   return now >= fromMs && now <= untilMs;
 }
 
+/**
+ * The live guest stay guide is part of `propertyShowcase` (Pro+). Tokens keep minting on every
+ * plan so an upgrade re-enables links already issued; only reading or sharing the guide is gated.
+ */
+export async function propertyHasStayGuideAccess(propertyId: string): Promise<boolean> {
+  if (!propertyId.trim()) return false;
+  return isFeatureEnabled(await resolvePropertyEntitlements(propertyId), 'propertyShowcase');
+}
+
 /** Issue or refresh stay-guide access when a booking reaches READY_FOR_CHECKIN. Preserves existing token. */
 export async function ensureGuestStayGuideToken(booking: GuestSubmission): Promise<string | null> {
   const bookingId = String(booking.id ?? '').trim();
@@ -204,6 +215,7 @@ export async function resolveGuestStayGuideUrlForProperty(
 ): Promise<string | null> {
   const trimmedPropertyId = propertyId.trim();
   if (!trimmedPropertyId) return null;
+  if (!(await propertyHasStayGuideAccess(trimmedPropertyId))) return null;
 
   const sb = supabaseAdmin();
   await linkGuestBookingsByEmail(sb, user);
@@ -697,10 +709,13 @@ export async function loadGuestStayGuidePreview(
   });
 }
 
+/** `loadGuestStayGuideByToken` result when the property's plan does not include the stay guide. */
+export const STAY_GUIDE_PLAN_ACCESS_DENIED = 'plan_access_denied' as const;
+
 export async function loadGuestStayGuideByToken(
   token: string,
   expectedPropertySlug?: string | null
-): Promise<GuestStayGuideDto | null> {
+): Promise<GuestStayGuideDto | typeof STAY_GUIDE_PLAN_ACCESS_DENIED | null> {
   const trimmed = token.trim();
   if (!trimmed) return null;
 
@@ -719,6 +734,7 @@ export async function loadGuestStayGuideByToken(
 
   const propertyId = String(row.property_id ?? '').trim();
   if (!propertyId) return null;
+  if (!(await propertyHasStayGuideAccess(propertyId))) return STAY_GUIDE_PLAN_ACCESS_DENIED;
 
   const validUntil = String(row.stay_guide_valid_until ?? '');
   return buildGuestStayGuidePayload(propertyId, row as GuestSubmission, validUntil, {
