@@ -35,6 +35,8 @@ export type WorkflowTransitionEffectsInput = {
   automationToggles?: PropertyAutomationToggles;
   /** When false, treat plan-gated email toggles as off for preview/confirm copy. */
   automatedBookingFlow?: boolean;
+  /** When false (below Pro, no `propertyShowcase`), omit the stay guide line. */
+  stayGuideAccess?: boolean;
 };
 
 function automation(input: WorkflowTransitionEffectsInput): PropertyAutomationToggles {
@@ -226,7 +228,7 @@ export function workflowTransitionEffectLines(
       fromStatus === 'PENDING_PARKING_REQUEST' ||
       fromStatus === 'PENDING_PET_REQUEST');
 
-  if (forwardToReadyForCheckin) {
+  if (forwardToReadyForCheckin && input.stayGuideAccess !== false) {
     lines.push('Prepares a stay guide link for the guest.');
   }
 

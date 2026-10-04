@@ -10,7 +10,6 @@ import type { BookingAiReview } from '@/features/dashboard/bookings/lib/types';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import {
   handleAiMutationError,
-  isAiQuotaError,
   parseEdgeJsonOrQuota,
 } from '@/features/dashboard/org/lib/aiQuotaToast';
 
@@ -63,9 +62,9 @@ export function useBookingAiReviewTrigger(
       return { previous };
     },
     onError: (err, _vars, context) => {
-      if (isAiQuotaError(err)) {
-        handleAiMutationError(err);
-      }
+      // Plan / credit limits get an Upgrade action; anything else still needs a message,
+      // otherwise the spinner just snaps back with no explanation.
+      handleAiMutationError(err);
       if (context?.previous !== undefined) {
         qc.setQueryData(queryKey, context.previous);
       }

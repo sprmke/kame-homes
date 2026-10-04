@@ -14,6 +14,7 @@ import type { BookingGuestFormCompletionLink } from '@/features/dashboard/bookin
 import type { BookingParkingShareLink } from '@/features/dashboard/bookings/hooks/useBookingParkingShareLink';
 import type { BookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import type { LucideIcon } from 'lucide-react';
 
@@ -24,6 +25,8 @@ export type BookingDetailAction = {
   onSelect: () => void;
   /** Consecutive actions sharing a group render together; a change draws a divider. */
   group: 'reschedule' | 'edit' | 'guest-links';
+  /** Shows the plan pill when the property is below this feature's tier. */
+  planFeature?: PlanFeatureKey;
 };
 
 type Args = {
@@ -147,7 +150,17 @@ export function buildBookingDetailActions({
 
   // Only once the token exists — a menu row that silently does nothing while the
   // link is still being minted is worse than no row.
-  if (stayGuide.url) {
+  if (stayGuide.locked) {
+    // Below Pro: one row that explains the upgrade instead of a link the guest can't open.
+    actions.push({
+      key: 'stay-guide-upgrade',
+      label: 'Stay guide link',
+      Icon: ExternalLink,
+      onSelect: stayGuide.upgrade,
+      group: 'guest-links',
+      planFeature: 'propertyShowcase',
+    });
+  } else if (stayGuide.url) {
     actions.push(
       {
         key: 'stay-guide-open',

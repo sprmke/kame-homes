@@ -18,14 +18,20 @@ import { resolveBookingPropertySlug } from '@/features/dashboard/bookings/lib/bo
 import { isStayGuideEligibleStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
+import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
 export type BookingStayGuideLink = {
   /** Empty until the booking is stay-guide eligible and its token has been issued. */
   url: string;
   /** A token is being minted — the link exists but isn't shareable yet. */
   pending: boolean;
+  /** Eligible booking, but the plan lacks `propertyShowcase` (stay guide is Pro+). */
+  locked: boolean;
   open: () => void;
   copy: () => void;
+  /** Opens the upgrade modal for `propertyShowcase`. */
+  upgrade: () => void;
 };
 
 export function useBookingStayGuideLink(
@@ -37,9 +43,12 @@ export function useBookingStayGuideLink(
     : '';
 
   const eligible = isStayGuideEligibleStatus(booking?.status);
+  const { canUse, isLoading: entitlementsLoading } = useFeatureGate('propertyShowcase');
+  const { open: openUpgradeModal } = useUpgradeModal();
+  const locked = eligible && !canUse && !entitlementsLoading;
   const token = booking?.stay_guide_token?.trim() ?? '';
   const url =
-    eligible && token && propertySlug
+    eligible && canUse && token && propertySlug
       ? `${window.location.origin}${guestStayGuidePath(propertySlug, token)}`
       : '';
 
@@ -49,11 +58,11 @@ export function useBookingStayGuideLink(
   const { mutateAsync: issueToken, isPending } = issueMut;
 
   useEffect(() => {
-    if (!booking || !eligible || token || isPending) return;
+    if (!booking || !eligible || !canUse || token || isPending) return;
     if (autoIssuedForRef.current === booking.id) return;
     autoIssuedForRef.current = booking.id;
     void issueToken().catch(() => {});
-  }, [booking, eligible, token, isPending, issueToken]);
+  }, [booking, eligible, canUse, token, isPending, issueToken]);
 
   const open = useCallback(() => {
     if (!url) return;
@@ -68,5 +77,7 @@ export function useBookingStayGuideLink(
       .catch(() => toast.error('Could not copy link'));
   }, [url]);
 
-  return { url, pending: isPending, open, copy };
+  const upgrade = useCallback(() => openUpgradeModal('propertyShowcase'), [openUpgradeModal]);
+
+  return { url, pending: isPending, locked, open, copy, upgrade };
 }

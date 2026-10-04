@@ -3,6 +3,7 @@ import { Fragment, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 
 import type { BookingDetailAction } from '@/features/dashboard/bookings/lib/bookingDetailActions';
+import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,9 @@ export function BookingDetailActionsMenu({ actions, className }: Props) {
                       key={action.key}
                       label={action.label}
                       icon={<Icon className="size-5" aria-hidden />}
+                      trailing={
+                        action.planFeature ? <TierBadge feature={action.planFeature} /> : undefined
+                      }
                       onSelect={() => {
                         action.onSelect();
                         setSheetOpen(false);
@@ -119,6 +123,9 @@ export function BookingDetailActionsMenu({ actions, className }: Props) {
                   >
                     <Icon className="size-4 shrink-0" aria-hidden />
                     {action.label}
+                    {action.planFeature ? (
+                      <TierBadge feature={action.planFeature} className="ml-auto" />
+                    ) : null}
                   </DropdownMenuItem>
                 );
               })}

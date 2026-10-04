@@ -212,8 +212,15 @@ function WorkflowPanelInner({
     appSettings?.resolvedDocumentRequirements ?? DEFAULT_DOCUMENT_REQUIREMENTS;
 
   const [automationHelpOpen, setAutomationHelpOpen] = useState(true);
-  const { allowed: automatedBookingFlow } = useFeatureGate('automatedBookingFlow');
+  const { allowed: automatedBookingFlowAllowed, isLoading: entitlementsLoading } =
+    useFeatureGate('automatedBookingFlow');
+  // Assume paid until entitlements land: paying hosts never flash Free-plan copy, and the
+  // server decides what actually sends either way.
+  const automatedBookingFlow = automatedBookingFlowAllowed || entitlementsLoading;
   const planSkipHint = !automatedBookingFlow;
+  const { allowed: stayGuideAllowed, isLoading: stayGuideGateLoading } =
+    useFeatureGate('propertyShowcase');
+  const stayGuideAccess = stayGuideAllowed || stayGuideGateLoading;
   const [progressMapOpen, setProgressMapOpen] = useState(false);
 
   const kanbanDropTransition: KanbanDropTransition | null =
@@ -1021,6 +1028,7 @@ function WorkflowPanelInner({
               documentRequirements,
               automationToggles: appSettings?.automationToggles,
               automatedBookingFlow,
+              stayGuideAccess,
             };
             const confirmEmailEffects =
               confirm.direction === 'forward'

@@ -20,6 +20,8 @@ import {
 } from '@/features/dashboard/bookings/lib/bookingAiReviewProgress';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
+import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
 import { Button } from '@/components/ui/button';
 
@@ -45,6 +47,14 @@ function PanelShell({ children, action }: { children: React.ReactNode; action?: 
 export function AiSummaryPanel({ booking, onPreview }: Props) {
   const { data: review, isLoading, isError, refetch, isFetching } = useBookingAiReview(booking.id);
   const trigger = useBookingAiReviewTrigger(booking.id);
+  const { canUse: canRunAiValidation, isLoading: entitlementsLoading } =
+    useFeatureGate('aiValidations');
+  const { open: openUpgradeModal } = useUpgradeModal();
+  // Past results stay readable after a downgrade; only a new run needs the plan.
+  const recheck = () => {
+    if (canRunAiValidation) trigger.mutate();
+    else if (!entitlementsLoading) openUpgradeModal('aiValidations');
+  };
   const isRunning = isBookingAiReviewRunning(review, trigger.isPending);
   const canRefresh = canRefreshBookingAiReview(review, trigger.isPending);
 
@@ -93,7 +103,7 @@ export function AiSummaryPanel({ booking, onPreview }: Props) {
         variant="ghost"
         size="sm"
         className="min-h-[44px] lg:h-9 lg:min-h-0"
-        onClick={() => trigger.mutate()}
+        onClick={recheck}
         disabled={isRunning}
         aria-busy={isRunning || undefined}
       >

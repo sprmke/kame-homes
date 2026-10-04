@@ -67,7 +67,8 @@ export function useInboxBookingShareRows(
     if (!selectedBooking) return [];
     const rows: InboxShareRow[] = [];
 
-    if (isStayGuideEligibleStatus(selectedBooking.status)) {
+    // Stay guide is Pro+ (`propertyShowcase`): no share row the guest could not open.
+    if (isStayGuideEligibleStatus(selectedBooking.status) && !stayGuideLink.locked) {
       rows.push({
         key: 'stay-guide',
         label: 'Stay Guide',

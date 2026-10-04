@@ -16,6 +16,7 @@ import {
   hasBookingAiReviewRun,
   isBookingAiReviewRunning,
 } from '@/features/dashboard/bookings/lib/bookingAiReviewProgress';
+import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -103,28 +104,30 @@ export function WorkflowPendingReviewAck({
 
         <div className="space-y-3 px-4 py-4">
           {showRunAiButton ? (
-            <Button
-              type="button"
-              variant={hasAiRun ? 'outline' : 'default'}
-              className="min-h-[44px] w-full"
-              onClick={onOpenAiSummary}
-            >
-              {isAiRunning ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  View check progress
-                </>
-              ) : (
-                <>
-                  {hasAiRun ? (
-                    <RotateCcw className="size-4" aria-hidden />
-                  ) : (
-                    <Sparkles className="size-4" aria-hidden />
-                  )}
-                  {hasAiRun ? 'Recheck' : 'Run AI check'}
-                </>
-              )}
-            </Button>
+            <TierBadgeAnchor feature="aiValidations" className="w-full">
+              <Button
+                type="button"
+                variant={hasAiRun ? 'outline' : 'default'}
+                className="min-h-[44px] w-full"
+                onClick={onOpenAiSummary}
+              >
+                {isAiRunning ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    View check progress
+                  </>
+                ) : (
+                  <>
+                    {hasAiRun ? (
+                      <RotateCcw className="size-4" aria-hidden />
+                    ) : (
+                      <Sparkles className="size-4" aria-hidden />
+                    )}
+                    {hasAiRun ? 'Recheck' : 'Run AI check'}
+                  </>
+                )}
+              </Button>
+            </TierBadgeAnchor>
           ) : null}
 
           {showAckCheckbox ? (

@@ -32,7 +32,7 @@ export function notifyAutomationSkippedByPlan(skipped: string[], bookingId: stri
   }
   const labels = automationSkipLabelsForKinds(skipped);
   toast.warning(`Not sent automatically on your plan: ${labels.join(', ')}`, {
-    description: 'Send them in Automation Triggers below.',
+    description: 'Send them from Automation Triggers on the booking.',
     action: {
       label: 'Upgrade',
       onClick: () => openUpgradeModalFromBridge('automatedBookingFlow'),
