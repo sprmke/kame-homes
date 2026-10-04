@@ -194,7 +194,7 @@ export function Kicker({ children, style }: { children: ReactNode; style?: CSSPr
         ...style,
       }}
     >
-      <Diamond size={14} color={t.dark ? c.mint : c.teal} />
+      <Diamond size={14} color={t.mark} />
       {children}
     </div>
   );
@@ -206,7 +206,7 @@ export function Kicker({ children, style }: { children: ReactNode; style?: CSSPr
 
 export function Diamond({
   size = 20,
-  color = c.teal,
+  color = c.brand,
   style,
 }: {
   size?: number;
@@ -244,7 +244,7 @@ export function Wordmark({ size = 30, color }: { size?: number; color?: string }
         whiteSpace: 'nowrap',
       }}
     >
-      <Diamond size={size * 0.62} color={t.dark ? c.mint : c.teal} />
+      <Diamond size={size * 0.62} color={t.mark} />
       Kame Homes
     </div>
   );
@@ -274,7 +274,7 @@ export function Cta({
         fontWeight: 700,
         letterSpacing: '-0.02em',
         background: light ? c.white : c.ink,
-        color: light ? c.forest : c.white,
+        color: light ? c.night : c.white,
         whiteSpace: 'nowrap',
       }}
     >

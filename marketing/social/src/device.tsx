@@ -69,7 +69,7 @@ export function Phone({
           inset: 0,
           borderRadius: 68,
           background: '#0d1312',
-          boxShadow: `0 0 0 2px #2a3331 inset, 0 60px 90px -40px color-mix(in srgb, ${shadowOn} 30%, #021a16), 0 24px 40px -24px color-mix(in srgb, ${shadowOn} 20%, #021a16)`,
+          boxShadow: `0 0 0 2px #2a3331 inset, 0 60px 90px -40px color-mix(in srgb, ${shadowOn} 30%, #08120f), 0 24px 40px -24px color-mix(in srgb, ${shadowOn} 20%, #08120f)`,
         }}
       />
       <div
@@ -142,7 +142,7 @@ export function AppIcon({ size = 38 }: { size?: number }) {
         width: size,
         height: size,
         borderRadius: size * 0.24,
-        background: c.teal,
+        background: c.brand,
         display: 'grid',
         placeItems: 'center',
         flex: 'none',
@@ -172,7 +172,7 @@ export function Push({
         gap: 11,
         padding: '13px 14px',
         borderRadius: 22,
-        background: 'hsl(165 30% 97% / 0.86)',
+        background: 'hsl(150 10% 97% / 0.9)',
         color: c.ink,
         boxShadow: '0 1px 0 hsl(0 0% 100% / 0.6) inset',
         ...style,

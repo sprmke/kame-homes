@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 
 import { ChevronLeft, Sparkles } from 'lucide-react';
 
-import { AppIcon, Push, SCREEN_H, SCREEN_W, StatusBar } from './device';
+import { Push, StatusBar } from './device';
 import { ease, reveal, SETTLED } from './motion';
 import { Diamond } from './primitives';
 import { c } from './theme';
@@ -43,16 +43,16 @@ export function LockScreen({
 }) {
   const items = overnight.slice(0, count);
   return (
-    <div style={{ position: 'absolute', inset: 0, background: c.tealDeep, overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', inset: 0, background: c.brandDeep, overflow: 'hidden' }}>
       {/* flat wallpaper: two oversized brand diamonds, no gradients */}
       <Diamond
         size={520}
-        color="hsl(169 62% 33%)"
+        color="hsl(162 72% 31%)"
         style={{ position: 'absolute', left: -170, top: 470, borderRadius: 90 }}
       />
       <Diamond
         size={380}
-        color="hsl(169 66% 26%)"
+        color="hsl(162 86% 19%)"
         style={{ position: 'absolute', left: 190, top: 640, borderRadius: 70 }}
       />
       <StatusBar dark time="" />
@@ -87,7 +87,7 @@ export function LockScreen({
           position: 'absolute',
           left: 12,
           right: 12,
-          bottom: 120,
+          top: 246,
           display: 'flex',
           flexDirection: 'column',
           gap: 9,
@@ -143,14 +143,14 @@ export function InboxScreen({
           borderBottom: `1px solid ${c.line}`,
         }}
       >
-        <ChevronLeft size={26} color={c.teal} />
+        <ChevronLeft size={26} color={c.brand} />
         <span
           style={{
             width: 40,
             height: 40,
             borderRadius: 99,
-            background: c.mintSoft,
-            color: c.tealDeep,
+            background: c.tint,
+            color: c.brandDeep,
             display: 'grid',
             placeItems: 'center',
             fontSize: 15,
@@ -202,7 +202,7 @@ export function InboxScreen({
           position: 'absolute',
           left: 14,
           right: 14,
-          bottom: 34,
+          top: 318,
           ...reveal(frame, startAt + 30, 24),
         }}
       >
@@ -221,7 +221,7 @@ export function InboxScreen({
               gap: 6,
               fontSize: 13,
               fontWeight: 700,
-              color: c.tealDeep,
+              color: c.brandDeep,
             }}
           >
             <Sparkles size={14} /> Suggested reply
@@ -293,7 +293,7 @@ function Bubble({
         maxWidth: 290,
         padding: '11px 15px',
         borderRadius: inbound ? '20px 20px 20px 6px' : '20px 20px 6px 20px',
-        background: inbound ? 'hsl(160 12% 94%)' : c.teal,
+        background: inbound ? 'hsl(150 8% 93%)' : c.brand,
         color: inbound ? c.ink : c.white,
         fontSize: 15.5,
         lineHeight: 1.36,
@@ -348,11 +348,11 @@ export function FinanceScreen({
             marginTop: 16,
             padding: 18,
             borderRadius: 24,
-            background: c.forest,
+            background: c.night,
             color: c.white,
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'hsl(165 14% 70%)' }}>Net profit</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: c.nightSub }}>Net profit</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
             <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.045em', ...tab }}>
               ₱126,480
@@ -371,7 +371,7 @@ export function FinanceScreen({
                     flex: 1,
                     height: `${b * p}%`,
                     borderRadius: 5,
-                    background: i === bars.length - 1 ? c.mint : 'hsl(168 45% 32%)',
+                    background: i === bars.length - 1 ? c.mint : c.mintDim,
                   }}
                 />
               );
@@ -437,7 +437,7 @@ export function FinanceScreen({
                 style={{
                   fontSize: 15,
                   fontWeight: 700,
-                  color: r.pos ? c.tealDeep : c.inkSoft,
+                  color: r.pos ? c.brandDeep : c.inkSoft,
                   ...tab,
                 }}
               >
@@ -451,4 +451,3 @@ export function FinanceScreen({
   );
 }
 
-export { AppIcon, SCREEN_H, SCREEN_W };

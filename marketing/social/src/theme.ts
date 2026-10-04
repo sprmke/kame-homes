@@ -1,26 +1,45 @@
 /**
- * Social creative tokens (v2): flat color planes only. No washes, blurs or grain.
- * Every tone is a solid field; depth comes from scale, crop and contrast, not light effects.
- * Brand anchor: product primary `hsl(168 65% 40%)` from ui/src/index.css.
+ * Social creative tokens (v3): flat color planes only. No washes, blurs or grain.
+ *
+ * Palette rules (why v3 exists):
+ * - One brand green, a clean emerald, used as a full plane or as an accent. Never two
+ *   mid-greens touching (no green text on a green plane of similar depth).
+ * - Darks are graphite with a trace of green, not saturated teal-black.
+ * - On the brand plane the accent is pale mint (light on mid), never dark forest.
+ * - Lights are near-neutral; green tint only on chips and the `tint` tone.
+ * Contrast: white on brand 4.3:1, onBrand on brand 3.5:1 (display only),
+ * brandDeep on paper 5.0:1, mint on night 10:1.
  */
 export const c = {
-  forest: 'hsl(172 58% 10%)',
-  pine: 'hsl(171 60% 16%)',
-  pineLine: 'hsl(170 40% 24%)',
-  teal: 'hsl(168 65% 40%)', // brand primary
-  tealDeep: 'hsl(169 70% 29%)',
-  mint: 'hsl(163 60% 80%)',
-  mintSoft: 'hsl(160 42% 92%)',
-  paper: 'hsl(150 12% 96%)',
+  // darks
+  night: 'hsl(160 12% 8%)',
+  graphite: 'hsl(160 9% 12%)',
+  graphiteLine: 'hsl(160 7% 21%)',
+  nightSurface: 'hsl(160 8% 14%)',
+  nightSub: 'hsl(150 6% 68%)',
+  // brand
+  brand: 'hsl(162 80% 30%)',
+  brandDeep: 'hsl(162 84% 25%)',
+  brandTrack: 'hsl(158 50% 44%)',
+  onBrand: 'hsl(150 70% 86%)',
+  onBrandSub: 'hsl(150 45% 92%)',
+  mint: 'hsl(154 56% 62%)', // accent on dark planes
+  mintDim: 'hsl(158 30% 30%)', // quiet fills on dark (chart bars, idle tiles)
+  // lights
+  tint: 'hsl(150 36% 92%)',
+  tintPlane: 'hsl(150 32% 89%)',
+  tintLine: 'hsl(152 22% 78%)',
+  paper: 'hsl(140 10% 96.5%)',
   white: '#ffffff',
-  ink: 'hsl(175 28% 8%)',
-  inkSoft: 'hsl(175 9% 30%)',
-  muted: 'hsl(175 5% 46%)',
-  line: 'hsl(160 9% 87%)',
-  sun: 'hsl(44 100% 64%)', // single small highlight per piece, at most
+  ink: 'hsl(165 20% 9%)',
+  inkSoft: 'hsl(165 8% 30%)',
+  muted: 'hsl(165 5% 45%)',
+  line: 'hsl(150 8% 88%)',
+  sun: 'hsl(42 96% 62%)', // single small highlight per piece, at most
+  coral: 'hsl(8 78% 60%)', // negative values only (expenses, overdue)
 } as const;
 
-export type ToneName = 'paper' | 'white' | 'mint' | 'teal' | 'pine' | 'forest';
+export type ToneName = 'paper' | 'white' | 'tint' | 'brand' | 'graphite' | 'night';
 
 export interface Tone {
   bg: string;
@@ -30,6 +49,8 @@ export interface Tone {
   line: string;
   /** Card / tile surface sitting on this background. */
   surface: string;
+  /** Brand diamond color on this background. */
+  mark: string;
   dark: boolean;
 }
 
@@ -38,54 +59,60 @@ export const tones: Record<ToneName, Tone> = {
     bg: c.paper,
     fg: c.ink,
     sub: c.inkSoft,
-    accent: c.teal,
+    accent: c.brandDeep,
     line: c.line,
     surface: c.white,
+    mark: c.brand,
     dark: false,
   },
   white: {
     bg: c.white,
     fg: c.ink,
     sub: c.inkSoft,
-    accent: c.teal,
+    accent: c.brandDeep,
     line: c.line,
     surface: c.paper,
+    mark: c.brand,
     dark: false,
   },
-  mint: {
-    bg: c.mint,
-    fg: c.forest,
-    sub: 'hsl(172 40% 22%)',
-    accent: c.tealDeep,
-    line: 'hsl(165 35% 70%)',
+  tint: {
+    bg: c.tintPlane,
+    fg: c.ink,
+    sub: 'hsl(160 14% 26%)',
+    accent: c.brandDeep,
+    line: c.tintLine,
     surface: c.white,
+    mark: c.brand,
     dark: false,
   },
-  teal: {
-    bg: c.teal,
+  brand: {
+    bg: c.brand,
     fg: c.white,
-    sub: 'hsl(165 60% 92%)',
-    accent: c.forest,
-    line: 'hsl(168 55% 52%)',
+    sub: c.onBrandSub,
+    accent: c.onBrand,
+    line: c.brandTrack,
     surface: c.white,
+    mark: c.white,
     dark: true,
   },
-  pine: {
-    bg: c.pine,
+  graphite: {
+    bg: c.graphite,
     fg: c.white,
-    sub: 'hsl(165 18% 72%)',
+    sub: c.nightSub,
     accent: c.mint,
-    line: c.pineLine,
-    surface: 'hsl(171 50% 21%)',
+    line: c.graphiteLine,
+    surface: c.nightSurface,
+    mark: c.mint,
     dark: true,
   },
-  forest: {
-    bg: c.forest,
+  night: {
+    bg: c.night,
     fg: c.white,
-    sub: 'hsl(165 14% 66%)',
+    sub: c.nightSub,
     accent: c.mint,
-    line: 'hsl(170 35% 18%)',
-    surface: 'hsl(171 45% 15%)',
+    line: c.graphiteLine,
+    surface: c.nightSurface,
+    mark: c.mint,
     dark: true,
   },
 };
