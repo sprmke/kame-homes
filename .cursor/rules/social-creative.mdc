@@ -1,5 +1,5 @@
 ---
-description: Kame Homes social marketing creative (FB / IG / TikTok) built in marketing/social with Remotion. Brand teal system and a strict not-AI-looking checklist.
+description: Kame Homes marketing creative (FB / IG / TikTok / ads / email) built in marketing/social with Remotion. Flat brand system, campaign format matrix, not-AI-looking review.
 globs:
   - 'marketing/social/**'
 alwaysApply: false
@@ -9,9 +9,9 @@ alwaysApply: false
 
 Follow skill **`social-creative`** (`.agent/skills/social-creative/SKILL.md`) for any off-app marketing image or video.
 
-- Build in `marketing/social/` (Remotion). Stills via `bun run render:stills`, videos via `bun run render:videos`.
-- Plus Jakarta Sans only, teal ramp from `src/theme.ts`, one tone per post, 88px margins, typographic wordmark (no turtle logo).
-- One idea per frame, hand-set line breaks, off-axis light, product fragments drawn in `src/fragments.tsx` (never screenshots), grain on.
-- No invented stats, testimonials or customer counts. No emoji, purple, neon, glassmorphism or gradient text. Copy per `human-copy` (no em dashes).
-- 9:16: copy and CTA between y=270 and y=1360.
-- Review every render (read the PNG or pull MP4 frames with ffmpeg) before calling it done.
+- Flat solid tones from `src/theme.ts` only (palette v3: emerald `brand`, graphite `night`/`graphite`, near-neutral lights). No gradients, glows, blur or grain. Never green text on a green plane of similar depth; on `brand` the accent is pale mint `onBrand`.
+- One hook, one visual, one CTA. Brand device = the Path (`src/path.tsx`). Product shown via the CSS phone (`src/device.tsx`, `src/screens.tsx`), never screenshots.
+- Every concept is laid out per orientation: story 1080×1920, portrait 1080×1350, square 1080×1080, landscape 1920×1080, link 1200×628, email 1200×600.
+- Plus Jakarta Sans 700, hand-set breaks, one accent phrase. Copy per `human-copy`. No invented stats or testimonials.
+- Per-module feature series lives in `src/features/` (`registry.tsx` → `out/features/<nn-module>/`). New modules reuse `makeFeatureConcept` and the screen kit.
+- Review every render (contact sheets, ffmpeg frame grabs) before calling it done.

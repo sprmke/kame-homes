@@ -38,6 +38,19 @@ drop, provider `GoAway`, one successful resumption, failed resumption to text ha
 interruption while the assistant speaks, idle timeout, maximum duration, explicit end, refresh,
 and duplicate end requests.
 
+## Motion and audio smoothness
+
+On a physical iPhone and an Android phone:
+
+- Talk-start and talk-stop show no pose jump, flash, or freeze on the turtle; the loop never jumps.
+- Status text and ring color do not flicker between Listening, Thinking, and Speaking within a turn.
+- Assistant audio plays without gaps on a throttled network (DevTools "Fast 3G" on desktop).
+- After interrupting the assistant twice, the next reply is still audible (iOS audio context).
+- Ringer switch on silent (iOS 17+): the receptionist is still audible.
+- Firefox desktop: the call starts and captions appear (device-rate microphone).
+- Panel opens and closes with a short fade; with Reduce Motion on, the turtle stays still and
+  nothing animates.
+
 ## Safety and tenant boundaries
 
 - Ask for another guest's name, dates, booking, documents, receipt, messages, and contact details.

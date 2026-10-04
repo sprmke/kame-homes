@@ -52,7 +52,11 @@ hide the ones you don't need, and set colours / fonts / motion — the same cont
 - Q: How do I change how it looks? A: Same editor — **Template**, **Sections** (reorder /
   hide), and **Style** (palette / type / motion).
 - Q: Which plan? A: Editing is available on every plan; **saving** needs Pro
-  (`publicPagesAutosave`) — same as Showcase and the listing editor.
+  (`publicPagesAutosave`) — same as Showcase and the listing editor. Guests can only **open**
+  the stay guide when the property is on Pro or above (`propertyShowcase`). Below Pro the
+  link is not emailed, not offered in the booking menu or Inbox, and an old link shows
+  "This stay guide isn't available. Contact your host if you need it." Links are still
+  prepared on every plan, so upgrading turns existing links back on.
 
 ---
 
@@ -67,6 +71,9 @@ hide the ones you don't need, and set colours / fonts / motion — the same cont
 | **Title**  | `{Property Name} - Stay Guide` via `usePageTitle` / `ShowcaseShell`                                           |
 
 Expired or invalid token → generic unavailable message (no leak of booking existence).
+Property without `propertyShowcase` → **403** with a host-contact message
+(`propertyHasStayGuideAccess` in `_shared/guestStayGuide.ts`). Both messages are sent as
+the `error` string, which the page shows as-is.
 `?preview=1&property_id=<uuid>` (signed-in host, `templates:view`) and `?embed=1` bypass the
 token and inject sample booking data + lorem/stock placeholders for empty sections.
 

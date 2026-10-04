@@ -49,6 +49,12 @@ When you change seed migrations, super-admin plan edits, or `PLAN_TIER_CARD_GAIN
 
 **Compare matrix grouping:** `planFeatureMatrixGroups()` sections rows by product module in **property sidebar order** (Dashboard, Bookings, Finance, Maintenance, Pricing, Team, Marketing, Inbox, Notifications, Templates, Public pages), then Visibility, AI, Managed hosting. Baseline Free tools fold into the same module as related paid upgrades (e.g. Finance management + Finance reporting). **`customPages`** (gallery + editor explore-open on Free+) is **omitted** from the host compare matrix — only **`publicPagesAutosave`** (“Public pages editor”) and **`propertyShowcase`** (“Property showcase & stay guide access”) appear under Public pages. **`marketingStudio`** (Content Studio — edit without watermark, download) is **Pro+** (`20261210120200`); **`marketingPublishLimitPerGroup`** (Publish in Meta platforms) is **Business+** (`20261210120400`); **`aiMarketingGeneration`** stays **Business+**.
 
+## Client gate: loading, errors, rate limits
+
+- **Loading:** `useFeatureGate` reports `isLoading`; `TierBadge` hides and gated clicks do nothing until the plan is known. Surfaces that show plan-specific copy (for example `WorkflowPanel`) treat loading as entitled so paying hosts never see a flash of Free copy.
+- **Load failure:** `usePropertyEntitlements` retries twice, then re-checks every 30 s while errored. If the plan still cannot be loaded, `useFeatureGate` **fails open** (`planUnknown`: `allowed` and `canUse` true). Every gate is also enforced server-side, so a Free host gets the server's upgrade envelope on the action instead.
+- **Rate limits are not plan limits:** only a response with `upgradeHook: true` (plan feature or AI credits) becomes an upgrade prompt (`throwIfUpgradeHookFromJson`, `teamApiJson`, `calendarSyncApi`, `smartPricingApi`). A bare 429 from `rateLimitGate` or a non-upgradable cap stays a plain error ("Too many requests. Please wait a moment and try again.").
+
 ## Plan feature × Team permission coverage
 
 Canonical map: `ui/src/features/dashboard/plans/lib/planFeaturePermissions.ts` (`PLAN_FEATURE_PERMISSION_COVERAGE`). Every `PlanFeatureKey` is mapped to property permission leaves **or** carries an explicit N/A reason, and `planFeaturePermissions.test.ts` fails when a new key is added without a decision (or a mapped leaf does not exist, or an edge handler requires an uncatalogued leaf). The Team role editor derives its plan pills from this table.
@@ -107,17 +113,17 @@ Unit (Vitest, `plans/lib/*.test.ts`): tier entitlements and minimum tier per key
 
 Client/server gating for these keys shipped in Phase 3/4, and comparison-table/card copy in Phase 9. This section reflects what's actually in `pricing_plans.features` and the `PlanFeatures` type on both sides.
 
-| New key                | Decision                                                                               | free | starter | growth | pro | managed | commission |
-| ---------------------- | -------------------------------------------------------------------------------------- | ---- | ------- | ------ | --- | ------- | ---------- |
-| `financeReporting`     | Starter+                                                                               | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
-| `maintenanceReporting` | Starter+                                                                               | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
-| `metaChatChannel`      | Business+ (`pro`+)                                                                     | —    | —       | —      | ✅  | ✅      | —          |
-| `quickReplies`         | Starter+                                                                               | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
-| `customTemplates`      | Starter+ (advanced template management; standard template management free)             | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
-| `publicPagesAutosave`  | **Pro+** (save/autosave only; gallery + editor explore-open — `20261212120000`)        | —    | —       | ✅     | ✅  | ✅      | —          |
-| `bookingImport`        | Starter+                                                                               | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
-| `propertyShowcase`     | Pro+ (live guest Showcase URL; editor explore-open — save still `publicPagesAutosave`) | —    | —       | ✅     | ✅  | ✅      | —          |
-| `customRoles`          | Starter+ (create/edit/delete custom team roles; default roles stay free)               | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| New key                | Decision                                                                                                                    | free | starter | growth | pro | managed | commission |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---- | ------- | ------ | --- | ------- | ---------- |
+| `financeReporting`     | Starter+                                                                                                                    | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| `maintenanceReporting` | Starter+                                                                                                                    | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| `metaChatChannel`      | Business+ (`pro`+)                                                                                                          | —    | —       | —      | ✅  | ✅      | —          |
+| `quickReplies`         | Starter+                                                                                                                    | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| `customTemplates`      | Starter+ (advanced template management; standard template management free)                                                  | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| `publicPagesAutosave`  | **Pro+** (save/autosave only; gallery + editor explore-open — `20261212120000`)                                             | —    | —       | ✅     | ✅  | ✅      | —          |
+| `bookingImport`        | Starter+                                                                                                                    | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
+| `propertyShowcase`     | Pro+ (live guest Showcase URL **and per-booking guest stay guide**; editor explore-open — save still `publicPagesAutosave`) | —    | —       | ✅     | ✅  | ✅      | —          |
+| `customRoles`          | Starter+ (create/edit/delete custom team roles; default roles stay free)                                                    | —    | ✅      | ✅     | ✅  | ✅      | ✅         |
 
 `commission`'s row for each is a Phase 2 open question (not explicitly decided by the host) — its existing features place it between `growth` and `pro`; recommend treating it like `growth` (Starter+ tier) for all six new keys unless the host says otherwise.
 

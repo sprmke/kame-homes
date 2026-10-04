@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-09-29
+updated: 2026-10-04
 stage: in-progress
 kind: reference
 ---
@@ -33,6 +33,7 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md)                         | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                  |
 | [`ai-receptionist-production-readiness.md`](./ai-receptionist-production-readiness.md) | Core hardening implemented; local DB, hosted canary, real-device baselines, and pilot evidence remain                                                                                                      |
+| [`ai-receptionist-experience-pass.md`](./ai-receptionist-experience-pass.md)           | Audio pipeline, phase stability, avatar media, animation, and start latency pass                                                                                                                           |
 | [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)                     | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain |
 | [`ci-cd-environments/`](./ci-cd-environments/README.md)                                | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                      |
 | See [`../done/`](../done/) for completed work.                                         |
