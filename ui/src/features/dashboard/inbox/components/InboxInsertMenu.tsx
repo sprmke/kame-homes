@@ -22,8 +22,10 @@ import {
 import type { InboxConversation, InboxTemplate } from '@/features/dashboard/inbox/types/inbox';
 import { legacyGcashQrForPaymentMethods } from '@/features/dashboard/lib/storedMediaDisplay';
 import { normalizePaymentMethodsDraft } from '@/features/dashboard/org/lib/paymentMethods';
+import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 import { buildPropertyGuestPublicPages } from '@/features/dashboard/property/lib/propertyGuestPublicPages';
 
 import { Button } from '@/components/ui/button';
@@ -33,19 +35,28 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+/** Guest pages that only open on Pro+ (`propertyShowcase`): Showcase and Stay Guide. */
+const PROPERTY_SHOWCASE_PAGE_IDS = new Set(['showcase', 'stay-guide']);
+
 function ShareRowButton({
   row,
   onSelect,
+  onUpgrade,
 }: {
   row: InboxShareRow;
   onSelect: (value: string) => void;
+  onUpgrade?: (feature: PlanFeatureKey) => void;
 }) {
-  const disabled = row.pending || !row.url;
+  const locked = row.lockedFeature;
+  const disabled = !locked && (row.pending || !row.url);
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => row.url && onSelect(row.url)}
+      onClick={() => {
+        if (locked) onUpgrade?.(locked);
+        else if (row.url) onSelect(row.url);
+      }}
       className={cn(
         'native-press focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm',
         'focus-visible:outline-none focus-visible:ring-2',
@@ -53,7 +64,10 @@ function ShareRowButton({
       )}
     >
       <span className="min-w-0 flex-1 truncate">{row.label}</span>
-      {row.pending ? <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden /> : null}
+      {locked ? <TierBadge feature={locked} /> : null}
+      {!locked && row.pending ? (
+        <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+      ) : null}
     </button>
   );
 }
@@ -165,6 +179,10 @@ export function InboxInsertMenu({
 
   const paymentText = useMemo(() => formatPaymentMethodsChatText(paymentMethods), [paymentMethods]);
 
+  const { canUse: canShareLivePages, isLoading: livePagesGateLoading } =
+    useFeatureGate('propertyShowcase');
+  const livePagesLocked = !canShareLivePages && !livePagesGateLoading;
+
   const publicPages = useMemo(() => {
     if (!propertyId) return [];
     return buildPropertyGuestPublicPages(propertySlug, propertyId).filter((page) =>
@@ -191,6 +209,12 @@ export function InboxInsertMenu({
   const insertText = (text: string) => {
     onInsertText(text);
     closeAndReset();
+  };
+
+  // Upgrade modal stacks above this popover; close it so focus lands in the modal.
+  const openUpgrade = (feature: PlanFeatureKey) => {
+    closeAndReset();
+    openUpgradeModal(feature);
   };
 
   const insertPinnedSnippet = (body: string) => {
@@ -320,8 +344,12 @@ export function InboxInsertMenu({
                       key: page.id,
                       label: page.label,
                       url: `${window.location.origin}${page.path}`,
+                      ...(livePagesLocked && PROPERTY_SHOWCASE_PAGE_IDS.has(page.id)
+                        ? { lockedFeature: 'propertyShowcase' as const }
+                        : {}),
                     }}
                     onSelect={insertUrl}
+                    onUpgrade={openUpgrade}
                   />
                 ))}
               </div>
@@ -386,7 +414,12 @@ export function InboxInsertMenu({
               {bookingRows.length > 0 ? (
                 <div className="border-border/60 mt-1 border-t pt-1">
                   {bookingRows.map((row) => (
-                    <ShareRowButton key={row.key} row={row} onSelect={insertUrl} />
+                    <ShareRowButton
+                      key={row.key}
+                      row={row}
+                      onSelect={insertUrl}
+                      onUpgrade={openUpgrade}
+                    />
                   ))}
                 </div>
               ) : (

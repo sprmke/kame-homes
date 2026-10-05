@@ -15,12 +15,15 @@ import { useBookingStayGuideLink } from '@/features/dashboard/bookings/hooks/use
 import { useOwnerDefaultParking } from '@/features/dashboard/bookings/hooks/useOwnerDefaultParking';
 import { isStayGuideEligibleStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 export type InboxShareRow = {
   key: string;
   label: string;
   url: string;
   pending?: boolean;
+  /** Plan below this feature's tier: row stays visible with a plan pill and opens the upgrade modal. */
+  lockedFeature?: PlanFeatureKey;
 };
 
 const SD_FORM_ELIGIBLE_STATUSES = new Set(['READY_FOR_CHECKOUT', 'PENDING_SD_REFUND', 'COMPLETED']);
@@ -67,13 +70,14 @@ export function useInboxBookingShareRows(
     if (!selectedBooking) return [];
     const rows: InboxShareRow[] = [];
 
-    // Stay guide is Pro+ (`propertyShowcase`): no share row the guest could not open.
-    if (isStayGuideEligibleStatus(selectedBooking.status) && !stayGuideLink.locked) {
+    // Stay guide is Pro+ (`propertyShowcase`): below Pro the row upsells instead of inserting.
+    if (isStayGuideEligibleStatus(selectedBooking.status)) {
       rows.push({
         key: 'stay-guide',
         label: 'Stay Guide',
-        url: stayGuideLink.url,
+        url: stayGuideLink.locked ? '' : stayGuideLink.url,
         pending: stayGuideLink.pending,
+        ...(stayGuideLink.locked ? { lockedFeature: 'propertyShowcase' as const } : {}),
       });
     }
     if (selectedBooking.approved_gaf_pdf_url) {
