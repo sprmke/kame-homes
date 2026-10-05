@@ -181,6 +181,17 @@ export function buildBookingLinkCtaHtml(bookingLink: string, brandColor: string)
   return `<div class="cta-wrap" style="margin:28px 0 8px 0;text-align:center;"><a class="cta-btn" style="${ctaStyle}" href="${escapeHtml(bookingLink)}" target="_blank" rel="noopener">View Booking Details</a></div>`;
 }
 
+/** Guest trip page button: booking status, documents, and host chat in one place. */
+export function buildGuestTripCtaHtml(
+  tripUrl: string | null | undefined,
+  brandColor: string
+): string {
+  const url = tripUrl?.trim();
+  if (!url) return '';
+  const ctaStyle = withEmailShellStyleVars({}, brandColor).emailShellCtaBtnStyle;
+  return `<div class="cta-wrap" style="margin:28px 0 8px 0;text-align:center;"><a class="cta-btn" style="${ctaStyle}" href="${escapeHtml(url)}" target="_blank" rel="noopener">View your booking</a></div>`;
+}
+
 export function buildStayGuideCtaHtml(stayGuideUrl: string, brandColor: string): string {
   if (!stayGuideUrl.trim()) return '';
   const ctaStyle = withEmailShellStyleVars({}, brandColor).emailShellCtaBtnStyle;
@@ -335,6 +346,8 @@ export function buildBookingAcknowledgementFlowSectionHtml(input: {
   contact: GuestFacingContactInfo;
   /** Phase 7 — self-serve parking CTA, shown only when set (guest signaled need_parking). */
   parkingUrl?: string | null;
+  /** Guest trip page (booking details, documents, chat). Button omitted when empty. */
+  tripUrl?: string | null;
 }): string {
   const unit = escapeHtml(input.unitLabel);
   const checkIn = escapeHtml(input.checkIn);
@@ -357,7 +370,8 @@ export function buildBookingAcknowledgementFlowSectionHtml(input: {
     input.brandColor
   );
   const parkingCallout = buildParkingSelfServeCalloutHtml(input.parkingUrl);
-  return `${summary}${notifySectionTitle("What's next", input.brandColor)}${step1}${stepRowGap()}${step2}${stepRowGap()}${step3}${parkingCallout}`;
+  const tripCta = buildGuestTripCtaHtml(input.tripUrl, input.brandColor);
+  return `${summary}${notifySectionTitle("What's next", input.brandColor)}${step1}${stepRowGap()}${step2}${stepRowGap()}${step3}${parkingCallout}${tripCta}`;
 }
 
 /**
@@ -980,6 +994,7 @@ export function buildSampleDynamicSections(input: {
           // Phase 7 — sample-only so template editors can see the parking callout's layout;
           // the real send only includes it when the booking actually signaled need_parking.
           parkingUrl: 'https://example.com/parkings',
+          tripUrl: `${input.settings.publicGuestAppOrigin}/properties/sample-unit/trip?bookingId=sample`,
         });
         break;
       case 'ready_for_checkin_booking_summary_section':

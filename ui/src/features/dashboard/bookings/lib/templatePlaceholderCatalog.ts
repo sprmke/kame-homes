@@ -65,6 +65,9 @@ const PROPERTY_GUEST_CONTACT_KEYS = [
 
 const PROPERTY_BOOKING_META_KEYS = ['booking_source', 'booking_link'] as const;
 
+/** Guest-facing links (only filled on guest emails). */
+const PROPERTY_GUEST_LINK_KEYS = ['trip_url'] as const;
+
 const PROPERTY_SECTION_KEYS = [
   'urgent_notice',
   'update_notice',
@@ -168,20 +171,27 @@ export const PROPERTY_PLACEHOLDER_KEYS_BY_TEMPLATE: Record<string, readonly stri
     PROPERTY_EMAIL_CORE,
     PROPERTY_BOOKING_META_KEYS,
     PROPERTY_GUEST_CONTACT_KEYS,
+    PROPERTY_GUEST_LINK_KEYS,
     ['booking_acknowledgement_flow_section', 'email_signature_section']
   ),
-  'email-ready-for-checkin': uniqueKeys(PROPERTY_EMAIL_WITH_PAYMENT, PROPERTY_GUEST_CONTACT_KEYS, [
-    'ready_for_checkin_booking_summary_section',
-    'document_reminders_section',
-    'payment_breakdown_section',
-    'gcash_payment_section',
-    'stay_guide_cta_section',
-    'ready_for_checkin_contact_section',
-    'email_signature_section',
-  ]),
+  'email-ready-for-checkin': uniqueKeys(
+    PROPERTY_EMAIL_WITH_PAYMENT,
+    PROPERTY_GUEST_CONTACT_KEYS,
+    PROPERTY_GUEST_LINK_KEYS,
+    [
+      'ready_for_checkin_booking_summary_section',
+      'document_reminders_section',
+      'payment_breakdown_section',
+      'gcash_payment_section',
+      'stay_guide_cta_section',
+      'ready_for_checkin_contact_section',
+      'email_signature_section',
+    ]
+  ),
   'email-sd-refund-form-request': uniqueKeys(
     PROPERTY_EMAIL_WITH_PAYMENT,
     PROPERTY_GUEST_CONTACT_KEYS,
+    PROPERTY_GUEST_LINK_KEYS,
     ['sd_refund_checklist_section', 'sd_refund_details_section']
   ),
 };

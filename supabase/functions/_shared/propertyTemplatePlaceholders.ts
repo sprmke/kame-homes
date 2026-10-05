@@ -36,6 +36,7 @@ export const PROPERTY_TEMPLATE_PLACEHOLDERS_REFERENCE: readonly string[] = [
   '{{car_plate_number}} — plate number',
   '{{total_guest_balance}} — guest balance due (₱ formatted)',
   '{{sd_form_url}} — guest SD refund form URL',
+  '{{trip_url}} — guest trip page URL (booking, documents, chat)',
   '{{security_deposit}} — security deposit (₱ formatted)',
   '{{facebook_page_url}} — Facebook page URL (property → org)',
   '{{airbnb_url}} — Airbnb listing URL (property → org)',
@@ -97,6 +98,8 @@ export const PROPERTY_TEMPLATE_SAMPLE_VARS: Record<string, string> = {
   total_guest_balance: '₱3,599',
   sd_form_url:
     'https://kamehomes.space/properties/azure-north/sd-form?bookingId=00000000-0000-4000-8000-000000000001',
+  trip_url:
+    'https://kamehomes.space/properties/azure-north/trip?bookingId=00000000-0000-4000-8000-000000000001',
   security_deposit: '₱3,000.00',
   facebook_page_url: 'https://www.facebook.com/example',
   airbnb_url: 'https://www.airbnb.com/rooms/example',

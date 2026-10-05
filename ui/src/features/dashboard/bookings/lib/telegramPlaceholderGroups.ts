@@ -114,6 +114,11 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
     description: 'Admin booking URL',
     example: 'kamehomes.space/bookings/…',
   },
+  trip_url: {
+    group: 'Booking',
+    description: 'Guest trip page URL (booking, documents, chat)',
+    example: 'kamehomes.space/properties/…/trip?…',
+  },
   chat_source: {
     group: 'Chat',
     description: 'Channel (Web chat, Facebook Messenger, Instagram)',

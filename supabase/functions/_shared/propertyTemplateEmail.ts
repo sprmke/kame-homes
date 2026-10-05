@@ -9,7 +9,12 @@ import {
   resolveEmailUnitLabel,
   type PropertyEmailBranding,
 } from './propertyEmailBranding.ts';
-import { guestFormPath, guestGuestReviewPath, guestSdFormPath } from './publicGuestPaths.ts';
+import {
+  guestFormPath,
+  guestGuestReviewPath,
+  guestSdFormPath,
+  guestTripPath,
+} from './publicGuestPaths.ts';
 import {
   escapeHtml,
   loadEmailTemplate,
@@ -160,6 +165,9 @@ export function buildBookingPlaceholderVars(
   const reviewUrl =
     extras.review_url?.trim() ||
     (bookingId ? guestGuestReviewPath(appOrigin, propertySlug, bookingId) : '');
+  const tripUrl =
+    extras.trip_url?.trim() ||
+    (bookingId && propertySlug ? guestTripPath(appOrigin, propertySlug, bookingId) : '');
   const totalBalance =
     computeTotalGuestBalanceFromBooking(booking as unknown as Record<string, unknown>) ?? 0;
 
@@ -194,6 +202,7 @@ export function buildBookingPlaceholderVars(
     sd_form_url: escapeHtml(sdFormUrl),
     form_url: escapeHtml(formUrl),
     review_url: escapeHtml(reviewUrl),
+    trip_url: escapeHtml(tripUrl),
     security_deposit: escapeHtml(formatPeso(booking.security_deposit as number | null)),
     ...Object.fromEntries(Object.entries(flags).map(([k, v]) => [k, escapeHtml(v)])),
     ...extras,
