@@ -4,7 +4,7 @@ import { Star, Users, Bed, Bath, Building2, Award, Shield, Clock, Home } from 'l
 import { resolveOrgDisplayName } from '@/features/guest/form/lib/guestFormBranding';
 import {
   developmentDetailPath,
-  resolvePublicDevelopment,
+  type ResolvedPublicDevelopment,
 } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
 import { shouldShowPropertyFloors } from '@/features/guest/marketing/properties/lib/propertyOverviewStats';
 import type { ResolvedPropertyHost } from '@/features/guest/marketing/properties/types/publicProperty';
@@ -39,7 +39,7 @@ interface PropertyOverviewProps {
     floors?: number | null;
   };
   residenceName?: string | null;
-  developmentSlug?: string | null;
+  development?: ResolvedPublicDevelopment | null;
   tower?: string | null;
   unitNumber?: string | null;
   towerAndUnit?: string | null;
@@ -76,7 +76,7 @@ export function PropertyOverview({
   location,
   stats,
   residenceName = null,
-  developmentSlug = null,
+  development = null,
   tower = null,
   unitNumber = null,
   towerAndUnit = null,
@@ -97,7 +97,6 @@ export function PropertyOverview({
     .filter(Boolean)
     .join(', ');
 
-  const development = resolvePublicDevelopment(residenceName, developmentSlug);
   const placementLabels = buildPropertyPlacementLabels({ tower, unitNumber, towerAndUnit });
 
   const showFloors = shouldShowPropertyFloors(type, residenceName);

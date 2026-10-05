@@ -53,6 +53,8 @@ export function mapApiPropertyToResolved(dto: PublicPropertyDetailDto): Resolved
     placeId: dto.placeId,
     mapsUrl: dto.mapsUrl,
     residenceName: dto.residenceName,
+    developmentSlug: dto.development?.slug ?? null,
+    development: dto.development ?? null,
     tower: dto.tower,
     unitNumber: dto.unitNumber,
     towerAndUnit: dto.towerAndUnit,
@@ -191,6 +193,14 @@ export function mapBasicMockToResolved(basic: Property): ResolvedPropertyDetail 
     mapsUrl: null,
     residenceName: basic.developmentName ?? null,
     developmentSlug: basic.developmentSlug ?? null,
+    development:
+      basic.developmentSlug && basic.developmentName
+        ? {
+            slug: basic.developmentSlug,
+            name: basic.developmentName,
+            locationLabel: basic.location,
+          }
+        : null,
     tower: basic.tower ?? null,
     unitNumber: basic.unitNumber ?? null,
     towerAndUnit: basic.towerAndUnit ?? null,

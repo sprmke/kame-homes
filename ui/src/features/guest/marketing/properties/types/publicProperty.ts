@@ -1,3 +1,5 @@
+import type { ResolvedPublicDevelopment } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
+
 import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
 
 export type PublicPropertyMedia = {
@@ -46,6 +48,7 @@ export type PublicPropertyDetailDto = {
   mapsUrl: string | null;
   placeId: string | null;
   residenceName: string | null;
+  development?: ResolvedPublicDevelopment | null;
   towerAndUnit: string | null;
   tower: string | null;
   unitNumber: string | null;
@@ -142,6 +145,7 @@ export type ResolvedPropertyDetail = {
   unitNumber: string | null;
   towerAndUnit: string | null;
   developmentSlug?: string | null;
+  development?: ResolvedPublicDevelopment | null;
   floors: number;
   houseRules: PublicHouseRule[];
   cancellationPolicy: ResolvedCancellationPolicyDisplay;

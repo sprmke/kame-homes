@@ -13,13 +13,16 @@ export function usePublicDevelopment(slug: string, enabled = true) {
 
   return useQuery({
     queryKey: [...PUBLIC_DEVELOPMENTS_QUERY_KEY, 'slug', trimmed],
-    queryFn: async (): Promise<Development | null> => {
-      const result = await fetchPublicDevelopments({
-        ...DEFAULT_DEVELOPMENTS_QUERY,
-        slug: trimmed,
-        page: 1,
-        pageSize: 1,
-      });
+    queryFn: async ({ signal }): Promise<Development | null> => {
+      const result = await fetchPublicDevelopments(
+        {
+          ...DEFAULT_DEVELOPMENTS_QUERY,
+          slug: trimmed,
+          page: 1,
+          pageSize: 1,
+        },
+        signal
+      );
       const item = result.data[0];
       return item ? toDevelopmentCard(item) : null;
     },

@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
+import type { ResolvedPublicDevelopment } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
+
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
@@ -15,6 +17,8 @@ export type PublicParkingDetail = {
   slug: string;
   name: string;
   residenceName: string | null;
+  /** ACTIVE development matching `residenceName` (null when none). */
+  development?: ResolvedPublicDevelopment | null;
   tower: string | null;
   level: string | null;
   slotLabel: string;

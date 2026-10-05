@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   EMPTY_DEVELOPMENTS_FACETS,
@@ -20,12 +22,14 @@ export type PublicDevelopmentsResult = {
 };
 
 export async function fetchPublicDevelopments(
-  query: DevelopmentsListingQuery
+  query: DevelopmentsListingQuery,
+  signal?: AbortSignal
 ): Promise<PublicDevelopmentsResult> {
   const params = writeDevelopmentsQuery(query);
   const result = await publicListingFetch<PublicDevelopmentListItem, DevelopmentsFacets>(
     'list-public-developments',
-    params
+    params,
+    signal
   );
   return {
     data: result.data,
@@ -44,10 +48,24 @@ export async function fetchPublicDevelopments(
 export function usePublicDevelopments(query: DevelopmentsListingQuery, enabled = true) {
   return useQuery({
     queryKey: [...PUBLIC_DEVELOPMENTS_QUERY_KEY, query],
-    queryFn: () => fetchPublicDevelopments(query),
+    queryFn: ({ signal }) => fetchPublicDevelopments(query, signal),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
     retry: 1,
     enabled,
   });
+}
+
+/** Warm the cache for another page of the same query (pager hover / focus). */
+export function usePrefetchPublicDevelopments() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (query: DevelopmentsListingQuery) =>
+      void queryClient.prefetchQuery({
+        queryKey: [...PUBLIC_DEVELOPMENTS_QUERY_KEY, query],
+        queryFn: ({ signal }) => fetchPublicDevelopments(query, signal),
+        staleTime: 30_000,
+      }),
+    [queryClient]
+  );
 }

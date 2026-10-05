@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   EMPTY_PARKINGS_FACETS,
@@ -19,11 +21,15 @@ export type PublicParkingsResult = {
   pageSize: number;
 };
 
-async function fetchPublicParkings(query: ParkingsListingQuery): Promise<PublicParkingsResult> {
+async function fetchPublicParkings(
+  query: ParkingsListingQuery,
+  signal?: AbortSignal
+): Promise<PublicParkingsResult> {
   const params = writeParkingsQuery(query);
   const result = await publicListingFetch<PublicParkingListItem, ParkingsFacets>(
     'list-public-parkings',
-    params
+    params,
+    signal
   );
   return {
     data: result.data,
@@ -41,10 +47,24 @@ async function fetchPublicParkings(query: ParkingsListingQuery): Promise<PublicP
 export function usePublicParkings(query: ParkingsListingQuery, enabled = true) {
   return useQuery({
     queryKey: [...PUBLIC_PARKINGS_QUERY_KEY, query],
-    queryFn: () => fetchPublicParkings(query),
+    queryFn: ({ signal }) => fetchPublicParkings(query, signal),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
     retry: 1,
     enabled,
   });
+}
+
+/** Warm the cache for another page of the same query (pager hover / focus). */
+export function usePrefetchPublicParkings() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (query: ParkingsListingQuery) =>
+      void queryClient.prefetchQuery({
+        queryKey: [...PUBLIC_PARKINGS_QUERY_KEY, query],
+        queryFn: ({ signal }) => fetchPublicParkings(query, signal),
+        staleTime: 30_000,
+      }),
+    [queryClient]
+  );
 }

@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { Link } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
@@ -20,6 +18,8 @@ import {
 
 import { PropertySaveButton } from '@/features/guest/marketing/properties/components/PropertySaveButton';
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
+import { useGalleryWindow } from '@/features/guest/marketing/shared/hooks/useGalleryWindow';
+import { cardEntranceDelay } from '@/features/guest/marketing/shared/lib/galleryWindow';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -39,26 +39,30 @@ const amenityIcons: Record<string, typeof Wifi> = {
 };
 
 export function PropertyListItem({ property, index = 0 }: PropertyListItemProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const gallery = useGalleryWindow(property.images.length);
+  const currentImageIndex = gallery.current;
 
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+    gallery.next();
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev === 0 ? property.images.length - 1 : prev - 1));
+    gallery.prev();
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
+      transition={{ duration: 0.4, delay: cardEntranceDelay(index) }}
       className="group"
+      onMouseEnter={gallery.markIntent}
+      onFocus={gallery.markIntent}
+      onTouchStart={gallery.markIntent}
     >
       <Link to={`/properties/${property.slug}`}>
         <div className="border-border bg-card hover:border-primary/20 flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-lg md:flex-row">
@@ -66,18 +70,20 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
           <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden md:aspect-[4/3] md:w-80 lg:w-96">
             {/* Images */}
             <div className="relative h-full w-full">
-              {property.images.map((image, idx) => (
-                <Image
-                  key={idx}
-                  src={image}
-                  alt={`${property.name} - Image ${idx + 1}`}
-                  fill
-                  className={cn(
-                    'object-cover transition-all duration-500',
-                    idx === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                  )}
-                />
-              ))}
+              {property.images.map((image, idx) =>
+                gallery.isMounted(idx) ? (
+                  <Image
+                    key={idx}
+                    src={image}
+                    alt={`${property.name} - Image ${idx + 1}`}
+                    fill
+                    className={cn(
+                      'object-cover transition-all duration-500',
+                      idx === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                ) : null
+              )}
             </div>
 
             {/* Badges */}
@@ -100,13 +106,17 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
             {property.images.length > 1 && (
               <>
                 <button
+                  type="button"
                   onClick={prevImage}
+                  aria-label="Previous image"
                   className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-1.5 opacity-0 shadow-lg backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
                 >
                   <ChevronLeft className="h-4 w-4 text-slate-900" />
                 </button>
                 <button
+                  type="button"
                   onClick={nextImage}
+                  aria-label="Next image"
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-1.5 opacity-0 shadow-lg backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
                 >
                   <ChevronRight className="h-4 w-4 text-slate-900" />
@@ -120,8 +130,9 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setCurrentImageIndex(idx);
+                        gallery.goTo(idx);
                       }}
+                      aria-label={`Image ${idx + 1}`}
                       className={cn(
                         'h-1.5 rounded-full transition-all',
                         idx === currentImageIndex

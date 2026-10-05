@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { ListingMapView } from '@/features/guest/marketing/shared/components/ListingMapView';
+import { LazyListingMapView as ListingMapView } from '@/features/guest/marketing/shared/components/LazyListingMapView';
 import {
   markersFromCoords,
   type MapBbox,

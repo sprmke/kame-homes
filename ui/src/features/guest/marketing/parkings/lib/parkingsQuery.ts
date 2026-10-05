@@ -255,7 +255,7 @@ export function filterStateToParkingsQuery(
   } else if (filters.priceRange === 'premium') {
     minPrice = 350;
     maxPrice = null;
-  } else if (filters.priceRange == null && base.minPrice != null) {
+  } else if (filters.priceRange == null && (base.minPrice != null || base.maxPrice != null)) {
     minPrice = null;
     maxPrice = null;
   }

@@ -3,7 +3,7 @@ import { ArrowUpFromLine, Car, Clock, MoveHorizontal, Ruler } from 'lucide-react
 
 import {
   developmentDetailPath,
-  resolvePublicDevelopment,
+  type ResolvedPublicDevelopment,
 } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
 import { formatParkingDimensionMeters } from '@/features/guest/marketing/parkings/lib/parkingDimensions';
 import { parkingTypeLabel } from '@/features/guest/marketing/parkings/lib/parkingTypeLabel';
@@ -25,7 +25,7 @@ import {
 type Props = {
   name: string;
   parkingType: string;
-  residenceName: string | null;
+  development: ResolvedPublicDevelopment | null;
   tower: string | null;
   level: string | null;
   slotLabel: string;
@@ -63,7 +63,7 @@ export function ParkingOverview({
   name,
   parkingType,
   recommendedBadge = false,
-  residenceName,
+  development,
   tower,
   level,
   description,
@@ -77,7 +77,6 @@ export function ParkingOverview({
   onContactHost,
 }: Props) {
   const reduceMotion = useReducedMotion();
-  const development = resolvePublicDevelopment(residenceName);
   const placementLabels = buildParkingPlacementLabels(tower, level);
   const resolvedGeo = geoLocation?.trim() || development?.locationLabel || null;
 

@@ -8,6 +8,8 @@ import { Star, MapPin, Users, Bed, Bath, ChevronLeft, ChevronRight, Wifi, Car } 
 import { PropertySaveButton } from '@/features/guest/marketing/properties/components/PropertySaveButton';
 import { placeLabelFromPropertyLocation } from '@/features/guest/marketing/properties/lib/groupPropertiesByLocation';
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
+import { useGalleryWindow } from '@/features/guest/marketing/shared/hooks/useGalleryWindow';
+import { cardEntranceDelay } from '@/features/guest/marketing/shared/lib/galleryWindow';
 import { resolveListingImages } from '@/features/guest/marketing/shared/lib/mockListingImages';
 
 import { cn } from '@/lib/utils';
@@ -55,20 +57,21 @@ export const PropertyCard = memo(function PropertyCard({
   index = 0,
   variant = 'default',
 }: PropertyCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const images = resolveListingImages(property.images, 'property', property.slug);
+  const gallery = useGalleryWindow(images.length);
+  const currentImageIndex = gallery.current;
 
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    gallery.next();
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    gallery.prev();
   };
 
   if (variant === 'carousel') {
@@ -129,28 +132,35 @@ export const PropertyCard = memo(function PropertyCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
+      transition={{ duration: 0.4, delay: cardEntranceDelay(index) }}
       className="group"
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        gallery.markIntent();
+      }}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={gallery.markIntent}
+      onTouchStart={gallery.markIntent}
     >
       <div className="border-border bg-card hover:border-primary/20 overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-xl">
         <Link to={`/properties/${property.slug}`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden">
             <div className="relative h-full w-full">
-              {images.map((image, idx) => (
-                <Image
-                  key={idx}
-                  src={image}
-                  alt={`${property.name} - Image ${idx + 1}`}
-                  fill
-                  className={cn(
-                    'object-cover transition-all duration-500',
-                    idx === currentImageIndex ? 'scale-100 opacity-100' : 'scale-105 opacity-0',
-                    isHovered && idx === currentImageIndex && 'scale-110'
-                  )}
-                />
-              ))}
+              {images.map((image, idx) =>
+                gallery.isMounted(idx) ? (
+                  <Image
+                    key={idx}
+                    src={image}
+                    alt={`${property.name} - Image ${idx + 1}`}
+                    fill
+                    className={cn(
+                      'object-cover transition-all duration-500',
+                      idx === currentImageIndex ? 'scale-100 opacity-100' : 'scale-105 opacity-0',
+                      isHovered && idx === currentImageIndex && 'scale-110'
+                    )}
+                  />
+                ) : null
+              )}
             </div>
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -197,7 +207,7 @@ export const PropertyCard = memo(function PropertyCard({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setCurrentImageIndex(idx);
+                        gallery.goTo(idx);
                       }}
                       aria-label={`Image ${idx + 1}`}
                       className={cn(

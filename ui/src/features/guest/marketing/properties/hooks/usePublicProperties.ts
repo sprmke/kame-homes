@@ -1,4 +1,6 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   EMPTY_PROPERTIES_FACETS,
@@ -20,12 +22,14 @@ export type PublicPropertiesResult = {
 };
 
 async function fetchPublicProperties(
-  query: PropertiesListingQuery
+  query: PropertiesListingQuery,
+  signal?: AbortSignal
 ): Promise<PublicPropertiesResult> {
   const params = writePropertiesQuery(query);
   const result = await publicListingFetch<PublicPropertyListItem, PropertiesFacets>(
     'list-public-properties',
-    params
+    params,
+    signal
   );
   return {
     data: result.data,
@@ -42,13 +46,31 @@ async function fetchPublicProperties(
   };
 }
 
-export function usePublicProperties(query: PropertiesListingQuery, enabled = true) {
+export function usePublicProperties(
+  query: PropertiesListingQuery,
+  enabled = true,
+  options: { staleTime?: number } = {}
+) {
   return useQuery({
     queryKey: [...PUBLIC_PROPERTIES_QUERY_KEY, query],
-    queryFn: () => fetchPublicProperties(query),
-    staleTime: 30_000,
+    queryFn: ({ signal }) => fetchPublicProperties(query, signal),
+    staleTime: options.staleTime ?? 30_000,
     placeholderData: keepPreviousData,
     retry: 1,
     enabled,
   });
+}
+
+/** Warm the cache for another page of the same query (pager hover / focus). */
+export function usePrefetchPublicProperties() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (query: PropertiesListingQuery) =>
+      void queryClient.prefetchQuery({
+        queryKey: [...PUBLIC_PROPERTIES_QUERY_KEY, query],
+        queryFn: ({ signal }) => fetchPublicProperties(query, signal),
+        staleTime: 30_000,
+      }),
+    [queryClient]
+  );
 }

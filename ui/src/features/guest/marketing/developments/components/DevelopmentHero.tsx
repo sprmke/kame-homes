@@ -14,7 +14,7 @@ import {
   Car,
 } from 'lucide-react';
 
-import { getParkingSlotsByDevelopmentSlug } from '@/features/guest/marketing/developments/data/mockParkingSlots';
+import { useDevelopmentHasParking } from '@/features/guest/marketing/developments/hooks/useDevelopmentHasParking';
 import { ListingHeroSearch } from '@/features/guest/marketing/shared/components/ListingHeroSearch';
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
 
@@ -39,7 +39,7 @@ export function DevelopmentHero({ development }: DevelopmentHeroProps) {
   const [activeImg, setActiveImg] = useState(0);
   const typeConfig = TYPE_LABELS[development.type];
   const TypeIcon = typeConfig.icon;
-  const hasParking = getParkingSlotsByDevelopmentSlug(development.slug).length > 0;
+  const hasParking = useDevelopmentHasParking(development.slug);
 
   const prevImg = () =>
     setActiveImg((prev) => (prev === 0 ? development.images.length - 1 : prev - 1));
