@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { Navigate, useParams } from 'react-router-dom';
 
@@ -7,62 +7,54 @@ import { SlidersHorizontal } from 'lucide-react';
 
 import {
   DevelopmentsFilters,
+  DevelopmentsGrid,
   DevelopmentsHero,
   DevelopmentsToolbar,
   type DevelopmentViewMode,
 } from '@/features/guest/marketing/developments/components';
-import { usePublicDevelopments } from '@/features/guest/marketing/developments/hooks/usePublicDevelopments';
 import {
+  usePrefetchPublicDevelopments,
+  usePublicDevelopments,
+} from '@/features/guest/marketing/developments/hooks/usePublicDevelopments';
+import {
+  clearDevelopmentFilters,
+  countActiveDevelopmentFilters,
   DEFAULT_DEVELOPMENTS_QUERY,
   EMPTY_DEVELOPMENTS_FACETS,
+  parseDevelopmentsQuery,
   toDevelopmentCard,
+  writeDevelopmentsQuery,
+  type DevelopmentsListingQuery,
   type DevelopmentsSort,
 } from '@/features/guest/marketing/developments/lib/developmentsQuery';
 import { PropertiesByDevelopment } from '@/features/guest/marketing/properties/components/PropertiesByDevelopment';
-import type { Property } from '@/features/guest/marketing/properties/components/PropertyCard';
-import { PropertyListItem } from '@/features/guest/marketing/properties/components/PropertyListItem';
 import { usePublicProperties } from '@/features/guest/marketing/properties/hooks/usePublicProperties';
 import {
-  groupPropertiesByDevelopment,
-  propertiesForDevelopment,
-} from '@/features/guest/marketing/properties/lib/groupPropertiesByDevelopment';
-import {
   DEFAULT_PROPERTIES_QUERY,
-  type PublicPropertyListItem,
+  toPropertyCard,
 } from '@/features/guest/marketing/properties/lib/propertiesQuery';
+import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
+import { useListingUrlQuery } from '@/features/guest/marketing/shared/hooks/useListingUrlQuery';
+import { humanizeLocationSlug } from '@/features/guest/marketing/shared/lib/locationSlug';
 import { normalizeCityPlace } from '@/features/guest/marketing/shared/lib/locationSlug';
-import { resolveListingImages } from '@/features/guest/marketing/shared/lib/mockListingImages';
 
 import {
   ListingLocationRowsSkeleton,
   ListingRowSkeleton,
 } from '@/components/skeletons/ListingGridSkeleton';
 import { Button } from '@/components/ui/button';
+import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
-function toPropertyCard(item: PublicPropertyListItem): Property {
-  return {
-    id: item.id,
-    slug: item.slug,
-    name: item.name,
-    location: item.location,
-    price: item.price,
-    rating: item.rating,
-    reviews: item.reviews,
-    images: resolveListingImages(item.images, 'property', item.slug),
-    type: item.type,
-    guests: item.guests,
-    bedrooms: item.bedrooms,
-    bathrooms: item.bathrooms,
-    amenities: item.amenities,
-    isSuperhost: item.isSuperhost,
-    isNew: item.isNew,
-    developmentSlug: item.developmentSlug,
-    developmentName: item.developmentName,
-    tower: item.tower,
-    unitNumber: item.unitNumber,
-    latitude: item.latitude,
-    longitude: item.longitude,
-  };
+/** Development rows per page — each row is a carousel of that development's homes. */
+const DEVELOPMENTS_PER_PAGE = 12;
+/** Preview homes fetched for the developments on the current page (API max). */
+const PREVIEW_PROPERTIES_LIMIT = 48;
+
+function parseViewMode(raw: string | null): DevelopmentViewMode {
+  return raw === 'list' ? 'list' : 'grid';
 }
 
 export function DevelopmentsLocationPage() {
@@ -71,106 +63,65 @@ export function DevelopmentsLocationPage() {
   const reduceMotion = useReducedMotion();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<DevelopmentViewMode>('grid');
-  const [sortBy, setSortBy] = useState<DevelopmentsSort>('recommended');
-  const [filterQuery, setFilterQuery] = useState({
-    ...DEFAULT_DEVELOPMENTS_QUERY,
-    locationSlug,
-  });
+  const resultsRef = useRef<HTMLElement>(null);
 
-  const developmentsQuery = useMemo(
-    () => ({
-      ...filterQuery,
-      locationSlug,
-      sort: sortBy,
-      page: 1,
-      pageSize: filterQuery.pageSize || 48,
-    }),
-    [filterQuery, locationSlug, sortBy]
-  );
+  const { query, setFilters, patchQuery, goToPage, viewParam, setViewParam } =
+    useListingUrlQuery<DevelopmentsListingQuery>({
+      parse: parseDevelopmentsQuery,
+      write: writeDevelopmentsQuery,
+      scope: { locationSlug, pageSize: DEVELOPMENTS_PER_PAGE },
+      unscope: { locationSlug: '', pageSize: DEFAULT_DEVELOPMENTS_QUERY.pageSize },
+    });
+  const prefetchPage = usePrefetchPublicDevelopments();
+  const viewMode = parseViewMode(viewParam);
+  const hasFilters = countActiveDevelopmentFilters(query) > 0;
 
-  const propertiesQuery = useMemo(
-    () => ({
-      ...DEFAULT_PROPERTIES_QUERY,
-      locationSlug,
-      page: 1,
-      pageSize: 48,
-    }),
-    [locationSlug]
-  );
-
-  const developmentsResult = usePublicDevelopments(developmentsQuery, Boolean(locationSlug));
-  const propertiesResult = usePublicProperties(propertiesQuery, Boolean(locationSlug));
-
+  // Filters, sort and pagination run server-side on developments.
+  const developmentsResult = usePublicDevelopments(query, Boolean(locationSlug));
   const developments = useMemo(
     () => (developmentsResult.data?.data ?? []).map(toDevelopmentCard),
     [developmentsResult.data?.data]
+  );
+
+  // Row previews: one call scoped to the developments on this page.
+  const pageDevelopmentSlugs = useMemo(
+    () => developments.map((development) => development.slug).sort(),
+    [developments]
+  );
+  const propertiesResult = usePublicProperties(
+    {
+      ...DEFAULT_PROPERTIES_QUERY,
+      development: pageDevelopmentSlugs,
+      page: 1,
+      pageSize: PREVIEW_PROPERTIES_LIMIT,
+    },
+    viewMode === 'grid' && pageDevelopmentSlugs.length > 0
   );
   const properties = useMemo(
     () => (propertiesResult.data?.data ?? []).map(toPropertyCard),
     [propertiesResult.data?.data]
   );
 
-  const city =
-    developments[0] != null
-      ? normalizeCityPlace(developments[0].city)
-      : properties[0] != null
-        ? normalizeCityPlace(properties[0].location.split(',')[0] ?? '')
-        : null;
-
-  const sortedDevelopments = useMemo(() => {
-    const sorted = [...developments];
-    switch (sortBy) {
-      case 'newest':
-        return sorted.sort((a, b) => (b.established ?? 0) - (a.established ?? 0));
-      default:
-        return sorted;
-    }
-  }, [developments, sortBy]);
-
-  const locationProperties = useMemo(() => {
-    const seen = new Set<string>();
-    const all: Property[] = [];
-    for (const development of sortedDevelopments) {
-      for (const property of propertiesForDevelopment(development, properties)) {
-        if (seen.has(property.id)) continue;
-        seen.add(property.id);
-        all.push(property);
-      }
-    }
-    if (all.length > 0) return all;
-    return properties;
-  }, [sortedDevelopments, properties]);
-
-  const sortedFlatProperties = useMemo(() => {
-    const sorted = [...locationProperties];
-    switch (sortBy) {
-      case 'newest':
-        return sorted.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-      default:
-        return sorted;
-    }
-  }, [locationProperties, sortBy]);
-
-  const propertyCount = useMemo(
-    () =>
-      groupPropertiesByDevelopment(sortedDevelopments, properties).reduce(
-        (sum, g) => sum + g.properties.length,
-        0
-      ) || properties.length,
-    [sortedDevelopments, properties]
-  );
-
-  const isLoading = developmentsResult.isLoading || propertiesResult.isLoading;
-  const isError = developmentsResult.isError || propertiesResult.isError;
+  const city = developments[0] != null ? normalizeCityPlace(developments[0].city) : null;
   const totalDevelopments = developmentsResult.data?.total ?? 0;
-  const totalProperties = propertiesResult.data?.total ?? 0;
+  const placeLabel = city ?? humanizeLocationSlug(locationSlug);
+  usePageTitle(publicPageTitle(`Developments in ${placeLabel}`));
+  usePageMeta({
+    description: `Residential developments in ${placeLabel}, with the homes available in each.`,
+    canonicalPath: `/developments/in/${locationSlug}`,
+  });
+  const isLoading =
+    developmentsResult.isLoading || (viewMode === 'grid' && propertiesResult.isLoading);
+  const isError = developmentsResult.isError || propertiesResult.isError;
+  const isFetching = developmentsResult.isFetching || propertiesResult.isFetching;
 
   if (!locationSlug) {
     return <Navigate to="/developments" replace />;
   }
 
-  if (!isLoading && !isError && totalDevelopments === 0 && totalProperties === 0) {
+  // Unknown place (nothing listed there at all) → back to the index. With filters
+  // applied, an empty result shows the filtered-empty state instead.
+  if (!developmentsResult.isLoading && !isError && totalDevelopments === 0 && !hasFilters) {
     return <Navigate to="/developments" replace />;
   }
 
@@ -194,8 +145,8 @@ export function DevelopmentsLocationPage() {
           isOpen={filtersOpen}
           onClose={() => setFiltersOpen(false)}
           isMobile={false}
-          value={filterQuery}
-          onChange={(next) => setFilterQuery({ ...next, locationSlug })}
+          value={query}
+          onChange={setFilters}
           facets={developmentsResult.data?.facets ?? EMPTY_DEVELOPMENTS_FACETS}
         />
 
@@ -203,19 +154,23 @@ export function DevelopmentsLocationPage() {
           isOpen={mobileFiltersOpen}
           onClose={() => setMobileFiltersOpen(false)}
           isMobile={true}
-          value={filterQuery}
-          onChange={(next) => setFilterQuery({ ...next, locationSlug })}
+          value={query}
+          onChange={setFilters}
           facets={developmentsResult.data?.facets ?? EMPTY_DEVELOPMENTS_FACETS}
+          sortBy={query.sort}
+          onSortChange={(next) => patchQuery({ sort: next as DevelopmentsSort })}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <DevelopmentsToolbar
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            sortBy={sortBy}
-            onSortChange={(next) => setSortBy(next as DevelopmentsSort)}
-            totalResults={propertyCount}
-            resultsNoun="property"
+            onViewModeChange={(mode) => setViewParam(mode === 'list' ? 'list' : null)}
+            sortBy={query.sort}
+            onSortChange={(next) => patchQuery({ sort: next as DevelopmentsSort })}
+            totalResults={totalDevelopments}
             filtersOpen={filtersOpen}
             onToggleFilters={() => setFiltersOpen(!filtersOpen)}
           />
@@ -225,20 +180,14 @@ export function DevelopmentsLocationPage() {
           </h1>
 
           {isError ? (
-            <div className="flex flex-col items-center gap-3 px-4 py-16" role="alert">
-              <p className="text-muted-foreground text-sm">Could not load developments.</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-[44px]"
-                onClick={() => {
-                  void developmentsResult.refetch();
-                  void propertiesResult.refetch();
-                }}
-              >
-                Try again
-              </Button>
-            </div>
+            <ListingLoadError
+              noun="developments"
+              retrying={isFetching}
+              onRetry={() => {
+                void developmentsResult.refetch();
+                void propertiesResult.refetch();
+              }}
+            />
           ) : isLoading ? (
             <div className="min-w-0 p-4 sm:p-6">
               {viewMode === 'list' ? (
@@ -247,27 +196,34 @@ export function DevelopmentsLocationPage() {
                 <ListingLocationRowsSkeleton />
               )}
             </div>
+          ) : developments.length === 0 ? (
+            <ListingFilteredEmpty
+              noun="developments"
+              onClearFilters={() => setFilters(clearDevelopmentFilters(query))}
+            />
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
-                key={`${locationSlug}-${viewMode}`}
+                key={`${locationSlug}-${viewMode}-${query.page}`}
                 initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
+                animate={{ opacity: isFetching ? 0.7 : 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 className="min-w-0 p-4 sm:p-6"
               >
                 {viewMode === 'grid' ? (
-                  <PropertiesByDevelopment
-                    developments={sortedDevelopments}
-                    properties={properties}
-                  />
+                  <PropertiesByDevelopment developments={developments} properties={properties} />
                 ) : (
-                  <div className="mx-auto max-w-4xl space-y-4">
-                    {sortedFlatProperties.map((property, index) => (
-                      <PropertyListItem key={property.id} property={property} index={index} />
-                    ))}
-                  </div>
+                  <DevelopmentsGrid developments={developments} viewMode="list" />
                 )}
+                <ListingResultsPagination
+                  onPrefetchPage={(page) => prefetchPage({ ...query, page })}
+                  page={developmentsResult.data?.page ?? query.page}
+                  total={totalDevelopments}
+                  pageSize={developmentsResult.data?.pageSize ?? query.pageSize}
+                  disabled={isFetching}
+                  onPageChange={goToPage}
+                  scrollTargetRef={resultsRef}
+                />
               </motion.div>
             </AnimatePresence>
           )}

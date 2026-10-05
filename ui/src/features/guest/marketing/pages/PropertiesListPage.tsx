@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -14,12 +14,15 @@ import {
   PropertiesMap,
   type ViewMode,
 } from '@/features/guest/marketing/properties/components';
-import type { Property } from '@/features/guest/marketing/properties/components/PropertyCard';
-import { usePublicProperties } from '@/features/guest/marketing/properties/hooks/usePublicProperties';
+import {
+  usePrefetchPublicProperties,
+  usePublicProperties,
+} from '@/features/guest/marketing/properties/hooks/usePublicProperties';
 import {
   clearPropertyFilters,
   EMPTY_PROPERTIES_FACETS,
   parsePropertiesQuery,
+  toPropertyCard,
   writePropertiesQuery,
   type PropertiesListingQuery,
   type PropertiesSort,
@@ -27,6 +30,8 @@ import {
 } from '@/features/guest/marketing/properties/lib/propertiesQuery';
 import { ListingActiveFilterChips } from '@/features/guest/marketing/shared/components/ListingActiveFilterChips';
 import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
 import { usePublicPlaceGroups } from '@/features/guest/marketing/shared/hooks/usePublicPlaceGroups';
 import {
   buildPropertyFilterChips,
@@ -36,7 +41,6 @@ import {
   parseBboxFromSearchParams,
   type MapBbox,
 } from '@/features/guest/marketing/shared/lib/listingMapMarkers';
-import { resolveListingImages } from '@/features/guest/marketing/shared/lib/mockListingImages';
 
 import {
   ListingLocationRowsSkeleton,
@@ -45,32 +49,7 @@ import {
 } from '@/components/skeletons/ListingGridSkeleton';
 import { Button } from '@/components/ui/button';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
-
-function toPropertyCard(item: PublicPropertyListItem): Property {
-  return {
-    id: item.id,
-    slug: item.slug,
-    name: item.name,
-    location: item.location,
-    price: item.price,
-    rating: item.rating,
-    reviews: item.reviews,
-    images: resolveListingImages(item.images, 'property', item.slug),
-    type: item.type,
-    guests: item.guests,
-    bedrooms: item.bedrooms,
-    bathrooms: item.bathrooms,
-    amenities: item.amenities,
-    isSuperhost: item.isSuperhost,
-    isNew: item.isNew,
-    developmentSlug: item.developmentSlug,
-    developmentName: item.developmentName,
-    tower: item.tower,
-    unitNumber: item.unitNumber,
-    latitude: item.latitude,
-    longitude: item.longitude,
-  };
-}
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 function parseViewMode(raw: string | null): ViewMode {
   if (raw === 'list' || raw === 'map') return raw;
@@ -105,6 +84,10 @@ function isDefaultGroupedBrowse(query: PropertiesListingQuery, viewMode: ViewMod
 
 export function PropertiesListPage() {
   usePageTitle(publicPageTitle('Properties'));
+  usePageMeta({
+    canonicalPath: '/properties',
+    description: 'Browse condos, houses, and villas for rent across the Philippines.',
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const query = useMemo(() => parsePropertiesQuery(searchParams), [searchParams]);
   const viewMode = parseViewMode(searchParams.get('view'));
@@ -113,7 +96,9 @@ export function PropertiesListPage() {
     () => (groupedBrowse ? { ...query, pageSize: 1 } : query),
     [groupedBrowse, query]
   );
-  const { data, isLoading, isError, isFetching } = usePublicProperties(facetQuery);
+  const prefetchPage = usePrefetchPublicProperties();
+  const { data, isLoading, isError, isFetching, refetch } = usePublicProperties(facetQuery);
+  const resultsRef = useRef<HTMLElement>(null);
   const placeGroups = usePublicPlaceGroups<PublicPropertyListItem>('properties', groupedBrowse);
   const reduceMotion = useReducedMotion();
 
@@ -146,6 +131,16 @@ export function PropertiesListPage() {
             prev
           ),
         { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Page changes push history so Back returns to the previous page.
+  const goToPage = useCallback(
+    (page: number) => {
+      setSearchParams((prev) =>
+        writePropertiesQuery({ ...parsePropertiesQuery(prev), page }, prev)
       );
     },
     [setSearchParams]
@@ -244,7 +239,10 @@ export function PropertiesListPage() {
           onSortChange={(sort) => patchQuery({ sort: sort as PropertiesSort, page: 1 })}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <PropertiesToolbar
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -266,9 +264,11 @@ export function PropertiesListPage() {
           ) : null}
 
           {isError ? (
-            <div className="text-muted-foreground p-6 text-sm" role="alert">
-              Could not load properties.
-            </div>
+            <ListingLoadError
+              noun="properties"
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
           ) : isLoading && !data ? (
             <div className="min-w-0 p-4 sm:p-6">
               {viewMode === 'map' ? (
@@ -362,6 +362,17 @@ export function PropertiesListPage() {
                         <PropertyListItem key={property.id} property={property} index={index} />
                       ))}
                     </div>
+                  )}
+                  {groupedBrowse ? null : (
+                    <ListingResultsPagination
+                      onPrefetchPage={(page) => prefetchPage({ ...facetQuery, page })}
+                      page={data?.page ?? query.page}
+                      total={totalResults}
+                      pageSize={data?.pageSize ?? query.pageSize}
+                      disabled={isFetching}
+                      onPageChange={goToPage}
+                      scrollTargetRef={resultsRef}
+                    />
                   )}
                 </motion.div>
               )}

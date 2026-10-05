@@ -36,20 +36,34 @@ export function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
   const frameRef = useRef(0);
+  const rootRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
+  // Animation and slideshow only run while the hero is on screen (saves CPU/battery
+  // once the guest scrolls into the listings).
+  const [onScreen, setOnScreen] = useState(true);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setOnScreen(entry?.isIntersecting ?? true)
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion || !onScreen) return;
     const id = window.setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % heroDestinations.length);
     }, 4500);
     return () => window.clearInterval(id);
-  }, [reduceMotion]);
+  }, [reduceMotion, onScreen]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || reduceMotion) return;
+    if (!canvas || reduceMotion || !onScreen) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -71,12 +85,20 @@ export function HeroCanvas() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
+    // Theme colors change rarely; re-read them every ~60 frames instead of every frame.
+    let frameCount = 0;
+    let dark = isDarkTheme();
+    let [pr, pg, pb] = readPrimaryRgb();
+
     const draw = (time: number) => {
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
-      const dark = isDarkTheme();
-      const [pr, pg, pb] = readPrimaryRgb();
+      frameCount += 1;
+      if (frameCount % 60 === 0) {
+        dark = isDarkTheme();
+        [pr, pg, pb] = readPrimaryRgb();
+      }
 
       // Validate that RGB values are valid numbers
       if (isNaN(pr) || isNaN(pg) || isNaN(pb)) {
@@ -130,10 +152,11 @@ export function HeroCanvas() {
       window.removeEventListener('resize', resize);
       canvas.removeEventListener('pointermove', onMove);
     };
-  }, [reduceMotion]);
+  }, [reduceMotion, onScreen]);
 
   return (
     <div
+      ref={rootRef}
       className="relative aspect-[4/5] w-full max-w-md lg:aspect-auto lg:h-[min(72vh,640px)] lg:max-w-none"
       aria-hidden
     >

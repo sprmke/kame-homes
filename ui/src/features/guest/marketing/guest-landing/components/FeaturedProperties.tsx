@@ -39,12 +39,12 @@ export function FeaturedProperties() {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const featuredQuery = usePublicProperties({
-    ...DEFAULT_PROPERTIES_QUERY,
-    sort: 'recommended',
-    page: 1,
-    pageSize: 8,
-  });
+  // Landing rail changes rarely; keep it warm for 5 minutes across navigations.
+  const featuredQuery = usePublicProperties(
+    { ...DEFAULT_PROPERTIES_QUERY, sort: 'recommended', page: 1, pageSize: 8 },
+    true,
+    { staleTime: 5 * 60_000 }
+  );
   const stays = (featuredQuery.data?.data ?? []).map(toPropertyCard);
 
   const updateScrollState = useCallback(() => {

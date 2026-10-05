@@ -6,7 +6,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import { useGuestAuth } from '@/features/guest/auth/context/GuestAuthContext';
 import { ContactHostSheet } from '@/features/guest/chat/components/ContactHostSheet';
-import { resolvePublicDevelopment } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
 import { ParkingBookingFormModal } from '@/features/guest/marketing/parkings/components/ParkingBookingFormModal';
 import { ParkingOverview } from '@/features/guest/marketing/parkings/components/ParkingOverview';
 import { ParkingPublicBrandShell } from '@/features/guest/marketing/parkings/components/ParkingPublicBrandShell';
@@ -31,6 +30,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { parkingFlowTransition } from '@/lib/parking/parkingFlowMotion';
+import { buildParkingJsonLd } from '@/lib/seo/seoMeta';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 import { cn } from '@/lib/utils';
 import { formatDateToYYYYMMDD } from '@/utils/format/dates';
 
@@ -55,6 +56,30 @@ export function ParkingDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, isLoading, isError } = usePublicParkingDetail(parkingSlug);
   usePageTitle(publicPageTitle(data?.name ? `${data.name}` : 'Parking'));
+  const parkingCanonicalPath = `/parkings/${data?.slug ?? parkingSlug}`;
+  usePageMeta(
+    {
+      title: data?.name,
+      description:
+        data?.description ||
+        (data?.residenceName
+          ? `Parking at ${data.residenceName}. Check dates and reserve online.`
+          : null),
+      canonicalPath: parkingCanonicalPath,
+      image: data?.coverImage ?? null,
+      jsonLd: data
+        ? buildParkingJsonLd({
+            name: data.name,
+            url: `${window.location.origin}${parkingCanonicalPath}`,
+            description: data.description,
+            image: data.coverImage,
+            address: { city: data.city, province: data.province, country: data.country },
+            priceFrom: data.ratePerNight,
+          })
+        : null,
+    },
+    Boolean(data)
+  );
   const { data: hostProfile } = usePublicHost(data?.orgSlug ?? '');
   const { setBrandColor } = useMarketingBrandColor();
   const { status, requireGuestAuth } = useGuestAuth();
@@ -242,7 +267,7 @@ export function ParkingDetailPage() {
       }
     : null;
 
-  const development = resolvePublicDevelopment(data.residenceName);
+  const development = data.development ?? null;
 
   const hasLocation =
     Boolean(data.address.trim()) || (data.latitude != null && data.longitude != null);
@@ -271,7 +296,7 @@ export function ParkingDetailPage() {
               <ParkingOverview
                 name={data.name}
                 parkingType={data.parkingType}
-                residenceName={data.residenceName}
+                development={development}
                 tower={data.tower}
                 level={data.level}
                 slotLabel={data.slotLabel}

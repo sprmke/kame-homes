@@ -56,6 +56,11 @@ const ForHostsPreviewPage = lazy(() =>
     default: m.ForHostsPreviewPage,
   }))
 );
+const ForHostsV3Page = lazy(() =>
+  import('@/features/guest/marketing/pages/ForHostsV3Page').then((m) => ({
+    default: m.ForHostsV3Page,
+  }))
+);
 const ForHostsPricingPage = lazy(() =>
   import('@/features/guest/marketing/pages/ForHostsPricingPage').then((m) => ({
     default: m.ForHostsPricingPage,
@@ -149,6 +154,8 @@ export const marketingRoutes = [
     <Route path="for-hosts/pricing" element={<ForHostsPricingPage />} />
     {/* Ground-up redesign preview — swap into `for-hosts` below once approved. */}
     <Route path="for-hosts/preview" element={<ForHostsPreviewPage />} />
+    {/* Third redesign direction — manual review, not linked from nav. */}
+    <Route path="for-hosts/v3" element={<ForHostsV3Page />} />
     {/* Guest landing redesign preview — manual review, not linked from nav. */}
     <Route path="explore-preview" element={<ExplorePreviewPage />} />
     <Route path="for-hosts" element={<ForHostsPage />} />

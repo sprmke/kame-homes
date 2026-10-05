@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { Navigate, Link, useParams } from 'react-router-dom';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { Car, SlidersHorizontal } from 'lucide-react';
 
+import { useDevelopmentHasParking } from '@/features/guest/marketing/developments/hooks/useDevelopmentHasParking';
 import { usePublicDevelopment } from '@/features/guest/marketing/developments/hooks/usePublicDevelopment';
-import { usePublicParkings } from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
-import { DEFAULT_PARKINGS_QUERY } from '@/features/guest/marketing/parkings/lib/parkingsQuery';
 import {
   PropertiesFilters,
   PropertiesHero,
@@ -17,50 +16,86 @@ import {
   PropertyListItem,
   type ViewMode,
 } from '@/features/guest/marketing/properties/components';
-import { usePublicProperties } from '@/features/guest/marketing/properties/hooks/usePublicProperties';
 import {
-  DEFAULT_PROPERTIES_QUERY,
+  usePrefetchPublicProperties,
+  usePublicProperties,
+} from '@/features/guest/marketing/properties/hooks/usePublicProperties';
+import {
+  clearPropertyFilters,
+  countActivePropertyFilters,
   EMPTY_PROPERTIES_FACETS,
+  parsePropertiesQuery,
   toPropertyCard,
+  writePropertiesQuery,
   type PropertiesListingQuery,
+  type PropertiesSort,
 } from '@/features/guest/marketing/properties/lib/propertiesQuery';
+import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
+import { useListingUrlQuery } from '@/features/guest/marketing/shared/hooks/useListingUrlQuery';
 
 import { PublicListingBrowseSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { Button } from '@/components/ui/button';
+import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 export function DevelopmentPropertiesPage() {
   const { slug = '' } = useParams<{ slug: string }>();
-  const { data: development, isLoading, isError } = usePublicDevelopment(slug);
+  const developmentResult = usePublicDevelopment(slug);
+  const { data: development, isLoading, isError } = developmentResult;
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [sortBy, setSortBy] = useState('recommended');
-  const [filterQuery, setFilterQuery] = useState<PropertiesListingQuery>(DEFAULT_PROPERTIES_QUERY);
-
-  const listingQuery: PropertiesListingQuery = {
-    ...filterQuery,
-    development: [slug],
-    sort: sortBy as PropertiesListingQuery['sort'],
-  };
+  const resultsRef = useRef<HTMLElement>(null);
+  const developmentScope = useMemo(() => [slug.trim().toLowerCase()], [slug]);
+  const {
+    query: listingQuery,
+    setFilters,
+    patchQuery,
+    goToPage,
+    viewParam,
+    setViewParam,
+  } = useListingUrlQuery<PropertiesListingQuery>({
+    parse: parsePropertiesQuery,
+    write: writePropertiesQuery,
+    scope: { development: developmentScope },
+    unscope: { development: [] },
+  });
+  const prefetchPage = usePrefetchPublicProperties();
+  const viewMode: ViewMode = viewParam === 'list' || viewParam === 'map' ? viewParam : 'grid';
 
   const propertiesResult = usePublicProperties(listingQuery, Boolean(slug));
-  const parkingResult = usePublicParkings(
-    { ...DEFAULT_PARKINGS_QUERY, developmentSlug: slug, pageSize: 1 },
-    Boolean(slug)
+  const hasParking = useDevelopmentHasParking(slug);
+  usePageTitle(publicPageTitle(development?.name ? `Homes in ${development.name}` : 'Homes'));
+  usePageMeta(
+    {
+      description: development ? `Homes for rent in ${development.name}.` : null,
+      canonicalPath: `/developments/${slug}/properties`,
+    },
+    Boolean(development)
   );
 
   const properties = useMemo(
     () => (propertiesResult.data?.data ?? []).map(toPropertyCard),
     [propertiesResult.data?.data]
   );
-  const hasParking = (parkingResult.data?.total ?? 0) > 0;
 
   if (isLoading) {
     return <PublicListingBrowseSkeleton />;
   }
 
-  if (isError || !development) {
+  if (isError) {
+    return (
+      <ListingLoadError
+        noun="this development"
+        retrying={developmentResult.isFetching}
+        onRetry={() => void developmentResult.refetch()}
+      />
+    );
+  }
+
+  if (!development) {
     return <Navigate to="/developments" replace />;
   }
 
@@ -84,8 +119,8 @@ export function DevelopmentPropertiesPage() {
           isOpen={filtersOpen}
           onClose={() => setFiltersOpen(false)}
           isMobile={false}
-          value={filterQuery}
-          onChange={setFilterQuery}
+          value={listingQuery}
+          onChange={setFilters}
           facets={propertiesResult.data?.facets ?? EMPTY_PROPERTIES_FACETS}
         />
 
@@ -93,17 +128,20 @@ export function DevelopmentPropertiesPage() {
           isOpen={mobileFiltersOpen}
           onClose={() => setMobileFiltersOpen(false)}
           isMobile={true}
-          value={filterQuery}
-          onChange={setFilterQuery}
+          value={listingQuery}
+          onChange={setFilters}
           facets={propertiesResult.data?.facets ?? EMPTY_PROPERTIES_FACETS}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <PropertiesToolbar
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
+            onViewModeChange={(mode) => setViewParam(mode === 'grid' ? null : mode)}
+            sortBy={listingQuery.sort}
+            onSortChange={(next) => patchQuery({ sort: next as PropertiesSort })}
             totalResults={propertiesResult.data?.total ?? properties.length}
             filtersOpen={filtersOpen}
             onToggleFilters={() => setFiltersOpen(!filtersOpen)}
@@ -141,13 +179,24 @@ export function DevelopmentPropertiesPage() {
               </motion.div>
             ) : (
               <motion.div
-                key={`${slug}-${viewMode}`}
+                key={`${slug}-${viewMode}-${listingQuery.page}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="min-w-0 p-4 sm:p-6"
               >
-                {properties.length === 0 ? (
+                {propertiesResult.isError ? (
+                  <ListingLoadError
+                    noun="homes"
+                    retrying={propertiesResult.isFetching}
+                    onRetry={() => void propertiesResult.refetch()}
+                  />
+                ) : properties.length === 0 && countActivePropertyFilters(listingQuery) > 0 ? (
+                  <ListingFilteredEmpty
+                    noun="homes"
+                    onClearFilters={() => setFilters(clearPropertyFilters(listingQuery))}
+                  />
+                ) : properties.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-24 text-center">
                     <p className="text-muted-foreground">No homes listed here yet.</p>
                   </div>
@@ -164,6 +213,15 @@ export function DevelopmentPropertiesPage() {
                     ))}
                   </div>
                 )}
+                <ListingResultsPagination
+                  onPrefetchPage={(page) => prefetchPage({ ...listingQuery, page })}
+                  page={propertiesResult.data?.page ?? listingQuery.page}
+                  total={propertiesResult.data?.total ?? 0}
+                  pageSize={propertiesResult.data?.pageSize ?? listingQuery.pageSize}
+                  disabled={propertiesResult.isFetching}
+                  onPageChange={goToPage}
+                  scrollTargetRef={resultsRef}
+                />
               </motion.div>
             )}
           </AnimatePresence>

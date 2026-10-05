@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -14,7 +14,10 @@ import {
   DevelopmentsMap,
   type DevelopmentViewMode,
 } from '@/features/guest/marketing/developments/components';
-import { usePublicDevelopments } from '@/features/guest/marketing/developments/hooks/usePublicDevelopments';
+import {
+  usePrefetchPublicDevelopments,
+  usePublicDevelopments,
+} from '@/features/guest/marketing/developments/hooks/usePublicDevelopments';
 import {
   clearDevelopmentFilters,
   EMPTY_DEVELOPMENTS_FACETS,
@@ -27,6 +30,8 @@ import {
 } from '@/features/guest/marketing/developments/lib/developmentsQuery';
 import { ListingActiveFilterChips } from '@/features/guest/marketing/shared/components/ListingActiveFilterChips';
 import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
 import { usePublicPlaceGroups } from '@/features/guest/marketing/shared/hooks/usePublicPlaceGroups';
 import {
   buildDevelopmentFilterChips,
@@ -44,6 +49,7 @@ import {
 } from '@/components/skeletons/ListingGridSkeleton';
 import { Button } from '@/components/ui/button';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 function parseViewMode(raw: string | null): DevelopmentViewMode {
   if (raw === 'list' || raw === 'map') return raw;
@@ -76,6 +82,10 @@ function isDefaultGroupedBrowse(
 
 export function DevelopmentsListPage() {
   usePageTitle(publicPageTitle('Developments'));
+  usePageMeta({
+    canonicalPath: '/developments',
+    description: 'Explore residential developments and the homes and parking available in each.',
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const query = useMemo(() => parseDevelopmentsQuery(searchParams), [searchParams]);
   const viewMode = parseViewMode(searchParams.get('view'));
@@ -84,7 +94,9 @@ export function DevelopmentsListPage() {
     () => (groupedBrowse ? { ...query, pageSize: 1 } : query),
     [groupedBrowse, query]
   );
-  const { data, isLoading, isError, isFetching } = usePublicDevelopments(facetQuery);
+  const prefetchPage = usePrefetchPublicDevelopments();
+  const { data, isLoading, isError, isFetching, refetch } = usePublicDevelopments(facetQuery);
+  const resultsRef = useRef<HTMLElement>(null);
   const placeGroups = usePublicPlaceGroups<PublicDevelopmentListItem>(
     'developments',
     groupedBrowse
@@ -120,6 +132,16 @@ export function DevelopmentsListPage() {
             prev
           ),
         { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Page changes push history so Back returns to the previous page.
+  const goToPage = useCallback(
+    (page: number) => {
+      setSearchParams((prev) =>
+        writeDevelopmentsQuery({ ...parseDevelopmentsQuery(prev), page }, prev)
       );
     },
     [setSearchParams]
@@ -219,7 +241,10 @@ export function DevelopmentsListPage() {
           onSortChange={(sort) => patchQuery({ sort: sort as DevelopmentsSort, page: 1 })}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <DevelopmentsToolbar
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -241,9 +266,11 @@ export function DevelopmentsListPage() {
           ) : null}
 
           {isError ? (
-            <div className="text-muted-foreground p-6 text-sm" role="alert">
-              Could not load developments.
-            </div>
+            <ListingLoadError
+              noun="developments"
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
           ) : isLoading && !data ? (
             <div className="min-w-0 p-4 sm:p-6">
               {viewMode === 'map' ? (
@@ -338,6 +365,17 @@ export function DevelopmentsListPage() {
                     )
                   ) : (
                     <DevelopmentsGrid developments={developments} viewMode={viewMode} />
+                  )}
+                  {groupedBrowse ? null : (
+                    <ListingResultsPagination
+                      onPrefetchPage={(page) => prefetchPage({ ...facetQuery, page })}
+                      page={data?.page ?? query.page}
+                      total={totalResults}
+                      pageSize={data?.pageSize ?? query.pageSize}
+                      disabled={isFetching}
+                      onPageChange={goToPage}
+                      scrollTargetRef={resultsRef}
+                    />
                   )}
                 </motion.div>
               )}

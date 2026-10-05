@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -10,7 +10,10 @@ import type { ParkingSortKey } from '@/features/guest/marketing/developments/lib
 import { DEFAULT_PARKING_FILTERS } from '@/features/guest/marketing/developments/lib/parkingSlotFilters';
 import { ParkingsByLocation, ParkingsHero } from '@/features/guest/marketing/parkings/components';
 import { useCaptureParkingLinkStay } from '@/features/guest/marketing/parkings/hooks/useCaptureParkingLinkStay';
-import { usePublicParkings } from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
+import {
+  usePrefetchPublicParkings,
+  usePublicParkings,
+} from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
 import {
   EMPTY_PARKINGS_FACETS,
   filterStateToParkingsQuery,
@@ -23,6 +26,8 @@ import {
 } from '@/features/guest/marketing/parkings/lib/parkingsQuery';
 import { ListingActiveFilterChips } from '@/features/guest/marketing/shared/components/ListingActiveFilterChips';
 import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
 import { usePublicPlaceGroups } from '@/features/guest/marketing/shared/hooks/usePublicPlaceGroups';
 import {
   buildParkingFilterChips,
@@ -32,6 +37,7 @@ import {
 import { ListingLocationRowsSkeleton } from '@/components/skeletons/ListingGridSkeleton';
 import { Button } from '@/components/ui/button';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 function isDefaultGroupedBrowse(query: ParkingsListingQuery): boolean {
   return (
@@ -57,6 +63,10 @@ function isDefaultGroupedBrowse(query: ParkingsListingQuery): boolean {
 
 export function ParkingsListPage() {
   usePageTitle(publicPageTitle('Parkings'));
+  usePageMeta({
+    canonicalPath: '/parkings',
+    description: 'Find and reserve parking by the night near condos and developments.',
+  });
   useCaptureParkingLinkStay();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = useMemo(() => parseParkingsQuery(searchParams), [searchParams]);
@@ -66,7 +76,9 @@ export function ParkingsListPage() {
     () => (groupedBrowse ? { ...query, pageSize: 1 } : query),
     [groupedBrowse, query]
   );
-  const { data, isLoading, isError, isFetching } = usePublicParkings(facetQuery);
+  const prefetchPage = usePrefetchPublicParkings();
+  const { data, isLoading, isError, isFetching, refetch } = usePublicParkings(facetQuery);
+  const resultsRef = useRef<HTMLElement>(null);
   const placeGroups = usePublicPlaceGroups<PublicParkingListItem>('parkings', groupedBrowse);
   const reduceMotion = useReducedMotion();
 
@@ -79,6 +91,14 @@ export function ParkingsListPage() {
         (prev) => writeParkingsQuery({ ...parseParkingsQuery(prev), ...partial }, prev),
         { replace: true }
       );
+    },
+    [setSearchParams]
+  );
+
+  // Page changes push history so Back returns to the previous page.
+  const goToPage = useCallback(
+    (page: number) => {
+      setSearchParams((prev) => writeParkingsQuery({ ...parseParkingsQuery(prev), page }, prev));
     },
     [setSearchParams]
   );
@@ -153,7 +173,10 @@ export function ParkingsListPage() {
           onSortChange={(sort) => patchQuery({ sort: sort as ParkingSortKey, page: 1 })}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <ParkingToolbar
             sortBy={query.sort}
             onSortChange={(sort) => patchQuery({ sort: sort as ParkingSortKey, page: 1 })}
@@ -173,9 +196,11 @@ export function ParkingsListPage() {
           ) : null}
 
           {isError ? (
-            <div className="text-muted-foreground p-6 text-sm" role="alert">
-              Could not load parking slots.
-            </div>
+            <ListingLoadError
+              noun="parking slots"
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
           ) : isLoading && !data ? (
             <div className="min-w-0 p-4 sm:p-6">
               <ListingLocationRowsSkeleton />
@@ -234,6 +259,17 @@ export function ParkingsListPage() {
                         ? () => void placeGroups.fetchNextPage()
                         : undefined
                     }
+                  />
+                )}
+                {groupedBrowse ? null : (
+                  <ListingResultsPagination
+                    onPrefetchPage={(page) => prefetchPage({ ...facetQuery, page })}
+                    page={data?.page ?? query.page}
+                    total={totalResults}
+                    pageSize={data?.pageSize ?? query.pageSize}
+                    disabled={isFetching}
+                    onPageChange={goToPage}
+                    scrollTargetRef={resultsRef}
                   />
                 )}
               </motion.div>

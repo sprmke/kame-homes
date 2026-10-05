@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { Navigate, useParams } from 'react-router-dom';
 
@@ -8,24 +8,37 @@ import { SlidersHorizontal } from 'lucide-react';
 import { ParkingFilters, ParkingToolbar } from '@/features/guest/marketing/developments/components';
 import {
   DEFAULT_PARKING_FILTERS,
-  filterParkingSlots,
-  sortParkingSlots,
-  uniqueTowersFromInsideSlots,
   type ParkingFilterState,
   type ParkingSortKey,
 } from '@/features/guest/marketing/developments/lib/parkingSlotFilters';
 import { ParkingsEntriesGrid, ParkingsHero } from '@/features/guest/marketing/parkings/components';
 import { useCaptureParkingLinkStay } from '@/features/guest/marketing/parkings/hooks/useCaptureParkingLinkStay';
-import { usePublicParkings } from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
-import { parkingSlotsFromEntries } from '@/features/guest/marketing/parkings/lib/parkingListEntries';
 import {
+  usePrefetchPublicParkings,
+  usePublicParkings,
+} from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
+import {
+  countActiveParkingsQueryFilters,
   DEFAULT_PARKINGS_QUERY,
+  EMPTY_PARKINGS_FACETS,
+  filterStateToParkingsQuery,
+  parkingsQueryToFilterState,
+  parseParkingsQuery,
   toParkingListEntry,
+  writeParkingsQuery,
+  type ParkingsListingQuery,
 } from '@/features/guest/marketing/parkings/lib/parkingsQuery';
+import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
+import { useListingUrlQuery } from '@/features/guest/marketing/shared/hooks/useListingUrlQuery';
+import { humanizeLocationSlug } from '@/features/guest/marketing/shared/lib/locationSlug';
 import { normalizeCityPlace } from '@/features/guest/marketing/shared/lib/locationSlug';
 
 import { ListingGridSkeleton } from '@/components/skeletons/ListingGridSkeleton';
 import { Button } from '@/components/ui/button';
+import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 export function ParkingsLocationPage() {
   useCaptureParkingLinkStay();
@@ -34,57 +47,51 @@ export function ParkingsLocationPage() {
   const reduceMotion = useReducedMotion();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<ParkingSortKey>('tower');
-  const [filters, setFilters] = useState<ParkingFilterState>(DEFAULT_PARKING_FILTERS);
-  const [page, setPage] = useState(1);
+  const resultsRef = useRef<HTMLElement>(null);
 
-  const listingQuery = useMemo(
-    () => ({
-      ...DEFAULT_PARKINGS_QUERY,
-      locationSlug,
-      page,
-      pageSize: 48,
-    }),
-    [locationSlug, page]
-  );
+  // Filters, sort and pagination all run server-side so every page and the total
+  // reflect the active filters (not just the slots already loaded).
+  const {
+    query,
+    setFilters: setQueryFilters,
+    patchQuery,
+    goToPage,
+  } = useListingUrlQuery<ParkingsListingQuery>({
+    parse: parseParkingsQuery,
+    write: writeParkingsQuery,
+    scope: { locationSlug, pageSize: 48 },
+    unscope: { locationSlug: '', pageSize: DEFAULT_PARKINGS_QUERY.pageSize },
+  });
+  const prefetchPage = usePrefetchPublicParkings();
+  const filters = useMemo(() => parkingsQueryToFilterState(query), [query]);
+  const setFilters = (next: ParkingFilterState) =>
+    setQueryFilters(filterStateToParkingsQuery(next, query));
+  const hasFilters = countActiveParkingsQueryFilters(query) > 0;
 
   const { data, isLoading, isError, isFetching, refetch } = usePublicParkings(
-    listingQuery,
+    query,
     Boolean(locationSlug)
   );
 
-  const locationEntries = useMemo(() => (data?.data ?? []).map(toParkingListEntry), [data?.data]);
-
-  const city = locationEntries[0] != null ? normalizeCityPlace(locationEntries[0].city) : null;
-
-  const insideTowerOptions = useMemo(
-    () => uniqueTowersFromInsideSlots(parkingSlotsFromEntries(locationEntries)),
-    [locationEntries]
-  );
-
-  const filteredEntries = useMemo(() => {
-    const emptySearch = { location: '', checkIn: '', checkOut: '', guests: '' };
-    const filteredSlots = filterParkingSlots(
-      parkingSlotsFromEntries(locationEntries),
-      filters,
-      emptySearch
-    );
-    const sortedSlots = sortParkingSlots(filteredSlots, sortBy);
-    const order = new Map(sortedSlots.map((slot, index) => [slot.id, index]));
-    return [...locationEntries]
-      .filter((entry) => order.has(entry.slot.id))
-      .sort((a, b) => (order.get(a.slot.id) ?? 0) - (order.get(b.slot.id) ?? 0));
-  }, [locationEntries, filters, sortBy]);
-
+  const entries = useMemo(() => (data?.data ?? []).map(toParkingListEntry), [data?.data]);
+  const city = entries[0] != null ? normalizeCityPlace(entries[0].city) : null;
+  const facets = data?.facets ?? EMPTY_PARKINGS_FACETS;
+  const towerOptions = useMemo(() => facets.towers.map((entry) => entry.tower), [facets.towers]);
   const totalResults = data?.total ?? 0;
-  const pageSize = data?.pageSize ?? 48;
-  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize) || 1);
+  const placeLabel = city ?? humanizeLocationSlug(locationSlug);
+  usePageTitle(publicPageTitle(`Parking in ${placeLabel}`));
+  usePageMeta({
+    description: `Parking slots in ${placeLabel}. Pick dates and reserve by the night.`,
+    canonicalPath: `/parkings/in/${locationSlug}`,
+  });
 
   if (!locationSlug) {
     return <Navigate to="/parkings" replace />;
   }
 
-  if (!isLoading && !isError && totalResults === 0) {
+  // Unknown place (nothing listed there at all) → back to the index. With filters
+  // applied, an empty result shows the filtered-empty state instead.
+  if (!isLoading && !isError && totalResults === 0 && !hasFilters) {
     return <Navigate to="/parkings" replace />;
   }
 
@@ -110,7 +117,7 @@ export function ParkingsLocationPage() {
           isMobile={false}
           filters={filters}
           onFiltersChange={setFilters}
-          towerOptions={insideTowerOptions}
+          towerOptions={towerOptions}
         />
 
         <ParkingFilters
@@ -119,16 +126,19 @@ export function ParkingsLocationPage() {
           isMobile={true}
           filters={filters}
           onFiltersChange={setFilters}
-          towerOptions={insideTowerOptions}
-          sortBy={sortBy}
-          onSortChange={(sort) => setSortBy(sort as ParkingSortKey)}
+          towerOptions={towerOptions}
+          sortBy={query.sort}
+          onSortChange={(sort) => patchQuery({ sort: sort as ParkingSortKey })}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <ParkingToolbar
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            totalResults={filteredEntries.length}
+            sortBy={query.sort}
+            onSortChange={(sort) => patchQuery({ sort: sort as ParkingSortKey })}
+            totalResults={totalResults}
             filtersOpen={filtersOpen}
             onToggleFilters={() => setFiltersOpen(!filtersOpen)}
           />
@@ -138,17 +148,7 @@ export function ParkingsLocationPage() {
           </h1>
 
           {isError ? (
-            <div className="flex flex-col items-center gap-3 px-4 py-16" role="alert">
-              <p className="text-muted-foreground text-sm">Could not load parking.</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-[44px]"
-                onClick={() => void refetch()}
-              >
-                Try again
-              </Button>
-            </div>
+            <ListingLoadError noun="parking" onRetry={() => void refetch()} retrying={isFetching} />
           ) : isLoading ? (
             <div className="min-w-0 p-4 sm:p-6">
               <ListingGridSkeleton
@@ -156,41 +156,30 @@ export function ParkingsLocationPage() {
                 imageAspectClassName="aspect-square"
               />
             </div>
+          ) : entries.length === 0 ? (
+            <ListingFilteredEmpty
+              noun="slots"
+              onClearFilters={() => setFilters(DEFAULT_PARKING_FILTERS)}
+            />
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
-                key={`${locationSlug}-${page}`}
+                key={`${locationSlug}-${query.page}`}
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: isFetching ? 0.7 : 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 className="min-w-0 space-y-6 p-4 sm:p-6"
               >
-                <ParkingsEntriesGrid entries={filteredEntries} />
-                {totalPages > 1 ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-[44px]"
-                      disabled={page <= 1 || isFetching}
-                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-muted-foreground text-sm">
-                      {page} / {totalPages}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-[44px]"
-                      disabled={page >= totalPages || isFetching}
-                      onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                ) : null}
+                <ParkingsEntriesGrid entries={entries} />
+                <ListingResultsPagination
+                  onPrefetchPage={(page) => prefetchPage({ ...query, page })}
+                  page={data?.page ?? query.page}
+                  total={totalResults}
+                  pageSize={data?.pageSize ?? query.pageSize}
+                  disabled={isFetching}
+                  onPageChange={goToPage}
+                  scrollTargetRef={resultsRef}
+                />
               </motion.div>
             </AnimatePresence>
           )}

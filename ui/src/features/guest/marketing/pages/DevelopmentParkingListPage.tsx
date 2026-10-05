@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { Navigate, Link, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, Link, useParams } from 'react-router-dom';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, SlidersHorizontal } from 'lucide-react';
@@ -14,108 +14,105 @@ import {
 import { usePublicDevelopment } from '@/features/guest/marketing/developments/hooks/usePublicDevelopment';
 import {
   DEFAULT_PARKING_FILTERS,
-  filterParkingSlots,
-  locationsFromLegacyTypeParam,
-  sortParkingSlots,
-  uniqueTowersFromInsideSlots,
   type ParkingFilterState,
   type ParkingSortKey,
 } from '@/features/guest/marketing/developments/lib/parkingSlotFilters';
 import type { HeroSearchValues } from '@/features/guest/marketing/guest-landing/components/HeroSearch';
-import { usePublicParkings } from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
 import {
+  usePrefetchPublicParkings,
+  usePublicParkings,
+} from '@/features/guest/marketing/parkings/hooks/usePublicParkings';
+import {
+  countActiveParkingsQueryFilters,
   DEFAULT_PARKINGS_QUERY,
+  EMPTY_PARKINGS_FACETS,
+  filterStateToParkingsQuery,
+  parkingsQueryToFilterState,
+  parseParkingsQuery,
   toParkingListEntry,
+  writeParkingsQuery,
+  type ParkingsListingQuery,
 } from '@/features/guest/marketing/parkings/lib/parkingsQuery';
+import { ListingFilteredEmpty } from '@/features/guest/marketing/shared/components/ListingFilteredEmpty';
+import { ListingLoadError } from '@/features/guest/marketing/shared/components/ListingLoadError';
+import { ListingResultsPagination } from '@/features/guest/marketing/shared/components/ListingResultsPagination';
+import { useListingUrlQuery } from '@/features/guest/marketing/shared/hooks/useListingUrlQuery';
 
 import { PublicListingBrowseSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { Button } from '@/components/ui/button';
-
-function searchValuesFromParams(
-  params: URLSearchParams,
-  defaultLocation: string
-): HeroSearchValues {
-  return {
-    location: params.get('location') ?? defaultLocation,
-    checkIn: params.get('checkIn') ?? '',
-    checkOut: params.get('checkOut') ?? '',
-    guests: '',
-  };
-}
-
-function initialFiltersFromParams(searchParams: URLSearchParams): ParkingFilterState {
-  const legacy = locationsFromLegacyTypeParam(searchParams.get('type'));
-  if (legacy.locations.length === 0 && !legacy.motorcycle) return DEFAULT_PARKING_FILTERS;
-  return { ...DEFAULT_PARKING_FILTERS, locations: legacy.locations, motorcycle: legacy.motorcycle };
-}
+import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 export function DevelopmentParkingListPage() {
   const { slug = '' } = useParams<{ slug: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { data: development, isLoading, isError } = usePublicDevelopment(slug);
-  const parkingsResult = usePublicParkings(
-    { ...DEFAULT_PARKINGS_QUERY, developmentSlug: slug, pageSize: 48 },
-    Boolean(slug)
-  );
+  const developmentResult = usePublicDevelopment(slug);
+  const { data: development, isLoading, isError } = developmentResult;
+  const resultsRef = useRef<HTMLElement>(null);
+
+  // Filters, dates, sort and pagination run server-side (availability included), so
+  // every page and the total reflect the active filters.
+  const developmentSlug = slug.trim().toLowerCase();
+  const {
+    query,
+    setFilters: setQueryFilters,
+    patchQuery,
+    goToPage,
+  } = useListingUrlQuery<ParkingsListingQuery>({
+    parse: parseParkingsQuery,
+    write: writeParkingsQuery,
+    scope: { developmentSlug, pageSize: 48 },
+    unscope: { developmentSlug: '', pageSize: DEFAULT_PARKINGS_QUERY.pageSize },
+  });
+  const prefetchPage = usePrefetchPublicParkings();
+  const parkingsResult = usePublicParkings(query, Boolean(developmentSlug));
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<ParkingSortKey>('tower');
-  const [filters, setFilters] = useState<ParkingFilterState>(() =>
-    initialFiltersFromParams(searchParams)
-  );
-
-  const defaultLocation = development ? `${development.name} Parking` : '';
-
-  const searchValues = useMemo(
-    () => searchValuesFromParams(searchParams, defaultLocation),
-    [searchParams, defaultLocation]
-  );
+  const filters = useMemo(() => parkingsQueryToFilterState(query), [query]);
+  const setFilters = (next: ParkingFilterState) =>
+    setQueryFilters(filterStateToParkingsQuery(next, query));
+  const hasFilters = countActiveParkingsQueryFilters(query) > 0;
 
   const handleSearch = useCallback(
     (values: HeroSearchValues) => {
-      const next = new URLSearchParams(searchParams);
-      const type = searchParams.get('type');
-      if (type) next.set('type', type);
-
-      if (values.location.trim()) next.set('location', values.location.trim());
-      else next.delete('location');
-
-      if (values.checkIn) next.set('checkIn', values.checkIn);
-      else next.delete('checkIn');
-
-      if (values.checkOut) next.set('checkOut', values.checkOut);
-      else next.delete('checkOut');
-
-      setSearchParams(next, { replace: true });
+      patchQuery({ checkIn: values.checkIn || '', checkOut: values.checkOut || '' });
     },
-    [searchParams, setSearchParams]
+    [patchQuery]
   );
 
   const entries = useMemo(
     () => (parkingsResult.data?.data ?? []).map(toParkingListEntry),
     [parkingsResult.data?.data]
   );
-  const slots = useMemo(() => entries.map((entry) => entry.slot), [entries]);
-  const insideTowerOptions = useMemo(() => uniqueTowersFromInsideSlots(slots), [slots]);
-
-  const filteredEntries = useMemo(() => {
-    if (!development) return [];
-    const filtered = filterParkingSlots(slots, filters, searchValues);
-    const filteredIds = new Set(filtered.map((slot) => slot.id));
-    const sorted = sortParkingSlots(filtered, sortBy);
-    const byId = new Map(entries.map((entry) => [entry.slot.id, entry]));
-    return sorted.flatMap((slot) => {
-      const entry = byId.get(slot.id);
-      return entry && filteredIds.has(slot.id) ? [entry] : [];
-    });
-  }, [slots, filters, searchValues, sortBy, development, entries]);
+  const facets = parkingsResult.data?.facets ?? EMPTY_PARKINGS_FACETS;
+  const towerOptions = useMemo(() => facets.towers.map((entry) => entry.tower), [facets.towers]);
+  const totalResults = parkingsResult.data?.total ?? 0;
+  usePageTitle(publicPageTitle(development?.name ? `Parking in ${development.name}` : 'Parking'));
+  usePageMeta(
+    {
+      description: development
+        ? `Parking slots in ${development.name}. Reserve by the night.`
+        : null,
+      canonicalPath: `/developments/${slug}/parking`,
+    },
+    Boolean(development)
+  );
 
   if (isLoading || parkingsResult.isLoading) {
     return <PublicListingBrowseSkeleton />;
   }
 
-  if (isError || !development) {
+  if (isError) {
+    return (
+      <ListingLoadError
+        noun="this development"
+        retrying={developmentResult.isFetching}
+        onRetry={() => void developmentResult.refetch()}
+      />
+    );
+  }
+
+  if (!development) {
     return <Navigate to="/developments" replace />;
   }
 
@@ -143,7 +140,7 @@ export function DevelopmentParkingListPage() {
           onClose={() => setFiltersOpen(false)}
           filters={filters}
           onFiltersChange={setFilters}
-          insideTowerOptions={insideTowerOptions}
+          towerOptions={towerOptions}
         />
 
         <ParkingFilters
@@ -152,14 +149,17 @@ export function DevelopmentParkingListPage() {
           isMobile
           filters={filters}
           onFiltersChange={setFilters}
-          insideTowerOptions={insideTowerOptions}
+          towerOptions={towerOptions}
         />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden">
+        <main
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-36 overflow-x-hidden lg:scroll-mt-16"
+        >
           <ParkingToolbar
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            totalResults={filteredEntries.length}
+            sortBy={query.sort}
+            onSortChange={(sort) => patchQuery({ sort: sort as ParkingSortKey })}
+            totalResults={totalResults}
             filtersOpen={filtersOpen}
             onToggleFilters={() => setFiltersOpen(!filtersOpen)}
           />
@@ -183,19 +183,39 @@ export function DevelopmentParkingListPage() {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${slug}-${filteredEntries.length}-${sortBy}`}
+              key={`${slug}-${query.page}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="min-w-0 p-4 sm:p-6"
             >
-              {filteredEntries.length === 0 ? (
+              {parkingsResult.isError ? (
+                <ListingLoadError
+                  noun="parking"
+                  retrying={parkingsResult.isFetching}
+                  onRetry={() => void parkingsResult.refetch()}
+                />
+              ) : entries.length === 0 && hasFilters ? (
+                <ListingFilteredEmpty
+                  noun="slots"
+                  onClearFilters={() => setFilters(DEFAULT_PARKING_FILTERS)}
+                />
+              ) : entries.length === 0 ? (
                 <p className="text-muted-foreground py-24 text-center">
                   No parking listed here yet.
                 </p>
               ) : (
-                <ParkingSlotsGrid entries={filteredEntries} />
+                <ParkingSlotsGrid entries={entries} />
               )}
+              <ListingResultsPagination
+                onPrefetchPage={(page) => prefetchPage({ ...query, page })}
+                page={parkingsResult.data?.page ?? query.page}
+                total={totalResults}
+                pageSize={parkingsResult.data?.pageSize ?? query.pageSize}
+                disabled={parkingsResult.isFetching}
+                onPageChange={goToPage}
+                scrollTargetRef={resultsRef}
+              />
             </motion.div>
           </AnimatePresence>
         </main>

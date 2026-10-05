@@ -1,19 +1,38 @@
-import { forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
-import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Minus, Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import {
-  HERO_SEARCH_SINGLE_MONTH_PANEL_WIDTH,
+  ActiveSegmentPill,
+  GuestRow,
+  SearchSegment,
+  type SegmentPillBounds,
+} from '@/features/guest/marketing/guest-landing/components/HeroSearchParts';
+import {
   heroSearchCalendarClassNames,
   heroSearchCalendarMonthCount,
   heroSearchWhenPanelWidth,
 } from '@/features/guest/marketing/guest-landing/lib/heroSearchCalendarClassNames';
-import { lerp, smoothstep } from '@/features/guest/marketing/shared/lib/listingScrollSearchEasing';
+import {
+  buildSearchValues,
+  computeDropdownLayout,
+  estimatedPanelHeight,
+  formatDateRange,
+  formatGuestSummary,
+  formatGuestSummaryCompact,
+  parseDateParam,
+  parseGuestBreakdown,
+  readWhereParam,
+  type DropdownLayout,
+  type GuestCounts,
+  type HeroSearchValues,
+  type SearchField,
+} from '@/features/guest/marketing/guest-landing/lib/heroSearchState';
+import { lerp } from '@/features/guest/marketing/shared/lib/listingScrollSearchEasing';
 import { resolveListingSearchPreferType } from '@/features/guest/marketing/shared/lib/listingScrollSearchPaths';
 import type { ListingSearchPreferType } from '@/features/guest/marketing/shared/lib/listingSearchPreferType';
 import { SearchSuggestedEmptyPanel } from '@/features/guest/search/components/SearchSuggestedEmptyPanel';
@@ -43,80 +62,15 @@ import { cn } from '@/lib/utils';
 
 import type { DateRange } from 'react-day-picker';
 
-type SearchField = 'where' | 'when' | 'who';
+export type { HeroSearchValues };
 
 export const HERO_SEARCH_FIELDS = ['where', 'when', 'who'] as const;
 export type HeroSearchField = (typeof HERO_SEARCH_FIELDS)[number];
 
 const DEFAULT_FIELD_ORDER: SearchField[] = ['where', 'when', 'who'];
 
-interface GuestCounts {
-  adults: number;
-  children: number;
-  infants: number;
-  pets: number;
-}
-
-interface DropdownLayout {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-const PILL_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.82 };
 /** Panel position + size — keep width/height on the same spring so the calendar does not squash. */
 const PANEL_SPRING = { type: 'spring' as const, stiffness: 400, damping: 38, mass: 0.88 };
-
-type SegmentPillBounds = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
-function ActiveSegmentPill({
-  bounds,
-  roundedClass,
-}: {
-  bounds: SegmentPillBounds;
-  roundedClass: string;
-}) {
-  return (
-    <motion.div
-      aria-hidden
-      className={cn('bg-background pointer-events-none absolute z-0 shadow-md', roundedClass)}
-      initial={false}
-      animate={{
-        left: bounds.left,
-        top: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
-      }}
-      transition={PILL_SPRING}
-    />
-  );
-}
-
-function estimatedPanelHeight(field: SearchField, calendarMonths: number) {
-  switch (field) {
-    case 'where':
-      return 380;
-    case 'when':
-      return calendarMonths === 2 ? 450 : 460;
-    case 'who':
-      return 320;
-    default:
-      return 360;
-  }
-}
-
-export interface HeroSearchValues {
-  location: string;
-  checkIn: string;
-  checkOut: string;
-  guests: string;
-}
 
 interface HeroSearchProps {
   className?: string;
@@ -145,288 +99,6 @@ interface HeroSearchProps {
   /** Compact header-docked style (instant; used when `morphProgress` is omitted). */
   variant?: 'default' | 'compact';
 }
-
-function parseDateParam(raw: string | null): Date | undefined {
-  if (!raw) return undefined;
-  const parsed = new Date(`${raw}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
-
-function parseGuestsParam(raw: string | null): GuestCounts {
-  const total = Number.parseInt(raw ?? '', 10);
-  if (Number.isNaN(total) || total < 1) {
-    return { adults: 2, children: 0, infants: 0, pets: 0 };
-  }
-  return { adults: total, children: 0, infants: 0, pets: 0 };
-}
-
-function parseGuestBreakdown(sp: URLSearchParams): GuestCounts {
-  const hasBreakdown = sp.has('adults') || sp.has('children') || sp.has('pets');
-  if (hasBreakdown) {
-    const adults = Number.parseInt(sp.get('adults') ?? '', 10);
-    const children = Number.parseInt(sp.get('children') ?? '', 10);
-    const pets = Number.parseInt(sp.get('pets') ?? '', 10);
-    return {
-      adults: Number.isFinite(adults) && adults >= 0 ? Math.max(adults, 1) : 1,
-      children: Number.isFinite(children) && children >= 0 ? children : 0,
-      infants: 0,
-      pets: Number.isFinite(pets) && pets >= 0 ? pets : 0,
-    };
-  }
-  return parseGuestsParam(sp.get('guests'));
-}
-
-function readWhereParam(sp: URLSearchParams, fallback = ''): string {
-  return (sp.get('where') ?? sp.get('location') ?? fallback).trim() || fallback;
-}
-
-function buildSearchValues(
-  location: string,
-  dateRange: DateRange | undefined,
-  guests: GuestCounts
-): HeroSearchValues {
-  const guestTotal = guests.adults + guests.children;
-  return {
-    location: location.trim(),
-    checkIn: toIsoDate(dateRange?.from),
-    checkOut: toIsoDate(dateRange?.to),
-    guests: guestTotal > 0 ? String(guestTotal) : '',
-  };
-}
-
-function formatGuestSummary(counts: GuestCounts) {
-  const guestCount = counts.adults + counts.children;
-  if (guestCount === 0 && counts.pets === 0) return '';
-  const parts: string[] = [];
-  if (guestCount > 0) parts.push(`${guestCount} guest${guestCount === 1 ? '' : 's'}`);
-  if (counts.pets > 0) parts.push(`${counts.pets} pet${counts.pets === 1 ? '' : 's'}`);
-  return parts.join(', ');
-}
-
-function formatGuestSummaryCompact(counts: GuestCounts) {
-  const guestCount = counts.adults + counts.children;
-  if (guestCount > 0) return String(guestCount);
-  if (counts.pets > 0) return `${counts.pets} pet`;
-  return '';
-}
-
-function formatDateRange(range: DateRange | undefined) {
-  if (!range?.from) return '';
-  if (!range.to) return format(range.from, 'MMM d');
-  return `${format(range.from, 'MMM d')} – ${format(range.to, 'MMM d')}`;
-}
-
-function toIsoDate(date: Date | undefined) {
-  if (!date) return '';
-  return format(date, 'yyyy-MM-dd');
-}
-
-function preferredPanelWidth(field: SearchField, rootWidth: number, calendarMonths: number) {
-  const isMobile = rootWidth < 640;
-  if (isMobile) return rootWidth;
-
-  switch (field) {
-    case 'where':
-      return HERO_SEARCH_SINGLE_MONTH_PANEL_WIDTH;
-    case 'when':
-      return heroSearchWhenPanelWidth(calendarMonths === 2 ? 2 : 1, rootWidth);
-    case 'who':
-      return 380;
-    default:
-      return rootWidth;
-  }
-}
-
-function computeDropdownLayout(
-  field: SearchField,
-  rootEl: HTMLElement,
-  barEl: HTMLElement,
-  segmentEl: HTMLElement,
-  calendarMonths: number,
-  contentHeight: number
-): DropdownLayout {
-  const rootRect = rootEl.getBoundingClientRect();
-  const barRect = barEl.getBoundingClientRect();
-  const segmentRect = segmentEl.getBoundingClientRect();
-  const rootWidth = rootRect.width;
-  const width = preferredPanelWidth(field, rootWidth, calendarMonths);
-  const isMobile = rootWidth < 640;
-
-  let left = 0;
-  if (!isMobile) {
-    const segmentLeft = segmentRect.left - rootRect.left;
-    const segmentCenter = segmentLeft + segmentRect.width / 2;
-
-    if (field === 'where') {
-      left = segmentLeft;
-    } else if (field === 'when') {
-      left = segmentCenter - width / 2;
-    } else {
-      left = segmentRect.right - rootRect.left - width;
-    }
-
-    left = Math.max(0, Math.min(left, rootWidth - width));
-  }
-
-  const top = barRect.bottom - rootRect.top + 12;
-
-  return {
-    left,
-    top,
-    width,
-    height: contentHeight,
-  };
-}
-
-interface GuestRowProps {
-  label: string;
-  subtitle?: string;
-  value: number;
-  onDecrement: () => void;
-  onIncrement: () => void;
-  min?: number;
-}
-
-function GuestRow({ label, subtitle, value, onDecrement, onIncrement, min = 0 }: GuestRowProps) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-4">
-      <div className="min-w-0">
-        <p className="text-foreground text-sm font-semibold">{label}</p>
-        {subtitle ? <p className="text-muted-foreground text-xs">{subtitle}</p> : null}
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onDecrement}
-          disabled={value <= min}
-          aria-label={`Decrease ${label}`}
-          className={cn(
-            'border-border flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border',
-            'text-muted-foreground hover:border-foreground/30 transition-colors disabled:opacity-30'
-          )}
-        >
-          <Minus className="h-4 w-4" />
-        </button>
-        <span className="text-foreground w-5 text-center text-sm font-medium tabular-nums">
-          {value}
-        </span>
-        <button
-          type="button"
-          onClick={onIncrement}
-          aria-label={`Increase ${label}`}
-          className={cn(
-            'border-border flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border',
-            'text-muted-foreground hover:border-foreground/30 transition-colors'
-          )}
-        >
-          <Plus className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-interface SearchSegmentProps {
-  field: SearchField;
-  label: string;
-  value: string;
-  placeholder: string;
-  activeField: SearchField | null;
-  onActivate: (field: SearchField) => void;
-  className?: string;
-  morphProgress?: number;
-  compactPlaceholder?: string;
-  /** Single-line header / mobile — no Where/When/Who labels. */
-  compactLine?: boolean;
-}
-
-const SearchSegment = forwardRef<HTMLButtonElement, SearchSegmentProps>(function SearchSegment(
-  {
-    field,
-    label,
-    value,
-    placeholder,
-    activeField,
-    onActivate,
-    className,
-    morphProgress = 0,
-    compactPlaceholder,
-    compactLine = false,
-  },
-  ref
-) {
-  const isActive = activeField === field;
-  const p = morphProgress;
-  const labelOpacity = compactLine ? 0 : 1 - smoothstep(0.05, 0.35, p);
-  const isFilled = Boolean(value);
-  const display = value || (compactLine ? (compactPlaceholder ?? placeholder) : placeholder);
-
-  if (compactLine) {
-    return (
-      <button
-        ref={ref}
-        type="button"
-        aria-label={label}
-        onClick={() => onActivate(field)}
-        className={cn(
-          'relative z-[1] flex min-w-0 flex-1 basis-0 items-center justify-center truncate rounded-full px-2 py-2 text-center text-xs',
-          className
-        )}
-      >
-        <span
-          className={cn(
-            'relative truncate',
-            isFilled ? 'text-foreground font-semibold' : 'text-muted-foreground font-medium',
-            isActive && 'text-foreground font-semibold'
-          )}
-        >
-          {display}
-        </span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={() => onActivate(field)}
-      className={cn(
-        'relative z-[1] flex min-h-[52px] min-w-0 flex-1 flex-col justify-center rounded-full px-5 py-3 text-left',
-        className
-      )}
-      style={{
-        paddingLeft: `${lerp(25, 14, p)}px`,
-        paddingRight: `${lerp(15, 14, p)}px`,
-        paddingTop: `${lerp(5, 10, p)}px`,
-        paddingBottom: `${lerp(5, 10, p)}px`,
-      }}
-    >
-      {labelOpacity > 0.02 ? (
-        <span
-          className="text-foreground relative text-xs font-semibold"
-          style={{
-            opacity: labelOpacity,
-            maxHeight: `${labelOpacity * 18}px`,
-            overflow: 'hidden',
-          }}
-        >
-          {label}
-        </span>
-      ) : null}
-      <span
-        className={cn(
-          'relative truncate text-sm',
-          labelOpacity > 0.5 && 'mt-0.5',
-          isFilled ? 'text-foreground font-semibold' : 'text-muted-foreground font-medium',
-          isActive && 'text-foreground font-semibold'
-        )}
-      >
-        {display}
-      </span>
-    </button>
-  );
-});
 
 export function HeroSearch({
   className,

@@ -9,9 +9,11 @@ import { LandingSocialProof } from '@/features/guest/marketing/guest-landing/com
 import { PopularDestinations } from '@/features/guest/marketing/guest-landing/components/PopularDestinations';
 
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 export function GuestLandingPage() {
   usePageTitle(publicPageTitle('Home'));
+  usePageMeta({ canonicalPath: '/' });
   const [searchParams] = useSearchParams();
   const property = readGuestPropertySlug(searchParams);
 

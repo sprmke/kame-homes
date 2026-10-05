@@ -47,6 +47,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { captureAppEvent } from '@/lib/posthog/capture';
+import { buildPropertyJsonLd } from '@/lib/seo/seoMeta';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 import { cn } from '@/lib/utils';
 import { parseGuestInquiryDateRange, formatDateToYYYYMMDD } from '@/utils/format/dates';
 
@@ -79,6 +81,36 @@ export function PropertyDetailPage() {
     [similarResult.data?.data, propertySlug, propertyData?.id]
   );
   usePageTitle(publicPageTitle(propertyData?.name ? `${propertyData.name}` : 'Property'));
+  const propertyCanonicalPath = `/properties/${propertyData?.slug ?? propertySlug}`;
+  usePageMeta(
+    {
+      title: propertyData?.name,
+      description:
+        propertyData?.description ||
+        (propertyData
+          ? `${propertyData.name} in ${propertyData.location}. Check dates and book online.`
+          : null),
+      canonicalPath: propertyCanonicalPath,
+      image: propertyData?.images[0] ?? null,
+      jsonLd: propertyData
+        ? buildPropertyJsonLd({
+            name: propertyData.name,
+            url: `${window.location.origin}${propertyCanonicalPath}`,
+            description: propertyData.description,
+            images: propertyData.images,
+            address: {
+              city: propertyData.city,
+              province: propertyData.state,
+              country: propertyData.country,
+            },
+            rating: propertyData.rating ?? null,
+            reviewCount: propertyData.reviews ?? 0,
+            priceFrom: propertyData.pricing.baseRate,
+          })
+        : null,
+    },
+    Boolean(propertyData) && !isEditorPreview
+  );
   usePropertyPageViewTracking(propertyData?.id, !isEditorPreview && propertyData?.source === 'api');
 
   useEffect(() => {
@@ -392,7 +424,7 @@ export function PropertyDetailPage() {
               floors: propertyData.floors,
             }}
             residenceName={propertyData.residenceName}
-            developmentSlug={propertyData.developmentSlug}
+            development={propertyData.development ?? null}
             tower={propertyData.tower}
             unitNumber={propertyData.unitNumber}
             towerAndUnit={propertyData.towerAndUnit}
