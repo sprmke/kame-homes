@@ -26,6 +26,7 @@ import {
   type ResolvedSearchIntent,
 } from '../_shared/searchIntents.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
+import { readQueryText } from '../_shared/publicListingSearch.ts';
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 16;
@@ -249,7 +250,7 @@ servePublic('search-suggestions', async (req) => {
   if (limited) return limited;
 
   const url = new URL(req.url);
-  const q = (url.searchParams.get('q') ?? '').trim();
+  const q = readQueryText(url.searchParams.get('q'));
   const limitRaw = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(limitRaw, 1), MAX_LIMIT)

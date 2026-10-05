@@ -296,6 +296,7 @@
             "npm:@types/react@19.2.17",
             "npm:@typescript-eslint/eslint-plugin@^6.10.0",
             "npm:@typescript-eslint/parser@^6.10.0",
+            "npm:@vercel/functions@^3.9.11",
             "npm:@vitejs/plugin-react@^4.0.3",
             "npm:@vitest/coverage-v8@1.6.0",
             "npm:autoprefixer@^10.4.16",

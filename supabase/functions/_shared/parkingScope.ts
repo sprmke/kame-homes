@@ -21,6 +21,7 @@ import {
 import { formatCheckTime12h } from './publicPropertyService.ts';
 import { isListingRecommendedBadge, resolveListingAuthorization } from './listingAuthorization.ts';
 import type { OrgPermissionParam } from './orgTeamPermissions.ts';
+import { resolvePublicDevelopmentLink } from './publicDevelopmentLink.ts';
 
 export type ParkingAccessContext = OrgAccessContext & {
   parking: ReturnType<typeof serializeParking>;
@@ -210,7 +211,10 @@ export async function loadPublicParkingBySlug(slug: string) {
   const province = readString('province') || null;
   const country = readString('country') || 'Philippines';
   const description = readString('description') || readString('notes') || null;
-  const brandColor = await loadResolvedBrandColorByParkingId(parkingId);
+  const [brandColor, development] = await Promise.all([
+    loadResolvedBrandColorByParkingId(parkingId),
+    resolvePublicDevelopmentLink(data.residence_name as string | null),
+  ]);
   const checkInRaw = readString('checkInTime') || '14:00';
   const checkOutRaw = readString('checkOutTime') || '12:00';
 
@@ -219,6 +223,7 @@ export async function loadPublicParkingBySlug(slug: string) {
     slug: data.slug as string,
     name: data.name as string,
     residenceName: data.residence_name as string | null,
+    development,
     tower: data.tower as string | null,
     level: data.level as string | null,
     slotLabel: data.slot_label as string,

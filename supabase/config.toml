@@ -344,6 +344,9 @@ verify_jwt = false
 [functions.issue-guest-stay-guide-token]
 verify_jwt = false
 
+[functions.issue-guest-trip-link]
+verify_jwt = false
+
 [functions.issue-booking-document-share-token]
 verify_jwt = false
 
@@ -717,6 +720,9 @@ verify_jwt = false
 [functions.list-public-place-groups]
 verify_jwt = false
 
+[functions.public-sitemap]
+verify_jwt = false
+
 [functions.list-public-pricing-plans]
 verify_jwt = false
 
@@ -903,6 +909,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.guest-trips]
+verify_jwt = false
+
+[functions.get-guest-trip]
 verify_jwt = false
 
 [functions.list-guest-vouchers]

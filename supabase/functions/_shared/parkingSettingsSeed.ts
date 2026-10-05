@@ -10,13 +10,25 @@ const DEFAULT_PARKING_NOTIFICATION_TEMPLATES = {
   payment_received: 'Payment received for parking {{slot_label}}.',
 };
 
-export async function seedParkingSettings(parkingId: string): Promise<void> {
+const DEFAULT_SEED_WEEKDAY_RATE = 300;
+const DEFAULT_SEED_WEEKEND_RATE = 400;
+
+/**
+ * `initialRate` is the nightly rate the host entered at create time. Guests are charged
+ * from parking_settings, so seeding it here keeps the public price, the detail page,
+ * and checkout on the host's number instead of the 300/400 defaults.
+ */
+export async function seedParkingSettings(
+  parkingId: string,
+  initialRate?: number | null
+): Promise<void> {
   const supabase = createServiceClient();
+  const hasRate = typeof initialRate === 'number' && Number.isFinite(initialRate) && initialRate >= 0;
   const { error } = await supabase.from('parking_settings').upsert(
     {
       parking_id: parkingId,
-      weekday_nightly_rate: 300,
-      weekend_nightly_rate: 400,
+      weekday_nightly_rate: hasRate ? initialRate : DEFAULT_SEED_WEEKDAY_RATE,
+      weekend_nightly_rate: hasRate ? initialRate : DEFAULT_SEED_WEEKEND_RATE,
       parking_notification_templates: DEFAULT_PARKING_NOTIFICATION_TEMPLATES,
     },
     { onConflict: 'parking_id', ignoreDuplicates: true }
