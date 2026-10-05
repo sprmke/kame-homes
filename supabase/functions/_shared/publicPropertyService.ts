@@ -30,6 +30,10 @@ import { resolveAppSettings } from './appSettings.ts';
 import { isOrgVerifiedBadge, readOrgVerificationFromSettings } from './orgVerification.ts';
 import { isListingRecommendedBadge, resolveListingAuthorization } from './listingAuthorization.ts';
 import { getPublicPageConfigOrDefault, type PropertyLandingConfig } from './publicPageConfigs.ts';
+import {
+  resolvePublicDevelopmentLink,
+  type PublicDevelopmentLink,
+} from './publicDevelopmentLink.ts';
 
 export type PublicPropertyMediaDto = {
   id: string;
@@ -67,6 +71,8 @@ export type PublicPropertyDetailDto = {
   mapsUrl: string | null;
   placeId: string | null;
   residenceName: string | null;
+  /** ACTIVE development matching `residenceName`, for public links. */
+  development: PublicDevelopmentLink | null;
   towerAndUnit: string | null;
   tower: string | null;
   unitNumber: string | null;
@@ -397,10 +403,10 @@ export async function loadPublicPropertyById(
   const cancellationPolicy = resolveCancellationPolicyDisplay(
     readCancellationPolicyFromSettings(settings)
   );
-  const sectionConfig = (await getPublicPageConfigOrDefault(
-    propertyId,
-    'property_landing'
-  )) as PropertyLandingConfig;
+  const [sectionConfig, development] = await Promise.all([
+    getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
+    resolvePublicDevelopmentLink(row.residence_name),
+  ]);
 
   return {
     id: row.id,
@@ -420,6 +426,7 @@ export async function loadPublicPropertyById(
     mapsUrl: readString(settings, 'mapsUrl') || null,
     placeId: readString(settings, 'placeId') || null,
     residenceName: row.residence_name?.trim() || null,
+    development,
     towerAndUnit: row.tower_and_unit?.trim() || null,
     tower: row.tower?.trim() || null,
     unitNumber: row.unit_number?.trim() || null,

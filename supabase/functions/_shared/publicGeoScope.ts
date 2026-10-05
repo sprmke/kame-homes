@@ -10,7 +10,7 @@
  */
 
 import { AZURE_NORTH_DEFAULT_COORDS, isAzureNorthResidence } from './propertyLocationDefaults.ts';
-import { haversineKm, NEARBY_DEFAULT_RADIUS_KM, readSettingsCoord } from './searchIntents.ts';
+import { readSettingsCoord } from './searchIntents.ts';
 
 export type GeoOrigin = { lat: number; lng: number };
 
@@ -54,34 +54,6 @@ export function resolveListingCoords(
   return null;
 }
 
-/**
- * Keep rows within `radiusKm` of the origin, nearest first.
- * Rows without resolvable coordinates drop out — same as `search-listings`.
- */
-export function scopeRowsToRadius<T extends { id: string }>(
-  rows: T[],
-  origin: GeoOrigin,
-  getCoords: (row: T) => GeoCoords | null,
-  radiusKm: number = NEARBY_DEFAULT_RADIUS_KM
-): { rows: T[]; distanceById: Map<string, number> } {
-  const scoped: Array<{ row: T; distanceKm: number }> = [];
-
-  for (const row of rows) {
-    const coords = getCoords(row);
-    if (!coords) continue;
-    const distanceKm = haversineKm(origin.lat, origin.lng, coords.lat, coords.lng);
-    if (distanceKm > radiusKm) continue;
-    scoped.push({ row, distanceKm });
-  }
-
-  scoped.sort((a, b) => a.distanceKm - b.distanceKm);
-
-  return {
-    rows: scoped.map((entry) => entry.row),
-    distanceById: new Map(scoped.map((entry) => [entry.row.id, entry.distanceKm])),
-  };
-}
-
 /** Inclusive map viewport from `?swLat=&swLng=&neLat=&neLng=`. */
 export type MapBbox = {
   swLat: number;
@@ -101,31 +73,4 @@ export function readMapBbox(sp: URLSearchParams): MapBbox | null {
   if (swLat == null || swLng == null || neLat == null || neLng == null) return null;
   if (swLat > neLat) return null;
   return { swLat, swLng, neLat, neLng };
-}
-
-export function pointInBbox(lat: number, lng: number, bbox: MapBbox): boolean {
-  if (lat < bbox.swLat || lat > bbox.neLat) return false;
-  // Handle antimeridian: if swLng <= neLng, normal range; else wrap.
-  if (bbox.swLng <= bbox.neLng) {
-    return lng >= bbox.swLng && lng <= bbox.neLng;
-  }
-  return lng >= bbox.swLng || lng <= bbox.neLng;
-}
-
-/**
- * Keep rows whose resolved coords fall inside the viewport.
- * Rows without coordinates drop out.
- */
-export function filterRowsToBbox<T>(
-  rows: T[],
-  getCoords: (row: T) => GeoCoords | null,
-  bbox: MapBbox
-): T[] {
-  const out: T[] = [];
-  for (const row of rows) {
-    const coords = getCoords(row);
-    if (!coords) continue;
-    if (pointInBbox(coords.lat, coords.lng, bbox)) out.push(row);
-  }
-  return out;
 }

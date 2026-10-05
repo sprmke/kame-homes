@@ -90,6 +90,11 @@ export function postgrestOrIlikeValue(raw: string): string {
   return `"${pattern.replace(/"/g, '""')}"`;
 }
 
+/** Case-insensitive exact-match ilike value for PostgREST `.or()` trees (no wildcards). */
+export function postgrestOrIlikeExactValue(raw: string): string {
+  return `"${escapeIlikePattern(raw).replace(/"/g, '""')}"`;
+}
+
 export function rankTextMatch(query: string, ...fields: Array<string | null | undefined>): number {
   const q = query.trim().toLowerCase();
   if (!q) return 0;
