@@ -377,7 +377,13 @@ async function resolveSectionHtml(
           propertySlug,
           bookingId,
         })
-      : { property_slug: propertySlug, form_url: '', sd_form_url: '', review_url: '' };
+      : {
+          property_slug: propertySlug,
+          form_url: '',
+          sd_form_url: '',
+          review_url: '',
+          trip_url: '',
+        };
 
   const placeholderVars = buildBookingPlaceholderVars(booking, settings, guestLinkExtras, branding);
 

@@ -43,6 +43,21 @@ export function guestGuestReviewPath(
   return appendGuestBookingAccessQuery(path, accessToken);
 }
 
+/** Guest trip hub — everything for one booking (`?access=` lets anonymous guests in). */
+export function guestTripPath(
+  origin: string,
+  propertySlug: string,
+  bookingId: string,
+  accessToken?: string | null
+): string {
+  const base = origin.replace(/\/+$/, '');
+  const slug = propertySlug.trim();
+  const id = bookingId.trim();
+  if (!slug || !id) return base;
+  const path = `${base}/properties/${encodeURIComponent(slug)}/trip?bookingId=${encodeURIComponent(id)}`;
+  return appendGuestBookingAccessQuery(path, accessToken);
+}
+
 export function guestStayGuidePath(origin: string, propertySlug: string, token: string): string {
   const base = origin.replace(/\/+$/, '');
   const slug = propertySlug.trim();
