@@ -123,7 +123,7 @@ serveAuthenticated('create-parking', async (req) => {
   }
 
   try {
-    await seedParkingSettings(data.id as string);
+    await seedParkingSettings(data.id as string, ratePerNight);
     await ensureOrgHostMode(supabase, orgId, 'parking');
   } catch (e) {
     console.error('[create-parking] seed:', e);

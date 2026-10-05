@@ -363,6 +363,21 @@ export async function installPropertyBookingParkingMocks(
     });
   });
 
+  // Host "Find parking" first marks the booking as needing parking (`ensure_need_parking`).
+  await page.route('**/functions/v1/update-booking-details**', async (route) => {
+    const body = (route.request().postDataJSON?.() as Record<string, unknown> | undefined) ?? {};
+    if (body.operation === 'ensure_need_parking') {
+      const skipped = workflow.booking.need_parking === true;
+      Object.assign(workflow.booking, { need_parking: true });
+      await fulfillJson(route, {
+        success: true,
+        data: { booking: { ...workflow.booking }, skipped },
+      });
+      return;
+    }
+    await route.fallback();
+  });
+
   await page.route('**/functions/v1/transition-booking**', async (route) => {
     const body = (route.request().postDataJSON?.() as Record<string, unknown> | undefined) ?? {};
     workflow.lastTransition = body;

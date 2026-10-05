@@ -54,7 +54,8 @@ hide the ones you don't need, and set colours / fonts / motion — the same cont
 - Q: Which plan? A: Editing is available on every plan; **saving** needs Pro
   (`publicPagesAutosave`) — same as Showcase and the listing editor. Guests can only **open**
   the stay guide when the property is on Pro or above (`propertyShowcase`). Below Pro the
-  link is not emailed, not offered in the booking menu or Inbox, and an old link shows
+  link is not emailed, the booking menu and Inbox show it with a Pro label that opens the
+  upgrade options instead of sharing it, and an old link shows
   "This stay guide isn't available. Contact your host if you need it." Links are still
   prepared on every plan, so upgrading turns existing links back on.
 

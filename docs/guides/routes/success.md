@@ -64,6 +64,7 @@ After a guest submits their booking form, they land on a confirmation screen rec
 ### Behavior / edge cases
 
 - No server call is made to re-fetch the booking; this is intentionally a lightweight, client-state-only confirmation screen.
+- **View your booking** (shown whenever `bookingId` and the property slug are known, including after a refresh) opens the [trip page](./trip.md). The access token stored at submit lets anonymous guests in.
 - The "Next Steps" copy differs slightly in tone but always tells the guest to watch for the acknowledgment email and to return to Facebook Messenger / Airbnb for policy questions or changes.
 
 ---

@@ -1,18 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  resolvePublicDevelopment,
-  developmentDetailPath,
-} from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
-
-describe('resolvePublicDevelopment', () => {
-  it('resolvePublicDevelopment is exported', () => {
-    expect(typeof resolvePublicDevelopment).toBe('function');
-  });
-});
+import { developmentDetailPath } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
 
 describe('developmentDetailPath', () => {
-  it('developmentDetailPath is exported', () => {
-    expect(typeof developmentDetailPath).toBe('function');
+  it('builds an encoded development detail path', () => {
+    expect(developmentDetailPath('azure-north')).toBe('/developments/azure-north');
+    expect(developmentDetailPath('a b')).toBe('/developments/a%20b');
   });
 });

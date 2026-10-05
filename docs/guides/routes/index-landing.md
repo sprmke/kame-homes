@@ -54,6 +54,8 @@ This is the main guest homepage: search, featured stays, and destination tiles t
 
 **Common host questions**
 
+- Q: How often does the Featured stays row change?
+  A: It refreshes every few minutes and always shows active homes with the best ratings first.
 - Q: Will my listing appear on the home page automatically?
   A: Not yet. Featured cards still use sample data until the public catalog is connected to live published properties.
 - Q: How do guests get from here to my property?
@@ -70,7 +72,7 @@ This is the main guest homepage: search, featured stays, and destination tiles t
 | Section        | Component             | Behavior                                                                                                                                                       |
 | -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up |
-| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack                                                                                                                           |
+| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack; animation and card rotation pause while the hero is off screen                                                           |
 | Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                         |
 | Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                      |
 | Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                        |

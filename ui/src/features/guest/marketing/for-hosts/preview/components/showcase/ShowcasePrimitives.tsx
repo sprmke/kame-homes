@@ -13,7 +13,7 @@ import type { LucideIcon } from 'lucide-react';
 const pillTones = {
   neutral: 'bg-muted text-muted-foreground',
   teal: 'bg-primary/10 text-primary',
-  amber: 'bg-warning/15 text-warning-foreground',
+  amber: 'bg-warning/15 text-warning-foreground dark:text-warning',
   green: 'bg-success/10 text-success',
 } as const;
 

@@ -7,7 +7,7 @@ updated: 2026-08-17
 
 # Guest Stays — operator guide
 
-Route: `/account/stays` (legacy `/account/messages` and `/account/trips` redirect here)
+Route: `/account/stays` (legacy `/account/messages` redirects here)
 
 > **Status:** Documented.
 
@@ -25,7 +25,7 @@ Route: `/account/stays` (legacy `/account/messages` and `/account/trips` redirec
 
 Master-detail inbox hub for all of a guest's **web chat** threads with hosts across every property **and parking slot** they've messaged — one hub, not per-listing. Nav label is **Stays** (stay-related host conversations). This is a different surface from the property-scoped chat at `/properties/:propertySlug/messages` ([properties/chat.md](../properties/chat.md)): that page is a single-thread full-screen chat for one property; this page is the guest's cross-property inbox listing every thread they have.
 
-The previous booking-list “Stays” page (`guest-trips` cards) was removed from the guest account UI; `guest-trips` remains as an edge function for possible future use.
+Bookings themselves are listed under **Trips** ([trips.md](./trips.md)), which opens each booking's [trip page](../trip.md).
 
 Desktop: thread list (left) + selected conversation (right), first thread auto-selected on wide screens. Mobile: thread list, then conversation with a back button — no side-by-side split.
 

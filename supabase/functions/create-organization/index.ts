@@ -372,7 +372,7 @@ serveAuthenticated('create-organization', async (req, user) => {
     }
 
     try {
-      await seedParkingSettings(park.id as string);
+      await seedParkingSettings(park.id as string, ratePerNight);
     } catch (e) {
       console.error('[create-organization] parking settings seed:', e);
       await rollbackOrg();

@@ -54,6 +54,139 @@ function reducedMotionHoldFrame(index: number) {
   return start + Math.max(1, Math.round(duration - 40));
 }
 
+function TourChapterStrip({
+  activeChapterIndex,
+  chapterProgress,
+  onSelect,
+  reducedMotion,
+}: {
+  activeChapterIndex: number;
+  chapterProgress: number;
+  onSelect: (index: number) => void;
+  reducedMotion: boolean;
+}) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [canScrollBack, setCanScrollBack] = useState(false);
+  const [canScrollForward, setCanScrollForward] = useState(false);
+
+  const syncScrollEdges = useCallback(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    setCanScrollBack(strip.scrollLeft > 4);
+    setCanScrollForward(strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    syncScrollEdges();
+    strip.addEventListener('scroll', syncScrollEdges, { passive: true });
+    const observer = new ResizeObserver(syncScrollEdges);
+    observer.observe(strip);
+    return () => {
+      strip.removeEventListener('scroll', syncScrollEdges);
+      observer.disconnect();
+    };
+  }, [syncScrollEdges]);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    const active = strip?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!strip || !active) return;
+    const left = active.offsetLeft - strip.clientWidth / 2 + active.clientWidth / 2;
+    strip.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, [activeChapterIndex, reducedMotion]);
+
+  const scrollByPage = (direction: -1 | 1) => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    strip.scrollBy({
+      left: direction * strip.clientWidth * 0.75,
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+  };
+
+  const arrowClassName =
+    'border-border bg-background text-foreground hover:bg-muted focus-visible:ring-ring absolute top-1/2 z-10 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition-colors before:absolute before:-inset-1 before:content-[""] focus-visible:outline-none focus-visible:ring-2 sm:flex';
+
+  return (
+    <div className="relative mt-3">
+      <div
+        ref={stripRef}
+        className="scrollbar-hide flex snap-x gap-2 overflow-x-auto scroll-smooth pb-1"
+        aria-label="Dashboard tour chapters"
+      >
+        {hostTourChapters.map((chapter, index) => {
+          // Intro / outro title cards are not features; they stay off the strip.
+          if (chapter.bookend) return null;
+          const active = index === activeChapterIndex;
+          const complete = index < activeChapterIndex;
+          return (
+            <button
+              key={chapter.id}
+              type="button"
+              onClick={() => onSelect(index)}
+              aria-current={active ? 'step' : undefined}
+              className={cn(
+                'focus-visible:ring-ring relative flex h-11 shrink-0 snap-start items-center gap-2 rounded-xl border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                active
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+              )}
+            >
+              <chapter.icon className="size-4 shrink-0" aria-hidden />
+              <span className="whitespace-nowrap pr-1">{chapter.label}</span>
+              <span
+                className={cn(
+                  'absolute inset-x-3 bottom-1.5 h-0.5 overflow-hidden rounded-full',
+                  active ? 'bg-primary-foreground/25' : 'bg-muted'
+                )}
+              >
+                <span
+                  className={cn(
+                    'block h-full rounded-full',
+                    active ? 'bg-primary-foreground' : 'bg-primary'
+                  )}
+                  style={{
+                    width: complete ? '100%' : active ? `${chapterProgress}%` : '0%',
+                  }}
+                />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {canScrollBack ? (
+        <>
+          <div className="from-card pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-gradient-to-r to-transparent sm:block" />
+          <button
+            type="button"
+            className={cn(arrowClassName, 'left-1 mt-[-2px]')}
+            onClick={() => scrollByPage(-1)}
+            aria-label="Show earlier features"
+          >
+            <ChevronLeft className="size-4" aria-hidden />
+          </button>
+        </>
+      ) : null}
+      {canScrollForward ? (
+        <>
+          <div className="from-card pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l to-transparent sm:block" />
+          <button
+            type="button"
+            className={cn(arrowClassName, 'right-1 mt-[-2px]')}
+            onClick={() => scrollByPage(1)}
+            aria-label="Show more features"
+          >
+            <ChevronRight className="size-4" aria-hidden />
+          </button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export type HostDashboardTourVariant = 'marketing' | 'compact';
 export type HostDashboardTourChapterNav = 'strip' | 'minimal';
 
@@ -86,7 +219,7 @@ export function HostDashboardTourPlayer({
   const filmProps = useMemo(() => ({ narrationMuted }), [narrationMuted]);
   const compact = variant === 'compact';
   const chapterNav = chapterNavigation ?? (compact ? 'minimal' : 'strip');
-  const canExpandPreview = expandablePreview ?? compact;
+  const canExpandPreview = expandablePreview ?? true;
 
   const getActivePlayer = useCallback(
     () => (previewOpen ? modalPlayerRef.current : inlinePlayerRef.current),
@@ -262,11 +395,14 @@ export function HostDashboardTourPlayer({
       playerKey: 'inline' | 'modal';
       startFrame: number;
       autoPlay?: boolean;
+      /** Fill a parent that is already a 16:9 box. Width-based aspect ratio overflows the modal. */
+      fillFrame?: boolean;
     }
   ) => (
     <div
       className={cn(
-        'bg-muted relative shrink-0 overflow-hidden',
+        'bg-muted relative overflow-hidden',
+        options.fillFrame ? 'h-full w-full' : 'shrink-0',
         options.roundedClass ?? (compact ? 'rounded-lg' : 'rounded-[1rem] sm:rounded-[1.4rem]')
       )}
     >
@@ -294,7 +430,11 @@ export function HostDashboardTourPlayer({
         clickToPlay={false}
         spaceKeyToPlayOrPause={false}
         acknowledgeRemotionLicense
-        style={{ width: '100%', aspectRatio: '16 / 9', display: 'block' }}
+        style={
+          options.fillFrame
+            ? { width: '100%', height: '100%', display: 'block' }
+            : { width: '100%', aspectRatio: '16 / 9', display: 'block' }
+        }
       />
       <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-950/10 dark:ring-white/10" />
       {chapterNav === 'minimal' ? (
@@ -312,7 +452,7 @@ export function HostDashboardTourPlayer({
           />
         </div>
       ) : null}
-      {options.showExpand && canExpandPreview && !previewOpen ? (
+      {options.showExpand && canExpandPreview && chapterNav === 'minimal' && !previewOpen ? (
         <button
           type="button"
           className="focus-visible:ring-primary/40 absolute right-0 top-0 z-10 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/50 bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur-md transition-[background-color,color,box-shadow] hover:bg-white hover:text-slate-900 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
@@ -427,58 +567,41 @@ export function HostDashboardTourPlayer({
             </Button>
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="min-h-[44px] min-w-[44px] rounded-full"
-            onClick={restart}
-            aria-label="Restart dashboard tour"
-          >
-            <RotateCcw className="h-4 w-4" aria-hidden />
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="min-h-[44px] min-w-[44px] rounded-full"
+              onClick={restart}
+              aria-label="Restart dashboard tour"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden />
+            </Button>
+            {canExpandPreview && !inModal ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="min-h-[44px] min-w-[44px] rounded-full"
+                onClick={openPreview}
+                aria-label="Expand workspace preview"
+                title="Full view"
+              >
+                <Maximize2 className="h-4 w-4" aria-hidden />
+              </Button>
+            ) : null}
+          </div>
         )}
       </div>
 
       {chapterNav === 'strip' ? (
-        <div
-          className="scrollbar-hide mt-3 flex snap-x gap-2 overflow-x-auto pb-1"
-          aria-label="Dashboard tour chapters"
-        >
-          {hostTourChapters.map((chapter, index) => {
-            // Intro / outro title cards are not features; they stay off the strip.
-            if (chapter.bookend) return null;
-            const active = index === activeChapterIndex;
-            const complete = index < activeChapterIndex;
-            return (
-              <button
-                key={chapter.id}
-                type="button"
-                onClick={() => seekToChapter(index)}
-                aria-current={active ? 'step' : undefined}
-                className={cn(
-                  'focus-visible:ring-ring relative min-h-[44px] min-w-[132px] snap-start overflow-hidden rounded-lg border px-2 py-2 text-left text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:min-w-0 sm:flex-1',
-                  active
-                    ? 'border-primary/30 bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <span className="flex items-center gap-1.5">
-                  <chapter.icon className="h-3 w-3 shrink-0" aria-hidden />
-                  <span className="truncate">{chapter.label}</span>
-                </span>
-                <span className="bg-muted absolute inset-x-1.5 bottom-1 h-0.5 overflow-hidden rounded-full">
-                  <span
-                    className="bg-primary block h-full rounded-full"
-                    style={{
-                      width: complete ? '100%' : active ? `${chapterProgress}%` : '0%',
-                    }}
-                  />
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <TourChapterStrip
+          activeChapterIndex={activeChapterIndex}
+          chapterProgress={chapterProgress}
+          onSelect={seekToChapter}
+          reducedMotion={prefersReducedMotion}
+        />
       ) : null}
 
       <p className="sr-only" aria-live="polite">
@@ -490,7 +613,7 @@ export function HostDashboardTourPlayer({
   const cardClassName = cn(
     compact
       ? 'border-border/80 bg-card/95 flex w-full flex-col rounded-xl border shadow-md backdrop-blur-sm'
-      : 'border-border bg-card shadow-primary/10 mx-auto max-w-7xl rounded-[1.4rem] border p-2 shadow-2xl sm:rounded-[2rem] sm:p-3',
+      : 'border-border bg-card shadow-primary/10 mx-auto w-full max-w-[min(80rem,max(20rem,calc((100dvh-17rem)*16/9)))] rounded-[1.4rem] border p-2 shadow-2xl sm:rounded-[2rem] sm:p-3',
     compact ? 'p-2' : undefined,
     className
   );
@@ -511,7 +634,7 @@ export function HostDashboardTourPlayer({
         <Dialog open={previewOpen} onOpenChange={handlePreviewOpenChange}>
           <DialogContent
             showCloseButton={false}
-            className="flex max-h-[min(94dvh,920px)] w-[min(calc(100vw-2rem),72rem)] max-w-none flex-col gap-4 overflow-hidden p-4 sm:max-w-none sm:gap-5 sm:p-5"
+            className="flex h-[min(94dvh,920px)] max-h-[min(94dvh,920px)] w-[min(calc(100vw-2rem),72rem)] max-w-none flex-col gap-4 overflow-hidden p-4 sm:max-w-none sm:gap-5 sm:p-5"
           >
             <div className="flex shrink-0 items-center justify-between gap-4">
               <DialogTitle className="text-foreground text-lg font-bold tracking-tight sm:text-xl">
@@ -528,14 +651,25 @@ export function HostDashboardTourPlayer({
               Larger preview of the dashboard tour. Playback stays in sync with the inline player.
             </DialogDescription>
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden sm:gap-5">
-              {previewOpen
-                ? renderTourVideo(modalPlayerRef, {
-                    roundedClass: 'rounded-lg',
-                    playerKey: 'modal',
-                    startFrame: modalStartFrame,
-                    autoPlay: modalAutoPlay,
-                  })
-                : null}
+              <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden [container-type:size]">
+                {previewOpen ? (
+                  <div
+                    className="max-h-full max-w-full"
+                    style={{
+                      width: 'min(100cqw, calc(100cqh * 16 / 9))',
+                      height: 'min(100cqh, calc(100cqw * 9 / 16))',
+                    }}
+                  >
+                    {renderTourVideo(modalPlayerRef, {
+                      roundedClass: 'rounded-lg',
+                      playerKey: 'modal',
+                      startFrame: modalStartFrame,
+                      autoPlay: modalAutoPlay,
+                      fillFrame: true,
+                    })}
+                  </div>
+                ) : null}
+              </div>
               {renderControlsPanel(true)}
             </div>
           </DialogContent>

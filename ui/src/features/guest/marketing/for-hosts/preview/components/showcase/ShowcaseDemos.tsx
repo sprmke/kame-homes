@@ -89,8 +89,8 @@ export function BookingsDemo() {
           <Check className="h-3.5 w-3.5" aria-hidden />
         </span>
         <p className="text-muted-foreground text-[11px]">
-          <span className="text-foreground font-semibold">GAF approval filed</span> to booking #2048
-          — no action needed
+          <span className="text-foreground font-semibold">GAF approval filed</span> to booking
+          #2048. No action needed.
         </p>
       </div>
     </div>

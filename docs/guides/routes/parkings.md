@@ -19,15 +19,15 @@ Routes:
 
 ## Progress overview
 
-| Section         | E2E save | Validation | Docs       | Notes                                                                                                   |
-| --------------- | -------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------- |
-| List + filters  | —        | —          | Documented | Live `list-public-parkings`; URL-driven filters + facets                                                |
-| Location browse | —        | —          | Documented | `/parkings/in/:location`                                                                                |
-| Detail page     | —        | —          | Documented | `get-public-parking` + pricing; **Contact Host** web chat; **ACTIVE** only                              |
-| Reserve slot    | —        | —          | Documented | **`useParkingReserve`** → in-place **`ParkingBookingFormModal`** (guest-auth gated)                     |
-| Parking form    | Done     | Done       | Documented | Guest-authenticated submit (`submit-parking-booking-request`); zero-candidate 422                       |
-| Request status  | —        | —          | Documented | Polling status page (`get-parking-booking-status`, 4s interval); ranked batched search + pay-to-confirm |
-| Mobile shell    | —        | —          | Documented | `MarketingLayoutShell` bottom tabs; Reserve/chat → `ContextualActionBar`/`ResponsiveModal`              |
+| Section         | E2E save | Validation | Docs       | Notes                                                                                                                                          |
+| --------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| List + filters  | —        | —          | Documented | Live `list-public-parkings`; URL-driven filters + facets                                                                                       |
+| Location browse | —        | —          | Documented | `/parkings/in/:location`                                                                                                                       |
+| Detail page     | —        | —          | Documented | `get-public-parking` + pricing + `development` link (ACTIVE development matching `residence_name`); **Contact Host** web chat; **ACTIVE** only |
+| Reserve slot    | —        | —          | Documented | **`useParkingReserve`** → in-place **`ParkingBookingFormModal`** (guest-auth gated)                                                            |
+| Parking form    | Done     | Done       | Documented | Guest-authenticated submit (`submit-parking-booking-request`); zero-candidate 422                                                              |
+| Request status  | —        | —          | Documented | Polling status page (`get-parking-booking-status`, 4s interval); ranked batched search + pay-to-confirm                                        |
+| Mobile shell    | —        | —          | Documented | `MarketingLayoutShell` bottom tabs; Reserve/chat → `ContextualActionBar`/`ResponsiveModal`                                                     |
 
 ---
 
@@ -47,6 +47,10 @@ Guests browse standalone parking slots by city or building, open a slot detail p
 
 **Common host questions**
 
+- Q: Which price do guests see on the parking browse pages?
+  A: The nightly rate from your parking Pricing settings, the same amount shown on the slot page and charged at checkout. New slots start with the rate you entered when you created them.
+- Q: Do blocked dates hide my slot from date searches?
+  A: Yes. Slots with a booking or a blocked date in the guest's range are hidden for those dates.
 - Q: Is parking booking fully self-serve for guests today?
   A: Yes — a guest can browse, request, get matched, and pay online without anyone doing manual work. They must be signed in to submit a request.
 - Q: Where does my parking slot show up besides the public Parkings browse pages?
@@ -68,7 +72,7 @@ Guests browse standalone parking slots by city or building, open a slot detail p
 
 - **Mobile filters:** the **`ParkingFilters`** sheet opens as a bottom sheet (flex column, `z-[100]`/`z-[101]` so it clears the scroll-morph search bar). Header and the **Show results** / **Clear all** footer are pinned; only the option list scrolls; the footer carries a safe-area inset.
 
-- **Scale behavior:** `list-public-parkings` reads lean candidates in deterministic 1,000-row ranges, computes availability/Nearby/totals/facets before page slicing, and fails closed above 20,000 rows instead of silently truncating totals. Default unfiltered `/parkings` additionally uses `list-public-place-groups?family=parkings` for six city rows with eight previews each; **Show more places** appends later groups. Filtered browse stays on `list-public-parkings`. When map bbox params are present (e.g. `/search` parkings map tab), facets are computed from the **visible map pool** before location/tower/price filters.
+- **Scale behavior:** Filters, sort, facets, and paging run in Postgres (`search_public_*` RPCs over the trigger-maintained `public_listing_search` index), so there is no catalog-size ceiling; cards are built for the current page only. See [`PROJECT.md`](../../PROJECT.md#public-listing-search-index-browse-search-seo). Prices are the charged rate (parking settings), matching the detail page and checkout. Availability excludes bookings and owner blocks. Default unfiltered `/parkings` additionally uses `list-public-place-groups?family=parkings` for six city rows with eight previews each; **Show more places** appends later groups. Filtered browse stays on `list-public-parkings`. Facets are **disjunctive**: location type, tower and price are each counted with every _other_ filter applied (scoped to the visible map pool when bbox params are present), so picking one tower still lists the others. Filtered views show a **Previous / Next** pager (URL `page`, 24 per page).
 - Each row title: **Parking in {city}** → **View all** → `/parkings/in/:location`
 - Cards: **`ParkingSlotCard`** carousel variant — **Parking in {city}** title + **development name** subtext (matches property carousel pattern); **Reserve** via card link to development form
 - On scroll, **`ListingHeroSearch`** morphs into the fixed header center (same as `/properties`).
@@ -82,11 +86,11 @@ Guests browse standalone parking slots by city or building, open a slot detail p
 **`ParkingsLocationPage`** — live parking slots in one city.
 
 - **`:location`** — slugified city via shared **`normalizeCityPlace`** + **`toLocationSlug`** (matches place-groups).
-- Loads **`list-public-parkings?locationSlug=…`** (paged).
+- Loads **`list-public-parkings?locationSlug=…`** — 48 per page, Previous / Next pager.
 - Page title: **Parking in {city}**
 - Flat **`ParkingsEntriesGrid`** (responsive card grid)
-- Same filters + sort chrome as list page (client filter on the loaded page window)
-- Unknown / empty location → redirect to **`/parkings`**. Error: **Try again**.
+- Same filters + sort chrome as list page. Filters, sort and `page` are sent to the API and kept in the URL, so totals and every page reflect the active filters; tower options come from API facets.
+- Unknown location (no slots there with no filters applied) → redirect to **`/parkings`**. Filters with no matches show **Clear filters**. Error: **Try again**.
 
 Route is registered at the marketing shell level (no dynamic slug conflict).
 

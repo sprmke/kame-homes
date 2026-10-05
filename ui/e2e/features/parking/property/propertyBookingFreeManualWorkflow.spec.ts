@@ -73,9 +73,7 @@ test.describe('property booking Free-tier manual workflow', () => {
 
     await expect(page.getByText('Send manually', { exact: true })).toBeVisible();
     await expandAutomationTriggers(page);
-    await expect(
-      page.getByLabel(/Automated workflow emails are not on your plan/i)
-    ).toBeVisible();
+    await expect(page.getByLabel(/Automated workflow emails are not on your plan/i)).toBeVisible();
     await captureParkingScreen(page, 'automation-triggers-expanded');
     await demoPause(page);
 
@@ -216,6 +214,9 @@ test.describe('property booking Free-tier manual workflow', () => {
         status: 'PENDING_DOCUMENTS',
         has_pets: true,
         pet_request_pdf_url: 'https://example.com/e2e-pet-request.pdf',
+        // Send Pet request needs both files first (`petRequestSendDisabledReason`).
+        pet_vaccination_url: 'https://example.com/e2e-pet-vaccination.jpg',
+        pet_image_url: 'https://example.com/e2e-pet-photo.jpg',
       },
     });
 

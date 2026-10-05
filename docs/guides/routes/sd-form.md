@@ -117,6 +117,10 @@ Skipped when the property has **`vouchers_enabled = false`** (guest goes review 
 
 ---
 
+## Trip page links
+
+Both `/sd-form` and `/guest-review` show a **Your trip** back link above the header when the booking id and property slug are known. The SD form done screen adds **View your booking**. See [trip.md](./trip.md).
+
 ## Airbnb guest-review variant
 
 A standalone **`/properties/:propertySlug/guest-review?bookingId=`** route (`GuestReviewPage`) reuses the same review + voucher components for the Airbnb post-stay flow (`review_path: 'airbnb_post_stay'` on `get-guest-review`), independent of the full SD-refund stepper — used when the security deposit workflow doesn't apply (e.g. Airbnb-sourced bookings where SD is typically ₱0, per `.cursor/rules/booking-workflow.mdc` § SD refund skip).

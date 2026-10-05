@@ -10,11 +10,26 @@ Off-app marketing material. Not in-app UI. Studio: `marketing/social/` (standalo
 ```bash
 cd marketing/social && bun install
 bun run studio                               # preview every composition
-bun run render:stills                        # PNG → out/stills/<concept>/<format>.png
-bun run render:videos                        # MP4 (h264, CRF 15) → out/videos/
+bun run render:stills                        # every PNG
+bun run render:videos                        # every MP4 (h264, CRF 15)
 node scripts/render.mjs stills 02-path       # filter by id substring
-node scripts/render.mjs all feature-04       # one module of the feature series → out/features/04-smart-pricing/
+node scripts/render.mjs all 04-smart         # one feature's whole kit (ad, hook, carousel, reel)
+SKIP=1 bun run render:all                    # only what is missing
+bun run gallery                              # out/index.html: everything + captions to copy
 ```
+
+Output (gitignored, reproducible):
+
+```
+out/index.html                                  gallery: every piece with its caption
+out/campaign/<nn-concept>/<format>.png|mp4       campaign concepts (carousels: <n>.png)
+out/features/<nn-module>/ad/<format>.png|mp4     product ad (4 stills, story + landscape video)
+out/features/<nn-module>/hook/<format>.png       question hook post (story, portrait, square)
+out/features/<nn-module>/carousel/<1-5>.png      how-it-works carousel (portrait)
+out/features/<nn-module>/reel/story.mp4          hook-first reel
+```
+
+Captions live in `scripts/captions.ts` (campaign) and are built from the feature copy for kits, so they never drift from the creative.
 
 ## The look: what professional brand creative does (and AI templates don't)
 
@@ -74,6 +89,24 @@ Every concept is laid out per orientation (not scaled). `Frame` gives a design s
 | `07-offer`        | "Start free." end card / ad               | all six                               |
 | `08-carousel`     | 5-slide panorama, Path runs across all    | portrait ×5                           |
 
+### Campaign 2: new angles (`src/angles/`)
+
+Formats borrowed from what works for bigger SaaS brands. Each one is a different post type, not another headline-plus-phone.
+
+| Id              | Angle (format it borrows)                                                    | Tone                  | Formats / video                                         |
+| --------------- | ---------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------- |
+| `09-group-chat` | Relatable pain: the team chat vs one booking card                            | paper                 | story portrait square landscape link · story square     |
+| `10-day`        | Day in the life: "Saturday, handled." timeline with the module per event     | white                 | story portrait square landscape email · story landscape |
+| `11-versus`     | Comparison table: group chat + spreadsheet vs Kame Homes                     | paper                 | story portrait square landscape link                    |
+| `12-two-sides`  | Two phones, one moment: guest uploads, host sees it verified                 | tint                  | story portrait square landscape · story landscape       |
+| `13-checklist`  | Save-worthy educational carousel: 5 things every guest needs before check-in | paper + brand         | portrait ×7                                             |
+| `14-manifesto`  | Type-only manifesto: chores struck through, "Guests."                        | night                 | story portrait square                                   |
+| `14-kinetic`    | Kinetic typography reel: one phrase at a time, hard cuts between planes      | night → paper → brand | story square video                                      |
+| `15-question`   | Engagement post: "Where do guest receipts end up?" comment A to D            | tint                  | story portrait square                                   |
+| `16-journey`    | Flagship walkthrough: one booking, six real screens, Path advancing          | paper                 | story landscape video                                   |
+
+Files: `shared.tsx` (TopBar, PhoneAt, Scaled), one file per angle, `registry.tsx` (`angleStills`, `angleCarousels`, `angleVideos`, wired in `Root.tsx`).
+
 ### Feature series (`src/features/`)
 
 One piece per dashboard module, same layout so the set reads as one campaign: kicker = module name, 3-line headline (2-line on square) with one accent phrase, sub line, the module's real mobile screen.
@@ -84,7 +117,7 @@ One piece per dashboard module, same layout so the set reads as one campaign: ki
 | `02-receipt-check`       | AI receipt check | `night`    | Receipts, checked for you.        |
 | `03-channel-sync`        | Channel sync     | `white`    | Airbnb and direct. One calendar.  |
 | `04-smart-pricing`       | Smart Pricing    | `brand`    | A rate for every night.           |
-| `05-ai-receptionist`     | AI receptionist  | `tint`     | Guests call. Kame answers.        |
+| `05-ai-receptionist`     | AI receptionist  | `tint`     | Guests ask. Kame answers.         |
 | `06-booking-site`        | Booking site     | `graphite` | Guests book direct.               |
 | `07-content-studio`      | Content Studio   | `paper`    | Posts that look like your place.  |
 | `08-insights`            | Insights         | `white`    | Numbers that tell you what to do. |
@@ -92,12 +125,56 @@ One piece per dashboard module, same layout so the set reads as one campaign: ki
 | `10-maintenance`         | Maintenance      | `tint`     | Upkeep, on schedule.              |
 | `11-telegram-alerts`     | Telegram alerts  | `paper`    | Your team hears it first.         |
 | `12-ai-mode`             | AI mode          | `night`    | Just ask. It knows your numbers.  |
+| `13-stay-guide`          | Stay guide       | `tint`     | One link. Everything they need.   |
+| `14-deposit-refund`      | Deposit refund   | `night`    | Deposits back, with a thank-you.  |
+| `15-parking`             | Parking          | `brand`    | Your empty slot can earn too.     |
+| `16-guest-inbox`         | Guest inbox      | `night`    | Reply before they ask twice.      |
+| `17-finance`             | Finance          | `white`    | Know your real profit.            |
 
-Each folder holds `story`, `portrait`, `square`, `landscape` PNGs plus `story.mp4` and `landscape.mp4` (screen plays its job, then the offer end card). Inbox and Finance stay in the main campaign (`05-inbox`, `06-finance`).
+Every module ships a **kit** of four post types, so each feature can be posted several ways:
 
-Files: `kit.tsx` (screen kit: TitleBar, Card, Row, Pill, CheckDot, Toggle, Btn), `concept.tsx` (`makeFeatureConcept`, per-format layout), `*Screens.tsx` (module screens), `registry.tsx` (specs + order). To add a module: write a screen with `useAnim`, add a spec to `featureSpecs`, render with `node scripts/render.mjs all feature-<nn>`.
+| Kit piece   | What it is                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| `ad/`       | Product ad: headline, sub, real screen. 4 stills + story and landscape video                |
+| `hook/`     | The pain as a big question (`kitCopy.hook`), the answer in one line, the screen peeking in  |
+| `carousel/` | 5 slides: hook cover, three steps on the Path (`kitCopy.steps`), "Try it free today." close |
+| `reel/`     | 9:16: hook question first (scroll-stopper), then the product ad, then the offer card        |
+
+Files: `kit.tsx` (screen kit: TitleBar, Card, Row, Pill, CheckDot, Toggle, Btn), `concept.tsx` (`makeFeatureConcept`), `extras.tsx` (hook, carousel, reel factories), `kitCopy.ts` (hook question, answer, three steps per module), `*Screens.tsx` (module screens; `stayScreens.tsx` holds stay guide, deposit refund, parking claim and guest upload), `registry.tsx` (specs + order). To add a module: write a screen with `useAnim`, add a spec to `featureSpecs` and its copy to `kitCopy`, render with `node scripts/render.mjs all <nn>-<slug>`.
+
+Hook headlines auto-fit the frame width (`fit` in `extras.tsx`); keep each hook line under ~16 characters anyway so the type stays big.
 
 Videos (`videos.tsx`): concept animates, then cross-fades into the `07-offer` end card. 9 to 10 seconds.
+
+### Filipino set (`src/filipino/`)
+
+Taglish version of the studio for PH hosts. Output mirrors the English tree under `out/filipino/` (composition ids carry a `fil-` prefix; `render.mjs` routes them).
+
+```bash
+bun run render:filipino                      # every Filipino still and video
+node scripts/render.mjs stills fil-f         # Filipino feature kits only
+bun run gallery:filipino                     # out/filipino/index.html with Taglish captions
+```
+
+| File                          | What                                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `copy.ts`                     | All Filipino copy: shared UI strings, 17 feature kits, manifesto, question, lock screen |
+| `bahala.tsx`                  | `01-kame-na-bahala`: midnight "Hi po" guest thread, each message resolved, brand line   |
+| `noonNgayon.tsx`              | `02-noon-ngayon`: then vs now split, old habits struck, new way on the brand plane      |
+| `registry.tsx`                | Feature specs with Filipino copy, campaign stills and videos                            |
+| `compositions.tsx`            | `FilipinoFolder`, wraps every composition in `CopyProvider` (`src/copy.tsx`)            |
+| `scripts/filipinoCaptions.ts` | Taglish captions, built from the same copy                                              |
+
+Campaign: `01-kame-na-bahala`, `02-noon-ngayon`, `03-tulog-ka` (lock screen), `04-manifesto` + `04-kinetic`, `05-tanong` (comment A to D), `06-offer`. Feature kits reuse the English layouts and screens; only copy changes. App UI inside phones and status chips stays English, like the product.
+
+**Language rules (the reason this set exists, keep them):**
+
+1. **Taglish, not translated Tagalog.** Tagalog grammar and particles (`na`, `pa`, `lang`, `mo`, `'di ba`) with the English nouns hosts actually say: booking, resibo, check-in, Wi-Fi, GCash, GC. Never formal or deep Tagalog ("pamahalaan", "makabagong", "iyong") that reads like a government notice or a machine.
+2. **Hooks from real PH host life.** Midnight "Hi po!", "Ate, ano po ang Wi-Fi password?", the suki still paying platform fees, the matumal week, same rate on a long weekend. Guests speak with "po"; the host is "mo/ka", like a friend.
+3. **Wordplay that only works in Filipino.** Brand line "Kame na bahala." (said aloud: "kami na bahala"). "Ang kita mo, kitang-kita mo na." (kita = income and see). "May pa-voucher". One per piece, never forced.
+4. **Captions talk like a PH page.** Relatable first line, then a nudge: comment a letter, tag a co-host, "I-save mo 'to". At most one or two emoji.
+5. **Length limits are tighter.** Tagalog runs long and wide (m, n, ng). Tall ad lines ≤ 13 characters, square lines ≤ 19. `fit()` measures real Jakarta Bold widths (`src/glyphWidths.ts`) and only ever shrinks a line that would overflow.
+6. Same product truth and no-hype rules as English. No em dashes.
 
 ## Review checklist (run on every render)
 
