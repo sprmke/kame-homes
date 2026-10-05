@@ -7,11 +7,14 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export const SEARCH_SUGGESTIONS_QUERY_KEY = ['search-suggestions'] as const;
 
-async function fetchSearchSuggestions(q: string): Promise<SearchSuggestionsResponse> {
+async function fetchSearchSuggestions(
+  q: string,
+  signal?: AbortSignal
+): Promise<SearchSuggestionsResponse> {
   const params = new URLSearchParams();
   params.set('q', q);
   params.set('limit', '8');
-  return publicSearchFetch<SearchSuggestionsResponse>('search-suggestions', params);
+  return publicSearchFetch<SearchSuggestionsResponse>('search-suggestions', params, signal);
 }
 
 export function useSearchSuggestions(query: string, enabled = true) {
@@ -20,7 +23,7 @@ export function useSearchSuggestions(query: string, enabled = true) {
 
   return useQuery({
     queryKey: [...SEARCH_SUGGESTIONS_QUERY_KEY, debounced],
-    queryFn: () => fetchSearchSuggestions(debounced),
+    queryFn: ({ signal }) => fetchSearchSuggestions(debounced, signal),
     enabled: ready,
     staleTime: 30_000,
     placeholderData: keepPreviousData,

@@ -9,10 +9,13 @@ type EdgeEnvelope<T> = {
 
 export async function publicSearchFetch<T>(
   functionName: string,
-  params: URLSearchParams
+  params: URLSearchParams,
+  /** React Query's abort signal — cancels superseded keystroke/filter requests. */
+  signal?: AbortSignal
 ): Promise<T> {
   const url = `${FUNCTIONS_URL}/${functionName}?${params.toString()}`;
   const res = await fetch(url, {
+    signal,
     headers: {
       apikey: ANON_KEY,
       Authorization: `Bearer ${ANON_KEY}`,

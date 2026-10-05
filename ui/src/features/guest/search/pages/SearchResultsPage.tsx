@@ -69,6 +69,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { captureAppEvent } from '@/lib/posthog/capture';
+import { usePageMeta } from '@/lib/seo/usePageMeta';
 
 type CategoryId = Exclude<SearchListingsType, 'all'>;
 
@@ -185,6 +186,7 @@ function toParkingSummary(item: PublicParkingListItem): ParkingSearchSummary {
 
 export function SearchResultsPage() {
   usePageTitle(publicPageTitle('Search'));
+  usePageMeta({ canonicalPath: '/search', noindex: true });
   useCaptureParkingLinkStay();
   const [searchParams, setSearchParams] = useSearchParams();
   const [locationRequesting, setLocationRequesting] = useState(false);

@@ -6,7 +6,7 @@ import { DevelopmentCard } from '@/features/guest/marketing/developments/compone
 import { ParkingSlotCard } from '@/features/guest/marketing/developments/components/ParkingSlotCard';
 import { PropertyCard } from '@/features/guest/marketing/properties/components/PropertyCard';
 import { PropertyListItem } from '@/features/guest/marketing/properties/components/PropertyListItem';
-import { ListingMapView } from '@/features/guest/marketing/shared/components/ListingMapView';
+import { LazyListingMapView as ListingMapView } from '@/features/guest/marketing/shared/components/LazyListingMapView';
 import {
   markersFromCoords,
   type ListingMapMarker,
