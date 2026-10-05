@@ -1,9 +1,9 @@
 ---
-stage: in-progress
+stage: done
 title: 'AI Receptionist Production Readiness'
-status: in-progress
+status: done
 tags: [planning, ai, voice, guest-chat, security, reliability, performance]
-updated: 2026-09-24
+updated: 2026-10-04
 ---
 
 # AI Receptionist Production Readiness
@@ -601,3 +601,15 @@ Do not start guest-facing polish before the P0 provider and trust-boundary phase
 ## Open questions
 
 None required to begin Phase 0. The transcript retention duration and whether hosts need access to unverified client-reported transcripts must be approved before Phase 5 exits.
+
+## Closure (2026-10-04)
+
+Closed by owner decision. Repository work is complete and verified (unit, edge, handler, and
+mocked E2E suites green). The following remain as accepted residual operational checks, not open
+plan scope:
+
+- Physical-device pass in `docs/guides/testing/voice-receptionist-manual.md` (iOS/Android Safari
+  and Chrome, Bluetooth, background/lock, motion and audio smoothness).
+- Hosted items: seven-day provider canary, provider console/legal and billing confirmation, local
+  concurrent RPC tests, legacy table removal after hosted verification, and the staged pilot.
+- Gemini Live Preview model review on 2026-10-15.

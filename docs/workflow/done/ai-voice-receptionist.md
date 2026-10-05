@@ -13,7 +13,7 @@ updated: 2026-08-01
 **6.1–6.4 shipped.** Avatar is an original photorealistic concierge portrait with a 2D face-plate image fallback.
 
 > Historical v1 record. Production hardening and current architecture are tracked in
-> [`AI Receptionist Production Readiness`](../in-progress/ai-receptionist-production-readiness.md).
+> [`AI Receptionist Production Readiness`](./ai-receptionist-production-readiness.md).
 > In particular, client-reported voice captions no longer become canonical `social_messages`.
 
 ## Context

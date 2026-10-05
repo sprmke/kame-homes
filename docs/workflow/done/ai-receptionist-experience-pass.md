@@ -1,7 +1,7 @@
 ---
-stage: in-progress
+stage: done
 title: 'AI Receptionist Experience Pass'
-status: in-progress
+status: done
 tags: [ai, voice, guest-chat, performance, animation, ux]
 updated: 2026-10-04
 ---
@@ -92,3 +92,15 @@ the existing delta/cumulative merge.
 - **Team permissions:** N/A. Guest-facing behavior only.
 - **activity-log:** N/A. No new mutating capability; existing session/usage telemetry unchanged.
 - **Unsaved changes:** N/A. No editable fields added.
+
+## Closure (2026-10-04)
+
+Closed by owner decision. Repository work is complete and verified (unit, edge, handler, and
+mocked E2E suites green). The following remain as accepted residual operational checks, not open
+plan scope:
+
+- Physical-device pass in `docs/guides/testing/voice-receptionist-manual.md` (iOS/Android Safari
+  and Chrome, Bluetooth, background/lock, motion and audio smoothness).
+- Hosted items: seven-day provider canary, provider console/legal and billing confirmation, local
+  concurrent RPC tests, legacy table removal after hosted verification, and the staged pilot.
+- Gemini Live Preview model review on 2026-10-15.
