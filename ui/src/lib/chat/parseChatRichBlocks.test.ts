@@ -204,3 +204,19 @@ describe('osmStaticMapUrl', () => {
     expect(typeof osmStaticMapUrl).toBe('function');
   });
 });
+
+describe('urlLinkCardMeta trip links', () => {
+  it('labels a guest trip page link', () => {
+    const meta = urlLinkCardMeta(
+      'https://kamehomes.space/properties/azure-north/trip?bookingId=x&access=y'
+    );
+    expect(meta.resourceKind).toBe('trip');
+    expect(meta.title).toBe('Your trip');
+  });
+
+  it('keeps listing links as property cards', () => {
+    expect(urlLinkCardMeta('https://kamehomes.space/properties/trip-house').resourceKind).toBe(
+      'property'
+    );
+  });
+});

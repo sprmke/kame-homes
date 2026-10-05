@@ -19,7 +19,7 @@ export type GuestChatResourceHubItem = {
 /** Self-serve property links for guests mid-conversation (check-in hub). */
 export function buildGuestChatResourceHubItems(
   propertySlug: string,
-  opts?: { stayGuideUrl?: string | null }
+  opts?: { stayGuideUrl?: string | null; tripPath?: string | null }
 ): GuestChatResourceHubItem[] {
   const slug = propertySlug.trim();
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -53,6 +53,17 @@ export function buildGuestChatResourceHubItems(
       title: meta.title,
       subtitle: meta.subtitle,
       resourceKind: 'stayGuide',
+    });
+  }
+
+  const tripPath = opts?.tripPath?.trim() ?? '';
+  if (tripPath.startsWith('/')) {
+    items.unshift({
+      id: 'trip',
+      href: `${origin}${tripPath}`,
+      title: 'Your trip',
+      subtitle: 'Booking, documents, payment',
+      resourceKind: 'trip',
     });
   }
 

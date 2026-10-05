@@ -10,6 +10,7 @@ export type ChatRichSegment = InlineSegment;
 export type ChatUrlLinkResourceKind =
   | 'calendar'
   | 'stayGuide'
+  | 'trip'
   | 'document'
   | 'form'
   | 'messages'
@@ -200,6 +201,9 @@ export function urlLinkCardMeta(href: string): {
         variant: 'calendar',
         resourceKind: 'calendar',
       };
+    }
+    if (/\/properties\/[^/]+\/trip\/?$/.test(path)) {
+      return { title: 'Your trip', subtitle: host, variant: 'generic', resourceKind: 'trip' };
     }
     if (path.includes('/stay-guide')) {
       return {

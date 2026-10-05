@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 type Props = {
   propertySlug: string;
   stayGuideUrl?: string | null;
+  tripPath?: string | null;
   className?: string;
   onCalendarLinkClick?: (href: string) => void;
 };
@@ -16,12 +17,13 @@ type Props = {
 export function GuestChatResourceHub({
   propertySlug,
   stayGuideUrl,
+  tripPath,
   className,
   onCalendarLinkClick,
 }: Props) {
   const items = useMemo(
-    () => buildGuestChatResourceHubItems(propertySlug, { stayGuideUrl }),
-    [propertySlug, stayGuideUrl]
+    () => buildGuestChatResourceHubItems(propertySlug, { stayGuideUrl, tripPath }),
+    [propertySlug, stayGuideUrl, tripPath]
   );
 
   if (items.length === 0) return null;

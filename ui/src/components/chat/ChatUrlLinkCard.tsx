@@ -7,6 +7,7 @@ import {
   FileText,
   Home,
   Link2,
+  Luggage,
   MessageSquare,
   Sparkles,
   Star,
@@ -34,6 +35,8 @@ function resourceIcon(kind: ChatUrlLinkResourceKind) {
       return CalendarDays;
     case 'stayGuide':
       return BookOpen;
+    case 'trip':
+      return Luggage;
     case 'document':
       return FileText;
     case 'form':
