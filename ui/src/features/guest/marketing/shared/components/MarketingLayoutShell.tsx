@@ -8,7 +8,7 @@ import { MarketingFooter } from '@/features/guest/marketing/shared/components/Ma
 import { MarketingNav } from '@/features/guest/marketing/shared/components/MarketingNav';
 import { ListingScrollSearchProvider } from '@/features/guest/marketing/shared/context/ListingScrollSearchContext';
 import { getListingScrollSearchConfig } from '@/features/guest/marketing/shared/lib/listingScrollSearchPaths';
-import { getListingSearchDefaultLocation } from '@/features/guest/marketing/shared/lib/listingSearchDefaultLocation';
+import { useListingSearchDefaultLocation } from '@/features/guest/marketing/shared/lib/listingSearchDefaultLocation';
 import {
   getListingSearchFields,
   getListingSearchWhereSegment,
@@ -32,7 +32,7 @@ export function MarketingLayoutShell() {
   const navigate = useNavigate();
   const isFormPage = isFocusedGuestFlowRoute(pathname);
   const scrollSearchConfig = getListingScrollSearchConfig(pathname);
-  const defaultLocation = getListingSearchDefaultLocation(pathname);
+  const defaultLocation = useListingSearchDefaultLocation();
   const fields = getListingSearchFields(pathname);
   const whereSegment = getListingSearchWhereSegment(pathname);
 
@@ -74,7 +74,7 @@ export function MarketingLayoutShell() {
   const page = (
     <div
       className={cn(
-        'relative flex min-h-screen min-w-0 flex-col overflow-x-hidden',
+        'relative flex min-h-screen min-w-0 flex-col overflow-x-clip',
         !isFormPage && bottomTabBarOffsetClassName()
       )}
     >

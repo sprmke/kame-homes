@@ -40,7 +40,8 @@ async function fetchPublicPlaceGroups<T>(
   family: PublicListingFamily,
   groupOffset: number,
   groupLimit: number,
-  previewSize: number
+  previewSize: number,
+  signal?: AbortSignal
 ): Promise<PublicPlaceGroupsPage<T>> {
   const params = new URLSearchParams({
     family,
@@ -49,6 +50,7 @@ async function fetchPublicPlaceGroups<T>(
     previewSize: String(previewSize),
   });
   const response = await fetch(`${FUNCTIONS_URL}/list-public-place-groups?${params.toString()}`, {
+    signal,
     headers: {
       apikey: ANON_KEY,
       Authorization: `Bearer ${ANON_KEY}`,
@@ -81,8 +83,8 @@ export function usePublicPlaceGroups<T>(
 ) {
   return useInfiniteQuery({
     queryKey: ['list-public-place-groups', family, groupLimit, previewSize],
-    queryFn: ({ pageParam }) =>
-      fetchPublicPlaceGroups<T>(family, pageParam, groupLimit, previewSize),
+    queryFn: ({ pageParam, signal }) =>
+      fetchPublicPlaceGroups<T>(family, pageParam, groupLimit, previewSize, signal),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       const nextOffset = lastPage.groupOffset + lastPage.groups.length;

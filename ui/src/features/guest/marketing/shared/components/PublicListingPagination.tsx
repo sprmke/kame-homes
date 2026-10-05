@@ -14,6 +14,8 @@ type Props = {
   showPageIndicator?: boolean;
   /** Inline only — smaller icon buttons for dense dashboard section headers. */
   compact?: boolean;
+  /** Fired on hover / focus / touch of Previous or Next with the target page (prefetch). */
+  onPageIntent?: (page: number) => void;
 };
 
 export function PublicListingPagination({
@@ -24,11 +26,22 @@ export function PublicListingPagination({
   variant = 'centered',
   showPageIndicator = true,
   compact = false,
+  onPageIntent,
 }: Props) {
   if (totalPages <= 1) return null;
 
-  const goPrevious = () => onPageChange(Math.max(1, page - 1));
-  const goNext = () => onPageChange(Math.min(totalPages, page + 1));
+  const previousPage = Math.max(1, page - 1);
+  const nextPage = Math.min(totalPages, page + 1);
+  const goPrevious = () => onPageChange(previousPage);
+  const goNext = () => onPageChange(nextPage);
+  const intentProps = (target: number) =>
+    onPageIntent && target !== page
+      ? {
+          onMouseEnter: () => onPageIntent(target),
+          onFocus: () => onPageIntent(target),
+          onTouchStart: () => onPageIntent(target),
+        }
+      : {};
 
   if (variant === 'inline') {
     return (
@@ -72,6 +85,7 @@ export function PublicListingPagination({
         className="min-h-[44px]"
         disabled={page <= 1 || disabled}
         onClick={goPrevious}
+        {...intentProps(previousPage)}
       >
         Previous
       </Button>
@@ -84,6 +98,7 @@ export function PublicListingPagination({
         className="min-h-[44px]"
         disabled={page >= totalPages || disabled}
         onClick={goNext}
+        {...intentProps(nextPage)}
       >
         Next
       </Button>

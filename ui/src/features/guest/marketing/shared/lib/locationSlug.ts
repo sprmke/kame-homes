@@ -19,3 +19,12 @@ export function toLocationSlug(place: string): string {
       .replace(/^-+|-+$/g, '') || 'other'
   );
 }
+
+/** Display label from a location route slug (e.g. "sta-rosa" → "Sta Rosa"). */
+export function humanizeLocationSlug(slug: string): string {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}

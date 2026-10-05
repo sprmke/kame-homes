@@ -21,10 +21,13 @@ export type PublicListingResponse<T, F> = {
 
 export async function publicListingFetch<T, F>(
   functionName: string,
-  params: URLSearchParams
+  params: URLSearchParams,
+  /** React Query's abort signal — cancels superseded filter/page requests. */
+  signal?: AbortSignal
 ): Promise<PublicListingResponse<T, F>> {
   const url = `${FUNCTIONS_URL}/${functionName}?${params.toString()}`;
   const res = await fetch(url, {
+    signal,
     headers: {
       apikey: ANON_KEY,
       Authorization: `Bearer ${ANON_KEY}`,
