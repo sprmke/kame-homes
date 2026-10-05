@@ -1,0 +1,27 @@
+# Fallback when the Vercel middleware is not running. The middleware version adds the
+# deployment-specific Sitemap line (src/lib/seo/seoMeta.ts buildRobotsTxt).
+User-agent: *
+Allow: /
+Disallow: /org/
+Disallow: /orgs
+Disallow: /admin
+Disallow: /account
+Disallow: /sign-in
+Disallow: /accept-invite
+Disallow: /onboarding
+Disallow: /form
+Disallow: /sd-form
+Disallow: /success
+Disallow: /messages
+Disallow: /trips
+Disallow: /stays
+Disallow: /favorites
+Disallow: /wishlist
+Disallow: /profile
+Disallow: /search
+Disallow: /explore-preview
+Disallow: /for-hosts/preview
+Disallow: /for-hosts/v3
+Disallow: /parkings/requests/
+Disallow: /*/form
+Disallow: /*?*swLat=
