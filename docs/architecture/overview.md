@@ -90,12 +90,12 @@ There is **no separate Node API package**. Access control lives in the edge wrap
 
 ## 2. Who uses it
 
-| Persona           | What they see                                                                     | How they prove who they are                                           |
-| ----------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Guest (anon)      | Marketing, listings, calendar, booking form, stay guide, SD form, parking request | Anon key. Some pages use a capability token (`?token=`, `?complete=`) |
-| Guest (signed in) | `/account`: trips, chat, profile, tickets, vouchers                               | Supabase Auth, separate from host identity                            |
-| Host / team       | `/org/:orgSlug/property/:slug/…` and `/org/:orgSlug/parking/:slug/…`              | Google OAuth + org / property / parking membership                    |
-| Super-admin       | `/admin/*`                                                                        | `SUPER_ADMIN_EMAILS`. Writes need a step-up OTP                       |
+| Persona           | What they see                                                                                | How they prove who they are                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Guest (anon)      | Marketing, listings, calendar, booking form, trip page, stay guide, SD form, parking request | Anon key. Some pages use a capability token (`?token=`, `?complete=`, `?access=`) |
+| Guest (signed in) | `/account`: trips, chat, profile, tickets, vouchers                                          | Supabase Auth, separate from host identity                                        |
+| Host / team       | `/org/:orgSlug/property/:slug/…` and `/org/:orgSlug/parking/:slug/…`                         | Google OAuth + org / property / parking membership                                |
+| Super-admin       | `/admin/*`                                                                                   | `SUPER_ADMIN_EMAILS`. Writes need a step-up OTP                                   |
 
 Routes: [`routing.md`](routing.md). Per-page behavior: [`docs/guides/routes/`](../guides/routes/README.md).
 
@@ -139,6 +139,8 @@ flowchart TD
 
 Public listing GETs may use `publicStatic` / `publicDynamic` / `publicAvailability` cache classes. Admin and guest-PII responses stay `no-store`. Contracts: [`edge-functions.md`](edge-functions.md).
 
+Public browse and search read a trigger-maintained Postgres index (`public_listing_search`) through `search_public_*` RPCs: filters, sort, disjunctive facets, availability, and paging happen in SQL, and edge functions map only the page's cards. Responses are cached per isolate under a catalog version the index triggers bump, so listing, price, and review edits invalidate within seconds. Listing detail URLs get server-side meta for crawlers from the Vercel middleware (`ui/middleware.ts`), which also serves `robots.txt` and `sitemap.xml`. Detail: [`PROJECT.md`](../PROJECT.md#public-listing-search-index-browse-search-seo).
+
 ---
 
 ## 5. Product surfaces
@@ -173,7 +175,7 @@ flowchart TB
   ORG --> PARK
 ```
 
-**Guest feature folders** (`ui/src/features/guest/`): marketing, search, property, calendar, form, sd-form, pay-parking, stay-guide, account, auth, chat, booking-documents.
+**Guest feature folders** (`ui/src/features/guest/`): marketing, search, property, calendar, form, sd-form, pay-parking, stay-guide, trip, account, auth, chat, booking-documents.
 
 **Dashboard feature folders** (`ui/src/features/dashboard/`): org, property, parking, bookings, finance, maintenance, pricing, inbox, marketing, analytics, page-editor, custom-pages, team, plans, activity, ai-assistant, help-support, import, announcements, notifications, setup-guide, super-admin, offline.
 

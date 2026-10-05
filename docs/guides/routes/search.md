@@ -133,7 +133,9 @@ Shared component: `features/guest/marketing/shared/components/ListingMapView.tsx
 
 `search-listings` and `list-public-*` return **one page of card payloads**. Totals and facets still describe the **full filtered lean set**. Display-only enrichment (superhost, reviews when not sorting by rating, development `propertyCount`, property pricing on `search-listings`) loads for **page ids only**.
 
-`search-listings` and the three `list-public-*` endpoints read lean candidates in deterministic 1,000-row PostgREST ranges, replacing the silent ~500/~2,000-row truncation. Each family fails closed above the documented **20,000-row safety ceiling** rather than return dishonest totals/facets. Scoped search pages and All previews therefore use exact family totals within that ceiling.
+`search-listings` and the three `list-public-*` endpoints share the `search_public_*` RPCs over the `public_listing_search` index: exact totals and facets at any catalog size, ranking (exact 100, prefix 80, token prefix 70, substring 50) and concept matching in SQL, availability via bookings + owner blocks. Literal text also matches parking city. Seeded benchmark: about 260 ms worst case at 100,000 properties. `/search` sets `noindex`.
+
+Secondary batch reads (guest review ratings, development `propertyCount`, the development lookup on `list-public-properties`) page every key chunk with `.range()` (`loadRowsByKeyChunks`), so PostgREST `max_rows = 1000` never silently truncates ratings or counts; a failed pricing/review batch fails the request instead of returning default prices. Category facets are **disjunctive** (`filterRowsExcept`): each multi-select dimension is counted with every other filter applied, so a selection never hides its sibling options. Public fetchers pass React Query's abort `signal`, so superseded keystroke/filter requests are cancelled.
 
 ### Smart intents (v1 — deterministic)
 
