@@ -10,12 +10,19 @@ import {
   type PlanFeatureKey,
   type PlanFeatures,
 } from '../_shared/planFeatures.ts';
+import {
+  loadGuestStayGuideByToken,
+  propertyHasStayGuideAccess,
+  STAY_GUIDE_PLAN_ACCESS_DENIED,
+} from '../_shared/guestStayGuide.ts';
 
 type Stub = {
   /** Plan features of the org subscription; null means the property is not enrolled. */
   features: Partial<PlanFeatures> | null;
   status?: string;
   overrides?: Record<string, unknown> | null;
+  /** Row returned for `guest_submissions` lookups (stay guide token reads). */
+  guestSubmission?: Record<string, unknown> | null;
 };
 
 const json = (body: unknown) =>
@@ -68,6 +75,9 @@ async function withStubbedDb(stub: Stub, run: () => Promise<void>) {
             })
           : json(null)
       );
+    }
+    if (url.pathname.endsWith('/guest_submissions')) {
+      return Promise.resolve(json(stub.guestSubmission ?? null));
     }
     if (url.pathname.endsWith('/pricing_plans')) {
       return Promise.resolve(json(planRow('free', DEFAULT_PLAN_FEATURES)));
@@ -165,4 +175,36 @@ Deno.test('requireOrgFeature follows the org subscription and falls back to Free
       PlanFeatureRequiredError
     );
   });
+});
+
+Deno.test('stay guide access follows propertyShowcase (Pro+)', async () => {
+  await withStubbedDb({ features: featuresWith('propertyShowcase', true) }, async () => {
+    assertEquals(await propertyHasStayGuideAccess('prop-1'), true);
+  });
+  await withStubbedDb({ features: featuresWith('propertyShowcase', false) }, async () => {
+    assertEquals(await propertyHasStayGuideAccess('prop-1'), false);
+  });
+  await withStubbedDb({ features: null }, async () => {
+    assertEquals(await propertyHasStayGuideAccess('prop-1'), false);
+  });
+});
+
+Deno.test('an active stay guide link below Pro answers plan_access_denied', async () => {
+  const day = 86_400_000;
+  await withStubbedDb(
+    {
+      features: featuresWith('propertyShowcase', false),
+      guestSubmission: {
+        id: 'booking-1',
+        property_id: 'prop-1',
+        status: 'READY_FOR_CHECKIN',
+        stay_guide_token: 'tok-1',
+        stay_guide_valid_from: new Date(Date.now() - day).toISOString(),
+        stay_guide_valid_until: new Date(Date.now() + day).toISOString(),
+      },
+    },
+    async () => {
+      assertEquals(await loadGuestStayGuideByToken('tok-1'), STAY_GUIDE_PLAN_ACCESS_DENIED);
+    }
+  );
 });

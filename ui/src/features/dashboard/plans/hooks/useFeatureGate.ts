@@ -2,7 +2,8 @@ import { usePropertyIdParam, useResolvedOrgId } from '@/features/dashboard/org/l
 import { useOrgPlan } from '@/features/dashboard/plans/hooks/useOrgPlan';
 import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePropertyEntitlements';
 import { deriveOrgEntitlementsFromPlan } from '@/features/dashboard/plans/lib/orgEntitlements';
-import { isFeatureEnabled, type PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
+import { resolveFeatureGateState } from '@/features/dashboard/plans/lib/featureGateState';
+import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 /**
  * Property-scoped routes check that property's own entitlement; every other route (org-only
@@ -26,16 +27,15 @@ export function useFeatureGate(feature: PlanFeatureKey, propertyIdOverride?: str
     : deriveOrgEntitlementsFromPlan(orgPlanQuery.data);
 
   const query = propertyId ? propertyQuery : orgPlanQuery;
-  const isLoading = query.isLoading;
-
-  // Plan could not be loaded even after retries: fail open. Every gate is also enforced
-  // server-side, so a paying host never sees Free-plan UI during an outage, and a Free host
-  // still gets the server's upgrade prompt on the action itself.
-  const planUnknown = query.isError && !query.data;
-
-  const allowed =
-    planUnknown || (entitlements ? isFeatureEnabled(entitlements, feature) : false);
-  const canUse = planUnknown || (!isLoading && allowed && Boolean(entitlements));
+  const { allowed, canUse, planUnknown } = resolveFeatureGateState(
+    {
+      entitlements,
+      isLoading: query.isLoading,
+      isError: query.isError,
+      hasData: Boolean(query.data),
+    },
+    feature
+  );
 
   return {
     ...query,
