@@ -263,6 +263,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'issue-booking-document-share-token': handoff('property.booking', 'Share link from booking page'),
   'issue-guest-form-completion-token': tool('get_guest_link'),
   'issue-guest-stay-guide-token': tool('get_guest_link'),
+  'issue-guest-trip-link': handoff('property.booking', 'Share link from booking page'),
   'meta-inbox-disconnect': handoff('property.inbox', 'Meta connection'),
   'meta-inbox-oauth-complete': handoff('property.inbox', 'Meta OAuth'),
   'meta-inbox-oauth-pages': handoff('property.inbox', 'Meta OAuth'),

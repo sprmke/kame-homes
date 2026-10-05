@@ -147,6 +147,7 @@ export function ContactHostSheet({
     (messages.length > 0 || isReturningGuest || Boolean(localConversationId));
 
   const stayGuideUrl = resumeQuery.data?.stayGuideUrl ?? startQuery.data?.stayGuideUrl ?? null;
+  const tripPath = resumeQuery.data?.tripPath ?? startQuery.data?.tripPath ?? null;
 
   const threadSearch = useChatThreadSearch(showThread ? messages : []);
 
@@ -433,6 +434,7 @@ export function ContactHostSheet({
                 inquiryCheckIn={displayCheckInDate || undefined}
                 inquiryCheckOut={displayCheckOutDate || undefined}
                 stayGuideUrl={stayGuideUrl}
+                tripPath={tripPath}
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">

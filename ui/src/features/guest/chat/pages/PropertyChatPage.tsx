@@ -249,6 +249,7 @@ function PropertyChatContent({
           inquiryCheckIn={checkInDate}
           inquiryCheckOut={checkOutDate}
           stayGuideUrl={startQuery.data?.stayGuideUrl ?? null}
+          tripPath={startQuery.data?.tripPath ?? null}
           threadSearch={threadSearch}
           searchInHeader
           sending={send.isPending}

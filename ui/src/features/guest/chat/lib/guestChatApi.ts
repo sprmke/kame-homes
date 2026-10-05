@@ -82,6 +82,8 @@ export type GuestChatStartResult = {
   replyStatus: ChatReplyStatus;
   voiceReceptionistEnabled: boolean;
   stayGuideUrl: string | null;
+  /** Relative trip page path for the guest's current/next stay here. */
+  tripPath?: string | null;
 };
 
 export type GuestChatResumeResult = {
@@ -107,6 +109,8 @@ export type GuestChatResumeResult = {
   } | null;
   voiceReceptionistEnabled: boolean;
   stayGuideUrl: string | null;
+  /** Relative trip page path for the guest's current/next stay here. */
+  tripPath?: string | null;
 };
 
 async function guestEdgePatch(path: string, body: Record<string, unknown>) {

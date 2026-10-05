@@ -94,6 +94,7 @@ type Props = {
   /** Self-serve link strip when the thread has messages. Default true. */
   resourceHub?: boolean;
   stayGuideUrl?: string | null;
+  tripPath?: string | null;
 };
 
 const ACCEPTED_FILE_TYPES = CHAT_ATTACHMENT_ACCEPT;
@@ -125,6 +126,7 @@ export function GuestChatThread({
   inquiryCheckOut = null,
   resourceHub = true,
   stayGuideUrl = null,
+  tripPath = null,
 }: Props) {
   const [draft, setDraft] = useState('');
   const [pickingFaq, setPickingFaq] = useState(false);
@@ -600,6 +602,7 @@ export function GuestChatThread({
         <GuestChatResourceHub
           propertySlug={propertySlug}
           stayGuideUrl={stayGuideUrl}
+          tripPath={tripPath}
           onCalendarLinkClick={() => setCalendarModalOpen(true)}
         />
       ) : null}

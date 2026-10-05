@@ -824,6 +824,7 @@ export async function sendBookingAcknowledgement(booking: GuestSubmission) {
           brandColor: settings.brandColor,
           contact: guestContact,
           parkingUrl,
+          tripUrl: guestLinkExtras.trip_url,
         }),
         email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
       },

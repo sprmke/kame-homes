@@ -43,6 +43,7 @@ import {
   buildWebThreadId,
 } from './webGuestChatIds.ts';
 import { resolveGuestStayGuideUrlForProperty } from './guestStayGuide.ts';
+import { resolveGuestTripPathForProperty } from './guestTrip.ts';
 import { isVoiceReceptionistAvailableForProperty } from './voiceReceptionistService.ts';
 
 /** YYYY-MM-DD inquiry dates from the guest chat / contact-host flow. */
@@ -108,6 +109,8 @@ export type WebChatStartResult = {
   replyStatus: 'pending' | 'replied' | 'none';
   voiceReceptionistEnabled: boolean;
   stayGuideUrl: string | null;
+  /** Relative `/properties/:slug/trip?bookingId=` for the guest's current/next stay here. */
+  tripPath: string | null;
 };
 
 export type WebChatResumeResult = {
@@ -125,6 +128,8 @@ export type WebChatResumeResult = {
   } | null;
   voiceReceptionistEnabled: boolean;
   stayGuideUrl: string | null;
+  /** Relative `/properties/:slug/trip?bookingId=` for the guest's current/next stay here. */
+  tripPath: string | null;
 };
 
 export type StartGuestWebChatInput = {
@@ -167,6 +172,7 @@ export async function resumeGuestWebChat(
     host: null,
     voiceReceptionistEnabled: false,
     stayGuideUrl: null,
+    tripPath: null,
   };
 
   const propertySlug = input.propertySlug?.trim() ?? '';
@@ -196,9 +202,12 @@ export async function resumeGuestWebChat(
     }
 
     const voiceReceptionistEnabled = await isVoiceReceptionistAvailableForProperty(property.id);
-    const stayGuideUrl = await resolveGuestStayGuideUrlForProperty(user, property.id);
+    const [stayGuideUrl, tripPath] = await Promise.all([
+      resolveGuestStayGuideUrlForProperty(user, property.id),
+      resolveGuestTripPathForProperty(user, property.id, property.slug),
+    ]);
     if (!conv?.subject_preview?.trim()) {
-      return { ...empty, voiceReceptionistEnabled, stayGuideUrl };
+      return { ...empty, voiceReceptionistEnabled, stayGuideUrl, tripPath };
     }
 
     return {
@@ -219,6 +228,7 @@ export async function resumeGuestWebChat(
       },
       voiceReceptionistEnabled,
       stayGuideUrl,
+      tripPath,
     };
   }
 
@@ -264,6 +274,7 @@ export async function resumeGuestWebChat(
     host,
     voiceReceptionistEnabled: false,
     stayGuideUrl: null,
+    tripPath: null,
   };
 }
 
@@ -322,7 +333,10 @@ export async function startGuestWebChat(
       last_message_at: new Date().toISOString(),
     });
 
-    const stayGuideUrl = await resolveGuestStayGuideUrlForProperty(user, property.id);
+    const [stayGuideUrl, tripPath] = await Promise.all([
+      resolveGuestStayGuideUrlForProperty(user, property.id),
+      resolveGuestTripPathForProperty(user, property.id, property.slug),
+    ]);
 
     return {
       conversationId: conversation.id,
@@ -341,6 +355,7 @@ export async function startGuestWebChat(
       replyStatus: (conversation.reply_status as WebChatStartResult['replyStatus']) ?? 'none',
       voiceReceptionistEnabled: await isVoiceReceptionistAvailableForProperty(property.id),
       stayGuideUrl,
+      tripPath,
     };
   }
 
@@ -391,6 +406,7 @@ export async function startGuestWebChat(
     replyStatus: (conversation.reply_status as WebChatStartResult['replyStatus']) ?? 'none',
     voiceReceptionistEnabled: false,
     stayGuideUrl: null,
+    tripPath: null,
   };
 }
 
