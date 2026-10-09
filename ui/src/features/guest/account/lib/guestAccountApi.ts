@@ -166,3 +166,24 @@ export async function fetchGuestMessages(): Promise<{ threads: GuestMessageThrea
     threads: (payload.threads as GuestMessageThreadDto[] | undefined) ?? [],
   };
 }
+
+export const GUEST_TRIPS_QUERY_KEY = ['guest-trips'] as const;
+
+/** Property bookings for the signed-in guest (`guest-trips`), newest check-in first. */
+export type GuestTripListItemDto = {
+  id: string;
+  status: string;
+  /** YYYY-MM-DD */
+  checkInDate: string;
+  /** YYYY-MM-DD */
+  checkOutDate: string;
+  propertySlug: string | null;
+  propertyName: string | null;
+  imageUrl: string | null;
+  guestFacebookName: string | null;
+};
+
+export async function fetchGuestTrips(): Promise<GuestTripListItemDto[]> {
+  const payload = await guestEdgeGet('guest-trips');
+  return (payload.trips as GuestTripListItemDto[] | undefined) ?? [];
+}

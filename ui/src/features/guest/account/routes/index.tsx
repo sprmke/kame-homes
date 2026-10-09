@@ -30,6 +30,11 @@ const GuestTicketsPage = lazy(() =>
     default: m.GuestTicketsPage,
   }))
 );
+const GuestTripsPage = lazy(() =>
+  import('@/features/guest/account/pages/GuestTripsPage').then((m) => ({
+    default: m.GuestTripsPage,
+  }))
+);
 const GuestVouchersPage = lazy(() =>
   import('@/features/guest/account/pages/GuestVouchersPage').then((m) => ({
     default: m.GuestVouchersPage,
@@ -57,7 +62,7 @@ export const guestAccountRoutes = [
     <Route path="vouchers" element={<GuestVouchersPage />} />
     <Route path="favorites" element={<GuestWishlistPage />} />
     <Route path="tickets/*" element={<GuestTicketsPage />} />
-    <Route path="trips" element={<Navigate to={GUEST_ACCOUNT_STAYS_PATH} replace />} />
+    <Route path="trips" element={<GuestTripsPage />} />
     <Route path="messages" element={<Navigate to={GUEST_ACCOUNT_STAYS_PATH} replace />} />
     <Route path="wishlist" element={<Navigate to={GUEST_ACCOUNT_FAVORITES_PATH} replace />} />
     <Route path="settings" element={<Navigate to={GUEST_ACCOUNT_PROFILE_PATH} replace />} />

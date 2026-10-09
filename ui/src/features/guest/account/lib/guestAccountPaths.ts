@@ -4,7 +4,7 @@ export const GUEST_ACCOUNT_PATH = '/account';
 export const GUEST_ACCOUNT_PROFILE_PATH = '/account/profile';
 /** Cross-property stay messaging hub (formerly `/account/messages`). */
 export const GUEST_ACCOUNT_STAYS_PATH = '/account/stays';
-/** Legacy path — redirects to {@link GUEST_ACCOUNT_STAYS_PATH}. */
+/** Booking list; each row opens the per-booking trip page. */
 export const GUEST_ACCOUNT_TRIPS_PATH = '/account/trips';
 /** Legacy path — redirects to {@link GUEST_ACCOUNT_STAYS_PATH}. */
 export const GUEST_ACCOUNT_MESSAGES_PATH = '/account/messages';

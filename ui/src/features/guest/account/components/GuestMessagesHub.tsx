@@ -174,6 +174,7 @@ export function GuestMessagesHub({ threads }: Props) {
                 inquiryCheckIn={selectedThread.inquiryCheckIn}
                 inquiryCheckOut={selectedThread.inquiryCheckOut}
                 stayGuideUrl={resumeQuery.data?.stayGuideUrl ?? null}
+                tripPath={resumeQuery.data?.tripPath ?? null}
                 onSend={async (text, opts) => {
                   await send.mutateAsync({
                     text,
