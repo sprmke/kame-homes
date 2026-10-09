@@ -21,11 +21,13 @@ import {
   guestCalendarPath,
   guestParkingFindPath,
   guestParkingOwnDefaultPath,
+  guestTripPath,
 } from '@/features/guest/lib/guestPublicPaths';
 import { fetchPayParking } from '@/features/guest/pay-parking/lib/api';
 import { GuestStayDateRangeDisplay } from '@/features/guest/property/components/GuestStayDateRangeDisplay';
 
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
+import { Button } from '@/components/ui/button';
 import { formatTimeToAMPM, stringToDate } from '@/utils/format/dates';
 
 interface BookingData {
@@ -124,6 +126,12 @@ export function GuestFormSuccess() {
         <p className="text-muted-foreground text-base">
           Thank you for booking with <strong className="text-primary">{organizationName}</strong>!
         </p>
+
+        {bookingId && propertySlug ? (
+          <Button asChild size="lg" className="w-full sm:w-auto">
+            <Link to={guestTripPath(propertySlug, bookingId)}>View your booking</Link>
+          </Button>
+        ) : null}
 
         {bookingData && (
           <div className="space-y-6">

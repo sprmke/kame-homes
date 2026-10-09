@@ -17,7 +17,9 @@ import {
   formatGuestStayThanks,
   pickGuestBrandHeaderProps,
 } from '@/features/guest/form/lib/guestFormBranding';
+import { useGuestPropertySlug } from '@/features/guest/hooks/useGuestPropertySlug';
 import { isGuestEmbedPreview } from '@/features/guest/lib/guestEmbedPreview';
+import { guestTripPath } from '@/features/guest/lib/guestPublicPaths';
 import { SdFormEmbedPreview } from '@/features/guest/sd-form/components/SdFormEmbedPreview';
 import { SdFormReviewSection } from '@/features/guest/sd-form/components/SdFormReviewSection';
 import { VoucherReveal } from '@/features/guest/sd-form/components/VoucherReveal';
@@ -43,6 +45,7 @@ import {
   type Voucher,
 } from '@/features/guest/sd-form/lib/voucher';
 import { normalizeVoucherRevealStyle } from '@/features/guest/sd-form/lib/voucherRevealStyle';
+import { GuestTripBackLink } from '@/features/guest/trip/components/GuestTripBackLink';
 
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
@@ -77,6 +80,7 @@ const SD_FORM_BRAND_TITLE = 'SD Refund Form';
 export function SdFormPage() {
   const [searchParams] = useSearchParams();
   const bookingId = (searchParams.get('bookingId') ?? '').trim();
+  const propertySlug = useGuestPropertySlug();
   const embedPreview = isGuestEmbedPreview(searchParams);
 
   useEffect(() => {
@@ -306,9 +310,16 @@ export function SdFormPage() {
               {formatGuestFarewell(guestBrand.organizationName)}
             </p>
           </div>
-          <Button asChild className="min-h-[44px] w-full min-w-[44px] sm:w-auto">
-            <Link to="/">Check next available dates</Link>
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            {propertySlug ? (
+              <Button asChild variant="outline" className="min-h-[44px] w-full sm:w-auto">
+                <Link to={guestTripPath(propertySlug, bookingId)}>View your booking</Link>
+              </Button>
+            ) : null}
+            <Button asChild className="min-h-[44px] w-full min-w-[44px] sm:w-auto">
+              <Link to="/">Check next available dates</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -327,6 +338,7 @@ export function SdFormPage() {
         showsFloatingActions && bottomTabBarOffsetClassName()
       )}
     >
+      <GuestTripBackLink bookingId={bookingId} className="-mb-4" />
       <GuestFormBrandHeader {...brandHeader} title={SD_FORM_BRAND_TITLE} />
       <GuestFormStepper activeStep={stepperActive} steps={SD_FORM_STEPS} />
 

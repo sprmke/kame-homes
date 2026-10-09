@@ -62,6 +62,11 @@ const GuestReviewPage = lazy(() =>
 const SdFormPage = lazy(() =>
   import('@/features/guest/sd-form/pages/SdFormPage').then((m) => ({ default: m.SdFormPage }))
 );
+const GuestTripPage = lazy(() =>
+  import('@/features/guest/trip/pages/GuestTripPage').then((m) => ({
+    default: m.GuestTripPage,
+  }))
+);
 const StayGuidePage = lazy(() =>
   import('@/features/guest/stay-guide/pages/StayGuidePage').then((m) => ({
     default: m.StayGuidePage,
@@ -76,11 +81,14 @@ function resolvePropertyPublicPageName(pathname: string): string {
   if (pathname.endsWith('/success')) return 'Success';
   if (pathname.endsWith('/sd-form')) return 'Security Deposit';
   if (pathname.endsWith('/guest-review')) return 'Review';
+  if (pathname.endsWith('/trip')) return 'Your Trip';
   return 'Guest';
 }
 
 /** Persistent phone/tablet nav for the property operational shell — a wizard step (form/sd-form) hides it via `ContextualActionBar`. */
-function resolvePropertyTabActiveKey(pathname: string): string {
+function resolvePropertyTabActiveKey(pathname: string): string | null {
+  // The trip page isn't one of the tabs; highlighting "Property" there would mislead.
+  if (pathname.endsWith('/trip')) return null;
   if (pathname.endsWith('/calendar')) return 'calendar';
   if (pathname.endsWith('/messages')) return 'messages';
   return 'property';
@@ -92,6 +100,7 @@ function GuestPublicLayout() {
   const { data: guestBrand } = useGuestPaymentInfo();
   const operationalHeader = pickGuestOperationalHeaderProps(guestBrand);
   const isCalendarRoute = /\/calendar\/?$/.test(location.pathname);
+  const isTripRoute = /\/trip\/?$/.test(location.pathname);
   const propertyName = operationalHeader.propertyName ?? guestBrand?.residenceName ?? propertySlug;
   usePageTitle(
     propertyPublicPageTitle(propertyName, resolvePropertyPublicPageName(location.pathname))
@@ -120,7 +129,7 @@ function GuestPublicLayout() {
   return (
     <MainLayout
       animateOnNavigate
-      contentMaxWidth={isCalendarRoute ? 'max-w-xl' : 'max-w-3xl'}
+      contentMaxWidth={isCalendarRoute ? 'max-w-xl' : isTripRoute ? 'max-w-5xl' : 'max-w-3xl'}
       brandColor={guestBrand?.brandColor}
       footerLabel={
         guestBrand
@@ -225,6 +234,7 @@ export const propertyGuestRoutes = [
     <Route path="messages" element={<PropertyChatPage />} />
     <Route path="form" element={<GuestForm />} />
     <Route path="success" element={<GuestFormSuccess />} />
+    <Route path="trip" element={<GuestTripPage />} />
     <Route path="sd-form" element={<SdFormPage />} />
     <Route path="guest-review" element={<GuestReviewPage />} />
     <Route path="parking/:bookingId" element={<PayParkingPage />} />

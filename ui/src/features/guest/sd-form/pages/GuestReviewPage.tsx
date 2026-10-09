@@ -28,6 +28,7 @@ import {
   type Voucher,
 } from '@/features/guest/sd-form/lib/voucher';
 import { normalizeVoucherRevealStyle } from '@/features/guest/sd-form/lib/voucherRevealStyle';
+import { GuestTripBackLink } from '@/features/guest/trip/components/GuestTripBackLink';
 
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
 import { useAntiSpamSubmit } from '@/components/security/useAntiSpamSubmit';
@@ -159,6 +160,7 @@ function GuestReviewContent({
 }) {
   return (
     <div className="guest-inner-enter relative mx-auto w-full max-w-xl space-y-6 p-4 sm:p-6 lg:p-8">
+      <GuestTripBackLink bookingId={bookingId} className="-mb-4" />
       <GuestFormBrandHeader {...brandHeader} title={GUEST_REVIEW_BRAND_TITLE} />
 
       {phase === 'review' ? (

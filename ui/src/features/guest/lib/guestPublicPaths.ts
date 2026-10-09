@@ -196,6 +196,12 @@ export function guestPayParkingPathPrefix(propertySlug: string): string {
   return `${propertyBase(propertySlug)}/parking/`;
 }
 
+/** Guest trip hub for one booking. Access token stays in sessionStorage, not the URL. */
+export function guestTripPath(propertySlug: string, bookingId: string): string {
+  const params = new URLSearchParams({ bookingId: bookingId.trim() });
+  return withQuery(`${propertyBase(propertySlug)}/trip`, params);
+}
+
 export function guestStayGuidePath(propertySlug: string, token: string): string {
   const params = new URLSearchParams({ token: token.trim() });
   return withQuery(`${propertyBase(propertySlug)}/stay-guide`, params);
