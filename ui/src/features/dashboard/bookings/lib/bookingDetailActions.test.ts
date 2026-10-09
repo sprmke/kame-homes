@@ -65,3 +65,33 @@ describe('buildBookingDetailActions stay guide', () => {
     expect(actions[0]?.planFeature).toBe('propertyShowcase');
   });
 });
+
+describe('buildBookingDetailActions guest trip link', () => {
+  const base = {
+    booking: { status: 'PENDING_REVIEW' } as BookingRow,
+    onEdit: noop,
+    onFindParking: noop,
+    stayGuide: stayGuide({}),
+    parkingShareLink,
+    canEditParking: false,
+    canEditPets: false,
+    canManagePayParking: false,
+  };
+
+  it('offers open and copy once the link has loaded, ahead of the stay guide', () => {
+    const keys = buildBookingDetailActions({
+      ...base,
+      stayGuide: stayGuide({ url: 'https://example.test/guide' }),
+      tripLink: { url: 'https://example.test/trip', open: noop, copy: noop },
+    }).map((action) => action.key);
+    expect(keys).toEqual(['trip-open', 'trip-copy', 'stay-guide-open', 'stay-guide-copy']);
+  });
+
+  it('hides the rows while the link is loading', () => {
+    const keys = buildBookingDetailActions({
+      ...base,
+      tripLink: { url: '', open: noop, copy: noop },
+    }).map((action) => action.key);
+    expect(keys).toEqual([]);
+  });
+});

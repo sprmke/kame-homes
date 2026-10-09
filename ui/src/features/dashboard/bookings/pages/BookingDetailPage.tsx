@@ -59,6 +59,7 @@ import { useBookingAssetPreview } from '@/features/dashboard/bookings/hooks/useB
 import { useBookingGuestFormCompletionLink } from '@/features/dashboard/bookings/hooks/useBookingGuestFormCompletionLink';
 import { useBookingParkingShareLink } from '@/features/dashboard/bookings/hooks/useBookingParkingShareLink';
 import { useBookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
+import { useBookingTripLink } from '@/features/dashboard/bookings/hooks/useBookingTripLink';
 import { useEnsureNeedParking } from '@/features/dashboard/bookings/hooks/useEnsureNeedParking';
 import { useLinkedParkingBooking } from '@/features/dashboard/bookings/hooks/useLinkedParkingBooking';
 import { useOwnerDefaultParking } from '@/features/dashboard/bookings/hooks/useOwnerDefaultParking';
@@ -342,6 +343,7 @@ export function BookingDetailPage() {
   }, [booking, ensureNeedParking, linkedParkingQuery.data, locationSlug]);
 
   const stayGuide = useBookingStayGuideLink(booking);
+  const tripLink = useBookingTripLink(booking);
   const guestFormCompletion = useBookingGuestFormCompletionLink(booking);
   const parkingShareLink = useBookingParkingShareLink(booking, ownerDefaultQuery.data);
 
@@ -386,6 +388,7 @@ export function BookingDetailPage() {
             },
             onOpenAiSummary: handleOpenAiSummary,
             stayGuide,
+            tripLink,
             guestFormCompletion,
             parkingShareLink,
             canRunAiSummary: canEditStay,
@@ -403,6 +406,7 @@ export function BookingDetailPage() {
       handleSearchOtherParkings,
       handleOpenAiSummary,
       stayGuide,
+      tripLink,
       guestFormCompletion,
       parkingShareLink,
       canEditStay,

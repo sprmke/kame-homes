@@ -13,6 +13,7 @@ import type { BookingEditTabId } from '@/features/dashboard/bookings/components/
 import type { BookingGuestFormCompletionLink } from '@/features/dashboard/bookings/hooks/useBookingGuestFormCompletionLink';
 import type { BookingParkingShareLink } from '@/features/dashboard/bookings/hooks/useBookingParkingShareLink';
 import type { BookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
+import type { BookingTripLink } from '@/features/dashboard/bookings/hooks/useBookingTripLink';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
@@ -40,6 +41,8 @@ type Args = {
   onSearchOtherParkings?: () => void;
   onOpenAiSummary?: () => void;
   stayGuide: BookingStayGuideLink;
+  /** Guest trip page (status, documents, payment, chat). Rows hidden until the link loads. */
+  tripLink?: BookingTripLink;
   /** OTA-ingested bookings only: copy the "finish the guest form" link for the Airbnb guest. */
   guestFormCompletion?: BookingGuestFormCompletionLink;
   parkingShareLink: BookingParkingShareLink;
@@ -70,6 +73,7 @@ export function buildBookingDetailActions({
   onSearchOtherParkings,
   onOpenAiSummary,
   stayGuide,
+  tripLink,
   guestFormCompletion,
   parkingShareLink,
   canRunAiSummary = true,
@@ -147,6 +151,25 @@ export function buildBookingDetailActions({
         ]
       : []),
   ];
+
+  if (tripLink?.url) {
+    actions.push(
+      {
+        key: 'trip-open',
+        label: 'Open guest trip page',
+        Icon: ExternalLink,
+        onSelect: tripLink.open,
+        group: 'guest-links',
+      },
+      {
+        key: 'trip-copy',
+        label: 'Copy guest trip link',
+        Icon: Copy,
+        onSelect: tripLink.copy,
+        group: 'guest-links',
+      }
+    );
+  }
 
   // Only once the token exists — a menu row that silently does nothing while the
   // link is still being minted is worse than no row.
