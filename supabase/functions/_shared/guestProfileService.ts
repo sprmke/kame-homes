@@ -5,6 +5,7 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { loadAuthUserProfile } from './authUserProfile.ts';
+import { normalizeBookingDateToYmd } from './calendarAvailabilityManila.ts';
 import { normalizePhoneDigits, validatePhilippineMobilePhone } from './fieldValidation.ts';
 import { createServiceClient, type AuthenticatedUser } from './orgAuth.ts';
 import { normalizePropertyMediaItems } from './propertyMedia.ts';
@@ -353,7 +354,9 @@ export async function listGuestTrips(user: AuthenticatedUser): Promise<GuestTrip
     .from('guest_submissions')
     .select('id, status, check_in_date, check_out_date, guest_facebook_name, property_id')
     .or(`guest_user_id.eq.${user.id},and(guest_user_id.is.null,guest_email.eq.${email})`)
-    .order('check_in_date', { ascending: false })
+    .not('property_id', 'is', null)
+    .is('parking_id', null)
+    .order('created_at', { ascending: false })
     .limit(100);
 
   if (error) {
@@ -378,20 +381,28 @@ export async function listGuestTrips(user: AuthenticatedUser): Promise<GuestTrip
     }
   }
 
-  return rows.map((row) => {
-    const property = row.property_id ? propertyMap.get(row.property_id) : undefined;
-    const settings = property?.settings ?? {};
-    return {
-      id: row.id,
-      status: row.status,
-      checkInDate: row.check_in_date,
-      checkOutDate: row.check_out_date,
-      propertySlug: property?.slug ?? null,
-      propertyName: property?.name ?? null,
-      imageUrl: firstPropertyImage(settings),
-      guestFacebookName: row.guest_facebook_name,
-    } satisfies GuestTripDto;
-  });
+  // Dates are stored as MM-DD-YYYY text, so sort after normalizing (newest check-in first).
+  return rows
+    .map((row) => ({
+      row,
+      checkInYmd: normalizeBookingDateToYmd(row.check_in_date) ?? row.check_in_date,
+      checkOutYmd: normalizeBookingDateToYmd(row.check_out_date) ?? row.check_out_date,
+    }))
+    .sort((a, b) => b.checkInYmd.localeCompare(a.checkInYmd))
+    .map(({ row, checkInYmd, checkOutYmd }) => {
+      const property = row.property_id ? propertyMap.get(row.property_id) : undefined;
+      const settings = property?.settings ?? {};
+      return {
+        id: row.id,
+        status: row.status,
+        checkInDate: checkInYmd,
+        checkOutDate: checkOutYmd,
+        propertySlug: property?.slug ?? null,
+        propertyName: property?.name ?? null,
+        imageUrl: firstPropertyImage(settings),
+        guestFacebookName: row.guest_facebook_name,
+      } satisfies GuestTripDto;
+    });
 }
 
 export type GuestMessageThreadDto = {
