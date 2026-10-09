@@ -1,3 +1,4 @@
+import { FinanceScreen, InboxScreen } from '../screens';
 import { c } from '../theme';
 import {
   BookingFlowScreen,
@@ -6,9 +7,12 @@ import {
   SyncCalendarScreen,
 } from './bookingScreens';
 import { makeFeatureConcept, type FeatureSpec } from './concept';
+import { makeHookConcept, makeKitSlide, makeReelConcept, type KitSpec } from './extras';
+import { kitCopy } from './kitCopy';
 import { ContentStudioScreen, InsightsScreen } from './growthScreens';
 import { BookingSiteScreen, ReceptionistScreen } from './guestScreens';
 import { AiModeScreen, AlertsScreen, MaintenanceScreen, TeamScreen } from './opsScreens';
+import { DepositRefundScreen, ParkingClaimScreen, StayGuideScreen } from './stayScreens';
 
 /**
  * Feature series: one piece per dashboard module. Order is the showcase order.
@@ -71,8 +75,8 @@ export const featureSpecs: FeatureSpec[] = [
     slug: '05-ai-receptionist',
     module: 'AI receptionist',
     tone: 'tint',
-    tall: ['Guests call.', 'Kame', 'answers.'],
-    wide: ['Guests call.', 'Kame answers.'],
+    tall: ['Guests ask.', 'Kame', 'answers.'],
+    wide: ['Guests ask.', 'Kame answers.'],
     accentTall: 1,
     accentWide: 1,
     sub: 'Questions about parking, check-in and house rules get answered day or night.',
@@ -171,6 +175,80 @@ export const featureSpecs: FeatureSpec[] = [
     screen: (f, s) => <AiModeScreen frame={f} startAt={s} />,
     video: 200,
   },
+  {
+    slug: '13-stay-guide',
+    module: 'Stay guide',
+    tone: 'tint',
+    tall: ['One link.', 'Everything', 'they need.'],
+    wide: ['One link.', 'Everything they need.'],
+    accentTall: 1,
+    accentWide: 1,
+    sub: 'Check-in steps, house rules, parking and Wi-Fi, sent when the stay is ready.',
+    screenBg: c.white,
+    screen: (f, s) => <StayGuideScreen frame={f} startAt={s} />,
+    video: 170,
+  },
+  {
+    slug: '14-deposit-refund',
+    module: 'Deposit refund',
+    tone: 'night',
+    tall: ['Deposits', 'back, with', 'a thank-you.'],
+    wide: ['Deposits back,', 'with a thank-you.'],
+    accentTall: 2,
+    accentWide: 1,
+    sub: 'Guests leave a review, get a voucher for next time and pick how the refund comes back.',
+    screenBg: c.paper,
+    screen: (f, s) => <DepositRefundScreen frame={f} startAt={s} />,
+    video: 200,
+  },
+  {
+    slug: '15-parking',
+    module: 'Parking',
+    tone: 'brand',
+    tall: ['Your empty', 'slot can', 'earn too.'],
+    wide: ['Your empty slot', 'can earn too.'],
+    accentTall: 2,
+    accentWide: 1,
+    sub: 'Accept a nearby request in one tap. The guest pays and the PMO endorsement goes out for you.',
+    screenBg: c.paper,
+    screen: (f, s) => <ParkingClaimScreen frame={f} startAt={s} />,
+    video: 180,
+  },
+  {
+    slug: '16-guest-inbox',
+    module: 'Guest inbox',
+    tone: 'night',
+    tall: ['Reply before', 'they ask', 'twice.'],
+    wide: ['Reply before', 'they ask twice.'],
+    accentTall: 1,
+    accentWide: 1,
+    sub: 'Messenger, Instagram and web chat in one inbox, with a reply drafted for you.',
+    screenBg: c.white,
+    screen: (f, s) => <InboxScreen frame={f} startAt={s} />,
+    video: 200,
+  },
+  {
+    slug: '17-finance',
+    module: 'Finance',
+    tone: 'white',
+    tall: ['Know your', 'real', 'profit.'],
+    wide: ['Know your', 'real profit.'],
+    accentTall: 1,
+    accentWide: 1,
+    sub: 'Income records itself from every booking. Add expenses, export the report.',
+    screenBg: c.paper,
+    screen: (f, s) => <FinanceScreen frame={f} startAt={s} />,
+    video: 180,
+  },
 ];
 
-export const features = featureSpecs.map((spec) => ({ spec, Concept: makeFeatureConcept(spec) }));
+export const features = featureSpecs.map((spec) => {
+  const kit: KitSpec = { ...spec, ...kitCopy[spec.slug] };
+  return {
+    spec,
+    Concept: makeFeatureConcept(spec),
+    Hook: makeHookConcept(kit),
+    Slide: makeKitSlide(kit),
+    Reel: makeReelConcept(kit),
+  };
+});

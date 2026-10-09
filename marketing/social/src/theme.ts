@@ -37,9 +37,15 @@ export const c = {
   line: 'hsl(150 8% 88%)',
   sun: 'hsl(42 96% 62%)', // single small highlight per piece, at most
   coral: 'hsl(8 78% 60%)', // negative values only (expenses, overdue)
+  // mascot campaign only: a flat warm plane that lets Kame's mint body and caramel shell
+  // read without green-on-green (Kame never stands on the brand plane)
+  sand: 'hsl(36 72% 90%)',
+  sandLine: 'hsl(34 42% 80%)',
+  sandShade: 'hsl(30 45% 52%)',
+  sandSub: 'hsl(28 22% 30%)',
 } as const;
 
-export type ToneName = 'paper' | 'white' | 'tint' | 'brand' | 'graphite' | 'night';
+export type ToneName = 'paper' | 'white' | 'tint' | 'brand' | 'graphite' | 'night' | 'sand';
 
 export interface Tone {
   bg: string;
@@ -104,6 +110,16 @@ export const tones: Record<ToneName, Tone> = {
     surface: c.nightSurface,
     mark: c.mint,
     dark: true,
+  },
+  sand: {
+    bg: c.sand,
+    fg: c.ink,
+    sub: c.sandSub,
+    accent: c.brandDeep,
+    line: c.sandLine,
+    surface: c.white,
+    mark: c.brand,
+    dark: false,
   },
   night: {
     bg: c.night,

@@ -38,7 +38,7 @@ Researched against SaaS ad breakdowns and Apple/Stripe-style campaigns:
 1. **Flat color planes.** Every background is one solid tone from `theme.ts`. No radial washes, blurred blobs, glows, mesh gradients or grain. Those are the strongest "AI template" tell.
 2. **One hook, one visual idea, one CTA** per piece. Never a feature list on one poster (the bento is the one deliberate exception, and it is built as a grid of single ideas).
 3. **A brand device, not decoration.** The Path (`path.tsx`): thick line + diamond nodes = the six booking stages. It bleeds off edges and continues across carousel slides. Use it instead of ornamental shapes.
-4. **Product truth, drawn crisply.** CSS phone (`device.tsx`) with real mobile UI (`screens.tsx`), or abstract workflow nodes. Never screenshots, never stock 3D, never illustrations of people.
+4. **Product truth, drawn crisply.** CSS phone (`device.tsx`) with real mobile UI (`screens.tsx`), or abstract workflow nodes. Never screenshots, never stock 3D, never illustrations of people. The one 3D exception is Kame, our own mascot (campaign 3).
 5. **Typographic hierarchy does the work.** Plus Jakarta Sans 700, tracking `-0.045em`, line-height ~1.0, hand-set line breaks, one accent phrase per headline in the tone's accent color.
 6. **Crop with intent.** Phones bleed off the bottom, paths bleed off the sides. Left-aligned, asymmetric layouts.
 
@@ -51,6 +51,7 @@ v3 replaced the old teal/forest set: mid-teal planes had weak white contrast (2.
 - **Lights** are near-neutral (`paper`, `white`); green tint only on chips and the `tint` tone.
 - **Never green on green of similar depth.** On the brand plane the accent is pale mint `onBrand` (3.5:1, display sizes only). On dark planes the accent is `mint`. On light planes it is `brandDeep` (5:1).
 - `sun` and `coral` are single small highlights (a low bar, a hang-up button), never planes.
+- `sand` is a flat warm plane for the mascot campaign only. Kame's mint body and caramel shell would be green on green on the brand plane, so Kame never stands on `brand` (or `tint`).
 
 | Tone       | Use                                             | Accent      |
 | ---------- | ----------------------------------------------- | ----------- |
@@ -58,6 +59,7 @@ v3 replaced the old teal/forest set: mid-teal planes had weak white contrast (2.
 | `tint`     | Soft, fresh: lock screen, receptionist, upkeep  | `brandDeep` |
 | `night`    | Premium/dark: inbox, receipts, AI mode          | `mint`      |
 | `graphite` | Dark panels inside splits, booking site         | `mint`      |
+| `sand`     | Mascot campaign: Kame's own warm plane          | `brandDeep` |
 | `paper`    | Editorial/light: bento, bookings, studio        | `brandDeep` |
 | `white`    | Clean product focus: finance, sync, insights    | `brandDeep` |
 
@@ -106,6 +108,24 @@ Formats borrowed from what works for bigger SaaS brands. Each one is a different
 | `16-journey`    | Flagship walkthrough: one booking, six real screens, Path advancing          | paper                 | story landscape video                                   |
 
 Files: `shared.tsx` (TopBar, PhoneAt, Scaled), one file per angle, `registry.tsx` (`angleStills`, `angleCarousels`, `angleVideos`, wired in `Root.tsx`).
+
+### Campaign 3: Kame, the mascot (`src/mascot/`)
+
+Kame v6 (source: the "Kame Mascot v6" artifact on claude.ai) is a procedural three.js model: `spec.ts` holds its data (do not hand-edit proportions; recopy from the artifact). `Kame.tsx` renders it frame-deterministically on a WebGL canvas, so the pipeline renders with `--gl=angle` (already in `render.mjs`). `poses.ts` is the acting vocabulary: `idle wave cheer pointR pointL show hold talk love proud sleepy`, props `receipt key phone coin`, and `timeline()` to blend beats with an optional hop. Reference sheet: `out/mascot/poses.png` (`still-kame-poses`).
+
+The story: _kame_ is turtle, and a turtle carries its home, so Kame carries the admin. Each piece gives Kame one job tied to one real module, and pairs it with product truth (real screens, real notification copy).
+
+| Id                 | Idea                                                             | Tone         | Formats / video                                         |
+| ------------------ | ---------------------------------------------------------------- | ------------ | ------------------------------------------------------- |
+| `17-meet-kame`     | "Hi, I'm Kame. I do the admin." Kame waves in                    | sand         | all six · story square landscape                        |
+| `18-carry`         | "Kame carries the admin." Kame stands on the Path at check-in    | paper        | story portrait square landscape email · story landscape |
+| `19-night-shift`   | "You sleep. Kame works." Kame with a phone, overnight pushes     | night        | story portrait square landscape link · story square     |
+| `20-ask-kame`      | "Guests ask. Kame answers." Kame talks, receptionist chat        | white        | story portrait square landscape · story portrait        |
+| `21-crew`          | "One turtle. Every job." Five poses, each a module               | sand         | story portrait square landscape link · landscape square |
+| `22-meet-carousel` | Cover, five jobs (Kame with prop + real screen), close           | sand + paper | portrait ×7                                             |
+| `23-kame-reel`     | One continuous Kame switching jobs every beat, problem to payoff | sand         | story square video                                      |
+
+Mascot rules: Kame is on-model or not at all (no recolors, no new body parts; props attach to the right hand). Kame acts with the product, never instead of it: every job names a real module. Character motion may hop and wave, UI motion keeps the ease-out grammar. Keep the contact shadow; no glows. The AI receptionist really uses the turtle as its avatar, so "Kame answers" is product truth.
 
 ### Feature series (`src/features/`)
 

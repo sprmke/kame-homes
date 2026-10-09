@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { Bento } from './bento';
+import { useCopy } from './copy';
 import { Phone, PHONE_H, PHONE_W, Push } from './device';
 import { maskUp, reveal, rise, SETTLED } from './motion';
 import { Path, pathOnDark, pathOnBrand, STAGES } from './path';
@@ -84,7 +85,7 @@ type PerKind<T> = Record<FormatKind, T>;
  * Phone concepts: lock screen, inbox, finance
  * ------------------------------------------------------------------ */
 
-interface PhoneConceptCopy {
+export interface PhoneConceptCopy {
   tone: ToneName;
   tall: string[]; // 3-line break for narrow formats
   wide: string[]; // 2-line break for square
@@ -246,7 +247,7 @@ function PhoneBody({ copy, frame }: { copy: PhoneConceptCopy; frame: number }) {
   );
 }
 
-function makePhoneConcept(copy: PhoneConceptCopy) {
+export function makePhoneConcept(copy: PhoneConceptCopy) {
   return function Concept({ format, frame = SETTLED }: { format: Format; frame?: number }) {
     return (
       <Frame format={format} tone={copy.tone}>
@@ -752,6 +753,7 @@ export function SplitConcept({ format, frame = SETTLED }: { format: Format; fram
 
 function OfferBody({ frame }: { frame: number }) {
   const { kind, W, H, M } = useFrameCtx();
+  const copy = useCopy();
   const vertical = kind === 'vertical';
   const landscape = kind === 'landscape';
   const top = vertical ? STORY_SAFE.top : M;
@@ -771,9 +773,9 @@ function OfferBody({ frame }: { frame: number }) {
         <Wordmark size={vertical ? 34 : 30} />
       </Box>
       <Box x={M} y={top + (vertical ? 150 : landscape ? Math.round(H * 0.12) : 120)}>
-        <Lines lines={['Start free.', 'Set up today.']} accentFrom={1} size={size} frame={frame} />
+        <Lines lines={copy.offer} accentFrom={1} size={size} frame={frame} />
         <Sub size={landscape ? 34 : 32} style={{ marginTop: 40, ...reveal(frame, 26) }}>
-          No card to start · Works on your phone · Cancel anytime
+          {copy.offerSub}
         </Sub>
       </Box>
       <Path

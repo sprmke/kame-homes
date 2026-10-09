@@ -6,17 +6,22 @@
     "studio": "remotion studio src/index.ts",
     "render:stills": "node scripts/render.mjs stills",
     "render:videos": "node scripts/render.mjs videos",
-    "render:all": "node scripts/render.mjs all"
+    "render:all": "node scripts/render.mjs all",
+    "gallery": "bun scripts/gallery.ts",
+    "render:filipino": "node scripts/render.mjs all fil-",
+    "gallery:filipino": "bun scripts/gallery.ts filipino"
   },
   "dependencies": {
     "@remotion/cli": "4.0.520",
     "lucide-react": "^0.460.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "remotion": "4.0.520"
+    "remotion": "4.0.520",
+    "three": "0.160.0"
   },
   "devDependencies": {
     "@types/react": "19.2.17",
+    "@types/three": "0.160.0",
     "typescript": "^5.6.0"
   }
 }

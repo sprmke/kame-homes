@@ -3,6 +3,8 @@ import { createContext, useContext, type CSSProperties, type ReactNode } from 'r
 import { ArrowRight } from 'lucide-react';
 import { AbsoluteFill, continueRender, delayRender, staticFile } from 'remotion';
 
+import { useCopy } from './copy';
+import { BOLD_ADVANCE } from './glyphWidths';
 import { c, FONT, tones, type Format, type FormatKind, type Tone, type ToneName } from './theme';
 
 /* ------------------------------------------------------------------ *
@@ -251,7 +253,7 @@ export function Wordmark({ size = 30, color }: { size?: number; color?: string }
 }
 
 export function Cta({
-  children = 'Start free',
+  children,
   size = 1,
   invert,
 }: {
@@ -260,6 +262,7 @@ export function Cta({
   invert?: boolean;
 }) {
   const { t } = useFrameCtx();
+  const copy = useCopy();
   const light = invert ?? t.dark;
   return (
     <span
@@ -278,13 +281,29 @@ export function Cta({
         whiteSpace: 'nowrap',
       }}
     >
-      {children}
+      {children ?? copy.cta}
       <ArrowRight size={30 * size} strokeWidth={2.4} />
     </span>
   );
 }
 
 export const SITE = 'kamehomes.space';
+
+/** Display line width in em: Jakarta Bold advances with the -0.045em headline tracking. */
+const lineEm = (l: string) =>
+  [...l].reduce((sum, ch) => sum + (BOLD_ADVANCE[ch] ?? 0.6), 0) - 0.045 * l.length;
+
+/**
+ * Largest size (up to `base`) at which the longest line fits `width`. Starts from the
+ * ~0.55em-per-char estimate, then shrinks further only if the measured line would still
+ * overflow (wide letter mixes, e.g. Tagalog "Mano-mano mo"). Keeps a 3% margin.
+ */
+export function fit(lines: string[], base: number, width: number) {
+  const longest = Math.max(...lines.map((l) => l.length));
+  const estimate = Math.floor(width / (longest * 0.55));
+  const measured = Math.floor((width * 0.97) / Math.max(...lines.map(lineEm)));
+  return Math.min(base, estimate, measured);
+}
 
 /* ------------------------------------------------------------------ *
  * Layout

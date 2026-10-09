@@ -13,9 +13,14 @@ import {
   PathConcept,
   SplitConcept,
 } from './concepts';
+import { angleCarousels, angleStills, angleVideos } from './angles/registry';
+import { HOOK_FRAMES, KIT_SLIDES } from './features/extras';
+import { FilipinoFolder } from './filipino/compositions';
 import { features } from './features/registry';
 import { formats, FPS, type Format, type FormatId } from './theme';
 import { makeVideo, videoConcepts, videoLength } from './videos';
+import { mascotCarousels, mascotStills, mascotVideos } from './mascot/registry';
+import { PoseSheet } from './mascot/sheet';
 
 type ConceptC = ComponentType<{ format: Format; frame?: number }>;
 
@@ -33,27 +38,80 @@ const campaign: [string, ConceptC, FormatId[]][] = [
 /** Feature series: every module ships these stills and videos. */
 const FEATURE_STILLS: FormatId[] = ['story', 'portrait', 'square', 'landscape'];
 const FEATURE_VIDEOS: FormatId[] = ['story', 'landscape'];
+const FEATURE_HOOKS: FormatId[] = ['story', 'portrait', 'square'];
 
 export function Root() {
   return (
     <>
+      <Folder name="mascot">
+        <Still id="still-kame-poses" component={PoseSheet} width={1920} height={1260} />
+      </Folder>
       {campaign.map(([id, C, fmts]) => (
         <Folder key={id} name={`c${id}`}>
           {fmts.map((fid) => {
             const fmt = formats[fid];
             const Comp = () => <C format={fmt} />;
-            return <Still key={fid} id={`still-${id}-${fid}`} component={Comp} width={fmt.width} height={fmt.height} />;
+            return (
+              <Still
+                key={fid}
+                id={`still-${id}-${fid}`}
+                component={Comp}
+                width={fmt.width}
+                height={fmt.height}
+              />
+            );
+          })}
+        </Folder>
+      ))}
+      {[...angleStills, ...mascotStills].map(([id, C, fmts]) => (
+        <Folder key={id} name={`c${id}`}>
+          {fmts.map((fid) => {
+            const fmt = formats[fid];
+            const Comp = () => <C format={fmt} />;
+            return (
+              <Still
+                key={fid}
+                id={`still-${id}-${fid}`}
+                component={Comp}
+                width={fmt.width}
+                height={fmt.height}
+              />
+            );
+          })}
+        </Folder>
+      ))}
+      {[...angleCarousels, ...mascotCarousels].map(([id, n, Slide]) => (
+        <Folder key={id} name={`c${id}`}>
+          {Array.from({ length: n }, (_, i) => {
+            const Comp = () => <Slide index={i} format={formats.portrait} />;
+            return (
+              <Still
+                key={i}
+                id={`still-${id}-${i + 1}`}
+                component={Comp}
+                width={1080}
+                height={1350}
+              />
+            );
           })}
         </Folder>
       ))}
       <Folder name="c08-carousel">
         {Array.from({ length: PANO_SLIDES }, (_, i) => {
           const Comp = () => <PanoSlide index={i} format={formats.portrait} />;
-          return <Still key={i} id={`still-08-carousel-${i + 1}`} component={Comp} width={1080} height={1350} />;
+          return (
+            <Still
+              key={i}
+              id={`still-08-carousel-${i + 1}`}
+              component={Comp}
+              width={1080}
+              height={1350}
+            />
+          );
         })}
       </Folder>
       <Folder name="features">
-        {features.map(({ spec, Concept }) => (
+        {features.map(({ spec, Concept, Hook, Slide, Reel }) => (
           <Folder key={spec.slug} name={`f${spec.slug}`}>
             {FEATURE_STILLS.map((fid) => {
               const fmt = formats[fid];
@@ -68,6 +126,39 @@ export function Root() {
                 />
               );
             })}
+            {FEATURE_HOOKS.map((fid) => {
+              const fmt = formats[fid];
+              const Comp = () => <Hook format={fmt} />;
+              return (
+                <Still
+                  key={`h-${fid}`}
+                  id={`still-fhook-${spec.slug}-${fid}`}
+                  component={Comp}
+                  width={fmt.width}
+                  height={fmt.height}
+                />
+              );
+            })}
+            {Array.from({ length: KIT_SLIDES }, (_, i) => {
+              const Comp = () => <Slide index={i} format={formats.portrait} />;
+              return (
+                <Still
+                  key={`s-${i}`}
+                  id={`still-fsteps-${spec.slug}-${i + 1}`}
+                  component={Comp}
+                  width={1080}
+                  height={1350}
+                />
+              );
+            })}
+            <Composition
+              id={`video-freel-${spec.slug}-story`}
+              component={makeVideo(Reel, formats.story, HOOK_FRAMES + spec.video)}
+              durationInFrames={videoLength(HOOK_FRAMES + spec.video)}
+              fps={FPS}
+              width={1080}
+              height={1920}
+            />
             {FEATURE_VIDEOS.map((fid) => {
               const fmt = formats[fid];
               return (
@@ -86,7 +177,7 @@ export function Root() {
         ))}
       </Folder>
       <Folder name="videos">
-        {videoConcepts.flatMap(([id, C, fmts, body]) =>
+        {[...videoConcepts, ...angleVideos, ...mascotVideos].flatMap(([id, C, fmts, body]) =>
           fmts.map((fid) => {
             const fmt = formats[fid];
             return (
@@ -100,9 +191,10 @@ export function Root() {
                 height={fmt.height}
               />
             );
-          }),
+          })
         )}
       </Folder>
+      <FilipinoFolder />
     </>
   );
 }
