@@ -36,7 +36,6 @@ export const ASSISTANT_TOOL_MODULES: Record<string, AssistantToolModule> = {
   get_dashboard_stats: 'core',
   get_org_plan_snapshot: 'core',
   list_activity_log: 'core',
-  remember_preference: 'core',
 
   // bookings
   get_booking: 'bookings',
@@ -222,7 +221,7 @@ const MODULE_PATTERNS: Array<[AssistantToolModule, RegExp]> = [
  * listing or org). They count as a routing signal so these turns send ~8 tools, not all of them.
  */
 const CORE_INTENT_PATTERN =
-  /\b((my|the|our|current|business|free) plan\b|upgrad|downgrad|subscription|billing|checkout|free trial|open (the|my) \w+ page|take me to|go to|remember|forget|where (do|can) i|delete (this|my|the) (property|listing|org|organization|account))/i;
+  /\b((my|the|our|current|business|free) plan\b|upgrad|downgrad|subscription|billing|checkout|free trial|open (the|my) \w+ page|take me to|go to|where (do|can) i|delete (this|my|the) (property|listing|org|organization|account))/i;
 
 /** Composer pin types → module. */
 const PIN_MODULES: Record<string, AssistantToolModule> = {

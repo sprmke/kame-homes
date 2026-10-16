@@ -627,11 +627,6 @@ const TOOL_LABELS: Record<string, { progress: string; done: string; failed: stri
     done: 'Marked notifications read',
     failed: 'Could not mark notifications read',
   },
-  remember_preference: {
-    progress: 'Saving to memory…',
-    done: 'Saved to memory',
-    failed: 'Could not save to memory',
-  },
   get_property_analytics: {
     progress: 'Checking Analytics…',
     done: 'Checked Analytics',

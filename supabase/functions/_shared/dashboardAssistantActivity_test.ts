@@ -12,17 +12,24 @@ Deno.test('queued Tier 1 writes stream progress but only the commit adds a timel
   const events: AssistantStreamEvent[] = [];
   const recorder = new TurnActivityRecorder((event) => events.push(event));
 
-  recorder.recordToolComplete('remember_preference', true, Date.now(), 'r0-t0', undefined, {
-    omitFromTimeline: true,
-  });
+  recorder.recordToolComplete(
+    'propose_mark_notifications_read',
+    true,
+    Date.now(),
+    'r0-t0',
+    undefined,
+    {
+      omitFromTimeline: true,
+    }
+  );
   assertEquals(timelineTools(recorder), []);
   assertEquals(
     events.map((e) => e.type),
     ['tool_done', 'plan_update']
   );
 
-  recorder.recordToolComplete('remember_preference', true, Date.now());
-  assertEquals(timelineTools(recorder), ['remember_preference']);
+  recorder.recordToolComplete('propose_mark_notifications_read', true, Date.now());
+  assertEquals(timelineTools(recorder), ['propose_mark_notifications_read']);
 });
 
 Deno.test('consecutive identical tool rows collapse into one', () => {

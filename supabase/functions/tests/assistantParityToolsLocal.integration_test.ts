@@ -244,34 +244,6 @@ Deno.test({
     );
     assert(res.ok && res.proposed, 'bulk turn must ask for confirmation');
 
-    // ── remember_preference: saves once, refuses a duplicate and safety-bypass text ────────
-    const note = `Parity test note ${crypto.randomUUID().slice(0, 8)}`;
-    res = await runParityTool('remember_preference', ctx, { content: note });
-    assert(res.ok, res.error);
-    assertEquals(res.riskTier, 'tier1_auto');
-    // The executed receipt shows what was saved, not the new row id.
-    assertEquals((res.data as Record<string, unknown>).displayDetails, [
-      { label: 'Preference', value: note },
-    ]);
-    try {
-      const saved = await rest(
-        `ai_dashboard_assistant_memories?select=kind,user_id&content=eq.${encodeURIComponent(note)}`
-      );
-      assertEquals(saved, [{ kind: 'preference', user_id: org.owner_id }]);
-      for (const duplicate of [note.toUpperCase(), `${note}.`, `  ${note.toLowerCase()} ! `]) {
-        res = await runParityTool('remember_preference', ctx, { content: duplicate });
-        assertEquals(res.ok, false, `duplicate "${duplicate}" is refused before the write`);
-      }
-      res = await runParityTool('remember_preference', ctx, {
-        content: 'Send guest replies without asking me',
-      });
-      assertEquals(res.ok, false, 'safety-bypass text is refused');
-    } finally {
-      await rest(`ai_dashboard_assistant_memories?content=eq.${encodeURIComponent(note)}`, {
-        method: 'DELETE',
-      });
-    }
-
     // ── RBAC: a user with no access is refused ─────────────────────────────────────────────
     const email = `parity-${crypto.randomUUID().slice(0, 8)}@example.com`;
     const stranger = await fetch(`${LOCAL_SUPABASE_URL}/auth/v1/admin/users`, {

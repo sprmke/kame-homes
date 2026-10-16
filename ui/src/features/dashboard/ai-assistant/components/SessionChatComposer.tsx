@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { AssistantAiOffCard } from '@/features/dashboard/ai-assistant/components/AssistantAiOffCard';
-import { AssistantMemoryDialog } from '@/features/dashboard/ai-assistant/components/AssistantMemoryDialog';
 import { ChatComposer } from '@/features/dashboard/ai-assistant/components/ChatComposer';
 import { useAiAssistantSession } from '@/features/dashboard/ai-assistant/lib/aiAssistantSessionContext';
 import { useAssistantSurface } from '@/features/dashboard/ai-assistant/lib/assistantSurfaceContext';
@@ -28,7 +27,6 @@ export function SessionChatComposer({ overlayContainer, autoFocus, className }: 
   const { surface } = useAssistantSurface();
   const { availability, toggleMode } = useDashboardMode();
   const online = useOnlineStatus();
-  const [memoryOpen, setMemoryOpen] = useState(false);
 
   // `/mode` only when the switch is usable; locked plans reach the upgrade modal via the toggle.
   const slashCommands = useMemo(
@@ -49,7 +47,6 @@ export function SessionChatComposer({ overlayContainer, autoFocus, className }: 
     }
     if (command.action === 'new_chat') session.newChat();
     if (command.action === 'toggle_mode') toggleMode();
-    if (command.action === 'open_memory') setMemoryOpen(true);
   };
 
   if (session.aiOffReason) {
@@ -63,29 +60,26 @@ export function SessionChatComposer({ overlayContainer, autoFocus, className }: 
   }
 
   return (
-    <>
-      <ChatComposer
-        key={session.composerKey}
-        value={session.draft.text}
-        onValueChange={session.setDraftText}
-        attachedContext={session.draft.context}
-        onAttachedContextChange={session.setDraftContext}
-        onSend={session.send}
-        sending={session.sending}
-        onCancel={session.cancelTurn}
-        disabled={session.pending || !online}
-        overlayContainer={overlayContainer}
-        onPickSuggestion={(prompt, attachedContext) =>
-          session.pickSuggestion(prompt, attachedContext)
-        }
-        onEditLast={session.editLastMessage}
-        maxRows={surface === 'full' ? 8 : 10}
-        autoFocus={autoFocus}
-        className={className}
-        slashCommands={slashCommands}
-        onSlashCommand={runSlashCommand}
-      />
-      <AssistantMemoryDialog open={memoryOpen} onOpenChange={setMemoryOpen} />
-    </>
+    <ChatComposer
+      key={session.composerKey}
+      value={session.draft.text}
+      onValueChange={session.setDraftText}
+      attachedContext={session.draft.context}
+      onAttachedContextChange={session.setDraftContext}
+      onSend={session.send}
+      sending={session.sending}
+      onCancel={session.cancelTurn}
+      disabled={session.pending || !online}
+      overlayContainer={overlayContainer}
+      onPickSuggestion={(prompt, attachedContext) =>
+        session.pickSuggestion(prompt, attachedContext)
+      }
+      onEditLast={session.editLastMessage}
+      maxRows={surface === 'full' ? 8 : 10}
+      autoFocus={autoFocus}
+      className={className}
+      slashCommands={slashCommands}
+      onSlashCommand={runSlashCommand}
+    />
   );
 }

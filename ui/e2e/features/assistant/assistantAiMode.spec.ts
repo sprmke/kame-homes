@@ -6,7 +6,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 import {
   installPropertyTeamRbacMocks,
-  mockedAssistantMemory,
   mockedSavedDashboardMode,
   openAdminMoreSheet,
   openPropertyDashboard,
@@ -254,34 +253,6 @@ test.describe('@ci AI mode', () => {
     await composer(page).press('Escape');
     await expect(commands).toHaveCount(0);
     await expect(composer(page)).toHaveValue('/');
-  });
-
-  test('/memory opens the memory list; saved and removed items round-trip', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await installPropertyTeamRbacMocks(page, 'full_access', {
-      assistantEnabled: true,
-      aiModeEnabled: true,
-    });
-    await openPropertyDashboard(page);
-    await enterAiMode(page);
-
-    await composer(page).fill('/mem');
-    await composer(page).press('Enter');
-    const dialog = page.getByRole('dialog', { name: 'Memory' });
-    await expect(dialog).toBeVisible();
-
-    await dialog.getByRole('textbox', { name: 'New preference' }).fill('Show amounts in pesos');
-    await dialog.getByRole('textbox', { name: 'New preference' }).press('Enter');
-    await expect(dialog.getByText('Show amounts in pesos')).toBeVisible();
-    expect(mockedAssistantMemory().map((m) => m.content)).toEqual(['Show amounts in pesos']);
-
-    await dialog.getByRole('button', { name: 'Forget "Show amounts in pesos"' }).click();
-    await expect(dialog.getByText('Nothing saved yet')).toBeVisible();
-
-    // An unsaved draft asks before closing.
-    await dialog.getByRole('textbox', { name: 'New house style rule' }).fill('Sign as the team');
-    await dialog.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByRole('alertdialog')).toBeVisible();
   });
 
   test('a medium-width canvas collapses wide page grids to two columns', async ({ page }) => {

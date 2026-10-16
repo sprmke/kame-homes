@@ -21,7 +21,6 @@ export const PARITY_TIER1_TOOL_NAMES = [
   'propose_revoke_parking_invitation',
   'propose_reopen_support_ticket',
   'propose_mark_notifications_read',
-  'remember_preference',
 ] as const;
 
 /** Always confirmed by the host. */

@@ -30,21 +30,3 @@ Deno.test('explanation text is not mistaken for a plan gate', () => {
     DEFAULT_TOOL_FAILURE_REASON
   );
 });
-
-Deno.test('memory refusals get their own plain reason', () => {
-  assertEquals(hostFacingToolFailureReason('That is already saved.'), 'That is already saved.');
-  assertEquals(
-    hostFacingToolFailureReason('You can keep up to 20. Remove one first.'),
-    'Memory is full. Remove one first.'
-  );
-  assertEquals(
-    hostFacingToolFailureReason(
-      'That instruction cannot be saved. Confirmation and safety rules always apply.'
-    ),
-    "That instruction can't be saved."
-  );
-  assertEquals(
-    hostFacingToolFailureReason('Keep it under 300 characters'),
-    'That is too long to save.'
-  );
-});

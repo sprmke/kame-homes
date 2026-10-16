@@ -25,11 +25,6 @@ import {
 import { classifyActionRisk, type ActionRiskTier } from './dashboardAssistantRiskClassifier.ts';
 import { assertActionSafeToExecute } from './dashboardAssistantSafetyGuard.ts';
 import { DatabaseService } from './databaseService.ts';
-import {
-  addAssistantMemory,
-  assertMemoryCapacity,
-  normalizeMemoryContent,
-} from './dashboardAssistantMemory.ts';
 import { createFinanceLineItem } from './financeService.ts';
 import { issueGuestFormCompletionToken } from './guestFormCompletion.ts';
 import { issueGuestStayGuideAccess } from './guestStayGuide.ts';
@@ -1858,45 +1853,6 @@ function notificationScopeBody(ctx: ParityToolContext, args: Record<string, unkn
   return { orgId: ctx.organizationId, propertyId, parkingId };
 }
 
-// ─── Phase 6 — memory ────────────────────────────────────────────────────────────────────────
-
-const rememberPreference = defineWriteTool(
-  {
-    name: 'remember_preference',
-    description:
-      'Save a standing preference the host asked you to remember for future chats (e.g. "always show amounts in pesos", "call me Mike", "keep replies short"). Only when the host explicitly asks you to remember something. One short sentence, max 300 characters.',
-    parameters: {
-      type: 'object',
-      properties: { content: { type: 'string' } },
-      required: ['content'],
-    },
-  },
-  async (ctx, args) => {
-    const content = normalizeMemoryContent(args.content);
-    // Checked here too so a full list is refused this turn, not after the deferred commit.
-    await assertMemoryCapacity({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      kind: 'preference',
-      content,
-    });
-    return {
-      payload: { content },
-      summary: 'Remember this for future chats.',
-      details: [{ label: 'Preference', value: content }],
-    };
-  },
-  async (ctx, payload) => {
-    const memory = await addAssistantMemory({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      kind: 'preference',
-      content: String(payload.content),
-    });
-    return { ok: true, data: { memoryId: memory.id }, resultNote: 'Saved to memory.' };
-  }
-);
-
 // ─── Registry ────────────────────────────────────────────────────────────────────────────────
 
 const TOOLS: Array<ReadTool | WriteTool> = [
@@ -1925,7 +1881,6 @@ const TOOLS: Array<ReadTool | WriteTool> = [
   replySupportTicket,
   reopenSupportTicketTool,
   markNotificationsReadTool,
-  rememberPreference,
 ];
 
 const BY_NAME = new Map(TOOLS.map((tool) => [tool.declaration.name, tool]));

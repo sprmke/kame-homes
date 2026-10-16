@@ -101,7 +101,6 @@ import {
   parseIncomingAttachments,
   persistAssistantAttachments,
 } from '../_shared/dashboardAssistantAttachments.ts';
-import { listAssistantMemories, memoryPromptSection } from '../_shared/dashboardAssistantMemory.ts';
 import { openPageBlocksFromResults } from '../_shared/dashboardAssistantNavigationTools.ts';
 import {
   routeAssistantModules,
@@ -521,36 +520,23 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             )}\nWhen the host wants a file on a booking (approved GAF, valid ID, receipt, etc.), call propose_apply_booking_attachment. Set alsoMarkComplete=true only for approved_gaf/approved_pet when they also want that step marked complete. For "check this receipt" without uploading to the booking, run_receipt_validation is enough.`
         : '';
 
-    // Thread context and memory (Phase 6: preferences + org house style, never above safety rules)
-    // are independent reads; load them together. Either failing degrades to "none", not an error.
-    const [contextResult, memoryResult] = await Promise.allSettled([
-      loadConversationContext(sb, conversationId!, { excludeMessageId: userMessageRow.id }),
-      listAssistantMemories(orgCtx.org.id, user.id),
-    ]);
+    // Prior turns in this thread. A failed load degrades to "none", not an error.
     let conversationSummary = '';
     let priorHistory: GeminiContent[] = [];
-    if (contextResult.status === 'fulfilled') {
-      conversationSummary = contextResult.value.summary;
-      priorHistory = contextResult.value.priorHistory;
-    } else {
-      const err = contextResult.reason;
+    try {
+      const context = await loadConversationContext(sb, conversationId!, {
+        excludeMessageId: userMessageRow.id,
+      });
+      conversationSummary = context.summary;
+      priorHistory = context.priorHistory;
+    } catch (err) {
       console.warn(
         'dashboard-assistant-chat: conversation context load failed',
         err instanceof Error ? err.message : err
       );
     }
-    let memorySection = '';
-    if (memoryResult.status === 'fulfilled') {
-      memorySection = memoryPromptSection(memoryResult.value);
-    } else {
-      const err = memoryResult.reason;
-      console.warn(
-        'dashboard-assistant-chat: memory load failed',
-        err instanceof Error ? err.message : err
-      );
-    }
 
-    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}${memorySection}`;
+    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
 
     /** True once the assistant reply + usage increment have been committed. */
     let turnCommitted = false;

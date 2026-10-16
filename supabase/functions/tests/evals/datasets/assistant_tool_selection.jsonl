@@ -23,4 +23,3 @@
 {"id": "team-list", "message": "Who is on my team?", "expectToolsAny": ["list_team_members", "list_property_team_members"]}
 {"id": "support-tickets", "message": "Do I have any open support tickets?", "expectToolsAny": ["list_support_tickets"]}
 {"id": "verification-status", "message": "Is my organization verified yet?", "expectToolsAny": ["get_org_verification_status"]}
-{"id": "remember-preference", "message": "Remember that I always want amounts shown in pesos", "expectToolsAny": ["remember_preference"]}

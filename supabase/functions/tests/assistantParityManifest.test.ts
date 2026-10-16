@@ -125,8 +125,7 @@ Deno.test('parity tool tier registry matches the declared parity tools', async (
   assertEquals(registered, declared);
   // Every write name is a propose_* tool and every read is not.
   for (const name of names.PARITY_READ_TOOL_NAMES) assert(!name.startsWith('propose_'), name);
-  // Writes are propose_*; remember_preference is the one host-requested exception.
   for (const name of [...names.PARITY_TIER1_TOOL_NAMES, ...names.PARITY_TIER2_TOOL_NAMES]) {
-    assert(name.startsWith('propose_') || name === 'remember_preference', name);
+    assert(name.startsWith('propose_'), name);
   }
 });

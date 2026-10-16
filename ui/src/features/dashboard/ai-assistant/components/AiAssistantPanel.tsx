@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 
 import { History, Plus, X } from 'lucide-react';
 
-import { AssistantMemoryButton } from '@/features/dashboard/ai-assistant/components/AssistantMemoryButton';
 import { AssistantStatusNotices } from '@/features/dashboard/ai-assistant/components/AssistantStatusNotices';
 import { ChatCanvasOverlay } from '@/features/dashboard/ai-assistant/components/ChatCanvasOverlay';
 import { ChatThread } from '@/features/dashboard/ai-assistant/components/ChatThread';
@@ -112,7 +111,6 @@ export function AiAssistantPanel({ open, onOpenChange }: Props) {
               ) : null}
             </div>
             <div className="flex items-center gap-1">
-              <AssistantMemoryButton iconClassName="h-4 w-4" />
               <Button
                 variant="ghost"
                 size="icon"

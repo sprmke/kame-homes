@@ -772,9 +772,9 @@ Adds `user_ui_preferences` (per-user `dashboard_mode`, own-row RLS), `ai_dashboa
 
 Adds `ai_voice_receptionist_org_settings` (one row per org: `enabled`, `voice_id`, `persona_prompt`, `disabled_property_ids`; RLS on, service_role only) and backfills it from each property's `ai_platform_property_settings.feature_configs.voice_receptionist`. Org `enabled` is true when any property had voice on; in that case properties that were off land in `disabled_property_ids` so nothing starts answering by surprise. Voice and persona come from the most recently updated configured property (voice-on properties first). Orgs with no voice config get no row (defaults apply). Per-property session caps stay in `feature_configs`. Deploy order: migration, then the voice and AI edge functions (`voice-receptionist-settings`, `-voice-preview`, `-usage`, `-start`, `ai-platform-property-settings`, dashboard assistant chat/confirm, `copy-property-settings`), then UI. Verify: `SELECT count(*) FROM ai_voice_receptionist_org_settings;` equals the number of orgs that had any voice config.
 
-### AI assistant memory (`20261316126300_ai_assistant_memory.sql`)
+### AI assistant memory (removed, `20261316126900_drop_ai_assistant_memory.sql`)
 
-Adds `ai_dashboard_assistant_memories`: `kind = 'preference'` rows belong to one user (`user_id` set), `kind = 'house_style'` rows are org-wide (`user_id` null, enforced by a CHECK). Content is 1–300 characters. RLS allows own-row select; `service_role` gets ALL, `authenticated` SELECT, `anon` nothing. Additive, no backfill. Deploy order: migration → `dashboard-assistant-memory`, `dashboard-assistant-chat`, `dashboard-assistant-confirm` → UI. Verify: `SELECT has_table_privilege('service_role','public.ai_dashboard_assistant_memories','INSERT');` returns `true`.
+`20261316126300_ai_assistant_memory.sql` added `ai_dashboard_assistant_memories` (per-user preferences and org house style). `20261316126900` drops that table. Those rows were prompt notes, not settings. Thread context inside a chat is unchanged. Verify: `SELECT to_regclass('public.ai_dashboard_assistant_memories');` returns null.
 
 ### AI assistant eval runs (`20261316126400_ai_assistant_eval_runs.sql`)
 

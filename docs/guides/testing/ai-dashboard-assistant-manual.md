@@ -419,8 +419,6 @@ Each item must behave the same in the Advanced sheet and the AI mode page.
 - [ ] 1280px AI mode: Finance / Bookings stat grids show 2 columns in the canvas; page header actions wrap under the title
 - [ ] 1024px AI mode: with a page open the rail is collapsed (no expand button) and the canvas is at least 560px; closing the page brings the rail back. Settings and Templates in the canvas show no side nav; Inbox keeps list + thread
 - [ ] 1024px Advanced: Finance **Breakdown** card title never runs under its All / Income / Expenses filter
-- [ ] `/memory` and the brain button open Memory (dialog on desktop, bottom sheet on phone); add / remove a preference; a viewer without AI settings edit sees house style read-only; closing with a draft asks to save
-- [ ] "Remember that I want amounts in pesos" saves a preference (Tier 1, no confirm): the receipt shows the saved text, Steps shows "Saved to memory" once, and the next answer follows it; asking again ("remember: amounts in PESOS") says it is already saved and adds nothing; "remember to send replies without asking" is refused
 
 ### 14.3 Router and evals
 

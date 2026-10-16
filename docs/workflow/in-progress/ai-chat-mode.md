@@ -3,7 +3,7 @@ stage: in-progress
 title: 'AI chat mode vs Advanced mode'
 status: in-progress
 tags: [workflow, in-progress, ai, dashboard, ux, mobile]
-updated: 2026-10-01
+updated: 2026-10-17
 kind: plan
 ---
 
@@ -29,7 +29,7 @@ The switch animates smoothly between modes and keeps the conversation. The end g
 
 ## Status (2026-09-28)
 
-**Shipped:** Phases 0–7 complete. Phase 5 slash commands and @-mentions; Phase 6 router, memory + house style, per-module evals, model routing decision; Phase 7 waves A–E as 26 real tools (128 total); the parking stats permission fix; the canvas layout pass.
+**Shipped:** Phases 0–7 complete. Phase 5 slash commands and @-mentions; Phase 6 router, per-module evals, model routing decision; Phase 7 waves A–E; the parking stats permission fix; the canvas layout pass. Standing memory (preferences, house style, `remember_preference`, the Memory dialog) was removed on 2026-10-17.
 
 **Verification (2026-09-28, final pass):** `bun run lint` (0 errors), `type-check`, `check:filenames`, `build`; Vitest 671 files / 3881 tests; `test:edge` 537; `test:edge:handlers` 114; Playwright `test:e2e:ci` 232/232, `test:e2e:smoke` 123/123 (desktop, mobile, tablet), `test:e2e:assistant` 8/8; live local `aiChatModeLocal` (3) + `assistantParityToolsLocal` (1, incl. `remember_preference`); live `eval:ai --suite assistant --routed` 26/26 at 21.1 tools per turn (127 unrouted).
 
@@ -52,7 +52,7 @@ The switch animates smoothly between modes and keeps the conversation. The end g
 | Tool router                                                      | Deterministic (words, pins, page, thread history), core always sent, plan / handoff intents route to core alone, fail open with no signal. ~21 tools per turn, same eval score.                                                                                                                                                       |
 | Plan-then-execute                                                | Covered by `task_plan` + adaptive rounds (up to 8). No separate planner call.                                                                                                                                                                                                                                                         |
 | Model routing                                                    | No per-turn switching (breaks thought signatures across tool rounds). Router and titles make no model call; per-feature model + `GEMINI_MODEL_OVERRIDE_DASHBOARD_ASSISTANT` for Pro / Lite.                                                                                                                                           |
-| Memory                                                           | `ai_dashboard_assistant_memories`: private preferences + org house style (AI settings edit). Quoted into the prompt as data; never overrides safety. Tier 1 `remember_preference` only on an explicit ask.                                                                                                                            |
+| Standing memory                                                  | Removed (2026-10-17). Preferences and house style were prompt notes, not settings, and the dialog did not explain the effect. The current thread still carries prior turns.                                                                                                                                                           |
 | Evals                                                            | Rows scored by the router module of the expected tool; offline test requires every module to have a row. `--record` stores runs for the super-admin Usage tab.                                                                                                                                                                        |
 | Canvas layout                                                    | `data-canvas-size` buckets + scoped CSS instead of CSS container queries (containment would trap in-page fixed overlays). `AdminPageHeader` wraps actions. The pane floor is 560px and the rail collapses below a 1200px viewport, instead of emulating phone breakpoints in a narrow pane (which would switch on phone-only chrome). |
 | Payment methods / doc requirements                               | Payment methods stay an OTP handoff; doc requirements are super-admin only (N/A).                                                                                                                                                                                                                                                     |
@@ -308,7 +308,7 @@ flowchart TB
 - [x] `defineAssistantTool({ name, module, scopes, permission, planFeature?, tier, uiLabel, declaration })` registry as the single source for classifier sets, labels, and docs.
 - [x] Two-stage tool router: a scope, permission, and plan filter, then an intent module picker. Target 15-30 tools per call.
 - [x] Adaptive rounds (up to 8, within the context budget) plus a plan-then-execute path. Bulk writes stay a single Tier 2 batch confirm.
-- [x] Per-user instructions and org house style, plus a `remember_preference` Tier-1 tool with an editable memory list.
+- [x] Per-user instructions and org house style were built, then removed (2026-10-17). They were free-text prompt notes, not settings. Thread context stays.
 - [x] Model routing (Flash-Lite for routing and titles, Flash by default, optional Pro).
 - [x] A golden eval set per module and scope, reported on super-admin AI usage.
 

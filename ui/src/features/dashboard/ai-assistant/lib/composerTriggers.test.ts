@@ -60,7 +60,7 @@ describe('filterSlashCommands', () => {
     expect(filterSlashCommands('re').map((c) => c.id)[0]).toBe('review');
     expect(filterSlashCommands('income').map((c) => c.id)).toEqual(['finance']);
     expect(filterSlashCommands('zzz')).toEqual([]);
-    expect(filterSlashCommands('mem').map((c) => c.id)).toEqual(['memory']);
+    expect(filterSlashCommands('hel').map((c) => c.id)).toEqual(['help']);
   });
 });
 

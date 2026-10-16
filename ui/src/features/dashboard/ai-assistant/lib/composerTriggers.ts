@@ -47,7 +47,7 @@ export type SlashCommand =
       label: string;
       hint: string;
       kind: 'action';
-      action: 'new_chat' | 'toggle_mode' | 'open_memory';
+      action: 'new_chat' | 'toggle_mode';
     };
 
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -100,13 +100,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     hint: 'Switch Advanced / AI',
     kind: 'action',
     action: 'toggle_mode',
-  },
-  {
-    id: 'memory',
-    label: '/memory',
-    hint: 'What the assistant remembers',
-    kind: 'action',
-    action: 'open_memory',
   },
   {
     id: 'help',

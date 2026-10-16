@@ -88,7 +88,6 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'dashboard-assistant-confirm': internal,
   'dashboard-assistant-conversations': internal,
   'dashboard-assistant-feedback': internal,
-  'dashboard-assistant-memory': internal,
   'dashboard-assistant-settings': internal,
   'get-booking-ai-assistant-audit': internal,
   'setup-guide-state': internal,

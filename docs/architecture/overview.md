@@ -231,14 +231,14 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 
 **Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
 
-| Cluster  | Examples                                                                                                                                                                                                       | Access                                    |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations                                                                                                                                                | Edge + membership                         |
-| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews                                                                                                                                                 | Scoped RLS on some reads; writes via edge |
-| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                                                                    | Service role                              |
-| Inbox    | `social_*` conversations and messages                                                                                                                                                                          | Service role                              |
-| AI       | credit wallet / ledger, assistant messages + feedback + memory (per-user preferences, org house style), per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
-| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`                                                                                                                                            | Service role                              |
+| Cluster  | Examples                                                                                                                                                      | Access                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations                                                                                               | Edge + membership                         |
+| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews                                                                                                | Scoped RLS on some reads; writes via edge |
+| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                   | Service role                              |
+| Inbox    | `social_*` conversations and messages                                                                                                                         | Service role                              |
+| AI       | credit wallet / ledger, assistant messages + feedback, per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
+| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`                                                                                           | Service role                              |
 
 Schema: [`data-model.md`](data-model.md).
 

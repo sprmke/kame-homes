@@ -5,11 +5,6 @@
  */
 
 const FAILURE_REASONS: Array<{ pattern: RegExp; reason: string }> = [
-  // Memory refusals (dashboardAssistantMemory.ts) come first: they are not errors to retry.
-  { pattern: /already saved/i, reason: 'That is already saved.' },
-  { pattern: /you can keep up to \d+/i, reason: 'Memory is full. Remove one first.' },
-  { pattern: /instruction cannot be saved/i, reason: "That instruction can't be saved." },
-  { pattern: /keep it under \d+ characters/i, reason: 'That is too long to save.' },
   {
     pattern: /no property in scope|propertyId is required|property is required/i,
     reason: 'This check works on one listing at a time, so it was skipped.',

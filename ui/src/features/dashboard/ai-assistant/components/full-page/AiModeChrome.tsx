@@ -5,7 +5,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, History, Maximize2, PanelRightOpen, Plus, PenSquare, X } from 'lucide-react';
 
-import { AssistantMemoryButton } from '@/features/dashboard/ai-assistant/components/AssistantMemoryButton';
 import { AssistantStatusNotices } from '@/features/dashboard/ai-assistant/components/AssistantStatusNotices';
 import { ChatCanvasOverlay } from '@/features/dashboard/ai-assistant/components/ChatCanvasOverlay';
 import { ChatThread } from '@/features/dashboard/ai-assistant/components/ChatThread';
@@ -132,7 +131,7 @@ type RailProps = {
   footer: ReactNode;
 };
 
-/** Desktop (lg+) rail: scope, New chat, page icons, chat history, account (with the mode switch). */
+/** Desktop (lg+) rail: scope, page icons, chat history, account (with the mode switch). */
 export function AiModeRail({ navSections, activeNavHref, collapsed, footer }: RailProps) {
   const session = useAiAssistantSession();
   const reducedMotion = usePrefersReducedMotion();
@@ -162,9 +161,8 @@ export function AiModeRail({ navSections, activeNavHref, collapsed, footer }: Ra
           style={{ width: RAIL_COLLAPSED_PX }}
         >
           <div className="flex shrink-0 flex-col items-center gap-1 py-2">
-            <NewChatButton />
+            {collapsed ? <NewChatButton /> : null}
             <NotificationBell />
-            <AssistantMemoryButton className={RAIL_ICON_CLASS} />
           </div>
           <RailPageNav navSections={navSections} activeNavHref={activeNavHref} />
         </div>
@@ -174,6 +172,12 @@ export function AiModeRail({ navSections, activeNavHref, collapsed, footer }: Ra
             className="flex min-h-0 shrink-0 flex-col pt-2"
             style={{ width: RAIL_EXPANDED_PX - RAIL_COLLAPSED_PX }}
           >
+            <div className="shrink-0 px-2 pb-2">
+              <Button type="button" className="h-11 w-full" onClick={session.newChat}>
+                <Plus className="size-4" aria-hidden />
+                New chat
+              </Button>
+            </div>
             <ConversationHistoryList
               variant="rail"
               activeConversationId={session.conversationId}
@@ -214,8 +218,7 @@ function HistoryDrawer({
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            className="min-h-[40px] gap-1.5"
+            className="min-h-11 gap-1.5"
             onClick={() => {
               session.newChat();
               onOpenChange(false);

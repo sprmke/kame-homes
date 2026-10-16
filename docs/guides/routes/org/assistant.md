@@ -2,7 +2,7 @@
 title: 'AI mode (full-page assistant) — operator guide'
 status: active
 tags: [guides, routes, ai, assistant]
-updated: 2026-09-28
+updated: 2026-10-17
 ---
 
 # AI mode (full-page assistant) — operator guide
@@ -24,7 +24,6 @@ Route: every `/org/:orgSlug/…`, `/org/:orgSlug/property/:propertySlug/…` and
 | Feedback                    | Done     | Done       | Done | Thumbs up / down per reply                               |
 | Phone / tablet              | Done     | —          | Done | Single bottom layer; canvas full screen with Back        |
 | Slash commands + @mentions  | Done     | Done       | Done | `/` actions and prompts, `@` pins context                |
-| Memory                      | Done     | Done       | Done | Own preferences; house style needs AI settings edit      |
 
 ---
 
@@ -60,10 +59,8 @@ AI mode turns the dashboard into a chat workspace. Ask questions or ask for chan
   A: Hover your message and tap the pencil, or press the Up arrow in an empty message box. The answer after it is replaced. Changes that were already made are not undone.
 - Q: What do the thumbs do?
   A: They tell us whether an answer helped, so we can improve the assistant. Tap the same thumb again to remove it.
-- Q: Can the assistant remember how I like things?
-  A: Yes. Say "remember that…" in the chat, or open **Memory** (the brain button at the top of the chat, or type /memory). Your preferences are private to you. Admins can also add a house style that applies to everyone in your organization. Memory never lets the assistant skip a confirmation.
 - Q: What are the / and @ shortcuts?
-  A: Type / in the message box for quick commands like /today, /review or /memory. Type @ to attach a booking, listing or other item so the assistant knows what you mean.
+  A: Type / in the message box for quick commands like /today or /review. Type @ to attach a booking, listing or other item so the assistant knows what you mean.
 - Q: Can I open a booking from a list the assistant shows?
   A: Yes. Tap any row in the table, or a booking card, to open that booking.
 - Q: Why do some words show as bold or in a box?
@@ -97,13 +94,13 @@ Hidden when the kill switch, the org assistant opt-in, the per-property disable 
 
 ## Rail (desktop) / chats drawer (phone, tablet)
 
-Scope switcher on top. A fixed 64px icon column holds **New chat**, notifications bell, Memory, then the sidebar page icons (**Pages** nav: opens the page in the canvas and keeps the chat; current page highlighted while the canvas is open). When expanded, a chats panel sits beside it: chat list (Pinned, Today, Yesterday, Earlier; server search; Load more). The footer is the same as Advanced mode: **AI mode** switch above the plan row, then the account menu. The daily usage count is not shown in the rail. Expand/collapse uses the same edge chevron as Advanced mode (hides the chats panel, not the icon column; saved per viewer). Below a 1236px screen the rail stays collapsed while a page is open, and that chevron is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet).
+Scope switcher on top. A fixed 64px icon column holds the notifications bell, then the sidebar page icons (**Pages** nav: opens the page in the canvas and keeps the chat; current page highlighted while the canvas is open). When expanded, a chats panel sits beside it: a primary **New chat** button above search, then the chat list (Pinned, Today, Yesterday, Earlier; server search; Load more). While the panel is collapsed, **New chat** stays as an icon in that column. The footer is the same as Advanced mode: **AI mode** switch above the plan row, then the account menu. The daily usage count is not shown in the rail. Expand/collapse uses the same edge chevron as Advanced mode (hides the chats panel, not the icon column; saved per viewer). Below a 1236px screen the rail stays collapsed while a page is open, and that chevron is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet), with a primary **New chat** button in the sheet header.
 
 ---
 
 ## Chat column + composer
 
-Same thread and composer as the Advanced sheet (one shared session). Assistant turns render unboxed at up to 760px; hover row: Copy, Regenerate (last turn), thumbs. User messages: pencil to edit and resend. Composer: Enter sends, Shift+Enter newline, Up arrow edits the last message, Esc stops a reply, 1–8 lines. Offline banner disables sending but keeps the draft. Type `/` for commands (`/new`, `/review`, `/today`, `/balance`, `/finance`, `/maintenance`, `/inbox`, `/mode` when the switch is usable, `/memory`, `/help`); `@` lists bookings, listings and other items to pin as context. After an error, **Retry** re-runs the turn. Stopping before the reply is saved puts the text back in the box.
+Same thread and composer as the Advanced sheet (one shared session). Assistant turns render unboxed at up to 760px; hover row: Copy, Regenerate (last turn), thumbs. User messages: pencil to edit and resend. Composer: Enter sends, Shift+Enter newline, Up arrow edits the last message, Esc stops a reply, 1–8 lines. Offline banner disables sending but keeps the draft. Type `/` for commands (`/new`, `/review`, `/today`, `/balance`, `/finance`, `/maintenance`, `/inbox`, `/mode` when the switch is usable, `/help`); `@` lists bookings, listings and other items to pin as context. After an error, **Retry** re-runs the turn. Stopping before the reply is saved puts the text back in the box.
 
 ### AI is off
 
@@ -117,19 +114,6 @@ Which switch is off decides what the host sees. `GET dashboard-assistant-setting
 | Platform switch or `dashboard_assistant` missing from the allowlist | Everyone                                                | Composer stays. Sending shows the red error "The AI assistant is turned off by the platform admin." + Retry  |
 
 Hosts cannot lift a platform block, so it never shows the card or a link. The card shows before the host types for an org block, and after a failed turn for a property block. A mini switch on the card slides to on when the CTA is hovered or focused (no motion with reduced motion). **Try again** shows when a failed turn can be retried. Turning AI on in Settings refreshes the assistant queries, so the composer comes back without a reload. Resolver: `lib/assistantAiOff.ts` (unit tested).
-
----
-
-## Memory
-
-Opened from the Memory button (brain icon; AI rail next to the bell, and the Advanced sheet header) or `/memory`. Same dialog on both surfaces (bottom sheet on phone).
-
-| Field            | Storage                                                                | Validation                                                                                                                               |
-| ---------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Your preferences | `ai_dashboard_assistant_memories` (`kind = preference`, own `user_id`) | 1–300 chars, whitespace collapsed; safety-bypass text rejected; duplicates rejected (case, spacing and a closing period ignored); max 20 |
-| House style      | same table (`kind = house_style`, org-wide)                            | Same rules; max 10; add / remove needs owner, platform admin or `org.settings.aiAssistant:edit` (read-only otherwise)                    |
-
-Save path: **Add** (or Enter) → `POST dashboard-assistant-memory` → row inserted → list refetches. Trash → `DELETE ?id=`. House style changes log `ai.config_changed`. Closing with an unsent draft asks Save / Discard / Keep editing (`useGuardedClose`). The assistant can also save a preference itself with `remember_preference` (Tier 1) when the host asks it to remember something. Every turn reads the list into the prompt as data; it never overrides confirmation or permission rules.
 
 ---
 
@@ -166,7 +150,6 @@ Reply text renders markdown instead of showing the symbols: bold, italic, strike
 | Chat list / rename / pin / archive / delete | `GET` / `PATCH` / `DELETE dashboard-assistant-conversations`                         |
 | Send, regenerate, edit & resend             | `POST dashboard-assistant-chat` (`editMessageId`)                                    |
 | Thumbs                                      | `POST dashboard-assistant-feedback`                                                  |
-| Memory list / add / remove                  | `GET` / `POST` / `DELETE dashboard-assistant-memory`                                 |
 
 ---
 
@@ -179,7 +162,6 @@ Reply text renders markdown instead of showing the symbols: bold, italic, strike
 | Session        | `ui/src/features/dashboard/ai-assistant/components/AiAssistantSessionProvider.tsx`, `lib/aiAssistantSessionContext.ts`, `hooks/useAiAssistantChat.ts`                                                                                                                                                                                                                                                                       |
 | AI mode chrome | `ui/src/features/dashboard/ai-assistant/components/full-page/AiModeChrome.tsx`, `BriefingHome.tsx`                                                                                                                                                                                                                                                                                                                          |
 | Canvas         | `ui/src/features/dashboard/ai-assistant/hooks/useCanvasResize.ts`, `lib/canvasWidth.ts`, `lib/assistantScope.ts`                                                                                                                                                                                                                                                                                                            |
-| Memory         | `components/AssistantMemoryDialog.tsx`, `AssistantMemoryButton.tsx`, `hooks/useAssistantMemory.ts`, `supabase/functions/dashboard-assistant-memory`, `_shared/dashboardAssistantMemory.ts`                                                                                                                                                                                                                                  |
 | Shared chat    | `ChatThread.tsx`, `SessionChatComposer.tsx`, `AssistantStatusNotices.tsx`, `AssistantAiOffCard.tsx`, `ConversationHistoryList.tsx`, `blocks/OpenPageBlock.tsx`, `blocks/DataTableBlock.tsx` (row links; server match in `_shared/dashboardAssistantBlocks.ts`)                                                                                                                                                              |
 | AI off         | `lib/assistantAiOff.ts`, `lib/assistantStream.ts#aiBlockerFromError`, `_shared/aiUsageService.ts#resolveAiFeatureBlocker` / `aiDisabledScope`                                                                                                                                                                                                                                                                               |
 | Edge functions | `supabase/functions/user-ui-preferences`, `dashboard-assistant-briefing`, `dashboard-assistant-feedback`, `dashboard-assistant-conversations`, `dashboard-assistant-chat`                                                                                                                                                                                                                                                   |

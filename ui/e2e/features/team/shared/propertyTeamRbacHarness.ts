@@ -54,17 +54,6 @@ type AssistantChatBlock = {
 };
 
 let assistantChatBlocks: AssistantChatBlock[] = [];
-type MockAssistantMemory = {
-  id: string;
-  kind: 'preference' | 'house_style';
-  content: string;
-  createdAt: string;
-};
-let assistantMemoryState: MockAssistantMemory[] = [];
-/** Memory rows the assistant-memory mock holds (reset by installPropertyTeamRbacMocks). */
-export function mockedAssistantMemory() {
-  return assistantMemoryState;
-}
 
 /** Set mocked assistant turn blocks for the next dashboard-assistant-chat POST. */
 export function queueAssistantChatBlocksForMocks(blocks: AssistantChatBlock[]) {
@@ -1100,7 +1089,6 @@ export async function installPropertyTeamRbacMocks(
   const crossPropertyBookingSeeded = Boolean(opts?.crossPropertyBookingSeeded);
   const aiModeEnabled = Boolean(opts?.aiModeEnabled);
   savedDashboardModeState = opts?.savedDashboardMode ?? 'advanced';
-  assistantMemoryState = [];
   let assistantTurn = 0;
   let orgSettingsState = orgSettingsPayload();
   let marketingGenerationJobs = opts?.marketingGenerationSeeded
@@ -1321,39 +1309,6 @@ export async function installPropertyTeamRbacMocks(
       case 'dashboard-assistant-feedback': {
         const body = route.request().postDataJSON() as { messageId?: string; rating?: number };
         await fulfillJson(route, { success: true, data: body });
-        return;
-      }
-      case 'dashboard-assistant-memory': {
-        const method = route.request().method();
-        if (method === 'POST') {
-          const body = route.request().postDataJSON() as {
-            kind: 'preference' | 'house_style';
-            content: string;
-          };
-          const memory = {
-            id: `mem-e2e-${assistantMemoryState.length + 1}`,
-            kind: body.kind,
-            content: body.content.trim(),
-            createdAt: '2026-09-28T00:00:00Z',
-          };
-          assistantMemoryState.push(memory);
-          await fulfillJson(route, { success: true, data: { memory } });
-          return;
-        }
-        if (method === 'DELETE') {
-          const id = new URL(route.request().url()).searchParams.get('id');
-          assistantMemoryState = assistantMemoryState.filter((m) => m.id !== id);
-          await fulfillJson(route, { success: true, data: { deleted: true } });
-          return;
-        }
-        await fulfillJson(route, {
-          success: true,
-          data: {
-            preferences: assistantMemoryState.filter((m) => m.kind === 'preference'),
-            houseStyle: assistantMemoryState.filter((m) => m.kind === 'house_style'),
-            canManageHouseStyle: true,
-          },
-        });
         return;
       }
       case 'dashboard-assistant-briefing':

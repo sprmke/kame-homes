@@ -82,10 +82,6 @@ Deno.test('plan and handoff intents route to core alone instead of failing open'
   assertEquals(routeAssistantModules({ ...base, message: 'Delete this property' }).modules, [
     'core',
   ]);
-  assertEquals(
-    routeAssistantModules({ ...base, message: 'Remember that I want amounts in pesos' }).modules,
-    ['core']
-  );
   // "plan" as a verb is not a billing intent: nothing matched, so the router still fails open.
   assertEquals(routeAssistantModules({ ...base, message: 'plan a surprise' }).failOpen, true);
 });
