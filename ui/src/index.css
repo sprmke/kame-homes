@@ -912,12 +912,12 @@
   .field-focus:focus,
   .field-focus:focus-visible,
   .field-focus[data-state='open'] {
-    @apply border-primary/40 ring-ring/30 outline-none ring-2;
+    @apply border-primary/40 ring-ring/30 outline-none ring-2 ring-inset;
   }
 
   .field-focus-error:focus,
   .field-focus-error:focus-visible {
-    @apply border-destructive/50 ring-destructive/30 outline-none ring-2;
+    @apply border-destructive/50 ring-destructive/30 outline-none ring-2 ring-inset;
   }
 
   .text-balance {
