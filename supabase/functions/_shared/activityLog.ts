@@ -700,6 +700,18 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'template',
     summary: (c) => `${c.actorName} deleted the marketing template ${label(c, 'a template')}`,
   },
+  'marketing.theme_saved': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_theme',
+    summary: (c) => `${c.actorName} saved the marketing theme ${label(c, 'a theme')}`,
+  },
+  'marketing.theme_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'marketing_theme',
+    summary: (c) => `${c.actorName} deleted the marketing theme ${label(c, 'a theme')}`,
+  },
   'marketing.published_to_meta': {
     category: 'marketing',
     severity: 'warning',

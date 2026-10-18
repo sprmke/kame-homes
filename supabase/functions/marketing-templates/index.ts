@@ -12,6 +12,7 @@ import {
 import type { TeamPermissionId } from '../_shared/propertyTeamPermissions.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { isMarketingThemeKey } from '../_shared/marketingTheme.ts';
 
 const CONTENT_TYPES = new Set(['calendar', 'design', 'video']);
 
@@ -24,6 +25,7 @@ type MarketingTemplateRow = {
   platform: string | null;
   aspect_preset: string | null;
   design_json: Record<string, unknown>;
+  theme_key: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -39,10 +41,18 @@ function serializeTemplate(row: MarketingTemplateRow) {
     platform: row.platform,
     aspectPreset: row.aspect_preset,
     designJson: row.design_json ?? {},
+    themeKey: row.theme_key ?? null,
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** `undefined` = not sent; `null` = clear; string = validated key; Error = invalid. */
+function parseThemeKey(value: unknown): string | null | undefined | Error {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  return isMarketingThemeKey(value) ? value : new Error('themeKey is not a valid theme');
 }
 
 function parseDesignJson(value: unknown): Record<string, unknown> | null {
@@ -136,6 +146,7 @@ serveAuthenticated('marketing-templates', async (req, user) => {
       query = query.eq('id', templateId);
     }
 
+
     const { data, error } = templateId ? await query.maybeSingle() : await query;
     if (error) return jsonError(req, error.message, 500);
 
@@ -156,8 +167,10 @@ serveAuthenticated('marketing-templates', async (req, user) => {
     const aspectPreset =
       typeof body.aspectPreset === 'string' ? body.aspectPreset.trim() || null : null;
     const designJson = parseDesignJson(body.designJson);
+    const themeKey = parseThemeKey(body.themeKey);
 
     if (!name) return jsonError(req, 'name is required', 400);
+    if (themeKey instanceof Error) return jsonError(req, themeKey.message, 400);
     if (!CONTENT_TYPES.has(contentType)) {
       return jsonError(req, 'contentType must be calendar, design, or video', 400);
     }
@@ -173,6 +186,7 @@ serveAuthenticated('marketing-templates', async (req, user) => {
         platform,
         aspect_preset: aspectPreset,
         design_json: designJson,
+        theme_key: themeKey ?? null,
         created_by: actorUserId,
       })
       .select('*')
@@ -227,6 +241,10 @@ serveAuthenticated('marketing-templates', async (req, user) => {
       if (designJson === null) return jsonError(req, 'designJson must be an object', 400);
       patch.design_json = designJson;
     }
+
+    const themeKey = parseThemeKey(body.themeKey);
+    if (themeKey instanceof Error) return jsonError(req, themeKey.message, 400);
+    if (themeKey !== undefined) patch.theme_key = themeKey;
 
     if (Object.keys(patch).length === 0) {
       return jsonError(req, 'No valid fields to update', 400);

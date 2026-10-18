@@ -932,6 +932,9 @@ verify_jwt = false
 [functions.marketing-templates]
 verify_jwt = false
 
+[functions.marketing-themes]
+verify_jwt = false
+
 [functions.list-property-guest-reviews]
 verify_jwt = false
 
