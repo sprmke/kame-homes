@@ -67,6 +67,10 @@ AiPostPanel (goal · format · optional message)
 
 `instagram-portrait` (1080×1350) is a real `DesignTemplateFormat`, so AI posts open and save in the Design editor. The hand-built preset library is only tuned for 1:1, 9:16 and 1.91:1 (`DESIGN_PRESET_FORMATS`). The editor's size picker therefore lists 4:5 only while a 4:5 design is open, until those presets have been reviewed for it.
 
+## Themes
+
+Inside Marketing Studio, AI Post follows the active [theme](./marketing-themes.md): `compilePosterDocument(..., { theme })` takes the theme palette (`posterPaletteInputFromTheme`) and swaps the theme's display, body and label faces into the archetype's pairing (`themedPosterFontPairing`), keeping its script accent and effects. Shuffle changes only the layout. **Edit** saves the post into the active theme.
+
 ## Plan default
 
 The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. AI Post stays visible with its tier badge.
@@ -100,7 +104,7 @@ The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Busine
 
 These are separate features from the plan, not gaps in AI Post:
 
-- brand kit fields (mascot, handles, tone)
+- brand kit fields (mascot, handles, tone); colors and fonts are now covered by [themes](./marketing-themes.md)
 - cached photo analysis
 - structure-locked photo enhancement
 - a vision critic

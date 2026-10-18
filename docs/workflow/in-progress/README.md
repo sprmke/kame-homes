@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-10-05
+updated: 2026-10-19
 stage: in-progress
 kind: reference
 ---
@@ -29,12 +29,13 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved in 2026-09-27:** [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md) ← [`../planned/`](../planned/) — Activity Manage modal toolbar, refine, modal-scroll virtualization, friendly summaries.
 
-| Doc                                                                | Summary                                                                                                                                                                                                    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`guest-trip-hub.md`](./guest-trip-hub.md)                         | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                        |
-| [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md)     | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                  |
-| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md) | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain |
-| [`ci-cd-environments/`](./ci-cd-environments/README.md)            | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                      |
+| Doc                                                                | Summary                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`guest-trip-hub.md`](./guest-trip-hub.md)                         | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                                                                                            |
+| [`activity-modal-ui-polish.md`](./activity-modal-ui-polish.md)     | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
+| [`marketing-themes.md`](./marketing-themes.md)                     | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
+| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md) | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
+| [`ci-cd-environments/`](./ci-cd-environments/README.md)            | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
 | See [`../done/`](../done/) for completed work.                     |
 
 **Super admin console:** Phases 0–7 **done** — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) (+ audit log, AI usage, platform settings, global search in `done/`). Remaining 6 modules: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md).

@@ -167,7 +167,7 @@ const SURFACES: GateSurface[] = [
   {
     feature: 'marketingStudio',
     name: 'Marketing Studio: Download PNG',
-    path: `${PROPERTY}/marketing`,
+    path: `${PROPERTY}/marketing?theme=property-colors`,
     control: (page) => page.getByRole('button', { name: /Download PNG/ }),
     scope: parentScope,
     behaviour: 'modal',
@@ -175,7 +175,7 @@ const SURFACES: GateSurface[] = [
   {
     feature: 'marketingPublishLimitPerGroup',
     name: 'Marketing Studio: Publish',
-    path: `${PROPERTY}/marketing`,
+    path: `${PROPERTY}/marketing?theme=property-colors`,
     control: (page) => page.getByRole('button', { name: /^Publish/ }),
     scope: parentScope,
     behaviour: 'modal',

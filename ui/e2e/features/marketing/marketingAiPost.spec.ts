@@ -116,9 +116,9 @@ function directorResponse(requests: Array<Record<string, unknown>>) {
 }
 
 async function openGenerate(page: Page) {
-  await page.goto(teamRbacPaths.marketing);
+  await page.goto(teamRbacPaths.marketingWorkspace);
   await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('tab', { name: 'Generate' }).click();
+  await page.getByRole('tab', { name: /AI Studio/ }).click();
 }
 
 test.describe('@ci marketing AI Post', () => {
@@ -211,7 +211,7 @@ test.describe('@ci marketing AI Post', () => {
     await expect(edit).toBeEnabled({ timeout: 60_000 });
     await edit.click();
 
-    await expect(page.getByRole('tab', { name: 'Design' })).toHaveAttribute(
+    await expect(page.getByRole('tab', { name: 'Posts' })).toHaveAttribute(
       'aria-selected',
       'true',
       { timeout: 20_000 }

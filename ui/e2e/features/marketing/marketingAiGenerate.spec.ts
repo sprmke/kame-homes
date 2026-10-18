@@ -15,7 +15,7 @@ const modeSwitch = (page: Page) => page.getByRole('tablist', { name: 'What to ge
 
 /** Generate opens on AI Post when the plan has it; these specs cover Photo and Video. */
 async function openGenerateMode(page: Page, mode: 'Photo' | 'Video' = 'Photo') {
-  await page.getByRole('tab', { name: 'Generate' }).click();
+  await page.getByRole('tab', { name: /AI Studio/ }).click();
   await modeSwitch(page).getByRole('tab', { name: mode, exact: true }).click();
 }
 
@@ -26,7 +26,7 @@ async function openCardMenu(page: Page) {
 test.describe('@ci marketing AI generate tab', () => {
   test('Pro+ composer is usable and the gallery shows a completed generation', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -45,7 +45,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
   test('Business+ can switch to Video and open more video options', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -73,7 +73,7 @@ test.describe('@ci marketing AI generate tab', () => {
         body: JSON.stringify({ success: false, error: 'Generation failed' }),
       });
     });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -107,7 +107,7 @@ test.describe('@ci marketing AI generate tab', () => {
         generateCalls.push(req.url());
     });
     await installPropertyTeamRbacMocks(page, 'full_access', { videoPlanAllowed: false });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -135,7 +135,7 @@ test.describe('@ci marketing AI generate tab', () => {
       freePlan: true,
       marketingGenerationSeeded: true,
     });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -156,7 +156,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
   test('Retry copies the generation back into the composer', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -169,7 +169,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
   test('the photo chooser lists saved uploads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -185,7 +185,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
   test('Add to my photos attaches the generation to the form', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
@@ -198,7 +198,7 @@ test.describe('@ci marketing AI generate tab', () => {
 
   test('a role without the image leaf cannot generate images', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'operations');
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });

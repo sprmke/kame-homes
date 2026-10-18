@@ -3,9 +3,11 @@ stage: in-progress
 title: 'Marketing AI Poster Studio: from AI photo to postable designed posts'
 status: in-progress
 tags: [workflow, planned, marketing, ai, image-generation, polotno, design]
-updated: 2026-09-29
+updated: 2026-10-19
 kind: plan
 ---
+
+> **2026-10-19:** brand colors + preferred fonts (Phase 1.1 color/font fields) and "Save as my style" (8.5) are covered by [Marketing themes](./marketing-themes.md): AI Post follows the active theme.
 
 ## Implementation status (2026-09-28, pass 2: hardening)
 

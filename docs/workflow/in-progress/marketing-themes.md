@@ -1,15 +1,35 @@
 ---
 title: 'Marketing themes: theme-first Marketing Studio'
-stage: planned
-status: not started
+stage: in-progress
+status: in progress
 tags: [marketing, ux, themes, calendar, polotno, remotion, ai]
-updated: 2026-10-18
+updated: 2026-10-19
 kind: plan
 ---
 
 # Marketing themes: theme-first Marketing Studio
 
-Approved 2026-10-18. Not started. Absorbs brand kit items 1.1 and 8.5 from [`marketing-ai-poster-studio.md`](../in-progress/marketing-ai-poster-studio.md).
+Approved 2026-10-18. Implementation started 2026-10-18 (see **Progress** below). Absorbs brand kit items 1.1 and 8.5 from [`marketing-ai-poster-studio.md`](../in-progress/marketing-ai-poster-studio.md).
+
+## Progress (2026-10-19)
+
+Shipped in code, verified by type-check, lint, unit tests (theme suite + full marketing/plans), Deno tests, marketing e2e (`marketingThemes.spec.ts` + existing specs updated) and a live CRUD run of `marketing-themes` against the local stack. Architecture: [`docs/architecture/marketing-themes.md`](../../architecture/marketing-themes.md).
+
+| Phase               | State       | Notes                                                                                                                                                                                                                                                                 |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 Plan housekeeping | Done        |                                                                                                                                                                                                                                                                       |
+| 1 Theme core        | Done        | Re-theme engine works relative to the source theme (OKLCh, hue families) instead of hand-rewriting 14 presets; golden test proves starter + layout = original preset.                                                                                                 |
+| 2 Backend           | Done        | `marketing_themes` (+ grants), `theme_key`, `marketing-themes` CRUD + 409 move, activity events, legacy-aware counts. No server AI change needed: the client applies the theme to AI output.                                                                          |
+| 3 Shell + theme UI  | Done        | URL search params (`?theme`, `?tab`, `?view=themes`) instead of new route segments. Built-in themes live in code (no rows), so every tier can use them.                                                                                                               |
+| 4 Calendar          | Done        | Layouts + Show on calendar + Advanced; locks from Advanced edits; theme-scoped autosave/dedupe; live DOM cards (capture host removed).                                                                                                                                |
+| 5 Posts             | Done        | Builder takes the theme; saved docs re-theme with hand-edit detection; text presets in theme fonts. No extra simple/advanced split: Polotno's rail is already five tabs. Theme colors in Polotno's color picker: not possible (private preset in the toolbar bundle). |
+| 6 Videos            | Done        | Theme resolves at render; pre-warm limited to the open category.                                                                                                                                                                                                      |
+| 7 AI                | Done (core) | Wizard + AI Post follow the theme. Not done: describe-a-theme with AI, save AI result as theme, per-theme photo looks.                                                                                                                                                |
+| 8 Thumbnails        | Partial     | Calendar live cards; per-theme cache keys; stale saved thumbs re-render. Not done: thumbnails in Storage + summary GET.                                                                                                                                               |
+| 9 Sidebar cleanup   | Partial     | Calendar sidebar restructured; a single shared panel for all three editors not done.                                                                                                                                                                                  |
+| 10 Docs / tests     | Done        | Route guide, PROJECT, overview, edge-functions, plans matrix, runbook. Flag `VITE_MARKETING_THEMES` dropped: shipped directly.                                                                                                                                        |
+
+Data-safety fixes found on the way: calendar dedupe and design purge would have deleted same-layout items in other themes (now theme-scoped); the design purge deleted every preset autosave on each new browser (now keeps the newest per theme + preset + format); saved video/post headless thumbnails never fired because the request id did not match.
 
 ## Context
 

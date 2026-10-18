@@ -183,6 +183,8 @@ export const teamRbacPaths = {
   bookings: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/bookings`,
   finance: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/finance`,
   marketing: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/marketing`,
+  /** Straight into the Property colors workspace (skips the first-visit theme picker). */
+  marketingWorkspace: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/marketing?theme=property-colors`,
   settings: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/settings`,
   team: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/team`,
   publicPages: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/public-pages`,
@@ -1436,6 +1438,9 @@ export async function installPropertyTeamRbacMocks(
         return;
       case 'marketing-templates':
         await fulfillJson(route, { success: true, data: { templates: [] } });
+        return;
+      case 'marketing-themes':
+        await fulfillJson(route, { success: true, data: { themes: [], itemCounts: {} } });
         return;
       case 'org-team-members':
         await fulfillJson(route, { success: true, data: orgTeamMembersPayload() });

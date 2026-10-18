@@ -15,12 +15,12 @@ test.describe('@ci marketing studio collage', () => {
     page,
   }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
 
-    const designTab = page.getByRole('tab', { name: 'Design' });
+    const designTab = page.getByRole('tab', { name: 'Posts' });
     await designTab.click();
     await expect(designTab).toHaveAttribute('aria-selected', 'true');
 
@@ -63,12 +63,12 @@ test.describe('@ci marketing studio collage', () => {
     page,
   }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
 
-    const designTab = page.getByRole('tab', { name: 'Design' });
+    const designTab = page.getByRole('tab', { name: 'Posts' });
     await designTab.click();
     await expect(designTab).toHaveAttribute('aria-selected', 'true');
 
@@ -93,12 +93,12 @@ test.describe('@ci marketing studio collage', () => {
       page,
     }) => {
       await installPropertyTeamRbacMocks(page, 'full_access');
-      await page.goto(teamRbacPaths.marketing);
+      await page.goto(teamRbacPaths.marketingWorkspace);
       await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
         timeout: 20_000,
       });
 
-      const designTab = page.getByRole('tab', { name: 'Design' });
+      const designTab = page.getByRole('tab', { name: 'Posts' });
       await designTab.click();
       await expect(designTab).toHaveAttribute('aria-selected', 'true');
       await page.getByRole('toolbar', { name: 'Editor actions' }).getByText('Templates').click();
