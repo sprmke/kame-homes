@@ -2,6 +2,7 @@ import { renderStillOnWeb } from '@remotion/web-renderer';
 
 import { CampaignVideoComposition } from '@/features/dashboard/marketing/components/video-editor/VideoCompositions';
 import type { DesignBinding } from '@/features/dashboard/marketing/lib/designCanvasTypes';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { blobToDataUrl } from '@/features/dashboard/marketing/lib/exportVideoMedia';
 import { resolveMarketingThumbBinding } from '@/features/dashboard/marketing/lib/marketingDefaultBinding';
 import { VIDEO_FORMAT_DIMENSIONS } from '@/features/dashboard/marketing/lib/video/videoFormatDimensions';
@@ -97,7 +98,8 @@ export async function renderVideoPresetThumbnail(
   templateId: string,
   format: VideoFormat,
   binding: DesignBinding,
-  brandColor?: string
+  brandColor?: string,
+  theme?: MarketingThemeTokens | null
 ): Promise<string | null> {
   const template = getVideoCampaignTemplate(templateId);
   const project = buildDefaultVideoProject(
@@ -106,13 +108,14 @@ export async function renderVideoPresetThumbnail(
     resolveMarketingThumbBinding(binding),
     format
   );
-  return renderVideoProjectThumbnail(project, brandColor);
+  return renderVideoProjectThumbnail(project, brandColor, theme);
 }
 
 export async function renderVideoSceneThumbnail(
   project: VideoProject,
   sceneIndex: number,
-  brandColor?: string
+  brandColor?: string,
+  theme?: MarketingThemeTokens | null
 ): Promise<string | null> {
   if (typeof document !== 'undefined' && document.hidden) {
     return null;
@@ -137,6 +140,7 @@ export async function renderVideoSceneThumbnail(
           music: project.music ? { ...project.music, url: null } : project.music,
         },
         brandColor,
+        theme: theme ?? null,
         previewMuted: true,
       };
 
@@ -166,7 +170,8 @@ export async function renderVideoSceneThumbnail(
 
 export async function renderVideoProjectThumbnail(
   project: VideoProject,
-  brandColor?: string
+  brandColor?: string,
+  theme?: MarketingThemeTokens | null
 ): Promise<string | null> {
   if (typeof document !== 'undefined' && document.hidden) {
     return null;
@@ -191,6 +196,7 @@ export async function renderVideoProjectThumbnail(
           music: project.music ? { ...project.music, url: null } : project.music,
         },
         brandColor,
+        theme: theme ?? null,
         previewMuted: true,
       };
 

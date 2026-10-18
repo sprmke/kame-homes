@@ -6,7 +6,9 @@ import { MarketingStudioHeaderActionsSlot } from '@/features/dashboard/marketing
 import { cn } from '@/lib/utils';
 
 type Props = {
-  tabs: ReactNode;
+  tabs?: ReactNode;
+  /** Left of the tabs (theme switcher). */
+  leading?: ReactNode;
   children: ReactNode;
 };
 
@@ -22,7 +24,7 @@ type Props = {
  * editor dock so each editor's scrollport only needs a small bottom gutter.
  * `flex-none` so this height wins over the base `flex-1`.
  */
-export function MarketingStudioShell({ tabs, children }: Props) {
+export function MarketingStudioShell({ tabs, leading, children }: Props) {
   return (
     <div
       className={cn(
@@ -31,7 +33,13 @@ export function MarketingStudioShell({ tabs, children }: Props) {
         'lg:h-[calc(100vh-120px)] lg:min-h-[520px] lg:flex-none'
       )}
     >
-      <MarketingBuilderHeader tabs={tabs} actions={<MarketingStudioHeaderActionsSlot />} />
+      {leading || tabs ? (
+        <MarketingBuilderHeader
+          leading={leading}
+          tabs={tabs}
+          actions={<MarketingStudioHeaderActionsSlot />}
+        />
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   );

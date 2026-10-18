@@ -1,4 +1,10 @@
 import {
+  applyCampaignFontsToDocument,
+  campaignFontMap,
+  themeToCampaignPalette,
+} from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import {
   resolveCampaignPalette,
   type CampaignPalette,
 } from '@/features/dashboard/marketing/lib/designBrandColors';
@@ -1297,7 +1303,8 @@ export type PolotnoDesignDocument = {
 export function buildPolotnoCampaignDocument(
   templateId: string,
   binding: DesignBinding,
-  options?: { brandColor?: string }
+  /** `theme` wins over `brandColor`: palette and the four type roles come from it. */
+  options?: { brandColor?: string; theme?: MarketingThemeTokens }
 ): PolotnoDesignDocument | null {
   const template = getCampaignTemplate(templateId);
   if (!template) return null;
@@ -1308,15 +1315,18 @@ export function buildPolotnoCampaignDocument(
 
   const { width, height } = DESIGN_FORMAT_DIMENSIONS[template.format];
   const layout = createCampaignLayout(width, height);
-  const palette = resolveCampaignPalette(options?.brandColor, {
-    preservePresetPalette: template.preservePresetPalette,
-    presetAccent: template.presetAccent,
-  });
+  const theme = options?.theme;
+  const palette = theme
+    ? themeToCampaignPalette(theme)
+    : resolveCampaignPalette(options?.brandColor, {
+        preservePresetPalette: template.preservePresetPalette,
+        presetAccent: template.presetAccent,
+      });
   const scrim = CAMPAIGN_SCRIMS[baseId] ?? { r: 15, g: 23, b: 42, top: 0.2, bottom: 0.6 };
   const pageFallback = CAMPAIGN_PAGE_FALLBACKS[baseId] ?? '#78716c';
   resetIds();
 
-  return {
+  const document: PolotnoDesignDocument = {
     width,
     height,
     schemaVersion: 2,
@@ -1337,6 +1347,18 @@ export function buildPolotnoCampaignDocument(
       },
     ],
   };
+  if (!theme) return document;
+  return applyCampaignFontsToDocument(document, themeCampaignFontMap(theme));
+}
+
+/** Quiet Coast faces used by the campaign builders → the theme's type roles. */
+export function themeCampaignFontMap(theme: MarketingThemeTokens): Map<string, string> {
+  return campaignFontMap(theme, {
+    display: FONT_DISPLAY,
+    label: FONT_LABEL,
+    body: FONT_BODY,
+    numeral: FONT_NUMERAL,
+  });
 }
 
 export function formatDimensions(format: DesignTemplateFormat) {

@@ -1,3 +1,4 @@
+import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import { getCampaignTemplate } from '@/features/dashboard/marketing/lib/designCampaignTemplates';
 
@@ -68,16 +69,19 @@ export function findDesignAutosaveTemplate(
   });
 }
 
-/** Keep newest autosave per preset+format; return ids to delete. */
+/**
+ * Keep the newest autosave per theme + preset + format; return ids to delete.
+ * Theme is part of the key: the same preset edited in two themes is two items.
+ */
 export function planDesignTemplateDedupe(templates: MarketingTemplateRecord[]): string[] {
   const groups = new Map<string, MarketingTemplateRecord[]>();
 
   for (const template of templates) {
     if (!isDesignPresetAutosave(template)) continue;
-    const key = designAutosaveGroupKey(
+    const key = `${effectiveTemplateThemeKey(template)}|${designAutosaveGroupKey(
       readDesignTemplateId(template.designJson),
       template.aspectPreset
-    );
+    )}`;
     const bucket = groups.get(key) ?? [];
     bucket.push(template);
     groups.set(key, bucket);
@@ -98,11 +102,11 @@ export function planDesignTemplateDedupe(templates: MarketingTemplateRecord[]): 
 }
 
 /**
- * Remove every preset-autosave row created by the infinite-save bug.
- * Explicit custom saves (Save template / non-preset names) are preserved.
+ * Clean up rows from the old infinite-save bug: extra autosaves of the same preset.
+ * Keeps the newest per theme + preset + format (it used to delete every preset
+ * autosave, and its done-flag is per browser, so a new device wiped real work).
+ * Explicit custom saves are never touched.
  */
 export function planDesignAutosavePurge(templates: MarketingTemplateRecord[]): string[] {
-  return templates
-    .filter((template) => isDesignPresetAutosave(template))
-    .map((template) => template.id);
+  return planDesignTemplateDedupe(templates);
 }

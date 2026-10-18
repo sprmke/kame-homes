@@ -1,4 +1,13 @@
+import {
+  contrastRatio,
+  ensureContrast,
+  readableOn,
+  relativeLuminance,
+} from '@/features/dashboard/marketing/lib/theme/marketingThemeColor';
+
 import { hslToHex, mixHexToward, parseHexRgb, rgbToHsl, type Rgb } from '@/lib/theme/colorConvert';
+
+export { contrastRatio, ensureContrast, readableOn, relativeLuminance };
 
 /**
  * Poster palettes. The AI (or host) supplies at most three hexes; everything text
@@ -37,48 +46,12 @@ export type PosterPalette = {
   scrimLight: Rgb;
 };
 
-function luminanceOf(rgb: Rgb): number {
-  const linear = (channel: number) => {
-    const n = channel / 255;
-    return n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * linear(rgb.r) + 0.7152 * linear(rgb.g) + 0.0722 * linear(rgb.b);
-}
-
-export function relativeLuminance(hex: string): number {
-  const rgb = parseHexRgb(hex);
-  return rgb ? luminanceOf(rgb) : 0.5;
-}
-
-export function contrastRatio(a: string, b: string): number {
-  const la = relativeLuminance(a);
-  const lb = relativeLuminance(b);
-  const [light, dark] = la > lb ? [la, lb] : [lb, la];
-  return (light + 0.05) / (dark + 0.05);
-}
-
 export function normalizePosterHex(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase();
   if (/^[0-9a-f]{6}$/i.test(trimmed)) return `#${trimmed.toLowerCase()}`;
   return null;
-}
-
-/** Push `color` toward black or white until it reaches `minRatio` against `background`. */
-export function ensureContrast(color: string, background: string, minRatio: number): string {
-  if (contrastRatio(color, background) >= minRatio) return color;
-  const target = relativeLuminance(background) > 0.4 ? BLACK : WHITE;
-  for (let step = 1; step <= 20; step += 1) {
-    const candidate = mixHexToward(color, target, step * 0.05);
-    if (contrastRatio(candidate, background) >= minRatio) return candidate;
-  }
-  return target === BLACK ? '#000000' : '#ffffff';
-}
-
-/** Whichever of the two inks reads better on `background`. */
-export function readableOn(background: string, light = '#ffffff', dark = '#1f1a17'): string {
-  return contrastRatio(light, background) >= contrastRatio(dark, background) ? light : dark;
 }
 
 function secondaryFromAccent(accent: string): string {

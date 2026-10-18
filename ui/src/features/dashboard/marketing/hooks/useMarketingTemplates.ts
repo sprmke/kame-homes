@@ -11,6 +11,8 @@ export type MarketingTemplateRecord = {
   platform: string | null;
   aspectPreset: string | null;
   designJson: Record<string, unknown>;
+  /** Theme the item was made in; null for items saved before themes. */
+  themeKey?: string | null;
   updatedAt: string;
 };
 
@@ -20,6 +22,8 @@ export type SaveMarketingTemplatePayload = {
   platform?: string;
   aspectPreset?: string;
   designJson: Record<string, unknown>;
+  /** Theme the item belongs to (`marketing_templates.theme_key`). */
+  themeKey?: string | null;
 };
 
 async function parseEdgeJson<T>(res: Response): Promise<T> {
@@ -63,6 +67,7 @@ export type UpdateMarketingTemplatePayload = {
   designJson?: Record<string, unknown>;
   aspectPreset?: string;
   platform?: string;
+  themeKey?: string | null;
 };
 
 export async function updateMarketingTemplate(

@@ -12,7 +12,15 @@ import { MarketingStudioHeaderActionsProvider } from '@/features/dashboard/marke
 import { MarketingStudioModeTabs } from '@/features/dashboard/marketing/components/shared/MarketingStudioModeTabs';
 import { SlidingTabs } from '@/features/dashboard/marketing/components/shared/MarketingStudioModeTabs';
 import { MarketingStudioShell } from '@/features/dashboard/marketing/components/shared/MarketingStudioShell';
+import { MarketingThemeEditorProvider } from '@/features/dashboard/marketing/components/themes/MarketingThemeEditor';
+import {
+  MarketingThemeProvider,
+  useMarketingTheme,
+} from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
+import { ThemesHome } from '@/features/dashboard/marketing/components/themes/ThemesHome';
+import { ThemeSwitcher } from '@/features/dashboard/marketing/components/themes/ThemeSwitcher';
 import type { VideoExportPayload } from '@/features/dashboard/marketing/components/video-editor/VideoEditor';
+import { normalizeMarketingStudioTab } from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
 
 import { MarketingStudioSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
@@ -44,14 +52,25 @@ export function MarketingStudioPage() {
   // math) so the studio canvas gets real height instead of ~50% of `100vh`.
   useAdminLayoutFillMain(true);
 
-  const [tab, setTab] = useState('calendar');
+  return (
+    <MarketingThemeProvider>
+      <MarketingThemeEditorProvider>
+        <MarketingStudioWorkspace />
+      </MarketingThemeEditorProvider>
+    </MarketingThemeProvider>
+  );
+}
+
+function MarketingStudioWorkspace() {
+  const { view, tab, setTab, active, openTheme } = useMarketingTheme();
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMedia, setPublishMedia] = useState<PublishMedia | null>(null);
   const [openDesignTemplateId, setOpenDesignTemplateId] = useState<string | null>(null);
 
   const openInDesign = (templateId: string) => {
     setOpenDesignTemplateId(templateId);
-    setTab('design');
+    if (active) openTheme(active.key, { tab: 'design' });
+    else setTab('design');
   };
 
   const openPublishWithBlob = (blob: Blob, mediaType: 'image' | 'video', templateId?: string) => {
@@ -75,47 +94,61 @@ export function MarketingStudioPage() {
     openPublishWithBlob(payload.blob, payload.mediaType, 'ai-generated');
   };
 
+  const showThemes = view === 'themes';
+
   return (
     <>
-      <SlidingTabs value={tab} onValueChange={setTab}>
+      <SlidingTabs value={tab} onValueChange={(next) => setTab(normalizeMarketingStudioTab(next))}>
         <MarketingStudioHeaderActionsProvider>
           <AdminMobilePage
             title="Marketing"
-            subtitle="Build calendars, designs, and promo videos."
+            subtitle="Build calendars, posts and videos in one theme."
             titleId="marketing-heading"
           >
-            <MarketingStudioShell tabs={<MarketingStudioModeTabs />}>
-              <SlidingTabsContent value="calendar" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <MarketingCalendarSection onPublish={handleCalendarPublish} />
-              </SlidingTabsContent>
+            <MarketingStudioShell
+              leading={showThemes ? null : <ThemeSwitcher className="max-sm:w-full max-sm:max-w-none" />}
+              tabs={showThemes ? null : <MarketingStudioModeTabs />}
+            >
+              {showThemes ? (
+                <ThemesHome />
+              ) : !active ? (
+                <MarketingStudioSkeleton />
+              ) : (
+                <>
+                  <SlidingTabsContent value="calendar" className="mt-0 flex min-h-0 flex-1 flex-col">
+                    <MarketingCalendarSection onPublish={handleCalendarPublish} />
+                  </SlidingTabsContent>
 
-              <SlidingTabsContent value="design" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<MarketingStudioSkeleton />}>
-                  <DesignEditor
-                    onPublish={handleDesignPublish}
-                    openTemplateId={openDesignTemplateId}
-                    onOpenTemplateHandled={() => setOpenDesignTemplateId(null)}
-                  />
-                </Suspense>
-              </SlidingTabsContent>
+                  <SlidingTabsContent value="design" className="mt-0 flex min-h-0 flex-1 flex-col">
+                    <Suspense fallback={<MarketingStudioSkeleton />}>
+                      <DesignEditor
+                        key={active.key}
+                        onPublish={handleDesignPublish}
+                        openTemplateId={openDesignTemplateId}
+                        onOpenTemplateHandled={() => setOpenDesignTemplateId(null)}
+                      />
+                    </Suspense>
+                  </SlidingTabsContent>
 
-              <SlidingTabsContent value="video" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<MarketingStudioSkeleton />}>
-                  <VideoEditor onPublish={handleVideoPublish} />
-                </Suspense>
-              </SlidingTabsContent>
+                  <SlidingTabsContent value="video" className="mt-0 flex min-h-0 flex-1 flex-col">
+                    <Suspense fallback={<MarketingStudioSkeleton />}>
+                      <VideoEditor key={active.key} onPublish={handleVideoPublish} />
+                    </Suspense>
+                  </SlidingTabsContent>
 
-              <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<MarketingStudioSkeleton />}>
-                  <AiStudioSection
-                    onPublish={handleGeneratePublish}
-                    onOpenInDesign={openInDesign}
-                  />
-                </Suspense>
-              </SlidingTabsContent>
+                  <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
+                    <Suspense fallback={<MarketingStudioSkeleton />}>
+                      <AiStudioSection
+                        onPublish={handleGeneratePublish}
+                        onOpenInDesign={openInDesign}
+                      />
+                    </Suspense>
+                  </SlidingTabsContent>
+                </>
+              )}
             </MarketingStudioShell>
 
-            <PublishHistory />
+            {showThemes ? null : <PublishHistory />}
           </AdminMobilePage>
         </MarketingStudioHeaderActionsProvider>
       </SlidingTabs>

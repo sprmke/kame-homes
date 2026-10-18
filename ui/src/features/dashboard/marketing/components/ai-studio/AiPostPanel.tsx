@@ -11,6 +11,7 @@ import {
   AiStudioChoiceGroup,
   AiStudioShapePreview,
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
+import { useOptionalMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
 import { useGeneratePosters } from '@/features/dashboard/marketing/hooks/useGeneratePosters';
@@ -37,6 +38,9 @@ import {
   type PosterSpec,
 } from '@/features/dashboard/marketing/lib/poster/posterSpec';
 import type { DesignTemplateFormat } from '@/features/dashboard/marketing/lib/templateRegistry';
+import { loadMarketingFonts } from '@/features/dashboard/marketing/lib/theme/marketingFontLoader';
+import { themeStampForSave } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
+import { marketingThemeFontList } from '@/features/dashboard/marketing/lib/theme/marketingThemeFonts';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import { useOrgSettings } from '@/features/dashboard/org/hooks/useOrgSettings';
@@ -117,7 +121,11 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
   const { data: appSettings } = useAppSettings();
   const { data: orgSettings } = useOrgSettings();
   const orgBrandColor = useOrgBrandColor();
-  const brandColor = appSettings?.resolvedBrandColor ?? orgBrandColor ?? null;
+  // Inside the studio, posts follow the active theme (palette + type).
+  const activeTheme = useOptionalMarketingTheme()?.active ?? null;
+  const themeTokens = activeTheme?.tokens ?? null;
+  const brandColor =
+    themeTokens?.palette.primary ?? appSettings?.resolvedBrandColor ?? orgBrandColor ?? null;
   const logoUrl =
     orgSettings?.emailLogoUrl?.trim() ||
     org.logoUrl?.trim() ||
@@ -195,10 +203,11 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
       document: compilePosterDocument(spec, factsForSpec, forFormat, {
         photoSizes: sizes,
         brandColor,
+        theme: themeTokens,
       }),
       preview: null,
     }),
-    [brandColor]
+    [brandColor, themeTokens]
   );
 
   /** Same specs, new canvas: layouts are deterministic, so no AI call is needed. */
@@ -227,6 +236,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
         generate.mutateAsync({ goal, prompt: prompt.trim(), facts: baseFacts, brandColor }),
         loadPosterPhotoSizes(baseFacts.photos),
         preloadPosterFonts(),
+        themeTokens ? loadMarketingFonts(marketingThemeFontList(themeTokens.fonts)) : undefined,
       ]);
       if (run !== runRef.current) return;
       setFacts(result.facts);
@@ -259,7 +269,8 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
     const spec: PosterSpec = {
       ...variant.spec,
       archetype,
-      fontPairing: POSTER_ARCHETYPE_DEFAULT_FONTS[archetype],
+      // In a theme the type is the theme's; only the layout changes.
+      fontPairing: themeTokens ? variant.spec.fontPairing : POSTER_ARCHETYPE_DEFAULT_FONTS[archetype],
     };
     const next = compile(spec, facts, photoSizes, `${variant.key}-s${Date.now()}`, format);
     setVariants((current) => current.map((item) => (item.key === variant.key ? next : item)));
@@ -323,7 +334,9 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
         contentType: 'design',
         aspectPreset: format,
         platform: format.includes('facebook') ? 'facebook' : 'instagram',
+        ...(activeTheme ? { themeKey: activeTheme.key } : {}),
         designJson: {
+          ...(themeTokens ? themeStampForSave(themeTokens) : {}),
           templateId: '',
           sourcePresetId: DESIGN_CUSTOM_SOURCE_PRESET_ID,
           format,

@@ -27,6 +27,10 @@ import { usePolotnoOverlayDebug } from '@/features/dashboard/marketing/component
 import { useUploadMarketingAsset } from '@/features/dashboard/marketing/hooks/useUploadMarketingAsset';
 import { configurePolotnoUploader } from '@/features/dashboard/marketing/lib/polotno/initPolotno';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
+import {
+  resolveMarketingTheme,
+  type MarketingThemeTokens,
+} from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { polotnoWorkspaceChrome } from '@/features/dashboard/marketing/lib/polotno/polotnoWorkspaceTheme';
 import { propertyMediaItems } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 
@@ -36,6 +40,8 @@ type Props = {
   store: PolotnoStore;
   propertyImageUrls: string[];
   brandColor: string;
+  /** Active marketing theme: new text uses its fonts and text color. */
+  theme?: MarketingThemeTokens | null;
   logoUrl?: string | null;
   style?: CSSProperties;
   onResetDesign?: () => void;
@@ -50,6 +56,7 @@ export function KamePolotnoEditor({
   store,
   propertyImageUrls,
   brandColor,
+  theme = null,
   logoUrl = null,
   style,
   onResetDesign,
@@ -99,15 +106,21 @@ export function KamePolotnoEditor({
     });
   }, [uploadMarketingAsset]);
 
+  const textTheme = useMemo(
+    () =>
+      theme ? { fonts: theme.fonts, ink: resolveMarketingTheme(theme).readableInk } : null,
+    [theme]
+  );
+
   const sections = useMemo(
     () => [
-      createTextSection(),
+      createTextSection(textTheme),
       createElementsSection(logoUrl),
       createUploadSection(propertyImages, sessionMedia),
       createBackgroundSection(propertyImages, brandColor, sessionMedia),
       createLayersSection(),
     ],
-    [propertyImages, brandColor, logoUrl, sessionMedia]
+    [propertyImages, brandColor, logoUrl, sessionMedia, textTheme]
   );
 
   const toolbarComponents = useMemo(

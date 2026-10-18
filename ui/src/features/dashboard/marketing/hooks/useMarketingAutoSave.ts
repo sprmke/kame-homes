@@ -17,6 +17,8 @@ export type MarketingAutoSavePayload = {
   designJson: Record<string, unknown>;
   aspectPreset?: string;
   platform?: string;
+  /** Theme the item belongs to (sent on create and update). */
+  themeKey?: string | null;
 };
 
 type Options = {
@@ -112,6 +114,7 @@ export function useMarketingAutoSave({
             designJson: payload.designJson,
             aspectPreset: payload.aspectPreset,
             platform: payload.platform,
+            ...(payload.themeKey !== undefined ? { themeKey: payload.themeKey } : {}),
           });
           if (!templateIdRef.current) {
             templateIdRef.current = activeId;
@@ -124,6 +127,7 @@ export function useMarketingAutoSave({
             designJson: payload.designJson,
             aspectPreset: payload.aspectPreset,
             platform: payload.platform,
+            themeKey: payload.themeKey ?? null,
           });
           templateIdRef.current = record.id;
           onTemplateIdChangeRef.current?.(record.id);

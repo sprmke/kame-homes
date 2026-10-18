@@ -1,4 +1,4 @@
-import { type SyntheticEvent } from 'react';
+import { type ReactNode, type SyntheticEvent } from 'react';
 
 import { Check, Settings2 } from 'lucide-react';
 
@@ -28,6 +28,8 @@ type Props = {
   onCustomize?: () => void;
   menuItems?: MarketingSidebarMenuItem[];
   thumbnailUrl?: string | null;
+  /** Live art instead of an image (e.g. a scaled calendar DOM). Wins over `thumbnailUrl`. */
+  thumbnail?: ReactNode;
   thumbnailLoading?: boolean;
   onRequestThumbnail?: () => void;
   /** Canvas pixel dimensions — drives thumbnail frame aspect ratio. */
@@ -76,6 +78,7 @@ function previewFrameStyle(frame: ReturnType<typeof resolveThumbnailFrame>) {
 function TemplatePreviewFrame({
   selected,
   thumbnailUrl,
+  thumbnail,
   thumbnailLoading,
   badge,
   frame,
@@ -83,6 +86,7 @@ function TemplatePreviewFrame({
 }: {
   selected?: boolean;
   thumbnailUrl?: string | null;
+  thumbnail?: ReactNode;
   thumbnailLoading?: boolean;
   badge?: string;
   frame: ReturnType<typeof resolveThumbnailFrame>;
@@ -98,10 +102,12 @@ function TemplatePreviewFrame({
         !selected && 'group-hover:ring-primary/35 group-hover:shadow'
       )}
       style={previewFrameStyle(frame)}
-      aria-busy={thumbnailLoading || !thumbnailUrl}
+      aria-busy={thumbnail ? false : thumbnailLoading || !thumbnailUrl}
       onContextMenu={watermarked ? blockThumbnailMediaEvent : undefined}
     >
-      {thumbnailUrl ? (
+      {thumbnail ? (
+        thumbnail
+      ) : thumbnailUrl ? (
         <img
           src={thumbnailUrl}
           alt=""
@@ -137,6 +143,7 @@ export function MarketingTemplateCard({
   onCustomize,
   menuItems,
   thumbnailUrl,
+  thumbnail,
   thumbnailLoading = false,
   onRequestThumbnail,
   thumbnailWidth,
@@ -161,7 +168,7 @@ export function MarketingTemplateCard({
   const watermarked = marketingStudioLoading || !canUseMarketingStudio;
 
   const visibilityRef = useVisibleThumbnailRequest({
-    enabled: Boolean(onRequestThumbnail) && !thumbnailUrl,
+    enabled: Boolean(onRequestThumbnail) && !thumbnailUrl && !thumbnail,
     onVisible: () => onRequestThumbnail?.(),
   });
 
@@ -272,6 +279,7 @@ export function MarketingTemplateCard({
         <TemplatePreviewFrame
           selected={selected}
           thumbnailUrl={thumbnailUrl}
+          thumbnail={thumbnail}
           thumbnailLoading={thumbnailLoading}
           watermarked={watermarked}
           badge={badge}

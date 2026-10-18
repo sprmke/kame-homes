@@ -1,3 +1,4 @@
+import { MARKETING_STUDIO_TAB_LABELS } from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
 import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 
 import { SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
@@ -5,11 +6,11 @@ import { SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tab
 export function MarketingStudioModeTabs() {
   return (
     <SlidingTabsList size="primary">
-      <SlidingTabsTrigger value="calendar">Calendar</SlidingTabsTrigger>
-      <SlidingTabsTrigger value="design">Design</SlidingTabsTrigger>
-      <SlidingTabsTrigger value="video">Video</SlidingTabsTrigger>
+      <SlidingTabsTrigger value="calendar">{MARKETING_STUDIO_TAB_LABELS.calendar}</SlidingTabsTrigger>
+      <SlidingTabsTrigger value="design">{MARKETING_STUDIO_TAB_LABELS.design}</SlidingTabsTrigger>
+      <SlidingTabsTrigger value="video">{MARKETING_STUDIO_TAB_LABELS.video}</SlidingTabsTrigger>
       <SlidingTabsTrigger value="generate">
-        Generate
+        {MARKETING_STUDIO_TAB_LABELS.generate}
         <TierBadge feature="aiMarketingImageGeneration" className="ml-1.5" />
       </SlidingTabsTrigger>
     </SlidingTabsList>

@@ -23,6 +23,8 @@ type Props = {
   defaultName?: string;
   platform?: string;
   aspectPreset?: string;
+  /** Theme the saved item belongs to. */
+  themeKey?: string | null;
   /** When set, Save updates the existing row instead of creating a new one */
   existingTemplateId?: string | null;
   buttonLabel?: string;
@@ -36,6 +38,7 @@ export function SaveMarketingTemplateButton({
   defaultName = 'My template',
   platform,
   aspectPreset,
+  themeKey,
   existingTemplateId,
   buttonLabel = 'Save',
   updateLabel = 'Update',
@@ -65,6 +68,7 @@ export function SaveMarketingTemplateButton({
         aspectPreset,
         platform,
         designJson,
+        ...(themeKey !== undefined ? { themeKey } : {}),
       });
       onSaved?.(record);
     } else {
@@ -74,6 +78,7 @@ export function SaveMarketingTemplateButton({
         platform,
         aspectPreset,
         designJson,
+        themeKey: themeKey ?? null,
       });
       onSaved?.(record);
     }
@@ -101,6 +106,7 @@ export function SaveMarketingTemplateButton({
                   aspectPreset,
                   platform,
                   designJson,
+                  ...(themeKey !== undefined ? { themeKey } : {}),
                 })
                 .then((record) => onSaved?.(record));
               return;

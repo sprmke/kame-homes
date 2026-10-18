@@ -19,6 +19,14 @@ type TextPreset = {
   text: string;
   fontSize: number;
   previewClassName: string;
+  /** Theme type role used for this preset. */
+  role: 'display' | 'label' | 'body';
+};
+
+/** Theme fonts + text color for new text (falls back to Roboto / black without a theme). */
+export type KameTextTheme = {
+  fonts: { display: string; body: string; label: string };
+  ink: string;
 };
 
 const TEXT_PRESETS: TextPreset[] = [
@@ -28,6 +36,7 @@ const TEXT_PRESETS: TextPreset[] = [
     text: 'Heading',
     fontSize: 76,
     previewClassName: 'text-xl font-bold',
+    role: 'display',
   },
   {
     id: 'subheading',
@@ -35,6 +44,7 @@ const TEXT_PRESETS: TextPreset[] = [
     text: 'Subheading',
     fontSize: 44,
     previewClassName: 'text-base font-semibold',
+    role: 'label',
   },
   {
     id: 'body',
@@ -42,12 +52,13 @@ const TEXT_PRESETS: TextPreset[] = [
     text: 'Body text',
     fontSize: 28,
     previewClassName: 'text-sm font-normal',
+    role: 'body',
   },
 ];
 
 function addTextToCanvas(
   store: PolotnoStore,
-  attrs: { fontSize: number; text: string; fontFamily?: string }
+  attrs: { fontSize: number; text: string; fontFamily?: string; fill?: string }
 ) {
   const page = store.activePage as
     | {
@@ -65,6 +76,7 @@ function addTextToCanvas(
   const el = page.addElement({
     type: 'text',
     fontFamily: attrs.fontFamily ?? 'Roboto',
+    ...(attrs.fill ? { fill: attrs.fill } : {}),
     text: attrs.text,
     fontSize,
     width,
@@ -74,10 +86,19 @@ function addTextToCanvas(
   el.toggleEditMode?.(true);
 }
 
-export const KameTextPanel = observer(function KameTextPanel({ store }: { store: PolotnoStore }) {
+export const KameTextPanel = observer(function KameTextPanel({
+  store,
+  textTheme,
+}: {
+  store: PolotnoStore;
+  textTheme?: KameTextTheme | null;
+}) {
   useEffect(() => {
-    store.loadFont?.('Roboto');
-  }, [store]);
+    const families = textTheme
+      ? [textTheme.fonts.display, textTheme.fonts.label, textTheme.fonts.body]
+      : ['Roboto'];
+    for (const family of new Set(families)) store.loadFont?.(family);
+  }, [store, textTheme]);
 
   return (
     <KameSidePanelShell title="Text">
@@ -95,10 +116,17 @@ export const KameTextPanel = observer(function KameTextPanel({ store }: { store:
                 addTextToCanvas(store, {
                   fontSize: preset.fontSize,
                   text: preset.text,
+                  fontFamily: textTheme?.fonts[preset.role],
+                  fill: textTheme?.ink,
                 })
               }
             >
-              <span className={cn('text-foreground truncate', preset.previewClassName)}>
+              <span
+                className={cn('text-foreground truncate', preset.previewClassName)}
+                style={
+                  textTheme ? { fontFamily: `"${textTheme.fonts[preset.role]}", sans-serif` } : undefined
+                }
+              >
                 {preset.preview}
               </span>
             </button>
@@ -109,7 +137,7 @@ export const KameTextPanel = observer(function KameTextPanel({ store }: { store:
   );
 });
 
-export function createTextSection() {
+export function createTextSection(textTheme?: KameTextTheme | null) {
   return {
     name: 'text',
     Tab: observer(function TextTab(props: Record<string, unknown>) {
@@ -120,7 +148,7 @@ export function createTextSection() {
       );
     }),
     Panel: observer(function TextPanelWrapper({ store }: { store: PolotnoStore }) {
-      return <KameTextPanel store={store} />;
+      return <KameTextPanel store={store} textTheme={textTheme} />;
     }),
   };
 }

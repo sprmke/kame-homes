@@ -49,6 +49,7 @@ import {
   sceneBackgroundLayer,
 } from '@/features/dashboard/marketing/lib/video/videoSceneLayers';
 import type { VideoOverlayMode } from '@/features/dashboard/marketing/lib/video/videoStoryboardRecipes';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import {
   resolveVideoTypographyContext,
   type VideoTemplateLook,
@@ -60,6 +61,8 @@ import { parseHexRgb } from '@/lib/theme/colorConvert';
 export type VideoCompositionProps = {
   project: VideoProject;
   brandColor?: string;
+  /** Active marketing theme (palette + fonts) when `typography` is not passed. */
+  theme?: MarketingThemeTokens | null;
   /** Resolved from `project.templateId` when omitted, so every render path matches. */
   typography?: VideoTypographyContext;
   motionProfile?: VideoMotionProfile;
@@ -329,6 +332,7 @@ function renderSceneTransition(transition: VideoTransition, key: string, frameSi
 export function CampaignVideoComposition({
   project,
   brandColor = '#e8752a',
+  theme = null,
   typography,
   motionProfile,
   previewMuted = false,
@@ -340,8 +344,9 @@ export function CampaignVideoComposition({
 
   const resolvedTypography = useMemo(
     () =>
-      typography ?? resolveVideoTypographyContext(project.templateId, brandColor, project.palette),
-    [typography, project.templateId, project.palette, brandColor]
+      typography ??
+      resolveVideoTypographyContext(project.templateId, brandColor, project.palette, theme),
+    [typography, project.templateId, project.palette, brandColor, theme]
   );
   const resolvedMotion = useMemo(
     () => motionProfile ?? resolveVideoMotionProfile(project.templateId),

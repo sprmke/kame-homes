@@ -4,17 +4,6 @@ import type { PreviewBooking } from '@/features/dashboard/marketing/components/c
 
 import { normalizeDateString, stringToDate, type BookedDateRange } from '@/utils/format/dates';
 
-/** Stable cache segment so calendar thumbnails match the live preview month + occupancy. */
-export function calendarPreviewThumbKey(previewMonth: Date, bookings: PreviewBooking[]): string {
-  const ym = `${previewMonth.getFullYear()}-${String(previewMonth.getMonth() + 1).padStart(2, '0')}`;
-  if (bookings.length === 0) return ym;
-  const ranges = bookings
-    .map((booking) => `${booking.startDay}-${booking.endDay}`)
-    .sort()
-    .join('|');
-  return `${ym}:${ranges}`;
-}
-
 /** Occupied nights: check-in inclusive, check-out exclusive (matches guest calendar). */
 function occupiedNightRange(checkIn: Date, checkOut: Date): { start: Date; end: Date } | null {
   const start = startOfDay(checkIn);

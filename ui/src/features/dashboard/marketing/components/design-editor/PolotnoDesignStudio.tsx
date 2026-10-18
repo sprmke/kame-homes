@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 
-import { useAppSettings } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { CollagePanel } from '@/features/dashboard/marketing/components/design-editor/collage/CollagePanel';
 import { KamePolotnoEditor } from '@/features/dashboard/marketing/components/design-editor/polotno/KamePolotnoEditor';
 import { useMarketingUploads } from '@/features/dashboard/marketing/components/design-editor/polotno/useMarketingUploads';
@@ -28,6 +27,7 @@ import { MarketingEditorMobileToolbar } from '@/features/dashboard/marketing/com
 import { MarketingEditorSidebar } from '@/features/dashboard/marketing/components/shared/MarketingEditorSidebar';
 import type { MarketingFormatOption } from '@/features/dashboard/marketing/components/shared/MarketingFormatPicker';
 import { useMarketingStudioHeaderActions } from '@/features/dashboard/marketing/components/shared/MarketingStudioHeaderActions';
+import { useMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import {
   MarketingTemplatesPanel,
   type PresetTemplateItem,
@@ -38,7 +38,6 @@ import { useMarketingAutoSave } from '@/features/dashboard/marketing/hooks/useMa
 import { useMarketingAutoSaveSuspension } from '@/features/dashboard/marketing/hooks/useMarketingAutoSaveSuspension';
 import { useMarketingBookedDates } from '@/features/dashboard/marketing/hooks/useMarketingBookedDates';
 import { useMarketingCatalog } from '@/features/dashboard/marketing/hooks/useMarketingCatalog';
-import { useMarketingMediaAccent } from '@/features/dashboard/marketing/hooks/useMarketingMediaAccent';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import {
   saveMarketingTemplate,
@@ -88,7 +87,10 @@ import {
   DESIGN_AI_FORMATS,
   resolveAiGeneratedDesignDocument,
 } from '@/features/dashboard/marketing/lib/polotno/polotnoAiCampaignDocuments';
-import { buildPolotnoCampaignDocument } from '@/features/dashboard/marketing/lib/polotno/polotnoCampaignDocuments';
+import {
+  buildPolotnoCampaignDocument,
+  themeCampaignFontMap,
+} from '@/features/dashboard/marketing/lib/polotno/polotnoCampaignDocuments';
 import {
   createPolotnoStore,
   exportPolotnoStoreImage,
@@ -97,6 +99,19 @@ import {
 } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 import { pickRandomPropertyPhoto } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 import { syncPolotnoTextBounds } from '@/features/dashboard/marketing/lib/polotno/syncPolotnoTextBounds';
+import { themedAiDesignTokens } from '@/features/dashboard/marketing/lib/theme/aiThemeAdapter';
+import {
+  applyCampaignFontsToDocument,
+  polotnoHandEditedIds,
+  polotnoThemeBaseline,
+  rethemePolotnoDocument,
+} from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import {
+  readTemplateThemeSnapshot,
+  templatesInTheme,
+  themeStampForSave,
+} from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import {
   renderDesignStoreThumbnail,
   waitForThumbnailPaint,
@@ -106,7 +121,6 @@ import {
   type DesignTemplateFormat,
 } from '@/features/dashboard/marketing/lib/templateRegistry';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
-import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import { useOrgSettings } from '@/features/dashboard/org/hooks/useOrgSettings';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
@@ -142,10 +156,14 @@ const CATEGORIES: CampaignCategory[] = ['promo', 'slots', 'giveaway', 'fully-boo
 export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateHandled }: Props) {
   const { property, org } = useOrgContext();
   const catalog = useMarketingCatalog('design');
-  const { data: appSettings } = useAppSettings();
   const { data: orgSettings } = useOrgSettings();
-  const orgBrandColor = useOrgBrandColor();
-  const brandColor = appSettings?.resolvedBrandColor ?? orgBrandColor;
+  // The studio only mounts editors once a theme is resolved.
+  const { active: activeTheme, activeHash } = useMarketingTheme();
+  const theme = activeTheme!;
+  const themeTokens = theme.tokens;
+  // The theme's main color stands in where the brand accent used to (swatches, AI default).
+  const accentColor = themeTokens.palette.primary;
+  const brandColor = accentColor;
   const orgLogoUrl =
     orgSettings?.emailLogoUrl?.trim() ||
     org.logoUrl?.trim() ||
@@ -171,7 +189,12 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
   const propertyId = usePropertyIdParam();
   const queryClient = useQueryClient();
   const generateTemplate = useGenerateMarketingTemplate();
-  const { data: savedTemplates = [] } = useMarketingTemplates('design');
+  const { data: allDesignTemplates } = useMarketingTemplates('design');
+  // Only this theme's posts: autosave lookups, sidebar and format siblings stay in-theme.
+  const savedTemplates = useMemo(
+    () => templatesInTheme(allDesignTemplates ?? [], theme.key),
+    [allDesignTemplates, theme.key]
+  );
   useDesignTemplateCleanup(true);
   const customSavedTemplates = useMemo(
     () => marketingDesignSidebarRecords(savedTemplates),
@@ -220,7 +243,6 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
       (binding.propertyPhoto ? [binding.propertyPhoto] : [])
     );
   }, [publicProperty?.media, publicProperty?.images, binding.propertyPhoto]);
-  const { accentColor } = useMarketingMediaAccent(propertyPhotoUrls, brandColor);
 
   const showPresetTemplates = catalog.isBuiltinCategory(category);
   const templates = useMemo(
@@ -255,6 +277,53 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
     }
   }, [templates, selectedId, startFrom]);
 
+  // Theme bookkeeping: the look each element had right after a themed load, and the
+  // elements the host has changed by hand (those keep their colors on theme edits).
+  const themeBaselineRef = useRef<Map<string, string>>(new Map());
+  const lockedElementIdsRef = useRef<string[]>([]);
+
+  const recordThemeBaseline = useCallback((lockedIds: readonly string[] = []) => {
+    const activeStore = storeRef.current;
+    if (!activeStore) return;
+    themeBaselineRef.current = polotnoThemeBaseline(activeStore.toJSON());
+    lockedElementIdsRef.current = [...lockedIds];
+  }, []);
+
+  const currentLockedElementIds = useCallback((): string[] => {
+    const activeStore = storeRef.current;
+    if (!activeStore) return lockedElementIdsRef.current;
+    return [
+      ...new Set([
+        ...lockedElementIdsRef.current,
+        ...polotnoHandEditedIds(activeStore.toJSON(), themeBaselineRef.current),
+      ]),
+    ];
+  }, []);
+
+  /** A saved document in the current theme (re-themed from its snapshot when it differs). */
+  const themedSavedDocument = useCallback(
+    (record: MarketingTemplateRecord) => {
+      const polotno = record.designJson.polotno as Record<string, unknown>;
+      const snapshot = readTemplateThemeSnapshot(record.designJson);
+      const lockedIds = Array.isArray(record.designJson.lockedElementIds)
+        ? record.designJson.lockedElementIds.filter((id): id is string => typeof id === 'string')
+        : [];
+      const document = snapshot.tokens
+        ? rethemePolotnoDocument(polotno, snapshot.tokens, themeTokens, lockedIds)
+        : polotno;
+      return { document, lockedIds };
+    },
+    [themeTokens]
+  );
+
+  const themeSaveStamp = useCallback(
+    () => ({
+      ...themeStampForSave(themeTokens),
+      lockedElementIds: currentLockedElementIds(),
+    }),
+    [currentLockedElementIds, themeTokens]
+  );
+
   const applyTemplate = useCallback(
     async (templateId: string) => {
       const store = storeRef.current;
@@ -266,16 +335,18 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         const autosave = findDesignAutosaveTemplate(savedTemplatesRef.current, templateId, format);
         if (autosave?.designJson?.polotno && typeof autosave.designJson.polotno === 'object') {
           setSavedTemplateId(autosave.id);
-          store.loadJSON(autosave.designJson.polotno as Record<string, unknown>);
+          const { document, lockedIds } = themedSavedDocument(autosave);
+          store.loadJSON(document);
           store.history.clear();
           await store.waitLoading();
           await polishOrgLogoElements(store);
           await syncPolotnoTextBounds(store);
+          recordThemeBaseline(lockedIds);
           return;
         }
 
         const doc = buildPolotnoCampaignDocument(templateId, bindingRef.current!, {
-          brandColor: accentColor,
+          theme: themeTokens,
         });
         if (!doc) return;
 
@@ -285,6 +356,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         await store.waitLoading();
         await polishOrgLogoElements(store);
         await syncPolotnoTextBounds(store);
+        recordThemeBaseline();
       } catch {
         toast.error('Could not load template');
       } finally {
@@ -292,7 +364,14 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         endAutoSaveSuspension();
       }
     },
-    [beginAutoSaveSuspension, accentColor, endAutoSaveSuspension, format]
+    [
+      beginAutoSaveSuspension,
+      endAutoSaveSuspension,
+      format,
+      recordThemeBaseline,
+      themeTokens,
+      themedSavedDocument,
+    ]
   );
 
   const applyTemplateRef = useRef(applyTemplate);
@@ -304,19 +383,32 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
     void applyTemplateRef.current(selectedId);
   }, [selectedReview?.id, category, selectedId, savedTemplateId]);
 
-  const lastAppliedAccentRef = useRef<string | null>(null);
+  // The open theme was edited: built-in presets rebuild in the new look; saved
+  // designs re-theme in place, keeping hand-edited elements as they are.
+  const lastThemeRef = useRef<{ hash: string | null; tokens: MarketingThemeTokens } | null>(null);
   useEffect(() => {
-    const normalized = accentColor.toLowerCase();
-    if (lastAppliedAccentRef.current === null) {
-      lastAppliedAccentRef.current = normalized;
+    const previous = lastThemeRef.current;
+    lastThemeRef.current = { hash: activeHash, tokens: themeTokens };
+    if (!previous || previous.hash === activeHash) return;
+    const activeStore = storeRef.current;
+    if (!activeStore) return;
+    if (selectedId && !savedTemplateId) {
+      void applyTemplateRef.current(selectedId);
       return;
     }
-    if (lastAppliedAccentRef.current === normalized) return;
-    lastAppliedAccentRef.current = normalized;
-    // Live-retint builtin presets only — leave saved/AI custom canvases alone.
-    if (!selectedId || savedTemplateId) return;
-    void applyTemplateRef.current(selectedId);
-  }, [accentColor, selectedId, savedTemplateId]);
+    const lockedIds = currentLockedElementIds();
+    activeStore.loadJSON(
+      rethemePolotnoDocument(activeStore.toJSON(), previous.tokens, themeTokens, lockedIds)
+    );
+    recordThemeBaseline(lockedIds);
+  }, [
+    activeHash,
+    currentLockedElementIds,
+    recordThemeBaseline,
+    savedTemplateId,
+    selectedId,
+    themeTokens,
+  ]);
 
   const applySavedTemplate = useCallback(
     async (record: MarketingTemplateRecord) => {
@@ -355,11 +447,13 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         setSelectedId(baseTemplateId);
         setStartFrom(readCollageSettings(polotno) != null ? 'collage' : 'templates');
 
-        store.loadJSON(polotno);
+        const { document, lockedIds } = themedSavedDocument(record);
+        store.loadJSON(document);
         store.history.clear();
         await store.waitLoading();
         await polishOrgLogoElements(store);
         await syncPolotnoTextBounds(store);
+        recordThemeBaseline(lockedIds);
         await waitForThumbnailPaint();
         const thumbnailDataUrl = await renderDesignStoreThumbnail(store);
         if (thumbnailDataUrl) {
@@ -376,7 +470,14 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         endAutoSaveSuspension();
       }
     },
-    [beginAutoSaveSuspension, category, endAutoSaveSuspension, format]
+    [
+      beginAutoSaveSuspension,
+      category,
+      endAutoSaveSuspension,
+      format,
+      recordThemeBaseline,
+      themedSavedDocument,
+    ]
   );
 
   useEffect(() => {
@@ -451,6 +552,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         contentType: 'design',
         aspectPreset: format,
         platform: format.includes('facebook') ? 'facebook' : 'instagram',
+        themeKey: theme.key,
         designJson: {
           templateId: selectedId,
           sourcePresetId: editingCustom ? DESIGN_CUSTOM_SOURCE_PRESET_ID : selectedId,
@@ -459,6 +561,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
           category,
           binding,
           polotno: store.toJSON(),
+          ...themeSaveStamp(),
         },
       };
     },
@@ -513,7 +616,12 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
         }
         aiSucceeded = true;
 
-        const tokens = applyDesignAiPreferencesToTokens(result.tokens, input.preferences);
+        // AI picks layout, words and category; the theme sets colors, type and background.
+        const tokens = themedAiDesignTokens(
+          applyDesignAiPreferencesToTokens(result.tokens, input.preferences),
+          themeTokens
+        );
+        const themeFonts = themeCampaignFontMap(themeTokens);
         // "Custom" is a content flavor, not a real sidebar folder — find or create one so the
         // generated design lands somewhere the host can find it again.
         const sidebarCategoryId =
@@ -529,7 +637,8 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
             : null;
           return {
             format,
-            document: resolveAiGeneratedDesignDocument(binding, tokens, format, {
+            document: applyCampaignFontsToDocument(
+              resolveAiGeneratedDesignDocument(binding, tokens, format, {
               brandColor: accentColor,
               propertyPhotoUrl: photoUrl,
               orgLogoUrl,
@@ -537,6 +646,8 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
               includePropertyName: input.includeContext.propertyName ?? true,
               includeOrgLogo: input.includeContext.orgLogo ?? true,
             }),
+              themeFonts
+            ),
           };
         });
 
@@ -564,6 +675,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
               contentType: 'design',
               aspectPreset: variant.format,
               platform: variant.format.includes('facebook') ? 'facebook' : 'instagram',
+              themeKey: theme.key,
               designJson: {
                 templateId: '',
                 sourcePresetId: DESIGN_CUSTOM_SOURCE_PRESET_ID,
@@ -575,6 +687,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
                 aiGenerationId,
                 aiTokens: tokens,
                 polotno: polishedDocument,
+                ...themeStampForSave(themeTokens),
                 ...(thumbnailDataUrl ? { thumbnailDataUrl } : {}),
               },
             });
@@ -612,6 +725,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
           store.loadJSON(currentDoc);
           store.history.clear();
           await syncPolotnoTextBounds(store);
+          recordThemeBaseline();
           markBaseline();
         }
 
@@ -644,6 +758,9 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
       publicProperty?.amenities,
       publicProperty?.images,
       queryClient,
+      recordThemeBaseline,
+      theme.key,
+      themeTokens,
     ]
   );
 
@@ -670,10 +787,11 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
       height,
       schemaVersion: 2,
       fonts: [],
-      pages: [{ id: 'blank-page', background: '#ffffff', children: [] }],
+      pages: [{ id: 'blank-page', background: themeTokens.palette.surface, children: [] }],
     });
     activeStore.history.clear();
-  }, [format]);
+    recordThemeBaseline();
+  }, [format, recordThemeBaseline, themeTokens.palette.surface]);
 
   // Called once by CollagePanel when it turns the current (non-collage) canvas
   // into a fresh collage document — clears the preset/saved-template identity
@@ -732,8 +850,9 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
       binding: bindingRef.current!,
       polotno: activeStore.toJSON(),
       sourceReviewId: bindingRef.current?.sourceReviewId ?? null,
+      ...themeSaveStamp(),
     };
-  }, [selectedId, format]);
+  }, [selectedId, format, themeSaveStamp]);
 
   const { canEditContent, canPublish } = useMarketingPermissions();
   const { canUse: canUseMarketingStudio, isLoading: marketingStudioLoading } =
@@ -945,6 +1064,8 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
           tab="design"
           contentType="design"
           brandColor={accentColor}
+          theme={themeTokens}
+          themeKey={theme.key}
           formatOptions={formatOptions}
           format={format}
           onFormatChange={(value) => {
@@ -1044,6 +1165,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
               store={store}
               propertyImageUrls={propertyImageUrls}
               brandColor={accentColor}
+              theme={themeTokens}
               logoUrl={orgLogoUrl}
               style={{
                 width: '100%',
@@ -1146,6 +1268,7 @@ export function PolotnoDesignStudio({ onPublish, openTemplateId, onOpenTemplateH
           setAiGenerateOpen(open);
         }}
         contentType="design"
+        theme={{ name: theme.name, tokens: themeTokens }}
         generating={aiGenerateBusy || generateTemplate.isPending}
         propertyPhotoUrls={propertyPhotoUrls}
         brandColor={brandColor}

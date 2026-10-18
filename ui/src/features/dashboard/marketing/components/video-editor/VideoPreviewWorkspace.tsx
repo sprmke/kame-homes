@@ -129,8 +129,19 @@ export const VideoPreviewWorkspace = forwardRef<VideoPreviewWorkspaceHandle, Pro
     const templateTypography = useMemo(
       () =>
         inputProps.typography ??
-        resolveVideoTypographyContext(project.templateId, inputProps.brandColor, project.palette),
-      [inputProps.typography, inputProps.brandColor, project.templateId, project.palette]
+        resolveVideoTypographyContext(
+          project.templateId,
+          inputProps.brandColor,
+          project.palette,
+          inputProps.theme
+        ),
+      [
+        inputProps.typography,
+        inputProps.brandColor,
+        inputProps.theme,
+        project.templateId,
+        project.palette,
+      ]
     );
 
     const handlePlayerInstance = useCallback((instance: PlayerRef | null) => {
