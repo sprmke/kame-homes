@@ -88,6 +88,19 @@ Ordered by recommended execution order (dependencies flow downward).
 | 29  | [`29-sdlc-testing.md`](./29-sdlc-testing.md)                           | SDLC testing            |
 | 30  | [`30-availability-and-recovery.md`](./30-availability-and-recovery.md) | Availability & recovery |
 
+### Tier 4 — Cross-cutting gaps (added 2026-10-19)
+
+| #   | Doc                                                                  | Item                          |
+| --- | -------------------------------------------------------------------- | ----------------------------- |
+| 31  | [`31-privacy-and-legal.md`](./31-privacy-and-legal.md)               | Privacy / RA 10173            |
+| 32  | [`32-email-deliverability.md`](./32-email-deliverability.md)         | Email deliverability          |
+| 33  | [`33-accessibility.md`](./33-accessibility.md)                       | WCAG 2.2 AA                   |
+| 34  | [`34-seo-discoverability.md`](./34-seo-discoverability.md)           | SEO + noindex on dev          |
+| 35  | [`35-business-logic-integrity.md`](./35-business-logic-integrity.md) | Booking/voucher/payment races |
+| 36  | [`36-browser-device-matrix.md`](./36-browser-device-matrix.md)       | Browser / device matrix       |
+| 37  | [`37-third-party-failures.md`](./37-third-party-failures.md)         | Third-party failure modes     |
+| 38  | [`38-supply-chain.md`](./38-supply-chain.md)                         | Supply chain                  |
+
 ## Execution order
 
 ```

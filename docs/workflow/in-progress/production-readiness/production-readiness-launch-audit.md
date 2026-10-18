@@ -176,22 +176,24 @@ Exit: one folder, zero broken links, `ci:quality` still green (scripts with move
 
 ### Phase 2 — Build the master ledger (extract and dedupe)
 
-- [ ] **2.1 Extract** every open item into `LEDGER.md` with ID `PR-###`, from:
+**Done 2026-10-19.** `LEDGER.md` seeded (PR-001..PR-107). Raw extract 1,268 items → ~120 unique rows. F7 stale `done/` boxes tabled. P0-7 / parking ungate / superhost files reconciled ✅. Dashboard counts on folder README.
+
+- [x] **2.1 Extract** every open item into `LEDGER.md` with ID `PR-###`, from:
   - checklist 00–30 "Remaining work to finalize" tables + exit gates
   - every audit's open boxes, residuals, "accepted" and "deferred" lists
   - operator P0-1..P0-7, D-1..D-4, V-1..V-5
   - QA batch #1–#9 and every for-testing feature plan's manual QA section
   - **done/ docs with unchecked boxes (F7)**: triage each box as (a) stale box, actually shipped → verify and tick; (b) real untested work → ledger row; (c) explicitly out of scope → note. Start with `paymongo-subscription-billing`, `ai-receptionist-production-readiness`, `free-tier-manual-booking-workflow`, `guest-form-configurable-sections`, `review-approval-workflow`, `production-readiness-hardening`, `verification-scope-split`, `listing-contract-renewal-modal`, `parking-e2e-phase*`, `super-admin-console-overhaul`, `unit-handoff-phase-a`, `property-calendar-page`, `ai-settings-super-admin-ownership`. (`remove-google-calendar-sheets`, `docs-obsidian-tooling-sync`, `docs-workflow-vault` are likely stale boxes; confirm quickly.)
   - `guides/testing/*-manual.md` unchecked steps (ai-dashboard-assistant 22, cost-abuse 6, super-admin 5, contract-expiry 5)
-- [ ] **2.2 Dedupe.** The same item often appears in 2–4 docs (e.g. restore drill in pre-prod audit, docs 24/30, QA #9; branch protection in hardening, P0-7, docs 24/26). One ledger row, all sources listed.
-- [ ] **2.3 Initial tag** every row with the tag set above. Default for anything claimed done before the baseline SHA: 🟡.
-- [ ] **2.4 Reconcile known stale claims**: P0-7 branch protection (done 2026-09-19 per doc 26, verify with `gh api` and tick); `PARKING_INTERIM_UNGATED_FEATURES` (removed 2026-09-09, confirm with `rg`); orgSuperhost missing files note in the hardening doc (confirm present).
-- [ ] **2.5 Dashboard.** `README.md` shows counts per tag, per gate, per owner, and the top 10 blockers.
+- [x] **2.2 Dedupe.** The same item often appears in 2–4 docs (e.g. restore drill in pre-prod audit, docs 24/30, QA #9; branch protection in hardening, P0-7, docs 24/26). One ledger row, all sources listed.
+- [x] **2.3 Initial tag** every row with the tag set above. Default for anything claimed done before the baseline SHA: 🟡.
+- [x] **2.4 Reconcile known stale claims**: P0-7 branch protection (done 2026-09-19 per doc 26, verify with `gh api` and tick); `PARKING_INTERIM_UNGATED_FEATURES` (removed 2026-09-09, confirm with `rg`); orgSuperhost missing files note in the hardening doc (confirm present).
+- [x] **2.5 Dashboard.** `README.md` shows counts per tag, per gate, per owner, and the top 10 blockers.
 
 ### Phase 3 — Gap analysis: modules and routes with no readiness coverage
 
-- [ ] **3.1 Module inventory** from code, not docs: `ui/src/features/{guest,dashboard}/*`, `supabase/functions/*` (314), routes in `ui/src/routes/**`, crons, webhooks, storage buckets. Script: `scripts/dev/readiness-inventory.mjs` (new, read-only) prints module → routes → edge functions → e2e specs → route guide → plan doc.
-- [ ] **3.2 Module readiness cards** in `modules/<module>.md`, one per row below. Each card uses the **standard criteria** (3.3) and links its feature plan, route guide(s), QA doc, and tests.
+- [x] **3.1 Module inventory** from code, not docs: `ui/src/features/{guest,dashboard}/*`, `supabase/functions/*` (314), routes in `ui/src/routes/**`, crons, webhooks, storage buckets. Script: `scripts/dev/readiness-inventory.mjs` (new, read-only) prints module → routes → edge functions → e2e specs → route guide → plan doc.
+- [x] **3.2 Module readiness cards** in `modules/<module>.md`, one per row below. Each card uses the **standard criteria** (3.3) and links its feature plan, route guide(s), QA doc, and tests.
 
 | Area           | Modules (one card each)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -204,7 +206,7 @@ Exit: one folder, zero broken links, `ci:quality` still green (scripts with move
 | Super admin    | Overview, orgs/hosts/host detail, approvals, org subscriptions + pricing plans, payment settings, parking payouts, AI settings/usage, platform settings, rate limits, audit log, global search, announcements, support, playbook, developments, step-up OTP, **system health** 🆕 (in progress)                                                                                                                                                                                                                                                                                             |
 | Platform       | Crons (full inventory from `incident-response.md` + `pg_cron` on dev); webhooks (PayMongo, Meta, Resend inbound); storage buckets; realtime channels; maintenance mode + kill switches; multi-residence config (Azure-hardcoded today, see `multi-residence-config-decoupling.md`)                                                                                                                                                                                                                                                                                                          |
 
-- [ ] **3.3 Standard criteria per card** (each a checkbox with evidence):
+- [x] **3.3 Standard criteria per card** (each a checkbox with evidence):
   1. **Functional**: happy path + main unhappy paths (validation errors, empty data, network failure, concurrent edit).
   2. **Access control**: each role (anon, guest authed, owner, org admin scoped, property Full Access / Operations / Read Only, parking member, super admin, outsider from another org) can only see/do what the permission catalog says. UI gate and server gate both checked.
   3. **Plan gate**: behavior per tier (Free / Starter / Pro / Business) matches `plans-feature-matrix.md`; downgrade path.
@@ -221,9 +223,9 @@ Exit: one folder, zero broken links, `ci:quality` still green (scripts with move
   14. **Automated tests**: unit for logic, E2E `@smoke`/`@ci` for the primary journey; gaps listed.
   15. **Docs**: route guide current (behavior, permissions, Testing column, host-facing knowledge).
   16. **Prod config**: required secrets, crons, Vault entries, third-party setup listed for prod.
-- [ ] **3.4 Route coverage map.** For every route guide (≈100 under `docs/guides/routes/`): has E2E? has unit? Testing column filled? Output table in `modules/ROUTE-COVERAGE.md`; missing = 🆕 row.
-- [ ] **3.5 Edge function coverage map.** Use `scripts/dev/audit-edge-functions.mjs` + `audit-auth-matrix.mjs` output: for all 314 functions, record auth tier, rate limit, cache class, validation, handler test yes/no, activity log yes/N/A. Missing = 🆕 row.
-- [ ] **3.6 Cross-cutting gaps not in any checklist yet** (add as 🆕 checklist docs `checklist/31-…` onward):
+- [x] **3.4 Route coverage map.** For every route guide (≈100 under `docs/guides/routes/`): has E2E? has unit? Testing column filled? Output table in `modules/ROUTE-COVERAGE.md`; missing = 🆕 row.
+- [x] **3.5 Edge function coverage map.** Use `scripts/dev/audit-edge-functions.mjs` + `audit-auth-matrix.mjs` output: for all 314 functions, record auth tier, rate limit, cache class, validation, handler test yes/no, activity log yes/N/A. Missing = 🆕 row.
+- [x] **3.6 Cross-cutting gaps not in any checklist yet** (add as 🆕 checklist docs `checklist/31-…` onward):
   - 31 **Privacy and legal**: Philippine Data Privacy Act (RA 10173) obligations, privacy policy + terms current with features (AI, voice recording, analytics, push), data subject requests (export/delete for guest and host), retention for guest IDs/receipts, cookie/analytics consent.
   - 32 **Email deliverability**: SPF/DKIM/DMARC on sending domains, bounce/complaint handling (`email_suppressions`), template rendering across clients, `static_files` for email templates in `config.toml`.
   - 33 **Accessibility** (WCAG 2.2 AA): axe sweep on all primary routes, keyboard, screen reader spot checks.

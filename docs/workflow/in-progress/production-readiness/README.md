@@ -15,12 +15,14 @@ Every launch readiness checklist, audit, QA batch and operator list in one place
 
 ## Status
 
-| Item                | State                                                                                               |
-| ------------------- | --------------------------------------------------------------------------------------------------- |
-| Baseline SHA        | Not set. Waits on CI fix [PR #145](https://github.com/sprmke/kame-homes/pull/145) + CD Dev redeploy |
-| Phase 0 (baseline)  | Local CI green, fixes in PR. See [`evidence/phase0-snapshot.md`](./evidence/phase0-snapshot.md)     |
-| Phase 1 (this move) | Done 2026-10-19                                                                                     |
-| Ledger              | Phase 2 (`LEDGER.md`, then `TO-FIX.md` / `ALL-GOOD.md` at Phase 10)                                 |
+| Item         | State                                                                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline SHA | Not set. [PR #145](https://github.com/sprmke/kame-homes/pull/145) CI green; hosted-dev deploy in flight from `3e269a98`                   |
+| Phase 0      | Migrations applied on `fwor…`. Functions still deploying. Smoke waits. See [`evidence/phase0-snapshot.md`](./evidence/phase0-snapshot.md) |
+| Phase 1      | Done. [PR #146](https://github.com/sprmke/kame-homes/pull/146)                                                                            |
+| Phase 2      | [`LEDGER.md`](./LEDGER.md) seeded 2026-10-19                                                                                              |
+| Phase 3      | 57 module cards, checklists 31–38, route + edge maps                                                                                      |
+| Tag counts   | ⛔ 22 · 🧭 8 · 🔴 2 · 🟡 74 · ⏸️ 18 · 🆕 12 · ✅ 4                                                                                        |
 
 ## Tags
 
@@ -69,4 +71,9 @@ Every doc carries `readiness`, `launch_gate`, `launch_blocker` and `last_verifie
 | [`qa/MODULE-DISPOSITION.md`](./qa/MODULE-DISPOSITION.md)                                                               | in-progress | A    | 🟡        |
 | [`evidence/`](./evidence/phase0-snapshot.md)                                                                           | new         | —    | —         |
 
-Coming in later phases: `LEDGER.md`, `TO-FIX.md`, `ALL-GOOD.md`, `security/` (OWASP, API, LLM, ASVS matrices), `modules/` (one card per module), `environments/` (accounts, seeds, secrets matrix).
+| [`LEDGER.md`](./LEDGER.md) | new | A–G | live |
+| [`modules/`](./modules/README.md) (57 cards + route/edge maps) | new | A | 🟡 |
+| [`security/`](./security/README.md) | new | B | 🟡 |
+| [`environments/`](./environments/README.md) | new | F | 🟡 |
+
+`TO-FIX.md` and `ALL-GOOD.md` land in Phase 10 from the ledger.
