@@ -47,11 +47,7 @@ Do not commit passwords. Store locally in `supabase/.env.dev.local` (gitignored)
 
 ## Seeds
 
-| Seed                      | Status                                     |
-| ------------------------- | ------------------------------------------ |
-| Large-tenant 10k bookings | **Not built** (PR-052)                     |
-| Auth parity JWT fixture   | Example JSON only (`authParitySeed`)       |
-| RLS local probe           | `probe-rls-anon-local.sh` after `db:reset` |
+Reuse existing scripts (`seed-search-fixtures.sql`, `seed-monaco-2612-demo-data.sql`, `seed-dashboard-demo-data.sql`, `seed-analytics-demo-data.sql`, `seed-ai-qa.ts`). Gaps: one org per plan tier with every role (4.2); large-tenant 10k bookings (PR-052); hosted-dev `/properties` empty until listing functions finish (PR-109). RLS local probe: `probe-rls-anon-local.sh` after `db:reset`.
 
 ## Rollback rehearsal
 

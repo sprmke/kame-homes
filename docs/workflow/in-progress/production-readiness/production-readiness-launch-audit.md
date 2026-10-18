@@ -237,10 +237,12 @@ Exit: one folder, zero broken links, `ci:quality` still green (scripts with move
 
 ### Phase 4 — Test environments, accounts, and fixtures
 
-- [ ] **4.1 Environment matrix** (`environments/ENVIRONMENTS.md`): local Docker stack, hosted dev (`fwor…` + `dev.kamehomes.space`), legacy prod (read-only, never touched), mt-prod (does not exist yet). For each: what tests are allowed.
+**Started 2026-10-19.** [`environments/README.md`](./environments/README.md) + [`operator/OPERATOR-ACTIONS.md`](./operator/OPERATOR-ACTIONS.md). Seed matrix (4.2) not built.
+
+- [x] **4.1 Environment matrix** (`environments/ENVIRONMENTS.md`): local Docker stack, hosted dev (`fwor…` + `dev.kamehomes.space`), legacy prod (read-only, never touched), mt-prod (does not exist yet). For each: what tests are allowed.
 - [ ] **4.2 Seed matrix** (local + dev): orgs on Free / Starter / Pro / Business; each with ≥2 properties + 1 parking; members for every role/template; one scoped org admin; a guest account with past + upcoming stays; an unrelated "outsider" org for IDOR tests; a large-tenant org (≥200 bookings, ≥200 activity rows) for pagination/virtualization. Reuse `authParitySeed` and existing QA seeds; add `scripts/dev/seed-readiness-matrix.*` only if gaps remain.
 - [ ] **4.3 Test accounts doc** (no passwords committed): which email maps to which role/tier, where credentials live (local password manager / `supabase/.env.dev.local`).
-- [ ] **4.4 Sandbox credentials needed** → operator list: PayMongo **test** keys + webhook secret on dev, Turnstile test + real keys on dev, Meta test app/page, Resend dev domain, paid or test Gemini key, VAPID keys + `PUSH_FANOUT_SECRET`, Google Maps restricted key, `*_CRON_SECRET` Vault entries.
+- [x] **4.4 Sandbox credentials needed** → operator list: PayMongo **test** keys + webhook secret on dev, Turnstile test + real keys on dev, Meta test app/page, Resend dev domain, paid or test Gemini key, VAPID keys + `PUSH_FANOUT_SECRET`, Google Maps restricted key, `*_CRON_SECRET` Vault entries.
 
 ### Phase 5 — Automated verification sweep (local, then hosted dev)
 
@@ -252,7 +254,7 @@ Run everything that already exists on the baseline SHA and record results in `ev
 - [ ] **5.4 E2E**: `test:e2e:smoke`, `test:e2e:ci`, `test:e2e:plans`, mobile/tablet viewport projects, plus the full suite once; record flaky tests.
 - [ ] **5.5 Plans/RBAC**: `check:plan-catalog` on fresh local DB, `planGateCoverage.test.ts`, plan↔permission coverage test.
 - [ ] **5.6 DB**: `bun run db:reset` clean replay of all 390 migrations; `check-migration-versions.sh`, `check-migration-security.sh`; RLS probe (`probe-rls-anon-local.sh`) for `anon` + `authenticated`; Supabase advisors (security + performance) on dev (read-only).
-- [ ] **5.7 Static guards** individually (so one failure doesn't mask another): cache-class, select-star, unbounded-select, serve-public-rate-limit, authenticated-rate-limit, vercel-headers, storage-cache-control, CSP theme hash, public asset size, bundle budget, tracked secrets, `audit-edge-functions.mjs --check`, `audit-auth-matrix.mjs --check`.
+- [x] **5.7 Static guards** individually (so one failure doesn't mask another): cache-class, select-star, unbounded-select, serve-public-rate-limit, authenticated-rate-limit, vercel-headers, storage-cache-control, CSP theme hash, public asset size, bundle budget, tracked secrets, `audit-edge-functions.mjs --check`, `audit-auth-matrix.mjs --check`.
 - [ ] **5.8 Hosted dev probes**: `ci-smoke.sh` (with `SMOKE_PROPERTY_SLUG`), `verify:deployed-preview`, adversarial auth live suite, cron probe, edge latency baseline, `abuse-public-endpoints.sh`, `check-cors-origins.sh`, `abuse-storage-anon-read.sh` (V-2).
 - [ ] **5.9 AI evals**: `bun run eval:ai` offline + live (live needs key).
 - [ ] **5.10 Lighthouse** 3× median on the 9 budget routes on dev (doc 00).
@@ -305,7 +307,7 @@ Output: `security/OWASP-TOP10-2025.md`, `security/API-TOP10-2023.md`, `security/
 
 ### Phase 9 — Operator and cutover readiness (list and rehearse, no prod writes)
 
-- [ ] **9.1 One operator list** (`operator/OPERATOR-ACTIONS.md`) merging: P0-1..P0-7, D-1..D-4, V-1..V-5, GitHub env vars, sandbox keys (4.4), PostHog/Sentry projects, Vercel env per environment, Supabase Auth settings (captcha, redirect URLs, SMTP), DNS/email auth records, Meta app review, Google services approval, PayMongo Platforms. Each with "how to verify it's done".
+- [x] **9.1 One operator list** (`operator/OPERATOR-ACTIONS.md`) merging: P0-1..P0-7, D-1..D-4, V-1..V-5, GitHub env vars, sandbox keys (4.4), PostHog/Sentry projects, Vercel env per environment, Supabase Auth settings (captcha, redirect URLs, SMTP), DNS/email auth records, Meta app review, Google services approval, PayMongo Platforms. Each with "how to verify it's done".
 - [ ] **9.2 Cutover rehearsal on dev only**: walk `production-deployment.md`, `migration-runbook.md` § production, `legacy-to-mt-prod-migration.md`, and `ci-cd-environments/` Phase B as a dry run; record every step that is unclear, missing, or would fail. Confirm `cd-prod.yml` stays gated (`CUTOVER_ENABLED` unset).
 - [ ] **9.3 Prod env matrix**: every secret, Vault entry, cron, and env var prod will need, cross-checked against `.env.prod.example`, `config.toml`, and system-health registry.
 

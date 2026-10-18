@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **A**.
 
 ## Evidence
 
-None yet. Fill during Phase 7.
+2026-10-19 hosted-dev `/` at desktop: title `Kame Homes - Home`, search pill, destination chips, featured stays, footer legal. Screenshot in session. Not 375/768 yet. Not ✅.

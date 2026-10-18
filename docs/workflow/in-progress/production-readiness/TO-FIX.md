@@ -43,7 +43,8 @@ SEO probe: `dev.kamehomes.space` has **no** `x-robots-tag` and `robots.txt` allo
 
 ## Low (UX found 2026-10-19)
 
-| ID     | Item                                                                                                                                  |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| PR-108 | `/for-hosts` hero uses an em dash (`connected—so`). Banned by `human-copy`. Tour mock left rail clips labels at this viewport.        |
-| PR-109 | `/properties` empty (0 listings) while functions still deploying. Re-test after V-1. If still empty, listing search RPC / seed is 🔴. |
+| ID     | Item                                                                                                                                                                                                  |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR-108 | `/for-hosts` hero uses an em dash (`connected—so`). Banned by `human-copy`. Tour mock left rail clips labels at this viewport.                                                                        |
+| PR-109 | `/properties` empty (0 listings) while functions still deploying. Re-test after V-1. If still empty, listing search RPC / seed is 🔴.                                                                 |
+| PR-110 | Local `ci:quality` in worktree: `voiceReceptionistConsent` Start call height `43.999` vs `44`. GitHub `e2e-smoke` on #145 was green. Treat as subpixel flake; round the assertion or add 1px `min-h`. |

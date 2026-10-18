@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **A**.
 
 ## Evidence
 
-None yet. Fill during Phase 7.
+2026-10-19 hosted-dev `/properties`: title `Kame Homes - Properties`, filters render, **0 listings** empty state. **PR-109.** Re-test after function deploy.

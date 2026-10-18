@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **A**.
 
 ## Evidence
 
-None yet. Fill during Phase 7.
+2026-10-19 hosted-dev `/for-hosts`: title `Kame Homes - For Hosts`, tour + Start free. **PR-108:** hero uses an em dash; tour left rail clips labels. Not 375/768. Not ✅.
