@@ -13,7 +13,7 @@ interface RevealProps {
 }
 
 /**
- * One in-view reveal shared across the redesigned `/for-hosts/preview` page so motion keeps a
+ * One in-view reveal shared across the redesigned `/for-hosts/v2` page so motion keeps a
  * single rhythm: ~0.5s ease-out, once, fully disabled under `prefers-reduced-motion`.
  */
 export function Reveal({ children, delay = 0, y = 20, className, as = 'div' }: RevealProps) {

@@ -220,6 +220,7 @@ export const ROBOTS_DISALLOW = [
   '/search',
   '/explore-preview',
   '/for-hosts/preview',
+  '/for-hosts/v2',
   '/for-hosts/v3',
   '/parkings/requests/',
   '/*/form',

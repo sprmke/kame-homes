@@ -3036,6 +3036,18 @@ html[data-mode-transition='full']::view-transition-group(*) {
   /* Close to spring.mode (stiffness 380, damping 36): quick settle, no overshoot. */
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Sidebar header / footer are the same mounted nodes in both modes: show only the live new
+ * snapshot (no crossfade ghosting), so the AI mode switch thumb slides once, in place. */
+html[data-mode-transition]::view-transition-old(dashboard-rail-header),
+html[data-mode-transition]::view-transition-old(dashboard-rail-footer) {
+  animation: none;
+  opacity: 0;
+}
+html[data-mode-transition]::view-transition-new(dashboard-rail-header),
+html[data-mode-transition]::view-transition-new(dashboard-rail-footer) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 html[data-mode-transition='full']::view-transition-new(dashboard-chat) {
   animation: ai-chat-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

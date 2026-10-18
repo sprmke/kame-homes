@@ -18,7 +18,7 @@ import {
 import { HOST_TOUR_FEATURE_COUNT } from '@/features/guest/marketing/for-hosts/data/hostTourChapters';
 
 /**
- * All copy and demo data for the ground-up `/for-hosts/preview` redesign lives here so the
+ * All copy and demo data for the ground-up `/for-hosts/v2` redesign lives here so the
  * words can be reviewed in one place. Every section component reads from this file.
  */
 
