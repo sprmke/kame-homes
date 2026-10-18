@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **B**.
 
 ## Evidence
 
-None yet. Fill during Phase 7.
+2026-10-19 `/privacy` title `Kame Homes - Privacy`. Policy covers bookings, IDs, AI, voice (no raw audio), PostHog, Philippine rights via `support@kamehomes.space`. Export/delete is email-only (checklist 31 still open).

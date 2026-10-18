@@ -42,4 +42,4 @@ Area: **Host core**. Gate **B**.
 
 ## Evidence
 
-None yet. Fill during Phase 7.
+2026-10-19 `/for-hosts/login` title `Kame Homes - Sign In`. Email Continue + Google. Auth layout, no bottom tab bar. Invite path not walked.
