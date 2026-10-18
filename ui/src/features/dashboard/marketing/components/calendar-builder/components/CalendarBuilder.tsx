@@ -17,14 +17,13 @@ import {
   RotateCcw,
   Undo2,
   LayoutTemplate,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 
-import { useAppSettings } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { CalendarPropertyMediaProvider } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarPropertyMediaProvider';
-import { CalendarThumbnailsProvider } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarThumbnailsProvider';
 import {
   MarketingAiGeneratePanel,
   type MarketingAiGenerateInput,
@@ -41,7 +40,6 @@ import { useGenerateMarketingTemplate } from '@/features/dashboard/marketing/hoo
 import { useMarketingAutoSave } from '@/features/dashboard/marketing/hooks/useMarketingAutoSave';
 import { useMarketingAutoSaveSuspension } from '@/features/dashboard/marketing/hooks/useMarketingAutoSaveSuspension';
 import { useMarketingBookedDates } from '@/features/dashboard/marketing/hooks/useMarketingBookedDates';
-import { useMarketingMediaAccent } from '@/features/dashboard/marketing/hooks/useMarketingMediaAccent';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import { saveMarketingTemplate } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import {
@@ -51,7 +49,6 @@ import {
 } from '@/features/dashboard/marketing/lib/calendarAiGenerateOptions';
 import {
   CALENDAR_AI_FORMATS,
-  resolveAiGeneratedCalendarStyles,
 } from '@/features/dashboard/marketing/lib/calendarAiTokens';
 import {
   aspectPresetForCalendarFormat,
@@ -64,7 +61,14 @@ import {
   planCalendarRelatedCustomRemoval,
   CALENDAR_CUSTOM_PRESET_ID,
 } from '@/features/dashboard/marketing/lib/calendarAutosave';
-import { applyBrandAccentToCalendarStyles } from '@/features/dashboard/marketing/lib/calendarBrandColors';
+import { useMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
+import {
+  rethemeCalendarStyles,
+  resolveThemedCalendarLayout,
+} from '@/features/dashboard/marketing/lib/theme/calendarThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import { themedAiCalendarStyles } from '@/features/dashboard/marketing/lib/theme/aiThemeAdapter';
+import { themeStampForSave } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import {
   CALENDAR_MIN_RELATIVE_ZOOM,
   CALENDAR_PREVIEW_ZOOM_LEVELS,
@@ -86,7 +90,6 @@ import {
   propertyGalleryMediaItems,
   propertyMediaItems,
 } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
-import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { PlanGateWatermarkOverlay } from '@/features/dashboard/plans/components/PlanGateWatermarkOverlay';
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
@@ -98,6 +101,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { cn } from '@/lib/utils';
 
 import { CalendarFormatPicker } from './CalendarFormatPicker';
+import { CalendarQuickSettings } from './CalendarQuickSettings';
 import { CalendarPreview } from './CalendarPreview';
 import { CalendarPreviewScaledFrame } from './CalendarPreviewScaledFrame';
 import { CalendarTemplateSidebar } from './CalendarTemplateSidebar';
@@ -184,10 +188,11 @@ export function CalendarBuilder({
   // Picking a template from the mobile sheet should drop the user straight back
   // to the canvas — close the panel so the editor is visible.
   const closeMobilePanel = useCallback(() => setMobilePanelOpen(false), []);
-  const { data: appSettings } = useAppSettings();
   const { data: publicProperty } = usePublicPropertyDetail(propertySlug);
-  const orgBrandColor = useOrgBrandColor();
-  const brandColor = appSettings?.resolvedBrandColor ?? orgBrandColor;
+  // The studio only mounts editors once a theme is resolved.
+  const { active: activeTheme, activeHash } = useMarketingTheme();
+  const theme = activeTheme!;
+  const themeTokens = theme.tokens;
 
   const calendarPropertyImages = useMemo(() => {
     const gallery = publicProperty?.media?.length
@@ -202,9 +207,9 @@ export function CalendarBuilder({
     () => calendarPropertyImages.map((item) => item.url),
     [calendarPropertyImages]
   );
-  const { accentColor } = useMarketingMediaAccent(propertyPhotoUrls, brandColor);
-
   const propertyPhotoUrl = calendarPropertyImages[0]?.url;
+  // Portrait / landscape canvas color: the theme's main color (was the brand accent).
+  const accentColor = themeTokens.palette.primary;
 
   const calendarRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -226,8 +231,16 @@ export function CalendarBuilder({
   const generateTemplate = useGenerateMarketingTemplate();
   const { data: bookedDates = [] } = useMarketingBookedDates();
 
+  const calendarThemeScope = useMemo(
+    () => ({ key: theme.key, tokens: themeTokens, propertyPhotoUrl }),
+    [theme.key, themeTokens, propertyPhotoUrl]
+  );
   const { apiTemplates, savedTemplates, deleteTemplate, renameTemplate } =
-    useCalendarTemplates(propertySlug);
+    useCalendarTemplates(calendarThemeScope);
+  const savedById = useMemo(
+    () => new Map(savedTemplates.map((template) => [template.id, template])),
+    [savedTemplates]
+  );
   useCalendarTemplateDedupe(true);
 
   const calendarPresetIds = useMemo(() => ['default', ...CALENDAR_DESIGNER_PRESET_IDS], []);
@@ -240,12 +253,58 @@ export function CalendarBuilder({
   const redo = useCalendarBuilderStore((state) => state.redo);
   const canUndo = useCalendarBuilderStore((state) => state.canUndo);
   const canRedo = useCalendarBuilderStore((state) => state.canRedo);
-  const resetStyles = useCalendarBuilderStore((state) => state.resetStyles);
-  const applyPreset = useCalendarBuilderStore((state) => state.applyPreset);
   const saveToHistory = useCalendarBuilderStore((state) => state.saveToHistory);
   const previewMonth = useCalendarBuilderStore((state) => state.previewMonth);
   const nextMonth = useCalendarBuilderStore((state) => state.nextMonth);
   const prevMonth = useCalendarBuilderStore((state) => state.prevMonth);
+  const lockedPaths = useCalendarBuilderStore((state) => state.lockedPaths);
+  const setLockedPaths = useCalendarBuilderStore((state) => state.setLockedPaths);
+
+  /** A layout in the active theme; keeps the current format and the frame sizing the host chose. */
+  const applyLayout = useCallback(
+    (layoutId: string) => {
+      const current = useCalendarBuilderStore.getState().styles;
+      const frame = current.canvasFrame;
+      const next = resolveThemedCalendarLayout({
+        layoutId,
+        theme: themeTokens,
+        format: frame?.format ?? 'square',
+        propertyPhotoUrl,
+      });
+      setStyles(
+        frame && next.canvasFrame
+          ? {
+              ...next,
+              canvasFrame: {
+                ...next.canvasFrame,
+                padding: frame.padding,
+                calendarScale: frame.calendarScale,
+              },
+            }
+          : next,
+        { markDirty: false }
+      );
+      setLockedPaths([]);
+    },
+    [propertyPhotoUrl, setLockedPaths, setStyles, themeTokens]
+  );
+
+  /** Loads a saved calendar (already re-themed by useCalendarTemplates) with its locks. */
+  const loadSavedStyles = useCallback(
+    (templateId: string): boolean => {
+      const saved = savedById.get(templateId);
+      if (!saved) return false;
+      setStyles(structuredClone(saved.styles), { markDirty: false });
+      setLockedPaths(saved.lockedPaths);
+      return true;
+    },
+    [savedById, setLockedPaths, setStyles]
+  );
+
+  const themeSaveFields = useMemo(
+    () => ({ themeKey: theme.key, stamp: themeStampForSave(themeTokens, lockedPaths) }),
+    [theme.key, themeTokens, lockedPaths]
+  );
 
   const canvasFrame = normalizeCalendarCanvasFrame(styles.canvasFrame, accentColor);
 
@@ -338,9 +397,11 @@ export function CalendarBuilder({
           name: calendarTemplateName,
           contentType: 'calendar',
           aspectPreset: calendarFormatToAspectPreset(normalized.canvasFrame.format),
+          themeKey: themeSaveFields.themeKey,
           designJson: {
             styles: JSON.parse(JSON.stringify(normalized)),
             sourcePresetId: CALENDAR_CUSTOM_PRESET_ID,
+            ...themeSaveFields.stamp,
           },
         };
       }
@@ -351,9 +412,11 @@ export function CalendarBuilder({
         name: calendarTemplateName,
         contentType: 'calendar',
         aspectPreset: calendarFormatToAspectPreset(normalized.canvasFrame.format),
+        themeKey: themeSaveFields.themeKey,
         designJson: {
           styles: JSON.parse(JSON.stringify(normalized)),
           sourcePresetId: activeSourcePresetId,
+          ...themeSaveFields.stamp,
         },
       };
     },
@@ -364,8 +427,9 @@ export function CalendarBuilder({
     return {
       styles: JSON.parse(JSON.stringify(normalized)),
       sourcePresetId: CALENDAR_CUSTOM_PRESET_ID,
+      ...themeSaveFields.stamp,
     };
-  }, [styles]);
+  }, [styles, themeSaveFields]);
 
   // Autosave presets: only the pending / error window can lose edits. Blank canvas has a
   // manual Save (name dialog), so leaving offers Discard only.
@@ -417,19 +481,14 @@ export function CalendarBuilder({
             activeSourcePresetId,
             aspectPreset
           );
-          if (autosave?.designJson?.styles && typeof autosave.designJson.styles === 'object') {
-            setStyles(
-              normalizeCalendarStyles(
-                JSON.parse(JSON.stringify(autosave.designJson.styles)) as CalendarStyles
-              ),
-              { markDirty: false }
-            );
+          if (autosave && loadSavedStyles(autosave.id)) {
             setActiveAutosaveTemplateId(autosave.id);
             setIsDirty(false);
             saveToHistory();
             return;
           }
           setStyles(mergeCanvasFormat(format), { markDirty: false });
+          applyLayout(activeSourcePresetId);
           setActiveAutosaveTemplateId(null);
           setIsDirty(false);
           saveToHistory();
@@ -443,7 +502,7 @@ export function CalendarBuilder({
             setActiveAutosaveTemplateId(null);
             setSelectedTemplateKey('preset:default');
             setStyles(mergeCanvasFormat(format), { markDirty: false });
-            applyPreset('default', accentColor, propertyPhotoUrl);
+            applyLayout('default');
             setIsDirty(false);
             saveToHistory();
             return;
@@ -461,14 +520,13 @@ export function CalendarBuilder({
       activeCustomTemplateId,
       activeSourcePresetId,
       apiTemplates,
-      applyPreset,
+      applyLayout,
       beginAutoSaveSuspension,
-      accentColor,
       customAutosaveEnabled,
       designerAutosaveEnabled,
       endAutoSaveSuspension,
+      loadSavedStyles,
       mergeCanvasFormat,
-      propertyPhotoUrl,
       saveToHistory,
       savedTemplates,
       setIsDirty,
@@ -483,7 +541,7 @@ export function CalendarBuilder({
         setActiveCustomTemplateId(null);
 
         if (isCalendarBlankPreset(presetId)) {
-          applyPreset(presetId, accentColor, propertyPhotoUrl);
+          applyLayout(presetId);
           setActiveAutosaveTemplateId(null);
           setSelectedTemplateKey(`preset:${presetId}`);
           setShowAdvancedSettings(options?.openAdvanced ?? false);
@@ -493,16 +551,11 @@ export function CalendarBuilder({
 
         const aspectPreset = aspectPresetForCalendarFormat(canvasFrame.format);
         const autosave = findCalendarAutosaveTemplate(apiTemplates, presetId, aspectPreset);
-        const savedStyles = autosave?.designJson?.styles;
 
-        if (savedStyles && typeof savedStyles === 'object') {
-          setStyles(
-            normalizeCalendarStyles(JSON.parse(JSON.stringify(savedStyles)) as CalendarStyles),
-            { markDirty: false }
-          );
-          setActiveAutosaveTemplateId(autosave!.id);
+        if (autosave && loadSavedStyles(autosave.id)) {
+          setActiveAutosaveTemplateId(autosave.id);
         } else {
-          applyPreset(presetId, accentColor, propertyPhotoUrl);
+          applyLayout(presetId);
           setActiveAutosaveTemplateId(null);
         }
 
@@ -515,14 +568,12 @@ export function CalendarBuilder({
     },
     [
       apiTemplates,
-      applyPreset,
+      applyLayout,
       beginAutoSaveSuspension,
-      accentColor,
       canvasFrame.format,
       endAutoSaveSuspension,
-      propertyPhotoUrl,
+      loadSavedStyles,
       setIsDirty,
-      setStyles,
     ]
   );
 
@@ -534,10 +585,7 @@ export function CalendarBuilder({
 
       beginAutoSaveSuspension();
       try {
-        setStyles(
-          normalizeCalendarStyles(JSON.parse(JSON.stringify(template.styles)) as CalendarStyles),
-          { markDirty: false }
-        );
+        loadSavedStyles(templateId);
         setActiveCustomTemplateId(templateId);
         setActiveAutosaveTemplateId(templateId);
         setSelectedTemplateKey(`custom:${templateId}`);
@@ -551,29 +599,18 @@ export function CalendarBuilder({
       beginAutoSaveSuspension,
       canvasFrame.format,
       endAutoSaveSuspension,
+      loadSavedStyles,
       savedTemplates,
       setIsDirty,
-      setStyles,
     ]
   );
 
-  const savedCalendarTemplatesForThumbs = useMemo(
-    () =>
-      savedTemplates.map((template) => ({
-        id: template.id,
-        sourcePresetId: template.sourcePresetId,
-        aspectPreset: template.aspectPreset,
-        styles: template.styles,
-        updatedAt: template.createdAt,
-        thumbnailDataUrl: template.thumbnailDataUrl,
-      })),
-    [savedTemplates]
-  );
-
+  // First open in a theme: a starter look opens on the layout it was designed for.
+  const initialLayoutId = theme.calendarLayoutId ?? 'default';
   useEffect(() => {
     if (selectedTemplateKey) return;
-    loadPresetEditorState('default');
-  }, [selectedTemplateKey, loadPresetEditorState]);
+    loadPresetEditorState(initialLayoutId);
+  }, [selectedTemplateKey, loadPresetEditorState, initialLayoutId]);
 
   useEffect(() => {
     if (!activeCustomTemplateId) return;
@@ -604,15 +641,11 @@ export function CalendarBuilder({
       activeSourcePresetId,
       calendarAspectPreset
     );
-    const savedStyles = autosave?.designJson?.styles;
-    if (!autosave || !savedStyles || typeof savedStyles !== 'object') return;
+    if (!autosave || !savedById.has(autosave.id)) return;
 
     beginAutoSaveSuspension();
     try {
-      setStyles(
-        normalizeCalendarStyles(JSON.parse(JSON.stringify(savedStyles)) as CalendarStyles),
-        { markDirty: false }
-      );
+      loadSavedStyles(autosave.id);
       setActiveAutosaveTemplateId(autosave.id);
       setIsDirty(false);
     } finally {
@@ -626,8 +659,9 @@ export function CalendarBuilder({
     calendarAspectPreset,
     designerAutosaveEnabled,
     endAutoSaveSuspension,
+    loadSavedStyles,
+    savedById,
     setIsDirty,
-    setStyles,
   ]);
 
   const previewBookingsForDisplay = useMemo(
@@ -637,28 +671,6 @@ export function CalendarBuilder({
   const previewBlockedDaysForDisplay = useMemo(
     () => (blockedDays?.length ? blockedDays : MOCK_BLOCKED_DAYS),
     [blockedDays]
-  );
-
-  const thumbnailOptions = useMemo(
-    () => ({
-      contentType: 'calendar' as const,
-      presetIds: calendarPresetIds,
-      canvasFormat: canvasFrame.format,
-      brandColor: accentColor,
-      propertyPhotoUrl,
-      previewMonth,
-      previewBookings: previewBookingsForDisplay,
-      savedCalendarTemplates: savedCalendarTemplatesForThumbs,
-    }),
-    [
-      calendarPresetIds,
-      canvasFrame.format,
-      accentColor,
-      propertyPhotoUrl,
-      previewMonth,
-      previewBookingsForDisplay,
-      savedCalendarTemplatesForThumbs,
-    ]
   );
 
   const previewLayout = useMemo(() => {
@@ -681,31 +693,23 @@ export function CalendarBuilder({
 
   const previewRef = exportContainerRef ?? calendarRef;
 
-  const lastAppliedBrandRef = useRef<string | null>(null);
-
+  // The open theme was edited (same theme, new tokens): move the open calendar to the
+  // new look, keeping anything set by hand. Autosave then stores it with the new snapshot.
+  const lastThemeRef = useRef<{ hash: string | null; tokens: MarketingThemeTokens } | null>(null);
   useEffect(() => {
-    const normalized = accentColor.toLowerCase();
-    if (lastAppliedBrandRef.current === normalized) return;
-    lastAppliedBrandRef.current = normalized;
-    beginAutoSaveSuspension();
-    try {
-      const current = useCalendarBuilderStore.getState().styles;
-      const preservePresetPalette = Boolean(
-        activeSourcePresetId && !isCalendarBlankPreset(activeSourcePresetId)
-      );
-      setStyles(applyBrandAccentToCalendarStyles(current, accentColor, { preservePresetPalette }), {
-        markDirty: false,
-      });
-    } finally {
-      endAutoSaveSuspension();
+    const previous = lastThemeRef.current;
+    lastThemeRef.current = { hash: activeHash, tokens: themeTokens };
+    if (!previous || previous.hash === activeHash) return;
+    const state = useCalendarBuilderStore.getState();
+    const next = rethemeCalendarStyles(state.styles, previous.tokens, themeTokens, {
+      lockedPaths: state.lockedPaths,
+      propertyPhotoUrl,
+    });
+    if (next !== state.styles) {
+      setStyles(next, { markDirty: true });
+      saveToHistory();
     }
-  }, [
-    activeSourcePresetId,
-    beginAutoSaveSuspension,
-    accentColor,
-    endAutoSaveSuspension,
-    setStyles,
-  ]);
+  }, [activeHash, propertyPhotoUrl, saveToHistory, setStyles, themeTokens]);
 
   useEffect(() => {
     setRelativeZoom(100);
@@ -769,16 +773,12 @@ export function CalendarBuilder({
     }
     beginAutoSaveSuspension();
     try {
-      if (activeSourcePresetId && !isCalendarBlankPreset(activeSourcePresetId)) {
-        applyPreset(activeSourcePresetId, accentColor, propertyPhotoUrl);
-      } else {
-        resetStyles(accentColor);
-      }
+      applyLayout(activeSourcePresetId ?? 'default');
       setIsDirty(false);
     } finally {
       endAutoSaveSuspension();
     }
-    toast.success('Reset to default');
+    toast.success('Reset to theme');
   };
 
   const handleSelectBlank = () => {
@@ -897,11 +897,8 @@ export function CalendarBuilder({
             ? pickRandomPropertyPhoto(imageUrls)
             : null;
           const photoUrl = randomPhoto ?? undefined;
-          const styles = resolveAiGeneratedCalendarStyles(tokens, {
-            format,
-            brandColor: accentColor,
-            propertyPhotoUrl: photoUrl,
-          });
+          // AI picks the layout and words; the theme dresses it.
+          const styles = themedAiCalendarStyles(tokens, themeTokens, format, photoUrl);
           return {
             format,
             aspectPreset: calendarFormatToAspectPreset(format),
@@ -919,12 +916,14 @@ export function CalendarBuilder({
               name: tokens.label,
               contentType: 'calendar',
               aspectPreset: variant.aspectPreset,
+              themeKey: theme.key,
               designJson: {
                 styles: JSON.parse(JSON.stringify(variant.styles)),
                 sourcePresetId: CALENDAR_CUSTOM_PRESET_ID,
                 aiGenerated: true,
                 aiGenerationId,
                 aiTokens: tokens,
+                ...themeStampForSave(themeTokens),
               },
             })
           )
@@ -960,6 +959,7 @@ export function CalendarBuilder({
         if (preferred && preferredStyles) {
           saveToHistory();
           setStyles(preferredStyles, { markDirty: false });
+          setLockedPaths([]);
           setActiveCustomTemplateId(preferred.id);
           setActiveAutosaveTemplateId(preferred.id);
           setSelectedTemplateKey(`custom:${preferred.id}`);
@@ -988,7 +988,6 @@ export function CalendarBuilder({
       amenitiesText,
       availabilityText,
       beginAutoSaveSuspension,
-      accentColor,
       calendarPropertyImages,
       canvasFrame.format,
       endAutoSaveSuspension,
@@ -998,8 +997,32 @@ export function CalendarBuilder({
       queryClient,
       saveToHistory,
       setIsDirty,
+      setLockedPaths,
       setStyles,
+      theme.key,
+      themeTokens,
     ]
+  );
+
+  // Card art for every layout in the active theme + format (computed once per change).
+  const layoutStylesMap = useMemo(() => {
+    const map = new Map<string, CalendarStyles>();
+    for (const id of calendarPresetIds) {
+      map.set(
+        id,
+        resolveThemedCalendarLayout({
+          layoutId: id,
+          theme: themeTokens,
+          format: canvasFrame.format,
+          propertyPhotoUrl,
+        })
+      );
+    }
+    return map;
+  }, [calendarPresetIds, canvasFrame.format, propertyPhotoUrl, themeTokens]);
+  const layoutStylesFor = useCallback(
+    (layoutId: string) => layoutStylesMap.get(layoutId) ?? layoutStylesMap.get('default')!,
+    [layoutStylesMap]
   );
 
   const headerActions = useMemo(
@@ -1018,6 +1041,7 @@ export function CalendarBuilder({
                 designJson={customDesignJson}
                 defaultName="Custom calendar"
                 aspectPreset={calendarAspectPreset}
+                themeKey={theme.key}
                 buttonLabel="Save Template"
                 updateLabel="Save Template"
                 onSaved={handleCustomTemplateSaved}
@@ -1056,6 +1080,7 @@ export function CalendarBuilder({
       customDesignJson,
       handleCustomTemplateSaved,
       isBelowLg,
+      theme.key,
       isExporting,
       manualSaveEnabled,
       onExport,
@@ -1068,18 +1093,13 @@ export function CalendarBuilder({
   return (
     <TooltipProvider>
       <CalendarPropertyMediaProvider images={calendarPropertyImages}>
-        <CalendarThumbnailsProvider
-          options={thumbnailOptions}
-          propertyName={propertyName}
-          liveCaptureRef={previewRef as React.RefObject<HTMLDivElement | null>}
-        >
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
             <MarketingEditorSidebar
               layoutKey="calendar"
               mobileVariant="sheet"
               mobileOpen={mobilePanelOpen}
               onMobileOpenChange={setMobilePanelOpen}
-              mobileTitle={showAdvancedSettings ? 'Calendar settings' : 'Templates'}
+              mobileTitle={showAdvancedSettings ? 'Advanced' : 'Calendar'}
               header={
                 showAdvancedSettings ? (
                   <div className="flex items-center gap-2">
@@ -1091,12 +1111,24 @@ export function CalendarBuilder({
                       onClick={() => setShowAdvancedSettings(false)}
                     >
                       <ChevronLeftIcon className="size-4" aria-hidden />
-                      Templates
+                      Back
                     </Button>
-                    <span className="text-sm font-medium">Settings</span>
+                    <span className="text-sm font-medium">Advanced</span>
                   </div>
                 ) : (
-                  <p className="text-sm font-medium">Templates</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">Calendar</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-[36px] gap-1.5 text-xs max-lg:min-h-[44px]"
+                      onClick={() => setShowAdvancedSettings(true)}
+                    >
+                      <SlidersHorizontal className="size-3.5" aria-hidden />
+                      Advanced
+                    </Button>
+                  </div>
                 )
               }
             >
@@ -1141,8 +1173,13 @@ export function CalendarBuilder({
                     brandColor={accentColor}
                     onFormatChange={handleCanvasFormatChange}
                   />
+                  <CalendarQuickSettings />
                   <CalendarTemplateSidebar
                     categories={CALENDAR_PRESET_CATEGORIES}
+                    layoutStyles={layoutStylesFor}
+                    propertyName={propertyName}
+                    previewBookings={previewBookingsForDisplay}
+                    previewMonth={previewMonth}
                     customTemplates={customTemplates}
                     selectedKey={selectedTemplateKey}
                     canvasFormat={canvasFrame.format}
@@ -1614,7 +1651,6 @@ export function CalendarBuilder({
               </div>
             </div>
           )}
-        </CalendarThumbnailsProvider>
       </CalendarPropertyMediaProvider>
 
       <MarketingAiGeneratePanel
@@ -1624,9 +1660,10 @@ export function CalendarBuilder({
           setAiGenerateOpen(open);
         }}
         contentType="calendar"
+        theme={{ name: theme.name, tokens: themeTokens }}
         generating={aiGenerateBusy || generateTemplate.isPending}
         propertyPhotoUrls={propertyPhotoUrls}
-        brandColor={brandColor}
+        brandColor={accentColor}
         contextOptions={[
           {
             key: 'propertyPhoto',

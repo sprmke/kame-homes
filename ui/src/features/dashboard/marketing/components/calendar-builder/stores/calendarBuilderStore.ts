@@ -25,7 +25,10 @@ import {
 interface CalendarBuilderActions {
   // Style updates
   setStyles: (styles: CalendarStyles, options?: { markDirty?: boolean }) => void;
+  /** Advanced-panel edit. The path is also locked so theme changes leave it alone. */
   updateStyles: (path: string, value: unknown) => void;
+  /** Paths the host set by hand (saved with the item; see `rethemeCalendarStyles`). */
+  setLockedPaths: (paths: string[]) => void;
   resetStyles: (brandColor?: string) => void;
 
   // Section navigation
@@ -59,7 +62,10 @@ interface CalendarBuilderActions {
 // ========================================
 // Combined Store Type
 // ========================================
-type CalendarBuilderStore = CalendarBuilderState & CalendarBuilderActions;
+type CalendarBuilderStore = CalendarBuilderState & {
+  lockedPaths: string[];
+} & CalendarBuilderActions;
+
 
 // ========================================
 // Helper: Deep set value by path
@@ -170,6 +176,7 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
       exportQuality: 1,
       history: [createDefaultStyles()],
       historyIndex: 0,
+      lockedPaths: [],
 
       // Actions
       setStyles: (styles, options) =>
@@ -183,7 +190,13 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
       updateStyles: (path, value) =>
         set((state) => {
           setNestedValue(state.styles as unknown as Record<string, unknown>, path, value);
+          if (!state.lockedPaths.includes(path)) state.lockedPaths.push(path);
           state.isDirty = true;
+        }),
+
+      setLockedPaths: (paths) =>
+        set((state) => {
+          state.lockedPaths = [...new Set(paths)];
         }),
 
       resetStyles: (brandColor) =>
@@ -196,6 +209,7 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
           state.isDirty = false;
           state.history = [next];
           state.historyIndex = 0;
+          state.lockedPaths = [];
         }),
 
       setActiveSection: (section) =>

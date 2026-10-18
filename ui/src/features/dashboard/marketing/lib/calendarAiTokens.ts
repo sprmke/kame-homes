@@ -50,6 +50,11 @@ const ARCHETYPE_SEED: Record<CalendarLayoutArchetype, string> = {
   'dusk-gradient': 'velvet-guest',
 };
 
+/** The designer layout an AI archetype is built on. */
+export function calendarAiArchetypeSeed(archetype: CalendarLayoutArchetype): string {
+  return ARCHETYPE_SEED[archetype] ?? ARCHETYPE_SEED.bubble;
+}
+
 const FONT_PAIRINGS: Record<CalendarFontPairing, { display: string; body: string; label: string }> =
   {
     'soft-sans': { display: 'Poppins', body: 'Nunito Sans', label: 'Poppins' },

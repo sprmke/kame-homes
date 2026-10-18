@@ -1,7 +1,11 @@
 import { memo, useState } from 'react';
 
-import { useCalendarThumbnails } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarThumbnailsProvider';
+import { CalendarLayoutLivePreview } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarLayoutLivePreview';
 import type { SavedCalendarTemplate } from '@/features/dashboard/marketing/components/calendar-builder/hooks/useCalendarTemplates';
+import type {
+  CalendarStyles,
+  PreviewBooking,
+} from '@/features/dashboard/marketing/components/calendar-builder/types';
 import { MarketingNameDialog } from '@/features/dashboard/marketing/components/shared/MarketingNameDialog';
 import { MARKETING_SIDEBAR_GRID } from '@/features/dashboard/marketing/components/shared/marketingSidebarLayout';
 import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
@@ -36,6 +40,11 @@ export type CalendarPresetCategory = {
 
 type Props = {
   categories: CalendarPresetCategory[];
+  /** A layout in the active theme and format (card art). */
+  layoutStyles: (layoutId: string) => CalendarStyles;
+  propertyName: string;
+  previewBookings: PreviewBooking[];
+  previewMonth: Date;
   customTemplates: SavedCalendarTemplate[];
   selectedKey: string | null;
   canvasFormat?: CalendarCanvasFormat;
@@ -51,6 +60,10 @@ type Props = {
 
 export const CalendarTemplateSidebar = memo(function CalendarTemplateSidebar({
   categories,
+  layoutStyles,
+  propertyName,
+  previewBookings,
+  previewMonth,
   customTemplates,
   selectedKey,
   canvasFormat = 'square',
@@ -63,7 +76,14 @@ export const CalendarTemplateSidebar = memo(function CalendarTemplateSidebar({
   onRenameCustom,
   onRemoveCustom,
 }: Props) {
-  const { getThumbnailUrl, isThumbnailLoading, requestThumbnail } = useCalendarThumbnails();
+  const livePreview = (styles: CalendarStyles) => (
+    <CalendarLayoutLivePreview
+      styles={styles}
+      propertyName={propertyName}
+      bookings={previewBookings}
+      month={previewMonth}
+    />
+  );
   const [removeTarget, setRemoveTarget] = useState<SavedCalendarTemplate | null>(null);
   const [renameTarget, setRenameTarget] = useState<SavedCalendarTemplate | null>(null);
 
@@ -100,9 +120,7 @@ export const CalendarTemplateSidebar = memo(function CalendarTemplateSidebar({
         <MarketingTemplateCard
           name={preset.label}
           meta={preset.description}
-          thumbnailUrl={getThumbnailUrl(thumbId) ?? getThumbnailUrl(preset.value)}
-          thumbnailLoading={isThumbnailLoading(thumbId) || isThumbnailLoading(preset.value)}
-          onRequestThumbnail={() => requestThumbnail(thumbId)}
+          thumbnail={livePreview(layoutStyles(preset.value))}
           selected={selectedKey === thumbId}
           onClick={() => onSelectPreset(preset.value)}
           onCustomize={() => onCustomizePreset(preset.value)}
@@ -120,17 +138,13 @@ export const CalendarTemplateSidebar = memo(function CalendarTemplateSidebar({
 
   return (
     <>
-      <MarketingSidebarSection title="Custom" collapsible={false}>
+      <MarketingSidebarSection title="Your calendars" collapsible={false}>
         <ul className={MARKETING_SIDEBAR_GRID}>
           <li className="min-w-0">
             <MarketingTemplateCard
               name="Blank calendar"
-              meta="Default styles"
-              thumbnailUrl={getThumbnailUrl('preset:default') ?? getThumbnailUrl('default')}
-              thumbnailLoading={
-                isThumbnailLoading('preset:default') || isThumbnailLoading('default')
-              }
-              onRequestThumbnail={() => requestThumbnail('preset:default')}
+              meta="Simple layout"
+              thumbnail={livePreview(layoutStyles('default'))}
               selected={selectedKey === 'preset:default'}
               onClick={onSelectBlank}
               onCustomize={onCustomizeBlank}
@@ -138,17 +152,13 @@ export const CalendarTemplateSidebar = memo(function CalendarTemplateSidebar({
             />
           </li>
           {customTemplates.map((template) => {
-            const thumbId = `custom:${template.id}`;
+            const cardKey = `custom:${template.id}`;
             return (
               <li key={template.id} className="min-w-0">
                 <MarketingTemplateCard
                   name={template.name}
-                  thumbnailUrl={getThumbnailUrl(thumbId) ?? getThumbnailUrl(`saved:${template.id}`)}
-                  thumbnailLoading={
-                    isThumbnailLoading(thumbId) || isThumbnailLoading(`saved:${template.id}`)
-                  }
-                  onRequestThumbnail={() => requestThumbnail(`saved:${template.id}`)}
-                  selected={selectedKey === `custom:${template.id}`}
+                  thumbnail={livePreview(template.styles)}
+                  selected={selectedKey === cardKey}
                   onClick={() => onSelectCustom(template.id)}
                   onCustomize={() => onCustomizeCustom(template.id)}
                   menuItems={customMenu(template)}

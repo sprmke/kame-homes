@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import { CalendarBuilder } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarBuilder';
 import { useCalendarExport } from '@/features/dashboard/marketing/components/calendar-builder/hooks/useCalendarExport';
 import { useCalendarBuilderStore } from '@/features/dashboard/marketing/components/calendar-builder/stores/calendarBuilderStore';
+import { useMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { useMarketingBookedDates } from '@/features/dashboard/marketing/hooks/useMarketingBookedDates';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import { bookedDatesToPreviewBookings } from '@/features/dashboard/marketing/lib/marketingBookedDates';
@@ -18,6 +19,7 @@ type Props = {
 
 export function MarketingCalendarSection({ onPublish }: Props) {
   const { property } = useOrgContext();
+  const { active: activeTheme } = useMarketingTheme();
   const previewRef = useRef<HTMLDivElement>(null);
   const previewMonth = useCalendarBuilderStore((s) => s.previewMonth);
   const { data: bookedDates, isLoading } = useMarketingBookedDates();
@@ -67,7 +69,9 @@ export function MarketingCalendarSection({ onPublish }: Props) {
           <BookingsCalendarSkeleton gridOnly compact />
         </div>
       )}
+      {/* Remount per theme: selection, autosave target and history all belong to one theme. */}
       <CalendarBuilder
+        key={activeTheme?.key ?? 'none'}
         propertyName={property.name}
         propertySlug={property.slug}
         bookings={bookings}

@@ -1,4 +1,5 @@
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
+import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import {
   calendarFormatToAspectPreset,
   type CalendarCanvasFormat,
@@ -107,11 +108,15 @@ export function planCalendarRelatedCustomIds(
       : null;
   const aiGenerated = designJson.aiGenerated === true;
   const targetIsCustom = isCalendarCustomPreset(readCalendarSourcePreset(designJson));
+  // Format siblings never cross themes: the same name can exist in two themes.
+  const targetTheme = effectiveTemplateThemeKey(target);
+  const sameTheme = (template: MarketingTemplateRecord) =>
+    effectiveTemplateThemeKey(template) === targetTheme;
 
   if (generationId || aiGenerated) {
     const targetTokens = JSON.stringify(designJson.aiTokens ?? null);
     const related = templates.filter((template) => {
-      if (template.contentType !== 'calendar') return false;
+      if (template.contentType !== 'calendar' || !sameTheme(template)) return false;
       const json = template.designJson ?? {};
       if (generationId) {
         return (
@@ -129,7 +134,7 @@ export function planCalendarRelatedCustomIds(
 
   if (targetIsCustom && target.name.trim()) {
     const sameName = templates.filter((template) => {
-      if (template.contentType !== 'calendar') return false;
+      if (template.contentType !== 'calendar' || !sameTheme(template)) return false;
       if (template.name !== target.name) return false;
       return isCalendarCustomPreset(readCalendarSourcePreset(template.designJson));
     });
@@ -148,7 +153,10 @@ export function planCalendarRelatedCustomRemoval(
   return planCalendarRelatedCustomIds(templates, targetId);
 }
 
-/** Keep the newest row per preset+format group; return ids to delete. */
+/**
+ * Keep the newest row per theme + preset + format group; return ids to delete.
+ * Theme is part of the key: the same look edited in two themes is two items.
+ */
 export function planCalendarTemplateDedupe(templates: MarketingTemplateRecord[]): string[] {
   const calendarTemplates = templates.filter((template) => template.contentType === 'calendar');
   const groups = new Map<string, MarketingTemplateRecord[]>();
@@ -157,7 +165,10 @@ export function planCalendarTemplateDedupe(templates: MarketingTemplateRecord[])
     const sourcePreset = readCalendarSourcePreset(template.designJson);
     if (isCalendarCustomPreset(sourcePreset) || isCalendarBlankPreset(sourcePreset)) continue;
 
-    const key = calendarAutosaveGroupKey(sourcePreset, template.aspectPreset);
+    const key = `${effectiveTemplateThemeKey(template)}|${calendarAutosaveGroupKey(
+      sourcePreset,
+      template.aspectPreset
+    )}`;
     const bucket = groups.get(key) ?? [];
     bucket.push(template);
     groups.set(key, bucket);
