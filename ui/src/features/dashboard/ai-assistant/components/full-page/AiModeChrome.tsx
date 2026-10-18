@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { motion } from 'framer-motion';
-import { ArrowLeft, History, Maximize2, PanelRightOpen, Plus, PenSquare, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Columns,
+  History,
+  LayoutGrid,
+  MessageSquare,
+  Plus,
+  PenSquare,
+} from 'lucide-react';
 
 import { AssistantStatusNotices } from '@/features/dashboard/ai-assistant/components/AssistantStatusNotices';
 import { ChatCanvasOverlay } from '@/features/dashboard/ai-assistant/components/ChatCanvasOverlay';
@@ -13,7 +20,6 @@ import { DashboardModeToggle } from '@/features/dashboard/ai-assistant/component
 import { BriefingHome } from '@/features/dashboard/ai-assistant/components/full-page/BriefingHome';
 import { SessionChatComposer } from '@/features/dashboard/ai-assistant/components/SessionChatComposer';
 import { useAiAssistantSession } from '@/features/dashboard/ai-assistant/lib/aiAssistantSessionContext';
-import { assistantSpring } from '@/features/dashboard/ai-assistant/lib/assistantMotion';
 import {
   canvasClosedHref,
   canvasOpenSearch,
@@ -36,7 +42,7 @@ import { SidebarTenantScope } from '@/features/dashboard/org/components/TenantSw
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useIsBelowMd, usePrefersReducedMotion } from '@/hooks/useMediaQuery';
+import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { prefetchChunkOnce } from '@/hooks/usePrefetchOnIntent';
 import { cn } from '@/lib/utils';
 
@@ -76,9 +82,12 @@ const RAIL_ICON_CLASS = 'size-10 min-h-[40px] min-w-[40px] shrink-0 rounded-xl';
 function RailPageNav({
   navSections,
   activeNavHref,
+  showTopDivider = true,
 }: {
   navSections: SidebarNavSection[];
   activeNavHref: string | null;
+  /** When false, the icon column has no actions above page icons (expanded chats panel). */
+  showTopDivider?: boolean;
 }) {
   const { conversationId } = useAiAssistantSession();
   const items = navSections.flatMap((section) =>
@@ -89,7 +98,10 @@ function RailPageNav({
   return (
     <nav
       aria-label="Pages"
-      className="border-sidebar-border flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto overscroll-contain border-t py-2 [scrollbar-width:none]"
+      className={cn(
+        'flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto overscroll-contain py-2 [scrollbar-width:none]',
+        showTopDivider && 'border-sidebar-border border-t'
+      )}
     >
       {items.map(({ label, href, Icon }) => {
         const target = href as string;
@@ -127,69 +139,80 @@ type RailProps = {
   /** Highlighted only while a page is open in the canvas. */
   activeNavHref: string | null;
   collapsed: boolean;
-  /** Account menu / plan entry from AdminLayout (same footer as the sidebar). */
-  footer: ReactNode;
 };
 
-/** Desktop (lg+) rail: scope, page icons, chat history, account (with the mode switch). */
-export function AiModeRail({ navSections, activeNavHref, collapsed, footer }: RailProps) {
+function RailChatsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={onClick}
+      aria-label="Chats"
+      title="Chats"
+      className={RAIL_ICON_CLASS}
+    >
+      <History className="size-5" aria-hidden />
+    </Button>
+  );
+}
+
+/**
+ * Desktop (lg+) AI mode body of the shared sidebar shell: page icons + chat history. The shell
+ * (AdminLayout) owns the scope header and account footer so they never move on a mode switch.
+ */
+export function AiModeRailBody({ navSections, activeNavHref, collapsed }: RailProps) {
   const session = useAiAssistantSession();
-  const reducedMotion = usePrefersReducedMotion();
+  const [railHistoryOpen, setRailHistoryOpen] = useState(false);
 
   return (
-    <motion.aside
-      aria-label="Assistant"
-      initial={false}
-      animate={{ width: collapsed ? RAIL_COLLAPSED_PX : RAIL_EXPANDED_PX }}
-      transition={reducedMotion ? { duration: 0 } : assistantSpring.soft}
-      className="border-sidebar-border bg-sidebar hidden h-screen shrink-0 flex-col overflow-hidden border-r lg:flex"
-      style={{ viewTransitionName: 'dashboard-rail' }}
-    >
+    // Icon column stays put in both states; expanding only reveals the chats panel beside it.
+    <div className="flex min-h-0 flex-1 overflow-hidden">
       <div
-        className={cn('border-sidebar-border shrink-0 border-b py-3', collapsed ? 'px-2' : 'px-3')}
-      >
-        <SidebarTenantScope collapsed={collapsed} />
-      </div>
-
-      {/* Icon column stays put in both states; expanding only reveals the chats panel beside it. */}
-      <div className="flex min-h-0 flex-1">
-        <div
-          className={cn(
-            'border-sidebar-border flex min-h-0 shrink-0 flex-col items-center',
-            !collapsed && 'border-r'
-          )}
-          style={{ width: RAIL_COLLAPSED_PX }}
-        >
-          <div className="flex shrink-0 flex-col items-center gap-1 py-2">
-            {collapsed ? <NewChatButton /> : null}
-            <NotificationBell />
-          </div>
-          <RailPageNav navSections={navSections} activeNavHref={activeNavHref} />
-        </div>
-
-        {collapsed ? null : (
-          <div
-            className="flex min-h-0 shrink-0 flex-col pt-2"
-            style={{ width: RAIL_EXPANDED_PX - RAIL_COLLAPSED_PX }}
-          >
-            <div className="shrink-0 px-2 pb-2">
-              <Button type="button" className="h-11 w-full" onClick={session.newChat}>
-                <Plus className="size-4" aria-hidden />
-                New chat
-              </Button>
-            </div>
-            <ConversationHistoryList
-              variant="rail"
-              activeConversationId={session.conversationId}
-              onSelect={session.selectConversation}
-              onDeleted={session.onConversationDeleted}
-            />
-          </div>
+        className={cn(
+          'border-sidebar-border flex min-h-0 shrink-0 flex-col items-center self-stretch',
+          !collapsed && 'border-r'
         )}
+        style={{ width: RAIL_COLLAPSED_PX }}
+      >
+        {collapsed ? (
+          <div className="flex shrink-0 flex-col items-center pt-2">
+            <NewChatButton />
+          </div>
+        ) : null}
+        <RailPageNav
+          navSections={navSections}
+          activeNavHref={activeNavHref}
+          showTopDivider={collapsed}
+        />
+        {collapsed ? (
+          <div className="mt-auto flex shrink-0 flex-col items-center pb-2">
+            <RailChatsButton onClick={() => setRailHistoryOpen(true)} />
+          </div>
+        ) : null}
+        <HistoryDrawer open={railHistoryOpen} onOpenChange={setRailHistoryOpen} />
       </div>
 
-      {footer}
-    </motion.aside>
+      {collapsed ? null : (
+        <div
+          className="flex min-h-0 shrink-0 flex-col pt-2"
+          style={{ width: RAIL_EXPANDED_PX - RAIL_COLLAPSED_PX }}
+        >
+          <div className="shrink-0 px-2 pb-2">
+            <Button type="button" className="h-11 w-full" onClick={session.newChat}>
+              <Plus className="size-4" aria-hidden />
+              New chat
+            </Button>
+          </div>
+          <ConversationHistoryList
+            variant="rail"
+            activeConversationId={session.conversationId}
+            onSelect={session.selectConversation}
+            onDeleted={session.onConversationDeleted}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -271,19 +294,71 @@ export function AiModeMobileTopBar() {
   );
 }
 
+const AI_VIEW_ACTION_CLASS = 'min-h-9 gap-1.5 px-2.5 text-[13px] font-medium';
+
+/** Fixed desktop toolbar above the chat / canvas split (not inside the canvas card). */
+export function AiModeDesktopSplitToolbar({ canvasOpen }: { canvasOpen: boolean }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { conversationId } = useAiAssistantSession();
+  const { setMode } = useDashboardMode();
+
+  const toggleCanvas = () => {
+    if (canvasOpen) {
+      navigate(canvasClosedHref(location.pathname, conversationId));
+      return;
+    }
+    navigate({ pathname: location.pathname, search: canvasOpenSearch(location.search) });
+  };
+
+  return (
+    <div
+      className="border-border/60 bg-background hidden min-h-11 shrink-0 items-center justify-end gap-1 border-b px-3 lg:flex"
+      aria-label="Layout"
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className={AI_VIEW_ACTION_CLASS}
+        onClick={toggleCanvas}
+        aria-label={canvasOpen ? 'Chat only' : 'Split View'}
+      >
+        {canvasOpen ? (
+          <>
+            <MessageSquare className="size-4 shrink-0" aria-hidden />
+            Chat only
+          </>
+        ) : (
+          <>
+            <Columns className="size-4 shrink-0" aria-hidden />
+            Split View
+          </>
+        )}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className={cn(AI_VIEW_ACTION_CLASS, 'text-muted-foreground')}
+        onClick={() => setMode('advanced')}
+      >
+        <LayoutGrid className="size-4 shrink-0" aria-hidden />
+        Advanced
+      </Button>
+    </div>
+  );
+}
+
 // ── Chat column ──────────────────────────────────────────────────────────────────────────────
 
 type ChatColumnProps = {
-  /** Canvas is closed: show the "open page" affordance in the header. */
-  canvasOpen: boolean;
   className?: string;
 };
 
 /** Chat column: thread (or briefing home), notices, composer dock. */
-export function AiChatColumn({ canvasOpen, className }: ChatColumnProps) {
+export function AiChatColumn({ className }: ChatColumnProps) {
   const session = useAiAssistantSession();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
   const belowMd = useIsBelowMd();
   const title = session.conversationId
@@ -296,28 +371,13 @@ export function AiChatColumn({ canvasOpen, className }: ChatColumnProps) {
       className={cn('relative flex min-h-0 min-w-0 flex-1 flex-col', className)}
       style={{ viewTransitionName: 'dashboard-chat' }}
     >
-      <div className="hidden min-h-12 shrink-0 items-center gap-2 px-4 lg:flex">
-        <p
-          className="text-muted-foreground min-w-0 flex-1 truncate text-sm"
-          title={title ?? undefined}
-        >
-          {title && session.conversation ? title : null}
-        </p>
-        {!canvasOpen ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="min-h-[36px] gap-1.5"
-            onClick={() =>
-              navigate({ pathname: location.pathname, search: canvasOpenSearch(location.search) })
-            }
-          >
-            <PanelRightOpen className="size-4" aria-hidden />
-            Split View
-          </Button>
-        ) : null}
-      </div>
+      {title && session.conversation ? (
+        <div className="hidden min-h-10 shrink-0 items-center px-4 lg:flex">
+          <p className="text-muted-foreground min-w-0 truncate text-sm" title={title ?? undefined}>
+            {title}
+          </p>
+        </div>
+      ) : null}
 
       {session.canvasBlock ? (
         <ChatCanvasOverlay
@@ -352,18 +412,12 @@ export function AiChatColumn({ canvasOpen, className }: ChatColumnProps) {
 
 // ── Canvas header ────────────────────────────────────────────────────────────────────────────
 
-type CanvasHeaderProps = {
-  title: string | undefined;
-};
-
-/** Header of the canvas pane: page title, Full page (leaves AI mode), close (desktop) / Back (below lg). */
-export function AiCanvasHeader({ title }: CanvasHeaderProps) {
+/** Below lg: back to chat. Desktop layout actions live in `AiModeDesktopSplitToolbar`. */
+export function AiCanvasHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { setMode } = useDashboardMode();
   const { conversationId } = useAiAssistantSession();
   const close = () => navigate(canvasClosedHref(location.pathname, conversationId));
-  const label = useMemo(() => title ?? 'Page', [title]);
 
   // Esc closes the canvas (the composer handles Esc first while a reply is streaming).
   const closeHref = canvasClosedHref(location.pathname, conversationId);
@@ -387,43 +441,16 @@ export function AiCanvasHeader({ title }: CanvasHeaderProps) {
   }, [closeHref, navigate]);
 
   return (
-    <div className="border-border/60 bg-card flex min-h-12 shrink-0 items-center gap-1 border-b px-2 lg:px-3">
+    <div className="border-border/60 bg-card flex min-h-12 shrink-0 items-center border-b px-2 lg:hidden">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-11 min-h-[44px] min-w-[44px] lg:hidden"
+        className="size-11 min-h-[44px] min-w-[44px]"
         onClick={close}
         aria-label="Back to chat"
       >
         <ArrowLeft className="size-5" aria-hidden />
-      </Button>
-      <p
-        className="text-muted-foreground min-w-0 flex-1 truncate text-sm font-medium"
-        title={label}
-      >
-        {label}
-      </p>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="min-h-[40px] gap-1.5"
-        title="Leave AI mode"
-        onClick={() => setMode('advanced')}
-      >
-        <Maximize2 className="size-4" aria-hidden />
-        <span className="max-sm:sr-only">Full page</span>
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="hidden size-10 min-h-[40px] min-w-[40px] lg:inline-flex"
-        onClick={close}
-        aria-label="Close page"
-      >
-        <X className="size-4" aria-hidden />
       </Button>
     </div>
   );

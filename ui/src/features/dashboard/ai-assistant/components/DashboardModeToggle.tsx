@@ -15,7 +15,7 @@ function shortcutHint(): string {
 type Props = {
   className?: string;
   /**
-   * `row` sits above the plan row in the sidebar / rail / More sheet footer.
+   * `row` sits in the sidebar / rail / More sheet footer, under the plan badge.
    * `icon` is the collapsed-rail form. `compact` fits the AI mode phone top bar.
    */
   variant?: 'row' | 'icon' | 'compact';

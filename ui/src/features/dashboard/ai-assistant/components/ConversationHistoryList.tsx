@@ -98,27 +98,35 @@ export function ConversationHistoryList({
     });
   };
 
+  const showSearchSpinner = isFetching && searching;
+
   const searchBox = (
     <div className={cn('relative shrink-0', rail ? 'px-2 pb-2' : 'border-border/60 border-b p-2')}>
-      <Search
-        className={cn(
-          'text-muted-foreground pointer-events-none absolute top-1/2 size-4 -translate-y-1/2',
-          rail ? 'start-4' : 'start-4'
-        )}
+      <span
+        className="pointer-events-none absolute inset-y-0 start-0 flex w-9 items-center justify-center"
         aria-hidden
-      />
+      >
+        <Search className="text-muted-foreground size-4 shrink-0" />
+      </span>
       <Input
+        type="search"
         value={q}
         onChange={(event) => setQ(event.target.value)}
         placeholder="Search"
         aria-label="Search conversations"
-        className={cn('ps-9', rail ? 'h-9' : 'h-10')}
+        className={cn(
+          'ps-9 leading-none max-lg:text-[13px]',
+          rail ? 'h-9 py-0' : 'h-10 py-0',
+          showSearchSpinner && 'pe-9'
+        )}
       />
-      {isFetching && searching ? (
-        <Loader2
-          className="text-muted-foreground absolute end-4 top-1/2 size-4 -translate-y-1/2 animate-spin"
+      {showSearchSpinner ? (
+        <span
+          className="pointer-events-none absolute inset-y-0 end-0 flex w-9 items-center justify-center"
           aria-hidden
-        />
+        >
+          <Loader2 className="text-muted-foreground size-4 shrink-0 animate-spin" />
+        </span>
       ) : null}
     </div>
   );
