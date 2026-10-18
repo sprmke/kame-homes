@@ -3,7 +3,7 @@ stage: in-progress
 title: 'AI chat mode vs Advanced mode'
 status: in-progress
 tags: [workflow, in-progress, ai, dashboard, ux, mobile]
-updated: 2026-10-17
+updated: 2026-10-18
 kind: plan
 ---
 
@@ -166,9 +166,9 @@ flowchart LR
 - No gradients, glow, or purple "AI" styling.
 - The brand shows in the details: the teal focus ring, a teal streaming caret, and confirm cards tinted with the status color.
 
-**Desktop (1024px and up):** a grid `[rail 300px | chat minmax(0,1fr) | canvas 0 or clamp(560px,55vw,900px)]`. Below a 1236px viewport the rail is 64px while the canvas is open.
+**Desktop (1024px and up):** a grid `[rail 280px | chat minmax(0,1fr) | canvas 0 or clamp(560px,55vw,900px)]`. Below a 1216px viewport the rail is 72px while the canvas is open. The rail and the Advanced sidebar are one shell (`AdminLayout`): same width, same collapse preference, and the scope header and account footer stay mounted across a switch (only the middle section swaps), so shared chrome never moves.
 
-- **Rail** (a fixed 64px icon column, plus a 200px chats panel when expanded):
+- **Rail** (a fixed 72px icon column, plus a 208px chats panel when expanded):
   - The scope switcher (reusing the tenant switcher) across the top.
   - Icon column: **New chat** (Cmd/Ctrl+Shift+O), notifications, memory, a divider, then the sidebar page icons (**Pages** nav). A page icon opens that page in the canvas and keeps the chat; the current page is highlighted while the canvas is open. The chats panel expands/collapses with the same edge chevron as Advanced mode.
   - Chats panel: search, then pinned chats and recent chats grouped by Today, Yesterday, and Earlier. The row overflow opens `ResponsiveOverflowMenu` (rename, pin, archive).
@@ -224,7 +224,7 @@ flowchart LR
 **Motion tokens** (shared by both surfaces, in `ui/src/features/dashboard/ai-assistant/lib/assistantMotion.ts`):
 
 - `spring.mode`: stiffness 380, damping 36, mass 0.9 (the mode switch and canvas open).
-- `spring.soft`: stiffness 260, damping 30 (the rail collapse and composer lift).
+- `spring.soft`: stiffness 260, damping 30 (the composer lift; the rail collapse uses the sidebar's 300ms width transition).
 - Micro-interactions: 160ms ease-out on enter and 110ms ease-in on exit.
 - Message entrance: 8px rise plus fade, with a 30ms stagger and at most 4 staggered items.
 - Only transform, opacity, and clip-path are animated. Animations are interruptible.

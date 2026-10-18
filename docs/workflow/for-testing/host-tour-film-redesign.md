@@ -9,7 +9,7 @@ kind: plan
 
 # Host tour film redesign
 
-Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/for-hosts/preview`, `/for-hosts/login`, `/for-guests/login`, onboarding side panel).
+Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/for-hosts/v2`, `/for-hosts/login`, `/for-guests/login`, onboarding side panel).
 
 ## Why
 
