@@ -40,3 +40,10 @@ PR-012 CSP enforce · PR-032 double-booking DB constraint · PR-031 parking refu
 PR-100–PR-107 (privacy, email, a11y, SEO noindex on **dev**, races, browsers, third-party down, supply chain).
 
 SEO probe: `dev.kamehomes.space` has **no** `x-robots-tag` and `robots.txt` allows `/` (PR-103).
+
+## Low (UX found 2026-10-19)
+
+| ID     | Item                                                                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| PR-108 | `/for-hosts` hero uses an em dash (`connected—so`). Banned by `human-copy`. Tour mock left rail clips labels at this viewport.        |
+| PR-109 | `/properties` empty (0 listings) while functions still deploying. Re-test after V-1. If still empty, listing search RPC / seed is 🔴. |
