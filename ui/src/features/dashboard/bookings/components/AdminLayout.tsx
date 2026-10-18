@@ -146,21 +146,21 @@ import { PostHogAdminScopeSync } from '@/lib/posthog/PostHogAdminScopeSync';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_COLLAPSED_KEY = 'kame-admin-sidebar-collapsed';
-const AI_RAIL_COLLAPSED_KEY = 'kame-ai-rail-collapsed';
 
 // AI mode chrome is its own chunk; Advanced-mode users never download it.
 const loadAiModeChrome = () =>
   import('@/features/dashboard/ai-assistant/components/full-page/AiModeChrome');
-const AiModeRail = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiModeRail })));
+const AiModeRailBody = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiModeRailBody })));
 const AiModeMobileTopBar = lazy(() =>
   loadAiModeChrome().then((m) => ({ default: m.AiModeMobileTopBar }))
 );
 const AiChatColumn = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiChatColumn })));
 const AiCanvasHeader = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiCanvasHeader })));
+const AiModeDesktopSplitToolbar = lazy(() =>
+  loadAiModeChrome().then((m) => ({ default: m.AiModeDesktopSplitToolbar }))
+);
 const AiModeSurface = lazy(() => loadAiModeChrome().then((m) => ({ default: m.AiModeSurface })));
 
-const SIDEBAR_EXPANDED_WIDTH = 260;
-const SIDEBAR_COLLAPSED_WIDTH = 72;
 /** Vertical center of workspace switcher chevron (expanded) / logo (collapsed). */
 const SIDEBAR_TOGGLE_TOP_EXPANDED = 42;
 const SIDEBAR_TOGGLE_TOP_COLLAPSED = 32;
@@ -399,15 +399,13 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  // One collapse preference for both modes, so a mode switch never resizes the sidebar.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
-  const [railCollapsed, setRailCollapsed] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem(AI_RAIL_COLLAPSED_KEY) === 'true'
-  );
   const { mode, availability, transitioning, onTransitionEnd } = useDashboardMode();
   const aiMode = mode === 'ai' && !isSuperAdminPath(location.pathname);
   const canvasOpen = isCanvasOpen(location.search);
   const canvasResize = useCanvasResize({
-    railPreferenceCollapsed: railCollapsed,
+    railPreferenceCollapsed: sidebarCollapsed,
     canvasOpen: aiMode && canvasOpen,
   });
   const propertyId = usePropertyIdParam();
@@ -600,15 +598,10 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
     });
   };
 
-  const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
-
   // AI mode: the composer dock is the only bottom layer on phone.
   const mobileTabBar = aiMode ? null : (
     <BottomTabBar items={tabItemsWithBadges} activeKey={tabActiveKey} aria-label="Admin" />
   );
-  const activeNavLabel =
-    navSections.flatMap((section) => section.items).find((item) => item.href === activeNavHref)
-      ?.label ?? undefined;
 
   // Warm the AI mode chunk once the toggle is usable so the first switch is instant.
   useEffect(() => {
@@ -630,21 +623,10 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
     }
   }, [aiMode]);
 
-  const toggleRailCollapsed = useCallback(() => {
-    setRailCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(AI_RAIL_COLLAPSED_KEY, String(next));
-      } catch {
-        // per-viewer convenience
-      }
-      return next;
-    });
-  }, []);
-
-  const aiRailWidth = canvasResize.railCollapsed ? RAIL_COLLAPSED_PX : RAIL_EXPANDED_PX;
-  const railEdgeCollapsed = canvasResize.railCollapsed;
-  const showRailCollapseToggle = aiMode && !canvasResize.railLocked;
+  // AI mode may force the rail collapsed while the canvas is open on small laptops.
+  const railCollapsed = aiMode ? canvasResize.railCollapsed : sidebarCollapsed;
+  const sidebarWidth = railCollapsed ? RAIL_COLLAPSED_PX : RAIL_EXPANDED_PX;
+  const showCollapseToggle = !(aiMode && canvasResize.railLocked);
 
   return (
     <>
@@ -661,88 +643,68 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
             data-transitioning={transitioning ? 'true' : undefined}
           >
             <div className="relative flex min-w-0 flex-1">
-              {aiMode ? (
-                <Suspense fallback={<AiRailFallback />}>
-                  <AiModeRail
-                    navSections={navSections}
-                    activeNavHref={canvasOpen ? activeNavHref : null}
-                    collapsed={canvasResize.railCollapsed}
-                    footer={
-                      <AdminProfileFooter
-                        collapsed={canvasResize.railCollapsed}
-                        showThemeToggle={false}
-                        displayName={displayName}
-                        avatarUrl={avatarUrl}
-                        initials={initials}
-                        email={email}
-                        signOut={signOut}
-                        onOpenProfile={openProfileModal}
-                      />
-                    }
-                  />
-                </Suspense>
-              ) : (
-                /* Desktop sidebar */
-                <aside
-                  className="border-sidebar-border bg-sidebar hidden h-screen shrink-0 flex-col border-r transition-[width] duration-300 ease-out lg:flex"
-                  style={{ width: sidebarWidth, viewTransitionName: 'dashboard-rail' }}
-                  aria-label="Admin navigation"
-                  aria-expanded={!sidebarCollapsed}
-                >
-                  <AdminSidebarContent
-                    navSections={navSections}
-                    activeNavHref={activeNavHref}
-                    navHrefsKey={navHrefsKey}
-                    pathname={location.pathname}
-                    propertySettingsHasIssues={propertySettingsHasIssues}
-                    parkingSettingsHasIssues={parkingSettingsHasIssues}
-                    orgSettingsHasIssues={orgSettingsHasIssues}
-                    hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
-                    displayName={displayName}
-                    avatarUrl={avatarUrl}
-                    initials={initials}
-                    email={email}
-                    signOut={signOut}
-                    onOpenProfile={openProfileModal}
-                    collapsed={sidebarCollapsed}
-                    superAdmin={superAdmin}
-                  />
-                </aside>
-              )}
+              {/* Desktop sidebar: one shell in both modes. Only the middle section swaps
+               * (page nav ↔ chats); the scope header and account footer stay mounted. */}
+              <aside
+                className="border-sidebar-border bg-sidebar hidden h-screen shrink-0 flex-col border-r transition-[width] duration-300 ease-out lg:flex"
+                style={{ width: sidebarWidth, viewTransitionName: 'dashboard-rail' }}
+                aria-label={aiMode ? 'Assistant' : 'Admin navigation'}
+                aria-expanded={!railCollapsed}
+              >
+                <AdminSidebarContent
+                  navSections={navSections}
+                  activeNavHref={activeNavHref}
+                  navHrefsKey={navHrefsKey}
+                  pathname={location.pathname}
+                  propertySettingsHasIssues={propertySettingsHasIssues}
+                  parkingSettingsHasIssues={parkingSettingsHasIssues}
+                  orgSettingsHasIssues={orgSettingsHasIssues}
+                  hostAnnouncementsHaveUnread={hostAnnouncementsHaveUnread}
+                  displayName={displayName}
+                  avatarUrl={avatarUrl}
+                  initials={initials}
+                  email={email}
+                  signOut={signOut}
+                  onOpenProfile={openProfileModal}
+                  collapsed={railCollapsed}
+                  superAdmin={superAdmin}
+                  body={
+                    aiMode ? (
+                      <Suspense fallback={<AiRailBodyFallback />}>
+                        <AiModeRailBody
+                          navSections={navSections}
+                          activeNavHref={canvasOpen ? activeNavHref : null}
+                          collapsed={railCollapsed}
+                        />
+                      </Suspense>
+                    ) : undefined
+                  }
+                />
+              </aside>
 
-              {aiMode && !showRailCollapseToggle ? null : (
+              {showCollapseToggle ? (
                 <button
                   type="button"
-                  onClick={aiMode ? toggleRailCollapsed : toggleSidebarCollapsed}
+                  onClick={toggleSidebarCollapsed}
                   style={{
-                    left: aiMode ? aiRailWidth : sidebarWidth,
-                    top: (aiMode ? railEdgeCollapsed : sidebarCollapsed)
-                      ? SIDEBAR_TOGGLE_TOP_COLLAPSED
-                      : SIDEBAR_TOGGLE_TOP_EXPANDED,
+                    left: sidebarWidth,
+                    top: railCollapsed ? SIDEBAR_TOGGLE_TOP_COLLAPSED : SIDEBAR_TOGGLE_TOP_EXPANDED,
                   }}
                   className={cn(
                     'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground shadow-elevated',
                     'absolute z-30 hidden min-h-[28px] min-w-[28px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-300 ease-out lg:flex',
                     'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
                   )}
-                  aria-label={
-                    (aiMode ? railEdgeCollapsed : sidebarCollapsed)
-                      ? 'Expand sidebar'
-                      : 'Collapse sidebar'
-                  }
-                  title={
-                    (aiMode ? railEdgeCollapsed : sidebarCollapsed)
-                      ? 'Expand sidebar'
-                      : 'Collapse sidebar'
-                  }
+                  aria-label={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  title={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
-                  {(aiMode ? railEdgeCollapsed : sidebarCollapsed) ? (
+                  {railCollapsed ? (
                     <ChevronRight className="h-3 w-3" aria-hidden />
                   ) : (
                     <ChevronLeft className="h-3 w-3" aria-hidden />
                   )}
                 </button>
-              )}
+              ) : null}
 
               <div className="admin-mobile-shell-column relative flex min-w-0 flex-1 flex-col overflow-hidden">
                 {aiMode ? (
@@ -752,12 +714,17 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
                 ) : (
                   <AdminMobileTopBar superAdmin={superAdmin} />
                 )}
+                {aiMode ? (
+                  <Suspense fallback={null}>
+                    <AiModeDesktopSplitToolbar canvasOpen={canvasOpen} />
+                  </Suspense>
+                ) : null}
 
                 <div className="flex min-h-0 min-w-0 flex-1">
                   {aiMode ? (
                     <Suspense fallback={<AiChatFallback />}>
                       <AiModeSurface>
-                        <AiChatColumn canvasOpen={canvasOpen} />
+                        <AiChatColumn />
                       </AiModeSurface>
                     </Suspense>
                   ) : null}
@@ -797,7 +764,7 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
                   >
                     {aiMode ? (
                       <Suspense fallback={null}>
-                        <AiCanvasHeader title={activeNavLabel} />
+                        <AiCanvasHeader />
                       </Suspense>
                     ) : null}
                     <AdminMainColumn
@@ -845,7 +812,7 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
 
           <GuestProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} />
 
-          {!superAdmin && !aiMode ? (
+          {!superAdmin ? (
             <NotificationBell
               variant="fab"
               open={notificationsOpen}
@@ -856,7 +823,9 @@ function AdminLayoutShell({ children, fillMain = false }: Props) {
                 }
                 setNotificationsOpen(open);
               }}
-              className={showAssistantFab ? notificationFabStackedBottomClassName : undefined}
+              className={
+                !aiMode && showAssistantFab ? notificationFabStackedBottomClassName : undefined
+              }
             />
           ) : null}
           {!superAdmin && !aiMode ? (
@@ -891,16 +860,11 @@ function AdminMobileTopBar({ superAdmin }: { superAdmin: boolean }) {
   );
 }
 
-/** Rail-shaped placeholder while the AI mode chunk loads (layout-matched, chrome stays put). */
-function AiRailFallback() {
+/** Middle-section placeholder while the AI mode chunk loads (header and footer stay mounted). */
+function AiRailBodyFallback() {
   return (
-    <div
-      className="border-sidebar-border bg-sidebar hidden h-screen w-[264px] shrink-0 flex-col gap-3 border-r p-3 lg:flex"
-      aria-busy="true"
-      aria-label="Loading"
-    >
-      <Skeleton className="h-10 w-full rounded-xl" />
-      <Skeleton className="h-10 w-full rounded-lg" />
+    <div className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-11 w-full rounded-xl" />
       {[0, 1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-8 w-full rounded-lg" />
       ))}
@@ -985,18 +949,12 @@ type AdminSidebarContentProps = {
   /** When false (mobile drawer closed), collapse the account menu. */
   menuOpen?: boolean;
   superAdmin?: boolean;
+  /** Replaces the page nav (AI mode rail body). Header and footer stay mounted across modes. */
+  body?: ReactNode;
 };
 
 /** Module-level sidebar shell — must not be defined inside AdminLayoutShell or theme changes remount the tree. */
 function AdminSidebarContent({
-  navSections,
-  activeNavHref,
-  navHrefsKey,
-  pathname,
-  propertySettingsHasIssues,
-  parkingSettingsHasIssues,
-  orgSettingsHasIssues,
-  hostAnnouncementsHaveUnread,
   displayName,
   avatarUrl,
   initials,
@@ -1007,21 +965,19 @@ function AdminSidebarContent({
   collapsed = false,
   menuOpen,
   superAdmin = false,
+  body,
+  ...navProps
 }: AdminSidebarContentProps) {
-  const {
-    containerRef,
-    setItemRef,
-    bounds: navPillBounds,
-  } = useSlidingActivePill(activeNavHref, [collapsed, navHrefsKey]);
-
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Named so a mode switch's view transition keeps it crisp instead of crossfading. */}
       <div
         className={cn(
           'border-sidebar-border shrink-0 border-b py-3',
           collapsed ? 'px-2' : 'px-3',
           onClose && 'pt-3'
         )}
+        style={{ viewTransitionName: 'dashboard-rail-header' }}
       >
         {superAdmin ? (
           <SuperAdminSidebarScope collapsed={collapsed} />
@@ -1030,6 +986,65 @@ function AdminSidebarContent({
         )}
       </div>
 
+      {body ?? (
+        <AdminSidebarNav
+          {...navProps}
+          onClose={onClose}
+          collapsed={collapsed}
+          superAdmin={superAdmin}
+        />
+      )}
+
+      <AdminProfileFooter
+        collapsed={collapsed}
+        showThemeToggle={!onClose}
+        displayName={displayName}
+        avatarUrl={avatarUrl}
+        initials={initials}
+        email={email}
+        signOut={signOut}
+        onOpenProfile={onOpenProfile}
+        menuOpen={menuOpen}
+      />
+    </div>
+  );
+}
+
+type AdminSidebarNavProps = Pick<
+  AdminSidebarContentProps,
+  | 'navSections'
+  | 'activeNavHref'
+  | 'navHrefsKey'
+  | 'pathname'
+  | 'propertySettingsHasIssues'
+  | 'parkingSettingsHasIssues'
+  | 'orgSettingsHasIssues'
+  | 'hostAnnouncementsHaveUnread'
+  | 'onClose'
+> & { collapsed: boolean; superAdmin: boolean };
+
+/** Advanced mode middle section: page nav + setup / verification CTAs. */
+function AdminSidebarNav({
+  navSections,
+  activeNavHref,
+  navHrefsKey,
+  pathname,
+  propertySettingsHasIssues,
+  parkingSettingsHasIssues,
+  orgSettingsHasIssues,
+  hostAnnouncementsHaveUnread,
+  onClose,
+  collapsed,
+  superAdmin,
+}: AdminSidebarNavProps) {
+  const {
+    containerRef,
+    setItemRef,
+    bounds: navPillBounds,
+  } = useSlidingActivePill(activeNavHref, [collapsed, navHrefsKey]);
+
+  return (
+    <>
       <nav
         className={cn('flex-1 overflow-y-auto py-4', collapsed ? 'px-2' : 'px-3')}
         aria-label="Main menu"
@@ -1145,19 +1160,7 @@ function AdminSidebarContent({
           <GetVerifiedSidebarCta collapsed={collapsed} />
         )
       ) : null}
-
-      <AdminProfileFooter
-        collapsed={collapsed}
-        showThemeToggle={!onClose}
-        displayName={displayName}
-        avatarUrl={avatarUrl}
-        initials={initials}
-        email={email}
-        signOut={signOut}
-        onOpenProfile={onOpenProfile}
-        menuOpen={menuOpen}
-      />
-    </div>
+    </>
   );
 }
 
@@ -1241,41 +1244,111 @@ function AdminProfileFooter({
 
   return (
     <div
-      className={cn('border-sidebar-border shrink-0 space-y-2 border-t', collapsed ? 'p-2' : 'p-3')}
-    >
-      <DashboardModeToggle variant={collapsed ? 'icon' : 'row'} />
-      <OrgPlanSidebarEntry collapsed={collapsed} />
-
-      {showThemeToggle && (
-        <div className={cn(collapsed ? 'flex justify-center px-0' : 'px-1')}>
-          <ThemeToggle
-            variant={collapsed ? 'icon' : 'segmented'}
-            className={collapsed ? undefined : 'w-full'}
-          />
-        </div>
+      className={cn(
+        'border-sidebar-border bg-sidebar shrink-0 border-t',
+        collapsed ? 'pt-2' : 'pt-3'
       )}
+      style={{ viewTransitionName: 'dashboard-rail-footer' }}
+    >
+      <div className={cn('empty:hidden', collapsed ? 'px-2 pb-2' : 'px-3 pb-2')}>
+        <OrgPlanSidebarEntry collapsed={collapsed} />
+      </div>
+      <div className={cn('border-sidebar-border space-y-2 border-t', collapsed ? 'p-2' : 'p-3')}>
+        <DashboardModeToggle variant={collapsed ? 'icon' : 'row'} />
 
-      <div ref={profileRef} className="relative">
-        {profileOpen && (
-          <div
+        {showThemeToggle && (
+          <div className={cn(collapsed ? 'flex justify-center px-0' : 'px-1')}>
+            <ThemeToggle
+              variant={collapsed ? 'icon' : 'segmented'}
+              className={collapsed ? undefined : 'w-full'}
+            />
+          </div>
+        )}
+
+        <div ref={profileRef} className="relative">
+          {profileOpen && (
+            <div
+              className={cn(
+                'border-border/50 bg-card shadow-elevated-lg absolute z-50 overflow-hidden rounded-xl border',
+                collapsed
+                  ? 'bottom-0 left-full ml-2 w-[min(18rem,calc(100vw-1.5rem))]'
+                  : 'bottom-full left-0 right-0 mb-2'
+              )}
+              role="menu"
+              aria-label="Account menu"
+            >
+              {collapsed ? (
+                <div className="flex min-w-0 items-center gap-3 px-3.5 py-3">
+                  <AccountAvatar
+                    avatarUrl={avatarUrl}
+                    initials={initials}
+                    className="ring-background h-10 w-10 shadow-sm ring-2"
+                    fallbackClassName="text-sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate text-sm font-semibold leading-tight">
+                      {displayName}
+                    </p>
+                    {email ? (
+                      <p className="text-muted-foreground mt-0.5 truncate text-xs leading-tight">
+                        {email}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={cn('px-3 py-3', collapsed && 'border-border/50 border-t')}>
+                <ModeSwitcher className="w-full" />
+              </div>
+
+              <div className="border-border/50 border-t p-1.5">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleOpenProfile}
+                  className="text-ui text-foreground hover:bg-muted/60 focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
+                >
+                  <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleSignOut()}
+                  className="text-ui text-destructive hover:bg-destructive/10 focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
+                >
+                  <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setProfileOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+            aria-label={`Account menu, ${displayName}`}
             className={cn(
-              'border-border/50 bg-card shadow-elevated-lg absolute z-50 overflow-hidden rounded-xl border',
-              collapsed
-                ? 'bottom-0 left-full ml-2 w-[min(18rem,calc(100vw-1.5rem))]'
-                : 'bottom-full left-0 right-0 mb-2'
+              'relative z-10 flex min-h-[44px] w-full min-w-0 items-center rounded-xl border transition-all duration-150',
+              'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+              collapsed ? 'justify-center border-transparent px-2 py-2' : 'gap-3 px-2.5 py-2',
+              profileOpen
+                ? 'border-border bg-muted/60 shadow-sm'
+                : 'hover:border-border/50 hover:bg-muted/40 border-transparent'
             )}
-            role="menu"
-            aria-label="Account menu"
           >
-            {collapsed ? (
-              <div className="flex min-w-0 items-center gap-3 px-3.5 py-3">
-                <AccountAvatar
-                  avatarUrl={avatarUrl}
-                  initials={initials}
-                  className="ring-background h-10 w-10 shadow-sm ring-2"
-                  fallbackClassName="text-sm"
-                />
-                <div className="min-w-0 flex-1">
+            <AccountAvatar
+              avatarUrl={avatarUrl}
+              initials={initials}
+              className="ring-background h-8 w-8 shadow-sm ring-2"
+              fallbackClassName="text-xs"
+            />
+            {!collapsed && (
+              <>
+                <div className="min-w-0 flex-1 text-left">
                   <p className="text-foreground truncate text-sm font-semibold leading-tight">
                     {displayName}
                   </p>
@@ -1285,79 +1358,17 @@ function AdminProfileFooter({
                     </p>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
-
-            <div className={cn('px-3 py-3', collapsed && 'border-border/50 border-t')}>
-              <ModeSwitcher className="w-full" />
-            </div>
-
-            <div className="border-border/50 border-t p-1.5">
-              <button
-                type="button"
-                role="menuitem"
-                onClick={handleOpenProfile}
-                className="text-ui text-foreground hover:bg-muted/60 focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
-              >
-                <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Profile
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => void handleSignOut()}
-                className="text-ui text-destructive hover:bg-destructive/10 focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
-              >
-                <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Sign out
-              </button>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setProfileOpen((o) => !o)}
-          aria-haspopup="menu"
-          aria-expanded={profileOpen}
-          aria-label={`Account menu, ${displayName}`}
-          className={cn(
-            'relative z-10 flex min-h-[44px] w-full min-w-0 items-center rounded-xl border transition-all duration-150',
-            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-            collapsed ? 'justify-center border-transparent px-2 py-2' : 'gap-3 px-2.5 py-2',
-            profileOpen
-              ? 'border-border bg-muted/60 shadow-sm'
-              : 'hover:border-border/50 hover:bg-muted/40 border-transparent'
-          )}
-        >
-          <AccountAvatar
-            avatarUrl={avatarUrl}
-            initials={initials}
-            className="ring-background h-8 w-8 shadow-sm ring-2"
-            fallbackClassName="text-xs"
-          />
-          {!collapsed && (
-            <>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="text-foreground truncate text-sm font-semibold leading-tight">
-                  {displayName}
-                </p>
-                {email ? (
-                  <p className="text-muted-foreground mt-0.5 truncate text-xs leading-tight">
-                    {email}
-                  </p>
-                ) : null}
-              </div>
-              <ChevronUp
-                className={cn(
-                  'text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-200',
-                  profileOpen && 'rotate-180'
-                )}
-                aria-hidden
-              />
-            </>
-          )}
-        </button>
+                <ChevronUp
+                  className={cn(
+                    'text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-200',
+                    profileOpen && 'rotate-180'
+                  )}
+                  aria-hidden
+                />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

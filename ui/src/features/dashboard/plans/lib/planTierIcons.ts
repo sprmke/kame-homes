@@ -46,3 +46,23 @@ export function planTierIconWellClass(planCode: string, muted = false): string {
       return 'bg-primary/10 text-primary';
   }
 }
+
+/** Sidebar / More-sheet plan card: faint tier wash + hairline border in the icon well's hue. */
+export function planTierSurfaceClass(planCode: string): string {
+  switch (planCode) {
+    case 'free':
+      return 'border-border/80 from-muted/70 to-transparent hover:border-border';
+    case 'growth':
+      return 'border-blue-500/20 from-blue-500/[0.07] to-transparent hover:border-blue-500/35';
+    case 'pro':
+      return 'border-violet-500/20 from-violet-500/[0.07] to-transparent hover:border-violet-500/35';
+    case 'business_plus':
+      return 'border-emerald-500/20 from-emerald-500/[0.07] to-transparent hover:border-emerald-500/35';
+    case 'managed':
+      return 'border-amber-500/25 from-amber-500/[0.08] to-transparent hover:border-amber-500/40';
+    case 'commission':
+      return 'border-orange-500/20 from-orange-500/[0.07] to-transparent hover:border-orange-500/35';
+    default:
+      return 'border-primary/20 from-primary/[0.07] to-transparent hover:border-primary/35';
+  }
+}

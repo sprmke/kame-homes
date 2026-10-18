@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { planTierIcon, planTierIconWellClass } from '@/features/dashboard/plans/lib/planTierIcons';
+import {
+  planTierIcon,
+  planTierIconWellClass,
+  planTierSurfaceClass,
+} from '@/features/dashboard/plans/lib/planTierIcons';
 
 describe('planTierIcon', () => {
   it('planTierIcon is exported', () => {
@@ -11,5 +15,13 @@ describe('planTierIcon', () => {
 describe('planTierIconWellClass', () => {
   it('planTierIconWellClass is exported', () => {
     expect(typeof planTierIconWellClass).toBe('function');
+  });
+});
+
+describe('planTierSurfaceClass', () => {
+  it('tints the plan card in the tier hue', () => {
+    expect(planTierSurfaceClass('free')).toContain('from-muted');
+    expect(planTierSurfaceClass('pro')).toContain('violet');
+    expect(planTierSurfaceClass('unknown')).toContain('from-primary');
   });
 });

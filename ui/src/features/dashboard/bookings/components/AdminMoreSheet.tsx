@@ -141,10 +141,14 @@ export function AdminMoreSheet({
 
         <div className="bg-card shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
           {!superAdmin ? (
-            <div className="border-border/60 border-t py-1.5">
-              <DashboardModeToggle className="hover:bg-muted/60 h-auto min-h-11 gap-3" />
-              <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
-            </div>
+            <>
+              <div className="pb-2.5 pt-2 empty:hidden">
+                <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
+              </div>
+              <div className="border-border/60 border-t py-1.5 empty:hidden">
+                <DashboardModeToggle className="hover:bg-muted/60 h-auto min-h-11 gap-3" />
+              </div>
+            </>
           ) : null}
 
           <div className="border-border/60 flex items-center gap-2 border-t py-2.5">

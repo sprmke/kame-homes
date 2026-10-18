@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import { Check, ChevronRight } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 import { useResolvedOrgId, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { PlanTierIconWell } from '@/features/dashboard/plans/components/PlanTierIconWell';
@@ -15,6 +15,11 @@ import {
   resolveEffectiveCurrentPlan,
   subscriptionStatusMeta,
 } from '@/features/dashboard/plans/lib/planPresentation';
+import {
+  planTierIcon,
+  planTierIconWellClass,
+  planTierSurfaceClass,
+} from '@/features/dashboard/plans/lib/planTierIcons';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 import { hasOrgPermission, orgSectionPath } from '@/features/dashboard/team/lib/orgPermissions';
 
@@ -42,11 +47,9 @@ type Props = {
 
 type PlansTab = 'plans' | 'compare' | 'billing';
 
-const CHIP_ICON_CLASS = 'size-6 rounded-md [&_svg]:size-3.5';
-
 /**
- * Sidebar / More-sheet row with the org's current plan. Opens a sheet listing
- * every feature on that plan, with links into org Plans & Billing.
+ * Current-plan badge above the sidebar / More-sheet footer rule. Opens a sheet
+ * listing every feature on that plan, with links into org Plans & Billing.
  */
 export function OrgPlanSidebarEntry({
   collapsed = false,
@@ -95,10 +98,6 @@ export function OrgPlanSidebarEntry({
     onNavigateToPlans?.();
     navigate(`${orgSectionPath(orgSlug, 'plans')}?tab=${tab}`);
   };
-
-  const attentionDot = needsAttention ? (
-    <span className="bg-destructive size-1.5 shrink-0 rounded-full" aria-hidden />
-  ) : null;
 
   const details = (
     <ResponsiveModal open={open} onOpenChange={setOpen}>
@@ -197,53 +196,34 @@ export function OrgPlanSidebarEntry({
     </ResponsiveModal>
   );
 
-  const triggerBase = cn(
-    'focus-visible:ring-ring transition-colors focus-visible:outline-none focus-visible:ring-2'
+  const surface = cn(
+    'focus-visible:ring-sidebar-ring border bg-gradient-to-br transition-[border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 active:scale-[0.99] motion-reduce:active:scale-100',
+    needsAttention
+      ? 'border-destructive/30 from-destructive/[0.06] hover:border-destructive/45 to-transparent'
+      : planTierSurfaceClass(planCode),
+    'hover:shadow-sm'
   );
 
-  if (variant === 'more') {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label={triggerLabel}
-          aria-haspopup="dialog"
-          className={cn(
-            triggerBase,
-            'hover:bg-muted/60 active:bg-muted flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-left',
-            className
-          )}
-        >
-          <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
-          <span className="text-foreground min-w-0 truncate text-sm font-medium">{chipLabel}</span>
-          {attentionDot}
-          <ChevronRight className="text-muted-foreground ml-auto size-4 shrink-0" aria-hidden />
-        </button>
-        {details}
-      </>
-    );
-  }
-
   if (collapsed) {
+    const CollapsedIcon = planTierIcon(planCode);
     return (
       <>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          title={chipLabel}
+          title={needsAttention && status ? `${chipLabel}, ${status.label}` : chipLabel}
           aria-label={triggerLabel}
           aria-haspopup="dialog"
           className={cn(
-            triggerBase,
-            'hover:bg-sidebar-accent relative mx-auto flex size-10 items-center justify-center rounded-lg',
+            'focus-visible:ring-sidebar-ring relative mx-auto flex size-10 shrink-0 items-center justify-center rounded-xl transition-[filter] hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 dark:hover:brightness-125',
+            planTierIconWellClass(planCode),
             className
           )}
         >
-          <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
+          <CollapsedIcon className="size-4" strokeWidth={1.75} aria-hidden />
           {needsAttention ? (
             <span
-              className="bg-destructive absolute right-1.5 top-1.5 size-1.5 rounded-full"
+              className="bg-destructive ring-sidebar absolute -right-0.5 -top-0.5 size-2.5 rounded-full ring-2"
               aria-hidden
             />
           ) : null}
@@ -261,18 +241,26 @@ export function OrgPlanSidebarEntry({
         aria-label={triggerLabel}
         aria-haspopup="dialog"
         className={cn(
-          triggerBase,
-          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group flex h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left',
+          surface,
+          'flex w-full min-w-0 items-center gap-2.5 rounded-xl p-2 text-left',
+          variant === 'more' && 'min-h-12',
           className
         )}
       >
-        <PlanTierIconWell planCode={planCode} size="sm" className={CHIP_ICON_CLASS} />
-        <span className="min-w-0 truncate text-sm font-medium">{chipLabel}</span>
-        {attentionDot}
-        <ChevronRight
-          className="text-muted-foreground group-hover:text-foreground ml-auto size-4 shrink-0 transition-colors"
-          aria-hidden
-        />
+        <PlanTierIconWell planCode={planCode} size="sm" className="size-8 rounded-lg" />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-foreground truncate text-[13px] font-semibold leading-tight">
+            {chipLabel}
+          </span>
+          <span
+            className={cn(
+              'truncate text-[11px] font-medium leading-tight',
+              needsAttention ? 'text-destructive' : 'text-muted-foreground'
+            )}
+          >
+            {needsAttention && status ? status.label : 'Current plan'}
+          </span>
+        </span>
       </button>
       {details}
     </>
@@ -289,27 +277,23 @@ function OrgPlanChipSkeleton({
   className?: string;
 }) {
   if (collapsed && variant === 'sidebar') {
-    return (
-      <div
-        className={cn('mx-auto flex size-10 items-center justify-center', className)}
-        aria-hidden
-      >
-        <Skeleton className="size-6 rounded-md" />
-      </div>
-    );
+    return <Skeleton className={cn('mx-auto size-10 rounded-xl', className)} aria-hidden />;
   }
 
   return (
     <div
       className={cn(
-        'flex w-full items-center gap-2.5 px-2',
-        variant === 'more' ? 'min-h-11 gap-3' : 'h-10',
+        'border-border/60 flex w-full items-center gap-2.5 rounded-xl border p-2',
+        variant === 'more' && 'min-h-12',
         className
       )}
       aria-hidden
     >
-      <Skeleton className="size-6 shrink-0 rounded-md" />
-      <Skeleton className="h-3.5 w-24" />
+      <Skeleton className="size-8 shrink-0 rounded-lg" />
+      <div className="flex flex-1 flex-col gap-1.5">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-2.5 w-14" />
+      </div>
     </div>
   );
 }
