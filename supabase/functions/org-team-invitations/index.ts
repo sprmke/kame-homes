@@ -42,7 +42,7 @@ serveAuthenticated('org-team-invitations', async (req, user) => {
     const action = parseAction(body);
 
     // Durable rate limit on invite/resend — per user + org.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const isResend = action === 'resend';
     const limited = await rateLimitGate(req, {
       scope: `org-team-invitations:${isResend ? 'resend' : 'invite'}`,

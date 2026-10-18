@@ -217,7 +217,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pg-stat-statements-hosted-dev
-          path: docs/workflow/planned/production-readiness-checklist/baselines/*-pg-stat-statements-hosted-dev-ci.json
+          path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-pg-stat-statements-hosted-dev-ci.json
           if-no-files-found: ignore
           retention-days: 30
 
@@ -239,7 +239,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: edge-latency-hosted-dev
-          path: docs/workflow/planned/production-readiness-checklist/baselines/*-edge-latency-hosted-dev-ci.json
+          path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-edge-latency-hosted-dev-ci.json
           if-no-files-found: ignore
           retention-days: 30
 

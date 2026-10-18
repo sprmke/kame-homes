@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const baselineDir = path.join(
   repoRoot,
-  'docs/workflow/planned/production-readiness-checklist/baselines'
+  'docs/workflow/in-progress/production-readiness/checklist/baselines'
 );
 
 const args = process.argv.slice(2);
@@ -51,7 +51,10 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 const PUBLIC_ENDPOINTS = [
   { name: 'get-health', path: '/functions/v1/get-health' },
   { name: 'list-public-pricing-plans', path: '/functions/v1/list-public-pricing-plans' },
-  { name: 'list-public-properties', path: '/functions/v1/list-public-properties?page=1&pageSize=5' },
+  {
+    name: 'list-public-properties',
+    path: '/functions/v1/list-public-properties?page=1&pageSize=5',
+  },
   { name: 'list-public-parkings', path: '/functions/v1/list-public-parkings?page=1&pageSize=5' },
 ];
 
@@ -112,7 +115,9 @@ async function benchmark(endpoint, headers, n) {
 }
 
 async function main() {
-  console.log(`Edge latency baseline: ${iterations} iterations per endpoint against ${SUPABASE_URL}`);
+  console.log(
+    `Edge latency baseline: ${iterations} iterations per endpoint against ${SUPABASE_URL}`
+  );
 
   const publicHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
   const publicResults = [];
@@ -120,17 +125,24 @@ async function main() {
     process.stdout.write(`  ${endpoint.name}... `);
     const result = await benchmark(endpoint, publicHeaders, iterations);
     publicResults.push(result);
-    console.log(`cold ${result.coldMs}ms, warm p50 ${result.warmP50Ms}ms, p95 ${result.warmP95Ms}ms, p99 ${result.warmP99Ms}ms`);
+    console.log(
+      `cold ${result.coldMs}ms, warm p50 ${result.warmP50Ms}ms, p95 ${result.warmP95Ms}ms, p99 ${result.warmP99Ms}ms`
+    );
   }
 
   let authResults = [];
   if (SUPABASE_ACCESS_TOKEN) {
-    const authHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ACCESS_TOKEN}` };
+    const authHeaders = {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ACCESS_TOKEN}`,
+    };
     for (const endpoint of AUTH_ENDPOINTS) {
       process.stdout.write(`  ${endpoint.name} (auth)... `);
       const result = await benchmark(endpoint, authHeaders, iterations);
       authResults.push(result);
-      console.log(`cold ${result.coldMs}ms, warm p50 ${result.warmP50Ms}ms, p95 ${result.warmP95Ms}ms, p99 ${result.warmP99Ms}ms`);
+      console.log(
+        `cold ${result.coldMs}ms, warm p50 ${result.warmP50Ms}ms, p95 ${result.warmP95Ms}ms, p99 ${result.warmP99Ms}ms`
+      );
     }
   } else {
     console.log('  (SUPABASE_ACCESS_TOKEN not set — skipping authenticated endpoints)');
@@ -143,8 +155,7 @@ async function main() {
     iterations,
     publicEndpoints: publicResults,
     authenticatedEndpoints: authResults,
-    note:
-      'Cold = first call per endpoint (may include a Deno Deploy cold start). Warm p50/p95/p99 exclude that first call. Run this against hosted dev only.',
+    note: 'Cold = first call per endpoint (may include a Deno Deploy cold start). Warm p50/p95/p99 exclude that first call. Run this against hosted dev only.',
   };
 
   if (!existsSync(baselineDir)) mkdirSync(baselineDir, { recursive: true });

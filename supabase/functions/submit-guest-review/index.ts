@@ -48,7 +48,7 @@ servePublic('submit-guest-review', async (req) => {
   const form = await req.formData();
 
   // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-  // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpamBlocked = await antiSpamGate(req, form, {
     scope: 'submit-guest-review',
     rateLimit: { limit: 10, windowSec: 60 },

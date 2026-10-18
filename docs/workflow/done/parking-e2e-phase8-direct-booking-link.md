@@ -99,7 +99,7 @@ Functional verification against the real local stack (real guest/host Supabase A
 - **Anti-gaming** — submitted with a fabricated token (`"totally-made-up-guessed-token-1234"`); booking succeeded normally but was correctly tagged `standard`, not `direct_link` — confirms the discount cannot be self-granted client-side.
 - **Rate limit** — `get-public-parking` still returns 200 for normal single requests after adding the throttle (not verified past the 60-req/60s threshold — a full burst test was not run, low risk given it mirrors an already-shipped, unmodified pattern).
 - Test data (3 guest_submissions rows, 2 payment_transactions rows, 1 throwaway auth user) created during verification was deleted afterward.
-- **Not verified**: real PayMongo Payment Link creation/webhook for a direct-link transaction (same blanket limitation as every other parking payment phase — no live/sandbox PayMongo keys configured anywhere yet, see [`parking-e2e-production-readiness.md`](../planned/parking-e2e-production-readiness.md)); mobile (375px) pass of the new `ParkingDirectLinkCard`.
+- **Not verified**: real PayMongo Payment Link creation/webhook for a direct-link transaction (same blanket limitation as every other parking payment phase — no live/sandbox PayMongo keys configured anywhere yet, see [`parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md)); mobile (375px) pass of the new `ParkingDirectLinkCard`.
 
 ## Exit criteria
 
