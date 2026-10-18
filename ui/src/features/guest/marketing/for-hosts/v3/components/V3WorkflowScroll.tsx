@@ -7,22 +7,26 @@ import {
   useReducedMotion,
   useScroll,
 } from 'framer-motion';
-import { CalendarDays, Check, AlertCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 import { Reveal } from '@/features/guest/marketing/for-hosts/preview/components/Reveal';
 import { Pill } from '@/features/guest/marketing/for-hosts/preview/components/showcase/ShowcasePrimitives';
+import {
+  InViewWorkflowScene,
+  WorkflowScene,
+} from '@/features/guest/marketing/for-hosts/v3/components/V3WorkflowScenes';
 import { v3Workflow } from '@/features/guest/marketing/for-hosts/v3/data/hostLandingV3';
 
 import { cn } from '@/lib/utils';
 
 const { eyebrow, title, lead, stages, sampleGuest } = v3Workflow;
-const EASE = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 function SectionHeader({ className }: { className?: string }) {
   return (
     <div className={className}>
       <p className="text-primary text-sm font-semibold">{eyebrow}</p>
-      <h2 className="text-foreground mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+      <h2 className="text-foreground mt-3 text-balance text-3xl font-bold tracking-[-0.025em] sm:text-4xl lg:text-[2.75rem] lg:leading-[1.08]">
         {title}
       </h2>
       <p className="text-muted-foreground mt-4 max-w-md leading-relaxed">{lead}</p>
@@ -30,100 +34,108 @@ function SectionHeader({ className }: { className?: string }) {
   );
 }
 
-/** The sample booking: status pill swaps and the activity log grows as stages are reached. */
-function BookingCard({ active }: { active: number }) {
+function YouTag() {
+  return (
+    <Pill tone="amber" className="ml-2 align-middle">
+      You
+    </Pill>
+  );
+}
+
+function stageTone(index: number) {
+  if (stages[index].needsYou) return 'amber';
+  return index === stages.length - 1 ? 'green' : 'teal';
+}
+
+/**
+ * The stage canvas: a fixed guest strip with step progress, and a dot-grid area where the
+ * current step's scene plays. Scenes swap with a quick blur cross-fade so the change reads as
+ * the same booking moving on, not a new slide.
+ */
+function StageCanvas({ active }: { active: number }) {
   const reduceMotion = useReducedMotion();
-  const stage = stages[active];
-  const isDone = active === stages.length - 1;
 
   return (
-    <div className="border-border bg-card min-h-[30rem] rounded-[1.75rem] border p-6 shadow-[0_32px_80px_-40px_hsl(var(--shadow-color)/0.35)] xl:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-foreground text-xl font-bold tracking-tight">{sampleGuest.name}</p>
-          <p className="text-muted-foreground mt-1 flex items-center gap-1.5 text-sm">
-            <CalendarDays className="h-4 w-4" aria-hidden />
+    <div
+      aria-hidden
+      className="border-border bg-card overflow-hidden rounded-[1.75rem] border shadow-[0_32px_80px_-40px_hsl(var(--shadow-color)/0.35)]"
+    >
+      <div className="border-border flex items-center gap-3 border-b px-6 py-4">
+        <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold">
+          {sampleGuest.initials}
+        </span>
+        <div className="min-w-0">
+          <p className="text-foreground text-sm font-bold">{sampleGuest.name}</p>
+          <p className="text-muted-foreground text-xs">
             {sampleGuest.stay} · {sampleGuest.unit}
           </p>
         </div>
-        <AnimatePresence mode="popLayout" initial={false}>
+        <div className="ml-auto flex w-36 flex-col items-end gap-2">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={stages[active].status}
+              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Pill tone={stageTone(active)}>{stages[active].status}</Pill>
+            </motion.span>
+          </AnimatePresence>
+          <div className="flex w-full gap-1">
+            {stages.map((stage, index) => (
+              <span
+                key={stage.status}
+                className="bg-muted relative h-1.5 flex-1 overflow-hidden rounded-full"
+              >
+                <motion.span
+                  className="bg-primary absolute inset-0 origin-left rounded-full"
+                  initial={false}
+                  animate={{ scaleX: index <= active ? 1 : 0 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.45, ease: EASE }}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative flex h-[26rem] items-center justify-center px-8 [background-image:radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:18px_18px] xl:h-[28rem]">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={stage.status}
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={reduceMotion ? undefined : { opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.25, ease: EASE }}
+            key={active}
+            className="flex w-full justify-center"
+            initial={reduceMotion ? false : { opacity: 0, y: 14, filter: 'blur(6px)' }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              filter: 'blur(0px)',
+              transition: { duration: 0.4, ease: EASE },
+            }}
+            exit={
+              reduceMotion
+                ? undefined
+                : { opacity: 0, y: -10, filter: 'blur(6px)', transition: { duration: 0.18 } }
+            }
           >
-            <Pill tone={isDone ? 'green' : stage.needsYou ? 'amber' : 'teal'} className="text-xs">
-              {stage.status}
-            </Pill>
+            <div className="flex w-full justify-center lg:scale-[1.15] xl:scale-[1.3]">
+              <WorkflowScene index={active} />
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
-
-      <div className="mt-6 flex gap-1.5" aria-hidden>
-        {stages.map((item, index) => (
-          <span
-            key={item.status}
-            className="bg-muted relative h-1.5 flex-1 overflow-hidden rounded-full"
-          >
-            <motion.span
-              className="bg-primary absolute inset-0 origin-left rounded-full"
-              initial={false}
-              animate={{ scaleX: index <= active ? 1 : 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.45, ease: EASE }}
-            />
-          </span>
-        ))}
-      </div>
-
-      <p className="text-muted-foreground mt-7 text-xs font-semibold">Activity</p>
-      <ul className="mt-3 space-y-2.5">
-        <AnimatePresence initial={false}>
-          {stages.slice(0, active + 1).map((item, index) => (
-            <motion.li
-              key={item.log}
-              layout={!reduceMotion}
-              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.3, ease: EASE }}
-              className="flex items-center gap-3 text-sm"
-            >
-              {item.needsYou ? (
-                <span className="bg-warning/15 text-warning-foreground dark:text-warning flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                  <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-                </span>
-              ) : (
-                <span className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                  <Check className="h-3.5 w-3.5" aria-hidden />
-                </span>
-              )}
-              <span
-                className={cn(
-                  'text-foreground',
-                  index < active ? 'text-muted-foreground' : 'font-semibold'
-                )}
-              >
-                {item.log}
-              </span>
-              {item.needsYou ? (
-                <span className="text-muted-foreground ml-auto shrink-0 text-xs">You approved</span>
-              ) : null}
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </ul>
     </div>
   );
 }
 
 /**
- * Desktop: the section pins for six viewport-thirds and scroll drives one booking through the
- * real workflow, stage by stage. Below `lg` it becomes a plain vertical timeline (no pinning on
- * touch, where scroll-jacking feels broken).
+ * Desktop: the section pins for ~3.5 viewports and scroll moves one booking through the six
+ * steps. The left rail carries the words; the canvas on the right plays each step as a short
+ * scene. Rail steps are buttons that scroll to their stop. Below `lg` it becomes a vertical
+ * timeline where every step has its own compact scene that plays when it scrolls into view.
  */
 export function V3WorkflowScroll() {
+  const reduceMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const { scrollYProgress } = useScroll({ target: trackRef, offset: ['start start', 'end end'] });
@@ -133,88 +145,104 @@ export function V3WorkflowScroll() {
     setActive((current) => (current === next ? current : next));
   });
 
+  const goToStage = (index: number) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const top = track.getBoundingClientRect().top + window.scrollY;
+    const travel = track.offsetHeight - window.innerHeight;
+    window.scrollTo({
+      top: top + ((index + 0.5) / stages.length) * travel,
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+  };
+
   return (
     <section id="how-it-works" className="scroll-mt-20">
       {/* Desktop: pinned scroll story */}
       <div
         ref={trackRef}
         className="relative hidden lg:block"
-        style={{ height: `${stages.length * 60 + 40}vh` }}
+        style={{ height: `${stages.length * 55 + 45}vh` }}
       >
         <div className="sticky top-0 flex h-[100dvh] items-center">
           <div className="container mx-auto px-8">
-            <div className="grid grid-cols-[0.9fr_1.1fr] items-center gap-16 xl:gap-24">
+            <div className="grid grid-cols-[0.85fr_1.15fr] items-center gap-16 xl:gap-24">
               <div>
                 <SectionHeader />
-                <ol className="relative mt-10 space-y-1">
+                <ol className="relative mt-10">
                   <span
                     aria-hidden
-                    className="bg-border absolute bottom-3 left-[9px] top-3 w-0.5"
+                    className="bg-border absolute bottom-[22px] left-[9px] top-[22px] w-0.5"
                   />
                   <motion.span
                     aria-hidden
-                    className="bg-primary absolute left-[9px] top-3 w-0.5 origin-top"
-                    style={{ bottom: '0.75rem', scaleY: scrollYProgress }}
+                    className="bg-primary absolute left-[9px] top-[22px] w-0.5 origin-top"
+                    style={{ bottom: '22px', scaleY: scrollYProgress }}
                   />
                   {stages.map((stage, index) => {
                     const reached = index <= active;
                     const current = index === active;
                     return (
-                      <li key={stage.status} className="relative flex gap-4 py-2 pl-0">
-                        <span
-                          className={cn(
-                            'relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300',
-                            reached ? 'border-primary bg-primary' : 'border-border bg-background'
-                          )}
+                      <li key={stage.status}>
+                        <button
+                          type="button"
+                          onClick={() => goToStage(index)}
+                          aria-current={current ? 'step' : undefined}
+                          className="focus-visible:ring-ring group relative flex min-h-[44px] w-full gap-4 rounded-lg py-2.5 text-left focus-visible:outline-none focus-visible:ring-2"
                         >
-                          {reached ? (
-                            <Check className="h-3 w-3 text-white" strokeWidth={3} aria-hidden />
-                          ) : null}
-                        </span>
-                        <div className="min-w-0">
-                          <p
+                          <span
                             className={cn(
-                              'text-base font-semibold transition-colors duration-300',
-                              current ? 'text-foreground' : 'text-muted-foreground/70'
+                              'relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300',
+                              reached ? 'border-primary bg-primary' : 'border-border bg-background'
                             )}
                           >
-                            {stage.title}
-                          </p>
-                          <motion.div
-                            initial={false}
-                            animate={{ height: current ? 'auto' : 0, opacity: current ? 1 : 0 }}
-                            transition={{ duration: 0.35, ease: EASE }}
-                            className="overflow-hidden"
-                          >
-                            <p className="text-muted-foreground max-w-sm pt-1 text-sm leading-relaxed">
-                              {stage.body}
-                            </p>
-                          </motion.div>
-                        </div>
+                            {reached ? (
+                              <Check className="h-3 w-3 text-white" strokeWidth={3} aria-hidden />
+                            ) : null}
+                          </span>
+                          <span className="min-w-0">
+                            <span
+                              className={cn(
+                                'block text-base font-semibold transition-colors duration-300',
+                                current
+                                  ? 'text-foreground'
+                                  : 'text-muted-foreground/70 group-hover:text-foreground'
+                              )}
+                            >
+                              {stage.title}
+                              {stage.needsYou ? <YouTag /> : null}
+                            </span>
+                            <motion.span
+                              initial={false}
+                              animate={{ height: current ? 'auto' : 0, opacity: current ? 1 : 0 }}
+                              transition={{ duration: 0.35, ease: EASE }}
+                              className="block overflow-hidden"
+                            >
+                              <span className="text-muted-foreground block max-w-sm pt-1 text-sm leading-relaxed">
+                                {stage.body}
+                              </span>
+                            </motion.span>
+                          </span>
+                        </button>
                       </li>
                     );
                   })}
                 </ol>
               </div>
-              <BookingCard active={active} />
+              <StageCanvas active={active} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Phone / tablet: vertical timeline */}
+      {/* Phone / tablet: vertical timeline with a scene per step */}
       <div className="container mx-auto px-4 py-20 sm:px-6 lg:hidden">
         <Reveal>
           <SectionHeader />
         </Reveal>
         <ol className="mt-10">
           {stages.map((stage, index) => (
-            <Reveal
-              as="li"
-              key={stage.status}
-              delay={0.04 * index}
-              className="relative flex gap-4 pb-8 last:pb-0"
-            >
+            <li key={stage.status} className="relative flex gap-4 pb-10 last:pb-0">
               {index < stages.length - 1 ? (
                 <span
                   aria-hidden
@@ -224,17 +252,15 @@ export function V3WorkflowScroll() {
               <span className="border-primary bg-primary relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
                 <Check className="h-3 w-3 text-white" strokeWidth={3} aria-hidden />
               </span>
-              <div className="min-w-0">
-                <p className="text-primary text-xs font-semibold">{stage.status}</p>
-                <p className="text-foreground mt-0.5 text-base font-semibold">{stage.title}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-base font-semibold">
+                  {stage.title}
+                  {stage.needsYou ? <YouTag /> : null}
+                </p>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{stage.body}</p>
-                {stage.needsYou ? (
-                  <Pill tone="amber" className="mt-2">
-                    Needs your approval
-                  </Pill>
-                ) : null}
+                <InViewWorkflowScene index={index} />
               </div>
-            </Reveal>
+            </li>
           ))}
         </ol>
       </div>

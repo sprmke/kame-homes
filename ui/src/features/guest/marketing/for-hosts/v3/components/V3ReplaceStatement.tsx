@@ -53,7 +53,7 @@ export function V3ReplaceStatement() {
   const outroY = useTransform(scrollYProgress, [TOOLS_SPAN, 1], [24, 0]);
 
   return (
-    <section ref={ref} aria-label="Why hosts switch" className="py-20 sm:py-28 lg:py-36">
+    <section ref={ref} aria-label="Why hosts switch" className="py-16 sm:py-24 lg:py-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-foreground mx-auto max-w-4xl text-[clamp(1.75rem,4.4vw,3.25rem)] font-bold leading-[1.18] tracking-[-0.025em]">
           <span className="text-muted-foreground">{intro} </span>

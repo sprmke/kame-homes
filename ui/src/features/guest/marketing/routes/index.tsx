@@ -152,8 +152,9 @@ export const marketingRoutes = [
     <Route index element={<GuestLandingPage />} />
     <Route path="search" element={<SearchResultsPage />} />
     <Route path="for-hosts/pricing" element={<ForHostsPricingPage />} />
-    {/* Ground-up redesign preview — swap into `for-hosts` below once approved. */}
-    <Route path="for-hosts/preview" element={<ForHostsPreviewPage />} />
+    {/* v2 redesign — swap into `for-hosts` below once approved. */}
+    <Route path="for-hosts/v2" element={<ForHostsPreviewPage />} />
+    <Route path="for-hosts/preview" element={<Navigate to="/for-hosts/v2" replace />} />
     {/* Third redesign direction — manual review, not linked from nav. */}
     <Route path="for-hosts/v3" element={<ForHostsV3Page />} />
     {/* Guest landing redesign preview — manual review, not linked from nav. */}

@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 
 import { HostDashboardTourPlayer } from '@/features/guest/marketing/for-hosts/components/HostDashboardTourPlayer';
-import { Reveal } from '@/features/guest/marketing/for-hosts/preview/components/Reveal';
+import { V3SectionHeading } from '@/features/guest/marketing/for-hosts/v3/components/V3SectionHeading';
 import { v3Tour } from '@/features/guest/marketing/for-hosts/v3/data/hostLandingV3';
 
 /** The narrated product tour, easing up to full size as it scrolls into view. */
@@ -17,17 +17,17 @@ export function V3TourSection() {
   return (
     <section id="tour" className="bg-muted/40 scroll-mt-20 py-20 sm:py-24 lg:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
-            {v3Tour.title}
-          </h2>
-          <p className="text-muted-foreground mt-4 leading-relaxed">{v3Tour.lead}</p>
-        </Reveal>
+        <V3SectionHeading
+          eyebrow={v3Tour.eyebrow}
+          title={v3Tour.title}
+          lead={v3Tour.lead}
+          align="center"
+        />
 
         <motion.div
           ref={ref}
           style={reduceMotion ? undefined : { scale, borderRadius: radius }}
-          className="mx-auto mt-12 max-w-6xl origin-top overflow-hidden"
+          className="mx-auto mt-10 max-w-6xl origin-top overflow-hidden sm:mt-12"
         >
           <HostDashboardTourPlayer variant="marketing" />
         </motion.div>

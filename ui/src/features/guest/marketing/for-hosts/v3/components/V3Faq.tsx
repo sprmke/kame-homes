@@ -73,7 +73,7 @@ export function V3Faq() {
       <div className="container mx-auto grid gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-8">
         <Reveal className="lg:sticky lg:top-28 lg:self-start">
           <p className="text-primary text-sm font-semibold">{v3Faq.eyebrow}</p>
-          <h2 className="text-foreground mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="text-foreground mt-3 text-balance text-3xl font-bold tracking-[-0.025em] sm:text-4xl lg:text-[2.75rem] lg:leading-[1.08]">
             {v3Faq.title}
           </h2>
           <Link
