@@ -1,6 +1,6 @@
 /**
  * One-call anti-spam gate for public + lightly-authenticated write handlers.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
  *
  * Composes the three layers — bot heuristics → CAPTCHA → durable rate limit — and
  * returns a ready-to-send `Response` (with CORS headers + the standard error

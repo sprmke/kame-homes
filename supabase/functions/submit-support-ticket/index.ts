@@ -20,7 +20,7 @@ serveAuthenticated('submit-support-ticket', async (req, user) => {
   const body = await readJsonBody(req);
 
   // Durable per-user rate limit + honeypot (no CAPTCHA — behind the auth wall).
-  // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpamBlocked = await antiSpamGate(req, body, {
     scope: 'submit-support-ticket',
     user,

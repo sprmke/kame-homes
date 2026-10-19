@@ -47,7 +47,7 @@ redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
 skip_nonce_check = false
 
 # Bot protection for the passwordless email-OTP flow (`signInWithOtp`). Google
-# OAuth is unaffected. Anti-spam plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+# OAuth is unaffected. Anti-spam plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
 #
 # Committed as `enabled = false` so a stale local `ui/.env.development` (no
 # TURNSTILE_SECRET_KEY) can't brick every local login. To turn it on:

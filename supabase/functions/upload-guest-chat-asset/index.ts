@@ -27,7 +27,7 @@ serveAuthenticated('upload-guest-chat-asset', async (req, user) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-  // Durable per-user upload rate limit. Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Durable per-user upload rate limit. Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const limited = await rateLimitGate(req, {
     scope: 'upload-guest-chat-asset',
     identity: identityFromRequest(req, user),
