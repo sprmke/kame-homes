@@ -26,3 +26,19 @@ Auth gates work. Rate-limit 429 not proven at these burst sizes (public RL is hi
 | Inside grace (restored), no token | 200                                  | —             | —                  |
 
 Write paths (`submit-form` edit, `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`) run captcha first, then the same `authorizeGuestBookingAccess` with the row's `created_at`, and return 401 before any write (code read). Helper cases (missing token past grace, inside grace, mismatched write token) are covered by `guestBookingAccessToken_test.ts`.
+
+## Team invite acceptance abuse (PR-014, issue #162), hosted dev 2026-10-19
+
+`scripts/dev/probe-readiness-invites-dev.mjs`: invitations inserted with the service role on the QA owner's property (no invite email sent), accepted through `accept-property-invite`, then membership and invitations removed.
+
+| Case                                  | Expected | Result                                                                                       |
+| ------------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| Valid token, different signed-in user | 403      | 403 `Signed-in email does not match the invitation email.` (no invitee email in the message) |
+| Random token                          | 404      | 404 `Invitation not found`                                                                   |
+| Invitee accepts                       | 200      | 200                                                                                          |
+| Same token again                      | 410      | 410 `Invitation is no longer valid`                                                          |
+| Expired invite                        | 410      | 410 `Invitation has expired`                                                                 |
+
+Also enforced by the schema: one pending invite per property + email (`property_invitations_pending_property_email_unique`).
+
+Invite escalation: Read Only and Operations members calling `property-team-invitations` (POST) to invite a new email as **Full Access** both get **403 `Access restricted`**; no invitation row created.
