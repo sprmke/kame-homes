@@ -84,9 +84,9 @@ Top blockers for launch: restore drill (PR-024), Turnstile enforce on hosted UI 
 | PR-009 | `GUEST_BOOKING_ACCESS_ENFORCE=true` already set on hosted-dev; re-verify after deploy                           | high    | agent    | 🟡  | V-5; secrets list 2026-10-19                                       |
 | PR-010 | RLS probe as `anon`/`authenticated` on **hosted** Postgres                                                      | high    | operator | ⛔  | 22                                                                 |
 | PR-011 | Supabase security advisors (`mcp get_advisors`) on hosted                                                       | high    | operator | ⛔  | 22, 14                                                             |
-| PR-012 | CSP Report-Only → **enforcing** + report-uri                                                                    | high    | product  | 🧭  | 16, 22                                                             |
+| PR-012 | CSP enforce-ready (#176: 0 own-origin violations enforced); flip to enforcing + report-uri                      | high    | product  | 🧭  | 16, 22                                                             |
 | PR-013 | Prompt-injection adversarial tests (inbox + assistant exist; expand)                                            | high    | agent    | 🟡  | 22; cost-abuse §6.2                                                |
-| PR-014 | Role × endpoint client/server parity seed + invite adversarial tests                                            | high    | agent    | 🟡  | 21, 29                                                             |
+| PR-014 | RBAC parity + invite abuse verified live (#162: org/parking invites left)                                       | high    | agent    | ✅  | 21, 29                                                             |
 | PR-015 | Shared-device sign-out: query cache / realtime / PWA Cache Storage                                              | medium  | agent    | 🟡  | 21                                                                 |
 | PR-016 | Storage: tenant-scoped paths; MIME sniff remaining upload paths; guest-PII delete propagation                   | high    | agent    | 🟡  | 20                                                                 |
 | PR-017 | Signed-URL TTLs per class + issuance log for sensitive                                                          | medium  | agent    | 🟡  | 20                                                                 |
@@ -211,18 +211,18 @@ Do **not** copy these into the launch list as-is. Status 2026-10-19:
 
 ## 🆕 Cross-cutting (checklists 31–38)
 
-| ID     | Checklist                                                        | Gate | Tag |
-| ------ | ---------------------------------------------------------------- | ---- | --- |
-| PR-100 | 31 Privacy / RA 10173 / export-delete / legal copy               | B    | 🆕  |
-| PR-101 | 32 Email deliverability                                          | E    | 🆕  |
-| PR-102 | 33 Accessibility WCAG 2.2 AA                                     | A    | 🆕  |
-| PR-103 | 34 SEO + crawler / noindex on dev                                | A    | 🆕  |
-| PR-104 | 35 Business-logic races (booking, voucher, wallet, payments, TZ) | C    | 🆕  |
-| PR-105 | 36 Browser/device matrix                                         | A    | 🆕  |
-| PR-106 | 37 Third-party failures: probed all 5; Resend fix #157           | F    | 🟡  |
-| PR-107 | 38 Supply chain: lockfile ✅, Actions #153, audit #158           | F    | 🟡  |
-| PR-108 | For-hosts hero em dash + tour rail clip                          | A    | 🔴  |
-| PR-109 | Public `/properties` empty on hosted-dev (retest after deploy)   | A    | 🟡  |
+| ID     | Checklist                                                         | Gate | Tag |
+| ------ | ----------------------------------------------------------------- | ---- | --- |
+| PR-100 | 31 Privacy / RA 10173 / export-delete / legal copy                | B    | 🆕  |
+| PR-101 | 32 Email deliverability                                           | E    | 🆕  |
+| PR-102 | 33 Accessibility WCAG 2.2 AA                                      | A    | 🆕  |
+| PR-103 | 34 SEO 100 on marketing; dev robots Disallow (#181)               | A    | ✅  |
+| PR-104 | 35 Business-logic races (booking, voucher, wallet, payments, TZ)  | C    | 🆕  |
+| PR-105 | 36 Browser matrix: Chromium/WebKit/Firefox walked; device pending | A    | 🟡  |
+| PR-106 | 37 Third-party failures: probed all 5; Resend fix #157            | F    | 🟡  |
+| PR-107 | 38 Supply chain: lockfile ✅, Actions #153, audit #158            | F    | 🟡  |
+| PR-108 | For-hosts hero em dash + tour rail clip                           | A    | 🔴  |
+| PR-109 | Public `/properties` empty on hosted-dev (retest after deploy)    | A    | 🟡  |
 
 ---
 
