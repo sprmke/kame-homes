@@ -37,6 +37,13 @@ require '/avatars/'
 require '/fonts/'
 require '/worklets/'
 
+# SPA fallback must skip hashed assets: a missing old chunk has to 404, not return index.html
+# under the immutable /assets/* cache header.
+if ! grep -qF '"source": "/((?!assets/).*)"' "$FILE"; then
+  echo "ERROR: ui/vercel.json SPA rewrite must exclude /assets/ (\"source\": \"/((?!assets/).*)\")"
+  fail=1
+fi
+
 if grep -q '"immutable"' "$FILE" && ! grep -q '/assets/' "$FILE"; then
   echo "ERROR: immutable present but /assets/ rule missing (immutable must stay hashed-only)"
   fail=1
