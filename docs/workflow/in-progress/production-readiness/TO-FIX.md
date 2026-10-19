@@ -29,6 +29,7 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | [#157](https://github.com/sprmke/kame-homes/pull/157) | Workflow emails that fail to send are surfaced (toast + activity), Meta error test (PR-106)                                 | running   |
 | [#158](https://github.com/sprmke/kame-homes/pull/158) | Dependency patches in-major: audit 42 → 28; rest triaged (checklist 38)                                                     | running   |
 | [#159](https://github.com/sprmke/kame-homes/pull/159) | react-router-dom 7.18: clears router advisories; ci:quality + e2e:ci 259/259 (PR-124)                                       | running   |
+| [#172](https://github.com/sprmke/kame-homes/pull/172) | Entry chunk 181 → 151 KiB gzip: lazy tenant pill, plan subtitle split (PR-129)                                              | running   |
 
 ## Blockers
 
@@ -60,6 +61,25 @@ P0-2, P0-4, P0-5, P0-6, PR-026, PR-027, PR-041, PR-056, PR-084, PR-085, PR-073.
 ## High, agent (needs seed + accounts)
 
 PR-005, PR-013, PR-014, PR-016, PR-019, PR-023, PR-052, PR-060, PR-064.
+
+## Agent issues (Phase 10.3)
+
+Label `production-readiness`. Items with an open fix PR are tracked in the merge table instead.
+
+| ID     | Issue                                                   |
+| ------ | ------------------------------------------------------- |
+| PR-005 | [#160](https://github.com/sprmke/kame-homes/issues/160) |
+| PR-013 | [#161](https://github.com/sprmke/kame-homes/issues/161) |
+| PR-014 | [#162](https://github.com/sprmke/kame-homes/issues/162) |
+| PR-019 | [#163](https://github.com/sprmke/kame-homes/issues/163) |
+| PR-023 | [#164](https://github.com/sprmke/kame-homes/issues/164) |
+| PR-052 | [#165](https://github.com/sprmke/kame-homes/issues/165) |
+| PR-060 | [#166](https://github.com/sprmke/kame-homes/issues/166) |
+| PR-064 | [#167](https://github.com/sprmke/kame-homes/issues/167) |
+| PR-126 | [#168](https://github.com/sprmke/kame-homes/issues/168) |
+| PR-040 | [#169](https://github.com/sprmke/kame-homes/issues/169) |
+| PR-112 | [#170](https://github.com/sprmke/kame-homes/issues/170) |
+| PR-114 | [#171](https://github.com/sprmke/kame-homes/issues/171) |
 
 ## Decisions
 

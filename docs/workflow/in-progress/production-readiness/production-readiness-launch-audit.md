@@ -309,15 +309,15 @@ Output: `security/OWASP-TOP10-2025.md`, `security/API-TOP10-2023.md`, `security/
 
 - [x] **9.1 One operator list** (`operator/OPERATOR-ACTIONS.md`) merging: P0-1..P0-7, D-1..D-4, V-1..V-5, GitHub env vars, sandbox keys (4.4), PostHog/Sentry projects, Vercel env per environment, Supabase Auth settings (captcha, redirect URLs, SMTP), DNS/email auth records, Meta app review, Google services approval, PayMongo Platforms. Each with "how to verify it's done".
 - [ ] **9.2 Cutover rehearsal on dev only**: walk `production-deployment.md`, `migration-runbook.md` § production, `legacy-to-mt-prod-migration.md`, and `ci-cd-environments/` Phase B as a dry run; record every step that is unclear, missing, or would fail. Confirm `cd-prod.yml` stays gated (`CUTOVER_ENABLED` unset).
-- [ ] **9.3 Prod env matrix**: every secret, Vault entry, cron, and env var prod will need, cross-checked against `.env.prod.example`, `config.toml`, and system-health registry.
+- [ ] **9.3 Prod env matrix**: every secret, Vault entry, cron, and env var prod will need, cross-checked against `.env.prod.example`, `config.toml`, and system-health registry. _Progress:_ [`environments/prod-env-matrix.md`](./environments/prod-env-matrix.md) + `scripts/dev/readiness-env-matrix.mjs --check` (76 edge secrets, 26 `VITE_*`, 25 Vault, 25 crons, all documented and paired). Registry cross-check waits on the system-health module.
 
 ### Phase 10 — Final report, tagging, and go/no-go
 
 - [ ] **10.1 ALL-GOOD.md**: every ✅ row grouped by area, with evidence links.
 - [ ] **10.2 TO-FIX.md**: every 🔴 / 🆕 / ⛔ / 🧭 row grouped by launch gate then severity, each with owner and a proposed fix plan or issue.
-- [ ] **10.3 GitHub issues** for every agent-owned To fix row (label `production-readiness`, severity label, link back to `PR-###`).
+- [x] **10.3 GitHub issues** for every agent-owned To fix row (label `production-readiness`, severity label, link back to `PR-###`). _Done:_ #160–#171; rows with an open fix PR are tracked in the TO-FIX merge table.
 - [ ] **10.4 Re-tag every doc** in the folder (`readiness:`, `launch_blocker:`, `last_verified:`), and flip prior audits to `done/`-equivalent status inside the folder where every row is ✅ or ⏸️.
-- [ ] **10.5 Go/no-go scorecard** in `README.md`:
+- [ ] **10.5 Go/no-go scorecard** in `README.md` (_draft added 2026-10-19; final after the baseline re-run_):
 
 | Gate | Scope                                                                  | Go when                                                                                 |
 | ---- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |

@@ -15,14 +15,30 @@ Every launch readiness checklist, audit, QA batch and operator list in one place
 
 ## Status
 
-| Item         | State                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Baseline SHA | Not set. [PR #145](https://github.com/sprmke/kame-homes/pull/145) CI green; hosted-dev deploy in flight from `3e269a98`                   |
-| Phase 0      | Migrations applied on `fwor…`. Functions still deploying. Smoke waits. See [`evidence/phase0-snapshot.md`](./evidence/phase0-snapshot.md) |
-| Phase 1      | Done. [PR #146](https://github.com/sprmke/kame-homes/pull/146)                                                                            |
-| Phase 2      | [`LEDGER.md`](./LEDGER.md) seeded 2026-10-19                                                                                              |
-| Phase 3      | 57 module cards, checklists 31–38, route + edge maps                                                                                      |
-| Tag counts   | ⛔ 22 · 🧭 8 · 🔴 2 · 🟡 74 · ⏸️ 18 · 🆕 12 · ✅ 4                                                                                        |
+| Item         | State                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline SHA | Not set. Waits on [#145](https://github.com/sprmke/kame-homes/pull/145) merging into `develop`, then CD to dev                          |
+| Hosted dev   | All 292 functions deployed 2026-10-19 from a local integration of #145 + #149 + #150 + #155 (health 200, cross-tenant probe clean)      |
+| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38     |
+| Phases 4–8   | Probes, OWASP matrices, 162-page walk, booking flow, perf/a11y fixes done; load test, restore drill, LLM probes blocked (see scorecard) |
+| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                  |
+| Phase 10     | Scorecard below is a draft until the fix PRs merge and the baseline re-run passes                                                       |
+| Fix PRs open | #145–#159 and #172 (16 PRs, CI green), see [`TO-FIX.md`](./TO-FIX.md)                                                                   |
+| Tag counts   | ✅ 9 · 🟡 43 · 🔴 3 · ⛔ 26 · 🆕 11 · 🧭 7 · ⏸️ 8 (105 items)                                                                           |
+
+## Go / no-go (draft, 2026-10-19)
+
+Overall: **No-go**. Every gate still has an operator or merge dependency.
+
+| Gate           | Verdict | Done                                                                                                                                                             | Still needed                                                                                                                                                |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A Core booking | No-go   | Booking lifecycle verified on dev; guest-link tokens verified past grace; 162-page walk clean; entry chunk 496 → 151 KiB gzip (#152, #172), contrast fixed (PRs) | Merge #147–#152, #154, #156; re-run Lighthouse 3× median on baseline; listing map (Maps key, operator)                                                      |
+| B Security     | No-go   | Adversarial auth 16/16, cross-tenant probes clean, RBAC matrix matches, upload sniffing everywhere, open redirect fixed, Actions pinned, audit triaged           | Merge #150, #151, #153, #155, #158, #159; Turnstile on prod (P0-1); Supabase Auth captcha (P0-2); CSP enforce decision; guest-chat bucket decision (PR-120) |
+| C Money        | No-go   | No false-paid path (code); webhook signature + dedupe tested; down payment fixed on dev                                                                          | PayMongo sandbox keys and end-to-end run (PR-030); merge #149                                                                                               |
+| D AI / voice   | No-go   | Provider fallback and outage handling tested                                                                                                                     | Paid Gemini key + billing cap (P0-3); LLM Top 10 live probes need the platform assistant on                                                                 |
+| E Comms        | No-go   | Meta expiry handling tested; failed workflow emails surfaced (#157)                                                                                              | Merge #157; SPF/DKIM/DMARC check (operator); Meta live on dev or module flagged off                                                                         |
+| F Operations   | No-go   | Prod env matrix complete, cron/Vault pairing clean, frozen lockfile everywhere                                                                                   | Restore drill with measured RTO (needs `DEV_DB_URL`); GitHub `development` secrets; alerts live; on-call channel named                                      |
+| G Cutover      | No-go   | Operator list, env matrix, dry-run notes                                                                                                                         | mt-prod project; clean rehearsal; `kamewave` from the user                                                                                                  |
 
 ## Tags
 
