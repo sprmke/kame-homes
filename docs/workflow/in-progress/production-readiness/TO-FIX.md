@@ -22,6 +22,8 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | [#150](https://github.com/sprmke/kame-homes/pull/150) | Byte-sniff chat, inbox and avatar uploads (PR-016 partial)                                                                  | running   |
 | [#151](https://github.com/sprmke/kame-homes/pull/151) | Block backslash open redirect in sign-in `?redirect=`                                                                       | running   |
 | [#152](https://github.com/sprmke/kame-homes/pull/152) | Lazy dashboard shells: guest entry chunk 496 → 237 KiB gzip, pdf.js out of entry                                            | running   |
+| [#153](https://github.com/sprmke/kame-homes/pull/153) | Pin all 43 GitHub Actions `uses:` to commit SHAs (PR-107, user decision)                                                    | running   |
+| [#154](https://github.com/sprmke/kame-homes/pull/154) | Text-safe brand shade for fills with white text, per tenant color + guard test (PR-113)                                     | running   |
 
 ## Blockers
 
@@ -56,7 +58,7 @@ PR-005, PR-013, PR-014, PR-016, PR-019, PR-023, PR-052, PR-060, PR-064.
 
 ## Decisions
 
-PR-012 CSP enforce · PR-113 brand teal contrast · PR-032 double-booking DB constraint · PR-031 parking refund path · PR-035 payout scale · PR-042 budget fail-closed · PR-059 capacity targets · PR-082 RPO/RTO.
+PR-012 CSP enforce · PR-113 brand teal contrast ([#154](https://github.com/sprmke/kame-homes/pull/154)) · PR-032 double-booking DB constraint · PR-031 parking refund path · PR-035 payout scale · PR-042 budget fail-closed · PR-059 capacity targets · PR-082 RPO/RTO.
 
 ## Score improvements by page
 
