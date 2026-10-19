@@ -48,26 +48,30 @@ Still open:
 
 CD Dev gate: the first three runs after #145 failed on Marketing Studio plan-gate tests (studio needed more than the 5s per-attempt wait on CI runners). Fixed by #177 + #179; run for `b8fe276b` passed `@smoke` and `@ci` and moved to deploy.
 
+CD Dev deploy (run `39276416110`, `b8fe276b`): quality passed, then `supabase db push` refused because hosted dev already has migrations that are not in `develop` (`20261316127100`–`20261316128100`: system health, two-way reviews, review automation, guest chat AI feedback; uncommitted work from another session applied to dev). CD cannot deploy until those migrations are merged into `develop`. Do **not** run `migration repair --status reverted` (it would mark that work reverted). Functions were deployed from `develop` (`c0f04aff`) with `deploy-supabase-dev.sh --functions-only` instead (user decision 2026-10-19).
+
 ## Blockers
 
-| ID     | Gate | Tag | Item                                                                                                                                                 | Owner         |
-| ------ | ---- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG`                                        | operator      |
-| PR-119 | C    | 🟡  | **Down payment mismatch.** Decision: host's flat setting. Fixed + verified on dev in #149 (merged; re-verify on dev)                                 | agent         |
-| PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merged; re-verify on dev)                                                     | agent         |
-| PR-124 | B    | 🟡  | `react-router` 7.18 in [#159](https://github.com/sprmke/kame-homes/pull/159), all suites green. Merged; re-verify on dev                             | agent         |
-| PR-126 | F    | 🟡  | Dev tooling advisories (vitest 1.6 critical when UI server listens, vite, tinypool, …). Tooling upgrade PR                                           | agent         |
-| PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merged; re-verify on dev                            | product       |
-| PR-120 | B    | 🧭  | `guest-chat-attachments`: not listable, links unguessable (probed). Keep links or go private + signed URLs                                           | agent         |
-| PR-116 | A    | 🔴  | Google Maps embed **403** on `dev.kamehomes.space` (public listing map broken). Add the dev domain to the Maps key referrers / enable Maps Embed API | operator      |
-| PR-117 | C    | 🟡  | Public listing page views never stored (Host Analytics traffic empty). Fixed in #148 (merged); verify stored views after dev deploy                  | agent         |
-| PR-118 | A    | 🟡  | Marketing on Free: UI shows full themes + **New theme**, API refuses (`marketingStudio`). Align gate (in-progress marketing-themes module)           | other session |
-| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                                                       | operator      |
-| PR-003 | D    | ⛔  | Paid AI billing cap                                                                                                                                  | operator      |
-| PR-008 | B    | ✅  | Guest-link tokens: live on dev past grace, all reads 401 without/forged token; writes captcha + same check (evidence `phase6-auth-abuse`)            | agent         |
-| PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                                                                 | operator      |
-| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                                                                 | operator      |
-| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                                                                     | operator      |
+| ID     | Gate | Tag | Item                                                                                                                                                                                      | Owner           |
+| ------ | ---- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| PR-131 | A    | 🔴  | Public read endpoints saturate at ~10 req/s on dev (p95 11s at 50 VUs); Supabase's CDN does not cache edge responses. Decide caching approach (#183) and re-test on prod-sized compute    | product + agent |
+| PR-130 | F    | 🔴  | CD Dev deploy blocked: hosted dev has 12 migrations (`…127100`–`…128100`) that are not in `develop` (uncommitted work applied to dev). Merge them or the CD migration step keeps failing  | other session   |
+| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG`                                                                             | operator        |
+| PR-119 | C    | 🟡  | **Down payment mismatch.** Decision: host's flat setting. Fixed + verified on dev in #149 (merged; re-verify on dev)                                                                      | agent           |
+| PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merged; re-verify on dev)                                                                                          | agent           |
+| PR-124 | B    | 🟡  | `react-router` 7.18 in [#159](https://github.com/sprmke/kame-homes/pull/159), all suites green. Merged; re-verify on dev                                                                  | agent           |
+| PR-126 | F    | 🟡  | Dev tooling advisories (vitest 1.6 critical when UI server listens, vite, tinypool, …). Tooling upgrade PR                                                                                | agent           |
+| PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merged; re-verify on dev                                                                 | product         |
+| PR-120 | B    | 🧭  | `guest-chat-attachments`: not listable, links unguessable (probed). Keep links or go private + signed URLs                                                                                | agent           |
+| PR-116 | A    | 🔴  | Google Maps embed **403** on `dev.kamehomes.space` (public listing map broken). Add the dev domain to the Maps key referrers / enable Maps Embed API                                      | operator        |
+| PR-117 | C    | ✅  | Public listing page views never stored (Host Analytics traffic empty). Fixed in #148; verified on dev 2026-10-19: real browser visit → `POST property-page-view` 200, stored count 9 → 10 | agent           |
+| PR-118 | A    | 🟡  | Marketing on Free: UI shows full themes + **New theme**, API refuses (`marketingStudio`). Align gate (in-progress marketing-themes module)                                                | other session   |
+| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                                                                                            | operator        |
+| PR-003 | D    | ⛔  | Paid AI billing cap                                                                                                                                                                       | operator        |
+| PR-008 | B    | ✅  | Guest-link tokens: live on dev past grace, all reads 401 without/forged token; writes captcha + same check (evidence `phase6-auth-abuse`)                                                 | agent           |
+| PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                                                                                                      | operator        |
+| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                                                                                                      | operator        |
+| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                                                                                                          | operator        |
 
 Hosted-dev deploy (PR-076) **done** 2026-10-19 from `3e269a98`.
 
