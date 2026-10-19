@@ -1,6 +1,6 @@
 /**
  * Single-load injector for the Cloudflare Turnstile script.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1)
  *
  * Mirrors the "load once, share the promise" pattern used by the Google Maps
  * loader (`ui/src/lib/google-maps/useGoogleMapsLoader.ts`). The script is only

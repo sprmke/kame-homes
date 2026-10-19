@@ -294,7 +294,7 @@ export function PropertiesFilters({
                 className={cn(
                   'min-h-[44px] rounded-full px-4 py-2 text-sm font-medium transition-all',
                   isSelected
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary-strong text-primary-foreground'
                     : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted border'
                 )}
               >

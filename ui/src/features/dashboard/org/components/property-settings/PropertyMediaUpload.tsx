@@ -96,7 +96,7 @@ function MediaCardAction({
         tone === 'neutral' &&
           'border-border/60 bg-background/95 text-foreground hover:bg-background',
         tone === 'primary' &&
-          'border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90',
+          'border-primary/20 bg-primary-strong text-primary-foreground hover:bg-primary-strong/90',
         tone === 'destructive' &&
           'border-destructive/20 bg-background/95 text-destructive hover:bg-destructive hover:text-white'
       )}
@@ -213,8 +213,8 @@ function CoverStarButton({
         'flex size-9 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-colors',
         'disabled:pointer-events-none',
         isPrimary
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border/60 bg-background/95 text-foreground hover:bg-primary hover:text-white',
+          ? 'border-primary bg-primary-strong text-primary-foreground'
+          : 'border-border/60 bg-background/95 text-foreground hover:bg-primary-strong hover:text-white',
         className
       )}
     >

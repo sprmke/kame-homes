@@ -86,6 +86,7 @@ supabase_backup*.dump
 docs/.obsidian/workspace.json
 docs/.obsidian/graph.json
 docs/workflow/planned/production-readiness-checklist/baselines/.artifact-download/
+docs/workflow/in-progress/production-readiness/checklist/baselines/.artifact-download/
 
 # Tests / local agent tooling (keep .fallowrc.json tracked)
 .playwright-mcp/

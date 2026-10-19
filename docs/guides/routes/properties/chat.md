@@ -167,7 +167,7 @@ Host replies use **`social-inbox-send`** (web branch). When the guest is offline
 
 **Realtime typing:** Supabase Broadcast channel **`chat-typing:{conversationId}`** (guest ↔ host; not persisted).
 
-**Attachments:** JPEG/PNG/WebP/PDF up to 10 MB via **`upload-guest-chat-asset`**; stored in **`guest-chat-attachments`**; referenced on send as JSON `{ kind, url, label? }`.
+**Attachments:** JPEG/PNG/WebP/HEIC/PDF up to 10 MB via **`upload-guest-chat-asset`**; file bytes must match the declared type (magic-byte sniff, same helper as host inbox replies); stored in **`guest-chat-attachments`**; referenced on send as JSON `{ kind, url, label? }`.
 
 **In-thread search:** Compact search control in the **chat header** (guest) or inbox conversation header (host). Opens a **dedicated search row** below the header (same bar as host inbox) with match counter, up/down navigation, and in-bubble highlights. Header identity stays visible while searching.
 

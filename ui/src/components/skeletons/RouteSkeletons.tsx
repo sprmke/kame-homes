@@ -7,7 +7,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { HOST_ANNOUNCEMENTS_PAGE_SUBTITLE } from '@/features/dashboard/announcements/lib/hostAnnouncementCopy';
 import { helpSupportSectionFromPath } from '@/features/dashboard/help-support/lib/helpSupportPaths';
 import { useOrgListingSkeletonView } from '@/features/dashboard/org/hooks/useOrgListingSkeletonView';
-import { PLANS_PAGE_SUBTITLE } from '@/features/dashboard/plans/lib/planPresentation';
+import { PLANS_PAGE_SUBTITLE } from '@/features/dashboard/plans/lib/plansPageCopy';
 
 import { FloatingPanel, FloatingToolbar } from '@/components/mobile/FloatingPanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';

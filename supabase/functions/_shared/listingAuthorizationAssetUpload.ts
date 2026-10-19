@@ -19,6 +19,7 @@ import {
 import type { ListingKind } from './listingAuthorization.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -77,6 +78,7 @@ export async function applyListingAuthorizationAssetFromBytes(
   if (!ALLOWED_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, WebP, or PDF');
   }
+  assertUploadMatchesBytes(input.bytes, mime, ALLOWED_MIME);
   const file = new File([input.bytes], input.fileName || 'proof.jpg', { type: mime });
   assertWithinUploadLimit(file, mime === 'application/pdf' ? 'pdf' : 'document');
 

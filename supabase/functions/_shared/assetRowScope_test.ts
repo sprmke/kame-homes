@@ -8,7 +8,7 @@
  * needs a live Supabase instance (createServiceClient() is a module-level singleton with no
  * injection seam — see cronSecretGate_test.ts / activityLog_test.ts for the same constraint on
  * other DB-touching shared modules) and is exercised today via ./dev.sh manual QA per
- * docs/workflow/for-testing/ai-llm-best-practices-hardening.md's "owner with a foreign propertyId
+ * docs/workflow/in-progress/production-readiness/audits/ai-llm-best-practices-hardening.md's "owner with a foreign propertyId
  * → 404" checklist item, not by a Deno unit test. This file covers what phase 1 guarantees on its
  * own: a call missing scope or missing a target id can never reach the database at all, so the
  * worst a caller can do by omitting either is a clean 404, never an unscoped table scan.

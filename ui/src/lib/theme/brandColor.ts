@@ -1,10 +1,41 @@
 import {
   clampChannel,
+  hslToHex,
   parseHexRgb,
   rgbToHsl as rgbChannelsToHsl,
   type Hsl,
   type Rgb,
 } from '@/lib/theme/colorConvert';
+
+/** WCAG AA for normal-size text. White labels sit on brand fills (buttons, badges, pills). */
+export const WHITE_TEXT_MIN_CONTRAST = 4.5;
+
+function relativeLuminance({ r, g, b }: Rgb): number {
+  const channel = (value: number) => {
+    const c = value / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+/** Contrast ratio of white text on `hsl(h s% l%)`. */
+export function whiteTextContrast(h: number, s: number, l: number): number {
+  const rgb = parseHexRgb(hslToHex(h, s, l));
+  if (!rgb) return 1;
+  return 1.05 / (relativeLuminance(rgb) + 0.05);
+}
+
+/**
+ * Highest whole lightness ≤ `l` (same hue/saturation) where white text reaches
+ * {@link WHITE_TEXT_MIN_CONTRAST}. Whole numbers because theme tokens are emitted rounded.
+ */
+export function textSafeLightness(h: number, s: number, l: number): number {
+  const hR = Math.round(h);
+  const sR = Math.round(s);
+  let safe = Math.round(l);
+  while (safe > 0 && whiteTextContrast(hR, sR, safe) < WHITE_TEXT_MIN_CONTRAST) safe -= 1;
+  return Math.max(safe, 0);
+}
 
 /** Teal green — matches `--sidebar-primary` (`168 65% 40%`) in index.css. */
 export const DEFAULT_ORG_BRAND_COLOR = '#24a88e';
@@ -27,6 +58,15 @@ function shiftHue(h: number, delta: number): number {
 
 function hslString({ h, s, l }: Hsl): string {
   return `${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}%`;
+}
+
+/**
+ * Button/CTA sheen with white labels: the lightest stop (`l + 4`) must stay text-safe,
+ * so light brand colors shift the whole sheen darker.
+ */
+export function buildTextSafeBrandGradientCss(h: number, s: number, l: number): string {
+  const safeBase = Math.min(Math.round(l), textSafeLightness(h, s, Math.round(l) + 4) - 4);
+  return buildBrandGradientCss(h, s, safeBase);
 }
 
 /** 3-stop 135° sheen around the selected color — same hue/saturation, slight lightness steps. */
@@ -157,6 +197,7 @@ export function propertyBrandColorsEquivalent(
 const DEFAULT_LIGHT_THEME: Record<string, string> = {
   '--primary': '168 65% 40%',
   '--primary-foreground': '0 0% 100%',
+  '--primary-strong': '168 65% 31%',
   '--ring': '168 65% 40%',
   '--success': '168 65% 40%',
   '--info': '168 65% 46%',
@@ -177,12 +218,13 @@ const DEFAULT_LIGHT_THEME: Record<string, string> = {
   '--brand-range-bg-end': '168 50% 88%',
   '--brand-range-fg': '168 65% 28%',
   '--brand-gradient':
-    'linear-gradient(135deg, hsl(168 65% 46%) 0%, hsl(168 65% 42%) 45%, hsl(168 65% 38%) 100%)',
+    'linear-gradient(135deg, hsl(168 65% 31%) 0%, hsl(168 65% 27%) 45%, hsl(168 65% 22%) 100%)',
 };
 
 const DEFAULT_DARK_THEME: Record<string, string> = {
   '--primary': '168 65% 45%',
   '--primary-foreground': '0 0% 100%',
+  '--primary-strong': '168 65% 31%',
   '--ring': '168 65% 45%',
   '--success': '168 65% 45%',
   '--info': '168 65% 50%',
@@ -203,7 +245,7 @@ const DEFAULT_DARK_THEME: Record<string, string> = {
   '--brand-range-bg-end': '168 35% 14%',
   '--brand-range-fg': '168 65% 72%',
   '--brand-gradient':
-    'linear-gradient(135deg, hsl(168 65% 50%) 0%, hsl(168 65% 46%) 45%, hsl(168 65% 42%) 100%)',
+    'linear-gradient(135deg, hsl(168 65% 31%) 0%, hsl(168 65% 27%) 45%, hsl(168 65% 22%) 100%)',
 };
 
 /** Tokens use the picker hex as `--primary`; labels on fills stay white. */
@@ -212,7 +254,8 @@ function generateBrandTheme(hex: string, isDark: boolean): Record<string, string
   const { h, s, l } = rgbToHsl(rgb);
   const primary = hslString({ h, s, l });
   const primaryFg = '0 0% 100%';
-  const brandGradient = buildBrandGradientCss(h, s, l);
+  const primaryStrong = hslString({ h, s, l: textSafeLightness(h, s, l) });
+  const brandGradient = buildTextSafeBrandGradientCss(h, s, l);
   const gradientFrom = hslString({ h, s, l: clamp(l + 4, 0, 100) });
   const gradientMid = primary;
   const gradientTo = hslString({ h, s, l: clamp(l - 5, 0, 100) });
@@ -244,6 +287,7 @@ function generateBrandTheme(hex: string, isDark: boolean): Record<string, string
   return {
     '--primary': primary,
     '--primary-foreground': primaryFg,
+    '--primary-strong': primaryStrong,
     '--ring': primary,
     '--success': primary,
     '--info': hslString({ h, s, l: infoL }),
@@ -288,6 +332,7 @@ export function buildGuestBrandStyle(
   return {
     '--primary': theme['--primary']!,
     '--primary-foreground': theme['--primary-foreground']!,
+    '--primary-strong': theme['--primary-strong']!,
     '--ring': theme['--ring']!,
     '--success': theme['--success']!,
     '--glow-color': theme['--glow-color']!,

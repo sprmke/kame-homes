@@ -6,6 +6,7 @@
 import { createServiceClient } from './orgAuth.ts';
 import { downloadAssistantAttachment } from './assistantAttachmentApply.ts';
 import type { NormalizedInboxAttachment } from './inboxAttachments.ts';
+import { assertMimeMatchesBytes } from './sniffMime.ts';
 import { assertWithinUploadLimit, type UploadLimitKind } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
 
@@ -54,6 +55,7 @@ export async function uploadInboxChatAssetFromBytes(input: {
   if (!INBOX_CHAT_ALLOWED_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, WebP, HEIC, or PDF');
   }
+  assertMimeMatchesBytes(input.bytes, mime);
   assertWithinUploadLimit({ size: input.bytes.byteLength }, inboxChatUploadLimitKind(mime));
 
   const ext = extensionForInboxChatMime(mime);

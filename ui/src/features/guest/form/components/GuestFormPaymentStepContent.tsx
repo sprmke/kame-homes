@@ -6,10 +6,7 @@ import {
   useGuestPaymentInfo,
   type GuestPaymentMethod,
 } from '@/features/guest/form/hooks/useGuestPaymentInfo';
-import {
-  computeGuestFormPaymentBreakdown,
-  GUEST_DOWN_PAYMENT_RATE_PER_NIGHT,
-} from '@/features/guest/form/lib/guestFormPayment';
+import { computeGuestFormPaymentBreakdown } from '@/features/guest/form/lib/guestFormPayment';
 import type { GuestFormData } from '@/features/guest/form/schemas/guestFormSchema';
 
 import { InlineCopyIconButton } from '@/features/dashboard/bookings/components/InlineCopyIconButton';
@@ -141,9 +138,10 @@ export function GuestFormPaymentStepContent({
   const checkInDate = form.watch('checkInDate');
   const checkOutDate = form.watch('checkOutDate');
 
+  const propertyDownPayment = paymentInfo?.downPayment;
   const breakdown = useMemo(
-    () => computeGuestFormPaymentBreakdown({ checkInDate, checkOutDate }),
-    [checkInDate, checkOutDate]
+    () => computeGuestFormPaymentBreakdown({ checkInDate, checkOutDate }, propertyDownPayment),
+    [checkInDate, checkOutDate, propertyDownPayment]
   );
 
   const paymentMethods = paymentInfo?.paymentMethods?.length
@@ -176,13 +174,11 @@ export function GuestFormPaymentStepContent({
         <dl className="text-muted-foreground space-y-2">
           <div className="flex items-start justify-between gap-3">
             <dt>
-              Downpayment ({nightLabel(breakdown.stayNights)})
-              <span className="mt-0.5 block text-xs">
-                {formatMoney(GUEST_DOWN_PAYMENT_RATE_PER_NIGHT)} × {breakdown.stayNights}
-              </span>
+              Downpayment
+              <span className="mt-0.5 block text-xs">{nightLabel(breakdown.stayNights)} stay</span>
             </dt>
             <dd className="text-foreground shrink-0 font-medium tabular-nums">
-              {formatMoney(breakdown.staySubtotal)}
+              {formatMoney(breakdown.downPayment)}
             </dd>
           </div>
           {estimatedStayPhp != null && voucherLabel && voucherDiscountPhp > 0 ? (

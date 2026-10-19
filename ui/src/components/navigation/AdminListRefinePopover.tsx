@@ -57,7 +57,7 @@ export function AdminListRefinePopover({
             <span
               className={cn(
                 'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums',
-                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                active ? 'bg-primary-strong text-primary-foreground' : 'bg-muted text-foreground'
               )}
             >
               {activeCount > 9 ? '9+' : activeCount}

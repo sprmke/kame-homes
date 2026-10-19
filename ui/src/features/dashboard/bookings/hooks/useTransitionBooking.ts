@@ -15,6 +15,7 @@ import type { BookingWorkflowEmailKind } from '@/features/dashboard/bookings/lib
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import {
   notifyAutomationSkippedByHost,
+  notifyEmailsFailed,
   notifyAutomationSkippedByPlan,
 } from '@/features/dashboard/bookings/lib/workflowPlanSkip';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -106,6 +107,7 @@ type TransitionResult = {
   booking: BookingRow;
   sideEffects?: {
     emails?: string[];
+    emailsFailed?: string[];
     automationSkippedByPlan?: string[];
     automationSkippedByHost?: string[];
   };
@@ -185,6 +187,7 @@ export function useTransitionBooking() {
         variables.bookingId
       );
       notifyAutomationSkippedByHost(data?.sideEffects?.automationSkippedByHost ?? []);
+      notifyEmailsFailed(data?.sideEffects?.emailsFailed ?? []);
       if (data?.booking) {
         qc.setQueryData(bookingDetailQueryKey(variables.bookingId, propertyId), data.booking);
       }

@@ -39,7 +39,7 @@ const TILE_CLASS =
 
 function SelectedBadge() {
   return (
-    <span className="bg-primary text-primary-foreground absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full shadow-sm">
+    <span className="bg-primary-strong text-primary-foreground absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full shadow-sm">
       <Check className="size-3.5" strokeWidth={3} aria-hidden />
     </span>
   );

@@ -86,7 +86,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Explore</h4>
+            <h2 className="mb-4 font-semibold">Explore</h2>
             <ul className="space-y-3">
               {footerLinks.explore.map((link) => (
                 <li key={link.href}>
@@ -99,7 +99,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Company</h4>
+            <h2 className="mb-4 font-semibold">Company</h2>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
@@ -112,7 +112,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">For Hosts</h4>
+            <h2 className="mb-4 font-semibold">For Hosts</h2>
             <ul className="space-y-3">
               {footerLinks.hosts.map((link) => (
                 <li key={link.href}>
@@ -129,7 +129,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Legal</h4>
+            <h2 className="mb-4 font-semibold">Legal</h2>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>

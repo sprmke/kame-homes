@@ -305,7 +305,7 @@ export function AiModeScene() {
     >
       <div className="bg-background flex h-full w-full">
         <aside className="border-sidebar-border bg-sidebar flex w-[64px] shrink-0 flex-col items-center gap-2 border-r py-4">
-          <span className="bg-primary text-primary-foreground mb-2 flex size-9 items-center justify-center rounded-lg">
+          <span className="bg-primary-strong text-primary-foreground mb-2 flex size-9 items-center justify-center rounded-lg">
             <Building2 className="size-[18px]" />
           </span>
           {RAIL.map((Icon, index) => (
@@ -313,7 +313,9 @@ export function AiModeScene() {
               key={index}
               className={cn(
                 'flex size-10 items-center justify-center rounded-xl',
-                index === 1 && canvas ? 'bg-primary text-primary-foreground' : 'text-sidebar-muted'
+                index === 1 && canvas
+                  ? 'bg-primary-strong text-primary-foreground'
+                  : 'text-sidebar-muted'
               )}
             >
               <Icon className="size-[18px]" />
@@ -339,7 +341,7 @@ export function AiModeScene() {
             </div>
             {asked ? (
               <div
-                className="bg-primary text-primary-foreground ml-auto max-w-[340px] rounded-2xl rounded-br-md px-4 py-2.5 text-sm"
+                className="bg-primary-strong text-primary-foreground ml-auto max-w-[340px] rounded-2xl rounded-br-md px-4 py-2.5 text-sm"
                 style={reveal(frame, 62, 10)}
               >
                 {question}
@@ -371,7 +373,7 @@ export function AiModeScene() {
                   typewriter(question, frame, 14, 54)
                 )}
               </span>
-              <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full">
+              <span className="bg-primary-strong text-primary-foreground flex size-8 items-center justify-center rounded-full">
                 <ArrowUp className="size-4" />
               </span>
             </div>

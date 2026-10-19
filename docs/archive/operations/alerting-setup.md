@@ -9,7 +9,7 @@ updated: 2026-09-22
 
 **Operator task.** The code is shipped and inert; it stays a no-op until the two accounts below exist and their values are set. Until then nothing pages when production breaks.
 
-Context: production-readiness [`30-availability-and-recovery.md`](../../workflow/planned/production-readiness-checklist/30-availability-and-recovery.md) records that no pager, uptime monitor or watched channel exists today, and [`incident-response.md`](./incident-response.md) states on-call is "whoever is awake." This closes the detection half of that gap.
+Context: production-readiness [`30-availability-and-recovery.md`](../../workflow/in-progress/production-readiness/checklist/30-availability-and-recovery.md) records that no pager, uptime monitor or watched channel exists today, and [`incident-response.md`](./incident-response.md) states on-call is "whoever is awake." This closes the detection half of that gap.
 
 ---
 
@@ -27,7 +27,7 @@ Context: production-readiness [`30-availability-and-recovery.md`](../../workflow
 
 Any provider works (Better Stack, UptimeRobot, Pingdom). Point it at hosted dev first to confirm the alert path delivers before relying on it for production.
 
-**Verify it works:** the alert must fire when the endpoint is down. An untested monitor is an assumption, not coverage — the same trap [`30-availability-and-recovery.md`](../../workflow/planned/production-readiness-checklist/30-availability-and-recovery.md) flags for the never-rehearsed restore.
+**Verify it works:** the alert must fire when the endpoint is down. An untested monitor is an assumption, not coverage — the same trap [`30-availability-and-recovery.md`](../../workflow/in-progress/production-readiness/checklist/30-availability-and-recovery.md) flags for the never-rehearsed restore.
 
 ---
 
@@ -61,7 +61,7 @@ Alert fatigue is the failure mode that makes alerting worthless. Start here and 
 
 ## Why Sentry when PostHog already captures exceptions
 
-PostHog keeps the exception history and stays the product-analytics system of record. It is not the alerting path here because PostHog alert configuration is operator-blocked ([doc 28](../../workflow/planned/production-readiness-checklist/28-analytics.md)). Both receive every captured error from the same choke point, so this is additive — if PostHog alerting is configured later, the Sentry rules can be retired without touching handler code.
+PostHog keeps the exception history and stays the product-analytics system of record. It is not the alerting path here because PostHog alert configuration is operator-blocked ([doc 28](../../workflow/in-progress/production-readiness/checklist/28-analytics.md)). Both receive every captured error from the same choke point, so this is additive — if PostHog alerting is configured later, the Sentry rules can be retired without touching handler code.
 
 ---
 

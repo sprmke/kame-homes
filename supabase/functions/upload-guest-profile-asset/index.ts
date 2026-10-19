@@ -8,6 +8,7 @@ import { patchGuestProfile } from '../_shared/guestProfileService.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { assertMimeMatchesBytes } from '../_shared/sniffMime.ts';
 import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 
@@ -19,7 +20,7 @@ serveAuthenticated('upload-guest-profile-asset', async (req, user) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-  // Durable per-user upload rate limit. Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Durable per-user upload rate limit. Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const limited = await rateLimitGate(req, {
     scope: 'upload-guest-profile-asset',
     identity: identityFromRequest(req, user),
@@ -40,6 +41,13 @@ serveAuthenticated('upload-guest-profile-asset', async (req, user) => {
   }
   assertWithinUploadLimit(file, 'avatar');
 
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  try {
+    assertMimeMatchesBytes(bytes, mime);
+  } catch (err) {
+    return jsonError(req, err instanceof Error ? err.message : String(err), 400);
+  }
+
   const ext =
     mime === 'image/png'
       ? '.png'
@@ -57,7 +65,7 @@ serveAuthenticated('upload-guest-profile-asset', async (req, user) => {
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '300' });
+    .upload(storagePath, bytes, { upsert: true, contentType: mime, cacheControl: '300' });
 
   if (uploadError) {
     return jsonError(req, `Upload failed: ${uploadError.message}`, 500);

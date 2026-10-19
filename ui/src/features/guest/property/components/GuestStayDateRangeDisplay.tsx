@@ -54,7 +54,7 @@ export function GuestStayDateRangeDisplay({
     isCompact
       ? 'px-2.5 py-1 text-[11px]'
       : 'px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-[11px]',
-    isSuccess ? 'bg-emerald-600 text-white' : 'bg-primary text-primary-foreground'
+    isSuccess ? 'bg-emerald-600 text-white' : 'bg-primary-strong text-primary-foreground'
   );
 
   const shellClass = cn(

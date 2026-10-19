@@ -13,6 +13,7 @@ import {
 } from './propertyExternalReviews.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { copyBytes, formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const BUCKET = 'app-settings-assets';
 
@@ -114,6 +115,7 @@ export async function applyAppSettingsAssetFromBytes(
         : 'File must be JPEG, PNG, or WebP'
     );
   }
+  assertUploadMatchesBytes(input.bytes, mime, allowedMime);
 
   const file = new File([copyBytes(input.bytes)], input.fileName || 'asset.jpg', { type: mime });
   assertWithinUploadLimit(file, 'image');

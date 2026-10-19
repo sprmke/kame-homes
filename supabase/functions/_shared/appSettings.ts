@@ -101,6 +101,8 @@ export type GuestPaymentInfoDto = {
   organizationName: string;
   defaultParkingRateGuest: number;
   petFee: number;
+  /** Flat per-booking down payment (`app_settings.default_down_payment`). */
+  downPayment: number;
 } & GafDetailsResolved;
 
 export type AppSettingsFieldSource = 'db' | 'default';
@@ -562,6 +564,7 @@ export async function serializeGuestPaymentInfo(
     organizationName: guestForm.organizationName,
     defaultParkingRateGuest: s.defaultParkingRateGuest,
     petFee: pricing.petFee,
+    downPayment: pricing.downPayment,
   };
 }
 

@@ -159,7 +159,7 @@ export function VideoPlaybackControls({
             <TransportButton
               label={transport.isPlaying ? 'Pause' : 'Play'}
               onClick={handleTogglePlay}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[44px]"
+              className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 min-w-[44px]"
             >
               {transport.isPlaying ? (
                 <Pause className="size-4 text-white" aria-hidden />

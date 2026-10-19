@@ -69,7 +69,7 @@ function BookScreen() {
               {listing.nights} · {listing.total}
             </p>
           </div>
-          <span className="bg-primary rounded-full px-4 py-2 text-[11px] font-semibold text-white">
+          <span className="bg-primary-strong rounded-full px-4 py-2 text-[11px] font-semibold text-white">
             Reserve
           </span>
         </div>
@@ -93,7 +93,7 @@ function GuideScreen() {
           <p className="text-foreground mt-0.5 font-semibold">{guide.checkOut}</p>
         </div>
       </div>
-      <div className="bg-primary mt-3 rounded-2xl p-3 text-white">
+      <div className="bg-primary-strong mt-3 rounded-2xl p-3 text-white">
         <p className="flex items-center gap-1.5 text-[10px] font-semibold text-white/80">
           <Wifi className="h-3 w-3" aria-hidden />
           Wi-Fi
@@ -158,7 +158,7 @@ function TripScreen() {
             className={cn(
               'w-fit max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-snug',
               message.from === 'guest'
-                ? 'bg-primary ml-auto rounded-br-md text-white'
+                ? 'bg-primary-strong ml-auto rounded-br-md text-white'
                 : 'bg-muted text-foreground rounded-bl-md'
             )}
           >
@@ -168,7 +168,7 @@ function TripScreen() {
       </div>
       <div className="border-border mx-3 mb-4 mt-3 flex items-center gap-2 rounded-full border py-1.5 pl-3 pr-1.5">
         <span className="text-muted-foreground flex-1 text-[10px]">Message</span>
-        <span className="bg-primary flex h-6 w-6 items-center justify-center rounded-full text-white">
+        <span className="bg-primary-strong flex h-6 w-6 items-center justify-center rounded-full text-white">
           <Send className="h-3 w-3" aria-hidden />
         </span>
       </div>

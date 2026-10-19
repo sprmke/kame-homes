@@ -14,8 +14,10 @@ import {
   PROPERTY_MEDIA_BUCKET,
   propertyMediaStoragePath,
   type PropertyMediaRecord,
+  ALLOWED_PROPERTY_MEDIA_MIME,
 } from './propertyMedia.ts';
 import { copyBytes, formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 function extensionForMime(mime: string, fileName: string): string {
   const fromName = fileName.includes('.') ? `.${fileName.split('.').pop()?.toLowerCase()}` : '';
@@ -116,6 +118,7 @@ export async function applyPropertyMediaFromBytes(
   if (!mediaType) {
     throw new Error('File must be a supported image or video format');
   }
+  assertUploadMatchesBytes(input.bytes, mime, ALLOWED_PROPERTY_MEDIA_MIME);
 
   const file = new File([copyBytes(input.bytes)], input.fileName || 'media', { type: mime });
   const maxBytes = maxBytesForPropertyMediaType(mediaType);
