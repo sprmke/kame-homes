@@ -67,9 +67,9 @@ function prefersReducedMotion(): boolean {
 }
 
 const secondaryButtonClass =
-  'border-border text-foreground hover:bg-muted/50 min-h-[44px] flex-1 rounded-xl border px-3 text-sm font-semibold transition-colors disabled:opacity-50';
+  'border-border text-foreground hover:bg-muted/50 inline-flex h-11 min-h-11 flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold transition-colors disabled:opacity-50';
 const primaryButtonClass =
-  'bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] flex-1 rounded-xl px-3 text-sm font-semibold transition-colors';
+  'bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-11 min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-sm font-semibold transition-colors';
 const roundButtonClass =
   'flex size-12 min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors disabled:opacity-50';
 

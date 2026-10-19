@@ -11,7 +11,7 @@ export type AntiSpamController = {
 
 /**
  * Invisible bot filters for a public form: a honeypot decoy + a mount timestamp.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
  *
  * Usage:
  *   const antiSpam = useAntiSpamFields();

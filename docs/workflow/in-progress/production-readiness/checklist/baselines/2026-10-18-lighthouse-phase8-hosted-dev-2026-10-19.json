@@ -1,0 +1,163 @@
+{
+  "capturedAt": "2026-10-18T19:21:55.866Z",
+  "label": "phase8-hosted-dev-2026-10-19",
+  "runs": 1,
+  "baseUrl": "https://dev.kamehomes.space",
+  "mode": "deployed-preview",
+  "note": null,
+  "routes": [
+    {
+      "path": "/",
+      "persona": "guest-anon",
+      "name": "Public landing",
+      "url": "https://dev.kamehomes.space/",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 56.99999999999999,
+        "lcpMs": 12146.410079999998,
+        "clsScore": 0,
+        "tbtMs": 25.5,
+        "fcpMs": 7302.668100000003,
+        "speedIndexMs": 7947.5509722084125,
+        "totalByteWeightBytes": 2514916
+      },
+      "error": null
+    },
+    {
+      "path": "/properties",
+      "persona": "guest-anon",
+      "name": "Property search/list",
+      "url": "https://dev.kamehomes.space/properties",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 9950.393679999997,
+        "clsScore": 0,
+        "tbtMs": 51,
+        "fcpMs": 6218.041100000002,
+        "speedIndexMs": 6218.041100000002,
+        "totalByteWeightBytes": 1157057
+      },
+      "error": null
+    },
+    {
+      "path": "/properties/demo-property/form",
+      "persona": "guest-anon",
+      "name": "Guest booking form",
+      "url": "https://dev.kamehomes.space/properties/demo-property/form",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 56.99999999999999,
+        "lcpMs": 15196.484100000001,
+        "clsScore": 0.08578944749822007,
+        "tbtMs": 62,
+        "fcpMs": 6396.82945,
+        "speedIndexMs": 6396.82945,
+        "totalByteWeightBytes": 2078591
+      },
+      "error": null
+    },
+    {
+      "path": "/parkings",
+      "persona": "guest-anon",
+      "name": "Parking landing",
+      "url": "https://dev.kamehomes.space/parkings",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 57.99999999999999,
+        "lcpMs": 9676.819399999995,
+        "clsScore": 0,
+        "tbtMs": 65,
+        "fcpMs": 7051.6199000000015,
+        "speedIndexMs": 7051.6199000000015,
+        "totalByteWeightBytes": 1159129
+      },
+      "error": null
+    },
+    {
+      "path": "/account",
+      "persona": "guest-auth",
+      "name": "Guest account (redirects to sign-in if anon)",
+      "url": "https://dev.kamehomes.space/account",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 6805.231300000001,
+        "clsScore": 0.08578944749822007,
+        "tbtMs": 55,
+        "fcpMs": 6219.9736,
+        "speedIndexMs": 6219.9736,
+        "totalByteWeightBytes": 1975705
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/bookings",
+      "persona": "host",
+      "name": "Admin bookings dashboard (needs auth session + real slugs)",
+      "url": "https://dev.kamehomes.space/org/demo-org/property/demo-property/bookings",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 46,
+        "lcpMs": 9226.4044,
+        "clsScore": 0.2698618721101261,
+        "tbtMs": 67.98379999999997,
+        "fcpMs": 6215.3504,
+        "speedIndexMs": 6215.3504,
+        "totalByteWeightBytes": 2132421
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/finance",
+      "persona": "host",
+      "name": "Admin finance (needs auth session + real slugs)",
+      "url": "https://dev.kamehomes.space/org/demo-org/property/demo-property/finance",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 46,
+        "lcpMs": 9367.2636,
+        "clsScore": 0.2698618721101261,
+        "tbtMs": 31,
+        "fcpMs": 6217.2006,
+        "speedIndexMs": 6217.2006,
+        "totalByteWeightBytes": 2147982
+      },
+      "error": null
+    },
+    {
+      "path": "/for-hosts/pricing",
+      "persona": "host",
+      "name": "Plans/pricing page",
+      "url": "https://dev.kamehomes.space/for-hosts/pricing",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 59,
+        "lcpMs": 8291.1969,
+        "clsScore": 0,
+        "tbtMs": 31,
+        "fcpMs": 6220.205400000001,
+        "speedIndexMs": 6753.363766710716,
+        "totalByteWeightBytes": 1155270
+      },
+      "error": null
+    },
+    {
+      "path": "/admin",
+      "persona": "super-admin",
+      "name": "Super-admin shell (redirects if unauthenticated)",
+      "url": "https://dev.kamehomes.space/admin",
+      "runs": 1,
+      "metrics": {
+        "performanceScore": 46,
+        "lcpMs": 10020.9503,
+        "clsScore": 0.2698618721101261,
+        "tbtMs": 29,
+        "fcpMs": 6216.983299999999,
+        "speedIndexMs": 6216.983299999999,
+        "totalByteWeightBytes": 2126614
+      },
+      "error": null
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 /**
  * Durable fixed-window rate limiting for public + lightly-authenticated writes.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1, Layer 3)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1, Layer 3)
  *
  * Backed by `request_rate_limits` + the `bump_rate_limit()` SQL function
  * (migration 20261304120000). Unlike `_shared/publicRateLimit.ts` (per-isolate,

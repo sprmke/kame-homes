@@ -87,7 +87,7 @@ serve(async (req) => {
     // Returns a ready-to-send Response (with CORS + captchaFailed/rateLimited
     // flags) when the caller should be blocked; null when they pass. The L1
     // in-memory `checkIpRateLimit` above stays as a cheap burst dampener.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, formData, {
       scope: 'submit-form',
       rateLimit: { limit: 20, windowSec: 60 },

@@ -37,7 +37,7 @@ servePublic('claim-sd-voucher', async (req) => {
 
   // Anti-spam: Turnstile + durable rate limit. Heuristics are skipped — the
   // "Claim it!" action is a single tap with no form-fill window to time.
-  // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpamBlocked = await antiSpamGate(req, body as Record<string, unknown>, {
     scope: 'claim-sd-voucher',
     rateLimit: { limit: 10, windowSec: 60 },

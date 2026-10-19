@@ -7,7 +7,7 @@ updated: 2026-09-24
 
 # AI platform: gateway, prompts, safety, evals
 
-Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split. How every LLM call in the app is made, validated, metered and tested. Cost/quota policy lives in PROJECT.md § Platform AI metering; the assistant's tool catalog lives in [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md). Plan of record: [`workflow/for-testing/ai-llm-best-practices-hardening.md`](../workflow/for-testing/ai-llm-best-practices-hardening.md).
+Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split. How every LLM call in the app is made, validated, metered and tested. Cost/quota policy lives in PROJECT.md § Platform AI metering; the assistant's tool catalog lives in [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md). Plan of record: [`workflow/for-testing/ai-llm-best-practices-hardening.md`](../workflow/in-progress/production-readiness/audits/ai-llm-best-practices-hardening.md).
 
 ## 1. Layering
 

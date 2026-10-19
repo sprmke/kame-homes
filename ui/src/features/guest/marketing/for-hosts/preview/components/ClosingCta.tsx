@@ -11,7 +11,7 @@ const { eyebrow, title, body, primaryCta, secondaryCta, trustLine } = closingCon
 
 export function ClosingCta() {
   return (
-    <section className="bg-primary text-primary-foreground">
+    <section className="bg-primary-strong text-primary-foreground">
       <div className="container mx-auto px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
         <Reveal className="max-w-2xl">
           <p className="text-primary-foreground/70 flex items-center gap-3 text-sm font-semibold">

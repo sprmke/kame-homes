@@ -58,7 +58,7 @@ function StepNode({
           'flex size-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200',
           // Opaque fill masks the track so the line reads as passing behind the node.
           'bg-background',
-          done && 'border-primary bg-primary text-primary-foreground',
+          done && 'border-primary bg-primary-strong text-primary-foreground',
           current && 'border-primary text-primary shadow-sm',
           upcoming && 'border-border text-muted-foreground'
         )}

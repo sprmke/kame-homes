@@ -234,7 +234,7 @@ export function BookingDateRangeFilter({
           onClick={handleApplyRange}
           disabled={!localRange?.from || !localRange?.to}
           className={cn(
-            'bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-all duration-100',
+            'bg-primary-strong text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-all duration-100',
             'disabled:pointer-events-none disabled:opacity-40',
             'hover:brightness-[1.03] active:scale-[0.98]',
             isMobileLayout && 'min-h-12 flex-1 rounded-xl text-sm'
@@ -492,8 +492,8 @@ const CALENDAR_CLASSNAMES = {
   range_start: 'day-range-start',
   range_end: 'day-range-end',
   selected: cn(
-    '[&_button]:bg-primary [&_button]:text-primary-foreground',
-    '[&_button:hover]:bg-primary [&_button:hover]:text-primary-foreground'
+    '[&_button]:bg-primary-strong [&_button]:text-primary-foreground',
+    '[&_button:hover]:bg-primary-strong [&_button:hover]:text-primary-foreground'
   ),
   today: 'font-bold [&_button]:ring-2 [&_button]:ring-primary/30',
   outside:

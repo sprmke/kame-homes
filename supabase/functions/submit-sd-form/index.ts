@@ -84,7 +84,7 @@ serve(async (req) => {
     const refund = body?.refund;
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, (body ?? {}) as Record<string, unknown>, {
       scope: 'submit-sd-form',
       rateLimit: { limit: 10, windowSec: 60 },

@@ -25,7 +25,7 @@ export function SearchErrorState({
         type="button"
         onClick={onRetry}
         disabled={retrying}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 mt-5 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 mt-5 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
       >
         {retrying ? 'Retrying…' : 'Try again'}
       </button>

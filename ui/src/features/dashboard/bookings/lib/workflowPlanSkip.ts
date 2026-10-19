@@ -59,6 +59,15 @@ export function notifyAutomationSkippedByHost(skipped: string[]): void {
   });
 }
 
+/** Transition applied but a due workflow email failed to send (Resend error). */
+export function notifyEmailsFailed(failed: readonly string[]): void {
+  if (failed.length === 0) return;
+  toast.error(`Email not sent: ${automationSkipLabelsForKinds(failed).join(', ')}`, {
+    description: 'The status still changed. Send it again from the booking.',
+    duration: 10_000,
+  });
+}
+
 export function workflowEmailKindFromSkipKey(key: string): BookingWorkflowEmailKind | null {
   if (key in AUTOMATION_SKIP_LABELS) return key as BookingWorkflowEmailKind;
   return null;

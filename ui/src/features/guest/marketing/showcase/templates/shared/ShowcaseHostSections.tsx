@@ -581,7 +581,7 @@ export function HavenHostSection({
                   fallbackClassName={cn('rounded-full text-3xl', tokens.brandFallback)}
                 />
                 {host.badge ? (
-                  <span className="bg-primary text-primary-foreground absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide">
+                  <span className="bg-primary-strong text-primary-foreground absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide">
                     {host.badge}
                   </span>
                 ) : null}

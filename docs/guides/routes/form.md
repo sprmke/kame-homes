@@ -45,6 +45,8 @@ The booking form walks a guest through their info, stay dates and guest list, an
   A: Guests can only edit their own submission while it's still in the initial "awaiting review" stage. Once you've moved it forward, they're shown a message to contact you on Facebook or Airbnb for changes instead.
 - Q: Why doesn't the Airbnb booking form ask for a payment receipt?
   A: Airbnb bookings skip the downpayment step entirely, since Airbnb handles that payment on their platform, not through Kame Homes.
+- **Q: How much downpayment does the guest see?**
+  A: Your property's **Default down payment** from Pricing settings, as one amount per booking. It's the same number your review pricing starts from, so the guest's receipt and your booking record match.
 - Q: A guest checked "Yes, reserve paid parking" — where's their vehicle info / parking charge?
   A: As of Phase 7, parking is a pure interest signal here — no vehicle info or charge is collected on this form anymore, and it's not part of the downpayment total. The guest reserves and pays for a specific spot separately through the parking marketplace (`/parkings`), either from a link on their booking-confirmation page/email, or a pre-arrival reminder email if they haven't by ~3 days before check-in. Once they self-serve and pay, it shows up automatically on this booking's detail page (Parking tab) — no manual entry needed from you.
 - Q: A guest tried to book dates that are already taken. What do they see?
@@ -62,7 +64,7 @@ The booking form walks a guest through their info, stay dates and guest list, an
 | 2   | Stay    | Check-in/out dates + times (custom `TimePicker`, defaults from property **`checkInTime`/`checkOutTime`** via `get-guest-payment-info`), special requests, how they found us, surprise decor flag, optional **voucher** picker (same-property awards from `list-guest-vouchers`) | ✅         |
 | 3   | Parking | Pure interest toggle (`needParking`) — no vehicle/date/pricing fields here anymore (Phase 7). Guests who opt in reserve and pay for a spot separately through the parking marketplace, after this booking is confirmed                                                          | ✅         |
 | 4   | Pets    | Optional pet details (name, type, breed, age, vaccination date, vaccination record + pet photo)                                                                                                                                                                                 | ✅         |
-| 5   | Payment | Downpayment breakdown + pay-to accounts (QR shown only when the host uploaded one) + receipt upload                                                                                                                                                                             | ❌ skipped |
+| 5   | Payment | Downpayment (the property's flat **Default down payment** from Pricing settings, same value the host review pricing starts from; not per night) + pay-to accounts (QR shown only when the host uploaded one) + receipt upload | ❌ skipped |
 
 Airbnb bookings (`?source=airbnb`, or a booking with `booking_source = 'Airbnb'`) get **4 steps** — Payment is omitted entirely and `paymentReceipt` is not required. See `.cursor/rules/booking-workflow.mdc` § Airbnb source behavior for the full list of Airbnb-specific differences downstream of submission.
 

@@ -1,6 +1,6 @@
 /**
  * Shared request-side shape for the invisible anti-spam layers.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 3)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 3)
  *
  * Field names mirror `supabase/functions/_shared/botHeuristics.ts` +
  * `_shared/captcha.ts` (`readCaptchaToken`). Kept in `lib/` (not the hook file)

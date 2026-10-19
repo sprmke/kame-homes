@@ -59,7 +59,7 @@ App-side glue: **`ui/src/components/pwa/PwaProvider.tsx`** (mounted in `App.tsx`
 
 The SW also refuses to store a response whose `Cache-Control` is `private` or `no-store` (Workbox otherwise caches on HTTP 200 alone), and never matches `get-public-showcase?preview=1` / `?embed=1` (unpublished host draft).
 
-Full before/after detail: [`11-cache-api-responses.md`](../workflow/planned/production-readiness-checklist/11-cache-api-responses.md) Phase 11.5.
+Full before/after detail: [`11-cache-api-responses.md`](../workflow/in-progress/production-readiness/checklist/11-cache-api-responses.md) Phase 11.5.
 
 ### Local dev
 
