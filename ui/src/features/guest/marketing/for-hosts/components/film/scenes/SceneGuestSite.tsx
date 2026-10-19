@@ -180,7 +180,7 @@ export function GuestBookingScene() {
                   })}
                 </div>
                 <div className={cn(CARD, 'mt-4 flex items-center gap-3 p-3.5')}>
-                  <span className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full text-sm font-bold">
+                  <span className="bg-primary-strong text-primary-foreground flex size-10 items-center justify-center rounded-full text-sm font-bold">
                     A
                   </span>
                   <div className="flex-1">
@@ -240,7 +240,7 @@ export function GuestBookingScene() {
                           className={cn(
                             'flex h-7 items-center justify-center rounded-md text-[11px] font-medium',
                             taken && 'text-muted-foreground/50 line-through',
-                            picked && date === 21 && 'bg-primary text-primary-foreground',
+                            picked && date === 21 && 'bg-primary-strong text-primary-foreground',
                             !taken && !(picked && date === 21) && 'text-foreground'
                           )}
                         >
@@ -250,7 +250,7 @@ export function GuestBookingScene() {
                     })}
                   </div>
                 )}
-                <span className="bg-primary text-primary-foreground mt-4 flex h-11 items-center justify-center rounded-xl text-sm font-semibold">
+                <span className="bg-primary-strong text-primary-foreground mt-4 flex h-11 items-center justify-center rounded-xl text-sm font-semibold">
                   Reserve
                 </span>
               </div>
@@ -370,7 +370,7 @@ export function GuestJourneyScene() {
               </PhotoTile>
               <div className="space-y-2.5 p-3">
                 <div
-                  className="bg-primary text-primary-foreground rounded-xl p-3"
+                  className="bg-primary-strong text-primary-foreground rounded-xl p-3"
                   style={reveal(frame, 16)}
                 >
                   <p className="text-[10px] font-bold uppercase tracking-wide opacity-80">
@@ -421,7 +421,7 @@ export function GuestJourneyScene() {
                     className={cn(
                       'max-w-[190px] rounded-2xl px-3 py-2 text-xs',
                       message.guest
-                        ? 'bg-primary text-primary-foreground ml-auto rounded-br-md'
+                        ? 'bg-primary-strong text-primary-foreground ml-auto rounded-br-md'
                         : 'bg-background text-foreground rounded-bl-md shadow-sm'
                     )}
                     style={reveal(frame, message.at, 10)}
@@ -457,7 +457,7 @@ export function GuestJourneyScene() {
                       className={cn(
                         'flex-1 rounded-full py-1 text-center',
                         index <= (frame >= 156 ? 1 : 0)
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-primary-strong text-primary-foreground'
                           : 'bg-muted text-muted-foreground'
                       )}
                     >

@@ -123,7 +123,7 @@ export function AdminMoreSheet({
                 className={cn(
                   'flex min-h-[44px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium leading-snug transition-colors',
                   active
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary-strong text-primary-foreground'
                     : 'text-foreground hover:bg-muted/60 active:bg-muted'
                 )}
               >

@@ -168,7 +168,7 @@ function SearchAllResultsButton({
       <button
         type="button"
         onClick={onClick}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/40 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
+        className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 focus-visible:ring-primary/40 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
       >
         <Search className="size-4" aria-hidden />
         {label}

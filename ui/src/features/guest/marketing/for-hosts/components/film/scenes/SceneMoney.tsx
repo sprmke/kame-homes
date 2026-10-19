@@ -390,7 +390,9 @@ export function MaintenanceScene() {
                   <span
                     className={cn(
                       'flex size-6 items-center justify-center rounded-md border-2',
-                      isDone ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+                      isDone
+                        ? 'border-primary bg-primary-strong text-primary-foreground'
+                        : 'border-border'
                     )}
                   >
                     {isDone ? <Check className="size-4" strokeWidth={3} /> : null}

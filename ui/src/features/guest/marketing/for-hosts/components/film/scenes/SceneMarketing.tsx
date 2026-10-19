@@ -203,7 +203,7 @@ function GenerateComposer({
       </div>
       <div className="min-h-0 flex-1 space-y-4">{children}</div>
       <span
-        className="bg-primary text-primary-foreground flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-semibold shadow-sm"
+        className="bg-primary-strong text-primary-foreground flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-semibold shadow-sm"
         style={{ opacity: 0.7 + ease(frame, 60, 80) * 0.3 }}
       >
         <Sparkles className="size-4" />

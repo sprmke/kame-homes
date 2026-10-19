@@ -48,7 +48,7 @@ export function PropertyChatEmbedPreview({ checkInDate, checkOutDate }: Props) {
             <p className="bg-muted text-muted-foreground max-w-[78%] self-start rounded-2xl rounded-bl-sm px-3 py-2 text-sm leading-snug">
               Hi, is this available?
             </p>
-            <p className="bg-primary text-primary-foreground max-w-[72%] self-end rounded-2xl rounded-br-sm px-3 py-2 text-sm leading-snug">
+            <p className="bg-primary-strong text-primary-foreground max-w-[72%] self-end rounded-2xl rounded-br-sm px-3 py-2 text-sm leading-snug">
               Yes — send dates and we&apos;ll confirm.
             </p>
           </div>

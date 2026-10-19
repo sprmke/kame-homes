@@ -87,7 +87,7 @@ export function HeroEditorial() {
               <Button
                 asChild
                 size="lg"
-                className="bg-primary hover:bg-primary/90 min-h-[52px] rounded-full px-8 text-base font-semibold text-white"
+                className="bg-primary-strong hover:bg-primary-strong/90 min-h-[52px] rounded-full px-8 text-base font-semibold text-white"
               >
                 <Link to={primaryCta.to}>
                   {primaryCta.label}

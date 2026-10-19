@@ -305,7 +305,7 @@ function DocumentsScene() {
       </div>
 
       <Track>
-        <Packet direction="out" delay={0.55} className="bg-primary h-8 w-8 text-white">
+        <Packet direction="out" delay={0.55} className="bg-primary-strong h-8 w-8 text-white">
           <Mail className="h-4 w-4" />
         </Packet>
         <Packet direction="back" delay={1.6} className="bg-success h-8 w-8 text-white">
@@ -399,7 +399,7 @@ function CheckinScene() {
         </motion.p>
         <motion.span
           {...cue(2.0, { opacity: 0, y: 6 })}
-          className="bg-primary mt-3 flex h-9 items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-white"
+          className="bg-primary-strong mt-3 flex h-9 items-center justify-center gap-1.5 rounded-full text-xs font-semibold text-white"
         >
           <BookOpen className="h-3.5 w-3.5" />
           {checkin.cta}
@@ -536,7 +536,7 @@ function DepositScene() {
           <Packet
             direction="out"
             delay={1.2}
-            className="bg-primary h-7 px-2.5 text-[11px] font-bold text-white"
+            className="bg-primary-strong h-7 px-2.5 text-[11px] font-bold text-white"
           >
             {deposit.amount}
           </Packet>
