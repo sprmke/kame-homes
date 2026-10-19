@@ -11,8 +11,9 @@
  *   node scripts/dev/qa-walk-hosted-dev.mjs --group host    # host | guest | public
  *   node scripts/dev/qa-walk-hosted-dev.mjs --json out.json
  *   node scripts/dev/qa-walk-hosted-dev.mjs --group host --as <member email> --viewport 375
+ *   node scripts/dev/qa-walk-hosted-dev.mjs --group public --browser webkit   # chromium | webkit | firefox
  */
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -48,6 +49,10 @@ const groupArg = args.includes('--group') ? args[args.indexOf('--group') + 1] : 
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
 const asEmail = args.includes('--as') ? args[args.indexOf('--as') + 1] : null;
 const viewportArg = args.includes('--viewport') ? args[args.indexOf('--viewport') + 1] : null;
+const browserName = args.includes('--browser') ? args[args.indexOf('--browser') + 1] : 'chromium';
+const browserType = { chromium, firefox, webkit }[browserName];
+if (!browserType)
+  throw new Error(`--browser must be chromium, webkit or firefox (got ${browserName})`);
 const VIEWPORTS = [
   { name: '375', width: 375, height: 812, mobile: true },
   { name: '768', width: 768, height: 1024, mobile: true },
@@ -95,7 +100,13 @@ const GROUPS = {
   },
   guest: {
     account: qa.QA_GUEST_EMAIL,
-    paths: ['/account', '/account/stays', '/account/vouchers', '/account/favorites', '/account/tickets'],
+    paths: [
+      '/account',
+      '/account/stays',
+      '/account/vouchers',
+      '/account/favorites',
+      '/account/tickets',
+    ],
   },
   public: {
     account: null,
@@ -144,7 +155,7 @@ const CRASH_RE = /something went wrong|unexpected error|application error|failed
 const NOT_FOUND_RE = /page not found|404/i;
 
 mkdirSync(ARTIFACTS, { recursive: true });
-const browser = await chromium.launch();
+const browser = await browserType.launch();
 const results = [];
 
 for (const [group, spec] of Object.entries(GROUPS)) {
@@ -190,7 +201,9 @@ for (const [group, spec] of Object.entries(GROUPS)) {
           const text = document.body?.innerText ?? '';
           const nav = [...document.querySelectorAll('nav')].find((n) => {
             const r = n.getBoundingClientRect();
-            return r.height > 0 && r.bottom >= window.innerHeight - 4 && r.top > window.innerHeight / 2;
+            return (
+              r.height > 0 && r.bottom >= window.innerHeight - 4 && r.top > window.innerHeight / 2
+            );
           });
           return {
             title: document.title,
@@ -230,7 +243,9 @@ for (const [group, spec] of Object.entries(GROUPS)) {
       ]
         .filter(Boolean)
         .join(' · ');
-      console.log(`${vp.name.padStart(4)} ${path.padEnd(48)} ${row.title.padEnd(40).slice(0, 40)} ${flags}`);
+      console.log(
+        `${vp.name.padStart(4)} ${path.padEnd(48)} ${row.title.padEnd(40).slice(0, 40)} ${flags}`
+      );
     }
     await context.close();
   }
