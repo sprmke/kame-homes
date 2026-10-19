@@ -69,14 +69,14 @@ This is the main guest homepage: search, featured stays, and destination tiles t
 
 ## Sections
 
-| Section        | Component             | Behavior                                                                                                                                                       |
-| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up |
-| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack; animation and card rotation pause while the hero is off screen                                                           |
-| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                         |
-| Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                      |
-| Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                        |
-| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote                                                                                                                                |
+| Section        | Component             | Behavior                                                                                                                                                                                                                         |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up                                                                   |
+| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack; animation and card rotation pause while the hero is off screen; card photos use `MarketingImage` (srcset sized to the ≤384px card, front card eager + `fetchpriority=high`, the rest lazy) |
+| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                                                                                           |
+| Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                                                                                        |
+| Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                                                                                          |
+| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote                                                                                                                                                                                                  |
 
 Removed from home (still in codebase for reuse): `HowItWorks`, `Testimonials`, `TrustIndicators`, `FeaturedDevelopments`.
 
