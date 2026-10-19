@@ -36,6 +36,14 @@ cd "$ROOT"
 # narrow or the row is single-record — a list endpoint over a wide/growing table
 # should select explicit columns instead of being added here.
 ALLOWLIST=(
+  # Added 2026-10-19: insert/update-returning single rows (`.single()`/`.maybeSingle()`)
+  # on narrow tables; marketing_themes list is capped at 40 per property and every
+  # column is serialized; system_health_probe_results holds one row per probe id.
+  'marketing-themes/index.ts'
+  '_shared/supportTicketSubmitterActions.ts'
+  '_shared/inboxQuickReplyTemplates.ts'
+  '_shared/systemHealth/probes.ts'
+
   '_shared/appSettings.ts'
   '_shared/approvalEmailMatcher.ts'
   '_shared/bookingAiReviewService.ts'
