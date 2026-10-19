@@ -21,6 +21,7 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | [#149](https://github.com/sprmke/kame-homes/pull/149) | Guest down payment uses the property's flat setting (PR-119), verified on dev                                               | green     |
 | [#150](https://github.com/sprmke/kame-homes/pull/150) | Byte-sniff chat, inbox and avatar uploads (PR-016 partial)                                                                  | running   |
 | [#151](https://github.com/sprmke/kame-homes/pull/151) | Block backslash open redirect in sign-in `?redirect=`                                                                       | running   |
+| [#152](https://github.com/sprmke/kame-homes/pull/152) | Lazy dashboard shells: guest entry chunk 496 → 237 KiB gzip, pdf.js out of entry                                            | running   |
 
 ## Blockers
 
