@@ -427,24 +427,19 @@ export async function loadCalendarBookings(
 
 export async function loadPropertyPricing(
   propertyId: string,
-  options?: { monthStart?: string; monthEnd?: string }
+  options?: {
+    monthStart?: string;
+    monthEnd?: string;
+    /** Seed missing settings rows first (default). Public reads pass false: seeding is
+     *  ~7 sequential writes, and a missing row already falls back to defaults. */
+    ensureSettings?: boolean;
+  }
 ): Promise<PropertyPricingDto> {
-  await ensurePropertySettings(propertyId);
+  if (options?.ensureSettings !== false) await ensurePropertySettings(propertyId);
   const supabase = createServiceClient();
 
-  const { data: row, error } = await supabase
-    .from('app_settings')
-    .select(
-      'weekday_nightly_rate, weekend_nightly_rate, default_down_payment, default_security_deposit, default_pet_fee, default_parking_rate_guest, default_guest_additional_fee, pricing_holiday_rules'
-    )
-    .eq('property_id', propertyId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to load property pricing: ${error.message}`);
-  }
-
   const [
+    { data: row, error },
     dateOverrides,
     bookedDateKeys,
     blockedDateKeys,
@@ -452,6 +447,13 @@ export async function loadPropertyPricing(
     calendarBookings,
     smart,
   ] = await Promise.all([
+    supabase
+      .from('app_settings')
+      .select(
+        'weekday_nightly_rate, weekend_nightly_rate, default_down_payment, default_security_deposit, default_pet_fee, default_parking_rate_guest, default_guest_additional_fee, pricing_holiday_rules'
+      )
+      .eq('property_id', propertyId)
+      .maybeSingle(),
     loadDateOverrides(propertyId),
     loadBookedDateKeys(propertyId, options?.monthStart, options?.monthEnd),
     loadBlockedDateKeys(propertyId, options?.monthStart, options?.monthEnd),
@@ -461,6 +463,10 @@ export async function loadPropertyPricing(
       : Promise.resolve([] as PropertyPricingCalendarBooking[]),
     loadAppliedSmartRecommendations(propertyId, options),
   ]);
+
+  if (error) {
+    throw new Error(`Failed to load property pricing: ${error.message}`);
+  }
 
   return {
     ...rowToDefaults(row as AppSettingsPricingRow | null),
