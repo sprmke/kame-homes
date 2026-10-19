@@ -187,6 +187,59 @@ async function findProperty(orgId, name) {
   return Array.isArray(json) ? json[0] : null;
 }
 
+/**
+ * Puts the QA owner org on a paid plan without PayMongo, mirroring
+ * `_shared/planEntitlements.ts#createOrgSubscription` (subscription row, `assigned` event,
+ * property slot, `property_added` event). Billing is not exercised; only for RBAC / gate QA.
+ */
+async function ensureQaPlan(orgId, propertyId, planCode) {
+  const rest = (path, init = {}) =>
+    http(init.method ?? 'GET', `${URL_BASE}/rest/v1/${path}`, { apikey: SRK, body: init.body });
+  const plan = (await rest(`pricing_plans?select=id,code,price_php&code=eq.${planCode}`)).json?.[0];
+  if (!plan) throw new Error(`plan ${planCode} not found`);
+
+  const live = (
+    await rest(
+      `org_subscriptions?select=id,plan_id&organization_id=eq.${orgId}&status=in.(active,trialing,past_due)`
+    )
+  ).json?.[0];
+  if (live) {
+    if (live.plan_id !== plan.id) {
+      throw new Error(`QA org already on another live plan (${live.plan_id}); change it in /admin`);
+    }
+    return `plan ${planCode} already active`;
+  }
+
+  const inserted = await http('POST', `${URL_BASE}/rest/v1/org_subscriptions`, {
+    apikey: SRK,
+    body: {
+      organization_id: orgId,
+      plan_id: plan.id,
+      pricing_model: 'subscription',
+      price_php_snapshot: plan.price_php,
+      status: 'active',
+    },
+  });
+  if (inserted.status >= 300) {
+    throw new Error(`subscription insert: ${inserted.status} ${JSON.stringify(inserted.json)}`);
+  }
+  const subscriptionId = (
+    await rest(`org_subscriptions?select=id&organization_id=eq.${orgId}&status=eq.active`)
+  ).json?.[0]?.id;
+  if (!subscriptionId) throw new Error('subscription not found after insert');
+
+  const writes = [
+    ['org_subscription_events', { org_subscription_id: subscriptionId, event_type: 'assigned', new_plan_id: plan.id, new_status: 'active', note: 'readiness QA seed (dev, no billing)' }],
+    ['org_subscription_properties', { org_subscription_id: subscriptionId, property_id: propertyId }],
+    ['org_subscription_events', { org_subscription_id: subscriptionId, event_type: 'property_added', property_id: propertyId }],
+  ];
+  for (const [table, body] of writes) {
+    const res = await http('POST', `${URL_BASE}/rest/v1/${table}`, { apikey: SRK, body });
+    if (res.status >= 300) throw new Error(`${table}: ${res.status} ${JSON.stringify(res.json)}`);
+  }
+  return `plan ${planCode} assigned (subscription ${subscriptionId})`;
+}
+
 const summary = [];
 for (const account of ACCOUNTS) {
   account.token = await ensureAccount(account);
@@ -215,6 +268,13 @@ for (const spec of ORGS) {
   saved[`QA_${spec.owner}_PROPERTY_SLUG`] = after.slug;
   saved[`QA_${spec.owner}_PROPERTY_ID`] = after.id;
   summary.push(`org ${org.slug} property ${after.slug} ${after.status}`);
+}
+
+const planArg = process.argv.includes('--plan')
+  ? process.argv[process.argv.indexOf('--plan') + 1]
+  : null;
+if (planArg) {
+  summary.push(await ensureQaPlan(saved.QA_OWNER_ORG_ID, saved.QA_OWNER_PROPERTY_ID, planArg));
 }
 
 writeFileSync(

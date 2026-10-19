@@ -10,6 +10,7 @@
  *   node scripts/dev/qa-walk-hosted-dev.mjs                 # all groups
  *   node scripts/dev/qa-walk-hosted-dev.mjs --group host    # host | guest | public
  *   node scripts/dev/qa-walk-hosted-dev.mjs --json out.json
+ *   node scripts/dev/qa-walk-hosted-dev.mjs --group host --as <member email> --viewport 375
  */
 import { chromium } from 'playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -45,11 +46,13 @@ if (!URL_BASE.includes(DEV_REF) || !qa.QA_OWNER_ORG_SLUG) {
 const args = process.argv.slice(2);
 const groupArg = args.includes('--group') ? args[args.indexOf('--group') + 1] : null;
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
+const asEmail = args.includes('--as') ? args[args.indexOf('--as') + 1] : null;
+const viewportArg = args.includes('--viewport') ? args[args.indexOf('--viewport') + 1] : null;
 const VIEWPORTS = [
   { name: '375', width: 375, height: 812, mobile: true },
   { name: '768', width: 768, height: 1024, mobile: true },
   { name: '1280', width: 1280, height: 800, mobile: false },
-];
+].filter((vp) => !viewportArg || vp.name === viewportArg);
 
 const org = qa.QA_OWNER_ORG_SLUG;
 const prop = qa.QA_OWNER_PROPERTY_SLUG;
@@ -146,7 +149,8 @@ const results = [];
 
 for (const [group, spec] of Object.entries(GROUPS)) {
   if (groupArg && groupArg !== group) continue;
-  const s = spec.account ? await session(spec.account) : null;
+  const account = group === 'host' && asEmail ? asEmail : spec.account;
+  const s = account ? await session(account) : null;
   for (const vp of VIEWPORTS) {
     const context = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
