@@ -473,5 +473,18 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    // Playwright sets E2E_WARMUP: pre-transform the heaviest routes at dev-server start so the
+    // first test to open them (with parallel CI workers) does not outlast its timeout.
+    warmup: process.env.E2E_WARMUP
+      ? {
+          clientFiles: [
+            './src/features/dashboard/marketing/pages/MarketingStudioPage.tsx',
+            './src/features/dashboard/bookings/pages/BookingsListPage.tsx',
+            './src/features/dashboard/bookings/components/AdminLayout.tsx',
+            './src/features/dashboard/org/components/OrgAdminShell.tsx',
+            './src/features/dashboard/org/components/PropertyAdminShell.tsx',
+          ],
+        }
+      : undefined,
   },
 });
