@@ -2,25 +2,14 @@
  * upload-guest-chat-asset — Guest web chat image/PDF upload.
  */
 
-import { createClient } from '../_shared/supabaseJs.ts';
-
 import { assertGuestOwnsWebConversation } from '../_shared/webGuestChatService.ts';
-import type { NormalizedInboxAttachment } from '../_shared/inboxAttachments.ts';
+import {
+  INBOX_CHAT_ALLOWED_MIME,
+  uploadInboxChatAssetFromBytes,
+} from '../_shared/inboxChatAssetUpload.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
-import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
-import { formatPublicUrl } from '../_shared/utils.ts';
-
-const BUCKET = 'guest-chat-attachments';
-const ALLOWED_MIME = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-  'application/pdf',
-]);
 
 serveAuthenticated('upload-guest-chat-asset', async (req, user) => {
   if (req.method !== 'POST') {
@@ -50,10 +39,9 @@ serveAuthenticated('upload-guest-chat-asset', async (req, user) => {
   }
 
   const mime = (file.type || '').toLowerCase();
-  if (!ALLOWED_MIME.has(mime)) {
+  if (!INBOX_CHAT_ALLOWED_MIME.has(mime)) {
     return jsonError(req, 'File must be JPEG, PNG, WebP, HEIC, or PDF', 400);
   }
-  assertWithinUploadLimit(file, mime === 'application/pdf' ? 'pdf' : 'image');
 
   let conv;
   try {
@@ -64,45 +52,16 @@ serveAuthenticated('upload-guest-chat-asset', async (req, user) => {
     throw e;
   }
 
-  const ext =
-    mime === 'image/png'
-      ? '.png'
-      : mime === 'image/webp'
-        ? '.webp'
-        : mime === 'application/pdf'
-          ? '.pdf'
-          : mime === 'image/heic'
-            ? '.heic'
-            : mime === 'image/heif'
-              ? '.heif'
-              : '.jpg';
-  const fileName = String(formData.get('fileName') ?? file.name ?? `upload${ext}`).trim();
-  const safeName = fileName.replace(/[^\w.\-() ]+/g, '_').slice(0, 120) || `upload${ext}`;
-  const storagePath = `${conv.organization_id}/${conv.id}/${crypto.randomUUID()}${ext}`;
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
-
-  if (uploadError) {
-    return jsonError(req, `Upload failed: ${uploadError.message}`, 500);
+  try {
+    const attachment = await uploadInboxChatAssetFromBytes({
+      organizationId: conv.organization_id,
+      conversationId: conv.id,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+      mimeType: mime,
+      fileName: String(formData.get('fileName') ?? file.name ?? '').trim(),
+    });
+    return jsonSuccess(req, { attachment });
+  } catch (err) {
+    return jsonError(req, err instanceof Error ? err.message : String(err), 400);
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-  const url = formatPublicUrl(publicUrl);
-
-  const attachment: NormalizedInboxAttachment = {
-    kind: mime === 'application/pdf' ? 'file' : 'image',
-    url,
-    label: safeName,
-  };
-
-  return jsonSuccess(req, { attachment });
 });
