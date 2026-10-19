@@ -75,6 +75,7 @@ Production hosted secrets: Supabase Dashboard → Edge Functions → Secrets. UI
 | `VITE_POSTHOG_SESSION_REPLAY`                               | No         | Set to `true` to enable session replay in production builds. Default off; inputs masked when on (`ui/src/lib/posthog/client.ts`).                                                                                                                                                                                                                                                                                                                        |
 | `VITE_APP_TRACK`                                            | No         | Analytics track label: `mt` (default) or `legacy` for dual-track legacy prod. Attached as `app_track` on every event.                                                                                                                                                                                                                                                                                                                                    |
 | `VITE_SENTRY_DSN`                                           | No         | Browser **alerting** (`ui/src/lib/sentry/client.ts`), read at module scope. Unset or malformed → no-op. Called from `AppErrorBoundary` alongside `captureAppException`, deliberately independent of `VITE_POSTHOG_KEY` so either can run alone. Posts the envelope API directly (no `@sentry/browser`) to protect the initial-bundle budget. **Adding a non-`*.ingest.sentry.io` DSN host requires a matching `connect-src` entry in `ui/vercel.json`.** |
+| `VITE_APP_VERSION`                                          | No         | Sentry `release` tag (`ui/src/lib/sentry/client.ts`). Unset → events carry no release.                                                                                                                                                                                                                                                                                                                                                                   |
 | `POSTHOG_PERSONAL_API_KEY`                                  | No         | **Build-time only** (Vercel/CI build env — no `VITE_` prefix, never bundled to the browser). PostHog **personal** API key (error tracking write scope) so `vite.config.ts` uploads readable production source maps via `@posthog/rollup-plugin`. Deliberately a different var from edge's `POSTHOG_API_KEY` (project key) — unset → plugin skipped, `build.sourcemap` stays `false`                                                                      |
 | `POSTHOG_PROJECT_ID`                                        | No         | Pairs with `POSTHOG_PERSONAL_API_KEY` for source map upload — from PostHog project settings                                                                                                                                                                                                                                                                                                                                                              |
 | `VITE_INBOX_MOCK_DATA`                                      | No         | `true` → inbox mock mode                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -87,7 +88,7 @@ Production hosted secrets: Supabase Dashboard → Edge Functions → Secrets. UI
 | `GOOGLE_CLIENT_ID`                                          | Local only | GoTrue Google OAuth — **not** `VITE_*`; loaded before `supabase start`                                                                                                                                                                                                                                                                                                                                                                                   |
 | `GOOGLE_CLIENT_SECRET`                                      | Local only | Pair with `GOOGLE_CLIENT_ID`                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `VITE_VAPID_PUBLIC_KEY`                                     | No         | base64url raw VAPID public key for PWA Web Push. Unset → the "Notifications on this device" toggle reports unsupported. Generate with `node scripts/pwa/generate-vapid-keys.mjs`. See [`pwa.md`](./pwa.md) §5                                                                                                                                                                                                                                            |
-| `VITE_TURNSTILE_SITE_KEY`                                   | No         | Cloudflare Turnstile **site** key for the anti-spam widget (auth OTP + guest booking/SD/review/pay-parking forms). Unset → `ui/src/components/security/TurnstileWidget.tsx` renders nothing and forms submit on server heuristics + rate limit only. Local/CI test key: `1x00000000000000000000AA` (always passes). See [captcha-anti-spam-hardening](../workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md)                                            |
+| `VITE_TURNSTILE_SITE_KEY`                                   | No         | Cloudflare Turnstile **site** key for the anti-spam widget (auth OTP + guest booking/SD/review/pay-parking forms). Unset → `ui/src/components/security/TurnstileWidget.tsx` renders nothing and forms submit on server heuristics + rate limit only. Local/CI test key: `1x00000000000000000000AA` (always passes). See [captcha-anti-spam-hardening](../workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md)                |
 
 **Removed / unused:** `VITE_SUPABASE_DB_PASSWORD` — not read by the app.
 
@@ -233,26 +234,29 @@ Contact email on public/legal pages is **`VITE_PLATFORM_CONTACT_EMAIL`** in `ui/
 
 When set, matching cron endpoints require the corresponding header. See **`docs/archive/operations/scheduled-jobs-and-testing.md`**.
 
-| Variable                                     | Header                                         |
-| -------------------------------------------- | ---------------------------------------------- |
-| `SD_REFUND_CRON_SECRET`                      | `X-Sd-Refund-Cron-Secret`                      |
-| `TELEGRAM_CRON_SECRET`                       | `X-Telegram-Cron-Secret`                       |
-| `TELEGRAM_STAFF_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                       |
-| `TELEGRAM_ADMIN_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                       |
-| `TELEGRAM_FINANCE_CRON_SECRET`               | `X-Telegram-Cron-Secret`                       |
-| `TELEGRAM_MAINTENANCE_CRON_SECRET`           | `X-Telegram-Cron-Secret`                       |
-| `PARKING_BROADCAST_EXPIRE_CRON_SECRET`       | `X-Parking-Broadcast-Expire-Cron-Secret`       |
-| `PARKING_REMINDER_CRON_SECRET`               | `X-Parking-Reminder-Cron-Secret`               |
-| `CONTRACT_EXPIRY_CRON_SECRET`                | `X-Contract-Expiry-Cron-Secret`                |
-| `DASHBOARD_ASSISTANT_EXPIRE_CRON_SECRET`     | (dashboard assistant expire cron)              |
-| `META_INBOX_WEBHOOK_HEALTHCHECK_CRON_SECRET` | `X-Meta-Inbox-Webhook-Healthcheck-Cron-Secret` |
-| `PLATFORM_BILLING_CRON_SECRET`               | `X-Platform-Billing-Cron-Secret`               |
-| `CALENDAR_SYNC_CRON_SECRET`                  | `X-Calendar-Sync-Cron-Secret`                  |
-| `SMART_PRICING_CRON_SECRET`                  | `X-Smart-Pricing-Cron-Secret`                  |
-| `SUPERHOST_ASSESSMENT_CRON_SECRET`           | `X-Superhost-Assessment-Cron-Secret`           |
-| `ANALYTICS_AI_REVIEW_CRON_SECRET`            | `X-Analytics-Ai-Review-Cron-Secret`            |
-| `PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET`      | `X-Property-Page-Views-Prune-Cron-Secret`      |
-| `ACTIVITY_LOG_RETENTION_CRON_SECRET`         | `X-Activity-Log-Retention-Cron-Secret`         |
+| Variable                                     | Header                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| `SD_REFUND_CRON_SECRET`                      | `X-Sd-Refund-Cron-Secret`                                                 |
+| `TELEGRAM_CRON_SECRET`                       | `X-Telegram-Cron-Secret`                                                  |
+| `TELEGRAM_STAFF_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                                                  |
+| `TELEGRAM_ADMIN_CRON_SECRET`                 | `X-Telegram-Cron-Secret`                                                  |
+| `TELEGRAM_FINANCE_CRON_SECRET`               | `X-Telegram-Cron-Secret`                                                  |
+| `TELEGRAM_MAINTENANCE_CRON_SECRET`           | `X-Telegram-Cron-Secret`                                                  |
+| `PARKING_BROADCAST_EXPIRE_CRON_SECRET`       | `X-Parking-Broadcast-Expire-Cron-Secret`                                  |
+| `PARKING_REMINDER_CRON_SECRET`               | `X-Parking-Reminder-Cron-Secret`                                          |
+| `CONTRACT_EXPIRY_CRON_SECRET`                | `X-Contract-Expiry-Cron-Secret`                                           |
+| `DASHBOARD_ASSISTANT_EXPIRE_CRON_SECRET`     | (dashboard assistant expire cron)                                         |
+| `META_INBOX_WEBHOOK_HEALTHCHECK_CRON_SECRET` | `X-Meta-Inbox-Webhook-Healthcheck-Cron-Secret`                            |
+| `PLATFORM_BILLING_CRON_SECRET`               | `X-Platform-Billing-Cron-Secret`                                          |
+| `CALENDAR_SYNC_CRON_SECRET`                  | `X-Calendar-Sync-Cron-Secret`                                             |
+| `SMART_PRICING_CRON_SECRET`                  | `X-Smart-Pricing-Cron-Secret`                                             |
+| `SUPERHOST_ASSESSMENT_CRON_SECRET`           | `X-Superhost-Assessment-Cron-Secret`                                      |
+| `ANALYTICS_AI_REVIEW_CRON_SECRET`            | `X-Analytics-Ai-Review-Cron-Secret`                                       |
+| `PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET`      | `X-Property-Page-Views-Prune-Cron-Secret`                                 |
+| `ACTIVITY_LOG_RETENTION_CRON_SECRET`         | `X-Activity-Log-Retention-Cron-Secret`                                    |
+| `QUERY_CACHE_SWEEP_CRON_SECRET`              | `X-Query-Cache-Sweep-Cron-Secret` (Vault `query_cache_sweep_cron_secret`) |
+
+**Debug logging:** `EDGE_LOG_DEBUG=true` turns on verbose `_shared/requestLog.ts` request logs. Leave unset in production.
 
 **Telegram bot tokens + chat IDs:** per-property/parking DB tables — **not** env. Only `*_CRON_SECRET` vars remain env-only.
 

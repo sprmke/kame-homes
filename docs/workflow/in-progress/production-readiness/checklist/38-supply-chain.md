@@ -6,10 +6,10 @@ updated: 2026-10-19
 stage: in-progress
 kind: plan
 origin_stage: untracked
-readiness: unverified
+readiness: partial
 launch_gate: F
 launch_blocker: tbd
-last_verified: none
+last_verified: 2026-10-19
 ---
 
 # 38 — Supply chain
@@ -28,7 +28,7 @@ last_verified: none
 
 ## Exit gate
 
-- [ ] CI uses frozen lockfile (already true — re-verify)
+- [x] CI uses frozen lockfile: re-verified 2026-10-19, every `bun install` in `ci.yml`, `cd-dev.yml`, `cd-prod.yml`, `cd-preprod.yml`, `migration-replay.yml` ([`phase6-supply-chain-and-uploads`](../evidence/phase6-supply-chain-and-uploads-2026-10-19.md))
 - [x] Actions SHA-pin decision documented: pin every action to a full SHA with a version comment;
       Dependabot `github-actions` keeps them current ([#153](https://github.com/sprmke/kame-homes/pull/153))
-- [ ] Audit findings triaged
+- [x] Audit findings triaged: [`phase6-dependency-audit`](../evidence/phase6-dependency-audit-2026-10-19.md), in-major patches in [#158](https://github.com/sprmke/kame-homes/pull/158) (42 → 28); remaining need major upgrades (PR-124, PR-126)

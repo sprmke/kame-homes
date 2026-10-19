@@ -219,8 +219,8 @@ Do **not** copy these into the launch list as-is. Status 2026-10-19:
 | PR-103 | 34 SEO + crawler / noindex on dev                                | A    | 🆕  |
 | PR-104 | 35 Business-logic races (booking, voucher, wallet, payments, TZ) | C    | 🆕  |
 | PR-105 | 36 Browser/device matrix                                         | A    | 🆕  |
-| PR-106 | 37 Third-party failure modes                                     | F    | 🆕  |
-| PR-107 | 38 Supply chain (lockfile, bun audit, pinned Actions)            | F    | 🆕  |
+| PR-106 | 37 Third-party failures: probed all 5; Resend fix #157           | F    | 🟡  |
+| PR-107 | 38 Supply chain: lockfile ✅, Actions #153, audit #158           | F    | 🟡  |
 | PR-108 | For-hosts hero em dash + tour rail clip                          | A    | 🔴  |
 | PR-109 | Public `/properties` empty on hosted-dev (retest after deploy)   | A    | 🟡  |
 

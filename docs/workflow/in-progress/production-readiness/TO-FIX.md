@@ -24,6 +24,10 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | [#152](https://github.com/sprmke/kame-homes/pull/152) | Lazy dashboard shells: guest entry chunk 496 → 237 KiB gzip, pdf.js out of entry                                            | running   |
 | [#153](https://github.com/sprmke/kame-homes/pull/153) | Pin all 43 GitHub Actions `uses:` to commit SHAs (PR-107, user decision)                                                    | running   |
 | [#154](https://github.com/sprmke/kame-homes/pull/154) | Text-safe brand shade for fills with white text, per tenant color + guard test (PR-113)                                     | running   |
+| [#155](https://github.com/sprmke/kame-homes/pull/155) | Byte-sniff every remaining upload; blocks HTML hosted via marketing exports (PR-016)                                        | running   |
+| [#156](https://github.com/sprmke/kame-homes/pull/156) | Landing hero cards at rendered size: images 1161 → 945 KiB, LCP image priority-hinted (PR-040)                              | running   |
+| [#157](https://github.com/sprmke/kame-homes/pull/157) | Workflow emails that fail to send are surfaced (toast + activity), Meta error test (PR-106)                                 | running   |
+| [#158](https://github.com/sprmke/kame-homes/pull/158) | Dependency patches in-major: audit 42 → 28; rest triaged (checklist 38)                                                     | running   |
 
 ## Blockers
 
@@ -34,8 +38,8 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merge pending)                                                                | agent         |
 | PR-124 | B    | 🟡  | `react-router` 6.30 → 7.18 (advisories); our redirect guard is fixed independently                                                                   | agent         |
 | PR-126 | F    | 🟡  | Dev tooling advisories (vitest 1.6 critical when UI server listens, vite, tinypool, …). Tooling upgrade PR                                           | agent         |
-| PR-127 | F    | 🧭  | GitHub Actions use tags, not SHAs (39 uses). Pin or accept                                                                                           | product       |
-| PR-120 | B    | 🟡  | `guest-chat-attachments` bucket is public; guests may share IDs in chat                                                                              | agent         |
+| PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merge pending                                       | product       |
+| PR-120 | B    | 🧭  | `guest-chat-attachments`: not listable, links unguessable (probed). Keep links or go private + signed URLs                                           | agent         |
 | PR-116 | A    | 🔴  | Google Maps embed **403** on `dev.kamehomes.space` (public listing map broken). Add the dev domain to the Maps key referrers / enable Maps Embed API | operator      |
 | PR-117 | C    | 🔴  | Public listing page views never stored (Host Analytics traffic empty). Fix in #148                                                                   | agent         |
 | PR-118 | A    | 🟡  | Marketing on Free: UI shows full themes + **New theme**, API refuses (`marketingStudio`). Align gate (in-progress marketing-themes module)           | other session |
