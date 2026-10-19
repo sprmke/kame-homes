@@ -106,7 +106,7 @@ Routes: [`routing.md`](routing.md). Per-page behavior: [`docs/guides/routes/`](.
 | Layer           | What we use                                                                                                     |
 | --------------- | --------------------------------------------------------------------------------------------------------------- |
 | Package manager | **Bun** (`bun install`, `bun run …`)                                                                            |
-| UI              | **Vite 4.4**, **React 19** (`ui/package.json`), **TypeScript**, **React Router 6**                              |
+| UI              | **Vite 7** (Vitest 4, Node 20.19+), **React 19** (`ui/package.json`), **TypeScript**, **React Router 7**        |
 | UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts |
 | PWA             | `vite-plugin-pwa` injectManifest, Workbox, IndexedDB persist + outbox, Web Push. See [`pwa.md`](pwa.md)         |
 | API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                          |

@@ -20,7 +20,7 @@ alwaysApply: true
 
 ## Stack (authoritative)
 
-- **UI**: Vite + React 18 + React Router 6 + Tailwind + RHF + Zod (`ui/`)
+- **UI**: Vite + React 19 + React Router 7 + Tailwind + RHF + Zod (`ui/`)
 - **API**: Supabase Edge Functions (Deno) — **no** Node API, tRPC, Drizzle, Next.js
 - **DB**: Postgres via `supabase/migrations/` + `@supabase/supabase-js`
 - **Auth**: public guest anon; admin = Supabase Auth + Google OAuth + allow list
