@@ -12,24 +12,27 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 
 ## Waiting on you (merge)
 
-| PR                                                    | What                                                                                          | CI        |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------- |
-| [#145](https://github.com/sprmke/kame-homes/pull/145) | CI guards fix. `develop` CI + CD Dev are red until this merges                                | green     |
-| [#146](https://github.com/sprmke/kame-homes/pull/146) | Readiness folder, ledger, cards, evidence (stacked on #145)                                   | green     |
-| [#147](https://github.com/sprmke/kame-homes/pull/147) | Start call 44px, for-hosts em dash, footer heading order, CSP console error (stacked on #145) | rerunning |
+| PR                                                    | What                                                                                                                        | CI        |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [#145](https://github.com/sprmke/kame-homes/pull/145) | CI guards fix. `develop` CI + CD Dev are red until this merges                                                              | green     |
+| [#146](https://github.com/sprmke/kame-homes/pull/146) | Readiness folder, ledger, cards, evidence (stacked on #145)                                                                 | green     |
+| [#147](https://github.com/sprmke/kame-homes/pull/147) | Start call 44px, for-hosts em dash, footer heading order, CSP console error, CSP `frame-ancestors 'self'` (stacked on #145) | rerunning |
+| [#148](https://github.com/sprmke/kame-homes/pull/148) | Public listing page views never stored from browsers (stacked on #145)                                                      | rerunning |
 
 ## Blockers
 
-| ID     | Gate | Tag | Item                                                                                                          | Owner            |
-| ------ | ---- | --- | ------------------------------------------------------------------------------------------------------------- | ---------------- |
-| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG` | operator         |
-| PR-109 | A    | 🔴  | Hosted-dev has **0 public listings** and no QA accounts, so property/booking/host flows cannot be walked live | operator / agent |
-| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                | operator         |
-| PR-003 | D    | ⛔  | Paid AI billing cap                                                                                           | operator         |
-| PR-008 | B    | 🟡  | Guest-token write paths after grace (read path verified 401)                                                  | agent            |
-| PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                          | operator         |
-| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                          | operator         |
-| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                              | operator         |
+| ID     | Gate | Tag | Item                                                                                                                                                 | Owner         |
+| ------ | ---- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG`                                        | operator      |
+| PR-116 | A    | 🔴  | Google Maps embed **403** on `dev.kamehomes.space` (public listing map broken). Add the dev domain to the Maps key referrers / enable Maps Embed API | operator      |
+| PR-117 | C    | 🔴  | Public listing page views never stored (Host Analytics traffic empty). Fix in #148                                                                   | agent         |
+| PR-118 | A    | 🟡  | Marketing on Free: UI shows full themes + **New theme**, API refuses (`marketingStudio`). Align gate (in-progress marketing-themes module)           | other session |
+| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                                                       | operator      |
+| PR-003 | D    | ⛔  | Paid AI billing cap                                                                                                                                  | operator      |
+| PR-008 | B    | 🟡  | Guest-token write paths after grace (read path verified 401)                                                                                         | agent         |
+| PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                                                                 | operator      |
+| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                                                                 | operator      |
+| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                                                                     | operator      |
 
 Hosted-dev deploy (PR-076) **done** 2026-10-19 from `3e269a98`.
 

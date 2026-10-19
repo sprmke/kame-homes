@@ -33,21 +33,26 @@ Not in Edge (often local-only): `SENTRY_DSN` (intentional no-op), `GEMINI_API_KE
 
 ## Accounts needed for Phase 7
 
-| Persona                                       | Where      | Notes                         |
-| --------------------------------------------- | ---------- | ----------------------------- |
-| Super admin                                   | hosted-dev | email on `SUPER_ADMIN_EMAILS` |
-| Org owner (paid)                              | hosted-dev | existing test org             |
-| Org owner (Free)                              | hosted-dev | plan-gate paths               |
-| Property Full Access / Operations / Read Only | hosted-dev | invitees                      |
-| Parking member                                | hosted-dev |                               |
-| Guest authed                                  | hosted-dev | portal                        |
-| Outsider (other org)                          | hosted-dev | IDOR                          |
+| Persona                                       | Account                                                                                      | Status      |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------- |
+| Org owner (Free)                              | `sprmke.dev+qa-owner@gmail.com`, org `readiness-qa-stays`, listing `qa-monaco-1801` (ACTIVE) | ✅ seeded   |
+| Outsider (other org)                          | `sprmke.dev+qa-outsider@gmail.com`, org `readiness-qa-outsider`                              | ✅ seeded   |
+| Guest authed                                  | `sprmke.dev+qa-guest@gmail.com`                                                              | ✅ seeded   |
+| Super admin                                   | email on `SUPER_ADMIN_EMAILS` (step-up OTP to inbox)                                         | ⛔ operator |
+| Org owner (paid)                              | needs PayMongo sandbox checkout                                                              | ⛔ PR-033   |
+| Property Full Access / Operations / Read Only | invites send email                                                                           | 🟡 next     |
+| Parking member                                | needs a parking listing                                                                      | 🟡 next     |
 
-Do not commit passwords. Store locally in `supabase/.env.dev.local` (gitignored).
+Seed: `node scripts/dev/seed-readiness-qa-dev.mjs` (hosted dev only, idempotent, real edge functions). Logins land in `supabase/.env.qa.dev.local` (gitignored). Sessions are minted with admin magic link + token-hash verify because hosted Auth captcha blocks scripted password sign-in.
+
+Probes and walks that use the seed:
+
+- `node scripts/dev/probe-readiness-idor-dev.mjs` — cross-tenant reads/writes
+- `node scripts/dev/qa-walk-hosted-dev.mjs` — every host, guest and public route at 375 / 768 / 1280
 
 ## Seeds
 
-Reuse existing scripts (`seed-search-fixtures.sql`, `seed-monaco-2612-demo-data.sql`, `seed-dashboard-demo-data.sql`, `seed-analytics-demo-data.sql`, `seed-ai-qa.ts`). Gaps: one org per plan tier with every role (4.2); large-tenant 10k bookings (PR-052); hosted-dev `/properties` empty until listing functions finish (PR-109). RLS local probe: `probe-rls-anon-local.sh` after `db:reset`.
+Local-only SQL seeds still apply to the Docker stack (`seed-search-fixtures.sql`, `seed-monaco-2612-demo-data.sql`, `seed-dashboard-demo-data.sql`, `seed-analytics-demo-data.sql`, `seed-ai-qa.ts`). Gaps: paid-tier org, role members, large-tenant 10k bookings (PR-052). RLS local probe: `probe-rls-anon-local.sh` after `db:reset`.
 
 ## Rollback rehearsal
 
