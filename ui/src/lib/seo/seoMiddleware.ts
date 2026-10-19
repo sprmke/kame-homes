@@ -28,6 +28,8 @@ export type SeoMiddlewareDeps = {
   siteName: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Hosts allowed in robots.txt; others get `Disallow: /`. Defaults to the production hosts. */
+  indexableHosts?: readonly string[];
 };
 
 const DEFAULT_TIMEOUT_MS = 2_500;
@@ -157,7 +159,7 @@ export async function handleSeoRequest(
     const url = new URL(request.url);
 
     if (url.pathname === '/robots.txt') {
-      return new Response(buildRobotsTxt(url.origin), {
+      return new Response(buildRobotsTxt(url.origin, deps.indexableHosts), {
         headers: {
           'content-type': 'text/plain; charset=utf-8',
           'cache-control': 'public, max-age=3600, s-maxage=86400',

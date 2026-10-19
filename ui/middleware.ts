@@ -29,12 +29,19 @@ export default async function middleware(request: Request): Promise<Response> {
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY ?? '';
   if (!functionsUrl || !anonKey) return next();
 
+  const indexableHosts = (process.env.SEO_INDEXABLE_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+
   const response = await handleSeoRequest(
     request,
     {
       functionsUrl,
       anonKey,
       siteName: process.env.VITE_PLATFORM_APP_NAME?.trim() || 'Kame Homes',
+      // Empty or unset keeps the production defaults in seoMeta.ts.
+      indexableHosts: indexableHosts.length > 0 ? indexableHosts : undefined,
     },
     async () => {
       const res = await fetch(new URL('/index.html', request.url), {

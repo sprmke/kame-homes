@@ -229,7 +229,20 @@ export const ROBOTS_DISALLOW = [
   '/*?*swLat=',
 ] as const;
 
-export function buildRobotsTxt(origin: string): string {
+/** Hosts that may be indexed. Anything else (dev, Vercel previews) gets `Disallow: /`. */
+export const DEFAULT_INDEXABLE_HOSTS: readonly string[] = [
+  'app.kamehomes.space',
+  'kamehomes.space',
+  'www.kamehomes.space',
+];
+
+export function buildRobotsTxt(
+  origin: string,
+  indexableHosts: readonly string[] = DEFAULT_INDEXABLE_HOSTS
+): string {
+  if (!indexableHosts.includes(new URL(origin).hostname)) {
+    return ['User-agent: *', 'Disallow: /', ''].join('\n');
+  }
   return [
     'User-agent: *',
     'Allow: /',
