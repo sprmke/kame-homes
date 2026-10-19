@@ -13,7 +13,7 @@ jobs:
   # Doc 26 Phase 26.2 — split into parallel jobs so PR feedback stays under the
   # single-serial-job wall-clock time. Each job is independent (own checkout +
   # install); a required-check name change means updating branch protection
-  # (.github/CODEOWNERS-adjacent — see docs/workflow/planned/production-readiness-checklist/26-ci-cd-and-version-control.md).
+  # (.github/CODEOWNERS-adjacent — see docs/workflow/in-progress/production-readiness/checklist/26-ci-cd-and-version-control.md).
   static-guards:
     name: static-guards
     runs-on: ubuntu-latest

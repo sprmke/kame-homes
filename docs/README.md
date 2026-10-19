@@ -13,12 +13,13 @@ Navigation for **guest-form-management**.
 
 ## Workflow (active feature work)
 
-| Doc                                                | Purpose                                                                                                                                                                                                        |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`workflow/README.md`](./workflow/README.md)       | Lifecycle: intake → planned → in-progress → done · wont-do                                                                                                                                                     |
-| [`workflow/planned/`](./workflow/planned/)         | Plans not yet shipped                                                                                                                                                                                          |
-| [`workflow/in-progress/`](./workflow/in-progress/) | Active implementation. Shipped audits: [`tier-feature-alignment-audit.md`](./workflow/done/tier-feature-alignment-audit.md), [`pricing-portfolio-bundling.md`](./workflow/done/pricing-portfolio-bundling.md). |
-| [`workflow/done/`](./workflow/done/)               | Verified shipped plans                                                                                                                                                                                         |
+| Doc                                                                                                   | Purpose                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`workflow/README.md`](./workflow/README.md)                                                          | Lifecycle: intake → planned → in-progress → done · wont-do                                                                                                                                                     |
+| [`workflow/planned/`](./workflow/planned/)                                                            | Plans not yet shipped                                                                                                                                                                                          |
+| [`workflow/in-progress/`](./workflow/in-progress/)                                                    | Active implementation. Shipped audits: [`tier-feature-alignment-audit.md`](./workflow/done/tier-feature-alignment-audit.md), [`pricing-portfolio-bundling.md`](./workflow/done/pricing-portfolio-bundling.md). |
+| [`workflow/done/`](./workflow/done/)                                                                  | Verified shipped plans                                                                                                                                                                                         |
+| [`workflow/in-progress/production-readiness/`](./workflow/in-progress/production-readiness/README.md) | Launch readiness: checklist 00–30, audits, QA batch, operator inputs, evidence, ledger                                                                                                                         |
 
 ## Product backlog (GitHub Issues)
 

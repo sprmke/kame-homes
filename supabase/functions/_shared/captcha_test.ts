@@ -1,6 +1,6 @@
 /**
  * Deno tests for _shared/captcha.ts — run with `deno test --allow-env` (not Bun's runner).
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 6)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 6)
  *
  * `siteverify` is stubbed via `globalThis.fetch` so no network is hit.
  */

@@ -7,7 +7,7 @@
  * before execution (dashboardAssistantSafetyGuard.ts#assertActionSafeToExecute). It's fully
  * deterministic and DB-free, so this file is what closes the "owner with a foreign propertyId →
  * tier2 (never silently auto-executed)" and "guard re-derivation blocks a stale/mismatched tier"
- * cases from docs/workflow/for-testing/ai-llm-best-practices-hardening.md's Verification list —
+ * cases from docs/workflow/in-progress/production-readiness/audits/ai-llm-best-practices-hardening.md's Verification list —
  * the two items in that list that don't require a live DB round-trip.
  */
 

@@ -54,7 +54,7 @@ serve(async (req) => {
     const formData = await req.formData();
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, formData, {
       scope: 'submit-form-completion',
       rateLimit: { limit: 15, windowSec: 60 },

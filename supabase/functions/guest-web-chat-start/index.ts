@@ -14,7 +14,7 @@ serveAuthenticated('guest-web-chat-start', async (req, user) => {
   }
 
   // Durable per-user rate limit — thread starts fan out to Resend + Telegram.
-  // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const limited = await rateLimitGate(req, {
     scope: 'guest-web-chat-start',
     identity: identityFromRequest(req, user),

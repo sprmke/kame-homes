@@ -56,7 +56,7 @@ serve(async (req) => {
     const body = (await req.json().catch(() => null)) as SubmitBody | null;
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, (body ?? {}) as Record<string, unknown>, {
       scope: 'submit-pay-parking',
       rateLimit: { limit: 15, windowSec: 60 },
