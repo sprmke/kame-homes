@@ -76,7 +76,7 @@ export function BottomTabBar({
           {bounds ? (
             <SlidingActivePill
               bounds={bounds}
-              className="bg-primary shadow-native-primary rounded-[1rem]"
+              className="bg-primary-strong shadow-native-primary rounded-[1rem]"
             />
           ) : null}
           {items.map((item) => {
@@ -115,7 +115,7 @@ export function BottomTabBar({
                         'absolute -right-2 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5',
                         'bg-destructive text-destructive-foreground text-[8px] font-semibold leading-none',
                         'ring-2',
-                        active ? 'ring-primary' : 'ring-background',
+                        active ? 'ring-primary-strong' : 'ring-background',
                         'animate-notification-badge-pulse motion-reduce:animate-none'
                       )}
                       aria-hidden
@@ -127,7 +127,7 @@ export function BottomTabBar({
                       className={cn(
                         'absolute -right-0.5 -top-0.5 size-1.5 rounded-full',
                         'bg-destructive ring-2',
-                        active ? 'ring-primary' : 'ring-background',
+                        active ? 'ring-primary-strong' : 'ring-background',
                         'animate-notification-badge-pulse motion-reduce:animate-none'
                       )}
                       aria-hidden

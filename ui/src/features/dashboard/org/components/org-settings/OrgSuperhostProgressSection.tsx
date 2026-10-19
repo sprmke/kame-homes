@@ -112,7 +112,7 @@ function SuperhostStatusBanner({
         className="border-primary/20 bg-primary/5 flex gap-3 rounded-xl border px-3.5 py-3"
         role="status"
       >
-        <div className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
+        <div className="bg-primary-strong text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
           <CheckCircle2 className="size-4" aria-hidden />
         </div>
         <div className="min-w-0 space-y-0.5">

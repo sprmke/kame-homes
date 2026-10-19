@@ -371,7 +371,7 @@ const SectionNavList = React.memo(function SectionNavList({ className }: { class
         aria-label="Page sections"
       >
         {bounds ? (
-          <SlidingActivePill bounds={bounds} className="bg-primary rounded-lg shadow-sm" />
+          <SlidingActivePill bounds={bounds} className="bg-primary-strong rounded-lg shadow-sm" />
         ) : null}
         {sectionGroups.map((group, groupIndex) => (
           <React.Fragment key={group.label}>
@@ -399,7 +399,7 @@ const SectionNavList = React.memo(function SectionNavList({ className }: { class
       aria-label="Page sections"
     >
       {bounds ? (
-        <SlidingActivePill bounds={bounds} className="bg-primary rounded-lg shadow-sm" />
+        <SlidingActivePill bounds={bounds} className="bg-primary-strong rounded-lg shadow-sm" />
       ) : null}
       {sections.map((section) => (
         <SectionNavButton

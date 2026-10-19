@@ -739,7 +739,7 @@ export function HeroSearch({
                 onClick={handleSearch}
                 aria-label="Search"
                 className={cn(
-                  'bg-primary text-primary-foreground z-[2] ml-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md sm:ml-2',
+                  'bg-primary-strong text-primary-foreground z-[2] ml-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md sm:ml-2',
                   'transition-colors hover:opacity-95'
                 )}
                 style={{
@@ -820,7 +820,7 @@ export function HeroSearch({
                 onClick={handleSearch}
                 aria-label="Search"
                 className={cn(
-                  'bg-primary text-primary-foreground z-[2] ml-2 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md',
+                  'bg-primary-strong text-primary-foreground z-[2] ml-2 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md',
                   'transition-colors hover:opacity-95'
                 )}
                 style={{
@@ -967,7 +967,7 @@ export function HeroSearch({
                       <button
                         type="button"
                         onClick={() => (showWho ? setActiveField('who') : handleSearch())}
-                        className="bg-primary text-primary-foreground min-h-[44px] rounded-full px-5 text-sm font-semibold"
+                        className="bg-primary-strong text-primary-foreground min-h-[44px] rounded-full px-5 text-sm font-semibold"
                       >
                         {showWho ? 'Next' : 'Search'}
                       </button>

@@ -42,7 +42,7 @@ export function HeroPipelineBoard() {
       <div className="border-border bg-card rounded-3xl border p-5 shadow-[0_32px_70px_-28px_hsl(var(--shadow-color)/0.3)] sm:p-6">
         {/* Booking header */}
         <div className="flex items-center gap-3">
-          <span className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
+          <span className="bg-primary-strong text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
             M
           </span>
           <div className="min-w-0">
