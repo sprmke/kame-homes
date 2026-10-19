@@ -18,16 +18,17 @@ Routes:
 
 ## Progress overview
 
-| Section                | E2E save | Validation | Docs       | Notes                                                                                                                                                |
-| ---------------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant)                                                              |
-| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                                                                                        |
-| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                                                                                    |
-| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                                                                                  |
-| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                                                                                       |
-| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)                                                                           |
-| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                                                                              |
-| Mobile shell           | —        | —          | Documented | No bottom tab bar by default — `AuthLayout` is its own top-level route, not nested in `MarketingLayoutShell` (verified 2026-09-10, not just assumed) |
+| Section                | E2E save | Validation | Docs       | Notes                                                                                                                                                     |
+| ---------------------- | -------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant)                                                                   |
+| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                                                                                             |
+| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                                                                                         |
+| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                                                                                       |
+| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                                                                                            |
+| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)                                                                                |
+| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                                                                                   |
+| Mobile shell           | —        | —          | Documented | No bottom tab bar by default — `AuthLayout` is its own top-level route, not nested in `MarketingLayoutShell` (verified 2026-09-10, not just assumed)      |
+| Form position          | —        | —          | Documented | Phone: card top-aligned under the header; `sm+`: vertically centered. Keeps the card still when a Turnstile challenge appears (CLS 0.25 → ~0.10 at 375px) |
 
 ---
 
