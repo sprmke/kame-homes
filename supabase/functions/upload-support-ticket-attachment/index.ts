@@ -11,6 +11,7 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { resolveSupportTicketScope } from '../_shared/supportTicketScope.ts';
 import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
 import { SUPPORT_TICKET_ATTACHMENT_MIME } from '../_shared/supportTicketAttachments.ts';
+import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
 
 const BUCKET = 'support-ticket-attachments';
 
@@ -38,7 +39,14 @@ serveAuthenticated('upload-support-ticket-attachment', async (req, user) => {
   if (!SUPPORT_TICKET_ATTACHMENT_MIME.has(mime)) {
     return jsonError(req, 'File must be JPEG, PNG, WebP, HEIC, MP4, or MOV', 400);
   }
-  assertWithinUploadLimit(file, mime.startsWith('video/') ? 'video' : 'image');
+  let contentType: string;
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    contentType = assertUploadMatchesBytes(bytes, mime, SUPPORT_TICKET_ATTACHMENT_MIME);
+  } catch (e) {
+    return jsonError(req, (e as Error).message, 400);
+  }
+  assertWithinUploadLimit(file, contentType.startsWith('video/') ? 'video' : 'image');
 
   const scope = await resolveSupportTicketScope(req, {
     orgSlug: formData.get('orgSlug') ? String(formData.get('orgSlug')) : null,
@@ -61,7 +69,7 @@ serveAuthenticated('upload-support-ticket-attachment', async (req, user) => {
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, file, { upsert: false, contentType: mime, cacheControl: '31536000' });
+    .upload(storagePath, file, { upsert: false, contentType, cacheControl: '31536000' });
 
   if (uploadError) {
     return jsonError(req, `Upload failed: ${uploadError.message}`, 500);
@@ -70,7 +78,7 @@ serveAuthenticated('upload-support-ticket-attachment', async (req, user) => {
   return jsonSuccess(req, {
     attachment: {
       name: safeName,
-      mimeType: mime,
+      mimeType: contentType,
       size: file.size,
       path: storagePath,
     },
