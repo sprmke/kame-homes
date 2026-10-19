@@ -3,9 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
 
-import { SidebarTenantScope } from '@/features/dashboard/org/components/TenantSwitchers';
-import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
-
+import { HeroTenantScope } from '@/components/mobile/HeroTenantScope';
 import {
   Sheet,
   SheetContent,
@@ -106,11 +104,7 @@ export function MobileStickyChrome({
               )}
             >
               <div className="mobile-sticky-chrome-scope min-w-0 flex-1">
-                {superAdmin ? (
-                  <SuperAdminSidebarScope collapsed={false} variant="onPrimary" />
-                ) : (
-                  <SidebarTenantScope collapsed={false} variant="onPrimary" />
-                )}
+                <HeroTenantScope superAdmin={superAdmin} />
               </div>
               {trailing ? (
                 <div className="mobile-sticky-chrome-trailing flex shrink-0 items-center gap-0.5">

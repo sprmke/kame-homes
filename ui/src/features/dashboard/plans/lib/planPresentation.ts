@@ -883,8 +883,7 @@ export function planTierPitch(plan: OrgBundlePlanDto): string | null {
   return tagline;
 }
 
-export const PLANS_PAGE_SUBTITLE =
-  'Manage your organization’s subscription. One plan covers every property you enroll.';
+export { PLANS_PAGE_SUBTITLE } from '@/features/dashboard/plans/lib/plansPageCopy';
 
 export type PlanFaqItem = {
   question: string;
