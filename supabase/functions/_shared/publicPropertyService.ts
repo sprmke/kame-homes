@@ -344,8 +344,10 @@ export async function loadPublicPropertyById(
     guestReviews,
     appSettings,
     appSettingsRowResult,
+    sectionConfig,
+    development,
   ] = await Promise.all([
-    loadPropertyPricing(propertyId),
+    loadPropertyPricing(propertyId, { ensureSettings: false }),
     loadResolvedBrandColorByPropertyId(propertyId),
     supabase
       .from('organizations')
@@ -360,6 +362,8 @@ export async function loadPublicPropertyById(
       .select('external_reviews')
       .eq('property_id', propertyId)
       .maybeSingle(),
+    getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
+    resolvePublicDevelopmentLink(row.residence_name),
   ]);
 
   const externalReviews = listApprovedPublicExternalReviews(
@@ -368,9 +372,12 @@ export async function loadPublicPropertyById(
   const mergedReviews = sortPublicGuestReviewsNewestFirst([...guestReviews, ...externalReviews]);
   const reviewRating = averageGuestReviewRating(mergedReviews);
 
-  const contact = await loadGuestFacingContactInfo(propertyId, appSettings);
-
   const org = orgResult.data as (OrganizationRow & { settings?: unknown }) | null;
+  const [contact, ownerAuthProfile] = await Promise.all([
+    loadGuestFacingContactInfo(propertyId, appSettings),
+    org?.owner_id ? loadAuthUserProfile(supabase, org.owner_id) : Promise.resolve(null),
+  ]);
+
   const orgSettings =
     org?.settings && typeof org.settings === 'object' && !Array.isArray(org.settings)
       ? (org.settings as Record<string, unknown>)
@@ -383,9 +390,11 @@ export async function loadPublicPropertyById(
   const organizationName = org?.name?.trim() || contact.contactName || 'Host';
   const orgLogoUrl = orgSettingsResolved.emailLogoUrl.trim() || org?.logo_url?.trim() || null;
   const unitName = resolvePublicUnitName(row);
-  const ownerProfile = org?.owner_id
-    ? await loadAuthUserProfile(supabase, org.owner_id)
-    : { name: organizationName, email: '', avatarUrl: orgLogoUrl };
+  const ownerProfile = ownerAuthProfile ?? {
+    name: organizationName,
+    email: '',
+    avatarUrl: orgLogoUrl,
+  };
   const hostDisplayName = contact.contactName || ownerProfile.name || organizationName;
 
   const checkInRaw = readString(settings, 'checkInTime') || '14:00';
@@ -403,11 +412,6 @@ export async function loadPublicPropertyById(
   const cancellationPolicy = resolveCancellationPolicyDisplay(
     readCancellationPolicyFromSettings(settings)
   );
-  const [sectionConfig, development] = await Promise.all([
-    getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
-    resolvePublicDevelopmentLink(row.residence_name),
-  ]);
-
   return {
     id: row.id,
     slug: row.slug,
