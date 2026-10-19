@@ -164,6 +164,8 @@ const NO_SCOPE_NEEDED_ALLOWLIST = new Set([
   'push-unsubscribe', // removes by endpoint the caller supplies; no cross-tenant read
   'list-help-center-articles', // dashboard-wide knowledge base content, not tenant-scoped
   'list-help-center-faqs', // dashboard-wide knowledge base content, not tenant-scoped
+  'user-ui-preferences', // reads/writes only the caller's own row (eq user_id = caller)
+  'dashboard-assistant-feedback', // 404 unless the message's conversation.user_id is the caller
 ]);
 
 /**
@@ -174,6 +176,8 @@ const NO_SCOPE_NEEDED_ALLOWLIST = new Set([
  */
 const SCOPE_VIA_CALLEE_ALLOWLIST = new Set([
   'upload-listing-authorization-asset', // applyListingAuthorizationAssetFromBytes() -> verifyListingOwner()
+  'dashboard-stats', // resolveDashboardStatsScope() -> verifyParkingTeamAccess / resolveScopedPropertyAccess / resolveOrgAccessContext
+  'dashboard-assistant-briefing', // same resolveDashboardStatsScope() as dashboard-stats
 ]);
 
 /** Permission-leaf check call sites (check type 3 — action within a resource). */

@@ -30,6 +30,8 @@ import {
 } from '../_shared/marketingTheme.ts';
 
 const MAX_THEMES_PER_PROPERTY = 40;
+// Folder counts stop at this many saved items per property.
+const MAX_COUNTED_TEMPLATES = 5000;
 const SOURCES = new Set(['custom', 'starter', 'photos', 'duplicate', 'ai']);
 const LEGACY_THEME_KEY = 'property-colors';
 
@@ -117,11 +119,13 @@ serveAuthenticated('marketing-themes', async (req, user) => {
         .from('marketing_themes')
         .select('*')
         .eq('property_id', propertyId)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(MAX_THEMES_PER_PROPERTY),
       sb
         .from('marketing_templates')
         .select('theme_key, content_type, source_preset:design_json->>sourcePresetId')
-        .eq('property_id', propertyId),
+        .eq('property_id', propertyId)
+        .limit(MAX_COUNTED_TEMPLATES),
     ]);
     if (themesResult.error) return jsonError(req, themesResult.error.message, 500);
     if (keysResult.error) return jsonError(req, keysResult.error.message, 500);
