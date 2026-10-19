@@ -15,16 +15,16 @@ Every launch readiness checklist, audit, QA batch and operator list in one place
 
 ## Status
 
-| Item         | State                                                                                                                                                                          |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Baseline SHA | Not set. CD Dev `@ci` gate failed after #145 (Marketing Studio cold compile in CI, fix #177); baseline = first `develop` SHA that CD deploys cleanly                           |
-| Hosted dev   | All 292 functions deployed 2026-10-19 from a local integration of #145 + #149 + #150 + #155 (health 200, cross-tenant probe clean)                                             |
-| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                            |
-| Phases 4–8   | Probes, OWASP matrices, 162-page walk, booking flow, perf/a11y fixes done; load test, restore drill, LLM probes blocked (see scorecard)                                        |
-| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                         |
-| Phase 10     | Scorecard below is a draft until the fix PRs merge and the baseline re-run passes                                                                                              |
-| Fix PRs      | 19 merged into `develop` 2026-10-19 (admin merge, user-approved). Open: #153 (needs `workflow` token scope), #176 (CSP), #177 (CD gate warmup). See [`TO-FIX.md`](./TO-FIX.md) |
-| Tag counts   | ✅ 9 · 🟡 43 · 🔴 3 · ⛔ 26 · 🆕 11 · 🧭 7 · ⏸️ 8 (105 items)                                                                                                                  |
+| Item         | State                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline SHA | **`c0f04aff`** (2026-10-19). Functions on hosted dev deployed from it; post-deploy probes all pass. See [`evidence/phase0-baseline-2026-10-19.md`](./evidence/phase0-baseline-2026-10-19.md). CD deploy blocked by PR-130 |
+| Hosted dev   | Functions = `develop` `c0f04aff`; schema also has another session's 12 unmerged migrations (PR-130)                                                                                                                       |
+| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                       |
+| Phases 4–8   | Probes, OWASP matrices, 162-page walk, booking flow, perf/a11y fixes done; load test, restore drill, LLM probes blocked (see scorecard)                                                                                   |
+| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                                                                    |
+| Phase 10     | Scorecard below is a draft until the fix PRs merge and the baseline re-run passes                                                                                                                                         |
+| Fix PRs      | 19 merged into `develop` 2026-10-19 (admin merge, user-approved). Open: #153 (needs `workflow` token scope), #176 (CSP), #177 (CD gate warmup). See [`TO-FIX.md`](./TO-FIX.md)                                            |
+| Tag counts   | ✅ 9 · 🟡 43 · 🔴 3 · ⛔ 26 · 🆕 11 · 🧭 7 · ⏸️ 8 (105 items)                                                                                                                                                             |
 
 ## Go / no-go (draft, 2026-10-19)
 

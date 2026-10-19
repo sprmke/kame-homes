@@ -114,6 +114,11 @@ for (const role of ROLES) {
         token: owner,
         body: { propertyId: PID, email: role.email, roleId: role.id, contactPhone: '09171234567' },
       });
+      // Already a member from an earlier run: reuse the membership.
+      if (invite.status === 409 && /already an active member/i.test(invite.json?.error ?? '')) {
+        role.token = await session(role.email);
+        continue;
+      }
       if (invite.status >= 300) {
         throw new Error(`invite ${role.name}: ${invite.status} ${JSON.stringify(invite.json)}`);
       }
@@ -135,13 +140,51 @@ for (const role of ROLES) {
 const ok = (s) => s >= 200 && s < 300;
 const denied = (s) => s === 401 || s === 403;
 const CASES = [
-  { label: 'GET list-bookings', method: 'GET', path: `list-bookings?property_id=${PID}`, allow: ['Full Access', 'Operations', 'Read Only'] },
-  { label: 'GET maintenance-summary', method: 'GET', path: `maintenance-summary?property_id=${PID}`, allow: ['Full Access', 'Operations', 'Read Only'] },
-  { label: 'GET finance-summary', method: 'GET', path: `finance-summary?property_id=${PID}`, allow: ['Full Access'] },
-  { label: 'GET app-settings', method: 'GET', path: `app-settings?property_id=${PID}`, allow: ['Full Access'] },
-  { label: 'GET property-team-members', method: 'GET', path: `property-team-members?property_id=${PID}`, allow: ['Full Access', 'Read Only'] },
-  { label: 'PATCH update-property (no-op maxGuests)', method: 'PATCH', path: 'update-property', body: { propertyId: PID, maxGuests: 4 }, allow: ['Full Access'] },
-  { label: 'POST property-team-invitations', method: 'POST', path: 'property-team-invitations', body: { propertyId: PID, email: 'not-an-email', roleId: 'x' }, allow: [], skipFor: ['Full Access'] },
+  {
+    label: 'GET list-bookings',
+    method: 'GET',
+    path: `list-bookings?property_id=${PID}`,
+    allow: ['Full Access', 'Operations', 'Read Only'],
+  },
+  {
+    label: 'GET maintenance-summary',
+    method: 'GET',
+    path: `maintenance-summary?property_id=${PID}`,
+    allow: ['Full Access', 'Operations', 'Read Only'],
+  },
+  {
+    label: 'GET finance-summary',
+    method: 'GET',
+    path: `finance-summary?property_id=${PID}`,
+    allow: ['Full Access'],
+  },
+  {
+    label: 'GET app-settings',
+    method: 'GET',
+    path: `app-settings?property_id=${PID}`,
+    allow: ['Full Access'],
+  },
+  {
+    label: 'GET property-team-members',
+    method: 'GET',
+    path: `property-team-members?property_id=${PID}`,
+    allow: ['Full Access', 'Read Only'],
+  },
+  {
+    label: 'PATCH update-property (no-op maxGuests)',
+    method: 'PATCH',
+    path: 'update-property',
+    body: { propertyId: PID, maxGuests: 4 },
+    allow: ['Full Access'],
+  },
+  {
+    label: 'POST property-team-invitations',
+    method: 'POST',
+    path: 'property-team-invitations',
+    body: { propertyId: PID, email: 'not-an-email', roleId: 'x' },
+    allow: [],
+    skipFor: ['Full Access'],
+  },
 ];
 
 const rows = [];
@@ -165,5 +208,9 @@ for (const c of CASES) {
 console.log(`| Call | ${ROLES.map((r) => r.name).join(' | ')} |`);
 console.log(`| ---- | ${ROLES.map(() => '---').join(' | ')} |`);
 console.log(rows.join('\n'));
-console.log(mismatches ? `\n${mismatches} MISMATCH(ES) vs seeded templates` : '\nAll roles match seeded templates.');
+console.log(
+  mismatches
+    ? `\n${mismatches} MISMATCH(ES) vs seeded templates`
+    : '\nAll roles match seeded templates.'
+);
 process.exit(mismatches ? 1 : 0);
