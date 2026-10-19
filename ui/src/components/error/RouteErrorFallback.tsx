@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
 import { RuntimeErrorFallback } from '@/components/error/RuntimeErrorFallback';
+import { isChunkLoadError, reloadForChunkError } from '@/lib/chunkReload';
 import { captureAppException } from '@/lib/posthog/capture';
 import { captureSentryException } from '@/lib/sentry/client';
 
@@ -24,6 +25,7 @@ export function RouteErrorFallback() {
 
   useEffect(() => {
     const error = toError(routeError);
+    if (isChunkLoadError(error) && reloadForChunkError()) return;
     console.error('[RouteErrorFallback]', error);
     captureAppException(error, { source: 'route-error-element' });
     captureSentryException(error, { source: 'route-error-element' });

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { RuntimeErrorFallback } from '@/components/error/RuntimeErrorFallback';
+import { isChunkLoadError, reloadForChunkError } from '@/lib/chunkReload';
 import { captureAppException } from '@/lib/posthog/capture';
 import { captureSentryException } from '@/lib/sentry/client';
 
@@ -19,6 +20,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    if (isChunkLoadError(error) && reloadForChunkError()) return;
     console.error('[AppErrorBoundary]', error, info.componentStack);
     // PostHog keeps the exception history; Sentry carries the alert. Each is
     // independently configured and each swallows its own errors.
