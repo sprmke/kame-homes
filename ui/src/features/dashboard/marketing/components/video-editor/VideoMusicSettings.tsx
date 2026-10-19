@@ -86,7 +86,7 @@ function MusicTabIconButton({
       className={cn(
         'inline-flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center rounded-lg transition-colors',
         active
-          ? 'bg-primary text-primary-foreground'
+          ? 'bg-primary-strong text-primary-foreground'
           : 'bg-muted text-muted-foreground hover:bg-muted/80'
       )}
     >

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { heroDestinations } from '@/features/guest/marketing/guest-landing/data/landingContent';
+import { MarketingImage } from '@/features/guest/marketing/shared/components/MarketingImage';
 
 import { cn } from '@/lib/utils';
 
@@ -199,11 +200,12 @@ export function HeroCanvas() {
                   bottom: isFront ? '8%' : isMid ? '4%' : '0%',
                 }}
               >
-                <img
+                <MarketingImage
                   src={destination.image}
                   alt=""
                   className="h-full w-full object-cover"
-                  loading={index === 0 ? 'eager' : 'lazy'}
+                  sizes="(max-width: 448px) 100vw, 384px"
+                  priority={index === 0}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-5">

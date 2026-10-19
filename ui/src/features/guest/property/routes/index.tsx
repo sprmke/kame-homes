@@ -1,10 +1,9 @@
-import { lazy, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 import { Navigate, Route, useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import { CalendarDays, Home, MessageCircle } from 'lucide-react';
 
-import { GuestForm } from '@/features/guest/form/components/GuestForm';
 import { GuestFormSuccess } from '@/features/guest/form/components/GuestFormSuccess';
 import { useGuestPaymentInfo } from '@/features/guest/form/hooks/useGuestPaymentInfo';
 import { stripLegacyFromQueryParam } from '@/features/guest/form/lib/bookingSourceFromSearchParams';
@@ -27,10 +26,15 @@ import {
 import { fetchPayParking } from '@/features/guest/pay-parking/lib/api';
 
 import type { BottomTabItem } from '@/components/mobile/BottomTabBar';
+import { GuestFormPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useFavicon } from '@/lib/favicon';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
 
+/** Booking form pulls in the date picker, uploads and payment step; not needed on browse pages. */
+const GuestForm = lazy(() =>
+  import('@/features/guest/form/components/GuestForm').then((m) => ({ default: m.GuestForm }))
+);
 const GuestBookingDocumentPage = lazy(() =>
   import('@/features/guest/booking-documents/pages/GuestBookingDocumentPage').then((m) => ({
     default: m.GuestBookingDocumentPage,
@@ -232,7 +236,14 @@ export const propertyGuestRoutes = [
   <Route key="property-guest" path="properties/:propertySlug" element={<GuestPublicLayout />}>
     <Route path="calendar" element={<CalendarPage />} />
     <Route path="messages" element={<PropertyChatPage />} />
-    <Route path="form" element={<GuestForm />} />
+    <Route
+      path="form"
+      element={
+        <Suspense fallback={<GuestFormPageSkeleton />}>
+          <GuestForm />
+        </Suspense>
+      }
+    />
     <Route path="success" element={<GuestFormSuccess />} />
     <Route path="trip" element={<GuestTripPage />} />
     <Route path="sd-form" element={<SdFormPage />} />

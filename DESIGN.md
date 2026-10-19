@@ -14,18 +14,24 @@ Plain-text design system for AI coding agents (Google Stitch–compatible). **Th
 
 Source of truth: `ui/src/index.css` HSL tokens (no raw hex in components).
 
-| Role                  | Token                            | Approx (light)       | Use                            |
-| --------------------- | -------------------------------- | -------------------- | ------------------------------ |
-| Canvas                | `--background`                   | white                | Page background                |
-| Ink                   | `--foreground`                   | near-black blue-gray | Body text                      |
-| Brand                 | `--primary`                      | teal `168 65% 40%`   | CTAs, focus ring, key accents  |
-| Brand text on primary | `--primary-foreground`           | white                | Button labels on primary       |
-| Muted                 | `--muted` / `--muted-foreground` | cool gray            | Secondary surfaces / meta text |
-| Border                | `--border` / `--input`           | light gray           | Dividers, inputs               |
-| Danger                | `--destructive`                  | red                  | Destructive actions / errors   |
-| Success               | `--success`                      | teal-aligned         | Positive states                |
-| Warning               | `--warning`                      | amber                | Caution                        |
-| Radius                | `--radius`                       | `0.75rem`            | Default control radius         |
+| Role                  | Token                  | Approx (light)       | Use                           |
+| --------------------- | ---------------------- | -------------------- | ----------------------------- |
+| Canvas                | `--background`         | white                | Page background               |
+| Ink                   | `--foreground`         | near-black blue-gray | Body text                     |
+| Brand                 | `--primary`            | teal `168 65% 40%`   | Accents, focus ring, icons    |
+| Brand fill with text  | `--primary-strong`     | teal `168 65% 31%`   | Fills behind white labels     |
+| Brand text on primary | `--primary-foreground` | white                | Labels on `bg-primary-strong` |
+
+Fills that carry white text (buttons, badges, active pills, chips) use `bg-primary-strong`,
+never `bg-primary`. `brandColor.ts` derives it per tenant brand color: same hue/saturation,
+darkened only until white text reaches 4.5:1. The CTA `--brand-gradient` follows the same
+rule. `src/lib/theme/textOnBrandFill.test.ts` fails on new `bg-primary` + white text pairs.
+| Muted | `--muted` / `--muted-foreground` | cool gray | Secondary surfaces / meta text |
+| Border | `--border` / `--input` | light gray | Dividers, inputs |
+| Danger | `--destructive` | red | Destructive actions / errors |
+| Success | `--success` | teal-aligned | Positive states |
+| Warning | `--warning` | amber | Caution |
+| Radius | `--radius` | `0.75rem` | Default control radius |
 
 **Do not** introduce purple-indigo gradients, terracotta-on-cream “AI default” themes, or neon glow stacks.
 

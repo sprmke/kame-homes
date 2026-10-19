@@ -50,7 +50,7 @@ serveAuthenticated('submit-parking-booking-request', async (req, user) => {
   const body = await readJsonBody(req);
 
   // Durable per-user rate limit + honeypot (no CAPTCHA — the request is already
-  // behind the guest auth wall). Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // behind the guest auth wall). Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpamBlocked = await antiSpamGate(req, body, {
     scope: 'submit-parking-booking-request',
     user,

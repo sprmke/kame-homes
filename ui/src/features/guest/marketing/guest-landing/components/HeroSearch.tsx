@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -57,7 +57,7 @@ import type {
   SearchSuggestionItem,
 } from '@/features/guest/search/types/search';
 
-import { Calendar } from '@/components/ui/calendar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import type { DateRange } from 'react-day-picker';
@@ -71,6 +71,20 @@ const DEFAULT_FIELD_ORDER: SearchField[] = ['where', 'when', 'who'];
 
 /** Panel position + size — keep width/height on the same spring so the calendar does not squash. */
 const PANEL_SPRING = { type: 'spring' as const, stiffness: 400, damping: 38, mass: 0.88 };
+
+/** react-day-picker + date-fns stay out of the landing entry chunk; prefetched when the hero is idle. */
+const loadCalendar = () => import('@/components/ui/calendar');
+const Calendar = lazy(() => loadCalendar().then((m) => ({ default: m.Calendar })));
+
+function prefetchCalendarWhenIdle(): () => void {
+  if (typeof window === 'undefined') return () => {};
+  if ('requestIdleCallback' in window) {
+    const id = window.requestIdleCallback(() => void loadCalendar());
+    return () => window.cancelIdleCallback(id);
+  }
+  const timer = globalThis.setTimeout(() => void loadCalendar(), 2000);
+  return () => globalThis.clearTimeout(timer);
+}
 
 interface HeroSearchProps {
   className?: string;
@@ -142,6 +156,8 @@ export function HeroSearch({
   useEffect(() => {
     setLocation(readWhereParam(searchParams, defaultLocation));
   }, [pathname, defaultLocation, searchParams]);
+
+  useEffect(() => prefetchCalendarWhenIdle(), []);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const from = parseDateParam(searchParams.get('checkIn'));
     const to = parseDateParam(searchParams.get('checkOut'));
@@ -723,7 +739,7 @@ export function HeroSearch({
                 onClick={handleSearch}
                 aria-label="Search"
                 className={cn(
-                  'bg-primary text-primary-foreground z-[2] ml-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md sm:ml-2',
+                  'bg-primary-strong text-primary-foreground z-[2] ml-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md sm:ml-2',
                   'transition-colors hover:opacity-95'
                 )}
                 style={{
@@ -804,7 +820,7 @@ export function HeroSearch({
                 onClick={handleSearch}
                 aria-label="Search"
                 className={cn(
-                  'bg-primary text-primary-foreground z-[2] ml-2 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md',
+                  'bg-primary-strong text-primary-foreground z-[2] ml-2 flex shrink-0 items-center justify-center rounded-full font-semibold shadow-md',
                   'transition-colors hover:opacity-95'
                 )}
                 style={{
@@ -918,18 +934,27 @@ export function HeroSearch({
                 {activeField === 'when' ? (
                   <div className="shrink-0 overflow-hidden">
                     <div className="px-4 py-4 sm:px-5">
-                      <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={effectiveCalendarMonths}
-                        showOutsideDays={false}
-                        navLayout="around"
-                        weekStartsOn={0}
-                        disabled={{ before: new Date() }}
-                        className="hero-search-calendar"
-                        classNames={heroSearchCalendarClassNames(effectiveCalendarMonths)}
-                      />
+                      <Suspense
+                        fallback={
+                          <Skeleton
+                            className="h-[19rem] w-full rounded-xl"
+                            aria-label="Loading calendar"
+                          />
+                        }
+                      >
+                        <Calendar
+                          mode="range"
+                          selected={dateRange}
+                          onSelect={setDateRange}
+                          numberOfMonths={effectiveCalendarMonths}
+                          showOutsideDays={false}
+                          navLayout="around"
+                          weekStartsOn={0}
+                          disabled={{ before: new Date() }}
+                          className="hero-search-calendar"
+                          classNames={heroSearchCalendarClassNames(effectiveCalendarMonths)}
+                        />
+                      </Suspense>
                     </div>
                     <div className="border-border flex items-center justify-between gap-3 border-t px-4 py-3 sm:px-5">
                       <button
@@ -942,7 +967,7 @@ export function HeroSearch({
                       <button
                         type="button"
                         onClick={() => (showWho ? setActiveField('who') : handleSearch())}
-                        className="bg-primary text-primary-foreground min-h-[44px] rounded-full px-5 text-sm font-semibold"
+                        className="bg-primary-strong text-primary-foreground min-h-[44px] rounded-full px-5 text-sm font-semibold"
                       >
                         {showWho ? 'Next' : 'Search'}
                       </button>

@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
+  DEFAULT_DESCRIPTION,
   buildPropertyJsonLd,
   buildRobotsTxt,
   injectMetaIntoHtml,
@@ -57,6 +61,18 @@ describe('injectMetaIntoHtml', () => {
     expect(html).toContain('og:image');
     expect(html).not.toContain('</script><script>alert(1)');
     expect(html.match(/<title>/g)?.length).toBe(1);
+  });
+
+  it('replaces the index.html default description without duplicating it', () => {
+    const indexHtml = readFileSync(resolve(__dirname, '../../../index.html'), 'utf8');
+    expect(indexHtml).toContain(DEFAULT_DESCRIPTION);
+    const html = injectMetaIntoHtml(indexHtml, {
+      title: 'Condo',
+      description: 'Listing description',
+      canonicalUrl: 'https://example.com/properties/a',
+    });
+    expect(html.match(/name="description"/g)?.length).toBe(1);
+    expect(html).not.toContain(DEFAULT_DESCRIPTION);
   });
 
   it('truncates long descriptions in tags', () => {

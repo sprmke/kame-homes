@@ -2,7 +2,7 @@
 title: 'Claude To Plan'
 status: archived
 tags: [planning]
-updated: 2026-10-05
+updated: 2026-10-18
 ---
 
 **Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
@@ -168,7 +168,7 @@ I think there are a lot of existing projects like this, what we need to plan and
 
 Harden the shipped guest voice receptionist for production: current Gemini Live protocol, transcript integrity, atomic session lifecycle, tiered guest-safe context, guardrails, reconnects, low-latency conversation UX, privacy, observability, automated tests, and staged rollout.
 
-# → **Done:** [`../done/ai-receptionist-production-readiness.md`](../done/ai-receptionist-production-readiness.md) · [`../done/ai-receptionist-experience-pass.md`](../done/ai-receptionist-experience-pass.md)
+# → **Done:** [`../done/ai-receptionist-production-readiness.md`](../in-progress/production-readiness/audits/ai-receptionist-production-readiness.md) · [`../done/ai-receptionist-experience-pass.md`](../done/ai-receptionist-experience-pass.md)
 
 ===
 
@@ -511,7 +511,7 @@ Also, I want you to visit if we can support the comments on facebook post on Fac
 
 Pivot from strict per-property billing to org-scoped portfolio caps for Pro/Business tiers while keeping Free/Starter/Managed/Commission per-property.
 
-# → **Planned:** [`../planned/pricing-portfolio-bundling.md`](../planned/pricing-portfolio-bundling.md)
+# → **Planned:** [`../planned/pricing-portfolio-bundling.md`](../done/pricing-portfolio-bundling.md)
 
 ===
 
@@ -750,7 +750,7 @@ The end goal is when we resize to mobile view, it should look and feel like a na
 
 Apply to all pages including both public and dashboard pages
 
-→ **In progress:** [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md)
+→ **In progress:** [`../in-progress/mobile-native-redesign.md`](../for-testing/mobile-native-redesign.md)
 ===
 
 🚧 CI/CD + multi-tenant environments — [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · matrix [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md)
@@ -797,7 +797,7 @@ Refine the full host onboarding flow end to end — not just the left showcase p
 - Align with verification tiers, plans gating, and post-onboarding first actions (settings completion, public pages, inbox connect).
 - Reuse or extend `HostWorkspaceSidePanel` / `onboarding-host-workspace-showcase` patterns where they still fit.
 
-→ **Partial:** [`../done/onboarding-host-workspace-showcase.md`](../done/onboarding-host-workspace-showcase.md) (auth left panel only). Full flow polish remains open. Post-registration Setup Guide: [`../in-progress/host-onboarding-setup-guide.md`](../in-progress/host-onboarding-setup-guide.md).
+→ **Partial:** [`../done/onboarding-host-workspace-showcase.md`](../done/onboarding-host-workspace-showcase.md) (auth left panel only). Full flow polish remains open. Post-registration Setup Guide: [`../in-progress/host-onboarding-setup-guide.md`](../for-testing/host-onboarding-setup-guide.md).
 ===
 
 🧪 Copy property settings to other properties
@@ -818,7 +818,7 @@ Post-registration resumable Setup Guide overlay — stepper over real settings/p
 
 PostHog implemented (UI error tracking, analytics, session replay, feature flags, source-map upload; edge capture through shared error and cron paths). Sentry remains deferred.
 
-→ **For testing:** [`../for-testing/posthog-analytics-production-readiness.md`](../for-testing/posthog-analytics-production-readiness.md) — operator project setup, keys, alerts, and funnels remain.
+→ **For testing:** [`../for-testing/posthog-analytics-production-readiness.md`](../in-progress/production-readiness/audits/posthog-analytics-production-readiness.md) — operator project setup, keys, alerts, and funnels remain.
 ===
 
 🧪 Parking ↔ property production parity
@@ -894,7 +894,7 @@ From the dashboard, there should be a copyable link for parking owner hosts wher
 
 We should apply all the same logic and flow that we have from above except that this is direct booking and guest needs to manually fill up their information, car details and pay the parking.
 
-→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **Planned:** Phase 6 + [`../planned/parking-e2e-production-readiness.md`](../planned/parking-e2e-production-readiness.md)
+→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **Planned:** Phase 6 + [`../planned/parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md)
 ===
 
 🔵 Host/Guest booking payment e2e
@@ -999,5 +999,12 @@ Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc sup
 
 Take the pre-prod checklist (cache API responses, load balancer, index the DB, compress images, loading skeletons, cache expensive queries, debounce input handlers, split code into chunks, add CDN, paginate large lists, compress API payloads, unnecessary re-renders ❌, minify JS/CSS, add lazy loading, defer non-critical scripts, unused dependencies ❌, DB connection pooling) plus the platform readiness list (frontend, backend & APIs, database, storage, auth/permissions, hosting & deployment, cloud computing, CI/CD & version control, security & RLS, rate limiting, caching & CDN, load balancing & scalability, error tracking & logs, analytics, SDLC testing, availability & recovery) and produce one detailed plan per item, applied everywhere in the codebase — not spot fixes.
 
-→ **Planned:** [`../planned/production-readiness-checklist/README.md`](../planned/production-readiness-checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
+→ **Planned:** [`../planned/production-readiness-checklist/README.md`](../in-progress/production-readiness/checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
+===
+
+🚧 Production readiness launch audit — consolidate, re-verify, and close gaps
+
+Merge every production readiness checklist and plan into one folder, re-test everything on a freshly deployed dev, add missing modules, run an OWASP pass, then list what is good and what still needs fixing.
+
+→ **In progress:** [`../in-progress/production-readiness/`](../in-progress/production-readiness/README.md) · plan [`production-readiness-launch-audit.md`](../in-progress/production-readiness/production-readiness-launch-audit.md)
 ===

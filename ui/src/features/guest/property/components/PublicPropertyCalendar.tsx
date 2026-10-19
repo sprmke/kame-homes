@@ -338,7 +338,7 @@ export function PublicPropertyCalendar({
                   'text-primary ring-primary cursor-pointer font-bold ring-2',
                 !isCustom &&
                   (state === 'checkIn' || state === 'checkOut') &&
-                  'bg-primary text-primary-foreground cursor-pointer font-semibold shadow-sm',
+                  'bg-primary-strong text-primary-foreground cursor-pointer font-semibold shadow-sm',
                 !isCustom &&
                   state === 'inRange' &&
                   'bg-primary/10 text-primary cursor-pointer rounded-xl',
@@ -409,7 +409,7 @@ export function PublicPropertyCalendar({
                 'min-h-[44px] w-full shrink-0 rounded-full px-5 text-white sm:w-auto sm:self-center',
                 isCustom
                   ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-primary-strong text-primary-foreground hover:bg-primary-strong/90'
               )}
             >
               Book Now

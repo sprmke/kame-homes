@@ -98,7 +98,7 @@ export function SdFormPage() {
   const [accountNumber, setAccountNumber] = useState('');
 
   // Invisible anti-spam — a widget per protected action (Turnstile `action`
-  // must match the server `scope`). Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // must match the server `scope`). Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const claimAntiSpam = useAntiSpamSubmit({ action: 'claim-sd-voucher' });
   const submitAntiSpam = useAntiSpamSubmit({ action: 'submit-sd-form' });
 

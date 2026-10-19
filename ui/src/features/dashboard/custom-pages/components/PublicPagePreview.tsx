@@ -108,7 +108,7 @@ function CalendarPreview({ propertyName }: { propertyName: string }) {
               key={i}
               className={cn(
                 'aspect-square rounded-[3px] text-[8px] leading-none',
-                booked.has(i) ? 'bg-primary text-primary-foreground' : 'bg-muted/80'
+                booked.has(i) ? 'bg-primary-strong text-primary-foreground' : 'bg-muted/80'
               )}
             />
           ))}
@@ -157,7 +157,7 @@ function MessagesPreview({ propertyName }: { propertyName: string }) {
           <span className="bg-muted text-muted-foreground max-w-[72%] self-start rounded-2xl rounded-bl-sm px-2 py-1.5 text-[9px] leading-snug">
             Hi, is this available?
           </span>
-          <span className="bg-primary text-primary-foreground max-w-[68%] self-end rounded-2xl rounded-br-sm px-2 py-1.5 text-[9px] leading-snug">
+          <span className="bg-primary-strong text-primary-foreground max-w-[68%] self-end rounded-2xl rounded-br-sm px-2 py-1.5 text-[9px] leading-snug">
             Yes — send dates and we&apos;ll confirm.
           </span>
         </div>

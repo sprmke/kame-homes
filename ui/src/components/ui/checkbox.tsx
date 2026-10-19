@@ -10,9 +10,9 @@ const checkboxRootClassName = cn(
   'transition-[color,background-color,border-color,box-shadow] duration-150 ease-out',
   'hover:border-primary/70',
   'focus-visible:ring-ring ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-  'data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
+  'data-[state=checked]:border-primary data-[state=checked]:bg-primary-strong data-[state=checked]:text-primary-foreground',
   'data-[state=checked]:shadow-[0_1px_3px_hsl(var(--primary)/0.35)]',
-  'data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground',
+  'data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary-strong data-[state=indeterminate]:text-primary-foreground',
   'disabled:cursor-not-allowed disabled:opacity-50'
 );
 
@@ -37,7 +37,7 @@ function CheckboxDisplay({ checked, className }: { checked: boolean; className?:
       className={cn(
         'bg-background inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 shadow-sm',
         checked
-          ? 'border-primary bg-primary text-primary-foreground shadow-[0_1px_3px_hsl(var(--primary)/0.35)]'
+          ? 'border-primary bg-primary-strong text-primary-foreground shadow-[0_1px_3px_hsl(var(--primary)/0.35)]'
           : 'border-muted-foreground/45',
         className
       )}

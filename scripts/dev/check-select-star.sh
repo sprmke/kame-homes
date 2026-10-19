@@ -31,7 +31,7 @@ cd "$ROOT"
 # (2026-09-17). Keep in sync with the grep this guard runs — if you narrow a
 # `select('*')` to explicit columns, remove that file from this list so the guard
 # actually protects the win. If you add a genuinely new `select('*')`, add it here
-# only after confirming (via docs/workflow/planned/production-readiness-checklist/
+# only after confirming (via docs/workflow/in-progress/production-readiness/checklist/
 # 13-compress-api-payloads.md's classification table) that the table is small/
 # narrow or the row is single-record — a list endpoint over a wide/growing table
 # should select explicit columns instead of being added here.

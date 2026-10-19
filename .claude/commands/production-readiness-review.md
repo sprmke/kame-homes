@@ -13,7 +13,7 @@ Deep **code review** of production-readiness checklist **phases 5–10** before 
 ## Steps (agent)
 
 1. **Read and follow** `.agent/skills/production-readiness-review/SKILL.md` end-to-end (do not improvise a lighter review).
-2. Read implementation-status sections in `docs/workflow/planned/production-readiness-checklist/05` through `10`.
+2. Read implementation-status sections in `docs/workflow/in-progress/production-readiness/checklist/05` through `10`.
 3. Review the git diff for all related changes; map each file to its phase.
 4. Run verification from the skill (`ci:quality`, `check-unbounded-select.sh`, `db:migrate` when migration changed).
 5. Produce the skill's **verdict + per-phase summary + P0–P3 findings** format.
