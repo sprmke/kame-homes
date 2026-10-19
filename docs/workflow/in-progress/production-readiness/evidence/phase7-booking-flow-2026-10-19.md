@@ -41,3 +41,25 @@ Stored row: `PENDING_REVIEW`, guest email, 7 nights, receipt + 4 ID images in **
 | PR-123 | low                 | Ticking the manual review checkbox alone writes `booking.details_edited (7 fields)` before any host edit. Noisy audit trail.                                                                                                                                                                                                                                |
 
 Not walked yet: Pending Documents → GAF approval (needs Azure inbound email or manual approved PDF upload), Ready for check-in, check-out, SD refund form, completion.
+
+## Full lifecycle (API, same calls as the booking page) — `node scripts/dev/probe-readiness-workflow-dev.mjs <bookingId>`
+
+| Step                                          | Result                                                      |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| Guard: `PENDING_DOCUMENTS → COMPLETED`        | 400 `Transition … is not allowed`                           |
+| Upload approved GAF (PDF)                     | 200, stored                                                 |
+| Guard: HTML declared as PDF on `approved_gaf` | 400 `File type not recognized` (sniffed)                    |
+| Mark GAF complete                             | 200 → **READY_FOR_CHECKIN** (auto-advance, no pets/parking) |
+| Guard: Ready for check-out with ₱1 paid       | 400 `Amount paid must equal total guest balance`            |
+| Balance receipt + paid ₱20,193                | 200 → **READY_FOR_CHECKOUT**                                |
+| Host skip SD form                             | 200 → **PENDING_SD_REFUND**                                 |
+| Complete                                      | 200 → **COMPLETED**                                         |
+| Guard: `COMPLETED → PENDING_REVIEW`           | 400 (terminal)                                              |
+
+Activity: `booking.created`, `booking.details_edited` ×2, `booking.status_changed` → PENDING_DOCUMENTS → READY_FOR_CHECKIN → READY_FOR_CHECKOUT → PENDING_SD_REFUND → COMPLETED. Matches `.cursor/rules/booking-workflow.mdc` §2 and §6.
+
+Not exercised: guest `/sd-form` submit (Turnstile, real browser) and the Resend inbound GAF approval webhook.
+
+## Assistant LLM probes
+
+Org assistant enabled for the QA org, but `platformEnabled: false` (super-admin kill switch) on dev: every call returns 503 `AI dashboard assistant is not enabled` before any model runs. Prompt-injection and permission-scoping probes wait on P0-3 (paid key + cap).
