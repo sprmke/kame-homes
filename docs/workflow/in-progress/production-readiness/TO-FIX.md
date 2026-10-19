@@ -28,6 +28,7 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | [#156](https://github.com/sprmke/kame-homes/pull/156) | Landing hero cards at rendered size: images 1161 → 945 KiB, LCP image priority-hinted (PR-040)                              | running   |
 | [#157](https://github.com/sprmke/kame-homes/pull/157) | Workflow emails that fail to send are surfaced (toast + activity), Meta error test (PR-106)                                 | running   |
 | [#158](https://github.com/sprmke/kame-homes/pull/158) | Dependency patches in-major: audit 42 → 28; rest triaged (checklist 38)                                                     | running   |
+| [#159](https://github.com/sprmke/kame-homes/pull/159) | react-router-dom 7.18: clears router advisories; ci:quality + e2e:ci 259/259 (PR-124)                                       | running   |
 
 ## Blockers
 
@@ -36,7 +37,7 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG`                                        | operator      |
 | PR-119 | C    | 🟡  | **Down payment mismatch.** Decision: host's flat setting. Fixed + verified on dev in #149 (merge pending)                                            | agent         |
 | PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merge pending)                                                                | agent         |
-| PR-124 | B    | 🟡  | `react-router` 6.30 → 7.18 (advisories); our redirect guard is fixed independently                                                                   | agent         |
+| PR-124 | B    | 🟡  | `react-router` 7.18 in [#159](https://github.com/sprmke/kame-homes/pull/159), all suites green. Merge pending                                        | agent         |
 | PR-126 | F    | 🟡  | Dev tooling advisories (vitest 1.6 critical when UI server listens, vite, tinypool, …). Tooling upgrade PR                                           | agent         |
 | PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merge pending                                       | product       |
 | PR-120 | B    | 🧭  | `guest-chat-attachments`: not listable, links unguessable (probed). Keep links or go private + signed URLs                                           | agent         |
@@ -45,7 +46,7 @@ Working copy of ledger rows that block or delay launch. Final grouping is Phase 
 | PR-118 | A    | 🟡  | Marketing on Free: UI shows full themes + **New theme**, API refuses (`marketingStudio`). Align gate (in-progress marketing-themes module)           | other session |
 | PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                                                       | operator      |
 | PR-003 | D    | ⛔  | Paid AI billing cap                                                                                                                                  | operator      |
-| PR-008 | B    | 🟡  | Guest-token write paths after grace (read path verified 401)                                                                                         | agent         |
+| PR-008 | B    | ✅  | Guest-link tokens: live on dev past grace, all reads 401 without/forged token; writes captcha + same check (evidence `phase6-auth-abuse`)            | agent         |
 | PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                                                                 | operator      |
 | PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                                                                 | operator      |
 | PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                                                                     | operator      |

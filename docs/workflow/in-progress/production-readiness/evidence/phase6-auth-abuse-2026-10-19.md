@@ -14,3 +14,15 @@ Correct `BASE_URL=https://fworvijbrwpyngycotbz.supabase.co/functions/v1` (first 
 | A11 anon `payment-receipts/...` public URL                  | **400** (not 200)                                                                               |
 
 Auth gates work. Rate-limit 429 not proven at these burst sizes (public RL is higher or keyed differently). Re-run a longer burst after full function deploy.
+
+## Guest-link tokens after the grace window (PR-008), hosted dev 2026-10-19
+
+`scripts/dev/probe-readiness-guest-token-dev.mjs` backdated one QA booking past `GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS`, probed, then restored `created_at`.
+
+| Case                              | `get-form`                           | `get-sd-form` | `get-guest-review` |
+| --------------------------------- | ------------------------------------ | ------------- | ------------------ |
+| Past grace, no token              | 401 `Access token required`          | 401           | 401                |
+| Past grace, forged token          | 401 `Invalid or expired access link` | 401           | 401                |
+| Inside grace (restored), no token | 200                                  | —             | —                  |
+
+Write paths (`submit-form` edit, `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`) run captcha first, then the same `authorizeGuestBookingAccess` with the row's `created_at`, and return 401 before any write (code read). Helper cases (missing token past grace, inside grace, mismatched write token) are covered by `guestBookingAccessToken_test.ts`.
