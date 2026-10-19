@@ -63,6 +63,8 @@ On the **host dashboard**, the sidebar footer account menu shows the same avatar
 
 Resume after OAuth (guest): `sessionStorage` (`guestAuthResume.ts`) restores navigation to the form, contact-host sheet, booking-form modal, or auto-submits after social/email auth when the modal was the entry point. On the standalone guest page, OAuth/OTP success simply navigates to `?redirect=` (or `/`) once the session becomes authenticated.
 
+`?redirect=` must be a same-origin path: `safeRedirect` falls back to the default for absolute URLs, `//…`, and any value with a backslash or control character (browsers turn `/\evil.com` and `/<tab>/evil.com` into `//evil.com`).
+
 ### Host sign-in
 
 **Layout (lg+, host routes):** 50/50 split — left **`HostWorkspaceSidePanel`** (`variant="auth"`) shared with onboarding: solid **`bg-primary`**, **`MarketingBrandLogo`** inset `p-4` (same top-left as **`MarketingNav`**), headline + description, compact **`HostDashboardTourPlayer`** (expand modal — the tour film is theme-aware and follows the viewer's light/dark choice; see `for-hosts.md` § Dark mode). No footer links on the panel. Guest auth routes keep the legacy gradient branding panel with feature cards.
