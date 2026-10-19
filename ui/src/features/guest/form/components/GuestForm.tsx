@@ -306,7 +306,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [completionReady, setCompletionReady] = useState(!isCompletionMode);
   // Invisible anti-spam (Turnstile + honeypot/timing). The Turnstile `action`
-  // must match the edge scope. Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // must match the edge scope. Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpam = useAntiSpamSubmit({
     action: isCompletionMode ? 'submit-form-completion' : 'submit-form',
   });

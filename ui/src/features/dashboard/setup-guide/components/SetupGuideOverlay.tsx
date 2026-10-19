@@ -522,7 +522,7 @@ function NavMark({
       className={cn(
         'flex size-[1.125rem] shrink-0 items-center justify-center rounded-full border text-[9px]',
         done
-          ? 'border-primary bg-primary text-primary-foreground'
+          ? 'border-primary bg-primary-strong text-primary-foreground'
           : skipped
             ? 'border-border bg-muted text-muted-foreground'
             : active

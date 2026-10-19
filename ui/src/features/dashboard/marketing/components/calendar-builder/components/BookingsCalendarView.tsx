@@ -227,7 +227,7 @@ export function BookingsCalendarView({ bookings, propertySlug }: BookingsCalenda
                           className={cn(
                             'text-sm',
                             isToday(day) &&
-                              'bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full'
+                              'bg-primary-strong text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full'
                           )}
                         >
                           {format(day, 'd')}

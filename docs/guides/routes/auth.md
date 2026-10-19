@@ -18,16 +18,17 @@ Routes:
 
 ## Progress overview
 
-| Section                | E2E save | Validation | Docs       | Notes                                                                                                                                                |
-| ---------------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant)                                                              |
-| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                                                                                        |
-| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                                                                                    |
-| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                                                                                  |
-| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                                                                                       |
-| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)                                                                           |
-| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                                                                              |
-| Mobile shell           | —        | —          | Documented | No bottom tab bar by default — `AuthLayout` is its own top-level route, not nested in `MarketingLayoutShell` (verified 2026-09-10, not just assumed) |
+| Section                | E2E save | Validation | Docs       | Notes                                                                                                                                                     |
+| ---------------------- | -------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth layout            | —        | —          | Documented | Split panel + form; host left uses shared **`HostWorkspaceSidePanel`** (`auth` variant)                                                                   |
+| Host login/register    | ✅       | Client     | Documented | Email OTP + Google OAuth — same component/flow for both modes                                                                                             |
+| Guest login/register   | ✅       | Client     | Documented | Email OTP + Google OAuth — standalone pages (new)                                                                                                         |
+| Guest checkout auth    | ✅       | Client     | Documented | Modal on form/messages entry, calendar Proceed, Reserve, save heart                                                                                       |
+| Guest account nav      | ✅       | —          | Documented | Avatar on explore when signed in; real "Sign In" link when not                                                                                            |
+| Host dashboard profile | ✅       | Client     | Documented | Sidebar account menu → **Profile** modal (same form as `/account/profile`)                                                                                |
+| Mode switcher          | —        | —          | Documented | Global curtain; admin sidebar + marketing/auth triggers                                                                                                   |
+| Mobile shell           | —        | —          | Documented | No bottom tab bar by default — `AuthLayout` is its own top-level route, not nested in `MarketingLayoutShell` (verified 2026-09-10, not just assumed)      |
+| Form position          | —        | —          | Documented | Phone: card top-aligned under the header; `sm+`: vertically centered. Keeps the card still when a Turnstile challenge appears (CLS 0.25 → ~0.10 at 375px) |
 
 ---
 
@@ -62,6 +63,8 @@ On the **host dashboard**, the sidebar footer account menu shows the same avatar
 - **Invisible human verification:** a Cloudflare Turnstile widget (`useCaptchaToken`, `action: auth-email-otp`) is mounted for the whole login flow — kept alive on both the email and the code-entry steps so **Resend** (which lives on the code step) always has a fresh single-use token. Real users see nothing; a suspicious session gets an inline challenge before **Continue** / **Resend** proceeds. The token is passed as `options.captchaToken` on `signInWithOtp` and verified by Supabase Auth's native Turnstile (`supabase/config.toml` `[auth.captcha]`; hosted: Dashboard → Authentication → Attack Protection). Fully degrades (no widget, OTP still sends) when `VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` are unset. Google OAuth is unaffected. See [PROJECT.md → Anti-spam & CAPTCHA](../../PROJECT.md).
 
 Resume after OAuth (guest): `sessionStorage` (`guestAuthResume.ts`) restores navigation to the form, contact-host sheet, booking-form modal, or auto-submits after social/email auth when the modal was the entry point. On the standalone guest page, OAuth/OTP success simply navigates to `?redirect=` (or `/`) once the session becomes authenticated.
+
+`?redirect=` must be a same-origin path: `safeRedirect` falls back to the default for absolute URLs, `//…`, and any value with a backslash or control character (browsers turn `/\evil.com` and `/<tab>/evil.com` into `//evil.com`).
 
 ### Host sign-in
 

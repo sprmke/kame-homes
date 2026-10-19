@@ -1,6 +1,6 @@
 /**
  * Deno tests for _shared/botHeuristics.ts — run with `deno test` (not Bun's runner).
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 6)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 6)
  */
 
 import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';

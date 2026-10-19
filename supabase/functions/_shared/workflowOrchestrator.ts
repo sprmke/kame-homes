@@ -162,6 +162,8 @@ export type TransitionResult = {
      * Client may surface a settings hint — distinct from `automationSkippedByPlan`.
      */
     automationSkippedByHost: string[];
+    /** Workflow emails that were due but Resend rejected or errored; the transition still applied. */
+    emailsFailed?: string[];
     /**
      * True when every guest-facing side effect (acknowledgement / ready-for-check-in /
      * SD-refund-form emails, stay-guide token, guest bell notifications) was skipped because
@@ -588,7 +590,9 @@ export class WorkflowOrchestrator {
         docComplete === 'PENDING_PARKING_REQUEST';
 
       if (docComplete === 'PENDING_PARKING_REQUEST' && manual) {
-        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
           aiVerdictOverridden = true;
         }
       }
@@ -637,7 +641,9 @@ export class WorkflowOrchestrator {
       (docComplete === 'PENDING_PARKING_REQUEST' && manual)
     ) {
       if (fromStatus === 'PENDING_PARKING_REQUEST') {
-        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
           aiVerdictOverridden = true;
         }
       }
@@ -899,6 +905,7 @@ export class WorkflowOrchestrator {
 
     // 8. Emails — based on side-effect matrix in booking-workflow.mdc §3
     const emailsSent: string[] = [];
+    const emailsFailed: string[] = [];
     const automationSkippedByPlan: string[] = [];
     const automationSkippedByHost: string[] = [];
     let externalSuppressed = false;
@@ -934,6 +941,7 @@ export class WorkflowOrchestrator {
           emailsSent.push('gaf_request');
         } catch (err) {
           console.error('[orchestrator] GAF request email failed:', err);
+          emailsFailed.push('gaf_request');
         }
       } else if (
         isReviewToInitialDocs &&
@@ -958,6 +966,7 @@ export class WorkflowOrchestrator {
           emailsSent.push('booking_acknowledgement');
         } catch (err) {
           console.error('[orchestrator] Booking acknowledgement email failed:', err);
+          emailsFailed.push('booking_acknowledgement');
         }
       } else if (flag(devControls, 'sendBookingAcknowledgementEmail')) {
         console.log('[orchestrator] Booking acknowledgement email skipped (org automation off)');
@@ -983,6 +992,7 @@ export class WorkflowOrchestrator {
           emailsSent.push('pet_request');
         } catch (err) {
           console.error('[orchestrator] Pet request email failed:', err);
+          emailsFailed.push('pet_request');
         }
       } else if (
         isReviewToInitialDocs &&
@@ -1040,6 +1050,7 @@ export class WorkflowOrchestrator {
         emailsSent.push('ready_for_checkin');
       } catch (err) {
         console.error('[orchestrator] Ready-for-check-in email failed:', err);
+        emailsFailed.push('ready_for_checkin');
       }
     } else if (
       toStatus === 'READY_FOR_CHECKIN' &&
@@ -1085,6 +1096,7 @@ export class WorkflowOrchestrator {
           }
         } catch (err) {
           console.error('[orchestrator] SD refund form request email failed:', err);
+          emailsFailed.push('sd_refund_form_request');
         }
       }
     } else if (
@@ -1170,6 +1182,7 @@ export class WorkflowOrchestrator {
 
     console.log(`[orchestrator] Transition complete: ${fromStatus} → ${toStatus}`, {
       emailsSent,
+      emailsFailed,
     });
 
     if (flag(devControls, 'saveToDatabase')) {
@@ -1190,6 +1203,7 @@ export class WorkflowOrchestrator {
         manual,
         actor,
         aiVerdictOverridden,
+        emailsFailed,
         resolveOrgId: resolveNotificationOrgId,
       });
       await this.logTransitionPostHog({
@@ -1224,6 +1238,7 @@ export class WorkflowOrchestrator {
       booking: updatedBooking,
       sideEffects: {
         emails: emailsSent,
+        ...(emailsFailed.length > 0 ? { emailsFailed } : {}),
         automationSkippedByPlan,
         automationSkippedByHost,
         ...(externalSuppressed ? { externalSuppressed: true } : {}),
@@ -1316,6 +1331,7 @@ export class WorkflowOrchestrator {
     manual: boolean;
     actor?: ActorContext;
     aiVerdictOverridden?: boolean;
+    emailsFailed?: string[];
     resolveOrgId: () => Promise<string | null>;
   }): Promise<void> {
     try {
@@ -1355,6 +1371,7 @@ export class WorkflowOrchestrator {
           manual: args.manual,
           ...(isDocSubstep && args.completionTarget ? { requirement: args.completionTarget } : {}),
           ...(args.aiVerdictOverridden ? { ai_verdict_overridden: true } : {}),
+          ...(args.emailsFailed?.length ? { emails_failed: args.emailsFailed } : {}),
         },
       });
     } catch (err) {

@@ -38,7 +38,7 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
 
   if (req.method === 'POST') {
     // Durable per-user write rate limit — sends fan out to Resend + Telegram.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const limited = await rateLimitGate(req, {
       scope: 'guest-web-chat-messages',
       identity: identityFromRequest(req, user),

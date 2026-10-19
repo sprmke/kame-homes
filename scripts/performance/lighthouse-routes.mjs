@@ -28,7 +28,7 @@ import { launch } from 'chrome-launcher';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const baselineDir = path.join(
   repoRoot,
-  'docs/workflow/planned/production-readiness-checklist/baselines'
+  'docs/workflow/in-progress/production-readiness/checklist/baselines'
 );
 
 const args = process.argv.slice(2);
@@ -65,7 +65,11 @@ const ROUTES = [
     name: 'Admin finance (needs auth session + real slugs)',
   },
   { path: '/for-hosts/pricing', persona: 'host', name: 'Plans/pricing page' },
-  { path: '/admin', persona: 'super-admin', name: 'Super-admin shell (redirects if unauthenticated)' },
+  {
+    path: '/admin',
+    persona: 'super-admin',
+    name: 'Super-admin shell (redirects if unauthenticated)',
+  },
 ];
 
 function fail(msg) {
@@ -81,7 +85,15 @@ function median(sortedNums) {
 }
 
 function medianMetrics(samples) {
-  const keys = ['performanceScore', 'lcpMs', 'clsScore', 'tbtMs', 'fcpMs', 'speedIndexMs', 'totalByteWeightBytes'];
+  const keys = [
+    'performanceScore',
+    'lcpMs',
+    'clsScore',
+    'tbtMs',
+    'fcpMs',
+    'speedIndexMs',
+    'totalByteWeightBytes',
+  ];
   const out = {};
   for (const key of keys) {
     const vals = samples.map((s) => s[key]).filter((v) => v != null && Number.isFinite(v));
@@ -150,7 +162,8 @@ async function runLighthouse(url, chromePort) {
   const lhr = result.lhr;
   const audits = lhr.audits;
   return {
-    performanceScore: lhr.categories.performance?.score != null ? lhr.categories.performance.score * 100 : null,
+    performanceScore:
+      lhr.categories.performance?.score != null ? lhr.categories.performance.score * 100 : null,
     lcpMs: audits['largest-contentful-paint']?.numericValue ?? null,
     clsScore: audits['cumulative-layout-shift']?.numericValue ?? null,
     tbtMs: audits['total-blocking-time']?.numericValue ?? null,
@@ -162,7 +175,9 @@ async function runLighthouse(url, chromePort) {
 
 async function main() {
   if (!existsSync(path.join(repoRoot, 'ui/dist')) && !externalBaseUrl) {
-    fail('ui/dist not found — run `bun run build` first, or pass --base-url for a deployed preview.');
+    fail(
+      'ui/dist not found — run `bun run build` first, or pass --base-url for a deployed preview.'
+    );
   }
 
   let server = null;

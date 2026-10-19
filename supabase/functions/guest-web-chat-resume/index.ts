@@ -13,7 +13,7 @@ serveAuthenticated('guest-web-chat-resume', async (req, user) => {
     return jsonError(req, 'Method not allowed', 405);
   }
 
-  // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const limited = await rateLimitGate(req, {
     scope: 'guest-web-chat-resume',
     identity: identityFromRequest(req, user),

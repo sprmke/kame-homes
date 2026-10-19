@@ -105,7 +105,7 @@ export function BookingWorkflowScene() {
                     <span
                       className={cn(
                         'z-[1] flex size-6 items-center justify-center rounded-full border-2',
-                        done && 'border-primary bg-primary text-primary-foreground',
+                        done && 'border-primary bg-primary-strong text-primary-foreground',
                         active && 'border-primary bg-background ring-primary/20 ring-4',
                         !done && !active && 'border-border bg-background'
                       )}
@@ -474,7 +474,7 @@ export function ChannelSyncScene() {
         </div>
         <div className="mt-6 flex items-center justify-between px-8">
           <div className="flex flex-col items-center gap-2">
-            <span className="bg-primary text-primary-foreground flex size-16 items-center justify-center rounded-2xl text-2xl font-black">
+            <span className="bg-primary-strong text-primary-foreground flex size-16 items-center justify-center rounded-2xl text-2xl font-black">
               K
             </span>
             <span className="text-foreground text-sm font-semibold">Your calendar</span>

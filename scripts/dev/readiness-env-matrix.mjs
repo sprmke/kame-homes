@@ -1,0 +1,184 @@
+#!/usr/bin/env node
+/**
+ * Prod env matrix for production readiness (launch audit Phase 9.3).
+ *
+ * Cross-checks what the code reads against what the prod examples declare:
+ *   - Edge secrets: `Deno.env.get('X')` in supabase/functions (tests excluded)
+ *     vs the edge secret inventory: supabase/.env.example + docs/architecture/validation-and-env.md
+ *     (+ Supabase-injected names). supabase/.env.prod.example only bootstraps the mt-prod project.
+ *   - UI build vars: `import.meta.env.VITE_X` in ui/src vs ui/.env.example
+ *   - Vault secrets read by migrations (`vault.decrypted_secrets ... name = 'x'`)
+ *   - pg_cron jobs scheduled minus unscheduled in migrations
+ *   - Functions in supabase/config.toml with verify_jwt overrides
+ *
+ *   node scripts/dev/readiness-env-matrix.mjs            # markdown to stdout
+ *   node scripts/dev/readiness-env-matrix.mjs --check    # exit 1 if code reads an undeclared name
+ */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const CHECK = process.argv.includes('--check');
+
+function walk(dir, accept, out = []) {
+  for (const name of readdirSync(dir)) {
+    if (name === 'node_modules' || name.startsWith('.')) continue;
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) walk(full, accept, out);
+    else if (accept(full)) out.push(full);
+  }
+  return out;
+}
+
+function envKeys(file) {
+  try {
+    return new Set(
+      readFileSync(resolve(ROOT, file), 'utf8')
+        .split('\n')
+        .map((l) => l.match(/^#?\s*([A-Z][A-Z0-9_]+)=/)?.[1])
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function collect(files, pattern) {
+  const uses = new Map();
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(pattern)) {
+      const key = m[1];
+      if (!uses.has(key)) uses.set(key, new Set());
+      uses.get(key).add(relative(ROOT, file));
+    }
+  }
+  return uses;
+}
+
+const edgeFiles = walk(
+  resolve(ROOT, 'supabase/functions'),
+  (f) => f.endsWith('.ts') && !/(_test|\.test|integration_test)\.ts$/.test(f) && !f.includes('/tests/')
+);
+const uiFiles = walk(
+  resolve(ROOT, 'ui/src'),
+  (f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f)
+);
+const migrationFiles = walk(resolve(ROOT, 'supabase/migrations'), (f) => f.endsWith('.sql')).sort();
+
+const edgeUses = collect(edgeFiles, /Deno\.env\.get\(\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\)/g);
+// Cron/webhook secrets are often read through a helper that takes the name as a string.
+for (const [k, files] of collect(edgeFiles, /['"`]([A-Z][A-Z0-9_]*_SECRET)['"`]/g)) {
+  if (!edgeUses.has(k)) edgeUses.set(k, new Set());
+  for (const f of files) edgeUses.get(k).add(f);
+}
+const uiUses = collect(uiFiles, /import\.meta\.env\.(VITE_[A-Z0-9_]+)/g);
+
+const SUPABASE_INJECTED = new Set([
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_DB_URL',
+  'SB_REGION',
+  'SB_EXECUTION_ID',
+  'DENO_DEPLOYMENT_ID',
+]);
+const envDoc = readFileSync(resolve(ROOT, 'docs/architecture/validation-and-env.md'), 'utf8');
+const documentedInDoc = new Set([...envDoc.matchAll(/`([A-Z][A-Z0-9_]{2,})`/g)].map((m) => m[1]));
+const exampleEdge = envKeys('supabase/.env.example');
+const prodEdge = new Set([...exampleEdge, ...documentedInDoc]);
+const uiExample = new Set([...envKeys('ui/.env.example'), ...envKeys('ui/.env.production')]);
+
+const vault = new Set();
+const cron = new Map();
+for (const file of migrationFiles) {
+  const sql = readFileSync(file, 'utf8');
+  for (const m of sql.matchAll(/decrypted_secrets[\s\S]{0,200}?name\s*=\s*'([a-z0-9_]+)'/g)) {
+    vault.add(m[1]);
+  }
+  for (const m of sql.matchAll(/cron\.schedule\(\s*'([^']+)'/g)) cron.set(m[1], relative(ROOT, file));
+  for (const m of sql.matchAll(/cron\.unschedule\(\s*'([^']+)'/g)) {
+    if (cron.get(m[1]) && cron.get(m[1]) < relative(ROOT, file)) cron.delete(m[1]);
+  }
+}
+
+const configToml = readFileSync(resolve(ROOT, 'supabase/config.toml'), 'utf8');
+const jwtOff = [...configToml.matchAll(/\[functions\.([a-z0-9-]+)\][^[]*?verify_jwt\s*=\s*false/g)].map(
+  (m) => m[1]
+);
+
+const edgeMissing = [...edgeUses.keys()]
+  .filter((k) => !SUPABASE_INJECTED.has(k) && !prodEdge.has(k))
+  .sort();
+const uiMissing = [...uiUses.keys()]
+  .filter((k) => !uiExample.has(k) && !documentedInDoc.has(k) && k !== 'VITE_PWA_DEV')
+  .sort();
+const edgeSource = edgeFiles.map((f) => readFileSync(f, 'utf8')).join('\n');
+const mentioned = (k) => edgeUses.has(k) || new RegExp(`['"\`]${k}['"\`]`).test(edgeSource);
+const declaredUnused = [...exampleEdge].filter((k) => !mentioned(k)).sort();
+
+const lines = [];
+const row = (cells) => lines.push(`| ${cells.join(' | ')} |`);
+lines.push('# Prod env matrix (generated)', '');
+lines.push(
+  `Generated by \`scripts/dev/readiness-env-matrix.mjs\`. Edge files scanned: ${edgeFiles.length}; UI files: ${uiFiles.length}; migrations: ${migrationFiles.length}.`,
+  ''
+);
+lines.push('## Summary', '');
+row(['Area', 'Count', 'Missing from inventory']);
+row(['---', '---', '---']);
+row(['Edge secrets read by code', String(edgeUses.size), String(edgeMissing.length)]);
+row(['UI `VITE_*` vars read by code', String(uiUses.size), String(uiMissing.length)]);
+row(['Vault secrets read by migrations', String(vault.size), 'operator: set in Vault per env']);
+row(['pg_cron jobs (scheduled, not later unscheduled)', String(cron.size), 'operator: confirm on prod']);
+row(['Functions with `verify_jwt = false`', String(jwtOff.length), 'auth done in code']);
+lines.push('');
+
+lines.push('## Edge secrets read by code but in neither `supabase/.env.example` nor `validation-and-env.md`', '');
+if (edgeMissing.length === 0) lines.push('None.');
+else {
+  row(['Name', 'Files']);
+  row(['---', '---']);
+  for (const k of edgeMissing) {
+    const files = [...edgeUses.get(k)];
+    row([`\`${k}\``, `${files.length}: ${files.slice(0, 2).join(', ')}${files.length > 2 ? ', …' : ''}`]);
+  }
+}
+lines.push('');
+
+lines.push('## UI vars read by code but in neither `ui/.env.example` nor `validation-and-env.md`', '');
+lines.push(uiMissing.length === 0 ? 'None.' : uiMissing.map((k) => `- \`${k}\``).join('\n'));
+lines.push('');
+
+lines.push('## Declared in `supabase/.env.example` but not read by any function', '');
+lines.push(declaredUnused.length === 0 ? 'None.' : declaredUnused.map((k) => `- \`${k}\``).join('\n'));
+lines.push('');
+
+lines.push('## Vault secrets (migrations read these by name)', '');
+lines.push([...vault].sort().map((k) => `- \`${k}\``).join('\n'));
+lines.push('');
+
+const edgeCronSecrets = [...exampleEdge].filter((k) => /_(CRON_SECRET|FANOUT_SECRET)$/.test(k));
+const vaultUpper = new Set([...vault].map((v) => v.toUpperCase()));
+const vaultWithoutEdge = [...vault].filter(
+  (v) => /_secret$/.test(v) && !exampleEdge.has(v.toUpperCase())
+);
+const edgeWithoutVault = edgeCronSecrets.filter((k) => !vaultUpper.has(k));
+lines.push('## Vault ↔ edge secret pairing', '');
+lines.push(
+  'A cron posts with the Vault secret and the function compares it to the edge secret of the same name (uppercased). Both must be set per environment or the cron fails closed.',
+  ''
+);
+lines.push(`- Vault secrets with no matching edge secret: ${vaultWithoutEdge.length ? vaultWithoutEdge.map((k) => `\`${k}\``).join(', ') : 'none'}`);
+lines.push(`- Edge cron secrets with no Vault entry: ${edgeWithoutVault.length ? edgeWithoutVault.map((k) => `\`${k}\``).join(', ') : 'none'}`);
+lines.push('');
+
+lines.push('## pg_cron jobs', '');
+row(['Job', 'Defined in']);
+row(['---', '---']);
+for (const [job, file] of [...cron.entries()].sort()) row([`\`${job}\``, file]);
+lines.push('');
+
+console.log(lines.join('\n'));
+if (CHECK && (edgeMissing.length > 0 || uiMissing.length > 0)) process.exit(1);

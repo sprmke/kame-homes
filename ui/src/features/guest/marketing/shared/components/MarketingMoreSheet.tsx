@@ -126,7 +126,7 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
                       className={cn(
                         'flex min-h-[44px] items-center rounded-lg px-2.5 text-sm font-medium transition-colors',
                         active
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-primary-strong text-primary-foreground'
                           : 'text-foreground hover:bg-muted/60 active:bg-muted'
                       )}
                     >

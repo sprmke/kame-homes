@@ -4,7 +4,7 @@
  *
  * Captures per-chunk gzip + brotli sizes from `ui/dist`, dependency counts, and
  * repo-scale metrics (migrations, edge functions, UI files) into a timestamped
- * JSON under docs/workflow/planned/production-readiness-checklist/baselines/.
+ * JSON under docs/workflow/in-progress/production-readiness/checklist/baselines/.
  *
  * Run after `bun run build`. Does not require a running server — pure static
  * analysis of the build output, so it is safe to run in CI or locally.
@@ -22,7 +22,7 @@ const distDir = path.join(repoRoot, 'ui/dist');
 const assetsDir = path.join(distDir, 'assets');
 const baselineDir = path.join(
   repoRoot,
-  'docs/workflow/planned/production-readiness-checklist/baselines'
+  'docs/workflow/in-progress/production-readiness/checklist/baselines'
 );
 
 function fail(msg) {
@@ -64,7 +64,13 @@ const chunks = assetFiles
   .map((f) => {
     const rel = path.relative(distDir, f).split(path.sep).join('/');
     const { rawBytes, gzipBytes, brotliBytes } = sizes(f);
-    return { path: rel, type: rel.endsWith('.css') ? 'css' : 'js', rawBytes, gzipBytes, brotliBytes };
+    return {
+      path: rel,
+      type: rel.endsWith('.css') ? 'css' : 'js',
+      rawBytes,
+      gzipBytes,
+      brotliBytes,
+    };
   })
   .sort((a, b) => b.gzipBytes - a.gzipBytes);
 
@@ -117,7 +123,8 @@ function gitInfo() {
   try {
     const sha = execSync('git rev-parse HEAD', { cwd: repoRoot }).toString().trim();
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoRoot }).toString().trim();
-    const dirty = execSync('git status --porcelain', { cwd: repoRoot }).toString().trim().length > 0;
+    const dirty =
+      execSync('git status --porcelain', { cwd: repoRoot }).toString().trim().length > 0;
     return { sha, branch, dirty };
   } catch {
     return { sha: null, branch: null, dirty: null };
@@ -144,7 +151,7 @@ const snapshot = {
     totalCssGzipBytes: sum(totalCss, 'gzipBytes'),
     totalCssBrotliBytes: sum(totalCss, 'brotliBytes'),
     entry: entryMatch?.[1]
-      ? chunks.find((c) => c.path === entryMatch[1].replace(/^\/+/, '')) ?? null
+      ? (chunks.find((c) => c.path === entryMatch[1].replace(/^\/+/, '')) ?? null)
       : null,
     initialPayload: {
       chunkCount: initialChunks.length,
@@ -173,4 +180,6 @@ console.log(
 console.log(
   `  Total JS: ${(snapshot.bundle.totalJsGzipBytes / 1024).toFixed(1)} KiB gzip across ${totalJs.length} chunks`
 );
-console.log(`  UI files: ${uiFileCount}, edge functions: ${edgeFunctionCount}, migrations: ${migrationCount}`);
+console.log(
+  `  UI files: ${uiFileCount}, edge functions: ${edgeFunctionCount}, migrations: ${migrationCount}`
+);

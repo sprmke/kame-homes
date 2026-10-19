@@ -239,7 +239,7 @@ export function SceneCaption({
         className="border-border/70 bg-background flex items-center gap-3.5 rounded-2xl border py-3 pl-3 pr-6 shadow-[0_18px_50px_-18px_rgb(15_23_42_/_0.45)]"
         style={{ transform: `translate3d(0, ${(1 - enter) * 14}px, 0)` }}
       >
-        <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-xl">
+        <span className="bg-primary-strong text-primary-foreground flex size-11 items-center justify-center rounded-xl">
           <Icon className="size-[22px]" strokeWidth={2.25} />
         </span>
         <div>
@@ -495,7 +495,7 @@ export function Btn({
     <span
       className={cn(
         'inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold',
-        variant === 'primary' && 'bg-primary text-primary-foreground shadow-sm',
+        variant === 'primary' && 'bg-primary-strong text-primary-foreground shadow-sm',
         variant === 'outline' && 'border-border bg-background text-foreground border shadow-sm',
         variant === 'ghost' && 'text-muted-foreground',
         className
@@ -866,7 +866,7 @@ export function MonthGrid({
             {isBooked ? (
               <span
                 className={cn(
-                  'bg-primary text-primary-foreground absolute bottom-1 flex items-center rounded-md px-1.5 font-semibold',
+                  'bg-primary-strong text-primary-foreground absolute bottom-1 flex items-center rounded-md px-1.5 font-semibold',
                   compact ? 'h-4 text-[9px]' : 'h-5 text-[10px]',
                   isRun ? '-left-2 right-1 rounded-l-none' : 'inset-x-1'
                 )}

@@ -1,6 +1,6 @@
 /**
  * Cloudflare Turnstile server-side verification for edge functions.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1, Layer 2)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1, Layer 2)
  *
  * Supabase Auth verifies its own Turnstile tokens natively (`[auth.captcha]` in
  * config.toml). This helper is for the *non-auth* public write endpoints

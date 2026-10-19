@@ -116,7 +116,7 @@ export function SetupGuideScene() {
                       className={cn(
                         'flex size-5 items-center justify-center rounded-full border',
                         complete
-                          ? 'border-primary bg-primary text-primary-foreground'
+                          ? 'border-primary bg-primary-strong text-primary-foreground'
                           : 'border-border'
                       )}
                     >

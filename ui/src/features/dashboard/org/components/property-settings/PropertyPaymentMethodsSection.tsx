@@ -66,7 +66,7 @@ export function PropertyPaymentMethodsSummary({
             className={cn(
               'flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
               method.isPrimary
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary-strong text-primary-foreground shadow-sm'
                 : 'bg-muted text-foreground'
             )}
             aria-hidden
@@ -254,7 +254,9 @@ function PaymentMethodCard({
         <div
           className={cn(
             'flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold',
-            isPrimary ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-foreground'
+            isPrimary
+              ? 'bg-primary-strong text-primary-foreground shadow-sm'
+              : 'bg-muted text-foreground'
           )}
           aria-hidden
         >

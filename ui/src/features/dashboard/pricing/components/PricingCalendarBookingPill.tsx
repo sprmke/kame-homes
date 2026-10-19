@@ -41,7 +41,7 @@ export function PricingCalendarBookingPill({
         'ring-1',
         isCancelled
           ? 'bg-muted text-muted-foreground ring-border'
-          : 'bg-primary text-primary-foreground ring-primary/25',
+          : 'bg-primary-strong text-primary-foreground ring-primary/25',
         roundedClass
       )}
       title={title ?? `${label} · ${statusLabel(status)}`}
