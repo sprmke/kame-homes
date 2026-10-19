@@ -94,7 +94,7 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
                 </span>
               )}
               {property.isNew && (
-                <span className="bg-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                <span className="bg-primary-strong rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                   New
                 </span>
               )}

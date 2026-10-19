@@ -37,7 +37,7 @@ export function HostClosingCta() {
             </Link>
           </Button>
           <Button
-            className="bg-primary hover:bg-primary/90 min-h-[44px] rounded-full text-white"
+            className="bg-primary-strong hover:bg-primary-strong/90 min-h-[44px] rounded-full text-white"
             asChild
           >
             <Link

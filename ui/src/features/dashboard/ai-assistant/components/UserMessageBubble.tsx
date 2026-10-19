@@ -95,7 +95,9 @@ export function UserMessageBubble({
       <div
         className={cn(
           'rounded-2xl rounded-br-md px-3 py-2',
-          surface === 'full' ? 'bg-muted text-foreground' : 'bg-primary text-primary-foreground'
+          surface === 'full'
+            ? 'bg-muted text-foreground'
+            : 'bg-primary-strong text-primary-foreground'
         )}
       >
         <div className="space-y-1.5">

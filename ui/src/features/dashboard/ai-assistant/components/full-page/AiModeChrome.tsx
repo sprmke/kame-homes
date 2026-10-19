@@ -121,7 +121,7 @@ function RailPageNav({
               RAIL_ICON_CLASS,
               'focus-visible:ring-ring flex items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2',
               active
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary-strong text-primary-foreground shadow-sm'
                 : 'text-sidebar-muted hover:bg-muted/60 hover:text-foreground dark:hover:bg-muted/40'
             )}
           >

@@ -88,7 +88,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={() => void promptInstall().then(dismiss)}
-            className="bg-primary text-primary-foreground rounded-lg px-2.5 py-1.5 text-xs font-semibold"
+            className="bg-primary-strong text-primary-foreground rounded-lg px-2.5 py-1.5 text-xs font-semibold"
           >
             Install
           </button>
