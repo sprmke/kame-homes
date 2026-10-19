@@ -90,6 +90,8 @@ export default defineConfig({
     timeout: 120_000,
     // PostHog unset in E2E — client no-ops without VITE_POSTHOG_KEY (no network calls).
     env: {
+      // Pre-transform heavy routes at start (ui/vite.config.ts server.warmup).
+      E2E_WARMUP: '1',
       // Guest form auto-fills random dev data when unset; keep E2E deterministic.
       VITE_NODE_ENV: 'production',
       // ui/src/lib/supabase/client.ts calls createClient() at module load time, which
