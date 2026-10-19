@@ -257,7 +257,9 @@ test.describe('@ci plan feature gates, per tier', () => {
         await retryThroughDevReload(async () => {
           await page.goto(surface.path);
           await surface.reveal?.(page);
-          await expect(control).toBeVisible();
+          // Heavy pages (Marketing Studio) take >5s to render on CI runners; a short wait
+          // made every attempt reload the page and start over until the 60s limit.
+          await expect(control).toBeVisible({ timeout: 20_000 });
         });
         const scope = surface.scope(control);
 
