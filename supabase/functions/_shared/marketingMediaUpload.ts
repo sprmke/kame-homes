@@ -5,7 +5,18 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 import { formatPublicUrl } from './utils.ts';
+
+const MARKETING_MEDIA_MIME: ReadonlySet<string> = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+]);
 
 export type ParsedDataUrl = {
   mime: string;
@@ -68,9 +79,10 @@ export async function uploadMarketingMediaBytes(
   mime: string,
   ext: string
 ): Promise<string> {
+  const contentType = assertUploadMatchesBytes(bytes, mime, MARKETING_MEDIA_MIME);
   const storagePath = marketingExportStoragePath(propertyId, ext);
   const { error } = await supabase.storage.from(PROPERTY_MEDIA_BUCKET).upload(storagePath, bytes, {
-    contentType: mime,
+    contentType,
     upsert: true,
     cacheControl: '300',
   });
