@@ -9,6 +9,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
+import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
 import {
   classifyPropertyMediaMime,
   countPropertyMediaByType,
@@ -19,6 +20,7 @@ import {
   normalizePropertyMediaItems,
   PROPERTY_MEDIA_BUCKET,
   type PropertyMediaRecord,
+  ALLOWED_PROPERTY_MEDIA_MIME,
 } from '../_shared/propertyMedia.ts';
 import { capturePostHogException } from '../_shared/posthog.ts';
 
@@ -187,6 +189,11 @@ serve(async (req) => {
     if (!mediaType) {
       throw new Error('File must be a supported image or video format');
     }
+    assertUploadMatchesBytes(
+      new Uint8Array(await file.arrayBuffer()),
+      mime,
+      ALLOWED_PROPERTY_MEDIA_MIME
+    );
 
     const maxBytes = maxBytesForPropertyMediaType(mediaType);
     if (file.size > maxBytes) {

@@ -5,6 +5,7 @@
 import { createClient } from './supabaseJs.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const PROPERTY_BUCKET = 'app-settings-assets';
 const PARKING_BUCKET = 'app-settings-assets';
@@ -32,6 +33,7 @@ export async function stageGcashQrFromBytes(input: StageGcashQrInput): Promise<S
   if (!ALLOWED_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, or WebP');
   }
+  assertUploadMatchesBytes(input.bytes, mime, ALLOWED_MIME);
   const file = new File([input.bytes], input.fileName || 'gcash-qr.jpg', { type: mime });
   assertWithinUploadLimit(file, 'image');
 
