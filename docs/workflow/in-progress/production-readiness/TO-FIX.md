@@ -10,37 +10,49 @@ kind: reference
 
 Working copy of ledger rows that block or delay launch. Final grouping is Phase 10; this list is live.
 
-## Waiting on you (merge)
+## PR status (2026-10-19)
 
-| PR                                                    | What                                                                                                                        | CI        |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [#145](https://github.com/sprmke/kame-homes/pull/145) | CI guards fix. `develop` CI + CD Dev are red until this merges                                                              | green     |
-| [#146](https://github.com/sprmke/kame-homes/pull/146) | Readiness folder, ledger, cards, evidence (stacked on #145)                                                                 | green     |
-| [#147](https://github.com/sprmke/kame-homes/pull/147) | Start call 44px, for-hosts em dash, footer heading order, CSP console error, CSP `frame-ancestors 'self'` (stacked on #145) | rerunning |
-| [#148](https://github.com/sprmke/kame-homes/pull/148) | Public listing page views never stored from browsers (stacked on #145)                                                      | rerunning |
-| [#149](https://github.com/sprmke/kame-homes/pull/149) | Guest down payment uses the property's flat setting (PR-119), verified on dev                                               | green     |
-| [#150](https://github.com/sprmke/kame-homes/pull/150) | Byte-sniff chat, inbox and avatar uploads (PR-016 partial)                                                                  | running   |
-| [#151](https://github.com/sprmke/kame-homes/pull/151) | Block backslash open redirect in sign-in `?redirect=`                                                                       | running   |
-| [#152](https://github.com/sprmke/kame-homes/pull/152) | Lazy dashboard shells: guest entry chunk 496 → 237 KiB gzip, pdf.js out of entry                                            | running   |
-| [#153](https://github.com/sprmke/kame-homes/pull/153) | Pin all 43 GitHub Actions `uses:` to commit SHAs (PR-107, user decision)                                                    | running   |
-| [#154](https://github.com/sprmke/kame-homes/pull/154) | Text-safe brand shade for fills with white text, per tenant color + guard test (PR-113)                                     | running   |
-| [#155](https://github.com/sprmke/kame-homes/pull/155) | Byte-sniff every remaining upload; blocks HTML hosted via marketing exports (PR-016)                                        | running   |
-| [#156](https://github.com/sprmke/kame-homes/pull/156) | Landing hero cards at rendered size: images 1161 → 945 KiB, LCP image priority-hinted (PR-040)                              | running   |
-| [#157](https://github.com/sprmke/kame-homes/pull/157) | Workflow emails that fail to send are surfaced (toast + activity), Meta error test (PR-106)                                 | running   |
-| [#158](https://github.com/sprmke/kame-homes/pull/158) | Dependency patches in-major: audit 42 → 28; rest triaged (checklist 38)                                                     | running   |
-| [#159](https://github.com/sprmke/kame-homes/pull/159) | react-router-dom 7.18: clears router advisories; ci:quality + e2e:ci 259/259 (PR-124)                                       | running   |
-| [#172](https://github.com/sprmke/kame-homes/pull/172) | Entry chunk 181 → 151 KiB gzip: lazy tenant pill, plan subtitle split (PR-129)                                              | running   |
+Admin-merged into `develop` in order after each `quality` check passed (user approved admin merge). Merge commits:
+
+| PR                                                    | Merge      | What                                                                                         |
+| ----------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| [#145](https://github.com/sprmke/kame-homes/pull/145) | `7c1372d6` | fix(supabase): restore green CI guards for marketing themes and auth matrix                  |
+| [#146](https://github.com/sprmke/kame-homes/pull/146) | `9dfe3038` | docs(workflow): consolidate production readiness docs into one folder                        |
+| [#147](https://github.com/sprmke/kame-homes/pull/147) | `06378037` | fix(ui): 44px Start call and for-hosts em dash                                               |
+| [#148](https://github.com/sprmke/kame-homes/pull/148) | `3db7ddaa` | fix(ui): record public property page views from browsers                                     |
+| [#149](https://github.com/sprmke/kame-homes/pull/149) | `9bd78120` | fix(guest-form): use the property's flat down payment on the payment step                    |
+| [#150](https://github.com/sprmke/kame-homes/pull/150) | `ed6672da` | fix(supabase): sniff file bytes on chat and avatar uploads                                   |
+| [#151](https://github.com/sprmke/kame-homes/pull/151) | `87cc5386` | fix(ui): block backslash open redirects in sign-in redirect param                            |
+| [#152](https://github.com/sprmke/kame-homes/pull/152) | `46f3d30c` | perf(ui): keep dashboard shells, booking form and hero calendar out of the guest entry chunk |
+| [#154](https://github.com/sprmke/kame-homes/pull/154) | `3c0300ff` | fix(ui): use a text-safe brand shade for fills that carry white text                         |
+| [#155](https://github.com/sprmke/kame-homes/pull/155) | `b051b8eb` | fix(supabase): sniff file bytes on every remaining upload path                               |
+| [#156](https://github.com/sprmke/kame-homes/pull/156) | `1cd62738` | perf(ui): serve landing hero cards at their rendered size                                    |
+| [#157](https://github.com/sprmke/kame-homes/pull/157) | `ffdbd844` | fix(bookings): surface workflow emails that fail to send                                     |
+| [#158](https://github.com/sprmke/kame-homes/pull/158) | `e533bd7e` | chore(deps): patch audited dependencies within their current majors                          |
+| [#159](https://github.com/sprmke/kame-homes/pull/159) | `3bd50aac` | chore(deps): upgrade react-router-dom to 7.18                                                |
+| [#172](https://github.com/sprmke/kame-homes/pull/172) | `8bae7ee8` | perf(ui): keep tenant switchers and plan catalog out of the entry chunk                      |
+| [#173](https://github.com/sprmke/kame-homes/pull/173) | `3e81e8d8` | fix(ui): top-align the sign-in card on phones to stop challenge layout shift                 |
+| [#174](https://github.com/sprmke/kame-homes/pull/174) | `c966d648` | chore(deps): upgrade vite to 7 and vitest to 4                                               |
+| [#175](https://github.com/sprmke/kame-homes/pull/175) | `4b84390c` | fix(ui): recover from missing chunks after a deploy                                          |
+
+Still open:
+
+| PR                                                    | Why                                                                                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#153](https://github.com/sprmke/kame-homes/pull/153) | ci: pin github actions to full commit shas. Needs a token with `workflow` scope (or merge in the GitHub UI): PRs that change `.github/workflows/*` cannot be merged by the agent |
+| [#176](https://github.com/sprmke/kame-homes/pull/176) | fix(ui): make the content security policy enforceable. CI rerunning after resolving a doc conflict with #175                                                                     |
+| [#177](https://github.com/sprmke/kame-homes/pull/177) | test(ui): warm heavy routes in the e2e dev server. Fixes the CD Dev `@ci` gate flake (Marketing Studio cold compile)                                                             |
 
 ## Blockers
 
 | ID     | Gate | Tag | Item                                                                                                                                                 | Owner         |
 | ------ | ---- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG`                                        | operator      |
-| PR-119 | C    | 🟡  | **Down payment mismatch.** Decision: host's flat setting. Fixed + verified on dev in #149 (merge pending)                                            | agent         |
-| PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merge pending)                                                                | agent         |
-| PR-124 | B    | 🟡  | `react-router` 7.18 in [#159](https://github.com/sprmke/kame-homes/pull/159), all suites green. Merge pending                                        | agent         |
+| PR-119 | C    | 🟡  | **Down payment mismatch.** Decision: host's flat setting. Fixed + verified on dev in #149 (merged; re-verify on dev)                                 | agent         |
+| PR-128 | B    | 🟡  | Open redirect `?redirect=/\evil.example` after sign-in. Fixed in #151 (merged; re-verify on dev)                                                     | agent         |
+| PR-124 | B    | 🟡  | `react-router` 7.18 in [#159](https://github.com/sprmke/kame-homes/pull/159), all suites green. Merged; re-verify on dev                             | agent         |
 | PR-126 | F    | 🟡  | Dev tooling advisories (vitest 1.6 critical when UI server listens, vite, tinypool, …). Tooling upgrade PR                                           | agent         |
-| PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merge pending                                       | product       |
+| PR-127 | F    | 🟡  | Actions pinned to SHAs in [#153](https://github.com/sprmke/kame-homes/pull/153) (decision: pin). Merged; re-verify on dev                            | product       |
 | PR-120 | B    | 🧭  | `guest-chat-attachments`: not listable, links unguessable (probed). Keep links or go private + signed URLs                                           | agent         |
 | PR-116 | A    | 🔴  | Google Maps embed **403** on `dev.kamehomes.space` (public listing map broken). Add the dev domain to the Maps key referrers / enable Maps Embed API | operator      |
 | PR-117 | C    | 🔴  | Public listing page views never stored (Host Analytics traffic empty). Fix in #148                                                                   | agent         |
