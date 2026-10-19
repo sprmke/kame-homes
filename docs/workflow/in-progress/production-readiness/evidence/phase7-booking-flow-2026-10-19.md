@@ -41,9 +41,3 @@ Stored row: `PENDING_REVIEW`, guest email, 7 nights, receipt + 4 ID images in **
 | PR-123 | low                 | Ticking the manual review checkbox alone writes `booking.details_edited (7 fields)` before any host edit. Noisy audit trail.                                                                                                                                                                                                                                |
 
 Not walked yet: Pending Documents → GAF approval (needs Azure inbound email or manual approved PDF upload), Ready for check-in, check-out, SD refund form, completion.
-
-## PR-119 fix verified (PR #149)
-
-- `get-guest-payment-info` deployed to dev from `fix/guest-down-payment`: returns `downPayment: 1500` for `qa-monaco-1801`.
-- QA listing `default_down_payment` set to ₱2,500 temporarily; #149 UI (local Vite against hosted dev, 375px) Payment step: **Downpayment ₱2,500 · Total due now ₱2,500**. Restored to ₱1,500.
-- Unit tests: flat amount, per-property value, fallback for null/NaN/negative. CI on #149 all green.
