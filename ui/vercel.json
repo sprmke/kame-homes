@@ -14,7 +14,7 @@
       "destination": "https://us.i.posthog.com/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
   ],
