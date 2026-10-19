@@ -8,10 +8,9 @@
  * block first paint the way the render-blocking Google Fonts stylesheet
  * used to (fixed in this same doc — see the comment in ui/index.html).
  *
- * The one exception is the small inline theme-detection script, which is
- * *deliberately* synchronous (it must run before first paint to avoid a
- * flash of the wrong theme) — this script only checks tags with a `src`
- * attribute, so the inline script is untouched by this rule.
+ * The one exception is the small theme-detection script `/theme-init.js`, which is
+ * *deliberately* synchronous (it must run before first paint to avoid a flash of the
+ * wrong theme). It is a same-origin file rather than inline so the CSP needs no hash.
  *
  * Usage: node scripts/performance/assert-no-blocking-scripts.mjs
  */
@@ -32,11 +31,15 @@ if (!existsSync(indexHtmlPath)) fail('ui/index.html not found.');
 const html = readFileSync(indexHtmlPath, 'utf8');
 const scriptTags = [...html.matchAll(/<script\b([^>]*)>/g)];
 
+const SYNC_ALLOWED = new Set(['/theme-init.js']);
+
 const offenders = [];
 for (const match of scriptTags) {
   const attrs = match[1];
   const hasSrc = /\bsrc=/.test(attrs);
-  if (!hasSrc) continue; // inline scripts (e.g. the theme-flash guard) are fine
+  if (!hasSrc) continue;
+  const src = attrs.match(/\bsrc=["']([^"']+)["']/)?.[1] ?? '';
+  if (SYNC_ALLOWED.has(src)) continue;
 
   const isDeferred = /\bdefer\b/.test(attrs) || /\basync\b/.test(attrs);
   const isModule = /type=["']module["']/.test(attrs);
@@ -48,7 +51,9 @@ for (const match of scriptTags) {
 if (offenders.length > 0) {
   console.error('assert-no-blocking-scripts: render-blocking <script src> found in ui/index.html:');
   for (const o of offenders) console.error(`  ${o}`);
-  console.error('\nAdd `defer`, `async`, or `type="module"` — a plain <script src> blocks first paint.');
+  console.error(
+    '\nAdd `defer`, `async`, or `type="module"` — a plain <script src> blocks first paint.'
+  );
   process.exit(1);
 }
 
