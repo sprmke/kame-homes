@@ -10,50 +10,61 @@ kind: reference
 
 Working copy of ledger rows that block or delay launch. Final grouping is Phase 10; this list is live.
 
+## Waiting on you (merge)
+
+| PR                                                    | What                                                                                          | CI        |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------- |
+| [#145](https://github.com/sprmke/kame-homes/pull/145) | CI guards fix. `develop` CI + CD Dev are red until this merges                                | green     |
+| [#146](https://github.com/sprmke/kame-homes/pull/146) | Readiness folder, ledger, cards, evidence (stacked on #145)                                   | green     |
+| [#147](https://github.com/sprmke/kame-homes/pull/147) | Start call 44px, for-hosts em dash, footer heading order, CSP console error (stacked on #145) | rerunning |
+
 ## Blockers
 
-| ID     | Gate | Tag | Item                                                                                   | Owner    |
-| ------ | ---- | --- | -------------------------------------------------------------------------------------- | -------- |
-| PR-076 | F    | 🔴  | Hosted-dev still catching up (functions deploy in flight)                              | agent    |
-| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL` / anon / db password / `SMOKE_PROPERTY_SLUG` | operator |
-| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                         | operator |
-| PR-003 | D    | ⛔  | Paid AI billing cap                                                                    | operator |
-| PR-008 | B    | 🟡  | Guest-token IDOR remaining after grace                                                 | agent    |
-| PR-024 | F    | ⛔  | Restore drill with measured RTO                                                        | operator |
-| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                   | operator |
-| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                       | operator |
+| ID     | Gate | Tag | Item                                                                                                          | Owner            |
+| ------ | ---- | --- | ------------------------------------------------------------------------------------------------------------- | ---------------- |
+| PR-025 | F    | 🔴  | GitHub `development` missing `DEV_DB_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_PASSWORD`, `SMOKE_PROPERTY_SLUG` | operator         |
+| PR-109 | A    | 🔴  | Hosted-dev has **0 public listings** and no QA accounts, so property/booking/host flows cannot be walked live | operator / agent |
+| PR-001 | B    | ⛔  | Turnstile enforce on hosted UI                                                                                | operator         |
+| PR-003 | D    | ⛔  | Paid AI billing cap                                                                                           | operator         |
+| PR-008 | B    | 🟡  | Guest-token write paths after grace (read path verified 401)                                                  | agent            |
+| PR-024 | F    | ⛔  | Restore drill with measured RTO (needs `DEV_DB_URL`)                                                          | operator         |
+| PR-030 | C    | ⛔  | PayMongo sandbox E2E                                                                                          | operator         |
+| PR-088 | G    | ⏸️  | mt-prod / cutover not this track                                                                              | operator         |
+
+Hosted-dev deploy (PR-076) **done** 2026-10-19 from `3e269a98`.
 
 ## High, operator
 
 P0-2, P0-4, P0-5, P0-6, PR-026, PR-027, PR-041, PR-056, PR-084, PR-085, PR-073.
 
-## High, agent (after baseline SHA)
+## High, agent (needs seed + accounts)
 
-PR-005, PR-013, PR-014, PR-016, PR-019, PR-023, PR-052, PR-060, PR-064, PR-069.
+PR-005, PR-013, PR-014, PR-016, PR-019, PR-023, PR-052, PR-060, PR-064.
 
 ## Decisions
 
-PR-012 CSP enforce · PR-032 double-booking DB constraint · PR-031 parking refund path · PR-035 payout scale · PR-042 budget fail-closed · PR-059 capacity targets · PR-082 RPO/RTO.
+PR-012 CSP enforce · PR-113 brand teal contrast · PR-032 double-booking DB constraint · PR-031 parking refund path · PR-035 payout scale · PR-042 budget fail-closed · PR-059 capacity targets · PR-082 RPO/RTO.
 
-## New checklists (not yet executed)
+## Score improvements by page
 
-PR-100–PR-107 (privacy, email, a11y, SEO noindex on **dev**, races, browsers, third-party down, supply chain).
+Sources: Lighthouse perf (mobile, throttled) + a11y/BP/SEO (desktop) on `dev.kamehomes.space`, 2026-10-19.
 
-SEO probe: `dev.kamehomes.space` has **no** `x-robots-tag` and `robots.txt` allows `/` (PR-103).
-
-## Performance (Lighthouse 2026-10-19, 1 throttled run)
-
-| ID     | Item                                                                                     |
-| ------ | ---------------------------------------------------------------------------------------- |
-| PR-040 | Mobile LCP 7–15s on public routes; landing transfer ~2.5 MiB. Repeat 3× median after CD. |
-| PR-112 | Unauth admin/org shells CLS **0.270** (budget 0.1).                                      |
-
-Adversarial auth live **16/16** passed (move toward ALL-GOOD once baseline SHA is set).
+| ID     | Page / section                                                                                                                                              | Score today                   | Change                                                                                                          | Expected gain            |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| PR-113 | **All CTAs** (`--primary` in `ui/src/index.css`), PWA Install button, `/for-hosts/login` brand panel, pricing plan badges, `/properties` active filter pill | A11y 94–96                    | Darken teal for text-bearing fills (about 30% L for 4.5:1 with white) or use dark text on teal. Brand decision. | A11y → 100 on most pages |
+| PR-114 | `/services`, `/for-hosts`, `/for-hosts/pricing`, `/for-hosts/login`, `/for-guests/login`, `/about`, `/contact`, `/support`, `/privacy`, `/terms`            | SEO 91                        | Add `usePageMeta({ description })` (helper exists, used by listing pages)                                       | SEO → 100                |
+| PR-040 | `/` landing hero + featured carousel                                                                                                                        | Perf 57, LCP 12.1s, 2.5 MiB   | Priority-load only the first hero image, lazy the rest, smaller AVIF/WebP widths, defer tour/motion chunks      | Perf 75+                 |
+| PR-040 | `/properties/:slug/form` guest form                                                                                                                         | Perf 57, LCP 15.2s, CLS 0.086 | Split form steps, defer upload/PDF/map chunks, reserve height for async sections                                | Perf 70+, CLS < 0.05     |
+| PR-040 | `/properties`, `/parkings`, `/for-hosts/pricing`                                                                                                            | Perf 58–60, LCP 8–10s         | Ship list skeleton in first chunk; shrink vendor chunk; preconnect Supabase                                     | Perf 70+                 |
+| PR-112 | Auth guard shells: `/org/*`, `/admin` (signed-out)                                                                                                          | Perf 46, **CLS 0.270**        | Guard renders a full-height skeleton matching the redirect target so layout does not jump                       | CLS < 0.1, Perf 60+      |
+| PR-108 | `/for-hosts` tour mock                                                                                                                                      | —                             | Left rail labels clip at 1024px                                                                                 | UX                       |
+| PR-103 | `dev.kamehomes.space`                                                                                                                                       | indexable                     | `X-Robots-Tag: noindex` on non-prod Vercel env                                                                  | keeps dev out of Google  |
+| —      | Best practices 92 everywhere                                                                                                                                | 92                            | Remaining hit is no public source maps (intended). CSP console error fixed in #147.                             | stays 92 (by design)     |
 
 ## Low (UX found 2026-10-19)
 
-| ID     | Item                                                                                                                                                                                                  |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PR-108 | `/for-hosts` hero uses an em dash (`connected—so`). Banned by `human-copy`. Tour mock left rail clips labels at this viewport.                                                                        |
-| PR-109 | Hosted-dev `list-public-properties` returns `total: 0` after index backfill. Same as 2026-09-21 CD smoke. Seed gap (4.2), not an RPC outage.                                                          |
-| PR-110 | Local `ci:quality` in worktree: `voiceReceptionistConsent` Start call height `43.999` vs `44`. GitHub `e2e-smoke` on #145 was green. Treat as subpixel flake; round the assertion or add 1px `min-h`. |
+| ID     | Item                                                                 |
+| ------ | -------------------------------------------------------------------- |
+| PR-108 | Em dash fixed in #147. Tour rail clip remains.                       |
+| PR-110 | Start call 43.999px. Fixed in #147.                                  |
+| PR-115 | Footer heading order + CSP Report-Only console error. Fixed in #147. |
