@@ -54,7 +54,7 @@ export function ForHostsPage() {
                 transition={{ delay: 0.4 }}
                 className="text-muted-foreground mx-auto mb-9 max-w-3xl text-base leading-relaxed sm:text-xl dark:text-white/70"
               >
-                Bookings, guest messages, finance, marketing, and operations stay connected—so work
+                Bookings, guest messages, finance, marketing, and operations stay connected, so work
                 keeps moving when you step away.
               </motion.p>
 
