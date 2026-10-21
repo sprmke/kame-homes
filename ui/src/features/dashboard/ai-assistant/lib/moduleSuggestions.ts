@@ -132,7 +132,7 @@ const MODULE_PROMPTS: Record<
       "What's the rate for this weekend?",
       'What dates are still open this month?',
       'Are there any holiday rules on this date?',
-      'How do weekday and weekend rates differ here?',
+      'Compare weekday and weekend rates',
     ],
     actions: [
       'Set a rate override for this date',
@@ -168,16 +168,40 @@ const MODULE_PROMPTS: Record<
       'Draft a new marketing template',
     ],
   },
+  marketing_theme: {
+    questions: [
+      'What themes do I have?',
+      "What's in this theme?",
+      'Which theme should I use for a weekend promo?',
+    ],
+    actions: ['Open this theme in Marketing', 'Describe a new theme'],
+  },
+  review: {
+    questions: [
+      'What did this guest write?',
+      'What is my average rating?',
+      'Which reviews still need a reply?',
+    ],
+    actions: ['Draft a response to this review', 'Open reviews'],
+  },
+  voucher: {
+    questions: [
+      'Which vouchers are still open?',
+      'Did this guest redeem their voucher?',
+      'How many vouchers were used this month?',
+    ],
+    actions: ['Open guest rewards settings'],
+  },
   notification_module: {
     questions: [
-      'How do notifications work for this module?',
+      'Explain notifications for this module',
       'What are my current notification preferences?',
-      'How do Telegram staff alerts work for this module?',
+      'Explain Telegram alerts for this module',
     ],
     actions: [
-      'Walk me through setting up notifications for this module',
-      'Walk me through Telegram alerts for this module',
-      'Walk me through muting this module',
+      'Set up notifications for this module',
+      'Set up Telegram alerts for this module',
+      'Mute this module',
     ],
   },
   public_page: {
@@ -193,7 +217,7 @@ const MODULE_PROMPTS: Record<
       "What's the status of this ticket?",
       'What tickets are still open?',
       'What was this ticket about?',
-      'How do Help & Support tickets work?',
+      'Explain Help & Support tickets',
     ],
     actions: ['Create a support ticket', 'Follow up on this ticket'],
   },
