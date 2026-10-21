@@ -12,7 +12,10 @@ import { manilaTodayYmd, normalizeBookingDateToYmd } from './calendarAvailabilit
 import { mintGuestBookingAccessToken } from './guestBookingAccessToken.ts';
 import { loadGuestFacingContactInfo } from './guestContactInfo.ts';
 import { canAccessGuestReview, resolveGuestReviewPath } from './guestReviewEligibility.ts';
-import { guestReviewExistsForBooking } from './guestReviewService.ts';
+import { guestCanReview } from './reviewEligibility.ts';
+import { getReviewWindow } from './reviewWindow.ts';
+import { guestReviewExistsForBooking, getGuestReviewRow } from './guestReviewService.ts';
+import { getHostGuestReviewRow } from './hostGuestReviewService.ts';
 import {
   ensureGuestStayGuideToken,
   isStayGuideAccessActive,
@@ -112,6 +115,15 @@ export type GuestTripDetailDto = {
     sdFormAvailable: boolean;
     reviewAvailable: boolean;
     reviewSubmitted: boolean;
+  };
+  review: {
+    state: 'open' | 'submitted' | 'published' | 'closed' | 'unavailable';
+    closesAt: string | null;
+    hostReviewed: boolean;
+    guestRating: number | null;
+    guestText: string | null;
+    hostRating: number | null;
+    hostText: string | null;
   };
   stayGuidePath: string | null;
   voucher: { code: string; amount: number | null; redeemed: boolean } | null;
@@ -264,7 +276,16 @@ export async function buildGuestTripPayload(input: {
   const cancelled = status === 'CANCELLED';
   const settings = await resolveAppSettings(propertyId);
 
-  const [contact, linkedParking, documents, stayGuidePath, reviewSubmitted] = await Promise.all([
+  const [
+    contact,
+    linkedParking,
+    documents,
+    stayGuidePath,
+    reviewSubmitted,
+    reviewWindow,
+    guestReviewRow,
+    hostReviewRow,
+  ] = await Promise.all([
     loadGuestFacingContactInfo(propertyId, settings),
     loadLinkedParking(bookingId),
     loadTripDocuments(booking, propertyId, property.slug),
@@ -272,6 +293,9 @@ export async function buildGuestTripPayload(input: {
       ? Promise.resolve(null)
       : resolveStayGuideRelativePath(booking, propertyId, property.slug),
     guestReviewExistsForBooking(bookingId),
+    cancelled ? Promise.resolve(null) : getReviewWindow(bookingId),
+    getGuestReviewRow(bookingId),
+    getHostGuestReviewRow(bookingId),
   ]);
 
   const needParking = row.need_parking === true;
@@ -290,7 +314,25 @@ export async function buildGuestTripPayload(input: {
 
   const reviewPath = resolveGuestReviewPath(row);
   const sdFormAvailable = reviewPath === 'sd_refund' && canAccessGuestReview(row);
-  const reviewAvailable = reviewPath === 'airbnb_post_stay' && canAccessGuestReview(row);
+  // Generalized beyond the legacy airbnb_post_stay path: any booking that has
+  // reached check-out and whose 14-day review window is still open, as long
+  // as the SD-form flow (which embeds its own review step) isn't the path.
+  const reviewAvailable = !sdFormAvailable && guestCanReview(row, reviewWindow);
+  const reviewState: 'open' | 'submitted' | 'published' | 'closed' | 'unavailable' = reviewWindow
+    ? reviewWindow.published_at
+      ? reviewWindow.closed_reason === 'published'
+        ? 'published'
+        : 'closed'
+      : reviewSubmitted
+        ? 'submitted'
+        : new Date() <= new Date(reviewWindow.closes_at)
+          ? 'open'
+          : 'closed'
+    : reviewSubmitted
+      ? 'submitted'
+      : sdFormAvailable || reviewAvailable
+        ? 'open'
+        : 'unavailable';
 
   const checkInDate = normalizeBookingDateToYmd(str(row.check_in_date)) ?? str(row.check_in_date);
   const checkOutDate =
@@ -352,6 +394,16 @@ export async function buildGuestTripPayload(input: {
       sdFormAvailable,
       reviewAvailable,
       reviewSubmitted,
+    },
+    review: {
+      state: reviewState,
+      closesAt: reviewWindow?.closes_at ?? null,
+      hostReviewed: hostReviewRow?.status === 'published',
+      guestRating: guestReviewRow ? Number(guestReviewRow.star_rating) || null : null,
+      guestText: guestReviewRow?.review_text ?? null,
+      hostRating:
+        hostReviewRow?.status === 'published' ? Number(hostReviewRow.overall_rating) || null : null,
+      hostText: hostReviewRow?.status === 'published' ? (hostReviewRow.review_text ?? null) : null,
     },
     stayGuidePath,
     voucher: voucherCode

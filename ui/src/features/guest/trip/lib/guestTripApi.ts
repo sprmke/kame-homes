@@ -68,6 +68,15 @@ export type GuestTrip = {
     reviewAvailable: boolean;
     reviewSubmitted: boolean;
   };
+  review: {
+    state: 'open' | 'submitted' | 'published' | 'closed' | 'unavailable';
+    closesAt: string | null;
+    hostReviewed: boolean;
+    guestRating?: number | null;
+    guestText?: string | null;
+    hostRating?: number | null;
+    hostText?: string | null;
+  };
   stayGuidePath: string | null;
   voucher: { code: string; amount: number | null; redeemed: boolean } | null;
   contact: {
