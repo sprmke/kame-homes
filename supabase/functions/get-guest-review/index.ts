@@ -1,15 +1,20 @@
 /**
- * get-guest-review — Public read-only payload for Airbnb post-stay review (/guest-review).
+ * get-guest-review — Public bootstrap for the standalone review page (/guest-review).
  *
- * GET ?bookingId=<uuid>
- * Available for Airbnb bookings with security_deposit = 0 after check-out (Manila).
+ * GET ?bookingId=<uuid>&access=<token>
+ * Any property booking that has reached check-out (two-way reviews are
+ * source-agnostic). This is where review emails, the trip page and
+ * /account/reviews link. The SD refund stepper embeds the same review step.
+ * Parking bookings are not reviewable.
  */
 
 import { authorizeGuestBookingAccess } from '../_shared/guestBookingAccessToken.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { loadAppSettingsRow, resolveAppSettings } from '../_shared/appSettings.ts';
-import { canAccessGuestReview, resolveGuestReviewPath } from '../_shared/guestReviewEligibility.ts';
-import { guestReviewExistsForBooking } from '../_shared/guestReviewService.ts';
+import { resolveGuestReviewPath } from '../_shared/guestReviewEligibility.ts';
+import { bookingReachedCheckout, guestCanReview } from '../_shared/reviewEligibility.ts';
+import { getReviewWindow } from '../_shared/reviewWindow.ts';
+import { getGuestReviewDraft } from '../_shared/guestReviewService.ts';
 import { resolveVoucherPrizes } from '../_shared/voucher.ts';
 import { normalizeVoucherRevealStyle } from '../_shared/voucherRevealStyle.ts';
 import { jsonError, jsonResponse, jsonSuccess } from '../_shared/httpResponse.ts';
@@ -52,10 +57,13 @@ servePublic('get-guest-review', async (req) => {
     return jsonResponse(req, NOT_FOUND, 404);
   }
 
-  const reviewPath = resolveGuestReviewPath(row);
-  if (reviewPath !== 'airbnb_post_stay' || !canAccessGuestReview(row)) {
+  if (!row.property_id || row.parking_id || !bookingReachedCheckout(row)) {
     return jsonResponse(req, NOT_FOUND, 404);
   }
+  const reviewPath = resolveGuestReviewPath(row) ?? 'post_stay';
+
+  const window = await getReviewWindow(bookingId);
+  const canEditReview = guestCanReview(row, window);
 
   const settings = await resolveAppSettings(
     (row.property_id as string | null | undefined) ?? undefined
@@ -66,7 +74,8 @@ servePublic('get-guest-review', async (req) => {
   const vouchersEnabled = settingsRow?.vouchers_enabled !== false;
   const voucherPrizes = resolveVoucherPrizes(settingsRow?.voucher_prizes);
   const voucherRevealStyle = normalizeVoucherRevealStyle(settingsRow?.voucher_reveal_style);
-  const guestReviewSubmitted = await guestReviewExistsForBooking(bookingId);
+  const reviewDraft = await getGuestReviewDraft(bookingId);
+  const guestReviewSubmitted = Boolean(reviewDraft);
 
   return jsonSuccess(req, {
     bookingId: row.id,
@@ -74,6 +83,9 @@ servePublic('get-guest-review', async (req) => {
     check_in_date: row.check_in_date,
     check_out_date: row.check_out_date,
     guest_review_submitted: guestReviewSubmitted,
+    review_draft: reviewDraft,
+    review_closes_at: window?.closes_at ?? null,
+    can_edit_review: canEditReview,
     email_logo_url: settings.emailLogoUrl,
     brand_color: settings.brandColor,
     next_stay_voucher_code: row.next_stay_voucher_code ?? null,
