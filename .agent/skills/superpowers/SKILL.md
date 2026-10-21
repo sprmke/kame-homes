@@ -76,3 +76,9 @@ Shared lib: `scripts/dev/superpowers-lean-lib.sh`.
 | `docs/superpowers/plans/` | `docs/workflow/planned/<slug>.md`       |
 | `docs/superpowers/specs/` | `docs/workflow/intake/<slug>-design.md` |
 | `YYYY-MM-DD-<slug>.md`    | `<slug>.md`                             |
+
+## Installed upstream skills
+
+`obra/superpowers` is installed under `.agents/skills/` (brainstorming, writing-plans, test-driven-development, and the rest). Cursor, Codex, and OpenCode read that folder. Claude Code follows the `.claude/skills/` symlinks.
+
+Those skills stay opt-in. Do not auto-run `using-superpowers`. Use them when the user asks, or via `/superpowers-*`. This file's path overrides still apply.

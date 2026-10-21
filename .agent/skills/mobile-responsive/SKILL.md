@@ -114,7 +114,43 @@ Native-app density on phone (≈ iOS HIG ops apps). Prefer shared tokens in `ui/
 
 **Do not** bump phone titles with `max-sm:text-[1.65rem]` or KPI values with `text-lg`/`text-2xl` on `max-lg` — that reads oversized vs native apps.
 
-**Marketing display exception:** full-bleed marketing heroes (`MarketingPublicPageHero`, for-hosts film, stay-guide showcase templates) may use `text-3xl`–`text-5xl`. Do **not** apply that display scale to admin chrome, guest form/account/auth, listing cards, or operational public flows.
+**Shared base (dashboard = public).** Both surfaces use the same primitives and the same base numbers; only headings change by role. Native reference: iOS HIG (16pt margins, 44pt targets, 17pt fields, 10pt tab labels) and Material 3 (16dp margins, 40dp buttons, 32dp chips).
+
+| Element                | Phone                              | `sm`+ / desktop            | Source of truth                                   |
+| ---------------------- | ---------------------------------- | -------------------------- | ------------------------------------------------- |
+| Body / UI text         | 14px                               | 14px                       | `text-sm`, `text-ui`                              |
+| Caption / meta         | 12px                               | 12–13px                    | `text-xs`, `text-meta`                            |
+| Page side margin       | 16px                               | 16 / 24 (`md`) / 32 (`lg`) | `.admin-mobile-main-shell`, `container px-4`      |
+| Card padding           | 16px                               | 24px                       | `Card`, `public-card-pad`                         |
+| Button (inline)        | 40px                               | 40px                       | `Button` default                                  |
+| Full-width primary bar | 48px                               | 44px                       | `native-cta`, auth submit                         |
+| Text field / select    | 40px, 14px text (16px on iOS)      | 44px (`lg`)                | `Input`, `SelectTrigger`, iOS rule in `index.css` |
+| Chip / segment         | 32–34px visual, 44px hit           | 36px                       | `SegmentedControl dense`, `public-chip`           |
+| Small icon action      | 32–36px visual, 44px hit           | same                       | `admin-overflow-trigger`, `mobile-hero-action`    |
+| Bottom tab bar         | shared `BottomTabBar`, 10px labels | hidden `lg+`               | `components/mobile/BottomTabBar.tsx`              |
+| Top bar                | 56px                               | 64px / 80px public desktop | `--public-nav-h`, admin topbar `min-h-14`         |
+| Sheets / modals        | bottom sheet                       | centered dialog `lg+`      | `ResponsiveModal`                                 |
+
+Headings by role: dashboard page title 18 → 24px (`text-admin-page-title`), dashboard section band 14px (`text-section-title`); public hero 28 → 44px (`public-display`), public section 20 → 30px (`public-section-title`).
+
+**Public pages (native density):** marketing shell, listings, listing detail, for-hosts, auth, account and guest flows use the `public-*` size tokens in `ui/src/index.css` (size + rhythm only; keep color/weight/font on the element). Never stack a raw `text-*` / `py-*` size class on the same element as a token.
+
+| Token                                | Phone                      | `md` (tablet) | `lg` (desktop) |
+| ------------------------------------ | -------------------------- | ------------- | -------------- |
+| `public-display` (hero h1)           | 28px                       | 36px          | 44px cap       |
+| `public-page-title`                  | 22px                       | 26px          | 30px           |
+| `public-section-title`               | 20px                       | 24px          | 30px           |
+| `public-card-title`                  | 15px                       | 16px          | 17px           |
+| `public-lead`                        | 15px                       | 16px          | 18px           |
+| `public-eyebrow`                     | 11px caps                  | same          | same           |
+| `public-section-y` (section padding) | 32px                       | 48px          | 72px           |
+| `public-card-pad`                    | 16px                       | 24px          | 24px           |
+| `public-icon-well`                   | 36px                       | 40px          | 44px           |
+| `public-chip`                        | 34px visual + 44px hit pad | 36px          | 36px           |
+| `public-cta`                         | 44px                       | 44px          | 48px           |
+| `public-page-top` (clear fixed nav)  | nav + 12px                 | nav + 16px    | nav + 16px     |
+
+The fixed `MarketingNav` height is `--public-nav-h` (56 / 64 / 80px). Sticky toolbars use `top-[var(--public-nav-h)]` and the scroll-morph search reads the same variable; never hard-code `top-16` / `pt-20` / `pt-24` under the public nav. Draw chips and small actions at their visual size with a `before:` hit pad (like `admin-overflow-trigger`) instead of `min-h-[44px]` on the visible chrome. Form inputs and full-width primary bars stay 44px. For-hosts may go one step larger (32 / 48 / 60px hero) but uses the same section rhythm. Plan: `docs/workflow/in-progress/public-native-density.md`.
 
 ## 5. Tables
 
@@ -160,7 +196,7 @@ Always set explicit `width`/`height` or `aspect-*` classes. Use `object-cover` i
 
 ## 9. Modals and dropdowns
 
-- **Modals:** no centered `Dialog` on mobile. Every modal uses `ResponsiveModal` (centered on `lg+`, bottom sheet below); guest via `GuestDialogShell`; dashboard forms via `AdminDialogShell`. Sticky chrome → `sheetLayout="split"`. Exceptions: `AlertDialog`, full-screen media lightboxes, full-screen video tour.
+- **Modals:** no centered `Dialog` on mobile. Every modal uses `ResponsiveModal` (centered on `lg+`, bottom sheet below); guest via `GuestDialogShell`; dashboard forms via `AdminDialogShell`. Sticky chrome → `sheetLayout="split"` (desktop dialog locks to a flex column so only the body scrolls). Exceptions: `AlertDialog`, full-screen media lightboxes, full-screen video tour.
 - **Dropdowns / overflow menus:** on `max-lg`, use `MobileChoiceSheet` or `ResponsiveOverflowMenu` (marketing: `MarketingOverflowMenu`), not floating `DropdownMenu` panels. Desktop keeps `DropdownMenu`. Legacy safety net: `max-w-[calc(100vw-24px)]`.
 - `z-50` overlays; `z-40` sticky headers and bottom tab / contextual bar.
 

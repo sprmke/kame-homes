@@ -32,9 +32,15 @@ Choose **one** and document it in the PR / architecture catalog:
 4. OTP-gated settings: require the same OTP / settings verification token — never bypass.
 5. Never-build list stays catalog-enforced (irreversible destroyers, auto-reply send mode, etc.).
 
+## Visual hydration (numeric blocks)
+
+Charts, calendars, KPIs, timelines, and comparisons are **hydrated server-side** from this turn's tool results (`hydrateVisualBlocks` in `_shared/dashboardAssistantVisuals.ts`). The model may emit a `{ type: 'visual', kind, source }` hint; it never authors the numbers. Hydrated blocks are tagged `hydrated: true` and skipped by `assertBlocksGrounded`. Do not persist `visual` hints.
+
 ## Reads
 
 New host-visible data surfaces should get a read tool **or** knowledge-base coverage so the assistant can answer without inventing facts.
+
+**Knowledge coverage:** Documented route guides under `docs/guides/routes/` (except `admin/**`) must have a Host-facing knowledge section with at least 3 Q&A rows. `bun run check:ai-knowledge-coverage` (wired into `ci:quality` / CI) fails otherwise, and also fails if a previously synced guide would drop from `bun run sync:ai-knowledge-base`.
 
 ## Related
 

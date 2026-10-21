@@ -59,6 +59,8 @@ Minimize logs. Storage paths: `{propertyId}/…` via `bookingStoragePaths.ts` (l
 
 Guest form **reads and writes** (`get-form`, `get-sd-form`, `get-guest-review`, `submit-form` updates, `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`) require `authorizeGuestBookingAccess` when `GUEST_BOOKING_ACCESS_ENFORCE=true`. Token may be `?access=` or body/FormData `access`. Never return unsigned storage URLs for private guest-doc buckets.
 
+Two-way reviews: unpublished counterpart text never leaves the authoring side (lists, emails, bells, PostHog, AI drafts). `host_guest_reviews.internal_note` stays inside the authoring org. Public listing aggregates use `property_review_summary` (published only).
+
 Public writes: `antiSpamGate` (heuristics + Turnstile when keys live + durable RL). New `servePublic` handlers must wire `publicGetRateLimitGate` (CI: `check-serve-public-rate-limit.sh`).
 
 ## Don'ts

@@ -64,6 +64,8 @@ Keep in sync: `propertyTeamPermissions.ts`, `parkingTeamPermissions.ts` and UI t
 - Never auto-reply outside Meta messaging window (**Meta only** — web chat has no 24h window).
 - Platform toggles under auto-send: Facebook, Instagram, **Chat** (`platform_toggles.web`).
 - Web auto-send runs from `guest-web-chat-messages` POST via `webInboxAutoReply.ts` after guest inbound.
+- Text auto-reply uses the same closed guest tool layer as voice (`guestReceptionistTools.ts` + `guestReceptionistTurn.ts`): Flash-Lite, ≤2 tool rounds. Web may include one maps URL or markdown table; Meta is flattened to prose. Parking threads use `get_parking_facts`.
+- Cooldown is per inbound message (a new guest question after an AI reply reopens). At 10 AI replies per conversation per hour, insert the host-will-reply line once per hour (`AUTO_REPLY_BUDGET_EXHAUSTED_LINE`).
 - Flag outbound AI messages with `is_ai_generated = true`.
 - **Manage AI response** (Automation → Manage button → `InboxAiResponseDialog`) edits `ai_system_prompt` — free-text org **Tone & rules** layered on top of the base prompt in `socialInboxAiService.ts`. This custom text is additive; it never replaces Known facts, quick-reply guidance, or the mandatory safety policy. Field help lives on a **?** tooltip (`FieldLabel`). Includes a **Reset to default** action that fills `DEFAULT_AI_RESPONSE_CONTEXT`.
 
