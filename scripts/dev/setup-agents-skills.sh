@@ -3,8 +3,9 @@
 # Cursor + Claude Code (OpenCode discovers .agents/skills/ natively + via
 # opencode.json skills.paths). Canonical lock: skills-lock.json at repo root.
 #
-# Includes: Impeccable, Taste Skill (design-taste-frontend + variants),
-# playwright-cli skill, and any other locked entries.
+# Includes every entry in skills-lock.json: Impeccable, Taste Skill,
+# playwright-cli, Caveman, Graphify, Ponytail, Vercel agent-skills,
+# Anthropic skills, Matt Pocock skills, and Superpowers.
 #
 # Usage: bun run setup:agents-skills
 # Also invoked by: bun run setup:ai-tooling / bun run setup:impeccable
@@ -70,7 +71,8 @@ fi
 
 # Impeccable is also installable via its dedicated package path if lock restore
 # left it incomplete (older clones / partial checkouts).
-if [[ ! -f "$AGENTS_SKILLS/impeccable/scripts/hook.mjs" ]]; then
+# The committed package ships scripts/impeccable, not scripts/hook.mjs.
+if [[ ! -f "$AGENTS_SKILLS/impeccable/scripts/impeccable" ]]; then
   echo "Installing Impeccable (pbakaus/impeccable@impeccable) ..."
   npx skills add pbakaus/impeccable@impeccable -p -y --agent claude-code cursor
 fi
