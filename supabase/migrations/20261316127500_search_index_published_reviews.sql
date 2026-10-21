@@ -149,4 +149,6 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.pls_refresh_property(uuid) FROM PUBLIC, anon, authenticated;
+
 COMMIT;
