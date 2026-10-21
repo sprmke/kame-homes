@@ -75,6 +75,7 @@ export type PublicPropertyDetailDto = {
   rating: number | null;
   reviewCount: number;
   guestReviews: PublicGuestReview[];
+  reviewSummary?: PublicReviewSummary | null;
   isSuperhost?: boolean;
   /** Host-wide Recommended badge (org Tier 2). */
   verifiedBadge?: boolean;
@@ -107,6 +108,15 @@ export type PublicGuestReview = {
   media: Array<{ url: string; type: 'image' | 'video' }>;
   source?: 'kame' | 'facebook' | 'airbnb';
   createdAt?: string | null;
+  responseText?: string | null;
+};
+
+export type PublicReviewSummary = {
+  count: number;
+  avgOverall: number | null;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+  categoryAvgs: Record<string, number | null>;
+  categorySample: number;
 };
 
 export type PublicHouseRule = PublicPropertyDetailDto['houseRules'][number];
@@ -163,6 +173,7 @@ export type ResolvedPropertyDetail = {
   rating?: number | null;
   reviews?: number | null;
   guestReviews?: PublicGuestReview[];
+  reviewSummary?: PublicReviewSummary | null;
   isSuperhost?: boolean;
   /** Host-wide Recommended badge (org Tier 2). */
   verifiedBadge?: boolean;

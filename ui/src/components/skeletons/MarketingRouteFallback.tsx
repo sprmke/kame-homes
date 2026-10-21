@@ -8,6 +8,7 @@ import {
 } from '@/components/skeletons/GuestMarketingSkeleton';
 import {
   GuestProfileFormSkeleton,
+  GuestReviewsPageSkeleton,
   GuestVouchersPageSkeleton,
 } from '@/components/skeletons/GuestAccountSkeletons';
 import {
@@ -88,6 +89,10 @@ export function GuestAccountRouteSuspenseFallback() {
 
   if (pathname.includes('/account/vouchers')) {
     return <GuestVouchersPageSkeleton />;
+  }
+
+  if (pathname.includes('/account/reviews')) {
+    return <GuestReviewsPageSkeleton />;
   }
 
   if (pathname.includes('/account/favorites')) {

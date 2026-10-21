@@ -57,6 +57,16 @@ export function GuestVoucherRowSkeleton() {
   );
 }
 
+export function GuestReviewsPageSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true" aria-label="Loading reviews">
+      <Skeleton className="h-11 w-full rounded-lg" />
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-28 w-full rounded-2xl" />
+    </div>
+  );
+}
+
 export function GuestVouchersPageSkeleton({ rows = 4 }: { rows?: number } = {}) {
   return (
     <div

@@ -75,6 +75,7 @@ export function mapApiPropertyToResolved(dto: PublicPropertyDetailDto): Resolved
     rating: dto.rating ?? undefined,
     reviews: dto.reviewCount > 0 ? dto.reviewCount : undefined,
     guestReviews: dto.guestReviews,
+    reviewSummary: dto.reviewSummary ?? null,
     isSuperhost: dto.isSuperhost,
     verifiedBadge: dto.verifiedBadge,
     recommendedBadge: dto.recommendedBadge,
