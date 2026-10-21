@@ -22,6 +22,7 @@ Route: `/admin/approvals`
 | Org review dialog           | Done     | Done       | Done | Host docs only; read-only listing rollup                                                  |
 | Listing verification dialog | Done     | Done       | Done | Approve / Request changes / Reject per listing tier                                       |
 | External review dialog      | Done     | Done       | Done | Approve / Reject pending property external reviews; shows stay photos (no feedback pills) |
+| Reported two-way reviews    | —        | Done       | Done | Type = Reviews also lists `review_reports`; uphold removes the review                     |
 
 ---
 
@@ -31,7 +32,7 @@ Platform super-admins review **host verification** (org scope), **listing verifi
 
 - **Org rows:** organizations where host `baseStatus ≠ none` or `enhancedStatus ≠ none`.
 - **Listing rows:** one row per property or parking where listing `baseStatus ≠ none` or `recommendedStatus ≠ none` (scope split — listing docs live on the listing, not the org).
-- **Review rows:** flattened from `app_settings.external_reviews`.
+- **Review rows:** flattened from `app_settings.external_reviews`, plus **reported** two-way reviews from `review_reports` (uphold removes the published review; reject keeps it).
 
 Default filters: **Type** = All types, **Status** = In review.
 
