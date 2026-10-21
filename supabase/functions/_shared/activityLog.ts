@@ -236,6 +236,70 @@ export const ACTIVITY_ACTION_CATALOG = {
       } from ${label(c, 'a property')}`,
   },
 
+  // ── Two-way reviews ──────────────────────────────────────────────────────
+  'review.host_submitted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} reviewed the guest on ${label(c, 'a booking')}`,
+  },
+  'review.host_edited': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} edited a guest review on ${label(c, 'a booking')}`,
+  },
+  'review.response_posted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} responded to a review on ${label(c, 'a booking')}`,
+  },
+  'review.response_edited': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} edited a review response on ${label(c, 'a booking')}`,
+  },
+  'review.response_deleted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} removed a review response on ${label(c, 'a booking')}`,
+  },
+  'review.reported': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'review',
+    summary: (c) =>
+      `${c.actorName} reported a review${c.targetLabel ? ` on ${c.targetLabel}` : ''}`,
+  },
+  'review.removed': {
+    category: 'booking',
+    severity: 'destructive',
+    targetType: 'review',
+    summary: (c) =>
+      `${c.actorName} removed a review${c.targetLabel ? ` on ${c.targetLabel}` : ''} after a report`,
+  },
+  'review.automation_updated': {
+    category: 'settings',
+    severity: 'info',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} updated auto-review rules on ${label(c, 'a property')}`,
+  },
+  'review.auto_review_paused': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} paused auto-review on ${label(c, 'a booking')}`,
+  },
+  'review.auto_review_resumed': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} resumed auto-review on ${label(c, 'a booking')}`,
+  },
+
   // ── Parking operations ───────────────────────────────────────────────────
   'parking.status_changed': {
     category: 'parking',
@@ -692,13 +756,36 @@ export const ACTIVITY_ACTION_CATALOG = {
     category: 'marketing',
     severity: 'info',
     targetType: 'template',
-    summary: (c) => `${c.actorName} saved the marketing template ${label(c, 'a template')}`,
+    summary: (c) => {
+      const noun = str(c.metadata, 'kind') === 'template' ? 'template' : 'design';
+      const verb =
+        str(c.metadata, 'operation') === 'duplicate'
+          ? 'copied'
+          : str(c.metadata, 'operation') === 'rename'
+            ? 'renamed'
+            : 'saved';
+      return `${c.actorName} ${verb} the marketing ${noun} ${label(c, `a ${noun}`)}`;
+    },
   },
   'marketing.template_deleted': {
     category: 'marketing',
     severity: 'destructive',
     targetType: 'template',
-    summary: (c) => `${c.actorName} deleted the marketing template ${label(c, 'a template')}`,
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} deleted ${count} marketing designs`;
+      return `${c.actorName} deleted the marketing design ${label(c, 'a design')}`;
+    },
+  },
+  'marketing.template_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'template',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} marketing designs`;
+      return `${c.actorName} restored the marketing design ${label(c, 'a design')}`;
+    },
   },
   'marketing.theme_saved': {
     category: 'marketing',
@@ -729,6 +816,27 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} generated an AI image for ${label(c, 'a listing')}` +
       (num(c.metadata, 'credits') ? ` (${num(c.metadata, 'credits')} credits)` : ''),
+  },
+  'marketing.ai_session_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'marketing_ai_session',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      const forever = c.metadata.permanent === true ? ' permanently' : '';
+      if (count > 1) return `${c.actorName}${forever} deleted ${count} AI Studio creations`;
+      return `${c.actorName}${forever} deleted the AI Studio creation ${label(c, 'an AI creation')}`;
+    },
+  },
+  'marketing.ai_session_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_ai_session',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} AI Studio creations`;
+      return `${c.actorName} restored the AI Studio creation ${label(c, 'an AI creation')}`;
+    },
   },
   'marketing.generated_asset_deleted': {
     category: 'marketing',

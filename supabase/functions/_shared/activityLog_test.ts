@@ -230,3 +230,53 @@ Deno.test(
     await logActivityBatch([input, input]);
   }
 );
+
+Deno.test('marketing design summaries name the action and count bulk deletes', () => {
+  const ctx = (metadata: Record<string, unknown>, targetLabel: string | null = 'Weekday promo') => ({
+    actorName: 'Alex',
+    targetLabel,
+    metadata,
+    changeCount: 0,
+  });
+  const saved = ACTIVITY_ACTION_CATALOG['marketing.template_saved'];
+  assertEquals(
+    saved.summary(ctx({ operation: 'create', kind: 'design' })),
+    'Alex saved the marketing design Weekday promo'
+  );
+  assertEquals(
+    saved.summary(ctx({ operation: 'duplicate', kind: 'design' })),
+    'Alex copied the marketing design Weekday promo'
+  );
+  assertEquals(
+    saved.summary(ctx({ operation: 'save_as_template', kind: 'template' })),
+    'Alex saved the marketing template Weekday promo'
+  );
+  const deleted = ACTIVITY_ACTION_CATALOG['marketing.template_deleted'];
+  assertEquals(deleted.summary(ctx({ count: 3 }, null)), 'Alex deleted 3 marketing designs');
+  assertEquals(
+    deleted.summary(ctx({ count: 1 })),
+    'Alex deleted the marketing design Weekday promo'
+  );
+  const restored = ACTIVITY_ACTION_CATALOG['marketing.template_restored'];
+  assertEquals(restored.summary(ctx({ count: 2 }, null)), 'Alex restored 2 marketing designs');
+});
+
+Deno.test('AI Studio conversation summaries name the creation and count bulk actions', () => {
+  const ctx = (metadata: Record<string, unknown>, targetLabel: string | null = 'Sunset balcony') => ({
+    actorName: 'Alex',
+    targetLabel,
+    metadata,
+    changeCount: 0,
+  });
+  const deleted = ACTIVITY_ACTION_CATALOG['marketing.ai_session_deleted'];
+  assertEquals(
+    deleted.summary(ctx({ count: 1 })),
+    'Alex deleted the AI Studio creation Sunset balcony'
+  );
+  assertEquals(
+    deleted.summary(ctx({ count: 3, permanent: true }, null)),
+    'Alex permanently deleted 3 AI Studio creations'
+  );
+  const restored = ACTIVITY_ACTION_CATALOG['marketing.ai_session_restored'];
+  assertEquals(restored.summary(ctx({ count: 2 }, null)), 'Alex restored 2 AI Studio creations');
+});

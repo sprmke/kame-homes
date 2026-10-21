@@ -13,7 +13,9 @@ import {
   MessageCircle,
   PawPrint,
   RefreshCw,
+  Reply,
   Sparkles,
+  Star,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
@@ -55,6 +57,9 @@ const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
   smart_pricing_updated: Sparkles,
   property_settings_copied: Copy,
   analytics_review_updated: BarChart3,
+  review_received: Star,
+  review_due: Star,
+  review_response_received: Reply,
 };
 
 /** Category glyph shared by the bell list, Activity page, and realtime toast. */
