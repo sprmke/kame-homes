@@ -1244,3 +1244,46 @@ verify_jwt = false
 # [functions.telegram-marketing-cron] Manila 10:00 / 15:00 / 21:00 → UTC cron: 0 2,7,13 * * *
 # [functions.query-cache-sweep-cron] Manila 10:17 → UTC cron: 17 2 * * * (see migration
 #   20261316121700_query_cache_table.sql#sync_query_cache_sweep_cron_job)
+
+[functions.guest-web-chat-feedback]
+verify_jwt = false
+
+[functions.get-guest-reputation]
+verify_jwt = false
+
+[functions.submit-host-guest-review]
+verify_jwt = false
+static_files =
+
+[functions.review-lifecycle-cron]
+verify_jwt = false
+static_files =
+
+[functions.list-property-reviews]
+verify_jwt = false
+
+[functions.list-org-reviews]
+verify_jwt = false
+
+[functions.review-automation-settings]
+verify_jwt = false
+
+[functions.draft-review-with-ai]
+verify_jwt = false
+
+[functions.respond-to-guest-review]
+verify_jwt = false
+static_files =
+
+[functions.report-review]
+verify_jwt = false
+
+[functions.list-my-reviews]
+verify_jwt = false
+
+[functions.respond-to-host-review]
+verify_jwt = false
+
+[functions.moderate-review-report]
+verify_jwt = false
+static_files =
