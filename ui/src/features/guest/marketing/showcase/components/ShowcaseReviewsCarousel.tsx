@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, Quote, Star } from 'lucide-react';
 
 import { useShowcaseStyle } from '@/features/guest/marketing/showcase/components/ShowcaseStyleProvider';
 import { useShowcaseTheme } from '@/features/guest/marketing/showcase/components/ShowcaseThemeProvider';
+import { useShowcaseEmbla } from '@/features/guest/marketing/showcase/hooks/useShowcaseEmbla';
 import { showcaseTestimonialsForDisplay } from '@/features/guest/marketing/showcase/lib/showcaseSectionLayout';
 import type { ShowcaseVariant } from '@/features/guest/marketing/showcase/lib/showcaseThemeTokens';
 import type { ShowcaseTestimonial } from '@/features/guest/marketing/showcase/types/showcase';
@@ -186,7 +186,7 @@ export function ShowcaseReviewsCarousel({
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
+  const [emblaRef, emblaApi] = useShowcaseEmbla({
     align: 'start',
     loop: items.length > 1,
     skipSnaps: false,

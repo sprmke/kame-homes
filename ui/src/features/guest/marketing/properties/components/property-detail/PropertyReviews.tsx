@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 import { GuestDialogShell } from '@/features/guest/marketing/shared/components/GuestDialogShell';
+import type { PublicReviewSummary } from '@/features/guest/marketing/properties/types/publicProperty';
 import { guestReviewFeedbackTagLabel } from '@/features/guest/sd-form/lib/guestReviewFeedbackTags';
+import { GUEST_REVIEW_CATEGORY_LABELS } from '@/features/reviews/lib/reviewCatalog';
+import { ReviewResponseBlock } from '@/features/reviews/components/ReviewResponseBlock';
 
+import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -21,13 +25,17 @@ export interface PropertyReviewItem {
   media?: Array<{ url: string; type: 'image' | 'video' }>;
   /** ISO timestamp for newest-first sort when present. */
   createdAt?: string | null;
+  responseText?: string | null;
 }
 
 interface PropertyReviewsProps {
   rating: number;
   totalReviews: number;
   reviews?: PropertyReviewItem[];
+  summary?: PublicReviewSummary | null;
 }
+
+type ReviewSort = 'newest' | 'highest' | 'lowest';
 
 const reviewSourceLabel = (source?: PropertyReviewItem['source']) => {
   switch (source) {
@@ -325,8 +333,20 @@ function ReviewPhotoLightbox({
   );
 }
 
-export function PropertyReviews({ rating, totalReviews, reviews = [] }: PropertyReviewsProps) {
-  const resolvedReviews = sortReviewsNewestFirst(reviews);
+export function PropertyReviews({
+  rating,
+  totalReviews,
+  reviews = [],
+  summary,
+}: PropertyReviewsProps) {
+  const [sort, setSort] = useState<ReviewSort>('newest');
+  const [sortOpen, setSortOpen] = useState(false);
+  const resolvedReviews = useMemo(() => {
+    const copy = [...reviews];
+    if (sort === 'highest') return copy.sort((a, b) => b.rating - a.rating);
+    if (sort === 'lowest') return copy.sort((a, b) => a.rating - b.rating);
+    return sortReviewsNewestFirst(copy);
+  }, [reviews, sort]);
   const [showAll, setShowAll] = useState(false);
   const [photoLightbox, setPhotoLightbox] = useState<{ urls: string[]; index: number } | null>(
     null
@@ -355,13 +375,86 @@ export function PropertyReviews({ rating, totalReviews, reviews = [] }: Property
             Reviews
           </h2>
           <span className="text-foreground text-3xl font-bold tabular-nums sm:text-4xl">
-            {rating}
+            {countLabel < 3 ? 'New' : rating}
           </span>
           <p className="text-muted-foreground">
             {countLabel} review{countLabel === 1 ? '' : 's'}
           </p>
         </div>
       </div>
+
+      {summary && countLabel >= 3 ? (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,16rem)_1fr]">
+          <ol className="space-y-1.5">
+            {(['5', '4', '3', '2', '1'] as const).map((star) => {
+              const amount = summary.distribution[star] ?? 0;
+              const pct = summary.count > 0 ? Math.round((amount / summary.count) * 100) : 0;
+              return (
+                <li key={star} className="flex items-center gap-2 text-sm">
+                  <span className="w-3 tabular-nums">{star}</span>
+                  <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
+                    <div className="h-full bg-amber-400" style={{ width: `${pct}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {summary.categorySample >= 3 ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              {Object.entries(GUEST_REVIEW_CATEGORY_LABELS).map(([id, label]) => {
+                const value = summary.categoryAvgs[id === 'check_in' ? 'checkIn' : id];
+                if (value == null) return null;
+                return (
+                  <p key={id}>
+                    {label}{' '}
+                    <span className="font-medium tabular-nums">{Number(value).toFixed(1)}</span>
+                  </p>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-muted-foreground text-sm">
+          Sort: {sort === 'newest' ? 'Newest' : sort === 'highest' ? 'Highest' : 'Lowest'}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-[44px]"
+          onClick={() => setSortOpen(true)}
+        >
+          Sort
+        </Button>
+      </div>
+      <MobileChoiceSheet open={sortOpen} onOpenChange={setSortOpen} title="Sort reviews">
+        <MobileChoiceItem
+          selected={sort === 'newest'}
+          label="Newest"
+          onSelect={() => {
+            setSort('newest');
+            setSortOpen(false);
+          }}
+        />
+        <MobileChoiceItem
+          selected={sort === 'highest'}
+          label="Highest"
+          onSelect={() => {
+            setSort('highest');
+            setSortOpen(false);
+          }}
+        />
+        <MobileChoiceItem
+          selected={sort === 'lowest'}
+          label="Lowest"
+          onSelect={() => {
+            setSort('lowest');
+            setSortOpen(false);
+          }}
+        />
+      </MobileChoiceSheet>
 
       <div className="space-y-6">
         {displayedReviews.map((review, index) => {
@@ -393,6 +486,11 @@ export function PropertyReviews({ rating, totalReviews, reviews = [] }: Property
                   />
                 </div>
               ) : null}
+
+              <ReviewResponseBlock
+                responseText={review.responseText ?? null}
+                label="Response from host"
+              />
 
               {photos.length > 0 ? (
                 <ReviewPhotoGrid
