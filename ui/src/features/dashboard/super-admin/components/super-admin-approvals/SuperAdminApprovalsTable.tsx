@@ -90,7 +90,8 @@ export function SuperAdminApprovalsTable({ approvals, onSelect }: Props) {
       </AdminTableHeadRow>
       <tbody>
         {approvals.map((approval, index) => {
-          const isReview = approval.type === 'external_review';
+          const isReview =
+            approval.type === 'external_review' || approval.type === 'reported_review';
           const isListing = approval.type === 'listing_verification';
           const label = isReview
             ? approval.propertyName
@@ -166,11 +167,13 @@ export function SuperAdminApprovalsTable({ approvals, onSelect }: Props) {
               </td>
               <td className={cn(adminTableCell.body, 'hidden sm:table-cell')}>
                 <span className={adminTableBodyText.secondary}>
-                  {isReview
+                  {approval.type === 'external_review'
                     ? externalReviewSourceLabel(approval.source)
-                    : isListing
-                      ? listingKindLabel(approval.listingKind)
-                      : hostModesLabel(approval.hostModes)}
+                    : approval.type === 'reported_review'
+                      ? 'Reported'
+                      : isListing
+                        ? listingKindLabel(approval.listingKind)
+                        : hostModesLabel(approval.hostModes)}
                 </span>
               </td>
               <td className={cn(adminTableCell.body, 'hidden md:table-cell')}>

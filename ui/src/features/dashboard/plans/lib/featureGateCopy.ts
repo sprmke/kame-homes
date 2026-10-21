@@ -153,6 +153,12 @@ export const FEATURE_GATE_COPY: Record<PlanFeatureKey, FeatureGateCopy> = {
       'Two-way Airbnb calendar sync (import their reservations and export your booked dates) is available on Pro and above.',
     ctaLabel: 'View plans',
   },
+  reviewAutomation: {
+    title: 'Review automation',
+    description:
+      'Auto-review guests after checkout and AI review drafts are available on Pro and above.',
+    ctaLabel: 'View plans',
+  },
   smartPricing: {
     title: 'Smart Pricing',
     description:

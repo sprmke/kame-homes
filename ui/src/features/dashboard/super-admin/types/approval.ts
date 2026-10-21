@@ -97,8 +97,32 @@ export type ExternalReviewApprovalSummary = {
   imagePath: string | null;
 };
 
+export type ReportedReviewApprovalSummary = {
+  type: 'reported_review';
+  reportId: string;
+  reviewKind: 'guest_review' | 'host_guest_review';
+  reviewId: string;
+  reason: string;
+  details: string;
+  reporterSide: 'host' | 'guest';
+  moderationStatus: ExternalReviewModerationStatus;
+  reviewText: string;
+  starRating: number | null;
+  propertyId: string;
+  propertyName: string;
+  propertySlug: string;
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
+  submittedAt: string | null;
+  bookingId: string | null;
+};
+
 export type ApprovalQueueItem =
-  OrgApprovalSummary | ListingVerificationApprovalSummary | ExternalReviewApprovalSummary;
+  | OrgApprovalSummary
+  | ListingVerificationApprovalSummary
+  | ExternalReviewApprovalSummary
+  | ReportedReviewApprovalSummary;
 
 export type SuperAdminApprovalTypeFilter =
   'all' | 'property' | 'parking' | 'listing_verification' | 'reviews';
