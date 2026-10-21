@@ -11,6 +11,7 @@ import {
   GUEST_ACCOUNT_WISHLIST_PATH,
   GUEST_ACCOUNT_TICKETS_PATH,
   GUEST_ACCOUNT_VOUCHERS_PATH,
+  GUEST_ACCOUNT_REVIEWS_PATH,
   GUEST_ACCOUNT_SETTINGS_PATH,
 } from '@/features/guest/account/lib/guestAccountPaths';
 
@@ -71,6 +72,12 @@ describe('GUEST_ACCOUNT_TICKETS_PATH', () => {
 describe('GUEST_ACCOUNT_VOUCHERS_PATH', () => {
   it('is defined', () => {
     expect(GUEST_ACCOUNT_VOUCHERS_PATH).toBeDefined();
+  });
+});
+
+describe('GUEST_ACCOUNT_REVIEWS_PATH', () => {
+  it('is /account/reviews', () => {
+    expect(GUEST_ACCOUNT_REVIEWS_PATH).toBe('/account/reviews');
   });
 });
 

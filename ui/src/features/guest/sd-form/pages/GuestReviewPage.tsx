@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Check } from 'lucide-react';
@@ -12,7 +12,9 @@ import {
 } from '@/features/guest/form/hooks/useGuestPaymentInfo';
 import { captureGuestBookingAccessFromSearchParams } from '@/features/guest/form/lib/guestBookingAccess';
 import { pickGuestBrandHeaderProps } from '@/features/guest/form/lib/guestFormBranding';
+import { useGuestPropertySlug } from '@/features/guest/hooks/useGuestPropertySlug';
 import { isGuestEmbedPreview } from '@/features/guest/lib/guestEmbedPreview';
+import { guestTripPath } from '@/features/guest/lib/guestPublicPaths';
 import { GuestReviewEmbedPreview } from '@/features/guest/sd-form/components/GuestReviewEmbedPreview';
 import { SdFormReviewSection } from '@/features/guest/sd-form/components/SdFormReviewSection';
 import { VoucherReveal } from '@/features/guest/sd-form/components/VoucherReveal';
@@ -21,12 +23,7 @@ import {
   fetchGuestReview,
   type GuestReviewBootstrap,
 } from '@/features/guest/sd-form/lib/api';
-import {
-  findVoucher,
-  formatVoucherDiscountMaxLabel,
-  prizesToVouchers,
-  type Voucher,
-} from '@/features/guest/sd-form/lib/voucher';
+import { findVoucher, prizesToVouchers, type Voucher } from '@/features/guest/sd-form/lib/voucher';
 import { normalizeVoucherRevealStyle } from '@/features/guest/sd-form/lib/voucherRevealStyle';
 import { GuestTripBackLink } from '@/features/guest/trip/components/GuestTripBackLink';
 
@@ -40,8 +37,10 @@ type Phase = 'review' | 'voucher' | 'done';
 const GUEST_REVIEW_BRAND_TITLE = 'Guest Review';
 
 export function GuestReviewPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const bookingId = (searchParams.get('bookingId') ?? '').trim();
+  const propertySlug = useGuestPropertySlug();
   const embedPreview = isGuestEmbedPreview(searchParams);
 
   useEffect(() => {
@@ -88,7 +87,7 @@ export function GuestReviewPage() {
       setPhase('voucher');
       return;
     }
-    if (!query.data.guest_review_submitted) return;
+    if (!query.data.guest_review_submitted || query.data.can_edit_review !== false) return;
     setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher');
   }, [existingVoucher, query.data, phase]);
 
@@ -98,7 +97,7 @@ export function GuestReviewPage() {
 
   if (!bookingId) {
     return (
-      <div className="guest-inner-enter mx-auto max-w-lg px-4 py-16 text-center">
+      <div className="guest-inner-enter mx-auto max-w-lg px-4 py-12 text-center">
         <p className="text-muted-foreground text-sm">Missing booking link.</p>
       </div>
     );
@@ -110,7 +109,7 @@ export function GuestReviewPage() {
 
   if (query.isError || !query.data) {
     return (
-      <div className="guest-inner-enter mx-auto max-w-lg space-y-4 px-4 py-16 text-center">
+      <div className="guest-inner-enter mx-auto max-w-lg space-y-4 px-4 py-12 text-center">
         <p className="text-foreground text-base font-semibold">Review unavailable</p>
         <p className="text-muted-foreground text-sm leading-relaxed">
           {query.error instanceof Error ? query.error.message : 'This link is not valid.'}
@@ -130,6 +129,13 @@ export function GuestReviewPage() {
       onClaim={() => claimMut.mutateAsync()}
       claimWidget={claimAntiSpam.render}
       onReviewSubmitted={() => setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher')}
+      onSkip={() => {
+        if (propertySlug) {
+          navigate(guestTripPath(propertySlug, bookingId));
+          return;
+        }
+        setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher');
+      }}
       onVoucherDone={() => setPhase('done')}
     />
   );
@@ -145,6 +151,7 @@ function GuestReviewContent({
   onClaim,
   claimWidget,
   onReviewSubmitted,
+  onSkip,
   onVoucherDone,
 }: {
   bookingId: string;
@@ -156,6 +163,7 @@ function GuestReviewContent({
   onClaim: () => Promise<Voucher>;
   claimWidget: ReactNode;
   onReviewSubmitted: () => void;
+  onSkip: () => void;
   onVoucherDone: () => void;
 }) {
   return (
@@ -167,14 +175,16 @@ function GuestReviewContent({
         <>
           <header className="space-y-3 px-1 text-center sm:px-2">
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Thanks for staying with us! Share a quick review for a chance to win{' '}
-              {formatVoucherDiscountMaxLabel()} or a free stay on your next booking.
+              How was your stay? You can skip this.
             </p>
           </header>
           <SdFormReviewSection
             bookingId={bookingId}
             awaitingBalanceSettlement={false}
             onReviewSubmitted={onReviewSubmitted}
+            reviewDraft={data.review_draft}
+            canEdit={data.can_edit_review !== false}
+            onSkip={onSkip}
           />
         </>
       ) : null}
