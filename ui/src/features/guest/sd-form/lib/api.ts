@@ -5,6 +5,8 @@ import {
   guestSdFormFetchUrl,
 } from '@/features/guest/form/lib/guestBookingAccess';
 
+import type { CategoryRatings } from '@/features/reviews/lib/reviewCatalog';
+
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import {
   appendAntiSpamToFormData,
@@ -15,6 +17,17 @@ import { antiSpamErrorMessage, isAntiSpamFailure } from '@/lib/security/antiSpam
 
 import type { SdBank } from './sdFormSchema';
 import type { VoucherRevealStyle } from './voucherRevealStyle';
+
+/** Mirrors edge `GuestReviewDraftDto` — lets the form pre-fill an edit. */
+export type GuestReviewDraft = {
+  status: 'submitted' | 'published' | 'removed';
+  starRating: number;
+  categoryRatings: CategoryRatings;
+  reviewText: string | null;
+  privateNote: string | null;
+  feedbackTags: string[];
+  mediaUrls: Array<{ url: string; type: 'image' | 'video' }>;
+};
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -33,11 +46,14 @@ export type GuestReviewBootstrap = {
   check_in_date: string;
   check_out_date: string;
   guest_review_submitted?: boolean;
+  review_draft?: GuestReviewDraft | null;
+  review_closes_at?: string | null;
+  can_edit_review?: boolean;
   email_logo_url?: string;
   brand_color?: string;
   next_stay_voucher_code: string | null;
   next_stay_voucher_amount: number | null;
-  review_path: 'airbnb_post_stay';
+  review_path: 'airbnb_post_stay' | 'sd_refund' | 'post_stay';
   vouchers_enabled?: boolean;
   voucher_prizes?: Array<{ code: string; percentOff: number; chancePercent: number }>;
   voucher_reveal_style?: VoucherRevealStyle;
@@ -65,6 +81,9 @@ export type SdFormBootstrap = {
   check_in_date: string;
   check_out_date: string;
   guest_review_submitted?: boolean;
+  review_draft?: GuestReviewDraft | null;
+  review_closes_at?: string | null;
+  can_edit_review?: boolean;
   email_logo_url?: string;
   brand_color?: string;
   /** Persisted voucher (if guest already revealed it on a prior visit). */
@@ -139,16 +158,20 @@ export async function submitGuestReview(
   input: {
     bookingId: string;
     starRating: number;
+    categoryRatings: CategoryRatings;
     reviewText?: string;
+    privateNote?: string;
     feedbackTags?: string[];
     media?: File[];
   },
   antiSpam?: AntiSpamRequestFields
-): Promise<void> {
+): Promise<{ wasEdit: boolean }> {
   const form = new FormData();
   form.set('bookingId', input.bookingId);
   form.set('starRating', String(input.starRating));
+  form.set('categoryRatings', JSON.stringify(input.categoryRatings));
   if (input.reviewText?.trim()) form.set('reviewText', input.reviewText.trim());
+  if (input.privateNote?.trim()) form.set('privateNote', input.privateNote.trim());
   if (input.feedbackTags?.length) {
     form.set('feedbackTags', JSON.stringify(input.feedbackTags));
   }
@@ -178,6 +201,7 @@ export async function submitGuestReview(
     }
     throw new Error(json.error ?? json.message ?? `Review submit failed (${res.status})`);
   }
+  return { wasEdit: Boolean(json.data?.wasEdit) };
 }
 
 export async function submitSdForm(

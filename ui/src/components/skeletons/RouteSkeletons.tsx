@@ -194,6 +194,21 @@ export function OrgPlansRouteSkeleton() {
   );
 }
 
+export function OrgReviewsRouteSkeleton() {
+  return (
+    <AdminMobilePage title="Reviews">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SectionContentSkeleton key={i} rows={2} />
+          ))}
+        </div>
+        <ListRowsSkeleton rows={5} label="Loading reviews" />
+      </div>
+    </AdminMobilePage>
+  );
+}
+
 export function OrgAnalyticsRouteSkeleton() {
   const view = useOrgListingSkeletonView('listings');
   return (
@@ -288,6 +303,21 @@ export function PropertyMarketingRouteSkeleton() {
 
 export function PropertyTeamRouteSkeleton() {
   return <TeamPageSkeleton />;
+}
+
+export function PropertyReviewsRouteSkeleton() {
+  return (
+    <AdminMobilePage title="Reviews">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SectionContentSkeleton key={i} rows={2} />
+          ))}
+        </div>
+        <ListRowsSkeleton rows={5} label="Loading reviews" />
+      </div>
+    </AdminMobilePage>
+  );
 }
 
 export function PropertyInboxRouteSkeleton() {
