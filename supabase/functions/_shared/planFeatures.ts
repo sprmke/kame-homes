@@ -41,6 +41,8 @@ export type PlanFeatures = {
   bookingImport: boolean;
   /** Connect external OTA calendars (Airbnb / Booking.com / VRBO) for two-way iCal sync. */
   calendarSync: boolean;
+  /** Auto-review guests after check-out and AI review drafts. Pro (`growth`) and above. */
+  reviewAutomation: boolean;
   /** AI-assisted dynamic nightly rates (Smart Pricing) on the Pricing page. */
   smartPricing: boolean;
   customRoles: boolean;
@@ -80,6 +82,7 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   publicPagesAutosave: false,
   bookingImport: false,
   calendarSync: false,
+  reviewAutomation: false,
   smartPricing: false,
   customRoles: false,
   copyPropertySettings: false,
@@ -169,6 +172,7 @@ export function parsePlanFeatures(raw: unknown): PlanFeatures {
     publicPagesAutosave: asBool(obj.publicPagesAutosave, base.publicPagesAutosave),
     bookingImport: asBool(obj.bookingImport, base.bookingImport),
     calendarSync: asBool(obj.calendarSync, base.calendarSync),
+    reviewAutomation: asBool(obj.reviewAutomation, base.reviewAutomation),
     smartPricing: asBool(obj.smartPricing, base.smartPricing),
     customRoles: asBool(obj.customRoles, base.customRoles),
     copyPropertySettings: asBool(obj.copyPropertySettings, base.copyPropertySettings),

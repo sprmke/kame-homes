@@ -38,6 +38,8 @@ export type PlanFeatures = {
   bookingImport: boolean;
   /** Connect Airbnb calendar for two-way iCal sync. */
   calendarSync: boolean;
+  /** Auto-review guests after check-out and AI review drafts. Pro (`growth`) and above. */
+  reviewAutomation: boolean;
   /** AI-assisted dynamic nightly rates (Smart Pricing) on the Pricing page. */
   smartPricing: boolean;
   customRoles: boolean;
@@ -77,6 +79,7 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   publicPagesAutosave: false,
   bookingImport: false,
   calendarSync: false,
+  reviewAutomation: false,
   smartPricing: false,
   customRoles: false,
   copyPropertySettings: false,
@@ -175,6 +178,7 @@ export const PLAN_FEATURE_LABELS: Record<keyof PlanFeatures, string> = {
   publicPagesAutosave: 'Public pages editor',
   bookingImport: 'AI booking import',
   calendarSync: 'Airbnb calendar sync',
+  reviewAutomation: 'Review automation',
   smartPricing: 'Smart Pricing',
   customRoles: 'Custom team roles',
   copyPropertySettings: 'Copy property settings',

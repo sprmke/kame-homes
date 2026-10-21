@@ -71,7 +71,7 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
   },
   marketingStudio: {
     client: ['dashboard/marketing/components/design-editor/PolotnoDesignStudio.tsx'],
-    server: ['marketing-music', 'marketing-templates', 'publish-to-meta', 'upload-marketing-asset'],
+    server: ['marketing-music', 'publish-to-meta', 'upload-marketing-asset'],
   },
   customPages: {
     clientNa: 'Gallery and editor are open on every plan.',
@@ -85,11 +85,7 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
       'dashboard/bookings/hooks/useBookingStayGuideLink.ts',
       'dashboard/bookings/components/workflow-panel/WorkflowPanel.tsx',
     ],
-    server: [
-      'public-page-configs',
-      'get-public-showcase',
-      'issue-guest-stay-guide-token',
-    ],
+    server: ['public-page-configs', 'get-public-showcase', 'issue-guest-stay-guide-token'],
   },
   aiDashboardAssistant: {
     client: ['dashboard/ai-assistant/hooks/useAiAssistantAccess.ts'],
@@ -100,15 +96,21 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     server: ['voice-receptionist-settings', 'voice-receptionist-start'],
   },
   aiMarketingGeneration: {
-    client: ['dashboard/marketing/components/shared/MarketingAiGeneratePanel.tsx'],
-    server: ['generate-marketing-caption', 'generate-marketing-template'],
+    client: [
+      'dashboard/marketing/components/shared/MarketingAiGeneratePanel.tsx',
+      'dashboard/marketing/components/ai-studio/AiStudioHome.tsx',
+    ],
+    server: ['generate-marketing-caption', 'generate-marketing-template', 'marketing-ai-sessions'],
   },
   aiMarketingImageGeneration: {
-    client: ['dashboard/marketing/components/shared/MarketingStudioModeTabs.tsx'],
+    client: [
+      'dashboard/marketing/components/shared/MarketingStudioModeTabs.tsx',
+      'dashboard/marketing/components/ai-studio/AiStudioCreate.tsx',
+    ],
     server: ['upload-marketing-generation-reference', 'generate-marketing-media'],
   },
   aiMarketingVideoGeneration: {
-    client: ['dashboard/marketing/components/ai-studio/AiStudioSection.tsx'],
+    client: ['dashboard/marketing/components/ai-studio/AiStudioCreate.tsx'],
     server: ['generate-marketing-media'],
   },
   aiChatAutoReply: {
@@ -157,6 +159,15 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
   calendarSync: {
     client: ['dashboard/pricing/components/ChannelSyncDialog.tsx'],
     server: ['calendar-sync-settings', 'calendar-sync-cron'],
+  },
+  reviewAutomation: {
+    client: [
+      'reviews/components/ReviewAutomationCard.tsx',
+      'reviews/components/HostGuestReviewSheet.tsx',
+      'reviews/components/ReviewResponseSheet.tsx',
+      'reviews/components/ReviewGuestCard.tsx',
+    ],
+    server: ['review-automation-settings', 'draft-review-with-ai', '_shared/reviewAutomation.ts'],
   },
   smartPricing: {
     client: ['dashboard/pricing/components/SmartPricingDialog.tsx'],

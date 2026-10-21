@@ -2,6 +2,7 @@ import {
   BarChart3,
   BookOpen,
   Building2,
+  Star,
   CreditCard,
   Crown,
   History,
@@ -46,6 +47,13 @@ export const ORG_TEAM_PERMISSIONS: TeamPermission[] = [
     description: 'View bookings across assigned listings',
     category: 'Organization',
     icon: BookOpen,
+  },
+  {
+    id: 'org.reviews:view',
+    name: 'View Reviews',
+    description: 'View guest reviews across properties',
+    category: 'Organization',
+    icon: Star,
   },
   {
     id: 'org.properties:view',
@@ -223,6 +231,7 @@ export const ORG_ROLE_PERMISSIONS: Record<BuiltinOrgRole, string[]> = {
   ADMIN: [
     'org.dashboard:view',
     'org.bookings:view',
+    'org.reviews:view',
     'org.properties:view',
     'org.properties:manage',
     'org.parkings:view',

@@ -63,6 +63,7 @@ export const PLAN_FEATURE_PERMISSION_COVERAGE: Record<
   },
   bookingImport: { leaves: ['bookings.import:add'] },
   calendarSync: { leaves: ['pricing.channels:view', 'pricing.channels:edit'] },
+  reviewAutomation: { leaves: ['reviews.guests:edit'] },
   smartPricing: { leaves: ['pricing.smartPricing:edit'] },
   customRoles: {
     leaves: ['team.customRoles:add', 'team.customRoles:edit', 'team.customRoles:delete'],

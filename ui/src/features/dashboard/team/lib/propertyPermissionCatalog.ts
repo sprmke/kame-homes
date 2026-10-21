@@ -28,6 +28,7 @@ export type PermissionCatalog = readonly PermissionCatalogNode[];
 
 const MODULE_ORDER = [
   'bookings',
+  'reviews',
   'finance',
   'pricing',
   'analytics',
@@ -45,6 +46,7 @@ const MODULE_ORDER = [
 
 const CATEGORY_TO_MODULE: Record<string, string> = {
   Bookings: 'bookings',
+  Reviews: 'reviews',
   Finance: 'finance',
   Pricing: 'pricing',
   Analytics: 'analytics',
@@ -62,6 +64,7 @@ const CATEGORY_TO_MODULE: Record<string, string> = {
 
 const MODULE_LABELS: Record<string, string> = {
   bookings: 'Bookings',
+  reviews: 'Reviews',
   finance: 'Finance',
   pricing: 'Pricing',
   analytics: 'Analytics',
@@ -114,6 +117,9 @@ function chipLabelFromPermission(name: string, id: string): string {
     'bookings.detail.pets:edit': 'Pets',
     'bookings.detail.pricing:edit': 'Pricing',
     'bookings.detail.workflow:edit': 'Workflow',
+    'reviews:view': 'Open page',
+    'reviews.guests:edit': 'Review guests',
+    'reviews.responses:edit': 'Respond',
     'finance:view': 'Open page',
     'finance.transactions:add': 'Add',
     'finance.transactions:edit': 'Edit',

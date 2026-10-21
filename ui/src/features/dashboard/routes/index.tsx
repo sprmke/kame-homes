@@ -15,6 +15,7 @@ import {
   helpSupportPropertyRoute,
 } from '@/features/dashboard/help-support/routes';
 import { propertyInboxRoute } from '@/features/dashboard/inbox/routes';
+import { propertyReviewsRoute } from '@/features/reviews/routes';
 import { maintenancePropertyRoute } from '@/features/dashboard/maintenance/routes';
 import { marketingPropertyRoute } from '@/features/dashboard/marketing/routes';
 import {
@@ -55,6 +56,7 @@ export const dashboardRoutes: ReactNode[] = [
         {marketingPropertyRoute(propertyRoute)}
         {propertyTeamRoute(propertyRoute)}
         {propertyInboxRoute(propertyRoute)}
+        {propertyReviewsRoute(propertyRoute)}
         {activityPropertyRoute(propertyRoute)}
         {hostAnnouncementsPropertyRoute(propertyRoute)}
         {helpSupportPropertyRoute(propertyRoute)}

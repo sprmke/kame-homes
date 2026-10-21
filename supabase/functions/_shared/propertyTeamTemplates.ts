@@ -31,6 +31,9 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<SeededPropertyTemplateKey, Team
     'bookings.detail.pets:edit',
     'bookings.detail.pricing:edit',
     'bookings.detail.workflow:edit',
+    'reviews:view',
+    'reviews.guests:edit',
+    'reviews.responses:edit',
     'maintenance:view',
     'maintenance.reminders:add',
     'maintenance.reminders:edit',
@@ -58,6 +61,7 @@ export const SEEDED_TEMPLATE_PERMISSIONS: Record<SeededPropertyTemplateKey, Team
   ],
   READ_ONLY: [
     'bookings:view',
+    'reviews:view',
     'maintenance:view',
     'notifications:view',
     'templates:view',

@@ -83,6 +83,10 @@ import {
   hasPropertyPermission,
 } from '@/features/dashboard/team/lib/propertyPermissions';
 
+import { GuestReputationCard } from '@/features/reviews/components/GuestReputationCard';
+import { ReviewGuestCard } from '@/features/reviews/components/ReviewGuestCard';
+import { useGuestReputation } from '@/features/reviews/hooks/useGuestReputation';
+
 import { MobileBrandHero } from '@/components/mobile/MobileBrandHero';
 import { BookingDetailPageSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
@@ -134,6 +138,9 @@ export function BookingDetailPage() {
     propertyAccess?.permissions,
     BOOKING_EDIT_TAB_PERMISSION.pets
   );
+  const canReviewGuest = hasPropertyPermission(propertyAccess?.permissions, 'reviews.guests:edit');
+  const { data: guestReputation, isLoading: guestReputationLoading } =
+    useGuestReputation(bookingId);
   const [editMode, setEditMode] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<BookingEditTabId | undefined>(undefined);
   const { previewAsset, previewLoading, handlePreview, closePreview } = useBookingAssetPreview();
@@ -432,7 +439,7 @@ export function BookingDetailPage() {
       <div
         data-page-brand-hero
         data-booking-detail-page
-        className="!mt-0 space-y-4 max-md:px-3.5 max-md:pt-3"
+        className="!mt-0 space-y-4 max-md:px-4 max-md:pt-3"
       >
         {/* Back nav */}
         <Link
@@ -530,6 +537,16 @@ export function BookingDetailPage() {
                       {viewTab === 'overview' && (
                         <div className="space-y-4">
                           <StayDetailsPanel booking={booking} />
+                          <GuestReputationCard
+                            payload={guestReputation}
+                            isLoading={guestReputationLoading}
+                          />
+                          <ReviewGuestCard
+                            bookingId={booking.id}
+                            guestName={guestName || 'guest'}
+                            payload={guestReputation}
+                            canEdit={canReviewGuest}
+                          />
                           <OtherInfoPanel booking={booking} />
                           <BookingMetaCard
                             booking={booking}

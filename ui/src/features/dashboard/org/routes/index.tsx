@@ -19,6 +19,7 @@ import {
   OrgParkingsRouteSkeleton,
   OrgPlansRouteSkeleton,
   OrgPropertiesRouteSkeleton,
+  OrgReviewsRouteSkeleton,
   OrgSettingsRouteSkeleton,
   OrgTeamRouteSkeleton,
 } from '@/components/skeletons/RouteSkeletons';
@@ -100,6 +101,9 @@ const OrgPlansPage = lazy(() =>
 const OrgTeamPage = lazy(() =>
   import('@/features/dashboard/team/pages/OrgTeamPage').then((m) => ({ default: m.OrgTeamPage }))
 );
+const OrgReviewsPage = lazy(() =>
+  import('@/features/reviews/pages/OrgReviewsPage').then((m) => ({ default: m.OrgReviewsPage }))
+);
 
 export const orgOnboardingRoutes: ReactNode = (
   <>
@@ -119,6 +123,10 @@ export function orgAdminRoutes(orgRoute: OrgRouteFn): ReactNode {
       <Route
         path="bookings"
         element={orgRoute('bookings', <OrgBookingsPage />, <OrgBookingsRouteSkeleton />)}
+      />
+      <Route
+        path="reviews"
+        element={orgRoute('reviews', <OrgReviewsPage />, <OrgReviewsRouteSkeleton />)}
       />
       <Route
         path="settings"

@@ -32,6 +32,7 @@ export type PropertySection =
   | 'team'
   | 'settings'
   | 'inbox'
+  | 'reviews'
   | 'activity'
   | 'announcements'
   | 'help-support';
@@ -178,6 +179,7 @@ export const PROPERTY_NAV_VIEW_PERMISSION: Record<string, TeamPermissionId> = {
   Team: 'team:view',
   Settings: 'settings:view',
   Inbox: 'inbox:view',
+  Reviews: 'reviews:view',
   Activity: 'activity:view',
   Announcements: 'bookings:view',
 };
@@ -198,6 +200,7 @@ export const PROPERTY_SECTION_VIEW_PERMISSION = {
   team: 'team:view',
   settings: 'settings:view',
   inbox: 'inbox:view',
+  reviews: 'reviews:view',
   // Audit data (who changed what) has its own view leaf; backfilled to existing bookings viewers.
   activity: 'activity:view',
   // Help + Announcements stay baseline for any active property member (RequirePropertyPermission special-cases them).
