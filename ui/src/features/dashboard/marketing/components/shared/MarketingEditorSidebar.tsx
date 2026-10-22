@@ -24,6 +24,8 @@ type Props = {
   fixedWidth?: number;
   /** Drag-to-resize handle. Ignored when `fixedWidth` is set. Default true. */
   resizable?: boolean;
+  /** Hide the round collapse button (an icon rail opens / closes the panel instead). */
+  hideCollapseToggle?: boolean;
   /**
    * How the panel behaves below `lg`:
    * - `stack` (default) — full-width block above the canvas (legacy).
@@ -47,6 +49,7 @@ export function MarketingEditorSidebar({
   className,
   fixedWidth,
   resizable = true,
+  hideCollapseToggle = false,
   mobileVariant = 'stack',
   mobileOpen = false,
   onMobileOpenChange,
@@ -62,7 +65,7 @@ export function MarketingEditorSidebar({
 
   widthRef.current = width;
 
-  const isDesktopCollapsed = collapsed && !isBelowLg;
+  const isDesktopCollapsed = collapsed && !isBelowLg && !hideCollapseToggle;
   const expandedWidth = fixedWidth ?? width;
   const desktopWidth = isDesktopCollapsed ? MARKETING_SIDEBAR_COLLAPSED_WIDTH : expandedWidth;
 
@@ -131,7 +134,7 @@ export function MarketingEditorSidebar({
       )}
       style={isBelowLg ? undefined : { width: desktopWidth }}
     >
-      {!isBelowLg ? (
+      {!isBelowLg && !hideCollapseToggle ? (
         <Button
           type="button"
           variant="outline"

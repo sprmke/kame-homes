@@ -1276,45 +1276,93 @@ export function OrgDashboardSkeleton() {
   );
 }
 
-/** Marketing design/video studio chrome — sidebar + canvas, responsive. */
-export function MarketingStudioSkeleton() {
+const MARKETING_LIBRARY_GRID =
+  'grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6';
+
+/** Library / AI Studio card grid. Same 4:5 tile, name, and meta line as a saved item. */
+export function MarketingLibraryGridSkeleton({
+  count = 8,
+  label = 'Loading',
+}: {
+  count?: number;
+  label?: string;
+}) {
+  return (
+    <ul className={MARKETING_LIBRARY_GRID} aria-busy="true" aria-label={label}>
+      {Array.from({ length: count }).map((_, index) => (
+        <li key={index} className="space-y-1.5">
+          <Skeleton className="aspect-[4/5] w-full rounded-xl" />
+          <Skeleton className="h-3.5 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Library body inside the studio card: start buttons, search, Filters, then the card grid.
+ * Used while the tab is still resolving and while the AI Studio chunk loads.
+ */
+export function MarketingLibraryBodySkeleton() {
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 lg:flex-row"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       aria-busy="true"
-      aria-label="Loading editor"
+      aria-label="Loading marketing"
     >
-      <aside className="border-border/60 flex w-full shrink-0 flex-col gap-3 border-b p-3 sm:p-4 lg:w-72 lg:border-b-0 lg:border-r xl:w-80">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-8 shrink-0 rounded-lg" />
-          <Skeleton className="h-4 w-28" />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-square w-full rounded-lg" />
-          ))}
-        </div>
-        <div className="space-y-2 pt-2">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-9 w-full rounded-lg" />
-          <Skeleton className="h-9 w-full rounded-lg" />
-        </div>
-      </aside>
-      <div className="bg-muted/30 flex min-h-[min(60dvh,28rem)] min-w-0 flex-1 flex-col p-3 sm:p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <Skeleton className="h-8 w-32 rounded-md" />
-          <div className="flex gap-2">
-            <Skeleton className="size-8 rounded-md" />
-            <Skeleton className="size-8 rounded-md" />
-            <Skeleton className="h-8 w-20 rounded-md" />
+      <div className="mx-auto w-full max-w-[100rem] space-y-4 p-3 sm:p-4 lg:p-6">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="flex gap-2 lg:mr-auto">
+            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-10 w-36 rounded-md" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 min-w-0 flex-1 rounded-md lg:w-60 lg:flex-none" />
+            <Skeleton className="hidden h-10 w-24 rounded-md sm:block" />
+            <Skeleton className="size-10 shrink-0 rounded-md" />
+            <Skeleton className="hidden size-10 shrink-0 rounded-md lg:block" />
           </div>
         </div>
-        <Skeleton className="min-h-0 w-full flex-1 rounded-xl" />
-        <div className="mt-3 flex gap-2 overflow-hidden">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-20 shrink-0 rounded-lg sm:h-16 sm:w-24" />
-          ))}
+        <MarketingLibraryGridSkeleton />
+      </div>
+    </div>
+  );
+}
+
+/** Default marketing body (library). Route chrome wraps this separately. */
+export function MarketingStudioSkeleton() {
+  return <MarketingLibraryBodySkeleton />;
+}
+
+/** Open editor: back row, then the canvas. The tab row is already hidden in focus mode. */
+export function MarketingEditorSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading editor">
+      <div className="border-border flex min-h-[52px] items-center gap-2 border-b px-2 sm:px-3">
+        <Skeleton className="h-9 w-20 shrink-0 rounded-md" />
+        <Skeleton className="h-5 w-36" />
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <Skeleton className="h-9 w-16 rounded-md" />
+          <Skeleton className="h-9 w-24 rounded-md" />
+          <Skeleton className="h-9 w-24 rounded-md" />
         </div>
+      </div>
+      <div className="bg-muted/30 flex min-h-0 flex-1 p-3 sm:p-4">
+        <Skeleton className="min-h-[16rem] w-full flex-1 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+/** Theme library card: sample art plus the name and item count. */
+export function MarketingThemeCardSkeleton() {
+  return (
+    <div className="border-border overflow-hidden rounded-xl border">
+      <Skeleton className="aspect-[16/9] w-full rounded-none" />
+      <div className="space-y-1.5 px-3 py-2.5">
+        <Skeleton className="h-3.5 w-2/3" />
+        <Skeleton className="h-3 w-16" />
       </div>
     </div>
   );

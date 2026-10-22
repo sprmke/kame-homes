@@ -37,6 +37,8 @@ export type StatCardProps = {
   /** When set, the card renders as a router link instead of a button. */
   to?: string;
   active?: boolean;
+  /** Tighter padding and type for dense KPI rows (e.g. super-admin overview). */
+  density?: 'default' | 'compact';
 };
 
 function formatChange(change: number, isPoints: boolean): string {
@@ -61,15 +63,18 @@ export function StatCard({
   onClick,
   to,
   active,
+  density = 'default',
 }: StatCardProps) {
   const hasChange = change !== undefined;
   const isPositive = change !== undefined && change >= 0;
   const interactive = onClick !== undefined || to !== undefined;
   const compactChrome = useDashboardCompactChrome();
-  const showIcon = Icon && !compactChrome;
+  const compact = density === 'compact';
+  const showIcon = Boolean(Icon && !compactChrome);
 
   const shellClassName = cn(
-    'surface-card group relative flex h-full w-full flex-col items-start justify-start overflow-hidden p-3 text-left transition-all duration-300 sm:p-3.5 md:p-5',
+    'surface-card group relative flex h-full w-full flex-col items-start justify-start overflow-hidden text-left transition-all duration-300',
+    compact ? 'p-2 sm:p-2.5' : 'p-3 sm:p-3.5 md:p-5',
     interactive && 'native-press',
     'sm:hover:shadow-elevated-lg sm:hover:-translate-y-0.5',
     interactive &&
@@ -91,7 +96,12 @@ export function StatCard({
         <div className="flex w-full items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
             <div className="flex items-start gap-0.5">
-              <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
+              <p
+                className={cn(
+                  'text-muted-foreground line-clamp-2 font-medium leading-snug',
+                  compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:line-clamp-none sm:text-sm'
+                )}
+              >
                 {title}
               </p>
               {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
@@ -100,7 +110,9 @@ export function StatCard({
               className={cn(
                 valueClassName?.includes('line-clamp')
                   ? 'font-bold tracking-tight'
-                  : 'text-stat-value truncate',
+                  : compact
+                    ? 'text-foreground truncate text-sm font-bold tabular-nums tracking-tight sm:text-base lg:text-lg'
+                    : 'text-stat-value truncate',
                 // Color override only — do not append `text-foreground` (token already
                 // sets it; a trailing text-* color used to make twMerge drop the token).
                 valueClassName
@@ -132,15 +144,19 @@ export function StatCard({
               </div>
             ) : null}
           </div>
-          {showIcon ? (
+          {showIcon && Icon ? (
             <div
               data-stat-card-icon
               className={cn(
-                'native-icon-tile hidden transition-transform sm:group-hover:scale-110 lg:flex',
+                'hidden shrink-0 items-center justify-center transition-transform lg:flex',
+                compact ? 'size-7 rounded-lg' : 'native-icon-tile sm:group-hover:scale-110',
                 iconBgClassName
               )}
             >
-              <Icon className={cn('size-4 sm:size-5', iconClassName)} aria-hidden />
+              <Icon
+                className={cn(compact ? 'size-3.5' : 'size-4 sm:size-5', iconClassName)}
+                aria-hidden
+              />
             </div>
           ) : null}
         </div>
