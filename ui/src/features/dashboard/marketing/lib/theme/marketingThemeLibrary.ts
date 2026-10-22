@@ -30,6 +30,8 @@ export type MarketingThemeEntry = {
   calendarLayoutId?: string;
   /** Starter group label (picker section). */
   group?: string;
+  /** Starter shown before "More looks" (the first look of each group). */
+  featured?: boolean;
   itemCount: number;
   /** Only custom themes are edited in place; built-ins are copied on save. */
   editable: boolean;
@@ -61,26 +63,45 @@ export function buildMarketingThemeLibrary(input: {
     editable: false,
   };
 
+  const recordsById = new Map(input.records.map((record) => [record.id, record]));
+  // A theme made from a starter (or a copy of one) keeps that look's calendar layout.
+  const inheritedLayout = (ref: string | null, depth = 0): string | undefined => {
+    const parsed = parseMarketingThemeKey(ref);
+    if (!parsed || depth > 3) return undefined;
+    if (parsed.kind === 'starter') return findStarterTheme(parsed.starterId)?.calendarLayoutId;
+    if (parsed.kind === 'custom') {
+      return inheritedLayout(recordsById.get(parsed.id)?.sourceRef ?? null, depth + 1);
+    }
+    return undefined;
+  };
+
   const custom = input.records.map((record): MarketingThemeEntry => ({
     key: record.id,
     name: record.name,
     tokens: coerceMarketingThemeTokens(record.tokens),
     kind: 'custom',
+    calendarLayoutId: inheritedLayout(record.sourceRef),
     itemCount: count(record.id),
     editable: true,
     record,
   }));
 
-  const starters = listStarterThemes().map((starter): MarketingThemeEntry => ({
-    key: starterThemeKey(starter.id),
-    name: starter.label,
-    tokens: starter.tokens,
-    kind: 'starter',
-    calendarLayoutId: starter.calendarLayoutId,
-    group: starter.group,
-    itemCount: count(starterThemeKey(starter.id)),
-    editable: false,
-  }));
+  const seenGroups = new Set<string>();
+  const starters = listStarterThemes().map((starter): MarketingThemeEntry => {
+    const featured = !seenGroups.has(starter.group);
+    seenGroups.add(starter.group);
+    return {
+      key: starterThemeKey(starter.id),
+      name: starter.label,
+      tokens: starter.tokens,
+      kind: 'starter',
+      calendarLayoutId: starter.calendarLayoutId,
+      group: starter.group,
+      featured,
+      itemCount: count(starterThemeKey(starter.id)),
+      editable: false,
+    };
+  });
 
   const usedStarters = starters.filter((entry) => entry.itemCount > 0);
   const mine = [propertyColors, ...custom, ...usedStarters];

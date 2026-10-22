@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef } from 'react';
 
 import { useMarketingMusicBrowse } from '@/features/dashboard/marketing/hooks/useMarketingMusic';
@@ -18,7 +17,8 @@ import type { VideoProject } from '@/features/dashboard/marketing/lib/video/vide
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 
-type SetProject = Dispatch<SetStateAction<VideoProject | null>>;
+/** Updates that are not host edits (see `useVideoProjectHistory().amendProject`). */
+type SetProject = (updater: (prev: VideoProject | null) => VideoProject | null) => void;
 
 /**
  * Resolves the default Joystock lofi track for new/legacy templates:

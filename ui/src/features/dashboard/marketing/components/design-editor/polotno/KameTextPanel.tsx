@@ -124,7 +124,9 @@ export const KameTextPanel = observer(function KameTextPanel({
               <span
                 className={cn('text-foreground truncate', preset.previewClassName)}
                 style={
-                  textTheme ? { fontFamily: `"${textTheme.fonts[preset.role]}", sans-serif` } : undefined
+                  textTheme
+                    ? { fontFamily: `"${textTheme.fonts[preset.role]}", sans-serif` }
+                    : undefined
                 }
               >
                 {preset.preview}

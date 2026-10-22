@@ -1,6 +1,6 @@
-import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import { getCampaignTemplate } from '@/features/dashboard/marketing/lib/designCampaignTemplates';
+import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 
 export const DESIGN_CUSTOM_SOURCE_PRESET_ID = 'custom';
 

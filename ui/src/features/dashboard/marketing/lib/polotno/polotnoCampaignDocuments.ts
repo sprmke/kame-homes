@@ -1,10 +1,4 @@
 import {
-  applyCampaignFontsToDocument,
-  campaignFontMap,
-  themeToCampaignPalette,
-} from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import {
   resolveCampaignPalette,
   type CampaignPalette,
 } from '@/features/dashboard/marketing/lib/designBrandColors';
@@ -17,6 +11,12 @@ import { squareImageCoverCrop } from '@/features/dashboard/marketing/lib/polotno
 import { roundedOutlineSvgUrl } from '@/features/dashboard/marketing/lib/polotno/roundedOutlineSvg';
 import { DESIGN_FORMAT_DIMENSIONS } from '@/features/dashboard/marketing/lib/templateRegistry';
 import type { DesignTemplateFormat } from '@/features/dashboard/marketing/lib/templateRegistry';
+import {
+  applyCampaignFontsToDocument,
+  campaignFontMap,
+  themeToCampaignPalette,
+} from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 
 /**
  * Editorial design system ("Quiet Coast"): photo-led compositions with the brand

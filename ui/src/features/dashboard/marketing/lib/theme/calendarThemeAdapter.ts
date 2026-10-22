@@ -20,7 +20,10 @@ import {
   normalizeThemeHex,
 } from '@/features/dashboard/marketing/lib/theme/marketingThemeColor';
 import { readTemplateThemeSnapshot } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
-import { calendarLayoutSourceTokens, findStarterTheme } from '@/features/dashboard/marketing/lib/theme/starterThemes';
+import {
+  calendarLayoutSourceTokens,
+  findStarterTheme,
+} from '@/features/dashboard/marketing/lib/theme/starterThemes';
 import {
   lockedPathMatcher,
   remapThemeTree,
@@ -310,7 +313,8 @@ export function themedSavedCalendarStyles(
   const snapshot = readTemplateThemeSnapshot(designJson);
   const preset = typeof designJson?.sourcePresetId === 'string' ? designJson.sourcePresetId : null;
   const from =
-    snapshot.tokens ?? (preset && findStarterTheme(preset) ? calendarLayoutSourceTokens(preset) : null);
+    snapshot.tokens ??
+    (preset && findStarterTheme(preset) ? calendarLayoutSourceTokens(preset) : null);
   const normalized = normalizeCalendarStyles(styles);
   if (!from) return { styles: normalized, rethemed: false, lockedPaths: snapshot.lockedPaths };
   const next = rethemeCalendarStyles(normalized, from, target, {

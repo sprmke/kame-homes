@@ -22,6 +22,7 @@ import {
 } from 'remotion';
 
 import type { CampaignPalette } from '@/features/dashboard/marketing/lib/designBrandColors';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { PositionedLayer } from '@/features/dashboard/marketing/lib/video/videoCompositionLayout';
 import {
   layerHasContent,
@@ -49,7 +50,6 @@ import {
   sceneBackgroundLayer,
 } from '@/features/dashboard/marketing/lib/video/videoSceneLayers';
 import type { VideoOverlayMode } from '@/features/dashboard/marketing/lib/video/videoStoryboardRecipes';
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import {
   resolveVideoTypographyContext,
   type VideoTemplateLook,

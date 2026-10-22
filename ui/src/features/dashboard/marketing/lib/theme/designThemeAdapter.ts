@@ -59,7 +59,10 @@ export function themeToCampaignFonts(theme: MarketingThemeTokens): CampaignFonts
 // ── Polotno documents ────────────────────────────────────────────────────────
 
 type PolotnoNode = Record<string, unknown> & { id?: string; children?: PolotnoNode[] };
-type PolotnoDoc = { pages?: Array<PolotnoNode & { background?: unknown }> } & Record<string, unknown>;
+type PolotnoDoc = { pages?: Array<PolotnoNode & { background?: unknown }> } & Record<
+  string,
+  unknown
+>;
 
 /** Visual props a theme controls on a Polotno element. */
 const THEMED_ELEMENT_PROPS = [

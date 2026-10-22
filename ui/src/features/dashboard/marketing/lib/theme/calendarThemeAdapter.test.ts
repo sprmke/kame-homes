@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveCalendarPresetStylesForFormat } from '@/features/dashboard/marketing/components/calendar-builder/stores/calendarBuilderStore';
+import { resolveCalendarPresetStyles } from '@/features/dashboard/marketing/components/calendar-builder/stores/calendarBuilderStore';
+import { normalizeCalendarStyles } from '@/features/dashboard/marketing/components/calendar-builder/types';
 import type { CalendarStyles } from '@/features/dashboard/marketing/components/calendar-builder/types';
 import { CALENDAR_DESIGNER_PRESET_IDS } from '@/features/dashboard/marketing/lib/calendarPresets';
 import {
@@ -86,8 +87,12 @@ describe('golden: starter theme + its layout = the original preset', () => {
           theme: starter.tokens,
           format,
         });
-        const original = resolveCalendarPresetStylesForFormat(presetId, format);
-        // Only the frame color may differ: it now follows the theme instead of the org brand.
+        // The preset as authored, framed for this format. Only the frame color may differ:
+        // it follows the theme (it used to follow the org brand).
+        const original = normalizeCalendarStyles({
+          ...resolveCalendarPresetStyles(presetId),
+          canvasFrame: themed.canvasFrame,
+        });
         expect(withoutFrameBackground(themed)).toEqual(withoutFrameBackground(original));
         if (format !== 'square') {
           expect(themed.canvasFrame?.background.color).toBe(starter.tokens.palette.primary);

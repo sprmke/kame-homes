@@ -77,3 +77,49 @@ export function themeStampForSave(
     lockedPaths: [...new Set(lockedPaths)].slice(0, 500),
   };
 }
+
+/** Stored thumbnail (Storage URL, or the older embedded data URL). */
+export function savedRecordThumbnail(
+  record: Pick<MarketingTemplateRecord, 'thumbnailUrl' | 'designJson'>
+): string | undefined {
+  if (record.thumbnailUrl) return record.thumbnailUrl;
+  const value = record.designJson?.thumbnailDataUrl;
+  return typeof value === 'string' && value.startsWith('data:') ? value : undefined;
+}
+
+/**
+ * The stored thumbnail shows another version of the theme, so re-render it.
+ * Videos always draw in the current theme, so any hash mismatch is stale; posts
+ * are only re-themed when they carry a snapshot (older posts keep their look).
+ */
+export function savedThumbnailStale(
+  record: Pick<MarketingTemplateRecord, 'contentType' | 'designJson'>,
+  themeHash: string | null
+): boolean {
+  if (!themeHash) return false;
+  const savedHash =
+    typeof record.designJson?.themeHash === 'string' ? record.designJson.themeHash : null;
+  if (record.contentType === 'video') return savedHash !== themeHash;
+  return savedHash !== null && savedHash !== themeHash;
+}
+
+export type ThemeShowcaseItems<T extends MarketingTemplateRecord = MarketingTemplateRecord> = {
+  calendar?: T;
+  design?: T;
+  video?: T;
+};
+
+/** The most recently edited calendar, post and video in each theme (theme cards). */
+export function latestItemsByTheme<T extends MarketingTemplateRecord>(
+  templates: readonly T[]
+): Map<string, ThemeShowcaseItems<T>> {
+  const byTheme = new Map<string, ThemeShowcaseItems<T>>();
+  for (const record of templates) {
+    const key = effectiveTemplateThemeKey(record);
+    const slot = byTheme.get(key) ?? {};
+    const current = slot[record.contentType];
+    if (!current || record.updatedAt > current.updatedAt) slot[record.contentType] = record;
+    byTheme.set(key, slot);
+  }
+  return byTheme;
+}

@@ -1,20 +1,28 @@
+import { createElement } from 'react';
+
+import { createRoot } from 'react-dom/client';
+
+import Workspace from 'openpolotno/canvas/workspace';
 import { createStore } from 'openpolotno/model/store';
 
 import type { DesignBinding } from '@/features/dashboard/marketing/lib/designCanvasTypes';
 import { blobToDataUrl } from '@/features/dashboard/marketing/lib/exportVideoMedia';
+import { savedThumbnailPixelRatio } from '@/features/dashboard/marketing/lib/marketingThumbSizing';
 import { ensurePolotnoConfigured } from '@/features/dashboard/marketing/lib/polotno/initPolotno';
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { buildPolotnoCampaignDocument } from '@/features/dashboard/marketing/lib/polotno/polotnoCampaignDocuments';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
 import { syncPolotnoTextBounds } from '@/features/dashboard/marketing/lib/polotno/syncPolotnoTextBounds';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 
-const THUMB_PIXEL_RATIO = 0.2;
+/** Card art for template tiles (~180px CSS wide at 2x). */
+const CARD_THUMB_LONG_EDGE = 360;
 
 async function storeToThumbnailDataUrl(store: PolotnoStore): Promise<string | null> {
   await store.waitLoading();
+  const size = store as unknown as { width: number; height: number };
   const blob = await store.toBlob({
     mimeType: 'image/jpeg',
-    pixelRatio: THUMB_PIXEL_RATIO,
+    pixelRatio: savedThumbnailPixelRatio(size.width, size.height, CARD_THUMB_LONG_EDGE),
   });
   if (!blob || blob.size < 64) return null;
   return blobToDataUrl(blob);
@@ -45,6 +53,45 @@ function createThumbnailStore() {
   return createStore({ key: '', showCredit: false });
 }
 
+/**
+ * OpenPolotno can only export a page whose `<Workspace />` is mounted (it looks the
+ * Konva stage up by page id). Off-screen renders mount a hidden, inert workspace for
+ * the length of the capture.
+ */
+function mountOffscreenWorkspace(store: unknown, width: number, height: number): () => void {
+  const host = document.createElement('div');
+  host.setAttribute('aria-hidden', 'true');
+  host.style.cssText = [
+    'position:fixed',
+    'left:-100000px',
+    'top:0',
+    `width:${Math.max(64, Math.round(width / 4))}px`,
+    `height:${Math.max(64, Math.round(height / 4))}px`,
+    'opacity:0',
+    'pointer-events:none',
+    'overflow:hidden',
+    'contain:strict',
+  ].join(';');
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  root.render(createElement(Workspace as never, { store } as never));
+  return () => {
+    root.unmount();
+    host.remove();
+  };
+}
+
+/** Runs `task` with `store` mounted off-screen, then tears the mount down. */
+async function withOffscreenWorkspace<T>(store: unknown, task: () => Promise<T>): Promise<T> {
+  const size = store as { width?: number; height?: number };
+  const dispose = mountOffscreenWorkspace(store, size.width ?? 1080, size.height ?? 1080);
+  try {
+    return await task();
+  } finally {
+    dispose();
+  }
+}
+
 export async function waitForThumbnailPaint(): Promise<void> {
   await Promise.race([
     document.fonts.ready,
@@ -56,7 +103,7 @@ export async function waitForThumbnailPaint(): Promise<void> {
   await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
 }
 
-/** Headless preset capture — avoids mounting a second Polotno `<Workspace />`. */
+/** Off-screen preset capture (hidden workspace, never the live editor's). */
 export async function renderDesignPresetThumbnail(
   templateId: string,
   binding: DesignBinding,
@@ -75,8 +122,10 @@ export async function renderDesignPresetThumbnail(
     store.history.clear();
     await store.waitLoading();
     await syncPolotnoTextBounds(store);
-    await waitForThumbnailPaint();
-    return await storeToThumbnailDataUrl(store);
+    return await withOffscreenWorkspace(store, async () => {
+      await waitForThumbnailPaint();
+      return storeToThumbnailDataUrl(store);
+    });
   } catch {
     return null;
   } finally {
@@ -93,8 +142,10 @@ export async function renderDesignDocumentThumbnail(doc: unknown): Promise<strin
     store.history.clear();
     await store.waitLoading();
     await syncPolotnoTextBounds(store);
-    await waitForThumbnailPaint();
-    return await storeToThumbnailDataUrl(store);
+    return await withOffscreenWorkspace(store, async () => {
+      await waitForThumbnailPaint();
+      return storeToThumbnailDataUrl(store);
+    });
   } catch {
     return null;
   } finally {
@@ -107,5 +158,63 @@ export async function renderDesignStoreThumbnail(store: PolotnoStore): Promise<s
     return await storeToThumbnailDataUrl(store);
   } catch {
     return null;
+  }
+}
+
+/** Stored (Library) thumbnail of the live editor canvas. */
+export async function renderDesignStoreSavedThumbnail(
+  store: PolotnoStore
+): Promise<string | null> {
+  try {
+    await store.waitLoading();
+    const size = store as unknown as { width: number; height: number };
+    const blob = await store.toBlob({
+      mimeType: 'image/jpeg',
+      pixelRatio: savedThumbnailPixelRatio(size.width, size.height),
+    });
+    if (!blob || blob.size < 64) return null;
+    return blobToDataUrl(blob);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The same design at another size, built off-screen (the open canvas is untouched).
+ * Elements scale and move with the page ("magic" resize); a thumbnail comes along.
+ */
+export async function resizeDesignDocument(
+  doc: Record<string, unknown>,
+  width: number,
+  height: number,
+  relayout?: (store: PolotnoStore) => Promise<void>
+): Promise<{ document: Record<string, unknown>; thumbnail: string | null } | null> {
+  const store = createThumbnailStore();
+  try {
+    store.loadJSON(withUniquePageIds(doc));
+    store.history.clear();
+    await store.waitLoading();
+    (store as unknown as { setSize: (w: number, h: number, magic?: boolean) => void }).setSize(
+      width,
+      height,
+      true
+    );
+    if (relayout) await relayout(store as unknown as PolotnoStore);
+    await syncPolotnoTextBounds(store as unknown as PolotnoStore);
+    const document = store.toJSON() as Record<string, unknown>;
+    // The resized document is the result; a failed thumbnail must not lose it.
+    const thumbnail = await withOffscreenWorkspace(store, async () => {
+      await waitForThumbnailPaint();
+      const blob = await store.toBlob({
+        mimeType: 'image/jpeg',
+        pixelRatio: savedThumbnailPixelRatio(width, height),
+      });
+      return blob && blob.size >= 64 ? blobToDataUrl(blob) : null;
+    }).catch(() => null);
+    return { document, thumbnail };
+  } catch {
+    return null;
+  } finally {
+    (store as { destroy?: () => void }).destroy?.();
   }
 }

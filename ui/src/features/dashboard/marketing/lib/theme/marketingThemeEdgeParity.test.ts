@@ -10,10 +10,12 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { GENERATION_LOOKS } from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import {
   MARKETING_THEME_BACKGROUNDS,
   MARKETING_THEME_CORNERS,
   MARKETING_THEME_PALETTE_ROLES,
+  MARKETING_THEME_PHOTO_LOOKS,
 } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { MARKETING_THEME_FONT_FAMILIES } from '@/features/dashboard/marketing/lib/theme/marketingThemeFonts';
 import {
@@ -45,6 +47,11 @@ describe('marketing theme: UI ↔ edge', () => {
     expect(edgeArray('MARKETING_THEME_BACKGROUNDS')).toEqual([...MARKETING_THEME_BACKGROUNDS]);
     expect(edgeArray('MARKETING_THEME_CORNERS')).toEqual([...MARKETING_THEME_CORNERS]);
     expect(edgeArray('MARKETING_THEME_PALETTE_ROLES')).toEqual([...MARKETING_THEME_PALETTE_ROLES]);
+  });
+
+  it('photo looks match the edge and the AI Photo / Video look list', () => {
+    expect(edgeArray('MARKETING_THEME_PHOTO_LOOKS')).toEqual([...MARKETING_THEME_PHOTO_LOOKS]);
+    expect(GENERATION_LOOKS.map((look) => look.id)).toEqual([...MARKETING_THEME_PHOTO_LOOKS]);
   });
 
   it('font allow-list matches', () => {

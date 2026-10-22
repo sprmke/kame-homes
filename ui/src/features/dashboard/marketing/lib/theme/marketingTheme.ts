@@ -31,6 +31,18 @@ export const MARKETING_THEME_BACKGROUNDS = [
 export type MarketingThemeBackground = (typeof MARKETING_THEME_BACKGROUNDS)[number];
 
 export const MARKETING_THEME_CORNERS = ['sharp', 'soft', 'round'] as const;
+
+/** Light and mood for AI photos/videos (same ids as `GENERATION_LOOKS`). */
+export const MARKETING_THEME_PHOTO_LOOKS = [
+  'golden-hour',
+  'bright-airy',
+  'evening-glow',
+  'blue-hour',
+  'rainy-cozy',
+  'editorial',
+  'detail',
+] as const;
+export type MarketingThemePhotoLook = (typeof MARKETING_THEME_PHOTO_LOOKS)[number];
 export type MarketingThemeCorners = (typeof MARKETING_THEME_CORNERS)[number];
 
 export const MARKETING_THEME_PALETTE_ROLES = [
@@ -57,6 +69,8 @@ export type MarketingThemeTokens = {
   fonts: MarketingThemeFonts;
   background: MarketingThemeBackground;
   corners: MarketingThemeCorners;
+  /** Optional default light and mood for AI Photo / Video in this theme. */
+  photoLook?: MarketingThemePhotoLook | null;
 };
 
 export type ResolvedMarketingTheme = MarketingThemePalette & {
@@ -133,6 +147,10 @@ export function parseMarketingThemeTokens(raw: unknown): MarketingThemeTokens | 
     fonts: { display: fonts.display, body: fonts.body, label: fonts.label },
     background: value.background,
     corners: value.corners,
+    // Optional: present only when valid; an unknown value is dropped, not fatal.
+    ...(isOneOf(MARKETING_THEME_PHOTO_LOOKS, value.photoLook)
+      ? { photoLook: value.photoLook }
+      : {}),
   };
 }
 
@@ -164,6 +182,11 @@ export function coerceMarketingThemeTokens(
       ? value.background
       : fallback.background,
     corners: isOneOf(MARKETING_THEME_CORNERS, value.corners) ? value.corners : fallback.corners,
+    ...(isOneOf(MARKETING_THEME_PHOTO_LOOKS, value.photoLook)
+      ? { photoLook: value.photoLook }
+      : fallback.photoLook
+        ? { photoLook: fallback.photoLook }
+        : {}),
   };
 }
 
@@ -203,6 +226,7 @@ function canonicalTokens(tokens: MarketingThemeTokens): string {
     [tokens.fonts.display, tokens.fonts.body, tokens.fonts.label],
     tokens.background,
     tokens.corners,
+    tokens.photoLook ?? null,
   ]);
 }
 

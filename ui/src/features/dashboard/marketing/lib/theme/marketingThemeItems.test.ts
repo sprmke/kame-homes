@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
-import {
-  planCalendarRelatedCustomIds,
-  planCalendarTemplateDedupe,
-} from '@/features/dashboard/marketing/lib/calendarAutosave';
-import { planDesignAutosavePurge } from '@/features/dashboard/marketing/lib/designAutosave';
 import { DEFAULT_MARKETING_THEME_TOKENS } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import {
   effectiveTemplateThemeKey,
+  latestItemsByTheme,
   readTemplateThemeSnapshot,
+  savedRecordThumbnail,
+  savedThumbnailStale,
   templatesInTheme,
   themeStampForSave,
 } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
@@ -81,63 +79,42 @@ describe('theme snapshot', () => {
   });
 });
 
-describe('cleanup never crosses themes (data safety)', () => {
-  it('calendar dedupe keeps one autosave per theme, not one overall', () => {
+describe('theme card items', () => {
+  it('picks the newest calendar, post and video per theme', () => {
     const rows = [
-      record({ id: 'a1', themeKey: THEME_A, designJson: { sourcePresetId: 'desk-type' } }),
-      record({ id: 'b1', themeKey: THEME_B, designJson: { sourcePresetId: 'desk-type' } }),
-      record({
-        id: 'a2',
-        themeKey: THEME_A,
-        designJson: { sourcePresetId: 'desk-type' },
-        updatedAt: '2026-10-02T00:00:00Z',
-      }),
+      record({ id: 'c1', themeKey: THEME_A, updatedAt: '2026-10-01T00:00:00Z' }),
+      record({ id: 'c2', themeKey: THEME_A, updatedAt: '2026-10-05T00:00:00Z' }),
+      record({ id: 'p1', themeKey: THEME_A, contentType: 'design' }),
+      record({ id: 'v1', themeKey: THEME_B, contentType: 'video' }),
+      record({ id: 'legacy', contentType: 'design' }),
     ];
-    expect(planCalendarTemplateDedupe(rows)).toEqual(['a1']);
+    const map = latestItemsByTheme(rows);
+    expect(map.get(THEME_A)?.calendar?.id).toBe('c2');
+    expect(map.get(THEME_A)?.design?.id).toBe('p1');
+    expect(map.get(THEME_A)?.video).toBeUndefined();
+    expect(map.get(THEME_B)?.video?.id).toBe('v1');
+    expect(map.get('property-colors')?.design?.id).toBe('legacy');
   });
 
-  it('calendar format siblings with the same name stay in their own theme', () => {
-    const rows = [
-      record({
-        id: 'a-sq',
-        name: 'Summer',
-        themeKey: THEME_A,
-        designJson: { sourcePresetId: 'custom' },
-      }),
-      record({
-        id: 'a-po',
-        name: 'Summer',
-        themeKey: THEME_A,
-        aspectPreset: 'instagram-story',
-        designJson: { sourcePresetId: 'custom' },
-      }),
-      record({
-        id: 'b-sq',
-        name: 'Summer',
-        themeKey: THEME_B,
-        designJson: { sourcePresetId: 'custom' },
-      }),
-    ];
-    expect(planCalendarRelatedCustomIds(rows, 'a-sq').sort()).toEqual(['a-po', 'a-sq']);
-  });
-
-  it('design purge keeps the newest autosave per theme + preset + format', () => {
-    const design = (id: string, themeKey: string | null, updatedAt: string) =>
-      record({
-        id,
-        contentType: 'design',
-        themeKey,
-        updatedAt,
-        designJson: {
-          sourcePresetId: 'promo-500-off-instagram-post',
-          templateId: 'promo-500-off-instagram-post',
-        },
-      });
-    const rows = [
-      design('old', null, '2026-01-01T00:00:00Z'),
-      design('new', null, '2026-02-01T00:00:00Z'),
-      design('themed', THEME_A, '2026-01-15T00:00:00Z'),
-    ];
-    expect(planDesignAutosavePurge(rows)).toEqual(['old']);
+  it('prefers the stored thumbnail and skips stale ones', () => {
+    expect(
+      savedRecordThumbnail(
+        record({
+          id: 'a',
+          thumbnailUrl: 'https://x.test/a.jpg',
+          designJson: { thumbnailDataUrl: 'data:x' },
+        })
+      )
+    ).toBe('https://x.test/a.jpg');
+    expect(
+      savedRecordThumbnail(record({ id: 'b', designJson: { thumbnailDataUrl: 'nope' } }))
+    ).toBe(undefined);
+    const post = record({ id: 'p', contentType: 'design', designJson: { themeHash: 'h1' } });
+    expect(savedThumbnailStale(post, 'h1')).toBe(false);
+    expect(savedThumbnailStale(post, 'h2')).toBe(true);
+    // Older posts without a snapshot keep their own look, so they are never stale.
+    expect(savedThumbnailStale(record({ id: 'o', contentType: 'design' }), 'h2')).toBe(false);
+    // Videos always render in the current theme.
+    expect(savedThumbnailStale(record({ id: 'v', contentType: 'video' }), 'h2')).toBe(true);
   });
 });

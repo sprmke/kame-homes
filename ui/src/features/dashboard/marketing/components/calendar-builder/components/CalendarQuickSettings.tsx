@@ -28,7 +28,7 @@ function readPath(root: unknown, path: string): unknown {
 }
 
 /** Everyday calendar controls. Colors and fonts come from the theme; deep styling lives in Advanced. */
-export function CalendarQuickSettings() {
+export function CalendarQuickSettings({ bare = false }: { bare?: boolean } = {}) {
   const styles = useCalendarBuilderStore((state) => state.styles);
   const updateStyles = useCalendarBuilderStore((state) => state.updateStyles);
   const saveToHistory = useCalendarBuilderStore((state) => state.saveToHistory);
@@ -40,8 +40,8 @@ export function CalendarQuickSettings() {
     saveToHistory();
   };
 
-  return (
-    <MarketingSidebarSection title="Show on calendar" defaultOpen={false}>
+  const body = (
+    <>
       <ul className="divide-border/60 divide-y">
         {SHOW_ITEMS.map((item) => {
           const checked = readPath(styles, item.path) === true;
@@ -82,6 +82,14 @@ export function CalendarQuickSettings() {
           </div>
         ) : null}
       </div>
+    </>
+  );
+
+  // `bare`: the editor rail already titles the panel.
+  if (bare) return body;
+  return (
+    <MarketingSidebarSection title="Show on calendar" defaultOpen={false}>
+      {body}
     </MarketingSidebarSection>
   );
 }

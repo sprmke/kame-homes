@@ -67,16 +67,31 @@ export const EMPTY_COLLAGE_CELL_NAME = 'Collage cell (empty)';
 export const FILLED_COLLAGE_CELL_NAME = 'Collage cell';
 
 /**
- * Dashed placeholder with a "+" and the cell number, as a scalable SVG data URI.
- * Rendered as a normal image element — no custom Konva renderer needed.
+ * Empty-cell placeholder as an SVG data URI sized to the cell's own frame, so the
+ * image's natural aspect always matches the element and never stretches or clips.
+ * Quiet by design: a flat tint, a small "+" badge and the cell number.
  */
-export function emptyCollageCellSvgDataUri(cellNumber: number): string {
+export function emptyCollageCellSvgDataUri(
+  cellNumber: number,
+  width: number,
+  height: number
+): string {
+  const w = Math.max(1, Math.round(width));
+  const h = Math.max(1, Math.round(height));
+  const short = Math.min(w, h);
+  const badge = Math.min(72, Math.max(28, Math.round(short * 0.2)));
+  const r = badge / 2;
+  const cx = w / 2;
+  const cy = h / 2;
+  const arm = badge * 0.2;
+  const stroke = Math.max(2, badge * 0.07);
+  const label = Math.min(26, Math.max(12, Math.round(short * 0.06)));
   const svg = [
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">',
-    '<rect x="4" y="4" width="192" height="192" rx="10" fill="#f4f4f5" stroke="#a1a1aa" stroke-width="3" stroke-dasharray="10 8"/>',
-    '<line x1="100" y1="72" x2="100" y2="112" stroke="#a1a1aa" stroke-width="6" stroke-linecap="round"/>',
-    '<line x1="80" y1="92" x2="120" y2="92" stroke="#a1a1aa" stroke-width="6" stroke-linecap="round"/>',
-    `<text x="100" y="150" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#71717a">${cellNumber}</text>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,
+    `<rect width="${w}" height="${h}" fill="#eef1ef"/>`,
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="#d3dad6" stroke-width="${stroke / 2}"/>`,
+    `<path d="M${cx - arm} ${cy}H${cx + arm}M${cx} ${cy - arm}V${cy + arm}" stroke="#3f4a46" stroke-width="${stroke}" stroke-linecap="round" fill="none"/>`,
+    `<text x="${cx}" y="${cy + r + label * 1.7}" text-anchor="middle" font-family="sans-serif" font-weight="600" font-size="${label}" fill="#8a948f">${cellNumber}</text>`,
     '</svg>',
   ].join('');
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -98,7 +113,9 @@ export function collageCellElement(
     y: frame.y,
     width: frame.width,
     height: frame.height,
-    src: empty ? emptyCollageCellSvgDataUri(index + 1) : photo!.url,
+    src: empty
+      ? emptyCollageCellSvgDataUri(index + 1, frame.width, frame.height)
+      : photo!.url,
     cropX: 0,
     cropY: 0,
     cropWidth: 1,

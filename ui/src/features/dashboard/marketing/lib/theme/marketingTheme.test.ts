@@ -68,6 +68,17 @@ describe('parseMarketingThemeTokens', () => {
     expect(parseMarketingThemeTokens({ ...base, background: 'video' })).toBeNull();
   });
 
+  it('photoLook is optional: kept when valid, dropped when unknown, never added', () => {
+    expect(parseMarketingThemeTokens({ ...base, photoLook: 'golden-hour' })?.photoLook).toBe(
+      'golden-hour'
+    );
+    const dropped = parseMarketingThemeTokens({ ...base, photoLook: 'disco' });
+    expect(dropped).not.toBeNull();
+    expect(dropped && 'photoLook' in dropped).toBe(false);
+    expect(parseMarketingThemeTokens(base)).toEqual(base);
+    expect(marketingThemeHash({ ...base, photoLook: 'detail' })).not.toBe(marketingThemeHash(base));
+  });
+
   it('coerce keeps valid fields and fills the rest', () => {
     const coerced = coerceMarketingThemeTokens({
       palette: { primary: '#123456' },

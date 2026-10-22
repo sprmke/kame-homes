@@ -21,6 +21,8 @@ export type GeneratePostersInput = {
   facts: PosterFacts;
   brandColor: string | null;
   count?: number;
+  /** AI Studio refinement: revise this post with the host's words (one variant back). */
+  revise?: { spec: Record<string, unknown>; instruction: string };
 };
 
 export type GeneratePostersResult = {
@@ -51,6 +53,7 @@ export async function requestPosterSpecs(
       prompt: input.prompt,
       count: input.count ?? 4,
       brandColor: input.brandColor,
+      ...(input.revise ? { revise: input.revise } : {}),
       photoUrls: input.facts.photos.slice(0, 6),
       facts: {
         propertyName: input.facts.propertyName,

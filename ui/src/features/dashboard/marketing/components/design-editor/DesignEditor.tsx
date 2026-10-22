@@ -1,16 +1,20 @@
 import { Component, Suspense, lazy, type ReactNode } from 'react';
 
 import type { DesignExportPayload } from '@/features/dashboard/marketing/components/design-editor/PolotnoDesignStudio';
+import type {
+  MarketingEditorDocument,
+  MarketingEditorNav,
+} from '@/features/dashboard/marketing/components/shared/MarketingEditorHost';
 
-import { MarketingStudioSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { MarketingEditorSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 
 export type { DesignExportPayload };
 
 type Props = {
+  document: MarketingEditorDocument;
+  nav: MarketingEditorNav;
   onPublish?: (payload: DesignExportPayload) => void;
-  openTemplateId?: string | null;
-  onOpenTemplateHandled?: () => void;
 };
 
 function loadPolotnoDesignStudio() {
@@ -66,7 +70,7 @@ export function DesignEditor(props: Props) {
         void loadPolotnoDesignStudio().catch(() => undefined);
       }}
     >
-      <Suspense fallback={<MarketingStudioSkeleton />}>
+      <Suspense fallback={<MarketingEditorSkeleton />}>
         <PolotnoDesignStudio {...props} />
       </Suspense>
     </DesignEditorErrorBoundary>

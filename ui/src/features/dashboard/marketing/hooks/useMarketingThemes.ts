@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import {
+  coerceMarketingThemeTokens,
+  type MarketingThemeTokens,
+} from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { usePropertyIdParam, scopedFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
+import {
+  handleAiMutationError,
+  parseEdgeJsonOrQuota,
+} from '@/features/dashboard/org/lib/aiQuotaToast';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 
 export type MarketingThemeSource = 'custom' | 'starter' | 'photos' | 'duplicate' | 'ai';
@@ -145,4 +152,32 @@ export function useMarketingThemeMutations() {
   });
 
   return { create, update, remove };
+}
+
+export type GeneratedMarketingTheme = { name: string; tokens: MarketingThemeTokens };
+
+/**
+ * AI theme from a description (`generate-marketing-template`, `contentType: 'theme'`).
+ * Same plan gate, quota and rate limit as the other "Generate with AI" buttons.
+ * Returns a draft only; the host saves it from the theme editor.
+ */
+export function useGenerateMarketingTheme() {
+  const propertyId = usePropertyIdParam();
+  return useMutation({
+    mutationFn: async (input: { prompt: string; brandColor?: string | null }) => {
+      const jwt = await getSessionJwt();
+      const res = await fetch(scopedFunctionsUrl('generate-marketing-template', propertyId), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentType: 'theme', ...input }),
+      });
+      const data = await parseEdgeJsonOrQuota<{ name?: unknown; tokens?: unknown }>(res);
+      return {
+        name: typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'AI theme',
+        // The edge already validates; coerce again so a stale client never stores junk.
+        tokens: coerceMarketingThemeTokens(data.tokens),
+      } satisfies GeneratedMarketingTheme;
+    },
+    onError: (error: Error) => handleAiMutationError(error),
+  });
 }

@@ -1,32 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
-import { ArrowLeft, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
+import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
+import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
 import { DeleteThemeDialog } from '@/features/dashboard/marketing/components/themes/DeleteThemeDialog';
 import { useMarketingThemeEditor } from '@/features/dashboard/marketing/components/themes/MarketingThemeEditor';
 import { useMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
-import { ThemeCardPreview } from '@/features/dashboard/marketing/components/themes/ThemePreview';
-import { MarketingOverflowMenu } from '@/features/dashboard/marketing/components/shared/MarketingOverflowMenu';
-import type { MarketingSidebarMenuItem } from '@/features/dashboard/marketing/components/shared/MarketingSidebarSection';
+import { ThemeShowcase } from '@/features/dashboard/marketing/components/themes/ThemeShowcase';
 import type { MarketingThemeEntry } from '@/features/dashboard/marketing/lib/theme/marketingThemeLibrary';
+import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { MarketingThemeCardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { cn } from '@/lib/utils';
 
 function countLabel(count: number): string {
-  if (count === 0) return 'No items yet';
+  if (count === 0) return 'Nothing saved yet';
   return count === 1 ? '1 item' : `${count} items`;
 }
 
 function ThemeCard({
   entry,
   active,
+  propertyName,
+  photoUrl,
   menuItems,
   onOpen,
 }: {
   entry: MarketingThemeEntry;
   active: boolean;
+  propertyName: string;
+  photoUrl?: string;
   menuItems: MarketingSidebarMenuItem[];
   onOpen: () => void;
 }) {
@@ -40,21 +44,30 @@ function ThemeCard({
       <button
         type="button"
         onClick={onOpen}
-        className="block w-full text-left"
+        className="focus-visible:ring-ring block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
         aria-label={`Open ${entry.name}`}
       >
-        <ThemeCardPreview tokens={entry.tokens} />
-        <span className="block px-3 pb-2.5 pr-10 pt-2">
-          <span className="line-clamp-2 block text-sm font-medium leading-snug">{entry.name}</span>
-          <span className="text-muted-foreground block text-xs">
-            {entry.kind === 'starter' && entry.itemCount === 0
-              ? entry.group
-              : countLabel(entry.itemCount)}
+        <ThemeShowcase
+          tokens={entry.tokens}
+          calendarLayoutId={entry.calendarLayoutId}
+          propertyName={propertyName}
+          photoUrl={photoUrl}
+          className="transition-transform duration-300 group-hover:scale-[1.015]"
+        />
+        <span className="flex min-h-[52px] flex-col justify-center px-3 py-2 pr-11">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium">{entry.name}</span>
+            {active ? (
+              <span className="bg-primary/10 text-primary shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+                Open now
+              </span>
+            ) : null}
           </span>
+          <span className="text-muted-foreground block text-xs">{countLabel(entry.itemCount)}</span>
         </span>
       </button>
       {menuItems.length > 0 ? (
-        <div className="absolute bottom-1.5 right-1">
+        <div className="absolute bottom-2 right-1.5">
           <MarketingOverflowMenu label={`${entry.name} options`} menuItems={menuItems} />
         </div>
       ) : null}
@@ -62,14 +75,19 @@ function ThemeCard({
   );
 }
 
-/** The theme library: pick a theme to work in, or start a new one. */
+/** The theme library: the host's own themes. Starter looks live in "New theme". */
 export function ThemesHome() {
-  const { library, libraryLoading, active, hasWorkspace, openTheme } = useMarketingTheme();
-  const { canCreate, canEdit, openEditor } = useMarketingThemeEditor();
+  const { property } = useOrgContext();
+  const { library, libraryLoading, active, hasWorkspace, openTheme, coverPhotoUrl } =
+    useMarketingTheme();
+  const { canCreate, canEdit, openEditor, openNewTheme } = useMarketingThemeEditor();
   const [deleting, setDeleting] = useState<MarketingThemeEntry | null>(null);
 
-  const mineKeys = useMemo(() => new Set(library.mine.map((entry) => entry.key)), [library.mine]);
-  const starters = library.starters.filter((entry) => !mineKeys.has(entry.key));
+  // A starter look you're working in stays listed even before anything is saved in it.
+  const themes =
+    active && !library.mine.some((entry) => entry.key === active.key)
+      ? [...library.mine, active]
+      : library.mine;
 
   const menuFor = (entry: MarketingThemeEntry): MarketingSidebarMenuItem[] => {
     const items: MarketingSidebarMenuItem[] = [];
@@ -111,80 +129,53 @@ export function ThemesHome() {
     return items;
   };
 
-  const startNew = () =>
-    openEditor({
-      mode: 'create',
-      name: 'My theme',
-      tokens: (active ?? library.mine[0]!).tokens,
-      source: 'custom',
-    });
-
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-6xl space-y-6 p-3 sm:p-4 lg:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-section-title font-semibold">Themes</h2>
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              Pick a theme. Calendars, posts and videos you make follow it.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {active && hasWorkspace ? (
-              <Button variant="outline" size="sm" onClick={() => openTheme(active.key)}>
-                <ArrowLeft className="size-4" aria-hidden />
-                Back to {active.name}
-              </Button>
-            ) : null}
-            {canCreate ? (
-              <Button size="sm" onClick={startNew}>
-                <Plus className="size-4" aria-hidden />
-                New theme
-              </Button>
-            ) : null}
-          </div>
+      <div className="mx-auto max-w-6xl space-y-4 p-3 sm:p-4 lg:p-6">
+        <div className="min-w-0">
+          <h2 className="text-section-title font-semibold">Themes</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Everything you make in a theme uses its colors and fonts.
+          </p>
         </div>
 
-        <section aria-labelledby="your-themes-heading" className="space-y-3">
-          <h3 id="your-themes-heading" className="text-sm font-semibold">
-            Your themes
-          </h3>
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {library.mine.map((entry) => (
-              <ThemeCard
-                key={entry.key}
-                entry={entry}
-                active={entry.key === active?.key}
-                menuItems={menuFor(entry)}
-                onOpen={() => openTheme(entry.key)}
-              />
-            ))}
-            {libraryLoading
-              ? Array.from({ length: 2 }, (_, index) => (
-                  <li key={index}>
-                    <Skeleton className="aspect-[4/3] w-full rounded-xl" />
-                  </li>
-                ))
-              : null}
-          </ul>
-        </section>
-
-        <section aria-labelledby="starter-themes-heading" className="space-y-3">
-          <h3 id="starter-themes-heading" className="text-sm font-semibold">
-            Starter looks
-          </h3>
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {starters.map((entry) => (
-              <ThemeCard
-                key={entry.key}
-                entry={entry}
-                active={entry.key === active?.key}
-                menuItems={menuFor(entry)}
-                onOpen={() => openTheme(entry.key)}
-              />
-            ))}
-          </ul>
-        </section>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+          <li className="min-h-[9rem]">
+            <button
+              type="button"
+              onClick={openNewTheme}
+              className="border-border text-muted-foreground hover:border-primary/60 hover:text-foreground hover:bg-muted/40 focus-visible:ring-ring flex size-full min-h-[9rem] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 text-center transition-colors focus-visible:outline-none focus-visible:ring-2"
+            >
+              <span className="bg-muted flex size-10 items-center justify-center rounded-full">
+                <Plus className="size-5" aria-hidden />
+              </span>
+              <span className="text-foreground text-sm font-medium">
+                {canCreate ? 'New theme' : 'More looks'}
+              </span>
+              <span className="text-xs">
+                {canCreate ? 'Start from a look or describe one' : 'Try a starter look'}
+              </span>
+            </button>
+          </li>
+          {themes.map((entry) => (
+            <ThemeCard
+              key={entry.key}
+              entry={entry}
+              active={hasWorkspace && entry.key === active?.key}
+              propertyName={property.name}
+              photoUrl={coverPhotoUrl}
+              menuItems={menuFor(entry)}
+              onOpen={() => openTheme(entry.key)}
+            />
+          ))}
+          {libraryLoading
+            ? Array.from({ length: 3 }).map((_, index) => (
+                <li key={index}>
+                  <MarketingThemeCardSkeleton />
+                </li>
+              ))
+            : null}
+        </ul>
       </div>
 
       {deleting ? <DeleteThemeDialog entry={deleting} onClose={() => setDeleting(null)} /> : null}

@@ -1,9 +1,9 @@
 import type { MarketingTemplateRecord } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
-import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import {
   calendarFormatToAspectPreset,
   type CalendarCanvasFormat,
 } from '@/features/dashboard/marketing/lib/calendarCanvasFormats';
+import { effectiveTemplateThemeKey } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 
 export const CALENDAR_LEGACY_AUTOSAVE_GROUP = '__legacy__';
 export const CALENDAR_BLANK_PRESET_ID = 'default';

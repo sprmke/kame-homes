@@ -67,6 +67,26 @@ export function useVideoProjectHistory() {
     [pushSnapshot]
   );
 
+  /**
+   * System fix-ups that are not the host's edits (default music resolving to a URL,
+   * cached track): update the project and the current undo snapshot in place, so
+   * they never count as an edit or add an undo step.
+   */
+  const amendProject = useCallback(
+    (updater: (prev: VideoProject | null) => VideoProject | null) => {
+      setProjectState((prev) => {
+        const next = updater(prev);
+        if (next && next !== prev && indexRef.current >= 0) {
+          const history = historyRef.current.slice();
+          history[indexRef.current] = cloneProject(next);
+          historyRef.current = history;
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   const replaceProject = useCallback(
     (next: VideoProject | null) => {
       skipPushRef.current = true;
@@ -111,7 +131,10 @@ export function useVideoProjectHistory() {
   const canUndo = revision >= 0 && indexRef.current > 0;
   const canRedo = revision >= 0 && indexRef.current < historyRef.current.length - 1;
 
-  return { project, setProject, replaceProject, undo, redo, canUndo, canRedo };
+  /** The host changed something since the last `replaceProject` (undo history grew). */
+  const edited = revision >= 0 && historyRef.current.length > 1;
+
+  return { project, setProject, amendProject, replaceProject, undo, redo, canUndo, canRedo, edited };
 }
 
 export function useVideoProjectHistoryShortcuts({

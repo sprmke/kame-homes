@@ -121,7 +121,11 @@ function nearestAnchorIndex(
   const lch = rgbToOklch(color);
   const distance = (index: number, lightnessWeight: number) => {
     const anchorLab = anchorLabs[index]!;
-    return Math.hypot((lab.L - anchorLab.L) * lightnessWeight, lab.a - anchorLab.a, lab.b - anchorLab.b);
+    return Math.hypot(
+      (lab.L - anchorLab.L) * lightnessWeight,
+      lab.a - anchorLab.a,
+      lab.b - anchorLab.b
+    );
   };
   const pick = (indexes: number[], lightnessWeight: number) =>
     indexes.reduce((best, index) =>

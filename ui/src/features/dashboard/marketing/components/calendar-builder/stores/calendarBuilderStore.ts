@@ -2,14 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 
-import { applyBrandAccentToCalendarStyles } from '@/features/dashboard/marketing/lib/calendarBrandColors';
-import {
-  canvasFrameDefaultsForFormat,
-  canvasFrameBackgroundForFormat,
-  type CalendarCanvasFormat,
-} from '@/features/dashboard/marketing/lib/calendarCanvasFormats';
 import { CALENDAR_PRESET_STYLES } from '@/features/dashboard/marketing/lib/calendarPresets';
-import { applyPropertyPhotoToCalendarStyles } from '@/features/dashboard/marketing/lib/calendarPropertyPhoto';
 
 import {
   type CalendarStyles,
@@ -25,11 +18,12 @@ import {
 interface CalendarBuilderActions {
   // Style updates
   setStyles: (styles: CalendarStyles, options?: { markDirty?: boolean }) => void;
+  /** Open a document: styles + locks become the clean starting point (fresh undo, not dirty). */
+  loadStyles: (styles: CalendarStyles, lockedPaths?: string[]) => void;
   /** Advanced-panel edit. The path is also locked so theme changes leave it alone. */
   updateStyles: (path: string, value: unknown) => void;
   /** Paths the host set by hand (saved with the item; see `rethemeCalendarStyles`). */
   setLockedPaths: (paths: string[]) => void;
-  resetStyles: (brandColor?: string) => void;
 
   // Section navigation
   setActiveSection: (section: string | null) => void;
@@ -52,9 +46,6 @@ interface CalendarBuilderActions {
   canRedo: () => boolean;
   saveToHistory: () => void;
 
-  // Presets
-  applyPreset: (preset: string, brandColor?: string, propertyPhotoUrl?: string) => void;
-
   // Dirty state
   setIsDirty: (isDirty: boolean) => void;
 }
@@ -65,7 +56,6 @@ interface CalendarBuilderActions {
 type CalendarBuilderStore = CalendarBuilderState & {
   lockedPaths: string[];
 } & CalendarBuilderActions;
-
 
 // ========================================
 // Helper: Deep set value by path
@@ -132,33 +122,6 @@ export function resolveCalendarPresetStyles(preset: string): CalendarStyles {
   } as CalendarStyles);
 }
 
-/** Preset styles with canvas frame matched to the active export format (sidebar thumbnails). */
-export function resolveCalendarPresetStylesForFormat(
-  preset: string,
-  format: CalendarCanvasFormat,
-  brandColor?: string,
-  propertyPhotoUrl?: string
-): CalendarStyles {
-  const styles = resolveCalendarPresetStyles(preset);
-  const defaults = canvasFrameDefaultsForFormat(format, brandColor);
-  return applyPropertyPhotoToCalendarStyles(
-    applyBrandAccentToCalendarStyles(
-      normalizeCalendarStyles({
-        ...styles,
-        canvasFrame: {
-          format,
-          padding: defaults.padding,
-          calendarScale: defaults.calendarScale,
-          background: defaults.background,
-        },
-      }),
-      brandColor,
-      { preservePresetPalette: preset !== 'default' }
-    ),
-    propertyPhotoUrl
-  );
-}
-
 // ========================================
 // Create Store
 // ========================================
@@ -187,6 +150,16 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
           }
         }),
 
+      loadStyles: (styles, lockedPaths = []) =>
+        set((state) => {
+          const normalized = normalizeCalendarStyles(styles);
+          state.styles = normalized;
+          state.lockedPaths = [...new Set(lockedPaths)];
+          state.history = [JSON.parse(JSON.stringify(normalized))];
+          state.historyIndex = 0;
+          state.isDirty = false;
+        }),
+
       updateStyles: (path, value) =>
         set((state) => {
           setNestedValue(state.styles as unknown as Record<string, unknown>, path, value);
@@ -197,19 +170,6 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
       setLockedPaths: (paths) =>
         set((state) => {
           state.lockedPaths = [...new Set(paths)];
-        }),
-
-      resetStyles: (brandColor) =>
-        set((state) => {
-          const next = applyBrandAccentToCalendarStyles(
-            createDefaultStyles(brandColor),
-            brandColor
-          );
-          state.styles = next;
-          state.isDirty = false;
-          state.history = [next];
-          state.historyIndex = 0;
-          state.lockedPaths = [];
         }),
 
       setActiveSection: (section) =>
@@ -304,48 +264,6 @@ export const useCalendarBuilderStore = create<CalendarBuilderStore>()(
 
           state.history = newHistory;
           state.historyIndex = newHistory.length - 1;
-        }),
-
-      applyPreset: (preset, brandColor, propertyPhotoUrl) =>
-        set((state) => {
-          const preservedFrame = state.styles.canvasFrame;
-          const preservedFormat = preservedFrame?.format ?? 'square';
-          const frameDefaults = canvasFrameDefaultsForFormat(preservedFormat, brandColor);
-
-          if (preset === 'default') {
-            state.styles = applyBrandAccentToCalendarStyles(
-              normalizeCalendarStyles({
-                ...createDefaultStyles(brandColor),
-                canvasFrame: {
-                  format: preservedFormat,
-                  padding: frameDefaults.padding,
-                  calendarScale: frameDefaults.calendarScale,
-                  background: frameDefaults.background,
-                },
-              }),
-              brandColor
-            );
-            state.isDirty = false;
-            return;
-          }
-
-          state.styles = applyPropertyPhotoToCalendarStyles(
-            applyBrandAccentToCalendarStyles(resolveCalendarPresetStyles(preset), brandColor, {
-              preservePresetPalette: preset !== 'default',
-            }),
-            propertyPhotoUrl
-          );
-          if (preservedFrame) {
-            const format = preservedFrame.format ?? 'square';
-            state.styles.canvasFrame = {
-              ...preservedFrame,
-              background:
-                format === 'square'
-                  ? preservedFrame.background
-                  : canvasFrameBackgroundForFormat(format, brandColor),
-            };
-          }
-          state.isDirty = true;
         }),
 
       setIsDirty: (isDirty) =>

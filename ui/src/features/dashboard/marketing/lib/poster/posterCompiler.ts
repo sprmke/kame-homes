@@ -1,9 +1,4 @@
 import {
-  posterPaletteInputFromTheme,
-  themedPosterFontPairing,
-} from '@/features/dashboard/marketing/lib/theme/posterThemeAdapter';
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import {
   resetIds,
   type PolotnoDesignDocument,
 } from '@/features/dashboard/marketing/lib/polotno/polotnoCampaignDocuments';
@@ -19,6 +14,11 @@ import {
   DESIGN_FORMAT_DIMENSIONS,
   type DesignTemplateFormat,
 } from '@/features/dashboard/marketing/lib/templateRegistry';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import {
+  posterPaletteInputFromTheme,
+  themedPosterFontPairing,
+} from '@/features/dashboard/marketing/lib/theme/posterThemeAdapter';
 
 export type PhotoSizeMap = Record<string, { width: number; height: number } | undefined>;
 

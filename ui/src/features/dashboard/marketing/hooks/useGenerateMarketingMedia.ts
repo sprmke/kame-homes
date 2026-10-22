@@ -1,20 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
+  MARKETING_AI_SESSIONS_QUERY_KEY,
   MARKETING_GENERATIONS_QUERY_KEY,
   generationFetch,
   handleGenerationError,
 } from '@/features/dashboard/marketing/hooks/useMarketingGenerationApi';
 import { seedMarketingGenerationJob } from '@/features/dashboard/marketing/hooks/useMarketingGenerationJob';
 import type {
+  VideoCameraMoveId,
+  VideoSoundMode,
+} from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
+import type {
   ImageSize,
   VideoDuration,
   VideoResolution,
 } from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
-import type {
-  VideoCameraMoveId,
-  VideoSoundMode,
-} from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
 import type {
   MarketingGenerationJob,
   MarketingGenerationMediaType,
@@ -38,6 +39,11 @@ export type GenerateMarketingMediaPayload = {
   enhancePrompt?: boolean;
   cameraMove?: VideoCameraMoveId;
   sound?: VideoSoundMode;
+  /** AI Studio conversation to add this version to (omit: a new one is created). */
+  sessionId?: string;
+  /** The version being refined (photo: its image is the first reference). */
+  parentJobId?: string;
+  themeKey?: string;
 };
 
 export function useGenerateMarketingMedia() {
@@ -59,7 +65,12 @@ export function useGenerateMarketingMedia() {
       // Seed the per-job cache so the poller starts hot instead of firing a redundant GET.
       seedMarketingGenerationJob(qc, job, propertyId);
       void qc.invalidateQueries({ queryKey: [MARKETING_GENERATIONS_QUERY_KEY, propertyId] });
+      void qc.invalidateQueries({ queryKey: [MARKETING_AI_SESSIONS_QUERY_KEY, propertyId] });
     },
-    onError: (error: Error) => handleGenerationError(error),
+    onError: (error: Error) => {
+      handleGenerationError(error);
+      // A failed run may still have saved a failed version (and a new conversation).
+      void qc.invalidateQueries({ queryKey: [MARKETING_AI_SESSIONS_QUERY_KEY, propertyId] });
+    },
   });
 }

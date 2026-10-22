@@ -29,6 +29,30 @@ export class GenerationRetryableError extends Error {
   }
 }
 
+/** A request the server refused or failed, with whatever row it saved (failed jobs). */
+export class GenerationRequestError extends Error {
+  readonly data: unknown;
+  readonly status: number;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = 'GenerationRequestError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+/** The failed job a generate request still saved (a new conversation exists then too). */
+export function failedJobFromError(error: unknown): { id: string; sessionId?: string | null } | null {
+  if (!(error instanceof GenerationRequestError)) return null;
+  const job = (error.data as { job?: { id?: unknown; sessionId?: unknown } } | undefined)?.job;
+  if (!job || typeof job.id !== 'string') return null;
+  return {
+    id: job.id,
+    sessionId: typeof job.sessionId === 'string' ? job.sessionId : null,
+  };
+}
+
 type EdgeEnvelope = {
   success?: boolean;
   data?: unknown;
@@ -68,7 +92,11 @@ export async function generationFetch<T>(
     throw new GenerationRetryableError(json.error ?? 'Too many requests. Try again shortly.');
   }
   if (!res.ok || !json.success) {
-    throw new Error(json.error ?? `Request failed (${res.status})`);
+    throw new GenerationRequestError(
+      json.error ?? `Request failed (${res.status})`,
+      res.status,
+      json.data
+    );
   }
   return json.data as T;
 }
@@ -82,5 +110,6 @@ export function handleGenerationError(error: Error): void {
 }
 
 export const MARKETING_GENERATIONS_QUERY_KEY = 'marketing-generations';
+export const MARKETING_AI_SESSIONS_QUERY_KEY = 'marketing-ai-sessions';
 export const MARKETING_GENERATION_JOB_QUERY_KEY = 'marketing-generation-job';
 export const MARKETING_GENERATION_REFERENCES_QUERY_KEY = 'marketing-generation-references';

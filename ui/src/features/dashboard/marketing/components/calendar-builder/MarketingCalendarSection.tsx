@@ -3,7 +3,10 @@ import { useMemo, useRef } from 'react';
 import { CalendarBuilder } from '@/features/dashboard/marketing/components/calendar-builder/components/CalendarBuilder';
 import { useCalendarExport } from '@/features/dashboard/marketing/components/calendar-builder/hooks/useCalendarExport';
 import { useCalendarBuilderStore } from '@/features/dashboard/marketing/components/calendar-builder/stores/calendarBuilderStore';
-import { useMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
+import type {
+  MarketingEditorDocument,
+  MarketingEditorNav,
+} from '@/features/dashboard/marketing/components/shared/MarketingEditorHost';
 import { useMarketingBookedDates } from '@/features/dashboard/marketing/hooks/useMarketingBookedDates';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import { bookedDatesToPreviewBookings } from '@/features/dashboard/marketing/lib/marketingBookedDates';
@@ -14,12 +17,13 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { BookingsCalendarSkeleton } from '@/components/skeletons/AdminSkeletons';
 
 type Props = {
+  document: MarketingEditorDocument;
+  nav: MarketingEditorNav;
   onPublish?: (blob: Blob) => void;
 };
 
-export function MarketingCalendarSection({ onPublish }: Props) {
+export function MarketingCalendarSection({ document, nav, onPublish }: Props) {
   const { property } = useOrgContext();
-  const { active: activeTheme } = useMarketingTheme();
   const previewRef = useRef<HTMLDivElement>(null);
   const previewMonth = useCalendarBuilderStore((s) => s.previewMonth);
   const { data: bookedDates, isLoading } = useMarketingBookedDates();
@@ -69,9 +73,9 @@ export function MarketingCalendarSection({ onPublish }: Props) {
           <BookingsCalendarSkeleton gridOnly compact />
         </div>
       )}
-      {/* Remount per theme: selection, autosave target and history all belong to one theme. */}
       <CalendarBuilder
-        key={activeTheme?.key ?? 'none'}
+        document={document}
+        nav={nav}
         propertyName={property.name}
         propertySlug={property.slug}
         bookings={bookings}

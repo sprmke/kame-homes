@@ -2,9 +2,9 @@ import { renderStillOnWeb } from '@remotion/web-renderer';
 
 import { CampaignVideoComposition } from '@/features/dashboard/marketing/components/video-editor/VideoCompositions';
 import type { DesignBinding } from '@/features/dashboard/marketing/lib/designCanvasTypes';
-import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { blobToDataUrl } from '@/features/dashboard/marketing/lib/exportVideoMedia';
 import { resolveMarketingThumbBinding } from '@/features/dashboard/marketing/lib/marketingDefaultBinding';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { VIDEO_FORMAT_DIMENSIONS } from '@/features/dashboard/marketing/lib/video/videoFormatDimensions';
 import { buildDefaultVideoProject } from '@/features/dashboard/marketing/lib/video/videoProjectDefaults';
 import type {

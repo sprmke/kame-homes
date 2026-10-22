@@ -93,7 +93,7 @@ export function designPresetThumbnailKey(
   themeHash?: string | null
 ): string {
   const look = themeHash ? `theme-${themeHash}` : resolveOrgBrandHex(brandColor).toLowerCase();
-  return `design:preset:v11:${look}:${templateId}`;
+  return `design:preset:v12:${look}:${templateId}`;
 }
 
 export function videoThumbnailKey(

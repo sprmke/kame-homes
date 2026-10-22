@@ -1,39 +1,18 @@
-import { useEffect, useMemo, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 
-import {
-  resolveMarketingTheme,
-  type MarketingThemeTokens,
-  type ResolvedMarketingTheme,
+import { useResolvedMarketingTheme } from '@/features/dashboard/marketing/hooks/useResolvedMarketingTheme';
+import type {
+  MarketingThemeTokens,
+  ResolvedMarketingTheme,
 } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import { loadMarketingFonts } from '@/features/dashboard/marketing/lib/theme/marketingFontLoader';
-import { mixTowardWhite } from '@/features/dashboard/marketing/lib/theme/marketingThemeColor';
-import { marketingThemeFontList } from '@/features/dashboard/marketing/lib/theme/marketingThemeFonts';
+import { themeSurfaceBackground } from '@/features/dashboard/marketing/lib/theme/marketingThemeCss';
 
 import { cn } from '@/lib/utils';
 
 /**
- * Theme previews drawn with plain DOM + CSS: no canvas, no capture queue, so a
- * grid of 20 themes costs nothing and always matches the tokens exactly.
+ * Small theme art drawn with plain DOM + CSS: no canvas, no capture queue, so
+ * it costs nothing to repaint while the host edits a theme.
  */
-
-function surfaceBackground(theme: ResolvedMarketingTheme): string {
-  switch (theme.tokens.background) {
-    case 'soft-gradient':
-      return `linear-gradient(165deg, ${theme.surface} 0%, ${mixTowardWhite(theme.primary, 0.82)} 100%)`;
-    case 'pattern':
-      return `radial-gradient(${mixTowardWhite(theme.primary, 0.45)} 1.2px, transparent 1.3px) 0 0 / 10px 10px, ${theme.surface}`;
-    case 'photo-wash':
-      return `linear-gradient(160deg, ${mixTowardWhite(theme.primary, 0.7)} 0%, ${theme.surface} 70%)`;
-    default:
-      return theme.surface;
-  }
-}
-
-function useThemeFonts(tokens: MarketingThemeTokens) {
-  useEffect(() => {
-    void loadMarketingFonts(marketingThemeFontList(tokens.fonts));
-  }, [tokens.fonts]);
-}
 
 export function ThemeSwatchDots({
   tokens,
@@ -56,210 +35,186 @@ export function ThemeSwatchDots({
   );
 }
 
-/** Card art for the theme library: a tiny poster in the theme. */
-export function ThemeCardPreview({
-  tokens,
-  className,
-}: {
-  tokens: MarketingThemeTokens;
-  className?: string;
-}) {
-  useThemeFonts(tokens);
-  const theme = useMemo(() => resolveMarketingTheme(tokens), [tokens]);
-  const radius = Math.min(theme.radius.md, 14);
+function themeType(theme: ResolvedMarketingTheme) {
+  const display: CSSProperties = { fontFamily: `"${theme.fonts.display}", serif` };
+  const label: CSSProperties = { fontFamily: `"${theme.fonts.label}", sans-serif` };
+  const chipRadius = theme.radius.lg >= 999 ? 999 : Math.min(theme.radius.sm, 6);
+  return { display, label, chipRadius };
+}
 
+/**
+ * A promo post in the theme, sized by its container (container-query units),
+ * the sample art on theme cards.
+ */
+export function ThemePostArt({
+  theme,
+  title,
+  photoUrl,
+}: {
+  theme: ResolvedMarketingTheme;
+  title: string;
+  photoUrl?: string;
+}) {
+  const { display, label, chipRadius } = themeType(theme);
   return (
     <div
-      className={cn(
-        'relative flex aspect-[4/3] flex-col justify-between overflow-hidden p-3',
-        className
-      )}
-      style={{ background: surfaceBackground(theme) }}
-      aria-hidden
+      className="@container flex size-full flex-col overflow-hidden"
+      style={{ background: themeSurfaceBackground(theme) }}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div
+        className="relative mx-[7cqw] mt-[7cqw] flex-1 overflow-hidden"
+        style={{
+          backgroundColor: theme.secondary,
+          borderRadius: Math.min(theme.radius.md, 10),
+        }}
+      >
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : null}
+      </div>
+      <div className="space-y-[2.5cqw] px-[7cqw] pb-[8cqw] pt-[5cqw]">
         <span
-          className="truncate text-[22px] leading-none"
-          style={{ fontFamily: `"${theme.fonts.display}", serif`, color: theme.readableInk }}
+          className="block text-[7cqw] font-semibold uppercase leading-none tracking-wider"
+          style={{ ...label, color: theme.primary }}
         >
-          Aa
+          Weekend deal
         </span>
         <span
-          className="h-3.5 w-8 shrink-0"
-          style={{
-            backgroundColor: theme.accent,
-            borderRadius: theme.radius.lg >= 999 ? 999 : theme.radius.sm,
-          }}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <div className="flex gap-1">
-          {[theme.primary, theme.secondary, theme.accent].map((color, index) => (
-            <span
-              key={index}
-              className="h-4 flex-1"
-              style={{ backgroundColor: color, borderRadius: Math.min(radius, 8) }}
-            />
-          ))}
-        </div>
-        <p
-          className="truncate text-[10px] leading-tight"
-          style={{ fontFamily: `"${theme.fonts.body}", sans-serif`, color: theme.muted }}
+          className="block truncate text-[12cqw] leading-none"
+          style={{ ...display, color: theme.readableInk }}
         >
-          {theme.fonts.display} · {theme.fonts.body}
-        </p>
+          {title}
+        </span>
+        <span
+          className="inline-block px-[4cqw] py-[1.5cqw] text-[6.5cqw] font-semibold leading-tight"
+          style={{
+            ...label,
+            backgroundColor: theme.primary,
+            color: theme.onPrimary,
+            borderRadius: chipRadius,
+          }}
+        >
+          Book now
+        </span>
       </div>
     </div>
   );
 }
 
-const DAYS = Array.from({ length: 14 }, (_, i) => i + 1);
-
-/** Calendar, post and video frames side by side: the "does it work everywhere" check. */
-export function ThemeMiniPreviews({
-  tokens,
-  propertyName,
+/** A story-style video frame in the theme (sample art on theme cards). */
+export function ThemeVideoArt({
+  theme,
   photoUrl,
+}: {
+  theme: ResolvedMarketingTheme;
+  photoUrl?: string;
+}) {
+  const { display, label, chipRadius } = themeType(theme);
+  return (
+    <div
+      className="@container relative flex size-full items-end overflow-hidden"
+      style={{ backgroundColor: theme.primaryDark }}
+    >
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : null}
+      <div className="absolute inset-x-[8cqw] top-[7cqw] flex gap-[2cqw]">
+        {[1, 0.45, 0.45].map((opacity, index) => (
+          <span
+            key={index}
+            className="h-[1.6cqw] flex-1 rounded-full bg-white"
+            style={{ opacity }}
+          />
+        ))}
+      </div>
+      <div
+        className="relative w-full space-y-[3cqw] px-[8cqw] pb-[10cqw] pt-[24cqw]"
+        style={{ background: `linear-gradient(to top, ${theme.primaryDark}f0, transparent)` }}
+      >
+        <span className="block text-[15cqw] leading-[0.95] text-white" style={display}>
+          Slow mornings
+        </span>
+        <span
+          className="inline-block px-[5cqw] py-[2cqw] text-[8cqw] font-semibold leading-tight"
+          style={{
+            ...label,
+            backgroundColor: theme.accent,
+            color: theme.onAccent,
+            borderRadius: chipRadius,
+          }}
+        >
+          Stay with us
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Headline, body and buttons in the theme: how the fonts and text colors read together. */
+export function ThemeTypeSpecimen({
+  tokens,
   className,
 }: {
   tokens: MarketingThemeTokens;
-  propertyName: string;
-  photoUrl?: string;
   className?: string;
 }) {
-  useThemeFonts(tokens);
-  const theme = useMemo(() => resolveMarketingTheme(tokens), [tokens]);
-  const cardRadius = Math.min(theme.radius.lg, 18);
-  const chipRadius = theme.radius.lg >= 999 ? 999 : theme.radius.sm;
-  const display: CSSProperties = { fontFamily: `"${theme.fonts.display}", serif` };
-  const label: CSSProperties = { fontFamily: `"${theme.fonts.label}", sans-serif` };
+  const theme = useResolvedMarketingTheme(tokens);
+  const { display, label, chipRadius } = themeType(theme);
   const body: CSSProperties = { fontFamily: `"${theme.fonts.body}", sans-serif` };
-
   return (
-    <div className={cn('grid grid-cols-3 gap-2', className)} aria-label="Theme preview">
-      {/* Calendar */}
-      <figure className="space-y-1">
-        <div
-          className="flex aspect-square flex-col gap-1 overflow-hidden p-2"
-          style={{ background: surfaceBackground(theme), borderRadius: cardRadius }}
+    <div
+      className={cn('space-y-2 overflow-hidden rounded-xl p-4', className)}
+      style={{ background: themeSurfaceBackground(theme) }}
+      aria-hidden
+    >
+      <p
+        className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+        style={{ ...label, color: theme.primary }}
+      >
+        This weekend
+      </p>
+      <p className="text-2xl leading-tight" style={{ ...display, color: theme.readableInk }}>
+        Slow mornings by the sea
+      </p>
+      <p className="text-sm leading-relaxed" style={{ ...body, color: theme.muted }}>
+        Two nights with breakfast, ten minutes from the beach.
+      </p>
+      <div className="flex flex-wrap gap-2 pt-1">
+        <span
+          className="px-3 py-1.5 text-xs font-semibold"
+          style={{
+            ...label,
+            backgroundColor: theme.primary,
+            color: theme.onPrimary,
+            borderRadius: chipRadius,
+          }}
         >
-          <span
-            className="truncate text-[11px] leading-none"
-            style={{ ...display, color: theme.readableInk }}
-          >
-            October
-          </span>
-          <div className="grid flex-1 grid-cols-7 content-start gap-[2px]">
-            {DAYS.map((day) => {
-              const booked = day % 5 === 0 || day === 6;
-              const today = day === 3;
-              return (
-                <span
-                  key={day}
-                  className="flex aspect-square items-center justify-center text-[6px] leading-none"
-                  style={{
-                    ...body,
-                    borderRadius: chipRadius,
-                    backgroundColor: today
-                      ? theme.accent
-                      : booked
-                        ? theme.secondary
-                        : theme.primary,
-                    color: today ? theme.onAccent : booked ? theme.muted : theme.onPrimary,
-                    opacity: booked ? 0.85 : 1,
-                  }}
-                >
-                  {day}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-        <figcaption className="text-muted-foreground text-center text-[10px]">Calendar</figcaption>
-      </figure>
-
-      {/* Post */}
-      <figure className="space-y-1">
-        <div
-          className="relative flex aspect-square flex-col justify-end overflow-hidden"
-          style={{ borderRadius: cardRadius, backgroundColor: theme.secondary }}
+          Book now
+        </span>
+        <span
+          className="px-3 py-1.5 text-xs font-semibold"
+          style={{
+            ...label,
+            backgroundColor: theme.accent,
+            color: theme.onAccent,
+            borderRadius: chipRadius,
+          }}
         >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-              loading="lazy"
-            />
-          ) : null}
-          <div
-            className="relative m-1.5 space-y-0.5 p-1.5"
-            style={{ backgroundColor: theme.surface, borderRadius: Math.min(cardRadius, 10) }}
-          >
-            <span
-              className="block text-[6px] uppercase tracking-wider"
-              style={{ ...label, color: theme.primary }}
-            >
-              Weekend deal
-            </span>
-            <span
-              className="block truncate text-[11px] leading-none"
-              style={{ ...display, color: theme.readableInk }}
-            >
-              {propertyName}
-            </span>
-            <span
-              className="inline-block px-1.5 py-[1px] text-[6px] font-semibold"
-              style={{
-                ...label,
-                backgroundColor: theme.primary,
-                color: theme.onPrimary,
-                borderRadius: chipRadius,
-              }}
-            >
-              Book now
-            </span>
-          </div>
-        </div>
-        <figcaption className="text-muted-foreground text-center text-[10px]">Post</figcaption>
-      </figure>
-
-      {/* Video */}
-      <figure className="space-y-1">
-        <div
-          className="relative flex aspect-square items-end overflow-hidden"
-          style={{ borderRadius: cardRadius, backgroundColor: theme.primaryDark }}
-        >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-              loading="lazy"
-            />
-          ) : null}
-          <div
-            className="relative w-full p-1.5"
-            style={{ background: `linear-gradient(to top, ${theme.primaryDark}e6, transparent)` }}
-          >
-            <span className="block truncate text-[11px] leading-none text-white" style={display}>
-              Slow mornings
-            </span>
-            <span
-              className="mt-0.5 inline-block px-1.5 py-[1px] text-[6px] font-semibold"
-              style={{
-                ...label,
-                backgroundColor: theme.accent,
-                color: theme.onAccent,
-                borderRadius: chipRadius,
-              }}
-            >
-              Stay with us
-            </span>
-          </div>
-        </div>
-        <figcaption className="text-muted-foreground text-center text-[10px]">Video</figcaption>
-      </figure>
+          Few dates left
+        </span>
+      </div>
     </div>
   );
 }

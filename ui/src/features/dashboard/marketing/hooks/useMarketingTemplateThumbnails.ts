@@ -24,12 +24,12 @@ import {
   subscribeMarketingThumbnailUpdates,
   videoPresetThumbnailKey,
 } from '@/features/dashboard/marketing/lib/marketingTemplateThumbnailCache';
+import { runWithConcurrency } from '@/features/dashboard/marketing/lib/marketingThumbnailQueue';
+import { rethemePolotnoDocument } from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
 import {
   marketingThemeHash,
   type MarketingThemeTokens,
 } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import { runWithConcurrency } from '@/features/dashboard/marketing/lib/marketingThumbnailQueue';
-import { rethemePolotnoDocument } from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
 import { readTemplateThemeSnapshot } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import { parseVideoProject } from '@/features/dashboard/marketing/lib/video/videoProjectDefaults';
 import type {

@@ -15,6 +15,12 @@ import {
 } from '@/features/dashboard/marketing/components/design-editor/polotno/KameBuiltinPanels';
 import { KamePolotnoToolbarHistory } from '@/features/dashboard/marketing/components/design-editor/polotno/KamePolotnoToolbarHistory';
 import { KameSidePanelCollapse } from '@/features/dashboard/marketing/components/design-editor/polotno/KameSidePanelCollapse';
+import {
+  aiSection,
+  collageSection,
+  reviewsSection,
+  templatesSection,
+} from '@/features/dashboard/marketing/components/design-editor/polotno/KameStudioSections';
 import { createTextSection } from '@/features/dashboard/marketing/components/design-editor/polotno/KameTextPanel';
 import { PolotnoPagePlanWatermark } from '@/features/dashboard/marketing/components/design-editor/polotno/PolotnoPagePlanWatermark';
 import {
@@ -27,12 +33,12 @@ import { usePolotnoOverlayDebug } from '@/features/dashboard/marketing/component
 import { useUploadMarketingAsset } from '@/features/dashboard/marketing/hooks/useUploadMarketingAsset';
 import { configurePolotnoUploader } from '@/features/dashboard/marketing/lib/polotno/initPolotno';
 import type { PolotnoStore } from '@/features/dashboard/marketing/lib/polotno/polotnoStore';
+import { polotnoWorkspaceChrome } from '@/features/dashboard/marketing/lib/polotno/polotnoWorkspaceTheme';
+import { propertyMediaItems } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 import {
   resolveMarketingTheme,
   type MarketingThemeTokens,
 } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import { polotnoWorkspaceChrome } from '@/features/dashboard/marketing/lib/polotno/polotnoWorkspaceTheme';
-import { propertyMediaItems } from '@/features/dashboard/marketing/lib/polotno/propertyMedia';
 
 import { useTheme } from '@/components/theme/ThemeProvider';
 
@@ -50,6 +56,10 @@ type Props = {
   hideHistory?: boolean;
   /** Owned by the caller (`PolotnoDesignStudio`) so the Collage panel shares the same session grid. */
   sessionMedia: MarketingUploads;
+  /** Templates / Collage / Reviews / AI rail sections (content via `KameStudioSectionsProvider`). */
+  studioSections?: { ai: boolean };
+  /** Rail section open on mount ('' = closed). */
+  defaultSection?: string;
 };
 
 export function KamePolotnoEditor({
@@ -63,6 +73,8 @@ export function KamePolotnoEditor({
   resetDisabled = false,
   hideHistory = false,
   sessionMedia,
+  studioSections,
+  defaultSection = '',
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const portalRef = useRef<HTMLDivElement>(null);
@@ -107,20 +119,24 @@ export function KamePolotnoEditor({
   }, [uploadMarketingAsset]);
 
   const textTheme = useMemo(
-    () =>
-      theme ? { fonts: theme.fonts, ink: resolveMarketingTheme(theme).readableInk } : null,
+    () => (theme ? { fonts: theme.fonts, ink: resolveMarketingTheme(theme).readableInk } : null),
     [theme]
   );
 
+  const withAi = Boolean(studioSections?.ai);
+  const withStudio = Boolean(studioSections);
   const sections = useMemo(
     () => [
+      ...(withStudio ? [templatesSection] : []),
       createTextSection(textTheme),
       createElementsSection(logoUrl),
       createUploadSection(propertyImages, sessionMedia),
       createBackgroundSection(propertyImages, brandColor, sessionMedia),
+      ...(withStudio ? [collageSection, reviewsSection] : []),
+      ...(withAi ? [aiSection] : []),
       createLayersSection(),
     ],
-    [propertyImages, brandColor, logoUrl, sessionMedia, textTheme]
+    [propertyImages, brandColor, logoUrl, sessionMedia, textTheme, withStudio, withAi]
   );
 
   const toolbarComponents = useMemo(
@@ -145,7 +161,11 @@ export function KamePolotnoEditor({
       <PolotnoPagePlanWatermark rootRef={rootRef} />
       <RaeditorContainer className="raeditor-app-container kame-polotno-editor" style={style}>
         <SidePanelWrap className="kame-side-panel-wrap" data-tour="side-panel">
-          <SidePanel store={store as never} sections={sections as never} defaultSection="" />
+          <SidePanel
+            store={store as never}
+            sections={sections as never}
+            defaultSection={defaultSection}
+          />
           <KameSidePanelCollapse store={store} />
         </SidePanelWrap>
         <WorkspaceWrap data-tour="canvas">

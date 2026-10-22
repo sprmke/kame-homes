@@ -1,49 +1,59 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
-import { MarketingCalendarSection } from '@/features/dashboard/marketing/components/calendar-builder/MarketingCalendarSection';
 import type { DesignExportPayload } from '@/features/dashboard/marketing/components/design-editor/DesignEditor';
+import { MarketingLibraryHome } from '@/features/dashboard/marketing/components/library/MarketingLibraryHome';
 import {
   PublishDialog,
   type PublishMedia,
 } from '@/features/dashboard/marketing/components/publishing/PublishDialog';
-import { PublishHistory } from '@/features/dashboard/marketing/components/publishing/PublishHistory';
-import { MarketingStudioHeaderActionsProvider } from '@/features/dashboard/marketing/components/shared/MarketingStudioHeaderActions';
-import { MarketingStudioModeTabs } from '@/features/dashboard/marketing/components/shared/MarketingStudioModeTabs';
-import { SlidingTabs } from '@/features/dashboard/marketing/components/shared/MarketingStudioModeTabs';
+import { MarketingEditorHost } from '@/features/dashboard/marketing/components/shared/MarketingEditorHost';
+import {
+  MarketingStudioModeTabs,
+  SlidingTabs,
+} from '@/features/dashboard/marketing/components/shared/MarketingStudioModeTabs';
 import { MarketingStudioShell } from '@/features/dashboard/marketing/components/shared/MarketingStudioShell';
 import { MarketingThemeEditorProvider } from '@/features/dashboard/marketing/components/themes/MarketingThemeEditor';
 import {
   MarketingThemeProvider,
   useMarketingTheme,
 } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
+import { ThemeContextBar } from '@/features/dashboard/marketing/components/themes/ThemeContextBar';
 import { ThemesHome } from '@/features/dashboard/marketing/components/themes/ThemesHome';
-import { ThemeSwitcher } from '@/features/dashboard/marketing/components/themes/ThemeSwitcher';
 import type { VideoExportPayload } from '@/features/dashboard/marketing/components/video-editor/VideoEditor';
-import { normalizeMarketingStudioTab } from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
+import { loadMarketingEditor } from '@/features/dashboard/marketing/lib/marketingEditorPreload';
+import {
+  isMarketingEditorTab,
+  normalizeMarketingStudioTab,
+} from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
 
-import { MarketingStudioSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { SlidingTabsContent } from '@/components/ui/sliding-tabs';
+import {
+  MarketingEditorSkeleton,
+  MarketingLibraryBodySkeleton,
+} from '@/components/skeletons/AdminSkeletons';
+import { useIsBelowLg } from '@/hooks/useMediaQuery';
 
-// Lazy-loaded: Polotno (design editor) and Remotion/Blueprint (video editor) are heavy
-// deps that only the "design"/"video" tabs need — SlidingTabsContent already unmounts
-// the inactive tab's tree, but a static import still ships their JS in every Marketing
-// Studio page load regardless of which tab is open. Splitting into separate chunks means
-// that JS is only fetched the first time a guest actually opens that tab.
+// Lazy-loaded: Polotno (posts), Remotion (videos) and the calendar builder are heavy and
+// only load when a design is opened, never for the Library. Same specifiers as
+// `marketingEditorPreload` (hovering a Library card warms the chunk).
 const DesignEditor = lazy(() =>
-  import('@/features/dashboard/marketing/components/design-editor/DesignEditor').then((m) => ({
-    default: m.DesignEditor,
-  }))
+  loadMarketingEditor.design().then((m) => ({ default: m.DesignEditor }))
 );
 const VideoEditor = lazy(() =>
-  import('@/features/dashboard/marketing/components/video-editor/VideoEditor').then((m) => ({
-    default: m.VideoEditor,
+  loadMarketingEditor.video().then((m) => ({ default: m.VideoEditor }))
+);
+const MarketingCalendarSection = lazy(() =>
+  loadMarketingEditor.calendar().then((m) => ({ default: m.MarketingCalendarSection }))
+);
+const AiStudioHome = lazy(() =>
+  import('@/features/dashboard/marketing/components/ai-studio/AiStudioHome').then((m) => ({
+    default: m.AiStudioHome,
   }))
 );
-const AiStudioSection = lazy(() =>
-  import('@/features/dashboard/marketing/components/ai-studio/AiStudioSection').then((m) => ({
-    default: m.AiStudioSection,
+const AiStudioConversation = lazy(() =>
+  import('@/features/dashboard/marketing/components/ai-studio/AiStudioConversation').then((m) => ({
+    default: m.AiStudioConversation,
   }))
 );
 
@@ -62,95 +72,106 @@ export function MarketingStudioPage() {
 }
 
 function MarketingStudioWorkspace() {
-  const { view, tab, setTab, active, openTheme } = useMarketingTheme();
+  const { view, tab, tabReady, setTab, active, item, openItem } = useMarketingTheme();
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMedia, setPublishMedia] = useState<PublishMedia | null>(null);
-  const [openDesignTemplateId, setOpenDesignTemplateId] = useState<string | null>(null);
 
-  const openInDesign = (templateId: string) => {
-    setOpenDesignTemplateId(templateId);
-    if (active) openTheme(active.key, { tab: 'design' });
-    else setTab('design');
-  };
-
-  const openPublishWithBlob = (blob: Blob, mediaType: 'image' | 'video', templateId?: string) => {
-    setPublishMedia({ blob, mediaType, templateId });
-    setPublishOpen(true);
-  };
-
-  const handleCalendarPublish = (blob: Blob) => {
-    openPublishWithBlob(blob, 'image', 'calendar');
-  };
-
-  const handleDesignPublish = (payload: DesignExportPayload) => {
-    openPublishWithBlob(payload.blob, 'image', payload.templateId);
-  };
-
-  const handleVideoPublish = (payload: VideoExportPayload) => {
-    openPublishWithBlob(payload.blob, 'video', payload.templateId);
-  };
-
-  const handleGeneratePublish = (payload: { blob: Blob; mediaType: 'image' | 'video' }) => {
-    openPublishWithBlob(payload.blob, payload.mediaType, 'ai-generated');
-  };
+  const openPublishWithBlob = useCallback(
+    (blob: Blob, mediaType: 'image' | 'video', templateId?: string) => {
+      setPublishMedia({ blob, mediaType, templateId });
+      setPublishOpen(true);
+    },
+    []
+  );
 
   const showThemes = view === 'themes';
+  // Focus mode: while a design or an AI creation is open, the tab row gives way to its
+  // own top bar.
+  const editorOpen = (isMarketingEditorTab(tab) || tab === 'generate') && item.mode !== 'library';
+  // Theme is page-level context: beside the page title on desktop, atop the card on phones.
+  const isBelowLg = useIsBelowLg();
+  const themeBar = showThemes ? null : <ThemeContextBar />;
+
+  const content = (() => {
+    if (showThemes) return <ThemesHome />;
+    if (!active || !tabReady) return <MarketingLibraryBodySkeleton />;
+
+    if (tab === 'generate') {
+      return (
+        <Suspense
+          fallback={
+            item.mode === 'library' ? <MarketingLibraryBodySkeleton /> : <MarketingEditorSkeleton />
+          }
+        >
+          {item.mode === 'library' ? (
+            <AiStudioHome key={active.key} />
+          ) : (
+            <AiStudioConversation
+              key={`ai:${active.key}`}
+              onPublish={(payload) =>
+                openPublishWithBlob(payload.blob, payload.mediaType, 'ai-generated')
+              }
+              onOpenInDesign={(templateId) => openItem(templateId, { tab: 'design' })}
+            />
+          )}
+        </Suspense>
+      );
+    }
+
+    if (item.mode === 'library') {
+      return <MarketingLibraryHome key={`${tab}:${active.key}`} contentType={tab} />;
+    }
+
+    return (
+      <Suspense fallback={<MarketingEditorSkeleton />}>
+        <MarketingEditorHost key={`${tab}:${active.key}`} contentType={tab}>
+          {(document, nav) =>
+            tab === 'design' ? (
+              <DesignEditor
+                document={document}
+                nav={nav}
+                onPublish={(payload: DesignExportPayload) =>
+                  openPublishWithBlob(payload.blob, 'image', payload.templateId)
+                }
+              />
+            ) : tab === 'video' ? (
+              <VideoEditor
+                document={document}
+                nav={nav}
+                onPublish={(payload: VideoExportPayload) =>
+                  openPublishWithBlob(payload.blob, 'video', payload.templateId)
+                }
+              />
+            ) : (
+              <MarketingCalendarSection
+                document={document}
+                nav={nav}
+                onPublish={(blob) => openPublishWithBlob(blob, 'image', 'calendar')}
+              />
+            )
+          }
+        </MarketingEditorHost>
+      </Suspense>
+    );
+  })();
 
   return (
     <>
       <SlidingTabs value={tab} onValueChange={(next) => setTab(normalizeMarketingStudioTab(next))}>
-        <MarketingStudioHeaderActionsProvider>
-          <AdminMobilePage
-            title="Marketing"
-            subtitle="Build calendars, posts and videos in one theme."
-            titleId="marketing-heading"
+        <AdminMobilePage
+          title="Marketing"
+          subtitle="Make posts, videos and calendars in one theme."
+          titleId="marketing-heading"
+        >
+          <MarketingStudioShell
+            leading={isBelowLg && !editorOpen ? themeBar : null}
+            tabs={showThemes || editorOpen ? null : <MarketingStudioModeTabs />}
+            actions={!isBelowLg && !editorOpen ? themeBar : null}
+            hasDock={editorOpen && isMarketingEditorTab(tab)}
           >
-            <MarketingStudioShell
-              leading={showThemes ? null : <ThemeSwitcher className="max-sm:w-full max-sm:max-w-none" />}
-              tabs={showThemes ? null : <MarketingStudioModeTabs />}
-            >
-              {showThemes ? (
-                <ThemesHome />
-              ) : !active ? (
-                <MarketingStudioSkeleton />
-              ) : (
-                <>
-                  <SlidingTabsContent value="calendar" className="mt-0 flex min-h-0 flex-1 flex-col">
-                    <MarketingCalendarSection onPublish={handleCalendarPublish} />
-                  </SlidingTabsContent>
-
-                  <SlidingTabsContent value="design" className="mt-0 flex min-h-0 flex-1 flex-col">
-                    <Suspense fallback={<MarketingStudioSkeleton />}>
-                      <DesignEditor
-                        key={active.key}
-                        onPublish={handleDesignPublish}
-                        openTemplateId={openDesignTemplateId}
-                        onOpenTemplateHandled={() => setOpenDesignTemplateId(null)}
-                      />
-                    </Suspense>
-                  </SlidingTabsContent>
-
-                  <SlidingTabsContent value="video" className="mt-0 flex min-h-0 flex-1 flex-col">
-                    <Suspense fallback={<MarketingStudioSkeleton />}>
-                      <VideoEditor key={active.key} onPublish={handleVideoPublish} />
-                    </Suspense>
-                  </SlidingTabsContent>
-
-                  <SlidingTabsContent value="generate" className="mt-0 flex min-h-0 flex-1 flex-col">
-                    <Suspense fallback={<MarketingStudioSkeleton />}>
-                      <AiStudioSection
-                        onPublish={handleGeneratePublish}
-                        onOpenInDesign={openInDesign}
-                      />
-                    </Suspense>
-                  </SlidingTabsContent>
-                </>
-              )}
-            </MarketingStudioShell>
-
-            {showThemes ? null : <PublishHistory />}
-          </AdminMobilePage>
-        </MarketingStudioHeaderActionsProvider>
+            {content}
+          </MarketingStudioShell>
+        </AdminMobilePage>
       </SlidingTabs>
 
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} media={publishMedia} />
