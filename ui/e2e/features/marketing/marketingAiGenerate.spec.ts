@@ -6,63 +6,50 @@ import {
 } from '../team/shared/propertyTeamRbacHarness';
 
 /**
- * Marketing Studio "Generate" tab — the seeded gallery job's prompt text doubles as
- * a render assertion for both the composer path and the view-past-output path.
+ * AI Studio, photo and clip. Step 1 picks what to make, step 2 is one short form,
+ * and a finished creation opens as a conversation with its versions.
  */
-const SEEDED_PROMPT = 'E2E fixture: sunset shot of the rooftop pool deck';
+const SEEDED_TITLE = 'Sunset shot of the rooftop pool deck';
 
-const modeSwitch = (page: Page) => page.getByRole('tablist', { name: 'What to generate' });
+const startCard = (page: Page, title: 'Post' | 'Photo' | 'Clip') =>
+  page.getByRole('button', { name: new RegExp(`^${title}`) }).first();
 
-/** Generate opens on AI Post when the plan has it; these specs cover Photo and Video. */
-async function openGenerateMode(page: Page, mode: 'Photo' | 'Video' = 'Photo') {
-  await page.getByRole('tab', { name: /AI Studio/ }).click();
-  await modeSwitch(page).getByRole('tab', { name: mode, exact: true }).click();
+async function openStudio(page: Page) {
+  await page.goto(teamRbacPaths.marketingWorkspace);
+  await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({ timeout: 20_000 });
 }
 
-async function openCardMenu(page: Page) {
-  await page.getByRole('button', { name: 'More actions for this photo' }).first().click();
+/** Step 1 → step 2, for a property with nothing made yet. */
+async function startNew(page: Page, title: 'Post' | 'Photo' | 'Clip') {
+  await expect(page.getByRole('heading', { name: 'What do you want to make?' })).toBeVisible();
+  await startCard(page, title).click();
+  await expect(page.locator('#ai-studio-composer')).toBeVisible();
 }
 
 test.describe('@ci marketing AI generate tab', () => {
-  test('Pro+ composer is usable and the gallery shows a completed generation', async ({ page }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await openGenerateMode(page);
-
-    await expect(page.getByPlaceholder(/balcony at golden hour/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /generate/i })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Quality' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /More options/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Add photos/ })).toBeVisible();
-
-    await expect(page.getByText(SEEDED_PROMPT)).toBeVisible();
-  });
-
-  test('Business+ can switch to Video and open more video options', async ({ page }) => {
+  test('starting a photo opens one short form with everything else under Advanced', async ({
+    page,
+  }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
+    await openStudio(page);
+    await startNew(page, 'Photo');
 
-    await openGenerateMode(page, 'Video');
+    await expect(page.getByRole('button', { name: 'Back to AI Studio' })).toBeVisible();
+    await expect(page.getByText('New photo')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(0);
+    await expect(page.locator('#ai-studio-prompt')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Add photos/ })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Size' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /generate/i })).toBeVisible();
 
-    await expect(page.getByRole('radiogroup', { name: 'Format' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Camera' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Length' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Add a photo/ })).toBeVisible();
-    await page.getByRole('button', { name: /More options/ }).click();
-    const resolution = page.getByRole('tablist', { name: 'Resolution' });
-    await expect(resolution.getByRole('tab', { name: /High \(1080p\)/ })).toBeEnabled();
-    await expect(page.getByRole('tablist', { name: 'Sound' })).toBeVisible();
+    // Quality, look and image size stay out of the way until asked for.
+    await expect(page.getByRole('tablist', { name: 'Quality' })).toHaveCount(0);
+    await page.getByRole('button', { name: /Advanced/ }).click();
+    await expect(page.getByRole('tablist', { name: 'Quality' })).toBeVisible();
+    await expect(page.getByRole('tablist', { name: 'Image size' })).toBeVisible();
   });
 
-  test('Video sends the camera move, sound and an 8s length', async ({ page }) => {
+  test('Clip sends the camera move, sound and an 8s length', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     let sent: Record<string, unknown> | null = null;
     await page.route('**/functions/v1/generate-marketing-media**', async (route) => {
@@ -73,15 +60,12 @@ test.describe('@ci marketing AI generate tab', () => {
         body: JSON.stringify({ success: false, error: 'Generation failed' }),
       });
     });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
+    await openStudio(page);
+    await startNew(page, 'Clip');
 
-    await openGenerateMode(page, 'Video');
     await page.locator('#ai-studio-prompt').fill('Curtains moving in a soft breeze');
+    await page.getByRole('button', { name: /Advanced/ }).click();
     await page.getByRole('radio', { name: 'Orbit' }).click();
-    await page.getByRole('button', { name: /More options/ }).click();
     await page.getByRole('tablist', { name: 'Sound' }).getByRole('tab', { name: 'Music' }).click();
     await page
       .locator('#ai-studio-composer')
@@ -100,81 +84,32 @@ test.describe('@ci marketing AI generate tab', () => {
     });
   });
 
-  test('below Business, Video stays selectable and Generate does not submit', async ({ page }) => {
+  test('below Business, Generate opens the upgrade modal and sends nothing', async ({ page }) => {
     const generateCalls: string[] = [];
     page.on('request', (req) => {
       if (req.url().includes('/functions/v1/generate-marketing-media'))
         generateCalls.push(req.url());
     });
     await installPropertyTeamRbacMocks(page, 'full_access', { videoPlanAllowed: false });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await openGenerateMode(page, 'Video');
-    await expect(modeSwitch(page).getByRole('tab', { name: 'Video', exact: true })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    await openStudio(page);
+    await startNew(page, 'Clip');
 
     await page.locator('#ai-studio-prompt').fill('Slow pan across the living room');
     await page
       .locator('#ai-studio-composer')
       .getByRole('button', { name: /generate/i })
       .click();
-    // The plan gate intercepts the submit: no generation request leaves the browser.
-    await page.waitForTimeout(500);
-    expect(generateCalls).toEqual([]);
-  });
 
-  test('below Pro, the composer stays open, Generate opens the upgrade modal, and past generations stay downloadable', async ({
-    page,
-  }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access', {
-      freePlan: true,
-      marketingGenerationSeeded: true,
-    });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await openGenerateMode(page);
-
-    await page.locator('#ai-studio-prompt').fill('Sunset over the rooftop pool');
-    await page
-      .locator('#ai-studio-composer')
-      .getByRole('button', { name: /generate/i })
-      .click();
     await expect(page.getByRole('dialog')).toBeVisible();
-
-    await page.keyboard.press('Escape');
-    await expect(page.getByText(SEEDED_PROMPT)).toBeVisible();
-    await expect(page.getByRole('link', { name: /download/i })).toBeVisible();
-  });
-
-  test('Retry copies the generation back into the composer', async ({ page }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    await openGenerateMode(page);
-    await openCardMenu(page);
-    await page.getByRole('menuitem', { name: 'Use these settings' }).click();
-    await expect(page.locator('#ai-studio-prompt')).toHaveValue(SEEDED_PROMPT);
+    expect(generateCalls).toEqual([]);
   });
 
   test('the photo chooser lists saved uploads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
+    await openStudio(page);
 
-    await openGenerateMode(page);
+    await page.getByRole('button', { name: 'New photo' }).click();
+    await expect(page.locator('#ai-studio-composer')).toBeVisible();
     await page.getByRole('button', { name: /Add photos/ }).click();
     const chooser = page.getByRole('dialog', { name: 'Choose photos' });
     await expect(chooser).toBeVisible();
@@ -183,33 +118,30 @@ test.describe('@ci marketing AI generate tab', () => {
     await expect(page.getByRole('button', { name: /Use balcony\.jpg/i })).toBeVisible();
   });
 
-  test('Add to my photos attaches the generation to the form', async ({ page }) => {
+  test('a finished photo opens as a conversation with its versions', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
+    await openStudio(page);
 
-    await openGenerateMode(page);
-    await openCardMenu(page);
-    await page.getByRole('menuitem', { name: 'Add to my photos' }).click();
-    await expect(page.getByRole('button', { name: 'Remove photo' })).toBeVisible();
+    await expect(page.getByText('Your creations')).toBeVisible();
+    await page.getByRole('button', { name: new RegExp(`^Open ${SEEDED_TITLE}`) }).click();
+
+    await expect(page.getByRole('region', { name: 'Preview' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('button', { name: /^Version 1/ })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Describe a change' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+
+    // Back returns to the creations grid without leaving the tab.
+    await page.getByRole('button', { name: 'Back to AI Studio' }).click();
+    await expect(page.getByText('Your creations')).toBeVisible();
   });
 
-  test('a role without the image leaf cannot generate images', async ({ page }) => {
+  test('a role without the photo permission cannot start one', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'operations');
-    await page.goto(teamRbacPaths.marketingWorkspace);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-      timeout: 20_000,
-    });
+    await openStudio(page);
 
-    await openGenerateMode(page);
-    await expect(page.getByText(/do not have permission to generate photos/i)).toBeVisible();
-    const composer = page.locator('#ai-studio-composer');
-    await expect(composer.getByRole('button', { name: /generate/i })).toBeDisabled();
-
-    await modeSwitch(page).getByRole('tab', { name: 'Video', exact: true }).click();
-    await expect(page.getByText(/do not have permission to generate videos/i)).toBeVisible();
-    await expect(composer.getByRole('button', { name: /generate/i })).toBeDisabled();
+    await expect(page.getByRole('heading', { name: 'What do you want to make?' })).toBeVisible();
+    await expect(startCard(page, 'Photo')).toBeDisabled();
+    await expect(startCard(page, 'Clip')).toBeDisabled();
+    await expect(page.getByText('Ask the owner for access').first()).toBeVisible();
   });
 });

@@ -82,8 +82,11 @@ test.describe('@ci marketing themes', () => {
     await installThemesMock(page);
     await page.goto(teamRbacPaths.marketing);
 
-    await expect(page.getByRole('heading', { name: 'Themes', exact: true })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('heading', { name: 'Starter looks' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Themes', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    // Only the host's own themes are listed; starter looks wait behind "New theme".
+    await expect(page.getByRole('button', { name: 'Open Garden Bloom' })).toHaveCount(0);
     await page.screenshot({ path: 'test-results/marketing-themes-home.png', fullPage: false });
 
     await page.getByRole('button', { name: 'Open Property colors' }).click();
@@ -101,19 +104,42 @@ test.describe('@ci marketing themes', () => {
     });
   });
 
-  test('switches to a starter look and back to all themes', async ({ page }) => {
+  test('a starter look from New theme, then back to all themes', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     await installThemesMock(page);
-    await page.goto(teamRbacPaths.marketing);
+    await page.goto(`${teamRbacPaths.marketing}?theme=starter:garden-glow`);
 
-    await page.getByRole('button', { name: 'Open Garden Bloom' }).click({ timeout: 20_000 });
-    await expect(page.getByRole('button', { name: /Theme: Garden Bloom/ })).toBeVisible();
-    await expect(page).toHaveURL(/theme=starter%3Agarden-glow|theme=starter:garden-glow/);
-
-    await page.getByRole('button', { name: /Theme: Garden Bloom/ }).click();
-    await page.getByRole('menuitem', { name: 'All themes' }).click();
+    await expect(page.getByRole('button', { name: /Theme: Garden Bloom/ })).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.getByRole('button', { name: 'All themes' }).click();
     await expect(page.getByRole('heading', { name: 'Themes', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Back to Garden Bloom/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Back to Garden Bloom/ })).toHaveCount(0);
+    const themeGrid = page.locator('ul').filter({
+      has: page.getByRole('button', { name: /New theme/ }),
+    });
+    await expect(
+      themeGrid
+        .locator('> li')
+        .first()
+        .getByRole('button', { name: /New theme/ })
+    ).toBeVisible();
+    // The look you're working in stays listed even with nothing saved in it.
+    await expect(page.getByRole('button', { name: 'Open Garden Bloom' })).toBeVisible();
+
+    await page.getByRole('button', { name: /New theme/ }).click();
+    const looks = page.getByRole('dialog', { name: 'New theme' });
+    await expect(looks.getByRole('button', { name: 'Start from Bubble Pop' })).toBeVisible();
+    await expect(looks.getByRole('button', { name: 'Start from Sunny Widget' })).toHaveCount(0);
+    await looks.getByRole('button', { name: 'More looks' }).click();
+    await expect(looks.getByRole('button', { name: 'Start from Sunny Widget' })).toBeVisible();
+    await page.screenshot({ path: 'test-results/marketing-themes-new.png', fullPage: false });
+
+    await looks.getByRole('button', { name: 'Start from Bubble Pop' }).click();
+    const editor = page.getByRole('dialog', { name: 'New theme' });
+    await expect(editor.getByLabel('Name')).toHaveValue('Bubble Pop');
+    await expect(editor.getByRole('radiogroup', { name: 'Palettes' })).toBeVisible();
+    await expect(editor.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
   });
 
   test('creates a theme, edits it, and deletes it', async ({ page }) => {
@@ -121,9 +147,13 @@ test.describe('@ci marketing themes', () => {
     const state = await installThemesMock(page);
     await page.goto(teamRbacPaths.marketing);
 
-    await page.getByRole('button', { name: 'New theme' }).click({ timeout: 20_000 });
+    await page.getByRole('button', { name: /New theme/ }).click({ timeout: 20_000 });
+    await page
+      .getByRole('dialog', { name: 'New theme' })
+      .getByRole('button', { name: 'Start from Your property colors' })
+      .click();
     const dialog = page.getByRole('dialog', { name: 'New theme' });
-    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel('Name')).toBeVisible();
     await page.screenshot({ path: 'test-results/marketing-themes-editor.png', fullPage: false });
     await dialog.getByLabel('Name').fill('Summer');
     await dialog.getByRole('radio', { name: /Magazine/ }).click();
@@ -137,8 +167,7 @@ test.describe('@ci marketing themes', () => {
     expect(created.name).toBe('Summer');
     expect(created.tokens.fonts.display).toBe('Instrument Serif');
 
-    await page.getByRole('button', { name: /Theme: Summer/ }).click();
-    await page.getByRole('menuitem', { name: 'Edit theme' }).click();
+    await page.getByRole('button', { name: 'Edit theme' }).click();
     const edit = page.getByRole('dialog', { name: 'Edit theme' });
     await edit.getByLabel('Name').fill('Summer 2026');
     await edit.getByRole('button', { name: 'Save', exact: true }).click();
@@ -152,26 +181,62 @@ test.describe('@ci marketing themes', () => {
     await expect(page.getByRole('button', { name: 'Open Summer 2026' })).toHaveCount(0);
   });
 
-  test('calendar opens in the theme: starter look picks its own layout, Advanced toggles', async ({
+  test('calendar opens in the theme: starter look picks its own layout, panels toggle', async ({
     page,
   }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     await installThemesMock(page);
-    await page.goto(`${teamRbacPaths.marketing}?theme=starter:garden-glow`);
+    await page.goto(`${teamRbacPaths.marketing}?theme=starter:garden-glow&tab=calendar&item=new`);
 
-    await expect(page.getByRole('button', { name: /Theme: Garden Bloom/ })).toBeVisible({
+    // An open editor is focus mode: the theme bar gives way to the editor's top bar.
+    await expect(page.getByRole('button', { name: 'Back to Calendar' })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole('button', { name: /Show on calendar/ })).toBeVisible();
-    await expect(page.getByText('Botanical', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Theme: Garden Bloom/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Garden Bloom Rename' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: 'test-results/marketing-themes-calendar.png', fullPage: false });
 
-    await page.getByRole('button', { name: 'Advanced' }).click();
-    await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Back', exact: true }).click();
-    await page.getByRole('button', { name: /Show on calendar/ }).click();
+    await page.getByRole('tab', { name: 'Layouts' }).click();
+    await expect(page.getByRole('button', { name: 'Botanical', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Show' }).click();
     await expect(page.getByRole('switch').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Style', exact: true }).click();
+    await expect(page.getByRole('complementary', { name: 'Style' })).toBeVisible();
+  });
+
+  test('Describe a look fills the editor with an AI theme, saved as AI', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access');
+    const state = await installThemesMock(page);
+    const aiRequests: unknown[] = [];
+    await page.route('**/functions/v1/generate-marketing-template**', async (route) => {
+      aiRequests.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { contentType: 'theme', name: 'Sandy Shore', tokens: OCEAN_TOKENS },
+        }),
+      });
+    });
+    await page.goto(teamRbacPaths.marketing);
+
+    await page.getByRole('button', { name: /New theme/ }).click({ timeout: 20_000 });
+    const dialog = page.getByRole('dialog', { name: 'New theme' });
+    await dialog.getByLabel('Describe a look').fill('Calm beach house');
+    await dialog.getByRole('button', { name: 'Generate' }).click();
+    await expect(dialog.getByLabel('Name')).toHaveValue('Sandy Shore');
+    expect(aiRequests[0]).toMatchObject({ contentType: 'theme', prompt: 'Calm beach house' });
+
+    await dialog.getByRole('button', { name: 'Save theme' }).click();
+    await expect(page.getByRole('button', { name: /Theme: Sandy Shore/ })).toBeVisible();
+    const created = state.requests.find((r) => r.method === 'POST')!.body as {
+      source: string;
+      tokens: { palette: { primary: string } };
+    };
+    expect(created.tokens.palette.primary).toBe('#2a9d8f');
+    expect(created.source).toBe('ai');
   });
 
   test('a saved theme from the server shows in the switcher', async ({ page }) => {
@@ -208,8 +273,14 @@ test.describe('@ci marketing themes', () => {
       await expectNoPageHorizontalOverflow(page);
       await page.screenshot({ path: 'test-results/marketing-themes-home-375.png' });
 
-      await page.getByRole('button', { name: 'Open Bubble Pop' }).click();
-      const switcher = page.getByRole('button', { name: /Theme: Bubble Pop/ });
+      await page.getByRole('button', { name: /New theme/ }).click();
+      await expect(page.getByRole('dialog', { name: 'New theme' })).toBeVisible();
+      await expectNoPageHorizontalOverflow(page);
+      await page.screenshot({ path: 'test-results/marketing-themes-new-375.png' });
+      await page.getByRole('button', { name: 'Cancel' }).click();
+
+      await page.getByRole('button', { name: 'Open Property colors' }).click();
+      const switcher = page.getByRole('button', { name: /Theme: Property colors/ });
       await expect(switcher).toBeVisible();
       await expectNoPageHorizontalOverflow(page);
       await page.screenshot({ path: 'test-results/marketing-themes-workspace-375.png' });
@@ -218,8 +289,13 @@ test.describe('@ci marketing themes', () => {
       const sheet = page.getByRole('dialog', { name: 'Themes' });
       await expect(sheet).toBeVisible();
       await page.screenshot({ path: 'test-results/marketing-themes-switcher-375.png' });
-      await sheet.getByRole('button', { name: 'Customize theme' }).click();
-      await expect(page.getByRole('dialog', { name: 'Customize Bubble Pop' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(sheet).toHaveCount(0);
+      await page.getByRole('button', { name: 'Customize' }).click();
+      const editor = page.getByRole('dialog', { name: 'Customize Property colors' });
+      await expect(editor).toBeVisible();
+      await editor.getByRole('button', { name: 'Main color' }).click();
+      await expect(editor.getByRole('radiogroup', { name: 'Main shades' })).toBeVisible();
       await expectNoPageHorizontalOverflow(page);
       await page.screenshot({ path: 'test-results/marketing-themes-editor-375.png' });
     });

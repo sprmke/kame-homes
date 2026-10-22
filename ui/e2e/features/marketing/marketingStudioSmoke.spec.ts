@@ -6,14 +6,19 @@ import {
 } from '../team/shared/propertyTeamRbacHarness';
 
 test.describe('@ci marketing studio smoke', () => {
-  test('marketing studio tabs load for Full Access', async ({ page }) => {
+  test('tabs load in order and AI Studio opens first', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     await page.goto(teamRbacPaths.marketingWorkspace);
     await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole('tab', { name: 'Calendar' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Posts' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Videos' })).toBeVisible();
+    const tabs = page.getByRole('tab', { name: /^(AI Studio|Posts|Videos|Calendar)/ });
+    await expect(tabs).toHaveText([/AI Studio/, 'Posts', 'Videos', 'Calendar']);
+    await expect(page.getByRole('tab', { name: /AI Studio/ })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    // Nothing made yet: AI Studio opens on the chooser.
+    await expect(page.getByRole('heading', { name: 'What do you want to make?' })).toBeVisible();
   });
 });
