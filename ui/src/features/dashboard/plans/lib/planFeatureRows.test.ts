@@ -36,6 +36,7 @@ const EXPECTED: Record<string, Record<string, PlanFeatureValue>> = {
   financeReporting: { free: off(), starter: on(), growth: on(), pro: on(), managed: on() },
   maintenanceReporting: { free: off(), starter: on(), growth: on(), pro: on(), managed: on() },
   calendarSync: { free: off(), starter: off(), growth: on(), pro: on(), managed: on() },
+  reviewAutomation: { free: off(), starter: off(), growth: on(), pro: on(), managed: on() },
   smartPricing: { free: off(), starter: off(), growth: on(), pro: on(), managed: on() },
   analyticsInsights: { free: off(), starter: off(), growth: on(), pro: on(), managed: on() },
   teamManagement: {

@@ -18,6 +18,7 @@ export const ORG_ADMIN_ROLE_ID = 'ADMIN' as const;
 export const ORG_PERMISSION_IDS = [
   'org.dashboard:view',
   'org.bookings:view',
+  'org.reviews:view',
   'org.properties:view',
   'org.properties:create',
   'org.properties:manage',
@@ -78,6 +79,7 @@ export const ORG_ROLE_PERMISSIONS: Record<BuiltinOrgRole, OrgPermissionId[]> = {
   ADMIN: [
     'org.dashboard:view',
     'org.bookings:view',
+    'org.reviews:view',
     'org.properties:view',
     'org.properties:manage',
     'org.parkings:view',

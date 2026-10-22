@@ -93,6 +93,7 @@ const BULLET_RULES: BulletRule[] = [
     holds: flag('propertyShowcase'),
   },
   { label: 'Airbnb calendar sync', keys: ['calendarSync'], holds: flag('calendarSync') },
+  { label: 'Review automation', keys: ['reviewAutomation'], holds: flag('reviewAutomation') },
   { label: 'Smart AI Pricing', keys: ['smartPricing'], holds: flag('smartPricing') },
   {
     label: 'Copy property settings',
