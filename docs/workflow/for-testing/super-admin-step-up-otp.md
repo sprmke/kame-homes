@@ -1,7 +1,7 @@
 ---
 stage: for-testing
 title: 'Super Admin step-up OTP for sensitive actions'
-status: in-progress
+status: for-testing
 tags: [planning, security, super-admin, admin, auth, otp]
 updated: 2026-09-09
 ---

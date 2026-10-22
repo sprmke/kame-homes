@@ -1287,3 +1287,9 @@ verify_jwt = false
 [functions.moderate-review-report]
 verify_jwt = false
 static_files =
+
+[functions.marketing-ai-sessions]
+verify_jwt = false
+
+[functions.super-admin-system-health]
+verify_jwt = false

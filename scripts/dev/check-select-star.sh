@@ -44,6 +44,12 @@ ALLOWLIST=(
   '_shared/inboxQuickReplyTemplates.ts'
   '_shared/systemHealth/probes.ts'
 
+  # Two-way reviews: single-row reads of the full review/window row (status + notes).
+  '_shared/guestReviewService.ts'
+  '_shared/hostGuestReviewService.ts'
+  # Concurrent receptionist WIP: one latest booking for the signed-in guest.
+  '_shared/guestReceptionistTools.ts'
+
   '_shared/appSettings.ts'
   '_shared/approvalEmailMatcher.ts'
   '_shared/bookingAiReviewService.ts'

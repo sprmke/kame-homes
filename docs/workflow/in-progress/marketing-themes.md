@@ -1,15 +1,17 @@
 ---
 title: 'Marketing themes: theme-first Marketing Studio'
 stage: in-progress
-status: in progress
+status: in-progress
 tags: [marketing, ux, themes, calendar, polotno, remotion, ai]
-updated: 2026-10-19
+updated: 2026-10-22
 kind: plan
 ---
 
 # Marketing themes: theme-first Marketing Studio
 
-Approved 2026-10-18. Implementation started 2026-10-18 (see **Progress** below). Absorbs brand kit items 1.1 and 8.5 from [`marketing-ai-poster-studio.md`](../in-progress/marketing-ai-poster-studio.md).
+**Stage (2026-10-21):** in progress. Core library, editors, and follow-the-theme behavior are shipped and can be tried. Still open in this plan, so it is not QA-only: phase 7 extras (describe a theme with AI, save an AI result as a theme, per-theme photo looks), phase 8 thumbnails in Storage, and phase 9 one shared sidebar. A duplicate copy was removed.
+
+Approved 2026-10-18. Implementation started 2026-10-18 (see **Progress** below). Absorbs brand kit items 1.1 and 8.5 from [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md).
 
 ## Progress (2026-10-19)
 
@@ -30,6 +32,18 @@ Shipped in code, verified by type-check, lint, unit tests (theme suite + full ma
 | 10 Docs / tests     | Done        | Route guide, PROJECT, overview, edge-functions, plans matrix, runbook. Flag `VITE_MARKETING_THEMES` dropped: shipped directly.                                                                                                                                        |
 
 Data-safety fixes found on the way: calendar dedupe and design purge would have deleted same-layout items in other themes (now theme-scoped); the design purge deleted every preset autosave on each new browser (now keeps the newest per theme + preset + format); saved video/post headless thumbnails never fired because the request id did not match.
+
+## Follow-up: library, editor and navigation (2026-10-19)
+
+Host feedback: too many choices on the themes page, cards showed only swatches, the editor showed color codes and a sideways-scrolling palette strip, and moving between themes, the library and Customize had no clear hierarchy.
+
+- [x] Library lists only the host's themes; starter looks moved to the **New theme** dialog (one per group, **More looks** for the rest).
+- [x] Theme cards show a sample post, the theme's calendar layout and a sample clip (no saved thumbnails, no capture).
+- [x] Editor: live preview of the theme's own items plus a type specimen; wrapping palette grid with near-duplicates removed; five color swatches with shades, suggestions and the device picker; no color codes; visual Background and Corners tiles; Photo mood under **More options**.
+- [x] Theme bar **Themes › name ▾ · Customize**: page header on desktop, top of the studio card on phones.
+- [x] Themes made from a starter open the calendar on that starter's layout.
+
+QA: open Marketing fresh (library shows Property colors + New theme only), create a theme from a look, tweak one color with shades, switch themes from the bar, go back with **Themes**, check 375px.
 
 ## Context
 

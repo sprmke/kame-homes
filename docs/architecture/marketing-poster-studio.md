@@ -7,7 +7,7 @@ updated: 2026-09-28
 
 # Marketing Poster Studio (AI Post)
 
-Finished, editable social posts made from a property's **real photos**. The Generate tab opens on **AI Post** (plan: [`docs/workflow/in-progress/marketing-ai-poster-studio.md`](../workflow/in-progress/marketing-ai-poster-studio.md)).
+Finished, editable social posts made from a property's **real photos**. AI Studio (the first Marketing tab) opens on **Post** (plan: [`docs/workflow/in-progress/marketing-ai-poster-studio.md`](../workflow/in-progress/marketing-ai-poster-studio.md)).
 
 ## Why this shape
 
@@ -20,7 +20,7 @@ Benchmark posts from real PH staycation pages are designed posters: a real photo
 ## Flow
 
 ```
-AiPostPanel (goal · format · optional message)
+AiStudioCreate (angle · size · optional message) → AiStudioConversation.create
   → buildPosterFacts(publicProperty)              lib/poster/posterFacts.ts
   → useGeneratePosters                            hooks/useGeneratePosters.ts
       POST generate-marketing-template {contentType:'poster', goal, prompt, facts, photoUrls}
@@ -31,9 +31,13 @@ AiPostPanel (goal · format · optional message)
   → normalizePosterSpec                           lib/poster/posterSpec.ts
   → compilePosterDocument(spec, facts, format)    lib/poster/posterCompiler.ts
   → auditPosterDocument (sort worst last)         lib/poster/posterAudit.ts
-  → renderPosterDocument (offscreen Workspace)    lib/poster/posterRender.ts
+  → renderPosterDocument (offscreen Workspace)    lib/poster/posterRender.ts (dynamic import: Konva + OpenPolotno load on first render, not with AI Studio)
        + fitPosterTextSlots (real Konva metrics)  lib/polotno/fitPosterTextSlots.ts
-  → Edit: saveMarketingTemplate (category "AI posts") → Design tab opens it (openTemplateId)
+  → useAiPosterEngine.render: compactPosterPhotos (keep only the photos this post places, ≤ 6)
+  → POST marketing-ai-sessions {action:"post-versions"} — one version per layout, preview uploaded
+  → refine: POST generate-marketing-template {revise:{spec, instruction}} → 1 variant → a new version
+     shuffle / resize make a version with no AI call
+  → Edit in Posts: saveMarketingTemplate (kind design) → openItem(id, { tab: "design" })
 ```
 
 ## Design system (`ui/src/features/dashboard/marketing/lib/poster/`)
@@ -65,7 +69,7 @@ AiPostPanel (goal · format · optional message)
 
 ## Formats
 
-`instagram-portrait` (1080×1350) is a real `DesignTemplateFormat`, so AI posts open and save in the Design editor. The hand-built preset library is only tuned for 1:1, 9:16 and 1.91:1 (`DESIGN_PRESET_FORMATS`). The editor's size picker therefore lists 4:5 only while a 4:5 design is open, until those presets have been reviewed for it.
+`instagram-portrait` (1080×1350) is a real `DesignTemplateFormat`, so AI posts open and save in the Posts editor. The hand-built preset library is only tuned for 1:1, 9:16 and 1.91:1 (`DESIGN_PRESET_FORMATS`). The editor's size picker therefore lists 4:5 only while a 4:5 design is open, until those presets have been reviewed for it.
 
 ## Themes
 
@@ -73,7 +77,7 @@ Inside Marketing Studio, AI Post follows the active [theme](./marketing-themes.m
 
 ## Plan default
 
-The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. AI Post stays visible with its tier badge.
+AI Studio opens on **Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. Post stays visible with its tier badge.
 
 ## Robustness
 

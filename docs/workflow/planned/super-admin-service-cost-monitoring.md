@@ -15,6 +15,10 @@ profitable**: every metered call is attributed and budgeted, every guest-initiat
 action is capped server-side, and the app **degrades to a cheaper path before it overspends**
 instead of producing a surprise invoice.
 
+**Mount point:** the cost console ships as a section of the System health module at
+`/admin/health/costs` (see [`../in-progress/super-admin-system-health.md`](../in-progress/super-admin-system-health.md)
+Phase 6). Add it to `HEALTH_SECTIONS` in `ui/.../super-admin/lib/systemHealth/healthSections.ts`.
+
 ## Non-negotiables (the cost contract)
 
 1. **Attribution** — every metered external call (email, AI token, voice minute, map load,

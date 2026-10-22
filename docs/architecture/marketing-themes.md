@@ -13,12 +13,13 @@ Marketing Studio is theme-first: a host picks a theme, and every calendar, post,
 
 `MarketingThemeTokens` (`ui/src/features/dashboard/marketing/lib/theme/marketingTheme.ts`, mirrored for validation in `supabase/functions/_shared/marketingTheme.ts`, kept in sync by `marketingThemeEdgeParity.test.ts`):
 
-| Field        | Values                                                                                                                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `palette`    | `primary` (main brand color) · `secondary` (soft tone) · `accent` (highlight) · `surface` (paper) · `ink` (text). `#rrggbb`.                                                                      |
-| `fonts`      | `display` · `body` · `label`, from one allow-list usable by DOM, Konva and Remotion (`marketingThemeFonts.ts`). Families not preloaded in `index.html` load on demand (`marketingFontLoader.ts`). |
-| `background` | `solid` · `soft-gradient` · `pattern` · `photo-wash`                                                                                                                                              |
-| `corners`    | `sharp` · `soft` · `round`                                                                                                                                                                        |
+| Field                  | Values                                                                                                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `palette`              | `primary` (main brand color) · `secondary` (soft tone) · `accent` (highlight) · `surface` (paper) · `ink` (text). `#rrggbb`.                                                                      |
+| `fonts`                | `display` · `body` · `label`, from one allow-list usable by DOM, Konva and Remotion (`marketingThemeFonts.ts`). Families not preloaded in `index.html` load on demand (`marketingFontLoader.ts`). |
+| `photoLook` (optional) | One of the AI Photo / Video looks (`GENERATION_LOOKS` ids, parity-tested). Present only when set; an unknown value is dropped, not fatal.                                                         |
+| `background`           | `solid` · `soft-gradient` · `pattern` · `photo-wash`                                                                                                                                              |
+| `corners`              | `sharp` · `soft` · `round`                                                                                                                                                                        |
 
 `resolveMarketingTheme` derives roles with contrast guarantees (`readableInk` ≥ 7:1 on surface, `muted` ≥ 4.5:1, readable text on each fill). `marketingThemeHash` is a canonical FNV-1a hash used for "theme changed" checks and thumbnail cache keys.
 
@@ -55,12 +56,20 @@ Same source and target theme returns the same object, which is what makes **star
 
 ## Thumbnails
 
-| Card                                     | How                                                                                                                                                             |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Theme library, switcher, editor previews | CSS-only (`ThemePreview.tsx`)                                                                                                                                   |
-| Calendar layouts and saved calendars     | Live calendar DOM scaled with CSS (`CalendarLayoutLivePreview`), mounted when near the viewport. The html-to-image capture host was removed.                    |
-| Post / video presets                     | Captured once per theme: `themeHash` in the cache key, IndexedDB persisted; video pre-warm only for the open category.                                          |
-| Saved posts / videos                     | Embedded thumbnail unless its `themeHash` is stale; then re-rendered (posts headlessly with unique page ids so the capture never picks the live editor's page). |
+| Card                                                 | How                                                                                                                                                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Theme library cards, editor preview, New theme looks | `ThemeShowcase.tsx`: always the sample post, the theme's calendar layout, and a sample clip (`ThemePreview.tsx` + `CalendarMiniPreview`). Saved thumbnails stay on library cards. Nothing is captured. |
+| Theme bar and switcher                               | CSS swatch dots                                                                                                                                                                                        |
+| Calendar layouts and saved calendars                 | Live calendar DOM scaled with CSS (`CalendarLayoutLivePreview`), mounted when near the viewport. The html-to-image capture host was removed.                                                           |
+| Post / video presets                                 | Captured once per theme: `themeHash` in the cache key, IndexedDB persisted; video pre-warm only for the open category.                                                                                 |
+| Saved posts / videos                                 | Embedded thumbnail unless its `themeHash` is stale; then re-rendered (posts headlessly with unique page ids so the capture never picks the live editor's page).                                        |
+
+## Navigation and theme UI
+
+- **Library** (`ThemesHome`): the themes root. The **New theme** tile is always the first card, then the host's themes. No back control to the open theme. Starter looks live in `NewThemeDialog` (one per group via `MarketingThemeEntry.featured`, the rest behind **More looks**), next to Describe a look.
+- **Theme bar** (`ThemeContextBar`): Themes › name ▾ · Edit / Customize. Rendered in the page header on `lg+` (`AdminMobilePage desktopActions`) and as the first row of the studio card below `lg`.
+- **Editor**: palette grid and per-role colors from `themePaletteSuggestions.ts` (OKLab de-duplication, shades, per-role suggestions). No color codes in the UI; **Any color** is the native color input.
+- Themes created from a starter (or a copy of one) inherit its `calendarLayoutId` through `sourceRef`, so the calendar tab opens on that layout.
 
 ## Page state
 
@@ -72,9 +81,16 @@ Same source and target theme returns the same object, which is what makes **star
 - Plans: GET `marketingStudio`; POST/PATCH `customTemplates`; built-ins on every tier.
 - Activity: `marketing.theme_saved` (create/edit), `marketing.theme_deleted` (with moved item count). Re-theming an item is a normal template save (`marketing.template_saved`).
 
+## AI theme creation
+
+`generate-marketing-template` with `contentType: 'theme'` (`_shared/marketingThemeDirector.ts`, prompt `marketing_template_theme`) turns a description (up to 300 characters) into tokens. The JSON schema enumerates fonts, backgrounds, corners and photo looks; `parseGeneratedTheme` → `coerceMarketingThemeTokens` repairs any off-list field, so the response is always a valid theme. Same gate, quota and rate limit as the other template generations. The client runs it from the New theme dialog (`ThemeAiDescribe`) and opens the result as an unsaved draft in the editor; saving records `source: 'ai'`. "Save an AI result as a theme" is not needed: inside a theme, AI results already use the theme.
+
+## Saved thumbnails in Storage
+
+`marketing_templates.thumbnail_path` (migration `20261316127200`). `_shared/marketingTemplateThumbnails.ts` strips `designJson.thumbnailDataUrl` on POST/PATCH, validates real image bytes (JPEG/PNG/WebP, 600 KB max), uploads to `property-media/{propertyId}/marketing-thumbs/{templateId}-{ts}.ext` (immutable, cached for a year), links it, then deletes the previous object. Thumbnail failures never fail a save. PATCH also accepts a top-level `thumbnailDataUrl` alone. GET migrates up to 6 legacy embedded thumbnails per call. A table-specific trigger (`marketing_templates_touch_updated_at`) keeps `updated_at` for thumbnail-only writes so lists do not reorder. DELETE removes the object. Clients read `thumbnailUrl` first (`savedRecordThumbnail`). With images out of `design_json`, a separate summary GET was not needed.
+
+Library cards (Marketing Studio Library) read `thumbnailUrl` from `view=library`; calendars without one get `previewStyles` and draw an SVG (`CalendarMiniPreview`). The editor session (`useMarketingDesignSession`) stores a fresh thumbnail after the first save, at most every 30 seconds while editing, on leave, and when a saved item opens with a missing or other-theme (`themeHash`) thumbnail. Built-in template art renders headlessly (posts in a hidden offscreen OpenPolotno workspace, videos as a Remotion still) through one global slot gated by `marketingRenderGate` (paused during canvas drags and video playback) and is cached per theme in IndexedDB; low-spec devices render only on hover / focus. Theme cards draw sample art and do not read `view=showcase`.
+
 ## Not in this slice
 
-- Creating a theme by describing it to AI, and "Save as new theme" from an AI result.
 - Theme colors in OpenPolotno's color picker (the toolbar bundle keeps its preset list private).
-- Saved thumbnails in Storage instead of `designJson.thumbnailDataUrl`, and a summary GET for template lists.
-- Per-theme mood defaults for AI Photo / Video looks.
