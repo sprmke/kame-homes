@@ -24,7 +24,7 @@ const FEATURE = 'marketing_template' as const;
 
 export const POSTER_DIRECTOR_PROMPT = definePrompt({
   id: 'marketing_template_poster',
-  version: '2026-09-28.2',
+  version: '2026-10-20.1',
 });
 
 export const POSTER_ARCHETYPES = [
@@ -195,7 +195,18 @@ export type GeneratePosterSpecsInput = {
   /** Already allow-listed and fetched (see loadPosterPhotos). Index = photoIndexes. */
   photos: PosterPhotoInput[];
   count: number;
+  /**
+   * AI Studio refinement: the post the host is looking at plus what to change. The
+   * model returns one variant that applies the change and keeps the rest.
+   */
+  revise?: { spec: Record<string, unknown>; instruction: string } | null;
 };
+
+/** Fields of the current post the model needs to revise it (no coordinates exist). */
+export function revisableSpec(spec: Record<string, unknown>): Record<string, unknown> {
+  const pick = ['archetype', 'fontPairing', 'palette', 'copy', 'features', 'photoIndexes', 'label'];
+  return Object.fromEntries(pick.filter((key) => key in spec).map((key) => [key, spec[key]]));
+}
 
 function words(value: string): string[] {
   return value
@@ -281,11 +292,22 @@ function buildUserParts(input: GeneratePosterSpecsInput): LlmPart[] {
     {
       text: [
         `Goal: ${input.goal}`,
-        `Variants to return: ${input.count}`,
+        `Variants to return: ${input.revise ? 1 : input.count}`,
         wrapUntrusted('property_facts', factLines.join('\n'), 1_500),
         input.prompt
           ? `Host request:\n${wrapUntrusted('host_prompt', input.prompt, 500)}`
           : 'Host request: none, choose the strongest angle for the goal.',
+        ...(input.revise
+          ? [
+              `Current post (revise this one):\n${wrapUntrusted(
+                'current_post',
+                JSON.stringify(revisableSpec(input.revise.spec)),
+                6_000
+              )}`,
+              `Change request:\n${wrapUntrusted('change_request', input.revise.instruction, 300)}`,
+              'Return exactly 1 variant: the current post with the change applied. Keep the archetype, font pairing, palette, photos and every copy line the change does not touch. Same grounding rules: no invented amenities, prices or times.',
+            ]
+          : []),
         `Photos attached: ${input.photos.length} (photo 0 is the first image below).`,
       ].join('\n\n'),
     },
@@ -318,7 +340,7 @@ export async function directPosterSpecs(
     billing,
   });
   return result.data.variants
-    .slice(0, input.count)
+    .slice(0, input.revise ? 1 : input.count)
     .map((variant) => sanitizeVariant(variant, input));
 }
 

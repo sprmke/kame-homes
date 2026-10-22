@@ -1,6 +1,8 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 
 import {
+  coerceMarketingThemeTokens,
+  DEFAULT_MARKETING_THEME_TOKENS,
   isMarketingThemeKey,
   isMarketingThemeRowId,
   normalizeMarketingThemeName,
@@ -57,4 +59,20 @@ Deno.test('normalizeMarketingThemeName trims and bounds', () => {
   assertEquals(normalizeMarketingThemeName('   '), null);
   assertEquals(normalizeMarketingThemeName('x'.repeat(61)), null);
   assertEquals(normalizeMarketingThemeName(12), null);
+});
+
+Deno.test('coerceMarketingThemeTokens repairs off-list values field by field', () => {
+  const coerced = coerceMarketingThemeTokens({
+    palette: { primary: '#123456', ink: 'black' },
+    fonts: { display: 'Lora', body: 'Comic Sans' },
+    background: 'video',
+    corners: 'round',
+  });
+  assertEquals(coerced.palette.primary, '#123456');
+  assertEquals(coerced.palette.ink, DEFAULT_MARKETING_THEME_TOKENS.palette.ink);
+  assertEquals(coerced.fonts.display, 'Lora');
+  assertEquals(coerced.fonts.body, DEFAULT_MARKETING_THEME_TOKENS.fonts.body);
+  assertEquals(coerced.background, 'solid');
+  assertEquals(coerced.corners, 'round');
+  assertEquals(parseMarketingThemeTokens(coerced), coerced);
 });

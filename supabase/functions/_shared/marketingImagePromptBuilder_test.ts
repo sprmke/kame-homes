@@ -12,6 +12,7 @@ import {
   amenitiesFromPropertySettings,
   buildStructuredImagePrompt,
   enhanceMarketingImagePrompt,
+  buildImageEditPrompt,
   resolvePlatformIntent,
   type MarketingImagePropertyContext,
 } from './marketingImagePromptBuilder.ts';
@@ -146,37 +147,9 @@ Deno.test(
 );
 
 Deno.test('enhanceMarketingImagePrompt: no configured keys falls back without throwing', () =>
-  withEnv({ GEMINI_API_KEY: undefined, GEMINI_API_KEYS: undefined }, async () => {
-    const result = await enhanceMarketingImagePrompt({
-      organizationId: 'org-1',
-      propertyId: 'prop-1',
-      prompt: 'bright living room',
-      aspectRatio: '1:1',
-      property: PROPERTY,
-      hasReferenceImages: false,
-    });
-    assertEquals(result.enhanced, false);
-    assertMatch(result.prompt, /bright living room/);
-  })
-);
-
-Deno.test('enhanceMarketingImagePrompt: uses the model output on a clean response', () =>
-  withEnv({ GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined }, async () => {
-    globalThis.fetch = (() =>
-      Promise.resolve(
-        jsonResponse({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'A photorealistic wide shot of a sunlit condo living room.' }],
-              },
-            },
-          ],
-          usageMetadata: { promptTokenCount: 80, candidatesTokenCount: 40 },
-        })
-      )) as typeof fetch;
-
-    try {
+  withEnv(
+    { GEMINI_API_KEY: undefined, GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },
+    async () => {
       const result = await enhanceMarketingImagePrompt({
         organizationId: 'org-1',
         propertyId: 'prop-1',
@@ -185,19 +158,106 @@ Deno.test('enhanceMarketingImagePrompt: uses the model output on a clean respons
         property: PROPERTY,
         hasReferenceImages: false,
       });
-      assertEquals(result.enhanced, true);
-      assertMatch(result.prompt, /photorealistic/i);
-    } finally {
-      restoreFetch();
+      assertEquals(result.enhanced, false);
+      assertMatch(result.prompt, /bright living room/);
     }
-  })
+  )
+);
+
+Deno.test('enhanceMarketingImagePrompt: uses the model output on a clean response', () =>
+  withEnv(
+    { GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },
+    async () => {
+      globalThis.fetch = (() =>
+        Promise.resolve(
+          jsonResponse({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'A photorealistic wide shot of a sunlit condo living room.' }],
+                },
+              },
+            ],
+            usageMetadata: { promptTokenCount: 80, candidatesTokenCount: 40 },
+          })
+        )) as typeof fetch;
+
+      try {
+        const result = await enhanceMarketingImagePrompt({
+          organizationId: 'org-1',
+          propertyId: 'prop-1',
+          prompt: 'bright living room',
+          aspectRatio: '1:1',
+          property: PROPERTY,
+          hasReferenceImages: false,
+        });
+        assertEquals(result.enhanced, true);
+        assertMatch(result.prompt, /photorealistic/i);
+      } finally {
+        restoreFetch();
+      }
+    }
+  )
 );
 
 Deno.test(
   'enhanceMarketingImagePrompt: fail-open on a network error — never throws, falls back to the structured prompt',
   () =>
-    withEnv({ GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined }, async () => {
-      globalThis.fetch = (() => Promise.reject(new Error('network down'))) as typeof fetch;
+    withEnv(
+      { GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },
+      async () => {
+        globalThis.fetch = (() => Promise.reject(new Error('network down'))) as typeof fetch;
+
+        try {
+          const result = await enhanceMarketingImagePrompt({
+            organizationId: 'org-1',
+            propertyId: 'prop-1',
+            prompt: 'bright living room',
+            aspectRatio: '1:1',
+            property: PROPERTY,
+            hasReferenceImages: false,
+          });
+          assertEquals(result.enhanced, false);
+          assertMatch(result.prompt, /bright living room/);
+        } finally {
+          restoreFetch();
+        }
+      }
+    )
+);
+
+Deno.test('enhanceMarketingImagePrompt: fail-open on a non-ok provider response', () =>
+  withEnv(
+    { GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },
+    async () => {
+      globalThis.fetch = (() =>
+        Promise.resolve(jsonResponse({ error: 'nope' }, 500))) as typeof fetch;
+
+      try {
+        const result = await enhanceMarketingImagePrompt({
+          organizationId: 'org-1',
+          propertyId: 'prop-1',
+          prompt: 'bright living room',
+          aspectRatio: '1:1',
+          property: PROPERTY,
+          hasReferenceImages: false,
+        });
+        assertEquals(result.enhanced, false);
+      } finally {
+        restoreFetch();
+      }
+    }
+  )
+);
+
+Deno.test('enhanceMarketingImagePrompt: fail-open when the model returns no usable text', () =>
+  withEnv(
+    { GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },
+    async () => {
+      globalThis.fetch = (() =>
+        Promise.resolve(
+          jsonResponse({ candidates: [{ content: { parts: [] } }] })
+        )) as typeof fetch;
 
       try {
         const result = await enhanceMarketingImagePrompt({
@@ -213,50 +273,8 @@ Deno.test(
       } finally {
         restoreFetch();
       }
-    })
-);
-
-Deno.test('enhanceMarketingImagePrompt: fail-open on a non-ok provider response', () =>
-  withEnv({ GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined }, async () => {
-    globalThis.fetch = (() =>
-      Promise.resolve(jsonResponse({ error: 'nope' }, 500))) as typeof fetch;
-
-    try {
-      const result = await enhanceMarketingImagePrompt({
-        organizationId: 'org-1',
-        propertyId: 'prop-1',
-        prompt: 'bright living room',
-        aspectRatio: '1:1',
-        property: PROPERTY,
-        hasReferenceImages: false,
-      });
-      assertEquals(result.enhanced, false);
-    } finally {
-      restoreFetch();
     }
-  })
-);
-
-Deno.test('enhanceMarketingImagePrompt: fail-open when the model returns no usable text', () =>
-  withEnv({ GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined }, async () => {
-    globalThis.fetch = (() =>
-      Promise.resolve(jsonResponse({ candidates: [{ content: { parts: [] } }] }))) as typeof fetch;
-
-    try {
-      const result = await enhanceMarketingImagePrompt({
-        organizationId: 'org-1',
-        propertyId: 'prop-1',
-        prompt: 'bright living room',
-        aspectRatio: '1:1',
-        property: PROPERTY,
-        hasReferenceImages: false,
-      });
-      assertEquals(result.enhanced, false);
-      assertMatch(result.prompt, /bright living room/);
-    } finally {
-      restoreFetch();
-    }
-  })
+  )
 );
 
 /**
@@ -271,41 +289,52 @@ Deno.test('enhanceMarketingImagePrompt: fail-open when the model returns no usab
 Deno.test(
   'enhanceMarketingImagePrompt: rotates past a failing first key to a working second key',
   () =>
-    withEnv({ GEMINI_API_KEY: undefined, GEMINI_API_KEYS: 'dead-key,good-key' }, async () => {
-      resetKeyRotationForTests();
-      let call = 0;
-      globalThis.fetch = ((_url: string, init?: RequestInit) => {
-        call += 1;
-        if (apiKeyOf(init) === 'dead-key') {
-          // Gemini's real response for a bad key (HTTP 400 API_KEY_INVALID).
+    withEnv(
+      {
+        GEMINI_API_KEY: undefined,
+        GEMINI_API_KEYS: 'dead-key,good-key',
+        AI_RESPONSE_CACHE_DISABLED: '1',
+      },
+      async () => {
+        resetKeyRotationForTests();
+        let call = 0;
+        globalThis.fetch = ((_url: string, init?: RequestInit) => {
+          const key = apiKeyOf(init);
+          if (key) call += 1;
+          if (key === 'dead-key') {
+            // Gemini's real response for a bad key (HTTP 400 API_KEY_INVALID).
+            return Promise.resolve(
+              jsonResponse(
+                { error: { message: 'API key not valid. Please pass a valid API key.' } },
+                400
+              )
+            );
+          }
           return Promise.resolve(
-            jsonResponse({ error: { message: 'API key not valid. Please pass a valid API key.' } }, 400)
+            jsonResponse({
+              candidates: [{ content: { parts: [{ text: 'A photorealistic wide shot.' }] } }],
+              usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 20 },
+            })
           );
-        }
-        return Promise.resolve(
-          jsonResponse({
-            candidates: [{ content: { parts: [{ text: 'A photorealistic wide shot.' }] } }],
-            usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 20 },
-          })
-        );
-      }) as typeof fetch;
+        }) as typeof fetch;
 
-      try {
-        const result = await enhanceMarketingImagePrompt({
-          organizationId: 'org-1',
-          propertyId: 'prop-1',
-          prompt: 'bright living room',
-          aspectRatio: '1:1',
-          property: PROPERTY,
-          hasReferenceImages: false,
-        });
-        assertEquals(call, 2);
-        assertEquals(result.enhanced, true);
-        assertMatch(result.prompt, /photorealistic/i);
-      } finally {
-        restoreFetch();
+        try {
+          const result = await enhanceMarketingImagePrompt({
+            organizationId: 'org-1',
+            propertyId: 'prop-1',
+            prompt: 'bright living room',
+            aspectRatio: '1:1',
+            property: PROPERTY,
+            hasReferenceImages: false,
+          });
+          assertEquals(call, 2);
+          assertEquals(result.enhanced, true);
+          assertMatch(result.prompt, /photorealistic/i);
+        } finally {
+          restoreFetch();
+        }
       }
-    })
+    )
 );
 
 /**
@@ -316,35 +345,51 @@ Deno.test(
 Deno.test(
   'enhanceMarketingImagePrompt: rotates past a key whose fetch throws to a working second key',
   () =>
-    withEnv({ GEMINI_API_KEY: undefined, GEMINI_API_KEYS: 'throwing-key,good-key' }, async () => {
-      resetKeyRotationForTests();
-      let call = 0;
-      globalThis.fetch = ((_url: string, init?: RequestInit) => {
-        call += 1;
-        if (apiKeyOf(init) === 'throwing-key') {
-          return Promise.reject(new Error('The signal has been aborted'));
-        }
-        return Promise.resolve(
-          jsonResponse({
-            candidates: [{ content: { parts: [{ text: 'A photorealistic wide shot.' }] } }],
-            usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 20 },
-          })
-        );
-      }) as typeof fetch;
+    withEnv(
+      {
+        GEMINI_API_KEY: undefined,
+        GEMINI_API_KEYS: 'throwing-key,good-key',
+        AI_RESPONSE_CACHE_DISABLED: '1',
+      },
+      async () => {
+        resetKeyRotationForTests();
+        let call = 0;
+        globalThis.fetch = ((_url: string, init?: RequestInit) => {
+          const key = apiKeyOf(init);
+          if (key) call += 1;
+          if (key === 'throwing-key') {
+            return Promise.reject(new Error('The signal has been aborted'));
+          }
+          return Promise.resolve(
+            jsonResponse({
+              candidates: [{ content: { parts: [{ text: 'A photorealistic wide shot.' }] } }],
+              usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 20 },
+            })
+          );
+        }) as typeof fetch;
 
-      try {
-        const result = await enhanceMarketingImagePrompt({
-          organizationId: 'org-1',
-          propertyId: 'prop-1',
-          prompt: 'bright living room',
-          aspectRatio: '1:1',
-          property: PROPERTY,
-          hasReferenceImages: false,
-        });
-        assertEquals(call, 2);
-        assertEquals(result.enhanced, true);
-      } finally {
-        restoreFetch();
+        try {
+          const result = await enhanceMarketingImagePrompt({
+            organizationId: 'org-1',
+            propertyId: 'prop-1',
+            prompt: 'bright living room',
+            aspectRatio: '1:1',
+            property: PROPERTY,
+            hasReferenceImages: false,
+          });
+          assertEquals(call, 2);
+          assertEquals(result.enhanced, true);
+        } finally {
+          restoreFetch();
+        }
       }
-    })
+    )
 );
+
+Deno.test('buildImageEditPrompt frames a refinement as an edit of the first reference', () => {
+  const prompt = buildImageEditPrompt({ instruction: '  make it evening ', aspectRatio: '1:1' });
+  assertMatch(prompt, /^Edit the first reference image/);
+  assertMatch(prompt, /Change only this: make it evening\n/);
+  assertMatch(prompt, /Keep the room/);
+  assertMatch(prompt, /feed post/i);
+});

@@ -5,6 +5,7 @@ import {
   groundPosterFeatures,
   loadPosterPhotos,
   type PosterFactsInput,
+  revisableSpec,
   sanitizeVariant,
   stripBannedCopy,
 } from './marketingPosterDirector.ts';
@@ -163,4 +164,28 @@ Deno.test('sanitizeVariant drops photo indexes the model never saw and forces th
   assertEquals(variant.photoIndexes, [0, 1]);
   assertEquals(variant.features, [{ label: 'WiFi' }]);
   assertEquals(variant.copy, { headline: 'Slow', tagline: '' });
+});
+
+Deno.test('revisableSpec sends only the art-direction fields of the current post', () => {
+  const spec = {
+    version: 1,
+    archetype: 'wave-duo',
+    fontPairing: 'tropical-script',
+    goal: 'vibe',
+    palette: { accent: '#ff8800' },
+    copy: { headline: 'Slow mornings' },
+    features: [{ label: 'WiFi', icon: 'wifi' }],
+    include: { infoBar: true },
+    photoIndexes: [0, 2],
+    label: 'Morning',
+  };
+  assertEquals(revisableSpec(spec), {
+    archetype: 'wave-duo',
+    fontPairing: 'tropical-script',
+    palette: { accent: '#ff8800' },
+    copy: { headline: 'Slow mornings' },
+    features: [{ label: 'WiFi', icon: 'wifi' }],
+    photoIndexes: [0, 2],
+    label: 'Morning',
+  });
 });
