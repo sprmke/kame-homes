@@ -21,7 +21,9 @@ export type SuperAdminOverview = {
     hosts: number;
     properties: number;
     parkings: number;
+    developments: number;
     liveSubscriptions: number;
+    trialingSubscriptions: number;
     mrrPhp: number;
     openTickets: number;
     pendingApprovals: number;

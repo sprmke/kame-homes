@@ -127,7 +127,7 @@ export function SuperAdminHostListRow({ host }: Props) {
 
 export function SuperAdminHostsEmptyState({ filtered }: { filtered: boolean }) {
   return (
-    <div className="border-border/50 bg-card flex flex-col items-center justify-center rounded-xl border px-4 py-12 text-center">
+    <div className="border-border/50 bg-card flex flex-col items-center justify-center rounded-xl border px-4 py-8 sm:py-12 text-center">
       <Users className="text-muted-foreground mb-3 size-10" aria-hidden />
       <p className="text-foreground font-medium">
         {filtered ? 'No hosts match your search' : 'No hosts yet'}

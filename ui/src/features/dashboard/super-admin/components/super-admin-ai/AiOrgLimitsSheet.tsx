@@ -54,8 +54,11 @@ export function AiOrgLimitsSheet({ orgId, onOpenChange }: AiOrgLimitsSheetProps)
   return (
     <>
       <ResponsiveModal open={Boolean(orgId)} onOpenChange={onOpenChange}>
-        <ResponsiveModalContent className="max-w-2xl" sheetLayout="split">
-          <ResponsiveModalHeader className="px-4 sm:px-0">
+        <ResponsiveModalContent
+          className="max-h-[min(90dvh,44rem)] max-w-2xl sm:max-w-2xl"
+          sheetLayout="split"
+        >
+          <ResponsiveModalHeader className="shrink-0 px-4 sm:px-0">
             <ResponsiveModalTitle>{org?.name ?? 'AI limits'}</ResponsiveModalTitle>
           </ResponsiveModalHeader>
 

@@ -15,6 +15,7 @@ import { SuperAdminApprovalsTable } from '@/features/dashboard/super-admin/compo
 import { SuperAdminApprovalsToolbar } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalsToolbar';
 import { SuperAdminExternalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminExternalReviewDialog';
 import { SuperAdminListingVerificationDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminListingVerificationDialog';
+import { SuperAdminReportedReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminReportedReviewDialog';
 import {
   useApprovals,
   useApprovalsSummary,
@@ -24,6 +25,7 @@ import {
   isExternalReviewApprovalSummary,
   isListingVerificationApprovalSummary,
   isOrgApprovalSummary,
+  isReportedReviewApprovalSummary,
   superAdminApprovalsHasActiveFilters,
   type SuperAdminApprovalsFilters,
 } from '@/features/dashboard/super-admin/lib/superAdminApprovalsFilters';
@@ -33,6 +35,7 @@ import type {
   ExternalReviewApprovalSummary,
   ListingVerificationApprovalSummary,
   OrgApprovalSummary,
+  ReportedReviewApprovalSummary,
 } from '@/features/dashboard/super-admin/types/approval';
 
 import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
@@ -75,6 +78,9 @@ export function SuperAdminApprovalsPage() {
     null
   );
   const [selectedReview, setSelectedReview] = useState<ExternalReviewApprovalSummary | null>(null);
+  const [selectedReported, setSelectedReported] = useState<ReportedReviewApprovalSummary | null>(
+    null
+  );
   const [viewMode, setViewMode] = useState<SuperAdminListViewMode>('table');
   const isMobileLayout = useIsBelowLg();
   useAdminMobileGridViewGuard(isMobileLayout, viewMode, setViewMode);
@@ -129,6 +135,7 @@ export function SuperAdminApprovalsPage() {
   function handleSelect(item: ApprovalQueueItem) {
     if (isOrgApprovalSummary(item)) {
       setSelectedReview(null);
+      setSelectedReported(null);
       setSelectedListing(null);
       setSelectedOrg(item);
       return;
@@ -136,13 +143,22 @@ export function SuperAdminApprovalsPage() {
     if (isListingVerificationApprovalSummary(item)) {
       setSelectedOrg(null);
       setSelectedReview(null);
+      setSelectedReported(null);
       setSelectedListing(item);
       return;
     }
     if (isExternalReviewApprovalSummary(item)) {
       setSelectedOrg(null);
       setSelectedListing(null);
+      setSelectedReported(null);
       setSelectedReview(item);
+      return;
+    }
+    if (isReportedReviewApprovalSummary(item)) {
+      setSelectedOrg(null);
+      setSelectedListing(null);
+      setSelectedReview(null);
+      setSelectedReported(item);
     }
   }
 
@@ -212,6 +228,13 @@ export function SuperAdminApprovalsPage() {
         approval={selectedReview}
         onOpenChange={(open) => {
           if (!open) setSelectedReview(null);
+        }}
+      />
+
+      <SuperAdminReportedReviewDialog
+        approval={selectedReported}
+        onOpenChange={(open) => {
+          if (!open) setSelectedReported(null);
         }}
       />
     </div>

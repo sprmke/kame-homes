@@ -7,6 +7,9 @@ export const superAdminPaths = {
   audit: '/admin/audit',
   platformSettings: '/admin/platform-settings',
   rateLimits: '/admin/rate-limits',
+  health: '/admin/health',
+  healthSection: (section: 'configuration' | 'integrations' | 'jobs' | 'usage') =>
+    `/admin/health/${section}`,
   organizations: '/admin/orgs',
   organizationHub: (orgSlug: string) => `/admin/orgs/${orgSlug}`,
   /** Anchor into a section of the single-page organization hub (see `AdminSectionNavLayout`). */

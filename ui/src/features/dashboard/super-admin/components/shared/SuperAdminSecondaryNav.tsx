@@ -1,4 +1,6 @@
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 
@@ -26,8 +28,23 @@ export function SuperAdminSecondaryNav({
   className,
   ariaLabel = 'Sections',
 }: SuperAdminSecondaryNavProps) {
+  const navRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[data-active="true"]');
+    if (!nav || !active) return;
+    const left = active.offsetLeft - nav.offsetLeft;
+    const right = left + active.offsetWidth;
+    if (left < nav.scrollLeft || right > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollTo({ left: Math.max(0, left - 16) });
+    }
+  }, [pathname]);
+
   return (
     <nav
+      ref={navRef}
       aria-label={ariaLabel}
       className={cn(
         'overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
@@ -39,6 +56,7 @@ export function SuperAdminSecondaryNav({
           const Icon = item.icon;
           const pill = (active: boolean) => (
             <span
+              data-active={active}
               className={cn(
                 'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
                 active

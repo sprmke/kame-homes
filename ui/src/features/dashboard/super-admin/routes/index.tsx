@@ -64,6 +64,11 @@ const SuperAdminDevelopmentsPage = lazy(() =>
     default: m.SuperAdminDevelopmentsPage,
   }))
 );
+const SuperAdminHealthPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminHealthPage').then((m) => ({
+    default: m.SuperAdminHealthPage,
+  }))
+);
 const SuperAdminHelpFaqsPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminHelpFaqsPage').then((m) => ({
     default: m.SuperAdminHelpFaqsPage,
@@ -202,6 +207,14 @@ export const superAdminRoutes: ReactNode = (
     <Route
       path="rate-limits"
       element={superAdminRoute(<SuperAdminRateLimitsPage />, <SuperAdminSettingsRouteSkeleton />)}
+    />
+    <Route
+      path="health"
+      element={superAdminRoute(<SuperAdminHealthPage />, <SuperAdminSettingsRouteSkeleton />)}
+    />
+    <Route
+      path="health/:section"
+      element={superAdminRoute(<SuperAdminHealthPage />, <SuperAdminSettingsRouteSkeleton />)}
     />
     <Route
       path="audit"

@@ -70,6 +70,7 @@ const BOOLEAN_FEATURE_KEYS = [
   'publicPagesAutosave',
   'bookingImport',
   'calendarSync',
+  'reviewAutomation',
   'smartPricing',
   'copyPropertySettings',
   'activityLogExport',

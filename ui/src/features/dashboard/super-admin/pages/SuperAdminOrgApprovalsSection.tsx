@@ -7,6 +7,7 @@ import { SuperAdminApprovalReviewDialog } from '@/features/dashboard/super-admin
 import { SuperAdminApprovalsCardGrid } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminApprovalsCardGrid';
 import { SuperAdminExternalReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminExternalReviewDialog';
 import { SuperAdminListingVerificationDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminListingVerificationDialog';
+import { SuperAdminReportedReviewDialog } from '@/features/dashboard/super-admin/components/super-admin-approvals/SuperAdminReportedReviewDialog';
 import { useSuperAdminOrgContext } from '@/features/dashboard/super-admin/components/super-admin-orgs/superAdminOrgContext';
 import { useApprovals } from '@/features/dashboard/super-admin/hooks/useApprovals';
 import {
@@ -14,12 +15,14 @@ import {
   isExternalReviewApprovalSummary,
   isListingVerificationApprovalSummary,
   isOrgApprovalSummary,
+  isReportedReviewApprovalSummary,
 } from '@/features/dashboard/super-admin/lib/superAdminApprovalsFilters';
 import type {
   ApprovalQueueItem,
   ExternalReviewApprovalSummary,
   ListingVerificationApprovalSummary,
   OrgApprovalSummary,
+  ReportedReviewApprovalSummary,
 } from '@/features/dashboard/super-admin/types/approval';
 
 import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
@@ -39,11 +42,15 @@ export function SuperAdminOrgApprovalsSection() {
     null
   );
   const [selectedReview, setSelectedReview] = useState<ExternalReviewApprovalSummary | null>(null);
+  const [selectedReported, setSelectedReported] = useState<ReportedReviewApprovalSummary | null>(
+    null
+  );
 
   function handleSelect(item: ApprovalQueueItem) {
     setSelectedOrg(isOrgApprovalSummary(item) ? item : null);
     setSelectedListing(isListingVerificationApprovalSummary(item) ? item : null);
     setSelectedReview(isExternalReviewApprovalSummary(item) ? item : null);
+    setSelectedReported(isReportedReviewApprovalSummary(item) ? item : null);
   }
 
   if (isLoading) return <SuperAdminAdminListBodySkeleton metricCount={0} />;
@@ -73,6 +80,12 @@ export function SuperAdminOrgApprovalsSection() {
         approval={selectedReview}
         onOpenChange={(open) => {
           if (!open) setSelectedReview(null);
+        }}
+      />
+      <SuperAdminReportedReviewDialog
+        approval={selectedReported}
+        onOpenChange={(open) => {
+          if (!open) setSelectedReported(null);
         }}
       />
     </div>

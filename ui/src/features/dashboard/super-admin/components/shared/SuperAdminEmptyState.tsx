@@ -12,7 +12,7 @@ export function SuperAdminEmptyState({ icon: Icon, title, className }: Props) {
   return (
     <div
       className={cn(
-        'surface-card flex flex-col items-center justify-center gap-3 px-4 py-14 text-center',
+        'surface-card flex flex-col items-center justify-center gap-3 px-4 py-8 sm:py-12 text-center',
         className
       )}
     >

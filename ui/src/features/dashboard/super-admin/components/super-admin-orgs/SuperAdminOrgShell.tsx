@@ -122,6 +122,7 @@ export function SuperAdminOrgShell() {
               </div>
             }
             title={org.name}
+            subtitle="Subscription, listings, approvals, AI credits, support, and settings for this organization."
             meta={
               <>
                 {org.plan?.name ? (

@@ -47,14 +47,17 @@ export function SuperAdminOverviewPage() {
       />
 
       {isLoading && !data ? (
-        <SuperAdminOverviewBodySkeleton metricCount={9} />
+        <SuperAdminOverviewBodySkeleton metricCount={12} />
       ) : error ? (
         <p className="text-destructive text-sm">
           {error instanceof Error ? error.message : 'Could not load the platform overview.'}
         </p>
       ) : data ? (
         <div className="space-y-3 sm:space-y-4">
-          <SuperAdminOverviewKpis kpis={data.kpis} />
+          <SuperAdminOverviewKpis
+            kpis={data.kpis}
+            orgsWithoutLivePlan={data.attention.unassignedSubscriptions}
+          />
 
           <div className="grid min-w-0 items-stretch gap-3 sm:gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
