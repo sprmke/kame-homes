@@ -125,6 +125,8 @@ serveAuthenticated('marketing-themes', async (req, user) => {
         .from('marketing_templates')
         .select('theme_key, content_type, source_preset:design_json->>sourcePresetId')
         .eq('property_id', propertyId)
+        .eq('kind', 'design')
+        .is('deleted_at', null)
         .limit(MAX_COUNTED_TEMPLATES),
     ]);
     if (themesResult.error) return jsonError(req, themesResult.error.message, 500);

@@ -4,6 +4,7 @@
  */
 
 import { generateMarketingTemplateTokens } from '../_shared/marketingTemplateGenerationAi.ts';
+import { generateMarketingTheme } from '../_shared/marketingThemeDirector.ts';
 import {
   allowedPropertyPhotoUrls,
   generatePosterSpecs,
@@ -56,6 +57,9 @@ serveAuthenticated('generate-marketing-template', async (req, user) => {
 
   if (body.contentType === 'poster') {
     return handlePoster(req, body, propertyId, actorUserId);
+  }
+  if (body.contentType === 'theme') {
+    return handleTheme(req, body, propertyId, actorUserId);
   }
 
   const contentType =
@@ -219,6 +223,20 @@ async function handlePoster(
           .slice(0, 30)
       : [],
   };
+  let revise: { spec: Record<string, unknown>; instruction: string } | null = null;
+  if (body.revise !== undefined && body.revise !== null) {
+    const raw = body.revise as Record<string, unknown>;
+    const spec = raw && typeof raw === 'object' ? raw.spec : null;
+    const instruction = typeof raw?.instruction === 'string' ? raw.instruction.trim() : '';
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
+      return jsonError(req, 'revise.spec must be an object', 400);
+    }
+    if (JSON.stringify(spec).length > 16_000) return jsonError(req, 'revise.spec is too large', 400);
+    if (!instruction) return jsonError(req, 'Describe the change', 400);
+    if (instruction.length > 300) return jsonError(req, 'Change request is too long', 400);
+    revise = { spec: spec as Record<string, unknown>, instruction };
+  }
+
   const requestedPhotos = Array.isArray(body.photoUrls)
     ? body.photoUrls.filter((url): url is string => typeof url === 'string')
     : [];
@@ -251,10 +269,51 @@ async function handlePoster(
       facts,
       brandColor: brandColor && /^#[0-9a-f]{6}$/i.test(brandColor) ? brandColor : null,
       photos,
-      count,
+      count: revise ? 1 : count,
+      revise,
     });
     // photoUrls tells the client which of its photos each photoIndex refers to.
     return jsonSuccess(req, { contentType: 'poster', variants, photoUrls: urls });
+  } catch (err) {
+    return aiErrorResponse(req, err, 'generate-marketing-template');
+  }
+}
+
+/**
+ * contentType "theme": a Marketing Studio theme from a short description.
+ * Returns tokens only; the host reviews them in the theme editor before saving.
+ */
+async function handleTheme(
+  req: Request,
+  body: Record<string, unknown>,
+  propertyId: string,
+  actorUserId: string
+): Promise<Response> {
+  const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+  if (!prompt) return jsonError(req, 'Describe the look you want', 400);
+  if (prompt.length > 300) return jsonError(req, 'Description is too long', 400);
+
+  const sb = createServiceClient();
+  const { data: propertyRow, error } = await sb
+    .from('properties')
+    .select('name, organization_id')
+    .eq('id', propertyId)
+    .maybeSingle();
+  if (error) return jsonError(req, error.message, 500);
+  if (!propertyRow?.organization_id) return jsonError(req, 'Property not found', 404);
+
+  const brandColor = clipString(body.brandColor, 9);
+  try {
+    const theme = await generateMarketingTheme({
+      organizationId: String(propertyRow.organization_id),
+      propertyId,
+      prompt,
+      propertyName: String(propertyRow.name ?? ''),
+      brandColor: brandColor && /^#[0-9a-f]{6}$/i.test(brandColor) ? brandColor : null,
+      actorUserId,
+      actorType: 'staff',
+    });
+    return jsonSuccess(req, { contentType: 'theme', name: theme.name, tokens: theme.tokens });
   } catch (err) {
     return aiErrorResponse(req, err, 'generate-marketing-template');
   }

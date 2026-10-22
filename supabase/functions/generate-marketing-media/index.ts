@@ -67,6 +67,7 @@ import {
 } from '../_shared/marketingImageGenerationAi.ts';
 import {
   amenitiesFromPropertySettings,
+  buildImageEditPrompt,
   buildStructuredImagePrompt,
   enhanceMarketingImagePrompt,
   type MarketingImagePropertyContext,
@@ -95,6 +96,9 @@ import {
   uploadGenerationBytes,
 } from '../_shared/marketingGenerationStorage.ts';
 import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.ts';
+import { isMarketingThemeKey } from '../_shared/marketingTheme.ts';
+import { isUuid } from '../_shared/marketingTemplateLibrary.ts';
+import { refineParentError, sessionTitleFromPrompt } from '../_shared/marketingAiSessions.ts';
 
 const MAX_REFERENCE_IDS = 14;
 /** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
@@ -103,6 +107,18 @@ const VIDEO_JOB_TTL_MS = 45 * 60_000;
 const VIDEO_START_FRAME_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 type ReferenceRow = { id: string; storage_path: string; public_url: string; mime_type: string };
+
+/**
+ * Where this version goes in AI Studio. `sessionId` is the existing conversation (null:
+ * a new one is created right before the job row, so a request rejected earlier leaves
+ * no empty conversation behind).
+ */
+type SessionPlan = {
+  sessionId: string | null;
+  parentJobId: string | null;
+  title: string;
+  themeKey: string | null;
+};
 
 serveAuthenticated('generate-marketing-media', async (req) => {
   if (req.method !== 'POST') {
@@ -195,6 +211,20 @@ serveAuthenticated('generate-marketing-media', async (req) => {
     references = rows as ReferenceRow[];
   }
 
+  const planned = await planGenerationSession(sb, {
+    body,
+    propertyId,
+    mediaType,
+    prompt,
+  });
+  if (typeof planned === 'string') return jsonError(req, planned, 400);
+  const { plan, parentReference } = planned;
+  // Refining a photo: the current version is the first reference, so the model edits
+  // it instead of starting over. Refining a clip without a new photo: same start photo.
+  if (parentReference && !(isVideo && references.length > 0)) {
+    references = [parentReference, ...references.filter((row) => row.storage_path !== parentReference.storage_path)];
+  }
+
   if (isVideo) {
     return handleVideoGeneration(req, {
       sb,
@@ -208,6 +238,7 @@ serveAuthenticated('generate-marketing-media', async (req) => {
       references,
       body,
       feature,
+      plan,
     });
   }
 
@@ -223,6 +254,7 @@ serveAuthenticated('generate-marketing-media', async (req) => {
     references,
     body,
     feature,
+    plan,
   });
 });
 
@@ -238,6 +270,7 @@ type GenerationRequestContext = {
   references: ReferenceRow[];
   body: Record<string, unknown>;
   feature: 'marketing_image_generate' | 'marketing_video_generate';
+  plan: SessionPlan;
 };
 
 async function handleImageGeneration(req: Request, ctx: GenerationRequestContext) {
@@ -252,6 +285,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     negativePrompt,
     references,
     body,
+    plan,
   } = ctx;
 
   let options: ReturnType<typeof assertValidImageOptions>;
@@ -295,7 +329,9 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
   const enhancementRequested = body.enhancePrompt !== false;
   const propertyContext = await loadPropertyContextForPrompt(sb, propertyId);
 
-  const enhancement = enhancementRequested
+  const enhancement = plan.parentJobId
+    ? { prompt: buildImageEditPrompt({ instruction: prompt, aspectRatio: options.aspectRatio }), enhanced: false }
+    : enhancementRequested
     ? await enhanceMarketingImagePrompt({
         organizationId,
         propertyId,
@@ -314,9 +350,17 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
         enhanced: false,
       };
 
+  const sessionId = await ensureGenerationSession(sb, plan, {
+    organizationId,
+    propertyId,
+    output: 'image',
+    actorUserId,
+  });
   const job = await insertMarketingGenerationJob(sb, {
     organizationId,
     propertyId,
+    sessionId,
+    parentJobId: plan.parentJobId,
     mediaType: 'image',
     prompt,
     negativePrompt,
@@ -416,7 +460,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     await Promise.all([
       touchGenerationReferences(
         sb,
-        references.map((reference) => reference.id)
+        references.map((reference) => reference.id).filter(Boolean)
       ),
       logAssetActivity({
         req,
@@ -488,6 +532,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     negativePrompt,
     references,
     body,
+    plan,
   } = ctx;
 
   let options: ReturnType<typeof assertValidVideoOptions>;
@@ -583,9 +628,17 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
   });
   if (recheckError) return recheckError;
 
+  const sessionId = await ensureGenerationSession(sb, plan, {
+    organizationId,
+    propertyId,
+    output: 'video',
+    actorUserId,
+  });
   const job = await insertMarketingGenerationJob(sb, {
     organizationId,
     propertyId,
+    sessionId,
+    parentJobId: plan.parentJobId,
     mediaType: 'video',
     prompt: hostPrompt,
     negativePrompt,
@@ -621,7 +674,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     await Promise.all([
       touchGenerationReferences(
         sb,
-        references.map((reference) => reference.id)
+        references.map((reference) => reference.id).filter(Boolean)
       ),
       logAssetActivity({
         req,
@@ -761,4 +814,139 @@ async function rejectPremiumIfDisabled(
   const overrides = await peekMarketingGenerationOverrides(propertyId);
   if (allowPremiumForFeature(overrides, feature)) return null;
   return jsonError(req, 'Premium quality is not enabled for this property', 403);
+}
+
+/**
+ * Validates `sessionId` / `parentJobId` before any credits are held. Returns an error
+ * message, or the plan plus the parent's image to prepend as a reference.
+ */
+async function planGenerationSession(
+  sb: ReturnType<typeof createServiceClient>,
+  input: {
+    body: Record<string, unknown>;
+    propertyId: string;
+    mediaType: 'image' | 'video';
+    prompt: string;
+  }
+): Promise<string | { plan: SessionPlan; parentReference: ReferenceRow | null }> {
+  const { body, propertyId, mediaType, prompt } = input;
+  const themeKey =
+    typeof body.themeKey === 'string' && isMarketingThemeKey(body.themeKey) ? body.themeKey : null;
+
+  let sessionId: string | null = null;
+  if (body.sessionId !== undefined && body.sessionId !== null) {
+    if (!isUuid(body.sessionId)) return 'sessionId must be a UUID';
+    sessionId = body.sessionId;
+  }
+
+  let parent: Record<string, unknown> | null = null;
+  if (body.parentJobId !== undefined && body.parentJobId !== null) {
+    if (!isUuid(body.parentJobId)) return 'parentJobId must be a UUID';
+    const { data, error } = await sb
+      .from('marketing_generation_jobs')
+      .select(
+        'id, property_id, session_id, media_type, job_status, output_storage_path, output_url, output_mime_type, reference_paths, reference_urls'
+      )
+      .eq('id', body.parentJobId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data || data.property_id !== propertyId) return 'The version to refine was not found';
+    parent = data as Record<string, unknown>;
+    sessionId ??= (parent.session_id as string | null) ?? null;
+  }
+
+  if (sessionId) {
+    const { data: session, error } = await sb
+      .from('marketing_ai_sessions')
+      .select('id, property_id, output, deleted_at')
+      .eq('id', sessionId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!session || session.property_id !== propertyId) return 'Conversation not found';
+    if (session.output !== mediaType) return 'That conversation makes a different kind of media';
+    if (session.deleted_at) return 'Restore this creation to keep working on it';
+  }
+
+  if (parent) {
+    const parentError = refineParentError(
+      {
+        session_id: parent.session_id,
+        media_type: parent.media_type,
+        job_status: parent.job_status,
+        output_storage_path: parent.output_storage_path,
+      },
+      sessionId ?? '',
+      mediaType
+    );
+    if (parentError) return parentError;
+  }
+
+  let parentReference: ReferenceRow | null = null;
+  if (parent && mediaType === 'image') {
+    parentReference = {
+      id: '',
+      storage_path: String(parent.output_storage_path),
+      public_url: String(parent.output_url ?? ''),
+      mime_type: String(parent.output_mime_type ?? 'image/png'),
+    };
+  } else if (parent && mediaType === 'video') {
+    // Same start photo as the clip being refined, when it is still in the library
+    // (references are pruned after 90 days unused; then the refinement is text-only).
+    const startPath = Array.isArray(parent.reference_paths)
+      ? (parent.reference_paths as string[])[0]
+      : undefined;
+    if (startPath) {
+      const { data } = await sb
+        .from('marketing_generation_references')
+        .select('id, storage_path, public_url, mime_type')
+        .eq('property_id', propertyId)
+        .eq('storage_path', startPath)
+        .maybeSingle();
+      if (data) parentReference = data as ReferenceRow;
+    }
+  }
+
+  return {
+    plan: {
+      sessionId,
+      parentJobId: parent ? String(parent.id) : null,
+      title: sessionTitleFromPrompt(prompt, mediaType),
+      themeKey,
+    },
+    parentReference,
+  };
+}
+
+/** The conversation for this job: the existing one (touched), or a new one. */
+async function ensureGenerationSession(
+  sb: ReturnType<typeof createServiceClient>,
+  plan: SessionPlan,
+  input: {
+    organizationId: string;
+    propertyId: string;
+    output: 'image' | 'video';
+    actorUserId: string;
+  }
+): Promise<string> {
+  if (plan.sessionId) {
+    await sb
+      .from('marketing_ai_sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', plan.sessionId);
+    return plan.sessionId;
+  }
+  const { data, error } = await sb
+    .from('marketing_ai_sessions')
+    .insert({
+      organization_id: input.organizationId,
+      property_id: input.propertyId,
+      output: input.output,
+      title: plan.title,
+      theme_key: plan.themeKey,
+      created_by: input.actorUserId,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  return String(data.id);
 }

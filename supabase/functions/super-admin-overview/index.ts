@@ -49,6 +49,7 @@ serveSuperAdmin('super-admin-overview', async (req) => {
     orgCountRes,
     propertyCountRes,
     parkingCountRes,
+    developmentCountRes,
     subscriptionsRes,
     plansRes,
     openTicketsRes,
@@ -64,6 +65,7 @@ serveSuperAdmin('super-admin-overview', async (req) => {
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('properties').select('id', { count: 'exact', head: true }),
     supabase.from('parkings').select('id', { count: 'exact', head: true }),
+    supabase.from('developments').select('id', { count: 'exact', head: true }),
     supabase
       .from('org_subscriptions')
       .select('status, plan_id, price_php_snapshot, created_at')
@@ -107,6 +109,7 @@ serveSuperAdmin('super-admin-overview', async (req) => {
     orgCountRes.error ??
     propertyCountRes.error ??
     parkingCountRes.error ??
+    developmentCountRes.error ??
     subscriptionsRes.error ??
     plansRes.error ??
     openTicketsRes.error ??
@@ -134,6 +137,7 @@ serveSuperAdmin('super-admin-overview', async (req) => {
     LIVE_SUBSCRIPTION_STATUSES.includes(s.status as string)
   );
   const mrr = liveSubscriptions.reduce((sum, s) => sum + Number(s.price_php_snapshot ?? 0), 0);
+  const trialingSubscriptions = subscriptions.filter((s) => s.status === 'trialing').length;
 
   // 12-month org + subscription growth
   const orgGrowthCounts = new Map(months.map((m) => [m.month, 0]));
@@ -210,7 +214,9 @@ serveSuperAdmin('super-admin-overview', async (req) => {
       hosts: distinctHosts,
       properties: propertyCountRes.count ?? 0,
       parkings: parkingCountRes.count ?? 0,
+      developments: developmentCountRes.count ?? 0,
       liveSubscriptions: liveSubscriptions.length,
+      trialingSubscriptions,
       mrrPhp: Math.round(mrr),
       openTickets: openTicketsRes.count ?? 0,
       pendingApprovals: pendingApprovals.total,
