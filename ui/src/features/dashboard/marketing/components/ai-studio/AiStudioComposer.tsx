@@ -3,12 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { AiStudioCameraMovePicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioCameraMovePicker';
 import {
   AiStudioChoiceGroup,
   AiStudioShapePreview,
   type AiStudioChoice,
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
-import { AiStudioCameraMovePicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioCameraMovePicker';
 import { AiStudioLookPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioLookPicker';
 import { AiStudioPhotoPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioPhotoPicker';
 import type { GenerateMarketingMediaPayload } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
@@ -514,9 +514,6 @@ export function AiStudioComposer({
             {isGenerating ? 'Generating' : `Generate · ${formatCredits(credits)}`}
           </Button>
         </TierBadgeAnchor>
-        <p className="text-muted-foreground text-center text-[11px]">
-          {isVideo ? 'AI videos' : 'AI images'} carry an invisible SynthID watermark.
-        </p>
       </div>
     </form>
   );

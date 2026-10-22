@@ -78,9 +78,12 @@ export function AiStudioPhotoSheet({
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent sheetLayout="split" className="lg:max-w-2xl">
-        <ResponsiveModalHeader className="space-y-3 px-4 pt-4 lg:px-0 lg:pt-0">
-          <div className="flex items-baseline justify-between gap-3 pr-8 lg:pr-6">
+      <ResponsiveModalContent
+        sheetLayout="split"
+        className="flex max-h-[min(90dvh,44rem)] w-full max-w-[min(calc(100vw-1.5rem),42rem)] flex-col gap-0 overflow-hidden p-0 pb-0 pt-0 max-lg:h-[min(92dvh,44rem)] sm:max-w-2xl sm:p-0"
+      >
+        <ResponsiveModalHeader className="border-border shrink-0 space-y-3 border-b px-4 pb-3 pt-4 sm:px-5">
+          <div className="flex items-center justify-between gap-3 pr-12">
             <ResponsiveModalTitle>
               {maxPhotos > 1 ? 'Choose photos' : 'Choose a photo'}
             </ResponsiveModalTitle>
@@ -105,7 +108,7 @@ export function AiStudioPhotoSheet({
           )}
         </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 lg:max-h-[60vh] lg:px-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
           {source === 'listing' ? (
             listingLoading ? (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -201,7 +204,7 @@ export function AiStudioPhotoSheet({
           )}
         </div>
 
-        <div className="border-border/60 border-t px-4 py-3 lg:border-0 lg:px-0 lg:pb-0 lg:pt-2">
+        <div className="border-border shrink-0 border-t px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),0.75rem)] sm:px-5">
           <Button
             type="button"
             className="min-h-11 w-full lg:ml-auto lg:flex lg:w-auto lg:min-w-28"

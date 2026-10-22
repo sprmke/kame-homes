@@ -11,9 +11,9 @@ import {
   AiStudioChoiceGroup,
   AiStudioShapePreview,
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
-import { useOptionalMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { AiStudioEmptyState } from '@/features/dashboard/marketing/components/ai-studio/AiStudioEmptyState';
 import { AiStudioGeneratingStage } from '@/features/dashboard/marketing/components/ai-studio/AiStudioGeneratingStage';
+import { useOptionalMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { useGeneratePosters } from '@/features/dashboard/marketing/hooks/useGeneratePosters';
 import { useMarketingCatalog } from '@/features/dashboard/marketing/hooks/useMarketingCatalog';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
@@ -39,8 +39,8 @@ import {
 } from '@/features/dashboard/marketing/lib/poster/posterSpec';
 import type { DesignTemplateFormat } from '@/features/dashboard/marketing/lib/templateRegistry';
 import { loadMarketingFonts } from '@/features/dashboard/marketing/lib/theme/marketingFontLoader';
-import { themeStampForSave } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import { marketingThemeFontList } from '@/features/dashboard/marketing/lib/theme/marketingThemeFonts';
+import { themeStampForSave } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import { useOrgSettings } from '@/features/dashboard/org/hooks/useOrgSettings';

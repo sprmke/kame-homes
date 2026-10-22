@@ -46,9 +46,15 @@ export function AiStudioResultsGrid({
 }: Props) {
   if (isLoading) {
     return (
-      <div className="@md:grid-cols-2 @3xl:grid-cols-3 grid grid-cols-1 gap-3">
+      <div className="@md:grid-cols-2 @3xl:grid-cols-3 grid grid-cols-1 gap-3" aria-busy="true">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="aspect-[4/5] rounded-2xl" />
+          <article key={index} className="border-border/70 overflow-hidden rounded-2xl border">
+            <Skeleton className="aspect-square w-full rounded-none" />
+            <div className="flex gap-2 p-3">
+              <Skeleton className="h-11 flex-1 rounded-md sm:h-9" />
+              <Skeleton className="size-11 shrink-0 rounded-md sm:size-9" />
+            </div>
+          </article>
         ))}
       </div>
     );
