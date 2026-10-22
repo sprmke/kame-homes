@@ -332,6 +332,12 @@ export async function listPublicGuestReviews(
   });
 }
 
+export function averageGuestReviewRating(reviews: PublicGuestReviewDto[]): number | null {
+  if (reviews.length === 0) return null;
+  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  return Math.round((sum / reviews.length) * 10) / 10;
+}
+
 /** Newest-first merge of Kame + approved external reviews. */
 export function sortPublicGuestReviewsNewestFirst(
   reviews: PublicGuestReviewDto[]
