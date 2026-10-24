@@ -44,7 +44,6 @@ import {
 } from '@/features/dashboard/ai-assistant/lib/canvasWidth';
 import { useDashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardModeContext';
 import { useHostAnnouncementHasUnread } from '@/features/dashboard/announcements/hooks/useHostAnnouncementHasUnread';
-import { DashboardChromeProvider } from '@/features/dashboard/lib/dashboardChromeContext';
 import {
   AdminBrandTheme,
   useAdminBrandThemeStyle,
@@ -79,6 +78,7 @@ import {
   type SidebarNavSection,
 } from '@/features/dashboard/bookings/lib/adminSidebarNav';
 import { resolveActiveNavHref } from '@/features/dashboard/bookings/lib/navActive';
+import { DashboardChromeProvider } from '@/features/dashboard/lib/dashboardChromeContext';
 import { NotificationBell } from '@/features/dashboard/notifications/components/NotificationBell';
 import { NotificationsProvider } from '@/features/dashboard/notifications/components/NotificationsProvider';
 import { useNotificationsList } from '@/features/dashboard/notifications/hooks/useNotifications';
@@ -1246,7 +1246,8 @@ function AdminProfileFooter({
     <div
       className={cn(
         'border-sidebar-border bg-sidebar shrink-0 border-t',
-        collapsed ? 'pt-2' : 'pt-3'
+        collapsed ? 'pt-2' : 'pt-3',
+        profileOpen && 'relative z-[100]'
       )}
       style={{ viewTransitionName: 'dashboard-rail-footer' }}
     >
@@ -1269,7 +1270,7 @@ function AdminProfileFooter({
           {profileOpen && (
             <div
               className={cn(
-                'border-border/50 bg-card shadow-elevated-lg absolute z-50 overflow-hidden rounded-xl border',
+                'border-border/50 bg-card shadow-elevated-lg absolute isolate z-[100] overflow-hidden rounded-xl border',
                 collapsed
                   ? 'bottom-0 left-full ml-2 w-[min(18rem,calc(100vw-1.5rem))]'
                   : 'bottom-full left-0 right-0 mb-2'

@@ -1,7 +1,8 @@
-import { BookingsCalendarSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { pricingCalendarFormGridClassName } from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
+
+import { BookingsCalendarSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Pricing page data region: stats row + calendar grid + rates sidebar (desktop). */
 export function PricingPageBodySkeleton() {

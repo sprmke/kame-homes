@@ -38,12 +38,41 @@ export function commitSlidingPillBounds(
 function measureElementBounds(container: HTMLElement, item: HTMLElement): SlidingPillBounds {
   const containerRect = container.getBoundingClientRect();
   const itemRect = item.getBoundingClientRect();
+  // Coordinates in the scroll container's content space so the pill scrolls with the list.
+  // Viewport-relative top/left alone desync when scrollTop changes (modals, scrollIntoView).
   return {
-    left: Math.round(itemRect.left - containerRect.left),
-    top: Math.round(itemRect.top - containerRect.top),
+    left: Math.round(itemRect.left - containerRect.left + container.scrollLeft),
+    top: Math.round(itemRect.top - containerRect.top + container.scrollTop),
     width: Math.round(itemRect.width),
     height: Math.round(itemRect.height),
   };
+}
+
+/**
+ * Bring the active item into view when the strip scrolls horizontally. Landing on
+ * a tab you cannot see — a deep link into the last of four tabs on a phone — reads
+ * as the page opening on the wrong tab. No-op when nothing overflows.
+ */
+function scrollItemIntoView(container: HTMLElement, item: HTMLElement, smooth: boolean) {
+  const overflow = container.scrollWidth - container.clientWidth;
+  if (overflow <= 1) return;
+
+  const itemLeft = item.offsetLeft;
+  const itemRight = itemLeft + item.offsetWidth;
+  const viewLeft = container.scrollLeft;
+  const viewRight = viewLeft + container.clientWidth;
+  // Keep a little of the neighbouring tab visible so the strip still reads as scrollable.
+  const gutter = 24;
+
+  let next = viewLeft;
+  if (itemLeft < viewLeft + gutter) next = itemLeft - gutter;
+  else if (itemRight > viewRight - gutter) next = itemRight - container.clientWidth + gutter;
+  else return;
+
+  container.scrollTo({
+    left: Math.max(0, Math.min(next, overflow)),
+    behavior: smooth ? 'smooth' : 'auto',
+  });
 }
 
 /** Coalesce observer/layout callbacks to one measure per animation frame. */
@@ -83,6 +112,8 @@ export function useSlidingActivePill(
   const itemRefs = useRef<Record<string, HTMLElement | null>>({});
   const activeKeyRef = useRef(activeKey);
   activeKeyRef.current = activeKey;
+  /** First measure jumps; later ones glide, unless the viewer asked for less motion. */
+  const hasMeasuredRef = useRef(false);
 
   const [bounds, setBounds] = useState<SlidingPillBounds | null>(null);
 
@@ -93,6 +124,12 @@ export function useSlidingActivePill(
     if (!item) return;
 
     commitSlidingPillBounds(setBounds, measureElementBounds(containerRef.current, item));
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    scrollItemIntoView(containerRef.current, item, hasMeasuredRef.current && !prefersReducedMotion);
+    hasMeasuredRef.current = true;
   }, [activeKey]);
 
   const { schedule, cancel } = useRafMeasure(measure);
@@ -129,10 +166,19 @@ export function useSlidingActivePill(
       schedule();
     });
     resizeObserver.observe(container);
-    return () => resizeObserver.disconnect();
+
+    const onScroll = () => {
+      schedule();
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener('scroll', onScroll);
+    };
   }, [schedule]);
 
-  return { containerRef, setItemRef, bounds };
+  return { containerRef, setItemRef, bounds, remeasure: schedule };
 }
 
 /** Measures the active `[data-state="active"]` child — for Radix TabsList. */

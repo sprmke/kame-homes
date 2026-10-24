@@ -176,6 +176,20 @@
 
   html {
     @apply scroll-smooth;
+    /* Fixed public nav (MarketingNav). Sticky toolbars + morph search read this. */
+    --public-nav-h: 3.5rem;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      --public-nav-h: 4rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      --public-nav-h: 5rem;
+    }
   }
 
   body {
@@ -208,6 +222,21 @@
 
   p {
     @apply leading-relaxed;
+  }
+
+  /* iOS Safari zooms the page when a focused field is under 16px. Native apps never zoom, so
+   * text fields render at 16px on iOS only (other platforms keep the 14px field scale). Fields
+   * that already use a display size (OTP digits, price editors) keep it. */
+  @supports (-webkit-touch-callout: none) {
+    :is(
+        input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+        select,
+        textarea
+      ):not([class*='text-lg']):not([class*='text-xl']):not([class*='text-2xl']):not(
+        [class*='text-3xl']
+      ):not([class*='text-4xl']) {
+      font-size: 16px !important;
+    }
   }
 }
 
@@ -1119,8 +1148,8 @@
     /* Default mobile shell gutter — non-hero pages only (hero rule above wins via :has). */
     .admin-mobile-main-shell {
       padding-top: 0.875rem;
-      padding-left: 0.875rem;
-      padding-right: 0.875rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
 
     @media (min-width: 640px) {
@@ -1313,6 +1342,7 @@
 
   /** Floating bottom dock (tabs + contextual action bar) — soft lift + top sheen. */
   .mobile-floating-dock {
+    background-color: hsl(var(--background) / 0.92);
     box-shadow:
       0 1px 0 0 hsl(0 0% 100% / 0.65) inset,
       0 1px 2px 0 hsl(var(--shadow-color) / 0.05),
@@ -1462,6 +1492,72 @@
   /** Primary interactive / toolbar copy (filters, buttons, menu items). */
   .text-ui {
     @apply text-foreground text-sm font-medium leading-snug;
+  }
+
+  /*
+   * Public density (marketing shell, listings, listing detail, auth, account, guest flows).
+   * Native scale on phone; display sizes only grow from md / lg. Size + rhythm only: pages keep
+   * their own color, weight and font family. Do not stack a raw text-* / py-* size class on the
+   * same element (both live in this layer, so the winner is not obvious).
+   * Plan: docs/workflow/in-progress/public-native-density.md
+   */
+  .public-display {
+    @apply text-[1.75rem] leading-[1.12] tracking-tight md:text-4xl lg:text-[2.75rem] lg:leading-[1.08];
+  }
+
+  .public-page-title {
+    @apply text-[1.375rem] leading-tight tracking-tight md:text-[1.625rem] lg:text-3xl;
+  }
+
+  .public-section-title {
+    @apply text-xl leading-tight tracking-tight md:text-2xl lg:text-3xl;
+  }
+
+  .public-card-title {
+    @apply text-[15px] leading-snug md:text-base lg:text-[17px];
+  }
+
+  .public-lead {
+    @apply text-[15px] leading-snug md:text-base md:leading-relaxed lg:text-lg;
+  }
+
+  .public-eyebrow {
+    @apply text-[11px] font-bold uppercase leading-none tracking-[0.2em];
+  }
+
+  /** Content top under the fixed public nav (detail pages, account, plain pages). */
+  .public-page-top {
+    padding-top: calc(var(--public-nav-h) + 0.75rem);
+  }
+
+  @media (min-width: 768px) {
+    .public-page-top {
+      padding-top: calc(var(--public-nav-h) + 1rem);
+    }
+  }
+
+  /** Vertical rhythm between public page sections. */
+  .public-section-y {
+    @apply py-8 md:py-12 lg:py-[4.5rem];
+  }
+
+  .public-card-pad {
+    @apply p-4 sm:p-6;
+  }
+
+  .public-icon-well {
+    @apply flex size-9 shrink-0 items-center justify-center rounded-lg md:size-10 lg:size-11 lg:rounded-xl;
+  }
+
+  /** Pill / filter chip: 34px visual, ≥44px hit via invisible pad (same idea as admin-overflow-trigger). */
+  .public-chip {
+    @apply relative h-[34px] min-h-0 px-3.5 text-[13px] md:h-9 md:px-4 md:text-sm;
+    @apply before:absolute before:-inset-y-[5px] before:inset-x-0 before:content-[''] md:before:-inset-y-1;
+  }
+
+  /** Inline / secondary CTA (Browse all, Learn more, hero buttons). Full-width bars use h-12. */
+  .public-cta {
+    @apply h-11 min-h-0 px-5 text-sm lg:h-12 lg:px-6 lg:text-[15px];
   }
 
   /** Dense toolbar controls (filter bar, sort, date chips). */

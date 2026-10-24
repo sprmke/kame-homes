@@ -20,6 +20,8 @@ import {
   type CancellationPolicyType,
 } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
 
+import { SettingsManageButton } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -48,6 +50,7 @@ type Props = {
   onChange: (policy: CancellationPolicySettings) => void;
   /** When true, render controls only (no AdminSection card) for Page Editor. */
   embedded?: boolean;
+  manageNeedsAttention?: boolean;
 };
 
 function graceLabel(hours: number): string {
@@ -112,6 +115,7 @@ export function PropertyCancellationPolicySection({
   markFieldInteracted,
   onChange,
   embedded = false,
+  manageNeedsAttention = false,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const normalized = normalizeCancellationPolicySettings(policy);
@@ -323,15 +327,10 @@ export function PropertyCancellationPolicySection({
       <CancellationPolicyPreview
         policy={normalized}
         action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="settings-action"
+          <SettingsManageButton
+            needsAttention={manageNeedsAttention}
             onClick={() => setManageOpen(true)}
-          >
-            Manage
-          </Button>
+          />
         }
       />
 

@@ -114,10 +114,10 @@ export function SensitiveSettingsOtpDialog({
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
       <ResponsiveModalContent
         sheetLayout="split"
-        className="max-w-[min(calc(100vw-1.5rem),32rem)] overflow-x-hidden sm:max-w-lg"
+        className="flex max-h-[min(90dvh,36rem)] max-w-[min(calc(100vw-1.5rem),32rem)] flex-col gap-0 overflow-hidden p-0 pb-0 pt-0 sm:max-w-lg sm:p-0"
         showCloseButton={false}
       >
-        <ResponsiveModalHeader className="min-w-0">
+        <ResponsiveModalHeader className="shrink-0 space-y-1 px-5 pb-1 pt-5 text-left sm:px-6">
           <ResponsiveModalTitle>Verify payment changes</ResponsiveModalTitle>
           <ResponsiveModalDescription className="break-words">
             {otpSent && ownerEmailMasked
@@ -126,7 +126,7 @@ export function SensitiveSettingsOtpDialog({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-0.5 py-1">
+        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 sm:px-6">
           {otpSent ? (
             <div className="space-y-3">
               <Label className="sr-only">Verification code</Label>
@@ -159,7 +159,7 @@ export function SensitiveSettingsOtpDialog({
           </p>
         </div>
 
-        <ResponsiveModalFooter className="!flex-row flex-nowrap items-center justify-end gap-2">
+        <ResponsiveModalFooter className="border-border shrink-0 !flex-row flex-nowrap items-center justify-end gap-2 border-t px-5 py-3 sm:px-6">
           <Button
             type="button"
             variant="ghost"

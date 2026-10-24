@@ -5,7 +5,10 @@ import { ImagePlus, Loader2, Plus, Star, Trash2, Upload } from 'lucide-react';
 import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { resolvePaymentMethodQrDisplayUrl } from '@/features/dashboard/lib/storedMediaDisplay';
 import { PaymentProviderSelect } from '@/features/dashboard/org/components/property-settings/PaymentProviderSelect';
-import { SettingsField } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import {
+  SettingsField,
+  SettingsManageButton,
+} from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 import {
   createEmptyPaymentMethod,
   MAX_PROPERTY_PAYMENT_METHODS,
@@ -44,11 +47,24 @@ function providerInitial(provider: string): string {
 export function PropertyPaymentMethodsSummary({
   methods,
   onManage,
+  needsAttention = false,
 }: {
   methods: PropertyPaymentMethod[];
   onManage: () => void;
+  needsAttention?: boolean;
 }) {
   const ordered = [...methods].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+
+  if (ordered.length === 0) {
+    return (
+      <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
+        <p className="text-muted-foreground min-w-0 text-xs font-medium sm:text-sm">
+          No payment method
+        </p>
+        <SettingsManageButton needsAttention={needsAttention} onClick={onManage} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -85,15 +101,7 @@ export function PropertyPaymentMethodsSummary({
             ) : null}
           </div>
           {method.isPrimary ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="settings-action"
-              onClick={onManage}
-            >
-              Manage
-            </Button>
+            <SettingsManageButton needsAttention={needsAttention} onClick={onManage} />
           ) : null}
         </div>
       ))}

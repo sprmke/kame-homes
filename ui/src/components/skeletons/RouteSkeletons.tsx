@@ -25,14 +25,13 @@ import {
   ListingCardGridSkeleton,
   ListRowsSkeleton,
   MaintenanceOverviewSkeleton,
-  MarketingStudioSkeleton,
+  MarketingLibraryBodySkeleton,
   OrgDashboardSkeleton,
   PageEditorSkeleton,
   PlansPageSkeleton,
   SectionContentSkeleton,
   TeamPageSkeleton,
 } from '@/components/skeletons/AdminSkeletons';
-import { GuestFormPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import {
   OrgAnalyticsSkeleton,
   PropertyAnalyticsSkeleton,
@@ -44,6 +43,7 @@ import {
   GuestAccountGateSkeleton,
   PropertyChatPageSkeleton,
 } from '@/components/skeletons/GuestMarketingSkeleton';
+import { GuestFormPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import {
   HelpDocumentationTopicsSkeleton,
   HelpSupportPageSkeleton,
@@ -59,6 +59,7 @@ import {
   SuperAdminAuditBodySkeleton,
   SuperAdminOverviewBodySkeleton,
 } from '@/components/skeletons/SuperAdminSkeletons';
+import { TemplateWorkbenchSkeleton } from '@/components/skeletons/TemplateWorkbenchSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** `BookingDateRangeFilter` in the hero overlap (phone). */
@@ -264,7 +265,7 @@ export function PropertyNotificationsRouteSkeleton() {
 }
 
 export function PropertyTemplatesRouteSkeleton() {
-  return <SectionContentSkeleton rows={5} className="space-y-4" />;
+  return <TemplateWorkbenchSkeleton />;
 }
 
 export function PropertySettingsRouteSkeleton() {
@@ -298,7 +299,21 @@ export function PropertyAnalyticsRouteSkeleton() {
 }
 
 export function PropertyMarketingRouteSkeleton() {
-  return <MarketingStudioSkeleton />;
+  return (
+    <AdminMobilePage
+      title="Marketing"
+      subtitle="Make posts, videos and calendars in one theme."
+      titleId="marketing-heading"
+    >
+      <div className="border-border bg-card flex min-h-0 flex-1 flex-col overflow-hidden border max-lg:h-[calc(100dvh-15.25rem-env(safe-area-inset-bottom,0px))] max-lg:min-h-[19rem] max-lg:flex-none max-lg:rounded-none max-lg:border-x-0 lg:h-[calc(100vh-120px)] lg:min-h-[520px] lg:flex-none lg:rounded-xl">
+        <div className="border-border flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-3 py-2 sm:px-4 sm:py-3">
+          <Skeleton className="h-9 w-64 max-w-[70%] rounded-full" />
+          <Skeleton className="ml-auto hidden h-9 w-56 rounded-lg lg:block" />
+        </div>
+        <MarketingLibraryBodySkeleton />
+      </div>
+    </AdminMobilePage>
+  );
 }
 
 export function PropertyTeamRouteSkeleton() {
@@ -409,7 +424,7 @@ export function ParkingTeamRouteSkeleton() {
 }
 
 export function SuperAdminOverviewRouteSkeleton() {
-  return <SuperAdminOverviewBodySkeleton metricCount={9} />;
+  return <SuperAdminOverviewBodySkeleton metricCount={10} />;
 }
 
 export function SuperAdminListRouteSkeleton() {

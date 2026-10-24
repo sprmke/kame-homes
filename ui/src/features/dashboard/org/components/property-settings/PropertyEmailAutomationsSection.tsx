@@ -5,7 +5,14 @@ import { Mail } from 'lucide-react';
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import type { AppSettingsFormValues } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { PropertyEmailAutomationTogglePanel } from '@/features/dashboard/org/components/property-settings/PropertyEmailAutomationTogglePanel';
-import { SettingsField } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import {
+  SettingsField,
+  SettingsManageButton,
+} from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import {
+  propertySettingsSectionHasIssue,
+  type PropertySettingsSectionId,
+} from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import {
   PROPERTY_AUTOMATION_TOGGLE_GROUPS,
@@ -85,6 +92,7 @@ export function PropertyEmailAutomationsSection({
   markFieldInteracted,
   onChange,
   onAutomationToggleChange,
+  issueSectionIds = [],
 }: {
   draft: AppSettingsFormValues;
   residenceName: string;
@@ -96,6 +104,7 @@ export function PropertyEmailAutomationsSection({
     value: AppSettingsFormValues[K]
   ) => void;
   onAutomationToggleChange: (key: PropertyAutomationToggleKey, value: boolean) => void;
+  issueSectionIds?: readonly PropertySettingsSectionId[];
 }) {
   const [automatedSendsOpen, setAutomatedSendsOpen] = useState(false);
   const effectiveResidence = residenceName.trim() || DEFAULT_RESIDENCE_NAME;
@@ -244,15 +253,10 @@ export function PropertyEmailAutomationsSection({
             <p className="min-w-0 text-xs font-medium sm:text-sm">
               {enabledSendCount} of {totalSendCount} email automations enabled
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="settings-action"
+            <SettingsManageButton
+              needsAttention={propertySettingsSectionHasIssue('email-automations', issueSectionIds)}
               onClick={() => setAutomatedSendsOpen(true)}
-            >
-              Manage
-            </Button>
+            />
           </div>
 
           <ResponsiveModal open={automatedSendsOpen} onOpenChange={setAutomatedSendsOpen}>

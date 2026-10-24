@@ -2,15 +2,15 @@ import { useLocation } from 'react-router-dom';
 
 import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
 import {
-  DevelopmentDetailPageSkeleton,
-  GuestAccountGateSkeleton,
-  PropertyChatPageSkeleton,
-} from '@/components/skeletons/GuestMarketingSkeleton';
-import {
   GuestProfileFormSkeleton,
   GuestReviewsPageSkeleton,
   GuestVouchersPageSkeleton,
 } from '@/components/skeletons/GuestAccountSkeletons';
+import {
+  DevelopmentDetailPageSkeleton,
+  GuestAccountGateSkeleton,
+  PropertyChatPageSkeleton,
+} from '@/components/skeletons/GuestMarketingSkeleton';
 import {
   GuestDevelopmentDetailRouteSkeleton,
   GuestFormRouteSkeleton,

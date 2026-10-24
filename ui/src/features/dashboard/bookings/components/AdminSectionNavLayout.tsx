@@ -240,6 +240,12 @@ function createSectionNavStore(
       syncActiveFromScroll();
     });
     resizeObserver.observe(container);
+    /*
+     * The scrollport keeps its size while the cards inside it grow (async
+     * settings loads), so observing only the container leaves the first sync
+     * running against a half-laid-out page and the wrong row highlighted.
+     */
+    for (const child of container.children) resizeObserver.observe(child);
 
     detachScroll = () => {
       container.removeEventListener('scroll', onScroll);

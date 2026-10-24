@@ -13,6 +13,8 @@ import {
   type PropertyLocationFields,
 } from '@/features/dashboard/org/lib/propertyLocation';
 
+import { SettingsManageButton } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +37,7 @@ type Props = {
   onFieldInteract?: (fieldId: string) => void;
   /** Inline picker (Setup Guide). */
   embedded?: boolean;
+  manageNeedsAttention?: boolean;
 };
 
 export function PropertyLocationSettingsBlock({
@@ -45,6 +48,7 @@ export function PropertyLocationSettingsBlock({
   onPersist,
   onFieldInteract,
   embedded = false,
+  manageNeedsAttention = false,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const [session, setSession] = useState<PropertyLocationFields | null>(null);
@@ -200,16 +204,11 @@ export function PropertyLocationSettingsBlock({
               </Button>
             </>
           ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="settings-action"
+          <SettingsManageButton
             disabled={disabled}
+            needsAttention={manageNeedsAttention}
             onClick={openManage}
-          >
-            Manage
-          </Button>
+          />
         </div>
       </div>
 

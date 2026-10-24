@@ -40,7 +40,10 @@ import {
   type PropertyPaymentMethod,
 } from '@/features/dashboard/org/lib/paymentMethods';
 import type { PropertyAutomationToggleKey } from '@/features/dashboard/org/lib/propertyEmailAutomation';
-import type { PropertySettingsSectionId } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import {
+  propertySettingsSectionHasIssue,
+  type PropertySettingsSectionId,
+} from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import { propertySettingsSectionBanner } from '@/features/dashboard/org/lib/propertySettingsFieldError';
 
 import { Button } from '@/components/ui/button';
@@ -69,6 +72,7 @@ type Props = {
   resolveFieldError: (fieldId: string) => string | null;
   markFieldInteracted: (fieldId: string) => void;
   sectionMessages?: Partial<Record<PropertySettingsSectionId, string>>;
+  issueSectionIds?: readonly PropertySettingsSectionId[];
   /** When set, only these section cards render (Setup Guide step bodies). */
   visibleSectionIds?: readonly PropertySettingsSectionId[];
   /** Inline payment editor (Setup Guide). */
@@ -87,6 +91,7 @@ export function PropertyOperationalSettingsSections({
   resolveFieldError,
   markFieldInteracted,
   sectionMessages = {},
+  issueSectionIds = [],
   visibleSectionIds,
   embedded = false,
 }: Props) {
@@ -341,6 +346,7 @@ export function PropertyOperationalSettingsSections({
               <PropertyPaymentMethodsSummary
                 methods={draft.paymentMethods}
                 onManage={openPaymentManage}
+                needsAttention={propertySettingsSectionHasIssue('payment', issueSectionIds)}
               />
               <ResponsiveModal
                 open={paymentManageOpen}
@@ -426,6 +432,7 @@ export function PropertyOperationalSettingsSections({
                 signatureConfigured={signatureConfigured}
                 disabled={lock('building-forms')}
                 onManage={openBuildingFormsManage}
+                needsAttention={propertySettingsSectionHasIssue('building-forms', issueSectionIds)}
               />
               <ResponsiveModal
                 open={buildingFormsManageOpen}
@@ -499,6 +506,7 @@ export function PropertyOperationalSettingsSections({
           markFieldInteracted={markFieldInteracted}
           onChange={onChange}
           onAutomationToggleChange={onAutomationToggleChange}
+          issueSectionIds={issueSectionIds}
         />
       ) : null}
 

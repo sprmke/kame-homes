@@ -54,10 +54,12 @@ export function SuperAdminAdminListBodySkeleton({
 }
 
 /** Overview / AI usage: KPI grid + chart cards. */
-export function SuperAdminOverviewBodySkeleton({ metricCount = 9 }: { metricCount?: number } = {}) {
+export function SuperAdminOverviewBodySkeleton({
+  metricCount = 10,
+}: { metricCount?: number } = {}) {
   return (
     <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading overview">
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
         {Array.from({ length: metricCount }).map((_, i) => (
           <AdminMetricCardSkeleton key={i} style={{ opacity: 1 - (i % 4) * 0.05 }} />
         ))}
