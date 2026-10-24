@@ -97,7 +97,13 @@ test.describe('@ci dashboard module shells', () => {
     await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole('heading', { name: 'Standard templates' })).toBeVisible();
+    /* Workbench shape: the library rail beside one open editor. */
+    const rail = page.getByRole('complementary', { name: 'Templates' });
+    await expect(rail).toBeVisible();
+    await expect(rail.getByText('Stay guide')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Template editor' }).getByRole('heading').first()
+    ).toBeVisible();
 
     const duplicateWarnings = consoleMessages.filter((text) =>
       text.toLowerCase().includes('duplicate')
@@ -113,20 +119,22 @@ test.describe('@ci dashboard module shells', () => {
     await page.goto('/org/kame-homes-ph/property/solea-mactan/templates');
     await templatesReady;
 
+    /* `^` keeps this off the row's own "Actions for Welcome Note" trigger. */
     await page
-      .getByRole('navigation', { name: 'Page sections' })
-      .getByRole('button', {
-        name: 'Welcome Note',
-      })
+      .getByRole('complementary', { name: 'Templates' })
+      .getByRole('button', { name: /^Welcome Note/ })
       .click();
 
-    const templateCard = page.locator('#section-custom-e2e-001');
-    await expect(templateCard).toBeVisible({ timeout: 20_000 });
+    const pane = page.getByRole('region', { name: 'Template editor' });
+    await expect(pane.getByRole('heading', { name: 'Welcome Note' })).toBeVisible({
+      timeout: 20_000,
+    });
 
     const sendRequest = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/send-property-custom-template-email') && res.ok()
     );
-    await templateCard.getByRole('button', { name: 'Send to guest' }).click();
+    await pane.getByRole('button', { name: 'Actions for Welcome Note' }).click();
+    await page.getByRole('menuitem', { name: 'Send to guest' }).click();
     await page.getByText('Jane Guest').click();
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await sendRequest;
