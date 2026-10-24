@@ -238,12 +238,27 @@ export async function sendGuestChatMessage(
   conversationId: string,
   text: string,
   opts?: { replyToMessageId?: string; attachments?: GuestChatAttachment[] }
-): Promise<void> {
-  await guestEdgePost('guest-web-chat-messages', {
+): Promise<{ assistantWillReply: boolean }> {
+  const payload = await guestEdgePost('guest-web-chat-messages', {
     conversationId,
     text,
     replyToMessageId: opts?.replyToMessageId,
     attachments: opts?.attachments,
+  });
+  return { assistantWillReply: payload.assistantWillReply === true };
+}
+
+export async function submitGuestChatAiFeedback(input: {
+  conversationId: string;
+  messageId: string;
+  rating: 1 | -1 | 0;
+  reason?: string;
+}): Promise<void> {
+  await guestEdgePost('guest-web-chat-feedback', {
+    conversationId: input.conversationId,
+    messageId: input.messageId,
+    rating: input.rating,
+    reason: input.reason,
   });
 }
 

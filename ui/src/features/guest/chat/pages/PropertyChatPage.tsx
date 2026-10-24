@@ -115,6 +115,9 @@ function PropertyChatContent({
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -122,7 +125,7 @@ function PropertyChatContent({
 
   const threadSearch = useChatThreadSearch(messages);
 
-  if (startQuery.isError) {
+  if (startQuery.isError && !startQuery.data) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 p-4">
         <Link
@@ -133,6 +136,9 @@ function PropertyChatContent({
           Back
         </Link>
         <p className="text-destructive text-sm">{(startQuery.error as Error).message}</p>
+        <Button type="button" variant="outline" onClick={() => void startQuery.refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -274,6 +280,9 @@ function PropertyChatContent({
             await unsend.mutateAsync(messageId);
           }}
           unsending={unsend.isPending}
+          assistantTyping={assistantTyping}
+          aiFeedback={aiFeedback}
+          onAiFeedback={(messageId, rating) => void submitAiFeedback(messageId, rating)}
         />
       )}
     </div>

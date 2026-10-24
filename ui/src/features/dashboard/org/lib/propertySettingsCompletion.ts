@@ -423,3 +423,11 @@ export function computePropertySettingsCompletion(
     isComplete: issueSectionIds.length === 0,
   };
 }
+
+/** Same signal as the section nav attention dot. */
+export function propertySettingsSectionHasIssue(
+  sectionId: PropertySettingsSectionId,
+  issueSectionIds: readonly PropertySettingsSectionId[]
+): boolean {
+  return issueSectionIds.includes(sectionId);
+}

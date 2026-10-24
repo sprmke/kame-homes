@@ -1128,6 +1128,14 @@ export function useVoiceSession(propertySlug: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- stable listener, end() is a ref-backed callback
   }, []);
 
+  const sendText = useCallback((text: string) => {
+    const ws = wsRef.current;
+    const trimmed = text.trim();
+    if (!trimmed || !setupReadyRef.current || !ws || ws.readyState !== WebSocket.OPEN) return false;
+    ws.send(JSON.stringify({ realtimeInput: { text: trimmed } }));
+    return true;
+  }, []);
+
   return {
     phase,
     meterRef: setMeterElement,
@@ -1149,5 +1157,6 @@ export function useVoiceSession(propertySlug: string) {
     end,
     handoffToHost,
     deleteTranscript,
+    sendText,
   };
 }

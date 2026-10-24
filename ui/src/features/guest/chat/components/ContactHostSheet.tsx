@@ -127,6 +127,9 @@ export function ContactHostSheet({
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -435,6 +438,9 @@ export function ContactHostSheet({
                 inquiryCheckOut={displayCheckOutDate || undefined}
                 stayGuideUrl={stayGuideUrl}
                 tripPath={tripPath}
+                assistantTyping={assistantTyping}
+                aiFeedback={aiFeedback}
+                onAiFeedback={(messageId, rating) => void submitAiFeedback(messageId, rating)}
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">

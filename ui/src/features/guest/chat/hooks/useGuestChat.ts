@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -9,6 +9,7 @@ import {
   fetchGuestWebChatResume,
   markGuestChatRead,
   sendGuestChatMessage,
+  submitGuestChatAiFeedback,
   unsendGuestChatMessage,
   uploadGuestChatAttachment,
   startGuestWebChat,
@@ -218,6 +219,18 @@ export function useGuestChatMessages(conversationId: string | null) {
     });
   }, [conversationId, query.isLoading, qc, notifyPeerRead]);
 
+  const [assistantTyping, setAssistantTyping] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<Record<string, 1 | -1>>({});
+  const typingTimerRef = useRef<number | null>(null);
+
+  const clearAssistantTyping = useCallback(() => {
+    setAssistantTyping(false);
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+  }, []);
+
   const send = useMutation({
     mutationFn: (input: GuestChatSendInput | string) => {
       const { text, replyToMessageId, attachments } = normalizeSendInput(input);
@@ -253,8 +266,13 @@ export function useGuestChatMessages(conversationId: string | null) {
         delivery_status: 'failed',
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       if (!conversationId) return;
+      if (result.assistantWillReply) {
+        setAssistantTyping(true);
+        if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = window.setTimeout(() => setAssistantTyping(false), 12_000);
+      }
       void qc.invalidateQueries({ queryKey: messagesQueryKey(conversationId) });
       void qc.invalidateQueries({ queryKey: GUEST_MESSAGES_QUERY_KEY });
     },
@@ -308,6 +326,40 @@ export function useGuestChatMessages(conversationId: string | null) {
 
   const messages: GuestChatMessage[] = query.data?.pages.flatMap((page) => page.messages) ?? [];
 
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last?.direction === 'outbound' && last.is_ai_generated) {
+      clearAssistantTyping();
+    }
+  }, [messages, clearAssistantTyping]);
+
+  useEffect(() => () => clearAssistantTyping(), [clearAssistantTyping, conversationId]);
+
+  const submitAiFeedback = useCallback(
+    async (messageId: string, rating: 1 | -1) => {
+      if (!conversationId) return;
+      const prev = aiFeedback[messageId];
+      const next = prev === rating ? 0 : rating;
+      setAiFeedback((current) => {
+        const copy = { ...current };
+        if (next === 0) delete copy[messageId];
+        else copy[messageId] = next;
+        return copy;
+      });
+      try {
+        await submitGuestChatAiFeedback({ conversationId, messageId, rating: next });
+      } catch {
+        setAiFeedback((current) => {
+          const copy = { ...current };
+          if (prev) copy[messageId] = prev;
+          else delete copy[messageId];
+          return copy;
+        });
+      }
+    },
+    [aiFeedback, conversationId]
+  );
+
   return {
     ...query,
     messages,
@@ -317,6 +369,9 @@ export function useGuestChatMessages(conversationId: string | null) {
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
   };
 }
 

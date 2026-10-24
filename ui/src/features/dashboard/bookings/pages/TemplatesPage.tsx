@@ -1,102 +1,115 @@
 import * as React from 'react';
 
-import { ClipboardList, Plus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
-import {
-  AdminSectionGroupHeading,
-  AdminSectionNavLayout,
-  type AdminSectionNavGroup,
-} from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
+import { FileText, FolderPlus, Plus, RefreshCw } from 'lucide-react';
+
 import { AddCustomTemplateDialog } from '@/features/dashboard/bookings/components/property-templates/AddCustomTemplateDialog';
-import { PropertyTemplateEditorCard } from '@/features/dashboard/bookings/components/property-templates/PropertyTemplateEditorCard';
+import { PropertyTemplateEditorPane } from '@/features/dashboard/bookings/components/property-templates/PropertyTemplateEditorPane';
+import {
+  DeleteTemplateDialog,
+  DeleteTemplateFolderDialog,
+  TemplateMoveDialog,
+  TemplateNamePromptDialog,
+} from '@/features/dashboard/bookings/components/property-templates/TemplateOrganiseDialogs';
+import { TemplateWorkbench } from '@/features/dashboard/bookings/components/property-templates/TemplateWorkbench';
 import {
   usePropertyTemplateMutations,
   usePropertyTemplates,
   type PropertyTemplateDto,
 } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import {
-  EMAIL_TEMPLATE_SECTIONS,
-  iconForTemplateKey,
-  STANDARD_TEMPLATE_SECTIONS,
-} from '@/features/dashboard/bookings/lib/propertyTemplateSections';
-import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
+  buildTemplateLibrary,
+  findTemplateLibraryEntry,
+  resolveSelectedTemplateKey,
+  type TemplateCategoryFilter,
+  type TemplateLibraryEntry,
+  type TemplateLibraryGroup,
+  type TemplatePlacement,
+} from '@/features/dashboard/bookings/lib/templateLibrary';
+import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
+import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
+import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import {
+  MobileHeroActionMenu,
+  type MobileHeroActionMenuItem,
+} from '@/components/mobile/MobileHeroActionButton';
+import { TemplateWorkbenchSkeleton } from '@/components/skeletons/TemplateWorkbenchSkeleton';
+import { Button } from '@/components/ui/button';
+import { useIsBelowLg } from '@/hooks/useMediaQuery';
 
-function TemplatesGroupHeadingSkeleton({ titleWidthClass }: { titleWidthClass: string }) {
+const TEMPLATE_PARAM = 'template';
+
+/** Mirrors the server limits so the host hits the input cap, not a 400. */
+const TEMPLATE_NAME_MAX = 120;
+const FOLDER_NAME_MAX = 40;
+
+/**
+ * Which organise dialog is open, and what it acts on. One slot keeps the page
+ * from juggling six booleans that could ever be true at once.
+ */
+type OrganiseTarget =
+  | { kind: 'rename-template'; entry: TemplateLibraryEntry }
+  | { kind: 'move-template'; entry: TemplateLibraryEntry }
+  | { kind: 'delete-template'; entry: TemplateLibraryEntry }
+  | { kind: 'create-folder' }
+  | { kind: 'rename-folder'; group: TemplateLibraryGroup }
+  | { kind: 'delete-folder'; group: TemplateLibraryGroup };
+
+/** Centered panel message for the states where there is no editor to show. */
+function TemplatePaneMessage({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <Skeleton className={cn('h-5', titleWidthClass)} />
-        <Skeleton className="h-[22px] w-7 rounded-full" />
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+      <div className="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-lg">
+        <FileText className="size-5" aria-hidden />
       </div>
+      <div className="space-y-1">
+        <p className="text-card-title">{title}</p>
+        <p className="text-muted-foreground mx-auto max-w-xs text-sm">{body}</p>
+      </div>
+      {action}
     </div>
   );
-}
-
-function TemplateEditorCardSkeleton() {
-  return (
-    <div className="border-border overflow-hidden rounded-xl border">
-      <div className="bg-muted/30 border-b p-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Skeleton className="h-5 w-40 max-w-full" />
-            <Skeleton className="h-3.5 w-56 max-w-full" />
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:px-4">
-        <Skeleton className="h-8 w-24 rounded-lg" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-32 rounded-lg" />
-          <Skeleton className="h-9 w-20 rounded-lg" />
-        </div>
-      </div>
-      <div className="p-3 sm:p-4">
-        <Skeleton className="h-[280px] w-full rounded-lg" />
-      </div>
-    </div>
-  );
-}
-
-function TemplatesPageSkeleton() {
-  return (
-    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading templates">
-      <div className="space-y-4">
-        <TemplatesGroupHeadingSkeleton titleWidthClass="w-40" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <TemplateEditorCardSkeleton key={i} />
-        ))}
-      </div>
-      <div className="space-y-4">
-        <TemplatesGroupHeadingSkeleton titleWidthClass="w-32" />
-        {Array.from({ length: 2 }).map((_, i) => (
-          <TemplateEditorCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function templateByKey(
-  templates: PropertyTemplateDto[],
-  key: string
-): PropertyTemplateDto | undefined {
-  return templates.find((t) => t.templateKey === key);
 }
 
 export function TemplatesPage() {
-  const { data, isLoading, error } = usePropertyTemplates();
-  const templates = data?.templates;
-  const { saveTemplate, resetTemplate, createCustomTemplate, deleteCustomTemplate } =
-    usePropertyTemplateMutations();
+  const { data, isLoading, error, refetch } = usePropertyTemplates();
+  const {
+    saveTemplate,
+    resetTemplate,
+    createCustomTemplate,
+    deleteCustomTemplate,
+    renameCustomTemplate,
+    moveCustomTemplate,
+    createTemplateFolder,
+    renameTemplateFolder,
+    deleteTemplateFolder,
+  } = usePropertyTemplateMutations();
   const { data: propertyAccess } = usePropertyPermissions();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isMobile = useIsBelowLg();
+  const [query, setQuery] = React.useState('');
+  const [categoryFilter, setCategoryFilter] = React.useState<TemplateCategoryFilter>('all');
+  const [organise, setOrganise] = React.useState<OrganiseTarget | null>(null);
+  const [addTemplateOpen, setAddTemplateOpen] = React.useState(false);
+  const [addTemplateInitialPlacement, setAddTemplateInitialPlacement] =
+    React.useState<TemplatePlacement | null>(null);
+  const { canUse: canUseCustomTemplates, isLoading: customTemplatesLoading } =
+    useFeatureGate('customTemplates');
+  const { open: openUpgradeModal } = useUpgradeModal();
+
   const canEditStandard = hasPropertyPermission(
     propertyAccess?.permissions,
     'templates.standard:edit'
@@ -108,42 +121,34 @@ export function TemplatesPage() {
     propertyAccess?.permissions,
     'templates.custom:delete'
   );
-  const customTemplates = React.useMemo(
-    () => (templates ?? []).filter((t) => t.category === 'custom'),
-    [templates]
-  );
 
-  const sectionGroups = React.useMemo((): AdminSectionNavGroup[] => {
-    const groups: AdminSectionNavGroup[] = [
-      {
-        label: 'Standard templates',
-        sections: STANDARD_TEMPLATE_SECTIONS.map((s) => ({
-          id: s.templateKey,
-          label: s.label,
-          icon: s.icon,
-        })),
-      },
-      {
-        label: 'Email templates',
-        sections: EMAIL_TEMPLATE_SECTIONS.map((s) => ({
-          id: s.templateKey,
-          label: s.label,
-          icon: s.icon,
-        })),
-      },
-    ];
-    if (customTemplates.length > 0) {
-      groups.push({
-        label: 'Custom templates',
-        sections: customTemplates.map((t) => ({
-          id: t.templateKey,
-          label: t.name,
-          icon: ClipboardList,
-        })),
-      });
-    }
-    return groups;
-  }, [customTemplates]);
+  const groups = React.useMemo(
+    () => buildTemplateLibrary(data?.templates, data?.folders),
+    [data?.templates, data?.folders]
+  );
+  const requestedKey = searchParams.get(TEMPLATE_PARAM);
+
+  /* Phone opens an editor only on an explicit, still-existing selection, so the
+   * list stays the landing view. Desktop always resolves to a template so the
+   * right pane is never blank. */
+  const openKey = findTemplateLibraryEntry(groups, requestedKey)?.templateKey ?? null;
+  const activeKey = isMobile ? openKey : resolveSelectedTemplateKey(groups, requestedKey);
+  const activeEntry = findTemplateLibraryEntry(groups, activeKey);
+
+  const selectTemplate = React.useCallback(
+    (templateKey: string | null, options?: { replace?: boolean }) => {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          if (templateKey) next.set(TEMPLATE_PARAM, templateKey);
+          else next.delete(TEMPLATE_PARAM);
+          return next;
+        },
+        { replace: options?.replace ?? false }
+      );
+    },
+    [setSearchParams]
+  );
 
   const handleSave = async (
     templateKey: string,
@@ -156,11 +161,169 @@ export function TemplatesPage() {
     await resetTemplate.mutateAsync(template.templateKey);
   };
 
-  const addTemplateTrigger = (
-    <MobileHeroActionButton aria-label="Add custom template">
-      <Plus className="size-5" aria-hidden />
-    </MobileHeroActionButton>
+  const handleDelete = async (templateKey: string) => {
+    await deleteCustomTemplate.mutateAsync(templateKey);
+    /* The open template is gone; drop the stale param instead of leaving a
+     * deep link pointing at a deleted key. */
+    if (requestedKey === templateKey) selectTemplate(null, { replace: true });
+  };
+
+  const permissions = React.useMemo(
+    () => ({ canAddCustom, canEditCustom, canDeleteCustom }),
+    [canAddCustom, canEditCustom, canDeleteCustom]
   );
+
+  const ensureCustomTemplates = React.useCallback(() => {
+    if (!canUseCustomTemplates) {
+      if (!customTemplatesLoading) openUpgradeModal('customTemplates');
+      return false;
+    }
+    return true;
+  }, [canUseCustomTemplates, customTemplatesLoading, openUpgradeModal]);
+
+  const openNewGroup = React.useCallback(() => {
+    if (!ensureCustomTemplates()) return;
+    setOrganise({ kind: 'create-folder' });
+  }, [ensureCustomTemplates]);
+
+  const openAddTemplate = React.useCallback(() => {
+    if (!ensureCustomTemplates()) return;
+    setAddTemplateInitialPlacement(null);
+    setAddTemplateOpen(true);
+  }, [ensureCustomTemplates]);
+
+  const openAddTemplateInGroup = React.useCallback(
+    (group: TemplateLibraryGroup) => {
+      if (!ensureCustomTemplates()) return;
+      if (group.kind === 'builtin' && (group.id === 'standard' || group.id === 'email')) {
+        setAddTemplateInitialPlacement({ category: group.id, folderId: null });
+      } else if (group.kind === 'folder' && group.folderId) {
+        setAddTemplateInitialPlacement({ category: 'custom', folderId: group.folderId });
+      } else if (group.kind === 'ungrouped') {
+        setAddTemplateInitialPlacement({ category: 'custom', folderId: null });
+      } else {
+        setAddTemplateInitialPlacement(null);
+      }
+      setAddTemplateOpen(true);
+    },
+    [ensureCustomTemplates]
+  );
+
+  const handlers = React.useMemo(
+    () => ({
+      onRenameTemplate: (entry: TemplateLibraryEntry) =>
+        setOrganise({ kind: 'rename-template', entry }),
+      onMoveTemplate: (entry: TemplateLibraryEntry) =>
+        setOrganise({ kind: 'move-template', entry }),
+      onDeleteTemplate: (entry: TemplateLibraryEntry) =>
+        setOrganise({ kind: 'delete-template', entry }),
+      onRenameFolder: (group: TemplateLibraryGroup) =>
+        setOrganise({ kind: 'rename-folder', group }),
+      onDeleteFolder: (group: TemplateLibraryGroup) =>
+        setOrganise({ kind: 'delete-folder', group }),
+      onAddTemplateToGroup: openAddTemplateInGroup,
+    }),
+    [openAddTemplateInGroup]
+  );
+
+  const closeOrganise = React.useCallback((open: boolean) => {
+    if (!open) setOrganise(null);
+  }, []);
+
+  const railOverlayRemeasureKey = `${addTemplateOpen}-${organise?.kind ?? 'idle'}`;
+
+  const heroMenuItems = React.useMemo((): MobileHeroActionMenuItem[] => {
+    if (!canAddCustom) return [];
+    return [
+      {
+        key: 'add-template',
+        label: 'Add template',
+        Icon: Plus,
+        onSelect: openAddTemplate,
+      },
+      {
+        key: 'new-group',
+        label: 'New group',
+        Icon: FolderPlus,
+        onSelect: openNewGroup,
+      },
+    ];
+  }, [canAddCustom, openAddTemplate, openNewGroup]);
+
+  const templateHeaderActions = canAddCustom ? (
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+      <TierBadgeAnchor feature="customTemplates">
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-[44px] gap-1.5"
+          onClick={openNewGroup}
+        >
+          <FolderPlus className="size-4" aria-hidden />
+          New group
+        </Button>
+      </TierBadgeAnchor>
+      <TierBadgeAnchor feature="customTemplates">
+        <Button
+          type="button"
+          variant="default"
+          className="min-h-[44px] gap-1.5"
+          onClick={openAddTemplate}
+        >
+          <Plus className="size-4" aria-hidden />
+          Add Template
+        </Button>
+      </TierBadgeAnchor>
+    </div>
+  ) : null;
+
+  const canEditActive = activeEntry
+    ? activeEntry.category === 'standard'
+      ? canEditStandard
+      : activeEntry.category === 'email'
+        ? canEditEmail
+        : canEditCustom
+    : false;
+
+  const detail = (() => {
+    if (!activeEntry) {
+      return (
+        <TemplatePaneMessage
+          title="No templates yet"
+          body="Templates load with the property. Reload if this looks wrong."
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+              Reload
+            </Button>
+          }
+        />
+      );
+    }
+
+    const isCustom = activeEntry.organisable;
+
+    return (
+      <PropertyTemplateEditorPane
+        key={activeEntry.templateKey}
+        entry={activeEntry}
+        saving={saveTemplate.isPending || resetTemplate.isPending}
+        showSectionImage={false}
+        canEdit={canEditActive}
+        onBack={isMobile ? () => selectTemplate(null) : undefined}
+        onSave={(input) => handleSave(activeEntry.templateKey, input)}
+        onRename={
+          isCustom && canEditCustom ? () => handlers.onRenameTemplate(activeEntry) : undefined
+        }
+        onMove={isCustom && canEditCustom ? () => handlers.onMoveTemplate(activeEntry) : undefined}
+        onReset={
+          !isCustom && canEditActive ? () => void handleReset(activeEntry.template) : undefined
+        }
+        onDelete={
+          isCustom && canDeleteCustom ? () => void handleDelete(activeEntry.templateKey) : undefined
+        }
+      />
+    );
+  })();
 
   return (
     <AdminMobilePage
@@ -168,106 +331,148 @@ export function TemplatesPage() {
       subtitle="Manage your property's house rules, instructions, and email templates."
       titleId="templates-heading"
       heroTrailing={
-        canAddCustom ? (
-          <AddCustomTemplateDialog
-            busy={createCustomTemplate.isPending}
-            trigger={addTemplateTrigger}
-            onAdd={async (name, content) => {
-              await createCustomTemplate.mutateAsync({ name, content });
-            }}
-          />
+        heroMenuItems.length > 0 ? (
+          <MobileHeroActionMenu items={heroMenuItems} label="Template actions" />
         ) : null
       }
-      desktopActions={
-        canAddCustom ? (
-          <AddCustomTemplateDialog
-            busy={createCustomTemplate.isPending}
-            onAdd={async (name, content) => {
-              await createCustomTemplate.mutateAsync({ name, content });
-            }}
-          />
-        ) : null
-      }
+      desktopActions={templateHeaderActions}
     >
-      <AdminSectionNavLayout className="min-h-0 flex-1" sectionGroups={sectionGroups}>
-        {isLoading ? <TemplatesPageSkeleton /> : null}
-        {error ? <p className="text-destructive text-sm">Failed to load templates.</p> : null}
+      {isLoading ? <TemplateWorkbenchSkeleton /> : null}
 
-        {templates ? (
-          <div className="space-y-3 sm:space-y-4">
-            <div className="space-y-4">
-              <AdminSectionGroupHeading
-                title="Standard templates"
-                count={STANDARD_TEMPLATE_SECTIONS.length}
-              />
-              {STANDARD_TEMPLATE_SECTIONS.map((section) => {
-                const template = templateByKey(templates, section.templateKey);
-                if (!template) return null;
-                return (
-                  <PropertyTemplateEditorCard
-                    key={section.templateKey}
-                    template={template}
-                    icon={section.icon}
-                    saving={saveTemplate.isPending || resetTemplate.isPending}
-                    showSectionImage={false}
-                    canEdit={canEditStandard}
-                    onSave={(input) => handleSave(template.templateKey, input)}
-                    onReset={canEditStandard ? () => void handleReset(template) : undefined}
-                  />
-                );
-              })}
-            </div>
+      {error && !data ? (
+        <div className="border-border bg-card flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-xl border p-6 text-center">
+          <p className="text-card-title">Templates did not load</p>
+          <p className="text-muted-foreground max-w-sm text-sm">
+            Check your connection and try again.
+          </p>
+          <Button type="button" variant="outline" onClick={() => void refetch()}>
+            <RefreshCw className="size-4" aria-hidden />
+            Try again
+          </Button>
+        </div>
+      ) : null}
 
-            <div className="space-y-4">
-              <AdminSectionGroupHeading
-                title="Email templates"
-                count={EMAIL_TEMPLATE_SECTIONS.length}
-                badge={<TierBadge feature="customTemplates" />}
-              />
-              {EMAIL_TEMPLATE_SECTIONS.map((section) => {
-                const template = templateByKey(templates, section.templateKey);
-                if (!template) return null;
-                return (
-                  <PropertyTemplateEditorCard
-                    key={section.templateKey}
-                    template={template}
-                    icon={section.icon}
-                    saving={saveTemplate.isPending || resetTemplate.isPending}
-                    canEdit={canEditEmail}
-                    onSave={(input) => handleSave(template.templateKey, input)}
-                    onReset={canEditEmail ? () => void handleReset(template) : undefined}
-                  />
-                );
-              })}
-            </div>
+      {data ? (
+        <TemplateWorkbench
+          groups={groups}
+          selectedKey={activeKey}
+          onSelect={selectTemplate}
+          query={query}
+          onQueryChange={setQuery}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          isMobile={isMobile}
+          showDetail={Boolean(openKey)}
+          permissions={permissions}
+          handlers={handlers}
+          detail={detail}
+          overlayRemeasureKey={railOverlayRemeasureKey}
+        />
+      ) : null}
 
-            {customTemplates.length > 0 ? (
-              <div className="space-y-4">
-                <AdminSectionGroupHeading
-                  title="Custom templates"
-                  count={customTemplates.length}
-                  badge={<TierBadge feature="customTemplates" />}
-                />
-                {customTemplates.map((template) => (
-                  <PropertyTemplateEditorCard
-                    key={template.templateKey}
-                    template={template}
-                    icon={iconForTemplateKey(template.templateKey)}
-                    saving={saveTemplate.isPending}
-                    canEdit={canEditCustom}
-                    onSave={(input) => handleSave(template.templateKey, input)}
-                    onDelete={
-                      canDeleteCustom
-                        ? () => void deleteCustomTemplate.mutateAsync(template.templateKey)
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </AdminSectionNavLayout>
+      <TemplateNamePromptDialog
+        open={organise?.kind === 'rename-template'}
+        onOpenChange={closeOrganise}
+        title="Rename template"
+        label="Template name"
+        initialValue={organise?.kind === 'rename-template' ? organise.entry.name : ''}
+        confirmLabel="Save name"
+        maxLength={TEMPLATE_NAME_MAX}
+        busy={renameCustomTemplate.isPending}
+        onSubmit={async (name) => {
+          if (organise?.kind !== 'rename-template') return;
+          await renameCustomTemplate.mutateAsync({
+            templateKey: organise.entry.templateKey,
+            name,
+          });
+        }}
+      />
+
+      <TemplateMoveDialog
+        open={organise?.kind === 'move-template'}
+        onOpenChange={closeOrganise}
+        templateName={organise?.kind === 'move-template' ? organise.entry.name : ''}
+        entry={organise?.kind === 'move-template' ? organise.entry : null}
+        folders={data?.folders ?? []}
+        busy={moveCustomTemplate.isPending}
+        onMove={async (placement) => {
+          if (organise?.kind !== 'move-template') return;
+          await moveCustomTemplate.mutateAsync({
+            templateKey: organise.entry.templateKey,
+            category: placement.category,
+            folderId: placement.category === 'custom' ? placement.folderId : null,
+          });
+        }}
+      />
+
+      <DeleteTemplateDialog
+        open={organise?.kind === 'delete-template'}
+        onOpenChange={closeOrganise}
+        templateName={organise?.kind === 'delete-template' ? organise.entry.name : ''}
+        busy={deleteCustomTemplate.isPending}
+        onConfirm={async () => {
+          if (organise?.kind !== 'delete-template') return;
+          await handleDelete(organise.entry.templateKey);
+        }}
+      />
+
+      {canAddCustom ? (
+        <AddCustomTemplateDialog
+          open={addTemplateOpen}
+          onOpenChange={setAddTemplateOpen}
+          hideTrigger
+          busy={createCustomTemplate.isPending}
+          folders={data?.folders}
+          initialPlacement={addTemplateInitialPlacement}
+          onRequestNewGroup={openNewGroup}
+          onAdd={async (input) => {
+            const { templateKey } = await createCustomTemplate.mutateAsync(input);
+            if (templateKey) selectTemplate(templateKey);
+          }}
+        />
+      ) : null}
+
+      <TemplateNamePromptDialog
+        open={organise?.kind === 'create-folder'}
+        onOpenChange={closeOrganise}
+        title="New group"
+        description="Group your custom templates however you work."
+        label="Group name"
+        initialValue=""
+        confirmLabel="Create group"
+        maxLength={FOLDER_NAME_MAX}
+        busy={createTemplateFolder.isPending}
+        onSubmit={async (name) => {
+          await createTemplateFolder.mutateAsync({ name });
+        }}
+      />
+
+      <TemplateNamePromptDialog
+        open={organise?.kind === 'rename-folder'}
+        onOpenChange={closeOrganise}
+        title="Rename folder"
+        label="Folder name"
+        initialValue={organise?.kind === 'rename-folder' ? organise.group.label : ''}
+        confirmLabel="Save name"
+        maxLength={FOLDER_NAME_MAX}
+        busy={renameTemplateFolder.isPending}
+        onSubmit={async (name) => {
+          if (organise?.kind !== 'rename-folder' || !organise.group.folderId) return;
+          await renameTemplateFolder.mutateAsync({ folderId: organise.group.folderId, name });
+        }}
+      />
+
+      <DeleteTemplateFolderDialog
+        open={organise?.kind === 'delete-folder'}
+        onOpenChange={closeOrganise}
+        folderName={organise?.kind === 'delete-folder' ? organise.group.label : ''}
+        templateCount={organise?.kind === 'delete-folder' ? organise.group.entries.length : 0}
+        busy={deleteTemplateFolder.isPending}
+        onConfirm={async () => {
+          if (organise?.kind !== 'delete-folder' || !organise.group.folderId) return;
+          await deleteTemplateFolder.mutateAsync({ folderId: organise.group.folderId });
+        }}
+      />
     </AdminMobilePage>
   );
 }

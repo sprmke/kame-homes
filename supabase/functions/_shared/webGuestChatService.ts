@@ -14,6 +14,7 @@ import {
 } from './socialInboxService.ts';
 import { runAfterResponse } from './backgroundTask.ts';
 import { maybeAutoReplyToWebInbound } from './webInboxAutoReply.ts';
+import { previewWebAssistantWillReply } from './inboxAutoReplyPolicy.ts';
 import {
   createOrCoalesceNotification,
   inboxNotificationParticipantLabel,
@@ -434,7 +435,7 @@ export async function sendGuestWebMessage(
   conversationId: string,
   text: string,
   opts?: { replyToMessageId?: string; attachments?: unknown }
-): Promise<void> {
+): Promise<{ assistantWillReply: boolean }> {
   const trimmed = text.trim();
   const attachments = parseGuestWebChatAttachments(opts?.attachments);
   assertGuestWebMessagePayload(trimmed, attachments);
@@ -507,6 +508,12 @@ export async function sendGuestWebMessage(
   } catch (notifErr) {
     console.warn('[webGuestChat] notification create:', notifErr);
   }
+
+  const assistantWillReply = await previewWebAssistantWillReply(
+    conv.organization_id,
+    conv.property_id ?? null
+  );
+  return { assistantWillReply };
 }
 
 export async function editGuestWebMessage(

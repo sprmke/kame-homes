@@ -155,6 +155,15 @@ export function VoiceSessionPanel({ propertySlug, onClose, className }: Props) {
     captureAppEvent('voice_entry_shown', { disclosure_required: !hasConsent });
   }, [hasConsent]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as Window & { __aiQaVoiceSend?: (text: string) => boolean };
+    w.__aiQaVoiceSend = (text) => session.sendText(text);
+    return () => {
+      delete w.__aiQaVoiceSend;
+    };
+  }, [session.sendText]);
+
   const handleCloseRef = useRef(handleClose);
   handleCloseRef.current = handleClose;
   useEffect(() => {

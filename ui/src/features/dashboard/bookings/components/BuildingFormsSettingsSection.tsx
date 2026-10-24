@@ -7,9 +7,11 @@ import { GafPdfPreview } from '@/features/dashboard/bookings/components/GafPdfPr
 import { PetPdfPreview } from '@/features/dashboard/bookings/components/PetPdfPreview';
 import type { GafDetailsValues } from '@/features/dashboard/bookings/lib/gafDefaults';
 import type { PetDetailsValues } from '@/features/dashboard/bookings/lib/petDefaults';
-import { SettingsField } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import {
+  SettingsField,
+  SettingsManageButton,
+} from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
@@ -54,12 +56,14 @@ export function BuildingFormsSettingsSummary({
   signatureConfigured,
   disabled,
   onManage,
+  needsAttention = false,
 }: {
   values: GafDetailsValues;
   towerUnitLabel: string;
   signatureConfigured: boolean;
   disabled?: boolean;
   onManage: () => void;
+  needsAttention?: boolean;
 }) {
   const owner = values.gafUnitOwner.trim() || 'No unit owner';
   const unit = towerUnitLabel.trim() || 'No tower & unit';
@@ -85,16 +89,11 @@ export function BuildingFormsSettingsSummary({
           </p>
         ) : null}
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="settings-action shrink-0"
+      <SettingsManageButton
+        needsAttention={needsAttention}
         disabled={disabled}
         onClick={onManage}
-      >
-        Manage
-      </Button>
+      />
     </div>
   );
 }

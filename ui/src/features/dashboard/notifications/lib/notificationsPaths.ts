@@ -59,6 +59,9 @@ export function resolveNotificationPath(
 /** Legacy in-app activity anchor — still accepted on inbound links. */
 export const IN_APP_NOTIFICATIONS_SECTION_ID = 'activity';
 
+/** Sidebar / main-content group label for the in-app feed block. */
+export const IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL = 'In-app notifications';
+
 export function notificationsHubActivityHash(): string {
   return `#section-${IN_APP_NOTIFICATIONS_SECTION_ID}`;
 }

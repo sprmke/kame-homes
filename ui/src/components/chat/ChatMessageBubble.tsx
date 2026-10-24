@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import { ChatDeliveryTicks } from '@/components/chat/ChatDeliveryTicks';
 import { ChatHighlightedText } from '@/components/chat/ChatHighlightedText';
@@ -30,6 +30,10 @@ type Props = {
   actions?: ReactNode;
   /** When set, a tapped calendar link card opens the availability modal instead of navigating. */
   onCalendarLinkClick?: (href: string) => void;
+  feedback?: {
+    rating: 1 | -1 | 0;
+    onRate: (rating: 1 | -1) => void;
+  };
 };
 
 export function ChatMessageBubble({
@@ -48,6 +52,7 @@ export function ChatMessageBubble({
   children,
   actions,
   onCalendarLinkClick,
+  feedback,
 }: Props) {
   const timeLabel = formatChatBubbleTime(sentAt);
   const trimmed = bodyText?.trim() || '-';
@@ -105,6 +110,34 @@ export function ChatMessageBubble({
               <Sparkles className="size-3" aria-hidden />
               Automated
             </span>
+          ) : null}
+          {feedback ? (
+            <div className="mt-1.5 hidden items-center gap-0.5 lg:flex">
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex size-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full',
+                  feedback.rating === 1 ? 'text-foreground' : 'text-muted-foreground'
+                )}
+                aria-label="Helpful"
+                aria-pressed={feedback.rating === 1}
+                onClick={() => feedback.onRate(1)}
+              >
+                <ThumbsUp className="size-3.5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex size-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full',
+                  feedback.rating === -1 ? 'text-foreground' : 'text-muted-foreground'
+                )}
+                aria-label="Not helpful"
+                aria-pressed={feedback.rating === -1}
+                onClick={() => feedback.onRate(-1)}
+              >
+                <ThumbsDown className="size-3.5" aria-hidden />
+              </button>
+            </div>
           ) : null}
         </div>
         {actions}
