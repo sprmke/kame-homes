@@ -14,6 +14,8 @@ export type PlatformSettingsSnapshot = {
   defaultPlanCode: string | null;
   authenticatedRateLimitEnforce: boolean;
   authenticatedRateLimitPerMin: number;
+  /** Legacy → mt-prod cutover marker (plan §5.6). Null = no cutover; guards inactive. */
+  migrationCutoverAt: string | null;
 };
 
 const DEFAULT_PUBLIC_RATE_LIMIT_PER_MIN = 60;
@@ -33,6 +35,7 @@ function compileDefaults(): PlatformSettingsSnapshot {
     // traffic because the platform_settings read hiccuped.
     authenticatedRateLimitEnforce: false,
     authenticatedRateLimitPerMin: DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN,
+    migrationCutoverAt: null,
   };
 }
 
@@ -47,7 +50,7 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
     const { data, error } = await sb
       .from('platform_settings')
       .select(
-        'signups_enabled, maintenance_mode, maintenance_message, public_rate_limit_per_min, default_plan_code, authenticated_rate_limit_enforce, authenticated_rate_limit_per_min'
+        'signups_enabled, maintenance_mode, maintenance_message, public_rate_limit_per_min, default_plan_code, authenticated_rate_limit_enforce, authenticated_rate_limit_per_min, migration_cutover_at'
       )
       .eq('id', 1)
       .maybeSingle();
@@ -82,6 +85,10 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
         Number.isInteger(rawAuthLimit) && rawAuthLimit >= 1 && rawAuthLimit <= 100_000
           ? rawAuthLimit
           : DEFAULT_AUTHENTICATED_RATE_LIMIT_PER_MIN,
+      migrationCutoverAt:
+        typeof data.migration_cutover_at === 'string' && data.migration_cutover_at.trim()
+          ? data.migration_cutover_at
+          : null,
     };
     cached = { at: now, value };
     return value;
