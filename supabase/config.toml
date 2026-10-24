@@ -1293,3 +1293,9 @@ verify_jwt = false
 
 [functions.super-admin-system-health]
 verify_jwt = false
+
+[functions.resolve-booking-property]
+verify_jwt = false
+
+[functions.chat-templates]
+verify_jwt = false
