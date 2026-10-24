@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { scopedAdminPath, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+import { scopedAdminPath } from '@/features/dashboard/org/lib/adminApiScope';
 import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 
 import { PROPERTY_REVIEWS_QUERY_KEY } from '@/features/reviews/hooks/usePropertyReviews';
 import type { GuestReputationPayload } from '@/features/reviews/lib/reviewApi';
+import { useReviewPropertyId } from '@/features/reviews/lib/reviewPropertyScopeContext';
 
 export const GUEST_REPUTATION_QUERY_KEY = 'guest-reputation';
 
@@ -27,7 +28,7 @@ export type SubmitHostGuestReviewInput = {
 };
 
 export function useGuestReputation(bookingId: string | null | undefined) {
-  const propertyId = usePropertyIdParam();
+  const propertyId = useReviewPropertyId();
   return useQuery({
     queryKey: guestReputationQueryKey(bookingId ?? null, propertyId),
     queryFn: () => {
@@ -43,7 +44,7 @@ export function useGuestReputation(bookingId: string | null | undefined) {
 }
 
 export function useSubmitHostGuestReview(bookingId: string) {
-  const propertyId = usePropertyIdParam();
+  const propertyId = useReviewPropertyId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Omit<SubmitHostGuestReviewInput, 'bookingId'>) => {
