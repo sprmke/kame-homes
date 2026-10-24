@@ -30,7 +30,7 @@ export function PropertiesByDevelopment({
   }
 
   return (
-    <div className="min-w-0 space-y-10 sm:space-y-12">
+    <div className="min-w-0 space-y-7 md:space-y-12">
       {groups.map((group) => (
         <PropertiesLocationRow
           key={group.development.id}

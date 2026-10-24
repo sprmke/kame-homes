@@ -31,17 +31,16 @@ export function LegalSimplePage({
         description={description}
         blobPosition={blobPosition}
         narrow
-        titleClassName="lg:text-5xl"
       />
 
       <MarketingPublicPageContent narrow>
         <div className="divide-border divide-y">
           {sections.map((section) => (
-            <section key={section.title} className="py-10 first:pb-10 first:pt-0">
-              <h2 className="text-foreground text-xl font-semibold tracking-tight sm:text-2xl">
+            <section key={section.title} className="py-6 first:pt-0 md:py-10 md:first:pb-10">
+              <h2 className="text-foreground text-lg font-semibold tracking-tight md:text-2xl">
                 {section.title}
               </h2>
-              <div className="text-muted-foreground mt-4 space-y-4 text-base leading-relaxed">
+              <div className="text-muted-foreground mt-2.5 space-y-3 text-[15px] leading-relaxed md:mt-4 md:space-y-4 md:text-base">
                 {section.paragraphs.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}

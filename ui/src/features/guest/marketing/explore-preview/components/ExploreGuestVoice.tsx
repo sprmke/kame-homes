@@ -24,7 +24,7 @@ export function ExploreGuestVoice() {
           initial={reduce ? false : 'hidden'}
           whileInView="shown"
           viewport={inViewOnce}
-          className="bg-muted/50 mx-auto max-w-3xl rounded-[2rem] px-6 py-10 sm:px-12 sm:py-14"
+          className="bg-muted/50 mx-auto max-w-3xl rounded-[2rem] px-4 py-6 sm:px-12 sm:py-14"
         >
           <div className="text-primary flex gap-0.5" aria-hidden>
             {Array.from({ length: 5 }).map((_, index) => (

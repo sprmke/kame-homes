@@ -28,18 +28,16 @@ export function HostHowItWorks() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section id="how-it-works" className="bg-muted/30 scroll-mt-24 py-16 sm:py-20 lg:py-28">
+    <section id="how-it-works" className="bg-muted/30 public-section-y scroll-mt-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
-          className="mx-auto mb-10 max-w-2xl text-center sm:mb-14"
+          className="mx-auto mb-6 max-w-2xl text-center md:mb-14"
         >
-          <p className="text-primary mb-3 text-xs font-bold uppercase tracking-[0.2em]">
-            How it works
-          </p>
-          <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="public-eyebrow text-primary mb-2.5 md:mb-3">How it works</p>
+          <h2 className="text-foreground text-2xl font-bold leading-tight tracking-tight md:text-4xl">
             Set it once. Every stay follows the same path.
           </h2>
         </motion.div>
@@ -56,15 +54,15 @@ export function HostHowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ delay: reduceMotion ? 0 : index * 0.08 }}
-              className="border-border bg-card relative rounded-2xl border p-5 shadow-sm sm:p-6"
+              className="border-border bg-card public-card-pad relative rounded-2xl border shadow-sm"
             >
-              <div className="bg-primary text-primary-foreground relative z-10 mb-8 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg">
-                <step.icon className="h-6 w-6" aria-hidden />
+              <div className="bg-primary text-primary-foreground relative z-10 mb-4 flex size-11 items-center justify-center rounded-xl shadow-md lg:mb-8 lg:size-16 lg:rounded-2xl lg:shadow-lg">
+                <step.icon className="size-5 lg:size-6" aria-hidden />
               </div>
               <p className="text-primary mb-2 text-xs font-black tracking-[0.16em]">
                 {step.number}
               </p>
-              <h3 className="text-foreground text-lg font-bold">{step.title}</h3>
+              <h3 className="public-card-title text-foreground font-bold">{step.title}</h3>
             </motion.article>
           ))}
         </div>

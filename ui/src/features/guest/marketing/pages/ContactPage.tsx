@@ -125,7 +125,7 @@ export function ContactPage() {
       <MarketingPublicPageContent narrow>
         <PublicContactCategoryGrid onSelect={handleCategorySelect} />
 
-        <div className="border-border bg-muted/40 mt-10 rounded-2xl border p-6 sm:p-8">
+        <div className="border-border bg-muted/40 public-card-pad mt-6 rounded-2xl border md:mt-10">
           <MarketingPublicSectionHeading
             title="Booking as a guest?"
             description="For stay questions, try Support first or email us with your booking ID."

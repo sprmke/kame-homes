@@ -59,7 +59,7 @@ export function PropertyLocation({
       transition={{ delay: 0.5 }}
       className="space-y-6"
     >
-      <h2 className="text-foreground text-xl font-semibold">Where you&apos;ll be</h2>
+      <h2 className="text-foreground @xl:text-xl text-lg font-semibold">Where you&apos;ll be</h2>
 
       <div className="border-border bg-muted relative h-[300px] overflow-hidden rounded-2xl border sm:h-[400px]">
         <PropertyMapEmbed

@@ -284,12 +284,12 @@ export function PropertyDetailPage() {
 
   if (isLoading && !propertyData) {
     return (
-      <div className="@container bg-background min-h-screen w-full min-w-0 pb-20 pt-24">
+      <div className="@container bg-background public-page-top min-h-screen w-full min-w-0 pb-20">
         <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4">
           <Skeleton className="@xl:h-[400px] @3xl:h-[500px] h-[300px] w-full rounded-2xl" />
         </div>
 
-        <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4 py-8">
+        <div className="@xl:px-6 @5xl:px-8 @xl:py-8 container mx-auto px-4 py-5">
           <div className="@5xl:grid-cols-3 @5xl:gap-12 grid grid-cols-1 gap-8">
             <div className="@5xl:col-span-2 min-w-0 space-y-10">
               <div className="space-y-4">
@@ -362,6 +362,7 @@ export function PropertyDetailPage() {
       media: review.media ?? [],
       source: review.source,
       createdAt: review.createdAt ?? null,
+      responseText: review.responseText ?? null,
     })) ?? [];
 
   const showRatingInBooking =
@@ -474,6 +475,7 @@ export function PropertyDetailPage() {
             rating={propertyData.rating ?? 5}
             totalReviews={propertyData.reviews ?? listingReviews.length}
             reviews={listingReviews}
+            summary={propertyData.reviewSummary}
           />
         );
       default:
@@ -486,7 +488,7 @@ export function PropertyDetailPage() {
       <div
         className={cn(
           '@container bg-background min-h-screen w-full min-w-0',
-          isEditorPreview ? 'pt-4' : 'pt-24',
+          isEditorPreview ? 'pt-4' : 'public-page-top',
           !isEditorPreview && bottomTabBarOffsetClassName(),
           forceMobileChrome && 'pb-24',
           isEditorPreview && !forceMobileChrome && 'pb-4'
@@ -506,14 +508,19 @@ export function PropertyDetailPage() {
           </div>
         ) : null}
 
-        <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4 py-8">
+        <div className="@xl:px-6 @5xl:px-8 @xl:py-8 container mx-auto px-4 py-5">
           <div
             className={cn(
-              'grid grid-cols-1 gap-8',
+              '@xl:gap-8 grid grid-cols-1 gap-6',
               forceMobileChrome ? null : '@5xl:grid-cols-3 @5xl:gap-12'
             )}
           >
-            <div className={cn('min-w-0 space-y-10', !forceMobileChrome && '@5xl:col-span-2')}>
+            <div
+              className={cn(
+                '@xl:space-y-10 min-w-0 space-y-7',
+                !forceMobileChrome && '@5xl:col-span-2'
+              )}
+            >
               {bodySections.map((sectionId, index) => renderBodySection(sectionId, index))}
             </div>
 
@@ -551,8 +558,8 @@ export function PropertyDetailPage() {
           </div>
 
           {similarProperties.length > 0 ? (
-            <div className="mt-16 min-w-0">
-              <hr className="border-border mb-10" />
+            <div className="@xl:mt-16 mt-10 min-w-0">
+              <hr className="border-border @xl:mb-10 mb-7" />
               <SimilarProperties
                 properties={similarProperties}
                 currentPropertyId={propertySlugForActions}
@@ -632,18 +639,18 @@ function PropertyReserveCta({
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-1">
-          <span className="text-foreground text-lg font-bold">₱{baseRate.toLocaleString()}</span>
-          <span className="text-muted-foreground text-sm">/ night</span>
+          <span className="text-foreground text-base font-bold">₱{baseRate.toLocaleString()}</span>
+          <span className="text-muted-foreground text-[13px]">/ night</span>
         </div>
         {rating != null ? (
-          <p className="text-muted-foreground truncate text-sm">
+          <p className="text-muted-foreground truncate text-[13px]">
             {rating} ★ · {reviews} reviews
           </p>
         ) : null}
       </div>
       <Button
         size="lg"
-        className="min-h-[44px] shrink-0 rounded-full px-8"
+        className="h-11 shrink-0 rounded-full px-7 text-[15px]"
         type="button"
         onClick={onReserve}
       >

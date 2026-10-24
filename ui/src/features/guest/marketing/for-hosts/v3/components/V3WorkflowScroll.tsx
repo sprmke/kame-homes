@@ -236,7 +236,7 @@ export function V3WorkflowScroll() {
       </div>
 
       {/* Phone / tablet: vertical timeline with a scene per step */}
-      <div className="container mx-auto px-4 py-20 sm:px-6 lg:hidden">
+      <div className="container mx-auto px-4 py-10 sm:px-6 sm:py-20 lg:hidden">
         <Reveal>
           <SectionHeader />
         </Reveal>

@@ -104,11 +104,11 @@ export function SupportPage() {
 
       <MarketingPublicPageContent narrow>
         <MarketingPublicFaqList title="Guests" items={guestFaqs} />
-        <MarketingPublicFaqList title="Hosts" items={hostFaqs} className="mt-16" />
+        <MarketingPublicFaqList title="Hosts" items={hostFaqs} className="mt-10 md:mt-16" />
 
         <MarketingPublicCallout
           variant="inset"
-          className="mt-14"
+          className="mt-10 md:mt-14"
           icon={LifeBuoy}
           title="Need a person?"
           body={

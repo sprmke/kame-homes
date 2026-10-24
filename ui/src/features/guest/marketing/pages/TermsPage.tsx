@@ -50,6 +50,13 @@ export function TermsPage() {
           ],
         },
         {
+          title: 'Reviews',
+          paragraphs: [
+            'After check-out, guests and hosts may review each other during a 14-day window. Reviews stay hidden until both sides submit or the window closes. Do not offer money, refunds, discounts, or other value in exchange for a review or a rating.',
+            'Public review text and responses may not include phone numbers, emails, or URLs. Each side may post one public response. Either side may report a published review. Super-admin decides removals. Hosts may use published guest-reputation summaries when screening a booking from that guest.',
+          ],
+        },
+        {
           title: 'Acceptable use',
           paragraphs: [
             'Do not upload fraudulent IDs, receipts, or documents; harass others; or use messaging and marketing tools for spam or illegal content.',

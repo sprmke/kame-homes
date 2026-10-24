@@ -63,15 +63,20 @@ export function AboutPage() {
         description="Connect guest booking, host operations, messaging, marketing, finance, and parking so every stay has a clear path from calendar to check-out."
         blobPosition="right"
       >
-        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 md:gap-3">
           <Button
             size="lg"
-            className="bg-primary hover:bg-primary/90 min-h-[44px] rounded-full px-8 font-semibold text-white"
+            className="bg-primary hover:bg-primary/90 h-11 rounded-full px-5 text-[15px] font-semibold text-white md:h-12 md:px-8 md:text-base"
             asChild
           >
             <Link to="/for-hosts">Become a host</Link>
           </Button>
-          <Button size="lg" variant="outline" className="min-h-[44px] rounded-full px-8" asChild>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-11 rounded-full px-5 text-[15px] md:h-12 md:px-8 md:text-base"
+            asChild
+          >
             <Link to="/properties">Browse stays</Link>
           </Button>
         </div>
@@ -84,7 +89,7 @@ export function AboutPage() {
           className="mx-auto max-w-3xl"
         />
 
-        <ul className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-12 md:gap-6 lg:grid-cols-3">
           {capabilities.map(({ icon, title, body }) => (
             <li key={title}>
               <MarketingPublicIconCard icon={icon} title={title} body={body} />

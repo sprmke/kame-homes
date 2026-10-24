@@ -91,7 +91,7 @@ export function ListingHostCard({ host, motionDelay = 0.2, className, onContactH
       <button
         type="button"
         onClick={onContactHost}
-        className="border-border text-foreground hover:bg-muted inline-flex min-h-[44px] shrink-0 items-center rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+        className="border-border text-foreground hover:bg-muted relative inline-flex h-9 shrink-0 items-center rounded-lg border px-3 text-[13px] font-medium transition-colors before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] md:h-10 md:text-sm"
       >
         Contact host
       </button>

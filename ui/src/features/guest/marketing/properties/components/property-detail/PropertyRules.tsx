@@ -122,7 +122,7 @@ export function PropertyRules({
         className="space-y-8"
       >
         <div className="space-y-4">
-          <h2 className="text-foreground text-xl font-semibold">House rules</h2>
+          <h2 className="text-foreground @xl:text-xl text-lg font-semibold">House rules</h2>
 
           {maxGuests ? (
             <div className="border-border bg-card flex items-center gap-3 rounded-lg border p-4">
@@ -142,7 +142,7 @@ export function PropertyRules({
                   type="button"
                   variant="outline"
                   onClick={() => setModalOpen(true)}
-                  className="min-h-[44px] w-full gap-2 rounded-xl sm:w-auto"
+                  className="h-10 w-full gap-2 rounded-xl sm:w-auto"
                 >
                   Show all {houseRules.length} house rules
                   <ChevronRight className="h-4 w-4" aria-hidden />
@@ -154,7 +154,7 @@ export function PropertyRules({
 
         {showSafetySection ? (
           <div className="space-y-4">
-            <h2 className="text-foreground text-xl font-semibold">Safety & property</h2>
+            <h2 className="text-foreground @xl:text-xl text-lg font-semibold">Safety & property</h2>
 
             <div className="border-border bg-card rounded-lg border p-4">
               <div className="mb-4 flex items-center gap-2">
@@ -174,7 +174,7 @@ export function PropertyRules({
         ) : null}
 
         <div className="space-y-4">
-          <h2 className="text-foreground text-xl font-semibold">Cancellation policy</h2>
+          <h2 className="text-foreground @xl:text-xl text-lg font-semibold">Cancellation policy</h2>
           <CancellationPolicyDisplay policy={cancellationPolicy} />
         </div>
       </motion.section>

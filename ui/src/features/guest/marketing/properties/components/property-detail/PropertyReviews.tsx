@@ -4,11 +4,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-import { GuestDialogShell } from '@/features/guest/marketing/shared/components/GuestDialogShell';
 import type { PublicReviewSummary } from '@/features/guest/marketing/properties/types/publicProperty';
+import { GuestDialogShell } from '@/features/guest/marketing/shared/components/GuestDialogShell';
 import { guestReviewFeedbackTagLabel } from '@/features/guest/sd-form/lib/guestReviewFeedbackTags';
-import { GUEST_REVIEW_CATEGORY_LABELS } from '@/features/reviews/lib/reviewCatalog';
+
 import { ReviewResponseBlock } from '@/features/reviews/components/ReviewResponseBlock';
+import { GUEST_REVIEW_CATEGORY_LABELS } from '@/features/reviews/lib/reviewCatalog';
 
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';

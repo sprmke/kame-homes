@@ -69,7 +69,7 @@ export function ListingGallery({
   );
 
   const galleryShellClass =
-    'grid h-[280px] grid-cols-1 gap-2 overflow-hidden rounded-2xl @xl:h-[400px] @3xl:h-[500px]';
+    'grid h-[200px] grid-cols-1 gap-2 overflow-hidden rounded-2xl @xl:h-[400px] @3xl:h-[500px]';
 
   const Layout1Image = () => (
     <div className={galleryShellClass}>

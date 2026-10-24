@@ -9,6 +9,7 @@ import {
 } from '@/features/guest/marketing/hosts/components/HostPublicListingsTabs';
 import { HostPublicParkingCard } from '@/features/guest/marketing/hosts/components/HostPublicParkingCard';
 import { HostPublicPropertyCard } from '@/features/guest/marketing/hosts/components/HostPublicPropertyCard';
+import { HostPublicReviews } from '@/features/guest/marketing/hosts/components/HostPublicReviews';
 import { useHostListingPageSize } from '@/features/guest/marketing/hosts/hooks/useHostListingPageSize';
 import { HOST_LISTING_GRID_CLASS } from '@/features/guest/marketing/hosts/lib/hostListingGrid';
 import { usePublicHost } from '@/features/guest/marketing/properties/hooks/usePublicHost';
@@ -23,7 +24,7 @@ import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 function HostPublicPageSkeleton() {
   return (
-    <div className="bg-background min-h-screen pb-16 pt-20 sm:pb-20">
+    <div className="bg-background public-page-top min-h-screen pb-16 sm:pb-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8 lg:gap-10">
           <div className="bg-muted h-28 w-28 shrink-0 animate-pulse rounded-full sm:h-32 sm:w-32 lg:h-36 lg:w-36" />
@@ -35,7 +36,7 @@ function HostPublicPageSkeleton() {
           </div>
         </div>
         <div className="border-border mt-10 border-t pt-8 sm:mt-12 sm:pt-10 lg:mt-14">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
             <div className="flex gap-2">
               <div className="bg-muted h-11 w-28 animate-pulse rounded-full" />
               <div className="bg-muted h-11 w-32 animate-pulse rounded-full" />
@@ -147,22 +148,22 @@ export function HostPublicPage() {
 
   return (
     <GuestPublicBrandShell brandColor={host.brandColor}>
-      <div className="bg-background min-h-screen pb-16 pt-20 sm:pb-20">
-        <HostPublicHero host={host} className="pt-8 sm:pt-16" />
+      <div className="bg-background public-page-top min-h-screen pb-16 sm:pb-20">
+        <HostPublicHero host={host} className="pt-3 sm:pt-16" />
 
         {hasHomes || hasParkings ? (
           <div
             ref={listingsContainerRef}
-            className="mx-auto mt-10 max-w-6xl px-4 sm:mt-12 sm:px-6 lg:mt-14"
+            className="mx-auto mt-5 max-w-6xl px-4 sm:mt-12 sm:px-6 lg:mt-14"
           >
             <div ref={listingsPanelRef} className="scroll-mt-24">
               {showTabs ? (
                 <div
                   role="tabpanel"
                   aria-label={activeTab === 'homes' ? 'Homes' : 'Parkings'}
-                  className="border-border border-t pt-8 sm:pt-10"
+                  className="border-border border-t pt-4 sm:pt-10"
                 >
-                  <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
                     <HostPublicListingsTabs
                       active={activeTab}
                       homesCount={homesCount}
@@ -239,6 +240,8 @@ export function HostPublicPage() {
             </div>
           </div>
         ) : null}
+
+        <HostPublicReviews host={host} />
       </div>
     </GuestPublicBrandShell>
   );

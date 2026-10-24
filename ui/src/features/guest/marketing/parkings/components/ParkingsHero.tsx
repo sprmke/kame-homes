@@ -2,8 +2,8 @@ import { ListingHeroSearch } from '@/features/guest/marketing/shared/components/
 
 export function ParkingsHero() {
   return (
-    <section className="border-border bg-background border-b pt-20">
-      <div className="container mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+    <section className="border-border bg-background border-b pt-[var(--public-nav-h)]">
+      <div className="container mx-auto px-4 py-3 sm:px-6 md:py-5 lg:px-8 lg:py-6">
         <ListingHeroSearch />
       </div>
     </section>

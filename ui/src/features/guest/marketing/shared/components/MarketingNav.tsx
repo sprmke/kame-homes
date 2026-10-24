@@ -185,7 +185,7 @@ export function MarketingNav() {
       )}
     >
       <nav className="container relative mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex h-16 items-center justify-between overflow-hidden lg:h-20">
+        <div className="relative flex h-[var(--public-nav-h)] items-center justify-between overflow-hidden">
           {/* Logo */}
           <Link
             to="/"

@@ -40,6 +40,14 @@ export function PrivacyPage() {
           ],
         },
         {
+          title: 'Reviews',
+          paragraphs: [
+            'Guests may leave a stay review (overall rating, category ratings, optional text, photos, and a private note to the host). Hosts may leave a guest review (overall and category ratings, would-host-again, optional text, a private note to the guest, and a team-only internal note).',
+            'Published guest reviews appear on the listing and org host page. Published host reviews of a guest are shown to that guest and to hosts at properties the guest later requests or books, for screening. Screening hosts see averages, tags, and recent review text with the authoring stay generalized to an area. Internal notes never leave the authoring organization.',
+            `You can read and respond to reviews about you from the guest Reviews page after they publish. Request a correction or removal by emailing ${PLATFORM_CONTACT_EMAIL} or by reporting the review in the app. Removed reviews drop out of public and screening aggregates. We keep published reviews while the property exists and purge removed reviews after 24 months.`,
+          ],
+        },
+        {
           title: 'Processors and sharing',
           paragraphs: [
             `We share data with service providers that help run ${PLATFORM_APP_NAME || 'the platform'}: Supabase (database, storage, auth, edge functions); Resend (transactional email and inbound document approvals); Google (OAuth sign-in, Maps/Places); Google Gemini and Groq (AI features described above); Meta (guest inbox OAuth/webhooks and marketing publishing where connected); Telegram (internal staff notifications about bookings, not a guest-facing messaging channel); and Jamendo (royalty-free music in the video editor; not used to process guest PII).`,

@@ -13,7 +13,7 @@ export function ListingFeatureItem({ icon: Icon, title, description }: Props) {
         <Icon className="text-foreground @md:h-6 @md:w-6 h-5 w-5" aria-hidden />
       </div>
       <div className="min-w-0">
-        <p className="text-foreground font-medium">{title}</p>
+        <p className="text-foreground text-[15px] font-medium md:text-base">{title}</p>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
     </div>

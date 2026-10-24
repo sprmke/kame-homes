@@ -194,19 +194,28 @@ export interface HostDashboardTourPlayerProps {
   variant?: HostDashboardTourVariant;
   chapterNavigation?: HostDashboardTourChapterNav;
   expandablePreview?: boolean;
+  /** When true, inline playback runs only while the player region is in the viewport. */
+  playWhenInView?: boolean;
   className?: string;
   regionLabel?: string;
 }
+
+const INLINE_VIEWPORT_VISIBILITY_THRESHOLD = 0.25;
 
 export function HostDashboardTourPlayer({
   variant = 'marketing',
   chapterNavigation,
   expandablePreview,
+  playWhenInView: playWhenInViewProp,
   className,
   regionLabel = 'Interactive dashboard tour',
 }: HostDashboardTourPlayerProps) {
   const inlinePlayerRef = useRef<PlayerRef>(null);
   const modalPlayerRef = useRef<PlayerRef>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const userPausedRef = useRef(false);
+  const playWhenInView = playWhenInViewProp ?? variant === 'marketing';
+  const [isInView, setIsInView] = useState(() => !playWhenInView);
   const prefersReducedMotion = usePrefersReducedMotion();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [modalStartFrame, setModalStartFrame] = useState(0);
@@ -251,29 +260,49 @@ export function HostDashboardTourPlayer({
   }, [prefersReducedMotion, previewOpen, modalPlayerReady]);
 
   useEffect(() => {
+    if (!playWhenInView) return;
+    const node = containerRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry?.isIntersecting ?? false),
+      { threshold: INLINE_VIEWPORT_VISIBILITY_THRESHOLD }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [playWhenInView]);
+
+  useEffect(() => {
     if (previewOpen || prefersReducedMotion) return;
 
     let cancelled = false;
     let attempts = 0;
     let raf = 0;
 
-    const ensureInlinePlayback = () => {
+    const syncInlinePlayback = () => {
       if (cancelled) return;
       const player = inlinePlayerRef.current;
       if (!player) {
-        if (attempts++ < 30) raf = window.requestAnimationFrame(ensureInlinePlayback);
+        if (attempts++ < 30) raf = window.requestAnimationFrame(syncInlinePlayback);
         return;
       }
+
+      if (playWhenInView && !isInView) {
+        player.pause();
+        setIsPlaying(false);
+        return;
+      }
+
       setIsPlaying(player.isPlaying());
-      if (!player.isPlaying()) void player.play();
+      if (!userPausedRef.current && !player.isPlaying()) void player.play();
     };
 
-    raf = window.requestAnimationFrame(ensureInlinePlayback);
+    raf = window.requestAnimationFrame(syncInlinePlayback);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
     };
-  }, [previewOpen, prefersReducedMotion]);
+  }, [previewOpen, prefersReducedMotion, playWhenInView, isInView]);
 
   useEffect(() => {
     if (!previewOpen) return;
@@ -323,13 +352,18 @@ export function HostDashboardTourPlayer({
         inline.seekTo(frame);
         setCurrentFrame(frame);
         setIsPlaying(playing);
-        if (playing && !prefersReducedMotion) void inline.play();
+        const shouldResumeInline =
+          playing &&
+          !prefersReducedMotion &&
+          (!playWhenInView || isInView) &&
+          !userPausedRef.current;
+        if (shouldResumeInline) void inline.play();
       }
       setPreviewOpen(false);
       setModalAutoPlay(false);
       setModalPlayerReady(false);
     },
-    [prefersReducedMotion, openPreview]
+    [prefersReducedMotion, openPreview, playWhenInView, isInView]
   );
 
   const seekToChapter = useCallback(
@@ -341,7 +375,10 @@ export function HostDashboardTourPlayer({
         : (HOST_TOUR_CHAPTER_STARTS[index] ?? 0);
       player.seekTo(target);
       setCurrentFrame(target);
-      if (!prefersReducedMotion) void player.play();
+      if (!prefersReducedMotion) {
+        userPausedRef.current = false;
+        void player.play();
+      }
     },
     [getActivePlayer, prefersReducedMotion]
   );
@@ -350,9 +387,11 @@ export function HostDashboardTourPlayer({
     const player = getActivePlayer();
     if (!player) return;
     if (isPlaying) {
+      userPausedRef.current = true;
       player.pause();
       return;
     }
+    userPausedRef.current = false;
     void player.play();
   }, [getActivePlayer, isPlaying]);
 
@@ -365,7 +404,10 @@ export function HostDashboardTourPlayer({
     if (!player) return;
     player.seekTo(0);
     setCurrentFrame(0);
-    if (!prefersReducedMotion) void player.play();
+    if (!prefersReducedMotion) {
+      userPausedRef.current = false;
+      void player.play();
+    }
   }, [getActivePlayer, prefersReducedMotion]);
 
   const chapterProgress = useMemo(() => {
@@ -620,12 +662,12 @@ export function HostDashboardTourPlayer({
 
   return (
     <>
-      <div role="region" aria-label={regionLabel} className={cardClassName}>
+      <div ref={containerRef} role="region" aria-label={regionLabel} className={cardClassName}>
         {renderTourVideo(inlinePlayerRef, {
           showExpand: true,
           playerKey: 'inline',
           startFrame: inlineStartFrame,
-          autoPlay: !prefersReducedMotion && !previewOpen,
+          autoPlay: !prefersReducedMotion && !previewOpen && !playWhenInView,
         })}
         {renderControlsPanel()}
       </div>

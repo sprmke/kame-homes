@@ -22,7 +22,7 @@ export function V3SetupSteps() {
   return (
     <section
       id="get-started"
-      className="scroll-mt-20 pb-8 pt-20 sm:pb-10 sm:pt-24 lg:pb-12 lg:pt-32"
+      className="scroll-mt-20 pb-8 pt-10 sm:pb-10 sm:pt-20 lg:pb-12 lg:pt-28"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <V3SectionHeading eyebrow={v3Setup.eyebrow} title={v3Setup.title} />

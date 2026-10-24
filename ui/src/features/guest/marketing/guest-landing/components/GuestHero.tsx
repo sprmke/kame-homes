@@ -16,7 +16,7 @@ export function GuestHero() {
   };
 
   return (
-    <section className="bg-background relative pb-12 pt-24 sm:pt-28 lg:pb-20">
+    <section className="bg-background public-page-top relative pb-8 md:pb-12 lg:pb-20">
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden opacity-60 dark:opacity-40"
         aria-hidden
@@ -26,14 +26,14 @@ export function GuestHero() {
       </div>
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-12 xl:gap-16">
-          <div className="mx-auto w-full max-w-xl lg:max-w-none">
+        <div className="grid grid-cols-1 items-center gap-6 md:gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-12 xl:gap-16">
+          <div className="mx-auto w-full max-w-xl pt-2 md:pt-6 lg:max-w-none lg:pt-4">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
             >
-              <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.08]">
+              <h1 className="public-display text-foreground font-bold">
                 Find your next stay
                 <span className="text-primary block sm:inline sm:before:content-['_']">
                   in the Philippines
@@ -45,7 +45,7 @@ export function GuestHero() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.08 }}
-              className="mt-8"
+              className="mt-5 md:mt-7"
             >
               <HeroSearch />
             </motion.div>
@@ -54,9 +54,9 @@ export function GuestHero() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.16 }}
-              className="mt-5"
+              className="mt-3 md:mt-5"
             >
-              <div className="scrollbar-hide -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+              <div className="scrollbar-hide -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
                 {stayCategories.map((category) => (
                   <button
                     key={category.id}
@@ -64,7 +64,7 @@ export function GuestHero() {
                     onClick={() => goToCategory(category.query)}
                     className={cn(
                       'border-border bg-muted/50 text-foreground hover:border-primary/40 hover:bg-primary/10',
-                      'min-h-[44px] shrink-0 snap-start whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors'
+                      'public-chip shrink-0 snap-start whitespace-nowrap rounded-full border font-medium transition-colors'
                     )}
                   >
                     {category.label}

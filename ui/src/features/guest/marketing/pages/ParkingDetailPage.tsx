@@ -210,14 +210,14 @@ export function ParkingDetailPage() {
 
   if (isLoading && !data) {
     return (
-      <div className="@container bg-background min-h-screen w-full min-w-0 pb-20 pt-24">
+      <div className="@container bg-background public-page-top min-h-screen w-full min-w-0 pb-20">
         <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4">
           <Skeleton className="@xl:h-[400px] @3xl:h-[500px] h-[280px] w-full rounded-2xl" />
         </div>
 
-        <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4 py-8">
+        <div className="@xl:px-6 @5xl:px-8 @xl:py-8 container mx-auto px-4 py-5">
           <div className="@5xl:grid-cols-3 @5xl:gap-12 grid grid-cols-1 gap-8">
-            <div className="@5xl:col-span-2 min-w-0 space-y-10">
+            <div className="@5xl:col-span-2 @xl:space-y-10 min-w-0 space-y-7">
               <div className="space-y-4">
                 <Skeleton className="h-8 w-2/3 rounded-lg" />
                 <Skeleton className="h-4 w-1/3 rounded-full" />
@@ -277,7 +277,7 @@ export function ParkingDetailPage() {
     <ParkingPublicBrandShell brandColor={data.brandColor}>
       <div
         className={cn(
-          '@container bg-background min-h-screen w-full min-w-0 pt-24',
+          '@container bg-background public-page-top min-h-screen w-full min-w-0',
           bottomTabBarOffsetClassName()
         )}
       >
@@ -285,7 +285,7 @@ export function ParkingDetailPage() {
           <ListingGallery images={galleryImages} listingName={data.name} />
         </div>
 
-        <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4 py-8">
+        <div className="@xl:px-6 @5xl:px-8 @xl:py-8 container mx-auto px-4 py-5">
           <div className="@5xl:grid-cols-3 @5xl:gap-12 grid grid-cols-1 gap-8">
             <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -378,15 +378,15 @@ export function ParkingDetailPage() {
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-1">
-                  <span className="text-foreground text-lg font-bold">
+                  <span className="text-foreground text-base font-bold">
                     {formatRate(pricing.weekdayNightlyRate)}
                   </span>
-                  <span className="text-muted-foreground text-sm">/ night</span>
+                  <span className="text-muted-foreground text-[13px]">/ night</span>
                 </div>
               </div>
               <Button
                 size="lg"
-                className="min-h-[44px] shrink-0 rounded-full px-8"
+                className="h-11 shrink-0 rounded-full px-7 text-[15px]"
                 type="button"
                 onClick={reserve}
               >

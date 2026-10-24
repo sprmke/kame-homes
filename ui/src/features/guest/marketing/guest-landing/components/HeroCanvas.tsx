@@ -158,14 +158,14 @@ export function HeroCanvas() {
   return (
     <div
       ref={rootRef}
-      className="relative aspect-[4/5] w-full max-w-md lg:aspect-auto lg:h-[min(72vh,640px)] lg:max-w-none"
+      className="relative aspect-[5/4] w-full max-w-md lg:aspect-auto lg:h-[min(72vh,640px)] lg:max-w-none"
       aria-hidden
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full rounded-[2rem]" />
 
       <div className="border-border/60 bg-card/40 absolute inset-0 rounded-[2rem] border backdrop-blur-[2px]" />
 
-      <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
+      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="relative h-full w-full max-w-sm">
           {heroDestinations.map((destination, index) => {
             const offset =
@@ -208,11 +208,13 @@ export function HeroCanvas() {
                   priority={index === 0}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-5">
+                <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
                   <p className="text-xs font-medium uppercase tracking-wider text-white/70">
                     Featured stay
                   </p>
-                  <p className="text-lg font-semibold text-white">{destination.label}</p>
+                  <p className="text-base font-semibold text-white lg:text-lg">
+                    {destination.label}
+                  </p>
                 </div>
               </motion.div>
             );

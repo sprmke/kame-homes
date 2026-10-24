@@ -14,14 +14,14 @@ export function ExploreStayJourney() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-background py-16 lg:py-24">
+    <section className="bg-background public-section-y">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.h2
           variants={reduce ? undefined : rise}
           initial={reduce ? false : 'hidden'}
           whileInView="shown"
           viewport={inViewOnce}
-          className="text-foreground max-w-xl text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl"
+          className="text-foreground max-w-xl public-section-title font-bold"
         >
           How a stay comes together
         </motion.h2>
@@ -47,7 +47,7 @@ export function ExploreStayJourney() {
                 variants={reduce ? undefined : rise}
                 className="relative pl-16 md:pl-0"
               >
-                <span className="text-primary bg-background absolute left-0 top-0 text-4xl font-bold tabular-nums md:relative md:inline-block md:pr-4">
+                <span className="text-primary bg-background absolute left-0 top-0 text-3xl font-bold tabular-nums md:text-4xl md:relative md:inline-block md:pr-4">
                   {step.index}
                 </span>
                 <div className="mt-0 flex items-center gap-2 md:mt-5">

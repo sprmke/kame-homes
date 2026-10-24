@@ -18,7 +18,6 @@ import {
 } from './propertyCancellationPolicy.ts';
 import { resolvePropertyIdBySlug } from './propertyScope.ts';
 import {
-  averageGuestReviewRating,
   listPublicGuestReviews,
   sortPublicGuestReviewsNewestFirst,
   type PublicGuestReviewDto,
@@ -103,6 +102,14 @@ export type PublicPropertyDetailDto = {
   rating: number | null;
   reviewCount: number;
   guestReviews: PublicGuestReviewDto[];
+  /** Kame published summary (categories, distribution). Headline avg/count still merge externals. */
+  reviewSummary: {
+    count: number;
+    avgOverall: number | null;
+    distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+    categoryAvgs: Record<string, number | null>;
+    categorySample: number;
+  } | null;
   isSuperhost: boolean;
   /** Host-wide Recommended badge (org Tier 2). */
   verifiedBadge: boolean;
@@ -346,6 +353,7 @@ export async function loadPublicPropertyById(
     appSettingsRowResult,
     sectionConfig,
     development,
+    reviewSummaryResult,
   ] = await Promise.all([
     loadPropertyPricing(propertyId, { ensureSettings: false }),
     loadResolvedBrandColorByPropertyId(propertyId),
@@ -364,13 +372,35 @@ export async function loadPublicPropertyById(
       .maybeSingle(),
     getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
     resolvePublicDevelopmentLink(row.residence_name),
+    supabase.rpc('property_review_summary', { p_property_id: propertyId }),
   ]);
 
   const externalReviews = listApprovedPublicExternalReviews(
     appSettingsRowResult.data?.external_reviews
   );
   const mergedReviews = sortPublicGuestReviewsNewestFirst([...guestReviews, ...externalReviews]);
-  const reviewRating = averageGuestReviewRating(mergedReviews);
+
+  // Gap fix: rating/count must reflect every published review, not just the
+  // first page fetched for display (listPublicGuestReviews is capped at 20).
+  const kameSummary = reviewSummaryResult.data as {
+    count?: number;
+    avgOverall?: number | null;
+  } | null;
+  const kameCount = kameSummary?.count ?? guestReviews.length;
+  const kameAvg = kameSummary?.avgOverall ?? null;
+  const externalCount = externalReviews.length;
+  const externalAvg =
+    externalCount > 0
+      ? externalReviews.reduce((acc, r) => acc + r.rating, 0) / externalCount
+      : null;
+  const totalReviewCount = kameCount + externalCount;
+  const reviewRating =
+    totalReviewCount > 0
+      ? Math.round(
+          (((kameAvg ?? 0) * kameCount + (externalAvg ?? 0) * externalCount) / totalReviewCount) *
+            10
+        ) / 10
+      : null;
 
   const org = orgResult.data as (OrganizationRow & { settings?: unknown }) | null;
   const [contact, ownerAuthProfile] = await Promise.all([
@@ -466,8 +496,39 @@ export async function loadPublicPropertyById(
       brandColor,
     },
     rating: reviewRating,
-    reviewCount: mergedReviews.length,
+    reviewCount: totalReviewCount,
     guestReviews: mergedReviews,
+    reviewSummary: {
+      count: kameCount,
+      avgOverall: kameAvg,
+      distribution: {
+        '1':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['1']
+          ) || 0,
+        '2':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['2']
+          ) || 0,
+        '3':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['3']
+          ) || 0,
+        '4':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['4']
+          ) || 0,
+        '5':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['5']
+          ) || 0,
+      },
+      categoryAvgs:
+        (kameSummary as { categoryAvgs?: Record<string, number | null> } | null)?.categoryAvgs ??
+        {},
+      categorySample:
+        Number((kameSummary as { categorySample?: number } | null)?.categorySample) || 0,
+    },
     isSuperhost,
     verifiedBadge,
     recommendedBadge,

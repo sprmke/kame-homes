@@ -16,16 +16,16 @@ export function MarketingPublicIconCard({
   action,
 }: MarketingPublicIconCardProps) {
   return (
-    <article className="border-border bg-card flex h-full flex-col rounded-2xl border p-6 sm:p-7">
-      <div className="bg-primary/10 text-primary mb-4 flex h-11 w-11 items-center justify-center rounded-xl">
-        <Icon className="h-5 w-5" aria-hidden />
+    <article className="border-border bg-card public-card-pad flex h-full flex-col rounded-2xl border">
+      <div className="public-icon-well bg-primary/10 text-primary mb-3 md:mb-4">
+        <Icon className="size-[18px] md:size-5" aria-hidden />
       </div>
-      <h3 className="text-foreground text-lg font-semibold">{title}</h3>
-      <p className="text-muted-foreground mt-2 flex-1 text-sm leading-relaxed">{body}</p>
+      <h3 className="public-card-title text-foreground font-semibold">{title}</h3>
+      <p className="text-muted-foreground mt-1.5 flex-1 text-sm leading-relaxed">{body}</p>
       {href && action ? (
         <a
           href={href}
-          className="text-primary mt-5 inline-flex min-h-[44px] items-center text-sm font-semibold hover:underline"
+          className="text-primary relative mt-3 inline-flex items-center self-start py-1 text-sm font-semibold before:absolute before:-inset-y-2.5 before:inset-x-0 before:content-[''] hover:underline md:mt-4"
         >
           {action}
         </a>

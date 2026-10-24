@@ -272,7 +272,9 @@ export function PropertyAmenities({ amenities }: PropertyAmenitiesProps) {
         transition={{ delay: 0.4 }}
         className="space-y-6"
       >
-        <h2 className="text-foreground text-xl font-semibold">What this place offers</h2>
+        <h2 className="text-foreground @xl:text-xl text-lg font-semibold">
+          What this place offers
+        </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {previewAmenities.map((amenity, index) => (
@@ -292,7 +294,7 @@ export function PropertyAmenities({ amenities }: PropertyAmenitiesProps) {
             type="button"
             variant="outline"
             onClick={() => setModalOpen(true)}
-            className="min-h-[44px] w-full gap-2 rounded-xl sm:w-auto"
+            className="h-10 w-full gap-2 rounded-xl sm:w-auto"
           >
             Show all {amenities.length} amenities
             <ChevronRight className="h-4 w-4" aria-hidden />

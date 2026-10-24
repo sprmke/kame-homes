@@ -69,7 +69,7 @@ export function V3Faq() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="scroll-mt-20 py-20 sm:py-24 lg:py-32">
+    <section id="faq" className="scroll-mt-20 py-10 sm:py-20 lg:py-28">
       <div className="container mx-auto grid gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-8">
         <Reveal className="lg:sticky lg:top-28 lg:self-start">
           <p className="text-primary text-sm font-semibold">{v3Faq.eyebrow}</p>

@@ -86,7 +86,7 @@ export const PropertyCard = memo(function PropertyCard({
         className="group"
       >
         <Link to={`/properties/${property.slug}`} className="block">
-          <div className="relative mb-2 aspect-square overflow-hidden rounded-xl">
+          <div className="relative mb-1.5 aspect-[4/3] overflow-hidden rounded-xl sm:mb-2 sm:aspect-square">
             {cover ? (
               <Image
                 src={cover}
@@ -97,8 +97,8 @@ export const PropertyCard = memo(function PropertyCard({
             ) : null}
             <PropertySaveButton propertySlug={property.slug} variant="carousel" />
             {(property.isSuperhost || property.isNew) && (
-              <div className="absolute left-3 top-3">
-                <span className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-900 shadow-sm backdrop-blur-sm">
+              <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
+                <span className="rounded-full bg-white/95 px-2 py-0.5 text-[11px] sm:px-2.5 sm:py-1 sm:text-xs font-semibold text-slate-900 shadow-sm backdrop-blur-sm">
                   {property.isSuperhost ? 'Superhost' : 'New'}
                 </span>
               </div>
@@ -107,7 +107,7 @@ export const PropertyCard = memo(function PropertyCard({
 
           <div className="space-y-0.5">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="text-foreground line-clamp-1 text-sm font-semibold">
+              <h3 className="text-foreground line-clamp-1 text-[13px] font-semibold sm:text-sm">
                 {property.type} in {place}
               </h3>
               {property.rating != null && property.reviews != null && (
@@ -117,8 +117,8 @@ export const PropertyCard = memo(function PropertyCard({
                 </div>
               )}
             </div>
-            <p className="text-muted-foreground line-clamp-1 text-sm">{property.name}</p>
-            <p className="text-foreground text-sm">
+            <p className="text-muted-foreground line-clamp-1 text-xs sm:text-sm">{property.name}</p>
+            <p className="text-foreground text-[13px] sm:text-sm">
               <span className="font-semibold">₱{property.price.toLocaleString()}</span>
               <span className="text-muted-foreground"> / night</span>
             </p>

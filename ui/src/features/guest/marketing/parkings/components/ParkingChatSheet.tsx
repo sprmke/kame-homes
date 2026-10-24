@@ -86,6 +86,9 @@ export function ParkingChatSheet({
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -174,6 +177,9 @@ export function ParkingChatSheet({
               onUnsend={async (messageId) => {
                 await unsend.mutateAsync(messageId);
               }}
+              assistantTyping={assistantTyping}
+              aiFeedback={aiFeedback}
+              onAiFeedback={(messageId, rating) => void submitAiFeedback(messageId, rating)}
             />
           )}
         </div>
