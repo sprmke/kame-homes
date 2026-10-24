@@ -1669,18 +1669,18 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                 >
                   <div
                     className={cn(
-                      'bg-primary/15 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg',
+                      'public-icon-well bg-primary/15 text-primary',
                       embed?.compactChrome && 'sm:hidden'
                     )}
                   >
-                    <StepIcon className="size-5" aria-hidden />
+                    <StepIcon className="size-4 md:size-5" aria-hidden />
                   </div>
                   <div className="min-w-0">
                     <h2
                       id="guest-form-step-heading"
                       className={cn(
                         'text-foreground font-bold',
-                        embed?.compactChrome ? 'text-sm sm:text-base' : 'text-base sm:text-lg'
+                        embed?.compactChrome ? 'text-sm sm:text-base' : 'public-card-title'
                       )}
                     >
                       {activeStepConfig?.title}

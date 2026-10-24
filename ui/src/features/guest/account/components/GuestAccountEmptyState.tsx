@@ -22,7 +22,7 @@ export function GuestAccountEmptyState({
   return (
     <div
       className={cn(
-        'border-border bg-card flex w-full flex-col items-center justify-center rounded-2xl border px-6 py-16 text-center shadow-sm sm:py-20',
+        'border-border bg-card flex w-full flex-col items-center justify-center rounded-2xl border px-5 py-10 text-center shadow-sm md:px-6 md:py-20',
         className
       )}
     >

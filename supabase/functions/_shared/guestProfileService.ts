@@ -7,6 +7,7 @@ import type { SupabaseClient } from './supabaseJs.ts';
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import { normalizeBookingDateToYmd } from './calendarAvailabilityManila.ts';
 import { normalizePhoneDigits, validatePhilippineMobilePhone } from './fieldValidation.ts';
+import { linkReviewGuestUserIds } from './hostGuestReviewService.ts';
 import { createServiceClient, type AuthenticatedUser } from './orgAuth.ts';
 import { normalizePropertyMediaItems } from './propertyMedia.ts';
 
@@ -45,6 +46,11 @@ export async function linkGuestBookingsByEmail(
   if (error) {
     console.error('[guestProfileService] link bookings failed:', error.message);
     return 0;
+  }
+
+  const bookingIds = (data ?? []).map((row) => row.id as string);
+  if (bookingIds.length > 0) {
+    await linkReviewGuestUserIds(user.id, bookingIds);
   }
 
   return data?.length ?? 0;

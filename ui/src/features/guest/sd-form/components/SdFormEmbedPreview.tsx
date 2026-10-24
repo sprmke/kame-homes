@@ -7,7 +7,6 @@ import {
 } from '@/features/guest/form/hooks/useGuestPaymentInfo';
 import { pickGuestBrandHeaderProps } from '@/features/guest/form/lib/guestFormBranding';
 import { SD_FORM_STEPS } from '@/features/guest/sd-form/lib/sdFormSteps';
-import { formatVoucherDiscountMaxLabel } from '@/features/guest/sd-form/lib/voucher';
 
 import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader';
 
@@ -26,14 +25,8 @@ export function SdFormEmbedPreview() {
       <header className="border-separator space-y-4 border-b px-5 pb-5">
         <h1 className="text-foreground text-base font-bold sm:text-lg">Hi Guest,</h1>
         <p className="text-muted-foreground text-base leading-relaxed">
-          Before your SD refund, leave a quick review and share favorite moments from your stay.
+          How was your stay? You can skip this and still get your refund.
         </p>
-        <div className="to-primary/5 dark:to-primary/10 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-amber-50/50 px-4 py-3.5 dark:border-amber-500/25 dark:from-amber-500/10 dark:via-amber-500/5">
-          <p className="text-sm font-semibold leading-snug text-amber-950 dark:text-amber-100">
-            Review us for a chance to win {formatVoucherDiscountMaxLabel()} or a FREE stay on your
-            next booking!
-          </p>
-        </div>
       </header>
 
       <div className="px-5 sm:px-6">

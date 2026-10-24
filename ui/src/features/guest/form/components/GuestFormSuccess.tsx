@@ -120,10 +120,10 @@ export function GuestFormSuccess() {
   const totalGuests = bookingData ? bookingData.numberOfAdults + bookingData.numberOfChildren : 0;
 
   return (
-    <div className="guest-inner-enter relative flex flex-col items-center justify-center px-5 py-8 text-center sm:py-10">
-      <div className="w-full max-w-xl space-y-8">
+    <div className="guest-inner-enter public-section-y relative flex flex-col items-center justify-center px-5 text-center">
+      <div className="w-full max-w-xl space-y-6 md:space-y-8">
         <GuestFormBrandHeader {...brandHeader} title="Booking Confirmed!" />
-        <p className="text-muted-foreground text-base">
+        <p className="text-muted-foreground public-lead">
           Thank you for booking with <strong className="text-primary">{organizationName}</strong>!
         </p>
 
@@ -137,17 +137,17 @@ export function GuestFormSuccess() {
           <div className="space-y-6">
             {/* Booking Summary Card */}
             <div className="border-border bg-card overflow-hidden rounded-xl border shadow-sm">
-              <div className="border-separator border-b px-6 py-3">
-                <h2 className="text-foreground text-base font-semibold sm:text-lg">
-                  Booking Summary
-                </h2>
+              <div className="border-separator public-card-pad border-b py-3">
+                <h2 className="public-card-title text-foreground font-semibold">Booking Summary</h2>
               </div>
 
-              <div className="space-y-6 p-6 text-left">
+              <div className="public-card-pad space-y-5 text-left">
                 {/* Total Nights Badge */}
                 <div className="flex justify-center">
                   <div className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-4 py-2">
-                    <span className="text-2xl font-bold tabular-nums">{numberOfNights}</span>
+                    <span className="text-xl font-bold tabular-nums sm:text-2xl">
+                      {numberOfNights}
+                    </span>
                     <span className="font-medium">{numberOfNights === 1 ? 'Night' : 'Nights'}</span>
                   </div>
                 </div>
@@ -160,7 +160,7 @@ export function GuestFormSuccess() {
                   checkOutDetail={formatTimeToAMPM(bookingData.checkOutTime, false)}
                 />
 
-                <div className="space-y-5 border-t pt-6">
+                <div className="space-y-5 border-t pt-5">
                   {/* Number of Guests */}
                   <div className="flex items-start gap-4">
                     <div className="bg-primary/10 rounded-lg p-2">

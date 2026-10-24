@@ -30,7 +30,7 @@ export function PropertyGuestLimitReminder({
       )}
     >
       <div
-        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400"
+        className="public-icon-well bg-amber-500/15 text-amber-700 dark:text-amber-400"
         aria-hidden
       >
         <Info className="size-4" />

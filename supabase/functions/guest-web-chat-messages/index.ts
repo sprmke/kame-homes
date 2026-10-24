@@ -99,11 +99,11 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
       return jsonError(req, 'conversationId and text or attachments required', 400);
     }
     try {
-      await sendGuestWebMessage(user, id, text, {
+      const sent = await sendGuestWebMessage(user, id, text, {
         replyToMessageId: replyToMessageId || undefined,
         attachments,
       });
-      return jsonSuccess(req, { sent: true });
+      return jsonSuccess(req, { sent: true, assistantWillReply: sent.assistantWillReply });
     } catch (e) {
       const message = (e as Error).message;
       if (message === 'Conversation not found') return jsonError(req, message, 404);

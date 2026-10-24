@@ -37,6 +37,7 @@ import { GuestTripDetailsSection } from '@/features/guest/trip/components/GuestT
 import { GuestTripHostRow } from '@/features/guest/trip/components/GuestTripHostRow';
 import { GuestTripNowCard } from '@/features/guest/trip/components/GuestTripNowCard';
 import { GuestTripPaymentSection } from '@/features/guest/trip/components/GuestTripPaymentSection';
+import { GuestTripReviewCard } from '@/features/guest/trip/components/GuestTripReviewCard';
 import {
   GuestTripShortcuts,
   type GuestTripShortcut,
@@ -442,6 +443,7 @@ function GuestTripContent({
                 : null
             }
           />
+          <GuestTripReviewCard trip={trip} />
           <GuestTripShortcuts items={shortcuts} />
         </div>
 

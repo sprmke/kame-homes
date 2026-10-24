@@ -8,7 +8,7 @@ import { GuestAccountSidebar } from '@/features/guest/account/components/GuestAc
 import { GuestAccountRouteSuspenseFallback } from '@/components/skeletons/MarketingRouteFallback';
 import { cn } from '@/lib/utils';
 
-const MARKETING_HEADER_OFFSET = 'pt-16 lg:pt-24';
+const MARKETING_HEADER_OFFSET = 'pt-[var(--public-nav-h)] lg:pt-[calc(var(--public-nav-h)+1rem)]';
 
 export function GuestAccountLayout() {
   const location = useLocation();
@@ -17,7 +17,7 @@ export function GuestAccountLayout() {
     <div className={cn('bg-muted/20 min-h-dvh', MARKETING_HEADER_OFFSET)}>
       <GuestAccountMobileNav
         pathname={location.pathname}
-        className="sticky top-16 z-30 lg:hidden"
+        className="sticky top-[var(--public-nav-h)] z-30 lg:hidden"
       />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,7 +29,7 @@ export function GuestAccountLayout() {
             <GuestAccountSidebar pathname={location.pathname} />
           </aside>
 
-          <main className="w-full min-w-0 flex-1 pb-10 pt-5 sm:pb-12 sm:pt-6 lg:pb-14 lg:pt-0">
+          <main className="w-full min-w-0 flex-1 pb-10 pt-4 sm:pb-12 md:pt-6 lg:pb-14 lg:pt-0">
             <div className="w-full">
               <Suspense fallback={<GuestAccountRouteSuspenseFallback />}>
                 <Outlet />

@@ -119,7 +119,7 @@ export function GuestTripPaymentSection({
     <GuestTripSection id="trip-payment" title="Payment">
       {active ? (
         owes ? (
-          <p className="mb-2 text-2xl font-bold tabular-nums tracking-tight">
+          <p className="mb-2 text-xl font-bold tabular-nums tracking-tight md:text-2xl">
             {formatMoney(amountDue)}
             <span className="text-muted-foreground ml-2 text-sm font-medium tracking-normal">
               left to pay

@@ -6,14 +6,14 @@
  * property's `voucher_prizes` (or platform defaults). If a voucher is already
  * on the booking, that one is returned instead of rolling again.
  *
- * Requires an existing guest review. Status guard: `canClaimGuestReviewVoucher`.
+ * D3: decoupled from the review — claimable once the stay reaches check-out,
+ * whether or not a review was ever submitted. Status guard: `canClaimStayVoucher`.
  * Disabled when `app_settings.vouchers_enabled` is false (unless already awarded).
  */
 
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { loadAppSettingsRow } from '../_shared/appSettings.ts';
-import { canClaimGuestReviewVoucher } from '../_shared/guestReviewEligibility.ts';
-import { guestReviewExistsForBooking } from '../_shared/guestReviewService.ts';
+import { canClaimStayVoucher } from '../_shared/reviewEligibility.ts';
 import { createServiceClient, tryGetAuthenticatedUser } from '../_shared/orgAuth.ts';
 import { rollVoucher } from '../_shared/voucher.ts';
 import {
@@ -58,7 +58,7 @@ servePublic('claim-sd-voucher', async (req) => {
   if (!authz.ok) {
     return jsonResponse(req, { success: false, error: authz.message }, authz.status);
   }
-  if (!row || !canClaimGuestReviewVoucher(row)) {
+  if (!row || !canClaimStayVoucher(row)) {
     return jsonResponse(
       req,
       {
@@ -83,19 +83,8 @@ servePublic('claim-sd-voucher', async (req) => {
   }
 
   if (!code) {
-    const hasReview = await guestReviewExistsForBooking(bookingId);
-    if (!hasReview) {
-      return jsonResponse(
-        req,
-        {
-          success: false,
-          error: 'review_required',
-          message: 'Submit a review before claiming a voucher.',
-        },
-        409
-      );
-    }
-
+    // D3: decoupled from the review — a stay voucher is never conditioned on
+    // leaving a review (FTC Consumer Reviews Rule, 16 CFR 465).
     const settingsRow = await loadAppSettingsRow(
       (row.property_id as string | null | undefined) ?? undefined
     );

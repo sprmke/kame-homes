@@ -32,6 +32,7 @@ import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { validateGuestFormFormatFields } from '../_shared/guestFormSubmitValidation.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { syncReviewIdentityKey } from '../_shared/hostGuestReviewService.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -151,6 +152,11 @@ serve(async (req) => {
 
     // Guarded stamp — no-ops if a concurrent submit already completed it.
     await markGuestFormCompleted(bookingId);
+
+    const completedEmail =
+      (submissionData as GuestSubmission | undefined)?.guest_email ??
+      (formData.get('guestEmail') as string | null);
+    await syncReviewIdentityKey(bookingId, completedEmail);
 
     // Host notification — the ingested stub now has real guest details to review.
     try {
