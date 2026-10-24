@@ -35,10 +35,17 @@ export type NotificationRecord = {
   isRead: boolean;
 };
 
+export type NotificationsUnreadSummary = {
+  inbox: number;
+  bookings: number;
+  reviews: number;
+};
+
 export type NotificationsPage = {
   notifications: NotificationRecord[];
   nextCursor: string | null;
   unreadCount: number;
+  unreadSummary?: NotificationsUnreadSummary;
 };
 
 /** Raw `notifications` row from postgres realtime (DB columns, not the list API DTO). */

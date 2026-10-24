@@ -61,7 +61,7 @@ export function InAppNotificationsSection() {
           ) : null
         }
       >
-        <InAppNotificationsPanel mode="full" pathScope={pathScope} variant="page" />
+        <InAppNotificationsPanel mode="full" pathScope={pathScope} variant="feed" />
       </AdminSection>
     </div>
   );

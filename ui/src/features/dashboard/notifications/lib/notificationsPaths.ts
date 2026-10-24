@@ -56,14 +56,57 @@ export function resolveNotificationPath(
   return null;
 }
 
-/** In-app activity section anchor on the Notifications hub page. */
+/** Legacy in-app activity anchor — still accepted on inbound links. */
 export const IN_APP_NOTIFICATIONS_SECTION_ID = 'activity';
-
-/** Sidebar / main-content group label for the in-app feed block. */
-export const IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL = 'In-app notifications';
 
 export function notificationsHubActivityHash(): string {
   return `#section-${IN_APP_NOTIFICATIONS_SECTION_ID}`;
+}
+
+/** Top-level views on the Notifications hub page. */
+export const NOTIFICATIONS_HUB_VIEWS = ['activity', 'telegram'] as const;
+
+export type NotificationsHubView = (typeof NOTIFICATIONS_HUB_VIEWS)[number];
+
+export const NOTIFICATIONS_HUB_VIEW_PARAM = 'view';
+
+export function isNotificationsHubView(value: string | null): value is NotificationsHubView {
+  return (NOTIFICATIONS_HUB_VIEWS as readonly string[]).includes(value ?? '');
+}
+
+/** `?view=telegram` suffix for links that must land on a specific hub view. */
+export function notificationsHubViewQuery(view: NotificationsHubView): string {
+  return `?${NOTIFICATIONS_HUB_VIEW_PARAM}=${view}`;
+}
+
+type NotificationsHubViewInput = {
+  /** `?view=` value, if present. */
+  view: string | null;
+  /** Tenant-validated `?module=` value, if present. */
+  module: string | null;
+  /** Legacy `?section=` value, if present. */
+  section: string | null;
+  /** `location.hash`, for the legacy `#section-activity` deep link. */
+  hash: string;
+};
+
+/**
+ * Which hub view an inbound URL opens. An explicit `?view=` always wins; a
+ * valid `?module=` means the host came to configure one Telegram bot; the
+ * legacy activity anchors still open the feed. Everything else opens the feed,
+ * because that is what the sidebar entry is for.
+ */
+export function resolveNotificationsHubView({
+  view,
+  module,
+  section,
+  hash,
+}: NotificationsHubViewInput): NotificationsHubView {
+  if (isNotificationsHubView(view)) return view;
+  if (module) return 'telegram';
+  if (section === IN_APP_NOTIFICATIONS_SECTION_ID) return 'activity';
+  if (hash === notificationsHubActivityHash()) return 'activity';
+  return 'activity';
 }
 
 /** Notifications settings + in-app activity feed for the current tenant scope. */

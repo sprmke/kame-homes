@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { formatDistanceToNow } from 'date-fns';
+import { BellOff } from 'lucide-react';
 
 import { PlatformLogo } from '@/features/dashboard/inbox/components/PlatformLogo';
 import { NotificationInboxTitle } from '@/features/dashboard/notifications/components/NotificationInboxTitle';
@@ -30,15 +31,18 @@ import { ListRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** Bounded list height on the Notifications page — scroll inside the card, not the page. */
-const PAGE_LIST_MAX_HEIGHT_CLASS = 'max-h-[min(28rem,60vh)]';
-
 type Props = {
   mode: NotificationsListMode;
   pathScope: NotificationPathScope;
   className?: string;
-  /** Sheet (bell panel), dropdown (legacy), or full page list. */
-  variant?: 'sheet' | 'dropdown' | 'page';
+  /** Sheet (bell panel), dropdown (legacy), or the hub page's full-height feed. */
+  variant?: 'sheet' | 'dropdown' | 'feed';
+  /**
+   * Scrollport that owns pagination for `variant="feed"`. The feed does not
+   * scroll itself — the hub view's scrollport does — so the sentinel has to be
+   * observed against that element. Pagination starts once it resolves.
+   */
+  scrollRoot?: HTMLElement | null;
   onNavigate?: () => void;
 };
 
@@ -46,7 +50,8 @@ export function InAppNotificationsPanel({
   mode,
   pathScope,
   className,
-  variant = 'page',
+  variant = 'feed',
+  scrollRoot,
   onNavigate,
 }: Props) {
   const navigate = useNavigate();
@@ -71,10 +76,9 @@ export function InAppNotificationsPanel({
   }, [fetchNextPage, hasNextPage]);
 
   useEffect(() => {
-    if (variant !== 'page' || !hasNextPage) return;
+    if (variant !== 'feed' || !hasNextPage) return;
 
     const sentinel = sentinelRef.current;
-    const scrollRoot = scrollRef.current;
     if (!sentinel || !scrollRoot) return;
 
     const observer = new IntersectionObserver(
@@ -87,7 +91,7 @@ export function InAppNotificationsPanel({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [variant, hasNextPage, handleLoadMore, notifications.length]);
+  }, [variant, hasNextPage, handleLoadMore, notifications.length, scrollRoot]);
 
   const handleRowClick = (notification: NotificationRecord) => {
     if (!notification.isRead) markRead.mutate(notification.id);
@@ -105,7 +109,8 @@ export function InAppNotificationsPanel({
     if (variant === 'dropdown') {
       return 'max-h-[min(24rem,60vh)] overflow-y-auto overscroll-contain';
     }
-    return cn(PAGE_LIST_MAX_HEIGHT_CLASS, 'overflow-y-auto overscroll-contain');
+    /* Feed: the hub view's scrollport owns scroll, so one scrollbar, not two. */
+    return undefined;
   }, [variant]);
 
   if (isLoading) {
@@ -118,7 +123,7 @@ export function InAppNotificationsPanel({
 
   if (isError) {
     return (
-      <div className={cn('space-y-3 px-4 py-6 text-center', className)}>
+      <div className={cn('flex flex-col items-center justify-center gap-3 px-4 py-6', className)}>
         <p className="text-muted-foreground text-sm">Could not load notifications.</p>
         <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
           Retry
@@ -129,9 +134,17 @@ export function InAppNotificationsPanel({
 
   if (notifications.length === 0) {
     return (
-      <p className={cn('text-muted-foreground px-4 py-8 text-center text-sm', className)}>
-        No notifications yet.
-      </p>
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-2 px-4 py-10 text-center',
+          className
+        )}
+      >
+        <span className="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-full">
+          <BellOff className="size-4" aria-hidden />
+        </span>
+        <p className="text-muted-foreground text-sm">No notifications yet.</p>
+      </div>
     );
   }
 
@@ -140,7 +153,7 @@ export function InAppNotificationsPanel({
       className={cn('min-w-0', variant === 'sheet' && 'flex min-h-0 flex-1 flex-col', className)}
     >
       <div ref={scrollRef} className={listScrollClassName}>
-        <ul className={variant === 'page' ? 'divide-border/60 divide-y' : undefined}>
+        <ul className={variant === 'feed' ? 'divide-border/60 divide-y' : undefined}>
           {notifications.map((notification) => {
             const Icon = notificationIconFor(notification.type);
             const stayLabel = formatNotificationStayLabel(notification.metadata);
@@ -154,7 +167,7 @@ export function InAppNotificationsPanel({
                   className={cn(
                     'hover:bg-muted/60 flex min-h-[44px] w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors sm:gap-3 sm:px-4',
                     !notification.isRead && 'bg-primary/5',
-                    variant === 'page' && 'sm:py-3'
+                    variant === 'feed' && 'sm:py-3'
                   )}
                 >
                   {notification.type === 'inbox_new_message' && inboxPlatform ? (
@@ -225,7 +238,7 @@ export function InAppNotificationsPanel({
           })}
         </ul>
 
-        {variant === 'page' && (hasNextPage || isFetchingNextPage) ? (
+        {variant === 'feed' && (hasNextPage || isFetchingNextPage) ? (
           <div ref={sentinelRef} role="status" aria-live="polite" aria-busy={isFetchingNextPage}>
             {isFetchingNextPage ? (
               <div className="px-4 pb-2 pt-1">

@@ -106,12 +106,14 @@ export function useMarkAllNotificationsRead() {
 
       qc.setQueriesData<InfiniteData<NotificationsPage>>({ queryKey: queryKeyPrefix }, (old) => {
         if (!old) return old;
+        const clearedSummary = { inbox: 0, bookings: 0, reviews: 0 };
         return {
           ...old,
           pages: old.pages.map((page) => ({
             ...page,
             notifications: page.notifications.map((n) => ({ ...n, isRead: true })),
             unreadCount: 0,
+            unreadSummary: clearedSummary,
           })),
         };
       });
