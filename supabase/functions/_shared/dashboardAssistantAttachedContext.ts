@@ -22,6 +22,7 @@ export const ATTACHED_CONTEXT_TYPES = [
   'notification_module',
   'public_page',
   'ticket',
+  'property_template',
 ] as const;
 
 export type AttachedContextType = (typeof ATTACHED_CONTEXT_TYPES)[number];

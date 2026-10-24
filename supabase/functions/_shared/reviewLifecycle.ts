@@ -7,6 +7,7 @@
  */
 
 import { createServiceClient } from './orgAuth.ts';
+import { shouldSkipForCutoverWatermark } from './cutoverWatermark.ts';
 import { createNotification } from './notificationService.ts';
 import { guestReviewExistsForBooking } from './guestReviewService.ts';
 import { getHostGuestReviewRow } from './hostGuestReviewService.ts';
@@ -30,6 +31,9 @@ const WINDOW_COLUMNS =
 function daysUntil(iso: string, now = new Date()): number {
   return (Date.parse(iso) - now.getTime()) / 86_400_000;
 }
+
+
+
 
 export type ReviewLifecycleCounts = {
   published: number;
@@ -105,6 +109,7 @@ export async function runReviewLifecycle(now = new Date()): Promise<ReviewLifecy
 
   // Fallback: bookings that reached check-out in the last 14 days without a window.
   const lookback = new Date(now.getTime() - FALLBACK_LOOKBACK_DAYS * 86_400_000).toISOString();
+  const { migrationCutoverAt } = await getPlatformSettingsSnapshot();
   const { data: recent } = await supabase
     .from('guest_submissions')
     .select('id, property_id, check_out_date, status')
@@ -116,6 +121,7 @@ export async function runReviewLifecycle(now = new Date()): Promise<ReviewLifecy
   for (const row of recent ?? []) {
     const propertyId = row.property_id as string | null;
     if (!propertyId) continue;
+    if (shouldSkipForCutoverWatermark(String(row.check_out_date ?? ''), migrationCutoverAt)) continue;
     const { closesAt } = computeReviewWindow(String(row.check_out_date ?? ''), now.toISOString());
     if (Date.parse(closesAt) < now.getTime()) continue;
     const { data: existing } = await supabase

@@ -5,6 +5,8 @@
 
 import { normalizeBookingDateToYmd } from './calendarAvailabilityManila.ts';
 import { createServiceClient } from './orgAuth.ts';
+import { shouldSkipForCutoverWatermark } from './cutoverWatermark.ts';
+import { getPlatformSettingsSnapshot } from './platformSettingsCache.ts';
 import { guestIdentityKey } from './guestIdentityKey.ts';
 import { getHostGuestReviewRow, upsertHostGuestReview } from './hostGuestReviewService.ts';
 import { isFeatureEnabled } from './planFeatures.ts';
@@ -202,6 +204,15 @@ export async function runAutoReviews(
         .maybeSingle();
       if (!booking) continue;
       if (booking.status === 'CANCELLED') continue;
+      if (
+        shouldSkipForCutoverWatermark(
+          booking.check_out_date as string | null,
+          await getPlatformSettingsSnapshot().then((s) => s.migrationCutoverAt)
+        )
+      ) {
+        await skip('cutover_watermark');
+        continue;
+      }
 
       const skip = async (reason: string) => {
         const { error } = await supabase
