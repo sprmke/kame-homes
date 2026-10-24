@@ -28,22 +28,23 @@ Nested layouts with lazy children keep their own `Suspense` around `<Outlet />` 
 
 ## Module map (eager skeletons)
 
-| File                         | Domains                                                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `AdminSkeletons.tsx`         | Shared admin primitives, list toolbar, bookings, finance, settings nav, listings, marketing studio, org dashboard, plans |
-| `OrgListingSkeleton.tsx`     | Org Properties / Parkings page body, org listing table / grid / list views (inventory + analytics variants)              |
-| `AnalyticsSkeleton.tsx`      | Org + property analytics                                                                                                 |
-| `AnnouncementsSkeleton.tsx`  | Host announcements list / detail body                                                                                    |
-| `BookingsExtrasSkeleton.tsx` | Stage KPI strip, kanban                                                                                                  |
-| `PricingSkeleton.tsx`        | Property/parking pricing body (stats + calendar + rates column)                                                          |
-| `ParkingSkeleton.tsx`        | Parking dashboard, booking detail                                                                                        |
-| `GuestMarketingSkeleton.tsx` | Development detail, browse grids, account gate, property chat                                                            |
-| `HelpSupportSkeleton.tsx`    | Help & Support page (module nav, intro, FAQs / guides / tickets), documentation topics                                   |
-| `SuperAdminSkeletons.tsx`    | List/overview/audit bodies                                                                                               |
-| `AiAssistantSkeleton.tsx`    | AI assistant panel chunk                                                                                                 |
-| `GuestPageSkeletons.tsx`     | Guest form page                                                                                                          |
-| `GuestAccountSkeletons.tsx`  | Profile form, voucher wallet rows                                                                                        |
-| `ImportWizardSkeleton.tsx`   | Import wizard commit step                                                                                                |
+| File                            | Domains                                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AdminSkeletons.tsx`            | Shared admin primitives, list toolbar, bookings, finance, settings nav, listings, marketing library / editor / theme cards, org dashboard, plans |
+| `OrgListingSkeleton.tsx`        | Org Properties / Parkings page body, org listing table / grid / list views (inventory + analytics variants)                                      |
+| `AnalyticsSkeleton.tsx`         | Org + property analytics                                                                                                                         |
+| `AnnouncementsSkeleton.tsx`     | Host announcements list / detail body                                                                                                            |
+| `BookingsExtrasSkeleton.tsx`    | Stage KPI strip, kanban                                                                                                                          |
+| `PricingSkeleton.tsx`           | Property/parking pricing body (stats + calendar + rates column)                                                                                  |
+| `ParkingSkeleton.tsx`           | Parking dashboard, booking detail                                                                                                                |
+| `GuestMarketingSkeleton.tsx`    | Development detail, browse grids, account gate, property chat                                                                                    |
+| `HelpSupportSkeleton.tsx`       | Help & Support page (module nav, intro, FAQs / guides / tickets), documentation topics                                                           |
+| `SuperAdminSkeletons.tsx`       | List/overview/audit bodies                                                                                                                       |
+| `AiAssistantSkeleton.tsx`       | AI assistant panel chunk                                                                                                                         |
+| `GuestPageSkeletons.tsx`        | Guest form page                                                                                                                                  |
+| `GuestAccountSkeletons.tsx`     | Profile form, voucher wallet rows                                                                                                                |
+| `ImportWizardSkeleton.tsx`      | Import wizard commit step                                                                                                                        |
+| `TemplateWorkbenchSkeleton.tsx` | Property Templates workbench — library rail (search, grouped rows) beside the editor pane; rail only below `lg`                                  |
 
 ## Pre-shell and top-level fallbacks
 

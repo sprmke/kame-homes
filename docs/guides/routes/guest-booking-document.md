@@ -11,6 +11,19 @@ Route: `/properties/:propertySlug/document?token=<opaque>&doc=gaf|pet`
 
 > **Status:** Documented
 
+## Host-facing knowledge
+
+This is a guest link for an approved GAF or pet form PDF. Share it from Inbox. The guest opens it and the file downloads. The link keeps working; they do not need to sign in.
+
+**Common host questions**
+
+- Q: Where do I share the GAF or pet form with the guest?
+  A: In Guest Inbox, use Share and pick the document. You can also send the same kind of link from the booking Files tab when that is available.
+- Q: Does the link expire?
+  A: The share link itself stays valid. Each visit mints a short-lived file URL, so the same chat link still works days later.
+- Q: What if the guest sees "This link is not available"?
+  A: The booking may be cancelled, or that document is not on the booking yet. Check Files on the booking, then share again.
+
 ## Purpose
 
 Redirect-only page: resolves a durable, guest-safe share token to a fresh signed Storage URL for one of a booking's private approved-document PDFs (**Approved GAF** or **Approved Pet Form**), then `window.location.replace()`s to it. No content of its own renders beyond a loading skeleton — mirrors [[stay-guide|Guest stay guide]]'s token-gated pattern but with no rendered brochure and no stay-dated validity window. It renders outside every app shell (no `MainLayout`/`MarketingLayoutShell`, no bottom nav) — deliberately, since the guest never lingers here. **2026-09-10:** its two states (unavailable message, loading skeleton) previously used hardcoded hex colors instead of semantic tokens; fixed to `bg-background`/`text-foreground`/`border-border`/`bg-muted` for theme consistency.

@@ -16,7 +16,7 @@ Route: `/properties/:propertySlug/sd-form?bookingId=` (legacy `/sd-form?property
 | Section        | E2E save | Validation | Docs       | Notes                                                                                                                    |
 | -------------- | -------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Brand shell    | ✅       | —          | Documented | `MainLayout` + `GuestFormBrandHeader` via `get-guest-payment-info`                                                       |
-| Step 1 Review  | ✅       | ✅ Zod     | Documented | Shared `GuestReviewStarRating` + `GuestReviewFeedbackPills` via `SdFormReviewSection` → `submit-guest-review`            |
+| Step 1 Review  | ✅       | ✅ Zod     | Documented | Overall + 6 required categories, skip allowed, voucher decoupled. `SdFormReviewSection` → `submit-guest-review`          |
 | Step 2 Voucher | ✅       | Server     | Documented | `claim-sd-voucher`; idempotent                                                                                           |
 | Step 3 Refund  | ✅       | ✅ Zod     | Documented | `submit-sd-form` → workflow transition                                                                                   |
 | Balance gate   | ✅       | Server     | Documented | `awaiting_balance_settlement` polling                                                                                    |
@@ -31,11 +31,11 @@ Three-step guest stepper shown once a stay is near or past check-out. Full-page 
 
 | Step | Label          | Content                                                                                                                                       |
 | ---- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Leave a Review | In-app star rating, feedback tag pills, optional photos/media — `submit-guest-review`                                                         |
+| 1    | Leave a Review | Overall stars, 6 required category ratings, optional text/tags/photos. **Not now** skips to voucher/refund. Editable until published.         |
 | 2    | Claim surprise | Balance-wait sub-phase (if check-out email already sent but balance not settled), then a **slot-machine voucher reveal** — `claim-sd-voucher` |
 | 3    | Refund details | Choose GCash (same phone) / another GCash-or-bank / cash pickup → `submit-sd-form`                                                            |
 
-Returning guests who already submitted a review or already have a voucher skip straight to step 2 (or its voucher sub-phase).
+Returning guests skip the review step only after the window is closed or the review is published. An unpublished draft stays on step 1 so they can edit. The voucher is claimable after check-out even if they skipped the review.
 
 ---
 
@@ -48,7 +48,7 @@ After check-out, guests are guided through three quick steps before their securi
 - Q: A guest says the refund form says "almost there" and won't let them continue.
   A: That means their stay hasn't been moved to check-out with a final balance recorded yet. The page updates automatically once that's done, so the guest doesn't need to do anything.
 - Q: Can a guest change their review after voting on the surprise voucher?
-  A: No. Once they've submitted a review or revealed a voucher, returning to the link skips straight back to where they left off, and the review step won't show again.
+  A: Yes, until the 14-day window closes or both sides have reviewed. After that the review is locked. Skipping the review still lets them claim a voucher.
 - Q: What if a guest wants a cash refund?
   A: They can choose "Cash pickup" in step 3, but they're told to message the host first. Cash refunds need on-site staff, so they can't be sent automatically like GCash or bank transfers.
 
@@ -121,9 +121,15 @@ Skipped when the property has **`vouchers_enabled = false`** (guest goes review 
 
 Both `/sd-form` and `/guest-review` show a **Your trip** back link above the header when the booking id and property slug are known. The SD form done screen adds **View your booking**. See [trip.md](./trip.md).
 
-## Airbnb guest-review variant
+## Standalone guest-review page
 
-A standalone **`/properties/:propertySlug/guest-review?bookingId=`** route (`GuestReviewPage`) reuses the same review + voucher components for the Airbnb post-stay flow (`review_path: 'airbnb_post_stay'` on `get-guest-review`), independent of the full SD-refund stepper — used when the security deposit workflow doesn't apply (e.g. Airbnb-sourced bookings where SD is typically ₱0, per `.cursor/rules/booking-workflow.mdc` § SD refund skip).
+A standalone **`/properties/:propertySlug/guest-review?bookingId=`** route (`GuestReviewPage`) reuses the same review + voucher components outside the SD-refund stepper. `get-guest-review` serves **any property booking past check-out** (`READY_FOR_CHECKOUT`, `PENDING_SD_REFUND`, `COMPLETED`, or `READY_FOR_CHECKIN` after the check-out date); parking bookings 404. `review_path` is `airbnb_post_stay`, `sd_refund` or `post_stay`. Review emails, the trip page and `/account/reviews` all link here; review email links carry a minted `?access=` token.
+
+### Step 1 never blocks the refund
+
+- **Window closed, no review:** step 1 shows "Review window closed" plus **Continue** to the refund.
+- **Saved draft:** the secondary button reads **Continue** (keeps the saved review, no re-save). It is disabled while the draft has unsaved edits, so changes are never dropped silently.
+- **No draft:** **Not now** skips the review (D3/D4).
 
 ---
 
@@ -132,7 +138,7 @@ A standalone **`/properties/:propertySlug/guest-review?bookingId=`** route (`Gue
 | Action                   | Endpoint                                                                               |
 | ------------------------ | -------------------------------------------------------------------------------------- |
 | Load SD-form bootstrap   | `GET get-sd-form`                                                                      |
-| Load Airbnb guest-review | `GET get-guest-review`                                                                 |
+| Load guest-review        | `GET get-guest-review` — any property stay past check-out                              |
 | Submit review            | `POST submit-guest-review` — FormData includes `access` when stored                    |
 | Claim / re-fetch voucher | `POST claim-sd-voucher` — `{ bookingId, access? }` (same token/grace as `get-sd-form`) |
 | Submit refund details    | `POST submit-sd-form` — `{ bookingId, access?, refund }`                               |

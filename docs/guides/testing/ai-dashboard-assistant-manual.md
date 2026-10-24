@@ -2,7 +2,7 @@
 title: 'AI dashboard assistant — manual test flows'
 status: active
 tags: [guides, testing, ai]
-updated: 2026-08-27
+updated: 2026-10-19
 ---
 
 # AI dashboard assistant — step-by-step manual testing
@@ -19,30 +19,31 @@ This flow has **never been run through an actual browser** as of 2026-08-15 — 
 
 ## 0. What you are proving
 
-| #   | Capability                        | Pass criteria                                                                                                                                                                                                                       |
-| --- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Launcher visibility               | Floating button appears only when both kill switches are on for the org (and property, if scoped); hidden on `/admin/*`                                                                                                             |
-| 2   | Tier-0 read                       | A plain question returns a grounded answer with no confirmation UI                                                                                                                                                                  |
-| 3   | Tier-1 auto-execute               | A safe forward status move executes immediately with a "done automatically" card                                                                                                                                                    |
-| 4   | Tier-2 propose → confirm          | A risky action (cancel, refund finalize, price change, override) shows Confirm/Cancel and only runs after Confirm                                                                                                                   |
-| 5   | Tier-2 deny                       | Clicking Cancel leaves the booking untouched and marks the card "cancelled"                                                                                                                                                         |
-| 6   | Tier-2 idempotency                | Confirming an already-resolved action is a clean no-op, never a double-execute                                                                                                                                                      |
-| 7   | Tier-2 expiry                     | A proposal older than 15 minutes can no longer be confirmed                                                                                                                                                                         |
-| 8   | Permission re-check               | A low-permission (**Read Only** template) property member cannot get a write action to execute, even if the model tries                                                                                                             |
-| 9   | Cross-scope escalation            | Asking about a _different_ booking/property than the one currently open always requires confirmation                                                                                                                                |
-| 10  | Bulk escalation                   | A request that bundles 2+ write actions in one turn always requires confirmation, regardless of each action's own tier                                                                                                              |
-| 11  | Booking-detail audit trail        | Actions taken on a booking show up in its "Actions taken by AI assistant" card, newest first                                                                                                                                        |
-| 12  | Org/global kill switch            | Turning either off removes the launcher; turning back on restores it                                                                                                                                                                |
-| 13  | Per-property opt-out              | Disabling the assistant on one property hides the launcher only there, not org-wide                                                                                                                                                 |
-| 14  | Quota                             | Hitting the daily message limit shows the upgrade message instead of erroring                                                                                                                                                       |
-| 15  | Mobile 375px                      | Launcher + slide-over panel usable at iPhone SE width, 44×44px targets                                                                                                                                                              |
-| 16  | Starter prompts                   | Empty chat shows a Questions / Actions switcher (not page tabs), 5 items for the active side — randomized with no pinned context, ranked by module once context is pinned (merged fairly when multiple modules are pinned)          |
-| 16b | Mid-conversation pill suggestions | Each pinned context chip opens a compact Questions / Actions popover with that module's ranked prompts; tapping sends a message carrying the pinned context; X still removes the pin                                                |
-| 17  | Attachments + booking pin         | Paperclip attaches JPEG/PNG/WebP/PDF; calendar pins a stay; send works with files and no text                                                                                                                                       |
-| 18  | Speech-to-text                    | Mic fills the composer on Chrome/Safari/Edge (HTTPS); primary listening state; tap again to stop; send clears listening                                                                                                             |
-| 19  | Turn progress + streaming         | While waiting: phased/tool checklist (not bare dots); text answer streams in before cards finalize; multi-tool turns show “What I did” timeline                                                                                     |
-| 20  | Cancel + regenerate               | Stop icon aborts in-flight turn; cancel before Tier-1 commit leaves no app writes; partial commit shows applied-changes banner; Regenerate on last assistant message re-runs prior text turn (not available after attachment sends) |
-| 21  | Usage meter                       | Panel header shows `today / daily limit` pill; increments after a successful send                                                                                                                                                   |
+| #   | Capability                        | Pass criteria                                                                                                                                                                                                                                                                               |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Launcher visibility               | Floating button appears only when both kill switches are on for the org (and property, if scoped); hidden on `/admin/*`                                                                                                                                                                     |
+| 2   | Tier-0 read                       | A plain question returns a grounded answer with no confirmation UI                                                                                                                                                                                                                          |
+| 3   | Tier-1 auto-execute               | A safe forward status move executes immediately with a "done automatically" card                                                                                                                                                                                                            |
+| 4   | Tier-2 propose → confirm          | A risky action (cancel, refund finalize, price change, override) shows Confirm/Cancel and only runs after Confirm                                                                                                                                                                           |
+| 5   | Tier-2 deny                       | Clicking Cancel leaves the booking untouched and marks the card "cancelled"                                                                                                                                                                                                                 |
+| 6   | Tier-2 idempotency                | Confirming an already-resolved action is a clean no-op, never a double-execute                                                                                                                                                                                                              |
+| 7   | Tier-2 expiry                     | A proposal older than 15 minutes can no longer be confirmed                                                                                                                                                                                                                                 |
+| 8   | Permission re-check               | A low-permission (**Read Only** template) property member cannot get a write action to execute, even if the model tries                                                                                                                                                                     |
+| 9   | Cross-scope escalation            | Asking about a _different_ booking/property than the one currently open always requires confirmation                                                                                                                                                                                        |
+| 10  | Bulk escalation                   | A request that bundles 2+ write actions in one turn always requires confirmation, regardless of each action's own tier                                                                                                                                                                      |
+| 11  | Booking-detail audit trail        | Actions taken on a booking show up in its "Actions taken by AI assistant" card, newest first                                                                                                                                                                                                |
+| 12  | Org/global kill switch            | Turning either off removes the launcher; turning back on restores it                                                                                                                                                                                                                        |
+| 13  | Per-property opt-out              | Disabling the assistant on one property hides the launcher only there, not org-wide                                                                                                                                                                                                         |
+| 14  | Quota                             | Hitting the daily message limit shows the upgrade message instead of erroring                                                                                                                                                                                                               |
+| 15  | Mobile 375px                      | Launcher + slide-over panel usable at iPhone SE width, 44×44px targets                                                                                                                                                                                                                      |
+| 16  | Starter prompts                   | Empty chat shows a Questions / Actions switcher (not page tabs), 5 items for the active side — randomized with no pinned context, ranked by module once context is pinned (merged fairly when multiple modules are pinned)                                                                  |
+| 16b | Mid-conversation pill suggestions | Each pinned context chip opens a compact Questions / Actions popover with that module's ranked prompts; tapping sends a message carrying the pinned context; X still removes the pin                                                                                                        |
+| 17  | Attachments + booking pin         | Paperclip attaches JPEG/PNG/WebP/PDF; calendar pins a stay; send works with files and no text                                                                                                                                                                                               |
+| 18  | Speech-to-text                    | Mic fills the composer on Chrome/Safari/Edge (HTTPS); primary listening state; tap again to stop; send clears listening                                                                                                                                                                     |
+| 19  | Turn progress + streaming         | While waiting: phased/tool checklist (not bare dots); text answer streams in before cards finalize; a tool call after streamed text retracts the preview in one paint; multi-tool turns show “What I did” timeline                                                                          |
+| 19b | Visual blocks + briefing          | Finance/analytics hydrate `chart`/`kpi`; availability/pricing hydrate `calendar`; history hydrates `timeline`; lists hydrate `entity_card`/`carousel`. AI-mode home shows up to 6 attention cards; empty sheet shows up to 3. After a completed write, follow-through chips appear (max 4). |
+| 20  | Cancel + regenerate               | Stop icon aborts in-flight turn; cancel before Tier-1 commit leaves no app writes; partial commit shows applied-changes banner; Regenerate on last assistant message re-runs prior text turn (not available after attachment sends)                                                         |
+| 21  | Usage meter                       | Panel header shows `today / daily limit` pill; increments after a successful send                                                                                                                                                                                                           |
 
 ---
 
@@ -114,8 +115,8 @@ This flow has **never been run through an actual browser** as of 2026-08-15 — 
 ### 2.4 Turn progress, streaming, cancel, regenerate (#19–#21)
 
 1. Send a question that triggers tools (e.g. **"How many bookings are pending review?"**). Expect a **Working…** card with phased steps or live tool labels — not three bouncing dots. One row always shows a spinner ring (never all checks while the turn runs): after the last tool finishes, a **Reviewing results** row spins until the answer arrives. A step past 8s shows its own timer; past 30s the heading reads **Still working**.
-2. On a text-heavy answer, expect prose to appear incrementally before structured cards finalize.
-3. On a multi-tool turn (e.g. finance + booking lookup), expect a collapsible **What I did** timeline on the finished message and, when 2+ tools ran in one round, a **task plan** checklist.
+2. On a text-heavy answer, expect prose to appear incrementally before structured cards finalize. If the model starts a sentence then calls a tool, the preview text retracts in one paint (no leftover half-sentence).
+3. On a multi-tool turn (e.g. finance + booking lookup), expect a collapsible **What I did** timeline on the finished message and, when 2+ tools ran in one round, a **task plan** checklist. Super-admin AI Usage records `guard_mode` (`deterministic` vs LLM) per turn.
 4. While a turn is in flight, tap the composer **Stop** (square icon). Expect the wait UI to clear. On an existing thread, the conversation reloads from the server (no orphan user bubble if the turn had not finished and no Tier-1 writes were committed; if the reply had already been saved, it appears). **Tier-1 auto writes** only commit after synthesis — stopping during tools or synthesis must leave bookings/settings unchanged. Usage should not increment for a cancelled unfinished turn.
 5. _(Optional hard case)_ Trigger a Tier-1 auto write (e.g. safe forward status move), then Stop during the **Applying changes** phase if visible — expect a banner listing changes already applied; booking audit should reflect partial writes.
 6. After a completed text turn, hover the last assistant message — **Regenerate** appears. Tap it — the assistant reply is replaced with a new one; the user message is **not** duplicated in history. Pending Confirm cards from the prior reply are expired.
@@ -140,6 +141,15 @@ Per-module pin (open the assistant from that page; icon ≥ 44×44px; chip appea
 | Help & Support tickets         | Life-ring icon → tickets; **This page** on a ticket thread            |
 
 10. Open the bookmark pin → module list first, then drill into a module. Item rows show a leading visual (guest initials, platform badge, finance amount, marketing thumb when saved, video play badge + first-scene still when available, etc.) plus a **Load more** control when the list exceeds 12 rows. **Pricing** opens a lite month grid (rates, booked, blocked) from `property-pricing` — tap a date to pin. Use the top search bar or **Cmd/Ctrl+K** for cross-module search.
+
+### 2.4b Visual blocks, briefing, follow-through
+
+1. Ask for last month's revenue or occupancy. Expect a `chart` or `kpi` card whose numbers match the tool result (never a model-invented amount). Toggle Table / Copy data on the chart.
+2. Ask which nights are open next week. Expect a 7-column read-only `calendar`, not a prose date list alone.
+3. Ask what happened on a booking or in Activity. Expect a `timeline`.
+4. Ask who is checking in this weekend. Expect `entity_card` or `carousel` cards, not a wall of names.
+5. Open AI mode with an empty thread: briefing home shows up to 6 attention cards plus a Since yesterday row. The Advanced sheet empty thread shows starter questions and actions only.
+6. After you Confirm a status change, finance add, or maintenance update, expect the Confirm card to stay with **Done** plus follow-through chips such as **Send next email**, **Show this month**, or **Show this item** (at most 4, verbs first).
 
 ### 2.5 Apply chat file onto a booking + workflow emails
 
@@ -361,7 +371,7 @@ Pass when: the Tier-0 call returns a real number matching the DB; the propose ca
 ### 12.3 Announcements + plan snapshot (read)
 
 1. Ask: **"What platform announcements are active right now?"** — expect `list_host_announcements` data matching the Announcements page.
-2. Ask: **"What plan are we on and which features does it include?"** — expect `get_org_plan_snapshot` with plan name, status, enrolled properties, and feature flags (no checkout URL or payment actions).
+2. Ask: **"What plan are we on and which features does it include?"** Expect `get_org_plan_snapshot` with plan name, status, enrolled properties, feature flags, and today's remaining AI messages (no checkout URL or payment actions).
 
 ---
 
@@ -398,7 +408,8 @@ Prep: super admin turns on **AI mode** on the assistant kill-switch card (`/admi
 Each item must behave the same in the Advanced sheet and the AI mode page.
 
 - [ ] Send, stream, stop (Esc), regenerate, Retry after an error
-- [ ] Confirm / Deny cards, dynamic forms, quick action chips
+- [ ] Confirm / Deny cards, dynamic forms, quick action chips (2–4, verbs first; no "Sure!" opener; chips-only answers get a short text line)
+- [ ] Dead-end turn (long multi-tool ask): answer with what was gathered plus **Continue with the rest**, never "ask again"
 - [ ] Pins (context picker + Cmd/Ctrl+K), attachments, voice
 - [ ] History: search, rename, pin, archive, delete, Load more
 - [ ] Edit & resend (pencil and Up arrow), Copy, thumbs up / down
