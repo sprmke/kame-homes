@@ -233,6 +233,8 @@ function typeLabel(type: AttachedContextType): string {
       return 'Public page';
     case 'ticket':
       return 'Support ticket';
+    case 'property_template':
+      return 'Property template';
   }
 }
 

@@ -12,6 +12,18 @@ import { AI_SUGGEST_FALLBACK_REPLY, assertSafeGuestReply } from './inboxAiSafety
 
 const INBOX_FEATURE = 'inbox_suggest' as const;
 
+export function resolveInboxAiFeature(input: {
+  platform: string;
+  conversationType: string;
+  actorType?: AiActorType;
+}): typeof INBOX_FEATURE | 'inbox_auto_reply' {
+  if (input.actorType === 'system') return 'inbox_auto_reply';
+  if (input.platform === 'web' && input.conversationType === 'web_chat') {
+    return 'inbox_auto_reply';
+  }
+  return INBOX_FEATURE;
+}
+
 export type InboxAiProviderStatus = {
   available: boolean;
   geminiConfigured: boolean;
@@ -52,10 +64,11 @@ export type AiSuggestResult = {
 };
 
 export async function suggestInboxReply(input: AiSuggestInput): Promise<AiSuggestResult> {
-  const feature =
-    input.platform === 'web' && input.conversationType === 'web_chat'
-      ? ('inbox_auto_reply' as const)
-      : INBOX_FEATURE;
+  const feature = resolveInboxAiFeature({
+    platform: input.platform,
+    conversationType: input.conversationType,
+    actorType: input.actorType,
+  });
 
   await assertOrgAndPropertyAiQuota(input.orgId, input.propertyId ?? null, feature);
 
@@ -74,7 +87,11 @@ export async function suggestInboxReply(input: AiSuggestInput): Promise<AiSugges
     inquiryCheckOut: input.inquiryCheckOut ?? null,
     platform: input.platform,
   });
-  const { system: systemPrompt, user: userPrompt, latestGuestText } = buildInboxReplyPrompt({
+  const {
+    system: systemPrompt,
+    user: userPrompt,
+    latestGuestText,
+  } = buildInboxReplyPrompt({
     orgName,
     systemPromptOverride: input.systemPromptOverride,
     factsText: grounding.factsText,
