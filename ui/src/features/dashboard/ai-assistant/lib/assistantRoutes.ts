@@ -7,6 +7,7 @@
 export const ASSISTANT_ROUTE_LABELS = {
   'org.dashboard': 'Dashboard',
   'org.bookings': 'Bookings',
+  'org.reviews': 'Reviews',
   'org.properties': 'Properties',
   'org.parkings': 'Parking',
   'org.analytics': 'Analytics',
@@ -25,6 +26,7 @@ export const ASSISTANT_ROUTE_LABELS = {
   'property.team': 'Team',
   'property.marketing': 'Marketing',
   'property.inbox': 'Inbox',
+  'property.reviews': 'Reviews',
   'property.notifications': 'Notifications',
   'property.templates': 'Templates',
   'property.public-pages': 'Public pages',

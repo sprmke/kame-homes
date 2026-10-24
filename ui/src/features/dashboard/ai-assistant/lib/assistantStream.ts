@@ -39,6 +39,10 @@ export type AssistantStreamEvent =
   | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus; reason?: string }
   | { type: 'text_start' }
   | { type: 'text_chunk'; delta: string }
+  /** Streamed preview failed a post-hoc check: replace what was painted with `fallbackText`. */
+  | { type: 'retract'; fallbackText: string }
+  /** Server phase timings for this turn (mirrors `LatencyBreakdown` on the edge). */
+  | { type: 'turn_timing'; timing: AssistantTurnTiming }
   | {
       type: 'blocks';
       conversationId: string;
@@ -62,6 +66,24 @@ export type AssistantAppliedEffect = {
   toolName: string;
   label: string;
   ok: boolean;
+};
+
+export type AssistantTurnGuardMode = 'llm' | 'deterministic' | 'blocked' | 'none';
+
+/** Mirror of `supabase/functions/_shared/dashboardAssistantTurnTiming.ts#LatencyBreakdown`. */
+export type AssistantTurnTiming = {
+  preload_ms: number | null;
+  model_ms: number[];
+  tools_ms: Array<{ name: string; ms: number }>;
+  synth_ms: number | null;
+  guard_ms: number | null;
+  commit_ms: number | null;
+  total_ms: number;
+  guard_mode: AssistantTurnGuardMode | null;
+  modules: string[];
+  primary_module: string;
+  rounds: number;
+  synth_inline: boolean;
 };
 
 export type StreamChatMessageInput = {

@@ -490,6 +490,7 @@ export function ChatComposer({
               }
             }}
             data-assistant-composer="true"
+            data-testid="assistant-composer"
             aria-autocomplete="list"
             aria-controls={menuOpen ? menuId : undefined}
             aria-activedescendant={

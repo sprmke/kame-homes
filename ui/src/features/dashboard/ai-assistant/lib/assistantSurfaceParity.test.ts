@@ -54,4 +54,21 @@ describe('assistant surface parity', () => {
   it('only the session provider calls the chat hook', () => {
     expect(read('AiAssistantSessionProvider.tsx')).toMatch(/useAiAssistantChat\(pageContext\)/);
   });
+
+  it('ChatBlockRenderer registers every visual block on both surfaces', () => {
+    const renderer = read('ChatBlockRenderer.tsx');
+    for (const name of [
+      'ChartBlock',
+      'CalendarBlock',
+      'TimelineBlock',
+      'EntityCardBlock',
+      'CarouselBlock',
+      'KpiBlock',
+      'ComparisonBlock',
+      'ChecklistBlock',
+      'CalloutBlock',
+    ]) {
+      expect(renderer).toContain(name);
+    }
+  });
 });

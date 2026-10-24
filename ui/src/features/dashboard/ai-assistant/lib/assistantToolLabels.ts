@@ -56,6 +56,11 @@ const TOOL_LABELS: Record<string, { progress: string; done: string; failed: stri
     done: 'Summarized finance',
     failed: 'Finance summary failed',
   },
+  get_finance_trend: {
+    progress: 'Loading income trend…',
+    done: 'Loaded income trend',
+    failed: 'Income trend failed',
+  },
   list_finance_bookings: {
     progress: 'Listing finance bookings…',
     done: 'Listed finance bookings',
@@ -626,6 +631,71 @@ const TOOL_LABELS: Record<string, { progress: string; done: string; failed: stri
     progress: 'Marking notifications read…',
     done: 'Marked notifications read',
     failed: 'Could not mark notifications read',
+  },
+  list_guest_reviews: {
+    progress: 'Loading reviews…',
+    done: 'Loaded reviews',
+    failed: 'Could not load reviews',
+  },
+  get_review_summary: {
+    progress: 'Checking ratings…',
+    done: 'Checked ratings',
+    failed: 'Could not check ratings',
+  },
+  get_rewards_summary: {
+    progress: 'Checking vouchers…',
+    done: 'Checked vouchers',
+    failed: 'Could not check vouchers',
+  },
+  list_vouchers: {
+    progress: 'Loading vouchers…',
+    done: 'Loaded vouchers',
+    failed: 'Could not load vouchers',
+  },
+  get_superhost_status: {
+    progress: 'Checking Superhost…',
+    done: 'Checked Superhost',
+    failed: 'Superhost check failed',
+  },
+  get_setup_guide_progress: {
+    progress: 'Checking setup guide…',
+    done: 'Checked setup guide',
+    failed: 'Setup guide check failed',
+  },
+  list_marketing_themes: {
+    progress: 'Loading themes…',
+    done: 'Loaded themes',
+    failed: 'Could not load themes',
+  },
+  get_marketing_theme: {
+    progress: 'Loading theme…',
+    done: 'Loaded theme',
+    failed: 'Could not load theme',
+  },
+  get_analytics_demographics: {
+    progress: 'Checking guest mix…',
+    done: 'Checked guest mix',
+    failed: 'Guest mix check failed',
+  },
+  list_notifications: {
+    progress: 'Loading notifications…',
+    done: 'Loaded notifications',
+    failed: 'Could not load notifications',
+  },
+  get_stay_guide_content: {
+    progress: 'Loading stay guide…',
+    done: 'Loaded stay guide',
+    failed: 'Could not load stay guide',
+  },
+  get_custom_page_content: {
+    progress: 'Loading pages…',
+    done: 'Loaded pages',
+    failed: 'Could not load pages',
+  },
+  search_help_center: {
+    progress: 'Searching help…',
+    done: 'Searched help',
+    failed: 'Help search failed',
   },
 };
 

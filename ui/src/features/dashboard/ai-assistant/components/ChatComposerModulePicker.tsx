@@ -12,7 +12,9 @@ import { ChatComposerParkingBookingPicker } from '@/features/dashboard/ai-assist
 import { ChatComposerPricingPicker } from '@/features/dashboard/ai-assistant/components/ChatComposerPricingPicker';
 import { ChatComposerPropertyPicker } from '@/features/dashboard/ai-assistant/components/ChatComposerPropertyPicker';
 import { ChatComposerPublicPagePicker } from '@/features/dashboard/ai-assistant/components/ChatComposerPublicPagePicker';
+import { ChatComposerReviewPicker } from '@/features/dashboard/ai-assistant/components/ChatComposerReviewPicker';
 import { ChatComposerTeamPicker } from '@/features/dashboard/ai-assistant/components/ChatComposerTeamPicker';
+import { ChatComposerThemePicker } from '@/features/dashboard/ai-assistant/components/ChatComposerThemePicker';
 import { ChatComposerTicketPicker } from '@/features/dashboard/ai-assistant/components/ChatComposerTicketPicker';
 import { useAssistantContextPicker } from '@/features/dashboard/ai-assistant/hooks/useAssistantContextPicker';
 import {
@@ -79,7 +81,14 @@ export function ChatComposerModulePicker({ pageBookingId, ...props }: Props) {
     case 'inbox_conversation':
       return <ChatComposerInboxPicker {...shared} />;
     case 'marketing_template':
-      return <ChatComposerMarketingPicker {...shared} />;
+      return (
+        <>
+          <ChatComposerMarketingPicker {...shared} />
+          <ChatComposerThemePicker {...shared} />
+        </>
+      );
+    case 'review':
+      return <ChatComposerReviewPicker {...shared} />;
     case 'pricing_date':
       return <ChatComposerPricingPicker {...shared} />;
     case 'notification_module':

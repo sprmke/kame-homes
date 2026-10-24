@@ -15,6 +15,7 @@ import {
   AiAssistantSessionContext,
   type AiAssistantSessionValue,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantSessionContext';
+import { shouldPromptAssistantUpgrade } from '@/features/dashboard/ai-assistant/lib/assistantAccess';
 import { resolveAssistantAiOffReason } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
 import {
   EMPTY_ASSISTANT_DRAFT,
@@ -87,7 +88,9 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
     resolveAction,
   } = chat;
 
-  const { accessible } = useAiAssistantAccess(propertyId);
+  const access = useAiAssistantAccess(propertyId);
+  const { accessible, permissionAllowed, permissionLoading, planGate } = access;
+  const accessPending = access.isLoading || permissionLoading || planGate.isLoading;
   const readOnly = !accessible;
   const { data: assistantSettings } = useAiDashboardAssistantSettings({ includeUsage: true });
   const aiOffReason = resolveAssistantAiOffReason(assistantSettings?.aiBlocker, chat.aiBlocker);
@@ -222,10 +225,19 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
 
   // ── Actions (every one respects the plan gate the same way) ───────────────────────────────
   const blocked = useCallback(() => {
-    if (!readOnly) return false;
-    openUpgradeModal('aiDashboardAssistant');
-    return true;
-  }, [readOnly, openUpgradeModal]);
+    if (accessPending) return true;
+    if (
+      shouldPromptAssistantUpgrade({
+        accessPending,
+        permissionAllowed,
+        accessible,
+      })
+    ) {
+      openUpgradeModal('aiDashboardAssistant');
+      return true;
+    }
+    return !accessible;
+  }, [accessPending, accessible, openUpgradeModal, permissionAllowed]);
 
   const lastUserContext = useCallback(
     () => [...messages].reverse().find((message) => message.role === 'user')?.attachedContext,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
+import { ComparisonBlock } from '@/features/dashboard/ai-assistant/components/blocks/ComparisonBlock';
 import type {
   ChatBlock,
   ConfirmActionResponse,
@@ -25,6 +26,7 @@ export function ActionConfirmationBlock({
   isExternalSend,
   errorMessage,
   resultNote,
+  diff,
   onResolve,
 }: Props) {
   const [busy, setBusy] = useState<'confirm' | 'deny' | null>(null);
@@ -74,6 +76,8 @@ export function ActionConfirmationBlock({
           This sends or publishes for real, right now — this can&apos;t be undone.
         </p>
       )}
+
+      {diff ? <ComparisonBlock {...diff} /> : null}
 
       {displayDetails.length > 0 && (
         <dl className="space-y-0.5 pl-6">

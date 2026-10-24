@@ -79,3 +79,18 @@ export function resolveEffectiveDashboardMode(
 ): DashboardMode {
   return availability === 'available' || availability === 'pending' ? saved : 'advanced';
 }
+
+/**
+ * When the signed-in user id first arrives, keep a `?mode=` / in-session toggle
+ * instead of treating auth hydration as a user switch (which would drop the
+ * override and let a slower GET of `user_ui_preferences` win).
+ */
+export function reconcileDashboardModeOnUserId(input: {
+  previousUserId: string | null;
+  nextUserId: string | null;
+  inSessionChoice: boolean;
+}): 'noop' | 'keep-session' | 'hydrate-cache' {
+  if (input.previousUserId === input.nextUserId) return 'noop';
+  if (!input.previousUserId && input.nextUserId && input.inSessionChoice) return 'keep-session';
+  return 'hydrate-cache';
+}

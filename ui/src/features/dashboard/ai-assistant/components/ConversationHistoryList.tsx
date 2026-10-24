@@ -150,7 +150,7 @@ export function ConversationHistoryList({
     body = searching ? (
       <p className="text-muted-foreground px-4 py-8 text-center text-sm">No conversations</p>
     ) : (
-      <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-sm">
+      <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 px-4 sm:px-6 py-8 sm:py-12 text-center text-sm">
         <MessageCircle className="size-6" aria-hidden />
         <p>No conversations yet</p>
       </div>

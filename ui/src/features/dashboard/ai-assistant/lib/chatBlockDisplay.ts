@@ -149,12 +149,31 @@ export function dataTableCell(
 
 export function isCanvasWorthyBlock(block: ChatBlock): boolean {
   if (block.type === 'stepper') return (block.steps?.length ?? 0) > 0;
-  if (block.type === 'data_table') return (block.rows?.length ?? 0) > 8;
+  if (block.type === 'data_table') return (block.rows?.length ?? 0) > 24;
+  if (block.type === 'chart') {
+    const points =
+      block.series?.reduce((sum, series) => sum + (series.points?.length ?? 0), 0) ?? 0;
+    return points > 12;
+  }
+  if (block.type === 'carousel') return (block.items?.length ?? 0) > 8;
+  if (block.type === 'timeline') return (block.items?.length ?? 0) > 12;
   return false;
 }
 
 export function canvasBlockTitle(block: ChatBlock): string {
-  if (block.type === 'stepper' || block.type === 'data_table') return block.title || '';
+  if (
+    block.type === 'stepper' ||
+    block.type === 'data_table' ||
+    block.type === 'chart' ||
+    block.type === 'calendar' ||
+    block.type === 'carousel' ||
+    block.type === 'timeline' ||
+    block.type === 'comparison' ||
+    block.type === 'checklist'
+  ) {
+    return block.title || '';
+  }
+  if (block.type === 'kpi') return block.label || '';
   return '';
 }
 
@@ -164,6 +183,9 @@ export function canvasBlockSummary(block: ChatBlock): string {
     return current?.label ?? `${block.steps?.length ?? 0} steps`;
   }
   if (block.type === 'data_table') return `${block.rows?.length ?? 0} rows`;
+  if (block.type === 'chart') return `${block.kind} chart`;
+  if (block.type === 'carousel') return `${block.items?.length ?? 0} items`;
+  if (block.type === 'timeline') return `${block.items?.length ?? 0} events`;
   return '';
 }
 
@@ -212,8 +234,15 @@ export function assistantBubbleWidthClass(blocks: ChatBlock[]): string {
   const form = blocks.find(
     (block): block is Extract<ChatBlock, { type: 'dynamic_form' }> => block.type === 'dynamic_form'
   );
-  if (!form) return 'max-w-[92%]';
-  return `w-full ${dynamicFormWidthClass(form.fields)}`;
+  if (form) return `w-full ${dynamicFormWidthClass(form.fields)}`;
+  if (
+    blocks.some(
+      (block) => block.type === 'chart' || block.type === 'calendar' || block.type === 'carousel'
+    )
+  ) {
+    return 'w-full max-w-[100%]';
+  }
+  return 'max-w-[92%]';
 }
 
 export function patchDynamicFormStatus(

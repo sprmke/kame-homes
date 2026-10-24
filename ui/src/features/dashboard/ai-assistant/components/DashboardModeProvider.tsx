@@ -17,6 +17,7 @@ import {
 import {
   isDashboardMode,
   readCachedDashboardMode,
+  reconcileDashboardModeOnUserId,
   resolveDashboardModeAvailability,
   resolveEffectiveDashboardMode,
   writeCachedDashboardMode,
@@ -60,6 +61,7 @@ export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
   const [transitioning, setTransitioning] = useState(false);
   /** Once the host picks a mode this session, a slower GET must never overwrite it. */
   const localChoiceRef = useRef(false);
+  const previousUserIdRef = useRef<string | null>(userId);
 
   const propertyId = usePropertyIdParam();
   // Same cached query the launcher uses; no extra request.
@@ -93,8 +95,21 @@ export function DashboardModeProvider({ children, userId, superAdmin }: Props) {
   });
 
   useEffect(() => {
-    setSaved(readCachedDashboardMode(userId) ?? 'advanced');
+    const previousUserId = previousUserIdRef.current;
+    previousUserIdRef.current = userId;
+    const action = reconcileDashboardModeOnUserId({
+      previousUserId,
+      nextUserId: userId,
+      inSessionChoice: localChoiceRef.current,
+    });
+    if (action === 'noop') return;
+    if (action === 'keep-session') {
+      writeCachedDashboardMode(userId, saved);
+      if (userId) persist.mutate({ dashboardMode: saved });
+      return;
+    }
     localChoiceRef.current = false;
+    setSaved(readCachedDashboardMode(userId) ?? 'advanced');
   }, [userId]);
 
   useEffect(() => {

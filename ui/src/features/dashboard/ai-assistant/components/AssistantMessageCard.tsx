@@ -44,6 +44,7 @@ export function AssistantMessageCard({
 
   return (
     <div
+      data-testid="assistant-message"
       className={cn(
         unboxed
           ? 'w-full max-w-full'

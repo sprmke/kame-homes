@@ -1,13 +1,21 @@
 import { ActionConfirmationBlock } from '@/features/dashboard/ai-assistant/components/blocks/ActionConfirmationBlock';
 import { ActivityTimelineBlock } from '@/features/dashboard/ai-assistant/components/blocks/ActivityTimelineBlock';
 import { BookingCardBlock } from '@/features/dashboard/ai-assistant/components/blocks/BookingCardBlock';
+import { CalendarBlock } from '@/features/dashboard/ai-assistant/components/blocks/CalendarBlock';
+import { CalloutBlock } from '@/features/dashboard/ai-assistant/components/blocks/CalloutBlock';
+import { CarouselBlock } from '@/features/dashboard/ai-assistant/components/blocks/CarouselBlock';
+import { ChartBlock } from '@/features/dashboard/ai-assistant/components/blocks/ChartBlock';
 import { ChatCanvasCompactCard } from '@/features/dashboard/ai-assistant/components/blocks/ChatCanvasCompactCard';
+import { ChecklistBlock } from '@/features/dashboard/ai-assistant/components/blocks/ChecklistBlock';
+import { ComparisonBlock } from '@/features/dashboard/ai-assistant/components/blocks/ComparisonBlock';
 import { DataTableBlock } from '@/features/dashboard/ai-assistant/components/blocks/DataTableBlock';
 import { DiagramBlock } from '@/features/dashboard/ai-assistant/components/blocks/DiagramBlock';
 import { DynamicFormBlock } from '@/features/dashboard/ai-assistant/components/blocks/DynamicFormBlock';
+import { EntityCardBlock } from '@/features/dashboard/ai-assistant/components/blocks/EntityCardBlock';
 import { FileListBlock } from '@/features/dashboard/ai-assistant/components/blocks/FileListBlock';
 import { FlowBlock } from '@/features/dashboard/ai-assistant/components/blocks/FlowBlock';
 import { ImageBlock } from '@/features/dashboard/ai-assistant/components/blocks/ImageBlock';
+import { KpiBlock } from '@/features/dashboard/ai-assistant/components/blocks/KpiBlock';
 import { LinkListBlock } from '@/features/dashboard/ai-assistant/components/blocks/LinkListBlock';
 import { MapBlock } from '@/features/dashboard/ai-assistant/components/blocks/MapBlock';
 import { OpenPageBlock } from '@/features/dashboard/ai-assistant/components/blocks/OpenPageBlock';
@@ -16,6 +24,7 @@ import { StatListBlock } from '@/features/dashboard/ai-assistant/components/bloc
 import { StepperBlock } from '@/features/dashboard/ai-assistant/components/blocks/StepperBlock';
 import { TaskPlanBlock } from '@/features/dashboard/ai-assistant/components/blocks/TaskPlanBlock';
 import { TextBlock } from '@/features/dashboard/ai-assistant/components/blocks/TextBlock';
+import { TimelineBlock } from '@/features/dashboard/ai-assistant/components/blocks/TimelineBlock';
 import type {
   ChatBlock,
   ConfirmActionResponse,
@@ -100,6 +109,41 @@ export function ChatBlockRenderer({
             );
           case 'action_confirmation':
             return <ActionConfirmationBlock key={i} {...block} onResolve={onResolveAction} />;
+          case 'chart':
+            return <ChartBlock key={i} {...block} />;
+          case 'calendar':
+            return (
+              <CalendarBlock
+                key={i}
+                {...block}
+                onPageMonth={
+                  onRunQuickAction
+                    ? (direction) =>
+                        onRunQuickAction({
+                          label: direction === 'prev' ? 'Previous month' : 'Next month',
+                          prompt:
+                            direction === 'prev'
+                              ? 'Show the previous month on that calendar.'
+                              : 'Show the next month on that calendar.',
+                        })
+                    : undefined
+                }
+              />
+            );
+          case 'timeline':
+            return <TimelineBlock key={i} {...block} />;
+          case 'entity_card':
+            return <EntityCardBlock key={i} {...block} onRunAction={onRunQuickAction} />;
+          case 'carousel':
+            return <CarouselBlock key={i} {...block} onRunAction={onRunQuickAction} />;
+          case 'kpi':
+            return <KpiBlock key={i} {...block} />;
+          case 'comparison':
+            return <ComparisonBlock key={i} {...block} />;
+          case 'checklist':
+            return <ChecklistBlock key={i} {...block} onRunAction={onRunQuickAction} />;
+          case 'callout':
+            return <CalloutBlock key={i} {...block} />;
           default:
             return null;
         }

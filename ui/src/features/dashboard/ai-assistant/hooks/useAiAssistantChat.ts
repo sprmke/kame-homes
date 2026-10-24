@@ -252,6 +252,10 @@ export function useAiAssistantChat(pageContext: PageContext) {
             setStreamingText((prev) => prev + event.delta);
             return;
           }
+          if (event.type === 'retract') {
+            setStreamingText(event.fallbackText);
+            return;
+          }
           setTurnProgress((prev) => buildTurnProgressFromStreamEvent(prev, event));
         },
       };
@@ -442,19 +446,28 @@ export function useAiAssistantChat(pageContext: PageContext) {
     try {
       const result = await confirmAssistantAction({ actionId, confirm });
       setMessages((prev) =>
-        prev.map((msg) => ({
-          ...msg,
-          blocks:
-            result.status === 'pending'
-              ? msg.blocks
-              : patchActionConfirmationStatus(
-                  msg.blocks,
-                  actionId,
-                  result.status,
-                  result.ok === false ? result.error : undefined,
-                  result.ok !== false ? result.resultNote : undefined
-                ),
-        }))
+        prev.map((msg) => {
+          const hasAction = (msg.blocks ?? []).some(
+            (block) =>
+              (block.type === 'action_confirmation' && block.actionId === actionId) ||
+              (block.type === 'stepper' &&
+                block.steps?.some((step) => step.actionBlock?.actionId === actionId))
+          );
+          if (!hasAction || result.status === 'pending') return msg;
+          if (Array.isArray(result.blocks) && result.blocks.length > 0) {
+            return { ...msg, blocks: result.blocks };
+          }
+          return {
+            ...msg,
+            blocks: patchActionConfirmationStatus(
+              msg.blocks,
+              actionId,
+              result.status,
+              result.ok === false ? result.error : undefined,
+              result.ok !== false ? result.resultNote : undefined
+            ),
+          };
+        })
       );
       setError(null);
       return result;

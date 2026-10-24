@@ -1,4 +1,93 @@
 import type { AssistantAiBlocker } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
+
+export type ChartPoint = { x: string; y: number; label?: string };
+export type ChartBlock = {
+  type: 'chart';
+  title: string;
+  kind: 'bar' | 'line' | 'area' | 'pie' | 'donut';
+  series: Array<{ name: string; points: ChartPoint[] }>;
+  unit?: 'php' | 'pct' | 'count';
+  xLabel?: string;
+  yLabel?: string;
+  tableAlt: { columns: string[]; rows: Array<Record<string, string | number>> };
+  hydrated?: true;
+};
+export type CalendarDayState = 'booked' | 'blocked' | 'available' | 'checkin' | 'checkout';
+export type CalendarBlock = {
+  type: 'calendar';
+  title: string;
+  month: string;
+  days: Array<{ date: string; state: CalendarDayState; rate?: string; label?: string }>;
+  legend: Array<{ state: string; label: string }>;
+  range?: { start: string; end: string };
+  hydrated?: true;
+};
+export type TimelineBlock = {
+  type: 'timeline';
+  title: string;
+  items: Array<{
+    at: string;
+    label: string;
+    detail?: string;
+    status?: string;
+    actor?: string;
+    href?: string;
+  }>;
+  hydrated?: true;
+};
+export type EntityCardBlock = {
+  type: 'entity_card';
+  entityType:
+    | 'property'
+    | 'parking'
+    | 'team_member'
+    | 'maintenance_item'
+    | 'inbox_thread'
+    | 'support_ticket'
+    | 'marketing_template'
+    | 'guest';
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl?: string;
+  badge?: { label: string; tone: string };
+  facts: Array<{ label: string; value: string }>;
+  actions?: Array<{ label: string; prompt?: string; routeKey?: string }>;
+  hydrated?: true;
+};
+export type CarouselBlock = {
+  type: 'carousel';
+  title: string;
+  items: EntityCardBlock[];
+  hydrated?: true;
+};
+export type KpiBlock = {
+  type: 'kpi';
+  label: string;
+  value: string;
+  delta?: { value: string; direction: 'up' | 'down' | 'flat'; label?: string };
+  sparkline?: number[];
+  hydrated?: true;
+};
+export type ComparisonBlock = {
+  type: 'comparison';
+  title: string;
+  columns: [string, string];
+  rows: Array<{ label: string; before: string; after: string; changed: boolean }>;
+  hydrated?: true;
+};
+export type ChecklistBlock = {
+  type: 'checklist';
+  title: string;
+  items: Array<{ id: string; label: string; done: boolean; prompt?: string }>;
+  hydrated?: true;
+};
+export type CalloutBlock = {
+  type: 'callout';
+  tone: 'info' | 'warning' | 'success';
+  text: string;
+  href?: string;
+};
 import type { AttachedContextItem } from '@/features/dashboard/ai-assistant/lib/attachedContext';
 import { scopedOrgFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
@@ -10,6 +99,7 @@ export type ActionConfirmationBlock = {
   riskTier: 'tier1_auto' | 'tier2_confirmed';
   summary: string;
   details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
   status: 'proposed' | 'confirmed' | 'executed' | 'denied' | 'expired';
   isExternalSend?: boolean;
   errorMessage?: string;
@@ -131,6 +221,10 @@ export type ChatBlock =
       rows: Array<Record<string, string | number>>;
       /** Aligned with `rows`; set by the server for rows that map to a booking. */
       rowTargets?: Array<{ bookingId: string; propertyId?: string; parkingId?: string } | null>;
+      sortable?: boolean;
+      pageSize?: number;
+      phoneColumns?: string[];
+      downloadable?: boolean;
     }
   | { type: 'link_list'; title: string; links: Array<{ label: string; href: string }> }
   | {
@@ -147,7 +241,16 @@ export type ChatBlock =
   | DiagramBlock
   | MapBlock
   | DynamicFormBlock
-  | ActionConfirmationBlock;
+  | ActionConfirmationBlock
+  | ChartBlock
+  | CalendarBlock
+  | TimelineBlock
+  | EntityCardBlock
+  | CarouselBlock
+  | KpiBlock
+  | ComparisonBlock
+  | ChecklistBlock
+  | CalloutBlock;
 
 export type ChatAttachmentMeta = {
   name: string;
@@ -175,6 +278,8 @@ export type ConfirmActionResponse = {
   data?: unknown;
   alreadyResolved?: boolean;
   resultNote?: string | null;
+  /** Persisted message blocks after confirm, including follow-through chips. */
+  blocks?: ChatBlock[];
 };
 
 export type AiDashboardAssistantUsageSummary = {
@@ -401,11 +506,21 @@ export type AssistantBriefingCard = {
   href: string;
 };
 
+export type AssistantBriefingDelta = {
+  newBookings: number;
+  newMessages: number;
+  completedStays: number;
+};
+
 export function fetchAssistantBriefing(
   orgSlug: string | null,
   orgId: string | null,
   scope: { propertyId?: string | null; parkingId?: string | null }
-): Promise<{ cards: AssistantBriefingCard[]; manilaDate: string | null }> {
+): Promise<{
+  cards: AssistantBriefingCard[];
+  manilaDate: string | null;
+  sinceYesterday: AssistantBriefingDelta | null;
+}> {
   const url = new URL(scopedOrgFunctionsUrl('dashboard-assistant-briefing', orgSlug, orgId));
   if (scope.propertyId) url.searchParams.set('property_id', scope.propertyId);
   else if (scope.parkingId) url.searchParams.set('parking_id', scope.parkingId);
