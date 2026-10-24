@@ -1,0 +1,281 @@
+{
+  "get_property_pricing_december": {
+    "toolName": "get_property_pricing",
+    "data": {
+      "weekdayNightlyRate": 3200,
+      "weekendNightlyRate": 3800,
+      "downPayment": 1500,
+      "securityDeposit": 2000,
+      "petFee": 500,
+      "parkingRateGuest": 300,
+      "guestAdditionalFee": 400,
+      "dateOverrides": {
+        "2026-12-24": 5500,
+        "2026-12-25": 5500,
+        "2026-12-31": 6500
+      },
+      "blockedDateKeys": ["2026-12-27", "2026-12-28"],
+      "holidayRules": [
+        { "name": "Christmas", "date": "2026-12-25", "rate": 5500 },
+        { "name": "New Year's Eve", "date": "2026-12-31", "rate": 6500 }
+      ]
+    }
+  },
+  "list_activity_log_pricing": {
+    "toolName": "list_activity_log",
+    "data": {
+      "entries": [
+        {
+          "id": "act-1",
+          "hostLabel": "Ana Reyes changed the base rate",
+          "at": "2026-10-18T09:12:00+08:00",
+          "action": "pricing.base_rate_updated",
+          "summary": "Weekday rate ₱3,000 → ₱3,200",
+          "actorName": "Ana Reyes",
+          "category": "pricing",
+          "severity": "info"
+        },
+        {
+          "id": "act-2",
+          "hostLabel": "Pedro Lim blocked Dec 27–28",
+          "at": "2026-10-17T16:40:00+08:00",
+          "action": "pricing.dates_blocked",
+          "summary": "Blocked 2026-12-27 to 2026-12-28",
+          "actorName": "Pedro Lim",
+          "category": "pricing",
+          "severity": "info"
+        },
+        {
+          "id": "act-3",
+          "hostLabel": "Smart pricing applied 11 nights",
+          "at": "2026-10-15T08:00:00+08:00",
+          "action": "pricing.smart_pricing_applied",
+          "summary": "Applied run spr-2026-10-15-01",
+          "actorName": "System",
+          "category": "pricing",
+          "severity": "info"
+        }
+      ],
+      "total": 3
+    }
+  },
+  "list_marketing_templates": {
+    "toolName": "list_marketing_templates",
+    "data": [
+      {
+        "id": "tpl-1",
+        "hostLabel": "Christmas Promo · facebook",
+        "name": "Christmas Promo",
+        "contentType": "image",
+        "platform": "facebook",
+        "updatedAt": "2026-10-10T10:00:00+08:00",
+        "thumbnailUrl": "https://files.example.test/marketing/tpl-1/thumb.webp"
+      },
+      {
+        "id": "tpl-2",
+        "hostLabel": "Weekend Getaway · instagram",
+        "name": "Weekend Getaway",
+        "contentType": "image",
+        "platform": "instagram",
+        "updatedAt": "2026-10-08T10:00:00+08:00",
+        "thumbnailUrl": "https://files.example.test/marketing/tpl-2/thumb.webp"
+      },
+      {
+        "id": "tpl-3",
+        "hostLabel": "New Year Countdown · facebook",
+        "name": "New Year Countdown",
+        "contentType": "video",
+        "platform": "facebook",
+        "updatedAt": "2026-10-02T10:00:00+08:00",
+        "thumbnailUrl": "https://files.example.test/marketing/tpl-3/thumb.webp"
+      }
+    ]
+  },
+  "get_marketing_publish_history": {
+    "toolName": "get_marketing_publish_history",
+    "data": [
+      {
+        "id": "pub-1",
+        "platform": "facebook",
+        "publishType": "post",
+        "caption": "Spend Christmas with a view. Book Dec 24-26 now.",
+        "status": "published",
+        "metaPostId": "1234567890_111",
+        "publishedAt": "2026-10-12T09:00:00+08:00"
+      },
+      {
+        "id": "pub-2",
+        "platform": "instagram",
+        "publishType": "post",
+        "caption": "Weekend getaway, 10% off for direct bookings.",
+        "status": "published",
+        "metaPostId": "1234567890_112",
+        "publishedAt": "2026-10-05T09:00:00+08:00"
+      },
+      {
+        "id": "pub-3",
+        "platform": "facebook",
+        "publishType": "story",
+        "caption": "",
+        "status": "failed",
+        "metaPostId": null,
+        "publishedAt": null
+      }
+    ]
+  },
+  "list_maintenance_items": {
+    "toolName": "list_maintenance_items",
+    "data": [
+      {
+        "id": "mt-1",
+        "hostLabel": "AC not cooling in unit 12A · Open",
+        "label": "AC not cooling in unit 12A",
+        "category": "repair",
+        "scheduledOn": "2026-10-15",
+        "completedAt": null,
+        "notes": "Guest reported on Oct 14."
+      },
+      {
+        "id": "mt-2",
+        "hostLabel": "Leaking faucet · Open",
+        "label": "Leaking faucet",
+        "category": "repair",
+        "scheduledOn": "2026-10-12",
+        "completedAt": null,
+        "notes": null
+      },
+      {
+        "id": "mt-3",
+        "hostLabel": "Deep clean · Done",
+        "label": "Deep clean",
+        "category": "cleaning",
+        "scheduledOn": "2026-10-01",
+        "completedAt": "2026-10-01T15:00:00+08:00",
+        "notes": null
+      }
+    ]
+  },
+  "list_team_members": {
+    "toolName": "list_team_members",
+    "data": [
+      {
+        "id": "tm-1",
+        "hostLabel": "Ana Reyes · Owner",
+        "name": "Ana Reyes",
+        "email": "ana@example.test",
+        "role": "owner",
+        "status": "active",
+        "isOwner": true
+      },
+      {
+        "id": "tm-2",
+        "hostLabel": "Pedro Lim · Property manager",
+        "name": "Pedro Lim",
+        "email": "pedro@example.test",
+        "role": "Property manager",
+        "status": "active",
+        "isOwner": false
+      },
+      {
+        "id": "tm-3",
+        "hostLabel": "Liza Cruz · Cleaner",
+        "name": "Liza Cruz",
+        "email": "liza@example.test",
+        "role": "Cleaner",
+        "status": "invited",
+        "isOwner": false
+      }
+    ]
+  },
+  "list_inbox_threads_pending": {
+    "toolName": "list_inbox_threads",
+    "data": [
+      {
+        "conversationId": "conv-1",
+        "hostLabel": "Juan dela Cruz · web",
+        "platform": "web",
+        "participantName": "Juan dela Cruz",
+        "subjectPreview": "Can I check in early on Dec 21?",
+        "lastMessageAt": "2026-10-19T08:10:00+08:00",
+        "unreadCount": 2,
+        "replyStatus": "pending"
+      },
+      {
+        "conversationId": "conv-2",
+        "hostLabel": "Grace Tan · facebook",
+        "platform": "facebook",
+        "participantName": "Grace Tan",
+        "subjectPreview": "Do you allow pets?",
+        "lastMessageAt": "2026-10-18T21:30:00+08:00",
+        "unreadCount": 1,
+        "replyStatus": "pending"
+      }
+    ]
+  },
+  "get_setup_guide_progress": {
+    "toolName": "get_setup_guide_progress",
+    "data": {
+      "completed": 5,
+      "total": 8,
+      "steps": [
+        { "id": "profile", "label": "Complete property profile", "done": true },
+        { "id": "photos", "label": "Add at least 5 photos", "done": true },
+        { "id": "pricing", "label": "Set nightly rates", "done": true },
+        { "id": "payment", "label": "Add a payment method", "done": true },
+        { "id": "templates", "label": "Review email templates", "done": true },
+        {
+          "id": "meta",
+          "label": "Connect Facebook or Instagram",
+          "done": false,
+          "routeKey": "inbox_settings"
+        },
+        {
+          "id": "stay_guide",
+          "label": "Publish the stay guide",
+          "done": false,
+          "routeKey": "stay_guide"
+        },
+        {
+          "id": "verification",
+          "label": "Verify the organization",
+          "done": false,
+          "routeKey": "org_verification"
+        }
+      ],
+      "nextStep": {
+        "id": "meta",
+        "label": "Connect Facebook or Instagram",
+        "routeKey": "inbox_settings"
+      }
+    }
+  },
+  "get_superhost_status": {
+    "toolName": "get_superhost_status",
+    "data": {
+      "tier": "none",
+      "tierLabel": "Not yet a Superhost",
+      "criteria": [
+        {
+          "id": "stays",
+          "label": "10 completed stays in the last 12 months",
+          "met": true,
+          "current": "14"
+        },
+        { "id": "rating", "label": "4.8 average rating", "met": true, "current": "4.8" },
+        {
+          "id": "response",
+          "label": "90% response rate within 24 hours",
+          "met": true,
+          "current": "96%"
+        },
+        {
+          "id": "cancellation",
+          "label": "Under 1% cancellation rate",
+          "met": false,
+          "current": "8%"
+        }
+      ],
+      "nextAssessmentOn": "2027-01-01"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "factsText": "Property: Azure North 1204 (Azure Urban Resort Residences, Parañaque). Sleeps up to 4 guests, 1 bedroom, 1 bathroom. Check-in 2 PM, check-out 12 NN. Self check-in: no. Weekday rate PHP 3,200 per night, weekend rate PHP 3,800 per night. Security deposit PHP 2,000, refundable after checkout. Pet fee PHP 500. Guest parking PHP 300 per night, arranged with the host. Payment methods: GCash 0999-888-7777 (Juan D.). Cancellation: Flexible, full refund up to 7 days before check-in. Amenities: wifi, kitchen, washing machine, smart TV, pool access (7 AM to 10 PM, pool fee PHP 150 per guest). House rules: no parties, no smoking indoors, quiet hours 10 PM to 7 AM.",
+  "pricingValues": [3200, 3800, 2000, 500, 300, 150],
+  "allowedAccountNumbers": ["09998887777"],
+  "phaseLines": {
+    "inquiry": "Guest phase: inquiry. The guest has no booking yet.",
+    "booked": "Guest phase: booked. The guest has a confirmed booking for Dec 20 to Dec 22 (status Ready for Check-in).",
+    "active": "Guest phase: active stay. The guest checked in today and is staying until tomorrow.",
+    "post": "Guest phase: after checkout. The guest's stay ended yesterday; the security deposit refund is pending."
+  }
+}

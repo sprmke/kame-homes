@@ -1,3 +1,4 @@
+import './evalEnv.ts';
 /**
  * Offline AI evals (deterministic, no network) — run in CI via `bun run test:edge:handlers`.
  * Red-team strings from datasets/injection_red_team.jsonl must stay fenced; guard + contract
@@ -16,7 +17,13 @@ import {
 import { evalCaseModule } from '../../_shared/assistantEvalSummary.ts';
 import { ASSISTANT_TOOL_MODULES } from '../../_shared/dashboardAssistantToolRouter.ts';
 import { assertSafeGuestReply } from '../../_shared/inboxAiSafetyGuard.ts';
+import {
+  VOICE_PROPERTY_FACT_TOPICS,
+  VOICE_RECEPTIONIST_TOOL_DECLARATIONS,
+} from '../../_shared/voiceReceptionistTool.ts';
+import { resolveFixtures } from './assistantBlockShape.ts';
 import { readJsonl } from './evalDatasets.ts';
+import type { AnswerQualityRow, GuestToolRow } from './evalRowTypes.ts';
 
 type RedTeamCase = { id: string; text: string; repeat?: number };
 type InboxCase = {
@@ -110,6 +117,9 @@ Deno.test('eval datasets are well-formed', async () => {
     'inbox_reply.jsonl',
     'import_columns.jsonl',
     'assistant_tool_selection.jsonl',
+    'assistant_block_shape.jsonl',
+    'assistant_answer_quality.jsonl',
+    'guest_tools.jsonl',
     'injection_red_team.jsonl',
   ]) {
     const rows = await readJsonl<{ id?: string }>(file);
@@ -117,6 +127,58 @@ Deno.test('eval datasets are well-formed', async () => {
     const ids = new Set(rows.map((r) => r.id));
     assertEquals(ids.size, rows.length, `${file} has duplicate or missing ids`);
   }
+});
+
+Deno.test('answer-quality golden set: rubrics are complete and fixtures resolve', async () => {
+  const rows = await readJsonl<AnswerQualityRow>('assistant_answer_quality.jsonl');
+  assert(rows.length >= 40, `expected at least 40 rows, got ${rows.length}`);
+  const modules = new Set<string>([...Object.values(ASSISTANT_TOOL_MODULES), 'core']);
+  const intents = new Set(['answer', 'clarify', 'refuse']);
+  for (const row of rows) {
+    assert(modules.has(row.module), `${row.id}: unknown module ${row.module}`);
+    assert(row.rubric.mustCover.length > 0, `${row.id}: rubric.mustCover is empty`);
+    assert(row.rubric.maxSentences >= 1, `${row.id}: maxSentences must be >= 1`);
+    assert(intents.has(row.rubric.intent), `${row.id}: unknown intent ${row.rubric.intent}`);
+    await resolveFixtures(row.fixtures);
+  }
+  const coveredIntents = new Set<string>(rows.map((row) => row.rubric.intent));
+  assertEquals(
+    [...intents].filter((i) => !coveredIntents.has(i)),
+    [],
+    'cover every intent'
+  );
+});
+
+Deno.test('guest tools golden set names real receptionist tools and topics', async () => {
+  const rows = await readJsonl<GuestToolRow>('guest_tools.jsonl');
+  assert(rows.length >= 30, `expected at least 30 rows, got ${rows.length}`);
+  const declared = new Set(
+    VOICE_RECEPTIONIST_TOOL_DECLARATIONS.flatMap((group) =>
+      group.functionDeclarations.map((decl) => decl.name)
+    )
+  );
+  const planned = new Set<string>();
+  const topics = new Set<string>(VOICE_PROPERTY_FACT_TOPICS);
+  const phases = new Set(['inquiry', 'booked', 'active', 'post']);
+  for (const row of rows) {
+    assert(phases.has(row.phase), `${row.id}: unknown phase ${row.phase}`);
+    for (const tool of [...row.expectToolsAny, ...(row.forbidTools ?? [])]) {
+      assert(declared.has(tool) || planned.has(tool), `${row.id}: unknown tool ${tool}`);
+    }
+    for (const topic of row.expectTopicAny ?? []) {
+      assert(topics.has(topic), `${row.id}: unknown topic ${topic}`);
+    }
+    assert(
+      row.expectToolsAny.length > 0 || row.expectRefusal === true || row.expectTextAny?.length,
+      `${row.id}: needs expectToolsAny, expectTextAny, or expectRefusal`
+    );
+  }
+  const coveredPhases = new Set<string>(rows.map((row) => row.phase));
+  assertEquals(
+    [...phases].filter((p) => !coveredPhases.has(p)),
+    [],
+    'cover every guest phase'
+  );
 });
 
 Deno.test('assistant golden set names real tools and covers every router module', async () => {
