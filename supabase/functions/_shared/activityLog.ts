@@ -897,13 +897,6 @@ export const ACTIVITY_ACTION_CATALOG = {
       `${c.actorName} changed inbox settings for ${label(c, 'a listing')}` +
       (c.changeCount ? ` (${c.changeCount} field${c.changeCount === 1 ? '' : 's'})` : ''),
   },
-  'inbox.chat_template_sent': {
-    category: 'inbox',
-    severity: 'info',
-    targetType: 'conversation',
-    summary: (c) =>
-      `${c.actorName} sent chat template ${str(c.metadata, 'template_name') ?? 'message'} in ${label(c, 'a listing')} inbox`,
-  },
 
   // ── AI controls ────────────────────────────────────────────────────────
   'ai.assistant_toggled': {
