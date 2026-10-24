@@ -5,15 +5,25 @@
 
 import {
   countCustomTemplates,
+  countPropertyTemplateFolders,
+  createPropertyTemplateFolder,
+  deletePropertyTemplateFolder,
   deletePropertyTemplateRow,
+  DuplicateTemplateFolderNameError,
   getBuiltinPropertyTemplate,
+  getPropertyTemplateRow,
   isBuiltinPropertyTemplateKey,
   isCustomTemplateKey,
   MAX_CUSTOM_TEMPLATES,
+  MAX_TEMPLATE_FOLDERS,
+  propertyTemplateFolderExists,
+  renamePropertyTemplateFolder,
   serializePropertyTemplatesForAdmin,
+  updateCustomTemplateRow,
   upsertPropertyTemplateRow,
   validateCustomTemplateName,
   validateTemplateContent,
+  validateTemplateFolderName,
 } from '../_shared/propertyTemplates.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
@@ -28,7 +38,11 @@ function emitTemplateActivity(
   req: Request,
   user: Pick<AuthenticatedUser, 'id' | 'email'>,
   access: PropertyAccessContext,
-  action: 'settings.template_saved' | 'settings.template_deleted',
+  action:
+    | 'settings.template_saved'
+    | 'settings.template_deleted'
+    | 'settings.template_folder_saved'
+    | 'settings.template_folder_deleted',
   templateKey: string,
   metadata: Record<string, unknown>
 ): Promise<void> {
@@ -73,6 +87,166 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
   }
 
   const body = await readJsonBody(req);
+
+  /**
+   * Folder + custom-template organisation. Folders only ever hold custom
+   * templates, so they inherit the `customTemplates` plan gate and the existing
+   * `templates.custom:*` permission leaves — no new feature key, no new leaf.
+   */
+  async function requireCustomTemplatesFeature(propertyId: string): Promise<Response | null> {
+    try {
+      await requirePropertyFeature(propertyId, 'customTemplates');
+      return null;
+    } catch (err) {
+      const planErr = catchPlanFeatureError(req, err);
+      if (planErr) return planErr;
+      throw err;
+    }
+  }
+
+  if (body.action === 'createFolder') {
+    const access = await resolveScopedPropertyAccess(req, 'templates.custom:add');
+    const { property } = access;
+    const gate = await requireCustomTemplatesFeature(property.id);
+    if (gate) return gate;
+
+    const name = typeof body.name === 'string' ? body.name : '';
+    const nameErr = validateTemplateFolderName(name);
+    if (nameErr) return jsonError(req, nameErr, 400);
+
+    if ((await countPropertyTemplateFolders(property.id)) >= MAX_TEMPLATE_FOLDERS) {
+      return jsonError(req, `Maximum ${MAX_TEMPLATE_FOLDERS} folders allowed`, 400);
+    }
+
+    let folder;
+    try {
+      folder = await createPropertyTemplateFolder({ propertyId: property.id, name });
+    } catch (err) {
+      if (err instanceof DuplicateTemplateFolderNameError) {
+        return jsonError(req, err.message, 409);
+      }
+      throw err;
+    }
+
+    await emitTemplateActivity(req, user, access, 'settings.template_folder_saved', folder.id, {
+      operation: 'folder_created',
+      folder_name: folder.name,
+    });
+    const data = await serializePropertyTemplatesForAdmin(property.id);
+    return jsonSuccess(req, data);
+  }
+
+  if (body.action === 'renameFolder') {
+    const access = await resolveScopedPropertyAccess(req, 'templates.custom:edit');
+    const { property } = access;
+    const gate = await requireCustomTemplatesFeature(property.id);
+    if (gate) return gate;
+
+    const folderId = typeof body.folderId === 'string' ? body.folderId.trim() : '';
+    if (!folderId) return jsonError(req, 'folderId is required', 400);
+
+    const name = typeof body.name === 'string' ? body.name : '';
+    const nameErr = validateTemplateFolderName(name);
+    if (nameErr) return jsonError(req, nameErr, 400);
+
+    let folder;
+    try {
+      folder = await renamePropertyTemplateFolder({ propertyId: property.id, folderId, name });
+    } catch (err) {
+      if (err instanceof DuplicateTemplateFolderNameError) {
+        return jsonError(req, err.message, 409);
+      }
+      throw err;
+    }
+    if (!folder) return jsonError(req, 'Folder not found', 404);
+
+    await emitTemplateActivity(req, user, access, 'settings.template_folder_saved', folder.id, {
+      operation: 'folder_renamed',
+      folder_name: folder.name,
+    });
+    const data = await serializePropertyTemplatesForAdmin(property.id);
+    return jsonSuccess(req, data);
+  }
+
+  if (body.action === 'deleteFolder') {
+    const access = await resolveScopedPropertyAccess(req, 'templates.custom:delete');
+    const { property } = access;
+    const folderId = typeof body.folderId === 'string' ? body.folderId.trim() : '';
+    if (!folderId) return jsonError(req, 'folderId is required', 400);
+
+    if (!(await propertyTemplateFolderExists(property.id, folderId))) {
+      return jsonError(req, 'Folder not found', 404);
+    }
+    // Templates survive: the FK drops them back to the ungrouped Custom section.
+    await deletePropertyTemplateFolder(property.id, folderId);
+
+    await emitTemplateActivity(req, user, access, 'settings.template_folder_deleted', folderId, {
+      operation: 'folder_deleted',
+    });
+    const data = await serializePropertyTemplatesForAdmin(property.id);
+    return jsonSuccess(req, data);
+  }
+
+  if (body.action === 'rename' || body.action === 'move') {
+    const access = await resolveScopedPropertyAccess(req, 'templates.custom:edit');
+    const { property } = access;
+    const gate = await requireCustomTemplatesFeature(property.id);
+    if (gate) return gate;
+
+    const templateKey = typeof body.templateKey === 'string' ? body.templateKey.trim() : '';
+    if (!isCustomTemplateKey(templateKey)) {
+      return jsonError(req, 'Only custom templates can be renamed or moved', 400);
+    }
+
+    const patch: {
+      name?: string;
+      category?: 'standard' | 'email' | 'custom';
+      folderId?: string | null;
+    } = {};
+
+    if (body.action === 'rename') {
+      const name = typeof body.name === 'string' ? body.name : '';
+      const nameErr = validateCustomTemplateName(name);
+      if (nameErr) return jsonError(req, nameErr, 400);
+      patch.name = name;
+    } else {
+      const categoryRaw = typeof body.category === 'string' ? body.category.trim() : 'custom';
+      const category =
+        categoryRaw === 'standard' || categoryRaw === 'email' || categoryRaw === 'custom'
+          ? categoryRaw
+          : 'custom';
+      patch.category = category;
+
+      if (category === 'custom') {
+        const folderId =
+          body.folderId === null || body.folderId === undefined
+            ? null
+            : typeof body.folderId === 'string'
+              ? body.folderId.trim()
+              : '';
+        if (folderId === '') return jsonError(req, 'folderId must be a string or null', 400);
+        if (folderId && !(await propertyTemplateFolderExists(property.id, folderId))) {
+          return jsonError(req, 'Folder not found', 404);
+        }
+        patch.folderId = folderId;
+      }
+    }
+
+    const row = await updateCustomTemplateRow({
+      propertyId: property.id,
+      templateKey,
+      ...patch,
+    });
+    if (!row) return jsonError(req, 'Template not found', 404);
+
+    await emitTemplateActivity(req, user, access, 'settings.template_saved', templateKey, {
+      category: row.category,
+      operation: body.action === 'rename' ? 'rename' : 'move',
+      ...(body.action === 'rename' ? { name: row.name } : { folder_id: row.folder_id }),
+    });
+    const data = await serializePropertyTemplatesForAdmin(property.id);
+    return jsonSuccess(req, data);
+  }
 
   if (body.action === 'delete') {
     const access = await resolveScopedPropertyAccess(req, 'templates.custom:delete');
@@ -141,18 +315,34 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
       return jsonError(req, `Maximum ${MAX_CUSTOM_TEMPLATES} custom templates allowed`, 400);
     }
 
+    const categoryRaw = typeof body.category === 'string' ? body.category.trim() : 'custom';
+    const category =
+      categoryRaw === 'standard' || categoryRaw === 'email' || categoryRaw === 'custom'
+        ? categoryRaw
+        : 'custom';
+
+    let folderId: string | null = null;
+    if (category === 'custom') {
+      folderId = typeof body.folderId === 'string' ? body.folderId.trim() : null;
+      if (folderId && !(await propertyTemplateFolderExists(property.id, folderId))) {
+        return jsonError(req, 'Folder not found', 404);
+      }
+    }
+
     const templateKey = `custom-${crypto.randomUUID()}`;
     await upsertPropertyTemplateRow({
       propertyId: property.id,
       templateKey,
-      category: 'custom',
+      category,
       name: name.trim(),
       content,
+      folderId,
     });
     await emitTemplateActivity(req, user, access, 'settings.template_saved', templateKey, {
-      category: 'custom',
+      category,
       operation: 'create',
       name: name.trim(),
+      ...(folderId ? { folder_id: folderId } : {}),
     });
     const data = await serializePropertyTemplatesForAdmin(property.id);
     return jsonSuccess(req, data);
@@ -192,15 +382,25 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
       const nameErr = validateCustomTemplateName(name);
       if (nameErr) return jsonError(req, nameErr, 400);
     }
+    const existingRow = await getPropertyTemplateRow(property.id, templateKey);
+
+    const existingCategory =
+      existingRow?.category === 'standard' ||
+      existingRow?.category === 'email' ||
+      existingRow?.category === 'custom'
+        ? existingRow.category
+        : 'custom';
+
     await upsertPropertyTemplateRow({
       propertyId: property.id,
       templateKey,
-      category: 'custom',
+      category: existingCategory,
       name: name || undefined,
       content,
+      folderId: existingCategory === 'custom' ? (existingRow?.folder_id ?? null) : null,
     });
     await emitTemplateActivity(req, user, access, 'settings.template_saved', templateKey, {
-      category: 'custom',
+      category: existingCategory,
       operation: 'edit',
     });
     const data = await serializePropertyTemplatesForAdmin(property.id);

@@ -4,17 +4,15 @@
  */
 
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
-import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
-import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import {
   getPropertyReviewSummary,
   listReceivedReviews,
   listToWriteReviews,
   listWrittenReviews,
-  type ReviewListTab,
 } from '../_shared/propertyReviewList.ts';
-
-const TABS = new Set<ReviewListTab>(['received', 'written', 'to_write']);
+import { parseReviewListParams, parseReviewListTab } from '../_shared/reviewListParams.ts';
+import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('list-property-reviews', async (req) => {
   requireHttpMethod(req, 'GET');
@@ -29,18 +27,18 @@ serveAuthenticated('list-property-reviews', async (req) => {
   }
 
   const url = new URL(req.url);
-  const tabRaw = (url.searchParams.get('tab') ?? 'received').trim() as ReviewListTab;
-  if (!TABS.has(tabRaw)) return jsonError(req, 'Invalid tab', 400);
-  const cursor = url.searchParams.get('cursor');
+  const tab = parseReviewListTab(url.searchParams.get('tab'));
+  if (!tab) return jsonError(req, 'Invalid tab', 400);
+  const params = parseReviewListParams(url, tab);
 
   const [summary, page] = await Promise.all([
     getPropertyReviewSummary(propertyId),
-    tabRaw === 'received'
-      ? listReceivedReviews(propertyId, cursor)
-      : tabRaw === 'written'
-        ? listWrittenReviews(propertyId, cursor)
-        : listToWriteReviews(propertyId, cursor),
+    tab === 'received'
+      ? listReceivedReviews(propertyId, params)
+      : tab === 'written'
+        ? listWrittenReviews(propertyId, params)
+        : listToWriteReviews(propertyId, params),
   ]);
 
-  return jsonSuccess(req, { tab: tabRaw, summary, ...page });
+  return jsonSuccess(req, { tab, summary, ...page });
 });

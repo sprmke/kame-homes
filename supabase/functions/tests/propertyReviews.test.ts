@@ -26,6 +26,57 @@ Deno.test(
   }
 );
 
+Deno.test('both Reviews endpoints share one query vocabulary', async () => {
+  const shared = await Deno.readTextFile(new URL('../_shared/reviewListParams.ts', import.meta.url));
+  for (const token of ['q', 'ratings', 'responded', 'hostAgain', 'sort', 'page', 'limit']) {
+    assert(shared.includes(`'${token}'`), `missing ${token} param`);
+  }
+  // To write sorts on window close, so per-tab sort allow lists stay distinct.
+  assert(shared.includes("to_write: ['closes:asc', 'closes:desc']"));
+  // Filters with no column on a tab are ignored, not rejected.
+  assert(shared.includes("tab === 'to_write' ? [] : parseRatings"));
+  assert(shared.includes("tab === 'received' ? parseTriState"));
+  assert(shared.includes("tab === 'written' ? parseTriState"));
+
+  for (const fn of ['list-property-reviews', 'list-org-reviews']) {
+    const source = await Deno.readTextFile(new URL(`../${fn}/index.ts`, import.meta.url));
+    assert(source.includes('parseReviewListParams'), `${fn} parses its own params`);
+    assert(source.includes('parseReviewListTab'), `${fn} parses its own tab`);
+  }
+});
+
+Deno.test('list-org-reviews scopes row actions per listing', async () => {
+  const source = await Deno.readTextFile(new URL('../list-org-reviews/index.ts', import.meta.url));
+  assert(source.includes("'org.reviews:view'"));
+  // Owners / all-listings admins hold every team permission; everyone else is resolved per row.
+  assert(source.includes('canListAllProperties'));
+  assert(source.includes("resolvePropertyIdsWithPermissionForOrgUser"));
+  assert(source.includes("'reviews.responses:edit'"));
+  assert(source.includes("'reviews.guests:edit'"));
+  // The listing filter narrows the feed only — KPIs and the rollup stay org-wide.
+  assert(source.includes('feedProperties'));
+  assert(source.includes('getOrgReviewSummary(properties)'));
+
+  const list = await Deno.readTextFile(new URL('../_shared/orgReviewList.ts', import.meta.url));
+  assert(list.includes('canRespond: actions.respond.has(propertyId)'));
+  assert(list.includes('canWrite: actions.writeGuest.has(row.property_id)'));
+  assert(list.includes('host_reviews_to_write_for_properties'));
+  assert(list.includes('total: count ?? 0'));
+});
+
+Deno.test('propertyReviewList pages by offset and returns a total', async () => {
+  const source = await Deno.readTextFile(
+    new URL('../_shared/propertyReviewList.ts', import.meta.url)
+  );
+  assert(source.includes("{ count: 'exact' }"));
+  assert(source.includes('total: count ?? 0'));
+  // PostgREST `or()` clauses are comma-separated, so separators never reach one.
+  assert(source.includes('function sanitizeSearch'));
+  assert(source.includes('/[,()]/g'));
+  // Guest names live on the stay, so name search prefilters bookings.
+  assert(source.includes('searchBookingIdsByGuestName'));
+});
+
 Deno.test('respond-to-guest-review requires reviews.responses:edit', async () => {
   const source = await Deno.readTextFile(
     new URL('../respond-to-guest-review/index.ts', import.meta.url)

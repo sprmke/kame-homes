@@ -11,6 +11,11 @@
 
 import { buildBriefingCards } from '../_shared/dashboardAssistantBriefing.ts';
 import {
+  briefingDeltaHasSignal,
+  loadBriefingDelta,
+  loadExtendedAttentionItems,
+} from '../_shared/dashboardAssistantBriefingExtras.ts';
+import {
   getDashboardAssistantGlobalSettings,
   getDashboardAssistantOrgSettings,
   isDashboardAssistantAccessible,
@@ -36,12 +41,17 @@ serveAuthenticated('dashboard-assistant-briefing', async (req) => {
     getDashboardAssistantOrgSettings(scope.organizationId),
   ]);
   if (!isDashboardAssistantAccessible(globalSettings, orgSettings, scope.propertyId ?? null)) {
-    return jsonSuccess(req, { cards: [], manilaDate: null });
+    return jsonSuccess(req, { cards: [], manilaDate: null, sinceYesterday: null });
   }
 
   const stats = await readDashboardStatsCached(scope, { from: null, to: null });
+  const [extras, delta] = await Promise.all([
+    loadExtendedAttentionItems({ req, scope, orgSettings }),
+    loadBriefingDelta({ scope }),
+  ]);
   return jsonSuccess(req, {
-    cards: buildBriefingCards(stats.attention),
+    cards: buildBriefingCards([...stats.attention, ...extras]),
     manilaDate: stats.manilaDate,
+    sinceYesterday: briefingDeltaHasSignal(delta) ? delta : null,
   });
 });

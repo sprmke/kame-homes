@@ -73,26 +73,30 @@ import {
 import { aiDisabledScope, isAiQuotaError } from '../_shared/aiUsageService.ts';
 import {
   buildActionConfirmationDetails,
+  buildActionConfirmationDiff,
   buildTier1ActionSummary,
   humanizeActionConfirmationSummary,
   isBookingJourneyRecord,
 } from '../_shared/dashboardAssistantActionDisplay.ts';
 import {
-  humanizeStatusCodesInText,
-  finalizeAssistantBlocksForHost,
-  hydrateAssistantBlocksFromTools,
   knowledgeSourceLinks,
-  nestBookingJourneyStepper,
-  sanitizeAssistantChatBlocks,
   buildBookingJourneyData,
-  wrapBlocksWithJourneyGuidance,
 } from '../_shared/dashboardAssistantBlocks.ts';
 import {
   conversationContextPromptSection,
   loadConversationContext,
 } from '../_shared/dashboardAssistantConversationContext.ts';
 import {
-  assertBlocksGrounded,
+  appendLeadChips,
+  summarizeGatheredToolResults,
+} from '../_shared/dashboardAssistantHostDisplay.ts';
+import {
+  canSkipStructuredSynth,
+  CONTINUE_REST_ACTION,
+  finalizeResponseBlocks,
+  shapeCandidateBlocks,
+} from '../_shared/dashboardAssistantResponseShape.ts';
+import {
   guardDashboardAssistantResponse,
   quickSafetyScan,
   type ChatBlock,
@@ -101,11 +105,19 @@ import {
   parseIncomingAttachments,
   persistAssistantAttachments,
 } from '../_shared/dashboardAssistantAttachments.ts';
-import { openPageBlocksFromResults } from '../_shared/dashboardAssistantNavigationTools.ts';
+import {
+  openPageBlockFromUserIntent,
+  openPageBlocksFromResults,
+} from '../_shared/dashboardAssistantNavigationTools.ts';
 import {
   routeAssistantModules,
   selectToolDeclarations,
 } from '../_shared/dashboardAssistantToolRouter.ts';
+import { TurnTimer } from '../_shared/dashboardAssistantTurnTiming.ts';
+import {
+  parseMarkMaintenanceDoneQuery,
+  pickOpenMaintenanceItem,
+} from '../_shared/dashboardAssistantMarkDone.ts';
 import {
   executeTool,
   logAssistantWriteActivity,
@@ -116,6 +128,7 @@ import {
 import {
   generateStructuredViaTool,
   generateWithTools,
+  generateWithToolsStream,
   type GeminiContent,
 } from '../_shared/ai/llmTools.ts';
 import {
@@ -150,8 +163,16 @@ import {
   BLOCKS_RESPONSE_SCHEMA,
   DASHBOARD_ASSISTANT_BLOCKS_PROMPT,
   DASHBOARD_ASSISTANT_PROMPT,
+  RESPOND_WITH_BLOCKS_DECLARATION,
+  RESPOND_WITH_BLOCKS_NAME,
   SYSTEM_PROMPT_PREFIX,
 } from '../_shared/ai/prompts/dashboardAssistant.ts';
+import {
+  getCachedGroundingFacts,
+  groundingCacheKey,
+  invalidateGroundingCache,
+} from '../_shared/dashboardAssistantGroundingCache.ts';
+import { shouldRunLlmGuard } from '../_shared/dashboardAssistantGuardPolicy.ts';
 
 /**
  * Adaptive loop: up to 8 rounds, but a turn ends as soon as the model stops calling tools or
@@ -225,6 +246,9 @@ async function resolveEffectivePermissions(
 serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
   try {
     requireHttpMethod(req, 'POST');
+    // Started before any I/O so total_ms is what the host actually waited for.
+    const timer = new TurnTimer();
+    const preloadStartedAt = Date.now();
 
     const limited = await rateLimitGate(req, {
       scope: 'dashboard-assistant-chat',
@@ -500,13 +524,6 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       insertedUserMessageThisTurn = true;
     }
 
-    const facts = await buildHostSafeGroundingFacts(
-      orgCtx.org.id,
-      user.id,
-      effectivePropertyId,
-      permissions
-    );
-    const groundingPrompt = hostSafeGroundingFactsToPrompt(facts);
     const attachedContextLine = attachedContextPromptLines(attachedContext);
     const attachmentLine =
       storedAttachments.length > 0
@@ -520,21 +537,24 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             )}\nWhen the host wants a file on a booking (approved GAF, valid ID, receipt, etc.), call propose_apply_booking_attachment. Set alsoMarkComplete=true only for approved_gaf/approved_pet when they also want that step marked complete. For "check this receipt" without uploading to the booking, run_receipt_validation is enough.`
         : '';
 
-    // Prior turns in this thread. A failed load degrades to "none", not an error.
-    let conversationSummary = '';
-    let priorHistory: GeminiContent[] = [];
-    try {
-      const context = await loadConversationContext(sb, conversationId!, {
+    const cacheKey = groundingCacheKey(orgCtx.org.id, user.id, effectivePropertyId, permissions);
+    const [facts, conversationCtx] = await Promise.all([
+      getCachedGroundingFacts(cacheKey, () =>
+        buildHostSafeGroundingFacts(orgCtx.org.id, user.id, effectivePropertyId, permissions)
+      ),
+      loadConversationContext(sb, conversationId!, {
         excludeMessageId: userMessageRow.id,
-      });
-      conversationSummary = context.summary;
-      priorHistory = context.priorHistory;
-    } catch (err) {
-      console.warn(
-        'dashboard-assistant-chat: conversation context load failed',
-        err instanceof Error ? err.message : err
-      );
-    }
+      }).catch((err) => {
+        console.warn(
+          'dashboard-assistant-chat: conversation context load failed',
+          err instanceof Error ? err.message : err
+        );
+        return { summary: '', priorHistory: [] as GeminiContent[] };
+      }),
+    ]);
+    const groundingPrompt = hostSafeGroundingFactsToPrompt(facts);
+    const conversationSummary = conversationCtx.summary;
+    const priorHistory = conversationCtx.priorHistory;
 
     const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
 
@@ -596,6 +616,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             payload
           ),
           details: buildActionConfirmationDetails(block.toolName, payload),
+          diff: buildActionConfirmationDiff(block.toolName, payload) ?? undefined,
           status: 'executed' as const,
         };
       });
@@ -637,16 +658,27 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         pageContext,
         recentToolNames: recentToolNames.slice(-12),
       });
-      const turnTools = selectToolDeclarations(TOOL_DECLARATIONS, toolRoute);
+      const turnTools = [
+        RESPOND_WITH_BLOCKS_DECLARATION,
+        ...selectToolDeclarations(TOOL_DECLARATIONS, toolRoute).filter(
+          (tool) => tool.name !== RESPOND_WITH_BLOCKS_NAME
+        ),
+      ];
+      timer.setModules(toolRoute.failOpen ? [] : toolRoute.modules);
+      // Everything before the first model call: auth, entitlements, quota, conversation row,
+      // attachments, grounding facts and prior-turn context.
+      timer.record('preload', Date.now() - preloadStartedAt);
       const toolResultsForGrounding: unknown[] = [];
       /** `open_page` handoffs, appended as blocks after grounding (server-built hrefs only). */
       const openPageResults: Array<{ toolName: string; ok: boolean; data?: unknown }> = [];
       let proposedAction: { toolName: string; result: ToolResult } | null = null;
+      let pendingActionId: string | null = null;
       let executedActions: Array<{ toolName: string; result: ToolResult }> = [];
       let journeyGuidanceIntro: string | null = null;
       let finalText = '';
       /** Tool already produced host-facing copy (e.g. Meta attachment refuse) — skip block synth. */
       let skipBlockSynthWithText: string | null = null;
+      let inlineSynthBlocks: unknown[] | null = null;
       let turnCreditsConsumed = 0;
       /** Set once a tool returned guest-written text; escalates later writes to Tier 2. */
       let untrustedContentRead = false;
@@ -658,30 +690,49 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
       for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         assertTurnActive();
-        const roundResult = await generateWithTools({
-          feature: 'dashboard_assistant',
+        const streamLiveText = round > 0 && emit != null;
+        let streamedPreview = '';
+        const modelReq = {
+          feature: 'dashboard_assistant' as const,
           prompt: DASHBOARD_ASSISTANT_PROMPT,
           system: systemPrompt,
           user: userTurnText,
           tools: turnTools,
-          toolMode: 'auto',
+          toolMode: 'auto' as const,
           history,
-          maxOutputTokens: 1024,
-          // Stop / disconnect cancels the in-flight model request, not just the next round.
+          maxOutputTokens: 2048,
           signal: turnAbort.signal,
           billing: {
             organizationId: orgCtx.org.id,
             propertyId: effectivePropertyId,
             actorUserId: user.id,
-            actorType: 'staff',
+            actorType: 'staff' as const,
           },
-        });
+        };
+        const roundResult = await timer.measure('model', () =>
+          streamLiveText
+            ? generateWithToolsStream({
+                ...modelReq,
+                onTextDelta: (delta) => {
+                  if (!streamedPreview) emit?.({ type: 'text_start' });
+                  streamedPreview += delta;
+                  emit?.({ type: 'text_chunk', delta });
+                },
+              })
+            : generateWithTools(modelReq)
+        );
         turnCreditsConsumed += roundResult.creditsConsumed;
         assertTurnActive();
 
         if (roundResult.toolCalls.length === 0) {
           finalText = roundResult.text ?? '';
           break;
+        }
+        if (streamedPreview) {
+          emit?.({
+            type: 'retract',
+            fallbackText: 'Working on the next step.',
+          });
         }
 
         const writeCallCount = roundResult.toolCalls.filter((tc) =>
@@ -717,7 +768,26 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           const toolStartedAt = Date.now();
           activity.recordToolStart(call.name, stepId);
           taskPlan.markRunning(stepId);
-          const result = await executeTool(call.name, call.arguments, toolCtx);
+          if (call.name === RESPOND_WITH_BLOCKS_NAME) {
+            const rawBlocks = call.arguments.blocks;
+            inlineSynthBlocks = Array.isArray(rawBlocks) ? rawBlocks : [];
+            timer.markSynthInline();
+            activity.recordToolComplete(call.name, true, toolStartedAt, stepId, undefined, {
+              omitFromTimeline: true,
+            });
+            taskPlan.markDone(stepId, true);
+            responseParts.push({
+              functionResponse: {
+                name: call.name,
+                response: { result: { ok: true }, error: null },
+              },
+            });
+            shortCircuit = true;
+            continue;
+          }
+          const result = await timer.measureTool(call.name, () =>
+            executeTool(call.name, call.arguments, toolCtx)
+          );
           const failureReason = result.ok ? undefined : hostFacingToolFailureReason(result.error);
           activity.recordToolComplete(call.name, result.ok, toolStartedAt, stepId, failureReason, {
             omitFromTimeline: result.ok && result.deferred === true,
@@ -789,13 +859,47 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           round === MAX_TOOL_ROUNDS - 1 ||
           estimateHistoryTokens(history) > TURN_HISTORY_TOKEN_BUDGET
         ) {
-          finalText =
-            'I gathered some information but need another prompt to finish. Could you ask again?';
+          const gathered =
+            (roundResult.text ?? '').trim() ||
+            (finalText || '').trim() ||
+            summarizeGatheredToolResults(toolResultsForGrounding) ||
+            'I gathered part of that.';
+          finalText = gathered;
+          skipBlockSynthWithText = gathered;
+          inlineSynthBlocks = [
+            { type: 'text', text: gathered },
+            {
+              type: 'quick_actions',
+              actions: [{ ...CONTINUE_REST_ACTION }],
+            },
+          ];
           break;
         }
       }
 
       assertTurnActive();
+      if (!proposedAction) {
+        const markQuery = parseMarkMaintenanceDoneQuery(userTurnText);
+        if (markQuery) {
+          let match = pickOpenMaintenanceItem(toolResultsForGrounding, markQuery);
+          if (!match) {
+            const listed = await executeTool('list_maintenance_items', {}, toolCtx);
+            if (listed.ok && listed.data) toolResultsForGrounding.push(listed.data);
+            match = pickOpenMaintenanceItem(toolResultsForGrounding, markQuery);
+          }
+          const propertyId = toolCtx.pageContext.propertyId;
+          if (match && propertyId) {
+            const result = await executeTool(
+              'propose_update_maintenance_item',
+              { id: match.id, propertyId, completed: true },
+              toolCtx
+            );
+            if (result.proposed) {
+              proposedAction = { toolName: 'propose_update_maintenance_item', result };
+            }
+          }
+        }
+      }
       const blocks: ChatBlock[] = [];
 
       if (proposedAction) {
@@ -821,6 +925,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             `Failed to persist pending action: ${pendingError?.message ?? 'unknown error'}`
           );
         }
+        pendingActionId = pendingRow.id as string;
         const payload = (proposedAction.result.data ?? {}) as Record<string, unknown>;
         blocks.push({
           type: 'action_confirmation',
@@ -833,6 +938,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             payload
           ),
           details: buildActionConfirmationDetails(proposedAction.toolName, payload),
+          diff: buildActionConfirmationDiff(proposedAction.toolName, payload) ?? undefined,
           status: 'proposed',
           isExternalSend: isExternalSendTool(proposedAction.toolName),
         });
@@ -850,92 +956,85 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         }
 
         taskPlan.markSynthDone();
+        timer.setGuardMode('none');
         const proposedBlocks = prependActivityTimeline(blocks, activity);
         blocks.length = 0;
         blocks.push(...prependTaskPlan(proposedBlocks, taskPlan));
-      } else if (skipBlockSynthWithText) {
+      } else if (skipBlockSynthWithText && !inlineSynthBlocks) {
         // Host-facing tool refusal already set (e.g. Meta attachment refuse).
         taskPlan.markSynthRunning();
         activity.recordPhase('synthesizing', 'Prepared your answer');
         blocks.push({ type: 'text', text: skipBlockSynthWithText.trim() });
         taskPlan.markSynthDone();
+        timer.setGuardMode('none');
         const answered = prependActivityTimeline(blocks, activity);
         blocks.length = 0;
         blocks.push(...prependTaskPlan(answered, taskPlan));
       } else {
         taskPlan.markSynthRunning();
         activity.recordPhase('synthesizing', 'Prepared your answer');
-        // Final structured block synthesis — reuses the accumulated tool-call history so blocks
-        // are grounded in what actually happened this turn, not a fresh guess.
-        const structured = await generateStructuredViaTool({
-          feature: 'dashboard_assistant',
-          prompt: DASHBOARD_ASSISTANT_BLOCKS_PROMPT,
-          system: systemPrompt,
-          user: userTurnText,
-          history:
-            history.length > 0
-              ? [
-                  ...history,
-                  {
-                    role: 'user',
-                    parts: [
-                      {
-                        text: finalText
-                          ? `Summarize for the host as chat blocks. Draft: ${finalText}`
-                          : 'Summarize the tool results above as chat blocks for the host.',
-                      },
-                    ],
-                  },
-                ]
-              : undefined,
-          maxOutputTokens: 1024,
-          signal: turnAbort.signal,
-          jsonSchema: BLOCKS_RESPONSE_SCHEMA,
-          // Structural contract only; every block is sanitized + grounded below.
-          schema: z.object({
-            blocks: z.array(z.custom<ChatBlock>((v) => Boolean(v) && typeof v === 'object')),
-          }),
-          billing: {
-            organizationId: orgCtx.org.id,
-            propertyId: effectivePropertyId,
-            actorUserId: user.id,
-            actorType: 'staff',
-          },
-        });
-        turnCreditsConsumed += structured.creditsConsumed;
-        assertTurnActive();
-
-        const candidateBlocks = hydrateAssistantBlocksFromTools(
-          sanitizeAssistantChatBlocks(
-            structured.data?.blocks?.length
-              ? structured.data.blocks
-              : [
-                  {
-                    type: 'text' as const,
-                    text: finalText || structured.text || "I couldn't generate a response.",
-                  },
-                ]
-          ),
-          toolResultsForGrounding,
-          turnMessage,
-          { attachedContext }
-        );
-
         const groundingText = `${groundingPrompt}\n${JSON.stringify(toolResultsForGrounding)}${attachmentLine}${attachedContextLine}`;
-        const grounded = assertBlocksGrounded(candidateBlocks, groundingText);
-        const safeBlocks = sanitizeAssistantChatBlocks(
-          grounded.ok
-            ? candidateBlocks
-            : candidateBlocks.filter((_, i) => !grounded.rejectedIndexes.includes(i))
-        );
-        if (safeBlocks.length === 0) {
-          safeBlocks.push({
-            type: 'text',
-            text: humanizeStatusCodesInText(
-              finalText || "I couldn't format that answer. Please ask again."
-            ),
-          });
+        let modelBlocks: unknown[] = inlineSynthBlocks ?? [];
+        let draftText: string | null | undefined = finalText || skipBlockSynthWithText;
+        if (
+          canSkipStructuredSynth({
+            hasInlineBlocks: Boolean(inlineSynthBlocks),
+            hasToolResults: toolResultsForGrounding.length > 0,
+            hasDraftText: Boolean((finalText || '').trim()),
+          })
+        ) {
+          if (!inlineSynthBlocks) timer.markSynthInline();
+        } else {
+          // Empty turn: no tools, no draft, no respond_with_blocks. Last-resort structured synth.
+          const structured = await timer.measure('synth', () =>
+            generateStructuredViaTool({
+              feature: 'dashboard_assistant',
+              prompt: DASHBOARD_ASSISTANT_BLOCKS_PROMPT,
+              system: systemPrompt,
+              user: userTurnText,
+              history:
+                history.length > 0
+                  ? [
+                      ...history,
+                      {
+                        role: 'user',
+                        parts: [
+                          {
+                            text: 'Summarize the tool results above as chat blocks for the host.',
+                          },
+                        ],
+                      },
+                    ]
+                  : undefined,
+              maxOutputTokens: 2048,
+              signal: turnAbort.signal,
+              jsonSchema: BLOCKS_RESPONSE_SCHEMA,
+              schema: z.object({
+                blocks: z.array(z.custom<ChatBlock>((v) => Boolean(v) && typeof v === 'object')),
+              }),
+              billing: {
+                organizationId: orgCtx.org.id,
+                propertyId: effectivePropertyId,
+                actorUserId: user.id,
+                actorType: 'staff',
+              },
+            })
+          );
+          turnCreditsConsumed += structured.creditsConsumed;
+          assertTurnActive();
+          modelBlocks = structured.data?.blocks ?? [];
+          draftText = finalText || structured.text;
         }
+
+        const shaped = shapeCandidateBlocks({
+          modelBlocks,
+          draftText,
+          toolResults: toolResultsForGrounding,
+          groundingText,
+          userMessage: turnMessage,
+          attachedContext,
+        });
+        const safeBlocks = shaped.blocks;
 
         const combinedText = safeBlocks
           .map((b) => ('text' in b ? b.text : 'summary' in b ? b.summary : ''))
@@ -943,32 +1042,55 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         const quickScan = quickSafetyScan(combinedText);
         let safetyApproved = false;
         if (!quickScan.ok) {
+          timer.setGuardMode('blocked');
           blocks.push({
             type: 'text',
             text: "I can't share that. It touches something outside what I'm allowed to discuss.",
           });
         } else {
           assertTurnActive();
-          const safetyCheck = await guardDashboardAssistantResponse(
-            {
-              organizationId: orgCtx.org.id,
-              propertyId: effectivePropertyId,
-              actorUserId: user.id,
-              actorType: 'staff',
-              signal: turnAbort.signal,
-            },
-            combinedText,
-            groundingText
-          );
-          turnCreditsConsumed += safetyCheck.creditsConsumed;
-          assertTurnActive();
-          if (!safetyCheck.ok) {
-            blocks.push({
-              type: 'text',
-              text: "I can't share that response. It didn't pass a safety check.",
-            });
-          } else {
+          const runLlmGuard = shouldRunLlmGuard({
+            untrustedContentRead,
+            hasProposal: Boolean(proposedAction),
+            hasDeferredWrites: deferredWrites.length > 0,
+            hasExecutedWrites: executedActions.length > 0,
+            quickScanFailed: false,
+            groundingRejected: !shaped.grounded,
+            answerText: combinedText,
+            groundingText,
+          });
+          if (!runLlmGuard) {
+            timer.setGuardMode('deterministic');
             blocks.push(...safeBlocks);
+            safetyApproved = true;
+          } else {
+            timer.setGuardMode('llm');
+            const safetyCheck = await timer.measure('guard', () =>
+              guardDashboardAssistantResponse(
+                {
+                  organizationId: orgCtx.org.id,
+                  propertyId: effectivePropertyId,
+                  actorUserId: user.id,
+                  actorType: 'staff',
+                  signal: turnAbort.signal,
+                },
+                combinedText,
+                groundingText
+              )
+            );
+            turnCreditsConsumed += safetyCheck.creditsConsumed;
+            assertTurnActive();
+            if (!safetyCheck.ok) {
+              blocks.push({
+                type: 'text',
+                text: "I can't share that response. It didn't pass a safety check.",
+              });
+            } else {
+              blocks.push(...safeBlocks);
+              safetyApproved = true;
+            }
+          }
+          if (safetyApproved) {
             const citations =
               knowledgeHits.length > 0 && !safeBlocks.some((b) => b.type === 'link_list')
                 ? knowledgeSourceLinks(knowledgeHits, {
@@ -977,7 +1099,6 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
                   })
                 : null;
             if (citations) blocks.push(citations);
-            safetyApproved = true;
           }
         }
         activity.recordPhase('safety', 'Checked response safety');
@@ -1006,6 +1127,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             onToolDone: (toolName, ok) => activity.recordToolComplete(toolName, ok, Date.now()),
           });
           executedActions.push(...commitResult.executed);
+          if (commitResult.executed.length > 0) invalidateGroundingCache(orgCtx.org.id);
           partialAppliedEffects = commitResult.appliedEffects;
           if (commitResult.abortedMidCommit) {
             await auditExecutedActions(commitResult.executed, toolCtx);
@@ -1021,23 +1143,39 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
       assertTurnActive();
 
+      const commitStartedAt = Date.now();
       await auditExecutedActions(executedActions, toolCtx);
 
-      const finalizedBlocks = finalizeAssistantBlocksForHost(
-        wrapBlocksWithJourneyGuidance(
-          nestBookingJourneyStepper(blocks, toolResultsForGrounding, attachedContext),
-          toolResultsForGrounding,
-          { introText: journeyGuidanceIntro, userMessage: turnMessage }
-        ),
-        toolResultsForGrounding,
+      const finalizedBlocks = finalizeResponseBlocks({
+        blocks,
+        toolResults: toolResultsForGrounding,
+        userMessage: turnMessage,
         attachedContext,
-        { userMessage: turnMessage }
-      );
-      const responseBlocks: ChatBlock[] = [
-        ...finalizedBlocks,
-        ...openPageBlocksFromResults(openPageResults),
-      ];
+        journeyIntroText: journeyGuidanceIntro,
+        executedToolNames: executedActions.map((action) => action.toolName),
+      });
+      const fromTools = openPageBlocksFromResults(openPageResults);
+      const intentPage =
+        fromTools.length > 0
+          ? null
+          : openPageBlockFromUserIntent(turnMessage, {
+              orgSlug,
+              propertySlug: await propertySlugFor(effectivePropertyId),
+            });
+      const handoffBlocks = intentPage ? [...fromTools, intentPage] : fromTools;
+      const merged: ChatBlock[] = intentPage
+        ? [
+            ...finalizedBlocks.filter(
+              (block) => block.type !== 'data_table' && block.type !== 'stat_list'
+            ),
+            ...handoffBlocks,
+          ]
+        : [...finalizedBlocks, ...handoffBlocks];
+      const responseBlocks: ChatBlock[] = appendLeadChips(merged, turnMessage);
 
+      // Persisted breakdown excludes the commit itself (it cannot time its own insert); the
+      // `turn_timing` SSE event / JSON `timing` field carry the complete figure.
+      const persistedTiming = timer.snapshot();
       const { data: assistantRow } = await sb
         .from('ai_dashboard_assistant_messages')
         .insert({
@@ -1050,9 +1188,18 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             toolResultsForGrounding.length > 0
               ? redactSensitiveFields(toolResultsForGrounding)
               : [],
+          latency_breakdown: persistedTiming,
+          guard_mode: persistedTiming.guard_mode,
         })
         .select('id')
         .single();
+
+      if (pendingActionId && assistantRow?.id) {
+        await sb
+          .from('ai_dashboard_assistant_pending_actions')
+          .update({ message_id: assistantRow.id })
+          .eq('id', pendingActionId);
+      }
 
       await sb
         .from('ai_dashboard_assistant_conversations')
@@ -1065,11 +1212,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       });
 
       turnCommitted = true;
+      timer.record('commit', Date.now() - commitStartedAt);
       return {
         conversationId: conversationId!,
         blocks: responseBlocks,
         messageId: (assistantRow?.id as string | undefined) ?? undefined,
         userMessageId: userMessageRow.id,
+        timing: timer.snapshot(),
       };
     };
 
@@ -1090,6 +1239,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
               });
               // Always deliver terminal blocks once the turn is committed, even if the
               // host cancelled during the text preview delay window.
+              emit({ type: 'turn_timing', timing: result.timing });
               emit({
                 type: 'blocks',
                 conversationId: result.conversationId,
@@ -1149,6 +1299,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         blocks: result.blocks,
         messageId: result.messageId,
         userMessageId: result.userMessageId,
+        timing: result.timing,
       });
     } catch (err) {
       if (isAssistantTurnAbortedError(err)) {

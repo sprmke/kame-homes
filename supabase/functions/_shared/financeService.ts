@@ -4,6 +4,7 @@
 
 import { createClient } from './supabaseJs.ts';
 import { computeBookingFinancials, financeDisplayNet } from './bookingFinance.ts';
+import { getFinanceCategoryLabel } from './financeCategoryLabels.ts';
 import { checkInDateToIso } from './bookingsListSort.ts';
 import {
   isCancelledBooking,
@@ -97,10 +98,16 @@ export type FinanceStaysSummary = {
   outstandingGuestBalance: number;
 };
 
+export type FinanceExpenseCategory = {
+  label: string;
+  amount: number;
+};
+
 export type FinanceOperatingSummary = {
   income: number;
   expenses: number;
   net: number;
+  byCategory: FinanceExpenseCategory[];
 };
 
 export type FinanceSummaryResult = {
@@ -172,6 +179,39 @@ export function financeThisMonthRange(todayIso: string): { from: string; to: str
     from: `${y}-${pad(m)}-01`,
     to: `${y}-${pad(m)}-${pad(lastDay)}`,
   };
+}
+
+/** Oldest-first calendar months ending at the month that contains `todayIso`. */
+export function lastNFinanceMonthRanges(
+  todayIso: string,
+  n: number
+): Array<{ from: string; to: string; month: string; label: string }> {
+  const count = Math.min(12, Math.max(2, Math.round(n) || 6));
+  const [yRaw, mRaw] = todayIso.slice(0, 10).split('-');
+  let y = Number(yRaw);
+  let m = Number(mRaw);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const out: Array<{ from: string; to: string; month: string; label: string }> = [];
+  for (let i = 0; i < count; i++) {
+    const from = `${y}-${pad(m)}-01`;
+    const range = financeThisMonthRange(from);
+    const label = new Date(Date.UTC(y, m - 1, 1)).toLocaleString('en-US', {
+      month: 'short',
+      timeZone: 'UTC',
+    });
+    out.unshift({
+      from: range.from,
+      to: range.to,
+      month: from.slice(0, 7),
+      label,
+    });
+    m -= 1;
+    if (m === 0) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  return out;
 }
 
 function getSupabase() {
@@ -466,6 +506,18 @@ export async function extendRecurringSeries(
   return { rows: merged, created_count: inserted.length };
 }
 
+export function expenseCategoriesFromItems(items: FinanceLineItemRow[]): FinanceExpenseCategory[] {
+  const totals = new Map<string, number>();
+  for (const item of items) {
+    if (item.kind !== 'expense') continue;
+    const label = getFinanceCategoryLabel(item.category);
+    totals.set(label, (totals.get(label) ?? 0) + item.amount);
+  }
+  return [...totals.entries()]
+    .map(([label, amount]) => ({ label, amount: roundMoney(amount) }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 function summarizeOperating(items: FinanceLineItemRow[]): FinanceOperatingSummary {
   let income = 0;
   let expenses = 0;
@@ -477,6 +529,7 @@ function summarizeOperating(items: FinanceLineItemRow[]): FinanceOperatingSummar
     income: roundMoney(income),
     expenses: roundMoney(expenses),
     net: roundMoney(income - expenses),
+    byCategory: expenseCategoriesFromItems(items),
   };
 }
 

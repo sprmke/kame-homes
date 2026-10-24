@@ -14,7 +14,12 @@ import {
   remainingDashboardAssistantWrites,
 } from '../_shared/dashboardAssistantSettings.ts';
 import { stripAssistantScopeFromPayload } from '../_shared/dashboardAssistantAttachedContext.ts';
-import { humanizeTransitionError } from '../_shared/dashboardAssistantActionDisplay.ts';
+import {
+  pickMessageWithAction,
+  updateActionBlockStatus,
+} from '../_shared/dashboardAssistantConfirmBlocks.ts';
+import { appendFollowThroughChips } from '../_shared/dashboardAssistantHostDisplay.ts';
+import type { ChatBlock } from '../_shared/dashboardAssistantSafetyGuard.ts';
 import {
   executeConfirmedAction,
   logAssistantWriteActivity,
@@ -37,52 +42,26 @@ import {
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-function updateActionBlockStatus(
-  blocks: unknown,
-  actionId: string,
-  status: string,
-  errorMessage?: string | null,
-  resultNote?: string | null
+async function loadActionMessage(
+  sb: ReturnType<typeof createServiceClient>,
+  conversationId: string,
+  pendingMessageId: string,
+  actionId: string
 ) {
-  if (!Array.isArray(blocks)) return blocks;
-  return blocks.map((block) => {
-    if (
-      block &&
-      typeof block === 'object' &&
-      block.type === 'action_confirmation' &&
-      block.actionId === actionId
-    ) {
-      return {
-        ...block,
-        status,
-        ...(errorMessage ? { errorMessage: humanizeTransitionError(errorMessage) } : {}),
-        ...(resultNote ? { resultNote: resultNote.slice(0, 240) } : {}),
-      };
-    }
-    if (
-      block &&
-      typeof block === 'object' &&
-      block.type === 'stepper' &&
-      Array.isArray(block.steps)
-    ) {
-      return {
-        ...block,
-        steps: block.steps.map((step: { actionBlock?: { actionId?: string } }) =>
-          step.actionBlock?.actionId === actionId
-            ? {
-                ...step,
-                actionBlock: {
-                  ...step.actionBlock,
-                  status,
-                  ...(errorMessage ? { errorMessage: humanizeTransitionError(errorMessage) } : {}),
-                },
-              }
-            : step
-        ),
-      };
-    }
-    return block;
-  });
+  const { data: recent } = await sb
+    .from('ai_dashboard_assistant_messages')
+    .select('id, blocks')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(12);
+  const hit = pickMessageWithAction(recent ?? [], actionId);
+  if (hit) return hit;
+  const { data: fallback } = await sb
+    .from('ai_dashboard_assistant_messages')
+    .select('id, blocks')
+    .eq('id', pendingMessageId)
+    .maybeSingle();
+  return fallback;
 }
 
 serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
@@ -159,19 +138,18 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
         .from('ai_dashboard_assistant_pending_actions')
         .update({ status: 'denied' })
         .eq('id', actionId);
-      await sb
-        .from('ai_dashboard_assistant_messages')
-        .select('id, blocks')
-        .eq('id', pending.message_id)
-        .maybeSingle()
-        .then(async ({ data: msg }) => {
-          if (msg) {
-            await sb
-              .from('ai_dashboard_assistant_messages')
-              .update({ blocks: updateActionBlockStatus(msg.blocks, actionId, 'denied') })
-              .eq('id', msg.id);
-          }
-        });
+      const deniedMsg = await loadActionMessage(
+        sb,
+        pending.conversation_id as string,
+        pending.message_id as string,
+        actionId
+      );
+      if (deniedMsg) {
+        await sb
+          .from('ai_dashboard_assistant_messages')
+          .update({ blocks: updateActionBlockStatus(deniedMsg.blocks, actionId, 'denied') })
+          .eq('id', deniedMsg.id);
+      }
       return jsonSuccess(req, { status: 'denied' });
     }
 
@@ -248,23 +226,30 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
       result_summary: result.error ?? null,
     });
 
-    const { data: msg } = await sb
-      .from('ai_dashboard_assistant_messages')
-      .select('id, blocks')
-      .eq('id', pending.message_id)
-      .maybeSingle();
+    let persistedBlocks: unknown = null;
+    const msg = await loadActionMessage(
+      sb,
+      pending.conversation_id as string,
+      pending.message_id as string,
+      actionId
+    );
     if (msg) {
+      let nextBlocks = updateActionBlockStatus(
+        msg.blocks,
+        actionId,
+        newStatus,
+        result.error,
+        result.ok ? result.resultNote : null
+      );
+      if (result.ok && Array.isArray(nextBlocks)) {
+        nextBlocks = appendFollowThroughChips(nextBlocks as ChatBlock[], [
+          String(pending.tool_name),
+        ]);
+      }
+      persistedBlocks = nextBlocks;
       await sb
         .from('ai_dashboard_assistant_messages')
-        .update({
-          blocks: updateActionBlockStatus(
-            msg.blocks,
-            actionId,
-            newStatus,
-            result.error,
-            result.ok ? result.resultNote : null
-          ),
-        })
+        .update({ blocks: nextBlocks })
         .eq('id', msg.id);
     }
 
@@ -280,6 +265,7 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
       error: result.error,
       data: result.data,
       resultNote: result.ok ? (result.resultNote ?? null) : null,
+      blocks: Array.isArray(persistedBlocks) ? persistedBlocks : undefined,
     });
   } catch (err) {
     return handleEdgeError(req, err, 'dashboard-assistant-confirm');

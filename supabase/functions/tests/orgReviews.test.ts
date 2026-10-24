@@ -23,8 +23,10 @@ Deno.test('list-org-reviews limits org members to their assigned listings', asyn
   const shared = await Deno.readTextFile(new URL('../_shared/orgReviewList.ts', import.meta.url));
   assert(endpoint.includes('canListAllProperties'));
   assert(endpoint.includes('resolveAssignedListingIdsForOrgUser'));
-  // The property filter can only narrow the visible set, never widen it.
-  assert(endpoint.includes('visibleIds.filter('));
-  assert(shared.includes(".in('property_id', visiblePropertyIds)"));
+  // The property filter can only narrow the already-scoped set, never widen it.
+  assert(endpoint.includes('const feedProperties = propertyFilter'));
+  assert(endpoint.includes('properties.filter((property) => propertyFilter.includes(property.id))'));
+  assert(shared.includes('const visibleIds = properties.map((property) => property.id)'));
+  assert(shared.includes(".in('property_id', visibleIds)"));
   assert(shared.includes(".in('id', scope.assignedPropertyIds)"));
 });

@@ -41,7 +41,25 @@ export type PropertyTemplateRow = {
   name: string | null;
   content: string;
   section_image_url: string | null;
+  folder_id: string | null;
   updated_at: string;
+};
+
+export type PropertyTemplateFolderRow = {
+  id: string;
+  property_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PropertyTemplateFolderDto = {
+  id: string;
+  name: string;
+  position: number;
+  /** How many custom templates currently sit in this folder. */
+  templateCount: number;
 };
 
 export type PropertyTemplateDto = {
@@ -54,6 +72,8 @@ export type PropertyTemplateDto = {
   description: string | null;
   previewTemplateSlug: string | null;
   sectionImageUrl: string | null;
+  /** Custom templates only: the host folder holding this template, or null when ungrouped. */
+  folderId: string | null;
   updatedAt: string | null;
 };
 
@@ -282,6 +302,24 @@ function supabaseAdmin() {
   );
 }
 
+export async function getPropertyTemplateRow(
+  propertyId: string,
+  templateKey: string
+): Promise<PropertyTemplateRow | null> {
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_contents')
+    .select('*')
+    .eq('property_id', propertyId)
+    .eq('template_key', templateKey)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[propertyTemplates] getPropertyTemplateRow:', error);
+    throw new Error('Failed to load property template');
+  }
+  return (data as PropertyTemplateRow | null) ?? null;
+}
+
 export async function listPropertyTemplateRows(propertyId: string): Promise<PropertyTemplateRow[]> {
   const { data, error } = await supabaseAdmin()
     .from('property_template_contents')
@@ -303,17 +341,29 @@ export async function upsertPropertyTemplateRow(input: {
   name?: string | null;
   content: string;
   sectionImageUrl?: string | null;
+  /** Custom templates only; built-ins always live in their fixed section. */
+  folderId?: string | null;
 }): Promise<PropertyTemplateRow> {
   const patch: Record<string, unknown> = {
     property_id: input.propertyId,
     template_key: input.templateKey,
     category: input.category,
-    name: input.name ?? null,
     content: normalizeStoredTemplateContent(input.content, input.templateKey),
     updated_at: new Date().toISOString(),
   };
+  /*
+   * Only write `name` when the caller supplied one. An unconditional
+   * `name: input.name ?? null` wiped the stored name on every content save,
+   * which left custom templates displaying their raw `custom-<uuid>` key.
+   */
+  if (input.name !== undefined) {
+    patch.name = input.name?.trim() || null;
+  }
   if (input.sectionImageUrl !== undefined) {
     patch.section_image_url = input.sectionImageUrl?.trim() || null;
+  }
+  if (input.folderId !== undefined) {
+    patch.folder_id = input.category === 'custom' ? input.folderId : null;
   }
 
   const { data, error } = await supabaseAdmin()
@@ -350,7 +400,7 @@ export async function countCustomTemplates(propertyId: string): Promise<number> 
     .from('property_template_contents')
     .select('*', { count: 'exact', head: true })
     .eq('property_id', propertyId)
-    .eq('category', 'custom');
+    .like('template_key', 'custom-%');
 
   if (error) {
     console.error('[propertyTemplates] countCustomTemplates:', error);
@@ -369,7 +419,6 @@ export async function resolveCustomTemplateRow(
     .select('content, name')
     .eq('property_id', propertyId)
     .eq('template_key', templateKey)
-    .eq('category', 'custom')
     .maybeSingle();
 
   if (error) {
@@ -447,6 +496,7 @@ function rowToDto(
     description: builtin?.description ?? null,
     previewTemplateSlug: builtin?.previewTemplateSlug ?? null,
     sectionImageUrl: String(row.section_image_url ?? '').trim() || null,
+    folderId: row.category === 'custom' ? (row.folder_id ?? null) : null,
     updatedAt: row.updated_at,
   };
 }
@@ -462,6 +512,7 @@ function builtinToDto(builtin: PropertyTemplateDefinition): PropertyTemplateDto 
     description: builtin.description,
     previewTemplateSlug: builtin.previewTemplateSlug ?? null,
     sectionImageUrl: null,
+    folderId: null,
     updatedAt: null,
   };
 }
@@ -469,6 +520,7 @@ function builtinToDto(builtin: PropertyTemplateDefinition): PropertyTemplateDto 
 export async function serializePropertyTemplatesForAdmin(propertyId: string): Promise<{
   templates: PropertyTemplateDto[];
   placeholdersReference: string[];
+  folders: PropertyTemplateFolderDto[];
 }> {
   const rows = await listPropertyTemplateRows(propertyId);
   const rowByKey = new Map(rows.map((r) => [r.template_key, r]));
@@ -480,12 +532,194 @@ export async function serializePropertyTemplatesForAdmin(propertyId: string): Pr
   });
 
   for (const row of rows) {
-    if (row.category !== 'custom') continue;
+    if (!isCustomTemplateKey(row.template_key)) continue;
     templates.push(rowToDto(row));
+  }
+
+  const folderRows = await listPropertyTemplateFolders(propertyId);
+  const countByFolder = new Map<string, number>();
+  for (const template of templates) {
+    if (!template.folderId) continue;
+    countByFolder.set(template.folderId, (countByFolder.get(template.folderId) ?? 0) + 1);
   }
 
   return {
     templates,
     placeholdersReference: [...PROPERTY_TEMPLATE_PLACEHOLDERS_REFERENCE],
+    folders: folderRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      position: row.position,
+      templateCount: countByFolder.get(row.id) ?? 0,
+    })),
   };
+}
+
+export const MAX_TEMPLATE_FOLDERS = 20;
+const MAX_TEMPLATE_FOLDER_NAME_LENGTH = 40;
+
+export function validateTemplateFolderName(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return 'Folder name is required';
+  if (trimmed.length > MAX_TEMPLATE_FOLDER_NAME_LENGTH) {
+    return `Folder name must be at most ${MAX_TEMPLATE_FOLDER_NAME_LENGTH} characters`;
+  }
+  return null;
+}
+
+/** Postgres unique-violation on the per-property folder name index. */
+function isDuplicateFolderName(error: { code?: string } | null): boolean {
+  return error?.code === '23505';
+}
+
+export async function listPropertyTemplateFolders(
+  propertyId: string
+): Promise<PropertyTemplateFolderRow[]> {
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('[propertyTemplates] listPropertyTemplateFolders:', error);
+    throw new Error('Failed to load template folders');
+  }
+  return (data ?? []) as PropertyTemplateFolderRow[];
+}
+
+export async function countPropertyTemplateFolders(propertyId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .select('*', { count: 'exact', head: true })
+    .eq('property_id', propertyId);
+
+  if (error) {
+    console.error('[propertyTemplates] countPropertyTemplateFolders:', error);
+    throw new Error('Failed to count template folders');
+  }
+  return count ?? 0;
+}
+
+export class DuplicateTemplateFolderNameError extends Error {
+  constructor() {
+    super('A folder with that name already exists');
+  }
+}
+
+export async function createPropertyTemplateFolder(input: {
+  propertyId: string;
+  name: string;
+}): Promise<PropertyTemplateFolderRow> {
+  const existing = await listPropertyTemplateFolders(input.propertyId);
+  const nextPosition = existing.reduce((max, row) => Math.max(max, row.position), -1) + 1;
+
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .insert({
+      property_id: input.propertyId,
+      name: input.name.trim(),
+      position: nextPosition,
+    })
+    .select('*')
+    .single();
+
+  if (isDuplicateFolderName(error)) throw new DuplicateTemplateFolderNameError();
+  if (error || !data) {
+    console.error('[propertyTemplates] createPropertyTemplateFolder:', error);
+    throw new Error('Failed to create template folder');
+  }
+  return data as PropertyTemplateFolderRow;
+}
+
+export async function renamePropertyTemplateFolder(input: {
+  propertyId: string;
+  folderId: string;
+  name: string;
+}): Promise<PropertyTemplateFolderRow | null> {
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .update({ name: input.name.trim(), updated_at: new Date().toISOString() })
+    .eq('property_id', input.propertyId)
+    .eq('id', input.folderId)
+    .select('*')
+    .maybeSingle();
+
+  if (isDuplicateFolderName(error)) throw new DuplicateTemplateFolderNameError();
+  if (error) {
+    console.error('[propertyTemplates] renamePropertyTemplateFolder:', error);
+    throw new Error('Failed to rename template folder');
+  }
+  return (data as PropertyTemplateFolderRow | null) ?? null;
+}
+
+/** Templates in the folder are kept; the FK drops them back to the ungrouped section. */
+export async function deletePropertyTemplateFolder(
+  propertyId: string,
+  folderId: string
+): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .delete()
+    .eq('property_id', propertyId)
+    .eq('id', folderId);
+
+  if (error) {
+    console.error('[propertyTemplates] deletePropertyTemplateFolder:', error);
+    throw new Error('Failed to delete template folder');
+  }
+}
+
+export async function propertyTemplateFolderExists(
+  propertyId: string,
+  folderId: string
+): Promise<boolean> {
+  const { count, error } = await supabaseAdmin()
+    .from('property_template_folders')
+    .select('*', { count: 'exact', head: true })
+    .eq('property_id', propertyId)
+    .eq('id', folderId);
+
+  if (error) {
+    console.error('[propertyTemplates] propertyTemplateFolderExists:', error);
+    throw new Error('Failed to load template folder');
+  }
+  return (count ?? 0) > 0;
+}
+
+/** Renames or re-files one host-owned template row without touching its content. */
+export async function updateCustomTemplateRow(input: {
+  propertyId: string;
+  templateKey: string;
+  name?: string;
+  category?: PropertyTemplateCategory;
+  folderId?: string | null;
+}): Promise<PropertyTemplateRow | null> {
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.category !== undefined) {
+    patch.category = input.category;
+    if (input.category !== 'custom') {
+      patch.folder_id = null;
+    } else if (input.folderId !== undefined) {
+      patch.folder_id = input.folderId;
+    }
+  } else if (input.folderId !== undefined) {
+    patch.folder_id = input.folderId;
+  }
+
+  const { data, error } = await supabaseAdmin()
+    .from('property_template_contents')
+    .update(patch)
+    .eq('property_id', input.propertyId)
+    .eq('template_key', input.templateKey)
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[propertyTemplates] updateCustomTemplateRow:', error);
+    throw new Error('Failed to update template');
+  }
+  return (data as PropertyTemplateRow | null) ?? null;
 }
