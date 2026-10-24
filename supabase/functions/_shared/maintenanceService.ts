@@ -89,6 +89,18 @@ function getSupabase() {
   );
 }
 
+export async function getMaintenanceItem(id: string): Promise<MaintenanceItemRow | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('maintenance_items')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`fetch maintenance_item failed: ${error.message}`);
+  if (!data) return null;
+  return mapMaintenanceItemRow(data as Record<string, unknown>);
+}
+
 function filterMaintenanceItems(items: MaintenanceItemRow[], q?: string): MaintenanceItemRow[] {
   const needle = q?.trim().toLowerCase() ?? '';
   if (!needle) return items;
@@ -372,6 +384,7 @@ export async function updateMaintenanceItem(
     category: string | null;
     scheduled_on: string;
     notes: string | null;
+    completed_at: string | null;
     recurrence_interval: RecurrenceInterval;
     recurrence_until: string;
     telegramReminder?: MaintenanceTelegramReminderInput;
@@ -502,6 +515,7 @@ export async function updateMaintenanceItem(
 
   if (effectiveScope === 'this') {
     if (patch.scheduled_on) update.scheduled_on = patch.scheduled_on;
+    if (patch.completed_at !== undefined) update.completed_at = patch.completed_at;
     const { data, error } = await supabase
       .from('maintenance_items')
       .update(update)
