@@ -22,6 +22,11 @@ import {
   buildMessagePreview,
   parseGuestWebChatAttachments,
 } from '../_shared/guestChatAttachments.ts';
+import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
+import {
+  MAX_META_TEMPLATE_TEXT_CHARS,
+  renderChatTemplateForChat,
+} from '../_shared/chatTemplateMessage.ts';
 import type { SocialChannelConnectionRow } from '../_shared/socialInboxTypes.ts';
 import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
@@ -42,10 +47,11 @@ serveAuthenticated(
     const body = await readJsonBody(req);
     const ctx = await resolveInboxAccess(req, 'reply', body as Record<string, unknown>);
     const conversationId = String(body.conversationId ?? '').trim();
-    const text = String(body.text ?? '').trim();
     const useHumanAgentTag = body.useHumanAgentTag === true;
     const replyToMessageId = String(body.replyToMessageId ?? body.reply_to_message_id ?? '').trim();
     const attachments = parseGuestWebChatAttachments(body.attachments);
+    const templateKey = String(body.templateKey ?? '').trim();
+    const bookingId = String(body.bookingId ?? body.booking_id ?? '').trim() || null;
 
     if (!conversationId) {
       return jsonError(req, 'conversationId required', 400);
@@ -69,6 +75,53 @@ serveAuthenticated(
 
     const now = new Date().toISOString();
 
+    const templatePropertyId = conv.property_id ?? ctx.propertyId;
+    let template: Awaited<ReturnType<typeof renderChatTemplateForChat>> | null = null;
+    if (templateKey) {
+      if (!templatePropertyId) {
+        return jsonError(req, 'Template requires a property', 400);
+      }
+      if (attachments.length > 0) {
+        return jsonError(req, 'A template message cannot include attachments', 400);
+      }
+      if (conv.platform !== 'web' && conv.platform !== 'facebook' && conv.platform !== 'instagram') {
+        return jsonError(req, 'Templates are not available on this channel', 400);
+      }
+      try {
+        template = await renderChatTemplateForChat({
+          propertyId: templatePropertyId,
+          templateKey,
+          conversation: conv,
+          bookingId,
+        });
+      } catch (e) {
+        return jsonError(req, (e as Error).message, 400);
+      }
+    }
+
+    const text = template ? template.plainText : String(body.text ?? '').trim();
+
+    const logChatTemplateSent = async (
+      propertyId: string,
+      rendered: NonNullable<typeof template>
+    ) => {
+      await logActivity({
+        action: 'inbox.chat_template_sent',
+        organizationId: ctx.org.id,
+        propertyId,
+        actor: buildActorContext('dashboard', { authUser: user }, req),
+        targetId: conv.id,
+        targetLabel: rendered.source.name,
+        metadata: {
+          template_key: rendered.source.templateKey,
+          template_name: rendered.source.name,
+          template_category: rendered.source.category,
+          conversation_id: conv.id,
+          platform: conv.platform,
+        },
+      });
+    };
+
     if (conv.platform === 'web') {
       try {
         assertGuestWebMessagePayload(text, attachments);
@@ -77,7 +130,9 @@ serveAuthenticated(
       }
 
       const externalId = `web:${crypto.randomUUID()}`;
-      const preview = buildMessagePreview(text, attachments);
+      const preview = template
+        ? template.source.name.slice(0, 500)
+        : buildMessagePreview(text, attachments);
       let replyFields: { reply_to_message_id?: string; reply_preview_text?: string } = {};
       if (replyToMessageId) {
         replyFields = await resolveReplyTarget(conv.id, replyToMessageId);
@@ -93,6 +148,9 @@ serveAuthenticated(
         delivery_status: 'sent',
         sent_by_user_id: user.id,
         is_ai_generated: false,
+        ...(template
+          ? { message_kind: 'template', template_snapshot: template.snapshot }
+          : {}),
         ...replyFields,
       });
       await updateConversationAfterMessage(conv.id, {
@@ -102,6 +160,7 @@ serveAuthenticated(
         unread_delta: 0,
         guest_unread_delta: 1,
       });
+      if (template) await logChatTemplateSent(templatePropertyId!, template);
       void maybeNotifyGuestOfHostWebReply({
         orgId: ctx.org.id,
         conversationId: conv.id,
@@ -112,6 +171,13 @@ serveAuthenticated(
 
     if (!text) {
       return jsonError(req, 'conversationId and text required', 400);
+    }
+    if (template && text.length > MAX_META_TEMPLATE_TEXT_CHARS) {
+      return jsonError(
+        req,
+        `This template is too long for a Meta message (max ${MAX_META_TEMPLATE_TEXT_CHARS} characters)`,
+        400
+      );
     }
 
     const sb = createServiceClient();
@@ -172,6 +238,7 @@ serveAuthenticated(
           is_ai_generated: false,
           ...replyFields,
         });
+        if (template) await logChatTemplateSent(templatePropertyId!, template);
       } else {
         return jsonError(req, 'This conversation type is no longer supported', 400);
       }
@@ -180,7 +247,7 @@ serveAuthenticated(
     }
 
     await updateConversationAfterMessage(conv.id, {
-      subject_preview: text.slice(0, 500),
+      subject_preview: (template ? template.source.name : text).slice(0, 500),
       last_message_at: now,
       reply_status: 'replied',
       unread_delta: 0,

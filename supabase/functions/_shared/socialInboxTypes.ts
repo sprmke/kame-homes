@@ -85,6 +85,9 @@ export type SocialMessageRow = {
   reply_preview_text?: string | null;
   /** `voice` for turns written from a Gemini Live voice receptionist session; default `text`. */
   source_mode?: 'text' | 'voice';
+  /** `template` when the reply carries a rendered property template snapshot. */
+  message_kind?: 'text' | 'template';
+  template_snapshot?: unknown | null;
 };
 
 export type SocialReplyTemplateRow = {
