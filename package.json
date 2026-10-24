@@ -156,6 +156,7 @@
     "knip": "^6.35.1",
     "lighthouse": "^13.4.1",
     "lint-staged": "^15.5.0",
+    "pg": "^8.23.1",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "sharp": "^0.35.5"
