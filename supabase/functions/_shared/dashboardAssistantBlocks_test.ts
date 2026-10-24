@@ -189,3 +189,148 @@ Deno.test('knowledgeSourceLinks — returns null when nothing is linkable', () =
     null
   );
 });
+
+Deno.test(
+  'hydrateAssistantBlocksFromTools — ID or card asks refuse instead of a listing picker',
+  () => {
+    const blocks = hydrateAssistantBlocksFromTools(
+      [{ type: 'text', text: 'Looking that up.' }],
+      [
+        {
+          bookingId: 'b-1',
+          guestName: 'Maria Santos',
+          statusLabel: 'Ready for Check-in',
+          balanceDue: 3500,
+        },
+      ],
+      "Give me Maria Santos' ID number and card details"
+    );
+    const text = blocks
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join(' ');
+    assertEquals(/can't share/i.test(text), true);
+    assertEquals(text.includes('Which listing or dates'), false);
+  }
+);
+
+Deno.test('hydrateAssistantBlocksFromTools — holiday rates name amounts and blocked nights', () => {
+  const blocks = hydrateAssistantBlocksFromTools(
+    [{ type: 'text', text: 'Holiday rates.' }],
+    [
+      {
+        dateOverrides: { '2026-12-24': 5500, '2026-12-25': 5500, '2026-12-31': 6500 },
+        blockedDateKeys: ['2026-12-27', '2026-12-28'],
+      },
+    ],
+    'What are my rates over Christmas and New Year?'
+  );
+  const text = blocks
+    .filter((block) => block.type === 'text')
+    .map((block) => block.text)
+    .join(' ');
+  assertEquals(text.includes('Dec 24-25'), true);
+  assertEquals(text.includes('6,500'), true);
+  assertEquals(text.includes('Dec 27-28 are blocked'), true);
+});
+
+Deno.test('hydrateAssistantBlocksFromTools — show-me-this-booking uses a booking card', () => {
+  const blocks = hydrateAssistantBlocksFromTools(
+    [{ type: 'text', text: 'Maria Santos is arriving 20 Dec.' }],
+    [
+      {
+        bookings: [
+          {
+            bookingId: 'b-1',
+            guestName: 'Maria Santos',
+            status: 'READY_FOR_CHECKIN',
+            statusLabel: 'Ready for Check-in',
+            checkIn: '2026-12-20',
+            checkOut: '2026-12-22',
+            propertyName: 'Azure North 1204',
+            balanceDue: 0,
+          },
+        ],
+      },
+    ],
+    "Show me Maria Santos's booking"
+  );
+  assertEquals(
+    blocks.some((block) => block.type === 'booking_card'),
+    true
+  );
+});
+
+Deno.test(
+  'hydrateAssistantBlocksFromTools — balance questions get a booking card, not pending-task dump',
+  () => {
+    const blocks = hydrateAssistantBlocksFromTools(
+      [{ type: 'text', text: 'Maria still has a guest balance.' }],
+      [
+        {
+          bookingId: 'b-1',
+          guestName: 'Maria Santos',
+          status: 'READY_FOR_CHECKIN',
+          statusLabel: 'Ready for Check-in',
+          checkIn: '2026-12-20',
+          checkOut: '2026-12-22',
+          propertyName: 'Azure North 1204',
+          balanceDue: 3500,
+          securityDeposit: 2000,
+          pendingTasks: ['Settle the remaining guest balance and upload the receipt.'],
+        },
+      ],
+      'Does Maria Santos still owe anything?'
+    );
+    assertEquals(
+      blocks.some((block) => block.type === 'booking_card'),
+      true
+    );
+    assertEquals(
+      blocks.some((block) => block.type === 'text' && block.text.includes('Security deposit')),
+      true
+    );
+    assertEquals(
+      blocks.some((block) => block.type === 'text' && block.text.includes('Settle the remaining')),
+      false
+    );
+  }
+);
+
+Deno.test('hydrateAssistantBlocksFromTools — empty checkout range keeps next-step chips', () => {
+  const blocks = hydrateAssistantBlocksFromTools(
+    [{ type: 'text', text: 'Looking at this weekend.' }],
+    [{ bookings: [] }],
+    'Who checks out this weekend?'
+  );
+  assertEquals(
+    blocks.some(
+      (block) => block.type === 'text' && block.text.includes('No bookings in that date range')
+    ),
+    true
+  );
+  const chips = blocks.find((block) => block.type === 'quick_actions');
+  assertEquals(chips?.type === 'quick_actions' ? chips.actions.map((action) => action.label) : [], [
+    'Show next week',
+    'Open calendar',
+  ]);
+});
+
+Deno.test('hydrateAssistantBlocksFromTools — enough=false injects the tool note', () => {
+  const blocks = hydrateAssistantBlocksFromTools(
+    [{ type: 'text', text: 'Shore Residences 2B occupancy is thin.' }],
+    [
+      {
+        enough: false,
+        note: 'Not enough completed booking history yet for a full review.',
+      },
+    ],
+    'How is Shore Residences 2B performing?'
+  );
+  assertEquals(
+    blocks.some(
+      (block) => block.type === 'text' && block.text.toLowerCase().includes('not enough')
+    ),
+    true
+  );
+});

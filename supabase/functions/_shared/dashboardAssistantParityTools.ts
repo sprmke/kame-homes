@@ -895,12 +895,13 @@ const listActivityLog = defineReadTool(
   {
     name: 'list_activity_log',
     description:
-      'Recent activity / audit trail ("who changed the rates?", "what happened to this booking?"). Optional filters: propertyId, parkingId, category, search text q, days back (1–90, default 14). Returns at most 20 events, newest first.',
+      'Recent activity / audit trail ("who changed the rates?", "what happened to this booking?"). Optional filters: propertyId, parkingId, bookingId, category, search text q, days back (1–90, default 14). Returns at most 20 events, newest first.',
     parameters: {
       type: 'object',
       properties: {
         propertyId: { type: 'string' },
         parkingId: { type: 'string' },
+        bookingId: { type: 'string' },
         category: { type: 'string', enum: [...ACTIVITY_CATEGORIES] },
         q: { type: 'string' },
         days: { type: 'number' },
@@ -938,6 +939,8 @@ const listActivityLog = defineReadTool(
       query = query.eq('property_id', propertyId);
     const parkingId = str(args, 'parkingId');
     if (parkingId && /^[0-9a-f-]{36}$/i.test(parkingId)) query = query.eq('parking_id', parkingId);
+    const bookingId = str(args, 'bookingId');
+    if (bookingId) query = query.eq('target_type', 'booking').eq('target_id', bookingId);
     const category = str(args, 'category');
     if (category && (ACTIVITY_CATEGORIES as readonly string[]).includes(category)) {
       query = query.eq('category', category);

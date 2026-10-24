@@ -180,7 +180,11 @@ export function selectDocumentsForMessage(
   for (const group of request.groups) {
     const matches = docs.filter((doc) => doc.group === group);
     if (group === 'gaf') {
-      const approved = matches.find((doc) => doc.id === 'approved_gaf');
+      const approved =
+        matches.find((doc) => doc.id === 'approved_gaf') ??
+        matches.find((doc) => /approved/i.test(doc.label)) ??
+        matches.find((doc) => doc.group === 'gaf' && doc.id !== 'gaf_request') ??
+        matches[0];
       const requestPdf = matches.find((doc) => doc.id === 'gaf_request');
       if (approved) files.push(approved);
       else {

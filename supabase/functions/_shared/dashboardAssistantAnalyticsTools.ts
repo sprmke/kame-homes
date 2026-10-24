@@ -51,7 +51,7 @@ function addDaysIso(dateIso: string, days: number): string {
 }
 
 /** Mirrors ui/.../analytics/lib/analyticsDateRange.ts presets, server-side, chat-facing subset. */
-function resolvePeriod(period: string | null): { from: string; to: string } {
+export function resolveAnalyticsPeriod(period: string | null): { from: string; to: string } {
   const today = manilaTodayIso();
   switch (period) {
     case 'this_month': {
@@ -59,6 +59,10 @@ function resolvePeriod(period: string | null): { from: string; to: string } {
       const from = `${y}-${String(m).padStart(2, '0')}-01`;
       const lastDay = new Date(y, m, 0).getDate();
       return { from, to: `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}` };
+    }
+    case 'this_year': {
+      const [y] = today.split('-').map(Number);
+      return { from: `${y}-01-01`, to: today };
     }
     case 'last_90d':
       return { from: addDaysIso(today, -89), to: today };
@@ -114,7 +118,7 @@ function summarizeBundle(bundle: AnalyticsBundle) {
       unpaidBalanceUpcomingCount: bundle.stateAssessment.unpaidBalanceUpcomingCount,
     },
     kpis: {
-      occupancyRatePct: Math.round(k.occupancyRate.value * 100),
+      occupancyRatePct: Math.round(k.occupancyRate.value),
       occupancyRateVsPrior: pct(k.occupancyRate.changePctVsPrior),
       occupancyRateVsLastYear: pct(k.occupancyRate.changePctVsLastYear),
       adrDisplay: formatFinancePhp(k.adr.value),
@@ -129,16 +133,21 @@ function summarizeBundle(bundle: AnalyticsBundle) {
       reservations: k.reservations.value,
       reservationsVsPrior: pct(k.reservations.changePctVsPrior),
       avgLeadTimeDays: Math.round(k.avgLeadTimeDays.value),
-      cancellationRatePct: Math.round(k.cancellationRate.value * 100),
+      cancellationRatePct: Math.round(k.cancellationRate.value),
       cancellationRateVsPrior: pct(k.cancellationRate.changePctVsPrior),
       avgRating: Math.round(k.avgRating.value * 10) / 10,
-      repeatGuestRatePct: Math.round(k.repeatGuestRate.value * 100),
+      repeatGuestRatePct: Math.round(k.repeatGuestRate.value),
       avgResponseMinutes: Math.round(k.avgResponseMinutes.value),
-      responseWithin24hRatePct: Math.round(k.responseWithin24hRate.value * 100),
+      responseWithin24hRatePct: Math.round(k.responseWithin24hRate.value),
     },
+    trend: bundle.trend.slice(-6).map((row) => ({
+      month: row.bucketStart.slice(0, 7),
+      occupancyRatePct: Math.round(row.occupancyRate),
+      revenue: Math.round(row.revenue),
+    })),
     forward: {
       windowDays: bundle.forward.windowDays,
-      occupancyOnBooksPct: Math.round(bundle.forward.occupancyOnBooks * 100),
+      occupancyOnBooksPct: Math.round(bundle.forward.occupancyOnBooks),
       revenueOnBooksDisplay: formatFinancePhp(bundle.forward.revenueOnBooks),
       openNightsCount: bundle.forward.gapNights.length,
     },
@@ -177,7 +186,7 @@ export async function toolGetPropertyAnalytics(
 ): Promise<AnalyticsToolResult> {
   try {
     const propertyId = await resolveAnalyticsProperty(ctx, args);
-    const period = resolvePeriod(str(args, 'period'));
+    const period = resolveAnalyticsPeriod(str(args, 'period'));
     const bundle = await computeAnalyticsBundle({ propertyId, ...period });
     // Best-effort — a benchmark failure must never break the rest of the answer, same contract
     // as analytics-summary's own use of this function.
@@ -311,7 +320,7 @@ export const GET_PROPERTY_ANALYTICS_TOOL_DECLARATION = {
     type: 'object',
     properties: {
       propertyId: { type: 'string' },
-      period: { type: 'string', enum: ['last_30d', 'last_90d', 'this_month'] },
+      period: { type: 'string', enum: ['last_30d', 'last_90d', 'this_month', 'this_year'] },
     },
     required: [],
   },

@@ -55,6 +55,21 @@ export function assistantBlocksToSnippet(blocks: unknown): string {
       const label = asText(rec.label);
       if (label) parts.push(`Location: ${label}`);
       else if (asText(rec.href)) parts.push(asText(rec.href));
+    } else if (
+      (rec.type === 'chart' ||
+        rec.type === 'calendar' ||
+        rec.type === 'timeline' ||
+        rec.type === 'carousel' ||
+        rec.type === 'comparison' ||
+        rec.type === 'checklist' ||
+        rec.type === 'kpi') &&
+      asText(rec.title ?? rec.label)
+    ) {
+      parts.push(asText(rec.title ?? rec.label));
+    } else if (rec.type === 'entity_card' && asText(rec.title)) {
+      parts.push(asText(rec.title));
+    } else if (rec.type === 'callout' && asText(rec.text)) {
+      parts.push(asText(rec.text));
     } else if (rec.type === 'booking_card') {
       const guest = asText(rec.guestName) || 'Guest';
       const status = asText(rec.status);

@@ -26,6 +26,14 @@ const PROMPTS: Record<string, string> = {
   'check-outs-today': 'Who is checking out today?',
   'pending-sd-refund': 'Which security deposit refunds are still pending?',
   'unpaid-balance': 'Which guests still have an unpaid balance?',
+  'inbox-pending': 'Which guest messages are waiting for a reply?',
+  'maintenance-overdue': 'What maintenance is overdue?',
+  'unpriced-holidays': 'Which upcoming holidays have no rate rule?',
+  'low-occupancy': 'Why is occupancy low next month and what can I do?',
+  'channel-sync-failed': 'What went wrong with the calendar sync?',
+  'verification-expiring': 'What do I need to renew my verification?',
+  'ai-quota': 'How much AI usage do I have left this month?',
+  'reviews-to-respond': 'Which reviews need a response?',
 };
 
 const SEVERITY_RANK: Record<DashboardAttentionSeverity, number> = {

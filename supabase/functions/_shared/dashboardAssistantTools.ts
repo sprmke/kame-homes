@@ -33,6 +33,7 @@ import {
   createFinanceLineItem,
   financeThisMonthRange,
   formatFinancePhp,
+  lastNFinanceMonthRanges,
   listFinanceBookings,
   toHostFacingFinanceKpis,
   type FinanceLineItemKind,
@@ -229,6 +230,11 @@ import {
   toolExplainAnalyticsMetric,
   toolGetPropertyAnalytics,
 } from './dashboardAssistantAnalyticsTools.ts';
+import {
+  COVERAGE_TOOL_DECLARATIONS,
+  isCoverageTool,
+  runCoverageTool,
+} from './dashboardAssistantCoverageTools.ts';
 import {
   DELETE_FINANCE_LINE_ITEM_TOOL_DECLARATION,
   DELETE_MAINTENANCE_ITEM_TOOL_DECLARATION,
@@ -476,14 +482,22 @@ async function toolGetBooking(
   ctx: ToolExecutionContext,
   args: Record<string, unknown>
 ): Promise<ToolResult> {
-  const bookingId = str(args, 'bookingId');
+  const bookingId = defaultBookingId(ctx, args);
   if (!bookingId) return { ok: false, error: 'bookingId is required' };
   const propertyId = await resolveBookingProperty(ctx, bookingId, 'bookings:view');
 
   const sb = createServiceClient();
-  const [{ data: booking }, { data: property }] = await Promise.all([
+  const [{ data: booking }, { data: property }, { data: historyRows }] = await Promise.all([
     sb.from('guest_submissions').select('*').eq('id', bookingId).maybeSingle(),
     sb.from('properties').select('id, name').eq('id', propertyId).maybeSingle(),
+    sb
+      .from('activity_log')
+      .select('created_at, actor_display_name, summary, action')
+      .eq('organization_id', ctx.organizationId)
+      .eq('target_type', 'booking')
+      .eq('target_id', bookingId)
+      .order('created_at', { ascending: true })
+      .limit(20),
   ]);
   if (!booking) return { ok: false, error: 'Booking not found' };
 
@@ -491,6 +505,28 @@ async function toolGetBooking(
   const balanceDue = totalDue === null ? null : totalDue - num(booking.guest_balance_paid_amount);
   const status = String(booking.status ?? '');
   const bookingRecord = booking as Record<string, unknown>;
+  const statusLabel = isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status;
+  const hostLabel = formatBookingHostLabel({
+    guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
+    checkIn: booking.check_in_date,
+    checkOut: booking.check_out_date,
+    statusLabel,
+  });
+  const statusHistory =
+    (historyRows ?? []).map((row) => ({
+      at: row.created_at,
+      label: row.summary || row.action,
+      detail: row.summary,
+      actor: row.actor_display_name,
+    })) ?? [];
+  if (statusHistory.length === 0) {
+    statusHistory.push({
+      at: booking.created_at,
+      label: statusLabel,
+      detail: hostLabel,
+      actor: null,
+    });
+  }
 
   return {
     ok: true,
@@ -498,17 +534,13 @@ async function toolGetBooking(
     auditBookingId: bookingId,
     data: {
       bookingId: booking.id,
-      hostLabel: formatBookingHostLabel({
-        guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
-        checkIn: booking.check_in_date,
-        checkOut: booking.check_out_date,
-        statusLabel: isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status,
-      }),
+      hostLabel,
       guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
       status,
-      statusLabel: isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status,
+      statusLabel,
       checkIn: booking.check_in_date,
       checkOut: booking.check_out_date,
+      createdAt: booking.created_at,
       propertyId,
       propertyName: property?.name ?? '',
       balanceDue,
@@ -517,6 +549,7 @@ async function toolGetBooking(
       sdRefundFormSubmitted: Boolean(booking.sd_refund_form_submitted_at),
       pendingTasks: pendingTasksForBooking(bookingRecord),
       documents: collectAssistantBookingDocuments(bookingRecord),
+      statusHistory,
     },
   };
 }
@@ -906,6 +939,62 @@ async function toolGetFinanceSummary(
       },
       operating: summary.operating,
     },
+  };
+}
+
+async function toolGetFinanceTrend(
+  ctx: ToolExecutionContext,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const { propertyId } = await resolveTargetProperty(ctx, args, 'finance:view');
+  const monthsArg = typeof args.months === 'number' ? args.months : Number(args.months);
+  const ranges = lastNFinanceMonthRanges(manilaTodayIso(), monthsArg || 6);
+  const sb = createServiceClient();
+  const { data: property } = await sb
+    .from('properties')
+    .select('name')
+    .eq('id', propertyId)
+    .maybeSingle();
+  const propertyName = property?.name ? String(property.name) : propertyId;
+  const months: Array<{
+    month: string;
+    label: string;
+    from: string;
+    to: string;
+    income: number;
+    expenses: number;
+    netProfit: number;
+    display: { income: string; expenses: string; netProfit: string };
+  }> = [];
+  for (const range of ranges) {
+    const summary = await computeFinanceSummary({
+      propertyId,
+      from: range.from,
+      to: range.to,
+      basis: 'check_in',
+      includeCancelled: true,
+      completedOnly: false,
+    });
+    const kpis = toHostFacingFinanceKpis(summary);
+    months.push({
+      month: range.month,
+      label: range.label,
+      from: range.from,
+      to: range.to,
+      income: kpis.totalIncome,
+      expenses: kpis.totalExpenses,
+      netProfit: kpis.netProfit,
+      display: {
+        income: formatFinancePhp(kpis.totalIncome),
+        expenses: formatFinancePhp(kpis.totalExpenses),
+        netProfit: formatFinancePhp(kpis.netProfit),
+      },
+    });
+  }
+  return {
+    ok: true,
+    auditPropertyId: propertyId,
+    data: { propertyId, propertyName, months },
   };
 }
 
@@ -1546,6 +1635,7 @@ async function toolListMarketingTemplates(
     .from('marketing_templates')
     .select('id, name, content_type, platform, aspect_preset, updated_at')
     .eq('property_id', access.propertyId)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false });
   if (error) return { ok: false, error: error.message };
   return {
@@ -4379,6 +4469,7 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   get_available_dates: (ctx, args) => toolGetAvailableDates(ctx, args),
   get_dashboard_stats: (ctx, args) => toolGetDashboardStats(ctx, args),
   get_finance_summary: (ctx, args) => toolGetFinanceSummary(ctx, args),
+  get_finance_trend: (ctx, args) => toolGetFinanceTrend(ctx, args),
   list_finance_bookings: (ctx, args) => toolListFinanceBookings(ctx, args),
   get_maintenance_summary: (ctx, args) => toolGetMaintenanceSummary(ctx, args),
   list_maintenance_items: (ctx, args) => toolListMaintenanceItems(ctx, args),
@@ -4487,6 +4578,15 @@ for (const declaration of PARITY_TOOL_DECLARATIONS) {
   TOOL_HANDLERS[declaration.name] = (ctx, args) => runParityTool(declaration.name, ctx, args);
 }
 
+for (const declaration of COVERAGE_TOOL_DECLARATIONS) {
+  TOOL_HANDLERS[declaration.name] = (ctx, args) => {
+    if (!isCoverageTool(declaration.name)) {
+      return Promise.resolve({ ok: false, error: 'Unknown coverage tool' });
+    }
+    return runCoverageTool(declaration.name, ctx, args);
+  };
+}
+
 /** Test/catalog helper: tool names that have an execution handler. */
 export function registeredToolNames(): string[] {
   return Object.keys(TOOL_HANDLERS);
@@ -4546,11 +4646,10 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'get_booking',
     description:
-      'Fetch a single booking by id, including human statusLabel, pendingTasks, securityDeposit, sdRefundAmount, and documents (label + storage url for GAF, receipts, IDs, pet forms). When the host asks to see a file, also call get_booking_documents.',
+      'Fetch a single booking by id (or the pinned stay), including human statusLabel, statusHistory, pendingTasks, securityDeposit, sdRefundAmount, and documents. Use this for "what happened to this booking" / history. When the host asks to see a file, also call get_booking_documents.',
     parameters: {
       type: 'object',
       properties: { bookingId: { type: 'string' } },
-      required: ['bookingId'],
     },
   },
   {
@@ -4650,6 +4749,21 @@ export const TOOL_DECLARATIONS = [
         to: {
           type: 'string',
           description: 'YYYY-MM-DD inclusive end (default: last day of this Manila month)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_finance_trend',
+    description:
+      'Month-by-month income, expenses, and net profit for ONE property (same Finance-page math as get_finance_summary). Defaults to the last 6 Manila calendar months including this month. Use for "last 6 months", "income trend", and "revenue vs expenses over time".',
+    parameters: {
+      type: 'object',
+      properties: {
+        propertyId: { type: 'string' },
+        months: {
+          type: 'number',
+          description: 'How many calendar months to include, 2–12 (default 6)',
         },
       },
     },
@@ -5384,4 +5498,5 @@ export const TOOL_DECLARATIONS = [
   EXPLAIN_ANALYTICS_METRIC_TOOL_DECLARATION,
   OPEN_PAGE_TOOL_DECLARATION,
   ...PARITY_TOOL_DECLARATIONS,
+  ...COVERAGE_TOOL_DECLARATIONS,
 ];

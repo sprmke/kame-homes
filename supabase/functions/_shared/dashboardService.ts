@@ -662,6 +662,8 @@ export async function computeDashboardStats(
   let pipelineEstimate = 0;
 
   const todayInRange = today >= from && today <= to;
+  const occupancyWindowTo = addDaysIso(today, 29);
+  let forwardOccupiedNights = 0;
 
   const periodStays: DashboardUpcomingStay[] = [];
   const recentBookingCandidates: DashboardRecentBooking[] = [];
@@ -703,6 +705,13 @@ export async function computeDashboardStats(
       numberOfNights,
       from,
       to
+    );
+    forwardOccupiedNights += countOccupiedNightsInRange(
+      checkInIso,
+      checkOutIso,
+      numberOfNights,
+      today,
+      occupancyWindowTo
     );
 
     const performanceMap = bookingKind === 'parking' ? performanceByParking : performanceByProperty;
@@ -903,6 +912,24 @@ export async function computeDashboardStats(
   }
 
   const orgUnitCount = params.orgId ? Math.max(1, propertyMetaById.size + parkingMetaById.size) : 1;
+  const listingCount = params.orgId
+    ? propertyMetaById.size + parkingMetaById.size
+    : params.propertyId || params.parkingId
+      ? 1
+      : 0;
+  const occupancyCapacity = 30 * Math.max(listingCount, 0);
+  if (listingCount > 0 && occupancyCapacity > 0) {
+    const occupancyPct = Math.round((forwardOccupiedNights / occupancyCapacity) * 100);
+    if (occupancyPct < 50) {
+      attention.push({
+        id: 'low-occupancy',
+        label: 'Low occupancy next 30 days',
+        count: occupancyPct,
+        href: '/analytics',
+        severity: 'warning',
+      });
+    }
+  }
   const occupancyRate =
     currentKpis.periodDays > 0
       ? Math.round((currentKpis.occupiedNights / (currentKpis.periodDays * orgUnitCount)) * 100)

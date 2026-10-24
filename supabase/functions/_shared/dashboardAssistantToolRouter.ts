@@ -78,6 +78,7 @@ export const ASSISTANT_TOOL_MODULES: Record<string, AssistantToolModule> = {
 
   // finance
   get_finance_summary: 'finance',
+  get_finance_trend: 'finance',
   list_finance_bookings: 'finance',
   propose_add_finance_line_item: 'finance',
   propose_update_finance_line_item: 'finance',
@@ -163,6 +164,19 @@ export const ASSISTANT_TOOL_MODULES: Record<string, AssistantToolModule> = {
   // analytics
   get_property_analytics: 'analytics',
   get_org_portfolio_analytics: 'analytics',
+  get_analytics_demographics: 'analytics',
+  list_guest_reviews: 'bookings',
+  get_review_summary: 'bookings',
+  get_rewards_summary: 'bookings',
+  list_vouchers: 'bookings',
+  get_superhost_status: 'settings',
+  get_setup_guide_progress: 'settings',
+  list_notifications: 'support',
+  get_stay_guide_content: 'settings',
+  get_custom_page_content: 'marketing',
+  search_help_center: 'support',
+  list_marketing_themes: 'marketing',
+  get_marketing_theme: 'marketing',
 
   // support (help, tickets, announcements, notifications)
   list_support_tickets: 'support',
@@ -186,7 +200,7 @@ const MODULE_PATTERNS: Array<[AssistantToolModule, RegExp]> = [
   [
     'bookings',
     // Prefix stems (no trailing \b) so "arrives", "cancelled", "checks in" all match.
-    /\b(book|reservation|guest|checks? ?-?in|checks? ?-?out|arriv|depart|stay|gaf|pet|document|receipt|valid id|cancel|status|pending|review|workflow|acknowledg|link|airbnb|calendar sync|import|refund|deposit|balance)/i,
+    /\b(book|reservation|guest|checks? ?-?in|checks? ?-?out|arriv|depart|stay|gaf|pet|document|receipt|valid id|cancel|status|pending|review|voucher|reward|workflow|acknowledg|link|airbnb|calendar sync|import|refund|deposit|balance)/i,
   ],
   ['parking', /\b(parking|slot|car|vehicle|plate|spot)\b/i],
   ['finance', /\b(financ|income|expense|revenue|profit|payout|money|paid|cost|earn|net)\w*/i],
@@ -201,18 +215,24 @@ const MODULE_PATTERNS: Array<[AssistantToolModule, RegExp]> = [
   ['inbox', /\b(inbox|message|messages|reply|replies|chat|dm|messenger|instagram|quick repl)\w*/i],
   [
     'marketing',
-    /\b(marketing|caption|post|publish|facebook page|social|template design|music|public page|showcase|landing)\w*/i,
+    /\b(marketing|caption|post|publish|facebook|social|template design|music|public page|showcase|landing|theme|brand look)\w*/i,
   ],
-  ['team', /\b(team|member|invite|invitation|staff|role|permission|access for|co-?host)\w*/i],
+  [
+    'team',
+    /\b(team|member|invite|invitation|staff|role|permission|access for|co-?host|(?:remove|kick off|uninvite)\s+\w+)\w*/i,
+  ],
   [
     'settings',
-    /\b(setting|profile|logo|photo|media|house rule|contact|automat|email|notification preference|telegram|receptionist|voice|gcash|payment method|new property|new listing|add (a )?property)\w*/i,
+    /\b(setting|profile|logo|photo|media|house rule|contact|automat|email|notification preference|telegram|receptionist|voice|gcash|payment method|new property|new listing|add (a )?property|setup guide|superhost)\w*/i,
   ],
   [
     'analytics',
-    /\b(analytic|occupancy|adr|revpar|performance|portfolio|kpi|trend|compare|all (my )?listings|combined|overall|this month|last month)\w*/i,
+    /\b(analytic|occupancy|adr|revpar|performance|portfolio|kpi|trend|compare|all (my )?listings|combined|overall|this month|last month|party size|lead time|who are my guests)\w*/i,
   ],
-  ['support', /\b(support|help desk|ticket|announcement|notification|bug|feature request)\w*/i],
+  [
+    'support',
+    /\b(support|help desk|ticket|announcement|notification|bug|feature request|help center)\w*/i,
+  ],
   ['verification', /\b(verif|verified|authoriz|selfie|proof|badge|listing authorization)\w*/i],
 ];
 
@@ -234,6 +254,9 @@ const PIN_MODULES: Record<string, AssistantToolModule> = {
   pricing_date: 'pricing',
   inbox_conversation: 'inbox',
   marketing_template: 'marketing',
+  marketing_theme: 'marketing',
+  review: 'bookings',
+  voucher: 'bookings',
   notification_module: 'settings',
   public_page: 'marketing',
   ticket: 'support',

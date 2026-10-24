@@ -30,6 +30,7 @@ export const AI_FEATURES = [
   'dashboard_assistant',
   'smart_pricing',
   'host_analytics',
+  'review_draft',
   'marketing_image_generate',
   'marketing_video_generate',
 ] as const;
@@ -89,9 +90,9 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     tier: 'flash_lite',
     inputUsdPer1M: 0.25,
     outputUsdPer1M: 1.5,
-    defaultMaxOutputTokens: 256,
+    defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
-    timeoutMs: 20000,
+    timeoutMs: 25000,
     groqFallback: true,
   },
   inbox_auto_reply: {
@@ -99,9 +100,9 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     tier: 'flash_lite',
     inputUsdPer1M: 0.25,
     outputUsdPer1M: 1.5,
-    defaultMaxOutputTokens: 256,
+    defaultMaxOutputTokens: 512,
     thinkingBudget: 0,
-    timeoutMs: 20000,
+    timeoutMs: 25000,
     groqFallback: true,
   },
   marketing_caption: {
@@ -249,6 +250,16 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     thinkingBudget: 0,
     timeoutMs: 45000,
     groqFallback: false,
+  },
+  review_draft: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 256,
+    thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
   },
   // Media generation is priced from MARKETING_IMAGE_MODELS / MARKETING_VIDEO_MODELS
   // below, not from these rows. They exist so getModelConfig() and the kill-switch

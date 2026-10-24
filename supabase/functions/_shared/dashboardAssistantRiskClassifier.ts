@@ -30,6 +30,7 @@ export const READ_TOOL_NAMES = new Set([
   'get_available_dates',
   'get_dashboard_stats',
   'get_finance_summary',
+  'get_finance_trend',
   'list_finance_bookings',
   'get_maintenance_summary',
   'list_maintenance_items',
@@ -74,6 +75,19 @@ export const READ_TOOL_NAMES = new Set([
   ...PARITY_READ_TOOL_NAMES,
   'get_property_analytics',
   'explain_metric',
+  'list_guest_reviews',
+  'get_review_summary',
+  'get_rewards_summary',
+  'list_vouchers',
+  'get_superhost_status',
+  'get_setup_guide_progress',
+  'list_marketing_themes',
+  'get_marketing_theme',
+  'get_analytics_demographics',
+  'list_notifications',
+  'get_stay_guide_content',
+  'get_custom_page_content',
+  'search_help_center',
 ]);
 
 /** Idempotent write tools with no status/financial change — tier1 by construction. */

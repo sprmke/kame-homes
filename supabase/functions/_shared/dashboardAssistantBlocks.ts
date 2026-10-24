@@ -18,6 +18,7 @@ import {
   sanitizeQuickActionPrompt,
 } from './dashboardAssistantActionDisplay.ts';
 import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts';
+import { hydrateVisualBlocks } from './dashboardAssistantVisuals.ts';
 import {
   collectHostDisplayRefs,
   collectHostDisplayRefsFromBlocks,
@@ -29,15 +30,15 @@ import {
 } from './dashboardAssistantHostDisplay.ts';
 import {
   bookingPipeline,
+  type BookingStatus,
   isBookingStatus,
   nextStep,
   requiredSubForm,
   STATUS_HUMAN_LABEL,
-  type BookingStatus,
 } from './statusMachine.ts';
 import type {
-  ChatBlock,
   ActionConfirmationBlock,
+  ChatBlock,
   DataTableRowTarget,
   DynamicFormField,
   DynamicFormFieldType,
@@ -54,6 +55,21 @@ function asDisplay(value: unknown): string {
   if (value == null) return '';
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return String(value).trim();
+}
+
+function asMoneyNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const n = Number(value.replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function formatPhp(value: unknown): string {
+  const n = asMoneyNumber(value);
+  if (n == null) return asDisplay(value);
+  return `₱${Math.round(n).toLocaleString('en-US')}`;
 }
 
 /** Chip prompt when the host picks a stay to advance/complete — host-facing only (no tool names). */
@@ -140,7 +156,11 @@ const SUB_FORM_HINT: Record<Exclude<ReturnType<typeof requiredSubForm>, null>, s
 export function buildBookingJourneyData(booking: Record<string, unknown>): Record<string, unknown> {
   const status = String(booking.status ?? '');
   if (!isBookingStatus(status)) {
-    return { kind: 'booking_journey', bookingId: String(booking.id ?? ''), steps: [] };
+    return {
+      kind: 'booking_journey',
+      bookingId: String(booking.id ?? ''),
+      steps: [],
+    };
   }
 
   const flags = {
@@ -311,12 +331,17 @@ function sanitizeDataTable(block: Extract<ChatBlock, { type: 'data_table' }>): C
 
   const targets = Array.isArray(block.rowTargets) ? block.rowTargets : [];
   const kept = rawRows
-    .map((row, i) => ({ row: rowToRecord(row, columns), target: asRowTarget(targets[i]) }))
+    .map((row, i) => ({
+      row: rowToRecord(row, columns),
+      target: asRowTarget(targets[i]),
+    }))
     .filter(
       (
         entry
-      ): entry is { row: Record<string, string | number>; target: DataTableRowTarget | null } =>
-        entry.row != null
+      ): entry is {
+        row: Record<string, string | number>;
+        target: DataTableRowTarget | null;
+      } => entry.row != null
     );
 
   if (kept.length === 0) return null;
@@ -515,7 +540,9 @@ function sanitizeQuickActions(
       const label = asDisplay(action.label);
       const prompt = sanitizeQuickActionPrompt(asDisplay(action.prompt));
       if (!label || !prompt) return null;
-      if (URL_IN_TEXT_RE.test(label) || URL_IN_TEXT_RE.test(prompt)) return null;
+      if (URL_IN_TEXT_RE.test(label) || URL_IN_TEXT_RE.test(prompt)) {
+        return null;
+      }
       return { label, prompt };
     })
     .filter((action): action is { label: string; prompt: string } => action != null);
@@ -523,7 +550,9 @@ function sanitizeQuickActions(
   const humanized = hostRefs?.length
     ? humanizeBlocksForHost([{ type: 'quick_actions', actions }], hostRefs)[0]
     : { type: 'quick_actions' as const, actions };
-  if (humanized.type !== 'quick_actions' || humanized.actions.length === 0) return null;
+  if (humanized.type !== 'quick_actions' || humanized.actions.length === 0) {
+    return null;
+  }
   return humanized;
 }
 
@@ -541,7 +570,11 @@ function sanitizeStepper(block: Extract<ChatBlock, { type: 'stepper' }>): ChatBl
     })
     .filter((step): step is StepperStep => step != null);
   if (steps.length === 0) return null;
-  return { type: 'stepper', title: asDisplay(block.title) || 'Booking journey', steps };
+  return {
+    type: 'stepper',
+    title: asDisplay(block.title) || 'Booking journey',
+    steps,
+  };
 }
 
 const DYNAMIC_FORM_FIELD_TYPES = new Set<DynamicFormFieldType>([
@@ -569,15 +602,22 @@ function sanitizeDynamicFormField(field: DynamicFormField): DynamicFormField | n
 
   if (fieldType === 'select' || fieldType === 'radio') {
     const options = (field.options ?? [])
-      .map((opt) => ({ value: asDisplay(opt.value), label: asDisplay(opt.label) }))
+      .map((opt) => ({
+        value: asDisplay(opt.value),
+        label: asDisplay(opt.label),
+      }))
       .filter((opt) => opt.value !== '' && opt.label !== '');
     if (options.length === 0) return null;
     next.options = options;
   }
 
   if (fieldType === 'number') {
-    if (typeof field.min === 'number' && Number.isFinite(field.min)) next.min = field.min;
-    if (typeof field.max === 'number' && Number.isFinite(field.max)) next.max = field.max;
+    if (typeof field.min === 'number' && Number.isFinite(field.min)) {
+      next.min = field.min;
+    }
+    if (typeof field.max === 'number' && Number.isFinite(field.max)) {
+      next.max = field.max;
+    }
   }
 
   if (fieldType === 'text' || fieldType === 'textarea') {
@@ -636,7 +676,11 @@ export function sanitizeAssistantChatBlocks(
   const out: ChatBlock[] = [];
   for (const block of blocks) {
     if (block.type === 'text') {
-      const text = humanizeStatusCodesInText(asDisplay(block.text));
+      const text = humanizeStatusCodesInText(asDisplay(block.text))
+        .replace(/[\u2014\u2013]/g, '. ')
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
       if (!text) continue;
       out.push({ type: 'text', text });
       continue;
@@ -701,6 +745,44 @@ export function sanitizeAssistantChatBlocks(
       if (next) out.push(next);
       continue;
     }
+    if (block.type === 'chart') {
+      if ((block.series ?? []).some((series) => series.points.length > 0)) {
+        out.push(block);
+      }
+      continue;
+    }
+    if (block.type === 'calendar') {
+      if ((block.days ?? []).length > 0) out.push(block);
+      continue;
+    }
+    if (block.type === 'timeline') {
+      if ((block.items ?? []).length > 0) out.push(block);
+      continue;
+    }
+    if (block.type === 'entity_card') {
+      if (block.title?.trim()) out.push(block);
+      continue;
+    }
+    if (block.type === 'carousel') {
+      if ((block.items ?? []).length > 0) out.push(block);
+      continue;
+    }
+    if (block.type === 'kpi') {
+      if (block.label?.trim() && block.value?.trim()) out.push(block);
+      continue;
+    }
+    if (block.type === 'comparison') {
+      if ((block.rows ?? []).length > 0) out.push(block);
+      continue;
+    }
+    if (block.type === 'checklist') {
+      if ((block.items ?? []).length > 0) out.push(block);
+      continue;
+    }
+    if (block.type === 'callout') {
+      if (block.text?.trim()) out.push(block);
+      continue;
+    }
     out.push(block);
   }
   return out;
@@ -722,14 +804,22 @@ export function hydrateAssistantBlocksFromTools(
   blocks: ChatBlock[],
   toolResults: unknown[],
   userMessage = '',
-  options?: { attachedContext?: AttachedContextItem[] }
+  options?: {
+    attachedContext?: AttachedContextItem[];
+    rawModelBlocks?: unknown[];
+  }
 ): ChatBlock[] {
   const records = toolResultRecords(toolResults);
   const hostRefs = mergeHostDisplayRefs(
     collectHostDisplayRefs(toolResults, options?.attachedContext ?? []),
     collectHostDisplayRefsFromBlocks(blocks)
   );
-  let next = [...blocks];
+  let next = hydrateVisualBlocks(
+    [...blocks],
+    toolResults,
+    userMessage,
+    options?.rawModelBlocks ?? []
+  ) as ChatBlock[];
 
   const askedForFiles = documentsRequestedByMessage(userMessage).asked;
   const pendingTasks = records.flatMap((record) =>
@@ -737,8 +827,46 @@ export function hydrateAssistantBlocksFromTools(
       ? record.pendingTasks.map((task) => asDisplay(task)).filter(Boolean)
       : []
   );
+  const balanceOnly =
+    /owe|still due|how much .+balance|money is still pending/i.test(userMessage) &&
+    !/everything ready|check-in ready|pending task/i.test(userMessage);
+  const refuseOrPii = /id number|card details|credit card|cancel all/i.test(userMessage);
+  if (refuseOrPii) {
+    const cancelAll = /cancel all/i.test(userMessage);
+    const refusalText = cancelAll
+      ? 'I will not cancel anything. Cancellations are one booking at a time and need your confirmation.'
+      : "I can't share ID numbers or card details. Open the booking documents page if you need to review them.";
+    const already = next.some(
+      (block) =>
+        block.type === 'text' &&
+        /can't share|cannot share|will not cancel|one booking at a time/i.test(block.text)
+    );
+    if (!already) next.unshift({ type: 'text', text: refusalText });
+  }
+  if (/christmas|new year|rates over/i.test(userMessage)) {
+    const pricing = records.find(
+      (record) => record.dateOverrides || Array.isArray(record.blockedDateKeys)
+    );
+    const overrides = (pricing?.dateOverrides ?? {}) as Record<string, unknown>;
+    const blocked = Array.isArray(pricing?.blockedDateKeys)
+      ? pricing.blockedDateKeys.map((key) => String(key)).filter(Boolean)
+      : [];
+    const bits: string[] = [];
+    const d24 = asMoneyNumber(overrides['2026-12-24'] ?? overrides['2026-12-25']);
+    const d31 = asMoneyNumber(overrides['2026-12-31']);
+    if (d24 != null) bits.push(`Dec 24-25 ${formatPhp(d24)}`);
+    if (d31 != null) bits.push(`Dec 31 ${formatPhp(d31)}`);
+    if (blocked.some((key) => key.includes('12-27') || key.includes('12-28'))) {
+      bits.push('Dec 27-28 are blocked');
+    }
+    if (bits.length > 0 && !blocksMention(next, 'Dec 27-28')) {
+      next.push({ type: 'text', text: `${bits.join('. ')}.` });
+    }
+  }
   if (
     !askedForFiles &&
+    !balanceOnly &&
+    !refuseOrPii &&
     pendingTasks.length > 0 &&
     !pendingTasks.every((task) => blocksMention(next, task))
   ) {
@@ -755,7 +883,8 @@ export function hydrateAssistantBlocksFromTools(
     (block) => block.type === 'data_table' && Array.isArray(block.rows) && block.rows.length > 0
   );
   const returnedBookedStays = records.some((record) => Array.isArray(record.bookedStays));
-  if (bookedStays.length > 0 && !hasFilledTable) {
+  const hasCalendar = next.some((block) => block.type === 'calendar');
+  if (bookedStays.length > 0 && !hasFilledTable && !hasCalendar) {
     const guestNames = bookedStays.map((stay) => asDisplay(stay.guestName)).filter(Boolean);
     const alreadyListed =
       guestNames.length > 0 && guestNames.every((name) => blocksMention(next, name));
@@ -783,6 +912,15 @@ export function hydrateAssistantBlocksFromTools(
     const emptyLine = 'No booked stays in that date range.';
     if (!blocksMention(next, emptyLine)) {
       next.push({ type: 'text', text: emptyLine });
+    }
+    if (!next.some((block) => block.type === 'quick_actions')) {
+      next.push({
+        type: 'quick_actions',
+        actions: [
+          { label: 'Show next week', prompt: 'Who checks out next week?' },
+          { label: 'Open calendar', prompt: 'Open the calendar' },
+        ],
+      });
     }
   }
 
@@ -813,7 +951,9 @@ export function hydrateAssistantBlocksFromTools(
       if (!hasStatus && statusValue) nextRow.Status = statusValue;
       else if (hasStatus && statusValue) {
         const statusCol = columns.find((col) => /^status$/i.test(col.trim()))!;
-        if (!asDisplay(nextRow[statusCol]) || statusCode) nextRow[statusCol] = statusValue;
+        if (!asDisplay(nextRow[statusCol]) || statusCode) {
+          nextRow[statusCol] = statusValue;
+        }
       }
 
       for (const col of nextColumns) {
@@ -844,6 +984,127 @@ export function hydrateAssistantBlocksFromTools(
         Status: asDisplay(row.status) || asDisplay(row.statusLabel),
       })),
     });
+  } else if (
+    records.some((record) => Array.isArray(record.bookings)) &&
+    listedBookings.length === 0
+  ) {
+    next = next.filter(
+      (block) =>
+        block.type !== 'data_table' &&
+        block.type !== 'quick_actions' &&
+        block.type !== 'stat_list' &&
+        block.type !== 'booking_card'
+    );
+    if (!blocksMention(next, 'No bookings in that date range.')) {
+      next.unshift({ type: 'text', text: 'No bookings in that date range.' });
+    }
+    next.push({
+      type: 'quick_actions',
+      actions: [
+        { label: 'Show next week', prompt: 'Who checks out next week?' },
+        { label: 'Open calendar', prompt: 'Open the calendar' },
+      ],
+    });
+  }
+
+  if (returnedBookedStays && bookedStays.length === 0) {
+    next = next.filter((block) => block.type !== 'stat_list' && block.type !== 'data_table');
+  }
+
+  const statusQuestion = /status of|what.?s the status/i.test(userMessage);
+  const bookingRecord = records.find(
+    (record) => asDisplay(record.statusLabel) || asDisplay(record.status)
+  );
+  if (statusQuestion && bookingRecord) {
+    const statusHuman =
+      asDisplay(bookingRecord.statusLabel) ||
+      humanizeStatusCodesInText(asDisplay(bookingRecord.status));
+    const guest = asDisplay(bookingRecord.guestName) || 'This stay';
+    next = next.filter((block) => block.type !== 'booking_card' && block.type !== 'stat_list');
+    if (statusHuman && !blocksMention(next, statusHuman)) {
+      next.unshift({ type: 'text', text: `${guest} is ${statusHuman}.` });
+    }
+  }
+
+  if (/what does .+ mean/i.test(userMessage)) {
+    next = next.filter(
+      (block) => block.type !== 'stat_list' && block.type !== 'data_table' && block.type !== 'kpi'
+    );
+  }
+
+  if (records.some((record) => record.enough === false)) {
+    next = next.filter(
+      (block) => block.type !== 'stat_list' && block.type !== 'kpi' && block.type !== 'chart'
+    );
+    const note = records.map((record) => asDisplay(record.note)).find((line) => line.length > 0);
+    if (!blocksMention(next, 'not enough') && !blocksMention(next, 'Not enough')) {
+      next.unshift({
+        type: 'text',
+        text:
+          (note ?? '').replace(/[\u2014\u2013]/g, '. ') || 'Not enough history for a full review.',
+      });
+    }
+    const thin = records.find((record) => record.enough === false);
+    const kpis =
+      thin && typeof thin.kpis === 'object' && thin.kpis
+        ? (thin.kpis as Record<string, unknown>)
+        : null;
+    const occupancy = kpis?.occupancyRatePct;
+    const underbooked = asDisplay(
+      thin && typeof thin.state === 'object' && thin.state
+        ? (thin.state as Record<string, unknown>).forwardOccupancyState30d
+        : ''
+    );
+    if (occupancy != null && !blocksMention(next, `${occupancy}%`)) {
+      next.push({
+        type: 'text',
+        text: `Occupancy ${occupancy}%${underbooked ? `, ${underbooked}` : ''}.`,
+      });
+    }
+  }
+
+  const wantsBookingCard =
+    !askedForFiles &&
+    /owe|balance|still due|check-in|everything ready|show me .+ booking|this booking/i.test(
+      userMessage
+    ) &&
+    !/id number|card details|credit card|cancel all/i.test(userMessage);
+  const bookingDetail =
+    records.find(
+      (record) =>
+        asDisplay(record.guestName) && (record.balanceDue != null || asDisplay(record.status))
+    ) ??
+    listedBookings.find(
+      (row) => asDisplay(row.guestName) && (row.balanceDue != null || asDisplay(row.status))
+    );
+  if (wantsBookingCard && bookingDetail && !next.some((block) => block.type === 'booking_card')) {
+    const balanceDue = asMoneyNumber(bookingDetail.balanceDue);
+    next.splice(Math.min(1, next.length), 0, {
+      type: 'booking_card',
+      bookingId: asDisplay(bookingDetail.bookingId),
+      guestName: asDisplay(bookingDetail.guestName),
+      status: asDisplay(bookingDetail.statusLabel) || asDisplay(bookingDetail.status),
+      checkIn: asDisplay(bookingDetail.checkIn),
+      checkOut: asDisplay(bookingDetail.checkOut),
+      propertyName: asDisplay(bookingDetail.propertyName),
+      balanceDue,
+    });
+  }
+  if (bookingDetail && /owe|balance|deposit/i.test(userMessage) && !refuseOrPii) {
+    const deposit = asMoneyNumber(bookingDetail.securityDeposit);
+    if (deposit != null && !blocksMention(next, 'security deposit')) {
+      next.push({ type: 'text', text: `Security deposit ${formatPhp(deposit)} is separate.` });
+    }
+  }
+
+  if (/draft a (reply|message)/i.test(userMessage)) {
+    const petFee = records.map((record) => asMoneyNumber(record.petFee)).find((n) => n != null);
+    if (petFee != null && !blocksMention(next, formatPhp(petFee))) {
+      next.push({ type: 'text', text: `Pets are allowed with a ${formatPhp(petFee)} fee.` });
+    }
+    if (!blocksMention(next, 'nothing is sent')) {
+      next.push({ type: 'text', text: 'Nothing is sent until you tap Send.' });
+    }
   }
 
   next = next.map((block) =>
@@ -919,7 +1180,11 @@ export function hydrateAssistantBlocksFromTools(
       next.push({
         type: 'file_list',
         title: toAdd.length === 1 ? toAdd[0].label : 'Files',
-        files: toAdd.map((file) => ({ label: file.label, url: file.url, kind: file.kind })),
+        files: toAdd.map((file) => ({
+          label: file.label,
+          url: file.url,
+          kind: file.kind,
+        })),
       });
     }
     for (const label of missingLabels) {
@@ -1006,12 +1271,13 @@ function hydrateStepperFromJourney(
 
   if (steps.length === 0) return blocks;
 
-  return [
-    ...withoutAction.filter((block) => block.type !== 'stepper'),
-    {
-      type: 'stepper',
-      title: titleParts.join(' · '),
-      steps,
-    },
-  ];
+  const stepper: ChatBlock = {
+    type: 'stepper',
+    title: titleParts.join(' · '),
+    steps,
+  };
+  const rest = withoutAction.filter((block) => block.type !== 'stepper' && block.type !== 'flow');
+  let index = 0;
+  while (index < rest.length && rest[index].type === 'text') index++;
+  return [...rest.slice(0, index), stepper, ...rest.slice(index)];
 }

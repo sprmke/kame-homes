@@ -16,6 +16,9 @@ export const ATTACHED_CONTEXT_TYPES = [
   'pricing_date',
   'inbox_conversation',
   'marketing_template',
+  'marketing_theme',
+  'review',
+  'voucher',
   'notification_module',
   'public_page',
   'ticket',
@@ -47,6 +50,9 @@ const UUID_TYPES = new Set<AttachedContextType>([
   'maintenance_item',
   'inbox_conversation',
   'marketing_template',
+  'marketing_theme',
+  'review',
+  'voucher',
   'ticket',
 ]);
 
@@ -186,7 +192,9 @@ export function attachedContextPromptLines(items: AttachedContextItem[]): string
     const list = grouped.get(type);
     if (!list?.length) continue;
     parts.push(
-      list.map((item) => `${typeLabel(type)} ${inlineUntrusted(item.label)} (${item.id})`).join('; ')
+      list
+        .map((item) => `${typeLabel(type)} ${inlineUntrusted(item.label)} (${item.id})`)
+        .join('; ')
     );
   }
   return `\nThe host attached: ${parts.join('; ')}. Prefer these entities for matching tools unless they name a different one.`;
@@ -212,6 +220,12 @@ function typeLabel(type: AttachedContextType): string {
       return 'Inbox conversation';
     case 'marketing_template':
       return 'Marketing template';
+    case 'marketing_theme':
+      return 'Theme';
+    case 'review':
+      return 'Review';
+    case 'voucher':
+      return 'Voucher';
     case 'notification_module':
       return 'Notification module';
     case 'public_page':

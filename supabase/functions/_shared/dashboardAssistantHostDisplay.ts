@@ -9,6 +9,7 @@ import {
   filterEchoSuggestionChips,
   sanitizeQuickActionPrompt,
 } from './dashboardAssistantActionDisplay.ts';
+import { enforceResponseShape } from './dashboardAssistantResponsePolicy.ts';
 import { formatDateForEmail, normalizeDateToYYYYMMDD } from './utils.ts';
 
 export type HostEntityKind =
@@ -395,7 +396,7 @@ export function humanizeQuickActions(
 
   // Model invented numeric booking chips — rebuild from real stays when we have them.
   if (mostlyTechnical && bookingRefs.length > 0) {
-    const count = Math.min(Math.max(actions.length, 1), Math.min(bookingRefs.length, 5));
+    const count = Math.min(Math.max(actions.length, 1), Math.min(bookingRefs.length, 4));
     return bookingRefs.slice(0, count).map((ref) => {
       const guest = ref.label.split(' · ')[0] || ref.label;
       return {
@@ -504,6 +505,19 @@ export function humanizeBlocksForHost(blocks: ChatBlock[], refs: HostDisplayRef[
         })),
       };
     }
+    if (block.type === 'action_confirmation') {
+      return {
+        ...block,
+        summary: rewriteTextWithHostRefs(block.summary, mergedRefs),
+        details: (block.details ?? []).map((row) => ({
+          ...row,
+          value: rewriteTextWithHostRefs(row.value, mergedRefs),
+        })),
+        errorMessage: block.errorMessage
+          ? rewriteTextWithHostRefs(block.errorMessage, mergedRefs)
+          : block.errorMessage,
+      };
+    }
     return block;
   });
 }
@@ -521,7 +535,7 @@ function hasHostVisibleContent(blocks: ChatBlock[]): boolean {
 function bookingSuggestionActions(
   bookingRefs: HostDisplayRef[]
 ): Array<{ label: string; prompt: string }> {
-  return bookingRefs.slice(0, 5).map((ref) => {
+  return bookingRefs.slice(0, 4).map((ref) => {
     const guest = ref.label.split(' · ')[0] || ref.label;
     const statusPart = ref.label.includes(' · ') ? ref.label.split(' · ').slice(-1)[0] : '';
     return {
@@ -540,11 +554,88 @@ function bookingSuggestionActions(
  * 2) Drop unresolved technical chips and echo chips (same label the host just sent)
  * 3) Never leave an empty answer (timeline-only) — inject a short pick-entity reply
  */
+const FOLLOW_THROUGH_CHIPS: Record<string, Array<{ label: string; prompt: string }>> = {
+  propose_transition_booking: [
+    { label: 'Send next email', prompt: 'Send the guest the next email for this stay.' },
+    { label: 'Show the journey', prompt: 'Show the journey for this stay.' },
+  ],
+  propose_send_workflow_email: [
+    { label: 'Show the journey', prompt: 'Show the journey for this stay.' },
+  ],
+  propose_send_inbox_reply: [{ label: 'Show this thread', prompt: 'Show this inbox thread.' }],
+  propose_create_maintenance_item: [
+    { label: 'Show open maintenance', prompt: 'What maintenance is still open?' },
+  ],
+  propose_update_maintenance_item: [
+    { label: 'Show this item', prompt: 'Show this maintenance item.' },
+  ],
+  propose_run_channel_sync: [
+    { label: 'Show sync status', prompt: 'What is the calendar sync status?' },
+  ],
+  propose_add_property_holiday_rule: [
+    { label: 'Show holidays', prompt: 'Which upcoming holidays have a rate rule?' },
+  ],
+  propose_set_property_date_rate_override: [
+    { label: 'Show rates', prompt: "Show this month's nightly rates." },
+  ],
+  propose_add_finance_line_item: [
+    { label: 'Show this month', prompt: "Show this month's income and expenses." },
+  ],
+  propose_delete_maintenance_item: [
+    { label: 'Show open items', prompt: 'What maintenance is still open?' },
+  ],
+  propose_remove_team_member: [{ label: 'Show team', prompt: "Who's on my team?" }],
+  propose_remove_property_team_member: [{ label: 'Show team', prompt: "Who's on my team?" }],
+  propose_publish_to_meta: [
+    { label: 'Show history', prompt: 'What did we post last month?' },
+    { label: 'Show templates', prompt: 'Show my marketing templates.' },
+  ],
+  explain_metric: [
+    { label: 'Show my RevPAR', prompt: "What's my ADR and RevPAR?" },
+    { label: 'Show occupancy', prompt: "What's my occupancy rate?" },
+  ],
+  list_marketing_themes: [
+    { label: 'Open Marketing Studio', prompt: 'Open Marketing Studio.' },
+    { label: 'Show templates', prompt: 'Show my marketing templates.' },
+  ],
+};
+
+export function followThroughChipsForTools(
+  toolNames: string[]
+): Array<{ label: string; prompt: string }> {
+  const seen = new Set<string>();
+  const chips: Array<{ label: string; prompt: string }> = [];
+  for (const name of toolNames) {
+    for (const chip of FOLLOW_THROUGH_CHIPS[name] ?? []) {
+      if (seen.has(chip.label)) continue;
+      seen.add(chip.label);
+      chips.push(chip);
+    }
+  }
+  return chips.slice(0, 4);
+}
+
+export function appendFollowThroughChips(blocks: ChatBlock[], toolNames: string[]): ChatBlock[] {
+  const chips = followThroughChipsForTools(toolNames);
+  if (chips.length === 0) return blocks;
+  const next = [...blocks];
+  const existing = next.find((block) => block.type === 'quick_actions');
+  if (existing && existing.type === 'quick_actions') {
+    const merged = [...chips, ...(existing.actions ?? [])].filter((action, index, list) => {
+      return list.findIndex((other) => other.label === action.label) === index;
+    });
+    existing.actions = merged.slice(0, 4);
+    return next;
+  }
+  next.push({ type: 'quick_actions', actions: chips });
+  return next;
+}
+
 export function finalizeAssistantBlocksForHost(
   blocks: ChatBlock[],
   toolResults: unknown[],
   attachedContext: AttachedContextItem[] = [],
-  options?: { userMessage?: string | null }
+  options?: { userMessage?: string | null; executedToolNames?: string[] }
 ): ChatBlock[] {
   const refs = mergeHostDisplayRefs(
     collectHostDisplayRefs(toolResults, attachedContext),
@@ -598,7 +689,7 @@ export function finalizeAssistantBlocksForHost(
       });
       next.push({
         type: 'quick_actions',
-        actions: refs.slice(0, 5).map((ref) => ({
+        actions: refs.slice(0, 4).map((ref) => ({
           label: ref.label,
           prompt: `Continue with ${ref.label}. Look it up with the right list/get tool for this module and take the next useful step — do not say it is missing if tools already returned it.`,
         })),
@@ -611,7 +702,236 @@ export function finalizeAssistantBlocksForHost(
     }
   }
 
-  return next;
+  return enforceResponseShape(
+    appendLeadChips(
+      appendFollowThroughChips(next, options?.executedToolNames ?? []),
+      options?.userMessage
+    )
+  );
+}
+
+const VISUAL_LEAD_CHIPS: Partial<
+  Record<ChatBlock['type'], Array<{ label: string; prompt: string }>>
+> = {
+  calendar: [
+    { label: 'Show next month', prompt: 'Show the next month on that calendar.' },
+    { label: 'Open calendar', prompt: 'Open the calendar.' },
+  ],
+  chart: [
+    { label: 'Open Analytics', prompt: 'Open Analytics.' },
+    { label: 'Show this month', prompt: 'How did this month look?' },
+  ],
+  kpi: [
+    { label: 'Open Analytics', prompt: 'Open Analytics.' },
+    { label: 'Show the trend', prompt: 'Show occupancy trend this year.' },
+  ],
+  carousel: [
+    { label: 'Open Marketing Studio', prompt: 'Open Marketing Studio.' },
+    { label: 'Show themes', prompt: 'Show my brand themes.' },
+  ],
+  comparison: [
+    { label: 'Open Analytics', prompt: 'Open Analytics.' },
+    { label: 'Show occupancy', prompt: "What's my occupancy rate?" },
+  ],
+  checklist: [
+    { label: 'What needs attention', prompt: 'What needs my attention today?' },
+    { label: 'Show open maintenance', prompt: 'What maintenance is still open?' },
+  ],
+  timeline: [
+    { label: 'Show last week', prompt: 'What changed last week?' },
+    { label: 'Open activity', prompt: 'Open the activity log.' },
+  ],
+};
+
+function chipsForEntityCard(block: ChatBlock): Array<{ label: string; prompt: string }> {
+  if (block.type !== 'entity_card') return [];
+  if (block.entityType === 'inbox_thread') {
+    return [
+      { label: 'Reply', prompt: 'Reply that check-in is at 2 PM.' },
+      { label: 'Show older', prompt: 'Show older messages in this thread.' },
+    ];
+  }
+  if (block.entityType === 'marketing_template') {
+    return [
+      { label: 'Open Marketing Studio', prompt: 'Open Marketing Studio.' },
+      { label: 'Show themes', prompt: 'Show my brand themes.' },
+    ];
+  }
+  return [
+    { label: 'What needs attention', prompt: 'What needs my attention today?' },
+    { label: 'Show setup guide', prompt: "What's left in my setup guide?" },
+  ];
+}
+
+function chipsForOpenPage(block: ChatBlock): Array<{ label: string; prompt: string }> {
+  if (block.type !== 'open_page') return [];
+  const key = `${block.routeKey} ${block.label}`.toLowerCase();
+  if (key.includes('notif')) {
+    return [
+      { label: 'Mark all read', prompt: 'Mark all notifications read.' },
+      { label: 'Open settings', prompt: 'Open notification settings.' },
+    ];
+  }
+  if (key.includes('inbox') || key.includes('marketing')) {
+    return [
+      { label: 'Show templates', prompt: 'Show my marketing templates.' },
+      { label: 'Show brand themes', prompt: 'Show my brand themes.' },
+    ];
+  }
+  if (key.includes('settings')) {
+    return [
+      { label: 'Show brand themes', prompt: 'Show my brand themes.' },
+      { label: 'Open inbox', prompt: 'Open Inbox.' },
+    ];
+  }
+  return [
+    { label: 'What needs attention', prompt: 'What needs my attention today?' },
+    { label: 'Show setup guide', prompt: "What's left in my setup guide?" },
+  ];
+}
+
+export function leadChipsForVisualBlocks(
+  blocks: ChatBlock[]
+): Array<{ label: string; prompt: string }> {
+  const seen = new Set<string>();
+  const chips: Array<{ label: string; prompt: string }> = [];
+  for (const block of blocks) {
+    const extras =
+      block.type === 'open_page'
+        ? chipsForOpenPage(block)
+        : block.type === 'entity_card'
+          ? chipsForEntityCard(block)
+          : (VISUAL_LEAD_CHIPS[block.type] ?? []);
+    for (const chip of extras) {
+      if (seen.has(chip.label)) continue;
+      seen.add(chip.label);
+      chips.push(chip);
+    }
+  }
+  return chips.slice(0, 4);
+}
+
+function chipsForUserIntent(message: string | null | undefined): Array<{
+  label: string;
+  prompt: string;
+}> {
+  const msg = (message ?? '').trim();
+  if (/publish (this )?to facebook/i.test(msg)) {
+    return [
+      { label: 'Show templates', prompt: 'Show my marketing templates.' },
+      { label: 'Open Marketing Studio', prompt: 'Open Marketing Studio.' },
+    ];
+  }
+  if (/draft a caption/i.test(msg)) {
+    return [
+      { label: 'Show templates', prompt: 'Show my marketing templates.' },
+      { label: 'Publish to Facebook', prompt: 'Publish this to Facebook.' },
+    ];
+  }
+  return [];
+}
+
+export function appendLeadChips(blocks: ChatBlock[], userMessage?: string | null): ChatBlock[] {
+  const existing = blocks.find((block) => block.type === 'quick_actions');
+  const current = existing?.type === 'quick_actions' ? (existing.actions ?? []) : [];
+  if (current.length >= 2) return blocks;
+  const seen = new Set(current.map((action) => action.label));
+  const extras = [...chipsForUserIntent(userMessage), ...leadChipsForVisualBlocks(blocks)].filter(
+    (chip) => {
+      if (seen.has(chip.label)) return false;
+      seen.add(chip.label);
+      return true;
+    }
+  );
+  if (extras.length === 0) return blocks;
+  const merged = [...current, ...extras].slice(0, 4);
+  if (existing && existing.type === 'quick_actions') {
+    existing.actions = merged;
+    return blocks;
+  }
+  return [...blocks, { type: 'quick_actions', actions: merged }];
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+function countNamedList(obj: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = obj[key];
+    if (Array.isArray(value)) return value.length;
+  }
+  return null;
+}
+
+/**
+ * One-line host-facing recap of this turn's tool results. Used when the model hits the
+ * round/token budget so the dead-end still names what was gathered instead of a generic line.
+ */
+export function summarizeGatheredToolResults(toolResults: unknown[]): string | null {
+  for (const raw of toolResults) {
+    const obj = asRecord(raw) ?? asRecord(asRecord(raw)?.data);
+    if (!obj) continue;
+
+    const bookingCount = countNamedList(obj, ['bookings', 'stays']);
+    if (bookingCount != null) {
+      if (bookingCount === 0) return 'No stays matched.';
+      if (bookingCount === 1) {
+        const list = Array.isArray(obj.bookings)
+          ? obj.bookings
+          : Array.isArray(obj.stays)
+            ? obj.stays
+            : [];
+        const first = asRecord(list[0]);
+        const label = asDisplay(first?.hostLabel ?? first?.guestName);
+        return label ? `Found ${label}.` : 'Found 1 stay.';
+      }
+      return `Found ${bookingCount} stays.`;
+    }
+
+    const threadCount = countNamedList(obj, ['threads', 'conversations']);
+    if (threadCount != null) {
+      return threadCount === 0
+        ? 'No inbox threads matched.'
+        : `Found ${threadCount} inbox thread${threadCount === 1 ? '' : 's'}.`;
+    }
+
+    const itemCount = countNamedList(obj, ['items']);
+    if (itemCount != null && (obj.title || obj.state || obj.dueDate || obj.category)) {
+      return itemCount === 0
+        ? 'No maintenance items matched.'
+        : `Found ${itemCount} maintenance item${itemCount === 1 ? '' : 's'}.`;
+    }
+
+    const memberCount = countNamedList(obj, ['members', 'teamMembers']);
+    if (memberCount != null) {
+      return memberCount === 0
+        ? 'No team members matched.'
+        : `Found ${memberCount} team member${memberCount === 1 ? '' : 's'}.`;
+    }
+
+    const templateCount = countNamedList(obj, ['templates']);
+    if (templateCount != null) {
+      return templateCount === 0
+        ? 'No marketing templates matched.'
+        : `Found ${templateCount} marketing template${templateCount === 1 ? '' : 's'}.`;
+    }
+
+    const display = asRecord(obj.display);
+    if (display?.netProfit || display?.totalIncome || obj.netProfit != null) {
+      const property = asDisplay(obj.propertyName);
+      return property
+        ? `${property} income and expenses for this period are ready.`
+        : 'Income and expenses for this period are ready.';
+    }
+
+    const available = countNamedList(obj, ['availableRanges', 'bookedStays', 'days']);
+    if (available != null) {
+      return 'Availability for those dates is ready.';
+    }
+  }
+  return null;
 }
 
 /** Stable sort key for disambiguation lists — check-in ascending when present. */

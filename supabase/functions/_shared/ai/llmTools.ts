@@ -7,7 +7,7 @@
 
 import type { z } from 'zod';
 
-import { extractGeminiText, extractGeminiUsage } from '../aiGeminiKeys.ts';
+import { extractGeminiText, extractGeminiUsage, getGeminiApiKeys } from '../aiGeminiKeys.ts';
 import { getModelConfig } from '../aiModelRouter.ts';
 import {
   computePromptFingerprint,
@@ -16,7 +16,7 @@ import {
 } from '../aiQuotaCache.ts';
 import { assertOrgAndPropertyAiQuota, type AiCallTrace } from '../aiUsageService.ts';
 import { logCall, meter, recordCallFailure, type LlmBilling } from './llmClient.ts';
-import { geminiModelPath, geminiRequest } from './llmTransport.ts';
+import { GEMINI_API_BASE, geminiModelPath, geminiRequest } from './llmTransport.ts';
 import type { PromptRef } from './prompt.ts';
 import type { AiFeature } from '../aiModelRouter.ts';
 
@@ -238,6 +238,115 @@ export async function generateWithTools(req: LlmToolRequest): Promise<LlmToolRes
   };
 }
 
+export type LlmStreamToolRequest = LlmToolRequest & {
+  onTextDelta?: (delta: string) => void;
+};
+
+/**
+ * Gemini `streamGenerateContent` for the last tool-loop round. Emits text deltas until a
+ * function call appears (then the caller should retract the preview). Falls back to
+ * `generateWithTools` when streaming is unavailable.
+ */
+export async function generateWithToolsStream(req: LlmStreamToolRequest): Promise<LlmToolResult> {
+  const onTextDelta = req.onTextDelta;
+  if (!onTextDelta) return generateWithTools(req);
+
+  const config = getModelConfig(req.feature);
+  const keys = getGeminiApiKeys();
+  const key = keys[0];
+  if (!key) return generateWithTools(req);
+
+  const started = Date.now();
+  const trace: AiCallTrace = {
+    promptId: req.prompt.id,
+    promptVersion: req.prompt.version,
+    requestId: req.requestId ?? crypto.randomUUID(),
+  };
+  const { organizationId, mode = 'credits' } = req.billing;
+  if (organizationId && mode === 'credits' && !req.billing.quotaChecked) {
+    await assertOrgAndPropertyAiQuota(organizationId, req.billing.propertyId ?? null, req.feature);
+  }
+
+  const url = `${GEMINI_API_BASE}/v1beta/${geminiModelPath(config.model, 'streamGenerateContent')}?alt=sse`;
+  const timeoutSignal = AbortSignal.timeout(req.timeoutMs ?? config.timeoutMs);
+  const signal = req.signal ? AbortSignal.any([timeoutSignal, req.signal]) : timeoutSignal;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify(
+        buildToolRequestBody(req, config.thinkingBudget, config.defaultMaxOutputTokens)
+      ),
+      signal,
+    });
+  } catch {
+    return generateWithTools(req);
+  }
+  if (!res.ok || !res.body) return generateWithTools(req);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let seenToolCall = false;
+  let emitted = '';
+  let lastJson: Record<string, unknown> = {};
+
+  const consumeEvent = (raw: string) => {
+    const line = raw.trim();
+    if (!line.startsWith('data:')) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') return;
+    try {
+      lastJson = JSON.parse(payload) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    const calls = parseToolCalls(lastJson);
+    if (calls.length > 0) {
+      seenToolCall = true;
+      return;
+    }
+    const text = extractGeminiText(lastJson) ?? '';
+    if (text.length > emitted.length) {
+      const delta = text.slice(emitted.length);
+      emitted = text;
+      if (delta && !seenToolCall) onTextDelta(delta);
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop() ?? '';
+      for (const part of parts) consumeEvent(part);
+    }
+    if (buf.trim()) consumeEvent(buf);
+  } catch {
+    return generateWithTools(req);
+  }
+
+  trace.latencyMs = Date.now() - started;
+  const usage = extractGeminiUsage(lastJson);
+  const toolCalls = parseToolCalls(lastJson);
+  const text = extractGeminiText(lastJson);
+  const raw = { provider: 'gemini' as const, model: config.model, ...usage };
+  const creditsConsumed = await meter(req, raw, trace, false);
+  logCall(req, trace, { status: 'success', provider: 'gemini', model: config.model });
+  return {
+    toolCalls,
+    text,
+    creditsConsumed,
+    modelParts: parseModelParts(lastJson),
+    latencyMs: trace.latencyMs,
+    model: config.model,
+  };
+}
+
 export type LlmToolStructuredResult<T> = {
   /** Validated payload, or null when the model returned nothing usable (callers must fail safe). */
   data: T | null;
@@ -269,10 +378,14 @@ export async function generateStructuredViaTool<T>(
   });
   const parsed = schema.safeParse(result.toolCalls[0]?.arguments);
   if (!parsed.success) {
-    logCall(rest, { promptId: rest.prompt.id, promptVersion: rest.prompt.version }, {
-      status: 'error',
-      errorCode: 'invalid_output',
-    });
+    logCall(
+      rest,
+      { promptId: rest.prompt.id, promptVersion: rest.prompt.version },
+      {
+        status: 'error',
+        errorCode: 'invalid_output',
+      }
+    );
   }
   return {
     data: parsed.success ? parsed.data : null,

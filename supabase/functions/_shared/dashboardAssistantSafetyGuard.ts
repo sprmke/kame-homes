@@ -17,6 +17,18 @@ import { definePrompt } from './ai/prompt.ts';
 import { withUntrustedDataRule, wrapUntrusted } from './ai/untrusted.ts';
 import type { AiActorType } from './aiUsageService.ts';
 import { createServiceClient } from './orgAuth.ts';
+import type {
+  CalendarBlock,
+  CalloutBlock,
+  CarouselBlock,
+  ChartBlock,
+  ChecklistBlock,
+  ComparisonBlock,
+  EntityCardBlock,
+  KpiBlock,
+  TimelineBlock,
+} from './dashboardAssistantVisuals.ts';
+import { isHydratedBlock } from './dashboardAssistantVisuals.ts';
 import {
   classifyActionRisk,
   isTierSufficient,
@@ -137,6 +149,7 @@ export type ActionConfirmationBlock = {
   riskTier: ActionRiskTier;
   summary: string;
   details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
   status: 'proposed' | 'confirmed' | 'executed' | 'denied' | 'expired';
   /** True for EXTERNAL_SEND_TOOL_NAMES tools — the confirm UI must show distinct "this sends/publishes for real, right now" copy, not the generic Tier-2 confirmation text. */
   isExternalSend?: boolean;
@@ -234,6 +247,10 @@ export type ChatBlock =
       rows: Array<Record<string, string | number>>;
       /** Aligned with `rows`. Server-matched from this turn's tool results; never model-written. */
       rowTargets?: Array<DataTableRowTarget | null>;
+      sortable?: boolean;
+      pageSize?: number;
+      phoneColumns?: string[];
+      downloadable?: boolean;
     }
   | { type: 'link_list'; title: string; links: Array<{ label: string; href: string }> }
   | {
@@ -272,11 +289,20 @@ export type ChatBlock =
   | MapBlock
   | DynamicFormBlock
   | ActionConfirmationBlock
+  | ChartBlock
+  | CalendarBlock
+  | TimelineBlock
+  | EntityCardBlock
+  | CarouselBlock
+  | KpiBlock
+  | ComparisonBlock
+  | ChecklistBlock
+  | CalloutBlock
   /** Server-appended after grounding from verified `open_page` results; never model-written. */
   | { type: 'open_page'; routeKey: string; label: string; href: string };
 
 /** `open_page` is intentionally absent: a model-written one is rejected like any unknown type. */
-const KNOWN_BLOCK_TYPES = new Set<ChatBlock['type']>([
+export const KNOWN_BLOCK_TYPES: ReadonlySet<ChatBlock['type']> = new Set<ChatBlock['type']>([
   'text',
   'booking_card',
   'stat_list',
@@ -293,6 +319,15 @@ const KNOWN_BLOCK_TYPES = new Set<ChatBlock['type']>([
   'map',
   'dynamic_form',
   'action_confirmation',
+  'chart',
+  'calendar',
+  'timeline',
+  'entity_card',
+  'carousel',
+  'kpi',
+  'comparison',
+  'checklist',
+  'callout',
 ]);
 
 /**
@@ -311,6 +346,49 @@ function extractNumericLiterals(value: unknown, out: number[]): void {
   } else if (value && typeof value === 'object') {
     for (const item of Object.values(value)) extractNumericLiterals(item, out);
   }
+}
+
+/**
+ * Digit runs with optional thousands separators / decimals, e.g. "36,200", "1250.50", "2026".
+ * A trailing `%` is captured so percentages (derived, small) can be skipped.
+ */
+const FORMATTED_AMOUNT_RE = /\d[\d,]*(?:\.\d+)?%?/g;
+/** Below this many significant digits a token is a day, count, or percent — not worth gating. */
+const MIN_AMOUNT_DIGITS = 3;
+
+function collectStringValues(value: unknown, out: string[]): void {
+  if (typeof value === 'string') out.push(value);
+  else if (Array.isArray(value)) for (const item of value) collectStringValues(item, out);
+  else if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) collectStringValues(item, out);
+  }
+}
+
+/**
+ * Returns the first formatted amount inside a stat_list value or data_table cell that does not
+ * appear in the grounding text in either its formatted or its separator-free form.
+ */
+function findUngroundedFormattedAmount(
+  block: Extract<ChatBlock, { type: 'stat_list' | 'data_table' }>,
+  groundingText: string
+): string | null {
+  const strings: string[] = [];
+  if (block.type === 'stat_list') {
+    for (const item of block.items ?? []) collectStringValues(item?.value, strings);
+  } else {
+    for (const row of block.rows ?? []) collectStringValues(Object.values(row ?? {}), strings);
+  }
+  const normalizedGrounding = groundingText.replace(/,/g, '');
+  for (const text of strings) {
+    for (const token of text.match(FORMATTED_AMOUNT_RE) ?? []) {
+      if (token.endsWith('%')) continue;
+      const digits = token.replace(/,/g, '');
+      if (digits.replace(/\D/g, '').length < MIN_AMOUNT_DIGITS) continue;
+      if (groundingText.includes(token) || normalizedGrounding.includes(digits)) continue;
+      return token;
+    }
+  }
+  return null;
 }
 
 function parseMapCoordsFromHref(href: string): { lat: number; lng: number } | null {
@@ -358,6 +436,8 @@ export function assertBlocksGrounded(
       reason = reason ?? `Unknown block type at index ${index}`;
       return;
     }
+
+    if (isHydratedBlock(block)) return;
 
     if (block.type === 'file_list') {
       const files = block.files ?? [];
@@ -442,6 +522,19 @@ export function assertBlocksGrounded(
         reason =
           reason ?? `Ungrounded number ${num} in block at index ${index} (type ${block.type})`;
         break;
+      }
+    }
+    if (rejectedIndexes.includes(index)) return;
+
+    // Formatted amounts live in string fields ("₱36,200", "1,250.50"). Numeric-typed checks miss
+    // them, so stat/table cells get the same treatment with separators normalized away.
+    if (block.type === 'stat_list' || block.type === 'data_table') {
+      const ungrounded = findUngroundedFormattedAmount(block, groundingText);
+      if (ungrounded) {
+        rejectedIndexes.push(index);
+        reason =
+          reason ??
+          `Ungrounded amount ${ungrounded} in block at index ${index} (type ${block.type})`;
       }
     }
   });

@@ -5,6 +5,7 @@
 
 import { corsHeaders } from './cors.ts';
 import type { ChatBlock } from './dashboardAssistantSafetyGuard.ts';
+import type { LatencyBreakdown } from './dashboardAssistantTurnTiming.ts';
 
 export type AssistantStreamPhase =
   'understanding' | 'planning' | 'executing' | 'synthesizing' | 'safety';
@@ -35,6 +36,13 @@ export type AssistantStreamEvent =
   | { type: 'plan_update'; stepId: string; status: TaskPlanStepStatus; reason?: string }
   | { type: 'text_start' }
   | { type: 'text_chunk'; delta: string }
+  /**
+   * Live-streamed text failed the deterministic guard after the fact: the client must replace
+   * the preview it already painted with `fallbackText` (the terminal `blocks` event follows).
+   */
+  | { type: 'retract'; fallbackText: string }
+  /** Phase timings for this turn; emitted right before the terminal `blocks` event. */
+  | { type: 'turn_timing'; timing: LatencyBreakdown }
   | {
       type: 'blocks';
       conversationId: string;

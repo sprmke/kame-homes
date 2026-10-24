@@ -14,6 +14,7 @@ import {
   buildAssistantRouteHref,
   isAssistantRouteKey,
   type AssistantRouteDef,
+  type AssistantRouteKey,
 } from './dashboardAssistantRoutes.ts';
 import {
   createServiceClient,
@@ -191,4 +192,33 @@ export function openPageBlocksFromResults(
     if (blocks.length === 3) break;
   }
   return blocks;
+}
+
+const OPEN_PAGE_INTENTS: Array<{ pattern: RegExp; routeKey: AssistantRouteKey }> = [
+  { pattern: /open my notifications|\bopen notifications\b/i, routeKey: 'property.notifications' },
+  {
+    pattern: /connect facebook|connect instagram|how do i connect (facebook|instagram|meta)/i,
+    routeKey: 'property.inbox',
+  },
+];
+
+/** When the host asks to open a screen and the model listed data instead of calling open_page. */
+export function openPageBlockFromUserIntent(
+  message: string,
+  input: {
+    orgSlug: string;
+    propertySlug?: string | null;
+    parkingSlug?: string | null;
+  }
+): OpenPageBlock | null {
+  const match = OPEN_PAGE_INTENTS.find((row) => row.pattern.test(message));
+  if (!match) return null;
+  const href = buildAssistantRouteHref(match.routeKey, input);
+  if (!href) return null;
+  return {
+    type: 'open_page',
+    routeKey: match.routeKey,
+    label: ASSISTANT_ROUTES[match.routeKey].label,
+    href,
+  };
 }

@@ -12,7 +12,11 @@ import {
   updateFinanceLineItem,
   type FinanceLineItemKind,
 } from './financeService.ts';
-import { deleteMaintenanceItem, updateMaintenanceItem } from './maintenanceService.ts';
+import {
+  deleteMaintenanceItem,
+  getMaintenanceItem,
+  updateMaintenanceItem,
+} from './maintenanceService.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import { verifyPropertyAccess } from './orgAuth.ts';
 
@@ -52,6 +56,30 @@ function num(args: Record<string, unknown>, key: string): number | null {
     return Number.isFinite(n) ? n : null;
   }
   return null;
+}
+
+/** Confirm stores the propose `data` object, which nests the executable fields under `payload`. */
+export function unwrapConfirmPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const nested = payload.payload;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return { ...payload, ...(nested as Record<string, unknown>) };
+  }
+  return payload;
+}
+
+function bool(args: Record<string, unknown>, key: string): boolean | null {
+  const v = args[key];
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'string') {
+    const t = v.trim().toLowerCase();
+    if (t === 'true' || t === 'yes') return true;
+    if (t === 'false' || t === 'no') return false;
+  }
+  return null;
+}
+
+function maintenanceHostLabel(label: string, completedAt: string | null): string {
+  return [label, completedAt ? 'Done' : 'Open'].filter(Boolean).join(' · ');
 }
 
 async function assertPropertyInOrg(propertyId: string, organizationId: string): Promise<void> {
@@ -259,21 +287,44 @@ export async function toolProposeUpdateMaintenanceItem(
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:edit');
     await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, id });
+    const existing = await getMaintenanceItem(id);
+    if (!existing) return { ok: false, error: 'Maintenance item not found' };
 
     const patch: Record<string, unknown> = {};
     const label = str(args, 'label');
     const category = str(args, 'category');
     const scheduled_on = str(args, 'scheduledOn') ?? str(args, 'scheduled_on');
     const notes = str(args, 'notes');
+    const completed = bool(args, 'completed');
     if (label) patch.label = label;
     if (category) patch.category = category;
     if (scheduled_on) patch.scheduled_on = scheduled_on.slice(0, 10);
     if (notes != null) patch.notes = notes;
+    if (completed === true) patch.completed_at = new Date().toISOString();
+    if (completed === false) patch.completed_at = null;
     if (Object.keys(patch).length === 0) {
       return {
         ok: false,
-        error: 'Provide at least one field to update (label, category, scheduledOn, notes)',
+        error:
+          'Provide at least one field to update (label, category, scheduledOn, notes, completed)',
       };
+    }
+
+    const nextLabel = typeof patch.label === 'string' ? patch.label : existing.label;
+    const nextCompletedAt =
+      patch.completed_at !== undefined
+        ? (patch.completed_at as string | null)
+        : existing.completed_at;
+    const hostLabel = maintenanceHostLabel(nextLabel, nextCompletedAt);
+    const displayDetails: Array<{ label: string; value: string }> = [
+      { label: 'Item', value: existing.label },
+    ];
+    if (patch.completed_at !== undefined) {
+      displayDetails.push({ label: 'Status', value: patch.completed_at ? 'Done' : 'Open' });
+    }
+    for (const [key, value] of Object.entries(patch)) {
+      if (key === 'completed_at' || key === 'label') continue;
+      displayDetails.push({ label: key, value: String(value) });
     }
 
     const tier = classifyActionRisk({
@@ -285,15 +336,25 @@ export async function toolProposeUpdateMaintenanceItem(
       isBulk: ctx.isBulk,
     });
 
+    const summary =
+      completed === true
+        ? `Mark ${existing.label} done.`
+        : completed === false
+          ? `Reopen ${existing.label}.`
+          : `Update ${existing.label}.`;
+
     return {
       ok: true,
       proposed: true,
       riskTier: tier,
       auditPropertyId: propertyId,
       data: {
-        summary: `Update maintenance item ${id}.`,
-        payload: { id, propertyId, patch },
-        details: Object.entries(patch).map(([k, v]) => ({ label: k, value: String(v) })),
+        id,
+        hostLabel,
+        summary,
+        payload: { id, propertyId, patch, hostLabel },
+        displayDetails,
+        details: displayDetails,
       },
     };
   } catch (err) {
@@ -307,9 +368,10 @@ export async function executeUpdateMaintenanceItem(
   payload: Record<string, unknown>
 ): Promise<FmToolResult> {
   try {
-    const id = str(payload, 'id');
-    const propertyId = str(payload, 'propertyId');
-    const patch = (payload.patch ?? {}) as Record<string, unknown>;
+    const args = unwrapConfirmPayload(payload);
+    const id = str(args, 'id');
+    const propertyId = str(args, 'propertyId');
+    const patch = (args.patch ?? {}) as Record<string, unknown>;
     if (!id || !propertyId) return { ok: false, error: 'Malformed proposal payload' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:edit');
@@ -360,15 +422,23 @@ export async function toolProposeDeleteMaintenanceItem(
       isBulk: ctx.isBulk,
     });
 
+    const existing = await getMaintenanceItem(id);
+    if (!existing) return { ok: false, error: 'Maintenance item not found' };
+    const hostLabel = maintenanceHostLabel(existing.label, existing.completed_at);
+    const displayDetails = [{ label: 'Item', value: existing.label }];
+
     return {
       ok: true,
       proposed: true,
       riskTier: tier,
       auditPropertyId: propertyId,
       data: {
-        summary: `Delete maintenance item ${id}. This cannot be undone.`,
-        payload: { id, propertyId },
-        details: [{ label: 'Item', value: id }],
+        id,
+        hostLabel,
+        summary: `Delete ${existing.label}. This cannot be undone.`,
+        payload: { id, propertyId, hostLabel },
+        displayDetails,
+        details: displayDetails,
       },
     };
   } catch (err) {
@@ -382,8 +452,9 @@ export async function executeDeleteMaintenanceItem(
   payload: Record<string, unknown>
 ): Promise<FmToolResult> {
   try {
-    const id = str(payload, 'id');
-    const propertyId = str(payload, 'propertyId');
+    const args = unwrapConfirmPayload(payload);
+    const id = str(args, 'id');
+    const propertyId = str(args, 'propertyId');
     if (!id || !propertyId) return { ok: false, error: 'Malformed proposal payload' };
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'maintenance.reminders:delete');
@@ -441,7 +512,8 @@ export const DELETE_FINANCE_LINE_ITEM_TOOL_DECLARATION = {
 
 export const UPDATE_MAINTENANCE_ITEM_TOOL_DECLARATION = {
   name: 'propose_update_maintenance_item',
-  description: 'Update a maintenance reminder (label, date, notes). Requires Confirm.',
+  description:
+    'Update a maintenance reminder (label, date, notes) or mark it done with completed: true. Use this to mark done/complete. Requires Confirm. Never use propose_delete_maintenance_item unless the host asked to delete or remove it.',
   parameters: {
     type: 'object',
     properties: {
@@ -451,6 +523,10 @@ export const UPDATE_MAINTENANCE_ITEM_TOOL_DECLARATION = {
       category: { type: 'string' },
       scheduledOn: { type: 'string' },
       notes: { type: 'string' },
+      completed: {
+        type: 'boolean',
+        description: 'true marks the reminder done; false reopens it',
+      },
     },
     required: ['id', 'propertyId'],
   },
@@ -458,7 +534,8 @@ export const UPDATE_MAINTENANCE_ITEM_TOOL_DECLARATION = {
 
 export const DELETE_MAINTENANCE_ITEM_TOOL_DECLARATION = {
   name: 'propose_delete_maintenance_item',
-  description: 'Delete a maintenance reminder permanently. Requires Confirm.',
+  description:
+    'Permanently delete a maintenance reminder. Requires Confirm. Do not use this to mark an item done; use propose_update_maintenance_item with completed: true.',
   parameters: {
     type: 'object',
     properties: { id: { type: 'string' }, propertyId: { type: 'string' } },

@@ -513,6 +513,21 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'template',
     summary: (c) => `${c.actorName} deleted the template ${label(c, 'a template')}`,
   },
+  'settings.template_folder_saved': {
+    category: 'settings',
+    severity: 'info',
+    targetType: 'template',
+    summary: (c) =>
+      `${c.actorName} ${
+        str(c.metadata, 'operation') === 'folder_renamed' ? 'renamed' : 'created'
+      } the template folder ${str(c.metadata, 'folder_name') ?? ''}`.trim(),
+  },
+  'settings.template_folder_deleted': {
+    category: 'settings',
+    severity: 'destructive',
+    targetType: 'template',
+    summary: (c) => `${c.actorName} deleted a template folder`,
+  },
   'public_pages.config_saved': {
     category: 'public_pages',
     severity: 'info',

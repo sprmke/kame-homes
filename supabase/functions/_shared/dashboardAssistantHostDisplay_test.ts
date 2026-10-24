@@ -1,10 +1,16 @@
 import {
+  appendFollowThroughChips,
   collectHostDisplayRefs,
   finalizeAssistantBlocksForHost,
+  appendLeadChips,
+  followThroughChipsForTools,
+  leadChipsForVisualBlocks,
   formatBookingHostLabel,
+  humanizeBlocksForHost,
   humanizeQuickActions,
   isTechnicalEntityLabel,
   rewriteTextWithHostRefs,
+  summarizeGatheredToolResults,
 } from './dashboardAssistantHostDisplay.ts';
 
 function assertEqual(actual: unknown, expected: unknown, message: string): void {
@@ -230,4 +236,239 @@ Deno.test('rewriteTextWithHostRefs replaces uuid tokens', () => {
   ]);
   const text = rewriteTextWithHostRefs(`Open booking ${id} for review`, refs);
   assertEqual(text.includes('Alex Kim'), true, 'uuid replaced');
+});
+
+Deno.test('summarizeGatheredToolResults names stays, threads, and finance', () => {
+  assertEqual(
+    summarizeGatheredToolResults([
+      {
+        bookings: [
+          { bookingId: '1', guestName: 'Maria Santos', hostLabel: 'Maria Santos · Aug 19–Aug 20' },
+        ],
+      },
+    ]),
+    'Found Maria Santos · Aug 19–Aug 20.',
+    'one stay'
+  );
+  assertEqual(
+    summarizeGatheredToolResults([{ conversations: [{ id: 'a' }, { id: 'b' }] }]),
+    'Found 2 inbox threads.',
+    'threads'
+  );
+  assertEqual(
+    summarizeGatheredToolResults([
+      { propertyName: 'Azure North 1204', display: { netProfit: '₱36,200' } },
+    ]),
+    'Azure North 1204 income and expenses for this period are ready.',
+    'finance'
+  );
+  assertEqual(summarizeGatheredToolResults([{ noop: true }]), null, 'unknown payload');
+});
+
+Deno.test('followThroughChipsForTools after a status change', () => {
+  const chips = followThroughChipsForTools(['propose_transition_booking']);
+  assertEqual(
+    chips.some((chip) => chip.label === 'Send next email'),
+    true,
+    'email chip'
+  );
+  assertEqual(
+    chips.some((chip) => chip.label === 'Show the journey'),
+    true,
+    'journey chip'
+  );
+});
+
+Deno.test('followThroughChipsForTools after explain_metric and remove member', () => {
+  const chips = followThroughChipsForTools(['explain_metric', 'propose_remove_team_member']);
+  assertEqual(
+    chips.some((chip) => chip.label === 'Show my RevPAR'),
+    true,
+    'revpar chip'
+  );
+  assertEqual(
+    chips.some((chip) => chip.label === 'Show team'),
+    true,
+    'team chip'
+  );
+});
+
+Deno.test('followThroughChipsForTools after rate override and finance add', () => {
+  const rateChips = followThroughChipsForTools(['propose_set_property_date_rate_override']);
+  assertEqual(
+    rateChips.some((chip) => chip.label === 'Show rates'),
+    true,
+    'rate chip'
+  );
+  const financeChips = followThroughChipsForTools(['propose_add_finance_line_item']);
+  assertEqual(
+    financeChips.some((chip) => chip.label === 'Show this month'),
+    true,
+    'finance chip'
+  );
+});
+
+Deno.test('humanizeBlocksForHost rewrites confirmation UUIDs', () => {
+  const blocks = humanizeBlocksForHost(
+    [
+      {
+        type: 'action_confirmation',
+        actionId: 'act-1',
+        toolName: 'propose_delete_maintenance_item',
+        riskTier: 'tier2_confirmed',
+        summary: 'Delete maintenance item ala10002-0000-4000-8000-000000000002.',
+        details: [{ label: 'Item', value: 'ala10002-0000-4000-8000-000000000002' }],
+        status: 'proposed',
+      },
+    ],
+    [
+      {
+        id: 'ala10002-0000-4000-8000-000000000002',
+        kind: 'maintenance_item',
+        label: 'Leaking faucet · Open',
+      },
+    ]
+  );
+  const card = blocks[0];
+  assertEqual(card.type === 'action_confirmation', true, 'confirmation');
+  if (card.type === 'action_confirmation') {
+    assertEqual(card.summary.includes('Leaking faucet · Open'), true, 'summary label');
+    assertEqual(card.summary.includes('ala10002'), false, 'no uuid in summary');
+    assertEqual(card.details[0]?.value, 'Leaking faucet · Open', 'detail label');
+  }
+});
+
+Deno.test('finalizeAssistantBlocksForHost prepends follow-through chips', () => {
+  const blocks = finalizeAssistantBlocksForHost(
+    [{ type: 'text', text: 'Status updated.' }],
+    [],
+    [],
+    { executedToolNames: ['propose_transition_booking'] }
+  );
+  const chips = blocks.find((block) => block.type === 'quick_actions');
+  assertEqual(chips?.type === 'quick_actions', true, 'has chips');
+  if (chips?.type === 'quick_actions') {
+    assertEqual(chips.actions[0].label, 'Send next email', 'first chip');
+  }
+});
+
+Deno.test('appendFollowThroughChips caps at 4 and keeps existing labels', () => {
+  const blocks = appendFollowThroughChips(
+    [
+      {
+        type: 'quick_actions',
+        actions: [{ label: 'Open stay', prompt: 'Open this stay.' }],
+      },
+    ],
+    ['propose_transition_booking', 'propose_send_inbox_reply']
+  );
+  const chips = blocks.find((block) => block.type === 'quick_actions');
+  if (chips?.type === 'quick_actions') {
+    assertEqual(chips.actions.length <= 4, true, 'cap');
+    assertEqual(chips.actions[0].label, 'Send next email', 'follow-through first');
+  }
+});
+
+Deno.test('appendLeadChips fills calendar answers that have no chips', () => {
+  const chips = leadChipsForVisualBlocks([
+    {
+      type: 'calendar',
+      title: 'Availability',
+      month: '2026-11',
+      days: [],
+      legend: [],
+      hydrated: true,
+    },
+  ]);
+  assertEqual(
+    chips.some((chip) => chip.label === 'Show next month'),
+    true,
+    'next month'
+  );
+  const blocks = appendLeadChips([
+    {
+      type: 'calendar',
+      title: 'Availability',
+      month: '2026-11',
+      days: [],
+      legend: [],
+      hydrated: true,
+    },
+  ]);
+  const qa = blocks.find((block) => block.type === 'quick_actions');
+  assertEqual(qa?.type === 'quick_actions', true, 'added chips');
+  if (qa?.type === 'quick_actions') {
+    assertEqual(qa.actions.length >= 2, true, 'at least two');
+  }
+});
+
+Deno.test('appendLeadChips fills publish intent when the model returned text only', () => {
+  const blocks = appendLeadChips(
+    [{ type: 'text', text: 'I need a photo first.' }],
+    'Publish this to Facebook'
+  );
+  const qa = blocks.find((block) => block.type === 'quick_actions');
+  assertEqual(qa?.type === 'quick_actions', true, 'has chips');
+  if (qa?.type === 'quick_actions') {
+    assertEqual(
+      qa.actions.some((action) => action.label === 'Show templates'),
+      true,
+      'templates chip'
+    );
+  }
+});
+
+Deno.test('appendLeadChips fills checklist and thread cards', () => {
+  const setup = leadChipsForVisualBlocks([
+    { type: 'checklist', title: 'Setup', items: [], hydrated: true },
+  ]);
+  assertEqual(
+    setup.some((chip) => chip.label === 'What needs attention'),
+    true,
+    'checklist chip'
+  );
+  const thread = leadChipsForVisualBlocks([
+    {
+      type: 'entity_card',
+      entityType: 'inbox_thread',
+      id: 'c-1',
+      title: 'Juan',
+      facts: [],
+      hydrated: true,
+    },
+  ]);
+  assertEqual(
+    thread.some((chip) => chip.label === 'Reply'),
+    true,
+    'reply chip'
+  );
+});
+
+Deno.test('appendLeadChips fills open_page answers that have no chips', () => {
+  const chips = leadChipsForVisualBlocks([
+    {
+      type: 'open_page',
+      routeKey: 'property.notifications',
+      label: 'Notifications',
+      href: '/org/kame-home/property/monaco-2612/notifications',
+    },
+  ]);
+  assertEqual(
+    chips.some((chip) => chip.label === 'Mark all read'),
+    true,
+    'mark read'
+  );
+  const blocks = appendLeadChips([
+    {
+      type: 'open_page',
+      routeKey: 'property.settings',
+      label: 'Settings',
+      href: '/org/kame-home/property/monaco-2612/settings',
+    },
+  ]);
+  const qa = blocks.find((block) => block.type === 'quick_actions');
+  assertEqual(qa?.type === 'quick_actions', true, 'added chips');
+  if (qa?.type === 'quick_actions') {
+    assertEqual(qa.actions.length >= 2, true, 'at least two');
+  }
 });

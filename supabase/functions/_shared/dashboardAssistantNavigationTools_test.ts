@@ -1,6 +1,9 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 
-import { openPageBlocksFromResults } from './dashboardAssistantNavigationTools.ts';
+import {
+  openPageBlockFromUserIntent,
+  openPageBlocksFromResults,
+} from './dashboardAssistantNavigationTools.ts';
 
 Deno.test('openPageBlocksFromResults keeps successful open_page results, deduped', () => {
   const ok = (href: string) => ({
@@ -39,5 +42,30 @@ Deno.test('openPageBlocksFromResults rejects non-dashboard hrefs and caps at 3',
       make('/org/a/analytics'),
     ]).length,
     3
+  );
+});
+
+Deno.test('openPageBlockFromUserIntent maps notifications and Facebook connect', () => {
+  const notifications = openPageBlockFromUserIntent('Open my notifications', {
+    orgSlug: 'kame-home',
+    propertySlug: 'monaco-2612',
+  });
+  assertEquals(notifications?.routeKey, 'property.notifications');
+  assertEquals(notifications?.href, '/org/kame-home/property/monaco-2612/notifications');
+  const facebook = openPageBlockFromUserIntent('How do I connect Facebook?', {
+    orgSlug: 'kame-home',
+    propertySlug: 'monaco-2612',
+  });
+  assertEquals(facebook?.routeKey, 'property.inbox');
+  assertEquals(
+    openPageBlockFromUserIntent('How much did I make this month?', {
+      orgSlug: 'kame-home',
+      propertySlug: 'monaco-2612',
+    }),
+    null
+  );
+  assertEquals(
+    openPageBlockFromUserIntent('Open my notifications', { orgSlug: 'kame-home' }),
+    null
   );
 });

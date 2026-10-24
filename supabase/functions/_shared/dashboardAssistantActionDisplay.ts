@@ -4,7 +4,12 @@
  */
 
 import { getAssistantToolActivityLabel } from './assistantToolLabels.ts';
+import {
+  comparisonFromProposalPayload,
+  type ComparisonBlock,
+} from './dashboardAssistantVisuals.ts';
 import { isBookingStatus, STATUS_HUMAN_LABEL } from './statusMachine.ts';
+import { formatDateForEmail } from './utils.ts';
 
 const HIDDEN_DETAIL_KEYS = new Set([
   'summary',
@@ -87,6 +92,7 @@ const STATUS_CODE_RE = /\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)\b/g;
 /** camelCase / PascalCase tokens that should never appear in host-facing copy. */
 const CAMEL_CASE_TOKEN_RE = /\b[A-Za-z]+[a-z][A-Z][A-Za-z0-9]*\b/g;
 const SNAKE_TOOL_NAME_RE = /\b[a-z]+(?:_[a-z0-9]+)+\b/g;
+const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 
 function asDisplay(value: unknown): string {
   if (value == null) return '';
@@ -123,6 +129,13 @@ function formatDetailValue(key: string, value: unknown): string | null {
   const text = asDisplay(value);
   if (!text) return null;
   if (key === 'toStatus' && isBookingStatus(text)) return STATUS_HUMAN_LABEL[text];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    const pretty = formatDateForEmail(text);
+    if (pretty) return pretty;
+  }
+  if (/^[a-z]+(?:_[a-z0-9]+)+$/.test(text)) {
+    return humanizeHostFieldLabel(text);
+  }
   return humanizeHostFacingCopy(
     text.replace(STATUS_CODE_RE, (code) => {
       if (isBookingStatus(code)) return STATUS_HUMAN_LABEL[code];
@@ -188,8 +201,48 @@ export function humanizeActionConfirmationSummary(
   summary: string | null | undefined,
   payload?: Record<string, unknown>
 ): string {
+  if (toolName === 'propose_set_property_date_rate_override') {
+    const date = asDisplay(payload?.date);
+    const rate = typeof payload?.rate === 'number' ? payload.rate : Number(payload?.rate);
+    if (date && Number.isFinite(rate)) {
+      return `Set the rate for ${formatDateForEmail(date)} to ${formatPhpAmount(rate)}.`;
+    }
+  }
+
+  if (
+    toolName === 'propose_block_property_dates' ||
+    toolName === 'propose_unblock_property_dates'
+  ) {
+    const start = asDisplay(payload?.startDate);
+    const end = asDisplay(payload?.endDate);
+    if (start && end) {
+      const verb = toolName === 'propose_unblock_property_dates' ? 'Unblock' : 'Block';
+      return `${verb} ${formatDateForEmail(start)} to ${formatDateForEmail(end)} from availability.`;
+    }
+  }
+
+  if (toolName === 'propose_add_finance_line_item') {
+    const kind = asDisplay(payload?.kind) || 'expense';
+    const itemLabel = asDisplay(payload?.label);
+    const category = asDisplay(payload?.category);
+    const amount = typeof payload?.amount === 'number' ? payload.amount : Number(payload?.amount);
+    const occurredOn = asDisplay(payload?.occurredOn);
+    if (itemLabel && Number.isFinite(amount) && occurredOn) {
+      const cat = category ? ` (${category})` : '';
+      return `Add ${kind} "${itemLabel}"${cat} for ${formatPhpAmount(amount)} on ${formatDateForEmail(occurredOn)}.`;
+    }
+  }
+
+  const hostLabel = asDisplay(payload?.hostLabel);
   const raw = asDisplay(summary);
-  if (raw) return humanizeHostFacingCopy(raw);
+  if (raw) {
+    const payloadId = asDisplay(payload?.id);
+    const replacement = hostLabel || 'this reminder';
+    let withNames = raw;
+    if (payloadId.length >= 8) withNames = withNames.split(payloadId).join(replacement);
+    if (hostLabel) withNames = withNames.replace(UUID_RE, hostLabel);
+    return humanizeHostFacingCopy(withNames);
+  }
 
   if (
     toolName === 'propose_update_property_base_rate' ||
@@ -203,6 +256,13 @@ export function humanizeActionConfirmationSummary(
       toolName === 'propose_update_parking_base_rate' ? 'parking' : 'property',
       patch
     );
+  }
+
+  if (toolName === 'propose_update_maintenance_item' && hostLabel) {
+    return `Update ${hostLabel}.`;
+  }
+  if (toolName === 'propose_delete_maintenance_item') {
+    return `Delete ${hostLabel || 'this reminder'}. This cannot be undone.`;
   }
 
   const label = getAssistantToolActivityLabel(toolName, 'done');
@@ -245,6 +305,17 @@ export function buildActionConfirmationDetails(
   return details;
 }
 
+/** Optional before/after comparison for rate and settings proposals. */
+export function buildActionConfirmationDiff(
+  toolName: string,
+  payload: Record<string, unknown>
+): ComparisonBlock | null {
+  if (!/^propose_(update_|set_|apply_smart_pricing|block_|unblock_)/.test(toolName)) {
+    return null;
+  }
+  return comparisonFromProposalPayload(payload);
+}
+
 export function buildTier1ActionSummary(toolName: string): string {
   const label = getAssistantToolActivityLabel(toolName, 'done');
   return label.startsWith('Could not') ? `Done automatically` : label;
@@ -268,8 +339,6 @@ export function humanizeTransitionError(message: string): string {
     return code;
   });
 }
-
-const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 
 /** Strip internal IDs and tool/instruction jargon from quick-action prompts. */
 export function sanitizeQuickActionPrompt(prompt: string): string {
