@@ -7,7 +7,7 @@ updated: 2026-08-17
 
 # SD Refund Form — operator guide
 
-Route: `/properties/:propertySlug/sd-form?bookingId=` (legacy `/sd-form?property=<slug>&bookingId=` redirects here)
+Route: `/properties/:propertySlug/sd-form?bookingId=` (legacy `/sd-form?property=<slug>&bookingId=` redirects here; legacy `/sd-form?bookingId=` with no `?property=` resolves the slug from the booking via `resolve-booking-property`, then redirects — cutover Phase 5.2)
 
 > **Status:** Documented.
 
@@ -163,6 +163,7 @@ A standalone **`/properties/:propertySlug/guest-review?bookingId=`** route (`Gue
 | Routes (wired)       | `ui/src/features/guest/property/routes/index.tsx` (`propertyGuestRoutes`, `legacyGuestRedirects`)                      |
 | Paths                | `ui/src/features/guest/lib/guestPublicPaths.ts`                                                                        |
 | Edge                 | `supabase/functions/get-sd-form/`, `submit-sd-form/`, `claim-sd-voucher/`, `submit-guest-review/`, `get-guest-review/` |
+| Legacy link resolve  | `supabase/functions/resolve-booking-property/` + `ui/src/features/guest/lib/guestBookingPropertyResolver.ts`           |
 | Shared services      | `supabase/functions/_shared/{guestReviewService,voucher,workflowOrchestrator,statusMachine}.ts`                        |
 
 ---
