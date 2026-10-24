@@ -880,6 +880,15 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} ${str(c.metadata, 'decision') ?? 'moderated'} a guest-submitted review`,
   },
+  'inbox.chat_template_sent': {
+    category: 'inbox',
+    severity: 'info',
+    targetType: 'conversation',
+    summary: (c) =>
+      `${c.actorName} sent the template ${
+        str(c.metadata, 'template_name') ?? 'a template'
+      } in ${label(c, 'a conversation')}`,
+  },
   'inbox.settings_changed': {
     category: 'inbox',
     severity: 'info',
@@ -887,6 +896,13 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} changed inbox settings for ${label(c, 'a listing')}` +
       (c.changeCount ? ` (${c.changeCount} field${c.changeCount === 1 ? '' : 's'})` : ''),
+  },
+  'inbox.chat_template_sent': {
+    category: 'inbox',
+    severity: 'info',
+    targetType: 'conversation',
+    summary: (c) =>
+      `${c.actorName} sent chat template ${str(c.metadata, 'template_name') ?? 'message'} in ${label(c, 'a listing')} inbox`,
   },
 
   // ── AI controls ────────────────────────────────────────────────────────
