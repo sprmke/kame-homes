@@ -7,6 +7,15 @@
 
 import { humanizeTransitionError } from './dashboardAssistantActionDisplay.ts';
 
+/** Confirm stores the propose `data` object, which nests the executable fields under `payload`. */
+export function unwrapConfirmPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const nested = payload.payload;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return { ...payload, ...(nested as Record<string, unknown>) };
+  }
+  return payload;
+}
+
 export function blocksContainAction(blocks: unknown, actionId: string): boolean {
   if (!Array.isArray(blocks)) return false;
   for (const block of blocks) {

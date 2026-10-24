@@ -17,6 +17,7 @@ import {
   getMaintenanceItem,
   updateMaintenanceItem,
 } from './maintenanceService.ts';
+import { unwrapConfirmPayload } from './dashboardAssistantConfirmBlocks.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import { verifyPropertyAccess } from './orgAuth.ts';
 
@@ -56,15 +57,6 @@ function num(args: Record<string, unknown>, key: string): number | null {
     return Number.isFinite(n) ? n : null;
   }
   return null;
-}
-
-/** Confirm stores the propose `data` object, which nests the executable fields under `payload`. */
-export function unwrapConfirmPayload(payload: Record<string, unknown>): Record<string, unknown> {
-  const nested = payload.payload;
-  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
-    return { ...payload, ...(nested as Record<string, unknown>) };
-  }
-  return payload;
 }
 
 function bool(args: Record<string, unknown>, key: string): boolean | null {
