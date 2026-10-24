@@ -26,7 +26,9 @@ export function ChecklistBlock({ title, items, onRunAction }: Props) {
               <span
                 className={cn(
                   'flex size-5 items-center justify-center rounded-full border',
-                  item.done ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+                  item.done
+                    ? 'border-primary-strong bg-primary-strong text-primary-foreground'
+                    : 'border-border'
                 )}
                 aria-hidden
               >

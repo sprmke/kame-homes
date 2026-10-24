@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-
 type Props = Extract<ChatBlock, { type: 'calendar' }> & {
   onPageMonth?: (direction: 'prev' | 'next') => void;
 };
@@ -15,7 +14,7 @@ const STATE_CLASS: Record<string, string> = {
   available: 'bg-muted text-foreground',
   booked: 'bg-primary/15 text-foreground',
   blocked: 'bg-destructive/15 text-foreground',
-  checkin: 'bg-primary text-primary-foreground',
+  checkin: 'bg-primary-strong text-primary-foreground',
   checkout: 'border-border bg-background',
 };
 
