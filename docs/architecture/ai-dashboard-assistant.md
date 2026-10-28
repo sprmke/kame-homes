@@ -126,7 +126,7 @@ UI: `AssistantTurnProgress` during tool phases (**present-tense** step labels �
 
 ## 3. Complete tool catalog
 
-**76 read tools (incl. `open_page`, see §9), 65 write tools (8 Tier 1, 56 Tier 2, plus the dynamic `propose_transition_booking`) — 141 total** (`tests/assistantToolCatalog.test.ts`). The 25 AI chat mode parity tools are in §3.12. Coverage reads (reviews, vouchers, Superhost, setup guide, themes, demographics, notifications, stay guide, custom pages, help center) are in §3.13. All 8 planned v2 phases are shipped, plus `plan_booking_journey`, plus attachment-actions Phases 1–6 (booking assets, workflow emails, media/branding, verification, inbox attachments, support tickets, channel sync, public page templates, finance/maintenance updates, notifications/Telegram reads + deep-link guidance, import/create-booking guidance, Meta publish from chat attachments). Read tools never write to the database. Write tools' tier is fixed per-tool except `propose_transition_booking` (dynamic, see §2.3).
+**77 read tools (incl. `open_page`, see §9), 65 write tools (8 Tier 1, 56 Tier 2, plus the dynamic `propose_transition_booking`) — 142 total** (`tests/assistantToolCatalog.test.ts`). The 25 AI chat mode parity tools are in §3.12. Coverage reads (reviews, vouchers, Superhost, setup guide, themes, demographics, notifications, stay guide, custom pages, property templates, help center) are in §3.13. All 8 planned v2 phases are shipped, plus `plan_booking_journey`, plus attachment-actions Phases 1–6 (booking assets, workflow emails, media/branding, verification, inbox attachments, support tickets, channel sync, public page templates, finance/maintenance updates, notifications/Telegram reads + deep-link guidance, import/create-booking guidance, Meta publish from chat attachments). Read tools never write to the database. Write tools' tier is fixed per-tool except `propose_transition_booking` (dynamic, see §2.3).
 
 ### 3.1 Bookings, finance, maintenance (Phase 0/1 — v1 + this session's additions)
 
@@ -368,9 +368,10 @@ Implemented in `_shared/dashboardAssistantCoverageTools.ts`. All Tier 0. Plan ke
 | `list_notifications`                            | org member                           | Latest in-app notifications + unread count                     |
 | `get_stay_guide_content`                        | `settings:view`                      | Stay guide template, sections, public path                     |
 | `get_custom_page_content`                       | `settings:view`                      | Stay guide + showcase templates and editor handoff             |
+| `get_property_template_content`                 | `templates:view`                     | Full copy of a standard/custom property template; list or read |
 | `search_help_center`                            | org member                           | ILIKE search over knowledge-base questions (sanitized)         |
 
-Composer pins: Reviews (`review`), Themes (`marketing_theme`), Vouchers (`voucher`) plus existing types. Knowledge drift: `bun run check:ai-knowledge-coverage` (CI) requires Documented route guides (except `admin/**`) to have ≥3 Host-facing knowledge Q&A.
+Composer pins: Reviews (`review`), Themes (`marketing_theme`), Vouchers (`voucher`), Templates (`property_template`, copy injected into the prompt) plus existing types. Knowledge drift: `bun run check:ai-knowledge-coverage` (CI) requires Documented route guides (except `admin/**`) to have ≥3 Host-facing knowledge Q&A.
 
 ## 4. Architecture-level facts every tool call relies on
 

@@ -222,6 +222,8 @@ flowchart TD
 | Parking                       | `resolveScopedParkingAccess` (separate catalog)                                  |
 | Super-admin                   | `SUPER_ADMIN_EMAILS`. Mutating `serveSuperAdmin` needs `requireSuperAdminStepUp` |
 
+Super admins can also turn host modules off globally (maintenance / provider issue) from `/admin/feature-availability`; hosts see reason copy and the server returns 503 `FEATURE_UNAVAILABLE`. See [`feature-availability.md`](feature-availability.md).
+
 **Plans vs team:** permission = can you see it; plan = can you use it (`requirePropertyPermissionAndFeature`). Property templates: Full Access / Operations / Read Only. Org team is Owner + Admin only. Parking still uses coarse MANAGER / STAFF / VIEWER.
 
 Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-auth.mdc`.
@@ -370,6 +372,7 @@ Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need th
 | PWA                           | [`pwa.md`](pwa.md)                                       |
 | Unsaved-changes guard         | [`unsaved-changes.md`](unsaved-changes.md)               |
 | Plans / entitlements          | [`plans-feature-matrix.md`](plans-feature-matrix.md)     |
+| Feature availability (global) | [`feature-availability.md`](feature-availability.md)     |
 | AI platform (gateway, evals)  | [`ai-platform.md`](ai-platform.md)                       |
 | AI dashboard assistant        | [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md) |
 | Smart pricing                 | [`smart-pricing.md`](smart-pricing.md)                   |

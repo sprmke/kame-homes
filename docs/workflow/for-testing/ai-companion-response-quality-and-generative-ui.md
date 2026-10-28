@@ -339,7 +339,7 @@ _Guest, web chat and voice (G-01…G-40; phases pre-booking / inquiry / verified
 - [x] `index.ts`: always prepend `respond_with_blocks`; when the model calls it, skip `generateStructuredViaTool` (`timer.markSynthInline()`). Also skip that fallback when hydrators already have tool JSON or a model draft (`canSkipStructuredSynth`). Guard + deferred-write commit still run on that path.
 - [x] `_shared/dashboardAssistantGuardPolicy.ts`: `shouldRunLlmGuard(ctx)` decision table + Deno test covering every branch (untrusted read, deferred writes, proposal, grounding rejection, ungrounded number/URL/email, quick-scan flag → LLM; else deterministic). Persist `guard_mode`.
 - [x] `_shared/ai/llmTools.ts`: `generateWithToolsStream` (Gemini `streamGenerateContent`) on rounds after the first; `index.ts` streams `text_chunk` live and emits `retract` if a tool call follows; client `useAiAssistantChat` replaces the preview.
-- [x] Dead-end / unformatted fallback: `Which listing or dates should I use?` plus a `Continue with the rest` chip instead of "ask again".
+- [x] Dead-end / unformatted fallback: a neutral "couldn't finish that answer" line plus a `Continue with the rest` chip instead of "ask again".
 - [ ] Re-run Phase 0 baseline; target ≥35 % p50 reduction on Tier-0 single-tool turns. Healthy recapture: `run-7.md` `total_ms` p50 **4.25 s** vs run-0 **~4.2 s** (flat; `synth_ms` 0). Median `model_ms` **3.69 s**, so 2.73 s total is not reachable without a faster model round. Fast rubric just misses (H-38 inbox + LLM guard). Live eval `blocks` p50 was 1191 ms. Do not use run-1/2 10–13 s or run-6 demand-spike totals.
 
 ### Phase 2: Response shape and quality

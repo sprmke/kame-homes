@@ -74,33 +74,34 @@ Per-page documentation mirrors the app routes. Each guide tracks **behavior**, *
 
 Platform-level control panel, distinct from org/property admin and the legacy `ADMIN_ALLOWED_EMAILS` gate — see [`admin/overview.md`](./admin/overview.md) for the auth model.
 
-| Route                                            | Guide                                                          | Status                                                                                       |
-| ------------------------------------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `/admin`                                         | [admin/overview.md](./admin/overview.md)                       | Documented                                                                                   |
-| `/admin/developments`                            | [admin/developments.md](./admin/developments.md)               | Documented                                                                                   |
-| `/admin/developments/:developmentSlug`           | [admin/development-detail.md](./admin/development-detail.md)   | Documented                                                                                   |
-| `/admin/approvals`                               | [admin/approvals.md](./admin/approvals.md)                     | Documented — Tier 1 host verification queue                                                  |
-| `/admin/hosts`                                   | [admin/hosts.md](./admin/hosts.md)                             | Documented                                                                                   |
-| `/admin/properties`                              | [admin/platform-properties.md](./admin/platform-properties.md) | Documented                                                                                   |
-| `/admin/hosts/:hostId`                           | [admin/host-detail.md](./admin/host-detail.md)                 | Documented — stat cards + search + mode dropdown (Organizations/Properties) + pagination     |
-| `/admin/hosts/:hostId/orgs`, `…/orgs/properties` | [admin/host-detail.md](./admin/host-detail.md)                 | Redirects to `/admin/hosts/:hostId`                                                          |
-| `/admin/orgs`                                    | [admin/orgs.md](./admin/orgs.md)                               | Documented — organization directory                                                          |
-| `/admin/orgs/:orgSlug`                           | [admin/orgs.md](./admin/orgs.md)                               | Documented — organization hub (Overview/Subscription/Listings/Approvals/AI/Support/Settings) |
-| `/admin/orgs/:orgSlug/properties`                | [admin/orgs.md](./admin/orgs.md)                               | Redirects to `…/listings`                                                                    |
-| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                         | Documented — FAQ editor                                                                      |
-| `/admin/playbook`                                | [admin/playbook.md](./admin/playbook.md)                       | Documented — Host Analytics Improvement Playbook article editor                              |
-| `/admin/announcements`                           | [admin/announcements.md](./admin/announcements.md)             | Documented — platform-wide host notices (Announcements page)                                 |
-| `/admin/ai`                                      | [admin/ai.md](./admin/ai.md)                                   | Documented — AI console: Usage, Limits, Profiles, Wallets, Controls                          |
-| `/admin/settings`                                | [admin/settings.md](./admin/settings.md)                       | Redirects to `/admin/ai?tab=controls`                                                        |
-| `/admin/ai-usage`                                | [admin/platform-tools.md](./admin/platform-tools.md)           | Redirects to `/admin/ai?tab=usage`                                                           |
-| `/admin/audit`                                   | [admin/platform-tools.md](./admin/platform-tools.md)           | Documented — super-admin action log                                                          |
-| `/admin/platform-settings`                       | [admin/platform-tools.md](./admin/platform-tools.md)           | Documented — signups/maintenance/default plan/support/legal/rate limit                       |
-| `/admin/pricing/plans`                           | [admin/pricing-plans.md](./admin/pricing-plans.md)             | Documented — tier catalog CRUD                                                               |
-| `/admin/pricing/subscriptions`                   | [admin/org-subscriptions.md](./admin/org-subscriptions.md)     | Documented — org subscription assignments                                                    |
-| `/admin/pricing/payment-settings`                | [admin/payment-settings.md](./admin/payment-settings.md)       | Documented — PayMongo dunning config                                                         |
-| `/admin/parking/payouts`                         | [admin/parking-payouts.md](./admin/parking-payouts.md)         | Documented — commission/guest rate config + manual payout ledger                             |
-| `/admin/support`                                 | [admin/support.md](./admin/support.md)                         | Documented — ticket triage (table/card)                                                      |
-| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                         | Documented — FAQ editor (first-class nav)                                                    |
+| Route                                            | Guide                                                            | Status                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `/admin`                                         | [admin/overview.md](./admin/overview.md)                         | Documented                                                                                   |
+| `/admin/developments`                            | [admin/developments.md](./admin/developments.md)                 | Documented                                                                                   |
+| `/admin/developments/:developmentSlug`           | [admin/development-detail.md](./admin/development-detail.md)     | Documented                                                                                   |
+| `/admin/approvals`                               | [admin/approvals.md](./admin/approvals.md)                       | Documented — Tier 1 host verification queue                                                  |
+| `/admin/hosts`                                   | [admin/hosts.md](./admin/hosts.md)                               | Documented                                                                                   |
+| `/admin/properties`                              | [admin/platform-properties.md](./admin/platform-properties.md)   | Documented                                                                                   |
+| `/admin/hosts/:hostId`                           | [admin/host-detail.md](./admin/host-detail.md)                   | Documented — stat cards + search + mode dropdown (Organizations/Properties) + pagination     |
+| `/admin/hosts/:hostId/orgs`, `…/orgs/properties` | [admin/host-detail.md](./admin/host-detail.md)                   | Redirects to `/admin/hosts/:hostId`                                                          |
+| `/admin/orgs`                                    | [admin/orgs.md](./admin/orgs.md)                                 | Documented — organization directory                                                          |
+| `/admin/orgs/:orgSlug`                           | [admin/orgs.md](./admin/orgs.md)                                 | Documented — organization hub (Overview/Subscription/Listings/Approvals/AI/Support/Settings) |
+| `/admin/orgs/:orgSlug/properties`                | [admin/orgs.md](./admin/orgs.md)                                 | Redirects to `…/listings`                                                                    |
+| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor                                                                      |
+| `/admin/playbook`                                | [admin/playbook.md](./admin/playbook.md)                         | Documented — Host Analytics Improvement Playbook article editor                              |
+| `/admin/announcements`                           | [admin/announcements.md](./admin/announcements.md)               | Documented — platform-wide host notices (Announcements page)                                 |
+| `/admin/ai`                                      | [admin/ai.md](./admin/ai.md)                                     | Documented — AI console: Usage, Limits, Profiles, Wallets, Controls                          |
+| `/admin/settings`                                | [admin/settings.md](./admin/settings.md)                         | Redirects to `/admin/ai?tab=controls`                                                        |
+| `/admin/ai-usage`                                | [admin/platform-tools.md](./admin/platform-tools.md)             | Redirects to `/admin/ai?tab=usage`                                                           |
+| `/admin/audit`                                   | [admin/platform-tools.md](./admin/platform-tools.md)             | Documented — super-admin action log                                                          |
+| `/admin/platform-settings`                       | [admin/platform-tools.md](./admin/platform-tools.md)             | Documented — signups/maintenance/default plan/support/legal/rate limit                       |
+| `/admin/feature-availability`                    | [admin/feature-availability.md](./admin/feature-availability.md) | Documented — per-feature off switches for hosts (Meta inbox, channel sync, AI, Telegram)     |
+| `/admin/pricing/plans`                           | [admin/pricing-plans.md](./admin/pricing-plans.md)               | Documented — tier catalog CRUD                                                               |
+| `/admin/pricing/subscriptions`                   | [admin/org-subscriptions.md](./admin/org-subscriptions.md)       | Documented — org subscription assignments                                                    |
+| `/admin/pricing/payment-settings`                | [admin/payment-settings.md](./admin/payment-settings.md)         | Documented — PayMongo dunning config                                                         |
+| `/admin/parking/payouts`                         | [admin/parking-payouts.md](./admin/parking-payouts.md)           | Documented — commission/guest rate config + manual payout ledger                             |
+| `/admin/support`                                 | [admin/support.md](./admin/support.md)                           | Documented — ticket triage (table/card)                                                      |
+| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor (first-class nav)                                                    |
 
 ## Public (guest)
 

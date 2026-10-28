@@ -9,13 +9,15 @@ updated: 2026-09-20
 
 Route: `/org/:orgSlug/property/:propertySlug/templates`
 
-> **Status:** Documented — admin UI, DB persistence, workflow email sends, and custom template manual send shipped
+> **Status:** Documented — admin UI, DB persistence, workflow email sends, custom template manual send, and chat templates shipped
 
 ## Purpose
 
 Each template card shows a **title**, **subtitle** (built-in description from the server registry; custom templates use a generic fallback), Edit/Preview tabs, WYSIWYG editor (white `bg-card` surface on light theme), placeholders, and reset-to-default. On phone, Edit/Preview and Placeholders/Send/Reset/Save (and Delete for custom) are **icon-only** so the whole toolbar stays on one row; labels return from `sm` up.
 
 **Custom templates → Send to guest (shipped):** Custom template cards show a **Send** icon button (next to Placeholders) once the saved content has no unsaved edits. It opens a dialog to search/pick a booking (guest name, date, or status). While bookings load, the list is row skeletons. The send button keeps a spinner only while the email is sending. It sends that exact saved content to the booking's guest email immediately — not tied to booking status or an automation toggle, and no cooldown. Uses the same `renderPropertyTemplateSendEmail` shell as every other template send. Requires `bookings.detail.workflow:edit` (same leaf as the booking-detail manual workflow email resends). Skipped (with a toast) if the guest's email is on the suppression list. Emits `booking.custom_template_sent` to the org activity log on success (`booking` category, `metadata.template_key` / `template_name`).
+
+**Chat templates (shipped):** the property's standard and custom templates are also selectable in **Guest Inbox → Insert (`+`) → Templates** and in the **AI Assistant → Pin context → Templates**. Email templates are excluded from both. The Inbox opens the same preview as this page, then sends a snapshot into the thread; web chat renders the snapshot as a rich card, Meta DMs receive flattened text. The AI Assistant receives the template body as context, not a message. No new plan key or permission leaf: standard templates stay free and custom templates inherit `customTemplates`; Inbox listing uses `inbox:view`, sending uses `inbox.messages:edit`, and assistant listing uses `templates:view`.
 
 **Plans/RBAC decision (Send to guest):** No new `PlanFeatureKey` — a custom template only exists on Starter+ (creating one is already gated by `customTemplates`), so the send action inherits that gate transitively; a Free org has no custom template card to send from. No new permission leaf — reuses `bookings.detail.workflow:edit`, the same booking-mutation-adjacent leaf that already gates manual workflow email resends from the booking detail page.
 
@@ -47,6 +49,8 @@ Templates is where you customize the text guests and your team receive: stay gui
   A: Yes. Use **Reset to default** on any built-in template to restore the original wording, including dynamic sections like payment tables and signatures. Reset works on Free; saving your own edits still needs Starter.
 - Q: Can I customize email templates on Free?
   A: You can open, edit, and reset them. Saving your changes requires Starter. Standard stay-guide templates can be edited and saved on Free.
+- Q: Can I use these templates in chat?
+  A: Yes. In Guest Inbox, open **Insert** (`+`) and pick a template under **Templates**. You see the full preview before sending. Web chat shows your template as a card the guest can open; Facebook and Instagram get the same words as plain text. In the AI Assistant, pin a template as context to rewrite or reuse it. Email templates stay email-only.
 - Q: Do custom templates get sent automatically?
   A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand — the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
 - Q: Why is Add Custom Template asking me to upgrade?
