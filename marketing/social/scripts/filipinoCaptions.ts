@@ -7,16 +7,16 @@
 import { featureSpecs } from '../src/features/registry';
 import { featureCopy } from '../src/filipino/copy';
 
-const TAGS = '#KameHomes #AirbnbHostPH #CondoHostPH #KameNaBahala';
+const TAGS = '#KameSpace #AirbnbHostPH #CondoHostPH #KameNaBahala';
 const LINK = 'Libre lang magsimula sa kamehomes.space';
 
 export const filipinoCampaignCaptions: Record<string, string> = {
   '01-kame-na-bahala':
-    'Hatinggabi na pero sunod-sunod pa rin ang "Hi po!" 😅 Resibo, Wi-Fi password, GAF at refund. Sa Kame Homes, may sagot at may status na ang bawat isa, kahit tulog ka. Kame na bahala.\n\nI-tag ang co-host mong laging gising nang 2 AM.',
+    'Hatinggabi na pero sunod-sunod pa rin ang "Hi po!" 😅 Resibo, Wi-Fi password, GAF at refund. Sa Kame Space, may sagot at may status na ang bawat isa, kahit tulog ka. Kame na bahala.\n\nI-tag ang co-host mong laging gising nang 2 AM.',
   '02-noon-ngayon':
     'Noon: resibo sa GC, Excel na luma na, gising nang 2 AM. Ngayon: verified na ang resibo, iisang calendar, at AI ang sumasagot sa guests.\n\nIkaw, noon pa rin o ngayon na? Comment mo sa baba.',
   '03-tulog-ka':
-    'Matulog ka nang mahimbing. Habang tulog ka, chine-check ng Kame Homes ang resibo, fina-file ang building approval at pinapadala ang guide sa guests mo.',
+    'Matulog ka nang mahimbing. Habang tulog ka, chine-check ng Kame Space ang resibo, fina-file ang building approval at pinapadala ang guide sa guests mo.',
   '04-manifesto':
     'Nag-host ka para sa guests, hindi para sa resibo, screenshot at spreadsheets. Sa iba, Kame na bahala.',
   '04-kinetic':
@@ -41,7 +41,7 @@ export const filipinoFeatureCaptions: Record<
       {
         ad: `${headline} ${k.sub}`,
         hook: `${question} ${k.answer}`,
-        carousel: `Paano gumagana ang ${s.module} sa Kame Homes:\n${steps}\n\nI-save mo 'to para sa susunod mong booking.`,
+        carousel: `Paano gumagana ang ${s.module} sa Kame Space:\n${steps}\n\nI-save mo 'to para sa susunod mong booking.`,
         reel: `${question} ${k.answer} ${k.sub}`,
       },
     ];

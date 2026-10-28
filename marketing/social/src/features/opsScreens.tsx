@@ -263,7 +263,7 @@ export function AlertsScreen(a: ScreenAnim) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Diamond size={10} color={c.mint} />
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: c.mint }}>Kame Homes</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: c.mint }}>Kame Space</span>
               <span style={{ marginLeft: 'auto', fontSize: 11.5, color: c.nightSub, ...tab }}>
                 {m.time}
               </span>

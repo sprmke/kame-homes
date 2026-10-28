@@ -8,7 +8,7 @@ import { c, type Format } from '../theme';
 
 /**
  * 13 · Checklist carousel. Educational, save-worthy: five things every guest needs before
- * check-in, each with how Kame Homes covers it. Cover and end on brand, tips on paper.
+ * check-in, each with how Kame Space covers it. Cover and end on brand, tips on paper.
  * Value first, product second, so the post earns saves and shares, not only impressions.
  */
 
@@ -121,7 +121,7 @@ function TipBody({ i }: { i: number }) {
             color: c.brandDeep,
           }}
         >
-          <Diamond size={14} color={c.brand} /> In Kame Homes
+          <Diamond size={14} color={c.brand} /> In Kame Space
         </div>
         <div
           style={{
@@ -204,7 +204,7 @@ function EndBody() {
         <Wordmark />
       </Box>
       <Box x={M} y={210}>
-        <Lines lines={['Kame Homes', 'sends all five.']} accentFrom={1} size={118} />
+        <Lines lines={['Kame Space', 'sends all five.']} accentFrom={1} size={118} />
         <Sub size={32} style={{ marginTop: 40, maxWidth: 860 }}>
           Confirmation, GAF, parking, stay guide and refund form, each at the right step of every
           booking.

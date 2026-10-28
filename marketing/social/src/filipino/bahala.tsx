@@ -9,7 +9,7 @@ import { BRAND_LINE } from './copy';
 
 /**
  * F01 · Kame na bahala. The Filipino host's real pain: "Hi po" messages that keep coming
- * past midnight. Each one resolves to what Kame Homes already did (status chips are app UI,
+ * past midnight. Each one resolves to what Kame Space already did (status chips are app UI,
  * so they stay in English like the product). Then the brand line lands.
  */
 

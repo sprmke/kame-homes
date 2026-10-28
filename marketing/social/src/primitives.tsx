@@ -247,7 +247,7 @@ export function Wordmark({ size = 30, color }: { size?: number; color?: string }
       }}
     >
       <Diamond size={size * 0.62} color={t.mark} />
-      Kame Homes
+      Kame Space
     </div>
   );
 }

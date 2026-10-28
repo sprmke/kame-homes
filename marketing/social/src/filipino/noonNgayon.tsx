@@ -7,7 +7,7 @@ import { c, STORY_SAFE, tones, type Format } from '../theme';
 /**
  * F02 · Noon vs Ngayon. The "then and now" split Filipino pages use all the time.
  * Noon on paper, struck through in coral. Ngayon on the brand plane, each line checked.
- * Items pair up row by row: the old habit, then what Kame Homes does instead.
+ * Items pair up row by row: the old habit, then what Kame Space does instead.
  */
 
 const noon = ['Resibo sa GC', 'Excel na luma na', 'Gising nang 2 AM', 'Double booking'];

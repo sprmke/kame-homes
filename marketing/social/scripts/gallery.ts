@@ -21,7 +21,7 @@ const caps = FIL
       campaign: filipinoCampaignCaptions,
       feature: filipinoFeatureCaptions,
       footer: withFilipinoFooter,
-      title: 'Kame Homes social library · Filipino',
+      title: 'Kame Space social library · Filipino',
       campaignLede: 'Mga post na Filipino-first. Isang idea bawat post, naka-layout sa bawat format.',
       featureLede: 'Bawat module: product ad, hook post, five-slide carousel at reel, sa Taglish.',
     }
@@ -29,7 +29,7 @@ const caps = FIL
       campaign: campaignCaptions,
       feature: featureCaptions,
       footer: withFooter,
-      title: 'Kame Homes social library',
+      title: 'Kame Space social library',
       campaignLede: 'One idea per post, each laid out for every format.',
       featureLede: 'Every module ships a product ad, a hook post, a five-slide carousel and a reel.',
     };
