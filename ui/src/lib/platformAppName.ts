@@ -1,5 +1,5 @@
 /** Default product name when env is unset or still using the retired placeholder. */
-export const DEFAULT_PLATFORM_APP_NAME = 'Kame Homes';
+export const DEFAULT_PLATFORM_APP_NAME = 'Kame Space';
 
 /** Retired product labels that must never appear as the app/PWA title. */
 const RETIRED_PLATFORM_APP_NAMES = new Set(['stays']);

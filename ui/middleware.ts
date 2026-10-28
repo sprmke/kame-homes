@@ -39,7 +39,7 @@ export default async function middleware(request: Request): Promise<Response> {
     {
       functionsUrl,
       anonKey,
-      siteName: process.env.VITE_PLATFORM_APP_NAME?.trim() || 'Kame Homes',
+      siteName: process.env.VITE_PLATFORM_APP_NAME?.trim() || 'Kame Space',
       // Empty or unset keeps the production defaults in seoMeta.ts.
       indexableHosts: indexableHosts.length > 0 ? indexableHosts : undefined,
     },

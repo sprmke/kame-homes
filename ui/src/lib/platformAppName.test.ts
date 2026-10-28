@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_PLATFORM_APP_NAME, resolvePlatformAppName } from './platformAppName';
 
 describe('resolvePlatformAppName', () => {
-  it('defaults to Kame Homes when unset or blank', () => {
+  it('defaults to Kame Space when unset or blank', () => {
     expect(resolvePlatformAppName(undefined)).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName(null)).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName('')).toBe(DEFAULT_PLATFORM_APP_NAME);

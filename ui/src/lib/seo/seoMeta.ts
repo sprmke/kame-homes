@@ -6,7 +6,7 @@
  * relative path.
  */
 
-export const SITE_NAME = 'Kame Homes';
+export const SITE_NAME = 'Kame Space';
 export const DEFAULT_DESCRIPTION =
   'Book condos, homes, and parking across the Philippines. Browse by place, check dates, and reserve online.';
 export const MAX_DESCRIPTION_LENGTH = 160;

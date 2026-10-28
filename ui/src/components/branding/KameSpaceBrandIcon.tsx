@@ -8,7 +8,7 @@ type Props = {
 };
 
 /** Static app brand mark — teal gradient square with house icon (sidebar header). */
-export function KameHomesBrandIcon({ className, iconClassName }: Props) {
+export function KameSpaceBrandIcon({ className, iconClassName }: Props) {
   return (
     <div
       className={cn(

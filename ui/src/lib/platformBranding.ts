@@ -1,6 +1,6 @@
 /**
  * Env-driven platform product branding — never hardcode a host org name here.
- * Default product name is Kame Homes. Deployments may set `VITE_PLATFORM_APP_NAME`
+ * Default product name is Kame Space. Deployments may set `VITE_PLATFORM_APP_NAME`
  * / `VITE_PLATFORM_CONTACT_EMAIL` for a different operator label.
  */
 
@@ -21,8 +21,11 @@ export const APP_TITLE = PLATFORM_APP_NAME;
 export function isLegacyPlatformOrgBrand(label: string | null | undefined): boolean {
   const value = label?.trim() ?? '';
   if (!value) return false;
-  return /^kame\s*home(?:\s*[—\-–]\s*azure\s*north(?:\s+residences?)?)?$/i.test(value);
+  return /^kame\s*homes?(?:\s*[—\-–]\s*azure\s*north(?:\s+residences?)?)?$/i.test(value);
 }
+
+/** @deprecated Use `isLegacyPlatformOrgBrand`. */
+export const isLegacyPlatformBrand = isLegacyPlatformOrgBrand;
 
 /** @deprecated Use `isLegacyPlatformOrgBrand`. */
 export const isLegacyKameHomeBrand = isLegacyPlatformOrgBrand;
