@@ -16,6 +16,7 @@ import { DatabaseService } from '../_shared/databaseService.ts';
 import { isBookingStatus, isPostPendingDocumentsStatus } from '../_shared/statusMachine.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { logGuestActivity } from '../_shared/guestActivity.ts';
+import { authorizeGuestBookingAccess, guestBookingAccessTokenFromRequest } from '../_shared/guestBookingAccessToken.ts';
 
 type SubmitBody = {
   bookingId?: string;
@@ -73,6 +74,19 @@ serve(async (req) => {
     if (!existing) throw new Error('Booking not found');
     if (existing.status === 'CANCELLED') {
       throw new Error('This booking was cancelled — parking cannot be added');
+    }
+
+    const accessToken = guestBookingAccessTokenFromRequest(req, body);
+    const accessCheck = await authorizeGuestBookingAccess({
+      bookingIdFromPath: bookingId,
+      accessTokenFromQuery: accessToken,
+      bookingCreatedAt: (existing as Record<string, unknown>).created_at as string | null,
+    });
+    if (!accessCheck.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: accessCheck.message }),
+        { status: accessCheck.status, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
+      );
     }
 
     const parkingRateGuest = resolveParkingRateGuest(existing as Record<string, unknown>);

@@ -315,7 +315,8 @@ export async function listToWriteReviews(
     const { data: bookings } = await supabase
       .from('guest_submissions')
       .select('id, primary_guest_name, guest_facebook_name, check_in_date, check_out_date')
-      .in('id', ids);
+      .in('id', ids)
+      .limit(ids.length);
     for (const booking of bookings ?? []) stays.set(booking.id as string, unwrapStay(booking));
   }
 

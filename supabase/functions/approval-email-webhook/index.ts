@@ -229,10 +229,21 @@ async function resolvePropertyIdBySlug(slug: string): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
+const MAX_APPROVAL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
 async function downloadAttachmentBytes(downloadUrl: string): Promise<Uint8Array> {
   const res = await fetch(downloadUrl);
   if (!res.ok) throw new Error(`Attachment download failed (${res.status})`);
-  return new Uint8Array(await res.arrayBuffer());
+  const declared = res.headers.get('content-length');
+  if (declared && Number(declared) > MAX_APPROVAL_ATTACHMENT_BYTES) {
+    throw new Error('Attachment too large');
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength > MAX_APPROVAL_ATTACHMENT_BYTES) throw new Error('Attachment too large');
+  if (buf.byteLength < 4 || buf[0] !== 0x25 || buf[1] !== 0x50 || buf[2] !== 0x44 || buf[3] !== 0x46) {
+    throw new Error('Attachment is not a PDF');
+  }
+  return buf;
 }
 
 async function uploadApprovedPdf(params: {
@@ -437,7 +448,7 @@ async function processReceivedEmail(event: ResendReceivedEvent): Promise<{
       title: parsed.kind === 'gaf' ? 'GAF auto-approved' : 'Pet document auto-approved',
       body: `${guestName}'s ${parsed.kind === 'gaf' ? 'GAF' : 'pet'} document was auto-approved.`,
       bookingId,
-      metadata: bookingNotificationMetadata(match.booking),
+      metadata: bookingNotificationMetadata(match.booking as any),
       dedupeKey: `${bookingId}:${parsed.kind === 'gaf' ? 'booking_gaf_auto_approved' : 'booking_pet_auto_approved'}`,
     });
   } catch (err) {

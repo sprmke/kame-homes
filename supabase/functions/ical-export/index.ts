@@ -10,6 +10,10 @@
  *
  * Any failure (bad/rotated token, unknown property, disabled feed) returns an identical 404 —
  * no enumeration.
+ *
+ * Feature availability: no gate on this endpoint (export feeds keep serving while
+ * `pricing.channel_sync` is off). See docs/workflow/in-progress/feature-availability-controls.md
+ * Phase 5.4.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';

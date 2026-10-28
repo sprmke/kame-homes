@@ -47,6 +47,7 @@ export const GATED_SUPER_ADMIN_ACTIONS: Record<string, string> = {
   ai_generation_overrides: 'change per-property AI media generation caps or premium models',
   ai_limits: 'change AI limit profiles, assignments or overrides',
   rate_limit_block: 'block or unblock an identity from the platform',
+  feature_availability: 'turn platform features on or off',
 };
 
 export function superAdminActionLabel(action: string | null | undefined): string {

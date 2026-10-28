@@ -22,9 +22,9 @@ const DEFAULT_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 function secret(): string {
   const explicit = Deno.env.get('GUEST_BOOKING_ACCESS_SECRET')?.trim();
   if (explicit) return explicit;
-  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.trim();
-  if (service) return service;
-  throw new Error('GUEST_BOOKING_ACCESS_SECRET or SUPABASE_SERVICE_ROLE_KEY required');
+  // Do not fall back to the service-role key: a leaked guest token must not
+  // grant DB-level access, and token validity must not track DB credential rotation.
+  throw new Error('GUEST_BOOKING_ACCESS_SECRET is required');
 }
 
 function toBase64Url(bytes: Uint8Array): string {

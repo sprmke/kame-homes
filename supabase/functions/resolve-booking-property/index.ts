@@ -2,7 +2,7 @@
  * resolve-booking-property — public bookingId → property slug lookup.
  *
  * Feeds Phase 5.2 of the legacy → mt-prod cutover plan
- * (docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md): links in emails
+ * (docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md): links in emails
  * already sent from legacy (`/sd-form?bookingId=…`) carry no `?property=`. The
  * guest router calls this endpoint to resolve the property slug and redirect
  * instead of dropping the guest on `/properties`.

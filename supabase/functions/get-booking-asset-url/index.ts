@@ -24,7 +24,8 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('get-booking-asset-url', async (req) => {
-  await resolveScopedPropertyAccess(req, 'bookings:view');
+  const access = await resolveScopedPropertyAccess(req, 'bookings:view');
+  const propertyId = access.property.id;
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
   const rawUrl = typeof body.url === 'string' ? body.url.trim() : '';
@@ -43,7 +44,23 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
     throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   }
 
+  // Cross-property guard: the resolved property must actually reference this
+  // private object (via one of the guest_submissions storage columns). Without
+  // this check an admin with bookings:view on property A could mint signed URLs
+  // for property B's private guest documents.
   const supabase = createClient(supabaseUrl, serviceKey);
+  const { data: owning } = await supabase
+    .from('guest_submissions')
+    .select('id')
+    .eq('property_id', propertyId)
+    .or(
+      `valid_id_url.ilike.%${loc.path}%,payment_receipt_url.ilike.%${loc.path}%,pet_vaccination_url.ilike.%${loc.path}%,pet_image_url.ilike.%${loc.path}%`
+    )
+    .limit(1);
+  if (!owning || owning.length === 0) {
+    return jsonResponse(req, { success: false, error: 'Object not in scope for this property' }, 403);
+  }
+
   const { data, error } = await supabase.storage
     .from(loc.bucket)
     .createSignedUrl(loc.path, DEFAULT_SIGNED_URL_TTL_SEC);

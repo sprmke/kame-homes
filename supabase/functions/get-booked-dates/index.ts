@@ -25,7 +25,7 @@ servePublic('get-booked-dates', async (req) => {
 
   const { data: bookings, error } = await supabase
     .from('guest_submissions')
-    .select('id, check_in_date, check_out_date, check_in_time, check_out_time, status')
+    .select('check_in_date, check_out_date, check_in_time, check_out_time, status')
     .eq('property_id', propertyId)
     .neq('status', 'CANCELLED')
     // IMPORTED bookings are historical records — they must not block live availability.
@@ -70,7 +70,7 @@ servePublic('get-booked-dates', async (req) => {
 
         const checkOutDate = parseMMDDYYYY(booking.check_out_date);
         if (!checkOutDate) {
-          console.warn(`Invalid date format for booking ${booking.id}: ${booking.check_out_date}`);
+          console.warn(`Invalid date format for booking ${booking.check_in_date}: ${booking.check_out_date}`);
           return false;
         }
         return checkOutDate >= todayStart;

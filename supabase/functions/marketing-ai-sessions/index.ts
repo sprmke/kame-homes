@@ -202,7 +202,8 @@ serveAuthenticated('marketing-ai-sessions', async (req, user) => {
         .eq('property_id', propertyId)
         .in('id', ids)
         .not('deleted_at', 'is', null)
-        .select('id, title');
+        .select('id, title')
+        .limit(ids.length);
       if (error) return jsonError(req, error.message, 500);
       const restored = data ?? [];
       if (restored.length > 0) {
@@ -274,7 +275,8 @@ serveAuthenticated('marketing-ai-sessions', async (req, user) => {
     .from('marketing_ai_sessions')
     .select('id, title')
     .eq('property_id', propertyId)
-    .in('id', ids);
+    .in('id', ids)
+    .limit(ids.length);
   if (rowsError) return jsonError(req, rowsError.message, 500);
   const found = rows ?? [];
   if (found.length === 0) return jsonError(req, 'Not found', 404);
@@ -424,7 +426,8 @@ async function savePostVersions(
   const { data: inserted, error } = await sb
     .from('marketing_ai_post_versions')
     .insert(rows.map((row, index) => ({ ...row, preview_path: previewPaths[index] })))
-    .select(POST_VERSION_COLUMNS);
+    .select(POST_VERSION_COLUMNS)
+    .limit(rows.length);
   if (error) {
     await Promise.all(previewPaths.map((path) => removeTemplateThumbnail(sb, path)));
     return jsonError(req, error.message, 500);
@@ -454,12 +457,14 @@ async function removeSessionFiles(sb: SupabaseClient, sessionIds: string[]): Pro
       .from('marketing_generation_jobs')
       .select('output_storage_path')
       .in('session_id', sessionIds)
-      .not('output_storage_path', 'is', null),
+      .not('output_storage_path', 'is', null)
+      .limit(sessionIds.length * 50),
     sb
       .from('marketing_ai_post_versions')
       .select('preview_path')
       .in('session_id', sessionIds)
-      .not('preview_path', 'is', null),
+      .not('preview_path', 'is', null)
+      .limit(sessionIds.length * 20),
   ]);
   const jobPaths = (jobs.data ?? []).map((row) => String(row.output_storage_path));
   if (jobPaths.length > 0) {
@@ -489,7 +494,8 @@ async function purgeExpiredSessions(sb: SupabaseClient, propertyId: string): Pro
       .from('marketing_generation_jobs')
       .select('session_id')
       .in('session_id', ids)
-      .in('job_status', ['pending', 'processing', 'finalizing']);
+      .in('job_status', ['pending', 'processing', 'finalizing'])
+      .limit(ids.length);
     const busy = new Set((inFlight ?? []).map((row) => row.session_id as string));
     const purge = ids.filter((id) => !busy.has(id));
     if (purge.length === 0) return;
