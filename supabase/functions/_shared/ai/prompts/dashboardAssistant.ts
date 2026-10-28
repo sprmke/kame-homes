@@ -9,7 +9,7 @@ import { UNTRUSTED_DATA_RULE } from '../untrusted.ts';
 
 export const DASHBOARD_ASSISTANT_PROMPT = definePrompt({
   id: 'dashboard_assistant_turn',
-  version: '2026-10-19.12',
+  version: '2026-10-25.1',
 });
 
 export const DASHBOARD_ASSISTANT_BLOCKS_PROMPT = definePrompt({
@@ -203,11 +203,16 @@ Collecting structured input (dynamic_form):
 - Set toolName to the tool you intend to call. After the host taps Submit you'll receive their answers as a normal message on the next turn — call that tool then with the values they gave you, do not ask again.
 - Only one dynamic_form per turn. If some fields are already known (from this conversation or attachedContext), omit those and only ask for what's missing — or skip the form entirely and call the tool directly once you have everything.
 
+Templates & attached content:
+- When attachedContext includes a property template, its full copy is in "Attached template content" below. Answer what it says directly from that copy. Do not ask which listing or dates, and do not answer with only a page card or an Open Templates handoff.
+- When the host asks to see, show, display, preview, read, or summarize a template and no template is attached, call get_property_template_content. Omit templateKey to list templates; pass the key or name to read one. Put the copy in a text block, and use a checklist for rules.
+- Never answer a template or attached-content question with a generic request for a listing or dates. Read the attached copy or call get_property_template_content.
+
 Accuracy & tone (all modules — non-negotiable):
-- Never tell the host a booking, guest, file, inbox thread, maintenance item, team member, parking booking, finance row, marketing template, or other record "doesn't exist" / "I don't see it" if it appeared earlier in this conversation (Conversation so far), in attachedContext, or in any tool result this turn — including when it is the wrong status for their requested action.
-- "Can't do X yet" ≠ "missing". If the host asks to complete, cancel, refund, publish, send, reply, invite, or mark done and the target exists but is blocked, say so clearly: name the entity (use hostLabel), current status/state, why the action is blocked, what is still pending, and the next valid step.
+- Never tell the host a booking, guest, file, inbox thread, maintenance item, team member, parking booking, finance row, marketing template, or other record "doesn't exist" / "I don't see it" if it appeared earlier in this conversation (Conversation so far), in attachedContext, or in any tool result this turn — including when it is the wrong status for their requested action.- "Can't do X yet" ≠ "missing". If the host asks to complete, cancel, refund, publish, send, reply, invite, or mark done and the target exists but is blocked, say so clearly: name the entity (use hostLabel), current status/state, why the action is blocked, what is still pending, and the next valid step.
 - Prefer short, direct, confident copy. No apologetic filler. No inventing absences.
 - Continuity: reuse names, statuses, and choices from Conversation so far. If the host says "that one", "this guest", "the thread", or "same as before", resolve from prior turns + attachedContext before asking again.
+- Do not ask for a listing when pageContext already has a propertyId, when the host said "any" / "any available", or when the question has nothing to do with a listing (template content, settings, policy, how-to). Use the page's property and answer. Dates are only needed for availability or a stay-specific action.
 
 Bookings-specific:
 - When the host picks a suggested stay by guest name, look it up with list_bookings(guestName=…) without a status filter first (or get_booking if you already have bookingId from tools). Do not filter list_bookings to READY_FOR_CHECKOUT / COMPLETED just because they said "complete".

@@ -47,6 +47,7 @@ import {
 } from '../_shared/dashboardAssistantStreamEvents.ts';
 import {
   attachedContextPromptLines,
+  attachedTemplateContext,
   parseAttachedContextInput,
   verifyAttachedContextAccess,
   withAssistantScope,
@@ -525,6 +526,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     }
 
     const attachedContextLine = attachedContextPromptLines(attachedContext);
+    const attachedTemplate = await attachedTemplateContext(attachedContext);
     const attachmentLine =
       storedAttachments.length > 0
         ? `\nThe host attached ${storedAttachments.length} file(s) this turn — use these exact attachmentPath values with propose_apply_booking_attachment (never invent paths or https URLs):\n${storedAttachments
@@ -556,7 +558,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     const conversationSummary = conversationCtx.summary;
     const priorHistory = conversationCtx.priorHistory;
 
-    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
+    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachedTemplate.promptText}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
 
     /** True once the assistant reply + usage increment have been committed. */
     let turnCommitted = false;
@@ -973,7 +975,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       } else {
         taskPlan.markSynthRunning();
         activity.recordPhase('synthesizing', 'Prepared your answer');
-        const groundingText = `${groundingPrompt}\n${JSON.stringify(toolResultsForGrounding)}${attachmentLine}${attachedContextLine}`;
+        const groundingText = `${groundingPrompt}\n${JSON.stringify(toolResultsForGrounding)}${attachmentLine}${attachedContextLine}${attachedTemplate.promptText}`;
         let modelBlocks: unknown[] = inlineSynthBlocks ?? [];
         let draftText: string | null | undefined = finalText || skipBlockSynthWithText;
         if (
@@ -1033,6 +1035,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           groundingText,
           userMessage: turnMessage,
           attachedContext,
+          attachedTemplateText: attachedTemplate.fallbackText,
         });
         const safeBlocks = shaped.blocks;
 
