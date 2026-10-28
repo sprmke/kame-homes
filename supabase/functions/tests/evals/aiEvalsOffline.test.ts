@@ -17,6 +17,7 @@ import {
 import { evalCaseModule } from '../../_shared/assistantEvalSummary.ts';
 import { ASSISTANT_TOOL_MODULES } from '../../_shared/dashboardAssistantToolRouter.ts';
 import { assertSafeGuestReply } from '../../_shared/inboxAiSafetyGuard.ts';
+import { GUEST_RECEPTIONIST_TOOL_DECLARATIONS } from '../../_shared/guestReceptionistTools.ts';
 import {
   VOICE_PROPERTY_FACT_TOPICS,
   VOICE_RECEPTIONIST_TOOL_DECLARATIONS,
@@ -152,11 +153,12 @@ Deno.test('answer-quality golden set: rubrics are complete and fixtures resolve'
 Deno.test('guest tools golden set names real receptionist tools and topics', async () => {
   const rows = await readJsonl<GuestToolRow>('guest_tools.jsonl');
   assert(rows.length >= 30, `expected at least 30 rows, got ${rows.length}`);
-  const declared = new Set(
-    VOICE_RECEPTIONIST_TOOL_DECLARATIONS.flatMap((group) =>
+  const declared = new Set([
+    ...VOICE_RECEPTIONIST_TOOL_DECLARATIONS.flatMap((group) =>
       group.functionDeclarations.map((decl) => decl.name)
-    )
-  );
+    ),
+    ...GUEST_RECEPTIONIST_TOOL_DECLARATIONS.map((decl) => decl.name),
+  ]);
   const planned = new Set<string>();
   const topics = new Set<string>(VOICE_PROPERTY_FACT_TOPICS);
   const phases = new Set(['inquiry', 'booked', 'active', 'post']);

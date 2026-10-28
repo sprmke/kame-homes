@@ -36,13 +36,13 @@ const EXPECTED_WORKFLOW_EMAIL_KINDS = [
   'sd_refund_form_request',
 ] as const;
 
-Deno.test('tool catalog counts match architecture doc (141 total)', () => {
-  assertEquals(READ_TOOL_NAMES.size, 76);
+Deno.test('tool catalog counts match architecture doc (142 total)', () => {
+  assertEquals(READ_TOOL_NAMES.size, 77);
   assertEquals(TIER1_ONLY_TOOL_NAMES.size, 8);
   assertEquals(TIER2_ONLY_TOOL_NAMES.size, 56);
   assertEquals(
     READ_TOOL_NAMES.size + TIER1_ONLY_TOOL_NAMES.size + TIER2_ONLY_TOOL_NAMES.size + 1,
-    141
+    142
   );
 });
 

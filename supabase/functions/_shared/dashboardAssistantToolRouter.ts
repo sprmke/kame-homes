@@ -173,6 +173,7 @@ export const ASSISTANT_TOOL_MODULES: Record<string, AssistantToolModule> = {
   get_setup_guide_progress: 'settings',
   list_notifications: 'support',
   get_stay_guide_content: 'settings',
+  get_property_template_content: 'settings',
   get_custom_page_content: 'marketing',
   search_help_center: 'support',
   list_marketing_themes: 'marketing',
@@ -223,7 +224,7 @@ const MODULE_PATTERNS: Array<[AssistantToolModule, RegExp]> = [
   ],
   [
     'settings',
-    /\b(setting|profile|logo|photo|media|house rule|contact|automat|email|notification preference|telegram|receptionist|voice|gcash|payment method|new property|new listing|add (a )?property|setup guide|superhost)\w*/i,
+    /\b(setting|profile|logo|photo|media|house rule|contact|automat|email|notification preference|telegram|receptionist|voice|gcash|payment method|new property|new listing|add (a )?property|setup guide|superhost|template)\w*/i,
   ],
   [
     'analytics',
@@ -259,6 +260,7 @@ const PIN_MODULES: Record<string, AssistantToolModule> = {
   voucher: 'bookings',
   notification_module: 'settings',
   public_page: 'marketing',
+  property_template: 'settings',
   ticket: 'support',
 };
 

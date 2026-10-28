@@ -1860,7 +1860,10 @@ export function hydrateVisualBlocks<T extends { type: string }>(
   });
   for (let i = next.length - 1; i >= 0; i--) {
     const block = next[i] as { type?: string; text?: string };
-    if (block.type === 'text' && /which listing or dates/i.test(asText(block.text))) {
+    if (
+      block.type === 'text' &&
+      /which listing or dates|couldn't finish that answer/i.test(asText(block.text))
+    ) {
       if (hasAnswerBlock || records.length > 0) next.splice(i, 1);
     }
   }

@@ -874,6 +874,14 @@ export function summarizeGatheredToolResults(toolResults: unknown[]): string | n
     const obj = asRecord(raw) ?? asRecord(asRecord(raw)?.data);
     if (!obj) continue;
 
+    if (typeof obj.text === 'string' && typeof obj.templateKey === 'string') {
+      const text = obj.text.trim();
+      if (text) {
+        const name = asDisplay(obj.name) || 'Template';
+        return `${name}:\n\n${text}`;
+      }
+    }
+
     const bookingCount = countNamedList(obj, ['bookings', 'stays']);
     if (bookingCount != null) {
       if (bookingCount === 0) return 'No stays matched.';

@@ -127,6 +127,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'list-org-reviews': read,
   'get-booking-ai-review': read,
   'get-booking-asset-url': read,
+  'get-feature-availability': read,
   'get-development': read,
   'get-external-review-assets': read,
   'get-host': read,
@@ -307,6 +308,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
     'list_inbox_quick_reply_templates',
     'propose_manage_quick_reply_template'
   ),
+  'chat-templates': tool('get_property_template_content'),
   'submit-host-guest-review': handoff(
     'property.booking',
     'Host review of a guest is a personal judgment'

@@ -87,6 +87,7 @@ export const READ_TOOL_NAMES = new Set([
   'list_notifications',
   'get_stay_guide_content',
   'get_custom_page_content',
+  'get_property_template_content',
   'search_help_center',
 ]);
 

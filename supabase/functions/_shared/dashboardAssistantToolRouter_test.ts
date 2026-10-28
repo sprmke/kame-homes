@@ -46,6 +46,20 @@ Deno.test('routes by the host’s words and always keeps core', () => {
   );
 });
 
+Deno.test('routes template content questions and pins to settings', () => {
+  const byWords = routeAssistantModules({
+    ...base,
+    message: 'Can you display the house rules template content here?',
+  });
+  assert(byWords.modules.includes('settings'));
+  const byPin = routeAssistantModules({
+    ...base,
+    attachedTypes: ['property_template'],
+    message: 'What does it say?',
+  });
+  assert(byPin.modules.includes('settings'));
+});
+
 Deno.test('pins, the booking page and conversation history add modules', () => {
   assert(
     routeAssistantModules({
