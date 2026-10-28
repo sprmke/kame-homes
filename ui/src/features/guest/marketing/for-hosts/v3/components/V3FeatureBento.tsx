@@ -384,7 +384,7 @@ export function V3FeatureBento() {
               <div className="border-border bg-background overflow-hidden rounded-2xl border">
                 <div className="flex items-center gap-2 px-3 py-2">
                   <Instagram className="text-foreground h-4 w-4" aria-hidden />
-                  <span className="text-foreground text-xs font-semibold">kamehomes</span>
+                  <span className="text-foreground text-xs font-semibold">kamespace</span>
                   <CalendarClock
                     className="text-muted-foreground ml-auto h-3.5 w-3.5"
                     aria-hidden

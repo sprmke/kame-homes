@@ -413,7 +413,7 @@ export const v3Faq = {
 } as const;
 
 export const v3Closing = {
-  title: 'Run your next booking on Kame Homes.',
+  title: 'Run your next booking on Kame Space.',
   body: 'Start free with one property. Upgrade when it pays for itself.',
   imageAlt: 'Modern vacation home exterior at dusk',
 } as const;

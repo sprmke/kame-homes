@@ -1,7 +1,7 @@
 [
   {
     "id": "intro",
-    "text": "Meet Kame Homes. Everything you need to run your rentals, in one place.",
+    "text": "Meet Kame Space. Everything you need to run your rentals, in one place.",
     "file": "intro.mp3",
     "seconds": 4.51
   },
@@ -151,7 +151,7 @@
   },
   {
     "id": "outro",
-    "text": "Kame Homes. Less busywork, more happy guests. Start free today.",
+    "text": "Kame Space. Less busywork, more happy guests. Start free today.",
     "file": "outro.mp3",
     "seconds": 5.3
   }

@@ -4,7 +4,7 @@ export const HOST_TOUR_NARRATION_PUBLIC_DIR = '/marketing/for-hosts/narration';
 export const hostTourNarration = [
   {
     id: 'intro',
-    text: 'Meet Kame Homes. Everything you need to run your rentals, in one place.',
+    text: 'Meet Kame Space. Everything you need to run your rentals, in one place.',
   },
   {
     id: 'setup-guide',
@@ -104,7 +104,7 @@ export const hostTourNarration = [
   },
   {
     id: 'outro',
-    text: 'Kame Homes. Less busywork, more happy guests. Start free today.',
+    text: 'Kame Space. Less busywork, more happy guests. Start free today.',
   },
 ] as const;
 
