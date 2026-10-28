@@ -49,6 +49,9 @@ ALLOWLIST=(
   '_shared/hostGuestReviewService.ts'
   # Concurrent receptionist WIP: one latest booking for the signed-in guest.
   '_shared/guestReceptionistTools.ts'
+  # Single-row booking read for chat-template placeholders; needs the same full
+  # booking row as the email placeholder helpers (finance/pet/vehicle fields).
+  '_shared/chatTemplateMessage.ts'
 
   '_shared/appSettings.ts'
   '_shared/approvalEmailMatcher.ts'

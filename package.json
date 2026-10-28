@@ -25,6 +25,9 @@
     "lint": "cd ui && bun run lint",
     "lint:fix": "cd ui && bun run lint:fix",
     "check:filenames": "./scripts/dev/check-ui-filename-conventions.sh",
+    "check:brand": "bun scripts/brand/check-brand.ts",
+    "check:brand:check": "bun scripts/brand/check-brand.ts --check",
+    "check:brand:list": "bun scripts/brand/check-brand.ts --list",
     "audit:deps": "bun x knip --no-exit-code",
     "audit:edge-functions": "node scripts/dev/audit-edge-functions.mjs",
     "check:edge-conformance": "node scripts/dev/audit-edge-functions.mjs --check",
@@ -159,7 +162,8 @@
     "pg": "^8.23.1",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "vercel": "^65.3.1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1"

@@ -94,8 +94,12 @@ docs/workflow/in-progress/production-readiness/checklist/baselines/.artifact-dow
 .playwright/
 playwright-report/
 test-results/
-# Local Playwright screen captures — ignored so they cannot be committed; git leaves
-# ignored files on disk when switching branches (only tracked files are updated).
+# Local Playwright / QA screenshots — never commit. Ignored files stay on disk across
+# branch checkout, pull, and merge (Git only updates tracked paths). Avoid `git stash -u`
+# / `git clean -fdx` on this tree if you need to keep local PNGs.
+ui/e2e/artifacts/*
+!ui/e2e/artifacts/.gitkeep
+# Same rules for ad-hoc Playwright captures under ui/screen-tmp/
 ui/screen-tmp/*
 !ui/screen-tmp/.gitkeep
 # Stray screenshots dumped at repo root by Playwright / design QA — never belong in git

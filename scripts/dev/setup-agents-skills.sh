@@ -5,7 +5,8 @@
 #
 # Includes every entry in skills-lock.json: Impeccable, Taste Skill,
 # playwright-cli, Caveman, Graphify, Ponytail, Vercel agent-skills,
-# Anthropic skills, Matt Pocock skills, and Superpowers.
+# Anthropic skills, Matt Pocock skills, Superpowers, and Cloudflare
+# security-audit.
 #
 # Usage: bun run setup:agents-skills
 # Also invoked by: bun run setup:ai-tooling / bun run setup:impeccable

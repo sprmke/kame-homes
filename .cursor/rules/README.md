@@ -48,18 +48,19 @@ Flags: `bun run setup:ai-tooling -- --skip-agents-skills` · `--skip-playwright-
 
 **Ecosystem packages (project-scoped):**
 
-| Package                                                             | What you get                                                                                            | Setup                          |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| [Taste Skill](https://github.com/Leonxlnx/taste-skill)              | `design-taste-frontend`, `redesign-existing-projects`, `stitch-design-taste`, related craft skills      | `bun run setup:agents-skills`  |
-| [Playwright CLI](https://github.com/microsoft/playwright-cli)       | skill `playwright-cli` + `bun x playwright-cli` (`@playwright/cli`)                                     | `bun run setup:playwright-cli` |
-| [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) | root `DESIGN.md` + `.agents/design-md/*` refs + skill `design-md`                                       | `bun run setup:design-md`      |
-| [Caveman](https://github.com/JuliusBrussee/caveman)                 | `/caveman` plus review, commit, and refactor helpers. Cloud gateway skills are not installed.           | `skills-lock.json`             |
-| [Graphify](https://github.com/Graphify-Labs/graphify)               | `/graphify`. First run installs the `graphifyy` CLI if it is missing.                                   | `skills-lock.json`             |
-| [Ponytail](https://github.com/DietrichGebert/ponytail)              | `/ponytail` plus review, audit, debt, and gain. On demand. Karpathy stays the always-on rule.           | `skills-lock.json`             |
-| [Vercel agent-skills](https://github.com/vercel-labs/agent-skills)  | React composition, React best practices, view transitions, web design guidelines.                       | `skills-lock.json`             |
-| [Anthropic skills](https://github.com/anthropics/skills)            | pdf, docx, pptx, xlsx, skill-creator, mcp-builder, webapp-testing, doc-coauthoring, claude-api.         | `skills-lock.json`             |
-| [Matt Pocock skills](https://github.com/mattpocock/skills)          | Engineering and productivity skills (`tdd`, `triage`, `grill-me`, and the rest).                        | `skills-lock.json`             |
-| [Superpowers](https://github.com/obra/superpowers)                  | Upstream skills in `.agents/skills/`. Still opt-in. Path overrides stay in `.agent/skills/superpowers`. | `skills-lock.json`             |
+| Package                                                                         | What you get                                                                                                        | Setup                          |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| [Taste Skill](https://github.com/Leonxlnx/taste-skill)                          | `design-taste-frontend`, `redesign-existing-projects`, `stitch-design-taste`, related craft skills                  | `bun run setup:agents-skills`  |
+| [Playwright CLI](https://github.com/microsoft/playwright-cli)                   | skill `playwright-cli` + `bun x playwright-cli` (`@playwright/cli`)                                                 | `bun run setup:playwright-cli` |
+| [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)             | root `DESIGN.md` + `.agents/design-md/*` refs + skill `design-md`                                                   | `bun run setup:design-md`      |
+| [Caveman](https://github.com/JuliusBrussee/caveman)                             | `/caveman` plus review, commit, and refactor helpers. Cloud gateway skills are not installed.                       | `skills-lock.json`             |
+| [Graphify](https://github.com/Graphify-Labs/graphify)                           | `/graphify`. First run installs the `graphifyy` CLI if it is missing.                                               | `skills-lock.json`             |
+| [Ponytail](https://github.com/DietrichGebert/ponytail)                          | `/ponytail` plus review, audit, debt, and gain. On demand. Karpathy stays the always-on rule.                       | `skills-lock.json`             |
+| [Vercel agent-skills](https://github.com/vercel-labs/agent-skills)              | React composition, React best practices, view transitions, web design guidelines.                                   | `skills-lock.json`             |
+| [Anthropic skills](https://github.com/anthropics/skills)                        | pdf, docx, pptx, xlsx, skill-creator, mcp-builder, webapp-testing, doc-coauthoring, claude-api.                     | `skills-lock.json`             |
+| [Matt Pocock skills](https://github.com/mattpocock/skills)                      | Engineering and productivity skills (`tdd`, `triage`, `grill-me`, and the rest).                                    | `skills-lock.json`             |
+| [Superpowers](https://github.com/obra/superpowers)                              | Upstream skills in `.agents/skills/`. Still opt-in. Path overrides stay in `.agent/skills/superpowers`.             | `skills-lock.json`             |
+| [Cloudflare security-audit](https://github.com/cloudflare/security-audit-skill) | Skill `security-audit`: guidance or full six-phase codebase audit with structured reports. On demand before launch. | `skills-lock.json`             |
 
 Already in `.agent/skills/` (leave these in place): `testing`, `ui-ux-pro-max`, `karpathy-guidelines`, `frontend-design`, `brand`, and the repo `superpowers` path override. Karpathy is also the always-on rule.
 

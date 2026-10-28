@@ -16,10 +16,11 @@ This is the Cursor always-on gate. Full checklist: **`plans-and-permissions`** s
 
 Answer both. “Forgot” is not valid.
 
-| Control              | Question                                                       | If **yes**                                                                     | If **no**                                                            |
-| -------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| **Plans**            | Should this be limited by subscription tier?                   | Add `PlanFeatureKey`, seed migration, gates, matrix, compare/tier cards        | Note **N/A** in the route guide or workflow doc (why free / ungated) |
-| **Team permissions** | Should some team roles be blocked from viewing or mutating it? | Add permission leaf(s), catalog, server allow-list, seeded templates, UI gates | Note **N/A** (owner-only / already covered by an existing leaf)      |
+| Control                  | Question                                                                        | If **yes**                                                                                 | If **no**                                                            |
+| ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| **Plans**                | Should this be limited by subscription tier?                                    | Add `PlanFeatureKey`, seed migration, gates, matrix, compare/tier cards                    | Note **N/A** in the route guide or workflow doc (why free / ungated) |
+| **Team permissions**     | Should some team roles be blocked from viewing or mutating it?                  | Add permission leaf(s), catalog, server allow-list, seeded templates, UI gates             | Note **N/A** (owner-only / already covered by an existing leaf)      |
+| **Feature availability** | Is this a new host-facing capability that super admins might turn off globally? | Add a catalog key (or child under an existing module), server + UI gates, route guide note | Note **N/A** (super-admin-only surface, or not a gated module)       |
 
 Reference implementation: **Airbnb Channel sync** — plan key `calendarSync` (Pro+) + leaves `pricing.channels:view` / `:edit`.
 

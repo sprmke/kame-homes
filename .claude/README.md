@@ -11,17 +11,17 @@ bun run setup:ai-tooling
 
 See **`.cursor/rules/README.md` → New developer setup (AI tooling)** for MCP env vars, `markitdown-mcp`, OpenCode, and Codex.
 
-| Item                          | Location                                                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| One-shot setup                | `bun run setup:ai-tooling`                                                                                                                             |
-| Team hooks + MCP enable list  | `.claude/settings.json` (committed)                                                                                                                    |
-| Personal permission overrides | `.claude/settings.local.json` (gitignored — created by setup script)                                                                                   |
-| Shared skills                 | `.agent/skills/<name>/` via symlinks in `.claude/skills/`                                                                                              |
-| Ecosystem skills              | `.agents/skills/` via `skills-lock.json` (Taste, Playwright CLI, Impeccable, Caveman, Graphify, Ponytail, Vercel, Anthropic, Matt Pocock, Superpowers) |
-| DESIGN.md                     | Root `DESIGN.md` + `.agents/design-md/` + skill `design-md`                                                                                            |
-| Claude-only verify skill      | `.claude/skills/verify/` (real directory, not symlinked)                                                                                               |
-| OpenCode (same goals)         | `opencode.json` + `.opencode/` — see **`.opencode/README.md`**                                                                                         |
-| Drift check                   | `bun run check:ai-tooling-sync`                                                                                                                        |
+| Item                          | Location                                                                                                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One-shot setup                | `bun run setup:ai-tooling`                                                                                                                                                          |
+| Team hooks + MCP enable list  | `.claude/settings.json` (committed)                                                                                                                                                 |
+| Personal permission overrides | `.claude/settings.local.json` (gitignored — created by setup script)                                                                                                                |
+| Shared skills                 | `.agent/skills/<name>/` via symlinks in `.claude/skills/`                                                                                                                           |
+| Ecosystem skills              | `.agents/skills/` via `skills-lock.json` (Taste, Playwright CLI, Impeccable, Caveman, Graphify, Ponytail, Vercel, Anthropic, Matt Pocock, Superpowers, Cloudflare `security-audit`) |
+| DESIGN.md                     | Root `DESIGN.md` + `.agents/design-md/` + skill `design-md`                                                                                                                         |
+| Claude-only verify skill      | `.claude/skills/verify/` (real directory, not symlinked)                                                                                                                            |
+| OpenCode (same goals)         | `opencode.json` + `.opencode/` — see **`.opencode/README.md`**                                                                                                                      |
+| Drift check                   | `bun run check:ai-tooling-sync`                                                                                                                                                     |
 
 Ponytail is an on-demand skill (`/ponytail`). Karpathy stays the always-on behavior. A Claude Code marketplace plugin is optional and not required.
 
