@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-10-19
+updated: 2026-10-28
 stage: in-progress
 kind: reference
 ---
@@ -14,6 +14,8 @@ Implementation **started** — plan not fully complete. Partial phases or v1 sli
 Plans with **implementation complete** and only manual QA left live in [`../for-testing/`](../for-testing/) (**🧪**). **Start QA:** [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md).
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
+
+**Moved in 2026-10-25:** [`chat-templates.md`](./chat-templates.md) ← [`../planned/`](../planned/) — property stay-guide/custom templates in Guest Inbox Insert → Templates and AI Assistant Pin context. Code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
 
 **Moved out 2026-09-09:** `org-granular-team-permissions` + `super-admin-step-up-otp` → [`../for-testing/`](../for-testing/) (code shipped, QA-only — batches 6 & 7 in [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md)). `marketing-module-refinement` → [`../done/`](../done/); remaining Meta-publishing feature gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
 

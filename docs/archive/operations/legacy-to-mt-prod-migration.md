@@ -33,7 +33,7 @@ updated: 2026-10-25
 
 ## Legacy → mt-prod cutover (canonical plan)
 
-The detailed, authoritative plan with decisions (D1–D7), phases, runbook timeline and risk table lives in [`docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md`](../../workflow/planned/legacy-prod-to-mt-prod-cutover.md). This file becomes the operational companion (commands + timings) as phases land.
+The detailed, authoritative plan with decisions (D1–D7), phases, runbook timeline and risk table lives in [`docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md). This file becomes the operational companion (commands + timings) as phases land.
 
 **Status 2026-10-25 — R1 + R2 local rehearsals PASSED (clean twice, compareCounts green).** Tooling proven in [`scripts/migrate/legacy-to-mt-prod/`](../../../scripts/migrate/legacy-to-mt-prod/README.md): dump (CLI + docker `pg_dump` for managed schemas) → restore into an isolated rehearsal db → `10-post-restore-fixups` → 322-migration `--include-all` upgrade (1 chain fix shipped: `20260629215000_gmail_listener_state_singleton_drop_guard.sql`) → `30-rewrite-storage-urls` → `40-derived-rebuild` → inventory-diff verify. Storage copy implemented with manifest; private buckets verified to need `LEGACY_SERVICE_ROLE_KEY`; actual object copy waits for R3/cutover targets.
 
@@ -42,7 +42,7 @@ The detailed, authoritative plan with decisions (D1–D7), phases, runbook timel
 - [x] **Inventory** — Phase 0.1 done (counts-only JSON, July 2026 data): 445 bookings, 7 auth users, 10 buckets, 85 migrations, 18 public tables
 - [x] **Script location** — `scripts/migrate/legacy-to-mt-prod/` (implemented, see its README)
 - [x] **Dry-run mode** — restore-then-upgrade rehearsed locally (R1/R2); `db push --dry-run` also verified read-only against legacy
-- [x] **Storage sync** — `storage/copyBuckets.ts` (manifest/dry-run/copy modes); copy executes on R3/cutover
+- [x] **Storage sync** — `storage/copyBuckets.ts`: full dry-run verified 1,471/1,471 objects (0 missing, exact sizes) with `LEGACY_SERVICE_ROLE_KEY` from `supabase/.env.local`; `copy` mode executes on R3/cutover.
 - [x] **Idempotency** — restore = rebuild-from-dump; rewrite/derived-rebuild guarded + re-runnable
 - [~] **Validation** — `verify/compareCounts.ts` automated; `sql/90-verify.sql` runner wiring + guest/host smoke flows pending (R3)
 - [x] **Rollback** — plan §8 rollback (legacy unfreeze + DNS revert); local snapshot in `backups/migration/r1-20261024/local-dev-public-snapshot.dump`
