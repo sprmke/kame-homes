@@ -41,6 +41,11 @@ import {
   type SlashCommand,
 } from '@/features/dashboard/ai-assistant/lib/composerTriggers';
 import { ATTACHED_CONTEXT_ICONS } from '@/features/dashboard/ai-assistant/lib/contextPickerIcons';
+import { ChatTemplatePreviewDialog } from '@/features/dashboard/inbox/components/ChatTemplateMessage';
+import { fetchChatTemplatePreview } from '@/features/dashboard/inbox/lib/inboxApi';
+import { useOrgIdParam, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
+
+import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -119,6 +124,31 @@ export function ChatComposer({
   const [paletteMounted, setPaletteMounted] = useState(false);
   const [pillSuggestionType, setPillSuggestionType] = useState<AttachedContextItem | null>(null);
   const reactId = useId();
+  const orgSlug = useOrgSlugParam();
+  const orgId = useOrgIdParam();
+  const [templatePreview, setTemplatePreview] = useState<{
+    open: boolean;
+    loading: boolean;
+    snapshot: ChatTemplateSnapshot | null;
+  }>({ open: false, loading: false, snapshot: null });
+
+  const openTemplatePreview = async (item: AttachedContextItem) => {
+    if (!item.propertyId) return;
+    setPillSuggestionType(null);
+    setTemplatePreview({ open: true, loading: true, snapshot: null });
+    try {
+      const snapshot = await fetchChatTemplatePreview(
+        orgSlug,
+        orgId,
+        { propertyId: item.propertyId },
+        item.id
+      );
+      setTemplatePreview({ open: true, loading: false, snapshot });
+    } catch (e) {
+      setTemplatePreview({ open: false, loading: false, snapshot: null });
+      toast.error((e as Error).message);
+    }
+  };
   const menuId = `${reactId}-suggestions`;
   const [caret, setCaret] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -299,6 +329,18 @@ export function ChatComposer({
 
   return (
     <ChatComposerSearchAllProvider onSearchAll={openPalette}>
+      <ChatTemplatePreviewDialog
+        open={templatePreview.open}
+        onOpenChange={(open) =>
+          setTemplatePreview({
+            open,
+            loading: false,
+            snapshot: open ? templatePreview.snapshot : null,
+          })
+        }
+        snapshot={templatePreview.snapshot}
+        loading={templatePreview.loading}
+      />
       <div className={cn('border-border/60 shrink-0 border-t p-3', className)}>
         {(attachedContext.length > 0 || attachments.length > 0) && (
           <div className="mb-2 flex flex-wrap gap-1.5">
@@ -346,6 +388,11 @@ export function ChatComposer({
                       <ChatContextPillSuggestions
                         moduleType={item.type}
                         onPick={pickPillSuggestion}
+                        onPreview={
+                          item.type === 'property_template'
+                            ? () => void openTemplatePreview(item)
+                            : undefined
+                        }
                         disabled={disabled || sending}
                       />
                     </PopoverContent>

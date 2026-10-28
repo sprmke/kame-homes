@@ -692,6 +692,11 @@ const TOOL_LABELS: Record<string, { progress: string; done: string; failed: stri
     done: 'Loaded pages',
     failed: 'Could not load pages',
   },
+  get_property_template_content: {
+    progress: 'Reading template…',
+    done: 'Read template',
+    failed: 'Could not read template',
+  },
   search_help_center: {
     progress: 'Searching help…',
     done: 'Searched help',

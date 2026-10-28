@@ -221,6 +221,17 @@ const MODULE_PROMPTS: Record<
     ],
     actions: ['Create a support ticket', 'Follow up on this ticket'],
   },
+  property_template: {
+    questions: [
+      'What does this template say?',
+      'Where is this template used?',
+      'Can I shorten this template?',
+    ],
+    actions: [
+      'Rewrite this template for a late checkout',
+      'Draft a guest message from this template',
+    ],
+  },
 };
 
 function toSuggestions(

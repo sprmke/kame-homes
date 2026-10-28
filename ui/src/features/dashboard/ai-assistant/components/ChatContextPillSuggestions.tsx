@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { HelpCircle, Zap, type LucideIcon } from 'lucide-react';
+import { HelpCircle, Maximize2, Zap, type LucideIcon } from 'lucide-react';
 
 import type { AttachedContextType } from '@/features/dashboard/ai-assistant/lib/attachedContext';
 import { selectContextualSuggestions } from '@/features/dashboard/ai-assistant/lib/moduleSuggestions';
@@ -21,6 +21,8 @@ const VISIBLE_COUNT = 6;
 type Props = {
   moduleType: AttachedContextType;
   onPick: (prompt: string) => void;
+  /** Property templates only: open the same preview the Inbox uses. */
+  onPreview?: () => void;
   disabled?: boolean;
 };
 
@@ -29,7 +31,7 @@ type Props = {
  * for that single module type (not merged across modules) so the host can drill into one
  * pinned module mid-conversation. Tapping a prompt sends it as a chat message.
  */
-export function ChatContextPillSuggestions({ moduleType, onPick, disabled }: Props) {
+export function ChatContextPillSuggestions({ moduleType, onPick, onPreview, disabled }: Props) {
   const [kind, setKind] = useState<SuggestionKind>('question');
 
   const questions = selectContextualSuggestions([moduleType], 'question', VISIBLE_COUNT);
@@ -38,6 +40,17 @@ export function ChatContextPillSuggestions({ moduleType, onPick, disabled }: Pro
 
   return (
     <div className="flex min-w-0 flex-col gap-2 p-2">
+      {onPreview ? (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onPreview}
+          className="text-foreground hover:bg-muted/60 focus-visible:ring-ring inline-flex min-h-[40px] items-center gap-2 rounded-lg px-2 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50"
+        >
+          <Maximize2 className="text-muted-foreground size-3.5 shrink-0" aria-hidden />
+          Preview template
+        </button>
+      ) : null}
       <div
         role="group"
         aria-label="Suggestion type"

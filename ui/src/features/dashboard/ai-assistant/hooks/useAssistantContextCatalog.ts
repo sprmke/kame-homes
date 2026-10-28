@@ -18,6 +18,7 @@ import {
   CONTEXT_CATALOG_GROUPS,
 } from '@/features/dashboard/ai-assistant/lib/contextPickerRegistry';
 import { useBookings } from '@/features/dashboard/bookings/hooks/useBookings';
+import { usePropertyTemplates } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import { DEFAULT_BOOKINGS_QUERY } from '@/features/dashboard/bookings/lib/types';
 import {
   useCustomPages,
@@ -137,6 +138,7 @@ export function useAssistantContextCatalog(): {
   const reviews = usePropertyReviews('received', RECEIVED_PAGE_QUERY);
   const pages = useCustomPages();
   const tickets = useSupportTickets();
+  const propertyTemplates = usePropertyTemplates();
 
   const isLoading =
     bookings.isLoading ||
@@ -151,7 +153,8 @@ export function useAssistantContextCatalog(): {
     (Boolean(propertyId) && themes.isLoading) ||
     (Boolean(propertyId) && reviews.isLoading) ||
     (Boolean(propertyId) && pages.isLoading) ||
-    tickets.isLoading;
+    tickets.isLoading ||
+    (Boolean(propertyId) && propertyTemplates.isLoading);
 
   const groups = useMemo((): AssistantCatalogGroup[] => {
     const byType = new Map<AttachedContextItem['type'], AssistantCatalogEntry[]>();
@@ -310,9 +313,7 @@ export function useAssistantContextCatalog(): {
     }
 
     const receivedReviews = take(
-      (reviews.data?.items ?? []).filter(
-        (item): item is ReceivedReviewItem => 'starRating' in item
-      )
+      (reviews.data?.items ?? []).filter((item): item is ReceivedReviewItem => 'starRating' in item)
     );
     for (const review of receivedReviews) {
       const guestName = review.guestName?.trim() || 'Guest';
@@ -367,6 +368,22 @@ export function useAssistantContextCatalog(): {
           ' '
         ),
         visual: { kind: 'module-icon', icon: 'ticket' },
+      });
+    }
+
+    for (const template of take(
+      (propertyTemplates.data?.templates ?? []).filter((row) => row.category !== 'email')
+    )) {
+      push({
+        item: {
+          type: 'property_template',
+          id: template.templateKey,
+          propertyId,
+          label: template.name,
+        },
+        subtitle: template.category === 'custom' ? 'Custom template' : 'Stay guide',
+        keywords: `${template.name} ${template.category} template`,
+        visual: { kind: 'module-icon', icon: 'property_template', tone: 'primary' },
       });
     }
 

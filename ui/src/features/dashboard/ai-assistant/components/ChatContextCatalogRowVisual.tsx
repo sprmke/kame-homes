@@ -48,6 +48,7 @@ const MODULE_ICON_MAP: Record<ModuleIconKey, ComponentType<{ className?: string 
   notification_module: Bell,
   public_page: FileText,
   ticket: LifeBuoy,
+  property_template: LayoutTemplate,
   income: TrendingUp,
   expense: TrendingDown,
   calendar: CalendarDays,

@@ -38,4 +38,5 @@ export const ATTACHED_CONTEXT_ICONS: Record<
   notification_module: Bell,
   public_page: FileText,
   ticket: LifeBuoy,
+  property_template: LayoutTemplate,
 };

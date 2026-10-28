@@ -95,6 +95,9 @@ export function ChatComposerModulePicker({ pageBookingId, ...props }: Props) {
       return <ChatComposerNotificationPicker {...shared} />;
     case 'public_page':
       return <ChatComposerPublicPagePicker {...shared} />;
+    case 'property_template':
+      // Templates are picked from the shared context hub; no inline picker.
+      return null;
     case 'ticket':
       return <ChatComposerTicketPicker {...shared} />;
     case 'booking':
