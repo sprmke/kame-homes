@@ -6,6 +6,7 @@
 
 import { computeAnalyticsBundle } from './analyticsService.ts';
 import { getCustomPageTemplateOrDefault } from './customPages.ts';
+import { chatTemplateHtmlToPlainText, loadChatTemplate } from './chatTemplateMessage.ts';
 import { manilaTodayIso } from './bookingsListSort.ts';
 import {
   createServiceClient,
@@ -15,6 +16,7 @@ import {
 } from './orgAuth.ts';
 import { getPropertyReviewSummary, listReceivedReviews } from './propertyReviewList.ts';
 import { resolvePropertySlugById } from './propertyScope.ts';
+import { serializePropertyTemplatesForAdmin } from './propertyTemplates.ts';
 import type { TeamPermissionId } from './propertyTeamPermissions.ts';
 import {
   formatSuperhostCriteria,
@@ -532,6 +534,65 @@ async function toolSearchHelpCenter(
   }
 }
 
+async function toolGetPropertyTemplateContent(
+  ctx: CoverageToolContext,
+  args: Record<string, unknown>
+): Promise<CoverageToolResult> {
+  try {
+    const propertyId = await requireProperty(ctx, args, 'templates:view');
+    const requested = str(args, 'templateKey') ?? str(args, 'name');
+
+    if (!requested) {
+      const data = await serializePropertyTemplatesForAdmin(propertyId);
+      const templates = data.templates
+        .filter((template) => template.category !== 'email')
+        .map((template) => ({
+          templateKey: template.templateKey,
+          name: template.name,
+          category: template.category,
+          updatedAt: template.updatedAt,
+          hostLabel: template.name,
+        }));
+      return {
+        ok: true,
+        riskTier: 'tier0_read',
+        data: { templates, count: templates.length },
+      };
+    }
+
+    const data = await serializePropertyTemplatesForAdmin(propertyId);
+    const available = data.templates.filter((template) => template.category !== 'email');
+    const needle = requested.toLowerCase();
+    const match =
+      available.find((template) => template.templateKey === requested) ??
+      available.find((template) => template.name.toLowerCase() === needle) ??
+      available.find((template) => template.name.toLowerCase().includes(needle));
+    if (!match) {
+      return {
+        ok: false,
+        error: `No template named "${requested}". Available: ${available
+          .map((template) => template.name)
+          .join(', ')}`,
+      };
+    }
+
+    const template = await loadChatTemplate(propertyId, match.templateKey);
+    return {
+      ok: true,
+      riskTier: 'tier0_read',
+      data: {
+        templateKey: template.templateKey,
+        name: template.name,
+        category: template.category,
+        text: chatTemplateHtmlToPlainText(template.content).slice(0, 8_000),
+        hostLabel: template.name,
+      },
+    };
+  } catch (err) {
+    return restricted(err);
+  }
+}
+
 const HANDLERS: Record<
   CoverageToolName,
   (ctx: CoverageToolContext, args: Record<string, unknown>) => Promise<CoverageToolResult>
@@ -548,6 +609,7 @@ const HANDLERS: Record<
   list_notifications: (ctx) => toolListNotifications(ctx),
   get_stay_guide_content: toolGetStayGuideContent,
   get_custom_page_content: toolGetCustomPageContent,
+  get_property_template_content: toolGetPropertyTemplateContent,
   search_help_center: toolSearchHelpCenter,
 };
 
@@ -641,6 +703,20 @@ export const COVERAGE_TOOL_DECLARATIONS = [
     name: 'get_custom_page_content',
     description: 'Stay guide and showcase page templates, with Open handoff keys.',
     parameters: propertyParams,
+  },
+  {
+    name: 'get_property_template_content',
+    description:
+      'Read the full copy of a property template (house rules, check-in, check-out, parking, or a custom template). Omit templateKey to list templates; pass the template key or name to read one. Never answer a template content question by only opening the Templates page.',
+    parameters: {
+      type: 'object',
+      properties: {
+        propertyId: { type: 'string' },
+        templateKey: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: [] as string[],
+    },
   },
   {
     name: 'search_help_center',

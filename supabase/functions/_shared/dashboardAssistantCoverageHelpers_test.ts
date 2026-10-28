@@ -13,7 +13,7 @@ Deno.test('coverage names are all coverage tools', async () => {
     assertEquals(isCoverageTool(name), true);
   }
   assertEquals(isCoverageTool('list_bookings'), false);
-  assertEquals(COVERAGE_READ_TOOL_NAMES.length, 13);
+  assertEquals(COVERAGE_READ_TOOL_NAMES.length, 14);
   const source = await Deno.readTextFile(
     new URL('./dashboardAssistantCoverageTools.ts', import.meta.url)
   );

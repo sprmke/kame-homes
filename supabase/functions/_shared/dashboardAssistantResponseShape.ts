@@ -16,10 +16,14 @@ import {
   sanitizeAssistantChatBlocks,
   wrapBlocksWithJourneyGuidance,
 } from './dashboardAssistantBlocks.ts';
-import { finalizeAssistantBlocksForHost } from './dashboardAssistantHostDisplay.ts';
+import {
+  finalizeAssistantBlocksForHost,
+  summarizeGatheredToolResults,
+} from './dashboardAssistantHostDisplay.ts';
 import { assertBlocksGrounded, type ChatBlock } from './dashboardAssistantSafetyGuard.ts';
 
-export const UNFORMATTED_ANSWER_FALLBACK = 'Which listing or dates should I use?';
+export const UNFORMATTED_ANSWER_FALLBACK =
+  "I couldn't finish that answer. Try asking again, or narrow it to one question.";
 
 export const CONTINUE_REST_ACTION = {
   label: 'Continue with the rest',
@@ -37,6 +41,8 @@ export type ShapeCandidateInput = {
   groundingText: string;
   userMessage: string;
   attachedContext?: AttachedContextItem[];
+  /** Loaded attached-template copy, used as a deterministic answer when the model returns nothing. */
+  attachedTemplateText?: string | null;
 };
 
 export type ShapeCandidateResult = {
@@ -68,12 +74,36 @@ export function shapeCandidateBlocks(input: ShapeCandidateInput): ShapeCandidate
     grounded.ok ? candidate : candidate.filter((_, i) => !grounded.rejectedIndexes.includes(i))
   );
   if (safe.length === 0) {
+    const templateText = (input.attachedTemplateText ?? '').trim();
+    const toolSummary = templateText ? null : summarizeGatheredToolResults(input.toolResults);
     safe.push({
       type: 'text',
-      text: humanizeStatusCodesInText(draft || UNFORMATTED_ANSWER_FALLBACK),
+      text: humanizeStatusCodesInText(
+        templateText || draft || toolSummary || UNFORMATTED_ANSWER_FALLBACK
+      ),
     });
-    if (!draft) {
+    if (!draft && !templateText) {
       safe.push({ type: 'quick_actions', actions: [{ ...CONTINUE_REST_ACTION }] });
+    }
+  } else {
+    // The model sometimes emits the old dead-end line even when the attached template or a
+    // template tool result has the actual copy. Replace the line instead of showing it.
+    const templateText = (input.attachedTemplateText ?? '').trim();
+    const toolSummary = templateText ? null : summarizeGatheredToolResults(input.toolResults);
+    const answer = templateText || toolSummary;
+    const deadEndOnly =
+      Boolean(answer) &&
+      safe.every((block) =>
+        block.type === 'text'
+          ? /which listing or dates|couldn't finish that answer/i.test(block.text ?? '')
+          : block.type === 'quick_actions'
+      );
+    if (deadEndOnly && answer) {
+      const kept = safe.filter(
+        (block) => block.type !== 'text' && block.type !== 'quick_actions'
+      );
+      safe.length = 0;
+      safe.push({ type: 'text', text: humanizeStatusCodesInText(answer) }, ...kept);
     }
   }
   return {
