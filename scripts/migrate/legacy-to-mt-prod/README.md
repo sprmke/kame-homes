@@ -1,6 +1,6 @@
 # Legacy → mt-prod migration tooling
 
-Runbook entry point. **Rationale + phases:** [`docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md`](../../../docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md) · **Operational runbook:** [`docs/archive/operations/legacy-to-mt-prod-migration.md`](../../../docs/archive/operations/legacy-to-mt-prod-migration.md)
+Runbook entry point. **Rationale + phases:** [`docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../../docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md) · **Operational runbook:** [`docs/archive/operations/legacy-to-mt-prod-migration.md`](../../../docs/archive/operations/legacy-to-mt-prod-migration.md)
 
 **Source:** LEGACY `zfttdwtceyqszyeyhilc` (session pooler URI in `supabase/.env.local` as `PROD_DB_URL`)
 **Target:** rehearsal = local Docker db (`TARGET_DB_NAME`, default `legacy_r1`); go-live = mt-prod (ref TBD)
@@ -45,9 +45,11 @@ LEGACY_OBJECT_BASE_URL=https://zfttdwtceyqszyeyhilc.supabase.co/storage/v1/objec
   chain intentionally drops: `gmail_*`, `guest_submissions_backup_20260501`).
 - `cron.database_name` is temporarily pointed at the rehearsal db during restore and reverted via
   `reset-cron-db` after the rehearsal. Postgres container restart included in both.
-- Storage rehearsal lesson: private legacy buckets (`approved-gafs`, `approved-pet-forms`,
-  `sd-refund-receipts`, `templates`) need `LEGACY_SERVICE_ROLE_KEY`; 1,100 public objects verified by
-  HEAD with exact size match.
+- Storage rehearsal lesson: with `LEGACY_SERVICE_ROLE_KEY` (in gitignored `supabase/.env.local`)
+  **all 1,471 legacy objects are verified reachable**: 0 missing, exact size match, including the
+  four private buckets (`approved-gafs`, `approved-pet-forms`, `sd-refund-receipts`, `templates`).
+  Public reads can also use `?apikey=x` without auth. Pass `LEGACY_OBJECT_BASE_URL` ending at
+  `/storage/v1` (the script appends `/object|/public` itself).
 
 ## Guards
 

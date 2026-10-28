@@ -13,7 +13,9 @@ cd "$ROOT"
 
 LEGACY_PROJECT_REF="zfttdwtceyqszyeyhilc"
 LEGACY_HOST_FRAGMENT="${LEGACY_PROJECT_REF}.supabase.co"
-NEW_APP_ORIGIN="https://app.kamehomes.space"
+NEW_APP_ORIGIN="https://kamespace.com"
+NEW_DEV_ORIGIN="https://dev.kamespace.com"
+LEGACY_OWNER_EMAIL="kamehome.azurenorth@gmail.com"
 
 RUN_ROOT="backups/migration"
 RUN_DIR=""
@@ -34,11 +36,21 @@ die()  { log "ERROR: $*"; exit 1; }
 
 # PROD_DB_URL in supabase/.env.local holds the legacy session-pooler URI.
 load_legacy_db_url() {
-  if [[ -z "${LEGACY_DB_URL:-}" && -f "supabase/.env.local" ]]; then
-    LEGACY_DB_URL="$(grep -E '^PROD_DB_URL=' supabase/.env.local | head -1 | cut -d= -f2- | tr -d '[:space:]\"'"'"'')"
+  if [[ -z "${LEGACY_DB_URL:-}" ]]; then
+    LEGACY_DB_URL="$(grep -E '^PROD_DB_URL=' supabase/.env.local | head -1 | cut -d= -f2- | tr -d '[:space:]\"')"
   fi
-  [[ -n "${LEGACY_DB_URL:-}" ]] || die "LEGACY_DB_URL missing (env or PROD_DB_URL=… in supabase/.env.local)"
+  [[ -n "$LEGACY_DB_URL" ]] || die "LEGACY_DB_URL missing (env or PROD_DB_URL=… in supabase/.env.local)"
   export LEGACY_DB_URL
+}
+
+# Read ONE value out of a gitignored env file without echoing secrets.
+# Pipefail-safe: grep is allowed to miss (subshell rc comes from `|| true`).
+read_env_value() {
+  local file="$1" key="$2" value=""
+  if [[ -f "$file" ]]; then
+    value="$(grep -E "^${key}=" "$file" | head -1 | cut -d= -f2- | tr -d '[:space:]\"'"'"'' || true)"
+  fi
+  printf '%s' "$value"
 }
 
 # Project ref of a Supabase DB URL: pooler user `postgres.<ref>@aws-…`, or `db.<ref>.supabase.co`.
@@ -78,15 +90,14 @@ new_run_dir() {
 }
 
 # psql via the local supabase DB container (no psql binary on the host).
-# SQL arrives on stdin: cat sql/file.sql | docker_psql_run <database>
-# Superuser (supabase_admin) is required for reserved-role ALTER and ALTER SYSTEM;
-# object ownership is corrected by the dumps' own OWNER TO / OWNER SET clauses.
+# SQL arrives on stdin: cat sql/file.sql | docker_psql_run <database> [psql args…]
+# Superuser (supabase_admin) is required for reserved-role ALTER / ALTER SYSTEM.
 PSQL_USER="${PSQL_USER:-supabase_admin}"
 PSQL_STOP_ON_ERROR="${PSQL_STOP_ON_ERROR:-1}"
-
 docker_psql_run() {
-  local stop="-v ON_ERROR_STOP=$PSQL_STOP_ON_ERROR"
-  docker exec -i "$(local_db_container)" psql -U "$PSQL_USER" -h 127.0.0.1 -d "$1" $stop 2>&1
+  local database="$1"
+  shift
+  docker exec -i "$(local_db_container)" psql -U "$PSQL_USER" -h 127.0.0.1 -d "$database" -v ON_ERROR_STOP="$PSQL_STOP_ON_ERROR" "$@" 2>&1
 }
 
 local_db_container() {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # migrate.sh — orchestrator for the legacy → mt-prod cutover migration.
-# Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5 Phase 2
+# Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 2
 #
 # Stages (each idempotent; artifacts + logs under backups/migration/<run-id>/):
 #   preflight      — environment + connectivity checks (read-only)
@@ -181,6 +181,43 @@ stage_reset_cron_db() {
   log "cron-db: reverted (local dev cron database is 'postgres' again)"
 }
 
+stage_backup_target() {
+  # Full backup of the migration TARGET (the linked project, fwor) — read-only, safe anytime.
+  local ts dir
+  ts=$(date +%Y%m%dT%H%M%S)
+  dir="$RUN_ROOT/fwor-backup-$ts"
+  mkdir -p "$dir"
+  log "backup-target: full dump of the linked target into $dir"
+  supabase db dump --linked --role-only -f "$dir/roles.sql" 2>&1 | grep -v "Supabase CLI" || true
+  supabase db dump --linked -f "$dir/schema.sql" 2>&1 | grep -v "Supabase CLI" || true
+  supabase db dump --linked --data-only --use-copy -f "$dir/data.sql" 2>&1 | grep -v "Supabase CLI" || true
+  log "backup-target: public schema backed up; managed schemas (auth/storage/supabase_migrations) below"
+  local dsn="${TARGET_DB_URL:-}"
+  if [[ -z "$dsn" ]]; then
+    local ref pw
+    ref="$(read_env_value supabase/.env.local TARGET_DB_REF)"
+    [[ -z "$ref" ]] && ref="$(cat supabase/.temp/project-ref 2>/dev/null || echo fworvijbrwpyngycotbz)"
+    pw="$(read_env_value supabase/.env.local TARGET_DB_PASSWORD)"
+    if [[ -n "$pw" ]]; then
+      # project's actual pooler region: probe from supabase/.temp/pooler-url host if available
+      local pooler_host
+      pooler_host="$(awk -F'@' 'NF>1{print $2}' supabase/.temp/pooler-url 2>/dev/null | cut -d/ -f1)"
+      [[ -z "$pooler_host" ]] && pooler_host="aws-0-ap-southeast-1.pooler.supabase.com"
+      dsn="postgresql://postgres.${ref}:${pw}@${pooler_host}/postgres"
+    else
+      log "backup-target: no TARGET_DB_PASSWORD — managed-schema dump skipped"
+    fi
+  fi
+  if [[ -n "$dsn" ]]; then
+    for schema in auth storage supabase_migrations; do
+      docker run --rm -i -e DSN="$dsn" -v "$PWD/$dir":/out postgres:17 sh -c 'pg_dump "$DSN" -n "$1" -f "/out/$1.pgdump"' sh "$schema" 2>&1 | grep -viE "warning" || true
+      log "backup-target: $schema → $dir/$schema.pgdump"
+    done
+  fi
+  log "backup-target: done → $dir"
+  printf '%s\n' "$dir" > "$dir/BACKUP_DIR.txt"
+}
+
 stage_sql() {
   # stage_sql — run a sql/ file against the rehearsal DB with psql vars.
   # Usage: migrate.sh sql.run <name> (e.g. sql.run 30-rewrite-storage-urls)
@@ -199,8 +236,45 @@ stage_sql() {
   log "sql: done ($1)"
 }
 
+stage_shape() {
+  RUN_DIR="${RUN_DIR:-$RUN_ROOT/latest-rehearsal}"
+  mkdir -p "$RUN_DIR"
+  load_legacy_db_url
+  # Team emails: env > supabase/.env.prod.local > supabase/.env.local (never logged).
+  local admin_emails
+  admin_emails="${ADMIN_ALLOWED_EMAILS:-}"
+  if [[ -z "$admin_emails" ]]; then
+    admin_emails="$(read_env_value supabase/.env.prod.local ADMIN_ALLOWED_EMAILS)"
+  fi
+  if [[ -z "$admin_emails" ]]; then
+    admin_emails="$(read_env_value supabase/.env.local ADMIN_ALLOWED_EMAILS)"
+  fi
+  local n_members
+  n_members=$(printf '%s' "$admin_emails" | awk -F, '{print NF}')
+  if [[ -z "$admin_emails" ]]; then n_members=0; fi
+  log "shape: running on [$TARGET_DB_NAME] with $n_members team member(s) (emails in env file, not logged)"
+  local prepared="$RUN_DIR/prepared-shape.sql"
+  sed -e "s#https://app.kamehomes.space#${NEW_APP_ORIGIN}#g" \
+      "$HERE/sql/20-shape-tenant-org.sql" > "$prepared"
+  cat "$prepared" | docker_psql_run "$TARGET_DB_NAME" \
+      -v admin_emails="$admin_emails" \
+      -v cutover_at="${CUTOVER_AT:-}" \
+    | tee "$RUN_DIR/shape.log"
+  log "shape: done — owner/verification/plan assertions inside the SQL guard it"
+}
+
 stage_verify() {
-  die "verify: not implemented yet (sql/90-verify.sql)"
+  RUN_DIR="${RUN_DIR:-$RUN_ROOT/latest-rehearsal}"
+  mkdir -p "$RUN_DIR"
+  log "verify: running sql/90-verify.sql on [$TARGET_DB_NAME]"
+  local legacy_finance
+  legacy_finance="$(grep -E '^[0-9]+ finance_line_items$' "$RUN_DIR/../inventory"*.json 2>/dev/null | head -1 || echo '')"
+  cat "$HERE/sql/90-verify.sql" | docker_psql_run "$TARGET_DB_NAME" \
+      -v legacy_finance_line_items="${legacy_finance%% *}" \
+    | tee "$RUN_DIR/verify.log"
+  if grep -q -- "check" <(cat "$HERE/sql/90-verify.sql"); then
+    log "verify: log at $RUN_DIR/verify.log"
+  fi
 }
 
 case "$STAGE" in
@@ -212,8 +286,10 @@ case "$STAGE" in
     log "preflight: OK (read-only)"
     ;;
   dump)          stage_dump ;;
+  backup.target) stage_backup_target ;;
   restore)       stage_restore ;;
   upgrade)       stage_upgrade ;;
+  shape)         stage_shape ;;
   sql.run)       stage_sql "$ARG2" ;;
   reset-cron-db) stage_reset_cron_db ;;
   verify)        stage_verify ;;

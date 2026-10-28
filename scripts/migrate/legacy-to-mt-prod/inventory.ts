@@ -1,7 +1,7 @@
 /**
  * inventory.ts — Phase 0.1 legacy inventory runner (READ-ONLY).
  *
- * Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5 Phase 0.1
+ * Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 0.1
  *
  * - Reads PROD_DB_URL (session pooler URI) from supabase/.env.local or $PROD_DB_URL.
  * - Executes every statement in sql/00-inventory.sql (dollar-quote/line-comment aware splitter).
