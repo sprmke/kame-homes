@@ -1,5 +1,5 @@
 -- 90-verify.sql — post-restore + post-upgrade invariants (READ-ONLY).
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5.7
+-- Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5.7
 --
 -- Each check raises a NOTICE per block; the runner (verify.ts) treats a
 -- returned failure row as terminal. Counts only — no PII.

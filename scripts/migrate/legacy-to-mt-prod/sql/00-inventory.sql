@@ -1,5 +1,5 @@
 -- 00-inventory.sql — Phase 0.1 legacy row inventory (READ-ONLY)
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5 Phase 0.1
+-- Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 0.1
 --
 -- Counts only; no PII columns are selected. Safe to run against the live
 -- legacy Supabase project via the session pooler.

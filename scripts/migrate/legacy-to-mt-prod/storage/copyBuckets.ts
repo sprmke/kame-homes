@@ -1,7 +1,7 @@
 /**
  * copyBuckets.ts — resumable Storage object copy (legacy → target).
  * Plan: docs/workflow/planned/legacy-to-mt-prod §2.6
- *       docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §2.6
+ *       docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.6
  *
  * Object paths and metadata (size/content-type) come from the restored
  * `storage.objects` rows (target DB), so no listing session is needed against
@@ -26,15 +26,29 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(import.meta.dir, "..", "..", "..");
+const ROOT = join(import.meta.dir, "..", "..", "..", "..");
 const RUN_DIR = process.env.RUN_DIR || join(ROOT, "backups", "migration", "latest-rehearsal");
 const DB_NAME = process.env.DB_NAME || "legacy_r1";
 const CONTAINER = process.env.LOCAL_DB_CONTAINER || "supabase_db_guest-form-management";
-const LEGACY_BASE = (process.env.LEGACY_OBJECT_BASE_URL ?? "").replace(/\/+$/, "");
+let LEGACY_BASE = (process.env.LEGACY_OBJECT_BASE_URL ?? "").replace(/\/+$/, "");
 const LEGACY_SERVICE_ROLE_KEY = process.env.LEGACY_SERVICE_ROLE_KEY ?? "";
 const TARGET_BASE = (process.env.TARGET_OBJECT_BASE_URL ?? "").replace(/\/+$/, "");
 const TARGET_SERVICE_ROLE_KEY = process.env.TARGET_SERVICE_ROLE_KEY ?? "";
 const MODE = process.argv[2] ?? "manifest";
+
+/** bun children don't always inherit process env in some shells — fall back to supabase/.env.local. */
+function readEnvLocal(key: string): string {
+  if (process.env[key]) return process.env[key] ?? "";
+  try {
+    const line = readFileSync(join(ROOT, "supabase", ".env.local"), "utf8")
+      .split("\n")
+      .find((l) => l.startsWith(`${key}=`));
+    return line ? line.slice(key.length + 1).trim() : "";
+  } catch {
+    return "";
+  }
+}
+const LEGACY_KEY = LEGACY_SERVICE_ROLE_KEY || readEnvLocal("LEGACY_SERVICE_ROLE_KEY");
 
 type ObjectRow = {
   bucket_id: string;
@@ -79,8 +93,8 @@ function summarize(objects: { bucket_id: string; size: number }[]) {
 
 function legacyFetchHeaders(contentType?: string): Record<string, string> {
   // Private legacy buckets require a service-role bearer; public buckets work without.
-  const h: Record<string, string> = { apikey: LEGACY_SERVICE_ROLE_KEY || "x" };
-  if (LEGACY_SERVICE_ROLE_KEY) h.Authorization = `Bearer ${LEGACY_SERVICE_ROLE_KEY}`;
+  const h: Record<string, string> = { apikey: LEGACY_KEY || "x" };
+  if (LEGACY_KEY) h.Authorization = `Bearer ${LEGACY_KEY}`;
   if (contentType) h["Content-Type"] = contentType;
   return h;
 }
@@ -90,7 +104,7 @@ function legacyObjectUrl(o: { bucket_id: string; name: string }): string {
   // bearer the query param must go — an invalid apikey would override auth.
   const base = LEGACY_BASE.replace(/\/(public|object)\/?$/, "");
   const url = `${base}/object/${encodeURIComponent(o.bucket_id)}/${o.name.split("/").map(encodeURIComponent).join("/")}`;
-  return LEGACY_SERVICE_ROLE_KEY ? url : `${url}?apikey=x`;
+  return LEGACY_KEY ? url : `${url}?apikey=x`;
 }
 
 async function httpHead(url: string): Promise<{ status: number; len: number | null }> {
@@ -117,11 +131,16 @@ async function main() {
   }
 
   if (MODE === "dry-run") {
-    if (!LEGACY_BASE) throw new Error("LEGACY_OBJECT_BASE_URL is required for dry-run");
+    if (!LEGACY_BASE) {
+    const fromEnvFile = readEnvLocal("LEGACY_OBJECT_BASE_URL");
+    if (fromEnvFile) LEGACY_BASE = fromEnvFile.replace(/\/+$/, "");
+  }
+  if (!LEGACY_BASE) throw new Error("LEGACY_OBJECT_BASE_URL is required (env or supabase/.env.local)");
     let ok = 0, missing = 0, sizeMismatch = 0;
-    for (const o of objects) {
-      // HEAD legacy public object (needs an apikey param, any non-empty value).
-      const url = `${LEGACY_BASE}/public/${encodeURIComponent(o.bucket_id)}/${o.name.split("/").map(encodeURIComponent).join("/")}?apikey=x`;
+    const limit = Number(process.env.LIMIT ?? 0);
+    const scan = limit > 0 ? objects.slice(0, limit) : objects;
+    for (const o of scan) {
+      const url = legacyObjectUrl(o);
       const { status, len } = await httpHead(url);
       if (status !== 200) {
         missing += 1;
@@ -131,6 +150,9 @@ async function main() {
         console.log(`[size-mismatch] ${o.bucket_id}/${o.name} manifest=${o.size} head=${len}`);
       } else {
         ok += 1;
+      }
+      if (process.env.DEBUG_HEAD === "1" && o === objects[0]) {
+        console.log("[debug] first url path = ", new URL(url).pathname, "auth=", !!LEGACY_KEY);
       }
     }
     console.log(`dry-run: ok=${ok} missing=${missing} size-mismatch=${sizeMismatch}`);

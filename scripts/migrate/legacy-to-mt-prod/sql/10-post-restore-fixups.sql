@@ -1,5 +1,5 @@
 -- 10-post-restore-fixups.sql — pre-upgrade data fixes for real legacy anomalies.
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §2.3 / §0.2 drift findings.
+-- Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.3 / §0.2 drift findings.
 --
 -- Each fixup is narrowly scoped, commented with WHY, and idempotent. Anything
 -- judgment-based is marked HOST-SIGN-OFF until the host confirms.

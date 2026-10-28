@@ -1,5 +1,5 @@
 -- 40-derived-rebuild.sql — post-upgrade derived state rebuild (idempotent).
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §2.5 / §5.7
+-- Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.5 / §5.7
 --
 -- 1. Sequences: bump every owned sequence past max(...) so new inserts cannot
 --    collide with restored explicit ids.
