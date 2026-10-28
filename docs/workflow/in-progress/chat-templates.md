@@ -1,15 +1,29 @@
 ---
 title: 'Chat templates in Inbox and AI Assistant'
 status: active
-tags: [workflow, planned, inbox, templates, ai-assistant]
-updated: 2026-10-25
-stage: planned
+tags: [workflow, in-progress, inbox, templates, ai-assistant]
+updated: 2026-10-28
+stage: in-progress
 kind: plan
 ---
 
 # Chat templates in Inbox and AI Assistant
 
 Use a property's standard and custom templates from the Templates page inside chat: send them to a guest from the Inbox composer, and attach them to the AI Assistant as context.
+
+## Progress
+
+| Phase                       | State | Notes                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Data + server            | Done  | Migration, `chatTemplateMessage.ts`, `social-inbox-send` template path, `chat-templates` list/preview, audit action                                                                                                                                                                    |
+| 2. Inbox UI                 | Done  | Insert menu Templates section, preview sheet with full screen, rich bubble, guest card, mock preview data                                                                                                                                                                              |
+| 3. AI Assistant             | Done  | `property_template` type, catalog row, prompt injection, module suggestions, pinned-chip preview                                                                                                                                                                                       |
+| 4. Docs + tests             | Done  | Route guides, edge/data docs, Deno unit tests, 2 `@ci` Playwright specs                                                                                                                                                                                                                |
+| 5. Assistant answer quality | Done  | Attached template copy is injected into the prompt; `get_property_template_content` tool reads any non-email template by key/name; deterministic fallback answers from attached/tool template text instead of "Which listing or dates should I use?"; prompt forbids page-only answers |
+
+Manual QA left: send a template from a live web thread and open it on the guest side; send to a Facebook/Instagram thread and confirm the flattened text; attach a template in the AI Assistant, ask what it says, then ask again after the pin is removed (tool path). Local `db:migrate` is blocked by a pre-existing `gmail_listener_state` migration on this database, not by this change.
+
+Follow-up (not blocking): `RichTextDisplay.tsx` carries a copy of the property-template rich-text CSS so guest chat does not import TipTap. Extract the shared style constant from `RichTextEditor.tsx` in a dedicated refactor pass so the editor and chat renderer cannot drift.
 
 ## Goal
 
