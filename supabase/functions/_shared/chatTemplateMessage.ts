@@ -12,7 +12,10 @@ import { createServiceClient } from './orgAuth.ts';
 import { loadGuestFacingContactInfo } from './guestContactInfo.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
 import { loadPropertyEmailBranding } from './propertyEmailBranding.ts';
-import { applyPropertyTemplatePlaceholders, buildBookingPlaceholderVars } from './propertyTemplateEmail.ts';
+import {
+  applyPropertyTemplatePlaceholders,
+  buildBookingPlaceholderVars,
+} from './propertyTemplateEmail.ts';
 import {
   getBuiltinPropertyTemplate,
   getPropertyTemplateRow,
@@ -146,10 +149,7 @@ export async function buildChatTemplateVars(input: {
 }
 
 /** Renders the admin-authored body with chat placeholder values. */
-export function renderChatTemplateHtml(
-  content: string,
-  vars: Record<string, string>
-): string {
+export function renderChatTemplateHtml(content: string, vars: Record<string, string>): string {
   const filled = applyPropertyTemplatePlaceholders(content, vars);
   return filled
     .replace(/\{\{[^{}]*\}\}/g, '')
