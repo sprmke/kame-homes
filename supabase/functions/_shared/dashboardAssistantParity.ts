@@ -127,7 +127,6 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'list-org-reviews': read,
   'get-booking-ai-review': read,
   'get-booking-asset-url': read,
-  'get-feature-availability': read,
   'get-development': read,
   'get-external-review-assets': read,
   'get-host': read,

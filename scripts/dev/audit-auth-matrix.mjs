@@ -166,7 +166,6 @@ const NO_SCOPE_NEEDED_ALLOWLIST = new Set([
   'list-help-center-faqs', // dashboard-wide knowledge base content, not tenant-scoped
   'user-ui-preferences', // reads/writes only the caller's own row (eq user_id = caller)
   'dashboard-assistant-feedback', // 404 unless the message's conversation.user_id is the caller
-  'get-feature-availability', // global platform feature-off flags for any signed-in host; no org/property row
 ]);
 
 /**
