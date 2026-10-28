@@ -5,6 +5,10 @@
 
 function isProductionEnvironment(): boolean {
   const env = Deno.env.get('ENVIRONMENT')?.trim().toLowerCase();
+  // Unset ENVIRONMENT is treated as production so a misconfigured hosted project
+  // fails closed rather than silently accepting unauthenticated cron calls.
+  // Local dev sets ENVIRONMENT=development (see supabase/.env.local).
+  if (!env) return true;
   return env === 'production' || env === 'prod';
 }
 

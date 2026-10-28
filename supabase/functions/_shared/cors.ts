@@ -8,6 +8,8 @@ const ALLOWED_ORIGINS = [
   'https://www.kamehomes.space',
   'https://dev.kamehomes.space', // Multi-tenant dev SPA (docs/workflow/in-progress/ci-cd-environments)
   'https://app.kamehomes.space', // Multi-tenant prod SPA (reserved ahead of cutover)
+  'https://kamespace.com', // New production origin (owner decision 2026-10-27)
+  'https://dev.kamespace.com', // New dev origin
 ];
 
 const DEFAULT_ORIGIN = 'https://www.kamehomes.space';
@@ -61,17 +63,17 @@ export function isAllowedOrigin(origin: string): boolean {
 
 export const corsHeaders = (req: Request) => {
   const requestOrigin = req.headers.get('origin');
-  // Non-browser callers (webhooks, cron via pg_net, curl) send no Origin header at
-  // all — CORS is a browser-only concept, so the value here doesn't affect them.
-  // Browser callers only get a matching Allow-Origin when their origin is allow-listed.
   const allowOrigin =
-    requestOrigin && isAllowedOrigin(requestOrigin) ? requestOrigin : DEFAULT_ORIGIN;
+    requestOrigin && isAllowedOrigin(requestOrigin) ? requestOrigin : null;
 
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
+  const headers: Record<string, string> = {
     Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
     'Access-Control-Max-Age': '7200', // 2 hours - Chrome's maximum limit
   };
+  if (allowOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowOrigin;
+  }
+  return headers;
 };

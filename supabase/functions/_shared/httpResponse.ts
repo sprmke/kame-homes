@@ -180,6 +180,47 @@ export function jsonUpgradeHook(
   );
 }
 
+/**
+ * 503 for a feature a super admin has turned off (feature-availability plan). Chosen on
+ * purpose: the PWA sync engine retries 5xx with backoff then marks failed, which is right
+ * for "temporarily off" (`ui/src/lib/pwa/syncEngine.ts`). `Retry-After` is only set when
+ * `expectedBackAt` is a real future time, so callers without one don't send a bogus hint.
+ */
+export function jsonFeatureUnavailable(
+  req: Request,
+  options: {
+    feature: string;
+    error: string;
+    reason: string | null;
+    expectedBackAt?: string | null;
+  }
+): Response {
+  const body = {
+    success: false,
+    error: options.error,
+    code: 'FEATURE_UNAVAILABLE',
+    feature: options.feature,
+    reason: options.reason,
+    expectedBackAt: options.expectedBackAt ?? null,
+  };
+  const headers: Record<string, string> = {};
+  if (options.expectedBackAt) {
+    const retryAfterSec = Math.ceil(
+      (new Date(options.expectedBackAt).getTime() - Date.now()) / 1000
+    );
+    if (retryAfterSec > 0) headers['Retry-After'] = String(retryAfterSec);
+  }
+  return new Response(JSON.stringify(body), {
+    status: 503,
+    headers: {
+      ...corsHeaders(req),
+      'Content-Type': 'application/json',
+      ...cacheHeaders('private'),
+      ...headers,
+    },
+  });
+}
+
 export function handleOptions(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders(req) });
