@@ -99,6 +99,8 @@ dates that should not be available to guests.
 
 **Channel sync** button in the Pricing page header (desktop outline button aligned with the title; mobile hero icon). Below Pro, a corner **Pro** pill signals the plan gate. Opens a **`ResponsiveModal`** (`ChannelSyncDialog`) with two tabs — **From Airbnb** and **To Airbnb**. While settings load, the body is a skeleton of that tab bar, feed rows, and connect button. Product scope is **Airbnb only** (Booking.com / VRBO / Other remain in the DB schema for future work; `calendar-sync-settings` `addFeed` rejects non-Airbnb providers). Plan feature **`calendarSync`** (Pro / `growth` and above) — modal is **preview-open** below Pro (full UI browsable); **Connect** (Pro pill on the button) and turning on **Share with Airbnb** (Pro pill beside the label) open the upgrade modal. Server enforces the feature on writes (`calendar-sync-settings` PATCH, `calendar-sync-cron`).
 
+**Feature availability (super-admin):** Keys `pricing.channel_sync` (modal panel) and `pricing.channel_sync.import` (feeds, Sync now, cron). **`ical-export` is never gated** so Airbnb keeps receiving booking blocks. Header button stays enabled and opens the dialog with the reason panel when the parent is off (maintenance panel wins over a settings load error).
+
 ### From Airbnb (import)
 
 - **Empty (editable):** connect form is shown immediately (no extra click). URL is **required**; validates on change as an Airbnb export link (`https://` / `webcal://`, Airbnb host, `/calendar/ical/` path). Invalid → inline error; **Connect** stays disabled until valid. Below Pro, a valid URL + Connect opens the upgrade modal.

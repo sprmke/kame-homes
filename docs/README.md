@@ -43,6 +43,7 @@ See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive
 | [`architecture/roadmap.md`](./architecture/roadmap.md)                               | Roadmap / gaps                                                             |
 | [`architecture/ai-dashboard-assistant.md`](./architecture/ai-dashboard-assistant.md) | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions        |
 | [`architecture/plans-feature-matrix.md`](./architecture/plans-feature-matrix.md)     | Plan/tier feature × entitlement matrix, client/server gate inventory       |
+| [`architecture/feature-availability.md`](./architecture/feature-availability.md)     | Super-admin platform feature on/off catalog, server 503 gates, UI hooks    |
 | [`architecture/pwa.md`](./architecture/pwa.md)                                       | PWA — service worker, Web Push, offline read + outbox, kill-switch         |
 | [`architecture/unsaved-changes.md`](./architecture/unsaved-changes.md)               | Unsaved-changes guard — leave / close confirmation for every editable form |
 

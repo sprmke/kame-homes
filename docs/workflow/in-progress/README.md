@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-10-28
+updated: 2026-10-30
 stage: in-progress
 kind: reference
 ---
@@ -28,6 +28,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 **Moved in 2026-09-23:** [`marketing-ai-image-quality-hardening.md`](./marketing-ai-image-quality-hardening.md) ← [`../planned/`](../planned/) — Phases 1–6 implemented. 2026-09-24: property context now reads real amenity settings and includes the listing name and brand color. Still open: the 20-prompt blind image score (user is the judge) before this can move to done.
 
 **Moved out 2026-09-27:** [`org-portfolio-analytics-redesign.md`](../for-testing/org-portfolio-analytics-redesign.md) → for-testing (`ci:quality` green; manual QA remaining).
+
+**Moved out 2026-10-29:** [`feature-availability-controls.md`](../done/feature-availability-controls.md) → done (Phases 1–9; manual QA → [`../for-testing/feature-availability-controls.md`](../for-testing/feature-availability-controls.md)). Redirect stub: [`./feature-availability-controls.md`](./feature-availability-controls.md).
 
 **Moved in 2026-09-27:** [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) ← [`../planned/`](../planned/) — Activity Manage modal toolbar, refine, modal-scroll virtualization, friendly summaries.
 

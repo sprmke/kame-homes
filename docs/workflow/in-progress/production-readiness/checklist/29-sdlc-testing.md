@@ -2,7 +2,7 @@
 title: 'SDLC testing'
 status: active
 tags: [workflow, planned, production-readiness, testing, quality]
-updated: 2026-09-19
+updated: 2026-10-30
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -114,7 +114,7 @@ Automation cannot cover everything. Maintain:
 
 - Performance: doc 00 budgets in CI, doc 17 load test before releases.
 - Accessibility: extend beyond the existing helpers toward WCAG 2.1 AA on the primary flows (the `accessibility` skill defines scope).
-- Security: doc 21's adversarial suite, doc 22's checks, `security-auditor` on sensitive diffs.
+- Security: doc 21's adversarial suite, doc 22's checks, `security-auditor` on sensitive diffs; pre-launch full codebase pass via Cloudflare **`security-audit`** skill (doc 22 §22.8).
 - Cross-browser: currently Chromium only. Add at least WebKit for the guest flow — Safari/iOS is a large share of a Manila consumer audience and has genuinely different behavior (date inputs, PWA, IndexedDB).
 
 **Cross-browser is the most significant untested risk on the guest side.**

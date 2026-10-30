@@ -194,6 +194,8 @@ A theme is the look every item in the workspace follows. URL state: `?theme=<key
 
 Tabs are, in order, **AI Studio · Posts · Videos · Calendar** (ids `generate` · `design` · `video` · `calendar`; below, "Design" means Posts and "Generate" means AI Studio). Without `?tab=` the page opens the last tab used on this property (`localStorage` `marketing-last-tab:{propertyId}`), else **AI Studio** when the role and plan can generate, else **Posts** (`resolveDefaultMarketingStudioTab`). The theme bar (**Themes** · theme name · **Customize**) sits on the tab row, right-aligned on desktop and above the tabs on phones, and hides while an item is open (focus mode). The **AI Studio** trigger carries a `TierBadge` for `aiMarketingImageGeneration` below Pro.
 
+**Feature availability (super-admin):** Keys `marketing.ai_studio` (AI Studio tab panel) and `marketing.ai_studio.generate` (new/refine generation and reference upload). In-flight jobs, polling, and saving finished outputs stay allowed. See [`docs/architecture/feature-availability.md`](../../../../architecture/feature-availability.md).
+
 | Tab       | Shows                                                                                                                                                                           |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AI Studio | Library of **Your creations** (one card per conversation) → the conversation workspace; **New post / photo / clip** starts one (see [AI Studio](#ai-studio-tab-conversations)). |

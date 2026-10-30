@@ -25,10 +25,11 @@ Cursor always-on: **`.cursor/rules/plans-and-permissions.mdc`**. This skill is t
 
 ## Step 0 — Decide (write it down)
 
-| #   | Decision                                                                   | Outcomes                                                                                                    |
-| --- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| A   | **Plans?** Limited by Free / Starter / Pro / Business / Managed?           | **Yes** → Step 1 · **No** → note N/A + why (core loop, already free, etc.)                                  |
-| B   | **Team permissions?** Should Operations / Read Only / custom roles differ? | **Yes** → Step 2 · **No** → note N/A (owner-only surface, or covered by existing leaf e.g. `settings:view`) |
+| #   | Decision                                                                   | Outcomes                                                                                                                                                                                                   |
+| --- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | **Plans?** Limited by Free / Starter / Pro / Business / Managed?           | **Yes** → Step 1 · **No** → note N/A + why (core loop, already free, etc.)                                                                                                                                 |
+| B   | **Team permissions?** Should Operations / Read Only / custom roles differ? | **Yes** → Step 2 · **No** → note N/A (owner-only surface, or covered by existing leaf e.g. `settings:view`)                                                                                                |
+| C   | **Feature availability?** Super admin may turn this off platform-wide?     | **Yes** → catalog key in `_shared/featureAvailabilityCatalog.ts`, server `requireFeatureAvailable` / cron skip, UI `FeatureUnavailablePanel` · **No** → note N/A (super-admin-only, or not a gated module) |
 
 Gold example — **Channel sync**:
 
@@ -86,6 +87,7 @@ Keep UI and edge permission id lists **byte-sync** — same rule as `statusMachi
 
 - [ ] Plans decision recorded (implemented **or** explicit N/A)
 - [ ] Team permissions decision recorded (implemented **or** explicit N/A)
+- [ ] Feature availability decision recorded (catalog + gates **or** explicit N/A)
 - [ ] If plan-gated: migration + both `planFeatures.ts` + matrix + gate UX
 - [ ] If RBAC: UI + edge permission ids + catalog + templates + scoped access
 - [ ] Route guide / matrix / `PROJECT.md` updated in the **same** change

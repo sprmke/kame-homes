@@ -134,6 +134,9 @@ Tabs and their contents:
      Local QA: `bun run seed:analytics-demo` inserts a mock latest review for `monaco-2612`
      (model `analytics-demo`) so this card renders without waiting for the weekly cron or Gemini,
      and seeds `platform_analytics_benchmark_cache` so **How you compare** has a peer sample.
+     **Feature availability (super-admin):** Keys `analytics.ai_review` (whole section) and
+     `analytics.ai_review.regenerate` (Analyze/Refresh + weekly cron). Last review stays visible
+     when only regenerate is off.
    - **Improvement Playbook** — expandable tip cards, matched against this property's current
      numbers (occupancy state, response rate, channel concentration, etc.) from a curated
      17-article seed set. Not personalized by AI — a deterministic condition matcher.

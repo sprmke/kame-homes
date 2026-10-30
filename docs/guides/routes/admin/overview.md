@@ -20,7 +20,7 @@ Route: `/admin`
 | Attention queue | Done (read-only) | —          | Done | Approvals in review · open tickets · undisbursed payouts · orgs with no live plan — links to lists                                                            |
 | Recent activity | Done (read-only) | —          | Done | Latest orgs / subscription changes / support tickets                                                                                                          |
 | Range toggle    | n/a              | —          | Done | 30d / 90d / 12mo — scopes the AI-spend KPI + AI-cost chart                                                                                                    |
-| Sidebar nav     | n/a              | —          | Done | Grouped into labelled sections (`SUPER_ADMIN_NAV_GROUPS`) below a header-less Overview link                                                                   |
+| Sidebar nav     | n/a              | —          | Done | Grouped into labelled sections (`SUPER_ADMIN_NAV_GROUPS`) below a header-less Overview link; includes **Feature availability** under Platform controls        |
 
 > Tracked by [`docs/workflow/done/super-admin-console-overhaul.md`](../../../workflow/done/super-admin-console-overhaul.md).
 

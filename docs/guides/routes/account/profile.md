@@ -33,7 +33,7 @@ Routes (authenticated explore mode):
 
 ## Overview
 
-Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown always has a **Host** section with **Dashboard** above the **Explore** links (Profile · Stays · Vouchers · Favorites · Tickets). **Dashboard** from explore runs the global mode-switch curtain, then opens **`/org`** (the hub redirects to an org the caller can access, or onboarding if none). From host marketing (`/for-hosts`) it navigates directly. On phone/tablet the same **Dashboard** row lives in the marketing **More** sheet (the header avatar is `lg+` only). Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
+Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown always has a **Host** section with **Dashboard** above the **Explore** links (Profile · Stays · Vouchers · Favorites · Tickets). **Dashboard** from explore runs the global mode-switch curtain, then opens **`/org`** (the hub redirects to an org the caller can access — usually the last visited one at its listing level — or onboarding if none). From host marketing (`/for-hosts`) it navigates directly. On phone/tablet the same **Dashboard** row lives in the marketing **More** sheet (the header avatar is `lg+` only). Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
 
 **Host marketing (`/for-hosts`):** signed-in hosts see the same pill + avatar pattern — **Explore** switches to guest mode; avatar menu opens **Dashboard**. Signed-out hosts see **Explore** + **Sign In**.
 

@@ -16,6 +16,9 @@ Related canonical references:
 - `supabase/config.toml` — `verify_jwt` and why `schedule` is not committed for local CLI
 - Implementations: `supabase/functions/gmail-listener/index.ts`, `supabase/functions/gmail-backfill-approvals/index.ts`, `supabase/functions/sd-refund-cron/index.ts`, `supabase/functions/telegram-marketing-cron/index.ts`
 - Admin manual triggers: `ui/src/features/dashboard/bookings/hooks/useTransitionBooking.ts` (`useRunGmailPoll`, `useRunSdRefundCron`) and `ui/src/features/dashboard/bookings/components/WorkflowPanel.tsx`
+- Feature availability skips: [`docs/architecture/feature-availability.md`](../../architecture/feature-availability.md)
+
+**Feature availability (super-admin off switches):** `calendar-sync-cron`, `analytics-ai-review-cron`, and the five `telegram-*-cron` handlers exit early with `{ skipped: 'feature_unavailable' }` (or equivalent) before claiming work when the matching catalog key is off. **`marketing-generation-sweeper` is never gated** so in-flight Marketing AI video jobs can finish.
 
 ---
 

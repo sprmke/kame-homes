@@ -2,7 +2,7 @@
 title: 'Security and RLS'
 status: active
 tags: [workflow, planned, production-readiness, security, rls, privacy]
-updated: 2026-09-21
+updated: 2026-10-30
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -173,7 +173,8 @@ This system stores government IDs, vaccination records, payment receipts, and gu
 
 - `mcp__supabase__get_advisors` (security) in the release checklist.
 - `bun audit` in CI (doc 05).
-- Periodic run of the `security-auditor` subagent over changed surfaces.
+- Periodic run of the `security-auditor` subagent over changed surfaces (repo auth, PII, edge handlers).
+- Before public launch: one **full audit** with the Cloudflare **`security-audit`** skill (invoke `/security-audit` or ask for a comprehensive security audit). Write artifacts outside the repo (default `~/security-audit-skill/<repo>/run-N`). Pair with `.cursor/rules/admin-auth.mdc`, `.cursor/rules/booking-workflow.mdc`, and `docs/workflow/in-progress/production-readiness/audits/`.
 - Optional external pentest before public launch.
 
 ## Edge cases

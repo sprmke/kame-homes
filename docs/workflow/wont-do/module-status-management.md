@@ -9,7 +9,7 @@ superseded_by: feature-availability-controls.md
 
 # Module status management
 
-> **Superseded** by [`feature-availability-controls.md`](./feature-availability-controls.md) (2026-10-25). Kept for history; do not build this registry.
+> **Superseded** by [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) (shipped 2026-10-29). Kept for history; do not build this registry.
 
 ## Problem
 
