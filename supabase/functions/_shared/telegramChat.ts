@@ -2,6 +2,7 @@
  * Guest Chat Telegram alerts — notify hosts on every inbound web chat message.
  */
 
+import { isTelegramFeatureUnavailableError } from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { DatabaseService } from './databaseService.ts';
 import { DEFAULT_PUBLIC_GUEST_APP_ORIGIN } from './publicAppOrigin.ts';
@@ -479,6 +480,9 @@ export async function notifyTelegramChatInbound(input: {
     const { sendPropertyTelegramMessage } = await import('./propertyTelegramCredentials.ts');
     const r = await sendPropertyTelegramMessage('chat', message, notifyScope);
     if (!r.ok) {
+      if (isTelegramFeatureUnavailableError(r.error)) {
+        return { sent: false, skipped: 'feature_unavailable' };
+      }
       console.warn('[telegramChat] send failed:', r.error);
       return { sent: false, error: r.error };
     }

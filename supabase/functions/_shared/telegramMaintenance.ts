@@ -2,6 +2,7 @@
  * Maintenance operating Telegram due-date reminders.
  */
 
+import { isTelegramFeatureUnavailableError } from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -472,7 +473,9 @@ export async function runMaintenanceDueReminders(options?: {
     const message = renderMaintenanceReminderMessage(row, template, today);
     const result = await sendMaintenanceTelegramMessage(message, options.propertyId);
     if (!result.ok) {
-      errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      if (!isTelegramFeatureUnavailableError(result.error)) {
+        errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      }
       continue;
     }
 

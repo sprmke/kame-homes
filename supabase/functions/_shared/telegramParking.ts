@@ -100,6 +100,10 @@ export async function sendParkingDraftPreview(
   text: string,
   parkingId: string
 ): Promise<{ sent: boolean; error?: string; messageCharCount?: number }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { sent: false, error: 'feature_unavailable' };
+  }
   const rendered = renderParkingTemplatePreview(text);
   const creds = await resolvePropertyTelegramCredentials('parking', { parkingId });
   if (!creds.ok) {

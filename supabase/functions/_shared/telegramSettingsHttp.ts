@@ -11,6 +11,7 @@ import {
   requireTelegramNotificationsEnabled,
   resolveTelegramEntitlementPropertyId,
 } from './planEntitlements.ts';
+import { type AuthenticatedUser } from './orgAuth.ts';
 import { resolveOrganizationIdForParking } from './parkingScope.ts';
 import type { TelegramAssetScope } from './telegramAssetScope.ts';
 import { ensurePropertySettings } from './propertySettingsSeed.ts';
@@ -69,6 +70,15 @@ export async function gateTelegramEnabledPatch(
     return catchPlanFeatureError(req, err);
   }
   return null;
+}
+
+/** Gate PATCH/POST on Telegram settings (verify, test send, discover chats, saves). GET stays open. */
+export async function gateTelegramSettingsWrites(
+  req: Request,
+  user: AuthenticatedUser
+): Promise<Response | null> {
+  const { featureUnavailableResponse } = await import('./featureAvailability.ts');
+  return featureUnavailableResponse(req, 'notifications.telegram.settings', { user });
 }
 
 export async function loadTelegramSettingsGetPayload<T>(

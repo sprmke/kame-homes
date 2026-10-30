@@ -20,6 +20,7 @@ import {
   parseAction,
   parseManilaTimeSlotField,
   gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
   telegramUnknownAction,
@@ -37,7 +38,7 @@ import {
   telegramCredentialsDto,
 } from '../_shared/telegramCredentialsPatch.ts';
 
-serveAuthenticated('telegram-finance-settings', async (req) => {
+serveAuthenticated('telegram-finance-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req, 'finance');
   const scope = telegramDbScope(asset);
 
@@ -56,6 +57,8 @@ serveAuthenticated('telegram-finance-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
     if (gateResponse) return gateResponse;
@@ -108,6 +111,8 @@ serveAuthenticated('telegram-finance-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     await ensureTelegramAssetSettings(asset, 'finance');
     const body = await readJsonBody(req);
     const action = parseAction(body);

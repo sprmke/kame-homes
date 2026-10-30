@@ -3,6 +3,10 @@
  * Non-fatal on failure — callers log only.
  */
 
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
 import { DatabaseService } from './databaseService.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { listAllPropertyIds } from './propertyCron.ts';
@@ -282,6 +286,10 @@ async function sendTelegramMessage(
   text: string,
   scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
 ): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
   const creds = await resolveTelegramCredentials(scope);
   if (!creds.ok) {
     if (creds.code === 'missing_token' || creds.code === 'missing_chat_id') {
@@ -405,7 +413,9 @@ export async function runTelegramDailyReminder(opts?: {
     });
     const r = await sendTelegramMessage(text, opts.propertyId);
     defaultSent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(`default: ${r.error}`);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(`default: ${r.error}`);
+    }
   };
 
   const sendUrgency = async (): Promise<void> => {
@@ -415,7 +425,9 @@ export async function runTelegramDailyReminder(opts?: {
     });
     const r = await sendTelegramMessage(text, opts!.propertyId);
     urgencySent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(`urgency: ${r.error}`);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(`urgency: ${r.error}`);
+    }
   };
 
   try {
@@ -509,7 +521,9 @@ async function runTelegramDailyUrgencyTest(opts?: {
     });
     const r = await sendTelegramMessage(text, opts?.propertyId);
     urgencySent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(r.error);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(r.error);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     telegramErrors.push(msg);
@@ -535,7 +549,13 @@ async function runTelegramDailyUrgencyTest(opts?: {
 }
 
 export type TelegramNotifySkip =
-  'disabled' | 'notify_off' | 'no_dates' | 'missing_env' | 'send_failed' | 'no_settings';
+  | 'disabled'
+  | 'notify_off'
+  | 'no_dates'
+  | 'missing_env'
+  | 'send_failed'
+  | 'feature_unavailable'
+  | 'no_settings';
 
 /** After a brand-new guest submission row is inserted. */
 export async function notifyTelegramNewBookingRequest(opts?: {
@@ -577,11 +597,14 @@ export async function notifyTelegramNewBookingRequest(opts?: {
   }
   const r = await sendTelegramMessage(text, opts?.propertyId);
   if (!r.ok) {
-    console.error('[telegram] new booking notify failed');
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    if (skip !== 'feature_unavailable') {
+      console.error('[telegram] new booking notify failed');
+    }
     return {
       sent: false,
-      skip: r.error === 'missing_env' ? 'missing_env' : 'send_failed',
-      telegramError: r.error,
+      skip,
+      ...(skip === 'send_failed' || skip === 'missing_env' ? { telegramError: r.error } : {}),
     };
   }
   return { sent: true };
@@ -617,11 +640,14 @@ export async function notifyTelegramCancellation(
   }
   const r = await sendTelegramMessage(text, opts?.propertyId);
   if (!r.ok) {
-    console.error('[telegram] cancellation notify failed');
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    if (skip !== 'feature_unavailable') {
+      console.error('[telegram] cancellation notify failed');
+    }
     return {
       sent: false,
-      skip: r.error === 'missing_env' ? 'missing_env' : 'send_failed',
-      telegramError: r.error,
+      skip,
+      ...(skip === 'send_failed' || skip === 'missing_env' ? { telegramError: r.error } : {}),
     };
   }
   return { sent: true };

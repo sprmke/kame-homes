@@ -3,6 +3,10 @@
  * Event-driven (SD form submit) + instant + hourly cron (new booking, pending docs, balance receipt, SD refund).
  */
 
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -505,6 +509,10 @@ async function sendAdminTelegramMessage(
   text: string,
   scope?: TelegramAssetScopeRef | string | null
 ): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
   const creds = await resolveAdminTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-admin] credentials issue:', creds.error);
@@ -633,7 +641,13 @@ async function sendAdminTemplateForBooking(
 }
 
 export type AdminNotifySkip =
-  'disabled' | 'notify_off' | 'missing_env' | 'send_failed' | 'no_settings' | 'dedupe';
+  | 'disabled'
+  | 'notify_off'
+  | 'missing_env'
+  | 'send_failed'
+  | 'feature_unavailable'
+  | 'no_settings'
+  | 'dedupe';
 
 /** After a brand-new guest submission row is inserted. */
 export async function notifyTelegramAdminNewBooking(
@@ -650,7 +664,12 @@ export async function notifyTelegramAdminNewBooking(
 
   const r = await sendAdminTemplateForBooking(settings.new_booking_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   const bookingId = String(booking.id ?? '').trim();
   if (bookingId) {
@@ -674,7 +693,12 @@ export async function notifyTelegramAdminSdFormSubmitted(
 
   const r = await sendAdminTemplateForBooking(settings.sd_form_submitted_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   return { sent: true };
 }
@@ -715,7 +739,12 @@ export async function notifyTelegramAdminBalanceReceiptUploaded(
     DEFAULT_BALANCE_RECEIPT_UPLOADED_TEMPLATE;
   const r = await sendAdminTemplateForBooking(template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   if (bookingId && receiptUrl) {
     await recordNotificationLog(bookingId, 'balance_receipt_uploaded', dedupeKey);
@@ -832,7 +861,9 @@ export async function runAdminHourlyAlerts(opts?: {
     }
     const r = await sendAdminTemplateForBooking(template, booking);
     if (!r.ok) {
-      if (r.error) errors.push(`${notificationType}:${id}:${r.error}`);
+      if (r.error && !isTelegramFeatureUnavailableError(r.error)) {
+        errors.push(`${notificationType}:${id}:${r.error}`);
+      }
       return false;
     }
     if (!opts?.force) {
