@@ -224,7 +224,7 @@ export async function resolveParkingHostRecipients(
     .from('organization_members')
     .select('user_id')
     .eq('organization_id', parking.organization_id)
-    .eq('status', 'active')
+    .eq('status', 'active');
   for (const row of orgAdmins ?? []) userIds.add(String(row.user_id));
 
   const { data: members } = await supabase
@@ -436,6 +436,12 @@ async function sendParkingReservationRequestTelegram(
 
   const deepLink = await buildParkingBookingDeepLink(candidate, booking.id);
   const fullText = deepLink ? `${text}\n\n${deepLink}` : text;
+
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    console.warn('[sendParkingReservationRequestTelegram] delivery paused');
+    return;
+  }
 
   const url = `https://api.telegram.org/bot${creds.token}/sendMessage`;
   const res = await fetch(url, {

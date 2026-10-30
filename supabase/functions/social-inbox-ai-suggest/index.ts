@@ -14,6 +14,7 @@ import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
 import { listMessages } from '../_shared/socialInboxService.ts';
 import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
@@ -45,6 +46,11 @@ serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
   } catch (err) {
     if (err instanceof InboxSendReplyError) return jsonError(req, err.message, err.status);
     throw err;
+  }
+
+  if (conv.platform === 'facebook' || conv.platform === 'instagram') {
+    const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.reply', { user });
+    if (featureBlocked) return featureBlocked;
   }
 
   const { messages } = await listMessages(ctx.orgId, conversationId, { limit: 20 });

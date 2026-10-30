@@ -9,12 +9,16 @@ import {
   verifyPropertyAccess,
 } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('meta-inbox-oauth-pages', async (req, user) => {
   if (req.method !== 'GET') {
     return jsonError(req, 'Method not allowed', 405);
   }
+
+  const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.connect', { user });
+  if (featureBlocked) return featureBlocked;
 
   const picker = new URL(req.url).searchParams.get('picker')?.trim();
   if (!picker) {

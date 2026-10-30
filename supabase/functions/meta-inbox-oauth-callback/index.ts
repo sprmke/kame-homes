@@ -21,6 +21,7 @@ import {
   exchangeMetaLongLivedUserToken,
   fetchMetaUserPages,
 } from '../_shared/metaInboxGraph.ts';
+import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { capturePostHogException } from '../_shared/posthog.ts';
 
@@ -73,6 +74,16 @@ serve(async (req) => {
     const dest = st
       ? buildMetaOAuthErrorRedirect(st.return_origin, st.return_path, 'invalid_state')
       : `${fallbackOrigin()}/inbox?meta_inbox_error=invalid_state`;
+    return Response.redirect(dest, 302);
+  }
+
+  if (!(await isFeatureAvailable('inbox.meta.connect'))) {
+    const dest = buildMetaOAuthErrorRedirect(
+      st.return_origin,
+      st.return_path,
+      'feature_unavailable'
+    );
+    if (state) await sb.from('meta_inbox_oauth_state').delete().eq('state', state);
     return Response.redirect(dest, 302);
   }
 

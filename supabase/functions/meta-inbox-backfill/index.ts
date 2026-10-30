@@ -9,6 +9,7 @@ import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { createServiceClient, verifyAuthenticatedUser } from '../_shared/orgAuth.ts';
 import { resolveSupabaseServiceRoleKey } from '../_shared/supabaseRuntimeEnv.ts';
 import type { SocialChannelConnectionRow } from '../_shared/socialInboxTypes.ts';
+import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { capturePostHogException } from '../_shared/posthog.ts';
 
 function isServiceRoleRequest(req: Request): boolean {
@@ -73,6 +74,17 @@ serve(async (req) => {
   const facebook = await facebookConnectionForOrg(orgId);
   if (!facebook) {
     return jsonError(req, 'No Meta connection', 404);
+  }
+
+  if (!(await isFeatureAvailable('inbox.meta.sync'))) {
+    return jsonSuccess(req, {
+      done: true,
+      phase: 'complete',
+      nextUrl: null,
+      syncedInChunk: 0,
+      metaHasMore: false,
+      metaSyncPaused: true,
+    });
   }
 
   try {

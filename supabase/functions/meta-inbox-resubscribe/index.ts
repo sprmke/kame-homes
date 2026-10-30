@@ -6,12 +6,16 @@ import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { reconcileMetaConnectionWebhook } from '../_shared/metaInboxWebhookHealth.ts';
 import { resolveEffectiveMetaConnection } from '../_shared/metaInboxScope.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-serveAuthenticated('meta-inbox-resubscribe', async (req) => {
+serveAuthenticated('meta-inbox-resubscribe', async (req, user) => {
   if (req.method !== 'POST') {
     return jsonError(req, 'Method not allowed', 405);
   }
+
+  const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.connect', { user });
+  if (featureBlocked) return featureBlocked;
 
   const body = (await readJsonBody(req)) as Record<string, unknown>;
   const ctx = await resolveInboxAccess(req, 'channels_add', body);

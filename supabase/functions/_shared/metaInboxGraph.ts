@@ -2,6 +2,8 @@
  * Meta Graph API client for inbox OAuth, webhooks, send, and backfill.
  */
 
+import { assertFeatureAvailable, FeatureUnavailableError } from './featureAvailability.ts';
+import type { FeatureAvailabilityKey } from './featureAvailabilityCatalog.ts';
 import { encryptMetaInboxToken } from './metaInboxCrypto.ts';
 import {
   META_GRAPH_BASE,
@@ -271,6 +273,9 @@ export async function persistMetaPageConnection(
   return { facebook, instagram };
 }
 
+export type MetaMessageSendResult =
+  { ok: true; message_id: string } | { ok: false; code: 'feature_unavailable'; message: string };
+
 export async function sendMetaMessage(opts: {
   pageId: string;
   pageAccessToken: string;
@@ -279,7 +284,19 @@ export async function sendMetaMessage(opts: {
   platform: SocialPlatform;
   replyToMid?: string;
   tag?: 'HUMAN_AGENT';
-}): Promise<{ message_id: string }> {
+  /** Defaults to `inbox.meta.reply`. Auto-reply passes `inbox.meta.auto_reply`. */
+  availabilityKey?: FeatureAvailabilityKey;
+}): Promise<MetaMessageSendResult> {
+  const availabilityKey = opts.availabilityKey ?? 'inbox.meta.reply';
+  try {
+    await assertFeatureAvailable(availabilityKey);
+  } catch (err) {
+    if (err instanceof FeatureUnavailableError) {
+      return { ok: false, code: 'feature_unavailable', message: err.message };
+    }
+    throw err;
+  }
+
   const url = new URL(`${META_GRAPH_BASE}/${opts.pageId}/messages`);
   url.searchParams.set('access_token', opts.pageAccessToken);
 
@@ -296,7 +313,7 @@ export async function sendMetaMessage(opts: {
   }
 
   const json = await postMetaJsonWithRetry(url, body, 'Failed to send Meta message');
-  return { message_id: json.message_id as string };
+  return { ok: true, message_id: json.message_id as string };
 }
 
 /** Fetch attachment metadata for a single message (media-only rows from backfill). */

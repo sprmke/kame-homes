@@ -33,6 +33,7 @@ import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
 import type { SocialConversationRow } from '../_shared/socialInboxTypes.ts';
 import { withIdempotency } from '../_shared/idempotency.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 // `withIdempotency`: an `Idempotency-Key` (PWA offline-outbox replay) makes a
@@ -84,7 +85,11 @@ serveAuthenticated(
       if (attachments.length > 0) {
         return jsonError(req, 'A template message cannot include attachments', 400);
       }
-      if (conv.platform !== 'web' && conv.platform !== 'facebook' && conv.platform !== 'instagram') {
+      if (
+        conv.platform !== 'web' &&
+        conv.platform !== 'facebook' &&
+        conv.platform !== 'instagram'
+      ) {
         return jsonError(req, 'Templates are not available on this channel', 400);
       }
       try {
@@ -148,9 +153,7 @@ serveAuthenticated(
         delivery_status: 'sent',
         sent_by_user_id: user.id,
         is_ai_generated: false,
-        ...(template
-          ? { message_kind: 'template', template_snapshot: template.snapshot }
-          : {}),
+        ...(template ? { message_kind: 'template', template_snapshot: template.snapshot } : {}),
         ...replyFields,
       });
       await updateConversationAfterMessage(conv.id, {
@@ -167,6 +170,11 @@ serveAuthenticated(
         externalMessageId: externalId,
       }).catch((err) => console.warn('[social-inbox-send] guest notify:', err));
       return jsonSuccess(req, { sent: true });
+    }
+
+    if (conv.platform === 'facebook' || conv.platform === 'instagram') {
+      const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.reply', { user });
+      if (featureBlocked) return featureBlocked;
     }
 
     if (!text) {
@@ -224,6 +232,9 @@ serveAuthenticated(
           replyToMid,
           tag: !withinStandardWindow && useHumanAgentTag ? 'HUMAN_AGENT' : undefined,
         });
+        if (!result.ok) {
+          return jsonError(req, result.message, 503);
+        }
         await insertMessageIfNew({
           organization_id: ctx.org.id,
           conversation_id: conv.id,

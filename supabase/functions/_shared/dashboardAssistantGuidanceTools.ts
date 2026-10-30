@@ -27,6 +27,14 @@ import { serializeAdminSettings } from './telegramAdmin.ts';
 import { serializeTelegramSettings } from './telegramMarketing.ts';
 import { telegramDbScope } from './telegramAssetScope.ts';
 import type { TelegramChannel } from './propertyTelegramCredentials.ts';
+import { featureAvailabilitySummaryForAssistant } from './featureAvailability.ts';
+import type { FeatureAvailabilityKey } from './featureAvailabilityCatalog.ts';
+
+const TELEGRAM_ASSISTANT_AVAILABILITY_KEYS = [
+  'notifications.telegram',
+  'notifications.telegram.settings',
+  'notifications.telegram.delivery',
+] as const satisfies readonly FeatureAvailabilityKey[];
 
 export type GuidanceToolContext = {
   req: Request;
@@ -333,6 +341,10 @@ export async function toolGetTelegramNotificationSettings(
     }
 
     const orgSlug = await resolveOrgSlug(ctx.organizationId);
+    const availability = await featureAvailabilitySummaryForAssistant(
+      TELEGRAM_ASSISTANT_AVAILABILITY_KEYS,
+      { id: ctx.userId, email: ctx.userEmail }
+    );
     let settingsPath: string | null = null;
     const modules: Array<Record<string, unknown>> = [];
 
@@ -364,6 +376,7 @@ export async function toolGetTelegramNotificationSettings(
           settingsPath,
           sharedBotTokenConfigured: globalBot.tokenConfigured,
           modules,
+          availability,
           writesRequireUi:
             'Enable toggles, bot token, chat ID, and templates must be edited in Notifications — chat never bypasses OTP-gated payment settings.',
         },
@@ -410,6 +423,7 @@ export async function toolGetTelegramNotificationSettings(
         settingsPath,
         sharedBotTokenConfigured: globalBot.tokenConfigured,
         modules,
+        availability,
         writesRequireUi:
           'Telegram credential and enable changes require the Notifications UI — no assistant bypass.',
       },
@@ -434,6 +448,30 @@ export async function toolGuideTelegramSettings(
       ? `${basePath}?module=${MODULE_QUERY_PARAM[module]}`
       : basePath;
 
+  const availability = data.availability as
+    Record<string, { available: boolean; message: string | null }> | undefined;
+  const deliveryOff = availability?.['notifications.telegram.delivery']?.available === false;
+  const settingsOff = availability?.['notifications.telegram.settings']?.available === false;
+  const steps = [
+    'Open Notifications → choose the Telegram module.',
+    ...(settingsOff
+      ? [
+          availability?.['notifications.telegram.settings']?.message ??
+            'Telegram settings are temporarily unavailable in the dashboard.',
+        ]
+      : [
+          'Turn Enable on (requires telegramNotifications plan on property modules).',
+          'Set shared bot token if needed, then module chat ID — use Verify before saving.',
+        ]),
+    ...(deliveryOff
+      ? [
+          availability?.['notifications.telegram.delivery']?.message ??
+            'Telegram delivery is paused; test sends and live alerts will not go out until it is back.',
+        ]
+      : []),
+    'Payment-method commits that touch GCash still need email OTP in Payment settings.',
+  ];
+
   return {
     ok: true,
     riskTier: 'tier0_read',
@@ -441,12 +479,7 @@ export async function toolGuideTelegramSettings(
     data: {
       ...data,
       modulePath,
-      steps: [
-        'Open Notifications → choose the Telegram module.',
-        'Turn Enable on (requires telegramNotifications plan on property modules).',
-        'Set shared bot token if needed, then module chat ID — use Verify before saving.',
-        'Payment-method commits that touch GCash still need email OTP in Payment settings.',
-      ],
+      steps,
       notAvailableInChat: [
         'Bot token / chat ID PATCH from chat',
         'Bypassing OTP on payment methods',

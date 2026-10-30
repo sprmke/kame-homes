@@ -20,9 +20,20 @@ import {
   markConversationRead,
 } from '../_shared/socialInboxService.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
+import type { SocialConversationRow } from '../_shared/socialInboxTypes.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-serveAuthenticated('social-inbox-messages', async (req) => {
+async function metaReplyFeatureBlock(
+  req: Request,
+  conv: SocialConversationRow,
+  user: { id: string; email: string }
+): Promise<Response | null> {
+  if (conv.platform !== 'facebook' && conv.platform !== 'instagram') return null;
+  return featureUnavailableResponse(req, 'inbox.meta.reply', { user });
+}
+
+serveAuthenticated('social-inbox-messages', async (req, user) => {
   const url = new URL(req.url);
   const conversationId = url.searchParams.get('conversation_id')?.trim();
   if (!conversationId) {
@@ -69,6 +80,8 @@ serveAuthenticated('social-inbox-messages', async (req) => {
 
   if (req.method === 'POST') {
     if (action === 'unsend') {
+      const blocked = await metaReplyFeatureBlock(req, conv, user);
+      if (blocked) return blocked;
       const messageId = String(body.messageId ?? body.message_id ?? '').trim();
       if (!messageId) {
         return jsonError(req, 'messageId required', 400);
@@ -98,6 +111,8 @@ serveAuthenticated('social-inbox-messages', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const blocked = await metaReplyFeatureBlock(req, conv, user);
+    if (blocked) return blocked;
     const messageId = String(body.messageId ?? body.message_id ?? '').trim();
     const text = String(body.text ?? '').trim();
     if (!messageId || !text) {

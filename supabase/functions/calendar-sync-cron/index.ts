@@ -28,6 +28,8 @@ import {
 import { isFeatureEnabled } from '../_shared/planFeatures.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
+import { isFeatureAvailable, featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { capturePostHogException } from '../_shared/posthog.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -89,11 +91,15 @@ serve(async (req) => {
         return json(req, { success: false, error: 'property_id is required' }, 400);
       }
 
-      const { property } = await resolveScopedPropertyAccess(
+      const { property, user } = await resolveScopedPropertyAccess(
         req,
         'pricing.channels:edit',
         scopedPropertyId
       );
+      const featureBlocked = await featureUnavailableResponse(req, 'pricing.channel_sync.import', {
+        user,
+      });
+      if (featureBlocked) return featureBlocked;
       try {
         await requirePropertyFeature(property.id, 'calendarSync');
       } catch (err) {
@@ -135,6 +141,10 @@ serve(async (req) => {
 
     // ── Global sweep ──────────────────────────────────────────────────────
     if (!cronSecretOk(req)) return json(req, { success: false, error: 'Unauthorized' }, 401);
+
+    if (!(await isFeatureAvailable('pricing.channel_sync.import'))) {
+      return json(req, { success: true, skipped: 'feature_unavailable', runId, scoped: false });
+    }
 
     const feeds = await loadDueCalendarFeeds(supabase, GLOBAL_BATCH);
     const startedAt = Date.now();

@@ -12,7 +12,7 @@
  * no enumeration.
  *
  * Feature availability: no gate on this endpoint (export feeds keep serving while
- * `pricing.channel_sync` is off). See docs/workflow/in-progress/feature-availability-controls.md
+ * `pricing.channel_sync` is off). See docs/workflow/done/feature-availability-controls.md
  * Phase 5.4.
  */
 

@@ -25,6 +25,7 @@ import { decryptIntegrationSecret, encryptIntegrationSecret } from '../_shared/s
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -166,6 +167,19 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
   const { property, user } = access;
   const body = await readJsonBody(req);
   const action = String(body.action ?? '');
+
+  const importActions = new Set(['addFeed', 'updateFeed', 'removeFeed', 'syncNow']);
+  if (importActions.has(action)) {
+    const blocked = await featureUnavailableResponse(req, 'pricing.channel_sync.import', {
+      user,
+    });
+    if (blocked) return blocked;
+  }
+  if (action === 'setExportEnabled' && body.enabled === true) {
+    const blocked = await featureUnavailableResponse(req, 'pricing.channel_sync', { user });
+    if (blocked) return blocked;
+  }
+
   const emitCalendarActivity = (
     calAction:
       'integrations.connected' | 'integrations.disconnected' | 'integrations.config_changed',

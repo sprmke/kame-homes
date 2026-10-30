@@ -9,6 +9,7 @@ import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts
 import { createServiceClient, verifyPropertyAccess } from './orgAuth.ts';
 import { requirePropertyFeature } from './planEntitlements.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
+import type { FeatureAvailabilityKey } from './featureAvailabilityCatalog.ts';
 import { loadCalendarFeed, runFeedSync } from './calendarSyncRun.ts';
 
 export type OpsToolContext = {
@@ -37,6 +38,55 @@ function str(args: Record<string, unknown>, key: string): string | null {
   if (typeof v !== 'string') return null;
   const t = v.trim();
   return t || null;
+}
+
+function assistantActor(ctx: OpsToolContext): { id: string; email: string } {
+  return { id: ctx.userId, email: ctx.userEmail };
+}
+
+async function channelSyncAvailabilityForAssistant(
+  ctx: OpsToolContext
+): Promise<
+  Record<
+    'pricing.channel_sync' | 'pricing.channel_sync.import',
+    { available: boolean; message: string | null }
+  >
+> {
+  const user = assistantActor(ctx);
+  const { getFeatureAvailabilitySnapshot, isFeatureAvailable, resolveFeatureUnavailableMessage } =
+    await import('./featureAvailability.ts');
+  const snapshot = await getFeatureAvailabilitySnapshot();
+  const keys: FeatureAvailabilityKey[] = ['pricing.channel_sync', 'pricing.channel_sync.import'];
+  const out = {} as Record<
+    'pricing.channel_sync' | 'pricing.channel_sync.import',
+    { available: boolean; message: string | null }
+  >;
+  for (const key of keys) {
+    const available = await isFeatureAvailable(key, { user });
+    const resolved = snapshot.get(key);
+    out[key] = {
+      available,
+      message: available
+        ? null
+        : resolved
+          ? resolveFeatureUnavailableMessage(resolved)
+          : 'This feature is temporarily unavailable.',
+    };
+  }
+  return out;
+}
+
+async function assertChannelSyncImportAvailable(
+  ctx: OpsToolContext
+): Promise<OpsToolResult | null> {
+  const availability = await channelSyncAvailabilityForAssistant(ctx);
+  if (availability['pricing.channel_sync.import'].available) return null;
+  return {
+    ok: false,
+    error:
+      availability['pricing.channel_sync.import'].message ??
+      'Imports from Airbnb are temporarily unavailable.',
+  };
 }
 
 async function assertPropertyInOrg(propertyId: string, organizationId: string): Promise<void> {
@@ -72,12 +122,15 @@ export async function toolGetChannelSyncStatus(
       .eq('property_id', propertyId)
       .maybeSingle();
 
+    const availability = await channelSyncAvailabilityForAssistant(ctx);
+
     return {
       ok: true,
       riskTier: 'tier0_read',
       auditPropertyId: propertyId,
       data: {
         propertyId,
+        availability,
         feeds: (feeds ?? []).map((f) => ({
           feedId: f.id,
           platform: f.provider,
@@ -111,6 +164,8 @@ export async function toolProposeRunChannelSync(
 
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'pricing.channels:edit');
+    const importBlocked = await assertChannelSyncImportAvailable(ctx);
+    if (importBlocked) return importBlocked;
     try {
       await requirePropertyFeature(propertyId, 'calendarSync');
     } catch (err) {
@@ -164,6 +219,8 @@ export async function executeRunChannelSync(
 
     await assertPropertyInOrg(propertyId, ctx.organizationId);
     await verifyPropertyAccess(ctx.req, propertyId, 'pricing.channels:edit');
+    const importBlocked = await assertChannelSyncImportAvailable(ctx);
+    if (importBlocked) return importBlocked;
     await requirePropertyFeature(propertyId, 'calendarSync');
     await assertActionSafeToExecute({
       toolName: 'propose_run_channel_sync',

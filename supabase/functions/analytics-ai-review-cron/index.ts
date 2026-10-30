@@ -39,6 +39,11 @@ function cronSecretOk(req: Request): boolean {
 }
 
 serveCronPost('analytics-ai-review-cron', cronSecretOk, async () => {
+  const { isFeatureAvailable } = await import('../_shared/featureAvailability.ts');
+  if (!(await isFeatureAvailable('analytics.ai_review.regenerate'))) {
+    return { skipped: 'feature_unavailable' };
+  }
+
   const supabase = createServiceClient();
   const startedAt = Date.now();
   const today = manilaTodayIso();

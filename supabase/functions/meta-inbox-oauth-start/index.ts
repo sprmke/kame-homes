@@ -12,6 +12,7 @@ import {
   requireOrgPropertyFeature,
   requirePropertyFeature,
 } from '../_shared/planEntitlements.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 function randomState(): string {
@@ -23,6 +24,9 @@ serveAuthenticated('meta-inbox-oauth-start', async (req, user) => {
   if (req.method !== 'POST') {
     return jsonError(req, 'Method not allowed', 405);
   }
+
+  const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.connect', { user });
+  if (featureBlocked) return featureBlocked;
 
   let body: Record<string, unknown> = {};
   try {

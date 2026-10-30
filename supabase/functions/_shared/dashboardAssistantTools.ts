@@ -3134,6 +3134,20 @@ async function toolDraftInboxReply(
     new Set(metaConnectionIds)
   );
 
+  if (conv.platform === 'facebook' || conv.platform === 'instagram') {
+    const actor = { id: ctx.userId, email: ctx.userEmail };
+    const { isFeatureAvailable } = await import('./featureAvailability.ts');
+    if (!(await isFeatureAvailable('inbox.meta.reply', { user: actor }))) {
+      const { getFeatureAvailabilitySnapshot, resolveFeatureUnavailableMessage } =
+        await import('./featureAvailability.ts');
+      const resolved = (await getFeatureAvailabilitySnapshot()).get('inbox.meta.reply');
+      const message = resolved
+        ? resolveFeatureUnavailableMessage(resolved)
+        : 'Replies on Facebook and Instagram are unavailable.';
+      return { ok: false, error: message };
+    }
+  }
+
   const { messages } = await listMessages(inboxCtx.orgId, conversationId, { limit: 20 });
   const sb = createServiceClient();
   const settingsQuery = sb
@@ -4293,7 +4307,10 @@ export async function executeConfirmedAction(
         new Set(metaConnectionIds)
       );
       const attachments = await resolveInboxReplyAttachments(ctx, conversationId, attachmentPaths);
-      const result = await sendInboxReply(inboxCtx, conv, ctx.userId, text, { attachments });
+      const result = await sendInboxReply(inboxCtx, conv, ctx.userId, text, {
+        attachments,
+        actor: { id: ctx.userId, email: ctx.userEmail },
+      });
       return { ok: true, riskTier: 'tier2_confirmed', data: { conversationId, ...result } };
     } catch (err) {
       if (err instanceof InboxSendReplyError) return { ok: false, error: err.message };

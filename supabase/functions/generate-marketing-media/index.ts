@@ -34,6 +34,7 @@ import { createServiceClient, requirePropertyPermissionAndFeature } from '../_sh
 import { logAssetActivity } from '../_shared/assetActivity.ts';
 import { rateLimitGate } from '../_shared/rateLimit.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import {
   MAX_IMAGE_PROMPT_CHARS,
@@ -156,6 +157,11 @@ serveAuthenticated('generate-marketing-media', async (req) => {
     throw err;
   }
 
+  const featureBlocked = await featureUnavailableResponse(req, 'marketing.ai_studio.generate', {
+    user: { id: actorUserId, email: actorEmail },
+  });
+  if (featureBlocked) return featureBlocked;
+
   const limited = await rateLimitGate(req, {
     scope: isVideo ? 'marketing-generation-video' : 'marketing-generation-image',
     identity: actorUserId,
@@ -222,7 +228,10 @@ serveAuthenticated('generate-marketing-media', async (req) => {
   // Refining a photo: the current version is the first reference, so the model edits
   // it instead of starting over. Refining a clip without a new photo: same start photo.
   if (parentReference && !(isVideo && references.length > 0)) {
-    references = [parentReference, ...references.filter((row) => row.storage_path !== parentReference.storage_path)];
+    references = [
+      parentReference,
+      ...references.filter((row) => row.storage_path !== parentReference.storage_path),
+    ];
   }
 
   if (isVideo) {
@@ -330,25 +339,28 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
   const propertyContext = await loadPropertyContextForPrompt(sb, propertyId);
 
   const enhancement = plan.parentJobId
-    ? { prompt: buildImageEditPrompt({ instruction: prompt, aspectRatio: options.aspectRatio }), enhanced: false }
+    ? {
+        prompt: buildImageEditPrompt({ instruction: prompt, aspectRatio: options.aspectRatio }),
+        enhanced: false,
+      }
     : enhancementRequested
-    ? await enhanceMarketingImagePrompt({
-        organizationId,
-        propertyId,
-        prompt,
-        aspectRatio: options.aspectRatio,
-        property: propertyContext,
-        hasReferenceImages: references.length > 0,
-        actorUserId,
-      })
-    : {
-        prompt: buildStructuredImagePrompt({
+      ? await enhanceMarketingImagePrompt({
+          organizationId,
+          propertyId,
           prompt,
           aspectRatio: options.aspectRatio,
           property: propertyContext,
-        }),
-        enhanced: false,
-      };
+          hasReferenceImages: references.length > 0,
+          actorUserId,
+        })
+      : {
+          prompt: buildStructuredImagePrompt({
+            prompt,
+            aspectRatio: options.aspectRatio,
+            property: propertyContext,
+          }),
+          enhanced: false,
+        };
 
   const sessionId = await ensureGenerationSession(sb, plan, {
     organizationId,
@@ -458,10 +470,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
 
     // Independent bookkeeping writes — run concurrently, neither depends on the other.
     await Promise.all([
-      touchGenerationReferences(
-        sb,
-        references.map((reference) => reference.id).filter(Boolean)
-      ),
+      touchGenerationReferences(sb, references.map((reference) => reference.id).filter(Boolean)),
       logAssetActivity({
         req,
         user: { id: actorUserId, email: actorEmail },
@@ -672,10 +681,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
 
     // Independent bookkeeping writes — run concurrently, neither depends on the other.
     await Promise.all([
-      touchGenerationReferences(
-        sb,
-        references.map((reference) => reference.id).filter(Boolean)
-      ),
+      touchGenerationReferences(sb, references.map((reference) => reference.id).filter(Boolean)),
       logAssetActivity({
         req,
         user: { id: actorUserId, email: actorEmail },

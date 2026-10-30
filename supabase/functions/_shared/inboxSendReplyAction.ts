@@ -20,7 +20,9 @@ import { maybeNotifyGuestOfHostWebReply } from './guestChatEmail.ts';
 import { assertGuestWebMessagePayload, buildMessagePreview } from './guestChatAttachments.ts';
 import type { NormalizedInboxAttachment } from './inboxAttachments.ts';
 import type { SocialChannelConnectionRow, SocialConversationRow } from './socialInboxTypes.ts';
+import { assertFeatureAvailable, FeatureUnavailableError } from './featureAvailability.ts';
 import type { InboxAccessContext } from './inboxAccess.ts';
+import type { AuthenticatedUser } from './orgAuth.ts';
 
 export class InboxSendReplyError extends Error {
   status: number;
@@ -53,6 +55,8 @@ export async function loadInboxConversationInScope(
 export type SendInboxReplyOptions = {
   useHumanAgentTag?: boolean;
   attachments?: NormalizedInboxAttachment[];
+  /** When set, super-admin bypass on `inbox.meta.reply` may apply. */
+  actor?: AuthenticatedUser;
 };
 
 /** Sends a reply — web insert+notify (text and/or attachments), or Meta DM text only. */
@@ -128,6 +132,15 @@ export async function sendInboxReply(
   const token = await getPageAccessToken(connection);
 
   try {
+    try {
+      await assertFeatureAvailable('inbox.meta.reply', { user: opts.actor });
+    } catch (err) {
+      if (err instanceof FeatureUnavailableError) {
+        throw new InboxSendReplyError(err.message, 503);
+      }
+      throw err;
+    }
+
     if (conv.conversation_type === 'dm') {
       const withinStandardWindow = isWithinMessagingWindowFromInbound(conv.last_inbound_at);
       const withinHumanAgentWindow = isWithinHumanAgentWindowFromInbound(conv.last_inbound_at);
@@ -142,6 +155,9 @@ export async function sendInboxReply(
         platform: conv.platform,
         tag: !withinStandardWindow && opts.useHumanAgentTag === true ? 'HUMAN_AGENT' : undefined,
       });
+      if (!result.ok) {
+        throw new InboxSendReplyError(result.message, 503);
+      }
       await insertMessageIfNew({
         organization_id: ctx.org.id,
         conversation_id: conv.id,

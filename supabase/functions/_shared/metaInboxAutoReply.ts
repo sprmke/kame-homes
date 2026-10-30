@@ -12,7 +12,13 @@ import {
 } from './inboxAutoReplyPolicy.ts';
 import { isWithinMessagingWindowFromInbound, suggestInboxReply } from './socialInboxAiService.ts';
 import { socialInboxDb } from './socialInboxDb.ts';
-import { getConversationByExternalThread, insertMessageIfNew, listMessages, updateConversationAfterMessage } from './socialInboxService.ts';
+import {
+  getConversationByExternalThread,
+  insertMessageIfNew,
+  listMessages,
+  updateConversationAfterMessage,
+} from './socialInboxService.ts';
+import { isFeatureAvailable } from './featureAvailability.ts';
 import type { SocialPlatform } from './socialInboxTypes.ts';
 
 export async function maybeAutoReplyToInboundDm(
@@ -21,6 +27,11 @@ export async function maybeAutoReplyToInboundDm(
   platform: Extract<SocialPlatform, 'facebook' | 'instagram'>,
   inboundExternalMessageId: string
 ): Promise<void> {
+  if (!(await isFeatureAvailable('inbox.meta.auto_reply'))) {
+    console.log('[metaInboxAutoReply] skipped: feature_unavailable');
+    return;
+  }
+
   const settings = await loadAutoReplySettings(orgId, platform);
   if (!settings) return;
 
@@ -69,7 +80,12 @@ export async function maybeAutoReplyToInboundDm(
     recipientId: conv.external_participant_id ?? '',
     text: draft,
     platform,
+    availabilityKey: 'inbox.meta.auto_reply',
   });
+  if (!result.ok) {
+    console.log('[metaInboxAutoReply] skipped: feature_unavailable');
+    return;
+  }
 
   const now = new Date().toISOString();
   await insertMessageIfNew({
