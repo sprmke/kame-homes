@@ -14,6 +14,17 @@ const MAX_ATTEMPTS = 6;
 const RETRYABLE_STATUS = new Set([408, 425, 429]);
 const MAX_BACKOFF_MS = 60_000;
 
+/** Parse `{ error }` from a failed edge response body (e.g. FEATURE_UNAVAILABLE copy). */
+export function outboxErrorMessageFromResponseBody(body: string, fallback: string): string {
+  try {
+    const parsed = JSON.parse(body) as { error?: string };
+    if (parsed.error) return parsed.error;
+  } catch {
+    // keep fallback
+  }
+  return fallback;
+}
+
 let draining = false;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let queryClientRef: QueryClient | null = null;
@@ -119,28 +130,25 @@ export async function drainOutbox(): Promise<void> {
 
       const attempts = item.attempts + 1;
       const body = await res.text().catch(() => '');
+      const errorFromBody = (fallback: string) =>
+        outboxErrorMessageFromResponseBody(body, fallback);
       if (RETRYABLE_STATUS.has(res.status) || res.status >= 500) {
+        const lastError = errorFromBody(`HTTP ${res.status}`);
         if (attempts >= MAX_ATTEMPTS) {
           await outboxUpdate(item.id, {
             status: 'failed',
             attempts,
-            lastError: `HTTP ${res.status}`,
+            lastError,
           });
           pwaTelemetry('sync-item-failed', { kind: item.kind, status: res.status });
         } else {
-          await outboxUpdate(item.id, { attempts, lastError: `HTTP ${res.status}` });
+          await outboxUpdate(item.id, { attempts, lastError });
           backedOff = true;
           break; // backoff — scheduleRetry() below picks it up
         }
       } else {
         // 4xx (conflict, validation, auth) — not going to succeed on retry.
-        let message = `HTTP ${res.status}`;
-        try {
-          const parsed = JSON.parse(body) as { error?: string };
-          if (parsed.error) message = parsed.error;
-        } catch {
-          // keep default
-        }
+        const message = errorFromBody(`HTTP ${res.status}`);
         await outboxUpdate(item.id, { status: 'failed', attempts, lastError: message });
         pwaTelemetry('sync-item-failed', { kind: item.kind, status: res.status });
         await invalidate(item.invalidateKeys); // surface the server's real state

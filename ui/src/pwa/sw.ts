@@ -21,7 +21,7 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute, setCatchHandler } from 'workbox-routing';
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst, NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies';
 
 import {
   CACHE_PREFIX,
@@ -219,6 +219,16 @@ registerRoute(
       }),
     ],
   })
+);
+
+// Host feature-availability snapshot — authenticated, `private, no-store`. Must
+// never land in Cache Storage (feature-availability plan task 2.6).
+const FEATURE_AVAILABILITY_FUNCTION_RE = /\/functions\/v1\/get-feature-availability(?:[/?]|$)/;
+
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' && FEATURE_AVAILABILITY_FUNCTION_RE.test(url.pathname),
+  new NetworkOnly()
 );
 
 // Booking status is the one read view an operator actively acts on (check-in/out,
