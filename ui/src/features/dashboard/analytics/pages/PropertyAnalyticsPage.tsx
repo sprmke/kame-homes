@@ -53,7 +53,9 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton';
 import { PropertyAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
@@ -123,7 +125,11 @@ export function PropertyAnalyticsPage() {
   const { canUse: canInsightsByPlan, isLoading: insightsPlanLoading } =
     useFeatureGate('analyticsInsights');
   const { open: openUpgradeModal } = useUpgradeModal();
-  const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview();
+  const aiReviewAvailability = useFeatureAvailability('analytics.ai_review');
+  const aiReviewQueryEnabled = aiReviewAvailability.available && !aiReviewAvailability.isLoading;
+  const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview({
+    enabled: aiReviewQueryEnabled,
+  });
   const regenerateAiReview = useRegenerateAnalyticsAiReview();
   const orgContext = useOptionalOrgContext();
   const brandColor = usePdfBrandColor();
@@ -336,19 +342,29 @@ export function PropertyAnalyticsPage() {
 
             {section === 'ai-review' ? (
               <div className={SECTION_GAP}>
-                <AiPerformanceReviewCard
-                  review={aiReviewPeriod.applicable ? (aiReview ?? null) : null}
-                  isLoading={aiReviewPeriod.applicable && isAiReviewLoading}
-                  applicable={aiReviewPeriod.applicable}
-                  periodKind={aiReviewPeriod.applicable ? aiReviewPeriod.kind : null}
-                  reviewMatchesPeriod={aiReviewPeriod.applicable && reviewMatchesPeriod}
-                  playbookArticles={data.playbook}
-                  onOpenPlaybook={handleOpenPlaybook}
-                  onRefresh={canRefreshAiReview ? handleRefreshAiReview : undefined}
-                  isRefreshing={regenerateAiReview.isPending}
-                  refreshUsedToday={refreshUsedToday}
-                  enoughHistory={data.sufficiency.enough}
-                />
+                {!aiReviewAvailability.available && !aiReviewAvailability.isLoading ? (
+                  <FeatureUnavailablePanel
+                    label={aiReviewAvailability.label}
+                    message={aiReviewAvailability.message}
+                    expectedBackLabel={aiReviewAvailability.expectedBackLabel}
+                    reason={aiReviewAvailability.reason}
+                    tone={aiReviewAvailability.tone}
+                  />
+                ) : (
+                  <AiPerformanceReviewCard
+                    review={aiReviewPeriod.applicable ? (aiReview ?? null) : null}
+                    isLoading={aiReviewPeriod.applicable && isAiReviewLoading}
+                    applicable={aiReviewPeriod.applicable}
+                    periodKind={aiReviewPeriod.applicable ? aiReviewPeriod.kind : null}
+                    reviewMatchesPeriod={aiReviewPeriod.applicable && reviewMatchesPeriod}
+                    playbookArticles={data.playbook}
+                    onOpenPlaybook={handleOpenPlaybook}
+                    onRefresh={canRefreshAiReview ? handleRefreshAiReview : undefined}
+                    isRefreshing={regenerateAiReview.isPending}
+                    refreshUsedToday={refreshUsedToday}
+                    enoughHistory={data.sufficiency.enough}
+                  />
+                )}
                 <PlaybookList
                   articles={data.playbook}
                   openSlug={openPlaybookSlug}

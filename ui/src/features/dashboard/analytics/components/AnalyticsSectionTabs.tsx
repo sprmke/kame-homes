@@ -1,5 +1,8 @@
 import { Gauge, Sparkles, TrendingUp, Users } from 'lucide-react';
 
+import { FeatureStatusDot } from '@/components/feature-availability/FeatureStatusDot';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
+
 import { SlidingTabs, SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
 
 export type AnalyticsSection = 'overview' | 'trends' | 'guests' | 'ai-review';
@@ -22,6 +25,8 @@ type Props = {
 
 /** Section switcher for the Analytics dashboard. Period and actions live in the page header. */
 export function AnalyticsSectionTabs({ section, onSectionChange }: Props) {
+  const aiReviewAvailability = useFeatureAvailability('analytics.ai_review');
+
   return (
     <SlidingTabs
       value={section}
@@ -32,6 +37,11 @@ export function AnalyticsSectionTabs({ section, onSectionChange }: Props) {
           <SlidingTabsTrigger key={value} value={value}>
             <Icon className="size-4 shrink-0" aria-hidden />
             {label}
+            {value === 'ai-review' &&
+            !aiReviewAvailability.available &&
+            !aiReviewAvailability.isLoading ? (
+              <FeatureStatusDot className="ml-1" label={aiReviewAvailability.label} />
+            ) : null}
           </SlidingTabsTrigger>
         ))}
       </SlidingTabsList>

@@ -27,7 +27,9 @@ import {
   normalizeMarketingStudioTab,
 } from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
 
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import {
   MarketingEditorSkeleton,
   MarketingLibraryBodySkeleton,
@@ -73,6 +75,7 @@ export function MarketingStudioPage() {
 
 function MarketingStudioWorkspace() {
   const { view, tab, tabReady, setTab, active, item, openItem } = useMarketingTheme();
+  const aiStudioAvailability = useFeatureAvailability('marketing.ai_studio');
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMedia, setPublishMedia] = useState<PublishMedia | null>(null);
 
@@ -97,6 +100,18 @@ function MarketingStudioWorkspace() {
     if (!active || !tabReady) return <MarketingLibraryBodySkeleton />;
 
     if (tab === 'generate') {
+      const studioOff = !aiStudioAvailability.available && !aiStudioAvailability.isLoading;
+      if (studioOff && item.mode === 'library') {
+        return (
+          <FeatureUnavailablePanel
+            label={aiStudioAvailability.label}
+            message={aiStudioAvailability.message}
+            expectedBackLabel={aiStudioAvailability.expectedBackLabel}
+            reason={aiStudioAvailability.reason}
+            tone={aiStudioAvailability.tone}
+          />
+        );
+      }
       return (
         <Suspense
           fallback={

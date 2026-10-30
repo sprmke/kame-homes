@@ -7,8 +7,11 @@ import type { AiStudioOutput } from '@/features/dashboard/marketing/lib/marketin
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -42,7 +45,9 @@ export function AiStudioRefineBox({
 }: Props) {
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const disabled = busy || Boolean(blockedReason);
+  const generateAvailability = useFeatureAvailability('marketing.ai_studio.generate');
+  const generateBlocked = !generateAvailability.available && !generateAvailability.isLoading;
+  const disabled = busy || Boolean(blockedReason) || generateBlocked;
   const canSend = !disabled && text.trim().length > 0;
 
   const send = async () => {
@@ -62,6 +67,14 @@ export function AiStudioRefineBox({
         void send();
       }}
     >
+      {generateBlocked ? (
+        <FeatureUnavailableNotice
+          title="Generation paused"
+          label={generateAvailability.message}
+          expectedBackLabel={generateAvailability.expectedBackLabel}
+          tone={generateAvailability.tone}
+        />
+      ) : null}
       {text.length === 0 && !disabled ? (
         // One scrollable row on phones, where the preview needs the height; the
         // desktop column has the room to wrap.
@@ -118,20 +131,39 @@ export function AiStudioRefineBox({
             </span>
           ) : null}
           <TierBadgeAnchor feature={feature}>
-            <Button
-              type="submit"
-              size="icon"
-              className="size-11 rounded-full lg:size-9"
-              disabled={disabled}
-              aria-disabled={!canSend}
-              aria-label={costLabel ? `Send, ${costLabel}` : 'Send'}
-            >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <ArrowUp className="size-4" aria-hidden />
-              )}
-            </Button>
+            {generateBlocked ? (
+              <FeatureAvailabilityButton featureKey="marketing.ai_studio.generate">
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="size-11 rounded-full lg:size-9"
+                  disabled={disabled}
+                  aria-disabled={!canSend}
+                  aria-label={costLabel ? `Send, ${costLabel}` : 'Send'}
+                >
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <ArrowUp className="size-4" aria-hidden />
+                  )}
+                </Button>
+              </FeatureAvailabilityButton>
+            ) : (
+              <Button
+                type="submit"
+                size="icon"
+                className="size-11 rounded-full lg:size-9"
+                disabled={disabled}
+                aria-disabled={!canSend}
+                aria-label={costLabel ? `Send, ${costLabel}` : 'Send'}
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <ArrowUp className="size-4" aria-hidden />
+                )}
+              </Button>
+            )}
           </TierBadgeAnchor>
         </div>
       </div>

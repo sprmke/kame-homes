@@ -71,6 +71,8 @@ import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
@@ -84,6 +86,7 @@ import {
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 export type AiCreateRequest =
@@ -167,6 +170,8 @@ export function AiStudioCreate({
   onTextChange,
 }: Props) {
   const { open: openUpgradeModal } = useUpgradeModal();
+  const generateAvailability = useFeatureAvailability('marketing.ai_studio.generate');
+  const generateBlocked = !generateAvailability.available && !generateAvailability.isLoading;
   const { property } = useOrgContext();
   const isPost = output === 'post';
   const isVideo = output === 'video';
@@ -220,7 +225,7 @@ export function AiStudioCreate({
   const hasStartFrame = isVideo && references.length > 0;
   const effectiveResolution: VideoResolution =
     tier === 'draft' || !allowHighResolution ? DRAFT_VIDEO_RESOLUTION : resolution;
-  const locked = busy || !canStart;
+  const locked = busy || !canStart || generateBlocked;
 
   const creditsFor = (nextTier: MarketingGenerationTier) =>
     isVideo
@@ -347,6 +352,16 @@ export function AiStudioCreate({
       }}
     >
       <div className="border-border bg-card mx-auto flex w-full max-w-2xl flex-col rounded-2xl border shadow-sm lg:mx-0 lg:min-h-0 lg:max-w-none lg:rounded-none lg:border-0 lg:border-r lg:shadow-none">
+        {generateBlocked ? (
+          <div className="px-3 pt-3 sm:px-4">
+            <FeatureUnavailableNotice
+              title="Generation paused"
+              label={generateAvailability.message}
+              expectedBackLabel={generateAvailability.expectedBackLabel}
+              tone={generateAvailability.tone}
+            />
+          </div>
+        ) : null}
         <div className="border-border/70 flex items-center gap-2 border-b px-3 py-2.5 sm:px-4">
           <SegmentedControl
             value={output}
@@ -585,14 +600,30 @@ export function AiStudioCreate({
                     />
                   </Button>
                 </CollapsibleTrigger>
-                <GenerateButton
-                  className="col-span-2"
-                  feature={feature}
-                  busy={busy}
-                  disabled={locked}
-                  dim={!canSubmit && !locked}
-                  label={`Generate · ${credits(creditsFor(tier))}`}
-                />
+                {generateBlocked ? (
+                  <FeatureAvailabilityButton
+                    featureKey="marketing.ai_studio.generate"
+                    className="col-span-2"
+                  >
+                    <GenerateButton
+                      className="w-full"
+                      feature={feature}
+                      busy={busy}
+                      disabled={locked}
+                      dim={!canSubmit && !locked}
+                      label={`Generate · ${credits(creditsFor(tier))}`}
+                    />
+                  </FeatureAvailabilityButton>
+                ) : (
+                  <GenerateButton
+                    className="col-span-2"
+                    feature={feature}
+                    busy={busy}
+                    disabled={locked}
+                    dim={!canSubmit && !locked}
+                    label={`Generate · ${credits(creditsFor(tier))}`}
+                  />
+                )}
               </div>
             </Collapsible>
           ) : (
@@ -604,14 +635,30 @@ export function AiStudioCreate({
                 disabled={locked}
                 className="w-[8.75rem] shrink-0"
               />
-              <GenerateButton
-                className="min-w-0 flex-1"
-                feature={feature}
-                busy={busy}
-                disabled={locked}
-                dim={false}
-                label="Generate 4 posts"
-              />
+              {generateBlocked ? (
+                <FeatureAvailabilityButton
+                  featureKey="marketing.ai_studio.generate"
+                  className="min-w-0 flex-1"
+                >
+                  <GenerateButton
+                    className="w-full"
+                    feature={feature}
+                    busy={busy}
+                    disabled={locked}
+                    dim={false}
+                    label="Generate 4 posts"
+                  />
+                </FeatureAvailabilityButton>
+              ) : (
+                <GenerateButton
+                  className="min-w-0 flex-1"
+                  feature={feature}
+                  busy={busy}
+                  disabled={locked}
+                  dim={false}
+                  label="Generate 4 posts"
+                />
+              )}
             </div>
           )}
         </div>

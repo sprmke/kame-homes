@@ -27,9 +27,13 @@ import type {
 import type { AnalyticsPlaybookArticle } from '@/features/dashboard/analytics/lib/types';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHeader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 import type { LucideIcon } from 'lucide-react';
@@ -272,6 +276,8 @@ export function AiPerformanceReviewCard({
   enoughHistory = true,
   className,
 }: Props) {
+  const regenerateAvailability = useFeatureAvailability('analytics.ai_review.regenerate');
+  const regenerateBlocked = !regenerateAvailability.available && !regenerateAvailability.isLoading;
   const articleTitleBySlug = new Map(playbookArticles.map((a) => [a.slug, a.title]));
   const periodLabel = periodKind ? AI_REVIEW_PERIOD_LABEL[periodKind] : null;
   const showCta = Boolean(applicable && onRefresh && periodKind);
@@ -285,34 +291,45 @@ export function AiPerformanceReviewCard({
     : null;
   const ctaDisabled = isRefreshing || refreshUsedToday || !enoughHistory;
 
-  const refreshAction =
+  const refreshButton =
     showCta && cta ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-9 max-w-[min(100%,14rem)] gap-1.5 px-2.5 sm:h-8"
+        onClick={onRefresh}
+        disabled={ctaDisabled}
+        aria-label={cta.ariaLabel}
+        title={
+          !enoughHistory
+            ? 'Need 10 bookings first'
+            : refreshUsedToday
+              ? 'Once a day for this range'
+              : undefined
+        }
+      >
+        {cta.kind === 'analyzing' ? (
+          <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+        ) : cta.kind === 'analyze' ? (
+          <Sparkles className="size-3.5 shrink-0" aria-hidden />
+        ) : (
+          <RefreshCw className="size-3.5 shrink-0" aria-hidden />
+        )}
+        <span className="truncate text-xs font-medium">{cta.label}</span>
+      </Button>
+    ) : null;
+
+  const refreshAction =
+    refreshButton && showCta ? (
       <TierBadgeAnchor feature="analyticsInsights">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9 max-w-[min(100%,14rem)] gap-1.5 px-2.5 sm:h-8"
-          onClick={onRefresh}
-          disabled={ctaDisabled}
-          aria-label={cta.ariaLabel}
-          title={
-            !enoughHistory
-              ? 'Need 10 bookings first'
-              : refreshUsedToday
-                ? 'Once a day for this range'
-                : undefined
-          }
-        >
-          {cta.kind === 'analyzing' ? (
-            <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-          ) : cta.kind === 'analyze' ? (
-            <Sparkles className="size-3.5 shrink-0" aria-hidden />
-          ) : (
-            <RefreshCw className="size-3.5 shrink-0" aria-hidden />
-          )}
-          <span className="truncate text-xs font-medium">{cta.label}</span>
-        </Button>
+        {regenerateBlocked ? (
+          <FeatureAvailabilityButton featureKey="analytics.ai_review.regenerate">
+            {refreshButton}
+          </FeatureAvailabilityButton>
+        ) : (
+          refreshButton
+        )}
       </TierBadgeAnchor>
     ) : null;
 
@@ -334,6 +351,16 @@ export function AiPerformanceReviewCard({
         action={refreshAction}
         iconClassName="bg-muted/80"
       />
+
+      {regenerateBlocked ? (
+        <FeatureUnavailableNotice
+          title="Weekly reviews are paused"
+          label={regenerateAvailability.message}
+          expectedBackLabel={regenerateAvailability.expectedBackLabel}
+          tone={regenerateAvailability.tone}
+          className="mb-2"
+        />
+      ) : null}
 
       {!applicable ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
@@ -375,23 +402,34 @@ export function AiPerformanceReviewCard({
           </div>
         </div>
       ) : !matchingReview ? (
-        <div className="flex flex-col items-center gap-2 py-8 text-center">
-          <div className="bg-muted/60 flex size-10 items-center justify-center rounded-full">
-            <Sparkles className="text-muted-foreground size-5" aria-hidden />
+        regenerateBlocked && enoughHistory ? (
+          <FeatureUnavailablePanel
+            label={regenerateAvailability.label}
+            message={regenerateAvailability.message}
+            expectedBackLabel={regenerateAvailability.expectedBackLabel}
+            reason={regenerateAvailability.reason}
+            tone={regenerateAvailability.tone}
+            compact
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <div className="bg-muted/60 flex size-10 items-center justify-center rounded-full">
+              <Sparkles className="text-muted-foreground size-5" aria-hidden />
+            </div>
+            <p className="text-foreground text-sm font-semibold">
+              {periodLabel ? `No review for ${periodLabel}` : 'No review yet'}
+            </p>
+            {!enoughHistory ? (
+              <p className="text-muted-foreground max-w-sm text-sm">
+                Need 10 bookings before AI review.
+              </p>
+            ) : onRefresh ? (
+              <p className="text-muted-foreground max-w-sm text-sm">
+                Analyze to generate one for this range.
+              </p>
+            ) : null}
           </div>
-          <p className="text-foreground text-sm font-semibold">
-            {periodLabel ? `No review for ${periodLabel}` : 'No review yet'}
-          </p>
-          {!enoughHistory ? (
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Need 10 bookings before AI review.
-            </p>
-          ) : onRefresh ? (
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Analyze to generate one for this range.
-            </p>
-          ) : null}
-        </div>
+        )
       ) : (
         <div className="space-y-2.5 sm:space-y-3">
           <div className="border-border/60 bg-muted/30 flex items-center gap-3 rounded-xl border p-3 sm:gap-4 sm:p-3.5">

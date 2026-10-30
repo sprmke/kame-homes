@@ -55,12 +55,15 @@ import type {
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -106,6 +109,8 @@ export function AiStudioComposer({
   pendingReference,
 }: Props) {
   const { open: openUpgradeModal } = useUpgradeModal();
+  const generateAvailability = useFeatureAvailability('marketing.ai_studio.generate');
+  const generateBlocked = !generateAvailability.available && !generateAvailability.isLoading;
   const isVideo = mediaType === 'video';
   const [description, setDescription] = useState('');
   const [lookId, setLookId] = useState<string | null>(null);
@@ -125,7 +130,7 @@ export function AiStudioComposer({
   const maxPhotos = isVideo ? VIDEO_MAX_REFERENCES : maxReferencesForTier(tier);
   const maxDescriptionChars =
     (isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS) - MAX_LOOK_SUFFIX_CHARS;
-  const locked = disabled || isGenerating;
+  const locked = disabled || isGenerating || generateBlocked;
 
   // Switching Photo ↔ Video keeps the description, look and photos (trimmed to the
   // new cap) and resets the settings that differ between the two.
@@ -248,6 +253,25 @@ export function AiStudioComposer({
   const hasContent = description.trim().length > 0 || hasStartFrame;
   const canSubmit = hasContent && !locked;
 
+  const generateButton = (
+    <Button
+      type="submit"
+      disabled={locked}
+      aria-disabled={!canSubmit}
+      className={cn(
+        'min-h-12 w-full gap-2 text-sm font-semibold',
+        !canSubmit && !locked && 'opacity-60'
+      )}
+    >
+      {isGenerating ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <Sparkles className="size-4" aria-hidden />
+      )}
+      {isGenerating ? 'Generating' : `Generate · ${formatCredits(credits)}`}
+    </Button>
+  );
+
   return (
     <form
       id="ai-studio-composer"
@@ -290,6 +314,14 @@ export function AiStudioComposer({
         });
       }}
     >
+      {generateBlocked ? (
+        <FeatureUnavailableNotice
+          title="Generation paused"
+          label={generateAvailability.message}
+          expectedBackLabel={generateAvailability.expectedBackLabel}
+          tone={generateAvailability.tone}
+        />
+      ) : null}
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
           <Label className="settings-field-label" htmlFor="ai-studio-prompt">
@@ -497,22 +529,13 @@ export function AiStudioComposer({
           feature={isVideo ? 'aiMarketingVideoGeneration' : 'aiMarketingImageGeneration'}
           className="w-full"
         >
-          <Button
-            type="submit"
-            disabled={locked}
-            aria-disabled={!canSubmit}
-            className={cn(
-              'min-h-12 w-full gap-2 text-sm font-semibold',
-              !canSubmit && !locked && 'opacity-60'
-            )}
-          >
-            {isGenerating ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="size-4" aria-hidden />
-            )}
-            {isGenerating ? 'Generating' : `Generate · ${formatCredits(credits)}`}
-          </Button>
+          {generateBlocked ? (
+            <FeatureAvailabilityButton featureKey="marketing.ai_studio.generate">
+              {generateButton}
+            </FeatureAvailabilityButton>
+          ) : (
+            generateButton
+          )}
         </TierBadgeAnchor>
       </div>
     </form>

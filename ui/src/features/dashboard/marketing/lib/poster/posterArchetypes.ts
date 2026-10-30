@@ -193,7 +193,7 @@ function addLegibilityScrims(
   children.splice(photoIndex + 1, 0, ...scrims);
 }
 
-/** Brand wordmark style: chunky rounded caps, used for "at KAME HOME" lines. */
+/** Brand wordmark style: chunky rounded caps, used for "at KAME SPACE" lines. */
 const WORDMARK_ROLE: PosterTypeRole = {
   family: 'Fredoka',
   weight: '700',

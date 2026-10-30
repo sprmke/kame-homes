@@ -45,7 +45,9 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     server: ['submit-listing-recommended', 'submit-org-verification'],
   },
   telegramNotifications: {
-    client: ['dashboard/bookings/pages/NotificationsPage.tsx'],
+    client: [
+      'dashboard/bookings/components/telegram-notifications/TelegramNotificationsTelegramSection.tsx',
+    ],
     server: ['_shared/telegramSettingsHttp.ts', '_shared/planEntitlements.ts'],
   },
   teamManagement: {

@@ -17,6 +17,11 @@ import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
+import {
+  FeatureUnavailableMutationError,
+  throwIfFeatureUnavailableBody,
+  toastFeatureUnavailable,
+} from '@/lib/featureAvailability/featureUnavailableError';
 
 const DEFAULT_QUOTA_FEATURE: PlanFeatureKey = 'aiMarketingImageGeneration';
 
@@ -43,7 +48,9 @@ export class GenerationRequestError extends Error {
 }
 
 /** The failed job a generate request still saved (a new conversation exists then too). */
-export function failedJobFromError(error: unknown): { id: string; sessionId?: string | null } | null {
+export function failedJobFromError(
+  error: unknown
+): { id: string; sessionId?: string | null } | null {
   if (!(error instanceof GenerationRequestError)) return null;
   const job = (error.data as { job?: { id?: unknown; sessionId?: unknown } } | undefined)?.job;
   if (!job || typeof job.id !== 'string') return null;
@@ -85,6 +92,10 @@ export async function generationFetch<T>(
 
   const json = (await res.json().catch(() => ({}))) as EdgeEnvelope;
 
+  if (res.status === 503) {
+    throwIfFeatureUnavailableBody(json);
+  }
+
   if (res.status === 429) {
     if (json.upgradeHook) {
       throw new AiQuotaExceededClientError(json.error, feature);
@@ -102,6 +113,10 @@ export async function generationFetch<T>(
 }
 
 export function handleGenerationError(error: Error): void {
+  if (error instanceof FeatureUnavailableMutationError) {
+    toastFeatureUnavailable(error.payload.error);
+    return;
+  }
   if (error instanceof AiQuotaExceededClientError) {
     toastAiQuotaExceeded(error.message, { feature: error.feature ?? DEFAULT_QUOTA_FEATURE });
     return;

@@ -1,6 +1,8 @@
 import { scopedFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
+import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
+
 import { supabase } from '@/lib/supabase/client';
 
 export type CalendarFeedProvider = 'airbnb' | 'booking_com' | 'vrbo' | 'other';
@@ -89,6 +91,7 @@ async function parse<T>(res: Response): Promise<T> {
     throw err;
   }
   if (!res.ok || json?.success === false) {
+    throwIfFeatureUnavailableBody(json);
     throw new Error(json?.error ?? json?.message ?? 'Request failed');
   }
   return (json.data ?? json) as T;

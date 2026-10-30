@@ -16,6 +16,7 @@ import {
   type CalendarBookingCelebrationTrigger,
 } from '@/features/dashboard/bookings/components/calendar/CalendarBookingCelebration';
 import { buildOccupancyByDay } from '@/features/dashboard/bookings/components/calendar/calendarDateUtils';
+import { FeatureStatusDot } from '@/components/feature-availability/FeatureStatusDot';
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { ChannelSyncDialog } from '@/features/dashboard/pricing/components/ChannelSyncDialog';
 import { PricingCalendarBookingModal } from '@/features/dashboard/pricing/components/PricingCalendarBookingModal';
@@ -24,6 +25,7 @@ import { PricingDateModal } from '@/features/dashboard/pricing/components/Pricin
 import { PricingRatesFormCard } from '@/features/dashboard/pricing/components/PricingRatesFormCard';
 import { PricingSaveDialog } from '@/features/dashboard/pricing/components/PricingSaveDialog';
 import { PricingStatsRow } from '@/features/dashboard/pricing/components/PricingStatsRow';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { pricingCalendarFormGridClassName } from '@/features/dashboard/pricing/lib/pricingCalendarLayout';
 import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { SmartPricingDialog } from '@/features/dashboard/pricing/components/SmartPricingDialog';
@@ -90,6 +92,9 @@ export function PropertyPricingPage() {
   const canViewChannels = hasPropertyPermission(permissions, 'pricing.channels:view');
   const canEditChannels = hasPropertyPermission(permissions, 'pricing.channels:edit');
   const canSelectDates = canEditRates || canBlockDates || canUnblockDates;
+  const channelSyncAvailability = useFeatureAvailability('pricing.channel_sync');
+  const showChannelSyncTierBadge =
+    channelSyncAvailability.available && !channelSyncAvailability.isLoading;
 
   const [channelSyncOpen, setChannelSyncOpen] = useState(false);
   const [smartPricingOpen, setSmartPricingOpen] = useState(false);
@@ -617,8 +622,13 @@ export function PropertyPricingPage() {
               onClick={() => setChannelSyncOpen(true)}
             >
               <CalendarRange className="size-5" aria-hidden />
+              {!channelSyncAvailability.available && !channelSyncAvailability.isLoading ? (
+                <FeatureStatusDot className="absolute right-0.5 top-0.5" />
+              ) : null}
             </MobileHeroActionButton>
-            <TierBadge feature="calendarSync" placement="corner" />
+            {showChannelSyncTierBadge ? (
+              <TierBadge feature="calendarSync" placement="corner" />
+            ) : null}
           </span>
         ) : null}
       </span>
@@ -641,7 +651,20 @@ export function PropertyPricingPage() {
           </TierBadgeAnchor>
         ) : null}
         {canViewChannels ? (
-          <TierBadgeAnchor feature="calendarSync">
+          showChannelSyncTierBadge ? (
+            <TierBadgeAnchor feature="calendarSync">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setChannelSyncOpen(true)}
+                className="min-h-[44px] gap-1.5"
+              >
+                <CalendarRange className="size-4" aria-hidden />
+                Channel sync
+                {!channelSyncAvailability.available ? <FeatureStatusDot className="ml-1" /> : null}
+              </Button>
+            </TierBadgeAnchor>
+          ) : (
             <Button
               type="button"
               variant="outline"
@@ -650,8 +673,9 @@ export function PropertyPricingPage() {
             >
               <CalendarRange className="size-4" aria-hidden />
               Channel sync
+              <FeatureStatusDot className="ml-1" />
             </Button>
-          </TierBadgeAnchor>
+          )
         ) : null}
       </span>
     ) : undefined;

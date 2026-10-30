@@ -8,15 +8,17 @@ import {
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
 import { AdminEdgeFetchError } from '@/lib/api/adminEdgeFetch';
+import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
 
 export const ANALYTICS_AI_REVIEW_KEY = ['analytics-ai-review'] as const;
 
-export function useAnalyticsAiReview() {
+export function useAnalyticsAiReview(options?: { enabled?: boolean }) {
   const propertyId = usePropertyIdParam();
+  const enabled = options?.enabled ?? true;
   return useQuery({
     queryKey: [...ANALYTICS_AI_REVIEW_KEY, propertyId] as const,
     queryFn: () => fetchAnalyticsAiReview(propertyId),
-    enabled: !!propertyId,
+    enabled: !!propertyId && enabled,
     staleTime: 5 * 60_000,
   });
 }
@@ -36,6 +38,7 @@ export function useRegenerateAnalyticsAiReview() {
       toast.success('Review updated');
     },
     onError: (error: Error) => {
+      if (handleFeatureUnavailableMutationError(error, queryClient)) return;
       if (error instanceof AdminEdgeFetchError && error.rateLimited) {
         toast.error('You can analyze this range once a day. Try again tomorrow.');
         return;

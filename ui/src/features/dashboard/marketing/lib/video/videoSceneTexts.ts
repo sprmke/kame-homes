@@ -44,7 +44,7 @@ const GENERIC_SCENE_TEXTS: Record<VideoSceneKind, VideoSceneTextFields> = {
     promoLine: '₱500 OFF',
     ctaLine: 'FOR WEEKDAY BOOKINGS',
     slotLabels: [],
-    rulesLine: 'KAME HOME',
+    rulesLine: 'KAME SPACE',
   },
   slots: {
     headline: 'LAST 3 SLOTS',
@@ -52,7 +52,7 @@ const GENERIC_SCENE_TEXTS: Record<VideoSceneKind, VideoSceneTextFields> = {
     promoLine: '',
     ctaLine: 'BOOK NOW',
     slotLabels: ['12 · Fri', '18 · Thu', '25 · Thu'],
-    rulesLine: 'KAME HOME',
+    rulesLine: 'KAME SPACE',
   },
   cta: {
     headline: '',
@@ -60,7 +60,7 @@ const GENERIC_SCENE_TEXTS: Record<VideoSceneKind, VideoSceneTextFields> = {
     promoLine: '',
     ctaLine: 'BOOK NOW',
     slotLabels: [],
-    rulesLine: 'KAME HOME',
+    rulesLine: 'KAME SPACE',
   },
 };
 
