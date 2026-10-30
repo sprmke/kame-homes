@@ -33,9 +33,17 @@ import {
   InboxMediaPreviewDialog,
   InboxMessageMediaTile,
 } from '@/features/dashboard/inbox/components/InboxMediaPreviewDialog';
+import {
+  ChatTemplateCard,
+  ChatTemplatePreviewDialog,
+} from '@/features/dashboard/inbox/components/ChatTemplateMessage';
 import type { InboxAttachmentPreview } from '@/features/dashboard/inbox/lib/inboxMessageAttachments';
 
 import { ChatComposerContextBar } from '@/components/chat/ChatComposerContextBar';
+import {
+  type ChatTemplateSnapshot,
+  readChatTemplateSnapshot,
+} from '@/components/chat/chatTemplateSnapshot';
 import {
   ChatMessageActionItem,
   ChatMessageActionsMenu,
@@ -153,6 +161,7 @@ export function GuestChatThread({
   const [pickingFaq, setPickingFaq] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<GuestChatAttachment[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<InboxAttachmentPreview | null>(null);
+  const [openSnapshot, setOpenSnapshot] = useState<ChatTemplateSnapshot | null>(null);
   const [composerMode, setComposerMode] = useState<ComposerMode>({ kind: 'compose' });
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarCheckIn, setCalendarCheckIn] = useState<Date | null>(null);
@@ -420,6 +429,13 @@ export function GuestChatThread({
           if (!open) setPreviewAttachment(null);
         }}
       />
+      <ChatTemplatePreviewDialog
+        open={!!openSnapshot}
+        onOpenChange={(open) => {
+          if (!open) setOpenSnapshot(null);
+        }}
+        snapshot={openSnapshot}
+      />
 
       {propertySlug ? (
         <BookingCalendarModal
@@ -564,44 +580,58 @@ export function GuestChatThread({
                   </ChatMessageActionsMenu>
                 );
 
-                const bubble =
-                  isUnsent || hasText || (!hasText && !hasMedia) ? (
-                    <ChatMessageBubble
-                      bodyText={
-                        isUnsent
-                          ? unsentMessageLabel(outbound)
-                          : hasText
-                            ? bodyText
-                            : '(attachment)'
-                      }
-                      outbound={outbound}
-                      unsent={isUnsent}
-                      sentAt={msg.sent_at}
-                      deliveryStatus={deliveryStatus}
-                      isAiGenerated={!isUnsent && msg.is_ai_generated}
-                      feedback={
-                        !outbound && msg.is_ai_generated && onAiFeedback
-                          ? {
-                              rating: aiFeedback[msg.id] ?? 0,
-                              onRate: (rating) => onAiFeedback(msg.id, rating),
-                            }
-                          : undefined
-                      }
-                      edited={!isUnsent && Boolean(msg.edited_at)}
-                      replyPreviewText={isUnsent ? null : msg.reply_preview_text}
-                      highlightQuery={highlightQuery}
-                      activeHighlightRange={activeHighlightRange}
-                      onRetry={
-                        !isUnsent && msg.delivery_status === 'failed' && onRetryFailed
-                          ? () => onRetryFailed(msg.id, bodyText)
-                          : undefined
-                      }
-                      actions={messageActions}
-                      onCalendarLinkClick={
-                        propertySlug ? () => setCalendarModalOpen(true) : undefined
-                      }
+                const templateSnapshot = isUnsent
+                  ? null
+                  : readChatTemplateSnapshot(msg.template_snapshot);
+
+                const bubble = templateSnapshot ? (
+                  <ChatMessageBubble
+                    variant="card"
+                    bodyText={bodyText}
+                    outbound={outbound}
+                    sentAt={msg.sent_at}
+                    deliveryStatus={deliveryStatus}
+                    replyPreviewText={msg.reply_preview_text}
+                    actions={messageActions}
+                  >
+                    <ChatTemplateCard
+                      snapshot={templateSnapshot}
+                      onOpen={() => setOpenSnapshot(templateSnapshot)}
                     />
-                  ) : null;
+                  </ChatMessageBubble>
+                ) : isUnsent || hasText || (!hasText && !hasMedia) ? (
+                  <ChatMessageBubble
+                    bodyText={
+                      isUnsent ? unsentMessageLabel(outbound) : hasText ? bodyText : '(attachment)'
+                    }
+                    outbound={outbound}
+                    unsent={isUnsent}
+                    sentAt={msg.sent_at}
+                    deliveryStatus={deliveryStatus}
+                    isAiGenerated={!isUnsent && msg.is_ai_generated}
+                    feedback={
+                      !outbound && msg.is_ai_generated && onAiFeedback
+                        ? {
+                            rating: aiFeedback[msg.id] ?? 0,
+                            onRate: (rating) => onAiFeedback(msg.id, rating),
+                          }
+                        : undefined
+                    }
+                    edited={!isUnsent && Boolean(msg.edited_at)}
+                    replyPreviewText={isUnsent ? null : msg.reply_preview_text}
+                    highlightQuery={highlightQuery}
+                    activeHighlightRange={activeHighlightRange}
+                    onRetry={
+                      !isUnsent && msg.delivery_status === 'failed' && onRetryFailed
+                        ? () => onRetryFailed(msg.id, bodyText)
+                        : undefined
+                    }
+                    actions={messageActions}
+                    onCalendarLinkClick={
+                      propertySlug ? () => setCalendarModalOpen(true) : undefined
+                    }
+                  />
+                ) : null;
 
                 return (
                   <div

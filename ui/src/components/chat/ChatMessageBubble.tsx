@@ -34,6 +34,8 @@ type Props = {
     rating: 1 | -1 | 0;
     onRate: (rating: 1 | -1) => void;
   };
+  /** `card` drops the chat bubble padding/background so children fill the bubble. */
+  variant?: 'bubble' | 'card';
 };
 
 export function ChatMessageBubble({
@@ -53,16 +55,20 @@ export function ChatMessageBubble({
   actions,
   onCalendarLinkClick,
   feedback,
+  variant = 'bubble',
 }: Props) {
   const timeLabel = formatChatBubbleTime(sentAt);
   const trimmed = bodyText?.trim() || '-';
   const bubbleClass = cn(
-    'max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
-    unsent
-      ? 'bg-muted/45 text-muted-foreground border-border/50 border italic'
-      : outbound
-        ? 'bg-primary text-primary-foreground'
-        : 'border-border/60 bg-background text-foreground border shadow-sm',
+    variant === 'card'
+      ? 'border-border/60 bg-card text-foreground max-w-[min(100%,28rem)] overflow-hidden rounded-2xl border shadow-sm'
+      : 'max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
+    variant === 'bubble' &&
+      (unsent
+        ? 'bg-muted/45 text-muted-foreground border-border/50 border italic'
+        : outbound
+          ? 'bg-primary text-primary-foreground'
+          : 'border-border/60 bg-background text-foreground border shadow-sm'),
     deliveryStatus === 'failed' && outbound && !unsent && 'opacity-80'
   );
 

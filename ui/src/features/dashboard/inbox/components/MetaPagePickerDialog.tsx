@@ -13,7 +13,9 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -36,6 +38,7 @@ export function MetaPagePickerDialog({
   onOpenChange,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const metaConnectAvailability = useFeatureAvailability('inbox.meta.connect');
 
   useEffect(() => {
     if (!open) {
@@ -54,7 +57,15 @@ export function MetaPagePickerDialog({
           <ResponsiveModalTitle>Choose Facebook Page</ResponsiveModalTitle>
         </ResponsiveModalHeader>
 
-        {loading ? (
+        {open && !metaConnectAvailability.available && !metaConnectAvailability.isLoading ? (
+          <FeatureUnavailablePanel
+            label={metaConnectAvailability.label}
+            message={metaConnectAvailability.message}
+            expectedBackLabel={metaConnectAvailability.expectedBackLabel}
+            reason={metaConnectAvailability.reason}
+            tone={metaConnectAvailability.tone}
+          />
+        ) : loading ? (
           <div className="space-y-2 py-2" aria-busy="true" aria-label="Loading pages">
             {Array.from({ length: 4 }).map((_, i) => (
               <div

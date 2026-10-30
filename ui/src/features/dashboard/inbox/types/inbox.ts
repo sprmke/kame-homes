@@ -67,9 +67,23 @@ export type InboxMessage = {
   deleted_at?: string | null;
   reply_to_message_id?: string | null;
   reply_preview_text?: string | null;
+  message_kind?: 'text' | 'template';
+  template_snapshot?: unknown | null;
+};
+
+/** Row in the composer Insert → Templates list (`chat-templates` edge function). */
+export type ChatTemplateListItem = {
+  templateKey: string;
+  name: string;
+  category: 'standard' | 'custom';
+  description: string | null;
+  sectionImageUrl: string | null;
+  folderId: string | null;
+  updatedAt: string | null;
 };
 
 export function canHostEditMessage(message: InboxMessage, messages: InboxMessage[]): boolean {
+  if (message.message_kind === 'template') return false;
   return canHostEditMessageInThread(message as ChatActionMessage, messages);
 }
 

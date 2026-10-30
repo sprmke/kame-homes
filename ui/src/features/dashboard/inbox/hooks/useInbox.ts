@@ -18,6 +18,7 @@ import {
   fetchInboxTemplates,
   fetchInboxThreads,
   fetchMetaOAuthPages,
+  listChatTemplates,
   markInboxConversationRead,
   patchInboxAutomationSettings,
   resubscribeMetaInbox,
@@ -35,6 +36,7 @@ import {
   type InboxThreadsPageParam,
 } from '@/features/dashboard/inbox/lib/inboxApi';
 import { uploadInboxChatAttachment } from '@/features/dashboard/inbox/lib/inboxChatAttachment';
+import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
 import { isInboxMockMode } from '@/features/dashboard/inbox/lib/inboxMockMode';
 import {
   mockAiSuggest,
@@ -42,6 +44,7 @@ import {
   mockDeleteTemplate,
   mockDisconnectMeta,
   mockFetchAutomation,
+  mockFetchChatTemplates,
   mockFetchConnections,
   mockFetchMessages,
   mockFetchTemplates,
@@ -61,6 +64,7 @@ import {
   inboxPageExhaustedInDb,
 } from '@/features/dashboard/inbox/lib/inboxThreadPagination';
 import type {
+  ChatTemplateListItem,
   InboxConversation,
   SaveInboxTemplatePayload,
   ThreadPlatformFilter,
@@ -81,6 +85,7 @@ export const INBOX_THREADS_KEY = 'inbox-threads';
 export const INBOX_MESSAGES_KEY = 'inbox-messages';
 export const INBOX_CONNECTIONS_KEY = 'inbox-connections';
 export const INBOX_TEMPLATES_KEY = 'inbox-templates';
+export const INBOX_CHAT_TEMPLATES_KEY = 'inbox-chat-templates';
 export const INBOX_SETTINGS_KEY = 'inbox-settings';
 export const META_OAUTH_PAGES_KEY = 'meta-oauth-pages';
 
@@ -214,12 +219,14 @@ export function useMetaInboxSync(
   orgSlug: string | null,
   orgId: string | null,
   metaSyncInProgress: boolean,
-  scope?: InboxApiScope | null
+  scope?: InboxApiScope | null,
+  /** When false, skip backfill polling (feature availability `inbox.meta.sync` off). */
+  syncEnabled = true
 ): { active: boolean } {
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (mockMode || !orgId || !orgSlug || !metaSyncInProgress) return;
+    if (mockMode || !orgId || !orgSlug || !metaSyncInProgress || !syncEnabled) return;
 
     metaSyncAbortByOrg.get(orgId)?.abort();
     const abort = new AbortController();
@@ -250,9 +257,9 @@ export function useMetaInboxSync(
         metaSyncAbortByOrg.delete(orgId);
       }
     };
-  }, [metaSyncInProgress, orgId, orgSlug, qc, scope?.propertyId, scope?.parkingId]);
+  }, [metaSyncInProgress, orgId, orgSlug, qc, scope?.propertyId, scope?.parkingId, syncEnabled]);
 
-  return { active: metaSyncInProgress };
+  return { active: metaSyncInProgress && syncEnabled };
 }
 
 export function useInboxMutations(
@@ -261,6 +268,10 @@ export function useInboxMutations(
   scope?: InboxApiScope | null
 ) {
   const qc = useQueryClient();
+
+  const onFeatureUnavailableError = (error: unknown) => {
+    handleFeatureUnavailableMutationError(error, qc);
+  };
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: [INBOX_CONNECTIONS_KEY] });
@@ -275,6 +286,7 @@ export function useInboxMutations(
       if (!mockMode) window.location.href = url;
       else invalidate();
     },
+    onError: onFeatureUnavailableError,
   });
 
   const disconnectMeta = useMutation({
@@ -293,6 +305,7 @@ export function useInboxMutations(
       void qc.invalidateQueries({ queryKey: [INBOX_THREADS_KEY] });
       void qc.invalidateQueries({ queryKey: [INBOX_MESSAGES_KEY] });
     },
+    onError: onFeatureUnavailableError,
   });
 
   const resubscribeMeta = useMutation({
@@ -303,6 +316,7 @@ export function useInboxMutations(
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [INBOX_CONNECTIONS_KEY] });
     },
+    onError: onFeatureUnavailableError,
   });
 
   const sendReply = useMutation({
@@ -312,14 +326,18 @@ export function useInboxMutations(
       replyToMessageId?: string;
       useHumanAgentTag?: boolean;
       attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
+      templateKey?: string;
+      bookingId?: string | null;
     }) => {
       if (mockMode) {
-        await mockSendReply(opts.conversationId, opts.text);
+        await mockSendReply(opts.conversationId, opts.text, opts.templateKey);
         return undefined;
       }
+      // Template replies need the server renderer, so they never go through the
+      // text-only offline outbox.
       // Text-only replies survive going offline via the durable outbox; replies
       // with attachments need an online upload first, so stay online-only.
-      if (!opts.attachments?.length) {
+      if (!opts.attachments?.length && !opts.templateKey) {
         await runOfflineMutation(
           {
             kind: 'inbox-reply',
@@ -336,10 +354,13 @@ export function useInboxMutations(
         replyToMessageId: opts.replyToMessageId,
         useHumanAgentTag: opts.useHumanAgentTag,
         attachments: opts.attachments,
+        templateKey: opts.templateKey,
+        bookingId: opts.bookingId,
         scope,
       });
     },
     onMutate: async (vars) => {
+      if (vars.templateKey) return { prev: undefined };
       const msgKey = inboxMessagesQueryKey(vars.conversationId, scope);
       await qc.cancelQueries({ queryKey: msgKey });
       const prev = qc.getQueryData<{
@@ -372,10 +393,11 @@ export function useInboxMutations(
       }
       return { prev };
     },
-    onError: (_err, vars, ctx) => {
+    onError: (err, vars, ctx) => {
       if (ctx?.prev && !mockMode) {
         qc.setQueryData(inboxMessagesQueryKey(vars.conversationId, scope), ctx.prev);
       }
+      onFeatureUnavailableError(err);
     },
     onSuccess: (_, vars) => {
       void qc.invalidateQueries({ queryKey: inboxMessagesQueryKey(vars.conversationId, scope) });
@@ -395,6 +417,7 @@ export function useInboxMutations(
       mockMode
         ? mockAiSuggest(conversationId)
         : suggestInboxAiReply(orgSlug, orgId, conversationId, scope),
+    onError: onFeatureUnavailableError,
   });
 
   const editMessage = useMutation({
@@ -406,6 +429,7 @@ export function useInboxMutations(
       void qc.invalidateQueries({ queryKey: inboxMessagesQueryKey(vars.conversationId, scope) });
       scheduleThreadsInvalidate(qc);
     },
+    onError: onFeatureUnavailableError,
   });
 
   const unsendMessage = useMutation({
@@ -417,6 +441,7 @@ export function useInboxMutations(
       void qc.invalidateQueries({ queryKey: inboxMessagesQueryKey(vars.conversationId, scope) });
       scheduleThreadsInvalidate(qc);
     },
+    onError: onFeatureUnavailableError,
   });
 
   return {
@@ -828,6 +853,22 @@ export function useInboxRealtime(orgId: string | null) {
       if (channel) void supabase.removeChannel(channel);
     };
   }, [orgId, qc]);
+}
+
+export function useChatTemplates(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope?: InboxApiScope | null,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [INBOX_CHAT_TEMPLATES_KEY, orgSlug, orgId, ...inboxScopeKey(scope), mockMode],
+    queryFn: (): Promise<ChatTemplateListItem[]> =>
+      mockMode ? mockFetchChatTemplates() : listChatTemplates(orgSlug, orgId, scope),
+    enabled: enabled && (mockMode || (!!(orgSlug || orgId) && !!scope?.propertyId)),
+    retry: false,
+    staleTime: 60_000,
+  });
 }
 
 export function useInboxTemplates(

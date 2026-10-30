@@ -1,4 +1,6 @@
+import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
 import type {
+  ChatTemplateListItem,
   InboxAutomationSettings,
   InboxConnection,
   InboxConversation,
@@ -15,6 +17,7 @@ import {
   useOrgSlugParam,
 } from '@/features/dashboard/org/lib/adminApiScope';
 import { throwIfAiQuota } from '@/features/dashboard/org/lib/aiQuotaToast';
+import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
 
 import { supabase } from '@/lib/supabase/client';
 
@@ -34,7 +37,10 @@ type EdgeJson = {
 
 /** Edge functions return `{ success, data }`; unwrap for typed fields. */
 function unwrapEdgePayload(json: EdgeJson): Record<string, unknown> {
-  if (!json.success) throw new Error(json.error ?? 'Request failed');
+  if (!json.success) {
+    throwIfFeatureUnavailableBody(json);
+    throw new Error(json.error ?? 'Request failed');
+  }
   const payload = json.data;
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     return payload;
@@ -343,6 +349,8 @@ export async function sendInboxReply(
     replyToMessageId?: string;
     useHumanAgentTag?: boolean;
     attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
+    templateKey?: string;
+    bookingId?: string | null;
     scope?: InboxApiScope | null;
   }
 ): Promise<void> {
@@ -360,11 +368,49 @@ export async function sendInboxReply(
       replyToMessageId: opts?.replyToMessageId,
       useHumanAgentTag: opts?.useHumanAgentTag === true,
       attachments: opts?.attachments,
+      templateKey: opts?.templateKey,
+      bookingId: opts?.bookingId ?? undefined,
       ...inboxScopeBody(scope),
     }),
   });
   const json = (await res.json()) as EdgeJson;
   unwrapEdgePayload(json);
+}
+
+/** Property templates available in the Inbox composer (email templates excluded). */
+export async function listChatTemplates(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope?: InboxApiScope | null
+): Promise<ChatTemplateListItem[]> {
+  const jwt = await getJwt();
+  const res = await fetch(withInboxScope(orgUrl('/chat-templates', orgSlug, orgId), scope), {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json);
+  return (payload.templates as ChatTemplateListItem[] | undefined) ?? [];
+}
+
+/** Rendered template preview, with the conversation's guest/booking placeholders filled. */
+export async function fetchChatTemplatePreview(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope: InboxApiScope | null | undefined,
+  templateKey: string,
+  opts?: { conversationId?: string | null; bookingId?: string | null }
+): Promise<ChatTemplateSnapshot> {
+  const jwt = await getJwt();
+  const url = new URL(withInboxScope(orgUrl('/chat-templates', orgSlug, orgId), scope));
+  url.searchParams.set('template_key', templateKey);
+  if (opts?.conversationId) url.searchParams.set('conversation_id', opts.conversationId);
+  if (opts?.bookingId) url.searchParams.set('booking_id', opts.bookingId);
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${jwt}` } });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json);
+  const snapshot = payload.snapshot as ChatTemplateSnapshot | undefined;
+  if (!snapshot) throw new Error('Template preview failed');
+  return snapshot;
 }
 
 /** Scoped `social-inbox-send` URL — for the offline outbox, which needs a concrete URL. */

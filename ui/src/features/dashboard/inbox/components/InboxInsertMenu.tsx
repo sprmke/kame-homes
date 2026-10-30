@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { CalendarDays, CreditCard, KeyRound, Loader2, Pin, Plus, Search, Zap } from 'lucide-react';
+import {
+  CalendarDays,
+  CreditCard,
+  KeyRound,
+  LayoutTemplate,
+  Loader2,
+  Pin,
+  Plus,
+  Search,
+  Zap,
+} from 'lucide-react';
 
 import { StatusBadge } from '@/features/dashboard/bookings/components/StatusBadge';
 import { useAppSettings } from '@/features/dashboard/bookings/hooks/useAppSettings';
@@ -19,7 +29,13 @@ import {
   bookingSearchHaystack,
   bookingStayRange,
 } from '@/features/dashboard/inbox/lib/inboxShareBookingItems';
-import type { InboxConversation, InboxTemplate } from '@/features/dashboard/inbox/types/inbox';
+import type {
+  InboxConversation,
+  InboxTemplate,
+  ChatTemplateListItem,
+} from '@/features/dashboard/inbox/types/inbox';
+import { useChatTemplates } from '@/features/dashboard/inbox/hooks/useInbox';
+import { useOrgIdParam, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { legacyGcashQrForPaymentMethods } from '@/features/dashboard/lib/storedMediaDisplay';
 import { normalizePaymentMethodsDraft } from '@/features/dashboard/org/lib/paymentMethods';
 import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
@@ -123,6 +139,7 @@ type Props = {
   disabled?: boolean;
   onInsertUrl: (url: string) => void;
   onInsertText: (text: string) => void;
+  onSelectTemplate: (template: ChatTemplateListItem) => void;
 };
 
 /** Unified composer insert menu: links, pages, booking docs, payment info, maps. */
@@ -139,10 +156,19 @@ export function InboxInsertMenu({
   disabled,
   onInsertUrl,
   onInsertText,
+  onSelectTemplate,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
+  const orgSlug = useOrgSlugParam();
+  const orgId = useOrgIdParam();
+  const chatTemplates = useChatTemplates(
+    orgSlug,
+    orgId,
+    propertyId ? { propertyId } : null,
+    Boolean(propertyId)
+  );
   const { canUse: canUseQuickReplies, isLoading: quickRepliesLoading } =
     useFeatureGate('quickReplies');
   const { open: openUpgradeModal } = useUpgradeModal();
@@ -229,6 +255,11 @@ export function InboxInsertMenu({
     }
     const merged = mergeSnippet ? mergeSnippet(body) : body;
     insertText(merged);
+  };
+
+  const selectTemplate = (template: ChatTemplateListItem) => {
+    closeAndReset();
+    onSelectTemplate(template);
   };
 
   const snippetTemplates = templates.slice(0, 8);
@@ -320,6 +351,33 @@ export function InboxInsertMenu({
                   >
                     <Zap className="text-muted-foreground size-4 shrink-0" aria-hidden />
                     <span className="min-w-0 flex-1 truncate font-medium">{template.title}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {chatTemplates.data && chatTemplates.data.length > 0 ? (
+            <>
+              <p className="text-muted-foreground px-2 pb-1.5 pt-3 text-xs font-medium">
+                Templates
+              </p>
+              <div className="mb-1">
+                {chatTemplates.data.map((template) => (
+                  <button
+                    key={template.templateKey}
+                    type="button"
+                    onClick={() => selectTemplate(template)}
+                    className={cn(
+                      'native-press focus-visible:ring-ring flex min-h-[44px] w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm',
+                      'hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2'
+                    )}
+                  >
+                    <LayoutTemplate className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate font-medium">{template.name}</span>
+                    <span className="text-muted-foreground shrink-0 text-[10px]">
+                      {template.category === 'custom' ? 'Custom' : 'Stay guide'}
+                    </span>
                   </button>
                 ))}
               </div>

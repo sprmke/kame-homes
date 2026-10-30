@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { InboxConversationView } from '@/features/dashboard/inbox/components/InboxConversationView';
 import {
@@ -32,6 +33,8 @@ import {
 } from '@/features/dashboard/inbox/hooks/useInbox';
 import type { InboxApiScope } from '@/features/dashboard/inbox/lib/inboxApi';
 import { metaInboxOAuthErrorMessage } from '@/features/dashboard/inbox/lib/metaInboxOAuthErrors';
+import { toastFeatureUnavailable } from '@/lib/featureAvailability/featureUnavailableError';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import type {
   InboxConversation,
   ThreadPlatformFilter,
@@ -119,6 +122,9 @@ export function InboxPage({
   const { canUse: canUseMetaChatChannel, isLoading: metaChatChannelLoading } =
     useFeatureGate('metaChatChannel');
   const { open: openUpgradeModal } = useUpgradeModal();
+  const metaAvailability = useFeatureAvailability('inbox.meta');
+  const metaConnectAvailability = useFeatureAvailability('inbox.meta.connect');
+  const metaSyncAvailability = useFeatureAvailability('inbox.meta.sync');
 
   useInboxRealtime(orgId);
 
@@ -129,7 +135,7 @@ export function InboxPage({
   } = useInboxConnections(orgSlug, orgId, scope);
   const metaSyncInProgress = connectionsData?.metaSyncInProgress ?? false;
   const metaSyncError = connectionsData?.metaSyncError ?? null;
-  useMetaInboxSync(orgSlug, orgId, metaSyncInProgress, scope);
+  useMetaInboxSync(orgSlug, orgId, metaSyncInProgress, scope, metaSyncAvailability.available);
   const {
     data: threadsData,
     isLoading: threadsLoading,
@@ -204,8 +210,19 @@ export function InboxPage({
   );
   const metaHasMore =
     connectionsData?.metaHasMore ?? threadsData?.pages.at(-1)?.metaHasMore ?? false;
+  const metaPlatformFilterActive =
+    platformFilter === 'all' || platformFilter === 'facebook' || platformFilter === 'instagram';
+
   const threadEmptyVariant = useMemo(() => {
     if (mockActive) return 'empty' as const;
+    if (
+      showChannelsTab &&
+      metaPlatformFilterActive &&
+      !metaAvailability.isLoading &&
+      !metaAvailability.available
+    ) {
+      return 'feature-unavailable' as const;
+    }
     if (threadsError && conversations.length === 0) return 'load-error' as const;
     if (platformFilter === 'web' || !showChannelsTab) return 'empty' as const;
     if (!metaConnected) return 'not-connected' as const;
@@ -227,9 +244,17 @@ export function InboxPage({
     conversations.length,
     search,
     metaHasMore,
+    showChannelsTab,
+    metaPlatformFilterActive,
+    metaAvailability.isLoading,
+    metaAvailability.available,
   ]);
 
   const handleConnectMeta = () => {
+    if (!metaConnectAvailability.available) {
+      toastFeatureUnavailable(metaConnectAvailability.message);
+      return;
+    }
     if (!canUseMetaChatChannel) {
       if (!metaChatChannelLoading) openUpgradeModal('metaChatChannel');
       return;
@@ -238,7 +263,7 @@ export function InboxPage({
       onSuccess: () => {
         if (mockActive) toast.success('Preview: Meta channels connected');
       },
-      onError: (e) => toast.error(e.message),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not connect Meta'),
     });
   };
 
@@ -344,7 +369,21 @@ export function InboxPage({
             value={platformFilter}
             onChange={setPlatformFilter}
             platforms={showChannelsTab ? undefined : ['web']}
+            metaFeatureOff={!metaAvailability.available}
           />
+
+          {showChannelsTab &&
+          metaPlatformFilterActive &&
+          !metaAvailability.available &&
+          !metaAvailability.isLoading ? (
+            <FeatureUnavailableNotice
+              title={metaAvailability.label}
+              label={metaAvailability.message}
+              expectedBackLabel={metaAvailability.expectedBackLabel}
+              tone={metaAvailability.tone}
+              className="mx-2 mt-2 sm:mx-3"
+            />
+          ) : null}
 
           <div className="flex min-h-0 flex-1">
             <div
@@ -364,6 +403,19 @@ export function InboxPage({
                 onStatusFilter={setStatusFilter}
                 onSearch={setSearchInput}
                 emptyVariant={threadEmptyVariant}
+                featureUnavailableLabel={
+                  threadEmptyVariant === 'feature-unavailable' ? metaAvailability.label : undefined
+                }
+                featureUnavailableMessage={
+                  threadEmptyVariant === 'feature-unavailable'
+                    ? metaAvailability.message
+                    : undefined
+                }
+                featureUnavailableExpectedBack={
+                  threadEmptyVariant === 'feature-unavailable'
+                    ? metaAvailability.expectedBackLabel
+                    : undefined
+                }
                 syncError={metaSyncError}
                 loadError={threadsErrorValue instanceof Error ? threadsErrorValue.message : null}
                 canConnect={allowChannels}
@@ -407,6 +459,8 @@ export function InboxPage({
                     replyToMessageId: opts?.replyToMessageId,
                     useHumanAgentTag: opts?.useHumanAgentTag,
                     attachments: opts?.attachments,
+                    templateKey: opts?.templateKey,
+                    bookingId: opts?.bookingId,
                   });
                 }}
                 onUploadAttachment={
@@ -470,7 +524,8 @@ export function InboxPage({
                 setSearchParams(next, { replace: true });
                 toast.success(mockActive ? 'Preview: disconnected' : 'Meta disconnected');
               },
-              onError: (e) => toast.error(e.message),
+              onError: (e) =>
+                toast.error(e instanceof Error ? e.message : 'Could not disconnect Meta'),
             })
           }
           onResubscribeMeta={() =>
@@ -478,7 +533,8 @@ export function InboxPage({
               onSuccess: (result) => {
                 toast.success(result.resubscribed ? 'Connection fixed' : 'Connection verified');
               },
-              onError: (e) => toast.error(e.message),
+              onError: (e) =>
+                toast.error(e instanceof Error ? e.message : 'Could not fix connection'),
             })
           }
           templates={templatesQuery.data ?? []}

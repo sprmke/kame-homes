@@ -13,10 +13,12 @@ import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 
 type Props = {
   settings: InboxAutomationSettings | undefined;
@@ -30,6 +32,7 @@ export function InboxAutomationTab({ settings, isLoading, saving, onSave }: Prop
   const { canUse: canAutoReply, isLoading: entitlementsLoading } =
     useFeatureGate('aiChatAutoReply');
   const { open: openUpgradeModal } = useUpgradeModal();
+  const metaAutoReplyAvailability = useFeatureAvailability('inbox.meta.auto_reply');
 
   if (isLoading || !settings) {
     return (
@@ -132,6 +135,19 @@ export function InboxAutomationTab({ settings, isLoading, saving, onSave }: Prop
 
         {autoSendEnabled && (
           <>
+            {!metaAutoReplyAvailability.available && !metaAutoReplyAvailability.isLoading ? (
+              <div className="border-border/60 border-t px-4 py-3">
+                <FeatureUnavailableNotice
+                  title={metaAutoReplyAvailability.label}
+                  label={
+                    metaAutoReplyAvailability.message ||
+                    'Auto-replies on Facebook and Instagram are paused.'
+                  }
+                  expectedBackLabel={metaAutoReplyAvailability.expectedBackLabel}
+                  tone={metaAutoReplyAvailability.tone}
+                />
+              </div>
+            ) : null}
             <div className="border-border/60 border-t px-4 py-3">
               <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                 Platforms

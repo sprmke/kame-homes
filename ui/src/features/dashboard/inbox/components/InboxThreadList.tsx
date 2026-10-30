@@ -57,7 +57,11 @@ type Props = {
     | 'load-error'
     | 'empty'
     | 'search-not-loaded'
-    | 'search-empty';
+    | 'search-empty'
+    | 'feature-unavailable';
+  featureUnavailableLabel?: string;
+  featureUnavailableMessage?: string;
+  featureUnavailableExpectedBack?: string | null;
   syncError?: string | null;
   loadError?: string | null;
   canConnect?: boolean;
@@ -91,6 +95,9 @@ export function InboxThreadList({
   onLoadMore,
   canLoadOlderFromMeta = false,
   onLoadOlderFromMeta,
+  featureUnavailableLabel,
+  featureUnavailableMessage,
+  featureUnavailableExpectedBack,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -164,6 +171,9 @@ export function InboxThreadList({
             canLoadOlderFromMeta={canLoadOlderFromMeta}
             onLoadOlderFromMeta={onLoadOlderFromMeta}
             loadingOlderFromMeta={loadingMore}
+            featureUnavailableLabel={featureUnavailableLabel}
+            featureUnavailableMessage={featureUnavailableMessage}
+            featureUnavailableExpectedBack={featureUnavailableExpectedBack}
           />
         ) : (
           <div className="py-1">

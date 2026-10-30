@@ -12,6 +12,7 @@ import {
   MOCK_TEMPLATES,
 } from '@/features/dashboard/inbox/lib/inboxMockData';
 import type {
+  ChatTemplateListItem,
   InboxAutomationSettings,
   InboxMessage,
   InboxTemplate,
@@ -19,6 +20,7 @@ import type {
   ThreadPlatformFilter,
   ThreadStatusFilter,
 } from '@/features/dashboard/inbox/types/inbox';
+import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
 
 let conversations = structuredClone(MOCK_CONVERSATIONS);
 let messagesByConv = structuredClone(MOCK_MESSAGES);
@@ -75,7 +77,7 @@ export async function mockMarkRead(conversationId: string) {
   );
 }
 
-export async function mockSendReply(conversationId: string, text: string) {
+export async function mockSendReply(conversationId: string, text: string, templateKey?: string) {
   await delay(200);
   const conv = conversations.find((c) => c.id === conversationId);
   if (!conv) throw new Error('Conversation not found');
@@ -87,15 +89,17 @@ export async function mockSendReply(conversationId: string, text: string) {
     throw new Error('Messaging window expired');
   }
   const now = new Date().toISOString();
+  const template = templateKey ? mockChatTemplatePreview(templateKey) : null;
   const msg: InboxMessage = {
     id: `mock-out-${Date.now()}`,
     conversation_id: conversationId,
     direction: 'outbound',
-    body_text: text,
+    body_text: template ? template.name : text,
     attachments: [],
     sent_at: now,
     delivery_status: 'sent',
     is_ai_generated: false,
+    ...(template ? { message_kind: 'template' as const, template_snapshot: template } : {}),
   };
   messagesByConv[conversationId] = [...(messagesByConv[conversationId] ?? []), msg];
   conversations = conversations.map((c) =>
@@ -203,4 +207,58 @@ export function resetInboxMockStore() {
   messagesByConv = structuredClone(MOCK_MESSAGES);
   templates = structuredClone(MOCK_TEMPLATES);
   automation = structuredClone(MOCK_AUTOMATION);
+}
+
+export const MOCK_CHAT_TEMPLATES: ChatTemplateListItem[] = [
+  {
+    templateKey: 'house-rules',
+    name: 'House Rules',
+    category: 'standard',
+    description: 'Quiet hours, visitors, and shared spaces.',
+    sectionImageUrl: null,
+    folderId: null,
+    updatedAt: '2026-10-02T04:00:00.000Z',
+  },
+  {
+    templateKey: 'check-in-instructions',
+    name: 'Check-in Instructions',
+    category: 'standard',
+    description: 'Arrival steps and the unit access code.',
+    sectionImageUrl: null,
+    folderId: null,
+    updatedAt: '2026-10-02T04:00:00.000Z',
+  },
+  {
+    templateKey: 'custom-welcome',
+    name: 'Welcome note',
+    category: 'custom',
+    description: 'Friendly arrival message with wifi and house tips.',
+    sectionImageUrl: null,
+    folderId: null,
+    updatedAt: '2026-10-20T04:00:00.000Z',
+  },
+];
+
+export async function mockFetchChatTemplates(): Promise<ChatTemplateListItem[]> {
+  await delay();
+  return structuredClone(MOCK_CHAT_TEMPLATES);
+}
+
+export function mockChatTemplatePreview(templateKey: string): ChatTemplateSnapshot {
+  const item =
+    MOCK_CHAT_TEMPLATES.find((template) => template.templateKey === templateKey) ??
+    MOCK_CHAT_TEMPLATES[0]!;
+  return {
+    templateKey: item.templateKey,
+    name: item.name,
+    category: item.category,
+    propertyId: 'mock-property',
+    sectionImageUrl: null,
+    html:
+      item.templateKey === 'house-rules'
+        ? '<h2>House rules</h2><p>Hi {{guest_name}}, here is a quick reminder for your stay.</p><ul><li>Quiet hours start at 10:00 PM.</li><li>Please keep the unit and hallway clean.</li><li>No smoking inside the unit.</li></ul>'
+        : item.templateKey === 'check-in-instructions'
+          ? '<h2>Check-in</h2><p>Hi {{guest_name}}, check-in starts at 2:00 PM.</p><p>Your unit is {{tower_and_unit_number}}. Message us when you arrive and we will meet you at the lobby.</p>'
+          : '<p>Hi {{guest_name}}! Welcome to {{property_name}}. The wifi name and password are on the card by the TV. Message us anytime if you need help.</p>',
+  };
 }

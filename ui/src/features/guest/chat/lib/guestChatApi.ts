@@ -148,6 +148,8 @@ export type GuestChatMessage = {
   deleted_at?: string | null;
   reply_to_message_id?: string | null;
   reply_preview_text?: string | null;
+  message_kind?: 'text' | 'template';
+  template_snapshot?: unknown | null;
 };
 
 export function canGuestEditMessage(

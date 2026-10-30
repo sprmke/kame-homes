@@ -36,7 +36,7 @@ export const MOCK_CONNECTIONS: InboxConnection[] = [
   {
     id: 'conn-ig',
     platform: 'instagram',
-    displayName: '@kamehome.ph',
+    displayName: '@kamespace',
     profileImageUrl: null,
     status: 'connected',
     connectedAt: hoursAgo(720),

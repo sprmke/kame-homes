@@ -29,6 +29,10 @@ import { toast } from 'sonner';
 import { BookingCalendarModal } from '@/features/guest/marketing/properties/components/property-detail/BookingCalendarModal';
 
 import { useBookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
+import {
+  ChatTemplateCard,
+  ChatTemplatePreviewDialog,
+} from '@/features/dashboard/inbox/components/ChatTemplateMessage';
 import { InboxInsertMenu } from '@/features/dashboard/inbox/components/InboxInsertMenu';
 import {
   InboxMediaPreviewDialog,
@@ -37,6 +41,7 @@ import {
 import { PlatformLogo } from '@/features/dashboard/inbox/components/PlatformLogo';
 import { useInboxCrossPropertyMatch } from '@/features/dashboard/inbox/hooks/useInboxCrossPropertyMatch';
 import { useInboxMatchedBooking } from '@/features/dashboard/inbox/hooks/useInboxMatchedBooking';
+import { useInboxMockActive } from '@/features/dashboard/inbox/hooks/useInbox';
 import type { InboxChatAttachment } from '@/features/dashboard/inbox/lib/inboxChatAttachment';
 import { readPropertyCheckInTimes } from '@/features/dashboard/inbox/lib/inboxCheckInPack';
 import {
@@ -45,14 +50,17 @@ import {
   platformLabel,
 } from '@/features/dashboard/inbox/lib/inboxFormat';
 import { readPropertyMapsUrl } from '@/features/dashboard/inbox/lib/inboxInsertContent';
+import { fetchChatTemplatePreview } from '@/features/dashboard/inbox/lib/inboxApi';
 import {
   inboxAttachmentPreviews,
   type InboxAttachmentPreview,
 } from '@/features/dashboard/inbox/lib/inboxMessageAttachments';
 import { readInboxPinnedSnippets } from '@/features/dashboard/inbox/lib/inboxPinnedSnippets';
+import { mockChatTemplatePreview } from '@/features/dashboard/inbox/lib/inboxMockStore';
 import { applyInboxQuickReplyMerge } from '@/features/dashboard/inbox/lib/inboxQuickReplyMerge';
 import { templatesForConversationPlatform } from '@/features/dashboard/inbox/lib/quickReplyGroups';
 import {
+  type ChatTemplateListItem,
   type InboxConversation,
   type InboxMessage,
   type InboxTemplate,
@@ -66,7 +74,12 @@ import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { ChatComposerContextBar } from '@/components/chat/ChatComposerContextBar';
+import {
+  type ChatTemplateSnapshot,
+  readChatTemplateSnapshot,
+} from '@/components/chat/chatTemplateSnapshot';
 import {
   ChatMessageActionItem,
   ChatMessageActionsMenu,
@@ -99,8 +112,11 @@ import { focusComposerInput, type ComposerFocusMode } from '@/lib/chat/focusComp
 import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { useChatThreadSearch } from '@/lib/chat/useChatThreadSearch';
 import { useChatTyping } from '@/lib/chat/useChatTyping';
+import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 import { formatStayDateRange } from '@/utils/format/dates';
+import { useQueryClient } from '@tanstack/react-query';
 
 const MESSAGE_SKELETON_ROWS = [
   { outbound: false, widthClass: 'w-2/3' },
@@ -150,6 +166,8 @@ type Props = {
       replyToMessageId?: string;
       useHumanAgentTag?: boolean;
       attachments?: InboxChatAttachment[];
+      templateKey?: string;
+      bookingId?: string | null;
     }
   ) => Promise<void>;
   onUploadAttachment?: (file: File) => Promise<InboxChatAttachment>;
@@ -200,10 +218,16 @@ export function InboxConversationView({
   const [useHumanAgentTag, setUseHumanAgentTag] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<InboxAttachmentPreview | null>(null);
   const [quickReplyOpen, setQuickReplyOpen] = useState(false);
+  const [composeTemplate, setComposeTemplate] = useState<ChatTemplateListItem | null>(null);
+  const [composeSnapshot, setComposeSnapshot] = useState<ChatTemplateSnapshot | null>(null);
+  const [composeTemplateLoading, setComposeTemplateLoading] = useState(false);
+  const [openSnapshot, setOpenSnapshot] = useState<ChatTemplateSnapshot | null>(null);
   const isMobileLayout = useIsBelowLg();
   const { canUse: canUseQuickReplies, isLoading: quickRepliesLoading } =
     useFeatureGate('quickReplies');
   const { open: openUpgradeModal } = useUpgradeModal();
+  const metaReplyAvailability = useFeatureAvailability('inbox.meta.reply');
+  const queryClient = useQueryClient();
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarCheckIn, setCalendarCheckIn] = useState<Date | null>(null);
   const [calendarCheckOut, setCalendarCheckOut] = useState<Date | null>(null);
@@ -221,6 +245,7 @@ export function InboxConversationView({
   const orgContext = useOptionalOrgContext();
   const propertyIdParam = usePropertyIdParam();
   const propertyId = orgContext?.property.id ?? propertyIdParam;
+  const inboxMockActive = useInboxMockActive();
   const mapsUrl = readPropertyMapsUrl(orgContext?.property.settings);
   const { checkInTime, checkOutTime } = readPropertyCheckInTimes(orgContext?.property.settings);
   const { booking: matchedBooking } = useInboxMatchedBooking(conversation);
@@ -276,6 +301,10 @@ export function InboxConversationView({
   );
 
   const isWeb = conversation?.platform === 'web';
+  const isMetaPlatform =
+    conversation?.platform === 'facebook' || conversation?.platform === 'instagram';
+  const metaReplyPaused =
+    isMetaPlatform && !metaReplyAvailability.isLoading && !metaReplyAvailability.available;
   const showOrgMetaBadge =
     usingOrgMeta &&
     (conversation?.platform === 'facebook' || conversation?.platform === 'instagram');
@@ -480,6 +509,7 @@ export function InboxConversationView({
       setDraftFromAi(true);
       setDraftAiFlagged(result.flagged);
     } catch (e) {
+      if (handleFeatureUnavailableMutationError(e, queryClient)) return;
       if (isAiQuotaError(e)) {
         handleAiMutationError(e);
         return;
@@ -516,6 +546,43 @@ export function InboxConversationView({
     }
   };
 
+  const handleSelectTemplate = async (template: ChatTemplateListItem) => {
+    setComposeTemplate(template);
+    setComposeSnapshot(null);
+    setComposeTemplateLoading(true);
+    try {
+      const snapshot = inboxMockActive
+        ? mockChatTemplatePreview(template.templateKey)
+        : await fetchChatTemplatePreview(
+            orgContext?.orgSlug ?? null,
+            orgContext?.org.id ?? null,
+            propertyId ? { propertyId } : null,
+            template.templateKey,
+            { conversationId: conversation?.id, bookingId: matchedBooking?.id ?? null }
+          );
+      setComposeSnapshot(snapshot);
+    } catch (e) {
+      setComposeTemplate(null);
+      toast.error((e as Error).message);
+    } finally {
+      setComposeTemplateLoading(false);
+    }
+  };
+
+  const handleSendTemplate = async () => {
+    if (!composeTemplate) return;
+    try {
+      await onSend('', {
+        templateKey: composeTemplate.templateKey,
+        bookingId: matchedBooking?.id ?? null,
+      });
+      setComposeTemplate(null);
+      setComposeSnapshot(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   return (
     <div className="bg-muted/20 flex min-h-0 flex-1 flex-col">
       <InboxMediaPreviewDialog
@@ -523,6 +590,29 @@ export function InboxConversationView({
         open={!!previewAttachment}
         onOpenChange={(open) => {
           if (!open) setPreviewAttachment(null);
+        }}
+      />
+      <ChatTemplatePreviewDialog
+        open={!!openSnapshot}
+        onOpenChange={(open) => {
+          if (!open) setOpenSnapshot(null);
+        }}
+        snapshot={openSnapshot}
+      />
+      <ChatTemplatePreviewDialog
+        open={!!composeTemplate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setComposeTemplate(null);
+            setComposeSnapshot(null);
+          }
+        }}
+        snapshot={composeSnapshot}
+        loading={composeTemplateLoading}
+        action={{
+          label: 'Send',
+          pending: sending,
+          onClick: () => void handleSendTemplate(),
         }}
       />
 
@@ -710,10 +800,18 @@ export function InboxConversationView({
                         }
                       : null;
                   const showEdit =
-                    !isUnsent && outbound && canHostEditMessage(msg, messages) && !!onEdit;
+                    !isUnsent &&
+                    outbound &&
+                    canHostEditMessage(msg, messages) &&
+                    !!onEdit &&
+                    !metaReplyPaused;
                   const showUnsend =
-                    !isUnsent && outbound && canHostUnsendMessage(msg, messages) && !!onUnsend;
-                  const showMessageMenu = canReply && !channelDisconnected;
+                    !isUnsent &&
+                    outbound &&
+                    canHostUnsendMessage(msg, messages) &&
+                    !!onUnsend &&
+                    !metaReplyPaused;
+                  const showMessageMenu = canReply && !channelDisconnected && !metaReplyPaused;
                   const deliveryStatus =
                     !isUnsent && outbound ? resolveOutboundDeliveryStatus(msg) : null;
 
@@ -747,31 +845,49 @@ export function InboxConversationView({
                     </ChatMessageActionsMenu>
                   ) : null;
 
-                  const bubble =
-                    isUnsent || hasText || (!hasText && !hasMedia) ? (
-                      <ChatMessageBubble
-                        bodyText={
-                          isUnsent
-                            ? unsentMessageLabel(outbound)
-                            : hasText
-                              ? msg.body_text
-                              : '(attachment)'
-                        }
-                        outbound={outbound}
-                        unsent={isUnsent}
-                        sentAt={msg.sent_at}
-                        deliveryStatus={deliveryStatus}
-                        isAiGenerated={!isUnsent && msg.is_ai_generated}
-                        edited={!isUnsent && Boolean(msg.edited_at)}
-                        replyPreviewText={isUnsent ? null : msg.reply_preview_text}
-                        highlightQuery={highlightQuery}
-                        activeHighlightRange={activeHighlightRange}
-                        actions={messageActions}
-                        onCalendarLinkClick={
-                          conversation.property_slug ? () => setCalendarModalOpen(true) : undefined
-                        }
+                  const templateSnapshot = isUnsent
+                    ? null
+                    : readChatTemplateSnapshot(msg.template_snapshot);
+
+                  const bubble = templateSnapshot ? (
+                    <ChatMessageBubble
+                      variant="card"
+                      bodyText={msg.body_text}
+                      outbound={outbound}
+                      sentAt={msg.sent_at}
+                      deliveryStatus={deliveryStatus}
+                      replyPreviewText={msg.reply_preview_text}
+                      actions={messageActions}
+                    >
+                      <ChatTemplateCard
+                        snapshot={templateSnapshot}
+                        onOpen={() => setOpenSnapshot(templateSnapshot)}
                       />
-                    ) : null;
+                    </ChatMessageBubble>
+                  ) : isUnsent || hasText || (!hasText && !hasMedia) ? (
+                    <ChatMessageBubble
+                      bodyText={
+                        isUnsent
+                          ? unsentMessageLabel(outbound)
+                          : hasText
+                            ? msg.body_text
+                            : '(attachment)'
+                      }
+                      outbound={outbound}
+                      unsent={isUnsent}
+                      sentAt={msg.sent_at}
+                      deliveryStatus={deliveryStatus}
+                      isAiGenerated={!isUnsent && msg.is_ai_generated}
+                      edited={!isUnsent && Boolean(msg.edited_at)}
+                      replyPreviewText={isUnsent ? null : msg.reply_preview_text}
+                      highlightQuery={highlightQuery}
+                      activeHighlightRange={activeHighlightRange}
+                      actions={messageActions}
+                      onCalendarLinkClick={
+                        conversation.property_slug ? () => setCalendarModalOpen(true) : undefined
+                      }
+                    />
+                  ) : null;
 
                   return (
                     <div
@@ -835,7 +951,19 @@ export function InboxConversationView({
         )}
       </div>
 
-      {canReply && (
+      {canReply && metaReplyPaused ? (
+        <div className="border-border bg-card shrink-0 border-t p-3 sm:p-4">
+          <FeatureUnavailableNotice
+            title={metaReplyAvailability.label}
+            label={
+              metaReplyAvailability.message ||
+              'Replies to Facebook and Instagram are paused. You can still reply in Meta Business Suite.'
+            }
+            expectedBackLabel={metaReplyAvailability.expectedBackLabel}
+            tone={metaReplyAvailability.tone}
+          />
+        </div>
+      ) : canReply ? (
         <div className="border-border bg-card shrink-0 border-t p-3 sm:p-4">
           {isWeb && peerTyping ? (
             <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
@@ -996,7 +1124,7 @@ export function InboxConversationView({
                               variant="ghost"
                               size="icon"
                               className="text-muted-foreground hover:text-foreground size-10"
-                              disabled={channelDisconnected}
+                              disabled={channelDisconnected || metaReplyPaused}
                               aria-label="Insert quick reply"
                               aria-haspopup="dialog"
                               aria-expanded={quickReplyOpen}
@@ -1036,7 +1164,7 @@ export function InboxConversationView({
                                 variant="ghost"
                                 size="icon"
                                 className="text-muted-foreground hover:text-foreground size-10"
-                                disabled={channelDisconnected}
+                                disabled={channelDisconnected || metaReplyPaused}
                                 aria-label="Insert quick reply"
                               >
                                 <Zap className="size-4" />
@@ -1067,7 +1195,7 @@ export function InboxConversationView({
                         variant="ghost"
                         size="icon"
                         className="size-10 text-violet-600 hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
-                        disabled={suggesting || channelDisconnected}
+                        disabled={suggesting || channelDisconnected || metaReplyPaused}
                         aria-label="Suggest reply"
                         onClick={() => void handleSuggest()}
                       >
@@ -1095,9 +1223,10 @@ export function InboxConversationView({
                           ? (text) => applyInboxQuickReplyMerge(text, quickReplyMergeContext)
                           : undefined
                       }
-                      disabled={channelDisconnected}
+                      disabled={channelDisconnected || metaReplyPaused}
                       onInsertUrl={appendToDraft}
                       onInsertText={appendToDraft}
+                      onSelectTemplate={(template) => void handleSelectTemplate(template)}
                     />
                   ) : null}
                 </div>
@@ -1124,7 +1253,7 @@ export function InboxConversationView({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
