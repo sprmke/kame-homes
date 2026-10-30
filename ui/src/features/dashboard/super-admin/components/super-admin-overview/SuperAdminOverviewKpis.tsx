@@ -9,6 +9,7 @@ import {
   Receipt,
   Sparkles,
   Timer,
+  ToggleRight,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -21,9 +22,10 @@ import { StatCard, StatCardGrid } from '@/components/shared/StatCard';
 type Props = {
   kpis: SuperAdminOverview['kpis'];
   orgsWithoutLivePlan: number;
+  featuresOff?: number;
 };
 
-export function SuperAdminOverviewKpis({ kpis, orgsWithoutLivePlan }: Props) {
+export function SuperAdminOverviewKpis({ kpis, orgsWithoutLivePlan, featuresOff = 0 }: Props) {
   return (
     <section aria-label="Platform metrics">
       <StatCardGrid className="gap-2 sm:gap-2.5 md:grid-cols-4 lg:gap-3">
@@ -133,6 +135,17 @@ export function SuperAdminOverviewKpis({ kpis, orgsWithoutLivePlan }: Props) {
           iconClassName="text-indigo-600 dark:text-indigo-400"
           iconBgClassName="bg-indigo-100 dark:bg-indigo-900/30"
         />
+        {featuresOff > 0 ? (
+          <StatCard
+            density="compact"
+            title="Features off"
+            value={String(featuresOff)}
+            to={superAdminPaths.featureAvailability}
+            icon={ToggleRight}
+            iconClassName="text-amber-600 dark:text-amber-400"
+            iconBgClassName="bg-amber-100 dark:bg-amber-900/30"
+          />
+        ) : null}
       </StatCardGrid>
     </section>
   );
