@@ -5,6 +5,7 @@
 
 import { expect, type Page, type Route } from '@playwright/test';
 
+import { featureAvailabilityBody } from '../../../shared/featureAvailabilityMocks';
 import { mockPublicPropertyBody } from '../../../shared/mockFixtures';
 import { PLAN_PRO, PLANS_E2E_CATALOG } from '../../plans/shared/orgPlanHarnessShared';
 
@@ -38,6 +39,8 @@ export type PropertyTeamRbacMockOpts = {
   aiModeEnabled?: boolean;
   /** Server-saved dashboard mode returned by user-ui-preferences GET. */
   savedDashboardMode?: 'advanced' | 'ai';
+  /** Keys returned as unavailable from `get-feature-availability`. */
+  featureAvailabilityOff?: string[];
 };
 
 /** Last dashboard mode PATCHed to user-ui-preferences in this test (mock server state). */
@@ -81,6 +84,8 @@ export const FULL_ACCESS_PERMISSIONS = [
   'pricing.blocks:add',
   'pricing.blocks:delete',
   'pricing.smartPricing:edit',
+  'pricing.channels:view',
+  'pricing.channels:edit',
   'maintenance:view',
   'maintenance.reminders:add',
   'maintenance.reminders:edit',
@@ -1090,6 +1095,7 @@ export async function installPropertyTeamRbacMocks(
   const customTemplateSeeded = Boolean(opts?.customTemplateSeeded);
   const crossPropertyBookingSeeded = Boolean(opts?.crossPropertyBookingSeeded);
   const aiModeEnabled = Boolean(opts?.aiModeEnabled);
+  const featureAvailabilityOff = opts?.featureAvailabilityOff ?? [];
   savedDashboardModeState = opts?.savedDashboardMode ?? 'advanced';
   let assistantTurn = 0;
   let orgSettingsState = orgSettingsPayload();
@@ -1414,6 +1420,26 @@ export async function installPropertyTeamRbacMocks(
       case 'maintenance-items':
         await fulfillJson(route, { success: true, data: [] });
         return;
+      case 'calendar-sync-settings':
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            feeds: [],
+            export: {
+              enabled: false,
+              rotatedAt: null,
+              lastServedAt: null,
+              urls: {
+                all: 'https://example.com/ical/all',
+                airbnb: 'https://example.com/ical/airbnb',
+                booking_com: 'https://example.com/ical/booking-com',
+                vrbo: 'https://example.com/ical/vrbo',
+              },
+            },
+            recentEvents: [],
+          },
+        });
+        return;
       case 'property-pricing':
         await fulfillJson(route, {
           success: true,
@@ -1540,6 +1566,12 @@ export async function installPropertyTeamRbacMocks(
           ];
           await fulfillJson(route, { success: true, data: { reference } });
         }
+        return;
+      case 'get-feature-availability':
+        await fulfillJson(
+          route,
+          featureAvailabilityBody(featureAvailabilityOff.map((key) => ({ key })))
+        );
         return;
       default:
         await fulfillJson(route, { success: true, data: {} });
