@@ -14,6 +14,7 @@ import {
 import { TelegramGlobalBotTokenCard } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramGlobalBotTokenCard';
 import { TelegramHelpDialog } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramHelpDialog';
 import { TelegramNotificationsGlobalBotProvider } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsGlobalBotContext';
+import { TelegramNotificationsTelegramSection } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsTelegramSection';
 import { TelegramChatSettingsCard } from '@/features/dashboard/bookings/components/TelegramChatSettingsCard';
 import { TelegramFinanceSettingsCard } from '@/features/dashboard/bookings/components/TelegramFinanceSettingsCard';
 import { InAppNotificationsSection } from '@/features/dashboard/notifications/components/InAppNotificationsSection';
@@ -24,12 +25,8 @@ import {
 } from '@/features/dashboard/notifications/lib/notificationsPaths';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { TelegramParkingSettingsCard } from '@/features/dashboard/parking/components/TelegramParkingSettingsCard';
-import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
-
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { parkingDashboardPageTitle, usePageTitle } from '@/lib/pageTitle';
-
-const telegramNotificationsBadge = <TierBadge feature="telegramNotifications" />;
 
 const PARKING_NOTIFICATION_MODULES = ['chat', 'parking', 'finance'] as const;
 
@@ -119,41 +116,39 @@ export function ParkingNotificationsPage() {
 
             <InAppNotificationsSection />
 
-            <AdminSectionGroupHeading
-              title="Telegram notifications"
-              count={MODULE_SECTIONS.length}
-              badge={telegramNotificationsBadge}
-              action={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
-            />
-
-            <TelegramGlobalBotTokenCard />
-
-            <AdminSection
-              id="chat"
-              title="Chat"
-              icon={MessageCircle}
-              description={MODULE_DESCRIPTIONS.chat}
+            <TelegramNotificationsTelegramSection
+              moduleCount={MODULE_SECTIONS.length}
+              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
             >
-              <TelegramChatSettingsCard embedded />
-            </AdminSection>
+              <TelegramGlobalBotTokenCard />
 
-            <AdminSection
-              id="parking"
-              title="Parking"
-              icon={Car}
-              description={MODULE_DESCRIPTIONS.parking}
-            >
-              <TelegramParkingSettingsCard />
-            </AdminSection>
+              <AdminSection
+                id="chat"
+                title="Chat"
+                icon={MessageCircle}
+                description={MODULE_DESCRIPTIONS.chat}
+              >
+                <TelegramChatSettingsCard embedded />
+              </AdminSection>
 
-            <AdminSection
-              id="finance"
-              title="Finance"
-              icon={DollarSign}
-              description={MODULE_DESCRIPTIONS.finance}
-            >
-              <TelegramFinanceSettingsCard embedded />
-            </AdminSection>
+              <AdminSection
+                id="parking"
+                title="Parking"
+                icon={Car}
+                description={MODULE_DESCRIPTIONS.parking}
+              >
+                <TelegramParkingSettingsCard />
+              </AdminSection>
+
+              <AdminSection
+                id="finance"
+                title="Finance"
+                icon={DollarSign}
+                description={MODULE_DESCRIPTIONS.finance}
+              >
+                <TelegramFinanceSettingsCard embedded />
+              </AdminSection>
+            </TelegramNotificationsTelegramSection>
           </div>
         </AdminSectionNavLayout>
       </AdminMobilePage>

@@ -14,6 +14,7 @@ import {
 import { TelegramGlobalBotTokenCard } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramGlobalBotTokenCard';
 import { TelegramHelpDialog } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramHelpDialog';
 import { TelegramNotificationsGlobalBotProvider } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsGlobalBotContext';
+import { TelegramNotificationsTelegramSection } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsTelegramSection';
 import { TelegramAdminSettingsCard } from '@/features/dashboard/bookings/components/TelegramAdminSettingsCard';
 import { TelegramChatSettingsCard } from '@/features/dashboard/bookings/components/TelegramChatSettingsCard';
 import { TelegramFinanceSettingsCard } from '@/features/dashboard/bookings/components/TelegramFinanceSettingsCard';
@@ -27,7 +28,6 @@ import {
   notificationsHubActivityHash,
 } from '@/features/dashboard/notifications/lib/notificationsPaths';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
-import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import {
   hasAnyNotificationModuleEditPermission,
@@ -38,8 +38,6 @@ import {
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { propertyDashboardPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
-
-const telegramNotificationsBadge = <TierBadge feature="telegramNotifications" />;
 
 const NOTIFICATION_MODULES = [
   'chat',
@@ -133,103 +131,101 @@ export function NotificationsPage() {
 
             <InAppNotificationsSection />
 
-            <AdminSectionGroupHeading
-              title="Telegram notifications"
-              count={MODULE_SECTIONS.length}
-              badge={telegramNotificationsBadge}
-              action={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
-            />
-
-            <div
-              className={cn(!canEditGlobalBot && 'pointer-events-none opacity-60')}
-              aria-disabled={!canEditGlobalBot || undefined}
-            >
-              <TelegramGlobalBotTokenCard />
-            </div>
-
-            <AdminSection
-              id="chat"
-              title="Chat"
-              icon={MessageCircle}
-              description={MODULE_DESCRIPTIONS.chat}
+            <TelegramNotificationsTelegramSection
+              moduleCount={MODULE_SECTIONS.length}
+              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
             >
               <div
-                className={cn(!canEditModule('chat') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('chat') || undefined}
+                className={cn(!canEditGlobalBot && 'pointer-events-none opacity-60')}
+                aria-disabled={!canEditGlobalBot || undefined}
               >
-                <TelegramChatSettingsCard embedded />
+                <TelegramGlobalBotTokenCard />
               </div>
-            </AdminSection>
 
-            <AdminSection
-              id="marketing"
-              title="Marketing"
-              icon={Megaphone}
-              description={MODULE_DESCRIPTIONS.marketing}
-            >
-              <div
-                className={cn(!canEditModule('marketing') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('marketing') || undefined}
+              <AdminSection
+                id="chat"
+                title="Chat"
+                icon={MessageCircle}
+                description={MODULE_DESCRIPTIONS.chat}
               >
-                <TelegramMarketingSettingsCard embedded />
-              </div>
-            </AdminSection>
+                <div
+                  className={cn(!canEditModule('chat') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('chat') || undefined}
+                >
+                  <TelegramChatSettingsCard embedded />
+                </div>
+              </AdminSection>
 
-            <AdminSection
-              id="staff"
-              title="Staff"
-              icon={HardHat}
-              description={MODULE_DESCRIPTIONS.staff}
-            >
-              <div
-                className={cn(!canEditModule('staff') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('staff') || undefined}
+              <AdminSection
+                id="marketing"
+                title="Marketing"
+                icon={Megaphone}
+                description={MODULE_DESCRIPTIONS.marketing}
               >
-                <TelegramStaffSettingsCard embedded />
-              </div>
-            </AdminSection>
+                <div
+                  className={cn(!canEditModule('marketing') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('marketing') || undefined}
+                >
+                  <TelegramMarketingSettingsCard embedded />
+                </div>
+              </AdminSection>
 
-            <AdminSection
-              id="operations"
-              title="Operations"
-              icon={Bell}
-              description={MODULE_DESCRIPTIONS.operations}
-            >
-              <div
-                className={cn(!canEditModule('operations') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('operations') || undefined}
+              <AdminSection
+                id="staff"
+                title="Staff"
+                icon={HardHat}
+                description={MODULE_DESCRIPTIONS.staff}
               >
-                <TelegramAdminSettingsCard embedded />
-              </div>
-            </AdminSection>
+                <div
+                  className={cn(!canEditModule('staff') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('staff') || undefined}
+                >
+                  <TelegramStaffSettingsCard embedded />
+                </div>
+              </AdminSection>
 
-            <AdminSection
-              id="finance"
-              title="Finance"
-              icon={DollarSign}
-              description={MODULE_DESCRIPTIONS.finance}
-            >
-              <div
-                className={cn(!canEditModule('finance') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('finance') || undefined}
+              <AdminSection
+                id="operations"
+                title="Operations"
+                icon={Bell}
+                description={MODULE_DESCRIPTIONS.operations}
               >
-                <TelegramFinanceSettingsCard embedded />
-              </div>
-            </AdminSection>
+                <div
+                  className={cn(!canEditModule('operations') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('operations') || undefined}
+                >
+                  <TelegramAdminSettingsCard embedded />
+                </div>
+              </AdminSection>
 
-            <AdminSection
-              id="maintenance"
-              title="Maintenance"
-              icon={Wrench}
-              description={MODULE_DESCRIPTIONS.maintenance}
-            >
-              <div
-                className={cn(!canEditModule('maintenance') && 'pointer-events-none opacity-60')}
-                aria-disabled={!canEditModule('maintenance') || undefined}
+              <AdminSection
+                id="finance"
+                title="Finance"
+                icon={DollarSign}
+                description={MODULE_DESCRIPTIONS.finance}
               >
-                <TelegramMaintenanceSettingsCard embedded />
-              </div>
-            </AdminSection>
+                <div
+                  className={cn(!canEditModule('finance') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('finance') || undefined}
+                >
+                  <TelegramFinanceSettingsCard embedded />
+                </div>
+              </AdminSection>
+
+              <AdminSection
+                id="maintenance"
+                title="Maintenance"
+                icon={Wrench}
+                description={MODULE_DESCRIPTIONS.maintenance}
+              >
+                <div
+                  className={cn(!canEditModule('maintenance') && 'pointer-events-none opacity-60')}
+                  aria-disabled={!canEditModule('maintenance') || undefined}
+                >
+                  <TelegramMaintenanceSettingsCard embedded />
+                </div>
+              </AdminSection>
+            </TelegramNotificationsTelegramSection>
           </div>
         </AdminSectionNavLayout>
       </AdminMobilePage>

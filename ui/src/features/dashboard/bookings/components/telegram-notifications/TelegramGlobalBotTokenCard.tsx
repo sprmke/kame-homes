@@ -4,6 +4,7 @@ import { Activity, Bot, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { telegramBotTokenPlaceholder } from '@/features/dashboard/bookings/components/telegram-notifications/telegramCredentials';
+import { useTelegramNotificationsSettingsEditable } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsSettingsContext';
 import { TelegramSecretInput } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramSecretInput';
 import { useFirstConnectedTelegramModuleToken } from '@/features/dashboard/bookings/hooks/useFirstConnectedTelegramModuleToken';
 import { useTelegramBotDisplayLabel } from '@/features/dashboard/bookings/hooks/useTelegramBotDisplayLabel';
@@ -13,6 +14,7 @@ import {
   useVerifyTelegramGlobalBotToken,
 } from '@/features/dashboard/bookings/hooks/useTelegramGlobalBotToken';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +22,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 
 export function TelegramGlobalBotTokenCard() {
+  const settingsEditable = useTelegramNotificationsSettingsEditable();
   const { data, isLoading } = useTelegramGlobalBotToken();
   const save = useUpdateTelegramGlobalBotToken();
   const verify = useVerifyTelegramGlobalBotToken();
@@ -115,7 +118,7 @@ export function TelegramGlobalBotTokenCard() {
                 <CheckCircle2 className="size-4 shrink-0" aria-hidden />
                 Saved
               </span>
-            ) : (
+            ) : settingsEditable ? (
               <Button
                 type="button"
                 disabled={busy || !trimmed}
@@ -125,6 +128,15 @@ export function TelegramGlobalBotTokenCard() {
                 {busy ? <Activity className="size-4 shrink-0 animate-pulse" aria-hidden /> : null}
                 {actionLabel}
               </Button>
+            ) : (
+              <FeatureAvailabilityButton featureKey="notifications.telegram.settings">
+                <Button
+                  type="button"
+                  className="@lg:w-auto @lg:min-w-[7.5rem] @lg:justify-self-end min-h-[44px] w-full gap-2"
+                >
+                  {actionLabel}
+                </Button>
+              </FeatureAvailabilityButton>
             )}
 
             {showModuleSuggestion && connectedModule ? (

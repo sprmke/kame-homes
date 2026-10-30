@@ -3,11 +3,13 @@ import * as React from 'react';
 import { Activity, CheckCircle2, AlertCircle, Wifi } from 'lucide-react';
 
 import { PropertyTelegramCredentialsFields } from '@/features/dashboard/bookings/components/PropertyTelegramCredentialsFields';
+import { useTelegramNotificationsSettingsEditable } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsSettingsContext';
 import { telegramCredentialsReady } from '@/features/dashboard/bookings/components/telegram-notifications/telegramCredentials';
 import { TelegramToggleRow } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramToggleRow';
 import type { PropertyTelegramCredentialsStatus } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import type { TelegramConnectionLabels } from '@/features/dashboard/bookings/lib/telegramConnectionLabels';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +57,8 @@ export function TelegramNotificationModuleLayout({
   manageSectionTitle = 'Notification Controls',
   children,
 }: Props) {
+  const settingsEditable = useTelegramNotificationsSettingsEditable();
+  const fieldsLocked = disabled || !settingsEditable;
   const credentialsReady = telegramCredentialsReady(credentialsStatus, botToken, chatId);
   const canManage = enabled && connectionOk === true;
   const isConnected = connectionOk === true;
@@ -63,7 +67,7 @@ export function TelegramNotificationModuleLayout({
     <Button
       type="button"
       variant={isConnected ? 'success' : connectionOk === false ? 'outline-destructive' : 'outline'}
-      disabled={disabled || testPending || !credentialsReady || isConnected}
+      disabled={fieldsLocked || testPending || !credentialsReady || isConnected}
       className={cn(
         '@lg:w-auto @lg:min-w-[7.5rem] min-h-[44px] w-full gap-2',
         isConnected && !testPending && 'pointer-events-none opacity-100'
@@ -90,6 +94,14 @@ export function TelegramNotificationModuleLayout({
     </Button>
   );
 
+  const connectAction = settingsEditable ? (
+    connectButton
+  ) : (
+    <FeatureAvailabilityButton featureKey="notifications.telegram.settings">
+      {connectButton}
+    </FeatureAvailabilityButton>
+  );
+
   return (
     <div className="space-y-4">
       <div className="border-border/60 bg-card rounded-xl border px-3 py-2 sm:px-4">
@@ -98,7 +110,7 @@ export function TelegramNotificationModuleLayout({
           label={enableLabel}
           hint={enableDescription}
           checked={enabled}
-          disabled={disabled}
+          disabled={fieldsLocked}
           compact
           onChange={onEnabledChange}
         />
@@ -123,11 +135,11 @@ export function TelegramNotificationModuleLayout({
             status={credentialsStatus}
             connectionLabels={connectionLabels}
             chatLabelLoading={chatLabelLoading}
-            disabled={disabled}
+            disabled={fieldsLocked}
             onBotTokenChange={onBotTokenChange}
             onChatIdChange={onChatIdChange}
             onBotTokenValidated={onBotTokenValidated}
-            connectAction={connectButton}
+            connectAction={connectAction}
             allowChatScan
           />
         </div>

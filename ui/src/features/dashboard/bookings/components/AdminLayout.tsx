@@ -130,6 +130,7 @@ import { MobileAppShell } from '@/components/mobile/ContextualActionBar';
 import { PageTransition } from '@/components/mobile/PageTransition';
 import { AiAssistantPanelSkeleton } from '@/components/skeletons/AiAssistantSkeleton';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { FeatureAvailabilityBanner } from '@/components/feature-availability/FeatureAvailabilityBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SlidingActivePill } from '@/components/ui/SlidingActivePill';
 import { prefetchChunkOnce } from '@/hooks/usePrefetchOnIntent';
@@ -914,6 +915,7 @@ function AdminMainColumn({
           fillMain && 'flex min-h-0 flex-1 flex-col'
         )}
       >
+        <FeatureAvailabilityBanner />
         <PageTransition
           transitionKey={adminPageTransitionKey(pathname)}
           className={cn(

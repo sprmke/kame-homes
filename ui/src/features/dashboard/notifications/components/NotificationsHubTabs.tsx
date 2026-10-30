@@ -7,6 +7,7 @@ import {
   type NotificationsHubView,
 } from '@/features/dashboard/notifications/lib/notificationsPaths';
 
+import { FeatureStatusDot } from '@/components/feature-availability/FeatureStatusDot';
 import { SlidingTabsList, SlidingTabsTrigger } from '@/components/ui/sliding-tabs';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,8 @@ function notificationsHubTabId(view: NotificationsHubView): string {
 type Props = {
   /** Unread in-app items — shown on the Activity tab. */
   unreadCount: number;
+  /** Amber dot on Telegram when the module is off. */
+  telegramUnavailable?: boolean;
   /** Contextual action for the current view (Mark all as read, Get Help). */
   action?: ReactNode;
   /** Match the active view's content width so the action lines up with it. */
@@ -40,7 +43,12 @@ type Props = {
  * setup. Sits above the scrollport so it stays reachable while either view
  * scrolls. Wrap in `SlidingTabs` so the active pill and `onValueChange` work.
  */
-export function NotificationsHubTabs({ unreadCount, action, className }: Props) {
+export function NotificationsHubTabs({
+  unreadCount,
+  telegramUnavailable = false,
+  action,
+  className,
+}: Props) {
   return (
     <div className={cn('flex shrink-0 items-center justify-between gap-2', className)}>
       <SlidingTabsList size="primary" aria-label="Notifications" remeasureDeps={[unreadCount]}>
@@ -56,6 +64,9 @@ export function NotificationsHubTabs({ unreadCount, action, className }: Props) 
             >
               <Icon className="size-4 shrink-0" aria-hidden />
               {label}
+              {value === 'telegram' && telegramUnavailable ? (
+                <FeatureStatusDot className="ml-0.5" />
+              ) : null}
               {showCount ? (
                 <span
                   className="bg-primary-strong text-primary-foreground ml-0.5 inline-flex min-w-[1.125rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums leading-[1.125rem]"

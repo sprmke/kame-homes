@@ -17,6 +17,7 @@ import type { NotificationsHubView } from '@/features/dashboard/notifications/li
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { SlidingTabs } from '@/components/ui/sliding-tabs';
 import { useGuardedViewSwitch } from '@/hooks/useGuardedViewSwitch';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 
 type Props = {
   hub: NotificationsHubController;
@@ -50,6 +51,8 @@ export function NotificationsHubShell({
   const firstPage = data?.pages[0];
   const unreadCount = firstPage?.unreadCount ?? 0;
   const markAllRead = useMarkAllNotificationsRead();
+  const telegramAvailability = useFeatureAvailability('notifications.telegram');
+  const telegramUnavailable = !telegramAvailability.available && !telegramAvailability.isLoading;
   const { requestSwitch, dialogProps } = useGuardedViewSwitch<NotificationsHubView>({
     onCommit: hub.setView,
   });
@@ -87,7 +90,11 @@ export function NotificationsHubShell({
         onFocusActivity={() => requestSwitch('activity')}
         onFocusTelegram={() => requestSwitch('telegram')}
       />
-      <NotificationsHubTabs unreadCount={unreadCount} action={action} />
+      <NotificationsHubTabs
+        unreadCount={unreadCount}
+        telegramUnavailable={telegramUnavailable}
+        action={action}
+      />
 
       {hub.view === 'activity' ? (
         <NotificationsHubPanel view="activity">
