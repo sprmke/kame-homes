@@ -536,6 +536,12 @@ verify_jwt = false
 [functions.platform-settings]
 verify_jwt = false
 
+[functions.feature-availability]
+verify_jwt = false
+
+[functions.get-feature-availability]
+verify_jwt = false
+
 [functions.super-admin-search]
 verify_jwt = false
 
@@ -1253,11 +1259,9 @@ verify_jwt = false
 
 [functions.submit-host-guest-review]
 verify_jwt = false
-static_files =
 
 [functions.review-lifecycle-cron]
 verify_jwt = false
-static_files =
 
 [functions.list-property-reviews]
 verify_jwt = false
@@ -1273,7 +1277,6 @@ verify_jwt = false
 
 [functions.respond-to-guest-review]
 verify_jwt = false
-static_files =
 
 [functions.report-review]
 verify_jwt = false
@@ -1286,7 +1289,6 @@ verify_jwt = false
 
 [functions.moderate-review-report]
 verify_jwt = false
-static_files =
 
 [functions.marketing-ai-sessions]
 verify_jwt = false
