@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Sparkles,
+  ToggleRight,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -80,6 +81,11 @@ export const SUPER_ADMIN_NAV_GROUPS: SuperAdminPlatformNavGroup[] = [
       { label: 'Rate limits', href: superAdminPaths.rateLimits, Icon: Gauge },
       { label: 'Audit log', href: superAdminPaths.audit, Icon: ScrollText },
       { label: 'Platform settings', href: superAdminPaths.platformSettings, Icon: Settings },
+      {
+        label: 'Feature availability',
+        href: superAdminPaths.featureAvailability,
+        Icon: ToggleRight,
+      },
     ],
   },
 ];

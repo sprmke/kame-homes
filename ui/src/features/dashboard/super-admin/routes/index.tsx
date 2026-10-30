@@ -114,6 +114,11 @@ const SuperAdminPlatformSettingsPage = lazy(() =>
     default: m.SuperAdminPlatformSettingsPage,
   }))
 );
+const SuperAdminFeatureAvailabilityPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminFeatureAvailabilityPage').then((m) => ({
+    default: m.SuperAdminFeatureAvailabilityPage,
+  }))
+);
 const SuperAdminPlaybookArticlesPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminPlaybookArticlesPage').then((m) => ({
     default: m.SuperAdminPlaybookArticlesPage,
@@ -224,6 +229,13 @@ export const superAdminRoutes: ReactNode = (
       path="platform-settings"
       element={superAdminRoute(
         <SuperAdminPlatformSettingsPage />,
+        <SuperAdminSettingsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="feature-availability"
+      element={superAdminRoute(
+        <SuperAdminFeatureAvailabilityPage />,
         <SuperAdminSettingsRouteSkeleton />
       )}
     />

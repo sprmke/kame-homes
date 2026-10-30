@@ -6,6 +6,7 @@ export const superAdminPaths = {
   aiUsage: '/admin/ai-usage',
   audit: '/admin/audit',
   platformSettings: '/admin/platform-settings',
+  featureAvailability: '/admin/feature-availability',
   rateLimits: '/admin/rate-limits',
   health: '/admin/health',
   healthSection: (section: 'configuration' | 'integrations' | 'jobs' | 'usage') =>
