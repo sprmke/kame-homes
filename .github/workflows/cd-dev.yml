@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
@@ -214,7 +214,7 @@ jobs:
 
       - name: Upload pg_stat baseline artifact
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pg-stat-statements-hosted-dev
           path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-pg-stat-statements-hosted-dev-ci.json
@@ -236,7 +236,7 @@ jobs:
 
       - name: Upload edge latency baseline artifact
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: edge-latency-hosted-dev
           path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-edge-latency-hosted-dev-ci.json
