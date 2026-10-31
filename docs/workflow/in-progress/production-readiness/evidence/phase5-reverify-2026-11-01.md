@@ -92,6 +92,8 @@ After the repair: `test:e2e:ci` = **296 passed, 9 skipped (fixme), 0 failed** (r
 
 After both fixes: `bun run db:reset` → exit 0 (all migrations + both seed files), `bun run check:plan-catalog` → "Plan catalog matches the golden matrix (6 plans)".
 
+The `Migration Replay` workflow now gets past seeding and stops at its next step: `supabase db lint --fail-on error` reports `relation "cron.job" does not exist` (the local stack does not enable `pg_cron`, while several public functions reference `cron.job`), plus two older lint errors (`IMMUTABLE` marked on a `STABLE` expression, a mismatched assignment type). Those are lint-step configuration findings, tracked as PR-139.
+
 ## Open after this pass
 
 | ID     | Item                                                                                                                                                     | Owner           |
