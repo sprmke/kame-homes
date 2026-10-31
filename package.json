@@ -154,7 +154,7 @@
     "@playwright/cli": "^0.1.17",
     "@playwright/test": "^1.62.1",
     "chrome-launcher": "^1.2.1",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.6",
     "husky": "^9.1.7",
     "knip": "^6.35.1",
     "lighthouse": "^13.4.1",
