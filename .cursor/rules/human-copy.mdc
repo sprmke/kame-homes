@@ -1,0 +1,49 @@
+---
+description: User-facing copy must sound human and production-grade. No AI tells, no em dashes.
+globs:
+  - 'ui/src/**/*.tsx'
+  - 'ui/src/**/*.ts'
+  - 'supabase/functions/**/*.ts'
+alwaysApply: true
+---
+
+# Human / production copy
+
+**`ui-minimal-copy`** decides _whether_ to add text. **This rule** decides _how_ that text must sound.
+
+Any **new** user-facing string (UI labels, helpers, buttons, toasts, empty states, errors, emails, notifications, plan/feature gate copy, `aria-label` / `title`) must be short, plain, balanced, and production-grade. Same bar for new host-facing prose in route guides' Host-facing knowledge sections.
+
+## Hard bans (AI tells)
+
+| Ban                           | Use instead                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| Em dash `—` (U+2014)          | Period, comma, colon, or parentheses                                                              |
+| En dash `–` as a clause break | Same as above (hyphen `-` only in compounds: `check-in`)                                          |
+| Marketing fluff               | Plain nouns/verbs: no _seamless_, _robust_, _leverage_, _empower_, _unlock_, _elevate_, _delight_ |
+| Tutor voice                   | No _This lets you…_, _Easily…_, _Simply…_, _Just…_ as padding                                     |
+| Essay empty states            | Icon + one short line, or nothing                                                                 |
+| Fake warmth / hype            | No _exciting_, _powerful_, _next-level_, emoji in product UI                                      |
+
+## Length bar
+
+| Surface                             | Target                                |
+| ----------------------------------- | ------------------------------------- |
+| Labels / nav                        | 1-4 words                             |
+| Buttons                             | 1-3 words (`Save`, `Send test`)       |
+| Helper / tooltip (only if required) | One short sentence                    |
+| Toast / error                       | What happened; optional next step     |
+| Card / section title                | Noun phrase; no subtitle unless asked |
+
+## Before shipping a string
+
+1. Would a careful human product writer ship this, or does it read like model default prose?
+2. Can it be cut by 30% without losing meaning?
+3. Does it contain `—` or fluff words from the ban list?
+
+If unsure, prefer **shorter** or **omit** (see `minimal-ui-copy` skill).
+
+## Related
+
+- Rule: `ui-minimal-copy.mdc` (volume)
+- Skill: `human-copy` (examples + checklist)
+- Skill: `minimal-ui-copy` (when to add zero text)

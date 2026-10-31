@@ -1,0 +1,76 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import {
+  MARKETING_AI_SESSIONS_QUERY_KEY,
+  MARKETING_GENERATIONS_QUERY_KEY,
+  generationFetch,
+  handleGenerationError,
+} from '@/features/dashboard/marketing/hooks/useMarketingGenerationApi';
+import { seedMarketingGenerationJob } from '@/features/dashboard/marketing/hooks/useMarketingGenerationJob';
+import type {
+  VideoCameraMoveId,
+  VideoSoundMode,
+} from '@/features/dashboard/marketing/lib/marketingGenerationOptions';
+import type {
+  ImageSize,
+  VideoDuration,
+  VideoResolution,
+} from '@/features/dashboard/marketing/lib/marketingGenerationPricing';
+import type {
+  MarketingGenerationJob,
+  MarketingGenerationMediaType,
+  MarketingGenerationTier,
+} from '@/features/dashboard/marketing/lib/marketingGenerationTypes';
+import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+
+export type GenerateMarketingMediaPayload = {
+  mediaType: MarketingGenerationMediaType;
+  prompt: string;
+  negativePrompt?: string;
+  qualityTier?: MarketingGenerationTier;
+  aspectRatio?: string;
+  imageSize?: ImageSize;
+  resolution?: VideoResolution;
+  durationSeconds?: VideoDuration;
+  /** Video: the first id is the photo the clip starts from. */
+  referenceIds?: string[];
+  /** Defaults to true server-side. Pass false to send the host's words without the
+   *  AI rewrite (guardrails are still appended). */
+  enhancePrompt?: boolean;
+  cameraMove?: VideoCameraMoveId;
+  sound?: VideoSoundMode;
+  /** AI Studio conversation to add this version to (omit: a new one is created). */
+  sessionId?: string;
+  /** The version being refined (photo: its image is the first reference). */
+  parentJobId?: string;
+  themeKey?: string;
+};
+
+export function useGenerateMarketingMedia() {
+  const propertyId = usePropertyIdParam();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: GenerateMarketingMediaPayload) =>
+      generationFetch<{ job: MarketingGenerationJob }>(
+        scopedFunctionsUrl('generate-marketing-media', propertyId),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        },
+        payload.mediaType === 'video' ? 'aiMarketingVideoGeneration' : 'aiMarketingImageGeneration'
+      ),
+    onSuccess: ({ job }) => {
+      // Seed the per-job cache so the poller starts hot instead of firing a redundant GET.
+      seedMarketingGenerationJob(qc, job, propertyId);
+      void qc.invalidateQueries({ queryKey: [MARKETING_GENERATIONS_QUERY_KEY, propertyId] });
+      void qc.invalidateQueries({ queryKey: [MARKETING_AI_SESSIONS_QUERY_KEY, propertyId] });
+    },
+    onError: (error: Error) => {
+      handleGenerationError(error);
+      // A failed run may still have saved a failed version (and a new conversation).
+      void qc.invalidateQueries({ queryKey: [MARKETING_AI_SESSIONS_QUERY_KEY, propertyId] });
+    },
+  });
+}

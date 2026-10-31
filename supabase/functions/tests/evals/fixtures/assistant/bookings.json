@@ -1,0 +1,227 @@
+{
+  "list_bookings_week": {
+    "toolName": "list_bookings",
+    "data": {
+      "total": 3,
+      "bookings": [
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000001",
+          "hostLabel": "Maria Santos · Dec 20–Dec 22 · Ready for Check-in",
+          "guestName": "Maria Santos",
+          "status": "READY_FOR_CHECKIN",
+          "statusLabel": "Ready for Check-in",
+          "checkIn": "2026-12-20",
+          "checkOut": "2026-12-22",
+          "propertyId": "p-azure-1204",
+          "propertyName": "Azure North 1204"
+        },
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000002",
+          "hostLabel": "Juan dela Cruz · Dec 21–Dec 24 · Pending Documents",
+          "guestName": "Juan dela Cruz",
+          "status": "PENDING_DOCUMENTS",
+          "statusLabel": "Pending Documents",
+          "checkIn": "2026-12-21",
+          "checkOut": "2026-12-24",
+          "propertyId": "p-azure-1204",
+          "propertyName": "Azure North 1204"
+        },
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000003",
+          "hostLabel": "Ana Reyes · Dec 23–Dec 26 · Pending Review",
+          "guestName": "Ana Reyes",
+          "status": "PENDING_REVIEW",
+          "statusLabel": "Pending Review",
+          "checkIn": "2026-12-23",
+          "checkOut": "2026-12-26",
+          "propertyId": "p-azure-1204",
+          "propertyName": "Azure North 1204"
+        }
+      ]
+    }
+  },
+  "list_bookings_empty": {
+    "toolName": "list_bookings",
+    "data": { "total": 0, "bookings": [] }
+  },
+  "get_booking_maria": {
+    "toolName": "get_booking",
+    "data": {
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000001",
+      "hostLabel": "Maria Santos · Dec 20–Dec 22 · Ready for Check-in",
+      "guestName": "Maria Santos",
+      "status": "READY_FOR_CHECKIN",
+      "statusLabel": "Ready for Check-in",
+      "checkIn": "2026-12-20",
+      "checkOut": "2026-12-22",
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "balanceDue": 3500,
+      "securityDeposit": 2000,
+      "sdRefundAmount": 2000,
+      "sdRefundFormSubmitted": false,
+      "pendingTasks": [
+        "Settle the remaining guest balance and upload the receipt.",
+        "Check-out instructions go to the guest automatically near checkout."
+      ],
+      "documents": [
+        {
+          "id": "doc-gaf-1",
+          "label": "Approved GAF",
+          "group": "gaf",
+          "kind": "pdf",
+          "url": "https://files.example.test/bookings/b1/approved-gaf.pdf"
+        },
+        {
+          "id": "doc-id-1",
+          "label": "Valid ID",
+          "group": "id",
+          "kind": "image",
+          "url": "https://files.example.test/bookings/b1/valid-id.jpg"
+        }
+      ]
+    }
+  },
+  "get_booking_documents_gaf": {
+    "toolName": "get_booking_documents",
+    "data": {
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000001",
+      "documents": [
+        {
+          "id": "doc-gaf-1",
+          "label": "Approved GAF",
+          "group": "gaf",
+          "kind": "pdf",
+          "url": "https://files.example.test/bookings/b1/approved-gaf.pdf"
+        }
+      ],
+      "missing": []
+    }
+  },
+  "get_booking_documents_none": {
+    "toolName": "get_booking_documents",
+    "data": {
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000003",
+      "documents": [],
+      "missing": ["gaf"]
+    }
+  },
+  "plan_booking_journey_juan": {
+    "toolName": "plan_booking_journey",
+    "data": {
+      "kind": "booking_journey",
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000002",
+      "guestName": "Juan dela Cruz",
+      "hostLabel": "Juan dela Cruz · Dec 21–Dec 24 · Pending Documents",
+      "currentStatus": "PENDING_DOCUMENTS",
+      "currentStatusLabel": "Pending Documents",
+      "nextStatus": "READY_FOR_CHECKIN",
+      "nextStatusLabel": "Ready for Check-in",
+      "steps": [
+        {
+          "status": "PENDING_REVIEW",
+          "label": "Pending Review",
+          "stepStatus": "done",
+          "requiredSubForm": null,
+          "nextStatus": "PENDING_DOCUMENTS",
+          "nextStatusLabel": "Pending Documents"
+        },
+        {
+          "status": "PENDING_DOCUMENTS",
+          "label": "Pending Documents",
+          "stepStatus": "current",
+          "requiredSubForm": null,
+          "nextStatus": "READY_FOR_CHECKIN",
+          "nextStatusLabel": "Ready for Check-in",
+          "description": "Complete the required building documents. This step moves forward automatically once they are done."
+        },
+        {
+          "status": "READY_FOR_CHECKIN",
+          "label": "Ready for Check-in",
+          "stepStatus": "upcoming",
+          "requiredSubForm": "guest_balance",
+          "nextStatus": "READY_FOR_CHECKOUT",
+          "nextStatusLabel": "Ready for Check-out",
+          "description": "Settle guest balance"
+        },
+        {
+          "status": "READY_FOR_CHECKOUT",
+          "label": "Ready for Check-out",
+          "stepStatus": "upcoming",
+          "requiredSubForm": "sd_refund",
+          "nextStatus": "PENDING_SD_REFUND",
+          "nextStatusLabel": "Pending SD Refund"
+        },
+        {
+          "status": "PENDING_SD_REFUND",
+          "label": "Pending SD Refund",
+          "stepStatus": "upcoming",
+          "requiredSubForm": null,
+          "nextStatus": "COMPLETED",
+          "nextStatusLabel": "Completed"
+        },
+        {
+          "status": "COMPLETED",
+          "label": "Completed",
+          "stepStatus": "upcoming",
+          "requiredSubForm": null,
+          "nextStatus": null,
+          "nextStatusLabel": null
+        }
+      ]
+    }
+  },
+  "get_available_dates_december": {
+    "toolName": "get_available_dates",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "from": "2026-12-01",
+      "to": "2026-12-31",
+      "bookedStays": [
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000001",
+          "hostLabel": "Maria Santos · Dec 20–Dec 22 · Ready for Check-in",
+          "guestName": "Maria Santos",
+          "checkIn": "2026-12-20",
+          "checkOut": "2026-12-22",
+          "status": "READY_FOR_CHECKIN",
+          "statusLabel": "Ready for Check-in",
+          "propertyId": "p-azure-1204"
+        },
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000003",
+          "hostLabel": "Ana Reyes · Dec 23–Dec 26 · Pending Review",
+          "guestName": "Ana Reyes",
+          "checkIn": "2026-12-23",
+          "checkOut": "2026-12-26",
+          "status": "PENDING_REVIEW",
+          "statusLabel": "Pending Review",
+          "propertyId": "p-azure-1204"
+        }
+      ],
+      "bookedStayCount": 2,
+      "availableRanges": [
+        { "start": "2026-12-01", "end": "2026-12-19" },
+        { "start": "2026-12-22", "end": "2026-12-22" },
+        { "start": "2026-12-26", "end": "2026-12-31" }
+      ],
+      "availableNightCount": 26,
+      "fullyBooked": false
+    }
+  },
+  "get_available_dates_empty": {
+    "toolName": "get_available_dates",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "from": "2027-02-01",
+      "to": "2027-02-28",
+      "bookedStays": [],
+      "bookedStayCount": 0,
+      "availableRanges": [{ "start": "2027-02-01", "end": "2027-02-28" }],
+      "availableNightCount": 28,
+      "fullyBooked": false
+    }
+  }
+}

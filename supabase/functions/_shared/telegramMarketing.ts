@@ -3,8 +3,13 @@
  * Non-fatal on failure — callers log only.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
 import { DatabaseService } from './databaseService.ts';
+import { verifyCronSecret } from './cronSecretGate.ts';
+import { listAllPropertyIds } from './propertyCron.ts';
 import {
   addDaysYmd,
   calendarDaysBetween,
@@ -21,16 +26,25 @@ import {
 
 import {
   DEFAULT_MANILA_REMINDER_SLOTS,
+  manilaNowMatchesReminderSlots,
   manilaSlotsToUtcCronPreview,
   parseManilaReminderSlots,
   type ManilaReminderSlot,
 } from './telegramMarketingCronSync.ts';
+import {
+  getPropertyTelegramCredentialsStatus,
+  resolvePropertyTelegramCredentials,
+} from './propertyTelegramCredentials.ts';
+import { ensureTelegramMarketingSettingsRow } from './propertySettingsSeed.ts';
+import { normalizeTelegramTemplateText } from './telegramTemplateNormalize.ts';
 
 export type TelegramMarketingSettings = {
   id: number;
   enabled: boolean;
   notify_on_new_booking: boolean;
   notify_on_cancellation: boolean;
+  notify_on_daily_default: boolean;
+  notify_on_daily_urgency: boolean;
   urgency_days_threshold: number;
   new_booking_dates_limit: number;
   daily_default_template: string;
@@ -64,10 +78,7 @@ function listTemplatePlaceholderKeys(template: string): TelegramKnownPlaceholder
   return [...keys];
 }
 
-function applyTemplatePlaceholders(
-  template: string,
-  vars: Record<string, string>,
-): string {
+function applyTemplatePlaceholders(template: string, vars: Record<string, string>): string {
   let out = template;
   for (const [k, v] of Object.entries(vars)) {
     out = out.split(`{{${k}}}`).join(v);
@@ -93,7 +104,7 @@ function formatUrgencyText(daysOut: number): string {
 async function resolveTemplatePlaceholderVars(
   template: string,
   settings: TelegramMarketingSettings,
-  opts?: { checkInYmd?: string; checkOutYmd?: string },
+  opts?: { checkInYmd?: string; checkOutYmd?: string; propertyId?: string }
 ): Promise<Record<string, string>> {
   const keys = listTemplatePlaceholderKeys(template);
   if (keys.length === 0) return {};
@@ -103,29 +114,28 @@ async function resolveTemplatePlaceholderVars(
     .filter((k) => !(TELEGRAM_KNOWN_PLACEHOLDERS as readonly string[]).includes(k));
   if (unknown.length > 0) {
     throw new TelegramTemplateError(
-      `Unknown placeholders: ${unknown.map((k) => `{{${k}}}`).join(', ')}`,
+      `Unknown placeholders: ${unknown.map((k) => `{{${k}}}`).join(', ')}`
     );
   }
 
-  const blocked = await buildBlockedSet();
+  const blocked = await buildBlockedSet(opts?.propertyId);
   const todayYmd = manilaTodayYmd();
   const keySet = new Set(keys);
   const vars: Record<string, string> = {};
 
   const needsNewBookingBundle = keySet.has('month_name') || keySet.has('dates_list');
-  const needsUrgencyAvailable =
-    keySet.has('available_dates') && !needsNewBookingBundle;
+  const needsUrgencyAvailable = keySet.has('available_dates') && !needsNewBookingBundle;
 
   if (needsNewBookingBundle) {
     const anchorMonth = todayYmd.slice(0, 7);
     const monthStart = `${anchorMonth}-01`;
     const candidates = listAvailableCheckIns(blocked, todayYmd, 60).filter((ymd) =>
-      ymd.startsWith(anchorMonth),
+      ymd.startsWith(anchorMonth)
     );
     const picked = candidates.slice(0, settings.new_booking_dates_limit);
     if (picked.length === 0) {
       throw new TelegramTemplateError(
-        'No free check-in dates left this month for {{month_name}} / {{dates_list}}.',
+        'No free check-in dates left this month for {{month_name}} / {{dates_list}}.'
       );
     }
     if (keySet.has('month_name')) {
@@ -144,7 +154,7 @@ async function resolveTemplatePlaceholderVars(
     const v = formatAvailableDatesHuman(freeCheckIns);
     if (!v.trim()) {
       throw new TelegramTemplateError(
-        'No available check-in dates in the calendar for {{available_dates}}.',
+        'No available check-in dates in the calendar for {{available_dates}}.'
       );
     }
     vars.available_dates = v;
@@ -155,12 +165,12 @@ async function resolveTemplatePlaceholderVars(
     const co = opts?.checkOutYmd?.trim();
     if (!ci || !co) {
       throw new TelegramTemplateError(
-        'Check-in and check-out are required for {{cancellation_dates}} — set them in the cancellation date fields above.',
+        'Check-in and check-out are required for {{cancellation_dates}} — set them in the cancellation date fields above.'
       );
     }
     vars.cancellation_dates = formatCancellationDatesHuman(
       normalizeBookingDateToYmd(ci) ?? ci,
-      normalizeBookingDateToYmd(co) ?? co,
+      normalizeBookingDateToYmd(co) ?? co
     );
   }
 
@@ -168,7 +178,7 @@ async function resolveTemplatePlaceholderVars(
     const earliest = earliestAvailableCheckInYmd(blocked, todayYmd);
     if (!earliest) {
       throw new TelegramTemplateError(
-        'No available check-in dates in the calendar for {{urgency_text}}.',
+        'No available check-in dates in the calendar for {{urgency_text}}.'
       );
     }
     vars.urgency_text = formatUrgencyText(calendarDaysBetween(todayYmd, earliest));
@@ -177,15 +187,12 @@ async function resolveTemplatePlaceholderVars(
   return vars;
 }
 
-function renderTelegramTemplate(
-  template: string,
-  vars: Record<string, string>,
-): string {
+function renderTelegramTemplate(template: string, vars: Record<string, string>): string {
   const text = applyTemplatePlaceholders(template, vars);
   const unresolved = text.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     throw new TelegramTemplateError(
-      `Unresolved placeholders after render: ${unresolved.join(', ')}`,
+      `Unresolved placeholders after render: ${unresolved.join(', ')}`
     );
   }
   return text;
@@ -195,7 +202,7 @@ function renderTelegramTemplate(
 export async function prepareTelegramTemplateMessage(
   template: string,
   settings: TelegramMarketingSettings,
-  opts?: { checkInYmd?: string; checkOutYmd?: string },
+  opts?: { checkInYmd?: string; checkOutYmd?: string; propertyId?: string }
 ): Promise<string> {
   const { renderedText } = await renderMarketingDraftPreview(template, settings, opts);
   return renderedText;
@@ -205,7 +212,7 @@ export async function prepareTelegramTemplateMessage(
 export async function renderMarketingDraftPreview(
   template: string,
   settings: TelegramMarketingSettings,
-  opts?: { checkInYmd?: string; checkOutYmd?: string },
+  opts?: { checkInYmd?: string; checkOutYmd?: string; propertyId?: string }
 ): Promise<{ renderedText: string; placeholders: Record<string, string> }> {
   const trimmed = template.trim().slice(0, 4000);
   if (!trimmed) {
@@ -225,10 +232,21 @@ const UNICODE_HYPHENS = /[\u2212\u2013\u2012\uFE63\uFF0D\u2014\u2015]/g;
  * Trim, strip BOM/CR, remove wrapping quotes. Telegram expects a numeric id for groups
  * (often negative, e.g. -100…). @username is not accepted here — use getUpdates / RawDataBot.
  */
-export function normalizeTelegramChatId(raw: string): { ok: true; chatId: string } | { ok: false; error: string } {
-  let s = raw.trim().replace(/\r/g, '').replace(/\uFEFF/g, '').replace(UNICODE_HYPHENS, '-');
+export function normalizeTelegramChatId(
+  raw: string
+): { ok: true; chatId: string } | { ok: false; error: string } {
+  let s = raw
+    .trim()
+    .replace(/\r/g, '')
+    .replace(/\uFEFF/g, '')
+    .replace(UNICODE_HYPHENS, '-');
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    s = s.slice(1, -1).trim().replace(/\r/g, '').replace(/\uFEFF/g, '').replace(UNICODE_HYPHENS, '-');
+    s = s
+      .slice(1, -1)
+      .trim()
+      .replace(/\r/g, '')
+      .replace(/\uFEFF/g, '')
+      .replace(UNICODE_HYPHENS, '-');
   }
   // Allowed final form is -?[0-9]+ — remove stray spaces/NBSP (Slack/email: "- 100…")
   s = s.replace(/\s+/g, '');
@@ -247,99 +265,35 @@ type ResolveTelegramCreds =
   | { ok: true; token: string; chatId: string }
   | { ok: false; error: string; code: 'missing_token' | 'missing_chat_id' | 'invalid_chat_id' };
 
-function resolveTelegramCredentials(): ResolveTelegramCreds {
-  const token = Deno.env.get('TELEGRAM_BOT_TOKEN')?.trim() ?? '';
-  const rawChat = Deno.env.get('TELEGRAM_CHAT_ID');
-  if (!token) return { ok: false, error: 'TELEGRAM_BOT_TOKEN unset', code: 'missing_token' };
-  if (rawChat == null || !String(rawChat).trim()) {
-    return { ok: false, error: 'TELEGRAM_CHAT_ID unset', code: 'missing_chat_id' };
-  }
-  const n = normalizeTelegramChatId(String(rawChat));
-  if (!n.ok) return { ok: false, error: n.error, code: 'invalid_chat_id' };
-  return { ok: true, token, chatId: n.chatId };
+async function resolveTelegramCredentials(
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+): Promise<ResolveTelegramCreds> {
+  return resolvePropertyTelegramCredentials('marketing', scope);
 }
 
-export type TelegramEnvVerifyResult = {
-  credentials: {
-    tokenConfigured: boolean;
-    chatIdRawLength: number;
-    normalizedChatId?: string;
-    normalizeError?: string;
-    /** First Unicode codepoint of trimmed secret (before normalize). ASCII `-` = 45. “Typo minus” from Word is often 8722 (U+2212). */
-    rawLeadingCodePoint?: number;
-    /** True when normalized id starts with ASCII `-`. If you use a supergroup -100… id and this is false, check the dashboard secret. */
-    normalizedStartsWithAsciiMinus?: boolean;
-  };
-  getMe: { ok: boolean; username?: string; error?: string };
-  getChat: { ok: boolean; type?: string; title?: string; username?: string; error?: string };
-};
+export type { TelegramEnvVerifyResult } from './propertyTelegramCredentials.ts';
 
-/** Admin-only: getMe + getChat using the same env normalization as sends. */
-export async function verifyTelegramEnv(): Promise<TelegramEnvVerifyResult> {
-  const rawChat = Deno.env.get('TELEGRAM_CHAT_ID') ?? '';
-  const trimmed = rawChat.trimStart();
-  const rawLeadingCodePoint =
-    trimmed.length > 0 ? (trimmed.codePointAt(0) ?? undefined) : undefined;
-
-  const creds = resolveTelegramCredentials();
-  const credentials = {
-    tokenConfigured: !!Deno.env.get('TELEGRAM_BOT_TOKEN')?.trim(),
-    chatIdRawLength: rawChat.length,
-    normalizedChatId: creds.ok ? creds.chatId : undefined,
-    normalizeError: creds.ok ? undefined : creds.error,
-    rawLeadingCodePoint,
-    normalizedStartsWithAsciiMinus: creds.ok ? creds.chatId.startsWith('-') : undefined,
-  };
-
-  if (!creds.ok) {
-    return {
-      credentials,
-      getMe: { ok: false, error: creds.error },
-      getChat: { ok: false, error: creds.error },
-    };
-  }
-
-  const meUrl = `https://api.telegram.org/bot${creds.token}/getMe`;
-  const meRes = await fetch(meUrl);
-  const meJson = (await meRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { username?: string };
-    description?: string;
-  };
-
-  const chatUrl = `https://api.telegram.org/bot${creds.token}/getChat?chat_id=${
-    encodeURIComponent(creds.chatId)
-  }`;
-  const chatRes = await fetch(chatUrl);
-  const chatJson = (await chatRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { type?: string; title?: string; username?: string };
-    description?: string;
-  };
-
-  return {
-    credentials,
-    getMe: {
-      ok: !!meJson?.ok,
-      username: meJson?.result?.username,
-      error: meJson?.ok ? undefined : String(meJson?.description ?? meRes.statusText),
-    },
-    getChat: {
-      ok: !!chatJson?.ok,
-      type: chatJson?.result?.type,
-      title: chatJson?.result?.title,
-      username: chatJson?.result?.username,
-      error: chatJson?.ok ? undefined : String(chatJson?.description ?? chatRes.statusText),
-    },
-  };
+/** Admin-only: getMe + getChat using saved or draft credentials. */
+export async function verifyTelegramEnv(
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null,
+  overrides?: { botToken?: string; chatId?: string }
+): Promise<import('./propertyTelegramCredentials.ts').TelegramEnvVerifyResult> {
+  const { verifyPropertyTelegramChannel } = await import('./propertyTelegramCredentials.ts');
+  return verifyPropertyTelegramChannel('marketing', scope, overrides);
 }
 
-async function sendTelegramMessage(text: string): Promise<{ ok: boolean; error?: string }> {
-  const creds = resolveTelegramCredentials();
+async function sendTelegramMessage(
+  text: string,
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
+  const creds = await resolveTelegramCredentials(scope);
   if (!creds.ok) {
     if (creds.code === 'missing_token' || creds.code === 'missing_chat_id') {
-      console.warn('[telegram] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID unset — skip send');
-      return { ok: false, error: 'missing_env' };
+      return { ok: false, error: 'missing_credentials' };
     }
     console.error('[telegram] invalid TELEGRAM_CHAT_ID:', creds.error);
     return { ok: false, error: creds.error };
@@ -363,9 +317,9 @@ async function sendTelegramMessage(text: string): Promise<{ ok: boolean; error?:
   return { ok: true };
 }
 
-async function loadSettings(): Promise<TelegramMarketingSettings | null> {
+async function loadSettings(propertyId?: string): Promise<TelegramMarketingSettings | null> {
   try {
-    const row = await DatabaseService.getTelegramMarketingSettings();
+    const row = await DatabaseService.getTelegramMarketingSettings(propertyId);
     if (!row) return null;
     return row as TelegramMarketingSettings;
   } catch (e) {
@@ -374,17 +328,20 @@ async function loadSettings(): Promise<TelegramMarketingSettings | null> {
   }
 }
 
-function buildBlockedSet(): Promise<Set<string>> {
-  return DatabaseService.listBookingRangesForAvailability().then((ranges) =>
-    collectBlockedNights(ranges),
+function buildBlockedSet(propertyId?: string): Promise<Set<string>> {
+  return DatabaseService.listBookingRangesForAvailability(propertyId).then((ranges) =>
+    collectBlockedNights(ranges)
   );
 }
 
 /** Send arbitrary text (admin tests); ignores `telegram_marketing_settings.enabled`. */
-export async function sendTelegramAdminPreview(text: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendTelegramAdminPreview(
+  text: string,
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+): Promise<{ ok: boolean; error?: string }> {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: 'empty_message' };
-  return sendTelegramMessage(trimmed.slice(0, 4096));
+  return sendTelegramMessage(trimmed.slice(0, 4096), scope);
 }
 
 export type TelegramDailyReminderResult = {
@@ -404,15 +361,39 @@ export type TelegramDailyReminderResult = {
 /** Scheduled N×/day: always send daily default; also send urgency when calendar is tight. */
 export async function runTelegramDailyReminder(opts?: {
   force?: boolean;
-}): Promise<TelegramDailyReminderResult> {
-  const settings = await loadSettings();
+  propertyId?: string;
+}): Promise<
+  TelegramDailyReminderResult & {
+    properties?: Array<TelegramDailyReminderResult & { propertyId: string }>;
+  }
+> {
+  if (!opts?.propertyId) {
+    const propertyIds = await listAllPropertyIds();
+    const properties: Array<TelegramDailyReminderResult & { propertyId: string }> = [];
+    for (const propertyId of propertyIds) {
+      const result = await runTelegramDailyReminder({ ...opts, propertyId });
+      properties.push({ propertyId, ...result });
+    }
+    const sent = properties.some((p) => p.sent);
+    return {
+      sent,
+      mode: sent ? 'default' : 'skipped',
+      properties,
+    };
+  }
+
+  const settings = await loadSettings(opts.propertyId);
   if (!settings) {
     return { sent: false, mode: 'skipped', detail: 'no_settings_row' };
   }
   if (!opts?.force && !settings.enabled) {
     return { sent: false, mode: 'disabled' };
   }
-  const creds = resolveTelegramCredentials();
+  const slots = dailySlotsFromRow(settings);
+  if (!opts?.force && !manilaNowMatchesReminderSlots(slots)) {
+    return { sent: false, mode: 'skipped', detail: 'schedule_mismatch' };
+  }
+  const creds = await resolveTelegramCredentials(opts.propertyId);
   if (!creds.ok) {
     return {
       sent: false,
@@ -426,34 +407,40 @@ export async function runTelegramDailyReminder(opts?: {
   let urgencySent = false;
 
   const sendDefault = async (): Promise<void> => {
-    const text = await prepareTelegramTemplateMessage(
-      settings.daily_default_template,
-      settings,
-    );
-    const r = await sendTelegramMessage(text);
+    if (!opts?.force && !settings.notify_on_daily_default) return;
+    const text = await prepareTelegramTemplateMessage(settings.daily_default_template, settings, {
+      propertyId: opts.propertyId,
+    });
+    const r = await sendTelegramMessage(text, opts.propertyId);
     defaultSent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(`default: ${r.error}`);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(`default: ${r.error}`);
+    }
   };
 
   const sendUrgency = async (): Promise<void> => {
-    const text = await prepareTelegramTemplateMessage(
-      settings.daily_urgency_template,
-      settings,
-    );
-    const r = await sendTelegramMessage(text);
+    if (!opts?.force && !settings.notify_on_daily_urgency) return;
+    const text = await prepareTelegramTemplateMessage(settings.daily_urgency_template, settings, {
+      propertyId: opts!.propertyId,
+    });
+    const r = await sendTelegramMessage(text, opts!.propertyId);
     urgencySent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(`urgency: ${r.error}`);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(`urgency: ${r.error}`);
+    }
   };
 
   try {
-    await sendDefault();
+    if (opts?.force || settings.notify_on_daily_default) {
+      await sendDefault();
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     telegramErrors.push(`default: ${msg}`);
   }
 
   const todayYmd = manilaTodayYmd();
-  const blocked = await buildBlockedSet();
+  const blocked = await buildBlockedSet(opts?.propertyId);
   const earliest = earliestAvailableCheckInYmd(blocked, todayYmd);
   const threshold = settings.urgency_days_threshold;
 
@@ -473,7 +460,7 @@ export async function runTelegramDailyReminder(opts?: {
   const daysOut = calendarDaysBetween(todayYmd, earliest);
   const useUrgency = daysOut < threshold;
 
-  if (useUrgency) {
+  if (useUrgency && (opts?.force || settings.notify_on_daily_urgency)) {
     try {
       await sendUrgency();
     } catch (e) {
@@ -504,15 +491,19 @@ export async function runTelegramDailyReminder(opts?: {
 /** Admin test: send only the daily urgency template (ignores threshold and enabled toggle). */
 async function runTelegramDailyUrgencyTest(opts?: {
   force?: boolean;
+  propertyId?: string;
 }): Promise<TelegramDailyReminderResult> {
-  const settings = await loadSettings();
+  const settings = await loadSettings(opts?.propertyId);
   if (!settings) {
     return { sent: false, mode: 'skipped', detail: 'no_settings_row' };
   }
   if (!opts?.force && !settings.enabled) {
     return { sent: false, mode: 'disabled' };
   }
-  const creds = resolveTelegramCredentials();
+  if (!opts?.force && !settings.notify_on_daily_urgency) {
+    return { sent: false, mode: 'skipped', detail: 'notify_off' };
+  }
+  const creds = await resolveTelegramCredentials(opts?.propertyId);
   if (!creds.ok) {
     return {
       sent: false,
@@ -525,20 +516,21 @@ async function runTelegramDailyUrgencyTest(opts?: {
   let urgencySent = false;
 
   try {
-    const text = await prepareTelegramTemplateMessage(
-      settings.daily_urgency_template,
-      settings,
-    );
-    const r = await sendTelegramMessage(text);
+    const text = await prepareTelegramTemplateMessage(settings.daily_urgency_template, settings, {
+      propertyId: opts?.propertyId,
+    });
+    const r = await sendTelegramMessage(text, opts?.propertyId);
     urgencySent = r.ok;
-    if (!r.ok && r.error) telegramErrors.push(r.error);
+    if (!r.ok && r.error && !isTelegramFeatureUnavailableError(r.error)) {
+      telegramErrors.push(r.error);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     telegramErrors.push(msg);
   }
 
   const todayYmd = manilaTodayYmd();
-  const blocked = await buildBlockedSet();
+  const blocked = await buildBlockedSet(opts?.propertyId);
   const earliest = earliestAvailableCheckInYmd(blocked, todayYmd);
   const threshold = settings.urgency_days_threshold;
   const daysOut = earliest ? calendarDaysBetween(todayYmd, earliest) : undefined;
@@ -562,13 +554,15 @@ export type TelegramNotifySkip =
   | 'no_dates'
   | 'missing_env'
   | 'send_failed'
+  | 'feature_unavailable'
   | 'no_settings';
 
 /** After a brand-new guest submission row is inserted. */
 export async function notifyTelegramNewBookingRequest(opts?: {
   force?: boolean;
+  propertyId?: string;
 }): Promise<{ sent: boolean; skip?: TelegramNotifySkip; telegramError?: string }> {
-  const settings = await loadSettings();
+  const settings = await loadSettings(opts?.propertyId);
   if (!settings) {
     return { sent: false, skip: 'no_settings' };
   }
@@ -577,14 +571,14 @@ export async function notifyTelegramNewBookingRequest(opts?: {
   }
 
   const todayYmd = manilaTodayYmd();
-  const blocked = await buildBlockedSet();
+  const blocked = await buildBlockedSet(opts?.propertyId);
 
   const anchorMonth = todayYmd.slice(0, 7); // YYYY-MM
   const monthStart = `${anchorMonth}-01`;
   const limit = settings.new_booking_dates_limit;
 
   const candidates = listAvailableCheckIns(blocked, todayYmd, 60).filter((ymd) =>
-    ymd.startsWith(anchorMonth),
+    ymd.startsWith(anchorMonth)
   );
   const picked = candidates.slice(0, limit);
   if (picked.length === 0) {
@@ -593,19 +587,24 @@ export async function notifyTelegramNewBookingRequest(opts?: {
 
   let text: string;
   try {
-    text = await prepareTelegramTemplateMessage(settings.new_booking_template, settings);
+    text = await prepareTelegramTemplateMessage(settings.new_booking_template, settings, {
+      propertyId: opts?.propertyId,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[telegram] new booking template:', msg);
     return { sent: false, skip: 'no_dates', telegramError: msg };
   }
-  const r = await sendTelegramMessage(text);
+  const r = await sendTelegramMessage(text, opts?.propertyId);
   if (!r.ok) {
-    console.error('[telegram] new booking notify failed');
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    if (skip !== 'feature_unavailable') {
+      console.error('[telegram] new booking notify failed');
+    }
     return {
       sent: false,
-      skip: r.error === 'missing_env' ? 'missing_env' : 'send_failed',
-      telegramError: r.error,
+      skip,
+      ...(skip === 'send_failed' || skip === 'missing_env' ? { telegramError: r.error } : {}),
     };
   }
   return { sent: true };
@@ -615,9 +614,9 @@ export async function notifyTelegramNewBookingRequest(opts?: {
 export async function notifyTelegramCancellation(
   checkInYmd: string,
   checkOutYmd: string,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean; propertyId?: string }
 ): Promise<{ sent: boolean; skip?: TelegramNotifySkip; telegramError?: string }> {
-  const settings = await loadSettings();
+  const settings = await loadSettings(opts?.propertyId);
   if (!settings) {
     return { sent: false, skip: 'no_settings' };
   }
@@ -632,19 +631,23 @@ export async function notifyTelegramCancellation(
     text = await prepareTelegramTemplateMessage(settings.cancellation_template, settings, {
       checkInYmd: ci,
       checkOutYmd: co,
+      propertyId: opts?.propertyId,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[telegram] cancellation template:', msg);
     return { sent: false, skip: 'send_failed', telegramError: msg };
   }
-  const r = await sendTelegramMessage(text);
+  const r = await sendTelegramMessage(text, opts?.propertyId);
   if (!r.ok) {
-    console.error('[telegram] cancellation notify failed');
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    if (skip !== 'feature_unavailable') {
+      console.error('[telegram] cancellation notify failed');
+    }
     return {
       sent: false,
-      skip: r.error === 'missing_env' ? 'missing_env' : 'send_failed',
-      telegramError: r.error,
+      skip,
+      ...(skip === 'send_failed' || skip === 'missing_env' ? { telegramError: r.error } : {}),
     };
   }
   return { sent: true };
@@ -652,10 +655,10 @@ export async function notifyTelegramCancellation(
 
 /** Optional gate for cron: if TELEGRAM_CRON_SECRET is set, header must match. */
 export function verifyTelegramCronSecret(req: Request): boolean {
-  const expected = Deno.env.get('TELEGRAM_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  const got = req.headers.get('x-telegram-cron-secret')?.trim();
-  return got === expected;
+  return verifyCronSecret(req, {
+    envKey: 'TELEGRAM_CRON_SECRET',
+    headerName: 'x-telegram-cron-secret',
+  });
 }
 
 function dailySlotsFromRow(row: TelegramMarketingSettings): ManilaReminderSlot[] {
@@ -674,14 +677,16 @@ export function serializeTelegramSettings(row: TelegramMarketingSettings) {
     enabled: row.enabled,
     notifyOnNewBooking: row.notify_on_new_booking,
     notifyOnCancellation: row.notify_on_cancellation,
+    notifyOnDailyDefault: row.notify_on_daily_default ?? true,
+    notifyOnDailyUrgency: row.notify_on_daily_urgency ?? true,
     urgencyDaysThreshold: row.urgency_days_threshold,
     newBookingDatesLimit: row.new_booking_dates_limit,
     dailyReminderTimesManila: slots,
     dailyReminderUtcCronPreview: manilaSlotsToUtcCronPreview(slots),
-    dailyDefaultTemplate: row.daily_default_template,
-    dailyUrgencyTemplate: row.daily_urgency_template,
-    newBookingTemplate: row.new_booking_template,
-    cancellationTemplate: row.cancellation_template,
+    dailyDefaultTemplate: normalizeTelegramTemplateText(row.daily_default_template),
+    dailyUrgencyTemplate: normalizeTelegramTemplateText(row.daily_urgency_template),
+    newBookingTemplate: normalizeTelegramTemplateText(row.new_booking_template),
+    cancellationTemplate: normalizeTelegramTemplateText(row.cancellation_template),
     placeholdersReference: [
       '{{available_dates}} — free check-in dates from the live calendar',
       '{{month_name}} — current month name from the booking calendar',
@@ -692,41 +697,8 @@ export function serializeTelegramSettings(row: TelegramMarketingSettings) {
   };
 }
 
-/** Ensure row exists (migration should); used defensively. */
-export async function ensureTelegramSettingsRow(): Promise<void> {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
-  const { data, error } = await supabase
-    .from('telegram_marketing_settings')
-    .select('id')
-    .eq('id', 1)
-    .maybeSingle();
-  if (error) {
-    console.error('ensureTelegramSettingsRow select:', error);
-    throw new Error(
-      `telegram_marketing_settings query failed (${error.code ?? 'no-code'}: ${error.message}). ` +
-        `Deploy migration 20260614120000_telegram_marketing_settings.sql to this database.`,
-    );
-  }
-  if (data) return;
-  const { error: insertError } = await supabase.from('telegram_marketing_settings').insert({
-    id: 1,
-    daily_reminder_times_manila: DEFAULT_MANILA_REMINDER_SLOTS,
-    daily_default_template: 'Pa up and share po ka-uppers! Salamuch!',
-    daily_urgency_template:
-      'Available {{urgency_text}} {{month_name}} {{dates_list}}. Book now and get huge last minute discount!',
-    new_booking_template:
-      'Available next dates: {{month_name}} {{dates_list}}. Book now and get huge discount for this month!',
-    cancellation_template:
-      'Available this {{cancellation_dates}} due to guest cancellation! Book now and get huge discount for this specific date/s!',
-  });
-  if (insertError) {
-    console.error('ensureTelegramSettingsRow insert:', insertError);
-    throw new Error(
-      `Could not seed telegram_marketing_settings (${insertError.message}). ` +
-        `Apply migration 20260614120000_telegram_marketing_settings.sql first.`,
-    );
-  }
+/** Ensure marketing row exists for property; used defensively on admin GET/POST. */
+export async function ensureTelegramSettingsRow(propertyId?: string): Promise<void> {
+  if (!propertyId) return;
+  await ensureTelegramMarketingSettingsRow(propertyId);
 }

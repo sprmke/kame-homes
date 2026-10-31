@@ -1,0 +1,32 @@
+{
+  "description": "Doc 21.6 seeded adversarial cases. Copy to auth-parity-seed.local.json (gitignored) and set JWT env vars.",
+  "cases": [
+    {
+      "id": "member-cannot-call-org-settings-patch",
+      "doc": "21.6",
+      "jwtEnv": "AUTH_PARITY_PROPERTY_MEMBER_JWT",
+      "method": "GET",
+      "function": "org-settings",
+      "query": "orgId=REPLACE_ORG_UUID",
+      "expectStatus": [401, 403]
+    },
+    {
+      "id": "host-a-cannot-read-host-b-booking-by-id",
+      "doc": "21.6",
+      "jwtEnv": "AUTH_PARITY_HOST_A_JWT",
+      "method": "GET",
+      "function": "get-booking",
+      "query": "booking_id=REPLACE_HOST_B_BOOKING_UUID&property_id=REPLACE_HOST_B_PROPERTY_UUID",
+      "expectStatus": [403, 404]
+    },
+    {
+      "id": "parking-scoped-cannot-list-property-bookings",
+      "doc": "21.6",
+      "jwtEnv": "AUTH_PARITY_PARKING_MEMBER_JWT",
+      "method": "GET",
+      "function": "list-bookings",
+      "query": "property_id=REPLACE_PROPERTY_UUID",
+      "expectStatus": [401, 403]
+    }
+  ]
+}

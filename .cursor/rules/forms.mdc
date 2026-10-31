@@ -1,0 +1,66 @@
+---
+description: React Hook Form + Zod — guest form, admin edit forms, validation sync with edge
+globs:
+  - 'ui/src/**/*Form*.tsx'
+  - 'ui/src/**/schemas/**/*.ts'
+  - 'ui/src/features/**/schemas/*.ts'
+alwaysApply: false
+---
+
+# Forms
+
+## Stack
+
+**React Hook Form** + **`@hookform/resolvers/zod`** + **Zod**.
+
+## Schema location
+
+| Form                  | Schema                                                  |
+| --------------------- | ------------------------------------------------------- |
+| Guest booking         | `ui/src/features/guest/form/schemas/guestFormSchema.ts` |
+| Admin booking edit    | inline / colocated with `BookingEditForm.tsx`           |
+| SD refund             | `ui/src/features/guest/sd-form/`                        |
+| Property/org settings | colocated Zod in feature `lib/` or form component       |
+
+Keep **UI Zod** aligned with edge validation (`_shared/fieldValidation.ts`, `orgSettingsValidation.ts`) when fields map to DB columns.
+
+## Pattern
+
+```typescript
+const form = useForm<GuestFormValues>({
+  resolver: zodResolver(guestFormSchema),
+  defaultValues: { ... },
+  mode: 'onBlur',
+});
+
+return (
+  <form onSubmit={form.handleSubmit(onSubmit)}>
+    <Input {...form.register('guestEmail')} />
+    {form.formState.errors.guestEmail && (
+      <p className="text-sm text-destructive">{form.formState.errors.guestEmail.message}</p>
+    )}
+  </form>
+);
+```
+
+## Guest form specifics
+
+- **Airbnb** (`?source=airbnb`): 4 steps, no payment receipt required — see `guestFormSchema` `buildGuestFormSchema(isAirbnb)`.
+- Submit via **FormData** + `submit-form` edge function (not JSON-only when files present).
+- Dev toggles on non-prod only — see `admin-auth.mdc` §4. Never use `?dev=true`.
+
+## Admin forms
+
+- Use shadcn `Form` primitives where already established in the feature.
+- Property-scoped saves: pass `property_id` via `scopedFunctionsUrl` / `appendPropertyId`.
+- Destructive actions: short confirm line only (`ui-minimal-copy.mdc`).
+
+## Don'ts
+
+- `any` for form values — infer from Zod
+- Duplicate validation logic only in UI — mirror critical rules server-side
+- Uncontrolled file inputs without explicit RHF `Controller` / register pattern used elsewhere in the feature
+
+## Unsaved changes
+
+Every form with a manual Save must use the shared guard (`useUnsavedChangesGuard`, or `useGuardedClose` for modals). See `.cursor/rules/unsaved-changes.mdc` and the `unsaved-changes-guard` skill. RHF: `isDirty` from `formState`, `onSave` wraps `handleSubmit` and returns whether it saved.

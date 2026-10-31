@@ -1,0 +1,65 @@
+---
+description: PWA — service worker, offline cache allowlist, push, offline outbox, kill-switch
+globs:
+  - ui/src/pwa/**
+  - ui/src/lib/pwa/**
+  - ui/src/components/pwa/**
+  - ui/src/features/dashboard/offline/**
+  - ui/vite.config.ts
+  - scripts/pwa/**
+  - supabase/functions/push-*/**
+  - supabase/functions/_shared/webPushService.ts
+  - supabase/functions/_shared/pushRecipients.ts
+  - supabase/functions/_shared/idempotency.ts
+  - supabase/migrations/*push_subscriptions*.sql
+  - supabase/migrations/*push_fanout*.sql
+  - supabase/migrations/*request_idempotency*.sql
+alwaysApply: false
+---
+
+# PWA rule
+
+Canonical detail: **`docs/architecture/pwa.md`**. This rule is the invariant checklist.
+
+## Service worker
+
+- **`ui/src/pwa/sw.ts` is worker-only** — never import `@/…` app code (pulls DOM modules into the worker bundle). Shared constants go in `ui/src/pwa/shared.ts` (imported by both).
+- The SW is type-checked via `ui/src/pwa/tsconfig.json` (WebWorker lib), wired into `bun run type-check` / `build`. New SW globals not in the TS lib (`renotify`, `sync`/`periodicsync` events) need a local cast, not a lib bump.
+- **No `setDefaultHandler`** — unmatched requests (POSTs, SSE like the dashboard assistant, auth) must pass straight to the network.
+- Registered manually via `@/lib/pwa/useRegisterSW` (`workbox-window`) + `injectRegister: false` — never `virtual:pwa-register/*` (breaks under a stale Vite process). Update prompt is ours (`UpdatePrompt`).
+- `injectManifest`, not `generateSW`. `registerType: 'prompt'` — never auto-reload a running operator.
+
+## Offline cache allowlist — deliberate
+
+- **`ui/src/lib/pwa/offlineQueryAllowlist.ts#OFFLINE_PERSIST_KEY_ROOTS` is canonical.** Only add a query-key root here when an operator genuinely needs to _read_ that data offline.
+- Every added root puts operator PII on a possibly shared device, **unencrypted at rest**, cleared only on logout. Keep it tight; prefer read-only views.
+- When you add a root, also add the matching Edge Function name to `SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts` if it should also runtime-cache — and only if the server classifies that function `public*` (`httpResponse.ts`). Never add a `private`/`no-store` endpoint.
+
+## Tenant / identity isolation
+
+- All Cache API + IndexedDB names are `gfm-`-prefixed. The query persister is keyed **per viewer id** (`user-<uuid>` / `anon`).
+- Anything that stores per-viewer state must be wiped by **`ui/src/lib/pwa/purgeOfflineState.ts`** — update it when you add a new `gfm-*` store.
+- `purgeOfflineState` runs on `SIGNED_OUT` (via `PwaQueryPersistence`) and on the SW kill-switch (`KILLED` message).
+
+## Push
+
+- Fan-out is **trigger → `pg_net` → `push-fanout`**, secret-gated (`X-Push-Fanout-Secret`). Never inline in `notificationService.ts`.
+- Recipients mirror the realtime rule: **org owner + active `organization_members`** (`_shared/pushRecipients.ts`). Property/parking-only members get neither — same known gap as realtime.
+- `push-fanout` is non-fatal end to end. `webPushService.ts` never throws; prune on 404/410, retire a subscription at `failure_count` 5.
+- Migrations for `push_subscriptions` / `request_idempotency` **must** add explicit `service_role` grants (RLS-enabled table without a grant = "permission denied").
+- `enablePush()` must be called from a user gesture (iOS). On iOS the opt-in control stays hidden until the app is installed (`needsInstallFirst`).
+
+## Offline outbox
+
+- Queue **only** on a connectivity failure. A server 4xx/5xx is a real error — re-throw it, never queue a validation failure.
+- Every queued mutation carries an `Idempotency-Key`; the server endpoint **must** be wrapped with `_shared/idempotency.ts#withIdempotency`. Don't queue an endpoint that isn't wrapped.
+- Don't queue mutations coupled to file uploads (booking transitions with receipts, inbox attachment replies) — those stay online-only.
+
+## Precache budget
+
+- `scripts/pwa/precache-globs.json` is the single source of truth (config + CI checker read it). Editing the globs anywhere else drifts them.
+- `bun run build` fails if the precache exceeds `budgetKiB`. Fix by code-splitting or `globIgnores`-ing the offending chunk — don't just raise the budget.
+
+## Kill-switch
+
+- `ui/public/pwa-version.json` (`{ disabled, minBuild }`) is the recovery lever for a bad SW deploy. Served `no-store`. Keep the SW's `checkKillSwitch` resilient — it must **never** self-destruct on a failed fetch.

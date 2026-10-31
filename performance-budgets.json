@@ -1,0 +1,18 @@
+{
+  "_comment": "Production-readiness performance budgets (plan doc 00, Phase 0.5). Consumed by scripts/performance/check-budgets.mjs. Numbers start conservative — tighten as docs 01-17 land real fixes. bundle.entryGzipKib / initialGzipKib are already enforced by scripts/performance/check-initial-bundle-budget.mjs; this file adds the rest.",
+  "bundle": {
+    "entryGzipKib": 500,
+    "initialGzipKib": 1200,
+    "totalJsGzipKib": 4200,
+    "totalCssGzipKib": 400
+  },
+  "lighthouse": {
+    "_comment": "Mobile-throttled Lighthouse thresholds, checked against a local `vite preview` server (relative regression detection only — see doc 00 Phase 0.2 edge case on absolute numbers).",
+    "lcpMs": 4000,
+    "inpMs": 300,
+    "cls": 0.15,
+    "tbtMs": 600,
+    "performanceScoreMin": 50
+  },
+  "warnOnly": true
+}

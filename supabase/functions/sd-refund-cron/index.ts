@@ -17,9 +17,9 @@
  *   from transitioning unrelated `READY_FOR_CHECKIN` rows.
  *
  * Email guard (stale check-outs):
- *   If check-out is older than `SD_REFUND_CRON_MAX_CHECKOUT_AGE_DAYS` (default 21; set `0` to disable),
+ *   If check-out is older than `SD_REFUND_CRON_MAX_CHECKOUT_AGE_DAYS` (default 30; set `0` to disable),
  *   the cron **does not** send the check-out email and passes **`sendSdRefundFormEmail: false`** on transition
- *   so guests who departed long ago are not surprised. Calendar/sheet still update when the transition runs.
+ *   so guests who departed long ago are not surprised. Email side effects still run when the transition fires.
  *
  * Idempotency:
  *   - The status machine (`canTransition`) prevents re-processing: a booking
@@ -31,24 +31,47 @@
  * Lead window:  minutes **before** parsed check-out (Manila) when the booking becomes eligible
  *               (env: `SD_REFUND_CRON_EMAIL_LEAD_MINUTES`, default **120**).
  *
- * Reference:  docs/NEW_FLOW_PLAN.md §5 Phase 4, §6.1 Q7.1
+ * Reference:  docs/planning/NEW_FLOW_PLAN.md §5 Phase 4, §6.1 Q7.1
  *             .cursor/rules/booking-workflow.mdc §3
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { resolveAppSettings } from '../_shared/appSettings.ts';
-import { verifyAdminJwt } from '../_shared/auth.ts';
+import {
+  resolveScopedPropertyAccess,
+  verifyBookingBelongsToProperty,
+} from '../_shared/propertyScope.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
+import { buildActorContext } from '../_shared/activityLog.ts';
 import { checkGuestBalanceSettlement } from '../_shared/totalGuestBalance.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { sendSdRefundFormRequest } from '../_shared/emailService.ts';
+import { propertyAutomationEnabled } from '../_shared/propertyAutomationToggles.ts';
+import { capturePostHogException } from '../_shared/posthog.ts';
+import { evaluateSdRefundLeadWindow, parseCheckoutManila } from '../_shared/sdRefundCronLead.ts';
+import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
 const MANILA_TZ = 'Asia/Manila';
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Guards the unscoped global-sweep path (empty/`{}` body — no `bookingId`, no admin JWT).
+ * Same fail-open-until-configured convention as every other scheduled cron in this repo
+ * (`verifyParkingBroadcastExpireCronSecret`, `verifyContractExpiryCronSecret`, Telegram
+ * crons, etc.) — if the operator hasn't set `SD_REFUND_CRON_SECRET` yet, the sweep keeps
+ * working exactly as before; once set, only the pg_cron job's Vault-sourced header
+ * (`sync_sd_refund_cron_job` migration) or another caller who knows the secret can trigger it.
+ * Production (`ENVIRONMENT=production`) rejects when the secret is unset.
+ */
+function verifySdRefundCronSecret(req: Request): boolean {
+  return verifyCronSecret(req, {
+    envKey: 'SD_REFUND_CRON_SECRET',
+    headerName: 'x-sd-refund-cron-secret',
+  });
+}
 
 // ─── Date/time helpers ─────────────────────────────────────────────────────────
 
@@ -60,60 +83,6 @@ function nowManila(): Date {
 }
 
 /**
- * Parse a booking's check-out date + time into a Date in Asia/Manila.
- *
- * check_out_date is stored as MM-DD-YYYY text.
- * check_out_time is stored as HH:MM AM/PM (e.g. "11:00 AM") or 24h (e.g. "11:00").
- *
- * Returns a Date whose numeric value matches Asia/Manila wall-clock time.
- */
-function parseCheckoutManila(checkOutDate: string, checkOutTime: string): Date | null {
-  try {
-    // Normalize MM-DD-YYYY → YYYY-MM-DD
-    let isoDate: string;
-    if (/^\d{2}-\d{2}-\d{4}$/.test(checkOutDate)) {
-      const [m, d, y] = checkOutDate.split('-');
-      isoDate = `${y}-${m}-${d}`;
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(checkOutDate)) {
-      isoDate = checkOutDate;
-    } else {
-      return null;
-    }
-
-    // Normalize time → 24h HH:MM
-    let hour24 = 0;
-    let minute = 0;
-
-    const ampm = checkOutTime?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-    if (ampm) {
-      let h = parseInt(ampm[1], 10);
-      const m = parseInt(ampm[2], 10);
-      const period = ampm[3].toUpperCase();
-      if (period === 'PM' && h !== 12) h += 12;
-      if (period === 'AM' && h === 12) h = 0;
-      hour24 = h;
-      minute = m;
-    } else {
-      const plain = checkOutTime?.match(/(\d{1,2}):(\d{2})/);
-      if (plain) {
-        hour24 = parseInt(plain[1], 10);
-        minute = parseInt(plain[2], 10);
-      }
-    }
-
-    // Build local Manila datetime string and parse via toLocaleString trick
-    const localStr = `${isoDate}T${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
-
-    // Parse as if it were UTC, then adjust for Manila offset (+8h)
-    // Instead, use Intl to get the Manila-aware date
-    const utc = new Date(`${localStr}+08:00`);
-    return utc;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Returns the default check-out time fallback (11:00 AM Manila).
  */
 function defaultCheckoutTime(): string {
@@ -121,9 +90,11 @@ function defaultCheckoutTime(): string {
 }
 
 /** Same rules as WorkflowOrchestrator for RFCI → READY_FOR_CHECKOUT (paid = total; receipt if total > 0). */
-function canAutoTransitionWithSettlement(row: Record<string, unknown>): {
-  ok: true;
-} | { ok: false; reason: string } {
+function canAutoTransitionWithSettlement(row: Record<string, unknown>):
+  | {
+      ok: true;
+    }
+  | { ok: false; reason: string } {
   const result = checkGuestBalanceSettlement(row);
   if (!result.ok) return result;
   return { ok: true };
@@ -134,12 +105,12 @@ function canAutoTransitionWithSettlement(row: Record<string, unknown>): {
 function supabaseAdmin() {
   return createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 }
 
 const SELECT_COLUMNS =
-  'id, check_in_date, check_out_date, check_out_time, guest_facebook_name, booking_rate, down_payment, security_deposit, pet_fee, parking_rate_guest, guest_additional_fee, guest_balance_paid_amount, guest_balance_payment_receipt_url, sd_refund_form_emailed_at';
+  'id, property_id, check_in_date, check_out_date, check_out_time, guest_facebook_name, guest_email, booking_rate, down_payment, security_deposit, pet_fee, parking_rate_guest, guest_additional_fee, guest_balance_paid_amount, guest_balance_payment_receipt_url, sd_refund_form_emailed_at';
 
 type CronResultRow = {
   bookingId: string;
@@ -173,47 +144,51 @@ serve(async (req) => {
   console.log('[sd-refund-cron] Run started at', runStarted);
 
   try {
-    const settings = await resolveAppSettings();
-    let leadMinutes = settings.sdRefundCronEmailLeadMinutes;
-    if (Number.isNaN(leadMinutes) || leadMinutes < 0) {
-      console.warn(
-        '[sd-refund-cron] Invalid SD refund email lead minutes; falling back to 120',
-      );
-      leadMinutes = 120;
-    }
-    const maxCheckoutAgeDays = settings.sdRefundCronMaxCheckoutAgeDays;
-    const nowMs = nowManila().getTime();
-
-    console.log(`[sd-refund-cron] Now (Manila): ${nowManila().toISOString()}, email lead: ${leadMinutes}min before checkout`);
-    console.log(
-      `[sd-refund-cron] Max checkout age for SD form email: ${
-        maxCheckoutAgeDays <= 0 ? 'disabled (always allow email when transitioning)' : `${maxCheckoutAgeDays} day(s)`
-      }`,
-    );
-
     const scopedBookingId = await parseOptionalBookingId(req);
     let scoped = false;
+    let adminPropertyId: string | null = null;
 
     if (scopedBookingId) {
       if (!UUID_RE.test(scopedBookingId)) {
         return new Response(
           JSON.stringify({ success: false, error: 'Invalid bookingId (expected UUID)' }),
-          { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
+          { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
-      await verifyAdminJwt(req);
+      const scopedBooking = await DatabaseService.getBookingById(scopedBookingId);
+      const scopedPropertyId = (scopedBooking?.property_id as string | undefined)?.trim();
+      if (!scopedPropertyId) {
+        return new Response(JSON.stringify({ success: false, error: 'Booking not found' }), {
+          status: 404,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        });
+      }
+      const { property } = await resolveScopedPropertyAccess(
+        req,
+        'bookings.detail.workflow:edit',
+        scopedPropertyId
+      );
+      adminPropertyId = property.id;
+      await verifyBookingBelongsToProperty(scopedBookingId, adminPropertyId);
       scoped = true;
       console.log(`[sd-refund-cron] Scoped run for bookingId=${scopedBookingId}`);
+    } else if (!verifySdRefundCronSecret(req)) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+      });
     }
 
-    const admin = supabaseAdmin();
-    let query = admin
+    const sb = supabaseAdmin();
+    let query = sb
       .from('guest_submissions')
       .select(SELECT_COLUMNS)
       .eq('status', 'READY_FOR_CHECKIN');
 
     if (scopedBookingId) {
       query = query.eq('id', scopedBookingId);
+    } else if (adminPropertyId) {
+      query = query.eq('property_id', adminPropertyId);
     }
 
     const { data: candidates, error } = await query;
@@ -238,52 +213,74 @@ serve(async (req) => {
           transitionedSdEmailSent: 0,
           transitionedSdEmailSuppressed: 0,
           results: scopedBookingId
-            ? [{
-              bookingId: scopedBookingId,
-              action: 'skipped',
-              reason: 'not_found_or_not_ready_for_checkin',
-            } satisfies CronResultRow]
+            ? [
+                {
+                  bookingId: scopedBookingId,
+                  action: 'skipped',
+                  reason: 'not_found_or_not_ready_for_checkin',
+                } satisfies CronResultRow,
+              ]
             : [],
         }),
-        { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
+        { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(
-      `[sd-refund-cron] Scanning ${candidates.length} READY_FOR_CHECKIN booking(s)${scoped ? ' (scoped)' : ''}`,
+      `[sd-refund-cron] Scanning ${candidates.length} READY_FOR_CHECKIN booking(s)${scoped ? ' (scoped)' : ''}`
     );
 
     let transitioned = 0;
     let skipped = 0;
     const results: CronResultRow[] = [];
-
-    const maxAgeMs =
-      maxCheckoutAgeDays > 0 ? maxCheckoutAgeDays * 24 * 60 * 60 * 1000 : Number.POSITIVE_INFINITY;
+    const nowMs = nowManila().getTime();
 
     for (const booking of candidates) {
       const bookingId = booking.id as string;
+      const propertyId = (booking.property_id as string | null) ?? null;
+      const settings = await resolveAppSettings(propertyId);
+      let leadMinutes = settings.sdRefundCronEmailLeadMinutes;
+      if (Number.isNaN(leadMinutes) || leadMinutes < 0) {
+        leadMinutes = 180;
+      }
+      const maxCheckoutAgeDays = settings.sdRefundCronMaxCheckoutAgeDays;
+      const maxAgeMs =
+        maxCheckoutAgeDays > 0
+          ? maxCheckoutAgeDays * 24 * 60 * 60 * 1000
+          : Number.POSITIVE_INFINITY;
+
       const checkOutDate = (booking.check_out_date as string) ?? '';
       const checkOutTime = (booking.check_out_time as string) || defaultCheckoutTime();
 
-      const checkoutDt = parseCheckoutManila(checkOutDate, checkOutTime);
+      const leadWindow = evaluateSdRefundLeadWindow({
+        checkOutDate,
+        checkOutTime,
+        leadMinutes,
+        nowMs,
+      });
 
-      if (!checkoutDt) {
-        console.warn(`[sd-refund-cron] Cannot parse checkout datetime for booking ${bookingId}: date="${checkOutDate}" time="${checkOutTime}"`);
+      if (!leadWindow.checkoutDt) {
+        console.warn(
+          `[sd-refund-cron] Cannot parse checkout datetime for booking ${bookingId}: date="${checkOutDate}" time="${checkOutTime}"`
+        );
         results.push({ bookingId, action: 'skipped', reason: 'unparseable_checkout_datetime' });
         skipped++;
         continue;
       }
 
-      const eligibleAtMs = checkoutDt.getTime() - leadMinutes * 60 * 1000;
-      const isDue = nowMs >= eligibleAtMs;
+      const checkoutDt = leadWindow.checkoutDt;
 
-      if (!isDue) {
-        const minutesRemaining = Math.max(1, Math.ceil((eligibleAtMs - nowMs) / 60000));
+      if (!leadWindow.due) {
+        const minutesRemaining = leadWindow.minutesRemaining;
         console.log(
           `[sd-refund-cron] Booking ${bookingId} (${booking.guest_facebook_name}) not yet due ` +
-            `(${minutesRemaining} min until lead window opens)`,
+            `(${minutesRemaining} min until lead window opens)`
         );
-        results.push({ bookingId, action: 'skipped', reason: `not_yet_due_${minutesRemaining}min` });
+        results.push({
+          bookingId,
+          action: 'skipped',
+          reason: `not_yet_due_${minutesRemaining}min`,
+        });
         skipped++;
         continue;
       }
@@ -291,39 +288,55 @@ serve(async (req) => {
       const sdAmount = Number(booking.security_deposit ?? 0);
       const sdIsZero = sdAmount === 0;
 
+      // OTA-ingested bookings (calendar sync Phase 2): a blank guest_email means the guest
+      // has not completed the forwarded form yet — never send the check-out / SD email to
+      // nobody. Once the form is completed guest_email is populated and this clears (same
+      // rule as the workflowOrchestrator guard).
+      const noGuestContact = !String(booking.guest_email ?? '').trim();
+
       const checkoutAgeMs = nowMs - checkoutDt.getTime();
-      const suppressStaleEmail = checkoutAgeMs > maxAgeMs || sdIsZero;
+      const suppressStaleEmail = checkoutAgeMs > maxAgeMs || sdIsZero || noGuestContact;
 
       const emailedAtRaw = (booking as Record<string, unknown>).sd_refund_form_emailed_at;
-      const hadCheckoutEmailInDb =
-        typeof emailedAtRaw === 'string' && emailedAtRaw.trim() !== '';
+      const hadCheckoutEmailInDb = typeof emailedAtRaw === 'string' && emailedAtRaw.trim() !== '';
 
       let sentCheckoutEmailThisRun = false;
       if (!suppressStaleEmail && !hadCheckoutEmailInDb) {
-        try {
-          const fullRow = await DatabaseService.getBookingById(bookingId);
-          if (fullRow) {
-            await sendSdRefundFormRequest(fullRow);
-            await DatabaseService.setWorkflowFields(bookingId, {
-              sd_refund_form_emailed_at: new Date().toISOString(),
-            });
-            sentCheckoutEmailThisRun = true;
-            console.log(
-              `[sd-refund-cron] Sent check-out / SD details email for booking ${bookingId} (still READY_FOR_CHECKIN until settlement)`,
-            );
+        const propertyId =
+          typeof booking.property_id === 'string' ? booking.property_id.trim() : '';
+        const sdEmailAllowed = propertyId
+          ? await propertyAutomationEnabled(propertyId, 'emailSdRefundCheckout')
+          : true;
+        if (!sdEmailAllowed) {
+          console.log(
+            `[sd-refund-cron] Check-out email skipped for ${bookingId} (org automation off)`
+          );
+        } else {
+          try {
+            const fullRow = await DatabaseService.getBookingById(bookingId);
+            if (fullRow) {
+              await sendSdRefundFormRequest(fullRow);
+              await DatabaseService.setWorkflowFields(bookingId, {
+                sd_refund_form_emailed_at: new Date().toISOString(),
+              });
+              sentCheckoutEmailThisRun = true;
+              console.log(
+                `[sd-refund-cron] Sent check-out / SD details email for booking ${bookingId} (still READY_FOR_CHECKIN until settlement)`
+              );
+            }
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error(`[sd-refund-cron] Check-out email failed for ${bookingId}:`, msg);
+            results.push({ bookingId, action: 'failed', reason: `checkout_email:${msg}` });
+            continue;
           }
-        } catch (e: unknown) {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.error(`[sd-refund-cron] Check-out email failed for ${bookingId}:`, msg);
-          results.push({ bookingId, action: 'failed', reason: `checkout_email:${msg}` });
-          continue;
         }
       }
 
       const settlement = canAutoTransitionWithSettlement(booking);
       if (!settlement.ok) {
         console.log(
-          `[sd-refund-cron] Booking ${bookingId} in email window but not transitioning yet: ${settlement.reason}`,
+          `[sd-refund-cron] Booking ${bookingId} in email window but not transitioning yet: ${settlement.reason}`
         );
         if (sentCheckoutEmailThisRun) {
           results.push({ bookingId, action: 'checkout_email_sent', sdRefundFormEmailSent: true });
@@ -337,7 +350,7 @@ serve(async (req) => {
       if (suppressStaleEmail) {
         console.log(
           `[sd-refund-cron] Booking ${bookingId}: check-out older than ${maxCheckoutAgeDays}d — ` +
-            'transitioning without automated guest email',
+            'transitioning without automated guest email'
         );
       }
 
@@ -347,7 +360,9 @@ serve(async (req) => {
       console.log(
         `[sd-refund-cron] Transitioning booking ${bookingId} (${booking.guest_facebook_name}) ` +
           `checkout ${checkOutDate} ${checkOutTime} → READY_FOR_CHECKOUT` +
-          (!sendEmailOnTransition ? ' (no SD form email on transition — already sent or stale)' : ''),
+          (!sendEmailOnTransition
+            ? ' (no SD form email on transition — already sent or stale)'
+            : '')
       );
 
       try {
@@ -356,14 +371,13 @@ serve(async (req) => {
           'READY_FOR_CHECKOUT',
           {
             guest_balance_paid_amount: Number(booking.guest_balance_paid_amount),
-            guest_balance_payment_receipt_url:
-              String(booking.guest_balance_payment_receipt_url ?? '').trim(),
+            guest_balance_payment_receipt_url: String(
+              booking.guest_balance_payment_receipt_url ?? ''
+            ).trim(),
           },
           {
             saveToDatabase: true,
             generatePdf: false,
-            updateGoogleCalendar: true,
-            updateGoogleSheets: true,
             sendGafRequestEmail: false,
             sendParkingBroadcastEmail: false,
             sendPetRequestEmail: false,
@@ -372,6 +386,7 @@ serve(async (req) => {
             sendSdRefundFormEmail: sendEmailOnTransition,
           },
           false, // manual=false — cron-driven transition
+          buildActorContext('cron', { cron: 'sd-refund-cron' })
         );
 
         console.log(`[sd-refund-cron] Transitioned booking ${bookingId} → READY_FOR_CHECKOUT`);
@@ -389,11 +404,13 @@ serve(async (req) => {
       }
     }
 
-    const emailSentCount = results.filter((r) =>
-      (r.action === 'transitioned' || r.action === 'checkout_email_sent') && r.sdRefundFormEmailSent === true
+    const emailSentCount = results.filter(
+      (r) =>
+        (r.action === 'transitioned' || r.action === 'checkout_email_sent') &&
+        r.sdRefundFormEmailSent === true
     ).length;
-    const emailSuppressedCount = results.filter((r) =>
-      r.action === 'transitioned' && r.sdRefundFormEmailSent === false
+    const emailSuppressedCount = results.filter(
+      (r) => r.action === 'transitioned' && r.sdRefundFormEmailSent === false
     ).length;
     const checkoutEmailsOnly = results.filter((r) => r.action === 'checkout_email_sent').length;
 
@@ -409,7 +426,10 @@ serve(async (req) => {
       results,
     };
 
-    console.log('[sd-refund-cron] Run complete:', JSON.stringify({ scanned: candidates.length, transitioned, skipped }));
+    console.log(
+      '[sd-refund-cron] Run complete:',
+      JSON.stringify({ scanned: candidates.length, transitioned, skipped })
+    );
 
     return new Response(JSON.stringify(summary), {
       status: 200,
@@ -420,9 +440,10 @@ serve(async (req) => {
       return error;
     }
     console.error('[sd-refund-cron] Fatal error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
-    );
+    await capturePostHogException(error, { logPrefix: 'cron:sd-refund-cron', request: req });
+    return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -1,0 +1,74 @@
+---
+description: Sitewide testing pyramid — unit vs Playwright E2E vs manual; same-change as code
+alwaysApply: true
+---
+
+# Testing — agent reference
+
+Canonical plan: **`docs/workflow/done/sitewide-automated-testing.md`**. How-to: **`docs/guides/testing/README.md`**. Skill: **`testing`**.
+
+## Pyramid (default for every feature change)
+
+| Layer            | Tool                                          | When                                                       |
+| ---------------- | --------------------------------------------- | ---------------------------------------------------------- |
+| Unit (UI)        | Vitest Node (`ui/src/**/*.test.ts`)           | Pure logic: validators, workflow mirrors, plan/RBAC, dates |
+| Unit (edge)      | Deno (`supabase/functions/_shared/*_test.ts`) | State machines, entitlements, orchestrator branches        |
+| Handler          | Deno (`supabase/functions/tests/*.test.ts`)   | Edge handlers with branching (mock DB)                     |
+| E2E mocked       | Playwright (`ui/e2e/features/<domain>/`)      | User journeys: routing + mocked API + auth seam            |
+| Manual / `@live` | `docs/guides/testing/*-manual.md`             | PayMongo, OAuth, OTP email, Meta, Resend inbound           |
+
+**Do not** E2E every field or modal. **Do not** use Playwright MCP as the regression suite (MCP is for exploration while writing specs).
+
+## Where files live
+
+```
+ui/src/<feature>/lib/foo.test.ts
+supabase/functions/_shared/foo_test.ts
+supabase/functions/tests/<topic>.test.ts
+ui/e2e/shared/          # authSeam, interceptEdge, ids
+ui/e2e/features/<domain>/
+```
+
+No Playwright specs under `ui/src/`.
+
+## Tags (Playwright describe title)
+
+| Tag      | CI                       |
+| -------- | ------------------------ |
+| `@smoke` | PR + develop             |
+| `@ci`    | develop (mocked domains) |
+| `@live`  | never PR                 |
+| `@demo`  | never CI                 |
+
+## Same-change requirement
+
+| Change                             | Test                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| Pure helper / client-server mirror | Colocated unit (both sides if mirrored)                                  |
+| Plan key or permission leaf        | Unit matrix + catalog drift test                                         |
+| Workflow transition / side effect  | Deno `statusMachine` + orchestrator; E2E only if host click path changed |
+| New primary page journey           | Route guide **Testing** row + `@smoke` if booking/auth/money path        |
+| Mutating edge function             | Handler test or validator unit                                           |
+| CSS / copy only                    | No new tests                                                             |
+| Third-party integration            | Manual guide                                                             |
+
+Update **`docs/guides/routes/*.md`** Testing column when the route guide changes.
+
+## Commands
+
+```bash
+bun run test                  # Vitest UI
+bun run test:edge             # Deno _shared
+bun run test:edge:handlers    # Deno handler tests (no live/integration)
+bun run test:e2e:smoke        # Playwright @smoke
+bun run test:e2e:ci           # Playwright @ci (develop)
+bun run test:e2e:plans        # Plan tiers: public pricing, Plans page, gates, review dialog
+bun run check:plan-catalog    # pricing_plans (local DB) vs golden tier matrix
+bun run ci:quality            # Full PR parity
+```
+
+## Related
+
+- `.cursor/rules/booking-workflow.mdc` §6 invariants
+- `.cursor/rules/plans-and-permissions.mdc`
+- `.cursor/rules/audit-logging.mdc`

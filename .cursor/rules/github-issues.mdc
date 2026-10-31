@@ -1,0 +1,33 @@
+# GitHub Issues — agent reference
+
+Product backlog on **`sprmke/kame-homes` GitHub Issues** — not duplicated in repo markdown.
+
+## Source of truth
+
+| Layer           | Location                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| Pending work    | https://github.com/sprmke/kame-homes/issues + Project board                                |
+| Epic parents    | GitHub sub-issue parent (e.g. #104 for §4 emails) — see `docs/README.md` (Product backlog) |
+| Shipped archive | `docs/archive/todos/shipped/`                                                              |
+
+## Required skill
+
+**`.cursor/skills/github-issues/SKILL.md`** or **`/github-issue`** when picking up, creating, or shipping issues. New teammates / QA: **`/kh-create-new-ticket`** (template) · **`/kh-help`**.
+
+## Workflow
+
+1. `bun scripts/dev/gh-issue.mjs view --github N`
+2. Implement — update route guides / `PROJECT.md` when behavior changes
+3. `bun scripts/dev/gh-issue.mjs ship --github N --notes "…"`
+
+## Naming
+
+- Epic: `[Epic N] …` (GitHub parent issue)
+- Child: `[N.M] …` — use `--section N` on create; link with `--parent {epic#}`
+
+## Don'ts
+
+- Don't add Spec/Epic path footers to issue bodies
+- Don't recreate local spec mirrors under `docs/todos/`
+- Don't use `docs/planning/PENDING_BACKLOG.md` (retired)
+- Don't attribute issues to Cursor

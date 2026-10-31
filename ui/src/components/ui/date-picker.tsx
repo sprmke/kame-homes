@@ -1,46 +1,45 @@
-import * as React from "react"
-import { format, startOfDay } from "date-fns"
-import { DATE_FNS_PICKER_DISPLAY_FORMAT, DATE_PICKER_DISPLAY_FORMAT } from "@/utils/dates"
-import { Calendar as CalendarIcon } from "lucide-react"
-import type { Matcher } from "react-day-picker"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import * as React from 'react';
+
+import { format, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { DATE_FNS_PICKER_DISPLAY_FORMAT, DATE_PICKER_DISPLAY_FORMAT } from '@/utils/format/dates';
+
+import type { Matcher } from 'react-day-picker';
 
 interface DatePickerProps {
-  date?: Date
-  onSelect?: (date: Date | undefined) => void
-  disabled?: (date: Date) => boolean
-  placeholder?: string
-  minDate?: Date
-  maxDate?: Date
-  className?: string
-  rangeEnd?: Date // For showing the range visually
+  date?: Date;
+  onSelect?: (date: Date | undefined) => void;
+  disabled?: (date: Date) => boolean;
+  placeholder?: string;
+  minDate?: Date;
+  maxDate?: Date;
+  className?: string;
+  rangeEnd?: Date; // For showing the range visually
 }
 
 function buildDisabledMatchers(
   minDate?: Date,
   maxDate?: Date,
-  disabled?: (date: Date) => boolean,
+  disabled?: (date: Date) => boolean
 ): Matcher | Matcher[] | undefined {
-  const matchers: Matcher[] = []
+  const matchers: Matcher[] = [];
   if (minDate) {
-    matchers.push({ before: startOfDay(minDate) })
+    matchers.push({ before: startOfDay(minDate) });
   }
   if (maxDate) {
-    matchers.push({ after: startOfDay(maxDate) })
+    matchers.push({ after: startOfDay(maxDate) });
   }
   if (disabled) {
-    matchers.push(disabled)
+    matchers.push(disabled);
   }
-  if (matchers.length === 0) return undefined
-  if (matchers.length === 1) return matchers[0]
-  return matchers
+  if (matchers.length === 0) return undefined;
+  if (matchers.length === 1) return matchers[0];
+  return matchers;
 }
 
 export function DatePicker({
@@ -53,11 +52,11 @@ export function DatePicker({
   className,
   rangeEnd,
 }: DatePickerProps) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(false);
   const disabledMatchers = React.useMemo(
     () => buildDisabledMatchers(minDate, maxDate, disabled),
-    [minDate, maxDate, disabled],
-  )
+    [minDate, maxDate, disabled]
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -68,13 +67,13 @@ export function DatePicker({
           className={cn(
             'h-10 w-full justify-start rounded-lg px-3 py-2 text-left font-normal',
             !date ? 'text-muted-foreground' : 'text-foreground',
-            className,
+            className
           )}
         >
           <CalendarIcon
             className={cn(
               'mr-2 h-4 w-4 flex-shrink-0',
-              !date ? 'text-muted-foreground' : 'text-foreground',
+              !date ? 'text-muted-foreground' : 'text-foreground'
             )}
             aria-hidden
           />
@@ -90,8 +89,8 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={(newDate) => {
-            onSelect?.(newDate)
-            setOpen(false)
+            onSelect?.(newDate);
+            setOpen(false);
           }}
           disabled={disabledMatchers}
           fromDate={minDate}
@@ -99,31 +98,30 @@ export function DatePicker({
           initialFocus
           modifiers={{
             range_middle: (day) => {
-              if (!date || !rangeEnd) return false
+              if (!date || !rangeEnd) return false;
               // Support bidirectional ranges by determining start and end
-              const start = date < rangeEnd ? date : rangeEnd
-              const end = date < rangeEnd ? rangeEnd : date
-              return day > start && day < end
+              const start = date < rangeEnd ? date : rangeEnd;
+              const end = date < rangeEnd ? rangeEnd : date;
+              return day > start && day < end;
             },
             range_start: (day) => {
-              if (!date || !rangeEnd) return false
-              const start = date < rangeEnd ? date : rangeEnd
-              return day.getTime() === start.getTime()
+              if (!date || !rangeEnd) return false;
+              const start = date < rangeEnd ? date : rangeEnd;
+              return day.getTime() === start.getTime();
             },
             range_end: (day) => {
-              if (!date || !rangeEnd) return false
-              const end = date < rangeEnd ? rangeEnd : date
-              return day.getTime() === end.getTime()
-            }
+              if (!date || !rangeEnd) return false;
+              const end = date < rangeEnd ? rangeEnd : date;
+              return day.getTime() === end.getTime();
+            },
           }}
           modifiersClassNames={{
-            range_middle: "rdp-day_range_middle",
-            range_start: "rdp-day_range_start", 
-            range_end: "rdp-day_range_end"
+            range_middle: 'rdp-day_range_middle',
+            range_start: 'rdp-day_range_start',
+            range_end: 'rdp-day_range_end',
           }}
         />
       </PopoverContent>
     </Popover>
-  )
+  );
 }
-

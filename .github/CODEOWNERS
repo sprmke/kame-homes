@@ -1,0 +1,16 @@
+# Doc 26 Phase 26.3 — required review on sensitive paths.
+# GitHub requests a review from these owners on any PR touching a matching path;
+# branch protection's "require review from code owners" makes it mandatory.
+
+# Schema — no unreviewed migration reaches main/develop.
+/supabase/migrations/ @sprmke
+
+# Auth/authz boundary — the real access-control layer per CLAUDE.md.
+/supabase/functions/_shared/auth.ts @sprmke
+/supabase/functions/_shared/orgAuth.ts @sprmke
+/supabase/functions/_shared/propertyScope.ts @sprmke
+/supabase/functions/_shared/parkingScope.ts @sprmke
+
+# CI/CD pipeline and branch/release automation.
+/.github/workflows/ @sprmke
+/.github/CODEOWNERS @sprmke

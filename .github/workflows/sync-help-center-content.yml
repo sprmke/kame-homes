@@ -1,0 +1,46 @@
+name: Sync Help Center content (dev)
+
+# Push to `develop` touching docs/guides/routes/**/*.md → re-run
+# scripts/sync-ai-knowledge-base.ts against MULTI_TENANT_DEV so the AI
+# assistant's knowledge base + the Help Center Documentation module never go
+# stale. Content-only sync (already-reviewed markdown) — not a schema/function
+# deploy, so it does not need the "no prod deploy without kamewave" gate.
+#
+# Prod (main) is intentionally NOT wired here yet: mt-prod doesn't exist —
+# see cd-prod.yml's cutover gate. Add a mirrored `main` job once that lands.
+#
+# Requires a `DEV_SUPABASE_SERVICE_ROLE_KEY` secret in the `development`
+# GitHub Environment (not currently set by any other workflow — cd-dev.yml's
+# deploy job only uses SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF via the
+# Supabase CLI, no service-role key). Add it before this workflow can run.
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'docs/guides/routes/**/*.md'
+
+concurrency:
+  group: help-center-sync-dev
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Sync knowledge base (MULTI_TENANT_DEV)
+        env:
+          DEV_SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
+          DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+        run: bun scripts/sync-ai-knowledge-base.ts --dev

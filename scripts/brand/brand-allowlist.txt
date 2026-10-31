@@ -1,0 +1,41 @@
+# Class K (keep) allow-list for scripts/brand/check-brand.ts
+# Format: <path or dir/* or dir/**>[:line-regex]  # class K reason
+# See docs/workflow/planned/kamespace-03-rebrand-kame-homes-to-kame-space.md §5
+
+# K-1 review identity pepper fallback
+supabase/functions/_shared/guestIdentityKey.ts  # class K review identity pepper fallback
+
+# K-2 ICS UID domain (UID line must not change; PRODID line is changeable)
+ui/src/features/guest/trip/lib/guestTripCalendar.ts:UID:trip-  # class K ICS UID must not change
+
+# K-3 QR sentinel filename (matchers accept both old and new names)
+supabase/functions/_shared/appSettings.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/paymentMethods.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/emailService.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/propertyTemplateEmailSections.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+ui/src/features/dashboard/lib/storedMediaDisplay.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+scripts/preview/preview-emails-from-db.mjs:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/config.toml:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/migrations/20260707120000_app_settings_gcash_qr.sql  # class K shipped migration
+
+# K-4 shipped migrations (all)
+supabase/migrations/**  # class K shipped migrations, never edit
+
+# K-5 legacy-brand matchers (extend, never remove)
+supabase/functions/_shared/platformBrand.ts  # class K legacy brand matcher
+ui/src/lib/platformBranding.ts  # class K legacy brand matcher
+
+# K-8 historical records
+docs/archive/**  # class K historical records
+docs/workflow/done/**  # class K historical records
+docs/workflow/wont-do/**  # class K historical records
+
+# K-10 legacy-to-mt-prod migration scripts
+scripts/migrate/legacy-to-mt-prod/**  # class K describes legacy system
+
+# Plan docs that must quote the old name (rename series)
+docs/workflow/planned/kamespace-*.md  # class K rename series plan docs
+docs/workflow/in-progress/ci-cd-environments/**  # class K infra tracking docs
+
+# tool cache
+.impeccable/**  # class K tool cache

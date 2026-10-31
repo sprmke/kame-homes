@@ -1,24 +1,20 @@
-import dayjs from "https://esm.sh/dayjs@1.11.10";
-import {
-  formatTime,
-  DEFAULT_CHECK_IN_TIME,
-  DEFAULT_CHECK_OUT_TIME,
-} from "./utils.ts";
-import { computeGuestCounts } from "./guestCounts.ts";
+import dayjs from 'dayjs';
+import { formatTime, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
+import { computeGuestCounts } from './guestCounts.ts';
 
 // ─── Booking status enum ──────────────────────────────────────────────────────
 // Canonical values must match the CHECK constraint in Phase 2 migration and
-// statusMachine.ts. Mirror kept in ui/src/features/admin/lib/workflow.ts.
+// statusMachine.ts. Mirror kept in ui/src/features/dashboard/bookings/lib/workflow.ts.
 
 export const BOOKING_STATUSES = [
-  "PENDING_REVIEW",
-  "PENDING_GAF",
-  "PENDING_PARKING_REQUEST",
-  "PENDING_PET_REQUEST",
-  "READY_FOR_CHECKIN",
-  "PENDING_SD_REFUND",
-  "COMPLETED",
-  "CANCELLED",
+  'PENDING_REVIEW',
+  'PENDING_GAF',
+  'PENDING_PARKING_REQUEST',
+  'PENDING_PET_REQUEST',
+  'READY_FOR_CHECKIN',
+  'PENDING_SD_REFUND',
+  'COMPLETED',
+  'CANCELLED',
 ] as const;
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
@@ -194,6 +190,7 @@ export interface GuestSubmission {
 
   // ── Pet fee ───────────────────────────────────────────────────────────────
   pet_fee?: number | null;
+  guest_additional_fee?: number | null;
 
   // ── Approved PDF URLs (written by Gmail listener) ─────────────────────────
   approved_gaf_pdf_url?: string | null;
@@ -219,22 +216,33 @@ export interface GuestSubmission {
   valid_id_ai_summary?: string | null;
   parking_receipt_ai_verdict?: string | null;
   parking_receipt_ai_summary?: string | null;
+
+  /** Multi-tenancy — scopes app_settings / integrations for this booking. */
+  property_id?: string | null;
+  guest_user_id?: string | null;
+  guest_form_token?: string | null;
+  guest_form_completed_at?: string | null;
+  external_source?: string | null;
+  external_uid?: string | null;
+  external_feed_id?: string | null;
+  external_raw?: unknown;
+  imported_from_batch_id?: string | null;
+  document_requirement_completions?: unknown;
+  [key: string]: unknown;
 }
 
 // Helper function to convert string to boolean
-const toBoolean = (
-  value: string | boolean | undefined,
-): boolean | undefined => {
-  if (typeof value === "boolean") return value;
-  if (value === "true") return true;
-  if (value === "false") return false;
+const toBoolean = (value: string | boolean | undefined): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
   return undefined;
 };
 
 // Helper function to convert string to number
 const toNumber = (value: string | number | undefined): number | undefined => {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
     const num = Number(value);
     return isNaN(num) ? undefined : num;
   }
@@ -243,7 +251,7 @@ const toNumber = (value: string | number | undefined): number | undefined => {
 
 // Helper function to format date to MM-DD-YYYY
 const formatDate = (dateStr: string): string => {
-  return dayjs(dateStr).format("MM-DD-YYYY");
+  return dayjs(dateStr).format('MM-DD-YYYY');
 };
 
 // Helper function to validate guest name
@@ -265,7 +273,7 @@ export const transformFormToSubmission = (
     guest3ValidIdUrl?: string;
     guest4ValidIdUrl?: string;
     guest5ValidIdUrl?: string;
-  } = {},
+  } = {}
 ): GuestSubmission => {
   const guestCounts = computeGuestCounts([
     { name: formData.primaryGuestName, age: formData.primaryGuestAge },
@@ -291,27 +299,18 @@ export const transformFormToSubmission = (
     number_of_nights: toNumber(formData.numberOfNights),
     primary_guest_age: toNumber(formData.primaryGuestAge),
     guest2_name: validateGuestName(formData.guest2Name),
-    guest2_age: formData.guest2Name?.trim()
-      ? toNumber(formData.guest2Age)
-      : undefined,
+    guest2_age: formData.guest2Name?.trim() ? toNumber(formData.guest2Age) : undefined,
     guest3_name: validateGuestName(formData.guest3Name),
-    guest3_age: formData.guest3Name?.trim()
-      ? toNumber(formData.guest3Age)
-      : undefined,
+    guest3_age: formData.guest3Name?.trim() ? toNumber(formData.guest3Age) : undefined,
     guest4_name: validateGuestName(formData.guest4Name),
-    guest4_age: formData.guest4Name?.trim()
-      ? toNumber(formData.guest4Age)
-      : undefined,
+    guest4_age: formData.guest4Name?.trim() ? toNumber(formData.guest4Age) : undefined,
     guest5_name: validateGuestName(formData.guest5Name),
-    guest5_age: formData.guest5Name?.trim()
-      ? toNumber(formData.guest5Age)
-      : undefined,
+    guest5_age: formData.guest5Name?.trim() ? toNumber(formData.guest5Age) : undefined,
     guest_special_requests: formData.guestSpecialRequests,
     find_us: formData.findUs,
     find_us_details: formData.findUsDetails,
-    booking_source: formData.bookingSource || "Facebook",
-    guest_requests_surprise_decor:
-      toBoolean(formData.guestRequestsSurpriseDecor) ?? false,
+    booking_source: formData.bookingSource || 'Direct',
+    guest_requests_surprise_decor: toBoolean(formData.guestRequestsSurpriseDecor) ?? false,
     need_parking: toBoolean(formData.needParking),
     car_plate_number: formData.carPlateNumber,
     car_brand_model: formData.carBrandModel,

@@ -1,0 +1,71 @@
+---
+description: TanStack Query v5 — edge function fetch, query keys, mutations, cache invalidation
+globs:
+  - 'ui/src/**/hooks/**/*.ts'
+  - 'ui/src/**/*Page.tsx'
+alwaysApply: false
+---
+
+# State management
+
+| Concern           | Tool                                              |
+| ----------------- | ------------------------------------------------- |
+| Server / API data | **TanStack Query v5** in feature `hooks/`         |
+| Form inputs       | **React Hook Form**                               |
+| Local UI          | `useState` / `useReducer` in component            |
+| URL params        | **React Router** — `useParams`, `useSearchParams` |
+
+No Zustand in this repo.
+
+## Query pattern (admin edge functions)
+
+```typescript
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { appendPropertyId, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+import { supabase } from '@/lib/supabase/client';
+
+export const BOOKINGS_QUERY_KEY = ['bookings'] as const;
+
+export function useBookings(query: BookingsQuery) {
+  const propertyId = usePropertyIdParam();
+  return useQuery({
+    queryKey: [...BOOKINGS_QUERY_KEY, propertyId, query],
+    queryFn: () => fetchBookingsFromEdgeFunction(query, propertyId),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+}
+```
+
+Reference: `ui/src/features/dashboard/bookings/hooks/useBookings.ts`, `ui/src/features/dashboard/org/lib/edgeClient.ts#callEdgeFunction`.
+
+## Mutations
+
+```typescript
+const queryClient = useQueryClient();
+return useMutation({
+  mutationFn: (payload) =>
+    callEdgeFunction('update-property', { method: 'POST', body: JSON.stringify(payload) }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['properties'] });
+    toast.success('Saved');
+  },
+  onError: (e) => toast.error(e.message),
+});
+```
+
+## Query keys
+
+- Export stable prefix constants (`BOOKINGS_QUERY_KEY`, `BOOKING_QUERY_KEY`).
+- Include **propertyId** / **orgSlug** in keys when data is scoped.
+- Invalidate narrowly — same prefix + relevant ids.
+
+## v5 notes
+
+- `gcTime` not `cacheTime`
+- Prefer mutation `onSuccess` for toasts; avoid query callbacks for side effects
+- `enabled: !!id` for detail queries
+
+## Public guest flows
+
+Guest calendar/form may use direct `fetch` to public edge functions with anon key — no admin JWT. See `public-ui.mdc`.

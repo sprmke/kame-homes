@@ -1,5 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { formatPublicUrl } from './utils.ts';
+import { createClient } from './supabaseJs.ts';
+import { assertMimeMatchesBytes } from './sniffMime.ts';
+import { copyBytes, formatPublicUrl } from './utils.ts';
+import { prefixPropertyStorageKey } from './bookingStoragePaths.ts';
 
 /**
  * Sanitizes a filename for use as a Supabase Storage object key.
@@ -17,29 +19,37 @@ function sanitizeStorageFileName(fileName: string): string {
   }
   // Replace characters that cause "object name contains invalid characters" in Supabase Storage
   const sanitized = fileName
-    .replace(/[''`"]/g, '_')           // apostrophes and quotes
-    .replace(/[%#?\\]/g, '_')          // percent, hash, question, backslash
-    .replace(/\s+/g, '_');             // spaces
+    .replace(/[''`"]/g, '_') // apostrophes and quotes
+    .replace(/[%#?\\]/g, '_') // percent, hash, question, backslash
+    .replace(/\s+/g, '_'); // spaces
   return sanitized || fileName;
 }
 
 export class UploadService {
-  private static supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  private static client: ReturnType<typeof createClient> | null = null;
+
+  private static get supabase() {
+    if (!this.client) {
+      this.client = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+    }
+    return this.client;
+  }
 
   static async uploadPaymentReceipt(
-    file: File | null, 
-    fileName: string
+    file: File | null,
+    fileName: string,
+    propertyId?: string | null
   ): Promise<string> {
     try {
       if (!file) {
         console.log('No downpayment receipt file provided, skipping upload');
         return '';
       }
-      
-      const { url } = await this.uploadFile(file, fileName, 'payment-receipts');
+
+      const { url } = await this.uploadFile(file, fileName, 'payment-receipts', propertyId);
       return url;
     } catch (error) {
       console.error('Error uploading downpayment receipt:', error);
@@ -48,16 +58,17 @@ export class UploadService {
   }
 
   static async uploadValidId(
-    file: File | null, 
-    fileName: string
+    file: File | null,
+    fileName: string,
+    propertyId?: string | null
   ): Promise<string> {
     try {
       if (!file) {
         console.log('No valid ID file provided, skipping upload');
         return '';
       }
-      
-      const { url } = await this.uploadFile(file, fileName, 'valid-ids');
+
+      const { url } = await this.uploadFile(file, fileName, 'valid-ids', propertyId);
       return url;
     } catch (error) {
       console.error('Error uploading valid ID:', error);
@@ -67,15 +78,16 @@ export class UploadService {
 
   static async uploadPetVaccination(
     file: File | null,
-    fileName: string
+    fileName: string,
+    propertyId?: string | null
   ): Promise<string> {
     try {
       if (!file) {
         console.log('No pet vaccination file provided, skipping upload');
         return '';
       }
-      
-      const { url } = await this.uploadFile(file, fileName, 'pet-vaccinations');
+
+      const { url } = await this.uploadFile(file, fileName, 'pet-vaccinations', propertyId);
       return url;
     } catch (error) {
       console.error('Error uploading pet vaccination:', error);
@@ -85,15 +97,16 @@ export class UploadService {
 
   static async uploadPetImage(
     file: File | null,
-    fileName: string
+    fileName: string,
+    propertyId?: string | null
   ): Promise<string> {
     try {
       if (!file) {
         console.log('No pet image file provided, skipping upload');
         return '';
       }
-      
-      const { url } = await this.uploadFile(file, fileName, 'pet-images');
+
+      const { url } = await this.uploadFile(file, fileName, 'pet-images', propertyId);
       return url;
     } catch (error) {
       console.error('Error uploading pet image:', error);
@@ -101,50 +114,43 @@ export class UploadService {
     }
   }
 
-  static async uploadFile(file: File, fileName: string, bucket: string): Promise<{ url: string }> {
-    const storageKey = sanitizeStorageFileName(fileName);
+  static async uploadFile(
+    file: File,
+    fileName: string,
+    bucket: string,
+    propertyId?: string | null
+  ): Promise<{ url: string }> {
+    const storageKey = sanitizeStorageFileName(prefixPropertyStorageKey(propertyId, fileName));
     if (storageKey !== fileName) {
       console.log(`Sanitized storage key: "${fileName}" -> "${storageKey}"`);
     }
     console.log(`Processing ${bucket} upload...`);
 
-    // Only skip upload if we have an exact filename match (search can return partial matches)
-    const { data: listedFiles } = await this.supabase
-      .storage
+    // `generateFileName` (client) is deterministic per guest + stay, so re-submitting
+    // a booking reuses the same key. Upsert overwrites instead of returning 409
+    // Duplicate, and — unlike the old skip-if-exists check — a genuinely edited file
+    // replaces the stored one rather than silently keeping the stale copy. The old
+    // check also listed at the root prefix, so it never matched property-scoped
+    // (`{propertyId}/…`) keys and every re-upload hit the 409 path.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    assertMimeMatchesBytes(bytes, file.type || '');
+
+    const { error: uploadError } = await this.supabase.storage
       .from(bucket)
-      .list('', {
-        search: storageKey
+      .upload(storageKey, bytes, {
+        upsert: true,
+        cacheControl: '300',
+        contentType: file.type || 'application/octet-stream',
       });
-
-    const exactMatch = Array.isArray(listedFiles) && listedFiles.some(
-      (item: { name?: string }) => item.name === storageKey
-    );
-
-    if (exactMatch) {
-      console.log(`File ${storageKey} already exists in ${bucket}, skipping upload`);
-      const { data: { publicUrl } } = this.supabase
-        .storage
-        .from(bucket)
-        .getPublicUrl(storageKey);
-
-      return { url: formatPublicUrl(publicUrl) };
-    }
-
-    // Otherwise, upload the new file using sanitized key
-    const { error: uploadError } = await this.supabase
-      .storage
-      .from(bucket)
-      .upload(storageKey, file);
 
     if (uploadError) {
       console.error(`${bucket} upload error:`, uploadError);
       throw new Error(`Failed to upload file to ${bucket}`);
     }
 
-    const { data: { publicUrl } } = this.supabase
-      .storage
-      .from(bucket)
-      .getPublicUrl(storageKey);
+    const {
+      data: { publicUrl },
+    } = this.supabase.storage.from(bucket).getPublicUrl(storageKey);
 
     console.log(`${bucket} uploaded successfully`);
     return { url: formatPublicUrl(publicUrl) };
@@ -154,18 +160,23 @@ export class UploadService {
   static async uploadPdfBytes(
     bucket: string,
     objectPath: string,
-    bytes: Uint8Array,
+    bytes: Uint8Array
   ): Promise<string> {
-    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const blob = new Blob([copyBytes(bytes)], { type: 'application/pdf' });
     const { error } = await this.supabase.storage.from(bucket).upload(objectPath, blob, {
       contentType: 'application/pdf',
       upsert: true,
+      cacheControl: '300',
     });
     if (error) {
       console.error(`[UploadService] PDF upload to ${bucket}/${objectPath}:`, error);
       throw new Error(`Failed to upload PDF to ${bucket}: ${error.message}`);
     }
-    const { data: { publicUrl } } = this.supabase.storage.from(bucket).getPublicUrl(objectPath);
-    return formatPublicUrl(publicUrl);
+    const {
+      data: { publicUrl },
+    } = this.supabase.storage.from(bucket).getPublicUrl(objectPath);
+    const base = formatPublicUrl(publicUrl);
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}v=${Date.now()}`;
   }
 }

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>{{emailTitle}}</title>
+    <style type="text/css">
+      .configurable-template-body .section-label {
+        margin: 24px 0 10px 0;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: {{emailShellPrimaryHex}};
+      }
+      .configurable-template-body .gcash-payment-label {
+        margin: 0 0 4px 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+      .configurable-template-body .gcash-payment-value {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #1e293b;
+      }
+      .configurable-template-body .gcash-payment-value-spaced {
+        margin: 0 0 14px 0;
+      }
+      .configurable-template-body .gcash-payment-copy {
+        margin: 0 0 14px 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #475569;
+      }
+      .configurable-template-body table.data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      .configurable-template-body .cta-btn {
+        display: inline-block;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body style="{{emailShellBodyStyle}}">
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="{{emailShellTableOuterStyle}}"
+    >
+      <tr>
+        <td align="center" style="{{emailShellTdShellPadStyle}}">
+          <table
+            role="presentation"
+            align="center"
+            width="600"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="{{emailShellTableWrapperStyle}}"
+          >
+            <tr>
+              <td style="{{emailShellTdCardShellStyle}}">
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellspacing="0"
+                  cellpadding="0"
+                  border="0"
+                  style="{{emailShellTableCardStyle}}"
+                >
+                  <tr>
+                    <td style="{{emailShellTdAccentStyle}}">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td style="{{emailShellTdContentPadStyle}}">
+                      {{emailHeaderLogo}}
+                      <div style="{{emailShellBrandMicroStyle}};margin:0 0 4px 0;">
+                        {{brandName}}
+                      </div>
+                      <div style="{{emailShellTextSubheadingStyle}};margin:0 0 16px 0;">
+                        {{unitLabel}}
+                      </div>
+                      <h1 style="{{emailShellH1Style}};margin:0 0 16px 0;">
+                        {{emailTitle}}
+                      </h1>
+                      {{dateLineBlock}}
+                      <div
+                        style="{{emailShellBodyCopyStyle}};margin:0;"
+                        class="configurable-template-body"
+                      >
+                        {{bodyContent}}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="{{emailShellTdLegalFooterStyle}}">
+                {{legalFooter}}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

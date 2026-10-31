@@ -1,0 +1,86 @@
+---
+stage: done
+title: 'Parking E2E Phase 5 — Endorsement Automation, Auto-Accept & Post-Match Communication'
+status: done
+tags: [planning, planned-modules, parking, emails, social-inbox]
+updated: 2026-08-30
+---
+
+# Phase 5 — Endorsement Automation & Communication
+
+Part of [Parking E2E Phase 2+ overview](../planned/parking-e2e-later-phases.md). Depends on Phase 3 (payment) and Phase 4 (needed for payout-aware host status, not strictly blocking).
+
+## Problem
+
+Today the parking endorsement email is a manual, host-initiated action (legacy flow). The user wants it auto-triggered the instant payment succeeds, sent to development/PMO with the guest CC'd, with an in-app copy for the guest and a resend/fallback path if the send fails. Post-match, guest and host should be able to chat and see each other's contact info — chat's schema exists but the guest-facing web widget was never built (Meta DM chat exists but is not booking-scoped).
+
+## Decisions
+
+| #   | Decision                                                                                                                                                                                                                                                                                                                                                       | Detail                                                                                                                                                                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Endorsement email auto-sends on the payment-success webhook (Phase 3), addressed to development/PMO email, CC guest                                                                                                                                                                                                                                            | Explicit intake ask; system acts on the host's behalf rather than requiring a manual host action.                                                                                                                                                      |
+| 1a  | **Confirmed 2026-08-26.** The recipient is resolved via the same `developments`-linked PMO email the legacy property flow already uses — a parking's `residence_name` (e.g. "Azure North") is matched against `developments.name`, reusing `loadDevelopmentPmoEmailByName()`. No new recipient-config field.                                                   | User confirmed parkings should "respect the development email address" — a parking tied to a development inherits that development's PMO contact.                                                                                                      |
+| 2   | Auto-accept toggle (host setting): when on, the host's top-ranked offer is accepted automatically (skipping the manual Accept tap) and endorsement fires immediately once the guest pays; when off, host must still manually accept before payment is even offered to the guest                                                                                | Matches intake: "toggle...to auto-accept and auto-send parking endorsement...or should be manual acceptance."                                                                                                                                          |
+| 3   | In-app "endorsement copy" for the guest — a screenshot/rendered copy of the sent email, viewable within the app, not just delivered to their inbox                                                                                                                                                                                                             | Explicit intake ask ("send copy of email screenshot to guest within our app UI").                                                                                                                                                                      |
+| 4   | Failure fallback: if the endorsement send fails or is interrupted after successful payment, persist a durable "paid, endorsement pending" state; guest revisiting the status page sees a "Request Endorsement" button to retry                                                                                                                                 | Explicit intake ask — this is a hard requirement, not a nice-to-have; payment success must never silently strand a guest.                                                                                                                              |
+| 5   | Chat unlocks only after endorsement is sent, not merely after payment or match                                                                                                                                                                                                                                                                                 | Matches intake ordering: "Once parking endorsement is sent to the guest, both guest & parking owner can chat."                                                                                                                                         |
+| 6   | Contact info reveal is **guest-sees-host-contact only** — the host booking-detail page already showed the guest's email/phone unconditionally before this phase (baseline booking info, unrelated to chat) and stays that way.                                                                                                                                 | **Confirmed 2026-08-26** — "guest will be able to see contact info like email and phone when parking endorsement is sent, so guest can contact parking owner in case of check-in issues." Not a retroactive change to the pre-existing host-side view. |
+| 7   | Admin escalation contact number is shown to the guest regardless of chat activity, for when a host is unresponsive on-site                                                                                                                                                                                                                                     | Explicit intake ask.                                                                                                                                                                                                                                   |
+| 8   | Reuse the existing guest-facing web chat widget (`ui/src/features/guest/chat/`, already accepts a `parkingSlug`) rather than building a new one — it's scoped per `(parking, guest)`, not per booking, but that's sufficient for v1 (see Edge cases). Host side reuses the existing dashboard inbox via its `?conversationId=` deep link, no new host chat UI. | Research found this infra already exists and is booking-slug-aware; building a second chat system would have duplicated it.                                                                                                                            |
+
+## Tasks — shipped 2026-08-26
+
+**Endorsement automation**
+
+- [x] Endorsement email send function (`sendParkingEndorsementEmail`) reusing the existing `renderPropertyTemplateSendEmail`/`sendResendEmail` pattern (same shape as sibling parking emails in `parkingBroadcastEmail.ts`), triggered from `fulfillParkingPayment` (Phase 3's payment-success webhook handler), isolated in its own try/catch so a send failure never fails payment fulfillment.
+- [x] Send status persisted on `guest_submissions` (`endorsement_sent_at`, `endorsement_send_error`, `endorsement_email_snapshot`) — guarded update, first successful send wins, never overwritten.
+- [x] Guest-facing "Request Endorsement" resend button on the status page, shown only when payment is confirmed, no send has succeeded yet, and the last attempt errored.
+- [x] In-app endorsement copy: the exact rendered HTML sent is stored (`endorsement_email_snapshot`) and rendered read-only in a collapsible "View copy" panel — a literal copy, not a re-render that can drift from what was actually emailed.
+- [x] Auto-accept host setting: `parking_settings.automation_toggles.autoAcceptTopMatch` (extends the existing JSONB automation-toggle bag, no new column), surfaced in a new "Booking Automation" settings section; wired into `submit-parking-booking-request` — after the initial batch dispatch, if the top-ranked candidate has the toggle on, `claimParkingBooking()` is called immediately instead of waiting for a manual Accept tap.
+
+**Post-match communication**
+
+- [x] Guest-facing chat: reused the existing `useGuestChatResume`/`useGuestChatStart`/`GuestChatThread` infra via a new lightweight `ParkingChatSheet` wrapper (skips the inquiry-specific FAQ/date-picker/voice-session UI that doesn't apply post-booking) — a "Chat with host" button on the status page, gated on `endorsementSentAt`.
+- [x] Host-side: no new chat UI — a "Message guest" flow would deep-link into the existing parking inbox (`?conversationId=`); contact-reveal on the host side is unchanged (decision #6).
+- [x] Guest-facing host contact reveal (name/email/phone), gated on `endorsement_sent_at IS NOT NULL`, resolved via a new `resolveParkingHostContact()` built on top of the existing `resolveParkingHostRecipients()` (owner → org admins → parking_members with edit access), enriched with `parking_members.display_name`/`contact_phone`.
+- [x] Admin escalation contact number: new `platform_parking_settings.support_escalation_phone` (extends Phase 4's existing singleton config + `/admin/parking/payouts` page), surfaced unconditionally on the guest status page.
+
+## File map (as shipped)
+
+| Path                                                                                          | Change                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/migrations/20261130120000_parking_endorsement.sql`                                  | New — `endorsement_sent_at`/`endorsement_send_error`/`endorsement_email_snapshot` on `guest_submissions`; `support_escalation_phone` on `platform_parking_settings` |
+| `supabase/functions/_shared/parkingEndorsementEmail.ts`                                       | New — `sendParkingEndorsementEmail`, `requestParkingEndorsementResend`                                                                                              |
+| `supabase/functions/_shared/parkingPaymentOrchestrator.ts` (Phase 3)                          | `fulfillParkingPayment` calls the endorsement send, isolated try/catch                                                                                              |
+| `supabase/functions/request-parking-endorsement/index.ts`                                     | New — guest-triggered resend                                                                                                                                        |
+| `supabase/functions/_shared/parkingBroadcastEmail.ts`                                         | `sendResendEmail`/`resolveParkingEmailBranding`/`parkingLocationLabel` exported for reuse; `cc` support added                                                       |
+| `supabase/functions/_shared/parkingBroadcast.ts`                                              | New `resolveParkingHostContact()`                                                                                                                                   |
+| `supabase/functions/_shared/parkingPlatformSettings.ts`, `platform-parking-settings/index.ts` | `supportEscalationPhone` added to the Phase 4 resolver + GET/PUT                                                                                                    |
+| `supabase/functions/_shared/parkingAutomationToggles.ts`                                      | `autoAcceptTopMatch` key added to the shared automation-toggle bag                                                                                                  |
+| `supabase/functions/submit-parking-booking-request/index.ts`                                  | Auto-accept check on the initial batch's top candidate                                                                                                              |
+| `supabase/functions/get-parking-booking-status/index.ts`                                      | Endorsement fields, `hostContact`, `parkingSlug`, `supportEscalationPhone` added to the response                                                                    |
+| `ui/src/features/guest/marketing/parkings/hooks/useParkingBookingStatus.ts`                   | Type additions for the new response fields                                                                                                                          |
+| `ui/src/features/guest/marketing/parkings/hooks/useRequestParkingEndorsement.ts`              | New — resend mutation                                                                                                                                               |
+| `ui/src/features/guest/marketing/parkings/components/ParkingRequestStatusView.tsx`            | Endorsement copy/pending blocks, resend CTA, host contact, escalation phone, chat trigger                                                                           |
+| `ui/src/features/guest/marketing/parkings/components/ParkingChatSheet.tsx`                    | New — thin wrapper around the existing guest chat infra                                                                                                             |
+| `ui/src/features/dashboard/parking/lib/parkingEmailAutomation.ts`                             | `autoAcceptTopMatch` key + `PARKING_EMAIL_AUTOMATION_TOGGLE_KEYS` split                                                                                             |
+| `ui/src/features/dashboard/parking/components/ParkingBookingAutomationSection.tsx`            | New — auto-accept toggle UI                                                                                                                                         |
+| `ui/src/features/dashboard/parking/components/ParkingSettingsCard.tsx`                        | New "Booking Automation" section                                                                                                                                    |
+
+## Edge cases
+
+See overview's "Endorsement & communication (Phase 5)" section. Notes on what's covered vs deferred:
+
+- Send failures / duplicate sends: covered by the guarded `endorsement_sent_at IS NULL` update.
+- Auto-accept only checked against the **initial** batch's top candidate — a re-batch after a decline/timeout still waits for a manual accept. Accepted v1 scope, not re-litigated per re-batch to avoid a circular-import restructure across `parkingBroadcast.ts`/`parkingBroadcastActions.ts`/`parkingBroadcastExpireCron.ts` for a secondary case.
+- Chat-before-endorsement lockout: the CTA is hidden client-side and the underlying conversation is `(parking, guest)`-scoped (existing schema), not booking-scoped — a guest with multiple sequential bookings at the same parking shares one thread across them. Accepted v1 limitation; revisit only if it proves to be a real problem.
+- Unresponsive host with no chat engagement: covered by the always-visible admin escalation phone.
+- **Not verified locally**: the real PayMongo webhook trigger path end-to-end (same limitation as Phase 3 — no live `PAYMONGO_SECRET_KEY`/webhook secret configured locally); `bun run lint && bun run type-check && bun run build` are clean.
+
+## Exit criteria
+
+- [x] `bun run lint && bun run type-check && bun run build` clean.
+- [ ] Simulated payment-success webhook triggers endorsement send exactly once — needs a live/simulated PayMongo webhook pass (not yet run locally).
+- [ ] Mobile 375px walkthrough of the new status-page blocks and chat sheet.
+- [x] Auto-accept toggle correctly skips manual host Accept and still requires guest payment before endorsement (verified by code path — `submit-parking-booking-request` calls `claimParkingBooking` synchronously, which sets `PENDING_PAYMENT`, not `PENDING_REVIEW`).
+- [x] Admin escalation contact visible regardless of chat/endorsement state (unconditional in the response).

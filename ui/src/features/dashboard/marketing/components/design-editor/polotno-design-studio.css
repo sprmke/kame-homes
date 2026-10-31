@@ -1,0 +1,526 @@
+/* OpenPolotno (Blueprint) — scoped to admin design tokens */
+
+.polotno-studio-root {
+  position: relative;
+  background: hsl(var(--background));
+}
+
+.polotno-studio-root .kame-polotno-editor,
+.polotno-studio-root .raeditor-app-container {
+  height: 100% !important;
+  max-height: none !important;
+  font-family: inherit;
+  color: hsl(var(--foreground));
+  --bp6-navbar-background-color: hsl(var(--card));
+  --bp6-navbar-color: hsl(var(--foreground));
+  --bp6-button-bg-color: hsl(var(--background));
+  --bp6-button-text-color: hsl(var(--foreground));
+  --bp6-button-hover-bg-color: hsl(var(--muted));
+  --bp6-input-bg-color: hsl(var(--background));
+  --bp6-input-text-color: hsl(var(--foreground));
+  --bp6-input-border-color: hsl(var(--border));
+  --bp6-divider-color: hsl(var(--border));
+  --bp6-icon-color: hsl(var(--muted-foreground));
+  --bp6-text-color: hsl(var(--foreground));
+  --bp6-text-color-muted: hsl(var(--muted-foreground));
+}
+
+/* Side panel — openpolotno uses raeditor-* class names */
+.polotno-studio-root .raeditor-side-panel.bp5-navbar {
+  background: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+  box-shadow: none;
+  width: auto !important;
+  height: 100% !important;
+  min-height: 0;
+  padding: 0 !important;
+  flex-shrink: 0;
+}
+
+.polotno-studio-root .raeditor-panel-container.bp5-navbar {
+  background: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+  box-shadow: none;
+  overflow: hidden;
+  padding: 0 !important;
+  width: 350px !important;
+  max-width: 350px;
+  min-width: 350px;
+  height: 100% !important;
+  flex-shrink: 0;
+}
+
+.polotno-studio-root .raeditor-panel-container.bp5-navbar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  border-right: none;
+}
+
+.polotno-studio-root .raeditor-side-tabs-container {
+  background: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+  width: auto !important;
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+/* Shared Kame side panel shell */
+.polotno-studio-root .kame-side-panel-body {
+  scrollbar-gutter: stable;
+}
+
+.polotno-studio-root .kame-side-panel .bp5-input-group,
+.polotno-studio-root .kame-builtin-panel .bp5-input-group {
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.polotno-studio-root .kame-side-panel .bp5-input,
+.polotno-studio-root .kame-builtin-panel .bp5-input {
+  border-radius: 0.5rem;
+  min-height: 40px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: inset 0 0 0 1px hsl(var(--border));
+}
+
+.polotno-studio-root .kame-side-panel .bp5-input:focus,
+.polotno-studio-root .kame-builtin-panel .bp5-input:focus {
+  box-shadow: inset 0 0 0 1px hsl(var(--primary));
+}
+
+/* Image grids (upload, background, elements) */
+.polotno-studio-root .kame-image-grid img,
+.polotno-studio-root .kame-elements-panel img {
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  box-shadow: none !important;
+}
+
+.polotno-studio-root .kame-image-grid > div > div,
+.polotno-studio-root .kame-elements-panel > div > div > div > div {
+  padding: 4px !important;
+}
+
+/* Elements panel — group labels + search spacing */
+.polotno-studio-root .kame-elements-panel > div {
+  height: auto !important;
+}
+
+.polotno-studio-root .kame-elements-panel > div > .bp5-input-group {
+  margin-bottom: 0 !important;
+}
+
+.polotno-studio-root .kame-elements-panel p {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.polotno-studio-root .kame-elements-panel p:first-of-type {
+  margin-top: 0;
+}
+
+/* Layers panel — hide default tip, style cards */
+.polotno-studio-root .kame-layers-panel > div {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.polotno-studio-root .kame-layers-panel > div > div:first-child {
+  display: none;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card {
+  margin: 0 0 0.5rem !important;
+  padding: 0.375rem 0.375rem 0.375rem 0.25rem !important;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  box-shadow: none;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card.selected,
+.polotno-studio-root .kame-layers-panel .bp5-card:hover {
+  background: hsl(var(--primary) / 0.06) !important;
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+/* Row: label block + action icons — keep one line, no icon stacking */
+.polotno-studio-root .kame-layers-panel .bp5-card > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card > div > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.25 !important;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card .drag-handle {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 2.25rem !important;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card > div > div:first-child > div:nth-child(2) {
+  flex-shrink: 0;
+  width: 3rem !important;
+  padding: 0 0.25rem !important;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card > div > div:first-child > div:nth-child(3) {
+  flex: 1 1 auto;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-card > div > div:last-child {
+  display: flex !important;
+  flex-shrink: 0;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 0;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-button.bp5-minimal {
+  min-width: 36px;
+  min-height: 36px;
+  margin-left: 0 !important;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-editable-text {
+  font-size: 0.8125rem;
+  min-width: 0 !important;
+  width: 100%;
+  display: block;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-editable-text-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.polotno-studio-root .kame-layers-panel .bp5-editable-text-input {
+  font-size: 0.8125rem;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Hide OpenPolotno default blob collapse handle */
+.polotno-studio-root .raeditor-side-panel > div:has(> svg[viewBox='0 0 16 96']) {
+  display: none !important;
+}
+
+.polotno-studio-root .raeditor-side-panel-tab {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.polotno-studio-root .raeditor-side-panel-tab.active,
+.polotno-studio-root .raeditor-side-panel-tab:hover {
+  background: hsl(var(--primary) / 0.08) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+.polotno-studio-root .kame-side-panel-wrap {
+  position: relative;
+  width: auto !important;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+.polotno-studio-root
+  .kame-side-panel-wrap:has(.raeditor-side-panel.collapsed)
+  .kame-side-panel-collapse {
+  display: none;
+}
+
+.polotno-studio-root .kame-side-panel-collapse {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  z-index: 20;
+  display: flex;
+  min-width: 25px;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--border));
+  border-left: none;
+  border-radius: 0 0.5rem 0.5rem 0;
+  box-shadow:
+    2px 0 8px hsl(var(--foreground) / 0.06),
+    0 1px 2px hsl(var(--foreground) / 0.04);
+  transform: translate(100%, -50%);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.polotno-studio-root .kame-side-panel-collapse:hover {
+  box-shadow:
+    2px 0 10px hsl(var(--foreground) / 0.1),
+    0 2px 4px hsl(var(--foreground) / 0.06);
+}
+
+.polotno-studio-root .kame-side-panel-collapse:active {
+  transform: translate(100%, -50%) scale(0.97);
+}
+
+@media (max-width: 800px) {
+  .polotno-studio-root .kame-side-panel-collapse {
+    display: none;
+  }
+}
+
+/* Toolbar */
+.polotno-studio-root .raeditor-toolbar.bp5-navbar {
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  box-shadow: none;
+  min-height: 48px;
+  padding-inline: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.polotno-studio-root .raeditor-toolbar .bp5-navbar-group {
+  display: flex;
+  align-items: center;
+}
+
+.polotno-studio-root .raeditor-toolbar .bp5-overflow-list {
+  align-items: center;
+}
+
+.polotno-studio-root .raeditor-toolbar .bp5-button {
+  border-radius: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ColorPicker swatch — upstream ColorSwatch uses margin-bottom: -4px */
+.polotno-studio-root .raeditor-toolbar .bp5-popover-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-bottom: 0 !important;
+  vertical-align: middle;
+}
+
+.polotno-studio-root .raeditor-toolbar .bp5-popover-target > div {
+  margin-bottom: 0 !important;
+  flex-shrink: 0;
+}
+
+.polotno-studio-root .raeditor-download-button {
+  display: none !important;
+}
+
+/* Canvas workspace — OpenPolotno sets inline backgroundColor; KamePolotnoEditor passes theme props */
+.polotno-studio-root .raeditor-workspace-wrap,
+.polotno-studio-root .raeditor-workspace-container {
+  background: hsl(var(--card));
+}
+
+.polotno-studio-root .raeditor-workspace-inner {
+  background: transparent;
+}
+
+/* Bottom zoom floater */
+.polotno-studio-root .kame-polotno-editor .raeditor-workspace-container ~ div .bp5-navbar {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+.polotno-studio-root
+  .kame-polotno-editor
+  .raeditor-workspace-container
+  ~ div
+  .bp5-button.bp5-minimal {
+  color: hsl(var(--foreground));
+}
+
+.polotno-studio-root
+  .kame-polotno-editor
+  .raeditor-workspace-container
+  ~ div
+  .bp5-button.bp5-minimal:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+/* Custom panels */
+.polotno-studio-root .kame-side-panel .bp5-spinner,
+.polotno-studio-root .kame-builtin-panel .bp5-spinner {
+  color: hsl(var(--primary));
+}
+
+.polotno-studio-root .kame-polotno-shell {
+  height: 100%;
+  width: 100%;
+}
+
+/* Portaled Blueprint overlays — mount inside .polotno-studio-root, not body */
+.polotno-studio-root .kame-polotno-portal .bp5-popover-appear > .bp5-tooltip,
+.polotno-studio-root .kame-polotno-portal .bp5-popover-enter > .bp5-tooltip,
+.polotno-studio-root .kame-polotno-portal .bp5-popover-appear > .bp5-popover,
+.polotno-studio-root .kame-polotno-portal .bp5-popover-enter > .bp5-popover {
+  transform: scale(1);
+}
+
+.polotno-studio-root .kame-polotno-portal {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.polotno-studio-root .kame-polotno-portal .bp5-overlay,
+.polotno-studio-root .kame-polotno-portal .bp5-popover-transition-container {
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------ *
+ * Mobile / tablet (max-lg) — re-home the fixed Blueprint chrome.
+ * The 72px icon rail stays; the 350px panel becomes a bottom sheet
+ * docked above the app's MarketingEditorMobileToolbar. The canvas
+ * takes the rest of the viewport.
+ * ------------------------------------------------------------------ */
+@media (max-width: 1023px) {
+  .polotno-studio-root .kame-polotno-editor,
+  .polotno-studio-root .raeditor-app-container {
+    min-height: 0;
+  }
+
+  /* Icon rail — a touch-friendly vertical strip, never grows. `overflow-x: hidden`
+     kills the stray horizontal scrollbar that `overflow-y` otherwise forces on. */
+  .polotno-studio-root .raeditor-side-tabs-container {
+    min-width: 68px;
+    width: 68px !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* Full labels on one line (upstream sets `white-space: pre` at a size that clips
+     "Elements" / "Background" in the narrow rail). */
+  .polotno-studio-root .raeditor-side-panel-tab {
+    padding-block: 0.5rem;
+    padding-inline: 2px;
+    min-height: 56px;
+    height: auto;
+    white-space: normal !important;
+    overflow-wrap: break-word;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  /* History (undo/redo/reset) is relocated to the app editor dock's ⋯ sheet on mobile,
+     so the toolbar collapses to nothing until an element is selected and its
+     contextual controls appear. */
+  .polotno-studio-root .raeditor-toolbar.bp5-navbar {
+    min-height: 0;
+    padding-block: 0;
+  }
+
+  /* Section panel — slide-up bottom sheet, full width, above our dock. */
+  .polotno-studio-root .kame-side-panel-wrap {
+    position: static !important;
+  }
+
+  .polotno-studio-root .raeditor-panel-container.bp5-navbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 52dvh;
+    border-right: none;
+    border-top: 1px solid hsl(var(--border));
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    box-shadow: 0 -12px 32px hsl(var(--foreground) / 0.14);
+    overflow-y: auto;
+  }
+
+  .polotno-studio-root .raeditor-panel-container.bp5-navbar.collapsed {
+    transform: translateY(100%);
+    max-height: 0 !important;
+    border-top: none;
+    box-shadow: none;
+  }
+
+  /* Keep the panel-close affordance reachable on touch (upstream hides it <800px). */
+  .polotno-studio-root .kame-side-panel-collapse {
+    display: flex;
+    position: fixed;
+    top: auto;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + 52dvh - 2.75rem);
+    right: 0.75rem;
+    left: auto;
+    transform: none;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 0.75rem;
+    z-index: 46;
+  }
+
+  .polotno-studio-root
+    .kame-side-panel-wrap:has(.raeditor-panel-container.bp5-navbar.collapsed)
+    .kame-side-panel-collapse {
+    display: none;
+  }
+
+  /* Toolbar scrolls horizontally instead of overflowing the row. */
+  .polotno-studio-root .raeditor-toolbar.bp5-navbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+  }
+
+  .polotno-studio-root .raeditor-toolbar .bp5-navbar-group {
+    flex-wrap: nowrap;
+  }
+
+  /* Konva canvas owns touch gestures (pan / pinch) — don't let the page scroll fight it. */
+  .polotno-studio-root .raeditor-workspace-wrap,
+  .polotno-studio-root .raeditor-workspace-container,
+  .polotno-studio-root .raeditor-workspace-inner {
+    touch-action: none;
+  }
+
+  /* Portaled Blueprint popovers (color / font pickers) must fit the viewport. */
+  .polotno-studio-root .kame-polotno-portal .bp5-popover,
+  .polotno-studio-root .kame-polotno-portal .bp5-tooltip {
+    max-width: calc(100vw - 24px);
+  }
+}

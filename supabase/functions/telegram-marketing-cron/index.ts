@@ -5,11 +5,11 @@
 import {
   runTelegramDailyReminder,
   verifyTelegramCronSecret,
-} from "../_shared/telegramMarketing.ts";
-import { serveCronPost } from "../_shared/serveEdge.ts";
+} from '../_shared/telegramMarketing.ts';
+import { telegramDeliveryUnavailable } from '../_shared/featureAvailability.ts';
+import { serveCronPost } from '../_shared/serveEdge.ts';
 
-serveCronPost(
-  "telegram-marketing-cron",
-  verifyTelegramCronSecret,
-  runTelegramDailyReminder,
-);
+serveCronPost('telegram-marketing-cron', verifyTelegramCronSecret, async () => {
+  if (await telegramDeliveryUnavailable()) return { skipped: 'feature_unavailable' };
+  return runTelegramDailyReminder();
+});

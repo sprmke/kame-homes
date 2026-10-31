@@ -1,0 +1,14 @@
+{
+  "_comment": "Single source of truth for the Workbox precache glob set. Consumed by ui/vite.config.ts (injectManifest) and scripts/pwa/check-precache-budget.mjs (CI budget gate). Keep both in sync by editing here only. Editor-only chunks (OpenPolotno: PolotnoDesignStudio-*, and its shared vendor chunk config-*, named after openpolotno/config) runtime-cache instead of precaching.",
+  "globPatterns": ["**/*.{js,css,html,woff2}"],
+  "globIgnores": [
+    "assets/PolotnoDesignStudio-*.js",
+    "assets/PolotnoDesignStudio-*.css",
+    "assets/config-*.js",
+    "assets/mediabunny-*.js",
+    "assets/html2canvas*.js",
+    "assets/browser-image-compression-*.js",
+    "worklets/**"
+  ],
+  "budgetKiB": 12800
+}

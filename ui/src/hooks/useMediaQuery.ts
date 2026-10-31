@@ -21,6 +21,11 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
+/** Matches Tailwind `sm` — phone-tier (below 640px). */
+export function useIsMobile(): boolean {
+  return useMediaQuery('(max-width: 639px)');
+}
+
 /** Matches Tailwind `md` — below 768px uses compact mobile booking detail layout. */
 export function useIsBelowMd(): boolean {
   return useMediaQuery('(max-width: 767px)');
@@ -34,4 +39,9 @@ export function useIsBelowLg(): boolean {
 /** Matches Tailwind `xl` — below 1280px keeps finance controls stacked / wrapped. */
 export function useIsBelowXl(): boolean {
   return useMediaQuery('(max-width: 1279px)');
+}
+
+/** True when the user has requested reduced motion at the OS level. */
+export function usePrefersReducedMotion(): boolean {
+  return useMediaQuery('(prefers-reduced-motion: reduce)');
 }

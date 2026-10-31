@@ -3,13 +3,77 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173', // Vite preview
   'http://localhost:54321', // Supabase local development
   'https://guest-form-management-ui.vercel.app', // Legacy Vercel deploy
-  'https://kamehomes.space', // Production SPA
+  'https://kame-homes.vercel.app', // Multi-tenant Vercel project origin
+  'https://kamehomes.space', // Legacy production SPA
   'https://www.kamehomes.space',
+  'https://dev.kamehomes.space', // Multi-tenant dev SPA (docs/workflow/in-progress/ci-cd-environments)
+  'https://app.kamehomes.space', // Multi-tenant prod SPA (reserved ahead of cutover)
+  'https://kamespace.com', // New production origin (owner decision 2026-10-27)
+  'https://dev.kamespace.com', // New dev origin
 ];
 
-export const corsHeaders = (req: Request) => ({
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, apikey, x-client-info, content-type',
-  'Access-Control-Max-Age': '7200',  // 2 hours - Chrome's maximum limit
-});
+const DEFAULT_ORIGIN = 'https://www.kamehomes.space';
+
+/** Request headers the browser may send on a CORS-preflighted edge call. */
+export const CORS_ALLOW_HEADERS = [
+  'authorization',
+  'apikey',
+  'x-client-info',
+  'content-type',
+  'accept',
+  // PostHog `tracing_headers` patches fetch for the functions hostname and
+  // injects all three. Missing any one of them makes Chrome fail the preflight
+  // with net::ERR_FAILED / TypeError: Failed to fetch (host sign-in routing
+  // calls list-organizations immediately after Google/OTP).
+  'x-posthog-distinct-id',
+  'x-posthog-session-id',
+  'x-posthog-window-id',
+  'x-superadmin-otp',
+  'idempotency-key',
+  // Doc 27 Phase 27.2 — client-generated correlation id, threaded through
+  // handleEdgeError into structured logs + PostHog + the user-facing error.
+  'x-request-id',
+].join(', ');
+
+function hostnameOf(origin: string): string | null {
+  try {
+    return new URL(origin).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    return null;
+  }
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+  const host = hostnameOf(origin);
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
+
+function configuredAllowedOrigins(): string[] {
+  return (Deno.env.get('CORS_ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+export function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (isLoopbackOrigin(origin)) return true;
+  return configuredAllowedOrigins().includes(origin);
+}
+
+export const corsHeaders = (req: Request) => {
+  const requestOrigin = req.headers.get('origin');
+  const allowOrigin =
+    requestOrigin && isAllowedOrigin(requestOrigin) ? requestOrigin : null;
+
+  const headers: Record<string, string> = {
+    Vary: 'Origin',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+    'Access-Control-Max-Age': '7200', // 2 hours - Chrome's maximum limit
+  };
+  if (allowOrigin) {
+    headers['Access-Control-Allow-Origin'] = allowOrigin;
+  }
+  return headers;
+};

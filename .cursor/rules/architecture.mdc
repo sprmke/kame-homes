@@ -1,0 +1,103 @@
+---
+description: Folder layout — guest vs dashboard features, shared components (bulletproof-react aligned)
+globs:
+  - 'ui/src/**/*'
+---
+
+# Architecture — agent reference
+
+Adapted from [bulletproof-react](https://github.com/alan2207/bulletproof-react) and Kame Homes PMA. **Vite + React SPA** (`ui/`) + **Supabase edge functions** (`supabase/functions/`).
+
+Full map + migration log: **`docs/archive/reference/project-structure.md`**.
+
+## Layer flow
+
+```
+shared (components/, hooks/, lib/, utils/, layouts/)
+  → features/guest/ | features/dashboard/
+    → routes/ (thin composition)
+```
+
+| Layer                  | Path                                  | Role                                                                 |
+| ---------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| **Shared UI**          | `ui/src/components/`                  | `ui/`, `branding/`, `navigation/`, `charts/`, `skeletons/`, `theme/` |
+| **Shared logic**       | `ui/src/lib/`, `ui/src/utils/`        | Cross-context helpers                                                |
+| **Guest features**     | `ui/src/features/guest/{module}/`     | Public flows                                                         |
+| **Dashboard features** | `ui/src/features/dashboard/{module}/` | Admin / operator UI                                                  |
+| **Routing**            | `ui/src/routes/index.tsx`             | Composes `guest/routes` + `dashboard/routes`                         |
+| **Backend**            | `supabase/functions/`                 | Deno edge functions; `_shared/` for services                         |
+
+## Guest modules (`features/guest/`)
+
+| Module         | Routes                         |
+| -------------- | ------------------------------ |
+| `calendar/`    | `/`, `/calendar`               |
+| `form/`        | `/form`, `/success`            |
+| `sd-form/`     | `/sd-form`                     |
+| `pay-parking/` | `/bookings/:bookingId/parking` |
+
+## Dashboard modules (`features/dashboard/`)
+
+| Module                                                    | Notes                                                                                    |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `bookings/`                                               | Booking workflow, shell (`AdminLayout`), Telegram, templates, settings (split over time) |
+| `org/`                                                    | Multi-tenant org/property, guards, onboarding                                            |
+| `property/`                                               | Property dashboard home (was top-level `features/dashboard/`)                            |
+| `finance/`, `maintenance/`, `pricing/`, `inbox/`, `team/` | Property- or org-scoped admin                                                            |
+
+## Feature folder convention
+
+```
+features/{guest|dashboard}/{module}/
+├── components/
+├── hooks/
+├── lib/
+├── pages/
+└── routes/
+```
+
+Use only subfolders needed. **No barrel `index.ts` re-exports** across features.
+
+## Import rules
+
+1. **Path alias:** always `@/`.
+2. **Shared before feature-specific:** 2+ contexts need it → `components/`, `utils/`, `lib/`.
+3. **Compose at routes/pages** — avoid cross-feature component imports when possible.
+4. **`bookings/` is not a junk drawer** — new domain UI belongs in its module (`finance/`, `team/`, …).
+
+## Shared utilities
+
+| Concern                | Path                                    |
+| ---------------------- | --------------------------------------- |
+| PHP currency           | `ui/src/utils/format/currency.ts`       |
+| Booking date/time      | `ui/src/utils/format/bookingDisplay.ts` |
+| ISO / Manila dates     | `ui/src/utils/format/dates.ts`          |
+| Guest field transforms | `ui/src/utils/text/formatters.ts`       |
+| Supabase client        | `ui/src/lib/supabase/client.ts`         |
+| Theme                  | `ui/src/lib/theme/`                     |
+| `cn()` helper          | `ui/src/lib/utils.ts`                   |
+
+Full map: **`docs/archive/reference/project-structure.md`**.
+
+## Public vs dashboard routes
+
+| Context   | Layout                               | Router entry                |
+| --------- | ------------------------------------ | --------------------------- |
+| Guest     | `MainLayout`                         | `features/guest/routes`     |
+| Dashboard | `AdminLayout` / `PropertyAdminShell` | `features/dashboard/routes` |
+
+Legacy flat paths (`/bookings`, `/finance`) redirect via `LegacyAdminRedirect`.
+
+## When adding a module
+
+1. `features/guest/{name}/` or `features/dashboard/{name}/`.
+2. Wire routes in parent context router.
+3. Route guide in `docs/guides/routes/`.
+4. Update `docs/archive/reference/project-structure.md` if structure changes.
+
+## Don'ts
+
+- Don't add Next.js artifacts.
+- Don't put business logic only in route files.
+- Don't duplicate formatters in feature `lib/`.
+- Don't move shadcn `components/ui/` files.

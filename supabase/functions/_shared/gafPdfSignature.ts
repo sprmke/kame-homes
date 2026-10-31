@@ -1,6 +1,6 @@
 /**
  * GAF PDF AcroForm fields for owner signature block.
- * Keep field names in sync with ui/src/features/admin/lib/gafPdfSignature.ts
+ * Keep field names in sync with ui/src/features/dashboard/bookings/lib/gafPdfSignature.ts
  * and guest-form-template.pdf (Acrobat Prepare Form).
  */
 
@@ -13,8 +13,7 @@ import {
 } from 'https://esm.sh/pdf-lib@1.17.1';
 
 /** Adobe Sign suffix on the signature widget — use this exact name in code. */
-const GAF_PDF_FIELD_UNIT_OWNER_SIGNATURE =
-  'unitOwnerSignature_es_:signer:signature';
+const GAF_PDF_FIELD_UNIT_OWNER_SIGNATURE = 'unitOwnerSignature_es_:signer:signature';
 
 const GAF_PDF_FIELD_UNIT_OWNER_SIGNATURE_NAME = 'unitOwnerSignatureName';
 
@@ -35,10 +34,7 @@ function isPng(bytes: Uint8Array): boolean {
   );
 }
 
-async function embedSignatureImage(
-  pdfDoc: PDFDocument,
-  bytes: Uint8Array,
-): Promise<PDFImage> {
+async function embedSignatureImage(pdfDoc: PDFDocument, bytes: Uint8Array): Promise<PDFImage> {
   if (isPng(bytes)) {
     return pdfDoc.embedPng(bytes);
   }
@@ -52,7 +48,7 @@ export function formatGafUnitOwnerPrintedName(unitOwner: string): string {
 export function setGafPdfTextField(
   form: PDFForm,
   fieldName: string,
-  value: string | undefined | null,
+  value: string | undefined | null
 ): void {
   try {
     const field = form.getTextField(fieldName);
@@ -60,7 +56,7 @@ export function setGafPdfTextField(
   } catch (err) {
     console.warn(
       `[gafPdfSignature] Could not set text field "${fieldName}":`,
-      err instanceof Error ? err.message : err,
+      err instanceof Error ? err.message : err
     );
   }
 }
@@ -82,7 +78,7 @@ function pageForField(pdfDoc: PDFDocument, field: PDFTextField): PDFPage | null 
 async function drawSignatureInFormField(
   pdfDoc: PDFDocument,
   form: PDFForm,
-  signatureUrl: string,
+  signatureUrl: string
 ): Promise<void> {
   let field: PDFTextField;
   try {
@@ -90,7 +86,7 @@ async function drawSignatureInFormField(
   } catch (err) {
     console.warn(
       '[gafPdfSignature] Signature form field missing:',
-      err instanceof Error ? err.message : err,
+      err instanceof Error ? err.message : err
     );
     return;
   }
@@ -106,9 +102,7 @@ async function drawSignatureInFormField(
   try {
     const res = await fetch(signatureUrl);
     if (!res.ok) {
-      console.warn(
-        `[gafPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`,
-      );
+      console.warn(`[gafPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`);
       return;
     }
     bytes = new Uint8Array(await res.arrayBuffer());
@@ -141,13 +135,13 @@ async function drawSignatureInFormField(
 /** Fill AcroForm printed name + optional uploaded signature image. */
 export async function applyGafOwnerSignatureBlock(
   pdfDoc: PDFDocument,
-  options: GafOwnerSignatureBlockOptions,
+  options: GafOwnerSignatureBlockOptions
 ): Promise<void> {
   const form = pdfDoc.getForm();
   setGafPdfTextField(
     form,
     GAF_PDF_FIELD_UNIT_OWNER_SIGNATURE_NAME,
-    formatGafUnitOwnerPrintedName(options.unitOwner),
+    formatGafUnitOwnerPrintedName(options.unitOwner)
   );
 
   const url = options.signatureUrl?.trim();

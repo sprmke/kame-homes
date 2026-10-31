@@ -11,23 +11,46 @@
     "@typescript-eslint/eslint-plugin",
     "@typescript-eslint/parser",
     "eslint-plugin-react-hooks",
-    "eslint-plugin-react-refresh"
+    "eslint-plugin-react-refresh",
+    "eslint-plugin-unicorn",
+    "remotion",
+    "immer",
+    "posthog-node"
   ],
   "ignoreUnresolvedImports": ["pdfjs-dist/build/pdf.worker.min.mjs?url"],
   "ignoreExports": [
-    { "file": "supabase/functions/_shared/statusMachine.ts", "exports": ["*"] },
-    { "file": "supabase/functions/_shared/types.ts", "exports": ["*"] },
-    { "file": "ui/src/components/ui/**", "exports": ["*"] },
     {
-      "file": "ui/src/features/admin/components/bookingEditLayout.tsx",
+      "file": "supabase/functions/_shared/statusMachine.ts",
       "exports": ["*"]
     },
-    { "file": "ui/src/features/admin/lib/bookingStatus.ts", "exports": ["*"] },
-    { "file": "ui/src/features/admin/lib/workflow.ts", "exports": ["*"] },
     {
-      "file": "ui/src/features/admin/lib/bookingsListSort.ts",
+      "file": "supabase/functions/_shared/types.ts",
       "exports": ["*"]
     },
-    { "file": "ui/src/features/finance/lib/financePeriod.ts", "exports": ["*"] }
-  ]
+    {
+      "file": "ui/src/components/ui/**",
+      "exports": ["*"]
+    },
+    {
+      "file": "ui/src/features/dashboard/bookings/components/BookingEditLayout.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "ui/src/features/dashboard/bookings/lib/bookingStatus.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "ui/src/features/dashboard/bookings/lib/workflow.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "ui/src/features/dashboard/bookings/lib/bookingsListSort.ts",
+      "exports": ["*"]
+    },
+    {
+      "file": "ui/src/features/finance/lib/financePeriod.ts",
+      "exports": ["*"]
+    }
+  ],
+  "entry": ["scripts/dev/*.mjs", "scripts/docs/*.mjs", "scripts/pwa/*.mjs", "commitlint.config.js"]
 }

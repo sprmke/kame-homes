@@ -1,0 +1,45 @@
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'file.inFolder("workflow")'
+    - 'file.name != "README.md"'
+
+properties:
+  stage:
+    displayName: Stage
+  status:
+    displayName: Status
+  updated:
+    displayName: Updated
+  tags:
+    displayName: Tags
+
+views:
+  - type: table
+    name: "All workflow items"
+    order:
+      - file.name
+      - title
+      - stage
+      - status
+      - updated
+
+  - type: table
+    name: "By stage"
+    order:
+      - file.name
+      - title
+      - updated
+    groupBy:
+      property: stage
+      direction: ASC
+
+  - type: table
+    name: "In progress"
+    filters:
+      and:
+        - 'stage == "in-progress"'
+    order:
+      - file.name
+      - title
+      - updated

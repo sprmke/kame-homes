@@ -1,36 +1,72 @@
-import { GuestFormData, GuestSubmission } from "./types.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { guestBookingEmailLinkPlaceholderExtras } from './guestBookingEmailLinks.ts';
+import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
+import { buildGuestStayGuideUrl, propertyHasStayGuideAccess } from './guestStayGuide.ts';
+import { buildApprovalInboundAddress } from './approvalInboundAddress.ts';
+import { resolvePropertySlugById } from './propertyScope.ts';
+import { createClient } from './supabaseJs.ts';
+import type { GuestFormData, GuestSubmission } from './types.ts';
 import {
-  buildParkingBroadcastCopyText,
-  escapeHtml,
-  loadEmailTemplate,
-  replacePlaceholders,
-  withEmailShellStyleVars,
-} from "./renderEmailHtml.ts";
+  buildBookingLinkCtaHtml,
+  buildBookingAcknowledgementFlowSectionHtml,
+  buildBookingVehicleCopySectionHtml,
+  buildDocumentRemindersSectionFromBooking,
+  buildDownpaymentReceiptAiSectionFromBooking,
+  buildEmailSignatureSectionHtml,
+  buildGafUpdateNoticeHtml,
+  buildGcashPaymentSectionHtml,
+  buildNewBookingDetailTablesFromBooking,
+  buildParkingReplyCalloutSectionHtml,
+  buildParkingUpdateNoticeHtml,
+  buildPaymentBreakdownSectionFromBooking,
+  buildPetAttachmentsSectionHtml,
+  buildPetDetailsSectionFromGuestForm,
+  buildPetUpdateNoticeHtml,
+  buildReadyForCheckinBookingSummaryFromBooking,
+  buildReadyForCheckinContactSectionHtml,
+  buildStayGuideCtaHtml,
+  buildSdRefundChecklistSectionHtml,
+  buildSdRefundDetailsSectionHtml,
+  buildSdRefundFooterSectionHtml,
+  buildUrgentSameDayCallout,
+  computeReadyForCheckinTotalDue,
+} from './propertyTemplateEmailSections.ts';
+import { formatDateForEmail } from './utils.ts';
+import { resolveAppSettings } from './appSettings.ts';
+import { buildGuestFacingPlaceholderVars, loadGuestFacingContactInfo } from './guestContactInfo.ts';
 import {
-  countStayNights,
-  formatDateForEmail,
-  formatTimeForDisplay,
-} from "./utils.ts";
-import { resolveAppSettings, DEFAULT_GCASH_QR_RELATIVE_PATH } from "./appSettings.ts";
-import { formatReceiptVerdictLabel } from "./receiptValidationService.ts";
-import { computeTotalGuestBalanceFromBooking } from "./totalGuestBalance.ts";
+  buildBookingPlaceholderVars,
+  buildGuestFormPlaceholderVars,
+  renderPropertyTemplateSendEmail,
+} from './propertyTemplateEmail.ts';
+import { loadBookingEmailDisplayContext } from './emailBookingContext.ts';
+import {
+  formatEmailDateRange,
+  formatResendFromAddress,
+  loadPropertyEmailBranding,
+  resolveEmailUnitLabel,
+  sanitizeAttachmentToken,
+} from './propertyEmailBranding.ts';
+import { buildEmailCtaHtml, renderBrandedEmailShell } from './brandedEmailShell.ts';
+import { isEmailSuppressed } from './emailSuppression.ts';
+import { PLATFORM_BRAND_NAME } from './platformBrand.ts';
+import { escapeHtml } from './renderEmailHtml.ts';
+import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
+import { buildSupportTicketThreadUrl } from './supportTicketStatus.ts';
 
-async function emailHeaderLogoHtml(): Promise<string> {
-  const settings = await resolveAppSettings();
-  const frag = await loadEmailTemplate("fragments/email-header-logo");
-  return replacePlaceholders(
-    frag,
-    withEmailShellStyleVars({ logoUrl: escapeHtml(settings.emailLogoUrl) }),
-  );
+/** Resolve property scope for operator settings (email routing, GCash, logos, etc.). */
+export function resolveEmailPropertyId(
+  booking?: { property_id?: string | null } | null
+): string | undefined {
+  const id = booking?.property_id?.trim();
+  return id || undefined;
 }
 
 // ─── Shared storage helpers ───────────────────────────────────────────────────
 
 function supabaseAdminClient() {
   return createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 }
 
@@ -42,19 +78,19 @@ function parseStorageUrl(url: string): { bucket: string; path: string } | null {
   try {
     if (
       !url ||
-      url === "dev-mode-skipped" ||
-      url === "test-mode-skipped" ||
-      !url.startsWith("http")
+      url === 'dev-mode-skipped' ||
+      url === 'test-mode-skipped' ||
+      !url.startsWith('http')
     ) {
       return null;
     }
     const urlObj = new URL(url);
-    const parts = urlObj.pathname.split("/");
+    const parts = urlObj.pathname.split('/');
     // Support both /storage/v1/object/public/… and /storage/v1/object/sign/…
-    const markerIdx = parts.findIndex((p) => p === "public" || p === "sign");
+    const markerIdx = parts.findIndex((p) => p === 'public' || p === 'sign');
     if (markerIdx !== -1 && markerIdx < parts.length - 2) {
       const bucket = parts[markerIdx + 1];
-      const path = parts.slice(markerIdx + 2).join("/");
+      const path = parts.slice(markerIdx + 2).join('/');
       return { bucket, path };
     }
     return null;
@@ -75,30 +111,28 @@ type DownloadedFile = {
  */
 async function downloadStorageFile(
   url: string,
-  fallbackFilename: string,
+  fallbackFilename: string
 ): Promise<DownloadedFile | null> {
   const loc = parseStorageUrl(url);
   if (!loc) {
-    console.warn("[emailService] Cannot parse storage URL:", url);
+    console.warn('[emailService] Cannot parse storage URL:', url);
     return null;
   }
 
   try {
-    const { data, error } = await supabaseAdminClient()
-      .storage.from(loc.bucket)
-      .download(loc.path);
+    const { data, error } = await supabaseAdminClient().storage.from(loc.bucket).download(loc.path);
 
     if (error || !data) {
-      console.error("[emailService] Storage download failed:", error?.message);
+      console.error('[emailService] Storage download failed:', error?.message);
       return null;
     }
 
     const bytes = new Uint8Array(await data.arrayBuffer());
-    const filename = loc.path.split("/").pop() || fallbackFilename;
-    const mimeType = data.type || "application/octet-stream";
+    const filename = loc.path.split('/').pop() || fallbackFilename;
+    const mimeType = data.type || 'application/octet-stream';
     return { bytes, filename, mimeType };
   } catch (err) {
-    console.error("[emailService] Unexpected download error:", err);
+    console.error('[emailService] Unexpected download error:', err);
     return null;
   }
 }
@@ -110,100 +144,84 @@ function toBase64(bytes: Uint8Array): string {
   const chunks: string[] = [];
   const chunkSize = 32768;
   for (let i = 0; i < bytes.length; i += chunkSize) {
-    chunks.push(
-      String.fromCharCode.apply(
-        null,
-        Array.from(bytes.slice(i, i + chunkSize)),
-      ),
-    );
+    chunks.push(String.fromCharCode.apply(null, Array.from(bytes.slice(i, i + chunkSize))));
   }
-  return btoa(chunks.join(""));
+  return btoa(chunks.join(''));
 }
 
-/** `content_id` for Resend inline image; `<img src="cid:…">` must match without the prefix. */
-const READY_FOR_CHECKIN_PAYMENT_QR_CONTENT_ID = "kame-home-gcash-qr";
+/** `content_id` prefix for Resend inline payment QR images (`cid:payment-qr-<methodId>`). */
+const READY_FOR_CHECKIN_PAYMENT_QR_CONTENT_ID_PREFIX = 'payment-qr-';
 
-async function loadBundledReadyForCheckinPaymentQr(): Promise<Uint8Array | null> {
+type ReadyForCheckinQrAsset = {
+  methodId: string;
+  bytes: Uint8Array;
+  contentType: string;
+  filename: string;
+  contentId: string;
+};
+
+async function fetchPaymentQrBytes(
+  url: string
+): Promise<{ bytes: Uint8Array; contentType: string; filename: string } | null> {
   try {
-    const url = new URL(
-      "./email-assets/kame-home-gcash-qr-payment.jpg",
-      import.meta.url,
-    );
-    return await Deno.readFile(url);
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('[emailService] Payment QR fetch failed:', res.status, url);
+      return null;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length === 0) return null;
+    const contentType = res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg';
+    const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+    return { bytes, contentType, filename: `payment-qr.${ext}` };
   } catch (err) {
-    console.warn(
-      "[emailService] Bundled payment QR asset missing or unreadable:",
-      err,
-    );
+    console.warn('[emailService] Payment QR fetch error:', err);
     return null;
   }
 }
 
-type ReadyForCheckinQrAsset = {
-  bytes: Uint8Array | null;
-  contentType: string;
-  filename: string;
-  fallbackUrl: string;
-};
+async function resolveReadyForCheckinPaymentQrs(
+  settings: Awaited<ReturnType<typeof resolveAppSettings>>
+): Promise<{ assets: ReadyForCheckinQrAsset[]; qrSrcByMethodId: Record<string, string> }> {
+  const methods =
+    settings.paymentMethods?.length > 0
+      ? settings.paymentMethods
+      : settings.gcashQrImageUrl
+        ? [
+            {
+              id: 'legacy',
+              provider: settings.paymentProvider,
+              accountName: settings.gcashName,
+              accountNumber: settings.gcashNumber,
+              qrImageUrl: settings.gcashQrImageUrl,
+              isPrimary: true,
+            },
+          ]
+        : [];
 
-async function resolveReadyForCheckinPaymentQr(
-  settings: Awaited<ReturnType<typeof resolveAppSettings>>,
-): Promise<ReadyForCheckinQrAsset> {
-  const originBase = settings.publicGuestAppOrigin.replace(/\/+$/, "");
-  const defaultUrl = `${originBase}/${DEFAULT_GCASH_QR_RELATIVE_PATH}`;
-  const fallbackUrl = settings.gcashQrImageUrl || defaultUrl;
-  const isCustomUpload =
-    !!settings.gcashQrImageUrl && settings.gcashQrImageUrl !== defaultUrl;
+  const assets: ReadyForCheckinQrAsset[] = [];
+  const qrSrcByMethodId: Record<string, string> = {};
 
-  if (isCustomUpload) {
-    try {
-      const res = await fetch(settings.gcashQrImageUrl);
-      if (res.ok) {
-        const bytes = new Uint8Array(await res.arrayBuffer());
-        if (bytes.length > 0) {
-          const contentType =
-            res.headers.get("content-type")?.split(";")[0]?.trim() ||
-            "image/jpeg";
-          const ext =
-            contentType === "image/png"
-              ? "png"
-              : contentType === "image/webp"
-                ? "webp"
-                : "jpg";
-          return {
-            bytes,
-            contentType,
-            filename: `gcash-qr.${ext}`,
-            fallbackUrl,
-          };
-        }
-      }
-      console.warn(
-        "[emailService] Custom GCash QR fetch failed:",
-        res.status,
-        settings.gcashQrImageUrl,
-      );
-    } catch (err) {
-      console.warn("[emailService] Custom GCash QR fetch error:", err);
+  for (const method of methods) {
+    const url = (method.qrImageUrl ?? '').trim();
+    if (!url || url.includes('kame-home-gcash-qr-payment')) continue;
+    const fetched = await fetchPaymentQrBytes(url);
+    if (!fetched) {
+      qrSrcByMethodId[method.id] = url;
+      continue;
     }
+    const contentId = `${READY_FOR_CHECKIN_PAYMENT_QR_CONTENT_ID_PREFIX}${method.id}`;
+    assets.push({
+      methodId: method.id,
+      bytes: fetched.bytes,
+      contentType: fetched.contentType,
+      filename: fetched.filename,
+      contentId,
+    });
+    qrSrcByMethodId[method.id] = `cid:${contentId}`;
   }
 
-  const bundled = await loadBundledReadyForCheckinPaymentQr();
-  if (bundled && bundled.length > 0) {
-    return {
-      bytes: bundled,
-      contentType: "image/jpeg",
-      filename: "kame-home-gcash-qr-payment.jpg",
-      fallbackUrl,
-    };
-  }
-
-  return {
-    bytes: null,
-    contentType: "image/jpeg",
-    filename: "kame-home-gcash-qr-payment.jpg",
-    fallbackUrl,
-  };
+  return { assets, qrSrcByMethodId };
 }
 
 type ResendAttachment = {
@@ -221,48 +239,38 @@ type ResendAttachment = {
  */
 function isUrgentBooking(checkInDate: string): boolean {
   try {
-    console.log("🔍 Checking if booking is urgent...");
+    console.log('🔍 Checking if booking is urgent...');
 
     // Parse the check-in date (supports both MM-DD-YYYY and YYYY-MM-DD formats)
     let checkInDateStr = checkInDate;
 
     // If date is in MM-DD-YYYY format, convert to YYYY-MM-DD
     if (checkInDate.match(/^\d{2}-\d{2}-\d{4}$/)) {
-      const [month, day, year] = checkInDate.split("-");
+      const [month, day, year] = checkInDate.split('-');
       checkInDateStr = `${year}-${month}-${day}`;
-      console.log("  Converted to YYYY-MM-DD:", checkInDateStr);
+      console.log('  Converted to YYYY-MM-DD:', checkInDateStr);
     }
 
     // Get today's date in Philippine timezone (UTC+8)
     const philippineTime = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }),
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })
     );
     const todayStr =
       philippineTime.getFullYear() +
-      "-" +
-      String(philippineTime.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(philippineTime.getDate()).padStart(2, "0");
+      '-' +
+      String(philippineTime.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(philippineTime.getDate()).padStart(2, '0');
 
     console.log("  Today's date (Philippine time):", todayStr);
-    console.log("  Check-in date (normalized):", checkInDateStr);
-    console.log("  Is urgent:", checkInDateStr === todayStr);
+    console.log('  Check-in date (normalized):', checkInDateStr);
+    console.log('  Is urgent:', checkInDateStr === todayStr);
 
     return checkInDateStr === todayStr;
   } catch (error) {
-    console.error("❌ Error checking if booking is urgent:", error);
+    console.error('❌ Error checking if booking is urgent:', error);
     return false;
   }
-}
-
-/** Same-day check-in (Asia/Manila) — HTML callout for Azure + guest templates. */
-function buildUrgentSameDayCallout(isUrgent: boolean): string {
-  if (!isUrgent) return "";
-  const tdStyle =
-    "background-color:#fde8e8;border:1px solid #e8a0a0;border-left-width:4px;border-left-color:#c94c4c;border-radius:0 16px 16px 0;padding:18px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.55;color:#6b2d2d;";
-  const titleStyle =
-    "display:block;margin-bottom:6px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#8b3a3a;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;";
-  return `<table role="presentation" class="callout-outer callout-urgent" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0;width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="${tdStyle}"><strong class="callout-title" style="${titleStyle}">Urgent! Same-day check-in!</strong>This request requires immediate attention and approval.</td></tr></table>`;
 }
 
 /**
@@ -272,31 +280,32 @@ function buildUrgentSameDayCallout(isUrgent: boolean): string {
  * SD refund form request subject, etc.) do not use this prefix on the subject.
  */
 function urgentEmailSubjectPrefix(isUrgent: boolean): string {
-  return isUrgent ? "🚨 URGENT - " : "";
+  return isUrgent ? '🚨 URGENT - ' : '';
 }
 
 function sanitizeAttachmentLabel(value: string): string {
   const cleaned = value
     .trim()
-    .replace(/[^a-zA-Z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
     .slice(0, 40);
-  return cleaned || "guest";
+  return cleaned || 'guest';
 }
 
 type GuestValidIdBookingFields = Pick<
   GuestSubmission,
-  | "check_in_date"
-  | "primary_guest_name"
-  | "guest2_name"
-  | "guest3_name"
-  | "guest4_name"
-  | "guest5_name"
-  | "valid_id_url"
-  | "guest2_valid_id_url"
-  | "guest3_valid_id_url"
-  | "guest4_valid_id_url"
-  | "guest5_valid_id_url"
+  | 'check_in_date'
+  | 'primary_guest_name'
+  | 'guest2_name'
+  | 'guest3_name'
+  | 'guest4_name'
+  | 'guest5_name'
+  | 'valid_id_url'
+  | 'guest2_valid_id_url'
+  | 'guest3_valid_id_url'
+  | 'guest4_valid_id_url'
+  | 'guest5_valid_id_url'
+  | 'property_id'
 >;
 
 /**
@@ -305,33 +314,34 @@ type GuestValidIdBookingFields = Pick<
  */
 async function buildGuestValidIdAttachments(
   booking: GuestValidIdBookingFields,
+  fileTokenPrefix: string
 ): Promise<ResendAttachment[]> {
-  const checkIn = booking.check_in_date || "unknown";
+  const checkIn = booking.check_in_date || 'unknown';
   const slots = [
     {
-      label: "PRIMARY",
+      label: 'PRIMARY',
       url: booking.valid_id_url,
-      name: booking.primary_guest_name || "primary",
+      name: booking.primary_guest_name || 'primary',
     },
     {
-      label: "GUEST2",
+      label: 'GUEST2',
       url: booking.guest2_valid_id_url,
-      name: booking.guest2_name || "guest2",
+      name: booking.guest2_name || 'guest2',
     },
     {
-      label: "GUEST3",
+      label: 'GUEST3',
       url: booking.guest3_valid_id_url,
-      name: booking.guest3_name || "guest3",
+      name: booking.guest3_name || 'guest3',
     },
     {
-      label: "GUEST4",
+      label: 'GUEST4',
       url: booking.guest4_valid_id_url,
-      name: booking.guest4_name || "guest4",
+      name: booking.guest4_name || 'guest4',
     },
     {
-      label: "GUEST5",
+      label: 'GUEST5',
       url: booking.guest5_valid_id_url,
-      name: booking.guest5_name || "guest5",
+      name: booking.guest5_name || 'guest5',
     },
   ];
 
@@ -343,28 +353,24 @@ async function buildGuestValidIdAttachments(
 
     const file = await downloadStorageFile(
       url,
-      `MONACO_2604_VALID_ID_${slot.label}-${checkIn}.jpg`,
+      `${fileTokenPrefix}_VALID_ID_${slot.label}-${checkIn}.jpg`
     );
     if (!file) {
-      console.warn(
-        `[emailService] Skipping valid ID attachment (${slot.label}): download failed`,
-      );
+      console.warn(`[emailService] Skipping valid ID attachment (${slot.label}): download failed`);
       continue;
     }
 
-    const ext = file.filename.includes(".")
-      ? file.filename.split(".").pop()!
-      : "jpg";
+    const ext = file.filename.includes('.') ? file.filename.split('.').pop()! : 'jpg';
     const namePart = sanitizeAttachmentLabel(slot.name);
     attachments.push({
-      filename: `MONACO_2604_VALID_ID_${namePart}-${checkIn}.${ext}`,
+      filename: `${fileTokenPrefix}_VALID_ID_${namePart}-${checkIn}.${ext}`,
       content: toBase64(file.bytes),
-      encoding: "base64",
+      encoding: 'base64',
       content_type: file.mimeType,
     });
     console.log(
       `[emailService] Valid ID attached for ${slot.label}:`,
-      attachments[attachments.length - 1]!.filename,
+      attachments[attachments.length - 1]!.filename
     );
   }
 
@@ -375,102 +381,107 @@ export async function sendEmail(
   formData: GuestFormData,
   pdfBuffer: Uint8Array | null,
   isUpdate = false,
-  booking?: GuestValidIdBookingFields | null,
+  booking?: GuestValidIdBookingFields | null
 ) {
-  console.log(`Sending ${isUpdate ? "update" : "confirmation"} email...`);
+  console.log(`Sending ${isUpdate ? 'update' : 'confirmation'} email...`);
 
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  const settings = await resolveAppSettings();
+  const propertyId = resolveEmailPropertyId(booking);
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const settings = await resolveAppSettings(propertyId);
   const EMAIL_TO = settings.emailTo;
   const EMAIL_REPLY_TO = settings.emailReplyTo;
 
   if (!RESEND_API_KEY) {
-    console.error(" Missing RESEND_API_KEY environment variable");
-    throw new Error("Missing RESEND_API_KEY environment variable");
+    console.error(' Missing RESEND_API_KEY environment variable');
+    throw new Error('Missing RESEND_API_KEY environment variable');
   }
 
   if (!EMAIL_TO) {
-    console.error(" Missing EMAIL_TO environment variable");
-    throw new Error("Missing EMAIL_TO environment variable");
+    console.error(' Missing emailTo in property app_settings');
+    throw new Error('Missing emailTo in property app_settings');
   }
 
   if (!EMAIL_REPLY_TO) {
-    console.error(" Missing EMAIL_REPLY_TO environment variable");
-    throw new Error("Missing EMAIL_REPLY_TO environment variable");
+    console.error(' Missing emailReplyTo in property app_settings');
+    throw new Error('Missing emailReplyTo in property app_settings');
   }
 
   const isUrgent = isUrgentBooking(formData.checkInDate);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
 
   if (isUrgent) {
-    console.log("🚨 URGENT BOOKING DETECTED - Same-day check-in!");
+    console.log('🚨 URGENT BOOKING DETECTED - Same-day check-in!');
   }
 
   const displayCheckInDate = formatDateForEmail(formData.checkInDate);
   const displayCheckOutDate = formatDateForEmail(formData.checkOutDate);
-  const displayPetVaccinationDate = formatDateForEmail(
-    formData.petVaccinationDate || "",
+
+  const branding = await loadPropertyEmailBranding(propertyId);
+  const unitLabel = resolveEmailUnitLabel(formData.towerAndUnitNumber, branding);
+  const fileToken = sanitizeAttachmentToken(unitLabel);
+
+  const vars = buildGuestFormPlaceholderVars(
+    formData,
+    settings,
+    {
+      urgent_notice: buildUrgentSameDayCallout(isUrgent),
+      update_notice: isUpdate ? buildGafUpdateNoticeHtml(unitLabel) : '',
+      email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+    },
+    branding
   );
 
-  const bodyParagraphs = isUpdate
-    ? `<p>The Guest Advise Form (GAF) details for <strong>${escapeHtml(formData.towerAndUnitNumber)}</strong> have been updated. Kindly review the revised GAF request for the dates <strong>${escapeHtml(displayCheckInDate)} to ${escapeHtml(displayCheckOutDate)}</strong> for your approval.</p><p>Please disregard the previous GAF request email for the same dates and unit. The attached form contains the most current and accurate information.</p>`
-    : `<p>Kindly review the Guest Advise Form (GAF) request for <strong>${escapeHtml(formData.towerAndUnitNumber)}</strong>, dated from <strong>${escapeHtml(displayCheckInDate)} to ${escapeHtml(displayCheckOutDate)}</strong>, for your approval.</p>`;
-
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
-
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const gafTpl = await loadEmailTemplate("gaf-request");
-  const emailContent = replacePlaceholders(
-    gafTpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      updateSuffix: isUpdate ? " (Updated)" : "",
-      urgentBlock,
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      bodyParagraphs,
-    }),
-  );
+  const emailContent = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-gaf-request',
+    emailTitle: isUpdate ? 'Guest Advise Form Request (Updated)' : 'Guest Advise Form Request',
+    placeholderVars: vars,
+    branding,
+  });
 
   const base64PDF = pdfBuffer ? toBase64(pdfBuffer) : null;
 
   const attachments: ResendAttachment[] = [];
   if (base64PDF) {
     attachments.push({
-      filename: `MONACO_2604_GAF-${formData.checkInDate}.pdf`,
+      filename: `${fileToken}_GAF-${formData.checkInDate}.pdf`,
       content: base64PDF,
-      encoding: "base64",
-      content_type: "application/pdf",
+      encoding: 'base64',
+      content_type: 'application/pdf',
     });
   }
 
   if (booking) {
-    const validIdAttachments = await buildGuestValidIdAttachments(booking);
+    const validIdAttachments = await buildGuestValidIdAttachments(booking, fileToken);
     attachments.push(...validIdAttachments);
   }
 
-  console.log(
-    `Sending GAF email with ${attachments.length} attachment(s)...`,
-  );
+  console.log(`Sending GAF email with ${attachments.length} attachment(s)...`);
   attachments.forEach((att, index) => {
     console.log(`  Attachment ${index + 1}: ${att.filename}`);
   });
 
-  const updatePrefix = isUpdate ? "UPDATED - " : "";
+  const updatePrefix = isUpdate ? 'UPDATED - ' : '';
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const propertySlug = propertyId ? await resolvePropertySlugById(propertyId) : null;
+  const inboundReplyTo =
+    (propertySlug ? buildApprovalInboundAddress(propertySlug) : null) ?? EMAIL_REPLY_TO;
+  // Ops keeps a human copy; Azure Reply-To routes into approval-email-webhook.
+  // Never CC the guest — per booking-workflow.mdc §3.
+  const cc = inboundReplyTo !== EMAIL_REPLY_TO && EMAIL_REPLY_TO ? [EMAIL_REPLY_TO] : undefined;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - GAF Request <mail@kamehomes.space>",
+      from: formatResendFromAddress(`${unitLabel} - GAF Request`, branding.fromEmail),
       to: [EMAIL_TO],
-      // Never CC the guest on the GAF request email — per booking-workflow.mdc §3
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${urgentPrefix}${updatePrefix}Monaco 2604 - GAF Request (${displayCheckInDate} to ${displayCheckOutDate})`,
+      reply_to: inboundReplyTo,
+      ...(cc ? { cc } : {}),
+      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - GAF Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html: emailContent,
       ...(attachments.length > 0 ? { attachments } : {}),
     }),
@@ -478,11 +489,11 @@ export async function sendEmail(
 
   if (!res.ok) {
     const error = await res.json();
-    console.error("Failed to send email:", error);
+    console.error('Failed to send email:', error);
     throw new Error(`Failed to send email: ${JSON.stringify(error)}`);
   }
 
-  console.log("Email sent successfully");
+  console.log('Email sent successfully');
   return await res.json();
 }
 
@@ -492,69 +503,66 @@ export async function sendPetEmail(
   petImageUrl?: string,
   petVaccinationUrl?: string,
   isUpdate = false,
+  propertyId?: string | null
 ) {
-  console.log(`Sending pet ${isUpdate ? "update" : "request"} email...`);
-  console.log("Pet Image URL:", petImageUrl);
-  console.log("Pet Vaccination URL:", petVaccinationUrl);
+  console.log(`Sending pet ${isUpdate ? 'update' : 'request'} email...`);
+  console.log('Pet Image URL:', petImageUrl);
+  console.log('Pet Vaccination URL:', petVaccinationUrl);
 
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  const settings = await resolveAppSettings();
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const settings = await resolveAppSettings(propertyId);
   const EMAIL_TO = settings.emailTo;
   const EMAIL_REPLY_TO = settings.emailReplyTo;
 
   if (!RESEND_API_KEY) {
-    console.error("Missing RESEND_API_KEY environment variable");
-    throw new Error("Missing RESEND_API_KEY environment variable");
+    console.error('Missing RESEND_API_KEY environment variable');
+    throw new Error('Missing RESEND_API_KEY environment variable');
   }
 
   if (!EMAIL_TO) {
-    console.error("Missing EMAIL_TO environment variable");
-    throw new Error("Missing EMAIL_TO environment variable");
+    console.error('Missing emailTo in property app_settings');
+    throw new Error('Missing emailTo in property app_settings');
   }
 
   if (!EMAIL_REPLY_TO) {
-    console.error("Missing EMAIL_REPLY_TO environment variable");
-    throw new Error("Missing EMAIL_REPLY_TO environment variable");
+    console.error('Missing emailReplyTo in property app_settings');
+    throw new Error('Missing emailReplyTo in property app_settings');
   }
 
   const displayCheckInDate = formatDateForEmail(formData.checkInDate);
   const displayCheckOutDate = formatDateForEmail(formData.checkOutDate);
-  const displayPetVaccinationDate = formatDateForEmail(
-    formData.petVaccinationDate || "",
-  );
+
+  const branding = await loadPropertyEmailBranding(propertyId);
+  const unitLabel = resolveEmailUnitLabel(formData.towerAndUnitNumber, branding);
+  const fileToken = sanitizeAttachmentToken(unitLabel);
 
   const isUrgent = isUrgentBooking(formData.checkInDate);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
 
   if (isUrgent) {
-    console.log("🚨 URGENT PET BOOKING DETECTED - Same-day check-in!");
+    console.log('🚨 URGENT PET BOOKING DETECTED - Same-day check-in!');
   }
 
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
-
-  const bodyParagraphs = isUpdate
-    ? `<p>The pet information for our guest at <strong>${escapeHtml(formData.towerAndUnitNumber)}</strong> has been updated. We kindly request your approval for the revised pet request for their stay from <strong>${escapeHtml(displayCheckInDate)}</strong> to <strong>${escapeHtml(displayCheckOutDate)}</strong>.</p><p>Please disregard the previous pet request email for the same dates and unit. The attached documents contain the most current information.</p>`
-    : `<p>May we kindly request approval for our guest to bring a pet during their stay at <strong>${escapeHtml(formData.towerAndUnitNumber)}</strong> during their stay from <strong>${escapeHtml(displayCheckInDate)}</strong> to <strong>${escapeHtml(displayCheckOutDate)}</strong>.</p>`;
-
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const petTpl = await loadEmailTemplate("pet-request");
-  const emailContent = replacePlaceholders(
-    petTpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      updateSuffix: isUpdate ? " (Updated)" : "",
-      urgentBlock,
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      bodyParagraphs,
-      petName: escapeHtml(formData.petName || "N/A"),
-      petType: escapeHtml(formData.petType || "N/A"),
-      petBreed: escapeHtml(formData.petBreed || "N/A"),
-      petAge: escapeHtml(formData.petAge || "N/A"),
-      petVaccinationDate: escapeHtml(displayPetVaccinationDate || "N/A"),
-    }),
+  const vars = buildGuestFormPlaceholderVars(
+    formData,
+    settings,
+    {
+      urgent_notice: buildUrgentSameDayCallout(isUrgent),
+      update_notice: isUpdate ? buildPetUpdateNoticeHtml(unitLabel) : '',
+      pet_details_section: buildPetDetailsSectionFromGuestForm(formData, settings.brandColor),
+      pet_attachments_section: buildPetAttachmentsSectionHtml(settings.brandColor),
+      email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+    },
+    branding
   );
+
+  const emailContent = await renderPropertyTemplateSendEmail({
+    propertyId: propertyId ?? undefined,
+    templateKey: 'email-pet-request',
+    emailTitle: isUpdate ? 'Pet Registration Request (Updated)' : 'Pet Registration Request',
+    placeholderVars: vars,
+    branding,
+  });
 
   // Prepare attachments array
   const attachments: any[] = [];
@@ -562,25 +570,22 @@ export async function sendPetEmail(
   // Add Pet PDF if available
   if (pdfBuffer) {
     attachments.push({
-      filename: `MONACO_2604_PET_FORM-${formData.checkInDate}.pdf`,
+      filename: `${fileToken}_PET_FORM-${formData.checkInDate}.pdf`,
       content: toBase64(pdfBuffer),
-      encoding: "base64",
+      encoding: 'base64',
     });
   }
 
   // Download and attach pet image if URL is provided
   if (petImageUrl) {
-    const file = await downloadStorageFile(
-      petImageUrl,
-      `pet-image-${formData.checkInDate}.jpg`,
-    );
+    const file = await downloadStorageFile(petImageUrl, `pet-image-${formData.checkInDate}.jpg`);
     if (file) {
       attachments.push({
         filename: file.filename,
         content: toBase64(file.bytes),
-        encoding: "base64",
+        encoding: 'base64',
       });
-      console.log("Pet image attached successfully:", file.filename);
+      console.log('Pet image attached successfully:', file.filename);
     }
   }
 
@@ -588,42 +593,43 @@ export async function sendPetEmail(
   if (petVaccinationUrl) {
     const file = await downloadStorageFile(
       petVaccinationUrl,
-      `pet-vaccination-${formData.checkInDate}.jpg`,
+      `pet-vaccination-${formData.checkInDate}.jpg`
     );
     if (file) {
       attachments.push({
         filename: file.filename,
         content: toBase64(file.bytes),
-        encoding: "base64",
+        encoding: 'base64',
       });
-      console.log(
-        "Pet vaccination record attached successfully:",
-        file.filename,
-      );
+      console.log('Pet vaccination record attached successfully:', file.filename);
     }
   }
 
   console.log(`Sending pet email with ${attachments.length} attachment(s)...`);
   attachments.forEach((att, index) => {
-    console.log(
-      `  Attachment ${index + 1}: ${att.filename} (${att.content.length} chars base64)`,
-    );
+    console.log(`  Attachment ${index + 1}: ${att.filename} (${att.content.length} chars base64)`);
   });
 
-  const updatePrefix = isUpdate ? "UPDATED - " : "";
+  const updatePrefix = isUpdate ? 'UPDATED - ' : '';
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const petPropertyId = propertyId ?? null;
+  const propertySlug = petPropertyId ? await resolvePropertySlugById(petPropertyId) : null;
+  const inboundReplyTo =
+    (propertySlug ? buildApprovalInboundAddress(propertySlug) : null) ?? EMAIL_REPLY_TO;
+  const cc = inboundReplyTo !== EMAIL_REPLY_TO && EMAIL_REPLY_TO ? [EMAIL_REPLY_TO] : undefined;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Pet Request <mail@kamehomes.space>",
+      from: formatResendFromAddress(`${unitLabel} - Pet Request`, branding.fromEmail),
       to: [EMAIL_TO],
-      // Never CC the guest on the Pet request email — per booking-workflow.mdc §3
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${urgentPrefix}${updatePrefix}Monaco 2604 - Pet Request (${displayCheckInDate} to ${displayCheckOutDate})`,
+      reply_to: inboundReplyTo,
+      ...(cc ? { cc } : {}),
+      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Pet Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html: emailContent,
       attachments: attachments,
     }),
@@ -631,195 +637,62 @@ export async function sendPetEmail(
 
   if (!res.ok) {
     const error = await res.json();
-    console.error("Failed to send pet email:", error);
+    console.error('Failed to send pet email:', error);
     throw new Error(`Failed to send pet email: ${JSON.stringify(error)}`);
   }
 
-  console.log("Pet email sent successfully");
+  console.log('Pet email sent successfully');
   return await res.json();
 }
 
 // ─── New Phase 3 emails ──────────────────────────────────────────────────────
 
-async function getResendCredentials() {
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  const settings = await resolveAppSettings();
+async function getResendCredentials(propertyId?: string | null) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const settings = await resolveAppSettings(propertyId);
   const EMAIL_TO = settings.emailTo;
   const EMAIL_REPLY_TO = settings.emailReplyTo;
 
-  if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
-  if (!EMAIL_TO) throw new Error("Missing EMAIL_TO");
-  if (!EMAIL_REPLY_TO) throw new Error("Missing EMAIL_REPLY_TO");
+  if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+  if (!EMAIL_TO) throw new Error('Missing emailTo in property app_settings');
+  if (!EMAIL_REPLY_TO) {
+    throw new Error('Missing emailReplyTo in property app_settings');
+  }
 
-  return { RESEND_API_KEY, EMAIL_TO, EMAIL_REPLY_TO };
+  return { RESEND_API_KEY, EMAIL_TO, EMAIL_REPLY_TO, settings };
 }
 
 function pesoFormat(amount: number | null | undefined): string {
-  if (amount == null) return "—";
-  return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (amount == null) return '—';
+  return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-async function getResendNewBookingNotifyCredentials() {
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  const settings = await resolveAppSettings();
-  const EMAIL_REPLY_TO = settings.emailReplyTo;
-  if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
-  if (!EMAIL_REPLY_TO) throw new Error("Missing EMAIL_REPLY_TO");
-  return { RESEND_API_KEY, EMAIL_REPLY_TO };
-}
-
-function formatBookingSourceLabelForNotify(
-  raw: string | null | undefined,
-): string {
-  const s = (raw ?? "").trim();
-  if (/^airbnb$/i.test(s)) return "Airbnb";
-  if (/^facebook$/i.test(s)) return "Facebook";
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "Facebook";
-}
-
-function yesNo(v: boolean | null | undefined): string {
-  return v ? "Yes ‼️" : "No";
-}
-
-function notifyDetailTableStyle(): string {
-  return [
-    "width:100%;table-layout:fixed;border:1px solid #e2e8f0;border-radius:16px;",
-    "border-collapse:separate;border-spacing:0;overflow:hidden;font-size:14px;",
-    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;",
-    "margin:0 0 26px 0;",
-  ].join("");
-}
-
-function notifyRow(
-  label: string,
-  valueHtml: string,
-  withBottomBorder: boolean,
-): string {
-  const b = withBottomBorder ? "border-bottom:1px solid #e2e8f0;" : "";
-  return `<tr>
-  <td class="tbl-label" style="padding:12px 16px;background-color:#f8fafc;${b}font-weight:600;color:#475569;vertical-align:top;width:38%;">${label}</td>
-  <td class="tbl-value" style="padding:12px 16px;background-color:#ffffff;${b}color:#333333;line-height:1.55;vertical-align:top;">${valueHtml}</td>
-</tr>`;
-}
-
-function notifySectionTitle(text: string): string {
-  return `<p class="section-label" style="margin:24px 0 10px 0;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5f954c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">${text}</p>`;
-}
-
-function receiptVerdictEmailBadgeHtml(verdict: string | null | undefined): string {
-  const label = formatReceiptVerdictLabel(verdict);
-  const v = String(verdict ?? '').toLowerCase();
-  let bg = '#f3f4f6';
-  let color = '#374151';
-  if (v === 'valid' || v === 'likely_valid') {
-    bg = '#dcfce7';
-    color = '#166534';
-  } else if (v === 'unclear' || v === 'skipped') {
-    bg = '#fef9c3';
-    color = '#854d0e';
-  } else if (v === 'invalid') {
-    bg = '#fee2e2';
-    color = '#991b1b';
-  }
-  return `<span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${bg};color:${color};">${escapeHtml(label)}</span>`;
-}
-
-function buildDownpaymentReceiptAiEmailSection(booking: GuestSubmission): string {
-  const verdict = (booking as Record<string, unknown>).dp_receipt_ai_verdict as
-    | string
-    | null
-    | undefined;
-  const summary = String(
-    (booking as Record<string, unknown>).dp_receipt_ai_summary ?? '',
-  ).trim();
-  if (!verdict && !summary) return '';
-
-  const tblStyle = notifyDetailTableStyle();
-  const rows = [
-    notifyRow('Verdict', receiptVerdictEmailBadgeHtml(verdict), true),
-    notifyRow('Summary', escapeHtml(summary || 'N/A'), false),
-  ].join('');
-
-  return [
-    notifySectionTitle('Downpayment receipt AI check'),
-    `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="${tblStyle}">${rows}</table>`,
-  ].join('\n');
-}
-
-function buildNewBookingRequestEmailBodyMain(
+async function loadGuestBookingEmailLinkExtras(
   booking: GuestSubmission,
-  appOrigin: string,
-): string {
-  const nn = booking.number_of_nights;
-  const nights =
-    nn != null && Number.isFinite(Number(nn)) && Number(nn) >= 0
-      ? Number(nn)
-      : countStayNights(booking.check_in_date, booking.check_out_date);
-  const pax =
-    (booking.number_of_adults ?? 0) + (booking.number_of_children ?? 0);
-  const displayCheckIn = formatDateForEmail(booking.check_in_date);
-  const displayCheckOut = formatDateForEmail(booking.check_out_date);
-  const tblStyle = notifyDetailTableStyle();
+  settings: Awaited<ReturnType<typeof resolveAppSettings>>
+): Promise<Record<string, string>> {
+  const bookingId = String(booking.id ?? '').trim();
+  if (!bookingId) return {};
 
-  const stayRows = [
-    notifyRow("Check-in", escapeHtml(displayCheckIn), true),
-    notifyRow("Check-out", escapeHtml(displayCheckOut), true),
-    notifyRow("Number of nights", escapeHtml(String(nights)), true),
-    notifyRow("Number of pax", escapeHtml(String(pax)), false),
-  ].join("");
+  const propertyId = resolveEmailPropertyId(booking);
+  const propertySlug = propertyId ? ((await resolvePropertySlugById(propertyId)) ?? '') : '';
 
-  const guestRows = [
-    notifyRow("Facebook Name", escapeHtml(booking.guest_facebook_name), true),
-    notifyRow(
-      "Primary Guest Name",
-      escapeHtml(booking.primary_guest_name),
-      true,
-    ),
-    notifyRow("Address", escapeHtml(booking.guest_address), true),
-    notifyRow("Phone Number", escapeHtml(booking.guest_phone_number), true),
-    notifyRow("Email", escapeHtml(booking.guest_email), true),
-    notifyRow(
-      "Source",
-      escapeHtml(formatBookingSourceLabelForNotify(booking.booking_source)),
-      false,
-    ),
-  ].join("");
+  return await guestBookingEmailLinkPlaceholderExtras({
+    origin: settings.publicGuestAppOrigin,
+    propertySlug,
+    bookingId,
+  });
+}
 
-  const notableRows = [
-    notifyRow(
-      "Requires pay parking?",
-      escapeHtml(yesNo(booking.need_parking)),
-      true,
-    ),
-    notifyRow(
-      "Requires pet approval",
-      escapeHtml(yesNo(booking.has_pets)),
-      true,
-    ),
-    notifyRow(
-      "Requires surprise setup / room decor?",
-      escapeHtml(yesNo(booking.guest_requests_surprise_decor)),
-      false,
-    ),
-  ].join("");
-
-  const bookingId = booking.id as string;
-  const base = appOrigin.replace(/\/+$/, "");
-  const adminUrl = `${base}/bookings/${encodeURIComponent(bookingId)}`;
-  const cta = `<div class="cta-wrap" style="margin:28px 0 8px 0;text-align:center;">
-  <a class="cta-btn" style="{{emailShellCtaBtnStyle}}" href="${escapeHtml(adminUrl)}" target="_blank" rel="noopener">View Booking Details</a>
-</div>`;
-
-  return [
-    notifySectionTitle("Stay details"),
-    `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="${tblStyle}">${stayRows}</table>`,
-    notifySectionTitle("Guest details"),
-    `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="${tblStyle}">${guestRows}</table>`,
-    notifySectionTitle("Notable information"),
-    `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="${tblStyle}">${notableRows}</table>`,
-    buildDownpaymentReceiptAiEmailSection(booking),
-    cta,
-  ].join("\n");
+async function getResendNewBookingNotifyCredentials(propertyId?: string | null) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const settings = await resolveAppSettings(propertyId);
+  const EMAIL_REPLY_TO = settings.emailReplyTo;
+  if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+  if (!EMAIL_REPLY_TO) {
+    throw new Error('Missing emailReplyTo in property app_settings');
+  }
+  return { RESEND_API_KEY, EMAIL_REPLY_TO, settings };
 }
 
 /**
@@ -828,79 +701,79 @@ function buildNewBookingRequestEmailBodyMain(
  */
 export async function sendNewBookingRequestNotify(booking: GuestSubmission) {
   const bookingId = booking.id as string | undefined;
-  if (!bookingId)
-    throw new Error("sendNewBookingRequestNotify: booking.id is required");
+  if (!bookingId) throw new Error('sendNewBookingRequestNotify: booking.id is required');
 
-  console.log("Sending new booking request notify email to EMAIL_REPLY_TO...");
+  console.log('Sending new booking request notify email to EMAIL_REPLY_TO...');
 
-  const { RESEND_API_KEY, EMAIL_REPLY_TO } =
-    await getResendNewBookingNotifyCredentials();
-  const settings = await resolveAppSettings();
-  const displayCheckInDate = formatDateForEmail(booking.check_in_date);
-  const displayCheckOutDate = formatDateForEmail(booking.check_out_date);
-  const unitLabel =
-    String(booking.tower_and_unit_number ?? "").trim() || "Monaco 2604";
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } =
+    await getResendNewBookingNotifyCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
 
   const isUrgent = isUrgentBooking(booking.check_in_date);
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
   if (isUrgent) {
-    console.log("🚨 URGENT same-day check-in — new booking request notify");
+    console.log('🚨 URGENT same-day check-in — new booking request notify');
   }
 
-  const emailBodyMainRaw = buildNewBookingRequestEmailBodyMain(
+  const appOrigin = settings.publicGuestAppOrigin.replace(/\/+$/, '');
+  const bookingLink = `${appOrigin}/bookings/${encodeURIComponent(bookingId)}`;
+
+  const vars = buildBookingPlaceholderVars(
     booking,
-    settings.publicGuestAppOrigin,
-  );
-  const emailBodyMain = replacePlaceholders(
-    emailBodyMainRaw,
-    withEmailShellStyleVars({}),
-  );
-
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const tpl = await loadEmailTemplate("new-booking-request");
-  const html = replacePlaceholders(
-    tpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      urgentBlock,
-      /** Same string prepended to API `subject` and to `<title>` / `<h1>` in the template. */
-      newBookingTitlePrefix: urgentPrefix,
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      towerAndUnitNumber: escapeHtml(unitLabel),
-      emailBodyMain,
-    }),
+    settings,
+    {
+      urgent_notice: buildUrgentSameDayCallout(isUrgent),
+      new_booking_detail_tables: buildNewBookingDetailTablesFromBooking(
+        booking,
+        settings.brandColor
+      ),
+      downpayment_receipt_ai_section: buildDownpaymentReceiptAiSectionFromBooking(
+        booking,
+        settings.brandColor
+      ),
+      booking_link_cta: buildBookingLinkCtaHtml(bookingLink, settings.brandColor),
+    },
+    branding
   );
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-new-booking-request',
+    emailTitle: `${urgentPrefix}New Booking Request`.trim(),
+    placeholderVars: vars,
+    branding,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Kame Home <mail@kamehomes.space>",
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
       to: [EMAIL_REPLY_TO],
       reply_to: booking.guest_email,
-      subject: `${urgentPrefix}${unitLabel} - New Booking Request (${displayCheckInDate} to ${displayCheckOutDate})`,
+      subject: `${urgentPrefix}${unitLabel} - New Booking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(
-      `Failed to send new booking request notify: ${JSON.stringify(err)}`,
-    );
+    throw new Error(`Failed to send new booking request notify: ${JSON.stringify(err)}`);
   }
 
   const body = (await res.json()) as { id?: string };
   console.log(
-    "[new-booking-notify] Resend accepted message; id:",
-    body?.id ?? "(no id in response)",
-    "| to: EMAIL_REPLY_TO from env (check spam / Resend dashboard if inbox empty)",
+    '[new-booking-notify] Resend accepted message; id:',
+    body?.id ?? '(no id in response)',
+    '| to: EMAIL_REPLY_TO from property app_settings (check spam / Resend dashboard if inbox empty)'
   );
   return body;
 }
@@ -910,56 +783,80 @@ export async function sendNewBookingRequestNotify(booking: GuestSubmission) {
  * Confirms we received the form and are processing their GAF.
  */
 export async function sendBookingAcknowledgement(booking: GuestSubmission) {
-  console.log("Sending booking acknowledgement email to guest...");
+  console.log('Sending booking acknowledgement email to guest...');
 
-  const { RESEND_API_KEY, EMAIL_REPLY_TO } = await getResendCredentials();
-  const displayCheckInDate = formatDateForEmail(booking.check_in_date);
-  const displayCheckOutDate = formatDateForEmail(booking.check_out_date);
-
-  const isUrgent = isUrgentBooking(booking.check_in_date);
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
-  if (isUrgent) {
-    console.log("🚨 URGENT same-day check-in — booking acknowledgement");
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping booking acknowledgement — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
   }
 
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const ackTpl = await loadEmailTemplate("booking-acknowledgement");
-  const html = replacePlaceholders(
-    ackTpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      urgentBlock,
-      guestFacebookName: escapeHtml(booking.guest_facebook_name),
-      towerAndUnitNumber: escapeHtml(booking.tower_and_unit_number),
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-    }),
-  );
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const guestName = String(booking.guest_facebook_name ?? '').trim() || 'Guest';
+
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+
+  const parkingUrl = booking.need_parking
+    ? await resolveGuestParkingCtaAbsoluteUrl({
+        propertyBookingId: String(booking.id ?? ''),
+        publicGuestAppOrigin: settings.publicGuestAppOrigin,
+      })
+    : null;
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-booking-acknowledgement',
+    emailTitle: `Thank you, ${guestName}!`,
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      settings,
+      {
+        ...guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(guestContact),
+        booking_acknowledgement_flow_section: buildBookingAcknowledgementFlowSectionHtml({
+          unitLabel,
+          checkIn: displayCheckInDate,
+          checkOut: displayCheckOutDate,
+          brandColor: settings.brandColor,
+          contact: guestContact,
+          parkingUrl,
+          tripUrl: guestLinkExtras.trip_url,
+        }),
+        email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+      },
+      branding
+    ),
+    branding,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Kame Home <mail@kamehomes.space>",
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
       to: [booking.guest_email],
       reply_to: EMAIL_REPLY_TO,
-      subject: `Monaco 2604 - Booking Acknowledgement (${displayCheckInDate} to ${displayCheckOutDate})`,
+      subject: `${unitLabel} - Booking Acknowledgement ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(
-      `Failed to send booking acknowledgement: ${JSON.stringify(err)}`,
-    );
+    throw new Error(`Failed to send booking acknowledgement: ${JSON.stringify(err)}`);
   }
 
-  console.log("Booking acknowledgement email sent successfully");
+  console.log('Booking acknowledgement email sent successfully');
   return await res.json();
 }
 
@@ -971,274 +868,171 @@ export async function sendBookingAcknowledgement(booking: GuestSubmission) {
  *   • Parking endorsement (if need_parking and available)
  */
 export async function sendReadyForCheckin(booking: GuestSubmission) {
-  console.log("Sending ready-for-check-in email to guest...");
+  console.log('Sending ready-for-check-in email to guest...');
 
-  const { RESEND_API_KEY, EMAIL_REPLY_TO } = await getResendCredentials();
-  const displayCheckInDate = formatDateForEmail(booking.check_in_date);
-  const displayCheckOutDate = formatDateForEmail(booking.check_out_date);
-
-  const urgentBlock = '';
-
-  const balance =
-    booking.balance ??
-    (booking.booking_rate ?? 0) - (booking.down_payment ?? 0);
-  const balanceNum = Number(balance);
-  const totalDueAtCheckin =
-    computeTotalGuestBalanceFromBooking(
-      booking as unknown as Record<string, unknown>,
-    ) ??
-    ((Number.isFinite(balanceNum) ? balanceNum : 0) +
-      (Number(booking.security_deposit ?? 0) || 0) +
-      (booking.has_pets ? Number(booking.pet_fee ?? 0) || 0 : 0) +
-      (Number(booking.guest_additional_fee ?? 0) || 0));
-  const totalBalanceDue = pesoFormat(totalDueAtCheckin);
-  const pax =
-    (booking.number_of_adults || 0) + (booking.number_of_children || 0);
-  const displayCheckInTime = escapeHtml(
-    formatTimeForDisplay(booking.check_in_time, "2:00 PM"),
-  );
-  const displayCheckOutTime = escapeHtml(
-    formatTimeForDisplay(booking.check_out_time, "11:00 AM"),
-  );
-
-  const parkingPaymentRow = booking.need_parking
-    ? `
-    <tr class="fee-addon-row">
-      <td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Guest parking fee</td>
-      <td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.parking_rate_guest as number | null)}</td>
-      <td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"><em class="italic-note">Non-refundable; no rescheduling</em></td>
-    </tr>
-  `
-    : "";
-
-  const petPaymentRow = booking.has_pets
-    ? `
-    <tr class="fee-addon-row">
-      <td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Pet fee</td>
-      <td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.pet_fee as number | null)}</td>
-      <td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td>
-    </tr>
-  `
-    : "";
-
-  const additionalGuestFee = Number(booking.guest_additional_fee ?? 0) || 0;
-
-  const additionalFeeRow =
-    additionalGuestFee > 0
-      ? `
-    <tr class="fee-addon-row">
-      <td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Additional fee</td>
-      <td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(additionalGuestFee)}</td>
-      <td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;">Early check-in, late check-out, surprise decor, etc.</td>
-    </tr>
-  `
-      : "";
-
-  const docReminderCardStyle =
-    "padding:18px 20px;background-color:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #5f954c;border-radius:16px;color:#334155;font-size:14px;line-height:1.55;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;";
-
-  const documentReminderBodies: string[] = [
-    '<strong style="color:#1e293b;font-weight:700;">Guest Advise Form (GAF)</strong> — Your GAF has been approved. No need to print it! Simply present it at the guard house upon arrival and to the lobby receptionist during registration.',
-  ];
-  if (booking.need_parking) {
-    documentReminderBodies.push(
-      '<strong style="color:#1e293b;font-weight:700;">Parking</strong> — Your parking slot is confirmed. The guest parking fee is <strong style="color:#1e293b;font-weight:700;">non-refundable</strong>, and once confirmed your parking dates <strong style="color:#1e293b;font-weight:700;">cannot be rescheduled</strong>.',
-    );
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping ready-for-check-in — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
   }
-  if (booking.has_pets) {
-    documentReminderBodies.push(
-      '<strong style="color:#1e293b;font-weight:700;">Pet</strong> — Your pet has been approved for this stay.',
-    );
-  }
-  const documentReminderLis = documentReminderBodies
-    .map((body, idx) => {
-      const isLast = idx === documentReminderBodies.length - 1;
-      const margin = isLast ? "margin:0" : "margin:0 0 12px 0";
-      return `<li class="doc-reminders-card__li" style="${margin};padding:0;color:#334155;">${body}</li>`;
-    })
-    .join("");
 
-  const documentRemindersSection = `
-<table role="presentation" class="doc-reminders-card" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:separate;border-spacing:0;margin:0;">
-  <tr>
-    <td class="doc-reminders-card__cell" style="${docReminderCardStyle}">
-      <ul class="doc-reminders-card__list" style="margin:0;padding:0 0 0 20px;list-style-type:disc;">
-        ${documentReminderLis}
-      </ul>
-    </td>
-  </tr>
-</table>`;
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
 
-  // TEMP: Skip `ready-for-checkin-house-rules` (Important reminders table) to keep
-  // final HTML under Gmail's ~102KB clip threshold. Re-enable by restoring the
-  // loadEmailTemplate + replacePlaceholders block and `{{houseRulesSection}}` in
-  // `ready-for-checkin.html`.
-  const houseRulesSection = "";
-
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const settings = await resolveAppSettings();
-
-  // Hide payment breakdown + GCash QR when total balance is 0 (e.g. Airbnb bookings)
+  const totalDueAtCheckin = computeReadyForCheckinTotalDue(booking);
   const showPaymentSections = totalDueAtCheckin > 0;
 
-  let paymentBreakdownSection = "";
-  let gcashPaymentSection = "";
-  let paymentQrImageUrl = "";
-  let qrAssetBytes: Uint8Array | null = null;
-  let qrAssetFilename = "";
-  let qrAssetContentType = "";
+  let qrSrcByMethodId: Record<string, string> = {};
+  let qrAssets: ReadyForCheckinQrAsset[] = [];
 
   if (showPaymentSections) {
-    const qrAsset = await resolveReadyForCheckinPaymentQr(settings);
-    qrAssetBytes = qrAsset.bytes;
-    qrAssetFilename = qrAsset.filename;
-    qrAssetContentType = qrAsset.contentType;
-    paymentQrImageUrl =
-      qrAsset.bytes && qrAsset.bytes.length > 0
-        ? `cid:${READY_FOR_CHECKIN_PAYMENT_QR_CONTENT_ID}`
-        : escapeHtml(qrAsset.fallbackUrl);
-
-    paymentBreakdownSection = `<p class="section-label section-label-mt" style="margin:28px 0 12px 0;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5f954c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Payment breakdown</p>
-<table role="presentation" class="data-table data-table-payment" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;table-layout:fixed;border:1px solid #e2e8f0;border-radius:16px;border-collapse:separate;border-spacing:0;overflow:hidden;font-size:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <colgroup><col width="28%"/><col width="22%"/><col width="50%"/></colgroup>
-  <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Booking rate</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.booking_rate as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
-  <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Down payment paid</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.down_payment as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
-  <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Booking rate balance</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(balance as number)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
-  <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Security deposit</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.security_deposit as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"><em class="italic-note">Refundable after check-out</em></td></tr>
-  ${parkingPaymentRow}${petPaymentRow}${additionalFeeRow}
-  <tr class="tbl-row-emphasis fee-addon-row"><td class="tbl-label" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-weight:600;color:#78350f;vertical-align:top;">Total balance</td><td class="tbl-num" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;text-align:right;color:#b45309;font-weight:700;vertical-align:top;">${totalBalanceDue}</td><td class="tbl-note" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-size:12px;color:#92400e;line-height:1.45;vertical-align:top;"><em class="italic-note">Payable on or before check-in. Please pay via online or bank transfer.</em></td></tr>
-</table>`;
-
-    gcashPaymentSection = `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;margin:22px 0 0 0;">
-  <tr><td style="padding:0;vertical-align:top">
-    <p class="section-label" style="margin:0 0 8px 0;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5f954c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Total balance payment</p>
-    <p class="gcash-payment-copy">Save and scan the QR code or send to the GCash account beside it to pay your total balance upon check-in.</p>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse">
-      <tr>
-        <td align="left" valign="top" style="padding:0 16px 0 0;width:250px;vertical-align:top;"><img src="${paymentQrImageUrl}" width="250" alt="Kame Home — GCash and InstaPay QR code for payments" style="display:block;width:100%;max-width:250px;height:auto;border:1px solid #e2e8f0;border-radius:12px;"/></td>
-        <td align="left" valign="middle" style="padding:0;vertical-align:middle">
-          <p class="gcash-payment-label">GCash Name</p>
-          <p class="gcash-payment-value gcash-payment-value-spaced">${escapeHtml(settings.gcashName)}</p>
-          <p class="gcash-payment-label">GCash Number</p>
-          <p class="gcash-payment-value">${escapeHtml(settings.gcashNumber)}</p>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-</table>`;
+    const resolved = await resolveReadyForCheckinPaymentQrs(settings);
+    qrAssets = resolved.assets;
+    qrSrcByMethodId = resolved.qrSrcByMethodId;
   }
 
-  const rfiTpl = await loadEmailTemplate("ready-for-checkin");
-  const html = replacePlaceholders(
-    rfiTpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      urgentBlock,
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      guestFacebookName: escapeHtml(booking.guest_facebook_name),
-      documentRemindersSection,
-      pax: String(pax),
-      towerAndUnitNumber: escapeHtml(booking.tower_and_unit_number),
-      checkInTime: displayCheckInTime,
-      checkOutTime: displayCheckOutTime,
-      paymentBreakdownSection,
-      gcashPaymentSection,
-    }),
-  );
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+
+  const stayGuideToken = String(
+    (booking as { stay_guide_token?: string | null }).stay_guide_token ?? ''
+  ).trim();
+  let stayGuideUrl = '';
+  // No CTA below Pro: the guide page would refuse the guest (`propertyShowcase`).
+  if (stayGuideToken && propertyId && (await propertyHasStayGuideAccess(propertyId))) {
+    stayGuideUrl = (await buildGuestStayGuideUrl(booking, stayGuideToken)) ?? '';
+  }
+
+  const dynamicSections: Record<string, string> = {
+    ready_for_checkin_booking_summary_section: buildReadyForCheckinBookingSummaryFromBooking(
+      booking,
+      branding,
+      settings.brandColor
+    ),
+    document_reminders_section: buildDocumentRemindersSectionFromBooking(
+      booking,
+      settings.brandColor
+    ),
+    payment_breakdown_section: showPaymentSections
+      ? buildPaymentBreakdownSectionFromBooking(
+          booking,
+          pesoFormat,
+          totalDueAtCheckin,
+          settings.brandColor
+        )
+      : '',
+    gcash_payment_section: showPaymentSections
+      ? buildGcashPaymentSectionHtml(settings, qrSrcByMethodId)
+      : '',
+    ready_for_checkin_contact_section: buildReadyForCheckinContactSectionHtml(
+      guestContact,
+      settings.brandColor
+    ),
+    stay_guide_cta_section: buildStayGuideCtaHtml(stayGuideUrl, settings.brandColor),
+    email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+  };
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-ready-for-checkin',
+    emailTitle: "You're all set & ready for check-in!",
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      settings,
+      {
+        ...guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(guestContact),
+        ...dynamicSections,
+      },
+      branding
+    ),
+    branding,
+  });
 
   // ── Build attachments ─────────────────────────────────────────────────────────
   const attachments: ResendAttachment[] = [];
 
-  if (showPaymentSections && qrAssetBytes && qrAssetBytes.length > 0) {
-    attachments.push({
-      filename: qrAssetFilename,
-      content: toBase64(qrAssetBytes),
-      encoding: "base64",
-      content_type: qrAssetContentType,
-      content_id: READY_FOR_CHECKIN_PAYMENT_QR_CONTENT_ID,
-    });
-    console.log(
-      "[readyForCheckin] Inline payment QR (CID attachment)",
-    );
+  if (showPaymentSections && qrAssets.length > 0) {
+    for (const asset of qrAssets) {
+      attachments.push({
+        filename: asset.filename,
+        content: toBase64(asset.bytes),
+        encoding: 'base64',
+        content_type: asset.contentType,
+        content_id: asset.contentId,
+      });
+    }
+    console.log(`[readyForCheckin] Inline payment QR x${qrAssets.length} (CID attachment)`);
   }
 
   // Approved GAF PDF — always attach if available
   if (booking.approved_gaf_pdf_url) {
-    console.log("[readyForCheckin] Downloading approved GAF PDF...");
+    console.log('[readyForCheckin] Downloading approved GAF PDF...');
     const file = await downloadStorageFile(
       booking.approved_gaf_pdf_url,
-      `approved-gaf-${booking.check_in_date}.pdf`,
+      `approved-gaf-${booking.check_in_date}.pdf`
     );
     if (file) {
       attachments.push({
         filename: file.filename,
         content: toBase64(file.bytes),
-        encoding: "base64",
+        encoding: 'base64',
       });
-      console.log(
-        "[readyForCheckin] Attached approved GAF PDF:",
-        file.filename,
-      );
+      console.log('[readyForCheckin] Attached approved GAF PDF:', file.filename);
     }
   }
 
   // Approved Pet PDF — attach if booking has pets
   if (booking.has_pets && booking.approved_pet_pdf_url) {
-    console.log("[readyForCheckin] Downloading approved pet PDF...");
+    console.log('[readyForCheckin] Downloading approved pet PDF...');
     const file = await downloadStorageFile(
       booking.approved_pet_pdf_url,
-      `approved-pet-form-${booking.check_in_date}.pdf`,
+      `approved-pet-form-${booking.check_in_date}.pdf`
     );
     if (file) {
       attachments.push({
         filename: file.filename,
         content: toBase64(file.bytes),
-        encoding: "base64",
+        encoding: 'base64',
       });
-      console.log(
-        "[readyForCheckin] Attached approved pet PDF:",
-        file.filename,
-      );
+      console.log('[readyForCheckin] Attached approved pet PDF:', file.filename);
     }
   }
 
   // Parking endorsement — attach if booking has parking
   if (booking.need_parking && booking.parking_endorsement_url) {
-    console.log("[readyForCheckin] Downloading parking endorsement...");
+    console.log('[readyForCheckin] Downloading parking endorsement...');
     const file = await downloadStorageFile(
       booking.parking_endorsement_url,
-      `parking-endorsement-${booking.check_in_date}.pdf`,
+      `parking-endorsement-${booking.check_in_date}.pdf`
     );
     if (file) {
       attachments.push({
         filename: file.filename,
         content: toBase64(file.bytes),
-        encoding: "base64",
+        encoding: 'base64',
       });
-      console.log(
-        "[readyForCheckin] Attached parking endorsement:",
-        file.filename,
-      );
+      console.log('[readyForCheckin] Attached parking endorsement:', file.filename);
     }
   }
 
-  console.log(
-    `[readyForCheckin] Sending email with ${attachments.length} attachment(s)...`,
-  );
+  console.log(`[readyForCheckin] Sending email with ${attachments.length} attachment(s)...`);
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Kame Home <mail@kamehomes.space>",
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
       to: [booking.guest_email],
       reply_to: EMAIL_REPLY_TO,
-      subject: `Monaco 2604 - Check-in Details (${displayCheckInDate} to ${displayCheckOutDate})`,
+      subject: `${unitLabel} - Check-in Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html,
       ...(attachments.length > 0 ? { attachments } : {}),
     }),
@@ -1246,12 +1040,10 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(
-      `Failed to send ready-for-check-in email: ${JSON.stringify(err)}`,
-    );
+    throw new Error(`Failed to send ready-for-check-in email: ${JSON.stringify(err)}`);
   }
 
-  console.log("Ready-for-check-in email sent successfully");
+  console.log('Ready-for-check-in email sent successfully');
   return await res.json();
 }
 
@@ -1262,14 +1054,15 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
  */
 export async function sendParkingBroadcast(
   booking: GuestSubmission,
-  options?: { to?: string },
+  options?: { to?: string; isUpdate?: boolean }
 ) {
-  console.log("Sending parking broadcast email...");
+  console.log('Sending parking broadcast email...');
 
-  const { RESEND_API_KEY, EMAIL_REPLY_TO } = await getResendCredentials();
-  const settings = await resolveAppSettings();
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel } = await loadBookingEmailDisplayContext(propertyId, booking);
 
-  const singleTo = (options?.to ?? "").trim();
+  const singleTo = (options?.to ?? '').trim();
   const bccEmails = settings.parkingOwnerEmails;
 
   let toRecipients: string[];
@@ -1277,14 +1070,14 @@ export async function sendParkingBroadcast(
 
   if (singleTo) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(singleTo)) {
-      throw new Error("Invalid parking owner email address");
+      throw new Error('Invalid parking owner email address');
     }
     toRecipients = [singleTo];
     bccRecipients = undefined;
   } else {
     if (bccEmails.length === 0) {
       console.warn(
-        "PARKING_OWNER_EMAILS is not set — skipping parking broadcast",
+        'parking_owner_emails empty in property app_settings — skipping parking broadcast'
       );
       return null;
     }
@@ -1292,76 +1085,71 @@ export async function sendParkingBroadcast(
     bccRecipients = bccEmails.slice(1);
   }
   const parkingCheckIn =
-    String(booking.parking_check_in_date ?? "").trim() || booking.check_in_date;
+    String(booking.parking_check_in_date ?? '').trim() || booking.check_in_date;
   const parkingCheckOut =
-    String(booking.parking_check_out_date ?? "").trim() ||
-    booking.check_out_date;
+    String(booking.parking_check_out_date ?? '').trim() || booking.check_out_date;
   const displayCheckInDate = formatDateForEmail(parkingCheckIn);
   const displayCheckOutDate = formatDateForEmail(parkingCheckOut);
 
   const isUrgent = isUrgentBooking(parkingCheckIn);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
   if (isUrgent) {
-    console.log("🚨 URGENT same-day check-in — parking broadcast");
+    console.log('🚨 URGENT same-day check-in — parking broadcast');
   }
 
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const parkTpl = await loadEmailTemplate("parking-broadcast");
-  const unitLabel =
-    String(booking.tower_and_unit_number ?? "").trim() || "Monaco 2604";
-  const guestName = String(booking.primary_guest_name ?? "").trim() || "N/A";
-  const carBrandModel = String(booking.car_brand_model ?? "").trim() || "N/A";
-  const carColor = String(booking.car_color ?? "").trim() || "N/A";
-  const carPlate = String(booking.car_plate_number ?? "").trim() || "N/A";
-  const bookingVehicleCopyText = escapeHtml(
-    buildParkingBroadcastCopyText({
-      unit: unitLabel,
-      checkInDate: displayCheckInDate,
-      checkOutDate: displayCheckOutDate,
-      guestName,
-      carBrandModel,
-      carColor,
-      carPlate,
-    }),
-  );
-  const html = replacePlaceholders(
-    parkTpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      urgentBlock,
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      towerAndUnitNumber: escapeHtml(booking.tower_and_unit_number),
-      checkInTime: escapeHtml(
-        formatTimeForDisplay(booking.check_in_time, "2:00 PM"),
-      ),
-      checkOutTime: escapeHtml(
-        formatTimeForDisplay(booking.check_out_time, "11:00 AM"),
-      ),
-      carBrandModel: escapeHtml(carBrandModel),
-      carColor: escapeHtml(carColor),
-      carPlate: escapeHtml(carPlate),
-      primaryGuestName: escapeHtml(guestName),
-      bookingVehicleCopyText,
-    }),
+  const guestName = String(booking.primary_guest_name ?? '').trim() || 'N/A';
+  const carBrandModel = String(booking.car_brand_model ?? '').trim() || 'N/A';
+  const carColor = String(booking.car_color ?? '').trim() || 'N/A';
+  const carPlate = String(booking.car_plate_number ?? '').trim() || 'N/A';
+  const bookingVehicleCopyHtml = buildBookingVehicleCopySectionHtml({
+    unitLabel,
+    checkInDate: displayCheckInDate,
+    checkOutDate: displayCheckOutDate,
+    guestName,
+    carBrandModel,
+    carColor,
+    carPlate,
+    brandColor: settings.brandColor,
+  });
+
+  const isUpdate = options?.isUpdate === true;
+  const updatePrefix = isUpdate ? 'UPDATED - ' : '';
+
+  const vars = buildBookingPlaceholderVars(
+    booking,
+    settings,
+    {
+      urgent_notice: buildUrgentSameDayCallout(isUrgent),
+      update_notice: isUpdate ? buildParkingUpdateNoticeHtml(unitLabel) : '',
+      booking_vehicle_copy: bookingVehicleCopyHtml,
+      parking_reply_callout_section: buildParkingReplyCalloutSectionHtml(),
+      email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+    },
+    branding
   );
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-parking-request',
+    emailTitle: isUpdate
+      ? 'Parking Registration Request (Updated)'
+      : 'Parking Registration Request',
+    placeholderVars: vars,
+    branding,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Kame Home <mail@kamehomes.space>",
+      from: formatResendFromAddress(`${unitLabel} - Parking Request`, branding.fromEmail),
       to: toRecipients,
-      ...(bccRecipients && bccRecipients.length > 0
-        ? { bcc: bccRecipients }
-        : {}),
+      ...(bccRecipients && bccRecipients.length > 0 ? { bcc: bccRecipients } : {}),
       reply_to: EMAIL_REPLY_TO,
-      subject: `${urgentPrefix}Monaco 2604 - Parking Request (${displayCheckInDate} to ${displayCheckOutDate})`,
+      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Parking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html,
     }),
   });
@@ -1371,7 +1159,7 @@ export async function sendParkingBroadcast(
     throw new Error(`Failed to send parking broadcast: ${JSON.stringify(err)}`);
   }
 
-  console.log("Parking broadcast email sent successfully");
+  console.log('Parking broadcast email sent successfully');
   return await res.json();
 }
 
@@ -1381,68 +1169,439 @@ export async function sendParkingBroadcast(
  * on `READY_FOR_CHECKIN` → `READY_FOR_CHECKOUT` transitions when enabled, and via admin re-send.
  */
 export async function sendSdRefundFormRequest(booking: GuestSubmission) {
-  console.log("Sending SD refund form request email to guest...");
+  console.log('Sending SD refund form request email to guest...');
 
-  const { RESEND_API_KEY, EMAIL_REPLY_TO } = await getResendCredentials();
-  const settings = await resolveAppSettings();
-  const displayCheckInDate = formatDateForEmail(booking.check_in_date);
-  const displayCheckOutDate = formatDateForEmail(booking.check_out_date);
-  const unitLabel =
-    String(booking.tower_and_unit_number ?? "").trim() || "Monaco 2604";
-
-  const isUrgent = isUrgentBooking(booking.check_in_date);
-  const urgentBlock = buildUrgentSameDayCallout(isUrgent);
-  if (isUrgent) {
-    console.log("🚨 URGENT same-day check-in — SD refund form request");
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping SD refund form request — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
   }
 
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
+  const securityDepositFormatted = pesoFormat(booking.security_deposit as number | null);
+
   const bookingId = booking.id as string;
-  if (!bookingId)
-    throw new Error("sendSdRefundFormRequest: booking.id is required");
+  if (!bookingId) throw new Error('sendSdRefundFormRequest: booking.id is required');
 
-  const sdFormUrl = `${settings.publicGuestAppOrigin.replace(/\/+$/, "")}/sd-form?bookingId=${encodeURIComponent(bookingId)}`;
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+  const sdFormUrl = guestLinkExtras.sd_form_url ?? '';
 
-  const emailHeaderLogo = await emailHeaderLogoHtml();
-  const tpl = await loadEmailTemplate("sd-refund-form-request");
-  const html = replacePlaceholders(
-    tpl,
-    withEmailShellStyleVars({
-      emailHeaderLogo,
-      testWarning: "",
-      urgentBlock,
-      guestFacebookName: escapeHtml(booking.guest_facebook_name),
-      towerAndUnitNumber: escapeHtml(booking.tower_and_unit_number),
-      checkInDate: escapeHtml(displayCheckInDate),
-      checkOutDate: escapeHtml(displayCheckOutDate),
-      sdFormUrl,
-      securityDepositFormatted: pesoFormat(
-        booking.security_deposit as number | null,
-      ),
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+
+  const sdRefundSections = {
+    sd_refund_checklist_section: buildSdRefundChecklistSectionHtml({
+      unitLabel,
+      brandColor: settings.brandColor,
     }),
-  );
+    sd_refund_details_section: buildSdRefundDetailsSectionHtml({
+      securityDepositFormatted,
+      sdFormUrl,
+      brandColor: settings.brandColor,
+    }),
+    /** Backward compat for saved templates still using the combined placeholder. */
+    sd_refund_footer_section: buildSdRefundFooterSectionHtml({
+      unitLabel,
+      securityDepositFormatted,
+      sdFormUrl,
+      brandColor: settings.brandColor,
+    }),
+  };
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey: 'email-sd-refund-form-request',
+    emailTitle: 'Check-out & SD Refund Details',
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      settings,
+      {
+        ...guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(guestContact),
+        ...sdRefundSections,
+      },
+      branding
+    ),
+    branding,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: "Monaco 2604 - Kame Home <mail@kamehomes.space>",
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
       to: [booking.guest_email],
       reply_to: EMAIL_REPLY_TO,
-      subject: `${unitLabel} - Check-out & SD Refund Details (${displayCheckInDate} to ${displayCheckOutDate})`,
+      subject: `${unitLabel} - Check-out & SD Refund Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
       html,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json();
+    throw new Error(`Failed to send SD refund form request: ${JSON.stringify(err)}`);
+  }
+
+  console.log('SD refund form request email sent successfully');
+  return await res.json();
+}
+
+/**
+ * Manual send of a saved custom template to a booking's guest.
+ * Unlike the fixed workflow email kinds, this is not tied to a booking status
+ * or an automation toggle — an operator picks the booking and sends on demand.
+ */
+export async function sendPropertyCustomTemplateEmail(
+  booking: GuestSubmission,
+  templateKey: string,
+  templateName: string,
+  content: string
+) {
+  console.log(`Sending custom template "${templateKey}" to guest...`);
+
+  if (await isEmailSuppressed(booking.guest_email)) {
+    console.warn('[emailService] Skipping custom template send — guest email is suppressed');
+    return { skipped: true, reason: 'suppressed' };
+  }
+
+  const propertyId = resolveEmailPropertyId(booking);
+  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
+
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId,
+    templateKey,
+    emailTitle: templateName,
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      settings,
+      {
+        ...guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(guestContact),
+        email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
+      },
+      branding
+    ),
+    branding,
+    contentOverride: content,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: formatResendFromAddress(
+        `${unitLabel} - ${branding.organizationName}`,
+        branding.fromEmail
+      ),
+      to: [booking.guest_email],
+      reply_to: EMAIL_REPLY_TO,
+      subject: `${unitLabel} - ${templateName} ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Failed to send custom template email: ${JSON.stringify(err)}`);
+  }
+
+  console.log('Custom template email sent successfully');
+  return await res.json();
+}
+
+// ─── Help & Support — ticket notify (Module 3) ───────────────────────────────
+// Platform-level: tickets aren't tied to a single property, so this skips
+// resolveAppSettings/renderPropertyTemplateSendEmail (both property-scoped) and
+// builds a plain inline HTML body instead, mirroring orgVerificationEmail.ts.
+
+const SUPPORT_TICKET_CATEGORY_LABELS: Record<string, string> = {
+  bug_report: 'Bug report',
+  feature_suggestion: 'Feature suggestion',
+  general_inquiry: 'General inquiry',
+  business_inquiry: 'Business inquiry',
+};
+
+/** New ticket → notifies the support team inbox (SUPPORT_TEAM_EMAIL). */
+export async function sendSupportTicketNotify(ticket: {
+  organizationName: string;
+  propertyName: string | null;
+  parkingName: string | null;
+  category: string;
+  subject: string;
+  submittedByName: string;
+  submittedByEmail: string;
+  bodyPreview: string;
+}) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const SUPPORT_TEAM_EMAIL = Deno.env.get('SUPPORT_TEAM_EMAIL');
+  if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY environment variable');
+  if (!SUPPORT_TEAM_EMAIL) throw new Error('Missing SUPPORT_TEAM_EMAIL environment variable');
+
+  const scopeLabel = ticket.parkingName
+    ? `Parking — ${ticket.parkingName}`
+    : ticket.propertyName
+      ? `Property — ${ticket.propertyName}`
+      : ticket.organizationName === 'Explore guest'
+        ? 'Explore (guest)'
+        : 'Organization-level';
+  const categoryLabel = SUPPORT_TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category;
+
+  const bodyHtml = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">New support ticket from <strong>${escapeHtml(ticket.organizationName)}</strong> (${escapeHtml(scopeLabel)}).</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="data-table" style="width:100%;table-layout:fixed;border:1px solid #e2e8f0;border-radius:16px;border-collapse:separate;border-spacing:0;overflow:hidden;font-size:14px;margin:0 0 16px 0;">
+<tr><td class="tbl-label" style="padding:12px 16px;background-color:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:32%;">Category</td><td class="tbl-value" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;color:#333333;">${escapeHtml(categoryLabel)}</td></tr>
+<tr><td class="tbl-label" style="padding:12px 16px;background-color:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Subject</td><td class="tbl-value" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;color:#333333;">${escapeHtml(ticket.subject)}</td></tr>
+<tr><td class="tbl-label" style="padding:12px 16px;background-color:#f8fafc;font-weight:600;color:#475569;">From</td><td class="tbl-value" style="padding:12px 16px;background-color:#ffffff;color:#333333;">${escapeHtml(ticket.submittedByName)} &lt;${escapeHtml(ticket.submittedByEmail)}&gt;</td></tr>
+</table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 8px 0;border-collapse:separate;border-spacing:0;"><tr><td style="padding:18px 20px;background-color:#f1f5f9;border:1px solid #e2e8f0;border-radius:16px;font-size:14px;line-height:1.55;color:#333333;white-space:pre-wrap;">${escapeHtml(ticket.bodyPreview)}</td></tr></table>`;
+
+  const supportBrand = PLATFORM_BRAND_NAME || 'Support';
+  const html = await renderBrandedEmailShell({
+    brandName: ticket.organizationName || supportBrand,
+    unitLabel: ticket.organizationName,
+    emailTitle: 'New support ticket',
+    bodyHtml,
+    brandColor: null,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
+      to: [SUPPORT_TEAM_EMAIL],
+      reply_to: ticket.submittedByEmail,
+      subject: `[${categoryLabel}] ${ticket.subject}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
     throw new Error(
-      `Failed to send SD refund form request: ${JSON.stringify(err)}`,
+      `Failed to send support ticket notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
     );
   }
 
-  console.log("SD refund form request email sent successfully");
+  return await res.json();
+}
+
+/** Admin reply on a ticket → notifies the submitter (host or explore guest). */
+export async function sendSupportTicketReplyNotify(ticket: {
+  id: string;
+  channel: 'host' | 'guest';
+  orgSlug: string | null;
+  propertySlug?: string | null;
+  parkingSlug?: string | null;
+  subject: string;
+  submittedByEmail: string;
+}) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
+  if (!RESEND_API_KEY || !fromEmail) {
+    console.warn(
+      '[sendSupportTicketReplyNotify] RESEND_API_KEY or RESEND_FROM_EMAIL missing — skip'
+    );
+    return;
+  }
+
+  if (await isEmailSuppressed(ticket.submittedByEmail)) {
+    console.warn('[sendSupportTicketReplyNotify] Skipping — submitter email is suppressed');
+    return;
+  }
+
+  const ticketUrl = buildSupportTicketThreadUrl({
+    channel: ticket.channel,
+    ticketId: ticket.id,
+    orgSlug: ticket.orgSlug,
+    propertySlug: ticket.propertySlug,
+    parkingSlug: ticket.parkingSlug,
+  });
+
+  const bodyHtml = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">There's a new reply on your support ticket <strong>${escapeHtml(ticket.subject)}</strong>.</p>
+${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`;
+
+  const supportBrand = PLATFORM_BRAND_NAME || 'Support';
+  const html = await renderBrandedEmailShell({
+    brandName: supportBrand,
+    unitLabel: 'Help & Support',
+    emailTitle: 'New reply on your ticket',
+    bodyHtml,
+    brandColor: null,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `${supportBrand} <${fromEmail}>`,
+      to: [ticket.submittedByEmail],
+      subject: `Re: ${ticket.subject}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(
+      `Failed to send support ticket reply notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
+    );
+  }
+
+  return await res.json();
+}
+
+/** Submitter follow-up reply → notifies the support team inbox. */
+export async function sendSupportTicketSubmitterReplyNotify(ticket: {
+  ticketId: string;
+  subject: string;
+  category: string;
+  submittedByName: string;
+  submittedByEmail: string;
+  bodyPreview: string;
+  organizationName: string;
+  propertyName: string | null;
+  parkingName: string | null;
+}) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const SUPPORT_TEAM_EMAIL = Deno.env.get('SUPPORT_TEAM_EMAIL');
+  if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY environment variable');
+  if (!SUPPORT_TEAM_EMAIL) throw new Error('Missing SUPPORT_TEAM_EMAIL environment variable');
+
+  const scopeLabel = ticket.parkingName
+    ? `Parking — ${ticket.parkingName}`
+    : ticket.propertyName
+      ? `Property — ${ticket.propertyName}`
+      : ticket.organizationName === 'Explore guest'
+        ? 'Explore (guest)'
+        : 'Organization-level';
+  const categoryLabel = SUPPORT_TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category;
+
+  const bodyHtml = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">New reply on ticket <strong>${escapeHtml(ticket.subject)}</strong> from ${escapeHtml(ticket.submittedByName)} (${escapeHtml(scopeLabel)}).</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 8px 0;border-collapse:separate;border-spacing:0;"><tr><td style="padding:18px 20px;background-color:#f1f5f9;border:1px solid #e2e8f0;border-radius:16px;font-size:14px;line-height:1.55;color:#333333;white-space:pre-wrap;">${escapeHtml(ticket.bodyPreview)}</td></tr></table>`;
+
+  const supportBrand = PLATFORM_BRAND_NAME || 'Support';
+  const html = await renderBrandedEmailShell({
+    brandName: supportBrand,
+    unitLabel: 'Help & Support',
+    emailTitle: 'Ticket reply',
+    bodyHtml,
+    brandColor: null,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
+      to: [SUPPORT_TEAM_EMAIL],
+      reply_to: ticket.submittedByEmail,
+      subject: `Re: [${categoryLabel}] ${ticket.subject}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(
+      `Failed to send submitter reply notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
+    );
+  }
+
+  return await res.json();
+}
+
+/** Status set to resolved or closed → notifies the submitter. */
+export async function sendSupportTicketStatusNotify(ticket: {
+  id: string;
+  channel: 'host' | 'guest';
+  orgSlug: string | null;
+  propertySlug?: string | null;
+  parkingSlug?: string | null;
+  subject: string;
+  status: 'resolved' | 'closed';
+  submittedByEmail: string;
+}) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
+  if (!RESEND_API_KEY || !fromEmail) {
+    console.warn('[sendSupportTicketStatusNotify] email env missing — skip');
+    return;
+  }
+
+  if (await isEmailSuppressed(ticket.submittedByEmail)) {
+    console.warn('[sendSupportTicketStatusNotify] Skipping — submitter email is suppressed');
+    return;
+  }
+
+  const ticketUrl = buildSupportTicketThreadUrl({
+    channel: ticket.channel,
+    ticketId: ticket.id,
+    orgSlug: ticket.orgSlug,
+    propertySlug: ticket.propertySlug,
+    parkingSlug: ticket.parkingSlug,
+  });
+
+  const statusLabel = ticket.status === 'resolved' ? 'resolved' : 'closed';
+  const bodyHtml =
+    ticket.status === 'resolved'
+      ? `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Your support ticket <strong>${escapeHtml(ticket.subject)}</strong> was marked <strong>resolved</strong>. Reply in the thread if you still need help.</p>
+${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`
+      : `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Your support ticket <strong>${escapeHtml(ticket.subject)}</strong> was <strong>closed</strong>. Reopen it from the thread if you need more help.</p>
+${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`;
+
+  const supportBrand = PLATFORM_BRAND_NAME || 'Support';
+  const html = await renderBrandedEmailShell({
+    brandName: supportBrand,
+    unitLabel: 'Help & Support',
+    emailTitle: `Ticket ${statusLabel}`,
+    bodyHtml,
+    brandColor: null,
+  });
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `${supportBrand} <${fromEmail}>`,
+      to: [ticket.submittedByEmail],
+      subject: `[${statusLabel}] ${ticket.subject}`,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(
+      `Failed to send support ticket status notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
+    );
+  }
+
   return await res.json();
 }

@@ -1,0 +1,256 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start dev server",
+      "type": "shell",
+      "command": "./dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Dev: Local Supabase (full stack)",
+      "type": "shell",
+      "command": "./dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Dev: UI only (remote Supabase)",
+      "type": "shell",
+      "command": "./dev.sh --ui-only",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Dev: Hosted dev (UI only)",
+      "type": "shell",
+      "command": "./dev.sh --ui-only --env dev",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Dev: Edge functions (local stack)",
+      "type": "shell",
+      "command": "bun run dev:api",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Dev: Edge functions (dev stack)",
+      "type": "shell",
+      "command": "bun run dev:remote-api",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "Dev: Hosted dev (hybrid — API + UI)",
+      "dependsOn": ["Dev: Edge functions (dev stack)", "Dev: Hosted dev (UI only)"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Quality: CI",
+      "type": "shell",
+      "command": "bun run type-check && bun run lint && bun run check:filenames && bun run build",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "group": "test",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Supabase: Start",
+      "type": "shell",
+      "command": "bun run start:supabase",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      }
+    },
+    {
+      "label": "Supabase: Stop",
+      "type": "shell",
+      "command": "bun run stop:supabase",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      }
+    },
+    {
+      "label": "Supabase: DB reset",
+      "type": "shell",
+      "command": "bun run db:reset",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      }
+    },
+    {
+      "label": "Supabase: Migration up (local, include-all)",
+      "type": "shell",
+      "command": "bun run db:migrate",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      }
+    },
+    {
+      "label": "Supabase: Sync prod data → local",
+      "type": "shell",
+      "command": "bun run sync:prod-data",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      }
+    },
+    {
+      "label": "Deploy: Supabase (db + functions)",
+      "type": "shell",
+      "command": "bun run deploy:supabase",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Deploy: Supabase dev (db + functions)",
+      "type": "shell",
+      "command": "bun run deploy:supabase:dev",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Deploy: Supabase (db only)",
+      "type": "shell",
+      "command": "bun run deploy:supabase:db",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Deploy: Supabase (functions only)",
+      "type": "shell",
+      "command": "bun run deploy:supabase:functions",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Deploy: Supabase dev (db only)",
+      "type": "shell",
+      "command": "bun run deploy:supabase:dev:db",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Deploy: Supabase dev (functions only)",
+      "type": "shell",
+      "command": "bun run deploy:supabase:dev:functions",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Backup: Supabase dev",
+      "type": "shell",
+      "command": "bun run backup:supabase:dev",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Backup: Supabase prod",
+      "type": "shell",
+      "command": "bun run backup:supabase:prod",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Rollback: Supabase dev",
+      "type": "shell",
+      "command": "bun run rollback:supabase:dev",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Rollback: Supabase PROD (requires kamewave)",
+      "type": "shell",
+      "command": "bun run rollback:supabase:prod",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Env: Status (linked project)",
+      "type": "shell",
+      "command": "bun run env:status",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Migrations: Status (dev)",
+      "type": "shell",
+      "command": "bun run migrations:status:dev",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Migrations: Status (prod)",
+      "type": "shell",
+      "command": "bun run migrations:status:prod",
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Preview: Emails from DB",
+      "type": "shell",
+      "command": "bun run preview:emails",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "/usr/local/bin:/opt/homebrew/bin:${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

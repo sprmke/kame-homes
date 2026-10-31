@@ -3,14 +3,26 @@
  * Sends active today's bookings (check-ins and in-house multi-night stays) + next 3 days to the staff Telegram group.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
+import { createClient } from './supabaseJs.ts';
+import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
+import { listAllPropertyIds, propertyIdFromRow } from './propertyCron.ts';
 import {
   bookingOccupiesNight,
   manilaTodayYmd,
   normalizeBookingDateToYmd,
 } from './calendarAvailabilityManila.ts';
 import { normalizeTelegramChatId } from './telegramMarketing.ts';
+import {
+  getPropertyTelegramCredentialsStatus,
+  resolvePropertyTelegramCredentials,
+  type TelegramAssetScopeRef,
+} from './propertyTelegramCredentials.ts';
+import { manilaNowMatchesSingleSlot } from './telegramMarketingCronSync.ts';
 import { formatTimeForDisplay, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
 import { computeTotalGuestBalanceFromBooking } from './totalGuestBalance.ts';
 
@@ -32,6 +44,8 @@ export type TelegramStaffSettings = {
   id: number;
   enabled: boolean;
   notify_on_same_day_checkin: boolean;
+  notify_on_daily_summary: boolean;
+  notify_on_daily_summary_no_bookings: boolean;
   daily_summary_template: string;
   daily_summary_no_bookings_template: string;
   same_day_checkin_template: string;
@@ -82,7 +96,7 @@ function manilaClockParts(now = new Date()): { hour: number; minute: number } {
 function isManilaTimeAtOrAfter(
   targetHour: number,
   targetMinute: number,
-  now = new Date(),
+  now = new Date()
 ): boolean {
   const { hour, minute } = manilaClockParts(now);
   return hour > targetHour || (hour === targetHour && minute >= targetMinute);
@@ -111,15 +125,14 @@ function formatStaffManilaTimeLabel(slot: StaffManilaTimeSlot): string {
 }
 
 function isCancelledStatus(status: unknown): boolean {
-  const s = String(status ?? '');
-  return s === 'CANCELLED' || s === 'canceled';
+  return String(status ?? '') === 'CANCELLED';
 }
 
 /** Check-in is today (Manila) and submission time is at/after the daily summary time. */
 function bookingQualifiesForSameDayCheckinStaffAlert(
   booking: BookingRow,
   cutoff: StaffManilaTimeSlot,
-  now = new Date(),
+  now = new Date()
 ): boolean {
   if (isCancelledStatus(booking.status)) return false;
   const ciYmd = normalizeBookingDateToYmd(String(booking.check_in_date ?? ''));
@@ -159,17 +172,36 @@ function bookingTimeRaw(time: unknown): string {
 }
 
 /** Display time for staff Telegram; falls back to standard check-in/out defaults. */
-function displayStaffBookingTime(
-  time: unknown,
-  default24h: string,
-): string {
+function displayStaffBookingTime(time: unknown, default24h: string): string {
   const raw = bookingTimeRaw(time);
   const fallback = formatTimeForDisplay(default24h, 'N/A');
   if (!raw) return fallback;
   return formatTimeForDisplay(raw, fallback);
 }
 
-function buildBookingPlaceholders(booking: BookingRow): Record<string, string> {
+async function getBookingAiReviewForTelegram(
+  bookingId: string
+): Promise<Record<string, unknown> | null> {
+  if (!bookingId) return null;
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  const { data, error } = await supabase
+    .from('booking_ai_reviews')
+    .select('*')
+    .eq('booking_id', bookingId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[telegram-staff] booking_ai_reviews fetch failed:', error.message);
+  }
+  return data ? (data as Record<string, unknown>) : null;
+}
+
+async function buildBookingPlaceholders(
+  booking: BookingRow,
+  aiReview?: Record<string, unknown> | null
+): Promise<Record<string, string>> {
   const ciRaw = String(booking.check_in_date ?? '');
   const coRaw = String(booking.check_out_date ?? '');
   const ciYmd = normalizeBookingDateToYmd(ciRaw) ?? ciRaw;
@@ -184,17 +216,15 @@ function buildBookingPlaceholders(booking: BookingRow): Record<string, string> {
   const children = Number(booking.number_of_children ?? 0) || 0;
   const totalPax = adults + children;
 
+  const aiStaySummary = String(
+    (aiReview?.stay_details_result as Record<string, unknown> | undefined)?.summary ?? ''
+  ).trim();
+
   return {
     check_in_date: formatDateHumanFull(ciYmd),
     check_out_date: formatDateHumanFull(coYmd),
-    check_in_time: displayStaffBookingTime(
-      booking.check_in_time,
-      DEFAULT_CHECK_IN_TIME,
-    ),
-    check_out_time: displayStaffBookingTime(
-      booking.check_out_time,
-      DEFAULT_CHECK_OUT_TIME,
-    ),
+    check_in_time: displayStaffBookingTime(booking.check_in_time, DEFAULT_CHECK_IN_TIME),
+    check_out_time: displayStaffBookingTime(booking.check_out_time, DEFAULT_CHECK_OUT_TIME),
     nights: String(booking.number_of_nights ?? '1'),
     pax: String(totalPax),
     primary_guest_name: String(booking.primary_guest_name ?? 'N/A'),
@@ -208,6 +238,7 @@ function buildBookingPlaceholders(booking: BookingRow): Record<string, string> {
     pet_flag: hasPets ? '🐶 Has pets' : '',
     special_requests: specialReqs || 'None',
     total_guest_balance: formatCurrency(balance),
+    ai_stay_summary: aiStaySummary || 'Not yet reviewed',
   };
 }
 
@@ -215,14 +246,8 @@ function buildNextBookingLine(booking: BookingRow): string {
   const ciRaw = String(booking.check_in_date ?? '');
   const ciYmd = normalizeBookingDateToYmd(ciRaw) ?? ciRaw;
 
-  const ciTime = displayStaffBookingTime(
-    booking.check_in_time,
-    DEFAULT_CHECK_IN_TIME,
-  );
-  const coTime = displayStaffBookingTime(
-    booking.check_out_time,
-    DEFAULT_CHECK_OUT_TIME,
-  );
+  const ciTime = displayStaffBookingTime(booking.check_in_time, DEFAULT_CHECK_IN_TIME);
+  const coTime = displayStaffBookingTime(booking.check_out_time, DEFAULT_CHECK_OUT_TIME);
   const adults = Number(booking.number_of_adults ?? 1) || 1;
   const children = Number(booking.number_of_children ?? 0) || 0;
   const pax = String(adults + children);
@@ -250,23 +275,25 @@ function applyPlaceholders(template: string, vars: Record<string, string>): stri
   return out;
 }
 
+import { normalizeTelegramTemplateText } from './telegramTemplateNormalize.ts';
+
 /** Legacy staff templates included admin booking URLs; strip on send/save. */
 export function sanitizeStaffDailySummaryTemplate(template: string): string {
-  let out = template;
-  out = out.replace(/\r?\n*View Booking Details:\s*\r?\n*/gi, '\n');
-  out = out.replace(/\r?\n*\{\{booking_link\}\}\s*\r?\n*/g, '\n');
-  out = out.replace(/\r?\n*https?:\/\/[^\s]*\/bookings\/[0-9a-f-]+\s*\r?\n*/gi, '\n');
+  let out = normalizeTelegramTemplateText(template);
+  out = out.replace(/\n*View Booking Details:\s*\n*/gi, '\n');
+  out = out.replace(/\n*\{\{booking_link\}\}\s*\n*/g, '\n');
+  out = out.replace(/\n*https?:\/\/[^\s]*\/bookings\/[0-9a-f-]+\s*\n*/gi, '\n');
   out = out.replace(/\n{3,}/g, '\n\n');
   return out.trim();
 }
 
 async function tryClaimStaffNotification(
   bookingId: string,
-  notificationType: 'same_day_checkin',
+  notificationType: 'same_day_checkin'
 ): Promise<boolean> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { error } = await supabase.from('telegram_staff_notification_log').insert({
     booking_id: bookingId,
@@ -285,6 +312,7 @@ export type StaffNotifySkip =
   | 'notify_off'
   | 'missing_env'
   | 'send_failed'
+  | 'feature_unavailable'
   | 'no_settings'
   | 'not_qualified'
   | 'already_sent';
@@ -292,9 +320,9 @@ export type StaffNotifySkip =
 /** Instant one-time alert when a same-day check-in is received after the daily summary time. */
 export async function notifyTelegramStaffSameDayCheckIn(
   booking: BookingRow,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean }
 ): Promise<{ sent: boolean; skip?: StaffNotifySkip; telegramError?: string }> {
-  const settings = await loadStaffSettings();
+  const settings = await loadStaffSettings(propertyIdFromRow(booking));
   if (!settings) return { sent: false, skip: 'no_settings' };
   if (!opts?.force && !settings.notify_on_same_day_checkin) {
     return { sent: false, skip: 'notify_off' };
@@ -303,7 +331,7 @@ export async function notifyTelegramStaffSameDayCheckIn(
   if (!opts?.force && !bookingQualifiesForSameDayCheckinStaffAlert(booking, cutoff)) {
     return { sent: false, skip: 'not_qualified' };
   }
-  const creds = resolveStaffTelegramCredentials();
+  const creds = await resolveStaffTelegramCredentials(propertyIdFromRow(booking));
   if (!creds.ok) return { sent: false, skip: 'missing_env', telegramError: creds.error };
 
   const bookingId = String(booking.id ?? '').trim();
@@ -313,22 +341,25 @@ export async function notifyTelegramStaffSameDayCheckIn(
     return { sent: false, skip: 'already_sent' };
   }
 
+  const aiReview = await getBookingAiReviewForTelegram(bookingId);
   const text = applyPlaceholders(
     sanitizeStaffDailySummaryTemplate(settings.same_day_checkin_template),
-    buildBookingPlaceholders(booking),
+    await buildBookingPlaceholders(booking, aiReview)
   );
-  const r = await sendStaffTelegramMessage(text.slice(0, 4096));
+  const r = await sendStaffTelegramMessage(text.slice(0, 4096), propertyIdFromRow(booking));
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   return { sent: true };
 }
 
 /** Bookings active today for staff: check-in day and each occupied overnight night (not checkout day). */
-function bookingIsActiveForStaffToday(
-  booking: BookingRow,
-  todayYmd: string,
-): boolean {
+function bookingIsActiveForStaffToday(booking: BookingRow, todayYmd: string): boolean {
   if (isCancelledStatus(booking.status)) return false;
   const ciYmd = normalizeBookingDateToYmd(String(booking.check_in_date ?? ''));
   const coYmd = normalizeBookingDateToYmd(String(booking.check_out_date ?? ''));
@@ -336,26 +367,31 @@ function bookingIsActiveForStaffToday(
   return bookingOccupiesNight(ciYmd, coYmd, todayYmd);
 }
 
-async function queryTodayBookings(todayYmd: string): Promise<BookingRow[]> {
+async function queryTodayBookings(todayYmd: string, propertyId?: string): Promise<BookingRow[]> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
-  const { data, error } = await supabase
+  // Occupies tonight: check_in <= today < check_out (doc 10 generated date columns).
+  let query = supabase
     .from('guest_submissions')
     .select('*')
     .neq('status', 'CANCELLED')
-    .neq('status', 'canceled');
+    .lte('check_in_date_sql', todayYmd)
+    .gt('check_out_date_sql', todayYmd);
+  if (propertyId) {
+    query = query.eq('property_id', propertyId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('[telegram-staff] queryTodayBookings:', error);
     throw new Error(`Failed to query bookings: ${error.message}`);
   }
 
-  const active = (data ?? []).filter((r: BookingRow) =>
-    bookingIsActiveForStaffToday(r, todayYmd),
-  );
+  const active = (data ?? []).filter((r: BookingRow) => bookingIsActiveForStaffToday(r, todayYmd));
 
   // New check-ins today first, then ongoing stays by check-in date.
   return active.sort((a, b) => {
@@ -371,10 +407,11 @@ async function queryTodayBookings(todayYmd: string): Promise<BookingRow[]> {
 async function queryNextDaysBookings(
   todayYmd: string,
   days: number,
+  propertyId?: string
 ): Promise<Map<string, BookingRow[]>> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
   const targetDates = new Set<string>();
@@ -382,11 +419,19 @@ async function queryNextDaysBookings(
     targetDates.add(addDays(todayYmd, i));
   }
 
-  const { data, error } = await supabase
+  const fromYmd = addDays(todayYmd, 1);
+  const toYmd = addDays(todayYmd, days);
+  let query = supabase
     .from('guest_submissions')
     .select('*')
     .neq('status', 'CANCELLED')
-    .neq('status', 'canceled');
+    .gte('check_in_date_sql', fromYmd)
+    .lte('check_in_date_sql', toYmd);
+  if (propertyId) {
+    query = query.eq('property_id', propertyId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('[telegram-staff] queryNextDaysBookings:', error);
@@ -426,24 +471,25 @@ function buildNextBookingsText(nextBookings: Map<string, BookingRow[]>): string 
   return lines.join('\n');
 }
 
-type StaffCreds =
-  | { ok: true; token: string; chatId: string }
-  | { ok: false; error: string };
+type StaffCreds = { ok: true; token: string; chatId: string } | { ok: false; error: string };
 
-function resolveStaffTelegramCredentials(): StaffCreds {
-  const token = (Deno.env.get('TELEGRAM_STAFF_BOT_TOKEN') ?? Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '').trim();
-  const rawChat = Deno.env.get('TELEGRAM_STAFF_CHAT_ID');
-  if (!token) return { ok: false, error: 'TELEGRAM_STAFF_BOT_TOKEN (or TELEGRAM_BOT_TOKEN) unset' };
-  if (rawChat == null || !String(rawChat).trim()) {
-    return { ok: false, error: 'TELEGRAM_STAFF_CHAT_ID unset' };
-  }
-  const n = normalizeTelegramChatId(String(rawChat));
-  if (!n.ok) return { ok: false, error: n.error };
-  return { ok: true, token, chatId: n.chatId };
+async function resolveStaffTelegramCredentials(
+  scope?: TelegramAssetScopeRef | string | null
+): Promise<StaffCreds> {
+  const creds = await resolvePropertyTelegramCredentials('staff', scope);
+  if (!creds.ok) return { ok: false, error: creds.error };
+  return { ok: true, token: creds.token, chatId: creds.chatId };
 }
 
-async function sendStaffTelegramMessage(text: string): Promise<{ ok: boolean; error?: string }> {
-  const creds = resolveStaffTelegramCredentials();
+async function sendStaffTelegramMessage(
+  text: string,
+  scope?: TelegramAssetScopeRef | string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
+  const creds = await resolveStaffTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-staff] credentials issue:', creds.error);
     return { ok: false, error: creds.error };
@@ -468,10 +514,13 @@ async function sendStaffTelegramMessage(text: string): Promise<{ ok: boolean; er
   return { ok: true };
 }
 
-async function sendStaffAdminPreview(text: string): Promise<{ ok: boolean; error?: string }> {
+async function sendStaffAdminPreview(
+  text: string,
+  scope?: TelegramAssetScopeRef | string | null
+): Promise<{ ok: boolean; error?: string }> {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: 'empty_message' };
-  return sendStaffTelegramMessage(trimmed.slice(0, 4096));
+  return sendStaffTelegramMessage(trimmed.slice(0, 4096), scope);
 }
 
 export type StaffDraftPreviewResult = {
@@ -493,31 +542,27 @@ export type StaffDraftRenderResult = {
 /** In-app preview: fill placeholders from a qualifying same-day check-in booking. */
 export async function renderStaffSameDayCheckinDraftPreview(
   template: string,
+  propertyId?: string
 ): Promise<StaffDraftRenderResult> {
   const trimmed = template.trim();
   if (!trimmed) return { error: 'empty_message' };
 
-  const settings = await loadStaffSettings();
+  const settings = await loadStaffSettings(propertyId);
   if (!settings) return { error: 'no_settings_row' };
 
   const todayYmd = manilaTodayYmd();
-  const todayBookings = await queryTodayBookings(todayYmd);
+  const todayBookings = await queryTodayBookings(todayYmd, propertyId);
   const cutoff = parseStaffSlot(settings.daily_summary_time_manila);
-  const booking = todayBookings.find((b) =>
-    bookingQualifiesForSameDayCheckinStaffAlert(b, cutoff),
-  );
+  const booking = todayBookings.find((b) => bookingQualifiesForSameDayCheckinStaffAlert(b, cutoff));
   if (!booking) {
     return {
-      error:
-        `No same-day check-in booking qualifies for preview (needs check-in today after ${formatStaffManilaTimeLabel(cutoff)} Manila, or use test send with force).`,
+      error: `No same-day check-in booking qualifies for preview (needs check-in today after ${formatStaffManilaTimeLabel(cutoff)} Manila, or use test send with force).`,
     };
   }
 
-  const placeholders = buildBookingPlaceholders(booking);
-  const renderedText = applyPlaceholders(
-    sanitizeStaffDailySummaryTemplate(trimmed),
-    placeholders,
-  );
+  const aiReview = await getBookingAiReviewForTelegram(String(booking.id ?? ''));
+  const placeholders = await buildBookingPlaceholders(booking, aiReview);
+  const renderedText = applyPlaceholders(sanitizeStaffDailySummaryTemplate(trimmed), placeholders);
   return {
     renderedText,
     placeholders,
@@ -529,20 +574,18 @@ export async function renderStaffSameDayCheckinDraftPreview(
 /** In-app preview: no-bookings daily summary — fills {{next_bookings}} only (same as cron). */
 export async function renderStaffNoBookingsDraftPreview(
   template: string,
+  propertyId?: string
 ): Promise<StaffDraftRenderResult> {
   const trimmed = template.trim();
   if (!trimmed) return { error: 'empty_message' };
 
   const todayYmd = manilaTodayYmd();
-  const todayBookings = await queryTodayBookings(todayYmd);
-  const nextBookings = await queryNextDaysBookings(todayYmd, 3);
+  const todayBookings = await queryTodayBookings(todayYmd, propertyId);
+  const nextBookings = await queryNextDaysBookings(todayYmd, 3, propertyId);
   const nextBookingsText = buildNextBookingsText(nextBookings);
   const placeholders: Record<string, string> = { next_bookings: nextBookingsText };
 
-  const renderedText = applyPlaceholders(
-    sanitizeStaffDailySummaryTemplate(trimmed),
-    placeholders,
-  );
+  const renderedText = applyPlaceholders(sanitizeStaffDailySummaryTemplate(trimmed), placeholders);
   const unresolved = renderedText.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-staff] no-bookings draft preview unresolved:', unresolved.join(', '));
@@ -558,12 +601,13 @@ export async function renderStaffNoBookingsDraftPreview(
 /** In-app preview: fill placeholders from today's first check-in + next 3 days (same as cron). */
 export async function renderStaffDraftPreview(
   template: string,
+  propertyId?: string
 ): Promise<StaffDraftRenderResult> {
   const trimmed = template.trim();
   if (!trimmed) return { error: 'empty_message' };
 
   const todayYmd = manilaTodayYmd();
-  const todayBookings = await queryTodayBookings(todayYmd);
+  const todayBookings = await queryTodayBookings(todayYmd, propertyId);
   if (todayBookings.length === 0) {
     return {
       error:
@@ -571,16 +615,14 @@ export async function renderStaffDraftPreview(
     };
   }
 
-  const nextBookings = await queryNextDaysBookings(todayYmd, 3);
+  const nextBookings = await queryNextDaysBookings(todayYmd, 3, propertyId);
   const nextBookingsText = buildNextBookingsText(nextBookings);
   const booking = todayBookings[0]!;
-  const placeholders = buildBookingPlaceholders(booking);
+  const aiReview = await getBookingAiReviewForTelegram(String(booking.id ?? ''));
+  const placeholders = await buildBookingPlaceholders(booking, aiReview);
   placeholders.next_bookings = nextBookingsText;
 
-  const renderedText = applyPlaceholders(
-    sanitizeStaffDailySummaryTemplate(trimmed),
-    placeholders,
-  );
+  const renderedText = applyPlaceholders(sanitizeStaffDailySummaryTemplate(trimmed), placeholders);
   const unresolved = renderedText.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-staff] draft preview unresolved:', unresolved.join(', '));
@@ -597,12 +639,14 @@ export async function renderStaffDraftPreview(
 /** Admin preview: fill placeholders from a qualifying same-day check-in booking. */
 export async function sendStaffSameDayCheckinDraftPreview(
   template: string,
+  propertyId?: string,
+  credentialScope?: TelegramAssetScopeRef | string | null
 ): Promise<StaffDraftPreviewResult> {
-  const rendered = await renderStaffSameDayCheckinDraftPreview(template);
+  const rendered = await renderStaffSameDayCheckinDraftPreview(template, propertyId);
   if (rendered.error || !rendered.renderedText) {
     return { sent: false, error: rendered.error ?? 'empty_message' };
   }
-  const r = await sendStaffAdminPreview(rendered.renderedText);
+  const r = await sendStaffAdminPreview(rendered.renderedText, credentialScope ?? propertyId);
   if (!r.ok) return { sent: false, error: r.error ?? 'send_failed' };
 
   return {
@@ -616,13 +660,15 @@ export async function sendStaffSameDayCheckinDraftPreview(
 /** Admin preview: no-bookings daily summary with live next 3 days. */
 export async function sendStaffNoBookingsDraftPreview(
   template: string,
+  propertyId?: string,
+  credentialScope?: TelegramAssetScopeRef | string | null
 ): Promise<StaffDraftPreviewResult> {
-  const rendered = await renderStaffNoBookingsDraftPreview(template);
+  const rendered = await renderStaffNoBookingsDraftPreview(template, propertyId);
   if (rendered.error || !rendered.renderedText) {
     return { sent: false, error: rendered.error ?? 'empty_message' };
   }
 
-  const r = await sendStaffAdminPreview(rendered.renderedText);
+  const r = await sendStaffAdminPreview(rendered.renderedText, credentialScope ?? propertyId);
   if (!r.ok) {
     return { sent: false, error: r.error ?? 'send_failed' };
   }
@@ -635,13 +681,17 @@ export async function sendStaffNoBookingsDraftPreview(
 }
 
 /** Admin preview: fill placeholders from today's first check-in + next 3 days (same as cron). */
-export async function sendStaffDraftPreview(template: string): Promise<StaffDraftPreviewResult> {
-  const rendered = await renderStaffDraftPreview(template);
+export async function sendStaffDraftPreview(
+  template: string,
+  propertyId?: string,
+  credentialScope?: TelegramAssetScopeRef | string | null
+): Promise<StaffDraftPreviewResult> {
+  const rendered = await renderStaffDraftPreview(template, propertyId);
   if (rendered.error || !rendered.renderedText) {
     return { sent: false, error: rendered.error ?? 'empty_message' };
   }
 
-  const r = await sendStaffAdminPreview(rendered.renderedText);
+  const r = await sendStaffAdminPreview(rendered.renderedText, credentialScope ?? propertyId);
   if (!r.ok) {
     return { sent: false, error: r.error ?? 'send_failed' };
   }
@@ -654,9 +704,9 @@ export async function sendStaffDraftPreview(template: string): Promise<StaffDraf
   };
 }
 
-async function loadStaffSettings(): Promise<TelegramStaffSettings | null> {
+async function loadStaffSettings(propertyId?: string): Promise<TelegramStaffSettings | null> {
   try {
-    const row = await DatabaseService.getTelegramStaffSettings();
+    const row = await DatabaseService.getTelegramStaffSettings(propertyId);
     if (!row) return null;
     return row as unknown as TelegramStaffSettings;
   } catch (e) {
@@ -676,42 +726,90 @@ export type StaffDailySummaryResult = {
 
 export async function runStaffDailySummary(opts?: {
   force?: boolean;
-}): Promise<StaffDailySummaryResult> {
-  const settings = await loadStaffSettings();
+  propertyId?: string;
+}): Promise<
+  StaffDailySummaryResult & { properties?: Array<StaffDailySummaryResult & { propertyId: string }> }
+> {
+  if (!opts?.propertyId) {
+    const propertyIds = await listAllPropertyIds();
+    const properties: Array<StaffDailySummaryResult & { propertyId: string }> = [];
+    for (const propertyId of propertyIds) {
+      const result = await runStaffDailySummary({ ...opts, propertyId });
+      properties.push({ propertyId, ...result });
+    }
+    return {
+      sent: properties.some((p) => p.sent),
+      mode: properties.some((p) => p.sent) ? 'sent' : 'skipped',
+      properties,
+    };
+  }
+
+  const settings = await loadStaffSettings(opts.propertyId);
   if (!settings) {
     return { sent: false, mode: 'no_settings', detail: 'no_settings_row' };
   }
   if (!opts?.force && !settings.enabled) {
     return { sent: false, mode: 'disabled' };
   }
-  const creds = resolveStaffTelegramCredentials();
+  const timeRaw = settings.daily_summary_time_manila as { hour?: number; minute?: number } | null;
+  const slot = {
+    hour: typeof timeRaw?.hour === 'number' ? timeRaw.hour : 8,
+    minute: typeof timeRaw?.minute === 'number' ? timeRaw.minute : 0,
+  };
+  if (!opts?.force && !manilaNowMatchesSingleSlot(slot)) {
+    return { sent: false, mode: 'skipped', detail: 'schedule_mismatch' };
+  }
+  const creds = await resolveStaffTelegramCredentials(opts.propertyId);
   if (!creds.ok) {
     return { sent: false, mode: 'no_env', detail: creds.error };
   }
 
   const todayYmd = manilaTodayYmd();
-  const todayBookings = await queryTodayBookings(todayYmd);
-  const nextBookings = await queryNextDaysBookings(todayYmd, 3);
+  const todayBookings = await queryTodayBookings(todayYmd, opts.propertyId);
+  const nextBookings = await queryNextDaysBookings(todayYmd, 3, opts.propertyId);
 
   const nextBookingsText = buildNextBookingsText(nextBookings);
   const nextDaysCount = [...nextBookings.values()].reduce((sum, arr) => sum + arr.length, 0);
 
   if (todayBookings.length === 0) {
+    if (!opts?.force && !settings.notify_on_daily_summary_no_bookings) {
+      return {
+        sent: false,
+        mode: 'skipped',
+        detail: 'notify_off',
+        todayBookingCount: 0,
+        nextDaysBookingCount: nextDaysCount,
+        messagesSent: 0,
+      };
+    }
     const noBookingTemplate =
-      settings.daily_summary_no_bookings_template?.trim() ||
-      DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE;
-    const noBookingMsg = applyPlaceholders(
-      sanitizeStaffDailySummaryTemplate(noBookingTemplate),
-      { next_bookings: nextBookingsText },
-    );
-    const r = await sendStaffTelegramMessage(noBookingMsg.slice(0, 4096));
+      settings.daily_summary_no_bookings_template?.trim() || DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE;
+    const noBookingMsg = applyPlaceholders(sanitizeStaffDailySummaryTemplate(noBookingTemplate), {
+      next_bookings: nextBookingsText,
+    });
+    const r = await sendStaffTelegramMessage(noBookingMsg.slice(0, 4096), opts.propertyId);
     return {
       sent: r.ok,
-      mode: r.ok ? 'no_bookings_sent' : 'error',
-      detail: r.error,
+      mode: r.ok
+        ? 'no_bookings_sent'
+        : isTelegramFeatureUnavailableError(r.error)
+          ? 'skipped'
+          : 'error',
+      detail: isTelegramFeatureUnavailableError(r.error) ? 'feature_unavailable' : r.error,
       todayBookingCount: 0,
       nextDaysBookingCount: nextDaysCount,
       messagesSent: r.ok ? 1 : 0,
+    };
+  }
+
+  if (!opts?.force && !settings.notify_on_daily_summary) {
+    return {
+      sent: false,
+      mode: 'skipped',
+      detail: 'notify_off',
+      todayBookingCount: todayBookings.length,
+      nextDaysBookingCount: nextDaysCount,
+      messagesSent: 0,
     };
   }
 
@@ -719,12 +817,13 @@ export async function runStaffDailySummary(opts?: {
   const errors: string[] = [];
 
   for (const booking of todayBookings) {
-    const vars = buildBookingPlaceholders(booking);
+    const aiReview = await getBookingAiReviewForTelegram(String(booking.id ?? ''));
+    const vars = await buildBookingPlaceholders(booking, aiReview);
     vars.next_bookings = nextBookingsText;
 
     const text = applyPlaceholders(
       sanitizeStaffDailySummaryTemplate(settings.daily_summary_template),
-      vars,
+      vars
     );
 
     const unresolved = text.match(/\{\{[^}]+\}\}/g);
@@ -732,10 +831,10 @@ export async function runStaffDailySummary(opts?: {
       console.warn('[telegram-staff] unresolved placeholders:', unresolved.join(', '));
     }
 
-    const r = await sendStaffTelegramMessage(text.slice(0, 4096));
+    const r = await sendStaffTelegramMessage(text.slice(0, 4096), opts.propertyId);
     if (r.ok) {
       messagesSent++;
-    } else if (r.error) {
+    } else if (r.error && !isTelegramFeatureUnavailableError(r.error)) {
       errors.push(r.error);
     }
   }
@@ -751,13 +850,16 @@ export async function runStaffDailySummary(opts?: {
 }
 
 export function verifyStaffCronSecret(req: Request): boolean {
-  const expected = Deno.env.get('TELEGRAM_STAFF_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  const got = req.headers.get('x-telegram-cron-secret')?.trim();
-  return got === expected;
+  return verifyCronSecret(req, {
+    envKey: 'TELEGRAM_STAFF_CRON_SECRET',
+    headerName: 'x-telegram-cron-secret',
+  });
 }
 
-export async function verifyStaffTelegramEnv(): Promise<{
+export async function verifyStaffTelegramEnv(
+  scope?: TelegramAssetScopeRef | string | null,
+  overrides?: { botToken?: string; chatId?: string }
+): Promise<{
   credentials: {
     tokenConfigured: boolean;
     chatIdConfigured: boolean;
@@ -767,52 +869,8 @@ export async function verifyStaffTelegramEnv(): Promise<{
   getMe: { ok: boolean; username?: string; error?: string };
   getChat: { ok: boolean; type?: string; title?: string; error?: string };
 }> {
-  const creds = resolveStaffTelegramCredentials();
-  const credentials = {
-    tokenConfigured: !!(Deno.env.get('TELEGRAM_STAFF_BOT_TOKEN') ?? Deno.env.get('TELEGRAM_BOT_TOKEN'))?.trim(),
-    chatIdConfigured: !!Deno.env.get('TELEGRAM_STAFF_CHAT_ID')?.trim(),
-    normalizedChatId: creds.ok ? creds.chatId : undefined,
-    normalizeError: creds.ok ? undefined : creds.error,
-  };
-
-  if (!creds.ok) {
-    return {
-      credentials,
-      getMe: { ok: false, error: creds.error },
-      getChat: { ok: false, error: creds.error },
-    };
-  }
-
-  const meRes = await fetch(`https://api.telegram.org/bot${creds.token}/getMe`);
-  const meJson = (await meRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { username?: string };
-    description?: string;
-  };
-
-  const chatRes = await fetch(
-    `https://api.telegram.org/bot${creds.token}/getChat?chat_id=${encodeURIComponent(creds.chatId)}`,
-  );
-  const chatJson = (await chatRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { type?: string; title?: string };
-    description?: string;
-  };
-
-  return {
-    credentials,
-    getMe: {
-      ok: !!meJson?.ok,
-      username: meJson?.result?.username,
-      error: meJson?.ok ? undefined : String(meJson?.description ?? meRes.statusText),
-    },
-    getChat: {
-      ok: !!chatJson?.ok,
-      type: chatJson?.result?.type,
-      title: chatJson?.result?.title,
-      error: chatJson?.ok ? undefined : String(chatJson?.description ?? chatRes.statusText),
-    },
-  };
+  const { verifyPropertyTelegramChannel } = await import('./propertyTelegramCredentials.ts');
+  return verifyPropertyTelegramChannel('staff', scope, overrides);
 }
 
 export function serializeStaffSettings(row: TelegramStaffSettings) {
@@ -824,10 +882,13 @@ export function serializeStaffSettings(row: TelegramStaffSettings) {
   return {
     enabled: row.enabled,
     notifyOnSameDayCheckin: row.notify_on_same_day_checkin,
-    dailySummaryTemplate: row.daily_summary_template,
-    dailySummaryNoBookingsTemplate:
-      row.daily_summary_no_bookings_template || DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE,
-    sameDayCheckinTemplate: row.same_day_checkin_template,
+    notifyOnDailySummary: row.notify_on_daily_summary ?? true,
+    notifyOnDailySummaryNoBookings: row.notify_on_daily_summary_no_bookings ?? true,
+    dailySummaryTemplate: sanitizeStaffDailySummaryTemplate(row.daily_summary_template),
+    dailySummaryNoBookingsTemplate: sanitizeStaffDailySummaryTemplate(
+      row.daily_summary_no_bookings_template || DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE
+    ),
+    sameDayCheckinTemplate: sanitizeStaffDailySummaryTemplate(row.same_day_checkin_template),
     dailySummaryTimeManila: slot,
     dailySummaryUtcCronPreview: `${utcM} ${utcH} * * *`,
     placeholdersReference: [
@@ -847,6 +908,7 @@ export function serializeStaffSettings(row: TelegramStaffSettings) {
       '{{pet_flag}} — "🐶 Has pets" or empty',
       '{{special_requests}} — guest requests or "None"',
       '{{total_guest_balance}} — guest balance due (₱ formatted)',
+      '{{ai_stay_summary}} — AI stay-details summary or "Not yet reviewed"',
       '{{next_bookings}} — next 3 days (decor + pet flags only)',
     ],
     scenarios: [
@@ -865,8 +927,7 @@ export function serializeStaffSettings(row: TelegramStaffSettings) {
       {
         id: 'same_day_checkin',
         label: 'Same-day check-in alert',
-        trigger:
-          `Instant for same-day check-ins at or after ${formatStaffManilaTimeLabel(slot)} Manila`,
+        trigger: `Instant for same-day check-ins at or after ${formatStaffManilaTimeLabel(slot)} Manila`,
         type: 'event',
       },
     ],
@@ -876,7 +937,7 @@ export function serializeStaffSettings(row: TelegramStaffSettings) {
 export async function ensureStaffSettingsRow(): Promise<void> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { data, error } = await supabase
     .from('telegram_staff_settings')
@@ -887,12 +948,12 @@ export async function ensureStaffSettingsRow(): Promise<void> {
     console.error('ensureStaffSettingsRow select:', error);
     throw new Error(
       `telegram_staff_settings query failed (${error.code ?? 'no-code'}: ${error.message}). ` +
-        `Deploy migration 20260622120000_telegram_staff_settings.sql to this database.`,
+        `Deploy migration 20260622120000_telegram_staff_settings.sql to this database.`
     );
   }
   if (data) return;
   const defaultTemplate =
-    '📋 Today\'s Booking\n\n' +
+    "📋 Today's Booking\n\n" +
     'Booking Details\n{{check_in_date}} - {{check_out_date}}\n{{check_in_time}} - {{check_out_time}}\n{{nights}} night/s, {{pax}} pax\n\n' +
     'Guest Details\n{{primary_guest_name}}, {{guest_phone}}\n\n' +
     'Additional Details\nHas decor: {{decor_status}}\nHas pets: {{pet_status}}\nSpecial Requests: {{special_requests}}\nTotal guest balance: {{total_guest_balance}}\n\n' +
@@ -900,6 +961,7 @@ export async function ensureStaffSettingsRow(): Promise<void> {
 
   const { error: insertError } = await supabase.from('telegram_staff_settings').insert({
     id: 1,
+    enabled: false,
     daily_summary_template: defaultTemplate,
     daily_summary_no_bookings_template: DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE,
   });
@@ -907,7 +969,7 @@ export async function ensureStaffSettingsRow(): Promise<void> {
     console.error('ensureStaffSettingsRow insert:', insertError);
     throw new Error(
       `Could not seed telegram_staff_settings (${insertError.message}). ` +
-        `Apply migration 20260622120000_telegram_staff_settings.sql first.`,
+        `Apply migration 20260622120000_telegram_staff_settings.sql first.`
     );
   }
 }

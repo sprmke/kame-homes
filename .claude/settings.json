@@ -1,0 +1,216 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bun run lint:*)",
+      "Bash(bun run lint:fix:*)",
+      "Bash(bun run type-check:*)",
+      "Bash(bun run build:*)",
+      "Bash(bun run check:filenames:*)",
+      "Bash(bun run format:check:*)",
+      "Bash(bun run status:supabase:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr view:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(bunx eslint *)",
+      "Bash(bun x *)",
+      "Bash(claude --version)",
+      "Read(//Users/michaelmanlulu/.local/share/claude/versions/**)",
+      "Bash(npm -g config get prefix)",
+      "Read(//Users/michaelmanlulu/.claude/**)",
+      "Bash(xargs -I{} dirname {})",
+      "Read(//Users/michaelmanlulu/**)",
+      "Bash(curl -s -m 10 \"https://downloads.claude.ai/claude-code-releases/latest\")",
+      "Bash(claude update *)",
+      "Bash(curl -s 'http://127.0.0.1:54321/rest/v1/notifications?select=id,title&organization_id=eq.9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1' -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Skill(impeccable)",
+      "Skill(impeccable:*)",
+      "Bash(curl -s -o /tmp/nl.txt -w \"HTTP %{http_code}\\\\n\" \"http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1\")",
+      "Bash(curl -s -o /tmp/nl2.txt -w 'HTTP %{http_code}\\\\n' http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1 -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o /tmp/nmr.txt -w 'HTTP %{http_code}\\\\n' -X POST http://127.0.0.1:54321/functions/v1/notifications-mark-read -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{}')",
+      "Bash(grep -n \"isVideoSuggestion\\(suggestion\\)\\\\|setVideoPreferences\\(\\(prev\\) => \\({ ...prev, category: suggestion.category\" /Users/michaelmanlulu/Projects/personal-projects/guest-form-management/ui/src/features/dashboard/marketing/components/shared/MarketingAiGeneratePanel.tsx)",
+      "Bash(curl -s -o /tmp/sf.txt -w \"HTTP %{http_code}\\\\n\" -X POST http://127.0.0.1:54321/functions/v1/submit-form -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(python3 -)",
+      "Bash(curl -s -o /tmp/nl.txt -w 'HTTP %{http_code}\\\\n' http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1 -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' http://127.0.0.1:54321/auth/v1/user -H 'Authorization: Bearer __TRACKED_VAR__' -H 'apikey: __TRACKED_VAR__')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X PUT http://127.0.0.1:54321/auth/v1/admin/users/65ef9ad8-9163-44cc-926c-678eb7c4dc0f -H 'Authorization: Bearer __TRACKED_VAR__' -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"password\":\"local-test-only-pw-123!\"}')",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/auth/v1/token?grant_type=password -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"email\":\"michaeldmanlulu@gmail.com\",\"password\":\"local-test-only-pw-123!\"}')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('access_token','ERROR: '+str\\(d\\)\\)\\)\")",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' 'http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1&limit=2' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o /tmp/nl_result.json -w 'HTTP %{http_code}\\\\n' 'http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1&limit=2' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(python3 -m json.tool /tmp/nl_result.json)",
+      "Bash(curl -s -o /tmp/nl_page2.json -w 'HTTP %{http_code}\\\\n' 'http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1&limit=2&cursor=2026-08-14T00:43:23.214709+00:00' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(python3 -m json.tool /tmp/nl_page2.json)",
+      "Bash(python3 -c \"import urllib.parse; print\\(urllib.parse.quote\\('2026-08-14T00:43:23.214709+00:00'\\)\\)\")",
+      "Bash(curl -s -o /tmp/nl_page2.json -w 'HTTP %{http_code}\\\\n' 'http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1&limit=2&cursor=__CMDSUB_OUTPUT__' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o /tmp/mr1.json -w 'HTTP %{http_code}\\\\n' -X POST http://127.0.0.1:54321/functions/v1/notifications-mark-read -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"org_id\":\"9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1\",\"notificationId\":\"11111111-1111-1111-1111-111111111111\"}')",
+      "Bash(curl -s http://127.0.0.1:54321/functions/v1/notifications-list?org_id=9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1 -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(curl -s -o /tmp/mra.json -w 'HTTP %{http_code}\\\\n' -X POST http://127.0.0.1:54321/functions/v1/notifications-mark-read -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"org_id\":\"9d0bacb6-7304-4175-bd7c-8b4f7d13e1f1\",\"markAll\":true}')",
+      "Bash(python3 -c \"import json,sys; print\\(json.load\\(sys.stdin\\)['data']['unreadCount']\\)\")",
+      "Bash(grep -A5 \"AdminLayout.tsx$\\\\|useNotificationsRealtime.ts$\")",
+      "Bash(lsof -i :5173 -sTCP:LISTEN)",
+      "mcp__playwright__browser_navigate",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/tmp/session.json'\\)\\); print\\(list\\(d.keys\\(\\)\\)\\); print\\(d.get\\('expires_at'\\)\\)\")",
+      "Bash(python3 -c \" *)",
+      "mcp__playwright__browser_evaluate",
+      "Bash(python3 -c \"import json; print\\(json.load\\(open\\('/tmp/session.json'\\)\\)['access_token']\\)\")",
+      "Bash(curl -s http://127.0.0.1:54321/functions/v1/list-organizations -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' http://127.0.0.1:54321/functions/v1/list-organizations -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' http://127.0.0.1:54321/auth/v1/user -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'apikey: __TRACKED_VAR__')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('id'\\), d.get\\('email'\\)\\)\")",
+      "Bash(curl -s http://127.0.0.1:54321/auth/v1/user -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'apikey: __TRACKED_VAR__')",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' -X PUT http://127.0.0.1:54321/auth/v1/admin/users/ddc7c44c-4c41-4832-8669-569aa96ca67e -H 'Authorization: Bearer __TRACKED_VAR__' -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"password\":\"local-test-only-pw-123!\"}')",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/auth/v1/token?grant_type=password -H 'apikey: __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"email\":\"sprmke.dev@gmail.com\",\"password\":\"local-test-only-pw-123!\"}')",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/tmp/owner_session.json'\\)\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_resize",
+      "Bash(bash scripts/dev/workflow-move.sh done in-app-notifications)",
+      "Bash(bun run *)",
+      "Bash(deno check *)",
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c \"\\\\d parkings\")",
+      "Bash(./scripts/dev/run-with-ui-dev-env.sh ./scripts/dev/bunx --bun supabase@latest db dump --local --data-only -t parkings)",
+      "Bash(docker exec *)",
+      "Bash(curl -s -X OPTIONS http://127.0.0.1:54321/functions/v1/claim-parking-booking -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X OPTIONS http://127.0.0.1:54321/functions/v1/decline-parking-booking -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/functions/v1/expire-parking-broadcasts -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X OPTIONS http://127.0.0.1:54321/functions/v1/transition-parking-booking -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/functions/v1/claim-parking-booking -H \"Content-Type: application/json\" -d '{\"bookingId\":\"x\",\"parkingId\":\"y\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/functions/v1/decline-parking-booking -H \"Content-Type: application/json\" -d '{\"bookingId\":\"x\",\"parkingId\":\"y\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/functions/v1/transition-parking-booking -H \"Content-Type: application/json\" -d '{\"bookingId\":\"x\",\"toStatus\":\"COMPLETED\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(pkill -f \"supabase functions serve\")",
+      "Bash(pkill -f \"bun run dev:api\")",
+      "Bash(curl -s -X POST http://127.0.0.1:54321/functions/v1/submit-parking-booking-request -H 'Content-Type: application/json' -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__' -d '{ *)",
+      "Bash(curl -s http://127.0.0.1:54321/functions/v1/get-parking-booking-status?bookingId=272e7399-3dbb-42eb-b47d-1f820518901d -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__' -w '\\\\nHTTP:%{http_code}\\\\n')"
+    ],
+    "additionalDirectories": ["/Users/michaelmanlulu/.claude", "/tmp"]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/superpowers-lean-mode.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-superpowers-opt-in.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-ai-tooling-sync.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-workflow-in-progress.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-docs-sync-reminder.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-mobile-native-ui-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-superpowers-subagents.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-shell.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-shipped-migrations.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/superpowers-lean-cleanup.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/format-edited-file.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-stack-terminology.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-docs-on-code-edit.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-mobile-native-on-ui-edit.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

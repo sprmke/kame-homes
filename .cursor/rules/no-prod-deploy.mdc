@@ -1,0 +1,93 @@
+---
+description: Block production Supabase/DB deploys unless user says unlock word kamewave
+alwaysApply: true
+---
+
+# No production Supabase / database deploys (unlock: kamewave)
+
+**Default for every agent session — new or existing.** Active development happens on git branches while **production Supabase/Postgres stays untouched** until the team is ready to ship. Multiple contributors use AI tools; this rule prevents accidental prod breakage.
+
+## Dual-track (multi-tenant WIP) — read before any deploy advice
+
+Until multi-tenant cutover finishes:
+
+| Branch / surface                                                                                                     | Safe backend                                | Unsafe                                                                   |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------ |
+| **`main` + [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) Production** | **LEGACY** `zfttdwtceyqszyeyhilc`           | Multi-tenant migrations/functions; flipping legacy Vercel env to `fwor…` |
+| **mt branch + [`kame-homes`](https://vercel.com/kame-works/kame-homes) Production**                                  | **MULTI_TENANT_DEV** `fworvijbrwpyngycotbz` | Pointing `kame-homes` at LEGACY, or multi-tenant schema push to LEGACY   |
+
+Authoritative design + plan: **`docs/workflow/in-progress/ci-cd-environments/`** ([`README.md`](docs/workflow/in-progress/ci-cd-environments/README.md)). Ref inventory: **`docs/architecture/deployment.md`** § Supabase project inventory.
+
+- Prefer PRs into **`develop`** for multi-tenant work. Do **not** recommend merging multi-tenant-only trees into **`main`** until cutover.
+- Do **not** run or recommend multi-tenant `db push` / `functions deploy` against whatever Supabase project **Vercel Production** currently uses for live users.
+
+## Unlock word
+
+**`kamewave`** — the user must type this exact word in the **same message** that asks you to run or recommend a blocked production operation.
+
+Without **`kamewave`** in that user message:
+
+- **Do not run** blocked commands (shell, scripts, MCP write tools).
+- **Do not recommend** blocked commands as the next step (“you can run `bun run deploy:supabase` now”).
+- **Do not** offer prod deploy as an optional follow-up unless the user has already unlocked.
+
+When the user **has** said **`kamewave`** in the current request:
+
+- You may run **only** the specific prod operation they asked for.
+- Include **`kamewave`** in the shell command string so hooks allow it (e.g. `KAMEWAVE=kamewave bun run deploy:supabase`).
+- Still remind them of **`docs/archive/operations/production-deployment.md`** (backup, diff, checklist) before executing.
+
+If they ask for prod deploy **without** **`kamewave`**, refuse briefly and tell them to say **`kamewave`** when they are ready.
+
+## Blocked — production / linked Supabase mutations
+
+Never run or suggest these without unlock:
+
+| Pattern                           | Examples                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Deploy scripts                    | `bun run deploy:supabase`, `deploy:supabase:db`, `deploy:supabase:functions`, `./scripts/deploy/deploy-supabase.sh`                     |
+| Rollback (prod)                   | `bun run rollback:supabase:prod`, `rollback:functions:prod`, `./scripts/deploy/rollback-supabase.sh prod`, `rollback-functions.sh prod` |
+| Schema push                       | `supabase db push`, `db push --include-all`, `db push --linked`                                                                         |
+| Edge Functions deploy             | `supabase functions deploy` (any function or `--all`)                                                                                   |
+| Remote migrations                 | `supabase migration up --linked`, `migration up --db-url <remote>`, `migration up` **without** `--local`                                |
+| Migration repair (remote history) | `supabase migration repair …`                                                                                                           |
+| Remote reset                      | `supabase db reset --linked`                                                                                                            |
+| Remote SQL via URL                | Mutating SQL with `--db-url` pointing at hosted/pooler URIs (not local `127.0.0.1:54322`)                                               |
+| MCP Supabase writes               | Any Supabase MCP tool that applies migrations, pushes schema, or deploys functions to the linked/hosted project                         |
+
+Also **do not**:
+
+- Run prod DDL/DML from Dashboard SQL on the user’s behalf.
+- Change production Edge secrets, Auth providers, or `pg_cron` jobs unless **`kamewave`** was given for that specific change.
+
+## Allowed without unlock — local & read-only
+
+| Safe                      | Examples                                                                                                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local stack               | `bun run start:supabase`, `stop:supabase`, `db:reset`, **`db:migrate`** (`migration up --local --include-all`), `dev:api` / `functions serve`                                                                               |
+| Local migrations in repo  | Add/edit **new** files under `supabase/migrations/` (never edit shipped migrations)                                                                                                                                         |
+| Read-only prod inspection | `supabase db diff --linked`, `db dump --linked`, `migration list --linked`, `status` — **no writes**                                                                                                                        |
+| Prod → local sync         | `bun run sync:prod-data` (pulls **from** prod **to** local)                                                                                                                                                                 |
+| Dev deploy / rollback     | `bun run deploy:supabase:dev` (+ `:dev:db`/`:dev:functions`), `deploy-supabase-dev.sh`, `rollback:supabase:dev`, `rollback:functions:dev` — the dev script's own DEV/PROD ref check + typed `dev` confirm is the safety net |
+| Backups (any env)         | `bun run backup:supabase:dev` / `:prod` — same primitive as `db dump --linked`, non-destructive                                                                                                                             |
+| Env / migration status    | `bun run env:status`, `migrations:status:dev`, `migrations:status:prod` — read-only                                                                                                                                         |
+
+`ui/.env.development` may point at hosted Supabase for reads — still **no** remote writes without **`kamewave`**.
+
+## Agent behavior checklist
+
+1. Prefer **local** verification: `./dev.sh`, `bun run db:migrate`, curl local functions.
+2. When prod deploy is eventually needed, **stop** and point to **`docs/archive/operations/production-deployment.md`** + **`docs/archive/operations/migration-runbook.md`** § production — do not skip backup/diff steps.
+3. Never chain prod deploy after unrelated tasks (“while we’re here, let’s push migrations”).
+4. Subagents (`test-runner`, `deployment-expert`, etc.) inherit this rule.
+
+## Shell hook enforcement
+
+`.cursor/hooks/guard-shell.sh` and `.claude/hooks/guard-shell.sh` **deny** blocked commands unless **`kamewave`** appears in the command string. Rules alone are not enough — hooks are the backstop. The shared lib (`scripts/dev/prod-deploy-guard-lib.sh`) checks dev-targeted/read-only command shapes first, so a dev deploy/backup/status command is never mistaken for a prod one.
+
+## Related docs
+
+- **`docs/archive/operations/production-deployment.md`** — prod cutover checklist
+- **`docs/archive/operations/migration-runbook.md`** — § applying to production
+- **`docs/workflow/in-progress/ci-cd-environments/`** — dual-track CI/CD (`develop`/mt-dev vs `main`/legacy prod; mt-prod at release)
+- **`docs/architecture/deployment.md`** — environment matrix

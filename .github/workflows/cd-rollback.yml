@@ -1,0 +1,37 @@
+name: CD Rollback (manual — operator)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target GitHub Environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - preproduction
+
+jobs:
+  instructions:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate environment secrets
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+            echo "Configure SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF on this environment first."
+            exit 1
+          fi
+          echo "Target ref: ...${SUPABASE_PROJECT_REF: -4}"
+
+      - name: Rollback (local scripts)
+        run: |
+          echo "Automated rollback from CI is not enabled in v1."
+          echo "From a trusted machine with supabase/.env.dev.local:"
+          echo "  bun run rollback:supabase:dev"
+          echo "  bun run rollback:functions:dev -- --ref <git-sha> --allow-multi-tenancy"
+          echo "See docs/archive/operations/dev-staging-environment.md and migration-runbook.md"

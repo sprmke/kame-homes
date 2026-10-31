@@ -1,8 +1,8 @@
 ---
 description: Keep UI copy minimal — no extra labels, descriptions, or helper text unless requested or required.
 globs:
-  - "ui/src/**/*.tsx"
-  - "ui/src/**/*.ts"
+  - 'ui/src/**/*.tsx'
+  - 'ui/src/**/*.ts'
 alwaysApply: true
 ---
 
@@ -36,8 +36,10 @@ Unless the user asks for copy or it is **really needed**, add **no** new text.
 2. Add text only where the screen would be unusable without it.
 3. If unsure, **omit** — the user will ask for copy when they want it.
 4. Read the `minimal-ui-copy` skill for patterns and examples.
+5. When text _is_ required, follow **`human-copy`** (plain, short, no AI tells / em dashes).
 
 ## Conflicts
 
 - `accessibility` still requires labels for inputs and icon buttons — keep those **short**.
 - `frontend-design` density guidance stands; this rule wins on **verbosity**, not structure.
+- **`human-copy`** wins on tone and banned punctuation when any string is added.

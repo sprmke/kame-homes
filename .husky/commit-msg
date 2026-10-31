@@ -1,0 +1,5 @@
+# Strip co-author / AI attribution trailers before commitlint runs.
+ROOT="$(git rev-parse --show-toplevel)"
+bash "$ROOT/scripts/dev/strip-commit-co-author-trailers.sh" "$1"
+
+npx --no-install commitlint --edit "$1"

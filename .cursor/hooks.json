@@ -1,15 +1,78 @@
 {
   "version": 1,
   "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": ".cursor/hooks/superpowers-lean-mode.sh",
+        "timeout": 5
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": ".cursor/hooks/guard-superpowers-subagents.sh",
+        "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/superpowers-lean-cleanup.sh",
+        "timeout": 5
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-superpowers-opt-in.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/session-ai-tooling-sync.sh",
+        "timeout": 10
+      },
+      {
+        "command": ".cursor/hooks/session-workflow-in-progress.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/session-docs-sync-reminder.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/session-mobile-native-ui-reminder.sh",
+        "timeout": 5
+      }
+    ],
     "afterFileEdit": [
       {
         "command": ".cursor/hooks/format-edited-file.sh",
         "timeout": 15
+      },
+      {
+        "command": "bash .cursor/hooks/check-stack-terminology.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/remind-docs-on-code-edit.sh",
+        "timeout": 5
+      },
+      {
+        "command": ".cursor/hooks/remind-mobile-native-on-ui-edit.sh",
+        "timeout": 5
       }
     ],
     "beforeShellExecution": [
       {
         "command": ".cursor/hooks/guard-shell.sh",
+        "timeout": 5
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/guard-shipped-migrations.sh",
+        "matcher": "StrReplace",
+        "timeout": 5
+      },
+      {
+        "command": "[ ! -f \".cursor/skills/impeccable/scripts/impeccable\" ] || \".cursor/skills/impeccable/scripts/impeccable\" hook-before-edit",
         "timeout": 5
       }
     ]

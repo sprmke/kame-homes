@@ -1,0 +1,1 @@
+../../.claude/commands/kh-create-new-ticket.md

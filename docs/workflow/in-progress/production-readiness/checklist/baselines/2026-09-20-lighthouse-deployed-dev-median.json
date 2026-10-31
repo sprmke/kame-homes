@@ -1,0 +1,424 @@
+{
+  "capturedAt": "2026-09-20T20:45:10.941Z",
+  "label": "deployed-dev-median",
+  "runs": 3,
+  "baseUrl": "https://dev.kamehomes.space",
+  "mode": "deployed-preview",
+  "note": null,
+  "routes": [
+    {
+      "path": "/",
+      "persona": "guest-anon",
+      "name": "Public landing",
+      "url": "https://dev.kamehomes.space/",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 60,
+          "lcpMs": 12282.201449999999,
+          "clsScore": 0,
+          "tbtMs": 16,
+          "fcpMs": 6077.941399999999,
+          "speedIndexMs": 6077.941399999999,
+          "totalByteWeightBytes": 2351664
+        },
+        {
+          "performanceScore": 59,
+          "lcpMs": 12354.439499999999,
+          "clsScore": 0,
+          "tbtMs": 20,
+          "fcpMs": 6524.3614,
+          "speedIndexMs": 6524.3614,
+          "totalByteWeightBytes": 2352270
+        },
+        {
+          "performanceScore": 60,
+          "lcpMs": 9267.367900000001,
+          "clsScore": 0,
+          "tbtMs": 20,
+          "fcpMs": 6138.2757999999985,
+          "speedIndexMs": 6138.2757999999985,
+          "totalByteWeightBytes": 2352049
+        }
+      ],
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 12282.201449999999,
+        "clsScore": 0,
+        "tbtMs": 20,
+        "fcpMs": 6138.2757999999985,
+        "speedIndexMs": 6138.2757999999985,
+        "totalByteWeightBytes": 2352049
+      },
+      "error": null
+    },
+    {
+      "path": "/properties",
+      "persona": "guest-anon",
+      "name": "Property search/list",
+      "url": "https://dev.kamehomes.space/properties",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 60,
+          "lcpMs": 9503.09368,
+          "clsScore": 0,
+          "tbtMs": 29,
+          "fcpMs": 6111.900100000002,
+          "speedIndexMs": 6111.900100000002,
+          "totalByteWeightBytes": 1103890
+        },
+        {
+          "performanceScore": 60,
+          "lcpMs": 10089.884659999998,
+          "clsScore": 0,
+          "tbtMs": 44,
+          "fcpMs": 6105.446299999998,
+          "speedIndexMs": 6105.446299999998,
+          "totalByteWeightBytes": 1103532
+        },
+        {
+          "performanceScore": 59,
+          "lcpMs": 10068.40482,
+          "clsScore": 0,
+          "tbtMs": 38,
+          "fcpMs": 6667.9589,
+          "speedIndexMs": 6667.9589,
+          "totalByteWeightBytes": 1104502
+        }
+      ],
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 10068.40482,
+        "clsScore": 0,
+        "tbtMs": 38,
+        "fcpMs": 6111.900100000002,
+        "speedIndexMs": 6111.900100000002,
+        "totalByteWeightBytes": 1103890
+      },
+      "error": null
+    },
+    {
+      "path": "/properties/demo-property/form",
+      "persona": "guest-anon",
+      "name": "Guest booking form",
+      "url": "https://dev.kamehomes.space/properties/demo-property/form",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 56.00000000000001,
+          "lcpMs": 14520.5118,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 48,
+          "fcpMs": 7166.536700000001,
+          "speedIndexMs": 7166.536700000001,
+          "totalByteWeightBytes": 1731837
+        },
+        {
+          "performanceScore": 57.99999999999999,
+          "lcpMs": 16252.112200000001,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 43,
+          "fcpMs": 6377.062600000001,
+          "speedIndexMs": 6377.062600000001,
+          "totalByteWeightBytes": 2002365
+        },
+        {
+          "performanceScore": 56.99999999999999,
+          "lcpMs": 15516.873200000002,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 52,
+          "fcpMs": 6519.3650000000025,
+          "speedIndexMs": 6519.3650000000025,
+          "totalByteWeightBytes": 1999577
+        }
+      ],
+      "metrics": {
+        "performanceScore": 56.99999999999999,
+        "lcpMs": 15516.873200000002,
+        "clsScore": 0.08578944749822007,
+        "tbtMs": 48,
+        "fcpMs": 6519.3650000000025,
+        "speedIndexMs": 6519.3650000000025,
+        "totalByteWeightBytes": 1999577
+      },
+      "error": null
+    },
+    {
+      "path": "/parkings",
+      "persona": "guest-anon",
+      "name": "Parking landing",
+      "url": "https://dev.kamehomes.space/parkings",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 60,
+          "lcpMs": 9926.12604,
+          "clsScore": 0,
+          "tbtMs": 35,
+          "fcpMs": 6072.765600000001,
+          "speedIndexMs": 6072.765600000001,
+          "totalByteWeightBytes": 1099770
+        },
+        {
+          "performanceScore": 59,
+          "lcpMs": 9784.4885,
+          "clsScore": 0,
+          "tbtMs": 50,
+          "fcpMs": 6511.6826,
+          "speedIndexMs": 6511.6826,
+          "totalByteWeightBytes": 1099742
+        },
+        {
+          "performanceScore": 59,
+          "lcpMs": 9900.167739999999,
+          "clsScore": 0,
+          "tbtMs": 51,
+          "fcpMs": 6516.401400000002,
+          "speedIndexMs": 6516.401400000002,
+          "totalByteWeightBytes": 1099893
+        }
+      ],
+      "metrics": {
+        "performanceScore": 59,
+        "lcpMs": 9900.167739999999,
+        "clsScore": 0,
+        "tbtMs": 50,
+        "fcpMs": 6511.6826,
+        "speedIndexMs": 6511.6826,
+        "totalByteWeightBytes": 1099770
+      },
+      "error": null
+    },
+    {
+      "path": "/account",
+      "persona": "guest-auth",
+      "name": "Guest account (redirects to sign-in if anon)",
+      "url": "https://dev.kamehomes.space/account",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 60,
+          "lcpMs": 6620.389700000001,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 35,
+          "fcpMs": 6070.035400000001,
+          "speedIndexMs": 6070.035400000001,
+          "totalByteWeightBytes": 1633362
+        },
+        {
+          "performanceScore": 59,
+          "lcpMs": 6905.5181,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 46,
+          "fcpMs": 6347.1807,
+          "speedIndexMs": 6347.1807,
+          "totalByteWeightBytes": 1651604
+        },
+        {
+          "performanceScore": 60,
+          "lcpMs": 6660.170300000002,
+          "clsScore": 0.08578944749822007,
+          "tbtMs": 28,
+          "fcpMs": 6100.084900000002,
+          "speedIndexMs": 6100.084900000002,
+          "totalByteWeightBytes": 1626471
+        }
+      ],
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 6660.170300000002,
+        "clsScore": 0.08578944749822007,
+        "tbtMs": 35,
+        "fcpMs": 6100.084900000002,
+        "speedIndexMs": 6100.084900000002,
+        "totalByteWeightBytes": 1633362
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/bookings",
+      "persona": "host",
+      "name": "Admin bookings dashboard (needs auth session + real slugs)",
+      "url": "https://dev.kamehomes.space/org/demo-org/property/demo-property/bookings",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 42,
+          "lcpMs": 8844.0524,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 213.98530000000028,
+          "fcpMs": 6144.0145999999995,
+          "speedIndexMs": 6144.0145999999995,
+          "totalByteWeightBytes": 1810832
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9239.0997,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 42,
+          "fcpMs": 6089.019900000001,
+          "speedIndexMs": 6089.019900000001,
+          "totalByteWeightBytes": 1804976
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9245.151299999998,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 76,
+          "fcpMs": 6094.939200000002,
+          "speedIndexMs": 6094.939200000002,
+          "totalByteWeightBytes": 1815785
+        }
+      ],
+      "metrics": {
+        "performanceScore": 45,
+        "lcpMs": 9239.0997,
+        "clsScore": 0.29350330248684264,
+        "tbtMs": 76,
+        "fcpMs": 6094.939200000002,
+        "speedIndexMs": 6094.939200000002,
+        "totalByteWeightBytes": 1810832
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/finance",
+      "persona": "host",
+      "name": "Admin finance (needs auth session + real slugs)",
+      "url": "https://dev.kamehomes.space/org/demo-org/property/demo-property/finance",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 42,
+          "lcpMs": 12884.122800000001,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 0,
+          "fcpMs": 8200.226725,
+          "speedIndexMs": 8200.226725,
+          "totalByteWeightBytes": 1817382
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9238.949099999998,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 55,
+          "fcpMs": 6538.846499999997,
+          "speedIndexMs": 6538.846499999997,
+          "totalByteWeightBytes": 1820082
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9214.956800000004,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 36,
+          "fcpMs": 6064.855999999999,
+          "speedIndexMs": 6064.855999999999,
+          "totalByteWeightBytes": 1803195
+        }
+      ],
+      "metrics": {
+        "performanceScore": 45,
+        "lcpMs": 9238.949099999998,
+        "clsScore": 0.29350330248684264,
+        "tbtMs": 36,
+        "fcpMs": 6538.846499999997,
+        "speedIndexMs": 6538.846499999997,
+        "totalByteWeightBytes": 1817382
+      },
+      "error": null
+    },
+    {
+      "path": "/for-hosts/pricing",
+      "persona": "host",
+      "name": "Plans/pricing page",
+      "url": "https://dev.kamehomes.space/for-hosts/pricing",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 60,
+          "lcpMs": 8602.245,
+          "clsScore": 0,
+          "tbtMs": 27,
+          "fcpMs": 6105.041,
+          "speedIndexMs": 6105.041,
+          "totalByteWeightBytes": 1103522
+        },
+        {
+          "performanceScore": 60,
+          "lcpMs": 8585.0964,
+          "clsScore": 0,
+          "tbtMs": 26,
+          "fcpMs": 6088.419500000001,
+          "speedIndexMs": 6088.419500000001,
+          "totalByteWeightBytes": 1103689
+        },
+        {
+          "performanceScore": 57.99999999999999,
+          "lcpMs": 8569.3408,
+          "clsScore": 0,
+          "tbtMs": 119,
+          "fcpMs": 6512.365899999999,
+          "speedIndexMs": 6512.365899999999,
+          "totalByteWeightBytes": 1103482
+        }
+      ],
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 8585.0964,
+        "clsScore": 0,
+        "tbtMs": 27,
+        "fcpMs": 6105.041,
+        "speedIndexMs": 6105.041,
+        "totalByteWeightBytes": 1103522
+      },
+      "error": null
+    },
+    {
+      "path": "/admin",
+      "persona": "super-admin",
+      "name": "Super-admin shell (redirects if unauthenticated)",
+      "url": "https://dev.kamehomes.space/admin",
+      "runs": 3,
+      "samples": [
+        {
+          "performanceScore": 45,
+          "lcpMs": 9229.660700000002,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 32,
+          "fcpMs": 6079.517900000003,
+          "speedIndexMs": 6079.517900000003,
+          "totalByteWeightBytes": 1810349
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9221.365,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 29,
+          "fcpMs": 6071.2579000000005,
+          "speedIndexMs": 6071.2579000000005,
+          "totalByteWeightBytes": 1816289
+        },
+        {
+          "performanceScore": 45,
+          "lcpMs": 9237.562899999997,
+          "clsScore": 0.29350330248684264,
+          "tbtMs": 29,
+          "fcpMs": 6087.3991000000005,
+          "speedIndexMs": 6087.3991000000005,
+          "totalByteWeightBytes": 1809224
+        }
+      ],
+      "metrics": {
+        "performanceScore": 45,
+        "lcpMs": 9229.660700000002,
+        "clsScore": 0.29350330248684264,
+        "tbtMs": 29,
+        "fcpMs": 6079.517900000003,
+        "speedIndexMs": 6079.517900000003,
+        "totalByteWeightBytes": 1810349
+      },
+      "error": null
+    }
+  ]
+}

@@ -46,12 +46,8 @@ export function parseManilaReminderSlots(input: unknown): ManilaReminderSlot[] {
       throw new Error('Each slot must be an object with integer hour (0–23) and minute (0–59)');
     }
     const o = entry as Record<string, unknown>;
-    let h =
-      typeof o.hour === 'number' && Number.isInteger(o.hour) ? (o.hour as number) : NaN;
-    let m =
-      typeof o.minute === 'number' && Number.isInteger(o.minute)
-        ? (o.minute as number)
-        : NaN;
+    let h = typeof o.hour === 'number' && Number.isInteger(o.hour) ? (o.hour as number) : NaN;
+    let m = typeof o.minute === 'number' && Number.isInteger(o.minute) ? (o.minute as number) : NaN;
     if (Number.isNaN(h) && typeof o.h === 'number' && Number.isInteger(o.h)) h = o.h as number;
     if (Number.isNaN(m) && typeof o.m === 'number' && Number.isInteger(o.m)) m = o.m as number;
 
@@ -73,4 +69,45 @@ export function parseManilaReminderSlots(input: unknown): ManilaReminderSlot[] {
     throw new Error('Provide at least one unique daily reminder time');
   }
   return deduped;
+}
+
+function manilaNowParts(): { hour: number; minute: number } {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  let hour = 0;
+  let minute = 0;
+  for (const p of parts) {
+    if (p.type === 'hour') hour = parseInt(p.value, 10);
+    if (p.type === 'minute') minute = parseInt(p.value, 10);
+  }
+  return { hour, minute };
+}
+
+/** True when current Asia/Manila time is within tolerance of any configured slot. */
+export function manilaNowMatchesReminderSlots(
+  slots: ManilaReminderSlot[],
+  toleranceMinutes = 4
+): boolean {
+  if (!slots.length) return false;
+  const now = manilaNowParts();
+  const nowM = now.hour * 60 + now.minute;
+  for (const s of slots) {
+    const slotM = s.hour * 60 + s.minute;
+    const diff = Math.abs(nowM - slotM);
+    if (diff <= toleranceMinutes) return true;
+  }
+  return false;
+}
+
+/** Single daily slot (staff summary). */
+export function manilaNowMatchesSingleSlot(
+  slot: ManilaReminderSlot,
+  toleranceMinutes = 4
+): boolean {
+  return manilaNowMatchesReminderSlots([slot], toleranceMinutes);
 }

@@ -1,30 +1,64 @@
 import * as React from 'react';
 
+import { cva, type VariantProps } from 'class-variance-authority';
+
 import { cn } from '@/lib/utils';
 
+/** Shared focus treatment for text fields — see `.field-focus` in index.css */
+export const fieldFocusClass = 'field-focus';
+
+const inputVariants = cva(
+  'bg-card text-foreground file:text-foreground placeholder:text-muted-foreground flex w-full rounded-lg border transition-all duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: cn('border-input hover:border-muted-foreground/30', fieldFocusClass),
+        filled: cn(
+          'bg-muted hover:bg-muted/80 focus-visible:bg-card border-transparent',
+          fieldFocusClass
+        ),
+        ghost: 'hover:bg-muted focus-visible:bg-muted border-transparent focus-visible:ring-0',
+        error: cn('border-destructive/50 bg-destructive/5 field-focus-error'),
+      },
+      inputSize: {
+        default: 'h-10 px-3 py-2 text-sm',
+        sm: 'h-8 px-2.5 py-1.5 text-xs',
+        lg: 'h-12 px-4 py-3 text-base',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      inputSize: 'default',
+    },
+  }
+);
+
 export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {}
+  extends
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
+    VariantProps<typeof inputVariants> {
+  error?: boolean;
+}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
-    const usesNativeDatetimeUi =
-      type === 'time' || type === 'date' || type === 'datetime-local';
+  ({ className, type, variant, inputSize, error, ...props }, ref) => {
+    const computedVariant = error ? 'error' : variant;
+    const usesNativeDatetimeUi = type === 'time' || type === 'date' || type === 'datetime-local';
 
     return (
       <input
         type={type}
         className={cn(
-          'flex h-11 w-full rounded-lg border border-border/50 bg-muted/40 px-4 py-2 text-sm font-medium text-foreground ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-semibold placeholder:text-muted-foreground/70 focus-visible:border-primary/40 focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 hover:border-primary/25',
-          usesNativeDatetimeUi &&
-            'ui-native-datetime box-border min-w-0 py-0 leading-none',
-          className,
+          inputVariants({ variant: computedVariant, inputSize }),
+          usesNativeDatetimeUi && 'ui-native-datetime box-border min-w-0 py-0 leading-none',
+          className
         )}
         ref={ref}
         {...props}
       />
     );
-  },
+  }
 );
 Input.displayName = 'Input';
 
-export { Input };
+export { Input, inputVariants };

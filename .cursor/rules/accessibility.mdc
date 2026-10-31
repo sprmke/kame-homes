@@ -1,0 +1,37 @@
+---
+description: WCAG 2.1 AA — labels, keyboard, focus, touch targets (pairs with accessibility skill)
+globs:
+  - 'ui/src/**/*.tsx'
+alwaysApply: false
+---
+
+# Accessibility
+
+## Required
+
+- **Labels** on every form field (`<Label htmlFor>` or `aria-label` on inputs).
+- **Icon buttons:** `aria-label` or `title` + min **44×44px** touch target (`mobile-responsive.mdc`).
+- **Keyboard:** all actions reachable; visible `:focus-visible` ring.
+- **Semantic HTML:** `button` not `div` for clicks; headings in order.
+- **Errors:** associate with fields (`aria-invalid`, `aria-describedby`) where RHF shows messages.
+- **Contrast:** use theme tokens — test light and dark.
+
+## Tables & filters
+
+- Sort/filter controls need accessible names.
+- Don't rely on color alone for status — use text/badge (booking status badges already pattern).
+
+## Modals / dialogs
+
+- Radix `Dialog` — focus trap and escape to close.
+- `max-h` + scroll inside modal on mobile.
+
+## Skill
+
+Deeper patterns: `.cursor/skills/accessibility/SKILL.md`.
+
+## Don'ts
+
+- `placeholder` as sole label
+- Removing focus outlines without replacement
+- Auto-playing media in guest flows

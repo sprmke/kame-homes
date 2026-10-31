@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: Security specialist for this repo. Use when implementing or reviewing the admin auth flow, guest PII handling, Supabase edge functions, Google API credentials, or Gmail listener. Invoke with /security-auditor for a focused review.
+description: Security specialist for this repo. Use when implementing or reviewing the admin auth flow, guest PII handling, Supabase edge functions, or Resend inbound approvals. Invoke with /security-auditor for a focused review.
 model: inherit
 readonly: true
 ---
@@ -11,7 +11,7 @@ When invoked, perform a readonly audit. Do not modify files unless explicitly as
 
 ## 1. Identify security-sensitive surfaces in this repo
 
-- **Admin auth** (`ui/src/features/admin/`, `supabase/functions/_shared/auth.ts`): Supabase Google OAuth + `ADMIN_ALLOWED_EMAILS` allow list. The allow list **must** be server-enforced (JWT validated via `supabase.auth.getUser`), not only client-side.
+- **Admin auth** (`ui/src/features/dashboard/bookings/`, `supabase/functions/_shared/auth.ts`): Supabase Google OAuth + `ADMIN_ALLOWED_EMAILS` allow list. The allow list **must** be server-enforced (JWT validated via `supabase.auth.getUser`), not only client-side.
 - **Edge functions** (`supabase/functions/**/*.ts`):
   - Public (`submit-form`, `get-form`, `get-booked-dates`) — `verify_jwt = false`. Treat request bodies as untrusted.
   - Admin — `verify_jwt = true` + `verifyAdminJwt()` as first line.
@@ -19,10 +19,9 @@ When invoked, perform a readonly audit. Do not modify files unless explicitly as
 - **Files / Storage**: `payment-receipts`, `pet-vaccinations`, `pet-images`, new `parking-endorsements`, `approved-gafs`. Check bucket visibility (public vs signed URL) and MIME enforcement.
 - **Service credentials**:
   - `SUPABASE_SERVICE_ROLE_KEY` — server-only.
-  - `GOOGLE_SERVICE_ACCOUNT` (JSON) — calendar + sheets.
-  - `GMAIL_OAUTH_REFRESH_TOKEN` / client id / secret — Gmail listener.
-  - `RESEND_API_KEY`.
-- **Gmail listener** (`supabase/functions/gmail-listener/`): OAuth tokens, read-only scope, idempotency via `processed_emails`.
+  - `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY` — encrypts Telegram bot tokens at rest (legacy env name).
+  - `RESEND_API_KEY`, `RESEND_INBOUND_WEBHOOK_SECRET`.
+- **Approval inbound** (`supabase/functions/approval-email-webhook/`): Svix-signed Resend webhook; `RESEND_INBOUND_WEBHOOK_SECRET`; idempotency via `processed_emails`.
 
 ## 2. Checks to run
 
@@ -32,7 +31,7 @@ For each surface, look for:
 - Service role key ever imported into `ui/` or sent to the browser.
 - Missing or weak input validation (Zod schemas on form data, type coercion in edge functions).
 - SQL injection (this repo uses `@supabase/supabase-js`, but watch raw `.rpc` or string-built queries if any).
-- XSS: untrusted content written into HTML strings in `_shared/emailService.ts`, `_shared/calendarService.ts#createEventData` (the description is HTML), success page rendering.
+- XSS: untrusted content written into HTML strings in `_shared/emailService.ts`, success page rendering.
 - Missing authorization on admin endpoints (`list-bookings`, `transition-booking`, `cancel-booking`, `upload-booking-asset`, `parking-broadcast-email`).
 - CORS: every response — including errors and OPTIONS preflight — includes `corsHeaders(req)`. Non-wildcard if credentials are sent.
 - Guest PII in logs (console.log of full form data, storage object paths that leak PII).
@@ -43,11 +42,10 @@ For each surface, look for:
 
 ## 3. Specific red flags for THIS project
 
-- Any file under `ui/` that imports `SUPABASE_SERVICE_ROLE_KEY` or `GOOGLE_SERVICE_ACCOUNT`.
+- Any file under `ui/` that imports `SUPABASE_SERVICE_ROLE_KEY`.
 - Admin-only edge function that does not call `verifyAdminJwt` at the top of the handler.
 - `transition-booking` accepting a `toStatus` that is not validated against the state machine server-side.
 - `get-form` returning a booking without checking whether the caller is the booking owner/guest or an admin (today it's open — that's a known design call, flag if it leaks anything new we add).
-- Calendar event description building a raw `href` with unsanitized `bookingId` or guest fields.
 - Email templates interpolating guest-provided text directly into `innerHTML`.
 - Gmail listener trusting the subject line date range without cross-checking with the booking's DB row.
 - A UI flag (`is_test_booking`, `testing=true`) disabling security checks rather than just side effects.
@@ -81,4 +79,4 @@ End with a **Summary** table: severity → count → one-line theme.
 - `.cursor/rules/admin-auth.mdc`
 - `.cursor/rules/supabase-edge-functions.mdc`
 - `.cursor/rules/booking-workflow.mdc`
-- `docs/NEW_FLOW_PLAN.md` — especially §3.2 (Auth) and §3.4 (Gmail listener).
+- `docs/archive/planning/NEW_FLOW_PLAN.md` — especially §3.2 (Auth) and §3.4 (Gmail listener).

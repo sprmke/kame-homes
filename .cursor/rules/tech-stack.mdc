@@ -1,0 +1,51 @@
+---
+description: Vite + React 18 + Bun + React Router + TanStack Query + Supabase Edge (Deno)
+globs:
+  - 'ui/**/*.{ts,tsx}'
+  - 'package.json'
+  - 'ui/package.json'
+  - 'vite.config.*'
+alwaysApply: false
+---
+
+# Tech stack (GFM)
+
+| Layer        | Technology                                                                              |
+| ------------ | --------------------------------------------------------------------------------------- |
+| Runtime / PM | **Bun** — `bun install`, `bun run …`                                                    |
+| UI           | **Vite** + **React 18** + **TypeScript**                                                |
+| Routing      | **React Router 7** (`react-router-dom`) — `ui/src/routes/index.tsx` + feature `routes/` |
+| Styling      | **Tailwind 3** + shadcn-style primitives (`ui/src/components/ui/`)                      |
+| Forms        | **React Hook Form** + **Zod**                                                           |
+| Server state | **TanStack Query v5** — feature `hooks/`                                                |
+| Toasts       | **Sonner**                                                                              |
+| Icons        | **Lucide**                                                                              |
+| Backend      | **Supabase Edge Functions** (Deno) — no Node API, no tRPC, no Drizzle                   |
+| DB           | Supabase Postgres — SQL migrations in `supabase/migrations/`                            |
+| Auth         | Supabase Auth (Google OAuth for admin)                                                  |
+| Storage      | Supabase Storage                                                                        |
+| Email        | Resend from edge (`_shared/emailService.ts`)                                            |
+
+## Commands
+
+```bash
+bun install
+./dev.sh                 # Docker + local Supabase + UI
+./dev.sh --ui-only       # UI only (remote Supabase)
+bun run lint
+bun run type-check
+bun run build
+bun run start:supabase   # Supabase only
+```
+
+## UI conventions
+
+- Path alias: `@/` → `ui/src/`
+- Single Supabase client: `ui/src/lib/supabase/client.ts`
+- Admin API: `fetch` to `VITE_SUPABASE_URL/<function>` with session JWT, or `callEdgeFunction` in `ui/src/features/dashboard/org/lib/edgeClient.ts`
+- Public guest API: anon key + edge functions (`submit-form`, `get-booked-dates`, …)
+- Dates: user-visible **Asia/Manila**; DB guest fields often **MM-DD-YYYY** text — use `ui/src/utils/dates.ts` and `_shared/utils.ts`
+
+## Do not introduce
+
+Next.js, App Router, tRPC, Drizzle, React 19 RSC, Zustand (not used), separate `api/` package.

@@ -1,0 +1,123 @@
+/**
+ * Canonical PostHog product event names. Add new events here before calling captureAppEvent.
+ */
+
+export const APP_ANALYTICS_EVENTS = [
+  // Guest booking
+  'listing_viewed',
+  'calendar_opened',
+  'stay_dates_selected',
+  'guest_form_started',
+  'guest_form_step_completed',
+  'guest_form_step_failed',
+  'guest_form_abandoned',
+  'guest_form_submitted',
+  'guest_form_rejected',
+  'guest_form_completion_submitted',
+  // Auth + host activation
+  'auth_signed_in',
+  'auth_signed_out',
+  'auth_failed',
+  'onboarding_step_completed',
+  'org_created',
+  'property_created',
+  'parking_created',
+  'setup_guide_step_completed',
+  'team_invite_accepted',
+  'team_invite_sent',
+  'host_verification_submitted',
+  'host_verification_resolved',
+  // Booking workflow
+  'booking_workflow_transitioned',
+  'booking_document_step_completed',
+  'booking_cancelled',
+  'booking_updated',
+  'booking_workflow_cta_clicked',
+  'booking_imported',
+  'booking_rescheduled',
+  // Stay / money
+  'sd_form_opened',
+  'sd_form_submitted',
+  'sd_voucher_claimed',
+  'guest_review_submitted',
+  'guest_stay_guide_opened',
+  'guest_document_opened',
+  'parking_booking_started',
+  'parking_checkout_started',
+  'parking_payment_completed',
+  'parking_payment_failed',
+  'org_plan_checkout_started',
+  'org_plan_checkout_completed',
+  'org_plan_checkout_cancelled',
+  'org_plan_checkout_failed',
+  // Host adoption
+  'inbox_reply_sent',
+  'inbox_ai_suggest_used',
+  'meta_inbox_connected',
+  'meta_inbox_disconnected',
+  'marketing_caption_generated',
+  'marketing_post_published',
+  'marketing_publish_failed',
+  'ai_assistant_turn_completed',
+  'finance_entry_saved',
+  'maintenance_ticket_created',
+  'pricing_rates_saved',
+  'smart_pricing_applied',
+  'calendar_sync_connected',
+  'settings_saved',
+  'public_page_published',
+  'notification_opened',
+  'upgrade_modal_shown',
+  'upgrade_modal_cta_clicked',
+  // Discovery + guest account
+  'search_performed',
+  'for_hosts_cta_clicked',
+  'guest_favorite_toggled',
+  'guest_voucher_viewed',
+  'guest_message_sent',
+  'voice_session_requested',
+  'voice_entry_shown',
+  'voice_disclosure_accepted',
+  'voice_disclosure_cancelled',
+  'voice_mic_permission_outcome',
+  'voice_provider_connected',
+  'voice_setup_completed',
+  'voice_first_caption',
+  'voice_first_audio',
+  'voice_tool_started',
+  'voice_tool_completed',
+  'voice_tool_failed',
+  'voice_interrupted',
+  'voice_reconnected',
+  'voice_reconnect_started',
+  'voice_reconnect_failed',
+  'voice_session_ended',
+  'voice_session_failed',
+  'voice_handoff_offered',
+  'voice_handoff_selected',
+  'support_ticket_submitted',
+  // Super-admin
+  'super_admin_action',
+  'host_approval_resolved',
+  'platform_plan_updated',
+  // PWA + media
+  'pwa_install_prompt_shown',
+  'pwa_install_outcome',
+  'pwa_installed',
+  'pwa_push_changed',
+  'pwa_offline_queued',
+  'pwa_sync_failed',
+  'pwa_update_applied',
+  'pwa_kill_switch',
+  'media_optimized',
+  // Reliability
+  'edge_request_failed',
+] as const;
+
+export type AppAnalyticsEventName = (typeof APP_ANALYTICS_EVENTS)[number];
+
+const EVENT_SET = new Set<string>(APP_ANALYTICS_EVENTS);
+
+export function isAppAnalyticsEventName(name: string): name is AppAnalyticsEventName {
+  return EVENT_SET.has(name);
+}

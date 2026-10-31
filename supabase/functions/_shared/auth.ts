@@ -9,10 +9,10 @@
  *             block should re-throw it so the handler skeleton serializes it.
  *
  * Rules: .cursor/rules/admin-auth.mdc §3, §6
- * Plan:  docs/NEW_FLOW_PLAN.md §3.2
+ * Plan:  docs/planning/NEW_FLOW_PLAN.md §3.2
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createServiceClient } from './orgAuth.ts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,17 +24,17 @@ export type AdminUser = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function unauthorizedResponse(message: string): Response {
-  return new Response(
-    JSON.stringify({ success: false, error: message }),
-    { status: 401, headers: { 'Content-Type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({ success: false, error: message }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function forbiddenResponse(message: string): Response {
-  return new Response(
-    JSON.stringify({ success: false, error: message }),
-    { status: 403, headers: { 'Content-Type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({ success: false, error: message }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 // ─── Core verifier ────────────────────────────────────────────────────────────
@@ -58,10 +58,7 @@ export async function verifyAdminJwt(req: Request): Promise<AdminUser> {
   }
 
   // 2. Validate with Supabase Auth (uses service-role key to bypass anon RLS)
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
+  const supabase = createServiceClient();
 
   const { data, error } = await supabase.auth.getUser(jwt);
   if (error || !data.user) {
@@ -78,16 +75,31 @@ export async function verifyAdminJwt(req: Request): Promise<AdminUser> {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  if (allowedEmails.length === 0) {
-    console.error('[auth] ADMIN_ALLOWED_EMAILS is not set — denying all access');
-    throw forbiddenResponse('Admin access is not configured');
+  if (allowedEmails.includes(email.toLowerCase())) {
+    console.log(`[auth] Admin verified (allow-list): ${email}`);
+    return { id: user.id, email };
   }
 
-  if (!allowedEmails.includes(email.toLowerCase())) {
-    console.warn(`[auth] Access denied for email: ${email}`);
+  const supabaseOrg = createServiceClient();
+  const { count, error: orgError } = await supabaseOrg
+    .from('organizations')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', user.id);
+
+  if (orgError) {
+    console.error('[auth] org ownership check failed:', orgError.message);
     throw forbiddenResponse('Access restricted');
   }
 
-  console.log(`[auth] Admin verified: ${email}`);
-  return { id: user.id, email };
+  if ((count ?? 0) > 0) {
+    console.log(`[auth] Admin verified (org owner): ${email}`);
+    return { id: user.id, email };
+  }
+
+  if (allowedEmails.length === 0) {
+    console.error('[auth] ADMIN_ALLOWED_EMAILS is not set and user owns no org');
+  } else {
+    console.warn(`[auth] Access denied for email: ${email}`);
+  }
+  throw forbiddenResponse('Access restricted');
 }

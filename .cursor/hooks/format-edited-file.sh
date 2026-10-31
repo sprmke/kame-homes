@@ -16,8 +16,10 @@ fi
 
 format_with_prettier() {
   local target="$1"
-  # Prefer repo-local prettier via npx (no install prompt) so we don't depend on a global install.
-  # Timeouts: npx can be slow; prettier should take <5s for a single file.
+  # Prefer bunx (fast) then npx for repo-local prettier.
+  if command -v bunx >/dev/null 2>&1; then
+    bunx --bun prettier --write "$target" >/dev/null 2>&1 && return 0
+  fi
   if command -v npx >/dev/null 2>&1; then
     npx --no-install prettier --write "$target" >/dev/null 2>&1 && return 0
   fi
