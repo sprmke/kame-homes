@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+      - 'scripts/dev/seed-*.sql'
       - 'scripts/dev/probe-rls-anon-local.sh'
   workflow_dispatch:
   schedule:
