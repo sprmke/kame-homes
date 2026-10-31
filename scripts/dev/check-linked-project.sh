@@ -39,6 +39,9 @@ print_linked_project() {
 
   dev_ref="$(read_env_file_var "$env_file" "DEV_PROJECT_REF")"
   prod_ref="$(read_env_file_var "$env_file" "PROD_PROJECT_REF")"
+  local mt_prod_ref
+  mt_prod_ref="$(read_env_file_var "$_CHECK_LINKED_PROJECT_ROOT/supabase/.env.prod.local" "MT_PROD_PROJECT_REF")"
+  [[ -z "$mt_prod_ref" ]] && mt_prod_ref="fworvijbrwpyngycotbz"
 
   if [[ ! -f "$ref_file" ]]; then
     echo "You are linked to: (nothing — run 'bunx supabase@latest link --project-ref <ref>')"
@@ -47,9 +50,11 @@ print_linked_project() {
 
   LINKED_PROJECT_REF="$(tr -d '[:space:]' <"$ref_file")"
 
-  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" ]]; then
+  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" && "$LINKED_PROJECT_REF" != "$mt_prod_ref" ]]; then
     LINKED_PROJECT_KIND="dev"
   elif [[ -n "$prod_ref" && "$LINKED_PROJECT_REF" == "$prod_ref" ]]; then
+    LINKED_PROJECT_KIND="prod"
+  elif [[ "$LINKED_PROJECT_REF" == "$mt_prod_ref" ]]; then
     LINKED_PROJECT_KIND="prod"
   fi
 
