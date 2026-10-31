@@ -88,7 +88,7 @@
     "mobx-state-tree": "^7.0.2",
     "openpolotno": "^1.0.2",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.10.38",
+    "pdfjs-dist": "^6.4.299",
     "posthog-js": "^1.423.0",
     "react": "19.2.4",
     "react-day-picker": "^9.11.1",
