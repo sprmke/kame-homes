@@ -132,7 +132,11 @@ echo "→ supabase db dump --linked --role-only -f $ROLES_FILE"
 
 if [[ -n "$DB_URL" ]]; then
   echo "→ pg_dump managed auth/storage/cron metadata"
+  pg_dump_major=""
   if command -v pg_dump >/dev/null 2>&1; then
+    pg_dump_major="$(pg_dump --version 2>/dev/null | sed -n 's/.* \([0-9][0-9]*\).*/\1/p' | head -1)"
+  fi
+  if [[ -n "$pg_dump_major" && "$pg_dump_major" -ge 17 ]]; then
     pg_dump "$DB_URL" \
       --data-only --no-owner --no-privileges \
       --schema=auth --schema=storage --schema=cron \
@@ -142,6 +146,9 @@ if [[ -n "$DB_URL" ]]; then
       --data-only --no-owner --no-privileges \
       --schema=auth --schema=storage --schema=cron \
       >"$MANAGED_DATA_FILE"
+  elif [[ -n "$pg_dump_major" ]]; then
+    echo "ERROR: pg_dump is PostgreSQL $pg_dump_major; Supabase requires 17+. Install pg17 client or Docker." >&2
+    exit 1
   else
     echo "ERROR: pg_dump or Docker is required for managed-schema backup." >&2
     exit 1
