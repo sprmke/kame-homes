@@ -22,7 +22,11 @@ major_version = 17
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql", "../scripts/dev/seed-dashboard-demo-data.sql"]
+sql_paths = [
+  "../scripts/dev/seed-local-org-bootstrap.sql",
+  "./seed.sql",
+  "../scripts/dev/seed-dashboard-demo-data.sql",
+]
 
 # Admin sign-in (Google OAuth). Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET in
 # ui/.env.development (same file as Vite dev vars). dev.sh / npm run start:supabase
