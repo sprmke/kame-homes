@@ -94,6 +94,15 @@ After both fixes: `bun run db:reset` → exit 0 (all migrations + both seed file
 
 The `Migration Replay` workflow now gets past seeding and stops at its next step: `supabase db lint --fail-on error` reports `relation "cron.job" does not exist` (the local stack does not enable `pg_cron`, while several public functions reference `cron.job`), plus two older lint errors (`IMMUTABLE` marked on a `STABLE` expression, a mismatched assignment type). Those are lint-step configuration findings, tracked as PR-139.
 
+## Dev deployment after the fixes
+
+Functions on hosted dev were deployed from `develop` earlier in the session and no `supabase/functions/**` file changed after that (checked with `git diff 832cbf60..develop -- supabase/functions`). The only new migration is `20261316128950_marketing_media_library_paid_tiers.sql`; it reaches dev through the next `CD Dev` deploy or `bun run deploy:supabase:dev`.
+
+Two things kept `CD Dev` from doing that automatically today, both outside this session's scope:
+
+- The concurrent session's commit `d272a958` added `@ci` specs (`adminSystemHealth` "check now", assistant canvas minimum width) that fail in the `quality` job, so `deploy` is skipped.
+- The local Supabase CLI login changed mid-session to an account that cannot see the `fwor…` project (`supabase projects list` no longer lists it, `db query --linked` → 403), so a manual deploy was not possible afterwards either. GitHub's `SUPABASE_ACCESS_TOKEN` secret is unaffected.
+
 ## Open after this pass
 
 | ID     | Item                                                                                                                                                     | Owner           |
