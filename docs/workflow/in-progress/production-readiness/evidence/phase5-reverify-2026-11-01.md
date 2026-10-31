@@ -83,6 +83,17 @@ Re-ran the automated sweep and the hosted-dev probes on the current `develop` tr
 
 After the repair: `test:e2e:ci` = **296 passed, 9 skipped (fixme), 0 failed** (re-run at the end of the session).
 
+## Fresh replay (Phase 5.6)
+
+`bun run db:reset` on a clean checkout **failed** before this pass:
+
+- `supabase/seed.sql` inserts properties/parkings for organization `405ea07f…`, which no migration creates any more → `properties_organization_id_fkey` violation during `supabase start`, `db reset` and the `Migration Replay` workflow (run `41234319626`). Fixed by seeding a deterministic owner + that organization at the top of the seed (idempotent).
+- `bun run check:plan-catalog` failed on the fresh database: Starter → Managed carried the **Free** `marketingMediaLibrary` quotas. The per-tier backfill in the shipped tree is guarded by `NOT (features ? 'marketingMediaLibrary')`, which never fires because the plan seeds write the key first. Fixed with a new migration that writes the golden values where a plan still has the Free default.
+
+After both fixes: `bun run db:reset` → exit 0 (all migrations + both seed files), `bun run check:plan-catalog` → "Plan catalog matches the golden matrix (6 plans)".
+
+The `Migration Replay` workflow now gets past seeding and stops at its next step: `supabase db lint --fail-on error` reports `relation "cron.job" does not exist` (the local stack does not enable `pg_cron`, while several public functions reference `cron.job`), plus two older lint errors (`IMMUTABLE` marked on a `STABLE` expression, a mismatched assignment type). Those are lint-step configuration findings, tracked as PR-139.
+
 ## Open after this pass
 
 | ID     | Item                                                                                                                                                     | Owner           |

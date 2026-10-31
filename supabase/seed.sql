@@ -6,6 +6,40 @@
 -- Dashboard demo (bookings / finance / maintenance): also loaded on db reset via
 -- `supabase/config.toml` → `../scripts/dev/seed-dashboard-demo-data.sql`.
 
+-- ── Seed owner + organization ────────────────────────────────────────
+-- The property/parking fixtures below point at this organization. A fresh
+-- `db reset` starts with empty `auth.users` and `organizations`, so create both
+-- here or the seed dies on `properties_organization_id_fkey`.
+INSERT INTO auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+VALUES (
+  'd74b9d44-6244-40f0-9160-7c281738e8c0',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'seed-owner@example.com',
+  crypt('seed-password', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{}'::jsonb,
+  now(),
+  now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO organizations (id, owner_id, name, slug, settings, host_modes)
+VALUES (
+  '405ea07f-cc21-4bcc-b540-28729be79f0d',
+  'd74b9d44-6244-40f0-9160-7c281738e8c0',
+  'Kame Homes',
+  'kame-homes',
+  '{}'::jsonb,
+  ARRAY['property']::text[]
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- ── Developments (name unique globally) ──────────────────────────────
 INSERT INTO developments (
   id, slug, name, developer_name, type, status, location, city, description,
