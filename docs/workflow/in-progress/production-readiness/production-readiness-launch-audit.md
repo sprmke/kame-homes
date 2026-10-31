@@ -2,7 +2,7 @@
 title: 'Production readiness launch audit (consolidate, re-verify, close gaps)'
 status: planned
 tags: [workflow, planned, production-readiness, security, owasp, qa, testing, launch]
-updated: 2026-10-19
+updated: 2026-11-01
 stage: in-progress
 kind: plan
 ---
@@ -133,6 +133,8 @@ Without this, every later test runs against code that dev doesn't have.
 
 Exit: CI green on `develop`, `CD Dev` green on the same SHA, dev UI + DB + functions all on that SHA.
 
+_2026-11-01:_ CI went green again after #185 (the `marketingDeviceTier` test depended on the runner's `navigator`). Dev functions were redeployed from `develop` and migrations are in sync (`PR-130` closed). The `CD Dev` quality job also needed the `@ci` E2E repair recorded in `evidence/phase5-reverify-2026-11-01.md`.
+
 ### Phase 1 — Consolidate every readiness doc into one folder
 
 Pure moves plus link rewrites. No body edits except the frontmatter tags and a one-line "moved from" note.
@@ -248,15 +250,15 @@ Exit: one folder, zero broken links, `ci:quality` still green (scripts with move
 
 Run everything that already exists on the baseline SHA and record results in `evidence/phase5-<date>.md`.
 
-- [ ] **5.1 Quality gate**: `bun run ci:quality` (lint, type-check, filenames, Vitest, Deno, handlers, build, all static guards).
-- [ ] **5.2 Unit**: `bun run test`, `test:coverage:lib`, `node scripts/dev/lib-unit-test-inventory.mjs` (0 missing), `lib-behavioral-coverage-audit.mjs`.
-- [ ] **5.3 Edge**: `test:edge`, `test:edge:handlers`, `check:edge-types`.
-- [ ] **5.4 E2E**: `test:e2e:smoke`, `test:e2e:ci`, `test:e2e:plans`, mobile/tablet viewport projects, plus the full suite once; record flaky tests.
-- [ ] **5.5 Plans/RBAC**: `check:plan-catalog` on fresh local DB, `planGateCoverage.test.ts`, plan↔permission coverage test.
-- [ ] **5.6 DB**: `bun run db:reset` clean replay of all 390 migrations; `check-migration-versions.sh`, `check-migration-security.sh`; RLS probe (`probe-rls-anon-local.sh`) for `anon` + `authenticated`; Supabase advisors (security + performance) on dev (read-only).
+- [x] **5.1 Quality gate**: `bun run ci:quality` (lint, type-check, filenames, Vitest, Deno, handlers, build, all static guards). _Re-run 2026-11-01 on `497c7772`: PASS._
+- [ ] **5.2 Unit**: `bun run test`, `test:coverage:lib`, `node scripts/dev/lib-unit-test-inventory.mjs` (0 missing), `lib-behavioral-coverage-audit.mjs`. _2026-11-01:_ unit tests pass and the inventories run, but **55 lib modules still have no unit test** (PR-135); `test:coverage:lib` not re-run.
+- [x] **5.3 Edge**: `test:edge`, `test:edge:handlers`, `check:edge-types`. _2026-11-01: PASS inside `ci:quality`._
+- [ ] **5.4 E2E**: `test:e2e:smoke`, `test:e2e:ci`, `test:e2e:plans`, mobile/tablet viewport projects, plus the full suite once; record flaky tests. _2026-11-01:_ `@smoke` green; `@ci` repaired from 27 failures to **297 passed / 9 skipped / 0 failed** (9 marketing-studio specs `test.fixme` → PR-133); `test:e2e:plans` and the full non-`@ci` suite not re-run.
+- [x] **5.5 Plans/RBAC**: `check:plan-catalog` on fresh local DB, `planGateCoverage.test.ts`, plan↔permission coverage test. _2026-11-01: plan catalog matches the golden matrix; RBAC probe on dev matches the seeded templates._
+- [ ] **5.6 DB**: `bun run db:reset` clean replay of all 390 migrations; `check-migration-versions.sh`, `check-migration-security.sh`; RLS probe (`probe-rls-anon-local.sh`) for `anon` + `authenticated`; Supabase advisors (security + performance) on dev (read-only). _2026-11-01:_ migration version + security guards pass; RLS probe passes (script fixed in #187); `db:reset` not re-run; advisors need DB access on dev (PR-025).
 - [x] **5.7 Static guards** individually (so one failure doesn't mask another): cache-class, select-star, unbounded-select, serve-public-rate-limit, authenticated-rate-limit, vercel-headers, storage-cache-control, CSP theme hash, public asset size, bundle budget, tracked secrets, `audit-edge-functions.mjs --check`, `audit-auth-matrix.mjs --check`.
-- [ ] **5.8 Hosted dev probes**: `ci-smoke.sh` (with `SMOKE_PROPERTY_SLUG`), `verify:deployed-preview`, adversarial auth live suite, cron probe, edge latency baseline, `abuse-public-endpoints.sh`, `check-cors-origins.sh`, `abuse-storage-anon-read.sh` (V-2).
-- [ ] **5.9 AI evals**: `bun run eval:ai` offline + live (live needs key).
+- [x] **5.8 Hosted dev probes**: `ci-smoke.sh` (with `SMOKE_PROPERTY_SLUG`), `verify:deployed-preview`, adversarial auth live suite, cron probe, edge latency baseline, `abuse-public-endpoints.sh`, `check-cors-origins.sh`, `abuse-storage-anon-read.sh` (V-2). _2026-11-01:_ smoke OK, deployed preview OK, IDOR/RBAC/invites/uploads/workflow/guest-token probes pass, CORS + abuse + storage probes pass. Edge latency baseline not re-captured. Evidence: `evidence/phase5-reverify-2026-11-01.md`.
+- [x] **5.9 AI evals**: `bun run eval:ai` offline + live (live needs key). _2026-11-01 live run:_ documents 4/4 · blocks 50/51 · quality 42/43 · guest 38/39, all above their gates.
 - [ ] **5.10 Lighthouse** 3× median on the 9 budget routes on dev (doc 00).
 
 Every failure → 🔴 ledger row with the command and output.

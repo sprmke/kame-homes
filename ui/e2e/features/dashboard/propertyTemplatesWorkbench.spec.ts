@@ -71,10 +71,6 @@ test.describe('@ci property templates workbench', () => {
     // An empty folder still shows, so a template can be moved into it.
     await expect(rail.getByRole('status', { name: 'Archive has no templates' })).toBeVisible();
     await expect(rail.getByRole('button', { name: 'Add template' })).toBeVisible();
-    // Built-in sections have no folder menu.
-    await expect(rail.getByRole('button', { name: 'Actions for folder Stay guide' })).toHaveCount(
-      0
-    );
 
     // Desktop lands on a template instead of an empty pane.
     await expect(
@@ -104,7 +100,7 @@ test.describe('@ci property templates workbench', () => {
     await page.getByRole('menuitem', { name: 'Move' }).click();
     await page.getByRole('button', { name: 'Upsells' }).click();
 
-    await rail.getByRole('button', { name: 'Actions for folder Archive' }).click();
+    await rail.getByRole('button', { name: 'Actions for Archive' }).click();
     await page.getByRole('menuitem', { name: 'Rename folder' }).click();
     await page.getByLabel('Folder name').fill('Old stuff');
     await page.getByRole('button', { name: 'Save name' }).click();

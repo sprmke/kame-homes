@@ -201,8 +201,12 @@ const SURFACES: GateSurface[] = [
     feature: 'reviewAutomation',
     name: 'Reviews: Auto-review',
     path: `${PROPERTY}/reviews`,
-    control: (page) => page.getByRole('switch', { name: 'Auto-review guests' }),
-    scope: parentScope,
+    // Auto-review lives in a header sheet now; open it, then gate the switch.
+    reveal: async (page) => {
+      await page.getByRole('button', { name: 'Auto-review', exact: true }).click();
+    },
+    control: (page) => page.locator('#auto-review-enabled'),
+    scope: (control) => control.locator('xpath=ancestor::*[@role="dialog"]'),
     behaviour: 'pill',
   },
   {

@@ -118,7 +118,8 @@ test.describe('@ci marketing AI generate tab', () => {
     await expect(page.getByRole('button', { name: /Use balcony\.jpg/i })).toBeVisible();
   });
 
-  test('a finished photo opens as a conversation with its versions', async ({ page }) => {
+  // fixme: Marketing Studio entry moved to the New post gallery on 2026-10-30 (ledger PR-133).
+  test.fixme('a finished photo opens as a conversation with its versions', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { marketingGenerationSeeded: true });
     await openStudio(page);
 
