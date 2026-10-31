@@ -1,0 +1,61 @@
+---
+description: Workflow docs lifecycle — in-progress tracking, no silent moves
+alwaysApply: false
+---
+
+# Workflow docs
+
+Active feature work uses **`docs/workflow/`** lifecycle folders:
+
+```
+intake → planned → in-progress → for-testing → done
+                    ↘ wont-do (cancelled)
+```
+
+## Stage definitions
+
+| Folder         | Meaning                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `planned/`     | Plan written — **implementation not started**                                                                                 |
+| `in-progress/` | **Work started** — plan not fully complete (partial phases / v1 slices still count as in-progress until the plan is closed)   |
+| `for-testing/` | **Implementation complete** — only manual verification / QA remains (move here from `in-progress/` when code scope is closed) |
+| `done/`        | Plan **fully complete** (verification passed; or pointer doc when all phases shipped)                                         |
+| `wont-do/`     | Explicitly cancelled                                                                                                          |
+
+Do not leave a partially shipped plan in `planned/` because a slice landed in `done/` — move the **parent plan** to `in-progress/` at first implementation, then to `done/` only when remaining scope is finished or formally closed.
+
+## Intake scratchpads (always in `intake/`)
+
+| File            | Role                 |
+| --------------- | -------------------- |
+| `_to-prompt.md` | Prompt-sized backlog |
+| `_to-plan.md`   | Plan-sized backlog   |
+
+**Status emojis on every item title:** ✅ done · 🧪 for testing · 🚧 in progress · 📋 planned · 🔵 open · ❌ cancelled/won't do
+
+Sync scratchpads **in the same change** as `/workflow-start`, `/workflow-done`, `/workflow-wont-do`, new plans, or explicit cancel decisions. Skill: **`.agent/skills/workflow-intake-scratchpads/SKILL.md`**. Automated emoji sync: **`bun run sync:workflow-scratchpads`** or **`/workflow-sync-scratchpads`**. Pre-commit: `scripts/dev/check-workflow-scratchpads.sh`.
+
+## Agent behavior
+
+1. **Session start:** check `docs/workflow/in-progress/*.md` for the primary task doc.
+2. **Starting work:** run `/workflow-start` or `scripts/dev/workflow-move.sh start <slug>` — move the **plan** and its **`<slug>-design.md` spec** from `intake/` or `planned/` to `in-progress/`; run sync (automatic via `workflow-move.sh`) and add `→ **In progress:**` link on matching scratchpad item; never move files silently.
+3. **Implementation done, QA pending:** move the **plan** (+ design spec) from `in-progress/` to `for-testing/` when code scope is closed and only manual verification remains; scratchpad → **🧪** with `→ **For testing:**` link.
+4. **Finishing work:** run `/workflow-done` or `scripts/dev/workflow-move.sh done <slug>` — move the **plan** and **design spec** from `in-progress/` or `for-testing/` to `done/` **only when verification passes**; run sync (automatic via `workflow-move.sh`) and add `→ **Done:**` link on matching scratchpad item.
+5. **New plans:** write to `docs/workflow/planned/` per `plan-mode.mdc`; update `docs/workflow/planned/README.md` index; scratchpad item → **📋** with plan link. Move to **`in-progress/`** on first implementation (`/workflow-start`) — even if only Phase 1 or a v1 slice ships first.
+6. **New design specs:** write to `docs/workflow/intake/<slug>-design.md` while awaiting a plan. **`intake/` = active specs only** — when shipped or in progress, the spec lives beside the plan in `in-progress/`, `for-testing/`, or `done/`, not in `intake/`.
+7. **Cancelled / won't do:** run `/workflow-wont-do` or `scripts/dev/workflow-move.sh wont-do <slug>` — move plan (+ design spec) to `docs/workflow/wont-do/`; scratchpad item → **❌** with `→ **Won't do:**` link and one-line reason; add row to `wont-do/README.md`. Scratchpad-only cancels (no plan file): **❌** + reason in scratchpad only, or add minimal doc in `wont-do/`.
+8. **Legacy / historical:** `docs/archive/` — read-only unless explicitly archiving more material.
+
+## Frontmatter
+
+Workflow items should include `stage:` (`intake` | `planned` | `in-progress` | `for-testing` | `done` | `wont-do`) and `updated:` (YYYY-MM-DD). Pre-commit bumps `updated:` on staged in-progress / for-testing files and scratchpads.
+
+## Naming
+
+**`<kebab-case-slug>.md`** — no `YYYY-MM-DD-` prefix. Intake specs: `<slug>-design.md`. Use frontmatter `updated:` for dates.
+
+## Do not
+
+- Edit markdown **bodies** in `workflow/planned/` after initial write (except user-requested changes).
+- Recreate `docs/superpowers/`, `docs/planning/`, or `docs/todos/` — retired; use `docs/workflow/` and `docs/README.md` (GitHub backlog).
+- Mark scratchpad items **✅/🚧/📋/❌** without updating the matching workflow folder doc (when a plan existed).

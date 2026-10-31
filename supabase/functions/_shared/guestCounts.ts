@@ -12,7 +12,7 @@ export type GuestSlot = {
 };
 
 function parseGuestAge(age: unknown): number | null {
-  if (age == null || age === "") return null;
+  if (age == null || age === '') return null;
   const n = Number(age);
   return Number.isFinite(n) ? n : null;
 }
@@ -75,6 +75,43 @@ export function computeAzureGuestCountsByAge(guests: GuestSlot[]): {
   return { adults, children };
 }
 
+export type PropertyGuestCapacity = {
+  maxAdults: number;
+  maxChildren: number;
+};
+
+/** Property-scoped party rules enforced on public guest form submit only. */
+export function assertPropertyGuestPartyRules(
+  guests: GuestSlot[],
+  capacity: PropertyGuestCapacity
+): void {
+  const partySize = getActivePartySize(guests);
+
+  if (partySize === MAX_GUESTS) {
+    const fifthAge = parseGuestAge(guests[MAX_GUESTS - 1]?.age);
+    if (fifthAge != null && fifthAge > FIFTH_PARTY_GUEST_MAX_AGE) {
+      throw new Error(`The 5th guest must be ${FIFTH_PARTY_GUEST_MAX_AGE} years old or younger`);
+    }
+  }
+
+  const activeGuests = guests.filter((guest) => {
+    const age = parseGuestAge(guest.age);
+    return guest.name?.trim() || age != null;
+  });
+
+  const occupancyCounts = computeAzureGuestCountsByAge(activeGuests);
+
+  if (
+    occupancyCounts.adults > capacity.maxAdults ||
+    occupancyCounts.children > capacity.maxChildren
+  ) {
+    const childLabel = capacity.maxChildren === 1 ? 'child' : 'children';
+    throw new Error(
+      `Please note that this unit allows a maximum of ${capacity.maxAdults} adults and ${capacity.maxChildren} ${childLabel} in the unit and at the swimming pool.`
+    );
+  }
+}
+
 export function getActivePartySize(guests: GuestSlot[]): number {
   let highest = 1;
   guests.forEach((guest, index) => {
@@ -93,9 +130,7 @@ export function assertAzureGuestPartyRules(guests: GuestSlot[]): void {
   if (partySize === MAX_GUESTS) {
     const fifthAge = parseGuestAge(guests[MAX_GUESTS - 1]?.age);
     if (fifthAge != null && fifthAge > FIFTH_PARTY_GUEST_MAX_AGE) {
-      throw new Error(
-        `The 5th guest must be ${FIFTH_PARTY_GUEST_MAX_AGE} years old or younger`,
-      );
+      throw new Error(`The 5th guest must be ${FIFTH_PARTY_GUEST_MAX_AGE} years old or younger`);
     }
   }
 
@@ -103,29 +138,28 @@ export function assertAzureGuestPartyRules(guests: GuestSlot[]): void {
     guests.filter((guest) => {
       const age = parseGuestAge(guest.age);
       return guest.name?.trim() || age != null;
-    }),
+    })
   );
 
   if (azureCounts.adults > AZURE_MAX_ADULTS) {
     throw new Error(
-      "Please note that Azure only allows a maximum of 4 adults and 1 child in the unit and at the swimming pool. Please enter age 3 or below for the 5th guest.",
+      'Please note that Azure only allows a maximum of 4 adults and 1 child in the unit and at the swimming pool. Please enter age 3 or below for the 5th guest.'
     );
   }
 }
 
 export function guestPartySlotsFromFormData(formData: FormData): GuestSlot[] {
-  const primaryGuestName =
-    (formData.get("primaryGuestName") as string)?.trim() || "";
-  const guest2Name = (formData.get("guest2Name") as string)?.trim() || "";
-  const guest3Name = (formData.get("guest3Name") as string)?.trim() || "";
-  const guest4Name = (formData.get("guest4Name") as string)?.trim() || "";
-  const guest5Name = (formData.get("guest5Name") as string)?.trim() || "";
+  const primaryGuestName = (formData.get('primaryGuestName') as string)?.trim() || '';
+  const guest2Name = (formData.get('guest2Name') as string)?.trim() || '';
+  const guest3Name = (formData.get('guest3Name') as string)?.trim() || '';
+  const guest4Name = (formData.get('guest4Name') as string)?.trim() || '';
+  const guest5Name = (formData.get('guest5Name') as string)?.trim() || '';
 
   return [
-    { name: primaryGuestName, age: formData.get("primaryGuestAge") },
-    { name: guest2Name, age: formData.get("guest2Age") },
-    { name: guest3Name, age: formData.get("guest3Age") },
-    { name: guest4Name, age: formData.get("guest4Age") },
-    { name: guest5Name, age: formData.get("guest5Age") },
+    { name: primaryGuestName, age: formData.get('primaryGuestAge') },
+    { name: guest2Name, age: formData.get('guest2Age') },
+    { name: guest3Name, age: formData.get('guest3Age') },
+    { name: guest4Name, age: formData.get('guest4Age') },
+    { name: guest5Name, age: formData.get('guest5Age') },
   ];
 }

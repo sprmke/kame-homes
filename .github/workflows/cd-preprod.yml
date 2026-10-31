@@ -1,0 +1,61 @@
+name: CD Preprod (manual promote)
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_all:
+        description: 'Pass --include-all to db push (migration repair)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: preproduction
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate secrets
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+        run: |
+          if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+            echo "Configure preproduction environment: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, LEGACY_PROD_PROJECT_REF."
+            exit 1
+          fi
+          if [[ -n "${LEGACY_PROD_PROJECT_REF:-}" && "${SUPABASE_PROJECT_REF}" == "${LEGACY_PROD_PROJECT_REF}" ]]; then
+            echo "Refusing: SUPABASE_PROJECT_REF must not equal LEGACY_PROD_PROJECT_REF."
+            exit 1
+          fi
+          echo "Target ref: ...${SUPABASE_PROJECT_REF: -4}"
+
+      - name: Deploy Supabase (preprod)
+        env:
+          CI: '1'
+          DEPLOY_CONFIRM: dev
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+        run: |
+          chmod +x scripts/deploy/ci-deploy.sh scripts/deploy/deploy-supabase-dev.sh
+          EXTRA=()
+          if [[ "${{ inputs.include_all }}" == "true" ]]; then
+            EXTRA+=(--include-all)
+          fi
+          ./scripts/deploy/ci-deploy.sh dev -- "${EXTRA[@]}"
+
+      - name: Smoke
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+        run: ./scripts/deploy/ci-smoke.sh dev

@@ -1,28 +1,31 @@
 ---
-description: Mobile-first, responsive UI standards for every screen and component in this project. Apply to all new UI work in ui/src/**.
+description: Mobile-first, responsive UI standards for every screen and component in this project. Apply to all new UI work in ui/src/**. Full gate: mobile-native-ui.mdc (always-on).
 globs:
-  - "ui/src/**/*.tsx"
-  - "ui/src/**/*.ts"
-alwaysApply: true
+  - 'ui/src/**/*.tsx'
+  - 'ui/src/**/*.ts'
+alwaysApply: false
 ---
 
 # Mobile-first responsive UI — agent reference
 
-Every UI component in this project must work correctly at **375 px** (iPhone SE), **390 px** (iPhone 15), **768 px** (iPad), **1024 px** (laptop), and **1440 px** (desktop). Design mobile first; use Tailwind breakpoints to scale up, not down.
+**Always-on gate:** `.cursor/rules/mobile-native-ui.mdc` (every session). This file is the full spec when editing `ui/src/**`.
+
+Every UI component must work correctly at **375 px** (iPhone SE), **390 px** (iPhone 15), **768 px** (iPad), **1024 px** (laptop), and **1440 px** (desktop). Design mobile first; use Tailwind breakpoints to scale up, not down.
 
 ## 1. Breakpoint strategy
 
 Use **Tailwind's default min-width breakpoints** in this order:
 
-| Prefix | Min width | Context |
-|--------|-----------|---------|
-| _(none)_ | 0 px | Mobile default — design here first |
-| `sm:` | 640 px | Large phone / small tablet |
-| `md:` | 768 px | Tablet portrait |
-| `lg:` | 1024 px | Laptop — sidebar becomes visible |
-| `xl:` | 1280 px | Desktop |
+| Prefix   | Min width | Context                            |
+| -------- | --------- | ---------------------------------- |
+| _(none)_ | 0 px      | Mobile default — design here first |
+| `sm:`    | 640 px    | Large phone / small tablet         |
+| `md:`    | 768 px    | Tablet portrait                    |
+| `lg:`    | 1024 px   | Laptop — sidebar becomes visible   |
+| `xl:`    | 1280 px   | Desktop                            |
 
 **Rules:**
+
 - Write the mobile style first (no prefix), then add `sm:`, `md:`, `lg:` overrides.
 - Never write desktop-only styles without a mobile fallback.
 - Never use `max-w-` breakpoints (max-width queries); always min-width.
@@ -34,25 +37,47 @@ The admin shell (`AdminLayout`) follows this pattern:
 ```
 Mobile (<lg):
   ┌────────────────────────────────────┐
-  │ Topbar (56px sticky)               │
-  │  [K] Bookings      [refresh] [+]   │
+  │ Topbar (tenant switcher)           │
   ├────────────────────────────────────┤
   │ Page content (scrolls)             │
-  │  p-3 sm:p-4 lg:p-6                 │
+  │  p-3 sm:p-4 + bottom tab inset     │
+  ├────────────────────────────────────┤
+  │ BottomTabBar (primary + More)      │
+  │  or ContextualActionBar (edit)     │
   └────────────────────────────────────┘
 
 Desktop (lg+):
   ┌──────────┬─────────────────────────┐
-  │ Sidebar  │ Topbar (56px sticky)    │
-  │ (fixed,  ├─────────────────────────┤
-  │  220px)  │ Page content            │
-  │          │  p-5 lg:p-6             │
+  │ Sidebar  │ Page content            │
+  │ (flex,   │  p-5 lg:p-6             │
+  │  collapsible) │                    │
   └──────────┴─────────────────────────┘
 ```
 
-- Sidebar is `hidden lg:flex` + `position: fixed`.
-- Main area uses `lg:pl-[220px]` to offset from the fixed sidebar.
-- On mobile, the **topbar** is the sole navigation surface.
+- Desktop sidebar is `hidden lg:flex` (collapsible width); main column fills the rest.
+- On mobile, **bottom tabs** are the primary navigation: **Dashboard**, **Bookings**, **Inbox** (when present), **Notifications**, **Assistant** (when enabled), and **More**. Assistant and Notifications open the same slide-over / sheet as desktop — they are not extra header icons. Remaining pages (including Finance) live in the More sheet. The hamburger drawer is retired. More sheet nav rows use dense chrome (`text-[13px]` / `size-4` icons, 44px min height) — same scale as ModeSwitcher / list toolbars, not `text-sm` body.
+- Screens with a dominant primary action (e.g. booking edit Save/Cancel) mount `ContextualActionBar`, which hides the tab bar for that route.
+- Shared primitives: `ui/src/components/mobile/` (`BottomTabBar`, `BottomBarSlot`, `ContextualActionBar`, `MobileAppShell`, `PageTransition`, `MobileHeroActionMenu`, `AdminListRefineSheet`).
+- **Hero trailing:** never render multiple icon buttons. Use `MobileHeroActionMenu` (1 item = direct icon; 2+ = one ··· dropdown).
+- **Hero action size:** `MobileHeroActionButton` / `mobileHeroActionClassName` = visual `size-9` (36px) + invisible hit pad to ≥44px; icons `size-4`. Sticky chrome densifies further to `size-8`. Do not use `size-11` / `size-5` icons on the teal hero.
+- **List toolbars (`max-lg`):** search + refine icon (`AdminListRefineSheet` for filters/sort/per-page) + view toggle — do not stack Status/Filters/Sort/Per-page as full-width rows. Desktop (`lg+`) keeps inline toolbars.
+- **Dashboard density (`max-lg`):** hide page/hero subtitles (`AdminMobilePage` / `AdminPageHeader` / `MobileBrandHero` — never re-show them as body copy below `lg`), KPI decorative icons, repeated “vs last period” labels, chart icon wells/descriptions, and period eyebrows when the date filter already conveys the range. Prefer title-only section headers. **Card-header segments** (`AdminSurfaceCardHeader` actions: Name/Price, All/Income/Expenses, revenue/bookings): always **right of the title on one row**, `SegmentedControl` `size="dense"` + `equalSegments`, shared `cardHeaderSegmented*ClassName` (~28px track, 11px labels) — never stack under the title or use content-sized uneven pills. Form/toolbar segments use dense (~32px); page/section strips use compact/primary (~36px). Never `min-h-[44px]` on segment triggers (`fullWidth` for equal Sign/Upload-style pairs). Keep comfortable card/section gaps (≈10–14px gutters, `p-3`+ padding) — dense chrome, not cramped type.
+- **Choice pickers (`max-lg`):** do not use tiny floating `DropdownMenu` / absolute popovers for option lists — use `MobileChoiceSheet` (≥48px rows). Applies to date presets, Guest pages, hero ··· menus, `AdminSortMenu`, `AdminSingleSelectFilter`, and similar. Desktop (`lg+`) keeps anchored menus.
+- **Floating pill tab bar** — solid brand active pill; ~18px icons (stroke 1.75), 10px labels, 48px row; shared `mobileFloatingDockClassName`; tab clearance `bottomTabBarOffsetClassName()` on `MobileAppShell` for document-scroll pages, or on the **inner scrollport** for fill-main (shell `pb` there creates a dead gap and clips content). Do not use shell `p-*` shorthand or twMerge drops the clearance.
+- **Sticky chrome (`max-lg`):** brand hero has a **straight bottom edge** (no arc) — scroll parallax compresses the title + bottom pad only (`--hero-collapse`), never re-adds a curve; floating toolbar (e.g. date range) straddles that seam and morphs to fixed `MobileStickyChrome` when it reaches the top (`useMobileStickyChrome`). Heavy lists: compact sticky row + More sheet. No nested scrollports. Desktop `lg+` unchanged.
+- **Hero bottom pad (`max-lg`):** the tall `2.5rem` hero bottom pad only exists to seat a straddling float. Pages **without** an `overlap`/float (Inbox, Notifications, Plans, Settings, Team…) pass `MobileBrandHero flush` (`AdminMobilePage` sets it from `!overlap`) → `.mobile-brand-hero--flush` tightens it to `~0.9rem` so the title sits just above the white canvas, not over an empty green band. No `-mt-6` canvas tuck; no-float stack pad is `pt-3`.
+- **Brand hero on a bespoke page:** a page that can't use `AdminMobilePage` (own workflow-first layout / own desktop header — e.g. property `BookingDetailPage`) can still render `<MobileBrandHero className="md:hidden" flush collapseProgress={useMobileHeroCollapseProgress(heroRef, isBelowMd)} />` directly. Mark its content root `data-page-brand-hero` — a scoped `@media (max-width:767px)` rule in `index.css` then drops the `AdminLayout` fallback topbar + shell gutter below `md` (tablet/desktop keep the plain topbar). Re-add the phone gutter with `max-md:px-3.5 max-md:pt-3`. The hero owns the page `h1`, so demote any in-body page heading to `h2`.
+- Content language: `surface-card` floats on mobile (`shadow-native`, borderless); use `native-cta`, `native-page-canvas`, `native-stagger`, `native-press` for mockup-aligned density.
+- Modals: **never render a centered desktop-style `Dialog` on mobile — anywhere (dashboard or guest).** Every modal uses `ResponsiveModal` (`ui/src/components/ui/responsive-modal.tsx`): centered `Dialog` on `lg+`, bottom sheet below `lg`. Guest-facing modals go through `GuestDialogShell` (which wraps `ResponsiveModal`). **General dashboard Save/Cancel form modals** use `AdminDialogShell` (`ui/src/components/AdminDialogShell.tsx`) — fixed title, scrollable body, fixed actions. Do not wrap custom wizards, approval reviews, lightboxes, or `AlertDialog` confirms in it. Do not import `@/components/ui/dialog` directly in feature code (only `responsive-modal` / `GuestDialogShell` / `AdminDialogShell` re-expose it). Sticky header/footer + body scroll → `sheetLayout="split"` (never `overflow-hidden` alone without a `min-h-0 flex-1 overflow-y-auto` body). `split` also locks the desktop dialog (`flex` column, `overflow-hidden`) so the title and actions stay fixed. Tall sheets need a definite height (`max-lg:h-[min(92dvh,44rem)]`), not `h-[min(92dvh,max-content)]`, or the whole sheet scrolls. Exceptions: `AlertDialog` for OS-style destructive confirms, and full-screen media/document lightboxes (`modal-scrim-lightbox`) that already fill the viewport.
+
+## 2b. Layout — guest-facing marketing, booking flow, and account
+
+Mirrors the admin shell's bottom-nav/`ContextualActionBar` pattern (§2), adapted per guest surface. All guest bottom bars share the same `ui/src/components/mobile/` primitives (`BottomBarSlotProvider`, `BottomTabBar`, `ContextualActionBar`, `bottomTabBarOffsetClassName`) — never a bespoke hand-rolled `fixed inset-x-0 bottom-0` bar.
+
+- **Marketing site** (`MarketingLayoutShell`, everything under `/`, `/properties`, `/parkings`, `/developments`, `/for-hosts*`, `/account/*`, legal/about/contact/support): `MarketingLayoutShell` wraps its `Outlet` in `BottomBarSlotProvider`; `MarketingBottomNav.tsx` renders a 5-tab `BottomTabBar` (Explore, Properties, Parkings — active-matches `/developments` too, Account, More) that is mode-aware (guest/Explore vs host/`for-hosts` mode swaps the Account tab's resolved href and the More sheet's sign-in link via `getAuthAudienceFromPath`/`getAppModeFromPath`). `MarketingMoreSheet.tsx` holds secondary links (Explore Developments/Services, For hosts, Company, Legal — shared with `MarketingFooter` via `marketingSiteLinks.ts`), contact email/phone, socials + copyright, `ThemeToggle`. `MarketingFooter` is `hidden lg:block` — phones get no page footer; the More sheet replaces it, the reused `ModeSwitcher`, **Dashboard** when signed in, and sign out. `MarketingNav.tsx`'s top header stays fixed but is logo-only on phone (nav links/CTA/account are `lg:flex`-gated) — the hamburger + full-screen `AnimatePresence` overlay it used to render on `<lg` is retired entirely; do not resurrect it.
+- **Guest account section** (`/account/*`, nested inside the marketing shell above): keeps its **own top** `GuestAccountMobileNav` strip (`sticky top-16 z-30 lg:hidden`, `SlidingActivePill`) for Profile/Stays/Vouchers/Favorites/Tickets — **do not** turn this into a second bottom `BottomTabBar`. `/account/*` already renders the marketing-wide bottom tab bar above; a second bottom bar for the account sub-section would stack two bottom navs on one screen (`avoid-mixed-patterns` / `bottom-nav-top-level`). This mirrors how admin's Settings sub-nav stays top-level chrome rather than becoming a second dock.
+- **Property/parking operational flow** (`MainLayout`, `/properties/:slug/{calendar,messages,form,success,sd-form,guest-review,parking/:id}`): `MainLayout` takes optional `bottomTabs`/`bottomTabsActiveKey` props — when passed (property routes only), it wraps in the same `BottomBarSlotProvider` + `BottomTabBar` (Property/Calendar/Messages, 3 items). A wizard step with one dominant Back/Continue/Submit action (`GuestFormStepNavigation`'s `mobileVariant="floating"`, or a page's own `useIsBelowLg()` + `ContextualActionBar` wrap) auto-hides the tab bar for that route via the shared slot — exactly the admin edit-form pattern. Screens with no single dominant action (`guest-review`, `sd-form` steps 1–2, the legacy `parking/:bookingId` redirect stub) correctly keep the tab bar visible; don't force a `ContextualActionBar` onto them. Single-purpose pages reached outside this shell (`PayParkingPage` standalone route, `ParkingRequestStatusPage`, `ParkingFormPage`) omit `bottomTabs` entirely — no tab bar, no siblings to switch between. A component whose nav renders in more than one context (`GuestFormStepNavigation` in the modal `GuestBookingFormModal` vs. the standalone `/form` route; `ParkingRegistrationForm` in `ParkingBookingFormModal` vs. `ParkingFormPage`) takes an explicit `mobileVariant`/similar prop so the modal-embedded render stays a plain inline row — a page-level fixed `ContextualActionBar` would fight the modal's own sheet chrome.
+- **Auth pages** (`AuthLayout`, `/for-hosts/login`, `/for-hosts/register`, `/for-guests/login`, `/for-guests/register`): registered as their own top-level route array, never nested inside `MarketingLayoutShell` — **no bottom tab bar by default** (linear trust-flow convention). Keep the existing mobile top bar (logo + `ThemeToggle`, `lg:hidden`) rather than adding one.
 
 ## 3. Touch targets
 
@@ -70,23 +95,77 @@ Table row actions, filter buttons, nav items, and pagination chips must all meet
 
 ## 4. Typography scaling
 
-| Use | Mobile | Desktop |
-|-----|--------|---------|
-| Page title | `text-lg font-bold` (`text-admin-page-title`) | `sm:text-xl` |
-| Page subtitle | `text-sm` (`text-admin-page-subtitle`) | `sm:text-[15px]` |
-| Table data | `text-sm` | `text-[13px]` |
-| Secondary / muted | `text-xs` | `text-[11px]` |
-| Section labels | `text-xs font-bold uppercase tracking-wider` | same |
+Native-app density on phone (≈ iOS HIG ops apps). Prefer shared tokens in `ui/src/index.css`.
 
-Prefer Tailwind `text-sm` / `text-base` on mobile; use precise `text-[13px]` pixel values for desktop density.
+| Use                         | Mobile                                                                                                                                                                   | Desktop                         |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| Hero / page title           | `text-lg` (`text-admin-page-title`, hero h1)                                                                                                                             | `sm:text-xl` → `md:text-2xl`    |
+| Section title               | `text-sm` (`text-section-title`)                                                                                                                                         | `sm:text-[15px]`                |
+| Card title                  | `text-sm` (`text-card-title`)                                                                                                                                            | `sm:text-base`                  |
+| Card description            | `text-xs` (`text-card-description`)                                                                                                                                      | `sm:text-sm`                    |
+| Body / UI                   | `text-sm` (`text-ui`)                                                                                                                                                    | same                            |
+| KPI / stat value            | `text-base` (`text-stat-value`)                                                                                                                                          | `sm:text-xl` → `md:text-2xl`    |
+| List amount                 | `text-[15px]` (`text-list-amount`)                                                                                                                                       | `sm:text-base`                  |
+| Secondary / muted           | `text-xs` (`text-data-secondary`, `text-meta`)                                                                                                                           | `sm:text-[13px]` / `sm:text-sm` |
+| Overflow (⋯) menus          | `admin-overflow-trigger` (32px visual + expanded hit) — never outline `min-h-[44px]` boxes on phone                                                                      | same or labeled Manage          |
+| Settings secondary CTA      | `settings-action` — visual `h-8` + text-xs; ≥44px via invisible pad (**never** `min-h-[44px]` on the box) — Manage / Customize / Test / Archive                          | same                            |
+| Settings field label        | `settings-field-label` (12px muted)                                                                                                                                      | `sm:text-sm` foreground         |
+| Tabs / segments (dashboard) | `text-[13px]` (form/toolbar = `SegmentedControl` dense (~h-8); section strips = compact/primary (~h-9); never `h-9`/`p-1` or `min-h-[44px]` overrides on dense triggers) | same                            |
+| List search fields          | `text-[13px]` placeholder/value on phone                                                                                                                                 | `lg:text-sm`                    |
+| Table data                  | `text-sm`                                                                                                                                                                | `text-[13px]`                   |
+| Caption / overline          | `text-[10px]`–`text-xs`                                                                                                                                                  | same                            |
+
+**Do not** bump phone titles with `max-sm:text-[1.65rem]` or KPI values with `text-lg`/`text-2xl` on `max-lg` — that reads oversized vs native apps.
+
+**Shared base (dashboard = public).** Both surfaces use the same primitives and the same base numbers; only headings change by role. Native reference: iOS HIG (16pt margins, 44pt targets, 17pt fields, 10pt tab labels) and Material 3 (16dp margins, 40dp buttons, 32dp chips).
+
+| Element                | Phone                              | `sm`+ / desktop            | Source of truth                                   |
+| ---------------------- | ---------------------------------- | -------------------------- | ------------------------------------------------- |
+| Body / UI text         | 14px                               | 14px                       | `text-sm`, `text-ui`                              |
+| Caption / meta         | 12px                               | 12–13px                    | `text-xs`, `text-meta`                            |
+| Page side margin       | 16px                               | 16 / 24 (`md`) / 32 (`lg`) | `.admin-mobile-main-shell`, `container px-4`      |
+| Card padding           | 16px                               | 24px                       | `Card`, `public-card-pad`                         |
+| Button (inline)        | 40px                               | 40px                       | `Button` default                                  |
+| Full-width primary bar | 48px                               | 44px                       | `native-cta`, auth submit                         |
+| Text field / select    | 40px, 14px text (16px on iOS)      | 44px (`lg`)                | `Input`, `SelectTrigger`, iOS rule in `index.css` |
+| Chip / segment         | 32–34px visual, 44px hit           | 36px                       | `SegmentedControl dense`, `public-chip`           |
+| Small icon action      | 32–36px visual, 44px hit           | same                       | `admin-overflow-trigger`, `mobile-hero-action`    |
+| Bottom tab bar         | shared `BottomTabBar`, 10px labels | hidden `lg+`               | `components/mobile/BottomTabBar.tsx`              |
+| Top bar                | 56px                               | 64px / 80px public desktop | `--public-nav-h`, admin topbar `min-h-14`         |
+| Sheets / modals        | bottom sheet                       | centered dialog `lg+`      | `ResponsiveModal`                                 |
+
+Headings by role: dashboard page title 18 → 24px (`text-admin-page-title`), dashboard section band 14px (`text-section-title`); public hero 28 → 44px (`public-display`), public section 20 → 30px (`public-section-title`).
+
+**Public pages (native density):** marketing shell, listings, listing detail, for-hosts, auth, account and guest flows use the `public-*` size tokens in `ui/src/index.css` (size + rhythm only; keep color/weight/font on the element). Never stack a raw `text-*` / `py-*` size class on the same element as a token.
+
+| Token                                | Phone                      | `md` (tablet) | `lg` (desktop) |
+| ------------------------------------ | -------------------------- | ------------- | -------------- |
+| `public-display` (hero h1)           | 28px                       | 36px          | 44px cap       |
+| `public-page-title`                  | 22px                       | 26px          | 30px           |
+| `public-section-title`               | 20px                       | 24px          | 30px           |
+| `public-card-title`                  | 15px                       | 16px          | 17px           |
+| `public-lead`                        | 15px                       | 16px          | 18px           |
+| `public-eyebrow`                     | 11px caps                  | same          | same           |
+| `public-section-y` (section padding) | 32px                       | 48px          | 72px           |
+| `public-card-pad`                    | 16px                       | 24px          | 24px           |
+| `public-icon-well`                   | 36px                       | 40px          | 44px           |
+| `public-chip`                        | 34px visual + 44px hit pad | 36px          | 36px           |
+| `public-cta`                         | 44px                       | 44px          | 48px           |
+| `public-page-top` (clear fixed nav)  | nav + 12px                 | nav + 16px    | nav + 16px     |
+
+The fixed `MarketingNav` height is `--public-nav-h` (56 / 64 / 80px). Sticky toolbars use `top-[var(--public-nav-h)]` and the scroll-morph search reads the same variable; never hard-code `top-16` / `pt-20` / `pt-24` under the public nav. Draw chips and small actions at their visual size with a `before:` hit pad (like `admin-overflow-trigger`) instead of `min-h-[44px]` on the visible chrome. Form inputs and full-width primary bars stay 44px. For-hosts may go one step larger (32 / 48 / 60px hero) but uses the same section rhythm. Plan: `docs/workflow/in-progress/public-native-density.md`.
 
 ## 5. Tables
 
 Tables must never cause horizontal overflow on the page. Use this pattern:
 
 ```tsx
-<div className="overflow-x-auto rounded-xl"> {/* scrollable wrapper */}
-  <table className="w-full min-w-[600px]">   {/* ensures table doesn't collapse */}
+<div className="overflow-x-auto rounded-xl">
+  {' '}
+  {/* scrollable wrapper */}
+  <table className="w-full min-w-[600px]">
+    {' '}
+    {/* ensures table doesn't collapse */}
     ...
   </table>
 </div>
@@ -94,32 +173,33 @@ Tables must never cause horizontal overflow on the page. Use this pattern:
 
 Hide non-critical columns on small screens:
 
-| Column | Visible from |
-|--------|-------------|
-| Status | always |
-| Guest (name + email) | always |
-| Stay (dates + nights) | always |
-| Pax | `md:` |
-| Flags (parking/pet icons) | `sm:` |
-| Amount | `lg:` |
-| Created | `md:` |
-| Actions | always (icon only on mobile) |
+| Column                    | Visible from                 |
+| ------------------------- | ---------------------------- |
+| Status                    | always                       |
+| Guest (name + email)      | always                       |
+| Stay (dates + nights)     | always                       |
+| Pax                       | `md:`                        |
+| Flags (parking/pet icons) | `sm:`                        |
+| Amount                    | `lg:`                        |
+| Created                   | `md:`                        |
+| Actions                   | always (icon only on mobile) |
 
 ## 6. Forms and filter bars
 
 - Search input: always full-width (`w-full`).
 - Filter button strips: `overflow-x-auto` horizontal scroll on mobile — never wrap into multiple rows.
-- Dropdown panels: position absolute, `max-h-[60vh] overflow-y-auto`, with a max-width of `min(90vw, 320px)` to avoid viewport overflow.
-- Input height: `h-10` (40 px) minimum — touch friendly.
+- Dropdown panels: on `max-lg`, prefer `MobileChoiceSheet` / `ResponsiveOverflowMenu` over floating `DropdownMenu` panels. Desktop keeps `DropdownMenu`. Position absolute panels on desktop: `max-h-[60vh] overflow-y-auto`, with a max-width of `min(90vw, 320px)` to avoid viewport overflow.
+- Input height: `h-10` (40 px) minimum — touch friendly. `Input`, `Select` (`SelectTrigger`), and `Textarea` primitives all self-align to `h-10` / `px-3` **on mobile** (`max-lg:`) so a form column of mixed controls lines up; desktop keeps the wider `Select` `h-11` / `px-4`. Don't re-add per-call-site `h-10` overrides just to compensate.
+- Modal / sheet titles: `ResponsiveModalTitle` renders the same scale in sheet mode (phone/tablet) as `DialogTitle` on desktop — `text-base font-bold tracking-tight sm:text-lg`. Don't hard-code `text-lg` as the mobile base on a modal title.
 
 ## 7. Spacing
 
-| Context | Mobile | Desktop |
-|---------|--------|---------|
-| Page padding | `p-3 sm:p-4` | `lg:p-6` |
-| Card / section gap | `space-y-3` | `sm:space-y-4` |
-| Form field gap | `space-y-4` | same |
-| Inline button gap | `gap-1.5` | same |
+| Context            | Mobile       | Desktop        |
+| ------------------ | ------------ | -------------- |
+| Page padding       | `p-3 sm:p-4` | `lg:p-6`       |
+| Card / section gap | `space-y-3`  | `sm:space-y-4` |
+| Form field gap     | `space-y-4`  | same           |
+| Inline button gap  | `gap-1.5`    | same           |
 
 Never use `px-6` or larger without a mobile fallback like `px-4`.
 
@@ -131,9 +211,9 @@ Never use `px-6` or larger without a mobile fallback like `px-4`.
 
 ## 9. Modals and dropdowns
 
-- Modals: centered card at all breakpoints (`max-w-[min(calc(100vw-1.5rem),28rem)]`, `max-h-[min(90dvh,…)]`, rounded, scrollable). Avoid `fixed inset-0` full-screen sheets unless the modal is intentionally a full-page flow.
-- Dropdowns: on mobile, dropdown panels must never overflow the viewport. Apply `max-w-[calc(100vw-24px)]` as a safety net.
-- Use `z-50` for overlays, `z-40` for sticky headers.
+- **No centered modal on mobile (app-wide):** every modal — confirms, forms, pickers, detail panels, guest booking/calendar modals — uses `ResponsiveModal` (centered `Dialog` on `lg+`, bottom sheet below `lg`); guest modals via `GuestDialogShell`; general dashboard form modals via `AdminDialogShell`. Never import `@/components/ui/dialog` directly in feature code. Sticky chrome → `sheetLayout="split"` + `min-h-0 flex-1 overflow-y-auto` body. `split` also locks the desktop dialog (`flex` column, `overflow-hidden`) so the title and actions stay fixed. Only `AlertDialog` (OS-style destructive confirm) and full-screen media/document lightboxes stay non-sheet. Avoid full-screen `fixed inset-0` sheets unless intentionally a full-page flow.
+- Dropdowns / overflow menus: on `max-lg`, use `MobileChoiceSheet` or `ResponsiveOverflowMenu` (`ui/src/components/mobile/ResponsiveOverflowMenu.tsx`) instead of floating `DropdownMenu` panels. Marketing menus can use `MarketingOverflowMenu`. Desktop keeps `DropdownMenu`. If a legacy dropdown remains on mobile, apply `max-w-[calc(100vw-24px)]` as a safety net.
+- Use `z-50` for overlays, `z-40` for sticky headers and the bottom tab / contextual bar.
 
 ## 10. Don'ts
 

@@ -1,0 +1,34 @@
+---
+description: Superpowers plugin is opt-in only — never auto-run brainstorming workflows
+alwaysApply: true
+---
+
+# Superpowers — opt-in only
+
+The Superpowers Cursor plugin is installed, but its **automatic workflow is disabled for this repo**.
+
+## Default (every task)
+
+- Do **not** invoke `superpowers:*` process skills on your own.
+- Do **not** run brainstorm → spec → plan unless the user opted in.
+- Do **not** create `docs/superpowers/**` — **retired**. Never write there.
+- Work normally: use repo `.cursor/rules/` and `.cursor/skills/` as needed.
+
+## When Superpowers is allowed
+
+Only when the user runs **`/superpowers-*`** or explicitly asks for Superpowers.
+
+Then follow the referenced Superpowers skill **and** **`.agent/skills/superpowers/SKILL.md`** for save locations and **§ Lean mode** (hooks block subagents for plan/brainstorm/debug):
+
+| Plugin default (ignore)   | Use instead                  |
+| ------------------------- | ---------------------------- |
+| `docs/superpowers/plans/` | **`docs/workflow/planned/`** |
+| `docs/superpowers/specs/` | **`docs/workflow/intake/`**  |
+
+Update `docs/workflow/planned/README.md` when adding a plan. Use `/workflow-start` before implementation.
+
+Prefer a **single** brainstorm/plan pass — hooks enforce no subagent fan-out on all `/superpowers-*` commands (including execute).
+
+## Precedence
+
+This rule overrides the Superpowers plugin session bootstrap. User instructions always win.

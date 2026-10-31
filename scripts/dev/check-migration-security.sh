@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Enforce forward-only migration security conventions after the audit baseline.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT"
+
+if ! command -v rg >/dev/null 2>&1; then
+  export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.cargo/bin:$PATH"
+fi
+
+count_matches() {
+  local pattern="$1"
+  local path="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -c "$pattern" "$path" || true
+  else
+    grep -cE "$pattern" "$path" || true
+  fi
+}
+
+count_public_function_revokes() {
+  local path="$1"
+  if command -v rg >/dev/null 2>&1; then
+    rg -U --count-matches 'REVOKE (ALL|EXECUTE) ON FUNCTION(?s:.*?)FROM PUBLIC' "$path" || true
+  else
+    awk '
+      /REVOKE (ALL|EXECUTE) ON FUNCTION/ { in_revoke = 1 }
+      in_revoke && /FROM PUBLIC/ { count += 1; in_revoke = 0 }
+      END { print count + 0 }
+    ' "$path"
+  fi
+}
+
+BASELINE_VERSION=20261316121200
+failed=0
+
+for path in supabase/migrations/*.sql; do
+  filename="${path##*/}"
+  version="${filename%%_*}"
+  [[ "$version" =~ ^[0-9]+$ ]] || continue
+  (( 10#$version >= 10#$BASELINE_VERSION )) || continue
+
+  definer_count="$(count_matches '^[[:space:]]*SECURITY DEFINER' "$path")"
+  revoke_count="$(count_public_function_revokes "$path")"
+  if (( definer_count > revoke_count )); then
+    # CREATE OR REPLACE of a function that already has REVOKE FROM PUBLIC in an
+    # earlier migration keeps those grants. Require an in-file REVOKE only for
+    # newly introduced definer functions.
+    inherited=0
+    if command -v rg >/dev/null 2>&1; then
+      while IFS= read -r fn; do
+        [[ -z "$fn" ]] && continue
+        if rg -q "REVOKE (ALL|EXECUTE) ON FUNCTION ${fn}" supabase/migrations --glob "!${filename}"; then
+          inherited=$((inherited + 1))
+        fi
+      done < <(rg -o 'CREATE OR REPLACE FUNCTION (public\.[a-zA-Z0-9_]+)' -r '$1' "$path" || true)
+    fi
+    if (( definer_count > revoke_count + inherited )); then
+      echo "MISSING PUBLIC revoke for SECURITY DEFINER function: $path" >&2
+      failed=1
+    fi
+  fi
+
+  table_count="$(count_matches '^[[:space:]]*CREATE TABLE( IF NOT EXISTS)? public\.' "$path")"
+  rls_count="$(count_matches '^[[:space:]]*ALTER TABLE public\..* ENABLE ROW LEVEL SECURITY' "$path")"
+  if (( table_count > rls_count )); then
+    echo "MISSING RLS enable for public table: $path" >&2
+    failed=1
+  fi
+done
+
+if [[ "$failed" -ne 0 ]]; then
+  exit 1
+fi
+
+echo "OK — new migrations satisfy SECURITY DEFINER and RLS gates."

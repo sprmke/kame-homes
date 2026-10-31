@@ -1,0 +1,49 @@
+---
+description: >-
+  New host-dashboard writes must ship with AI Dashboard Assistant coverage
+  (tool + Confirm) or an explicit exclusion + host-facing how-to in the same change.
+globs:
+  - ui/src/features/dashboard/**/*
+  - supabase/functions/**/*
+alwaysApply: false
+---
+
+# AI Dashboard Assistant — host parity gate
+
+When you add or materially change a **host dashboard write** (upload, send, status change, settings mutate, create/update entity) under org / property / parking:
+
+## Same-change requirement
+
+Choose **one** and document it in the PR / architecture catalog:
+
+| Choice             | Do this                                                                                                                                                                                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Assistant tool** | Add propose (+ execute if Tier 2) in `_shared/dashboardAssistant*.ts`, register in `TOOL_DECLARATIONS` + risk classifier + tool labels (edge + UI), update `docs/architecture/ai-dashboard-assistant.md` + manual test note. Prefer shared upload/service helpers — never a weaker chat-only path. |
+| **Exclusion**      | Add a row under Explicit exclusions (or “Not built”) in `docs/architecture/ai-dashboard-assistant.md` with rationale, and a Host-facing knowledge Q&A (or KB sync) explaining how to finish in the UI.                                                                                             |
+| **Handoff**        | Add a `handoff(routeKey, reason)` entry so `open_page` can send the host to the exact screen (route must be in `_shared/dashboardAssistantRoutes.ts`).                                                                                                                                             |
+
+**Machine check:** every edge function must have an entry in `supabase/functions/_shared/dashboardAssistantParity.ts` (`tool` / `handoff` / `excluded` / `read` / non-host kind) unless it is served by `serveSuperAdmin` / `serveCronPost` / `servePublic`. `supabase/functions/tests/assistantParityManifest.test.ts` (runs in `bun run test:edge:handlers`) fails on a missing or stale entry, an undeclared tool, a non-allowlisted route, or a never-build write that is not `excluded`.
+
+## Safety invariants (do not weaken)
+
+1. Same backend + JWT RBAC as the dashboard endpoint.
+2. Tier 0 / 1 / 2 + `external_send` as appropriate; Confirm freezes payload.
+3. Chat attachments: path allowlist `{org}/{user}/{conversation}/…` only.
+4. OTP-gated settings: require the same OTP / settings verification token — never bypass.
+5. Never-build list stays catalog-enforced (irreversible destroyers, auto-reply send mode, etc.).
+
+## Visual hydration (numeric blocks)
+
+Charts, calendars, KPIs, timelines, and comparisons are **hydrated server-side** from this turn's tool results (`hydrateVisualBlocks` in `_shared/dashboardAssistantVisuals.ts`). The model may emit a `{ type: 'visual', kind, source }` hint; it never authors the numbers. Hydrated blocks are tagged `hydrated: true` and skipped by `assertBlocksGrounded`. Do not persist `visual` hints.
+
+## Reads
+
+New host-visible data surfaces should get a read tool **or** knowledge-base coverage so the assistant can answer without inventing facts.
+
+**Knowledge coverage:** Documented route guides under `docs/guides/routes/` (except `admin/**`) must have a Host-facing knowledge section with at least 3 Q&A rows. `bun run check:ai-knowledge-coverage` (wired into `ci:quality` / CI) fails otherwise, and also fails if a previously synced guide would drop from `bun run sync:ai-knowledge-base`.
+
+## Related
+
+- Plan: `docs/workflow/in-progress/ai-chat-mode.md` § Phase 7 (parity manifest)
+- Catalog: `docs/architecture/ai-dashboard-assistant.md`
+- Always-on plans/RBAC: `plans-and-permissions.mdc`

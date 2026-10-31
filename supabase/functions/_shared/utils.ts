@@ -1,7 +1,14 @@
-import dayjs from 'https://esm.sh/dayjs@1.11.10'
-import customParseFormat from 'https://esm.sh/dayjs@1.11.10/plugin/customParseFormat'
+import dayjs from 'dayjs';
+import customParseFormat from 'npm:dayjs@1.11.10/plugin/customParseFormat.js';
 
-dayjs.extend(customParseFormat)
+dayjs.extend(customParseFormat);
+
+/** Copy bytes into an ArrayBuffer-backed Uint8Array for Blob/File/upload APIs. */
+export function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return new Uint8Array(buffer);
+}
 
 /**
  * Normalizes MM-DD-YYYY (DB) or YYYY-MM-DD (guest form) to YYYY-MM-DD for APIs.
@@ -18,55 +25,6 @@ export const normalizeDateToYYYYMMDD = (dateStr: string): string => {
   const parsed = dayjs(s);
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '';
 };
-
-/**
- * RFC3339-style local dateTime (no offset) for Google Calendar `dateTime` + `timeZone`.
- * Parses times with {@link formatTime} so "2:00 PM" maps to 14:00, not 02:00.
- */
-export const buildGoogleCalendarDateTime = (
-  dateStr: string,
-  timeStr: string | null | undefined,
-  defaultTime: string,
-): string => {
-  const ymd = normalizeDateToYYYYMMDD(dateStr);
-  if (!ymd) return '';
-  const hm = formatTime(timeStr ?? '') || defaultTime;
-  const parts = hm.split(':');
-  const h = (parts[0] ?? '0').padStart(2, '0');
-  const m = (parts[1] ?? '00').padStart(2, '0');
-  return `${ymd}T${h}:${m}:00`;
-};
-
-/**
- * Google Calendar event end for occupied stay nights.
- * Checkout morning is not an occupied calendar date — the event ends 23:59 on the last night.
- * 1-night (Mon check-in, Tue checkout) → Mon 23:59 (one calendar date).
- * 2-night (Mon check-in, Wed checkout) → Tue 23:59 (Mon + Tue).
- */
-export function buildGoogleCalendarOccupiedEndDateTime(
-  checkInDate: string,
-  checkOutDate: string | null | undefined,
-  nights?: number,
-): string {
-  const checkInYmd = normalizeDateToYYYYMMDD(checkInDate);
-  if (!checkInYmd) return '';
-
-  const checkoutYmd = checkOutDate ? normalizeDateToYYYYMMDD(checkOutDate) : '';
-  const lastNightYmd = checkoutYmd
-    ? dayjs(checkoutYmd, 'YYYY-MM-DD', true).subtract(1, 'day').format('YYYY-MM-DD')
-    : dayjs(checkInYmd, 'YYYY-MM-DD', true)
-      .add(Math.max(1, nights ?? 1) - 1, 'day')
-      .format('YYYY-MM-DD');
-
-  return buildGoogleCalendarDateTime(lastNightYmd, '23:59', '23:59');
-}
-
-/**
- * @deprecated Prefer {@link buildGoogleCalendarDateTime}; kept for call sites that pass explicit HH:mm.
- */
-const formatDateTime = (date: string, time: string): string => {
-  return buildGoogleCalendarDateTime(date, time, '00:00');
-}
 
 /**
  * Formats a date string to YYYY-MM-DD format
@@ -118,7 +76,10 @@ export const formatTime = (timeStr: string | null | undefined): string => {
   }
 
   // Postgres TIME may include fractional seconds or a trailing offset.
-  s = s.replace(/\.\d+(?=[\s+-]|Z|$)/i, '').replace(/[+-]\d{2}(?::?\d{2})?\s*$|Z\s*$/i, '').trim();
+  s = s
+    .replace(/\.\d+(?=[\s+-]|Z|$)/i, '')
+    .replace(/[+-]\d{2}(?::?\d{2})?\s*$|Z\s*$/i, '')
+    .trim();
 
   for (const format of ['HH:mm:ss', 'HH:mm', 'H:mm'] as const) {
     const parsed = dayjs(s, format, true);
@@ -128,10 +89,7 @@ export const formatTime = (timeStr: string | null | undefined): string => {
 };
 
 /** User-facing 12-hour time (e.g. `2:00 PM`). DB stores 24h `HH:mm`. */
-export const formatTimeForDisplay = (
-  timeStr: string | null | undefined,
-  fallback = '',
-): string => {
+export const formatTimeForDisplay = (timeStr: string | null | undefined, fallback = ''): string => {
   const hm24 = formatTime(timeStr);
   if (!hm24) return fallback;
   // Match UI `formatTimeToAMPM`: anchor on a fixed date; do not parse with `HH:mm` only.
@@ -147,7 +105,7 @@ export const DEFAULT_CHECK_IN_TIME = '14:00';
 /**
  * Default check-out time (11:00 / 11 AM)
  */
-export const DEFAULT_CHECK_OUT_TIME = '11:00'; 
+export const DEFAULT_CHECK_OUT_TIME = '11:00';
 
 /**
  * Extracts a route parameter from a URL path
@@ -207,9 +165,12 @@ const normalizeValue = (value: any): any => {
  * @param existingData - The existing data from the database
  * @returns Object with hasChanges boolean and list of changed fields
  */
-export const compareFormData = (newFormData: FormData, existingData: any): { hasChanges: boolean; changedFields: string[] } => {
+export const compareFormData = (
+  newFormData: FormData,
+  existingData: any
+): { hasChanges: boolean; changedFields: string[] } => {
   const changedFields: string[] = [];
-  
+
   // Define fields to compare (excluding files as they're handled separately)
   const fieldsToCompare = [
     { form: 'guestFacebookName', db: 'guest_facebook_name' },
@@ -270,8 +231,12 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
 
     // Handle time formatting for comparison
     if (field.isTime && newValue) {
-      newValue = formatTime(newValue) || (field.db === 'check_in_time' ? DEFAULT_CHECK_IN_TIME : DEFAULT_CHECK_OUT_TIME);
-      existingValue = formatTime(existingValue) || (field.db === 'check_in_time' ? DEFAULT_CHECK_IN_TIME : DEFAULT_CHECK_OUT_TIME);
+      newValue =
+        formatTime(newValue) ||
+        (field.db === 'check_in_time' ? DEFAULT_CHECK_IN_TIME : DEFAULT_CHECK_OUT_TIME);
+      existingValue =
+        formatTime(existingValue) ||
+        (field.db === 'check_in_time' ? DEFAULT_CHECK_IN_TIME : DEFAULT_CHECK_OUT_TIME);
     }
 
     // Handle number conversion
@@ -294,7 +259,7 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
       changedFields.push(field.form);
       console.log(`  📝 Field changed - ${field.form}:`, {
         new: normalizedNew,
-        existing: normalizedExisting
+        existing: normalizedExisting,
       });
     }
   }
@@ -311,19 +276,19 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
     { form: 'petVaccination', formName: 'petVaccinationFileName', db: 'pet_vaccination_url' },
     { form: 'petImage', formName: 'petImageFileName', db: 'pet_image_url' },
   ];
-  
+
   for (const fileField of fileFieldMappings) {
     const file = newFormData.get(fileField.form);
     const fileName = newFormData.get(fileField.formName) as string;
     const existingUrl = existingData[fileField.db];
-    
+
     console.log(`  🔍 Checking ${fileField.form}:`, {
       hasFile: !!file,
       fileSize: file instanceof File ? file.size : 0,
       fileName,
-      existingUrl
+      existingUrl,
     });
-    
+
     // Only mark as changed if:
     // 1. A file exists in the form data AND
     // 2. Either there's no existing URL OR the filename is different
@@ -336,17 +301,19 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
         const urlStr = existingUrl.includes('http') ? existingUrl : existingUrl;
         const urlParts = urlStr.split('/');
         existingFileName = urlParts[urlParts.length - 1];
-        
+
         // Decode URL-encoded characters
         existingFileName = decodeURIComponent(existingFileName);
       }
-      
+
       console.log(`    Comparing: new="${fileName}" vs existing="${existingFileName}"`);
-      
+
       // Compare filenames - if they're different or no existing file, mark as changed
       if (!existingUrl || !existingFileName || fileName !== existingFileName) {
         changedFields.push(fileField.form);
-        console.log(`    📎 File changed - ${fileField.form}: "${existingFileName}" → "${fileName}"`);
+        console.log(
+          `    📎 File changed - ${fileField.form}: "${existingFileName}" → "${fileName}"`
+        );
       } else {
         console.log(`    ⏭️ File unchanged - ${fileField.form}: "${fileName}"`);
       }
@@ -356,8 +323,10 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
   }
 
   const hasChanges = changedFields.length > 0;
-  console.log(`\n${hasChanges ? '✅' : '❌'} Data comparison complete: ${hasChanges ? changedFields.length + ' changes detected' : 'No changes detected'}`);
-  
+  console.log(
+    `\n${hasChanges ? '✅' : '❌'} Data comparison complete: ${hasChanges ? changedFields.length + ' changes detected' : 'No changes detected'}`
+  );
+
   return { hasChanges, changedFields };
 };
 
@@ -365,7 +334,7 @@ export const compareFormData = (newFormData: FormData, existingData: any): { has
  * Form keys emitted by compareFormData().changedFields whose edits require
  * status → PENDING_REVIEW when saving from public /form, while the row is in
  * the documents pipeline or Ready for check-in (see statusMachine
- * `shouldRevertGuestFieldEditsToPendingReview`; docs/TODOS.md + booking-workflow.mdc §2.3).
+ * `shouldRevertGuestFieldEditsToPendingReview`; docs/todos/ + booking-workflow.mdc §2.3).
  */
 const WORKFLOW_SENSITIVE_FORM_FIELDS = new Set<string>([
   'guestFacebookName',

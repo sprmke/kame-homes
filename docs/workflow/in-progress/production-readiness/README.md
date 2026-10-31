@@ -1,0 +1,97 @@
+---
+title: 'Production readiness'
+status: active
+tags: [workflow, in-progress, production-readiness, security, qa, launch]
+updated: 2026-11-01
+stage: in-progress
+kind: reference
+---
+
+# Production readiness
+
+Every launch readiness checklist, audit, QA batch and operator list in one place. Plan: [`production-readiness-launch-audit.md`](./production-readiness-launch-audit.md).
+
+**Folder = stage exception:** docs moved here from `planned/`, `for-testing/` and `done/` keep that history as `origin_stage` in frontmatter. They are re-verified against one baseline SHA before any is marked good. Do not move them back out with `workflow-move.sh`; that script only handles top-level stage folders.
+
+## Status
+
+| Item         | State                                                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline SHA | **`497c7772`** (2026-11-01). Hosted-dev functions deployed from the same edge tree; migrations in sync. Re-verified probes: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-2026-11-01.md)                                          |
+| Hosted dev   | Functions = `develop` `832cbf60` edge tree (identical to `497c7772`, which is UI-only); DB migrations in sync                                                                                                                                             |
+| CI / CD      | `CI` green on `497c7772`; the red `marketingDeviceTier` test fixed in #185. `CD Dev` re-enabled by the same fix + the `@ci` suite repair                                                                                                                  |
+| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                                                       |
+| Phases 4–8   | Re-ran the automated sweep + hosted-dev probes 2026-11-01 (IDOR, RBAC, invites, uploads, workflow, guest tokens, CORS, rate limits, storage, smoke, AI evals, plan catalog, RLS). Load test, restore drill, LLM live probes still blocked (see scorecard) |
+| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                                                                                                    |
+| Phase 10     | Scorecard below is a draft until the remaining 🔴 / ⛔ rows close                                                                                                                                                                                         |
+| Fix PRs      | #185 merged (`497c7772`). Open: #186 (CORS probe), #187 (RLS probe). See [`TO-FIX.md`](./TO-FIX.md)                                                                                                                                                       |
+| E2E `@ci`    | 297 passed · 9 skipped (marketing studio, PR-133) · 0 failed on `497c7772`                                                                                                                                                                                |
+| Tag counts   | ✅ 15 · 🟡 35 · 🔴 4 · ⛔ 26 · 🆕 15 · 🧭 7 · ⏸️ 8 (110 items)                                                                                                                                                                                            |
+
+## Go / no-go (draft, 2026-10-19)
+
+Overall: **No-go**. Every gate still has an operator or merge dependency.
+
+| Gate           | Verdict | Done                                                                                                                                                             | Still needed                                                                                                                                                |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A Core booking | No-go   | Booking lifecycle verified on dev; guest-link tokens verified past grace; 162-page walk clean; entry chunk 496 → 151 KiB gzip (#152, #172), contrast fixed (PRs) | Merge #147–#152, #154, #156; re-run Lighthouse 3× median on baseline; listing map (Maps key, operator)                                                      |
+| B Security     | No-go   | Adversarial auth 16/16, cross-tenant probes clean, RBAC matrix matches, upload sniffing everywhere, open redirect fixed, Actions pinned, audit triaged           | Merge #150, #151, #153, #155, #158, #159; Turnstile on prod (P0-1); Supabase Auth captcha (P0-2); CSP enforce decision; guest-chat bucket decision (PR-120) |
+| C Money        | No-go   | No false-paid path (code); webhook signature + dedupe tested; down payment fixed on dev                                                                          | PayMongo sandbox keys and end-to-end run (PR-030); merge #149                                                                                               |
+| D AI / voice   | No-go   | Provider fallback and outage handling tested                                                                                                                     | Paid Gemini key + billing cap (P0-3); LLM Top 10 live probes need the platform assistant on                                                                 |
+| E Comms        | No-go   | Meta expiry handling tested; failed workflow emails surfaced (#157)                                                                                              | Merge #157; SPF/DKIM/DMARC check (operator); Meta live on dev or module flagged off                                                                         |
+| F Operations   | No-go   | Prod env matrix complete, cron/Vault pairing clean, frozen lockfile everywhere                                                                                   | Restore drill with measured RTO (needs `DEV_DB_URL`); GitHub `development` secrets; alerts live; on-call channel named                                      |
+| G Cutover      | No-go   | Operator list, env matrix, dry-run notes                                                                                                                         | mt-prod project; clean rehearsal; `kamewave` from the user                                                                                                  |
+
+## Tags
+
+Every doc carries `readiness`, `launch_gate`, `launch_blocker` and `last_verified` in frontmatter. Worst open item wins.
+
+| Tag | `readiness`        | Meaning                                        |
+| --- | ------------------ | ---------------------------------------------- |
+| ✅  | `verified`         | Re-tested on the baseline SHA, evidence linked |
+| 🟡  | `unverified`       | Claimed done, not re-tested on the baseline    |
+| 🔴  | `failing`          | Re-tested and broken                           |
+| ⛔  | `operator-blocked` | Needs a key, account or dashboard action       |
+| 🧭  | `decision-needed`  | Needs a product call                           |
+| ⏸️  | `deferred`         | Accepted for after launch, with reason         |
+| 🆕  | `untracked`        | Gap found by this audit                        |
+
+## Launch gates
+
+| Gate | Area                                                 |
+| ---- | ---------------------------------------------------- |
+| A    | Core booking platform, public pages, performance     |
+| B    | Security posture (auth, RLS, rate limits, anti-spam) |
+| C    | Money (subscriptions, guest and parking payments)    |
+| D    | AI and voice                                         |
+| E    | Comms (inbox / Meta, email, push)                    |
+| F    | Operations (observability, backups, crons, deploys)  |
+| G    | Cutover (mt-prod, legacy migration, operator inputs) |
+
+## Contents
+
+| Folder / doc                                                                                                           | From        | Gate | Readiness |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------- | ---- | --------- |
+| [`checklist/`](./checklist/README.md) (00 baseline + 01–30, `baselines/`)                                              | planned     | A–F  | 🟡        |
+| [`audits/pre-production-launch-audit.md`](./audits/pre-production-launch-audit.md)                                     | for-testing | F    | 🟡        |
+| [`audits/production-readiness-audit-and-remediation.md`](./audits/production-readiness-audit-and-remediation.md)       | for-testing | B    | 🟡        |
+| [`audits/cost-abuse-security-production-readiness.md`](./audits/cost-abuse-security-production-readiness.md)           | for-testing | B    | 🟡        |
+| [`audits/performance-optimization-production-readiness.md`](./audits/performance-optimization-production-readiness.md) | for-testing | A    | 🟡        |
+| [`audits/posthog-analytics-production-readiness.md`](./audits/posthog-analytics-production-readiness.md)               | for-testing | F    | 🟡        |
+| [`audits/captcha-anti-spam-hardening.md`](./audits/captcha-anti-spam-hardening.md)                                     | for-testing | B    | 🟡        |
+| [`audits/ai-llm-best-practices-hardening.md`](./audits/ai-llm-best-practices-hardening.md)                             | for-testing | D    | 🟡        |
+| [`audits/public-listing-pages-hardening.md`](./audits/public-listing-pages-hardening.md)                               | for-testing | A    | 🟡        |
+| [`audits/production-readiness-hardening.md`](./audits/production-readiness-hardening.md)                               | done        | B    | 🟡        |
+| [`audits/ai-receptionist-production-readiness.md`](./audits/ai-receptionist-production-readiness.md)                   | done        | D    | 🟡        |
+| [`audits/parking-e2e-production-readiness.md`](./audits/parking-e2e-production-readiness.md)                           | planned     | C    | 🟡        |
+| [`operator/cost-abuse-security-pending-from-user.md`](./operator/cost-abuse-security-pending-from-user.md)             | in-progress | G    | ⛔        |
+| [`qa/QA-BATCH.md`](./qa/QA-BATCH.md)                                                                                   | for-testing | A    | 🟡        |
+| [`qa/MODULE-DISPOSITION.md`](./qa/MODULE-DISPOSITION.md)                                                               | in-progress | A    | 🟡        |
+| [`evidence/`](./evidence/phase0-snapshot.md)                                                                           | new         | —    | —         |
+
+| [`LEDGER.md`](./LEDGER.md) | new | A–G | live |
+| [`modules/`](./modules/README.md) (57 cards + route/edge maps) | new | A | 🟡 |
+| [`security/`](./security/README.md) | new | B | 🟡 |
+| [`environments/`](./environments/README.md) | new | F | 🟡 |
+
+`TO-FIX.md` and `ALL-GOOD.md` land in Phase 10 from the ledger.

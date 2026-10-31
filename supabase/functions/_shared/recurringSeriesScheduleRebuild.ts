@@ -5,34 +5,42 @@
 
 import {
   generateRecurrenceDates,
+  type RecurrenceEditScope,
   type RecurrenceInterval,
 } from './financeRecurrence.ts';
 
 type RebuildParams<TRow> = {
-  supabase: ReturnType<
-    typeof import('https://esm.sh/@supabase/supabase-js@2.38.4').createClient
-  >;
+  supabase: import('./supabaseJs.ts').SupabaseClient;
   table: 'finance_line_items' | 'maintenance_items';
   dateColumn: 'occurred_on' | 'scheduled_on';
   seriesId: string;
   anchorId: string;
   newInterval: RecurrenceInterval;
   newUntil: string;
+  /**
+   * `'all'` (default) regenerates the whole series from its original start date.
+   * `'this_and_future'` leaves every row dated before the anchor's own occurrence
+   * completely untouched — including their paid/reconciled/completed state — and
+   * only regenerates from the anchor's date forward. `'this'` is not valid here
+   * (a repeat interval / end date is a series-level property); callers should
+   * upgrade it to `'this_and_future'` before calling.
+   */
+  scope?: RecurrenceEditScope;
   buildRowPatch: (
     existing: Record<string, unknown>,
     dateYmd: string,
-    now: string,
+    now: string
   ) => Record<string, unknown>;
   mapRow: (row: Record<string, unknown>) => TRow;
   buildInsertRow: (
     template: Record<string, unknown>,
     dateYmd: string,
-    now: string,
+    now: string
   ) => Record<string, unknown>;
 };
 
 export async function rebuildMaterializedRecurrenceSeries<TRow>(
-  params: RebuildParams<TRow>,
+  params: RebuildParams<TRow>
 ): Promise<{ row: TRow; updated_count: number }> {
   const {
     supabase,
@@ -42,6 +50,7 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
     anchorId,
     newInterval,
     newUntil,
+    scope = 'all',
     buildRowPatch,
     mapRow,
     buildInsertRow,
@@ -56,23 +65,37 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
     throw new Error(`fetch ${table} series failed: ${fetchErr.message}`);
   }
 
-  const rows = (existingRows ?? []) as Record<string, unknown>[];
+  const allRows = (existingRows ?? []) as Record<string, unknown>[];
+  if (allRows.length === 0) throw new Error('recurrence_series_not_found');
+
+  const anchorRow = allRows.find((row) => String(row.id) === anchorId);
+  const anchorDate = anchorRow ? String(anchorRow[dateColumn]).slice(0, 10) : null;
+
+  // 'this_and_future' only regenerates the anchor's own date forward — earlier
+  // occurrences (and their paid/reconciled/completed state) are never touched.
+  const regenerateFromAnchorOnly = scope === 'this_and_future' && anchorDate != null;
+  const rows = regenerateFromAnchorOnly
+    ? allRows.filter((row) => String(row[dateColumn]).slice(0, 10) >= anchorDate!)
+    : allRows;
   if (rows.length === 0) throw new Error('recurrence_series_not_found');
 
-  const seriesStart = String(rows[0][dateColumn]).slice(0, 10);
-  const primaryDay = Number(seriesStart.slice(8, 10));
-  const until = newUntil >= seriesStart ? newUntil.slice(0, 10) : seriesStart;
-  const newDates = generateRecurrenceDates(
-    seriesStart,
-    newInterval,
-    until,
-    500,
-    primaryDay,
-  );
+  const regenerateStart = regenerateFromAnchorOnly
+    ? anchorDate!
+    : String(allRows[0][dateColumn]).slice(0, 10);
+  // Only pin the day-of-month to the series' original start when regenerating
+  // the whole series — for 'this_and_future', let it default to the anchor's
+  // own day (generateRecurrenceDates does this when no override is given), so
+  // a monthly/quarterly/etc. cadence keeps stepping from the date the host is
+  // actually looking at instead of snapping back to the series' original day.
+  const primaryDay = regenerateFromAnchorOnly
+    ? undefined
+    : Number(String(allRows[0][dateColumn]).slice(0, 10).slice(8, 10));
+  const until = newUntil >= regenerateStart ? newUntil.slice(0, 10) : regenerateStart;
+  const newDates = generateRecurrenceDates(regenerateStart, newInterval, until, 500, primaryDay);
   if (newDates.length === 0) throw new Error('recurrence_generated_no_dates');
 
   const now = new Date().toISOString();
-  const template = rows[0];
+  const template = allRows[0];
   let anchor: Record<string, unknown> | null = null;
   const idsToDelete: string[] = [];
 
@@ -100,14 +123,9 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
   }
 
   if (idsToDelete.length > 0) {
-    const { error: deleteErr } = await supabase
-      .from(table)
-      .delete()
-      .in('id', idsToDelete);
+    const { error: deleteErr } = await supabase.from(table).delete().in('id', idsToDelete);
     if (deleteErr) {
-      throw new Error(
-        `delete ${table} after series rebuild failed: ${deleteErr.message}`,
-      );
+      throw new Error(`delete ${table} after series rebuild failed: ${deleteErr.message}`);
     }
   }
 
@@ -115,11 +133,7 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
   for (let i = rows.length; i < newDates.length; i += 1) {
     const newDate = newDates[i]!;
     const insertRow = buildInsertRow(template, newDate, now);
-    const { data, error } = await supabase
-      .from(table)
-      .insert(insertRow)
-      .select('*')
-      .single();
+    const { data, error } = await supabase.from(table).insert(insertRow).select('*').single();
     if (error) {
       throw new Error(`insert ${table} series rebuild failed: ${error.message}`);
     }
@@ -136,9 +150,7 @@ export async function rebuildMaterializedRecurrenceSeries<TRow>(
       .eq('id', anchorId)
       .maybeSingle();
     if (refetchErr) {
-      throw new Error(
-        `fetch ${table} anchor after rebuild failed: ${refetchErr.message}`,
-      );
+      throw new Error(`fetch ${table} anchor after rebuild failed: ${refetchErr.message}`);
     }
     anchor = (refetched as Record<string, unknown> | null) ?? rows[0];
   }

@@ -1,0 +1,55 @@
+---
+description: Token hygiene — session length, model routing, subagents, Superpowers. Always-on, keep short.
+alwaysApply: true
+---
+
+# AI usage — session hygiene
+
+**Agent behavior:** follow always-on **`.cursor/rules/karpathy-guidelines.mdc`** (skill **`karpathy-guidelines`**) on every task: assumptions, minimal diffs, no drive-by refactors, verifiable success criteria.
+
+## Sessions
+
+- **One task ≈ one chat.** New feature, bug, or doc pass → new Cursor Agent / Claude session (`/clear`).
+- Do **not** continue multi-day threads. Long context (>150k) is expensive even when cached.
+- Prefer `/compact` mid-task only if you must stay in-thread; prefer `/clear` when switching goals.
+
+## Models (default)
+
+| Work                                      | Prefer                                          |
+| ----------------------------------------- | ----------------------------------------------- |
+| Implementation, renames, UI polish, docs  | **Composer** (Cursor) / Sonnet default (Claude) |
+| Hard architecture, tricky workflow bugs   | Sonnet + thinking (sparingly)                   |
+| Opus / Auto Balanced / Max Mode           | Rare — explicit hard judgment only              |
+| Subagents: explore / verify / test-runner | Cheapest capable model (`fast` / `haiku`)       |
+
+Do **not** use high-thinking or Opus for spacing, copy tweaks, or mechanical refactors.
+
+## Subagents
+
+- Default: **no subagents.** One agent + targeted search/read.
+- Spawn Explore / Plan / general-purpose only when the user asks or the task truly spans many unrelated areas.
+- Never chain brainstorm → explore → plan → execute unless the user opted into Superpowers (`/superpowers-*`).
+
+## Superpowers
+
+- Opt-in only (see `superpowers-opt-in.mdc`). Do not auto-invoke brainstorming.
+- When used: keep it single-threaded; do not fan out extra explore agents.
+- **Lean mode (hooks):** all `/superpowers-*` commands (including **`/superpowers-execute`**) activate lean mode — subagents/Task blocked via `.cursor/hooks/superpowers-lean-mode.sh` + `guard-superpowers-subagents.sh`. See `.agent/skills/superpowers/SKILL.md` § Lean mode.
+
+## MCP
+
+- Use project MCP when needed (`supabase` read-only, `context7`, `markitdown` for binaries, `playwright` for `/verify`).
+- Do not discover or call unused servers. Skip failed/unauth servers instead of retrying auth loops.
+- Prefer `rg` / `Read` over Playwright for code questions.
+
+## Memory (no claude-mem)
+
+- **Do not use claude-mem** — it bills Haiku on every tool use and usually costs more than it saves in this repo.
+- Cross-session context: **`docs/PROJECT.md`**, matching **`docs/guides/routes/*`**, **`docs/workflow/in-progress/`**, then `/clear` between tasks.
+- Machine cleanup: **`bun run cleanup:claude-mem`** (add `-- --purge` to delete `~/.claude-mem` data).
+
+## Account routing (humans)
+
+- Cursor **Included** quota: day-to-day Composer.
+- Cursor **On-Demand**: when Included is exhausted, or a short Sonnet-thinking hard problem.
+- Claude Pro: judgment / edge work — not parallel “explore everything” sessions on the same task as Cursor Agent.

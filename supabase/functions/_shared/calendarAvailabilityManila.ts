@@ -10,6 +10,11 @@ export function manilaTodayYmd(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: MANILA_TZ });
 }
 
+/** Stable ISO timestamp on today's Manila calendar date (noon +08:00). Use for Superhost rolling windows. */
+export function manilaNowIso(): string {
+  return `${manilaTodayYmd()}T12:00:00+08:00`;
+}
+
 /** Normalize DB date string (MM-DD-YYYY or YYYY-MM-DD) to YYYY-MM-DD. */
 export function normalizeBookingDateToYmd(dateStr: string): string | null {
   if (!dateStr) return null;
@@ -21,7 +26,7 @@ export function normalizeBookingDateToYmd(dateStr: string): string | null {
   return null;
 }
 
-function addDaysYmd(ymd: string, deltaDays: number): string {
+export function addDaysYmd(ymd: string, deltaDays: number): string {
   const [y, m, d] = ymd.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
   return dt.toISOString().slice(0, 10);
@@ -35,7 +40,7 @@ export function calendarDaysBetween(fromYmd: string, toYmd: string): number {
 }
 
 export function collectBlockedNights(
-  ranges: { checkInYmd: string; checkOutYmd: string }[],
+  ranges: { checkInYmd: string; checkOutYmd: string }[]
 ): Set<string> {
   const blocked = new Set<string>();
   for (const { checkInYmd, checkOutYmd } of ranges) {
@@ -53,7 +58,7 @@ export function collectBlockedNights(
 export function bookingOccupiesNight(
   checkInYmd: string,
   checkOutYmd: string,
-  dayYmd: string,
+  dayYmd: string
 ): boolean {
   if (!checkInYmd || !checkOutYmd || checkInYmd >= checkOutYmd) return false;
   return checkInYmd <= dayYmd && checkOutYmd > dayYmd;
@@ -63,7 +68,7 @@ export function bookingOccupiesNight(
 export function earliestAvailableCheckInYmd(
   blocked: Set<string>,
   startYmd: string,
-  maxSteps = 450,
+  maxSteps = 450
 ): string | null {
   let cur = startYmd;
   for (let i = 0; i < maxSteps; i++) {
@@ -78,7 +83,7 @@ export function listAvailableCheckIns(
   blocked: Set<string>,
   startYmd: string,
   limit: number,
-  maxScan = 500,
+  maxScan = 500
 ): string[] {
   const out: string[] = [];
   let cur = startYmd;
@@ -117,10 +122,12 @@ export function formatAvailableDatesHuman(ymds: string[]): string {
     day: 'numeric',
     timeZone: 'UTC',
   });
-  return ymds.map((x) => {
-    const p = ymdParts(x);
-    return fullFmt.format(new Date(Date.UTC(p.year, p.monthIndex, p.day)));
-  }).join(', ');
+  return ymds
+    .map((x) => {
+      const p = ymdParts(x);
+      return fullFmt.format(new Date(Date.UTC(p.year, p.monthIndex, p.day)));
+    })
+    .join(', ');
 }
 
 /** Month name for a YMD in that calendar month (e.g. "May"). */
@@ -144,10 +151,12 @@ export function formatDatesListForMonth(ymds: string[], monthYmd: string): strin
     return ymds.map((x) => String(ymdParts(x).day)).join(', ');
   }
   const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  return ymds.map((x) => {
-    const p = ymdParts(x);
-    return fmt.format(new Date(Date.UTC(p.year, p.monthIndex, p.day)));
-  }).join(', ');
+  return ymds
+    .map((x) => {
+      const p = ymdParts(x);
+      return fmt.format(new Date(Date.UTC(p.year, p.monthIndex, p.day)));
+    })
+    .join(', ');
 }
 
 /**
@@ -168,8 +177,12 @@ export function formatCancellationDatesHuman(checkInYmd: string, checkOutYmd: st
     const m = monthFmt.format(new Date(Date.UTC(a.year, a.monthIndex, 15)));
     return `${m} ${a.day}–${b.day}`;
   }
-  const short = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  return `${short.format(new Date(Date.UTC(a.year, a.monthIndex, a.day)))}–${
-    short.format(new Date(Date.UTC(b.year, b.monthIndex, b.day)))
-  }`;
+  const short = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+  return `${short.format(new Date(Date.UTC(a.year, a.monthIndex, a.day)))}–${short.format(
+    new Date(Date.UTC(b.year, b.monthIndex, b.day))
+  )}`;
 }

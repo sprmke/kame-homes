@@ -1,0 +1,369 @@
+---
+stage: planned
+title: 'Legacy prod → multi-tenant prod cutover (data, storage, accounts, cleanup)'
+status: planned
+tags: [planning, deployment, migration, supabase, storage, vercel, multi-tenancy, cutover]
+updated: 2026-10-24
+---
+
+# Legacy prod → multi-tenant prod cutover
+
+**Goal.** Move Kame Homes off the live legacy stack (`main` → Vercel `guest-form-management-app` on `sprmkes-projects` → Supabase `zfttdwtceyqszyeyhilc`) onto the new multi-tenant app (`develop` → Vercel `kame-homes` on `kame-works` → a new **mt-prod** Supabase project under the new Supabase account). Every legacy row, Auth user and Storage object lands in mt-prod under a proper **Kame Homes org → property** shape. Every booking already on the books (especially future stays) keeps working end to end: links in emails already sent, document approvals, SD refunds, calendar availability, Telegram summaries. After a stable hypercare period, retire the legacy repo branch, Vercel project, Supabase project, domain wiring and service accounts.
+
+This plan supersedes the stub task list in [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md) and fills in Phase B of [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md).
+
+---
+
+## 1. What the repo already tells us (facts, verified 2026-10-22)
+
+| Fact                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Evidence                                          | Consequence                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main` is a strict ancestor of `develop`: 0 commits on `main` not on `develop`, 1,970 on `develop` not on `main`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `git rev-list --count`                            | `develop → main` can fast-forward. Any legacy hotfix landed before cutover must be merged into `develop` first.                                                                                                                          |
+| All 85 legacy migrations exist on `develop`. 83 are byte-identical. 2 differ (`20260724140000_recurrence_twice_monthly`, `20260724150000_recurrence_every_6_months`).                                                                                                                                                                                                                                                                                                                                                                                                                                                  | per-file `git diff main develop`                  | The 2 diffs only drop a `maintenance_items` constraint that later migrations re-add. Harmless for a DB that already ran the legacy versions.                                                                                             |
+| `develop` adds **322 migrations** (407 total), many **interleaved** with legacy timestamps (for example `20260629180000_multi_tenancy_foundation` sits between legacy `202606*` files).                                                                                                                                                                                                                                                                                                                                                                                                                                | `ls supabase/migrations`                          | Upgrading a restored legacy DB needs `db push --include-all`. Out-of-order apply is **untested** today, so rehearsal is mandatory.                                                                                                       |
+| The migration chain was **written to upgrade legacy data in place**. `20260629180000_multi_tenancy_foundation.sql` creates org `kame-home` ("Kame Home") owned by `kamehome.azurenorth@gmail.com` and property `monaco-2604` ("Monaco 2604", Azure North), then sets `property_id` on all `guest_submissions`, `finance_line_items` and early settings tables. Later migrations (`20260714120000_backfill_legacy_booking_statuses`, `20260703150000_org_settings`, `20260714130000_payment_methods_jsonb`, `20260719100000_developments`, `20260821120000_multi_tenancy_late_tables_property_id`, …) backfill further. | migration headers                                 | **Restore-then-upgrade** reuses those backfills instead of re-implementing them in an ETL. On an empty DB they silently skip (`RAISE NOTICE … skip`), which is why mt-dev never exercised them with real data.                           |
+| Legacy buckets: `payment-receipts`, `valid-ids`, `templates`, `pet-vaccinations`, `pet-images`, `parking-endorsements`, `approved-gafs`, `approved-pet-forms`, `sd-refund-receipts`, `app-settings-assets`. New app adds 9 more and makes guest-PII buckets **private** (`20261310120100_guest_doc_storage_private_reads`).                                                                                                                                                                                                                                                                                            | migrations                                        | Object paths must be preserved. Stored URLs embed the `zftt…` host and must be rewritten. Readers parse URLs host-agnostically (`_shared/storageSignedUrl.ts#parseStorageObjectUrl`), but PDFs, emails and previews still show the host. |
+| Public guest endpoints **require** `?property=` or an id (`_shared/propertyScope.ts#resolvePublicPropertyId`, no default). The new UI's `legacyGuestRedirects` send `/form`, `/sd-form?bookingId=…` etc. **without** `?property=` to `/properties`, which drops the booking.                                                                                                                                                                                                                                                                                                                                           | `ui/src/features/guest/property/routes/index.tsx` | Links in emails already sent from legacy (SD form, pay-parking, success) break unless the legacy host injects the property slug. See §6.                                                                                                 |
+| Legacy integrations that **no longer exist** in the new app: Google Calendar sync, Google Sheets sync, Gmail listener for PMO approvals (`calendarService.ts`, `sheetsService.ts`, `gmail-listener`). New app uses Resend inbound (`approval-email-webhook`) + iCal (`calendar-sync-cron`, `ical-export`).                                                                                                                                                                                                                                                                                                             | `git show main:supabase/functions/_shared`        | In-flight bookings awaiting a PMO approval reply in Gmail need a manual or forwarding path. Host Google Calendar/Sheet stop updating at cutover.                                                                                         |
+| New app schedules **23 pg_cron jobs** (review lifecycle, SD refund, parking reminders, Telegram admin/staff/finance/maintenance/marketing, billing, superhost, contract expiry, …).                                                                                                                                                                                                                                                                                                                                                                                                                                    | `cron.schedule(` in migrations                    | First run on years of historic data may **blast old guests** (review requests, reminders). Each cron needs an audit before go-live (§5.6).                                                                                               |
+| `scripts/migrate/legacy-to-mt-prod/` is a README stub. `scripts/data/sync-prod-public-data-to-local.sh` already handles pooler/IPv4 dumps of legacy. `backup-supabase.sh` / `rollback-supabase.sh` exist.                                                                                                                                                                                                                                                                                                                                                                                                              | `scripts/`                                        | Reuse the connection and dump helpers. Don't invent a new dump path.                                                                                                                                                                     |
+
+---
+
+## 2. Scope
+
+**In**
+
+- New accounts and projects: mt-prod Supabase (new Supabase account/org), `kame-homes` Vercel Production (kame-works), production-grade secrets for every integration.
+- Postgres: full legacy data (public + `auth` + migration history + `storage.buckets`) restored, then upgraded by the `develop` migration chain.
+- Kame Homes tenant shaping: org name/slug, property records, owner + team members, org settings, verification tier, plan entitlement, development link, public listing.
+- Storage: every object in every legacy bucket copied with the same path, then a DB URL rewrite.
+- Auth: carry users over with the same UUIDs (bookings, finance and audit rows reference them).
+- Continuity of existing and future bookings (§6), including links in emails already sent.
+- `develop → main` merge, CD prod enablement, domain and DNS cutover.
+- Rehearsals with written acceptance criteria, a cutover-day runbook, rollback, hypercare.
+- Decommission of legacy repo track, Vercel project, Supabase project, domain wiring and old service credentials, gated by time and checks.
+
+**Out**
+
+- Re-creating legacy Google Calendar events or Sheets rows in the new app. The new app does not use them.
+- Gmail inbox history import. Approvals already processed live in `processed_emails`. Unprocessed ones are handled manually (§6.3).
+- New product features. Only migration-enabling fixes, such as legacy-link redirects and cron watermarks.
+- Merging mt-dev (`fwor…`) test data into prod. Only the curated Kame Homes **configuration** may be exported from dev (decision D6).
+
+---
+
+## 3. Decisions (recommended; confirm in §12)
+
+| #      | Decision                           | Recommendation                                                                                                                                                                                                                                                                                                                                                               | Why                                                                                                                                                                                                         |
+| ------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D1** | Data strategy                      | **Restore-then-upgrade.** Dump legacy (roles, schema, data incl. `auth` + `supabase_migrations`), restore into a fresh mt-prod, run `supabase db push --include-all` with the `develop` chain, then apply a Kame Homes shaping script. **Fallback:** fresh schema + per-table ETL, only if rehearsal shows the out-of-order chain cannot be fixed with small new migrations. | The chain already encodes the legacy → multi-tenant transforms. Preserves every UUID, so booking links, storage paths and audit references stay valid. ETL would re-implement roughly 40 backfills by hand. |
+| **D2** | Write freeze vs live delta sync    | **Planned freeze window** (2–4 h, late night Manila, low check-in day). Legacy guest intake shows a maintenance page. Final dump taken after the freeze starts.                                                                                                                                                                                                              | Single-host volume makes a short freeze cheap. A delta sync across a changing schema is the riskiest code in the whole plan.                                                                                |
+| **D3** | Auth users                         | **Carry over** via the `auth` schema dump (same `id`, email, identities). Every session is invalidated (new JWT keys), so admins sign in again with Google on the new OAuth client.                                                                                                                                                                                          | Same UUIDs keep `organizations.owner_id` and audit FKs intact. Google `sub` is stable across OAuth clients, so the identity rows keep matching.                                                             |
+| **D4** | Production domain                  | New app on **`app.kamehomes.space`** (already planned). Apex **`kamehomes.space`** + `www` move from the legacy Vercel project to `kame-homes` **only as redirects** (legacy path → new path with property slug, §6.1). Keep them for at least 12 months.                                                                                                                    | Hundreds of legacy emails hold apex links. The domain itself must never be dropped while bookings or SD refunds reference it.                                                                               |
+| **D5** | Repo                               | Keep **`sprmke/kame-homes`** as the single repo. "Old repo" cleanup means: tag `legacy-final` on `main`, fast-forward `main` to `develop`, disconnect `main` from the legacy Vercel project, archive legacy-only scripts and guards. Transfer to a `kame-works` GitHub org only if confirmed (Q3).                                                                           | The repo already hosts both tracks. A new repo would lose history and CI wiring for no gain.                                                                                                                |
+| **D6** | Source of Kame Homes configuration | **Legacy data + migration backfills are the source of truth for bookings and finance.** Curated config built in mt-dev (property settings, templates, public pages, media, pricing calendars) is exported table-by-table with an allow-list script and imported **after** the upgrade, keyed by property slug, never by dev UUID.                                            | Dev contains test bookings and junk. Only hand-picked config should cross.                                                                                                                                  |
+| **D7** | Region / Postgres                  | mt-prod in **Southeast Asia (Singapore)**, Postgres 17, same as mt-dev. Use the PG17 `pg_dump` from the current Supabase CLI.                                                                                                                                                                                                                                                | Region moves after launch mean another full migration ([`deployment.md`](../../architecture/deployment.md)).                                                                                                |
+
+---
+
+## 4. Environment and account inventory
+
+| Surface                                           | Legacy (retire)                                                             | New (target)                                                                 | Action                                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Git                                               | `main` (legacy UI + 85 migrations)                                          | `develop` → merged to `main` at cutover                                      | Tag `legacy-final`, fast-forward                                          |
+| Vercel                                            | `guest-form-management-app` (`sprmkes-projects`), apex `kamehomes.space`    | `kame-homes` (`kame-works`), Production branch `main`, `app.kamehomes.space` | Production env vars, domain moves                                         |
+| Supabase                                          | `zfttdwtceyqszyeyhilc` (old account)                                        | **mt-prod** (new account, ref TBD)                                           | Create, restore, upgrade                                                  |
+| Supabase dev                                      | n/a                                                                         | `fworvijbrwpyngycotbz`                                                       | Source for D6 config export only. Confirm which account it lives in (Q4). |
+| Auth providers                                    | Google OAuth (legacy client), `ADMIN_ALLOWED_EMAILS`                        | Google OAuth **prod** client → mt-prod callback                              | New client, origins, redirect URIs                                        |
+| Email                                             | Resend (legacy account?), legacy sender domain, Gmail inbox for PMO replies | Resend prod account, `inbound.kamehomes.space` MX → `approval-email-webhook` | Domain verification move (§7)                                             |
+| Telegram                                          | Bot tokens in legacy `telegram_*_settings` rows                             | Same rows after migration                                                    | **Disable legacy crons first** to avoid duplicate posts                   |
+| Google                                            | Service account, Calendar, Sheets, Gmail OAuth                              | Maps key, OAuth client only                                                  | Revoke legacy credentials at decommission                                 |
+| Meta / PayMongo / PostHog / Gemini / Groq / VAPID | n/a on legacy                                                               | Prod credentials on mt-prod + Vercel                                         | Fresh setup per existing checklists                                       |
+| GitHub Environments                               | n/a                                                                         | `production` env secrets, `CUTOVER_ENABLED`, `cd-prod.yml`                   | Enable after first manual upgrade                                         |
+| DNS (Namecheap)                                   | `@`, `www` → legacy Vercel                                                  | `app`, `@`, `www`, `inbound` (MX), Resend DKIM/SPF                           | Lower TTLs to 300 s at T-48h                                              |
+
+---
+
+## 5. Implementation tasks
+
+### Phase 0 — Inventory and sign-off (no writes anywhere)
+
+- [x] **0.1 Legacy row inventory.** Read-only SQL against legacy via the session pooler. Row counts for every `public` table, `auth.users`, `auth.identities`, `storage.objects` grouped by bucket (count + total bytes). `guest_submissions` grouped by `status`, by check-in month, and **future check-ins** (`check_in_date >= today Manila`, both `MM-DD-YYYY` and `YYYY-MM-DD` formats). Save to `scripts/migrate/legacy-to-mt-prod/sql/00-inventory.sql`. Results go to a gitignored `backups/migration/inventory-<ts>.json` (contains no PII, counts only). ✅ **2026-10-24** — done via `scripts/migrate/legacy-to-mt-prod/inventory.ts` (Bun + `pg`, no psql/Docker needed — legacy pooler is IPv4). Snapshot in `backups/migration/inventory-2026-10-24T10-15-26-485Z.json`. Key counts: 18 `public` tables; `guest_submissions` 445 (422 COMPLETED / 13 CANCELLED / 8 READY_FOR_CHECKIN / 1 PENDING_REVIEW / 1 PENDING_DOCUMENTS); **8 future check-ins** (6 ready, 1 review, 1 documents — see §6.3 staging); `auth.users` 7 (7 google identities); storage 1,471 objects across 10 buckets, largest `valid-ids` 566 obj / ~395 MB (~242 MB total all); migration history 85/85 (20240213 → 20260820120000).
+- [ ] **0.2 Schema drift check.** `supabase db diff` legacy live schema vs a local DB built from `main`'s 85 migrations. Any drift (dashboard hotfixes, manual columns, extra policies) becomes a pre-upgrade fixup in `sql/10-post-restore-fixups.sql`. 🔶 **2026-10-24** — probe done: legacy `public` schema dumped read-only to `backups/migration/schema-probe/legacy-public-schema.sql` (70 KB, 27 CREATE TABLE blocks) and `supabase db push --dry-run --include-all` against legacy reports exactly the expected **322 unapplied `develop` migrations** (nothing written). Byte-level drift vs `main`'s 85 migration output still pending the local rehearsal build.
+- [x] **0.3 Migration history check.** Confirm `supabase_migrations.schema_migrations` on legacy lists exactly the 85 `main` versions. ✅ **2026-10-24** — exactly 85 rows, versions `20240213`–`20260820120000`; full per-row list captured in the inventory JSON. SPDX note: version list matches `main`'s migration file names in count; byte-level name diff pending 0.2 tooling.
+- [x] **0.4 Extension check.** List extensions on legacy (`pg_cron`, `pg_net`, `vault`, `pgcrypto`, …) vs what `develop` migrations need. ✅ **2026-10-24** — legacy has `pg_cron`, `pg_net`, `pg_stat_statements`, `pgcrypto`, `plpgsql`. `develop` migrations additionally declare `pg_trgm`: **enable it in Phase 1.3** before restore. `vault` is unused; GMAIL listener retention is decided via §6.5, not blocked by extension absence. mt-prod Phase 1.3 enable-list: `pgcrypto`, `pg_trgm`, `pg_cron`, `pg_net`, `plpgsql`.
+- [ ] **0.5 Integration inventory.** Every legacy edge secret name (names only), Resend sending/inbound setup, Google Cloud project and OAuth clients, Telegram bots and chats, Gmail mailbox, Namecheap DNS records. Record in the runbook, never values. **Expanded by the prerequisite [`legacy-prod-config-secrets-backup.md`](./legacy-prod-config-secrets-backup.md)** (values backup in a password manager + encrypted archive). Phase 1 and §10 decommission (10.3 delete, 10.4 revoke) wait for its B-18 sign-off. Found 2026-10-25: the local `supabase/.env.production` is missing 31 of the 35 secret names legacy code reads.
+- [x] **0.6 Legacy link inventory.** Grep legacy email templates and `main` UI for every guest-facing URL pattern emitted to date (`/form`, `/success`, `/calendar`, `/sd-form?bookingId=`, `/bookings/:id/parking`, PDF/asset links). This feeds the redirect map in §6.1. ✅ **2026-10-24** — complete list: guest emails only ever link `${publicGuestAppOrigin}/sd-form?bookingId=<uuid>` (`emailService.ts:1403`). Admin/host links: `/bookings/<uuid>` (calendar service + Telegram + email shell). Asset URLs on the apex host: `/images/logo.png` (email logo, `renderEmailHtml.ts`) and `/images/kame-home-gcash-qr-payment.jpg` (QR; custom override may instead embed a `zftt…` Storage URL). Legacy never emitted `/form`, `/calendar`, `/success`, `/guest-review`, or pay-parking links inside emails (verified by grep); those exist only as manually shared `/form`/`/calendar` intake links. Static `/images/*` paths already exist on develop (`ui/public/images/`), so the apex cutover serves them unchanged. Storage object URLs embed the `zftt…` host; guest PII buckets become private in the new app, so guests' old links reach only `templates`/`app-settings-assets` (covered by legacy-storage-alive-through-hypercare).
+- [x] **0.7 Answer §12 open questions** and freeze D1–D7. 🔶 **2026-10-24** — Q1 brand/slug: proposed `Kame Homes`/`kame-homes` (confirm with host); Q2: legacy serves exactly **one unit** (445 bookings, single `app_settings` row, Telegram setting rows confirmed single-property) — Monte/2604-only is effectively confirmed; Q3–Q9 still open. D1–D7 validated by R1 so far (restore-then-upgrade works).
+
+### Phase 1 — Accounts and mt-prod provisioning
+
+- [ ] **1.1** Create mt-prod in the **new Supabase account** (Singapore, PG17, paid compute sized for restore). Record ref in [`deployment.md`](../../architecture/deployment.md) and `supabase/.env.prod.local` (from `.env.prod.example`).
+- [ ] **1.2** Create a throwaway hosted **rehearsal** project in the same account and region (deleted after cutover).
+- [ ] **1.3** Enable required extensions on both before restore (from 0.4).
+- [ ] **1.4** Auth config: Site URL `https://app.kamehomes.space`, redirect URLs, Google provider with the **prod** OAuth client. JWT/API keys stay new (sessions reset by design).
+- [ ] **1.5** Vercel `kame-homes`: Production env vars (`VITE_SUPABASE_URL`, `VITE_API_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`, `VITE_GOOGLE_MAPS_API_KEY`, PostHog, …) → mt-prod. Production branch = `main`. Do **not** attach `app.kamehomes.space` to Production until cutover.
+- [ ] **1.6** GitHub `production` environment secrets for mt-prod. Keep `CUTOVER_ENABLED=false`.
+- [ ] **1.7** Update `scripts/dev/prod-deploy-guard-lib.sh` / `check-linked-project.sh` so the mt-prod ref is recognized as **prod** (kamewave-gated) and `zftt…` stays deny-listed for multi-tenant deploys.
+
+### Phase 2 — Migration tooling (`scripts/migrate/legacy-to-mt-prod/`)
+
+Bash orchestrator plus SQL files plus one Bun script for Storage. Every stage is idempotent, logs to `backups/migration/<run-id>/`, and refuses to write to `zfttdwtceyqszyeyhilc`.
+
+```
+scripts/migrate/legacy-to-mt-prod/
+  README.md                       runbook entry point (replace stub)
+  migrate.sh                      stages: preflight | dump | restore | upgrade | shape | rewrite | storage | config-import | verify
+  lib.sh                          target guards, pooler/IPv4 URL helper (lift from scripts/data/sync-prod-public-data-to-local.sh)
+  sql/00-inventory.sql            read-only counts (legacy and target)
+  inventory.ts                    Phase 0.1 runner: bun + pg for sql/00-inventory.sql (counts-only JSON; guards)
+  sql/05-legacy-freeze.sql        unschedule legacy pg_cron jobs, record freeze timestamp (run on LEGACY with kamewave)
+  sql/10-post-restore-fixups.sql  drift fixes from 0.2, before upgrade
+  sql/20-shape-kame-homes.sql     org/property/member/settings shaping (Phase 3)
+  sql/30-rewrite-storage-urls.sql zftt host → mt-prod host, legacy origin → new origin
+  sql/40-derived-rebuild.sql      search index, rollups, counters, sequences
+  sql/45-cron-watermarks.sql      (realized instead as 20261316128600 watermark migration + _shared/cutoverWatermark.ts guard)
+  sql/90-verify.sql               invariants; exits non-zero on failure
+  storage/copyBuckets.ts          resumable object copy with manifest + size/etag check
+  config/exportDevConfig.ts       D6 allow-list export from fwor keyed by slug
+  config/importConfig.ts          import onto mt-prod by slug
+  verify/compareCounts.ts         legacy inventory vs target, per table
+```
+
+- [x] **2.1 `dump`.** Use `supabase db dump --db-url "$LEGACY_DB_URL"` three times: `--role-only` → `roles.sql`; schema → `schema.sql`; `--data-only --use-copy` → `data.sql`. Include `auth`, `supabase_migrations` and `storage.buckets`. **Exclude `storage.objects`**, which the copy script recreates. Dumps go to gitignored `backups/migration/<run-id>/`. They contain PII: never commit, delete after hypercare. 🔶 **2026-10-24** — dump path verified read-only against legacy (`--schema public` probe → `backups/migration/schema-probe/legacy-public-schema.sql`). Full three-file dump runs inside `migrate.sh dump` at rehearsal time.
+- [x] **2.2 `restore`.** `psql` with `session_replication_role = replica` for data, in order: roles → schema → data. Abort on the first error. ✅ **2026-10-24 (R1)** — implemented in `migrate.sh restore`; clean full restore of legacy into local `legacy_r1`. Supabase CLI skips managed schemas, so `auth`/`storage`/`supabase_migrations` schemas are dumped via `postgres:17` Docker (`pg_dump --schema=…`); `data.sql` is filtered to `public`-only COPY blocks (awk) because those schemas carry their own data files. Restore prerequisites now encoded: `CREATE DATABASE … OWNER TO postgres` + `extensions`/`priv`/`vault`/`pgsodium(_masks)` schemas + `supabase_realtime` publication + `pgcrypto`/`pg_cron`/`pg_net` extensions, all idempotent. (`session_replication_role` not needed because COPY order respects FKs; revisit if a later table set introduces cycles.) Local rehearsal requires temporarily pointing `cron.database_name` at the rehearsal db + a Postgres container restart (`stage_reset_cron_db` reverts); on mt-prod restore lands in `postgres` itself so the switch is unnecessary there.
+- [x] **2.3 `upgrade`.** Run `sql/10-post-restore-fixups.sql`, then `supabase db push --db-url "$TARGET_DB_URL" --include-all`. **Manual, kamewave-gated, first time only.** `cd-prod.yml`'s strict-order check would reject the interleaved versions on this one run. Capture the full log. ✅ **2026-10-24 (R1)** — the full 322-migration chain applied to real legacy data on the make-go rehearsal db with exactly **one** chain fix needed (see 2.4: `20260629215000_gmail_listener_state_singleton_drop_guard.sql`). Full logs under `backups/migration/r1-20261024/upgrade-push.log`.
+- [x] **2.4 Chain fixes.** ✅ **2026-10-24 (R1, first finding):** `20260629220000_gmail_listener_state_per_property.sql` updated `gmail_listener_state.id` from `'default'` → `property_id::text` while the legacy `CHECK gmail_listener_state_singleton (id='default')` still existed → contradicts on the real singleton row. Fix: NEW guard migration **`20260629215000_gmail_listener_state_singleton_drop_guard.sql`** (drops the legacy constraint early; no-op on fresh DBs where the UPDATE in 29220000 had nothing to do). Shipped migrations untouched, per policy.
+- [x] **2.5 `rewrite`.** Generic scan of every `text`/`jsonb` column in `public` for `zfttdwtceyqszyeyhilc.supabase.co` and the legacy origin (`https://kamehomes.space`, `https://www.kamehomes.space`). Rewrite to the mt-prod host and `https://app.kamehomes.space`. Print a before/after count per column. Also set `public_guest_app_origin` and similar origin settings in `app_settings` / `org_settings`. ✅ **2026-10-24 (R1)** — `sql/30-rewrite-storage-urls.sql` executed cleanly on the rehearsal db: 17 `guest_submissions` URL columns, `app_settings`/`org_settings` logo + `public_guest_app_origin` (→ `app.kamehomes.space`), plus an `activity_log.changes` jsonb rewrite. Post-rewrite check: 0 `zftt`/legacy-origin refs remaining in `guest_submissions`; target host is a psql var (`PSQLVAR_TARGET_HOST`), so mt-prod gets the real project ref. Only LIKE-guarded rows are re-updated, so the stage is idempotent.
+- [x] **2.5b `derived-rebuild`.** Sequences → bump every owned sequence past max(id); search index → repopulate the trigger-maintained `public_listing_search` by no-op-updating the base tables (triggers were created after rows were restored). ✅ **2026-10-24 (R1)** — `sql/40-derived-rebuild.sql`: index repopulated (2 rows: 1 property + 1 development) and sequences bumped.
+- [ ] **2.5 `rewrite`.** Generic scan of every `text`/`jsonb` column in `public` for `zfttdwtceyqszyeyhilc.supabase.co` and the legacy origin (`https://kamehomes.space`, `https://www.kamehomes.space`). Rewrite to the mt-prod host and `https://app.kamehomes.space`. Print a before/after count per column. Also set `public_guest_app_origin` and similar origin settings in `app_settings` / `org_settings`.
+- [ ] **2.6 `storage`.** `copyBuckets.ts`: for each legacy bucket, recursive list, then download with legacy service role, then upload to the same bucket and path on the target with the original `contentType` and `cacheControl`. Manifest JSON for resume. Verify count and bytes per bucket. Re-runnable for a final delta at T0 (objects whose `updated_at` > last run). 🔶 **2026-10-24 (R1)** — `storage/copyBuckets.ts` implemented (modes `manifest` / `dry-run` / `copy`), manifest built from the restored `storage.objects` metadata (all 10 buckets match the legacy inventory exactly). Dry-run against legacy: **1,100 / 1,471 objects reachable publicly with exact size match**, 371 across the four PRIVATE buckets (`approved-gafs` 229, `approved-pet-forms` 11, `sd-refund-receipts` 128, `templates` 3) return the storage "not found" mask without authorization → these need `LEGACY_SERVICE_ROLE_KEY` (env). Actual copy runs only on the R3 host rehearsal / cutover day (local rehearsal db cannot run its own Storage service instance).
+- [ ] **2.7 `verify`.** Exit non-zero unless every invariant in §5.7 holds.
+- [ ] **2.8 Safety.** A `--dry-run` flag on every stage. Hard refusal if the target ref equals legacy. Kamewave prompt on any stage touching mt-prod or legacy. `log_deploy()` audit line per stage.
+
+### Phase 3 — Kame Homes org and property shaping (`sql/20-shape-kame-homes.sql`)
+
+Runs after `upgrade`. All statements are idempotent and keyed by slug.
+
+- [ ] **3.1 Org.** Rename the backfilled org `kame-home` / "Kame Home" to the confirmed brand name and slug (Q1; proposal superseded by rebrand R1, so use the final Kame Space name or the host's business name, never "Kame Homes"). Name the shaping file `sql/20-shape-tenant-org.sql` so it doesn't carry the old brand. Set description, logo (`logo_url` from `app-settings-assets`), contact info from legacy `app_settings`. **Changing the slug changes every admin URL.** Do it before any link is shared, and confirm no stored URL embeds the old org slug (search in 2.5).
+- [ ] **3.2 Owner.** `owner_id` = `kamehome.azurenorth@gmail.com` user (the backfill's first choice). Verify it did not fall back to "oldest auth user".
+- [ ] **3.3 Property / properties.** Backfill creates `monaco-2604` (Monaco 2604, Azure North, max 6 guests). Confirm the real unit list (Q2). If legacy holds more than one unit, add a deterministic split rule (by `tower_and_unit` or booking fields) and move rows. Link property → `developments` row for Azure North, towers/unit columns (`20260821140000_properties_tower_unit_columns`), status `ACTIVE`, public listing slug, `max_guests`, check-in/out times, house rules, payment methods (from legacy `app_settings` GCash/QR via `20260714130000_payment_methods_jsonb`).
+- [ ] **3.4 Team.** Every email in legacy `ADMIN_ALLOWED_EMAILS` (except the owner) becomes an `organization_members` or `property_members` row with the right built-in role. Staff who used `/staff` get the matching role. Anyone not mapped loses access. List them for the host.
+- [ ] **3.5 Plan and verification.** Give the Kame Homes org its internal plan (comped / `managed`, Q5) via `org_subscriptions` so no feature is plan-gated off. Set the org verification tier to verified. Use super-admin flows or SQL that matches what `/admin/orgs` writes, with an `activity_log` row "migrated from legacy".
+- [ ] **3.6 Super-admin.** `SUPER_ADMIN_EMAILS` secret on mt-prod. Confirm `/admin` works for the owner.
+- [ ] **3.7 Parking.** Legacy parking was a booking add-on (`parking_owner`, `parking_endorsements`, pay-parking on `guest_submissions`). Confirm migrations kept it on the booking. Decide whether Kame Homes also needs a **parking vertical** entity in the new model (Q6). If yes, create it and link existing parking rows only if the schema expects it.
+- [ ] **3.8 Telegram and email automation settings.** Verify the per-property `telegram_*_settings` rows got `property_id`. Bot tokens and chat IDs carried over. Email automation and templates resolved per property (legacy static HTML vs `configurable-template-send.html`).
+- [ ] **3.9 D6 config import** (if approved). Run `exportDevConfig.ts` on fwor with an explicit table and column allow-list (property settings, document requirements, guest-form sections, templates, stay guide, public pages, pricing calendar rules, property media). Then `importConfig.ts` onto mt-prod by slug, copying referenced Storage objects (`property-media` etc.). **Never** export bookings, guests, inbox, finance or AI usage from dev.
+
+### Phase 4 — Rehearsals (mandatory; at least 3)
+
+| Run                | Target                                                               | Data                             | Outbound integrations                                                                                                                   |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| R1                 | Local Docker (`./dev.sh`, then wipe the DB, then restore)            | Fresh legacy dump                | None (no secrets)                                                                                                                       |
+| R2                 | Local, after chain fixes from R1                                     | New dump                         | None                                                                                                                                    |
+| R3 dress rehearsal | Hosted rehearsal project + `kame-homes` Preview deploy pointed at it | Fresh dump **plus Storage copy** | **Disabled.** No Resend key (or a sandbox domain), Telegram tokens nulled in DB, Meta/PayMongo unset, crons enabled to test §5.6 guards |
+
+- [x] **4.1** Time every stage. The sum sets the freeze window length for D2. 🔶 **2026-10-24 (R1 local, Wi-Fi, no mt-prod yet):** dump ≈ 2 min · restore ≈ 50 s · upgrade (322 migrations) ≈ 2.5 min · rewrite < 1 min · derived-rebuild < 10 s. Remote timings will be slower (dump over pooler ≈ +80%); even doubling everything, the DB work fits comfortably inside a 2–3 h freeze.
+- [x] **4.2** Run `verify` and `compareCounts.ts`. Fix, then rerun from scratch, until clean twice in a row. ✅ **2026-10-24/25 (R1 + R2)** — clean **twice in a row**: R2 reran the full cycle from a fresh dump (dump → restore → fixups → upgrade → rewrite → derived-rebuild → inventory) straight through with zero failures; `verify/compareCounts.ts` (inventory pair diff, with the intentional-develop-drops allowlist) reports all counts match, legacy vs upgraded target, fast-forward both times.
+- [ ] **4.3** Functional smoke on R3 (§5.7 list) with the host doing the admin walkthrough on their own account.
+- [ ] **4.4** Test the **rollback** path: legacy unfreeze steps and DNS revert (§8.5).
+- [ ] **4.5** Write the final timings and any deviations into the runbook.
+
+### Phase 5 — App changes needed before cutover (on `develop`)
+
+- [ ] **5.1 Legacy link redirects** (§6.1).
+- [x] **5.2 Booking-id property resolution.** For `/sd-form`, `/guest-review`, `/success` and pay-parking, when `?property=` is missing and a `bookingId` is present, resolve the property from the booking server-side (public lookup returning slug only) and redirect. Covers legacy links even after the apex redirect is removed. Update `LegacyGuestPathRedirect` to use it instead of dumping guests on `/properties`. ✅ **2026-10-24** — new edge `supabase/functions/resolve-booking-property/` (GET `?bookingId=<uuid>`, rate-limited, slug-only response, 404 for unknown/CANCELLED/IMPORTED, no PII, cache `guestToken`) + `ui/src/features/guest/lib/guestBookingPropertyResolver.ts` (exported `guestEdgeGetUrl` from `guestBookingAccess`, 5 unit tests). `LegacyGuestPathRedirect` (sd-form / guest-review segments) now resolves from the booking instead of dumping on `/properties`; pay-parking already resolved via `get-pay-parking`; `/success` unchanged because no legacy email ever emitted a `/success` link (0.6). Activity log: N/A — read-only. Plans/Team RBAC: N/A — public guest surface, no gated feature.
+- [ ] **5.3 Maintenance page for legacy** (hotfix on `main`, kamewave for deploy). Env flag or Vercel redirect that serves a static "Back shortly" page on guest intake routes during the freeze, with no new submissions accepted. Admin read-only access stays available.
+- [ ] **5.4 PMO approval path for in-flight bookings** (§6.3).
+- [x] **5.5 Cron watermarks** (§5.6), as new migrations. ✅ **2026-10-25** — `20261316128600_cutover_watermark_platform_settings.sql` adds `platform_settings.migration_cutover_at` (NULL = guards inactive; set at cutover T0 by the shaping script; clearable by super-admin). `platformSettingsCache.ts` exposes `migrationCutoverAt`.
+- [x] **5.6 Historic-blast audit.** ✅ **2026-10-25 (audit + guards; R3 proof remaining)** — findings: only **review-lifecycle-hourly** could blast historic guests (its fallback opens windows for recent check-outs → new review-request emails to legacy guests). Guard: `_shared/cutoverWatermark.ts::shouldSkipForCutoverWatermark` (checkout < cutover+1d ⇒ settled history) wired into `reviewLifecycle.ts` fallback AND `reviewAutomation.ts` auto-reviews (skip reason `cutover_watermark`); Deno tests pass (5) and full edge suites: 911 `_shared` + 230 `tests/` ok — note: these suites also caught a missing assistant-parity manifest entry (`marketing-ai-sessions`, pre-existing) which is now classified as a Marketing Studio handoff. Everything else is inert or lead-windowed: `sd-refund-cron` only fires for guests near/past check-out whose `sd_refund_form_emailed_at` is null (legacy flags carried over — no duplicates), `parking-reminder-daily` is net-new and only within `REMINDER_LEAD_DAYS` of a future check-in (`parking_reminder_sent_at=null`), legacy-era Telegram crons (telegram-admin-hourly / finance-daily+hourly / maintenance-hourly / staff-daily) are **already unscheduled by the develop chain** (property-scoped dispatch jobs only exist with vault secrets — inert until T0), and `platform-billing-daily` is unrelated until Phase 3.5's comped plan decision. **R3 proof with crons on remains.**
+- [x] **5.6 Historic-blast audit.** ✅ see 5.5 note above (audit result merged there; R3 proof with crons on remains).
+- [ ] **5.7 Verification checklist** (`sql/90-verify.sql` + manual):
+  - Row counts match the legacy inventory for every carried table, and `auth.users` / `auth.identities` counts match.
+  - 0 `guest_submissions` with null `property_id`. Every status is in the canonical set. Status distribution matches expectations after `backfill_legacy_booking_statuses`.
+  - Future bookings: same count and same date set as legacy. Each one shows on the property calendar (`get-booked-dates`) and blocks availability.
+  - 0 remaining references to `zfttdwtceyqszyeyhilc` or the legacy origin in `public`.
+  - Every storage URL/path referenced in the DB resolves to an existing object (script HEAD check). Per-bucket counts and bytes match.
+  - Private buckets serve via signed URLs (`get-booking-asset-url`).
+  - Admin walkthrough: bookings list, 10 sample bookings across statuses (documents visible, PDFs generate, receipts open), finance totals per month equal legacy, maintenance items, settings, templates.
+  - Guest walkthrough: book a test stay on the rehearsal property, upload docs, run it through every status with sandbox email. Open a legacy SD-form link and pay-parking link through the redirect.
+  - Sequences/identity columns are past the max id (`40-derived-rebuild.sql`).
+  - Supabase advisors (security + performance) show no new criticals.
+
+### Phase 6 — Integrations re-wire (prod)
+
+- [ ] **6.1 Resend.** Prod API key on mt-prod. Sender domain verified in the account mt-prod uses. If that is a **different Resend account**, plan the domain move: add the domain to the new account and update DKIM/SPF at T-2d if both can coexist; otherwise do it inside the freeze window. Inbound: `inbound.kamehomes.space` MX → Resend inbound → `approval-email-webhook` on mt-prod. Event webhook for bounces → `email_suppressions`.
+- [ ] **6.2 Google.** New prod OAuth client (origins `https://app.kamehomes.space`, redirect `https://<mt-prod>.supabase.co/auth/v1/callback`). Maps key restricted to the new domains.
+- [ ] **6.3 Telegram.** Bots unchanged. Legacy crons unscheduled at freeze (`sql/05-legacy-freeze.sql`) **before** mt-prod crons start. Verify no duplicate daily summary on day 1.
+- [ ] **6.4 Meta, PayMongo, PostHog, Gemini/Groq, VAPID.** Follow existing prod checklists ([`pwa.md`](../../architecture/pwa.md) §9, `meta-messaging` skill, [`validation-and-env.md`](../../architecture/validation-and-env.md)). Vault secrets for pg_cron (`anon_key`, each `*_cron_secret`) per [`scheduled-jobs-and-testing.md`](../../archive/operations/scheduled-jobs-and-testing.md).
+- [ ] **6.5 Encryption keys.** Any legacy row encrypted with `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY` (`gmail_mail_integration`) needs the **same key** on mt-prod, or must be cleared and reconnected. The Gmail listener is retired, so clearing is fine. Decide in R1.
+- [ ] **6.6 Edge functions.** `functions deploy` to mt-prod (kamewave), `static_files` email templates included, then the CD prod smoke.
+
+### Phase 7 — Code and repo
+
+- [ ] **7.1** Merge every outstanding `main` hotfix into `develop` (should be none: `develop..main` = 0 today). Freeze `main` hotfixes from T-3d.
+- [ ] **7.2** Tag `legacy-final` on `main` (and push) before fast-forwarding.
+- [ ] **7.3** PR `develop → main` (fast-forward). CI green. Merge during the freeze, after the DB upgrade passes verify.
+- [ ] **7.4** Disconnect `main` from the legacy Vercel project's Git integration **before** the merge, so pushing `main` doesn't build the new app on the old project with old env vars.
+- [ ] **7.5** Enable `cd-prod.yml` (`CUTOVER_ENABLED=true`) after the first manual upgrade. Every later deploy uses strict order.
+
+---
+
+## 6. Existing and future bookings: continuity checklist
+
+This is the "seamless transition" contract. Each item has an owner step above.
+
+### 6.1 Links in emails already sent
+
+Legacy emails point to `https://kamehomes.space/<path>`. After cutover the apex is attached to `kame-homes` (or a tiny redirect-only Vercel project) with `vercel.json` redirects that **inject the property slug**:
+
+| Legacy URL                                                                                                                             | New URL                                                              |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `/form?…`                                                                                                                              | `/properties/<slug>/form?…`                                          |
+| `/calendar`                                                                                                                            | `/properties/<slug>/calendar`                                        |
+| `/success?…`                                                                                                                           | `/properties/<slug>/success?…`                                       |
+| `/sd-form?bookingId=X`                                                                                                                 | `/properties/<slug>/sd-form?bookingId=X`                             |
+| `/bookings/:id/parking`                                                                                                                | `/properties/<slug>/parking/:id`                                     |
+| `/bookings`, `/bookings/:id`, `/dashboard`, `/finance`, `/maintenance`, `/marketing`, `/operations`, `/settings`, `/staff`, `/sign-in` | `/org/<org>/property/<slug>/…` equivalents (admin; sign-in required) |
+| `/`                                                                                                                                    | `https://app.kamehomes.space/` (or the property listing)             |
+
+Because UUIDs are preserved (D1), `bookingId` values in old links resolve against mt-prod. Phase 5.2 is the long-term fallback once the apex redirect is removed. Storage links in old emails (`zftt…/storage/v1/object/public/...`) break when legacy is deleted. Guest PII buckets are private in the new app anyway, so only `templates`/`app-settings-assets` style public assets matter. Keep legacy Storage alive through hypercare (§9).
+
+### 6.2 Future stays booked on legacy
+
+- [ ] Freeze-time list of every future booking (id, guest, dates, status) exported to the host as a checklist.
+- [ ] Each appears in mt-prod with the same status, dates, guest count, fees, balance, uploaded docs and approved PDFs.
+- [ ] Calendar availability on the new public pages blocks those dates. Re-run the iCal export if the host syncs to Airbnb/other channels via iCal (update the feed URL in those channels to the mt-prod `ical-export` URL).
+- [ ] Status-driven side effects that would fire later (GAF/pet approval, ready-for-check-in email, SD refund form, review request) work for migrated rows. R3 runs one migrated future booking end to end.
+- [ ] Host's Google Calendar and Sheet stop updating at cutover. Host is told. If they still need a calendar, subscribe Google Calendar to the new `ical-export` feed.
+
+### 6.3 In-flight bookings (status-specific)
+
+| Legacy status at freeze                                                          | Risk                                                                                             | Handling                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PENDING_REVIEW`                                                                 | None                                                                                             | Host reviews in the new admin                                                                                                                                                                                                                                                                                                          |
+| `PENDING_DOCUMENTS` / `PENDING_GAF` / `PENDING_PET_REQUEST` (awaiting PMO reply) | PMO replies to the **Gmail** Reply-To from legacy emails. The new app reads Resend inbound only. | Before freeze, list them. For each: after cutover, the host uploads the approved PDF in admin, **or** set a Gmail forwarding filter to the Resend inbound address for the hypercare window (confirm `approval-email-webhook` matches forwarded mail by booking reference; test in R3). New requests from mt-prod use the new Reply-To. |
+| `PENDING_PARKING_REQUEST`                                                        | Same as above for parking endorsements                                                           | Same                                                                                                                                                                                                                                                                                                                                   |
+| `READY_FOR_CHECKIN` / `READY_FOR_CHECKOUT`                                       | Guest arrives mid-cutover                                                                        | Avoid a freeze on a check-in day. Check-in info email already sent from legacy stays valid.                                                                                                                                                                                                                                            |
+| `PENDING_SD_REFUND`                                                              | SD form link + refund cron                                                                       | Link via §6.1. Cron guarded so no duplicate reminders (§5.6).                                                                                                                                                                                                                                                                          |
+| `COMPLETED` / `CANCELLED`                                                        | Review-request blast                                                                             | Watermark guard (§5.6)                                                                                                                                                                                                                                                                                                                 |
+
+### 6.4 Bookings made during the freeze
+
+Guest intake shows the maintenance page, so none should exist. Verify after the final dump: `max(created_at)` on legacy equals the value in the dump. If any slipped in, re-run the delta for those ids only (manual SQL, documented).
+
+---
+
+## 7. Data-handling rules (PII)
+
+- Dumps and manifests live only in gitignored `backups/migration/`, on the operator machine, encrypted disk. Delete after hypercare sign-off (§9). Record deletion in the runbook.
+- Never paste dumps, rows or object contents into chat, issues or logs. Scripts print counts only.
+- Rehearsal projects are deleted after cutover. R1/R2 local volumes are wiped with `bun run stop:supabase` + volume removal.
+- Do not scrub PII in rehearsals (`scrub-prod-pii-after-restore.sql`), because counts and links must match. Instead **neutralize all outbound channels** (§Phase 4 table).
+
+---
+
+## 8. Cutover runbook (timeline)
+
+All prod writes need **`kamewave`** from the user in the same message.
+
+**T-14d**
+
+- R3 dress rehearsal passed twice. Timings known. Host sign-off on R3 walkthrough.
+- Pick the freeze window: no check-in or check-out, late night Manila.
+- Notify the host's team. Guests with stays in the next 7 days get an optional heads-up email from legacy.
+
+**T-2d**
+
+- DNS TTLs to 300 s. Resend domain move started if coexistence is possible.
+- `main` code freeze. mt-prod is empty except extensions. Vercel Production env set.
+
+**T0 (freeze window)**
+
+1. Legacy backup: `bun run backup:supabase:prod` (kamewave).
+2. Enable the legacy maintenance page (5.3). Confirm no new `guest_submissions`.
+3. `sql/05-legacy-freeze.sql` on legacy: unschedule legacy pg_cron jobs (Telegram, SD refund, finance). Note the Gmail listener state.
+4. `migrate.sh dump` → `restore` → `upgrade` → `shape` → `rewrite` → `storage` (delta on top of a pre-copy done at T-1d) → `config-import` (if D6) → `verify`. **Stop and roll back on any failure.**
+5. Deploy edge functions + secrets to mt-prod. Vault cron secrets. Confirm the crons scheduled by migrations exist and guards hold.
+6. Disconnect legacy Vercel Git → merge `develop → main` → `kame-homes` Production build.
+7. Attach `app.kamehomes.space` to Production. Host signs in with Google and runs the admin walkthrough on real data.
+8. Move apex `kamehomes.space` + `www` to `kame-homes` with the legacy redirect rules. Point `inbound` MX at Resend inbound for mt-prod.
+9. Smoke: one internal test booking end to end (then cancel it), one legacy SD link, one legacy pay-parking link, iCal export.
+10. Go / no-go call. Go means the maintenance page is gone, since the apex now redirects.
+
+**Rollback (any point before the go call)**
+
+- Re-attach apex to the legacy Vercel project, remove the maintenance page, re-schedule legacy crons from the backup's cron metadata. Legacy DB was never written except the freeze SQL, so no data restore is needed.
+- After go, rollback means new bookings exist only in mt-prod. Forward-fix is preferred. A reverse migration is out of scope; that is why §5.7 must pass before go.
+
+---
+
+## 9. Hypercare (T0 → T+30d)
+
+- Daily for 7 days: check edge function errors and logs, cron runs (`cron.job_run_details`), Resend bounces, inbound approvals arriving, Telegram summaries (exactly one per slot), PostHog errors.
+- Track every legacy-URL hit on the apex redirects (Vercel logs) to size how long redirects are needed.
+- Keep legacy Supabase **paused but not deleted** (read-only reference, Storage fallback). Keep the legacy Vercel project with deployments disabled.
+- Sign-off criteria to start decommission: 30 days clean, every pre-cutover future booking has checked out and settled (SD refunds closed), host approval.
+
+---
+
+## 10. Decommission and cleanup (after sign-off)
+
+Ordered. Each step is reversible until the last one.
+
+- [ ] **10.1** Final legacy backup (DB + Storage manifest) archived offline, encrypted, with a retention date set by the host's data policy. Then delete working dumps in `backups/migration/`.
+- [ ] **10.2** Legacy Vercel `guest-form-management-app`: remove domains, delete project (`sprmkes-projects`). Remove `VITE_*` env vars that point at `zftt…`.
+- [ ] **10.3** Legacy Supabase `zftt…`: pause → wait 14 days → delete. Remove `PROD_PROJECT_REF` / `LEGACY_PROD_PROJECT_REF` from GitHub env secrets and `.env*.local` files.
+- [ ] **10.4** Credentials: revoke legacy Google service account, Calendar/Sheets access, Gmail OAuth client and app password. Old Google OAuth client, old Resend API keys, any legacy Telegram webhook config. Rotate any secret that existed in both stacks ([`secret-rotation.md`](../../archive/operations/secret-rotation.md)).
+- [ ] **10.5** Gmail forwarding filter (6.3) removed once no legacy-pending approvals remain.
+- [ ] **10.6** Repo cleanup: remove the legacy dual-track guard text and deny-list entries for `zftt…` once the project is gone (`prod-deploy-guard-lib.sh`, `ci-deploy-lib.sh`, `no-prod-deploy.mdc`, `CLAUDE.md` "Dual-track" paragraph, `deployment.md`). Archive `scripts/data/sync-prod-public-data-to-local.sh` or point it at mt-prod. Keep `legacy-final` tag forever.
+- [ ] **10.7** Domain: keep apex + redirects for at least 12 months (D4). Remove `LegacyGuestPathRedirect` only after redirect hits fall to zero for 90 days. **Never** let `kamehomes.space` lapse. Old links in guest inboxes stay valid only while it resolves.
+- [ ] **10.8** Delete the rehearsal Supabase project and any temporary Vercel preview env pointing at it.
+- [ ] **10.9** Ship: move this plan to `docs/archive/todos/shipped/`, update docs (§11).
+
+---
+
+## 11. Risks
+
+| Risk                                                                     | Likelihood                       | Impact                                | Mitigation                                                                  |
+| ------------------------------------------------------------------------ | -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| A `develop` migration fails on real legacy data or on out-of-order apply | High (never exercised with data) | Blocks cutover                        | R1/R2 local loops; fix with new guard migrations (2.4); fallback ETL (D1)   |
+| Backfill chose the wrong owner (`ORDER BY created_at` fallback)          | Low                              | Wrong org owner                       | 3.2 verify; shaping script asserts owner email                              |
+| Cron blasts historic guests on first run                                 | Medium                           | Guest-facing spam, reputation         | 5.6 watermark guards, proven in R3 with crons on                            |
+| Duplicate Telegram/email from both stacks                                | Medium                           | Confusing to host and guests          | Legacy crons unscheduled at step T0.3, before mt-prod functions get secrets |
+| Legacy email links dead-end                                              | High without 5.1/5.2             | Guests can't do SD form / pay parking | Apex redirects + booking-id resolution                                      |
+| PMO approvals lost in Gmail                                              | Medium                           | Booking stuck in `PENDING_DOCUMENTS`  | 6.3 list + manual upload or forwarding                                      |
+| Resend domain can't be verified in two accounts                          | Medium                           | Email outage during move              | Decide in Phase 0; move inside freeze if needed                             |
+| Storage copy incomplete                                                  | Low                              | Missing IDs/receipts                  | Manifest + count/bytes + per-URL HEAD check                                 |
+| Slug rename breaks stored admin links                                    | Low                              | Broken bookmarks                      | Rename in shaping before go-live; search stored URLs                        |
+| PII leak via dumps                                                       | Low                              | Severe                                | §7 rules                                                                    |
+
+---
+
+## 12. Open questions (answer in Phase 0)
+
+1. **Org brand and slug.** "Kame Homes" / `kame-homes`, or keep the backfill's `kame-home`? (Slug is in every admin URL.) **Update 2026-10-25:** the product is being renamed to Kame Space ([`rebrand-kame-homes-to-kame-space.md`](./rebrand-kame-homes-to-kame-space.md) R1). Shape the org once, to its final name and slug, and do not shape it as "Kame Homes" / `kame-homes`.
+2. **Final domain (rebrand R2).** Cut over onto `app.kamehomes.space`, or straight onto `app.kamespace.com` if that domain is ready? Decide before 1.4 / 6.1 / 6.2 so OAuth, Auth URLs, Resend and Meta origins are set up once.
+3. **Property list.** Is Monaco 2604 the only unit with legacy bookings, or did legacy serve several units? If several, which booking field identifies the unit?
+4. **Repo.** Stay on `sprmke/kame-homes` (recommended), or transfer to a `kame-works` GitHub org as part of "new repo"?
+5. **Accounts.** Which Supabase account/org holds mt-dev (`fwor…`), and is the new account where mt-prod goes the same one? Is there a new Resend account, Google Cloud project and PostHog project too, or only Supabase and Vercel are new?
+6. **Plan for the Kame Homes org.** Comped `managed`/internal plan, or a real paid subscription from day one?
+7. **Parking vertical.** Should Kame Homes get a parking entity in the new model, or does parking stay a booking add-on for Azure North?
+8. **Dev config (D6).** Which dev-built configuration should be carried to prod (templates, public pages, pricing, media)? Or rebuild it by hand in prod?
+9. **Freeze tolerance.** Is a 2–4 h late-night guest-intake freeze acceptable?
+10. **Legacy data retention.** How long to keep the offline legacy backup (guest IDs are sensitive)?
+
+---
+
+## 13. Docs to update (same change as each phase)
+
+- [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md): becomes the operational runbook (commands, stage order, timings). Points here for rationale.
+- [`scripts/migrate/legacy-to-mt-prod/README.md`](../../../scripts/migrate/legacy-to-mt-prod/README.md) and [`scripts/README.md`](../../../scripts/README.md): new scripts and `bun run` aliases.
+- [`deployment.md`](../../architecture/deployment.md), [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md), [`multi-tenant-dev-prod-setup.md`](../../archive/operations/multi-tenant-dev-prod-setup.md), [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md): mt-prod ref, Phase B ticked, dual-track ended.
+- [`production-deployment.md`](../../archive/operations/production-deployment.md): apex cutover done, new prod deploy path.
+- [`migration-runbook.md`](../../archive/operations/migration-runbook.md): one-time `--include-all` upgrade note, plus the new guard migrations.
+- [`docs/architecture/overview.md`](../../architecture/overview.md) + [`docs/PROJECT.md`](../../PROJECT.md): env vars, legacy-link redirect behavior, `migration_cutover_at`.
+- Route guides (`route-guides` skill): legacy redirect behavior on guest SD form / pay-parking / form guides.
+- `CLAUDE.md`, `.cursor/rules/no-prod-deploy.mdc`, `.cursor/rules/README.md`: dual-track section rewritten after decommission. Keep the Claude and Cursor copies in sync.
+- `activity-log`: one `org.migrated_from_legacy` event per org/property in the shaping script. Cron guard changes: `activity-log: N/A, read-side guard only`.

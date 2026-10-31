@@ -31,9 +31,7 @@ function parkingFeeForGuestBalance(_booking: Record<string, unknown>): number {
   return 0;
 }
 
-function petAndAdditionalFeesForGuestBalance(
-  booking: Record<string, unknown>,
-): number {
+function petAndAdditionalFeesForGuestBalance(booking: Record<string, unknown>): number {
   return (
     petFeeForGuestBalance(booking) +
     parkingFeeForGuestBalance(booking) +
@@ -42,7 +40,7 @@ function petAndAdditionalFeesForGuestBalance(
 }
 
 export function computeTotalGuestBalanceFromBooking(
-  booking: Record<string, unknown>,
+  booking: Record<string, unknown>
 ): number | null {
   const raw = booking.booking_rate;
   if (raw === null || raw === undefined || raw === '') return null;
@@ -53,12 +51,7 @@ export function computeTotalGuestBalanceFromBooking(
   }
 
   const rate = num(raw);
-  return (
-    rate -
-    num(booking.down_payment) +
-    num(booking.security_deposit) +
-    petAndAdditional
-  );
+  return rate - num(booking.down_payment) + num(booking.security_deposit) + petAndAdditional;
 }
 
 /** Payment receipt is required only when the guest owes a positive balance. */
@@ -67,8 +60,7 @@ export function guestBalancePaymentReceiptRequired(totalDue: number): boolean {
 }
 
 export type GuestBalanceSettlementCheck =
-  | { ok: true; paidAmount: number; receiptUrl: string | null }
-  | { ok: false; reason: string };
+  { ok: true; paidAmount: number; receiptUrl: string | null } | { ok: false; reason: string };
 
 /**
  * Validates RFCI → READY_FOR_CHECKOUT settlement (admin UI, orchestrator, sd-refund-cron).
@@ -79,7 +71,7 @@ export function checkGuestBalanceSettlement(
   fields?: {
     paidAmount?: unknown;
     receiptUrl?: unknown;
-  },
+  }
 ): GuestBalanceSettlementCheck {
   const totalDue = computeTotalGuestBalanceFromBooking(booking);
   if (totalDue === null) {
@@ -87,9 +79,7 @@ export function checkGuestBalanceSettlement(
   }
 
   const paidRaw =
-    fields?.paidAmount !== undefined
-      ? fields.paidAmount
-      : booking.guest_balance_paid_amount;
+    fields?.paidAmount !== undefined ? fields.paidAmount : booking.guest_balance_paid_amount;
   const balCents = Math.round(totalDue * 100);
   let paidNum: number;
   if (paidRaw === null || paidRaw === undefined || paidRaw === '') {
@@ -117,8 +107,7 @@ export function checkGuestBalanceSettlement(
     fields?.receiptUrl !== undefined
       ? fields.receiptUrl
       : booking.guest_balance_payment_receipt_url;
-  const receipt =
-    typeof receiptRaw === 'string' ? receiptRaw.trim() : '';
+  const receipt = typeof receiptRaw === 'string' ? receiptRaw.trim() : '';
   if (guestBalancePaymentReceiptRequired(totalDue) && !receipt) {
     return { ok: false, reason: 'missing_guest_balance_payment_receipt' };
   }

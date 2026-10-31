@@ -1,0 +1,17 @@
+---
+description: >-
+  Deep production-readiness self-review (/self-review): completeness, edge cases,
+  security/RBAC/plans, docs, regressions, ship verdict. Agent-requestable — not always-on.
+alwaysApply: false
+---
+
+# Self-review
+
+When the user runs **`/self-review`** or asks for a deep / production-ready review of a module:
+
+1. Follow **`.agent/skills/self-review/SKILL.md`** (canonical checklist + output format).
+2. Slash entry points: `.cursor/commands/self-review.md` · `.claude/commands/self-review.md` · OpenCode symlink.
+3. **Review only by default** — fix only if asked.
+4. Verdict must be honest: **Ship** | **Ship with fixes** | **Not ready**.
+
+Do not treat a green `ci:quality` alone as production-ready.

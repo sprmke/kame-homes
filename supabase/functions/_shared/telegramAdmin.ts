@@ -3,16 +3,23 @@
  * Event-driven (SD form submit) + instant + hourly cron (new booking, pending docs, balance receipt, SD refund).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { DatabaseService } from './databaseService.ts';
 import {
-  manilaTodayYmd,
-  normalizeBookingDateToYmd,
-} from './calendarAvailabilityManila.ts';
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
+import { createClient } from './supabaseJs.ts';
+import { verifyCronSecret } from './cronSecretGate.ts';
+import { DatabaseService } from './databaseService.ts';
+import { manilaTodayYmd, normalizeBookingDateToYmd } from './calendarAvailabilityManila.ts';
 import { normalizeTelegramChatId } from './telegramMarketing.ts';
 import {
-  getPendingDocumentsNestedCompletion,
-} from './statusMachine.ts';
+  getPropertyTelegramCredentialsStatus,
+  resolvePropertyTelegramCredentials,
+  type TelegramAssetScopeRef,
+} from './propertyTelegramCredentials.ts';
+import { listAllPropertyIds, propertyIdFromRow } from './propertyCron.ts';
+import { getPendingDocumentsNestedCompletion } from './statusMachine.ts';
+import { DEFAULT_DOCUMENT_REQUIREMENTS } from './documentRequirements.ts';
 import {
   computeTotalGuestBalanceFromBooking,
   guestBalancePaymentReceiptRequired,
@@ -89,14 +96,9 @@ export type TelegramAdminSettings = {
 };
 
 export type AdminHourlyNotificationType =
-  | 'new_booking'
-  | 'pending_docs'
-  | 'balance_receipt'
-  | 'sd_refund_pending';
+  'new_booking' | 'pending_docs' | 'balance_receipt' | 'sd_refund_pending';
 
-type AdminNotificationLogType =
-  | AdminHourlyNotificationType
-  | 'balance_receipt_uploaded';
+type AdminNotificationLogType = AdminHourlyNotificationType | 'balance_receipt_uploaded';
 
 const ADMIN_KNOWN_PLACEHOLDERS = [
   'primary_guest_name',
@@ -161,18 +163,14 @@ function manilaDateTimeParts(date = new Date()): Record<string, string> {
     hour12: false,
   }).formatToParts(date);
   return Object.fromEntries(
-    parts
-      .filter((p) => p.type !== 'literal')
-      .map((p) => [p.type, p.value]),
+    parts.filter((p) => p.type !== 'literal').map((p) => [p.type, p.value])
   );
 }
 
 function nowManila(): Date {
   const p = manilaDateTimeParts();
   const hour = p.hour === '24' ? '00' : p.hour;
-  return new Date(
-    `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}+08:00`,
-  );
+  return new Date(`${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}+08:00`);
 }
 
 function manilaHourBucket(): string {
@@ -184,7 +182,7 @@ function manilaHourBucket(): string {
 function parseBookingDateTimeManila(
   dateStr: string,
   timeStr: string | null | undefined,
-  defaultTime24: string,
+  defaultTime24: string
 ): Date | null {
   try {
     const ymd = normalizeBookingDateToYmd(dateStr);
@@ -216,7 +214,7 @@ function parseBookingDateTimeManila(
     }
 
     return new Date(
-      `${ymd}T${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+08:00`,
+      `${ymd}T${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+08:00`
     );
   } catch {
     return null;
@@ -279,9 +277,7 @@ function buildSdRefundDetailsBlock(booking: BookingRow): string {
 
   if (method === 'same_phone') {
     const phone = String(booking.guest_phone_number ?? '').trim();
-    return phone
-      ? `GCash (on-file phone): ${phone}`
-      : 'GCash (on-file phone): not on file';
+    return phone ? `GCash (on-file phone): ${phone}` : 'GCash (on-file phone): not on file';
   }
   if (method === 'other_bank') {
     const bank = sdRefundFieldOrDash(booking.sd_refund_bank);
@@ -331,9 +327,12 @@ function buildSdRefundPlaceholderFields(booking: BookingRow): Record<string, str
   };
 }
 
+// Telegram admin builds these across many bookings synchronously (hourly scan,
+// message placeholders) — property-scoped resolution lands in a later task, so
+// use the default requirement list (GAF + pet) for now.
 function buildPendingDocsList(booking: BookingRow): string {
   const { needParking, hasPets, gafDone, parkingDone, petDone } =
-    getPendingDocumentsNestedCompletion(booking);
+    getPendingDocumentsNestedCompletion(booking, DEFAULT_DOCUMENT_REQUIREMENTS);
   const items: string[] = [];
   if (!gafDone) items.push('GAF');
   if (needParking && !parkingDone) items.push('Parking');
@@ -342,7 +341,10 @@ function buildPendingDocsList(booking: BookingRow): string {
 }
 
 function areAllRequiredDocsComplete(booking: BookingRow): boolean {
-  const { gafDone, parkingDone, petDone } = getPendingDocumentsNestedCompletion(booking);
+  const { gafDone, parkingDone, petDone } = getPendingDocumentsNestedCompletion(
+    booking,
+    DEFAULT_DOCUMENT_REQUIREMENTS
+  );
   return gafDone && parkingDone && petDone;
 }
 
@@ -372,12 +374,12 @@ function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, stri
     check_in_date: formatDateForEmail(ciRaw) || formatDateHumanFull(ciYmd),
     check_out_date: formatDateForEmail(coRaw) || formatDateHumanFull(coYmd),
     check_in_time: formatTimeForDisplay(
-      booking.check_in_time,
-      DEFAULT_CHECK_IN_TIME,
+      typeof booking.check_in_time === 'string' ? booking.check_in_time : null,
+      DEFAULT_CHECK_IN_TIME
     ),
     check_out_time: formatTimeForDisplay(
-      booking.check_out_time,
-      DEFAULT_CHECK_OUT_TIME,
+      typeof booking.check_out_time === 'string' ? booking.check_out_time : null,
+      DEFAULT_CHECK_OUT_TIME
     ),
     nights: String(nights),
     pax: String(adults + children),
@@ -390,11 +392,11 @@ function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, stri
     total_guest_balance: formatCurrency(computeTotalGuestBalanceFromBooking(booking)),
     sd_refund_method: formatSdRefundMethod(booking.sd_refund_method),
     dp_receipt_ai_verdict: formatReceiptVerdictLabel(
-      booking.dp_receipt_ai_verdict as string | null | undefined,
+      booking.dp_receipt_ai_verdict as string | null | undefined
     ),
     dp_receipt_ai_summary: String(booking.dp_receipt_ai_summary ?? '').trim() || 'N/A',
     balance_receipt_ai_verdict: formatReceiptVerdictLabel(
-      booking.balance_receipt_ai_verdict as string | null | undefined,
+      booking.balance_receipt_ai_verdict as string | null | undefined
     ),
     balance_receipt_ai_summary: String(booking.balance_receipt_ai_summary ?? '').trim() || 'N/A',
     ...buildSdRefundPlaceholderFields(booking),
@@ -411,14 +413,11 @@ function applyPlaceholders(template: string, vars: Record<string, string>): stri
 }
 
 function isCancelledStatus(status: unknown): boolean {
-  const s = String(status ?? '');
-  return s === 'CANCELLED' || s === 'canceled';
+  return String(status ?? '') === 'CANCELLED';
 }
 
-/** Legacy rows may still use `booked` if status migration was not applied. */
 function isPendingReviewLikeStatus(status: unknown): boolean {
-  const s = String(status ?? '');
-  return s === 'PENDING_REVIEW' || s === 'booked';
+  return String(status ?? '') === 'PENDING_REVIEW';
 }
 
 /** Still awaiting admin review — hourly until Proceed to Pending Documents (or GAF). */
@@ -428,10 +427,7 @@ function bookingNeedsNewBookingHourlyAlert(booking: BookingRow): boolean {
 }
 
 /** Check-in today + incomplete required docs, not yet ready for check-in workflow-wise. */
-function bookingNeedsPendingDocsHourlyAlert(
-  booking: BookingRow,
-  todayYmd: string,
-): boolean {
+function bookingNeedsPendingDocsHourlyAlert(booking: BookingRow, todayYmd: string): boolean {
   if (isCancelledStatus(booking.status)) return false;
   const ciYmd = normalizeBookingDateToYmd(String(booking.check_in_date ?? ''));
   if (ciYmd !== todayYmd) return false;
@@ -440,7 +436,6 @@ function bookingNeedsPendingDocsHourlyAlert(
   const status = String(booking.status ?? '');
   const preRfci = [
     'PENDING_REVIEW',
-    'booked',
     'PENDING_DOCUMENTS',
     'PENDING_GAF',
     'PENDING_PARKING_REQUEST',
@@ -455,7 +450,7 @@ function bookingNeedsPendingDocsHourlyAlert(
 function bookingNeedsBalanceReceiptHourlyAlert(
   booking: BookingRow,
   todayYmd: string,
-  now: Date = nowManila(),
+  now: Date = nowManila()
 ): boolean {
   if (isCancelledStatus(booking.status)) return false;
   const ciYmd = normalizeBookingDateToYmd(String(booking.check_in_date ?? ''));
@@ -478,7 +473,7 @@ function bookingNeedsBalanceReceiptHourlyAlert(
     const checkInDt = parseBookingDateTimeManila(
       String(booking.check_in_date ?? ''),
       booking.check_in_time as string | null | undefined,
-      DEFAULT_CHECK_IN_TIME,
+      DEFAULT_CHECK_IN_TIME
     );
     if (!checkInDt || now.getTime() < checkInDt.getTime()) return false;
   }
@@ -486,7 +481,7 @@ function bookingNeedsBalanceReceiptHourlyAlert(
   const checkOutDt = parseBookingDateTimeManila(
     String(booking.check_out_date ?? ''),
     booking.check_out_time as string | null | undefined,
-    DEFAULT_CHECK_OUT_TIME,
+    DEFAULT_CHECK_OUT_TIME
   );
   if (!checkOutDt || now.getTime() > checkOutDt.getTime()) return false;
 
@@ -500,45 +495,41 @@ function bookingNeedsSdRefundPendingHourlyAlert(booking: BookingRow): boolean {
   return !!String(booking.sd_refund_method ?? '').trim();
 }
 
-type AdminCreds =
-  | { ok: true; token: string; chatId: string }
-  | { ok: false; error: string };
+type AdminCreds = { ok: true; token: string; chatId: string } | { ok: false; error: string };
 
-function resolveAdminTelegramCredentials(): AdminCreds {
-  const token = (
-    Deno.env.get('TELEGRAM_ADMIN_BOT_TOKEN') ??
-    Deno.env.get('TELEGRAM_BOT_TOKEN') ??
-    ''
-  ).trim();
-  const rawChat = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID');
-  if (!token) {
-    return { ok: false, error: 'TELEGRAM_ADMIN_BOT_TOKEN (or TELEGRAM_BOT_TOKEN) unset' };
-  }
-  if (rawChat == null || !String(rawChat).trim()) {
-    return { ok: false, error: 'TELEGRAM_ADMIN_CHAT_ID unset' };
-  }
-  const n = normalizeTelegramChatId(String(rawChat));
-  if (!n.ok) return { ok: false, error: n.error };
-  return { ok: true, token, chatId: n.chatId };
+async function resolveAdminTelegramCredentials(
+  scope?: TelegramAssetScopeRef | string | null
+): Promise<AdminCreds> {
+  const creds = await resolvePropertyTelegramCredentials('admin', scope);
+  if (!creds.ok) return { ok: false, error: creds.error };
+  return { ok: true, token: creds.token, chatId: creds.chatId };
 }
 
-async function sendAdminTelegramMessage(text: string): Promise<{ ok: boolean; error?: string }> {
-  const creds = resolveAdminTelegramCredentials();
+async function sendAdminTelegramMessage(
+  text: string,
+  scope?: TelegramAssetScopeRef | string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
+  const creds = await resolveAdminTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-admin] credentials issue:', creds.error);
     return { ok: false, error: creds.error };
   }
 
   const url = `https://api.telegram.org/bot${creds.token}/sendMessage`;
-  const sendPayload = async (chatId: string) => await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: text.slice(0, 4096),
-      disable_web_page_preview: false,
-    }),
-  });
+  const sendPayload = async (chatId: string) =>
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text.slice(0, 4096),
+        disable_web_page_preview: false,
+      }),
+    });
 
   const parseResponse = async (res: Response): Promise<Record<string, unknown>> =>
     (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -547,17 +538,18 @@ async function sendAdminTelegramMessage(text: string): Promise<{ ok: boolean; er
   let json = await parseResponse(res);
   if (!res.ok || !json?.ok) {
     const description = String(json?.description ?? res.statusText ?? 'sendMessage failed');
-    const migrateTo = json?.parameters &&
+    const migrateTo =
+      json?.parameters &&
       typeof json.parameters === 'object' &&
       typeof (json.parameters as { migrate_to_chat_id?: unknown }).migrate_to_chat_id === 'number'
-      ? String((json.parameters as { migrate_to_chat_id: number }).migrate_to_chat_id)
-      : null;
+        ? String((json.parameters as { migrate_to_chat_id: number }).migrate_to_chat_id)
+        : null;
 
     // Group -> supergroup migrations return migrate_to_chat_id. Retry immediately to avoid dropped alerts.
     if (description.includes('group chat was upgraded to a supergroup chat') && migrateTo) {
       console.warn(
         `[telegram-admin] chat migrated; retrying with chat_id=${migrateTo}. ` +
-          'Update TELEGRAM_ADMIN_CHAT_ID secret to this value.',
+          'Update TELEGRAM_ADMIN_CHAT_ID secret to this value.'
       );
       res = await sendPayload(migrateTo);
       json = await parseResponse(res);
@@ -571,9 +563,9 @@ async function sendAdminTelegramMessage(text: string): Promise<{ ok: boolean; er
   return { ok: true };
 }
 
-async function loadAdminSettings(): Promise<TelegramAdminSettings | null> {
+async function loadAdminSettings(propertyId?: string): Promise<TelegramAdminSettings | null> {
   try {
-    const row = await DatabaseService.getTelegramAdminSettings();
+    const row = await DatabaseService.getTelegramAdminSettings(propertyId);
     if (!row) return null;
     return row as unknown as TelegramAdminSettings;
   } catch (e) {
@@ -585,11 +577,11 @@ async function loadAdminSettings(): Promise<TelegramAdminSettings | null> {
 async function hasNotificationLogEntry(
   bookingId: string,
   notificationType: AdminNotificationLogType,
-  hourBucket: string,
+  hourBucket: string
 ): Promise<boolean> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { data, error } = await supabase
     .from('telegram_admin_notification_log')
@@ -608,11 +600,11 @@ async function hasNotificationLogEntry(
 async function recordNotificationLog(
   bookingId: string,
   notificationType: AdminNotificationLogType,
-  hourBucket: string,
+  hourBucket: string
 ): Promise<{ ok: boolean; constraintRejected?: boolean }> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { error } = await supabase.from('telegram_admin_notification_log').insert({
     booking_id: bookingId,
@@ -625,7 +617,7 @@ async function recordNotificationLog(
       '[telegram-admin] notification_type rejected by DB check — deploy migration ' +
         '20260705120000_telegram_admin_new_booking_hourly.sql and ' +
         '20260721140000_telegram_admin_balance_receipt_hourly_fix.sql',
-      error,
+      error
     );
     return { ok: false, constraintRejected: true };
   }
@@ -638,14 +630,14 @@ async function recordNotificationLog(
 
 async function sendAdminTemplateForBooking(
   template: string,
-  booking: BookingRow,
+  booking: BookingRow
 ): Promise<{ ok: boolean; error?: string }> {
   const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking));
   const unresolved = text.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-admin] unresolved placeholders:', unresolved.join(', '));
   }
-  return sendAdminTelegramMessage(text);
+  return sendAdminTelegramMessage(text, propertyIdFromRow(booking));
 }
 
 export type AdminNotifySkip =
@@ -653,25 +645,31 @@ export type AdminNotifySkip =
   | 'notify_off'
   | 'missing_env'
   | 'send_failed'
+  | 'feature_unavailable'
   | 'no_settings'
   | 'dedupe';
 
 /** After a brand-new guest submission row is inserted. */
 export async function notifyTelegramAdminNewBooking(
   booking: BookingRow,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean }
 ): Promise<{ sent: boolean; skip?: AdminNotifySkip; telegramError?: string }> {
-  const settings = await loadAdminSettings();
+  const settings = await loadAdminSettings(propertyIdFromRow(booking));
   if (!settings) return { sent: false, skip: 'no_settings' };
   if (!opts?.force && (!settings.enabled || !settings.notify_on_new_booking)) {
     return { sent: false, skip: !settings.enabled ? 'disabled' : 'notify_off' };
   }
-  const creds = resolveAdminTelegramCredentials();
+  const creds = await resolveAdminTelegramCredentials(propertyIdFromRow(booking));
   if (!creds.ok) return { sent: false, skip: 'missing_env', telegramError: creds.error };
 
   const r = await sendAdminTemplateForBooking(settings.new_booking_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   const bookingId = String(booking.id ?? '').trim();
   if (bookingId) {
@@ -683,19 +681,24 @@ export async function notifyTelegramAdminNewBooking(
 /** After guest submits SD refund form (transition to PENDING_SD_REFUND). */
 export async function notifyTelegramAdminSdFormSubmitted(
   booking: BookingRow,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean }
 ): Promise<{ sent: boolean; skip?: AdminNotifySkip; telegramError?: string }> {
-  const settings = await loadAdminSettings();
+  const settings = await loadAdminSettings(propertyIdFromRow(booking));
   if (!settings) return { sent: false, skip: 'no_settings' };
   if (!opts?.force && (!settings.enabled || !settings.notify_on_sd_form_submitted)) {
     return { sent: false, skip: !settings.enabled ? 'disabled' : 'notify_off' };
   }
-  const creds = resolveAdminTelegramCredentials();
+  const creds = await resolveAdminTelegramCredentials(propertyIdFromRow(booking));
   if (!creds.ok) return { sent: false, skip: 'missing_env', telegramError: creds.error };
 
   const r = await sendAdminTemplateForBooking(settings.sd_form_submitted_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   return { sent: true };
 }
@@ -703,9 +706,9 @@ export async function notifyTelegramAdminSdFormSubmitted(
 /** After admin uploads a guest balance payment receipt. */
 export async function notifyTelegramAdminBalanceReceiptUploaded(
   booking: BookingRow,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean }
 ): Promise<{ sent: boolean; skip?: AdminNotifySkip; telegramError?: string }> {
-  const settings = await loadAdminSettings();
+  const settings = await loadAdminSettings(propertyIdFromRow(booking));
   if (!settings) return { sent: false, skip: 'no_settings' };
   if (
     !opts?.force &&
@@ -716,7 +719,7 @@ export async function notifyTelegramAdminBalanceReceiptUploaded(
       skip: !settings.enabled ? 'disabled' : 'notify_off',
     };
   }
-  const creds = resolveAdminTelegramCredentials();
+  const creds = await resolveAdminTelegramCredentials(propertyIdFromRow(booking));
   if (!creds.ok) return { sent: false, skip: 'missing_env', telegramError: creds.error };
 
   const bookingId = String(booking.id ?? '').trim();
@@ -726,16 +729,22 @@ export async function notifyTelegramAdminBalanceReceiptUploaded(
     !opts?.force &&
     bookingId &&
     receiptUrl &&
-    await hasNotificationLogEntry(bookingId, 'balance_receipt_uploaded', dedupeKey)
+    (await hasNotificationLogEntry(bookingId, 'balance_receipt_uploaded', dedupeKey))
   ) {
     return { sent: false, skip: 'dedupe' };
   }
 
-  const template = String(settings.balance_receipt_uploaded_template ?? '').trim() ||
+  const template =
+    String(settings.balance_receipt_uploaded_template ?? '').trim() ||
     DEFAULT_BALANCE_RECEIPT_UPLOADED_TEMPLATE;
   const r = await sendAdminTemplateForBooking(template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   if (bookingId && receiptUrl) {
     await recordNotificationLog(bookingId, 'balance_receipt_uploaded', dedupeKey);
@@ -761,15 +770,32 @@ export type AdminHourlyCronResult = {
 
 export async function runAdminHourlyAlerts(opts?: {
   force?: boolean;
-}): Promise<AdminHourlyCronResult> {
-  const settings = await loadAdminSettings();
+  propertyId?: string;
+}): Promise<
+  AdminHourlyCronResult & { properties?: Array<AdminHourlyCronResult & { propertyId: string }> }
+> {
+  if (!opts?.propertyId) {
+    const propertyIds = await listAllPropertyIds();
+    const properties: Array<AdminHourlyCronResult & { propertyId: string }> = [];
+    for (const propertyId of propertyIds) {
+      const result = await runAdminHourlyAlerts({ ...opts, propertyId });
+      properties.push({ propertyId, ...result });
+    }
+    return {
+      sent: properties.some((p) => p.sent),
+      mode: properties.some((p) => p.sent) ? 'sent' : 'nothing_due',
+      properties,
+    };
+  }
+
+  const settings = await loadAdminSettings(opts.propertyId);
   if (!settings) {
     return { sent: false, mode: 'no_settings', detail: 'no_settings_row' };
   }
   if (!opts?.force && !settings.enabled) {
     return { sent: false, mode: 'disabled' };
   }
-  const creds = resolveAdminTelegramCredentials();
+  const creds = await resolveAdminTelegramCredentials(opts.propertyId);
   if (!creds.ok) {
     return { sent: false, mode: 'no_env', detail: creds.error };
   }
@@ -780,13 +806,21 @@ export async function runAdminHourlyAlerts(opts?: {
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
+  // All four `bookingNeeds*HourlyAlert` checks below require a non-CANCELLED,
+  // non-COMPLETED status (PENDING_REVIEW/_DOCUMENTS/_GAF/_PARKING_REQUEST/_PET_REQUEST,
+  // READY_FOR_CHECKIN, or PENDING_SD_REFUND) — a COMPLETED booking can never match any
+  // of them, so excluding it in SQL is behavior-preserving and keeps this hourly,
+  // per-property cron from re-fetching a property's entire completed booking history
+  // every run (Phase 10.5 audit, doc 10). The duplicate `.neq('status', 'CANCELLED')`
+  // was a harmless pre-existing no-op, folded into one call.
   const { data: rows, error } = await supabase
     .from('guest_submissions')
     .select('*')
+    .eq('property_id', opts.propertyId)
     .neq('status', 'CANCELLED')
-    .neq('status', 'canceled');
+    .neq('status', 'COMPLETED');
 
   if (error) {
     console.error('[telegram-admin] query bookings:', error);
@@ -811,7 +845,7 @@ export async function runAdminHourlyAlerts(opts?: {
     enabled: boolean,
     needsAlert: boolean,
     template: string,
-    notificationType: AdminHourlyNotificationType,
+    notificationType: AdminHourlyNotificationType
   ): Promise<boolean> {
     if (!needsAlert) return false;
     if (notificationType === 'new_booking') matchedNewBooking++;
@@ -821,13 +855,15 @@ export async function runAdminHourlyAlerts(opts?: {
 
     if (!opts?.force && !enabled) return false;
 
-    if (!opts?.force && await hasNotificationLogEntry(id, notificationType, hourBucket)) {
+    if (!opts?.force && (await hasNotificationLogEntry(id, notificationType, hourBucket))) {
       skippedDedupe++;
       return false;
     }
     const r = await sendAdminTemplateForBooking(template, booking);
     if (!r.ok) {
-      if (r.error) errors.push(`${notificationType}:${id}:${r.error}`);
+      if (r.error && !isTelegramFeatureUnavailableError(r.error)) {
+        errors.push(`${notificationType}:${id}:${r.error}`);
+      }
       return false;
     }
     if (!opts?.force) {
@@ -841,61 +877,70 @@ export async function runAdminHourlyAlerts(opts?: {
     const id = String(booking.id ?? '');
     if (!id) continue;
 
-    if (await sendHourlyAlert(
-      booking,
-      id,
-      settings.notify_on_new_booking,
-      bookingNeedsNewBookingHourlyAlert(booking),
-      settings.new_booking_template,
-      'new_booking',
-    )) {
+    if (
+      await sendHourlyAlert(
+        booking,
+        id,
+        settings.notify_on_new_booking,
+        bookingNeedsNewBookingHourlyAlert(booking),
+        settings.new_booking_template,
+        'new_booking'
+      )
+    ) {
       newBookingSent++;
     }
 
-    if (await sendHourlyAlert(
-      booking,
-      id,
-      settings.notify_pending_docs_hourly,
-      bookingNeedsPendingDocsHourlyAlert(booking, todayYmd),
-      settings.pending_docs_template,
-      'pending_docs',
-    )) {
+    if (
+      await sendHourlyAlert(
+        booking,
+        id,
+        settings.notify_pending_docs_hourly,
+        bookingNeedsPendingDocsHourlyAlert(booking, todayYmd),
+        settings.pending_docs_template,
+        'pending_docs'
+      )
+    ) {
       pendingDocsSent++;
     }
 
-    if (await sendHourlyAlert(
-      booking,
-      id,
-      settings.notify_balance_receipt_hourly,
-      bookingNeedsBalanceReceiptHourlyAlert(booking, todayYmd, now),
-      resolveBalanceReceiptHourlyTemplate(settings.balance_receipt_template),
-      'balance_receipt',
-    )) {
+    if (
+      await sendHourlyAlert(
+        booking,
+        id,
+        settings.notify_balance_receipt_hourly,
+        bookingNeedsBalanceReceiptHourlyAlert(booking, todayYmd, now),
+        resolveBalanceReceiptHourlyTemplate(settings.balance_receipt_template),
+        'balance_receipt'
+      )
+    ) {
       balanceReceiptSent++;
     }
 
-    if (await sendHourlyAlert(
-      booking,
-      id,
-      settings.notify_sd_refund_pending_hourly,
-      bookingNeedsSdRefundPendingHourlyAlert(booking),
-      settings.sd_refund_pending_template,
-      'sd_refund_pending',
-    )) {
+    if (
+      await sendHourlyAlert(
+        booking,
+        id,
+        settings.notify_sd_refund_pending_hourly,
+        bookingNeedsSdRefundPendingHourlyAlert(booking),
+        settings.sd_refund_pending_template,
+        'sd_refund_pending'
+      )
+    ) {
       sdRefundPendingSent++;
     }
   }
 
-  const totalSent =
-    newBookingSent + pendingDocsSent + balanceReceiptSent + sdRefundPendingSent;
+  const totalSent = newBookingSent + pendingDocsSent + balanceReceiptSent + sdRefundPendingSent;
   const totalMatched =
     matchedNewBooking + matchedPendingDocs + matchedBalanceReceipt + matchedSdRefundPending;
 
   const disabledToggles: string[] = [];
   if (!settings.notify_on_new_booking) disabledToggles.push('notify_on_new_booking');
   if (!settings.notify_pending_docs_hourly) disabledToggles.push('notify_pending_docs_hourly');
-  if (!settings.notify_balance_receipt_hourly) disabledToggles.push('notify_balance_receipt_hourly');
-  if (!settings.notify_sd_refund_pending_hourly) disabledToggles.push('notify_sd_refund_pending_hourly');
+  if (!settings.notify_balance_receipt_hourly)
+    disabledToggles.push('notify_balance_receipt_hourly');
+  if (!settings.notify_sd_refund_pending_hourly)
+    disabledToggles.push('notify_sd_refund_pending_hourly');
 
   return {
     sent: totalSent > 0,
@@ -913,16 +958,16 @@ export async function runAdminHourlyAlerts(opts?: {
     detail: errors.length
       ? errors.join('; ')
       : dedupeMigrationMissing
-      ? 'deploy_migration_20260705120000_for_new_booking_hourly_dedupe'
-      : totalMatched === 0
-      ? 'no_bookings_matched_any_scenario'
-      : totalSent === 0 && skippedDedupe > 0
-      ? 'all_due_alerts_already_sent_this_hour'
-      : totalSent === 0 && totalMatched > 0
-      ? disabledToggles.length
-        ? `matched_${totalMatched}_bookings_but_toggles_off:${disabledToggles.join(',')}`
-        : 'matched_bookings_but_send_failed'
-      : undefined,
+        ? 'deploy_migration_20260705120000_for_new_booking_hourly_dedupe'
+        : totalMatched === 0
+          ? 'no_bookings_matched_any_scenario'
+          : totalSent === 0 && skippedDedupe > 0
+            ? 'all_due_alerts_already_sent_this_hour'
+            : totalSent === 0 && totalMatched > 0
+              ? disabledToggles.length
+                ? `matched_${totalMatched}_bookings_but_toggles_off:${disabledToggles.join(',')}`
+                : 'matched_bookings_but_send_failed'
+              : undefined,
   };
 }
 
@@ -937,23 +982,19 @@ export type AdminDraftRenderResult = {
 export async function renderAdminDraftPreview(
   template: string,
   scenario:
-    | AdminHourlyNotificationType
-    | 'new_booking'
-    | 'sd_form_submitted'
-    | 'balance_receipt_uploaded',
+    AdminHourlyNotificationType | 'new_booking' | 'sd_form_submitted' | 'balance_receipt_uploaded'
 ): Promise<AdminDraftRenderResult> {
   const trimmed = template.trim();
   if (!trimmed) return { error: 'empty_message' };
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { data: rows, error } = await supabase
     .from('guest_submissions')
     .select('*')
     .neq('status', 'CANCELLED')
-    .neq('status', 'canceled')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -968,15 +1009,15 @@ export async function renderAdminDraftPreview(
   if (scenario === 'new_booking') {
     booking = (rows ?? []).find((r) => bookingNeedsNewBookingHourlyAlert(r));
   } else if (scenario === 'sd_form_submitted') {
-    booking = (rows ?? []).find((r) => String(r.status) === 'PENDING_SD_REFUND' && r.sd_refund_method);
+    booking = (rows ?? []).find(
+      (r) => String(r.status) === 'PENDING_SD_REFUND' && r.sd_refund_method
+    );
   } else if (scenario === 'pending_docs') {
     booking = (rows ?? []).find((r) => bookingNeedsPendingDocsHourlyAlert(r, todayYmd));
   } else if (scenario === 'balance_receipt') {
     booking = (rows ?? []).find((r) => bookingNeedsBalanceReceiptHourlyAlert(r, todayYmd, now));
   } else if (scenario === 'balance_receipt_uploaded') {
-    booking = (rows ?? []).find((r) =>
-      String(r.guest_balance_payment_receipt_url ?? '').trim()
-    );
+    booking = (rows ?? []).find((r) => String(r.guest_balance_payment_receipt_url ?? '').trim());
   } else if (scenario === 'sd_refund_pending') {
     booking = (rows ?? []).find((r) => bookingNeedsSdRefundPendingHourlyAlert(r));
   }
@@ -999,10 +1040,9 @@ export async function renderAdminDraftPreview(
 export async function sendAdminDraftPreview(
   template: string,
   scenario:
-    | AdminHourlyNotificationType
-    | 'new_booking'
-    | 'sd_form_submitted'
-    | 'balance_receipt_uploaded',
+    AdminHourlyNotificationType | 'new_booking' | 'sd_form_submitted' | 'balance_receipt_uploaded',
+  propertyId?: string,
+  credentialScope?: TelegramAssetScopeRef | string | null
 ): Promise<{
   sent: boolean;
   error?: string;
@@ -1014,7 +1054,7 @@ export async function sendAdminDraftPreview(
     return { sent: false, error: rendered.error ?? 'empty_message' };
   }
 
-  const r = await sendAdminTelegramMessage(rendered.renderedText);
+  const r = await sendAdminTelegramMessage(rendered.renderedText, credentialScope ?? propertyId);
   if (!r.ok) return { sent: false, error: r.error ?? 'send_failed' };
 
   return {
@@ -1025,13 +1065,16 @@ export async function sendAdminDraftPreview(
 }
 
 export function verifyAdminCronSecret(req: Request): boolean {
-  const expected = Deno.env.get('TELEGRAM_ADMIN_CRON_SECRET')?.trim();
-  if (!expected) return true;
-  const got = req.headers.get('x-telegram-cron-secret')?.trim();
-  return got === expected;
+  return verifyCronSecret(req, {
+    envKey: 'TELEGRAM_ADMIN_CRON_SECRET',
+    headerName: 'x-telegram-cron-secret',
+  });
 }
 
-export async function verifyAdminTelegramEnv(): Promise<{
+export async function verifyAdminTelegramEnv(
+  scope?: TelegramAssetScopeRef | string | null,
+  overrides?: { botToken?: string; chatId?: string }
+): Promise<{
   credentials: {
     tokenConfigured: boolean;
     chatIdConfigured: boolean;
@@ -1041,55 +1084,11 @@ export async function verifyAdminTelegramEnv(): Promise<{
   getMe: { ok: boolean; username?: string; error?: string };
   getChat: { ok: boolean; type?: string; title?: string; error?: string };
 }> {
-  const creds = resolveAdminTelegramCredentials();
-  const credentials = {
-    tokenConfigured: !!(
-      Deno.env.get('TELEGRAM_ADMIN_BOT_TOKEN') ?? Deno.env.get('TELEGRAM_BOT_TOKEN')
-    )?.trim(),
-    chatIdConfigured: !!Deno.env.get('TELEGRAM_ADMIN_CHAT_ID')?.trim(),
-    normalizedChatId: creds.ok ? creds.chatId : undefined,
-    normalizeError: creds.ok ? undefined : creds.error,
-  };
-
-  if (!creds.ok) {
-    return {
-      credentials,
-      getMe: { ok: false, error: creds.error },
-      getChat: { ok: false, error: creds.error },
-    };
-  }
-
-  const meRes = await fetch(`https://api.telegram.org/bot${creds.token}/getMe`);
-  const meJson = (await meRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { username?: string };
-    description?: string;
-  };
-
-  const chatRes = await fetch(
-    `https://api.telegram.org/bot${creds.token}/getChat?chat_id=${encodeURIComponent(creds.chatId)}`,
-  );
-  const chatJson = (await chatRes.json().catch(() => ({}))) as {
-    ok?: boolean;
-    result?: { type?: string; title?: string };
-    description?: string;
-  };
-
-  return {
-    credentials,
-    getMe: {
-      ok: !!meJson?.ok,
-      username: meJson?.result?.username,
-      error: meJson?.ok ? undefined : String(meJson?.description ?? meRes.statusText),
-    },
-    getChat: {
-      ok: !!chatJson?.ok,
-      type: chatJson?.result?.type,
-      title: chatJson?.result?.title,
-      error: chatJson?.ok ? undefined : String(chatJson?.description ?? chatRes.statusText),
-    },
-  };
+  const { verifyPropertyTelegramChannel } = await import('./propertyTelegramCredentials.ts');
+  return verifyPropertyTelegramChannel('admin', scope, overrides);
 }
+
+import { normalizeTelegramTemplateText } from './telegramTemplateNormalize.ts';
 
 export function serializeAdminSettings(row: TelegramAdminSettings) {
   return {
@@ -1100,21 +1099,21 @@ export function serializeAdminSettings(row: TelegramAdminSettings) {
     notifyPendingDocsHourly: row.notify_pending_docs_hourly,
     notifyBalanceReceiptHourly: row.notify_balance_receipt_hourly,
     notifySdRefundPendingHourly: row.notify_sd_refund_pending_hourly,
-    newBookingTemplate: row.new_booking_template,
-    pendingDocsTemplate: row.pending_docs_template,
-    balanceReceiptTemplate: row.balance_receipt_template,
-    balanceReceiptUploadedTemplate:
-      row.balance_receipt_uploaded_template ?? DEFAULT_BALANCE_RECEIPT_UPLOADED_TEMPLATE,
-    sdFormSubmittedTemplate: row.sd_form_submitted_template,
-    sdRefundPendingTemplate: row.sd_refund_pending_template,
+    newBookingTemplate: normalizeTelegramTemplateText(row.new_booking_template),
+    pendingDocsTemplate: normalizeTelegramTemplateText(row.pending_docs_template),
+    balanceReceiptTemplate: normalizeTelegramTemplateText(row.balance_receipt_template),
+    balanceReceiptUploadedTemplate: normalizeTelegramTemplateText(
+      row.balance_receipt_uploaded_template ?? DEFAULT_BALANCE_RECEIPT_UPLOADED_TEMPLATE
+    ),
+    sdFormSubmittedTemplate: normalizeTelegramTemplateText(row.sd_form_submitted_template),
+    sdRefundPendingTemplate: normalizeTelegramTemplateText(row.sd_refund_pending_template),
     hourlyUtcCronPreview: '0 * * * *',
     placeholdersReference: ADMIN_KNOWN_PLACEHOLDERS.map((p) => `{{${p}}}`),
     scenarios: [
       {
         id: 'new_booking',
         label: 'New booking',
-        trigger:
-          'Instant on submit, then hourly while Pending Review',
+        trigger: 'Instant on submit, then hourly while Pending Review',
         type: 'hourly',
       },
       {
@@ -1126,8 +1125,7 @@ export function serializeAdminSettings(row: TelegramAdminSettings) {
       {
         id: 'balance_receipt',
         label: 'Balance receipt needed',
-        trigger:
-          'Hourly during stay until balance receipt is uploaded',
+        trigger: 'Hourly during stay until balance receipt is uploaded',
         type: 'hourly',
       },
       {
@@ -1155,7 +1153,7 @@ export function serializeAdminSettings(row: TelegramAdminSettings) {
 export async function ensureAdminSettingsRow(): Promise<void> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
   const { data, error } = await supabase
     .from('telegram_admin_settings')
@@ -1165,12 +1163,15 @@ export async function ensureAdminSettingsRow(): Promise<void> {
   if (error) {
     throw new Error(
       `telegram_admin_settings query failed (${error.code ?? 'no-code'}: ${error.message}). ` +
-        `Deploy migration 20260702120000_telegram_admin_settings.sql.`,
+        `Deploy migration 20260702120000_telegram_admin_settings.sql.`
     );
   }
   if (data) return;
 
-  const { error: insertError } = await supabase.from('telegram_admin_settings').insert({ id: 1 });
+  const { error: insertError } = await supabase.from('telegram_admin_settings').insert({
+    id: 1,
+    enabled: false,
+  });
   if (insertError) {
     throw new Error(`Could not seed telegram_admin_settings: ${insertError.message}`);
   }

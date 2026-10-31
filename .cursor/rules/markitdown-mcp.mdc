@@ -1,0 +1,26 @@
+---
+description: Convert PDF/Office/HTML attachments via MarkItDown MCP before ingesting
+alwaysApply: true
+---
+
+# MarkItDown MCP — convert docs before reading
+
+When the user attaches or points at a **PDF, DOCX, PPTX, XLSX, HTML, image-with-text, or similar binary document**, do **not** dump the raw file into context.
+
+## Required flow
+
+1. Use the **`markitdown`** MCP tool **`convert_to_markdown`** with a URI:
+   - Local file: `file:///absolute/path/to/file.pdf`
+   - Remote: `https://…` / `http://…`
+   - Inline: `data:` URI when appropriate
+2. Work from the returned **markdown** (summarize / cite / extract). Prefer that over reading binary bytes or pasting huge OCR dumps.
+3. If the MCP server is unavailable, say so briefly and fall back to the smallest useful excerpt — do not invent document contents.
+
+## Do not use for
+
+- Source code, markdown, plain text, JSON, YAML already in the repo (read those normally).
+- Images the user wants reviewed **visually** (layout/UI screenshots) — use image read, not MarkItDown, unless they asked for text extraction.
+
+## Why
+
+Markdown is far cheaper in tokens than raw PDF/Office payloads and is easier to reason over. See [markitdown-mcp](https://github.com/microsoft/markitdown/tree/main/packages/markitdown-mcp).

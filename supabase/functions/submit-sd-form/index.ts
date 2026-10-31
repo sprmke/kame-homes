@@ -6,15 +6,21 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
 import type { TransitionPayload } from '../_shared/workflowOrchestrator.ts';
+import { buildActorContext } from '../_shared/activityLog.ts';
+import { logGuestActivity } from '../_shared/guestActivity.ts';
 import { notifyTelegramAdminSdFormSubmitted } from '../_shared/telegramAdmin.ts';
+import { isSdRefundBank, type SdRefundBank } from '../_shared/sdRefundBank.ts';
+import { antiSpamGate } from '../_shared/antiSpam.ts';
+import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import {
-  isSdRefundBank,
-  type SdRefundBank,
-} from '../_shared/sdRefundBank.ts';
+  authorizeGuestBookingAccess,
+  guestBookingAccessTokenFromRequest,
+} from '../_shared/guestBookingAccessToken.ts';
 
 type RefundBody = {
   method: 'same_phone' | 'other_bank' | 'cash';
@@ -64,24 +70,44 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const body = await req.json().catch(() => null) as {
+    const maintenance = await maintenanceModeResponse(req);
+    if (maintenance) return maintenance;
+
+    const body = (await req.json().catch(() => null)) as {
       bookingId?: string;
       guestFeedback?: string;
       refund?: RefundBody;
     } | null;
 
     const bookingId = (body?.bookingId ?? '').trim();
-    const guestFeedback =
-      typeof body?.guestFeedback === 'string'
-        ? body.guestFeedback.trim()
-        : '';
+    const guestFeedback = typeof body?.guestFeedback === 'string' ? body.guestFeedback.trim() : '';
     const refund = body?.refund;
+
+    // Anti-spam: bot heuristics → Turnstile → durable rate limit.
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
+    const antiSpamBlocked = await antiSpamGate(req, (body ?? {}) as Record<string, unknown>, {
+      scope: 'submit-sd-form',
+      rateLimit: { limit: 10, windowSec: 60 },
+    });
+    if (antiSpamBlocked) return antiSpamBlocked;
 
     if (!bookingId) throw new Error('bookingId is required');
     const errRefund = refund ? validateRefund(refund) : 'refund is required';
     if (errRefund) throw new Error(errRefund);
 
     const row = await DatabaseService.getBookingById(bookingId);
+    const authz = await authorizeGuestBookingAccess({
+      bookingIdFromPath: bookingId,
+      accessTokenFromQuery: guestBookingAccessTokenFromRequest(req, body),
+      bookingCreatedAt: (row?.created_at as string | null | undefined) ?? null,
+    });
+    if (!authz.ok) {
+      return new Response(JSON.stringify({ success: false, error: authz.message }), {
+        status: authz.status,
+        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!row || row.status !== 'READY_FOR_CHECKOUT') {
       return new Response(
         JSON.stringify({
@@ -89,17 +115,15 @@ serve(async (req) => {
           error: 'not_available',
           message: 'This form is no longer available for this booking.',
         }),
-        { status: 409, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
+        { status: 409, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
     const payload: TransitionPayload = {
       sd_refund_guest_feedback: guestFeedback || null,
       sd_refund_method: refund!.method,
-      sd_refund_phone_confirmed:
-        refund!.method === 'same_phone' ? true : null,
-      sd_refund_bank:
-        refund!.method === 'other_bank' ? refund!.bank ?? null : null,
+      sd_refund_phone_confirmed: refund!.method === 'same_phone' ? true : null,
+      sd_refund_bank: refund!.method === 'other_bank' ? (refund!.bank ?? null) : null,
       sd_refund_account_name:
         refund!.method === 'other_bank' ? (refund!.accountName ?? '').trim() : null,
       sd_refund_account_number:
@@ -112,8 +136,6 @@ serve(async (req) => {
       payload,
       {
         saveToDatabase: true,
-        updateGoogleCalendar: true,
-        updateGoogleSheets: true,
         sendGafRequestEmail: false,
         sendParkingBroadcastEmail: false,
         sendPetRequestEmail: false,
@@ -122,7 +144,18 @@ serve(async (req) => {
         sendSdRefundFormEmail: false,
       },
       false,
+      buildActorContext('public_form', { guest: {} }, req)
     );
+
+    await logGuestActivity({
+      req,
+      action: 'guest.sd_form_submitted',
+      propertyId: (row.property_id as string | null) ?? null,
+      guest: { name: (row.primary_guest_name as string | null) ?? null },
+      targetId: bookingId,
+      targetLabel: (row.primary_guest_name as string | null) ?? null,
+      metadata: { refund_method: refund!.method },
+    });
 
     try {
       const updated = await DatabaseService.getBookingById(bookingId);
@@ -134,18 +167,29 @@ serve(async (req) => {
       console.error('[submit-sd-form] Telegram admin SD form notify failed (non-fatal):', tgErr);
     }
 
+    await capturePostHogEvent('sd_form_submitted', {
+      logPrefix: 'submit-sd-form',
+      request: req,
+      properties: {
+        property_id: (row.property_id as string | null) ?? undefined,
+        booking_id: bookingId,
+        refund_method: refund!.method,
+      },
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Thank you — we have received your security deposit refund information.',
       }),
-      { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[submit-sd-form]', error);
-    return new Response(
-      JSON.stringify({ success: false, error: (error as Error).message }),
-      { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
-    );
+    await capturePostHogException(error, { logPrefix: 'submit-sd-form', request: req });
+    return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
+      status: 400,
+      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -1,6 +1,6 @@
 /**
  * Pet registration PDF AcroForm fields for owner signature block.
- * Keep field names in sync with ui/src/features/admin/lib/petPdfSignature.ts
+ * Keep field names in sync with ui/src/features/dashboard/bookings/lib/petPdfSignature.ts
  * and pet-form-template.pdf (Acrobat Prepare Form).
  */
 
@@ -31,20 +31,14 @@ function isPng(bytes: Uint8Array): boolean {
   );
 }
 
-async function embedSignatureImage(
-  pdfDoc: PDFDocument,
-  bytes: Uint8Array,
-): Promise<PDFImage> {
+async function embedSignatureImage(pdfDoc: PDFDocument, bytes: Uint8Array): Promise<PDFImage> {
   if (isPng(bytes)) {
     return pdfDoc.embedPng(bytes);
   }
   return pdfDoc.embedJpg(bytes);
 }
 
-function pageForSignatureField(
-  pdfDoc: PDFDocument,
-  field: PDFSignature,
-): PDFPage | null {
+function pageForSignatureField(pdfDoc: PDFDocument, field: PDFSignature): PDFPage | null {
   const widgets = field.acroField.getWidgets();
   if (widgets.length === 0) return pdfDoc.getPages()[0] ?? null;
 
@@ -61,7 +55,7 @@ function pageForSignatureField(
 async function drawSignatureInFormField(
   pdfDoc: PDFDocument,
   form: PDFForm,
-  signatureUrl: string,
+  signatureUrl: string
 ): Promise<void> {
   let field: PDFSignature;
   try {
@@ -69,7 +63,7 @@ async function drawSignatureInFormField(
   } catch (err) {
     console.warn(
       '[petPdfSignature] Signature form field missing:',
-      err instanceof Error ? err.message : err,
+      err instanceof Error ? err.message : err
     );
     return;
   }
@@ -85,9 +79,7 @@ async function drawSignatureInFormField(
   try {
     const res = await fetch(signatureUrl);
     if (!res.ok) {
-      console.warn(
-        `[petPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`,
-      );
+      console.warn(`[petPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`);
       return;
     }
     bytes = new Uint8Array(await res.arrayBuffer());
@@ -118,13 +110,13 @@ async function drawSignatureInFormField(
 /** Fill AcroForm printed name + optional uploaded signature image on the pet form. */
 export async function applyPetOwnerSignatureBlock(
   pdfDoc: PDFDocument,
-  options: PetOwnerSignatureBlockOptions,
+  options: PetOwnerSignatureBlockOptions
 ): Promise<void> {
   const form = pdfDoc.getForm();
   setGafPdfTextField(
     form,
     PET_PDF_FIELD_UNIT_OWNER_SIGNATURE_NAME,
-    formatGafUnitOwnerPrintedName(options.unitOwner),
+    formatGafUnitOwnerPrintedName(options.unitOwner)
   );
 
   const url = options.signatureUrl?.trim();

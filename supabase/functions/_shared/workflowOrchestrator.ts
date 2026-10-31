@@ -2,32 +2,41 @@
  * Workflow Orchestrator — single source of truth for booking transition side effects.
  *
  * ALL transitions (from UI, Gmail listener, or cron) must go through
- * `WorkflowOrchestrator.transition()`. Never call calendarService, sheetsService,
- * or emailService directly from a handler.
+ * `WorkflowOrchestrator.transition()`. Never call emailService directly from a handler.
  *
  * Rules:  .cursor/rules/booking-workflow.mdc §3, §5 (side-effect matrix)
- * Plan:   docs/NEW_FLOW_PLAN.md §3.3
+ * Plan:   docs/planning/NEW_FLOW_PLAN.md §3.3
  */
 
 import { DatabaseService } from './databaseService.ts';
+import { ensureGuestStayGuideToken } from './guestStayGuide.ts';
 import {
   checkGuestBalanceSettlement,
   computeTotalGuestBalanceFromBooking,
   guestBalancePaymentReceiptRequired,
 } from './totalGuestBalance.ts';
-import { receiptVerdictBlocksAdminTransition } from './receiptValidationService.ts';
-import { CalendarService } from './calendarService.ts';
-import { SheetsService } from './sheetsService.ts';
+import { assertAiVerdictAllowsProceed } from './aiVerdictOverride.ts';
 import { generatePDF, generatePetPDF } from './pdfService.ts';
 import { UploadService } from './uploadService.ts';
+import { bookingAssetStorageKey } from './bookingStoragePaths.ts';
 import {
   sendEmail,
   sendPetEmail,
   sendBookingAcknowledgement,
   sendReadyForCheckin,
-  sendParkingBroadcast,
   sendSdRefundFormRequest,
 } from './emailService.ts';
+import {
+  planBlockedAutomationToggleKeys,
+  propertyAutomationEnabled,
+  type PropertyAutomationToggleKey,
+} from './propertyAutomationToggles.ts';
+import { createNotification } from './notificationService.ts';
+import { bookingNotificationMetadata } from './notificationEnrichment.ts';
+import { resolveOrganizationIdForProperty } from './propertyScope.ts';
+import { type ActivityActorType, type ActorContext, logActivity } from './activityLog.ts';
+import { capturePostHogEvent } from './posthog.ts';
+import { purgeCacheByScope } from './queryCache.ts';
 import {
   BookingStatus,
   canTransition,
@@ -35,8 +44,19 @@ import {
   isLatePendingParkingDocumentTransition,
   isPostPendingDocumentsStatus,
   pendingDocumentsClearPatchForGuestEditRevert,
+  readDocumentCompletions,
   STATUS_HUMAN_LABEL,
+  type DocumentCompletionsMap,
 } from './statusMachine.ts';
+import {
+  DEFAULT_DOCUMENT_REQUIREMENTS,
+  hasApplicableDocumentPdfTemplate,
+  requirementDocKind,
+  requirementMatchesPdfTemplate,
+  resolveDocumentRequirements,
+  type DocumentRequirement,
+  type DocumentRequirementCompletion,
+} from './documentRequirements.ts';
 import type { SdRefundBank } from './sdRefundBank.ts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,6 +73,8 @@ export type TransitionPayload = {
   pet_fee?: number | null;
   parking_rate_guest?: number | null;
   guest_additional_fee?: number | null;
+  /** Peso discount from an applied next-stay voucher (locked on review). */
+  applied_voucher_discount_php?: number | null;
   /** Required on PENDING_REVIEW → initial docs when `guest_requests_surprise_decor` is true. */
   surprise_decor_staff_acknowledged?: boolean;
 
@@ -91,13 +113,20 @@ export type TransitionPayload = {
   approved_gaf_pdf_url?: string | null;
   approved_pet_pdf_url?: string | null;
 
-  /** PENDING_DOCUMENTS → PENDING_DOCUMENTS: admin marks a sub-step complete (no status change). */
-  document_completion_target?: 'PENDING_GAF' | 'PENDING_PARKING_REQUEST' | 'PENDING_PET_REQUEST';
   /**
-   * PENDING_DOCUMENTS → PENDING_DOCUMENTS: admin marks a sub-step incomplete again (manual only).
-   * GAF/pet keep approved PDF URLs but are treated as incomplete until Gmail or admin completes again.
+   * Host confirmed a payment receipt is genuine despite an AI `invalid` verdict. Honored only for
+   * human actors (owner / team member / super admin) — never the AI assistant, cron or webhooks —
+   * and recorded on the transition's activity-log entry.
    */
-  document_completion_clear_target?: 'PENDING_GAF' | 'PENDING_PARKING_REQUEST' | 'PENDING_PET_REQUEST';
+  override_ai_verdict?: boolean;
+
+  /**
+   * PENDING_DOCUMENTS → PENDING_DOCUMENTS: admin marks a sub-step complete (no status change).
+   * Accepts legacy literals (`PENDING_GAF` → `gaf`, `PENDING_PET_REQUEST` → `pet`,
+   * `PENDING_PARKING_REQUEST` special-cased) or a bare requirement id (e.g. `"gaf"`).
+   */
+  document_completion_target?:
+    'PENDING_GAF' | 'PENDING_PARKING_REQUEST' | 'PENDING_PET_REQUEST' | string;
 };
 
 /**
@@ -108,8 +137,6 @@ export type DevControlFlags = {
   saveToDatabase?: boolean;
   /** Filled GAF (+ pet request PDF if pets) generate + optional Storage upload on PENDING_REVIEW → initial docs. */
   generatePdf?: boolean;
-  updateGoogleCalendar?: boolean;
-  updateGoogleSheets?: boolean;
   sendGafRequestEmail?: boolean;
   sendParkingBroadcastEmail?: boolean;
   sendPetRequestEmail?: boolean;
@@ -123,9 +150,26 @@ export type TransitionResult = {
   success: boolean;
   booking: any;
   sideEffects: {
-    calendar: boolean;
-    sheet: boolean;
     emails: string[];
+    /**
+     * Automation emails this transition would have sent had the property's plan included
+     * `automatedBookingFlow` — e.g. `'gaf_request'`. Client surfaces a manual-action prompt for
+     * these; distinct from a property owner deliberately turning a toggle off (no prompt there).
+     */
+    automationSkippedByPlan: string[];
+    /**
+     * Workflow emails skipped because the property owner turned the toggle off (not plan-blocked).
+     * Client may surface a settings hint — distinct from `automationSkippedByPlan`.
+     */
+    automationSkippedByHost: string[];
+    /** Workflow emails that were due but Resend rejected or errored; the transition still applied. */
+    emailsFailed?: string[];
+    /**
+     * True when every guest-facing side effect (acknowledgement / ready-for-check-in /
+     * SD-refund-form emails, stay-guide token, guest bell notifications) was skipped because
+     * this is an OTA-ingested booking with no guest contact yet — see calendar sync Phase 2.
+     */
+    externalSuppressed?: boolean;
   };
 };
 
@@ -141,35 +185,151 @@ function computeBalance(bookingRate?: number | null, downPayment?: number | null
   return bookingRate - downPayment;
 }
 
-function buildPaxNights(booking: any): { pax: number; nights: number } {
-  const pax = (booking.number_of_adults || 1) + (booking.number_of_children || 0);
-  const nights = booking.number_of_nights || 1;
-  return { pax, nights };
+/**
+ * `document_completion_target` accepts the legacy `PENDING_GAF` / `PENDING_PET_REQUEST`
+ * literals or a bare requirement id (e.g. `"gaf"`). Parking stays special-cased on
+ * `PENDING_PARKING_REQUEST` (not a `documentRequirements` id).
+ */
+const LEGACY_DOC_TARGET_TO_REQUIREMENT_ID: Record<string, string> = {
+  PENDING_GAF: 'gaf',
+  PENDING_PET_REQUEST: 'pet',
+};
+
+type ResolvedDocTarget = {
+  /** Requirement id whose `document_requirement_completions` entry gets written. */
+  requirementId: string;
+  /** False when the id is not in this property's resolved list (legacy caller fallback). */
+  configured: boolean;
+};
+
+/**
+ * Resolve a doc-completion target to the requirement id to write. Admin clients send
+ * the requirement id straight from the stepper (`gaf`, `custom-2`, …); inbound approval webhook
+ * still sends the legacy `PENDING_GAF` / `PENDING_PET_REQUEST` literals, matched to a
+ * renamed requirement via `pdfTemplateId`. Returns `null` when this property has no
+ * matching requirement — callers must throw instead of writing nothing.
+ */
+function resolveDocTarget(
+  target: string,
+  requirements: DocumentRequirement[]
+): ResolvedDocTarget | null {
+  const legacyId = LEGACY_DOC_TARGET_TO_REQUIREMENT_ID[target];
+  const normalized = legacyId ?? target;
+
+  if (requirements.some((req) => req.id === normalized)) {
+    return { requirementId: normalized, configured: true };
+  }
+  if (legacyId) {
+    const byTemplate = requirements.find((req) => req.pdfTemplateId === legacyId);
+    if (byTemplate) return { requirementId: byTemplate.id, configured: true };
+  }
+  // A property may have renamed or dropped `gaf`/`pet`; keep writing their named
+  // columns so inbound approval intake never hard-fails on a legacy literal.
+  if (normalized === 'gaf' || normalized === 'pet') {
+    return { requirementId: normalized, configured: false };
+  }
+  return null;
+}
+
+/** Requirement id a legacy `PENDING_GAF` / `PENDING_PET_REQUEST` literal writes to. */
+function resolveLegacyCompletionId(
+  legacyTarget: 'PENDING_GAF' | 'PENDING_PET_REQUEST',
+  requirements: DocumentRequirement[]
+): string {
+  return (
+    resolveDocTarget(legacyTarget, requirements)?.requirementId ??
+    LEGACY_DOC_TARGET_TO_REQUIREMENT_ID[legacyTarget]
+  );
+}
+
+/**
+ * Same as `resolveDocTarget`, but throws for an unmatched target so a mark-complete
+ * call can never report success after writing nothing.
+ */
+function requireResolvedDocTarget(
+  field: 'document_completion_target',
+  target: string,
+  requirements: DocumentRequirement[]
+): ResolvedDocTarget {
+  const resolved = resolveDocTarget(target, requirements);
+  const configuredIds = requirements.map((req) => req.id).join(', ') || 'none';
+  if (!resolved) {
+    throw new Error(
+      `${field} "${target}" does not match any document requirement for this property (configured: ${configuredIds})`
+    );
+  }
+  if (!resolved.configured) {
+    console.warn(
+      `[orchestrator] ${field} "${target}" is not in this property's document requirements (${configuredIds}) — writing legacy ${resolved.requirementId} columns only. Set that requirement's pdfTemplateId to "${resolved.requirementId}" so the sub-step tracks it.`
+    );
+  }
+  return resolved;
+}
+
+/** Dual-write the legacy named columns for the two requirement ids that still have them. */
+function applyLegacyCompletionColumns(
+  fields: Record<string, unknown>,
+  requirementId: string,
+  completedAt: string | null
+): void {
+  if (requirementId === 'gaf') {
+    fields.gaf_completed_at = completedAt;
+  } else if (requirementId === 'pet') {
+    fields.pet_completed_at = completedAt;
+  }
+}
+
+function readApprovedPdfUrlForRequirement(
+  booking: Record<string, unknown>,
+  requirementId: string,
+  requirements: DocumentRequirement[]
+): string | null {
+  const column = approvedPdfColumnForRequirement(requirementId, requirements);
+  if (!column) return null;
+
+  const completions = readDocumentCompletions(
+    booking as Parameters<typeof readDocumentCompletions>[0]
+  );
+  const fromMap = completions[requirementId]?.approvedPdfUrl;
+  if (typeof fromMap === 'string' && fromMap.trim()) return fromMap.trim();
+
+  const raw = booking[column] as string | null | undefined;
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+}
+
+function approvedPdfColumnForRequirement(
+  requirementId: string,
+  requirements: DocumentRequirement[]
+): 'approved_gaf_pdf_url' | 'approved_pet_pdf_url' | null {
+  const req = requirements.find((entry) => entry.id === requirementId);
+  const kind = requirementDocKind(req, requirementId);
+  if (kind === 'gaf') return 'approved_gaf_pdf_url';
+  if (kind === 'pet') return 'approved_pet_pdf_url';
+  return null;
 }
 
 function assertParkingPaymentReceiptIfRequired(
   payload: TransitionPayload,
   booking?: Record<string, unknown>,
-): void {
+  actor?: ActorContext
+): boolean {
   const included = payload.parking_fee_included_in_downpayment !== false;
-  if (included) return;
+  if (included) return false;
   const receipt =
     typeof payload.parking_payment_receipt_url === 'string'
       ? payload.parking_payment_receipt_url.trim()
       : '';
   if (!receipt) {
-    throw new Error(
-      'Upload a parking payment receipt before completing parking',
-    );
+    throw new Error('Upload a parking payment receipt before completing parking');
   }
-  if (
-    booking &&
-    receiptVerdictBlocksAdminTransition(booking.parking_receipt_ai_verdict)
-  ) {
-    throw new Error(
-      'Parking payment receipt failed AI validation. Upload a valid payment screenshot before completing parking.',
-    );
-  }
+  if (!booking) return false;
+  return assertAiVerdictAllowsProceed({
+    verdict: booking.parking_receipt_ai_verdict,
+    payload,
+    actor,
+    message:
+      'Parking payment receipt failed AI validation. Upload a valid payment screenshot, or proceed anyway if you checked it yourself.',
+  });
 }
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
@@ -190,8 +350,16 @@ export class WorkflowOrchestrator {
     payload: TransitionPayload = {},
     devControls: DevControlFlags = {},
     manual = true,
+    /**
+     * Who initiated this transition — threaded to the activity log. Omit for
+     * automated / unattributed callers (degrades to `system`, never crashes).
+     * Build it with `buildActorContext(...)` in the calling edge handler.
+     */
+    actor?: ActorContext
   ): Promise<TransitionResult> {
-    console.log(`[orchestrator] Transitioning booking ${bookingId} → ${toStatus} (manual=${manual})`);
+    console.log(
+      `[orchestrator] Transitioning booking ${bookingId} → ${toStatus} (manual=${manual})`
+    );
 
     // 1. Fetch booking
     const booking = await DatabaseService.getBookingById(bookingId);
@@ -200,61 +368,135 @@ export class WorkflowOrchestrator {
     }
 
     const fromStatus = booking.status as BookingStatus;
+    const propertyId =
+      typeof booking.property_id === 'string' ? booking.property_id.trim() || null : null;
+    /** Set when a host proceeded past an AI `invalid` receipt verdict (audited below). */
+    let aiVerdictOverridden = false;
+
+    // ── OTA-ingested bookings (calendar sync Phase 2) ─────────────────────────
+    // A row created by calendar-sync-cron from an Airbnb/OTA reservation has dates but
+    // no guest contact. Suppress every guest-facing side effect until the guest completes
+    // the forwarded guest form (§6.5) — at which point guest_email is populated and the
+    // normal flow resumes. `guest_email` blank is the single source of truth (an ingested
+    // row always has it blank; `external_source` merely records provenance and is *kept*
+    // after completion so emails must not key off it).
+    const suppressGuestSideEffects = !String(booking.guest_email ?? '').trim();
+
+    // Notification Center — resolved lazily by the (few) transitions that emit one.
+    const resolveNotificationOrgId = async (): Promise<string | null> => {
+      if (!propertyId) return null;
+      try {
+        return await resolveOrganizationIdForProperty(propertyId);
+      } catch (err) {
+        console.error(
+          '[orchestrator] Could not resolve organization for notification (non-fatal):',
+          err
+        );
+        return null;
+      }
+    };
+
+    // First step after review: either legacy PENDING_GAF or parent PENDING_DOCUMENTS,
+    // or (D2) a direct skip to READY_FOR_CHECKIN — all share the same pricing capture
+    // and outbound "document request" email bundle (minus GAF/pet when skipped/absent).
+    const isReviewProceedAttempt =
+      fromStatus === 'PENDING_REVIEW' &&
+      (toStatus === 'PENDING_GAF' ||
+        toStatus === 'PENDING_DOCUMENTS' ||
+        toStatus === 'READY_FOR_CHECKIN');
+
+    // D2: empty configurable document requirements → rewrite the target straight to
+    // READY_FOR_CHECKIN so old clients (still sending PENDING_DOCUMENTS) keep working.
+    // Also resolved whenever the target is PENDING_DOCUMENTS (even outside a review
+    // proceed attempt — e.g. same-status document_completion_target marks, or legacy
+    // PENDING_GAF/PENDING_PARKING_REQUEST/PENDING_PET_REQUEST → PENDING_DOCUMENTS edges)
+    // so document completion / nested labels always reflect this property's actual list.
+    // Doc-completion targets also need the real list: their requirement id is looked
+    // up in it (late parking at RFCI+ keeps `toStatus` off PENDING_DOCUMENTS).
+    let documentRequirements: DocumentRequirement[] = DEFAULT_DOCUMENT_REQUIREMENTS;
+    if (
+      isReviewProceedAttempt ||
+      toStatus === 'PENDING_DOCUMENTS' ||
+      payload.document_completion_target
+    ) {
+      documentRequirements = propertyId
+        ? await resolveDocumentRequirements(propertyId)
+        : DEFAULT_DOCUMENT_REQUIREMENTS;
+    }
+    if (isReviewProceedAttempt) {
+      if (documentRequirements.length === 0 && toStatus !== 'READY_FOR_CHECKIN') {
+        console.log(
+          `[orchestrator] Empty document requirements for property ${propertyId ?? 'unknown'} — rewriting ${toStatus} → READY_FOR_CHECKIN`
+        );
+        toStatus = 'READY_FOR_CHECKIN';
+      } else if (documentRequirements.length > 0 && toStatus === 'READY_FOR_CHECKIN') {
+        // Graph gap fix: TRANSITION_GRAPH.PENDING_REVIEW allows READY_FOR_CHECKIN
+        // unconditionally (to support the D2 empty-requirements rewrite above and
+        // any caller that already resolved reqs itself). Reject an explicit client
+        // request to skip PENDING_DOCUMENTS when this property still has pending
+        // document requirements — otherwise GAF/pet can be bypassed by sending
+        // toStatus=READY_FOR_CHECKIN directly from PENDING_REVIEW.
+        throw new Error(
+          `Cannot skip to READY_FOR_CHECKIN from PENDING_REVIEW: this property has ${documentRequirements.length} pending document requirement(s). Proceed to PENDING_DOCUMENTS first.`
+        );
+      }
+    }
+    const gafPdfRequired = hasApplicableDocumentPdfTemplate(documentRequirements, booking, 'gaf');
+    const petPdfRequired = hasApplicableDocumentPdfTemplate(documentRequirements, booking, 'pet');
 
     // 2. Validate transition (late parking doc actions stay on current status at RFCI+)
     const isLateParkingDocAction = isLatePendingParkingDocumentTransition(
       fromStatus,
       toStatus,
       payload,
-      manual,
+      manual
     );
     if (!isLateParkingDocAction && !canTransition(fromStatus, toStatus, { manual })) {
-      throw new Error(
-        `Transition ${fromStatus} → ${toStatus} is not allowed (manual=${manual})`,
-      );
+      throw new Error(`Transition ${fromStatus} → ${toStatus} is not allowed (manual=${manual})`);
     }
 
-    // First step after review: either legacy PENDING_GAF or parent PENDING_DOCUMENTS
-    // (same pricing + same outbound “document request” email bundle).
-    const isReviewToInitialDocs =
-      fromStatus === 'PENDING_REVIEW' &&
-      (toStatus === 'PENDING_GAF' || toStatus === 'PENDING_DOCUMENTS');
+    // Whether GAF/pet PDF + email side effects should run — false when the
+    // requirements list is empty (D2 skip) or the admin skipped straight to
+    // READY_FOR_CHECKIN with a non-empty list (explicit override).
+    const isReviewToInitialDocs = isReviewProceedAttempt && toStatus !== 'READY_FOR_CHECKIN';
 
     const wantsSurpriseDecor =
       booking.guest_requests_surprise_decor === true ||
       booking.guest_requests_surprise_decor === 'true';
 
-    if (isReviewToInitialDocs && wantsSurpriseDecor && !payload.surprise_decor_staff_acknowledged) {
+    if (
+      isReviewProceedAttempt &&
+      wantsSurpriseDecor &&
+      !payload.surprise_decor_staff_acknowledged
+    ) {
       throw new Error(
-        'Confirm with staff that this guest’s surprise decor (theme and agreed price) is coordinated before proceeding.',
+        'Confirm with staff that this guest’s surprise decor (theme and agreed price) is coordinated before proceeding.'
       );
     }
 
     // 3. Compute derived fields
-    const balance = isReviewToInitialDocs
+    const balance = isReviewProceedAttempt
       ? computeBalance(payload.booking_rate, payload.down_payment)
       : null;
 
     // 4. Build workflow fields to persist in DB
     const workflowFields: Record<string, unknown> = {};
 
-    if (isReviewToInitialDocs) {
+    if (isReviewProceedAttempt) {
       // Strip any stale workflow data from a prior cycle so nested substeps and
       // pricing/parking forms do not read as “complete” before admins re-enter them.
       Object.assign(workflowFields, pendingDocumentsClearPatchForGuestEditRevert());
       if (payload.booking_rate != null) workflowFields.booking_rate = payload.booking_rate;
       if (payload.down_payment != null) workflowFields.down_payment = payload.down_payment;
       if (balance != null) workflowFields.balance = balance;
-      if (payload.security_deposit != null) workflowFields.security_deposit = payload.security_deposit;
+      if (payload.security_deposit != null)
+        workflowFields.security_deposit = payload.security_deposit;
       if (payload.pet_fee != null && bookingFlagTrue(booking.has_pets)) {
         workflowFields.pet_fee = payload.pet_fee;
       } else if (!bookingFlagTrue(booking.has_pets)) {
         workflowFields.pet_fee = null;
       }
-      if (
-        payload.parking_rate_guest != null &&
-        bookingFlagTrue(booking.need_parking)
-      ) {
+      if (payload.parking_rate_guest != null && bookingFlagTrue(booking.need_parking)) {
         workflowFields.parking_rate_guest = payload.parking_rate_guest;
       } else if (!bookingFlagTrue(booking.need_parking)) {
         workflowFields.parking_rate_guest = null;
@@ -262,8 +504,45 @@ export class WorkflowOrchestrator {
       if (payload.guest_additional_fee != null) {
         workflowFields.guest_additional_fee = payload.guest_additional_fee;
       }
+      if (
+        booking.applied_voucher_code &&
+        payload.applied_voucher_discount_php != null &&
+        Number.isFinite(Number(payload.applied_voucher_discount_php))
+      ) {
+        workflowFields.applied_voucher_discount_php = Number(payload.applied_voucher_discount_php);
+      }
       if (wantsSurpriseDecor && payload.surprise_decor_staff_acknowledged) {
         workflowFields.surprise_decor_staff_acknowledged = true;
+      }
+    }
+
+    // D1: dual-write completion state — JSONB map is the forward-looking source of
+    // truth, named gaf_*/pet_* columns stay in sync during cutover. Base off the
+    // dual-read map (which already falls back to named columns) so a merge here
+    // never drops an entry that only exists in one representation.
+    const completionsMap: DocumentCompletionsMap = readDocumentCompletions(
+      booking as Parameters<typeof readDocumentCompletions>[0]
+    );
+    let completionsChanged = false;
+    function patchCompletion(id: string, patch: Partial<DocumentRequirementCompletion>): void {
+      const prev: DocumentRequirementCompletion = completionsMap[id] ?? {
+        completedAt: null,
+        approvedPdfUrl: null,
+      };
+      completionsMap[id] = { ...prev, ...patch };
+      completionsChanged = true;
+    }
+
+    if (isReviewProceedAttempt) {
+      // Mirror pendingDocumentsClearPatchForGuestEditRevert()'s named-column reset in
+      // the JSONB map so dual-read doesn't show a substep "done" from a prior cycle —
+      // every id, not just gaf/pet, or a renamed requirement keeps last cycle's tick.
+      const idsToReset = new Set([
+        ...Object.keys(completionsMap),
+        ...documentRequirements.map((req) => req.id),
+      ]);
+      for (const id of idsToReset) {
+        patchCompletion(id, { completedAt: null, approvedPdfUrl: null });
       }
     }
 
@@ -277,7 +556,11 @@ export class WorkflowOrchestrator {
         toStatus === 'READY_FOR_CHECKIN'
       ) {
         workflowFields.approved_gaf_pdf_url = payload.approved_gaf_pdf_url;
-        workflowFields.gaf_manual_incomplete = false;
+        // The map entry follows this property's GAF requirement id, which may be a
+        // renamed one (matched on pdfTemplateId) rather than a literal `gaf`.
+        patchCompletion(resolveLegacyCompletionId('PENDING_GAF', documentRequirements), {
+          approvedPdfUrl: payload.approved_gaf_pdf_url,
+        });
       }
     }
 
@@ -288,60 +571,16 @@ export class WorkflowOrchestrator {
         (toStatus === 'READY_FOR_CHECKIN' && fromStatus === 'PENDING_PET_REQUEST')
       ) {
         workflowFields.approved_pet_pdf_url = payload.approved_pet_pdf_url;
-        workflowFields.pet_manual_incomplete = false;
+        patchCompletion(resolveLegacyCompletionId('PENDING_PET_REQUEST', documentRequirements), {
+          approvedPdfUrl: payload.approved_pet_pdf_url,
+        });
       }
     }
 
-    const docClear = payload.document_completion_clear_target;
     const docComplete = payload.document_completion_target;
-    if (docClear && docComplete) {
-      throw new Error(
-        'document_completion_target and document_completion_clear_target cannot both be set',
-      );
-    }
-    if (docClear) {
-      const isLateParkingClear =
-        manual &&
-        fromStatus === toStatus &&
-        isPostPendingDocumentsStatus(fromStatus) &&
-        docClear === 'PENDING_PARKING_REQUEST';
-      if (
-        !isLateParkingClear &&
-        (!manual || fromStatus !== 'PENDING_DOCUMENTS' || toStatus !== 'PENDING_DOCUMENTS')
-      ) {
-        throw new Error(
-          'document_completion_clear_target requires manual=true and PENDING_DOCUMENTS → PENDING_DOCUMENTS',
-        );
-      }
-    }
-
-    // Admin "Mark … as incomplete" under Pending Documents (manual only).
-    if (manual && docClear) {
-      const lateParkingClear =
-        fromStatus === toStatus &&
-        isPostPendingDocumentsStatus(fromStatus) &&
-        docClear === 'PENDING_PARKING_REQUEST';
-
-      if (
-        fromStatus === 'PENDING_DOCUMENTS' &&
-        toStatus === 'PENDING_DOCUMENTS'
-      ) {
-        if (docClear === 'PENDING_GAF') {
-          workflowFields.gaf_completed_at = null;
-          workflowFields.gaf_manual_incomplete = true;
-        } else if (docClear === 'PENDING_PARKING_REQUEST') {
-          workflowFields.parking_completed_at = null;
-        } else if (docClear === 'PENDING_PET_REQUEST') {
-          workflowFields.pet_completed_at = null;
-          workflowFields.pet_manual_incomplete = true;
-        }
-      } else if (lateParkingClear) {
-        workflowFields.parking_completed_at = null;
-      }
-    }
 
     // Admin "Mark … as complete" under Pending Documents (no PDF): persist *_completed_at.
-  // Parking may also be completed late at RFCI+ without changing parent status.
+    // Parking may also be completed late at RFCI+ without changing parent status.
     if (docComplete) {
       const now = new Date().toISOString();
       const lateParkingComplete =
@@ -351,21 +590,46 @@ export class WorkflowOrchestrator {
         docComplete === 'PENDING_PARKING_REQUEST';
 
       if (docComplete === 'PENDING_PARKING_REQUEST' && manual) {
-        assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>);
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
+          aiVerdictOverridden = true;
+        }
       }
 
-      if (
-        fromStatus === 'PENDING_DOCUMENTS' &&
-        toStatus === 'PENDING_DOCUMENTS'
-      ) {
-        if (docComplete === 'PENDING_GAF') {
-          workflowFields.gaf_completed_at = now;
-          workflowFields.gaf_manual_incomplete = false;
-        } else if (docComplete === 'PENDING_PARKING_REQUEST') {
+      if (fromStatus === 'PENDING_DOCUMENTS' && toStatus === 'PENDING_DOCUMENTS') {
+        if (docComplete === 'PENDING_PARKING_REQUEST') {
           workflowFields.parking_completed_at = now;
-        } else if (docComplete === 'PENDING_PET_REQUEST') {
-          workflowFields.pet_completed_at = now;
-          workflowFields.pet_manual_incomplete = false;
+        } else {
+          const resolved = requireResolvedDocTarget(
+            'document_completion_target',
+            docComplete,
+            documentRequirements
+          );
+          const approvedColumn = approvedPdfColumnForRequirement(
+            resolved.requirementId,
+            documentRequirements
+          );
+          const approvedUrl = approvedColumn
+            ? readApprovedPdfUrlForRequirement(
+                booking as Record<string, unknown>,
+                resolved.requirementId,
+                documentRequirements
+              )
+            : null;
+          if (approvedColumn && !approvedUrl) {
+            throw new Error(
+              'Upload or receive the approved document before marking this step complete.'
+            );
+          }
+          patchCompletion(resolved.requirementId, {
+            completedAt: now,
+            ...(approvedUrl ? { approvedPdfUrl: approvedUrl } : {}),
+          });
+          if (approvedColumn && approvedUrl) {
+            workflowFields[approvedColumn] = approvedUrl;
+          }
+          applyLegacyCompletionColumns(workflowFields, resolved.requirementId, now);
         }
       } else if (lateParkingComplete) {
         workflowFields.parking_completed_at = now;
@@ -377,15 +641,18 @@ export class WorkflowOrchestrator {
       (docComplete === 'PENDING_PARKING_REQUEST' && manual)
     ) {
       if (fromStatus === 'PENDING_PARKING_REQUEST') {
-        assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>);
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
+          aiVerdictOverridden = true;
+        }
       }
-      if (payload.parking_rate_paid != null) workflowFields.parking_rate_paid = payload.parking_rate_paid;
-      if (payload.parking_owner_email) workflowFields.parking_owner_email = payload.parking_owner_email;
+      if (payload.parking_rate_paid != null)
+        workflowFields.parking_rate_paid = payload.parking_rate_paid;
+      if (payload.parking_owner_email)
+        workflowFields.parking_owner_email = payload.parking_owner_email;
       if (payload.parking_owner !== undefined) {
-        const po =
-          typeof payload.parking_owner === 'string'
-            ? payload.parking_owner.trim()
-            : '';
+        const po = typeof payload.parking_owner === 'string' ? payload.parking_owner.trim() : '';
         workflowFields.parking_owner = po || null;
       }
       if (payload.parking_endorsement_url) {
@@ -425,28 +692,29 @@ export class WorkflowOrchestrator {
     }
 
     if (toStatus === 'COMPLETED') {
-      if (payload.sd_additional_expenses != null) workflowFields.sd_additional_expenses = payload.sd_additional_expenses;
-      if (payload.sd_additional_profits != null) workflowFields.sd_additional_profits = payload.sd_additional_profits;
+      if (payload.sd_additional_expenses != null)
+        workflowFields.sd_additional_expenses = payload.sd_additional_expenses;
+      if (payload.sd_additional_profits != null)
+        workflowFields.sd_additional_profits = payload.sd_additional_profits;
       if (payload.sd_additional_expense_items != null) {
         workflowFields.sd_additional_expense_items = payload.sd_additional_expense_items;
       }
       if (payload.sd_additional_profit_items != null) {
         workflowFields.sd_additional_profit_items = payload.sd_additional_profit_items;
       }
-      if (payload.sd_refund_amount != null) workflowFields.sd_refund_amount = payload.sd_refund_amount;
-      if (payload.sd_refund_receipt_url) workflowFields.sd_refund_receipt_url = payload.sd_refund_receipt_url;
+      if (payload.sd_refund_amount != null)
+        workflowFields.sd_refund_amount = payload.sd_refund_amount;
+      if (payload.sd_refund_receipt_url)
+        workflowFields.sd_refund_receipt_url = payload.sd_refund_receipt_url;
       workflowFields.settled_at = new Date().toISOString();
     }
 
     // READY_FOR_CHECKIN → READY_FOR_CHECKOUT: paid = total; receipt required only when total > 0.
     if (fromStatus === 'READY_FOR_CHECKIN' && toStatus === 'READY_FOR_CHECKOUT') {
-      const settlement = checkGuestBalanceSettlement(
-        booking as Record<string, unknown>,
-        {
-          paidAmount: payload.guest_balance_paid_amount,
-          receiptUrl: payload.guest_balance_payment_receipt_url,
-        },
-      );
+      const settlement = checkGuestBalanceSettlement(booking as Record<string, unknown>, {
+        paidAmount: payload.guest_balance_paid_amount,
+        receiptUrl: payload.guest_balance_payment_receipt_url,
+      });
       if (!settlement.ok) {
         const messages: Record<string, string> = {
           missing_total_guest_balance:
@@ -454,31 +722,35 @@ export class WorkflowOrchestrator {
           missing_guest_balance_paid_amount: 'guest_balance_paid_amount is required',
           invalid_guest_balance_paid_amount:
             'guest_balance_paid_amount must be a valid non-negative number',
-          guest_balance_paid_exceeds_balance:
-            'Amount paid cannot exceed total guest balance',
+          guest_balance_paid_exceeds_balance: 'Amount paid cannot exceed total guest balance',
           guest_balance_not_fully_paid:
             'Amount paid must equal total guest balance before advancing to ready for check-out',
-          missing_guest_balance_payment_receipt:
-            'guest_balance_payment_receipt_url is required',
+          missing_guest_balance_payment_receipt: 'guest_balance_payment_receipt_url is required',
         };
         throw new Error(messages[settlement.reason] ?? settlement.reason);
       }
       workflowFields.guest_balance_paid_amount = settlement.paidAmount;
       workflowFields.guest_balance_payment_receipt_url = settlement.receiptUrl;
 
-      const totalDue = computeTotalGuestBalanceFromBooking(
-        booking as Record<string, unknown>,
-      );
+      const totalDue = computeTotalGuestBalanceFromBooking(booking as Record<string, unknown>);
       if (
         totalDue !== null &&
         guestBalancePaymentReceiptRequired(totalDue) &&
         settlement.receiptUrl &&
-        receiptVerdictBlocksAdminTransition(booking.balance_receipt_ai_verdict)
+        assertAiVerdictAllowsProceed({
+          verdict: booking.balance_receipt_ai_verdict,
+          payload,
+          actor,
+          message:
+            'Balance payment receipt failed AI validation. Upload a valid payment screenshot, or proceed anyway if you checked it yourself.',
+        })
       ) {
-        throw new Error(
-          'Balance payment receipt failed AI validation. Upload a valid payment screenshot before advancing.',
-        );
+        aiVerdictOverridden = true;
       }
+    }
+
+    if (completionsChanged) {
+      workflowFields.document_requirement_completions = completionsMap;
     }
 
     // 5. Persist workflow fields + update status
@@ -487,13 +759,13 @@ export class WorkflowOrchestrator {
         await DatabaseService.setWorkflowFields(bookingId, workflowFields);
       }
       if (fromStatus !== toStatus) {
-        await DatabaseService.updateBookingStatus(bookingId, toStatus);
+        await DatabaseService.updateBookingStatus(bookingId, toStatus, fromStatus);
       }
     }
 
     // Re-fetch to get latest row (needed for email content)
     const persistedStatus = fromStatus !== toStatus ? toStatus : fromStatus;
-    const updatedBooking = await DatabaseService.getBookingById(bookingId) ?? {
+    let updatedBooking = (await DatabaseService.getBookingById(bookingId)) ?? {
       ...booking,
       status: persistedStatus,
     };
@@ -503,7 +775,7 @@ export class WorkflowOrchestrator {
     // required sub-step (GAF + parking if needed + pet if needed) is now done,
     // immediately advance to READY_FOR_CHECKIN instead of leaving the booking
     // stranded in PENDING_DOCUMENTS waiting for a manual "Proceed" click.
-    // This fires for every caller (gmail-listener, admin parking form,
+    // This fires for every caller (approval-email-webhook, admin parking form,
     // reconciliation) since they all route through the orchestrator.
     if (
       fromStatus === 'PENDING_DOCUMENTS' &&
@@ -511,14 +783,19 @@ export class WorkflowOrchestrator {
       docComplete &&
       flag(devControls, 'saveToDatabase')
     ) {
-      const { gafDone, parkingDone, petDone } =
-        getPendingDocumentsNestedCompletion(updatedBooking as Parameters<typeof getPendingDocumentsNestedCompletion>[0]);
-      if (gafDone && parkingDone && petDone) {
+      const autoAdvanceRequirements = propertyId
+        ? await resolveDocumentRequirements(propertyId)
+        : DEFAULT_DOCUMENT_REQUIREMENTS;
+      const { allConfigurableDocsDone, parkingDone } = getPendingDocumentsNestedCompletion(
+        updatedBooking as Parameters<typeof getPendingDocumentsNestedCompletion>[0],
+        autoAdvanceRequirements
+      );
+      if (allConfigurableDocsDone && parkingDone) {
         console.log(
-          `[orchestrator] All document sub-steps complete for ${bookingId} — auto-advancing to READY_FOR_CHECKIN`,
+          `[orchestrator] All document sub-steps complete for ${bookingId} — auto-advancing to READY_FOR_CHECKIN`
         );
         try {
-          // Recursive call: re-uses same calendar/sheet flags but always sends
+          // Recursive call: preserve caller email flags but always send
           // the ready-for-check-in email (automated behaviour, not a manual click).
           return await WorkflowOrchestrator.transition(
             bookingId,
@@ -526,151 +803,183 @@ export class WorkflowOrchestrator {
             {},
             { ...devControls, sendReadyForCheckinEmail: true },
             false, // automated — not a manual admin click
+            actor // preserve attribution across the auto-advance
           );
         } catch (err) {
           // Non-fatal: log and fall through so the caller still gets a valid
           // PENDING_DOCUMENTS result. Admin can advance manually.
           console.error(
             '[orchestrator] Auto-advance to READY_FOR_CHECKIN failed (non-fatal):',
-            err,
+            err
           );
         }
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    const { pax, nights } = buildPaxNights(updatedBooking);
-    const guestName = updatedBooking.guest_facebook_name as string;
-
     let gafPdfBuffer: Uint8Array | null = null;
     let petPdfBuffer: Uint8Array | null = null;
+    // Skipped entirely when requirements are empty (D2) or the admin skipped straight
+    // to READY_FOR_CHECKIN; gated per-requirement so a property without "gaf" (or "pet")
+    // never gets that PDF even when the other one is configured.
+    const missingGafRequestPdf =
+      gafPdfRequired && !String(updatedBooking.gaf_request_pdf_url ?? '').trim();
+    const missingPetRequestPdf =
+      petPdfRequired &&
+      bookingFlagTrue(updatedBooking.has_pets) &&
+      !String(updatedBooking.pet_request_pdf_url ?? '').trim();
+    const shouldGenerateGafRequestPdf =
+      gafPdfRequired && (isReviewToInitialDocs || missingGafRequestPdf);
+    const shouldGeneratePetRequestPdf =
+      petPdfRequired && (isReviewToInitialDocs || missingPetRequestPdf);
+    const shouldGenerateRequestPdfs =
+      flag(devControls, 'generatePdf') &&
+      (isReviewToInitialDocs ||
+        (updatedBooking.status === 'PENDING_DOCUMENTS' &&
+          (missingGafRequestPdf || missingPetRequestPdf)));
 
-    // 6. Google Calendar update
-    let calendarOk = true;
-    if (flag(devControls, 'updateGoogleCalendar')) {
-      try {
-        const result = await CalendarService.updateCalendarEventStatus(
-          bookingId,
-          toStatus,
-          pax,
-          nights,
-          guestName,
-          updatedBooking,
-        );
-        calendarOk = result.success;
-      } catch (err) {
-        console.error('[orchestrator] Calendar update failed (non-fatal):', err);
-        calendarOk = false;
-      }
-    } else {
-      console.log(`[orchestrator] Calendar update skipped (flag=${flag(devControls, 'updateGoogleCalendar')})`);
-    }
-
-    // 7. Google Sheets update
-    let sheetOk = true;
-    if (flag(devControls, 'updateGoogleSheets')) {
-      try {
-        const result = await SheetsService.updateSheetWorkflowStatus(
-          bookingId,
-          STATUS_HUMAN_LABEL[toStatus],
-          {
-            booking_rate: updatedBooking.booking_rate,
-            down_payment: updatedBooking.down_payment,
-            balance: updatedBooking.balance,
-            security_deposit: updatedBooking.security_deposit,
-            parking_rate_guest: updatedBooking.parking_rate_guest,
-            parking_rate_paid: updatedBooking.parking_rate_paid,
-            pet_fee: updatedBooking.pet_fee,
-            approved_gaf_pdf_url: updatedBooking.approved_gaf_pdf_url,
-            approved_pet_pdf_url: updatedBooking.approved_pet_pdf_url,
-            sd_refund_amount: updatedBooking.sd_refund_amount,
-            sd_refund_receipt_url: updatedBooking.sd_refund_receipt_url,
-            guest_additional_fee: updatedBooking.guest_additional_fee,
-            guest_balance_paid_amount: updatedBooking.guest_balance_paid_amount,
-            guest_balance_payment_receipt_url: updatedBooking.guest_balance_payment_receipt_url,
-            status_updated_at: updatedBooking.status_updated_at,
-          },
-          updatedBooking,
-        );
-        sheetOk = result.success;
-      } catch (err) {
-        console.error('[orchestrator] Sheet update failed (non-fatal):', err);
-        sheetOk = false;
-      }
-    }
-
-    // 7b. Filled GAF / pet request PDFs (for Azure emails + optional Storage) — same transition as §3 PENDING_REVIEW → docs
-    if (isReviewToInitialDocs && flag(devControls, 'generatePdf')) {
+    if (shouldGenerateRequestPdfs) {
       const fd = buildGuestFormData(updatedBooking);
-      try {
-        gafPdfBuffer = await generatePDF(fd);
-      } catch (err) {
-        console.error('[orchestrator] GAF PDF generation failed:', err);
-      }
-      if (updatedBooking.has_pets) {
-        try {
-          petPdfBuffer = await generatePetPDF(fd);
-        } catch (err) {
-          console.error('[orchestrator] Pet request PDF generation failed:', err);
-        }
-      }
+      // GAF and pet PDFs are independent — generate them concurrently instead of
+      // sequentially (each keeps its own descriptive error message on failure).
+      const [gafResult, petResult] = await Promise.all([
+        shouldGenerateGafRequestPdf
+          ? generatePDF(fd, propertyId).catch((err) => {
+              console.error('[orchestrator] GAF PDF generation failed:', err);
+              throw new Error(
+                `GAF request PDF could not be generated. Ensure templates/guest-form-template.pdf exists in Storage. ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
+            })
+          : Promise.resolve(null),
+        shouldGeneratePetRequestPdf
+          ? generatePetPDF(fd, propertyId).catch((err) => {
+              console.error('[orchestrator] Pet request PDF generation failed:', err);
+              throw new Error(
+                `Pet request PDF could not be generated. Ensure templates/pet-form-template.pdf exists in Storage. ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
+            })
+          : Promise.resolve(null),
+      ]);
+      gafPdfBuffer = gafResult;
+      petPdfBuffer = petResult;
+
       if (flag(devControls, 'saveToDatabase')) {
-        try {
-          const pdfFields: Record<string, unknown> = {};
-          if (gafPdfBuffer) {
-            pdfFields.gaf_request_pdf_url = await UploadService.uploadPdfBytes(
-              'approved-gafs',
-              `${bookingId}/gaf-request.pdf`,
-              gafPdfBuffer,
-            );
-          }
-          if (petPdfBuffer) {
-            pdfFields.pet_request_pdf_url = await UploadService.uploadPdfBytes(
-              'approved-pet-forms',
-              `${bookingId}/pet-request.pdf`,
-              petPdfBuffer,
-            );
-          }
-          if (Object.keys(pdfFields).length > 0) {
-            await DatabaseService.setWorkflowFields(bookingId, pdfFields);
-            Object.assign(updatedBooking, pdfFields);
-          }
-        } catch (err) {
-          console.error('[orchestrator] Request PDF upload failed:', err);
+        const pdfPropertyId = String(updatedBooking.property_id ?? '').trim() || undefined;
+        if (shouldGenerateGafRequestPdf && !gafPdfBuffer) {
+          throw new Error('GAF request PDF buffer is empty after generation.');
+        }
+        if (shouldGeneratePetRequestPdf && !petPdfBuffer) {
+          throw new Error('Pet request PDF buffer is empty after generation.');
+        }
+        // Independent uploads to different buckets — also safe to run concurrently.
+        const [gafUrl, petUrl] = await Promise.all([
+          shouldGenerateGafRequestPdf
+            ? UploadService.uploadPdfBytes(
+                'approved-gafs',
+                bookingAssetStorageKey(pdfPropertyId, bookingId, 'gaf-request.pdf'),
+                gafPdfBuffer!
+              )
+            : Promise.resolve(null),
+          shouldGeneratePetRequestPdf
+            ? UploadService.uploadPdfBytes(
+                'approved-pet-forms',
+                bookingAssetStorageKey(pdfPropertyId, bookingId, 'pet-request.pdf'),
+                petPdfBuffer!
+              )
+            : Promise.resolve(null),
+        ]);
+
+        const pdfFields: Record<string, unknown> = {};
+        if (gafUrl) pdfFields.gaf_request_pdf_url = gafUrl;
+        if (petUrl) pdfFields.pet_request_pdf_url = petUrl;
+        if (Object.keys(pdfFields).length > 0) {
+          await DatabaseService.setWorkflowFields(bookingId, pdfFields);
+          Object.assign(updatedBooking, pdfFields);
         }
       }
     }
 
     // 8. Emails — based on side-effect matrix in booking-workflow.mdc §3
     const emailsSent: string[] = [];
+    const emailsFailed: string[] = [];
+    const automationSkippedByPlan: string[] = [];
+    const automationSkippedByHost: string[] = [];
+    let externalSuppressed = false;
+    if (suppressGuestSideEffects) {
+      console.log(
+        `[orchestrator] Guest-facing side effects suppressed for ${bookingId} (OTA-ingested booking, no guest contact yet)`
+      );
+    }
 
-    // PENDING_REVIEW → PENDING_GAF or PENDING_DOCUMENTS (same bundle):
-    // - GAF request to Azure
-    // - Booking acknowledgement to guest
-    // - Pet request to Azure (if pets)
-    // - Parking broadcast (if parking)
-    if (isReviewToInitialDocs) {
+    const propertyEmailAllowed = async (key: PropertyAutomationToggleKey): Promise<boolean> =>
+      propertyAutomationEnabled(propertyId, key);
+    const planBlockedKeys = new Set(await planBlockedAutomationToggleKeys(propertyId));
+    const recordIfEmailSkipped = (key: PropertyAutomationToggleKey, sideEffectName: string) => {
+      if (planBlockedKeys.has(key)) automationSkippedByPlan.push(sideEffectName);
+      else automationSkippedByHost.push(sideEffectName);
+    };
+
+    // PENDING_REVIEW → PENDING_GAF | PENDING_DOCUMENTS | READY_FOR_CHECKIN (D2 skip), same bundle:
+    // - GAF request to Azure (only when "gaf" is in the resolved requirements)
+    // - Booking acknowledgement to guest (always)
+    // - Pet request to Azure (only when has_pets AND "pet" is in the resolved requirements)
+    if (isReviewProceedAttempt) {
       const formData = buildGuestFormData(updatedBooking);
 
-      if (flag(devControls, 'sendGafRequestEmail')) {
+      if (
+        isReviewToInitialDocs &&
+        gafPdfRequired &&
+        flag(devControls, 'sendGafRequestEmail') &&
+        (await propertyEmailAllowed('emailGafRequest'))
+      ) {
         try {
           await sendEmail(formData, gafPdfBuffer, false, updatedBooking);
           emailsSent.push('gaf_request');
         } catch (err) {
           console.error('[orchestrator] GAF request email failed:', err);
+          emailsFailed.push('gaf_request');
         }
+      } else if (
+        isReviewToInitialDocs &&
+        gafPdfRequired &&
+        flag(devControls, 'sendGafRequestEmail')
+      ) {
+        console.log('[orchestrator] GAF request email skipped (org automation off)');
+        recordIfEmailSkipped('emailGafRequest', 'gaf_request');
       }
 
-      if (flag(devControls, 'sendBookingAcknowledgementEmail')) {
+      if (suppressGuestSideEffects && flag(devControls, 'sendBookingAcknowledgementEmail')) {
+        externalSuppressed = true;
+        console.log(
+          '[orchestrator] Booking acknowledgement email skipped (OTA-ingested, no guest)'
+        );
+      } else if (
+        flag(devControls, 'sendBookingAcknowledgementEmail') &&
+        (await propertyEmailAllowed('emailBookingAcknowledgement'))
+      ) {
         try {
           await sendBookingAcknowledgement(updatedBooking);
           emailsSent.push('booking_acknowledgement');
         } catch (err) {
           console.error('[orchestrator] Booking acknowledgement email failed:', err);
+          emailsFailed.push('booking_acknowledgement');
         }
+      } else if (flag(devControls, 'sendBookingAcknowledgementEmail')) {
+        console.log('[orchestrator] Booking acknowledgement email skipped (org automation off)');
+        recordIfEmailSkipped('emailBookingAcknowledgement', 'booking_acknowledgement');
       }
 
-      if (updatedBooking.has_pets && flag(devControls, 'sendPetRequestEmail')) {
+      if (
+        isReviewToInitialDocs &&
+        updatedBooking.has_pets &&
+        petPdfRequired &&
+        flag(devControls, 'sendPetRequestEmail') &&
+        (await propertyEmailAllowed('emailPetRequest'))
+      ) {
         try {
           await sendPetEmail(
             formData,
@@ -678,51 +987,104 @@ export class WorkflowOrchestrator {
             updatedBooking.pet_image_url,
             updatedBooking.pet_vaccination_url,
             false,
+            updatedBooking.property_id
           );
           emailsSent.push('pet_request');
         } catch (err) {
           console.error('[orchestrator] Pet request email failed:', err);
+          emailsFailed.push('pet_request');
         }
+      } else if (
+        isReviewToInitialDocs &&
+        updatedBooking.has_pets &&
+        petPdfRequired &&
+        flag(devControls, 'sendPetRequestEmail')
+      ) {
+        console.log('[orchestrator] Pet request email skipped (org automation off)');
+        recordIfEmailSkipped('emailPetRequest', 'pet_request');
       }
 
-      if (updatedBooking.need_parking && flag(devControls, 'sendParkingBroadcastEmail')) {
-        try {
-          await sendParkingBroadcast(updatedBooking);
-          emailsSent.push('parking_broadcast');
-        } catch (err) {
-          console.error('[orchestrator] Parking broadcast email failed:', err);
-        }
+      // Phase 7: retired — property bookings no longer send legacy BCC parking-owner emails.
+      // Hosts use Find parking / marketplace linkStay; marketplace host fan-out is separate.
+    }
+
+    // Issue stay-guide token whenever booking reaches READY_FOR_CHECKIN.
+    if (toStatus === 'READY_FOR_CHECKIN' && suppressGuestSideEffects) {
+      externalSuppressed = true;
+      console.log('[orchestrator] Stay-guide token skipped (OTA-ingested, no guest)');
+    } else if (toStatus === 'READY_FOR_CHECKIN') {
+      try {
+        await ensureGuestStayGuideToken(updatedBooking);
+        const refreshed = await DatabaseService.getBookingById(bookingId);
+        if (refreshed) updatedBooking = refreshed;
+      } catch (err) {
+        console.error('[orchestrator] Stay guide token failed (non-fatal):', err);
       }
     }
 
     // forward → READY_FOR_CHECKIN: send ready-for-check-in to guest.
+    // PENDING_REVIEW is included for the D2 empty-requirements skip (and explicit
+    // admin skip) — the only way that specific edge fires.
     const isForwardToReady =
+      fromStatus === 'PENDING_REVIEW' ||
       fromStatus === 'PENDING_DOCUMENTS' ||
       fromStatus === 'PENDING_GAF' ||
       fromStatus === 'PENDING_PARKING_REQUEST' ||
       fromStatus === 'PENDING_PET_REQUEST';
-    if (toStatus === 'READY_FOR_CHECKIN' && isForwardToReady && flag(devControls, 'sendReadyForCheckinEmail')) {
+    if (
+      toStatus === 'READY_FOR_CHECKIN' &&
+      isForwardToReady &&
+      suppressGuestSideEffects &&
+      flag(devControls, 'sendReadyForCheckinEmail')
+    ) {
+      externalSuppressed = true;
+      console.log('[orchestrator] Ready-for-check-in email skipped (OTA-ingested, no guest)');
+    } else if (
+      toStatus === 'READY_FOR_CHECKIN' &&
+      isForwardToReady &&
+      flag(devControls, 'sendReadyForCheckinEmail') &&
+      (await propertyEmailAllowed('emailReadyForCheckin'))
+    ) {
       try {
         await sendReadyForCheckin(updatedBooking);
         emailsSent.push('ready_for_checkin');
       } catch (err) {
         console.error('[orchestrator] Ready-for-check-in email failed:', err);
+        emailsFailed.push('ready_for_checkin');
       }
+    } else if (
+      toStatus === 'READY_FOR_CHECKIN' &&
+      isForwardToReady &&
+      flag(devControls, 'sendReadyForCheckinEmail')
+    ) {
+      console.log('[orchestrator] Ready-for-check-in email skipped (org automation off)');
+      recordIfEmailSkipped('emailReadyForCheckin', 'ready_for_checkin');
     }
 
     const sdAmount = Number(updatedBooking.security_deposit ?? 0);
     if (
       fromStatus === 'READY_FOR_CHECKIN' &&
       toStatus === 'READY_FOR_CHECKOUT' &&
+      suppressGuestSideEffects &&
       flag(devControls, 'sendSdRefundFormEmail') &&
       sdAmount > 0
     ) {
+      externalSuppressed = true;
+      console.log('[orchestrator] SD refund form email skipped (OTA-ingested, no guest)');
+    } else if (
+      fromStatus === 'READY_FOR_CHECKIN' &&
+      toStatus === 'READY_FOR_CHECKOUT' &&
+      flag(devControls, 'sendSdRefundFormEmail') &&
+      sdAmount > 0 &&
+      (await propertyEmailAllowed('emailSdRefundCheckout'))
+    ) {
       const emailedRaw = (updatedBooking as { sd_refund_form_emailed_at?: string | null })
         .sd_refund_form_emailed_at;
-      const alreadyEmailed =
-        typeof emailedRaw === 'string' && emailedRaw.trim() !== '';
+      const alreadyEmailed = typeof emailedRaw === 'string' && emailedRaw.trim() !== '';
       if (alreadyEmailed) {
-        console.log('[orchestrator] SD refund form email skipped (already sent for this stay)');
+        console.log(
+          '[orchestrator] Check-out instructions email skipped (already sent for this stay)'
+        );
       } else {
         try {
           await sendSdRefundFormRequest(updatedBooking);
@@ -734,25 +1096,287 @@ export class WorkflowOrchestrator {
           }
         } catch (err) {
           console.error('[orchestrator] SD refund form request email failed:', err);
+          emailsFailed.push('sd_refund_form_request');
+        }
+      }
+    } else if (
+      fromStatus === 'READY_FOR_CHECKIN' &&
+      toStatus === 'READY_FOR_CHECKOUT' &&
+      flag(devControls, 'sendSdRefundFormEmail') &&
+      sdAmount > 0
+    ) {
+      console.log('[orchestrator] SD refund form email skipped (org automation off)');
+      recordIfEmailSkipped('emailSdRefundCheckout', 'sd_refund_form_request');
+    }
+
+    // Notification Center — status transitions; not gated on workflow email sends so Free
+    // hosts still get bell alerts when emails are plan-skipped (manual send via Automation Triggers).
+    if (toStatus === 'READY_FOR_CHECKIN' && isForwardToReady && !suppressGuestSideEffects) {
+      const organizationId = await resolveNotificationOrgId();
+      if (organizationId) {
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_ready_for_checkin',
+            title: STATUS_HUMAN_LABEL.READY_FOR_CHECKIN,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-in.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
+        }
+      }
+    }
+
+    if (
+      fromStatus === 'READY_FOR_CHECKIN' &&
+      toStatus === 'READY_FOR_CHECKOUT' &&
+      sdAmount > 0 &&
+      !suppressGuestSideEffects
+    ) {
+      const organizationId = await resolveNotificationOrgId();
+      if (organizationId) {
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_ready_for_checkout',
+            title: STATUS_HUMAN_LABEL.READY_FOR_CHECKOUT,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'}'s booking is ready for check-out.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
+        }
+      }
+    }
+
+    if (
+      fromStatus === 'READY_FOR_CHECKOUT' &&
+      toStatus === 'PENDING_SD_REFUND' &&
+      payload.sd_refund_method != null
+    ) {
+      const organizationId = await resolveNotificationOrgId();
+      if (organizationId) {
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_sd_refund_due',
+            title: STATUS_HUMAN_LABEL.PENDING_SD_REFUND,
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'} submitted their SD refund details.`,
+            bookingId,
+            metadata: bookingNotificationMetadata(updatedBooking),
+            dedupeKey: `${bookingId}:${toStatus}`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Notification create failed (non-fatal):', notifyError);
         }
       }
     }
 
     console.log(`[orchestrator] Transition complete: ${fromStatus} → ${toStatus}`, {
-      calendarOk,
-      sheetOk,
       emailsSent,
+      emailsFailed,
     });
+
+    if (flag(devControls, 'saveToDatabase')) {
+      const refreshedFinal = await DatabaseService.getBookingById(bookingId);
+      if (refreshedFinal) updatedBooking = refreshedFinal;
+    }
+
+    // ── Activity log — one row per transition, emitted here so every caller
+    //    (dashboard, cron, webhook, guest form, AI assistant) is covered once.
+    if (flag(devControls, 'saveToDatabase')) {
+      await this.logTransitionActivity({
+        booking: updatedBooking,
+        propertyId,
+        fromStatus,
+        toStatus: String(updatedBooking.status ?? toStatus) as BookingStatus,
+        completionTarget: payload.document_completion_target ?? null,
+        completionsChanged,
+        manual,
+        actor,
+        aiVerdictOverridden,
+        emailsFailed,
+        resolveOrgId: resolveNotificationOrgId,
+      });
+      await this.logTransitionPostHog({
+        booking: updatedBooking,
+        propertyId,
+        fromStatus,
+        toStatus: String(updatedBooking.status ?? toStatus) as BookingStatus,
+        completionTarget: payload.document_completion_target ?? null,
+        completionsChanged,
+        manual,
+        actor,
+      });
+
+      // ── Cache invalidation (doc 12, Phase 12.5) — routed through the orchestrator's side
+      //    effects rather than sprinkled into callers, same rule as email/calendar/sheet side
+      //    effects. dashboard-stats (_shared/dashboardService.ts, cached via
+      //    _shared/queryCache.ts) reads this property's bookings plus, for an org-scoped
+      //    request, every property/parking in the org — so a transition must purge both the
+      //    property-scoped cache entries and the org-scoped ones. Best-effort: purgeCacheByScope
+      //    never throws, so a purge failure cannot fail the booking transition itself.
+      if (propertyId) {
+        await purgeCacheByScope({ propertyId });
+        const organizationId = await resolveNotificationOrgId();
+        if (organizationId) {
+          await purgeCacheByScope({ orgId: organizationId });
+        }
+      }
+    }
 
     return {
       success: true,
       booking: updatedBooking,
       sideEffects: {
-        calendar: calendarOk,
-        sheet: sheetOk,
         emails: emailsSent,
+        ...(emailsFailed.length > 0 ? { emailsFailed } : {}),
+        automationSkippedByPlan,
+        automationSkippedByHost,
+        ...(externalSuppressed ? { externalSuppressed: true } : {}),
       },
     };
+  }
+
+  /**
+   * Emit the single activity-log row for a completed transition. Never throws
+   * (logActivity swallows) and never blocks — a logging gap must not fail a
+   * booking transition.
+   */
+  private static mapActorTypeForAnalytics(actor?: ActorContext): string {
+    const t: ActivityActorType = actor?.actorType ?? 'system';
+    if (t === 'guest' || t === 'public') return 'guest';
+    if (t === 'cron') return 'cron';
+    if (t === 'webhook' || t === 'email_inbound') return 'webhook';
+    if (t === 'ai_assistant') return 'ai_assistant';
+    if (t === 'team_member' || t === 'super_admin') return 'host';
+    return 'system';
+  }
+
+  private static async logTransitionPostHog(args: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    booking: any;
+    propertyId: string | null;
+    fromStatus: BookingStatus;
+    toStatus: BookingStatus;
+    completionTarget: string | null;
+    completionsChanged: boolean;
+    manual: boolean;
+    actor?: ActorContext;
+  }): Promise<void> {
+    try {
+      const statusChanged = args.fromStatus !== args.toStatus;
+      const isDocSubstep = !statusChanged && (args.completionsChanged || !!args.completionTarget);
+      if (!statusChanged && !isDocSubstep) return;
+
+      const actorType = this.mapActorTypeForAnalytics(args.actor);
+      const baseProps = {
+        property_id: args.propertyId ?? undefined,
+        from_status: args.fromStatus,
+        to_status: args.toStatus,
+        actor_type: actorType,
+        manual: args.manual,
+      };
+
+      if (isDocSubstep) {
+        await capturePostHogEvent('booking_document_step_completed', {
+          logPrefix: 'orchestrator',
+          system: true,
+          properties: {
+            ...baseProps,
+            document_step: args.completionTarget ?? 'unknown',
+          },
+        });
+        return;
+      }
+
+      if (args.toStatus === 'CANCELLED') {
+        await capturePostHogEvent('booking_cancelled', {
+          logPrefix: 'orchestrator',
+          system: true,
+          properties: {
+            ...baseProps,
+            previous_status: args.fromStatus,
+          },
+        });
+        return;
+      }
+
+      await capturePostHogEvent('booking_workflow_transitioned', {
+        logPrefix: 'orchestrator',
+        system: true,
+        properties: baseProps,
+      });
+    } catch (err) {
+      console.error('[orchestrator] logTransitionPostHog failed (non-fatal):', err);
+    }
+  }
+
+  private static async logTransitionActivity(args: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    booking: any;
+    propertyId: string | null;
+    fromStatus: BookingStatus;
+    toStatus: BookingStatus;
+    completionTarget: string | null;
+    completionsChanged: boolean;
+    manual: boolean;
+    actor?: ActorContext;
+    aiVerdictOverridden?: boolean;
+    emailsFailed?: string[];
+    resolveOrgId: () => Promise<string | null>;
+  }): Promise<void> {
+    try {
+      const { booking, propertyId, fromStatus, toStatus } = args;
+      const statusChanged = fromStatus !== toStatus;
+      const isDocSubstep = !statusChanged && (args.completionsChanged || !!args.completionTarget);
+      if (!statusChanged && !isDocSubstep) return; // pure no-op
+
+      const organizationId = await args.resolveOrgId();
+      if (!organizationId) return;
+
+      const actor: ActorContext = args.actor ?? { actorType: 'system', source: 'cron' };
+      const guestName =
+        (typeof booking.primary_guest_name === 'string' && booking.primary_guest_name.trim()) ||
+        (typeof booking.guest_facebook_name === 'string' && booking.guest_facebook_name.trim()) ||
+        null;
+      const checkIn = typeof booking.check_in_date === 'string' ? booking.check_in_date : null;
+      const targetLabel = guestName ? `${guestName}${checkIn ? ` · ${checkIn}` : ''}` : 'a booking';
+
+      const action = isDocSubstep
+        ? 'booking.document_substep_completed'
+        : toStatus === 'CANCELLED'
+          ? 'booking.cancelled'
+          : 'booking.status_changed';
+
+      await logActivity({
+        action,
+        organizationId,
+        propertyId: propertyId ?? undefined,
+        actor,
+        targetType: 'booking',
+        targetId: String(booking.id ?? ''),
+        targetLabel,
+        metadata: {
+          from_status: fromStatus,
+          to_status: toStatus,
+          manual: args.manual,
+          ...(isDocSubstep && args.completionTarget ? { requirement: args.completionTarget } : {}),
+          ...(args.aiVerdictOverridden ? { ai_verdict_overridden: true } : {}),
+          ...(args.emailsFailed?.length ? { emails_failed: args.emailsFailed } : {}),
+        },
+      });
+    } catch (err) {
+      console.error('[orchestrator] logTransitionActivity failed (non-fatal):', err);
+    }
   }
 }
 
@@ -814,3 +1438,12 @@ function buildGuestFormData(booking: any): any {
 function bookingFlagTrue(v: unknown): boolean {
   return v === true || v === 'true';
 }
+
+/** @internal Exported for Deno unit tests only — do not import from production handlers. */
+export const __workflowOrchestratorTesting = {
+  computeBalance,
+  flag,
+  resolveDocTarget,
+  resolveLegacyCompletionId,
+  assertParkingPaymentReceiptIfRequired,
+};

@@ -1,0 +1,36 @@
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'file.inFolder("guides/routes")'
+    - 'file.name != "README.md"'
+
+properties:
+  status:
+    displayName: Status
+  updated:
+    displayName: Updated
+  tags:
+    displayName: Tags
+  file.folder:
+    displayName: Area
+
+views:
+  - type: table
+    name: "By Area"
+    order:
+      - file.name
+      - title
+      - status
+      - updated
+    groupBy:
+      property: file.folder
+      direction: ASC
+
+  - type: table
+    name: "All Guides"
+    order:
+      - file.name
+      - title
+      - status
+      - updated
+      - tags

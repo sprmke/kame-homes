@@ -1,0 +1,78 @@
+---
+description: Browser tab title (document.title) format for every page in the app. Must be updated whenever a page is added or renamed.
+globs:
+  - 'ui/src/**/*.tsx'
+  - 'ui/src/**/*.ts'
+  - 'docs/guides/routes/**/*.md'
+alwaysApply: true
+---
+
+# Page titles
+
+Every page must set a `document.title` so the browser tab is meaningful. Use the shared `usePageTitle` hook from `@/lib/pageTitle`.
+
+## Title format per scope
+
+| Scope                                                        | Format                                                             | Example                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------- |
+| Public marketing pages                                       | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Homes - Search` or `Search`     |
+| Public property-scoped pages                                 | `${Property Name} - ${page name}`                                  | `Solea Mactan - Calendar`             |
+| Guest account pages                                          | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Homes - Profile` or `Profile`   |
+| App-level dashboard pages (sign-in, onboarding, super admin) | `${platform app name} - ${page name}` or `${page name}` when unset | `Sign In`                             |
+| Org-level dashboard pages                                    | `${Org Name} - ${page name}`                                       | `Acme Stays PH - Bookings`            |
+| Property-level dashboard pages                               | `${Property Name} - ${page name}`                                  | `Solea Mactan - Bookings`             |
+| Parking-level dashboard pages                                | `${Org Name} - ${Parking Name} - ${page name}`                     | `Acme Stays PH - Slot 12A - Bookings` |
+
+Platform app name comes from `VITE_PLATFORM_APP_NAME` (`ui/src/lib/platformBranding.ts`). Tenant-scoped pages always use org/property/parking names — never a hardcoded operator brand.
+
+### Page name rules
+
+- Use the **short label** from the sidebar/nav or the H1 of the page (e.g., `Bookings`, `Pricing`, `Settings`, `Marketing`).
+- For detail pages, append the entity name: `Booking #1234`, `Maria Santos`, `Solea Mactan`.
+- Never use raw route slugs in the title.
+- Never include internal codenames (e.g., `sd-form`, `gaf`) in the title; use guest-facing names (`Security Deposit`, `Guest Form`).
+
+## Implementation
+
+```tsx
+import { usePageTitle } from '@/lib/pageTitle';
+
+export function OrgDashboardPage() {
+  const orgName = '...';
+  usePageTitle(`${orgName} - Dashboard`);
+  // ...
+}
+```
+
+For dynamic data, pass the formatted title once it is resolved. While data is loading, let the parent shell or index.html fallback show `Kame Homes`.
+
+```tsx
+usePageTitle(org ? `${org.name} - Dashboard` : undefined);
+```
+
+## Favicon
+
+When an org logo is available, the favicon should be a padded, rounded-corner version of the logo so it does not look like a sharp box in the tab. Use `useFavicon` from `@/lib/favicon`.
+
+- Dashboard pages: pass the org's `logoUrl`.
+- Public property-scoped pages: pass the org's logo (e.g., `emailLogoUrl` from `GuestPaymentInfo`).
+- App-level / public marketing pages: pass `undefined` to restore the default Kame favicon.
+
+If no logo is set, the default Kame favicon is used automatically.
+
+## Default / fallback
+
+`index.html` title must stay `Kame Homes`. Shells and top-level routes should set a title as early as possible so the fallback is rarely visible.
+
+## When adding or renaming a page
+
+1. Add the page to the route tree.
+2. Set `usePageTitle(...)` in the page component following the table above.
+3. Update the matching `docs/guides/routes/*.md` guide with the title convention.
+4. Do not leave the tab title as the static `index.html` fallback.
+
+## Do not
+
+- Set `document.title` directly; always use `usePageTitle`.
+- Add a title that is just the page name without a prefix (except if the page is the root landing page).
+- Use the same generic title for every page (e.g., `Kame Homes` on all admin pages).

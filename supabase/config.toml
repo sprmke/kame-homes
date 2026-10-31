@@ -22,7 +22,11 @@ major_version = 17
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql"]
+sql_paths = [
+  "../scripts/dev/seed-local-org-bootstrap.sql",
+  "./seed.sql",
+  "../scripts/dev/seed-dashboard-demo-data.sql",
+]
 
 # Admin sign-in (Google OAuth). Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET in
 # ui/.env.development (same file as Vite dev vars). dev.sh / npm run start:supabase
@@ -46,26 +50,48 @@ secret = "env(GOOGLE_CLIENT_SECRET)"
 redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
 skip_nonce_check = false
 
+# Bot protection for the passwordless email-OTP flow (`signInWithOtp`). Google
+# OAuth is unaffected. Anti-spam plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
+#
+# Committed as `enabled = false` so a stale local `ui/.env.development` (no
+# TURNSTILE_SECRET_KEY) can't brick every local login. To turn it on:
+#   • Local: add `TURNSTILE_SECRET_KEY` to ui/.env.development (Cloudflare's
+#     always-passes test secret `1x0000000000000000000000000000000AA` is fine),
+#     add `VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`, then set
+#     `enabled = true` here and restart `./dev.sh`.
+#   • Hosted: set the real TURNSTILE_SECRET_KEY project secret and enable Captcha
+#     in Dashboard → Authentication → Attack Protection (or via config-as-code).
+# The UI always sends `options.captchaToken`; GoTrue ignores it while disabled.
+[auth.captcha]
+enabled = false
+provider = "turnstile"
+secret = "env(TURNSTILE_SECRET_KEY)"
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
 
+# Media buckets: allow-lists + `file_size_limit` mirror the unified ceilings in
+# `supabase/functions/_shared/uploadLimits.ts` and the migration
+# `20261213120600_media_optimization_bucket_limits.sql`. WebP is emitted by the
+# client optimizer; HEIC is accepted for the "could not decode → pass through
+# original" path.
 [storage.buckets.payment-receipts]
 public = true
-file_size_limit = "5MiB"
-allowed_mime_types = ["image/png", "image/jpeg"]
+file_size_limit = "12MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]
 
 [storage.buckets.pet-vaccinations]
 public = true
-file_size_limit = "5MiB"
-allowed_mime_types = ["image/png", "image/jpeg"]
+file_size_limit = "12MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]
 
-# --- New-flow buckets (Phase 0, see docs/NEW_FLOW_PLAN.md §2) ---
+# --- New-flow buckets (Phase 0, see docs/planning/NEW_FLOW_PLAN.md §2) ---
 
 [storage.buckets.parking-endorsements]
 public = true
-file_size_limit = "5MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "application/pdf"]
+file_size_limit = "12MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif", "application/pdf"]
 
 [storage.buckets.approved-gafs]
 public = false
@@ -79,8 +105,25 @@ allowed_mime_types = ["application/pdf"]
 
 [storage.buckets.sd-refund-receipts]
 public = false
-file_size_limit = "5MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "application/pdf"]
+file_size_limit = "12MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif", "application/pdf"]
+
+[storage.buckets.ai-assistant-attachments]
+public = false
+file_size_limit = "4MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+
+[storage.buckets.property-media]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = [
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "image/heic", "image/heif", "image/bmp", "image/tiff", "image/avif", "image/svg+xml",
+  "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo",
+  "video/x-matroska", "video/ogg", "video/mpeg",
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav",
+  "audio/ogg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/webm",
+]
 
 [edge_runtime]
 enabled = true
@@ -110,7 +153,31 @@ verify_jwt = false
 [functions.get-guest-payment-info]
 verify_jwt = false
 
+[functions.get-public-property]
+verify_jwt = false
+
+[functions.get-public-showcase]
+verify_jwt = false
+
+[functions.get-residence-unit-types]
+verify_jwt = false
+
+[functions.get-public-host]
+verify_jwt = false
+
+[functions.get-public-platform-status]
+verify_jwt = false
+
+[functions.get-health]
+verify_jwt = false
+
+[functions.get-guest-review]
+verify_jwt = false
+
 [functions.get-sd-form]
+verify_jwt = false
+
+[functions.get-guest-stay-guide]
 verify_jwt = false
 
 [functions.submit-sd-form]
@@ -120,6 +187,9 @@ static_files = [
   "./functions/_shared/email-templates/fragments/*.html",
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
+
+[functions.submit-guest-review]
+verify_jwt = false
 
 [functions.claim-sd-voucher]
 verify_jwt = false
@@ -143,6 +213,70 @@ static_files = [
 [functions.list-bookings]
 verify_jwt = false
 
+[functions.create-parking-booking]
+verify_jwt = false
+
+[functions.transition-parking-booking]
+verify_jwt = false
+
+[functions.claim-parking-booking]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.get-parking-broadcast-status]
+verify_jwt = false
+
+[functions.decline-parking-booking]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.expire-parking-broadcasts]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.send-parking-reminders]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+# Airbnb / OTA calendar sync. ical-export + get-form-completion are public (token-guarded in the
+# handler). calendar-sync-cron: global sweep (optional X-Calendar-Sync-Cron-Secret) + scoped
+# "Sync now" (resolveScopedPropertyAccess in the handler). Cloud-only schedule via pg_cron —
+# migration 20261213120500_calendar_sync_cron.sql (job calendar-sync-every-30m).
+[functions.ical-export]
+verify_jwt = false
+
+[functions.calendar-sync-cron]
+verify_jwt = false
+
+[functions.calendar-sync-settings]
+verify_jwt = false
+
+[functions.get-form-completion]
+verify_jwt = false
+
+[functions.submit-form-completion]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.issue-guest-form-completion-token]
+verify_jwt = false
+
 [functions.transition-booking]
 verify_jwt = false
 static_files = [
@@ -151,16 +285,22 @@ static_files = [
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
 
-[functions.sync-booking-integrations]
-verify_jwt = false
-
 [functions.upload-booking-asset]
 verify_jwt = false
 
 [functions.validate-booking-receipts]
 verify_jwt = false
 
+[functions.booking-ai-review]
+verify_jwt = false
+
+[functions.get-booking-ai-review]
+verify_jwt = false
+
 [functions.get-booking-asset-url]
+verify_jwt = false
+
+[functions.update-booking-details]
 verify_jwt = false
 
 [functions.cancel-booking]
@@ -187,43 +327,47 @@ static_files = [
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
 
-[functions.google-mail-oauth-start]
+[functions.send-booking-workflow-email]
 verify_jwt = false
-
-[functions.google-mail-oauth-callback]
-verify_jwt = false
-
-[functions.google-mail-oauth-status]
-verify_jwt = false
-
-[functions.google-mail-oauth-disconnect]
-verify_jwt = false
-
-[functions.backfill-calendar-event-dates]
-verify_jwt = false
-
-[functions.gmail-backfill-approvals]
-verify_jwt = false
-# Orchestrator may auto-advance to READY_FOR_CHECKIN and send RFCI (same as gmail-listener).
 static_files = [
   "./functions/_shared/email-templates/*.html",
   "./functions/_shared/email-templates/fragments/*.html",
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.send-property-custom-template-email]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.preview-guest-stay-guide]
+verify_jwt = false
+
+[functions.issue-guest-stay-guide-token]
+verify_jwt = false
+
+[functions.issue-guest-trip-link]
+verify_jwt = false
+
+[functions.issue-booking-document-share-token]
+verify_jwt = false
+
+[functions.get-guest-booking-document]
+verify_jwt = false
+
+[functions.approval-email-webhook]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
 ]
 
 # ── Scheduled / internal — served locally + triggered by cron in cloud ────────
 # The `schedule` key is Cloud-only — do NOT add it here or the local CLI will
 # fail to parse config.toml. Set the cron schedule in the Supabase dashboard.
-# Both functions are served locally (so the "Run now" admin buttons work) and
-# callable with an admin JWT from the WorkflowPanel (Q6.6).
-[functions.gmail-listener]
-verify_jwt = false
-static_files = [
-  "./functions/_shared/email-templates/*.html",
-  "./functions/_shared/email-templates/fragments/*.html",
-  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
-]
-
+# Callable with an admin JWT from the WorkflowPanel (Q6.6).
 [functions.sd-refund-cron]
 verify_jwt = false
 static_files = [
@@ -260,8 +404,44 @@ verify_jwt = false
 
 [functions.app-settings]
 verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.settings-verification]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.super-admin-verification]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
 
 [functions.dashboard-stats]
+verify_jwt = false
+
+[functions.analytics-summary]
+verify_jwt = false
+
+[functions.analytics-org-summary]
+verify_jwt = false
+
+[functions.analytics-ai-review]
+verify_jwt = false
+
+[functions.analytics-ai-review-cron]
+verify_jwt = false
+
+[functions.property-page-view]
+verify_jwt = false
+
+[functions.property-page-views-prune-cron]
 verify_jwt = false
 
 [functions.finance-summary]
@@ -288,11 +468,840 @@ verify_jwt = false
 [functions.telegram-maintenance-settings]
 verify_jwt = false
 
+[functions.telegram-chat-settings]
+verify_jwt = false
+
+[functions.telegram-global-settings]
+verify_jwt = false
+
 [functions.upload-app-settings-asset]
 verify_jwt = false
 
+[functions.org-settings]
+verify_jwt = false
+
+[functions.upload-org-settings-asset]
+verify_jwt = false
+
+[functions.upload-property-media]
+verify_jwt = false
+
+[functions.import-parse-file]
+verify_jwt = false
+
+[functions.import-ai-map-columns]
+verify_jwt = false
+
+[functions.upload-development-media]
+verify_jwt = false
+
+[functions.create-organization]
+verify_jwt = false
+
+[functions.upload-org-verification-asset]
+verify_jwt = false
+
+[functions.submit-org-verification]
+verify_jwt = false
+
+[functions.list-org-verifications]
+verify_jwt = false
+
+[functions.list-super-admin-approvals]
+verify_jwt = false
+
+[functions.super-admin-overview]
+verify_jwt = false
+
+[functions.list-organizations-admin]
+verify_jwt = false
+
+[functions.get-organization-admin]
+verify_jwt = false
+
+[functions.super-admin-ai-usage]
+verify_jwt = false
+
+[functions.super-admin-rate-limits]
+verify_jwt = false
+
+[functions.list-super-admin-audit]
+verify_jwt = false
+
+[functions.list-activity-log]
+verify_jwt = false
+
+[functions.activity-log-export]
+verify_jwt = false
+
+[functions.activity-log-retention-cron]
+verify_jwt = false
+
+[functions.platform-settings]
+verify_jwt = false
+
+[functions.feature-availability]
+verify_jwt = false
+
+[functions.get-feature-availability]
+verify_jwt = false
+
+[functions.super-admin-search]
+verify_jwt = false
+
+[functions.moderate-external-review]
+verify_jwt = false
+
+[functions.get-external-review-assets]
+verify_jwt = false
+
+[functions.get-org-verification-assets]
+verify_jwt = false
+
+[functions.approve-org-verification]
+verify_jwt = false
+
+[functions.reject-org-verification]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.contract-expiry-cron]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+# Cloud-only schedule (Manila ~09:00 → 01:00 UTC):
+# schedule = "0 1 * * *"   ← set via pg_cron snippet, NOT here
+
+[functions.get-org-superhost-progress]
+verify_jwt = false
+
+[functions.reassess-org-superhost]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.superhost-assessment-cron]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+# Cloud-only schedule — see supabase/snippets/superhost-assessment-cron.sql
+
+[functions.upload-listing-authorization-asset]
+verify_jwt = false
+
+[functions.submit-listing-authorization]
+verify_jwt = false
+
+[functions.submit-listing-recommended]
+verify_jwt = false
+
+[functions.get-listing-authorization-assets]
+verify_jwt = false
+
+[functions.approve-listing-authorization]
+verify_jwt = false
+
+[functions.approve-listing-recommended]
+verify_jwt = false
+
+[functions.reject-listing-authorization]
+verify_jwt = false
+
+[functions.list-org-listing-verifications]
+verify_jwt = false
+
+[functions.submit-contract-consideration]
+verify_jwt = false
+
+[functions.decide-contract-consideration]
+verify_jwt = false
+
+[functions.list-organizations]
+verify_jwt = false
+
+[functions.update-organization]
+verify_jwt = false
+
+[functions.setup-guide-state]
+verify_jwt = false
+
+[functions.get-host-reward-offer]
+verify_jwt = false
+
+[functions.check-organization-name]
+verify_jwt = false
+
+[functions.check-property-name]
+verify_jwt = false
+
+[functions.check-tower-unit]
+verify_jwt = false
+
+[functions.delete-organization]
+verify_jwt = false
+
+[functions.create-property]
+verify_jwt = false
+
+[functions.list-properties]
+verify_jwt = false
+
+[functions.update-property]
+verify_jwt = false
+
+[functions.copy-property-settings]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.delete-property]
+verify_jwt = false
+
+[functions.create-parking]
+verify_jwt = false
+
+[functions.list-parkings]
+verify_jwt = false
+
+[functions.update-parking]
+verify_jwt = false
+
+[functions.delete-parking]
+verify_jwt = false
+
+[functions.parking-settings]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.upload-parking-media]
+verify_jwt = false
+
+[functions.upload-parking-settings-asset]
+verify_jwt = false
+
+[functions.telegram-parking-settings]
+verify_jwt = false
+
+[functions.parking-pricing]
+verify_jwt = false
+
+[functions.get-public-parking]
+verify_jwt = false
+
+[functions.submit-parking-booking-request]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.get-parking-booking-status]
+verify_jwt = false
+
+[functions.search-suggestions]
+verify_jwt = false
+
+[functions.search-listings]
+verify_jwt = false
+
+[functions.list-public-properties]
+verify_jwt = false
+
+[functions.list-public-developments]
+verify_jwt = false
+
+[functions.list-public-parkings]
+verify_jwt = false
+
+[functions.list-public-place-groups]
+verify_jwt = false
+
+[functions.public-sitemap]
+verify_jwt = false
+
+[functions.list-public-pricing-plans]
+verify_jwt = false
+
+[functions.property-templates-settings]
+verify_jwt = false
+
+[functions.custom-pages-settings]
+verify_jwt = false
+
+[functions.public-page-configs]
+verify_jwt = false
+
+[functions.property-pricing]
+verify_jwt = false
+
+[functions.smart-pricing-settings]
+verify_jwt = false
+
+[functions.smart-pricing-preview]
+verify_jwt = false
+
+[functions.smart-pricing-apply]
+verify_jwt = false
+
+[functions.smart-pricing-cron]
+verify_jwt = false
+
+[functions.property-templates-preview]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.upload-property-template-asset]
+verify_jwt = false
+
+[functions.property-team-members]
+verify_jwt = false
+
+[functions.property-team-invitations]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.property-team-custom-roles]
+verify_jwt = false
+
+[functions.accept-property-invite]
+verify_jwt = false
+
+[functions.org-team-members]
+verify_jwt = false
+
+[functions.org-team-invitations]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.org-team-custom-roles]
+verify_jwt = false
+
+[functions.accept-org-invite]
+verify_jwt = false
+
+[functions.get-team-invite-preview]
+verify_jwt = false
+
+[functions.property-access]
+verify_jwt = false
+
+[functions.parking-team-members]
+verify_jwt = false
+
+[functions.parking-team-invitations]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.parking-team-custom-roles]
+verify_jwt = false
+
+[functions.accept-parking-invite]
+verify_jwt = false
+
+[functions.parking-access]
+verify_jwt = false
+
+[functions.org-access]
+verify_jwt = false
+
+[functions.meta-inbox-oauth-start]
+verify_jwt = false
+
+[functions.meta-inbox-oauth-callback]
+verify_jwt = false
+
+[functions.meta-inbox-oauth-pages]
+verify_jwt = false
+
+[functions.meta-inbox-oauth-complete]
+verify_jwt = false
+
+[functions.meta-inbox-disconnect]
+verify_jwt = false
+
+[functions.meta-inbox-status]
+verify_jwt = false
+
+[functions.meta-inbox-resubscribe]
+verify_jwt = false
+
+[functions.meta-inbox-backfill]
+verify_jwt = false
+
+[functions.meta-inbox-webhook]
+verify_jwt = false
+
+[functions.meta-inbox-webhook-healthcheck]
+verify_jwt = false
+
+[functions.social-inbox-threads]
+verify_jwt = false
+
+[functions.social-inbox-messages]
+verify_jwt = false
+
+[functions.social-inbox-send]
+verify_jwt = false
+
+[functions.social-inbox-templates]
+verify_jwt = false
+
+[functions.social-inbox-ai-suggest]
+verify_jwt = false
+
+[functions.social-inbox-settings]
+verify_jwt = false
+
+[functions.guest-web-chat-start]
+verify_jwt = false
+
+[functions.guest-web-chat-resume]
+verify_jwt = false
+
+[functions.guest-web-chat-messages]
+verify_jwt = false
+
+
+[functions.voice-receptionist-start]
+verify_jwt = false
+
+[functions.voice-receptionist-tool]
+verify_jwt = false
+
+[functions.voice-receptionist-end]
+verify_jwt = false
+
+[functions.voice-receptionist-session]
+verify_jwt = false
+
+[functions.voice-receptionist-reaper]
+verify_jwt = false
+
+[functions.voice-receptionist-canary]
+verify_jwt = false
+
+[functions.voice-receptionist-settings]
+verify_jwt = false
+
+[functions.voice-receptionist-usage]
+verify_jwt = false
+
+[functions.voice-receptionist-voice-preview]
+verify_jwt = false
+
+[functions.guest-profile]
+verify_jwt = false
+
+[functions.guest-trips]
+verify_jwt = false
+
+[functions.get-guest-trip]
+verify_jwt = false
+
+[functions.list-guest-vouchers]
+verify_jwt = false
+
+[functions.guest-messages]
+verify_jwt = false
+
+[functions.upload-guest-profile-asset]
+verify_jwt = false
+
+[functions.upload-guest-chat-asset]
+verify_jwt = false
+
+[functions.upload-inbox-chat-asset]
+verify_jwt = false
+
+[functions.marketing-templates]
+verify_jwt = false
+
+[functions.marketing-themes]
+verify_jwt = false
+
+[functions.list-property-guest-reviews]
+verify_jwt = false
+
+[functions.publish-to-meta]
+verify_jwt = false
+
+[functions.generate-marketing-caption]
+verify_jwt = false
+
+[functions.generate-marketing-template]
+verify_jwt = false
+
+[functions.generate-marketing-media]
+verify_jwt = false
+
+[functions.get-marketing-generation-job]
+verify_jwt = false
+
+[functions.marketing-generations]
+verify_jwt = false
+
+[functions.upload-marketing-generation-reference]
+verify_jwt = false
+
+[functions.upload-marketing-asset]
+verify_jwt = false
+
+[functions.marketing-generation-sweeper]
+verify_jwt = false
+
+[functions.marketing-music]
+verify_jwt = false
+
+[functions.list-developments]
+verify_jwt = false
+
+[functions.get-development]
+verify_jwt = false
+
+[functions.create-development]
+verify_jwt = false
+
+[functions.update-development]
+verify_jwt = false
+
+[functions.delete-development]
+verify_jwt = false
+
+[functions.list-host-announcements]
+verify_jwt = false
+
+[functions.get-platform-host-settings]
+verify_jwt = false
+
+[functions.update-platform-host-settings]
+verify_jwt = false
+
+[functions.list-hosts]
+verify_jwt = false
+
+[functions.get-host]
+verify_jwt = false
+
+[functions.list-host-organizations]
+verify_jwt = false
+
+[functions.list-host-properties]
+verify_jwt = false
+
+[functions.list-platform-properties]
+verify_jwt = false
+
+[functions.import-save-mapping]
+verify_jwt = false
+
+[functions.import-cancel]
+verify_jwt = false
+
+[functions.import-list-batches]
+verify_jwt = false
+
+[functions.import-preview]
+verify_jwt = false
+
+[functions.import-commit]
+verify_jwt = false
+
+[functions.import-revert]
+verify_jwt = false
+
+[functions.import-update-row]
+verify_jwt = false
+
+[functions.ai-platform-global-settings]
+verify_jwt = false
+
+[functions.ai-platform-settings]
+verify_jwt = false
+
+[functions.ai-platform-usage]
+verify_jwt = false
+
+[functions.ai-platform-property-settings]
+verify_jwt = false
+
+[functions.ai-platform-generation-overrides]
+verify_jwt = false
+
+[functions.ai-platform-credit-wallet]
+verify_jwt = false
+
+[functions.super-admin-ai-limits]
+verify_jwt = false
+
+[functions.pricing-plans]
+verify_jwt = false
+
+[functions.org-subscriptions-admin]
+verify_jwt = false
+
+[functions.org-plan]
+verify_jwt = false
+
+[functions.property-entitlements]
+verify_jwt = false
+
+[functions.create-org-subscription-checkout]
+verify_jwt = false
+
+[functions.apply-org-plan-downgrade]
+verify_jwt = false
+
+[functions.paymongo-webhook]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.create-parking-payment-checkout]
+verify_jwt = false
+
+[functions.cancel-parking-booking]
+verify_jwt = false
+
+[functions.list-linkable-property-bookings]
+verify_jwt = false
+
+[functions.get-linked-parking-booking]
+verify_jwt = false
+
+[functions.resolve-owner-default-parking]
+verify_jwt = false
+
+[functions.request-parking-endorsement]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.platform-parking-settings]
+verify_jwt = false
+
+[functions.parking-payouts]
+verify_jwt = false
+
+[functions.platform-payment-settings]
+verify_jwt = false
+
+[functions.platform-billing-cron]
+verify_jwt = false
+
+[functions.dashboard-assistant-settings]
+verify_jwt = false
+
+[functions.dashboard-assistant-global-settings]
+verify_jwt = false
+
+[functions.get-booking]
+verify_jwt = false
+
+[functions.dashboard-assistant-chat]
+verify_jwt = false
+
+[functions.dashboard-assistant-confirm]
+verify_jwt = false
+
+[functions.dashboard-assistant-conversations]
+verify_jwt = false
+
+[functions.user-ui-preferences]
+verify_jwt = false
+
+[functions.dashboard-assistant-feedback]
+verify_jwt = false
+
+[functions.dashboard-assistant-briefing]
+verify_jwt = false
+
+[functions.get-booking-ai-assistant-audit]
+verify_jwt = false
+
+[functions.dashboard-assistant-expire-pending-actions]
+verify_jwt = false
+
+[functions.query-cache-sweep-cron]
+verify_jwt = false
+
+[functions.notifications-list]
+verify_jwt = false
+
+[functions.notifications-mark-read]
+verify_jwt = false
+
+# Web Push (PWA). subscribe/unsubscribe do their own auth (serveAuthenticated);
+# push-fanout is secret-gated (X-Push-Fanout-Secret) and called by the
+# notifications AFTER INSERT trigger via pg_net.
+[functions.push-subscribe]
+verify_jwt = false
+
+[functions.push-unsubscribe]
+verify_jwt = false
+
+[functions.push-fanout]
+verify_jwt = false
+
+[functions.list-help-center-articles]
+verify_jwt = false
+
+[functions.list-help-center-faqs]
+verify_jwt = false
+
+[functions.submit-support-ticket]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.upload-support-ticket-attachment]
+verify_jwt = false
+
+[functions.list-support-tickets]
+verify_jwt = false
+
+[functions.get-support-ticket]
+verify_jwt = false
+
+[functions.reply-support-ticket]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.reopen-support-ticket]
+verify_jwt = false
+
+[functions.list-support-tickets-admin]
+verify_jwt = false
+
+[functions.get-support-ticket-admin]
+verify_jwt = false
+
+[functions.reply-support-ticket-admin]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.update-support-ticket-status]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.list-help-center-faqs-admin]
+verify_jwt = false
+
+[functions.create-help-center-faq]
+verify_jwt = false
+
+[functions.update-help-center-faq]
+verify_jwt = false
+
+[functions.delete-help-center-faq]
+verify_jwt = false
+
+[functions.list-host-playbook-articles-admin]
+verify_jwt = false
+
+[functions.create-host-playbook-article]
+verify_jwt = false
+
+[functions.update-host-playbook-article]
+verify_jwt = false
+
+[functions.delete-host-playbook-article]
+verify_jwt = false
+
 # ── kept for reference (cloud schedule lines, never uncomment locally) ─────────
-# [functions.gmail-listener] schedule = "*/5 * * * *"
 # [functions.sd-refund-cron] schedule = "*/5 * * * *"
 # schedule = "*/5 * * * *"
 # [functions.telegram-marketing-cron] Manila 10:00 / 15:00 / 21:00 → UTC cron: 0 2,7,13 * * *
+# [functions.query-cache-sweep-cron] Manila 10:17 → UTC cron: 17 2 * * * (see migration
+#   20261316121700_query_cache_table.sql#sync_query_cache_sweep_cron_job)
+
+[functions.guest-web-chat-feedback]
+verify_jwt = false
+
+[functions.get-guest-reputation]
+verify_jwt = false
+
+[functions.submit-host-guest-review]
+verify_jwt = false
+
+[functions.review-lifecycle-cron]
+verify_jwt = false
+
+[functions.list-property-reviews]
+verify_jwt = false
+
+[functions.list-org-reviews]
+verify_jwt = false
+
+[functions.review-automation-settings]
+verify_jwt = false
+
+[functions.draft-review-with-ai]
+verify_jwt = false
+
+[functions.respond-to-guest-review]
+verify_jwt = false
+
+[functions.report-review]
+verify_jwt = false
+
+[functions.list-my-reviews]
+verify_jwt = false
+
+[functions.respond-to-host-review]
+verify_jwt = false
+
+[functions.moderate-review-report]
+verify_jwt = false
+
+[functions.marketing-ai-sessions]
+verify_jwt = false
+
+[functions.super-admin-system-health]
+verify_jwt = false
+
+[functions.resolve-booking-property]
+verify_jwt = false
+
+[functions.chat-templates]
+verify_jwt = false

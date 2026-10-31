@@ -1,0 +1,958 @@
+/**
+ * generate-marketing-media — prompt + reference assets in, a finished AI image or
+ * video out.
+ *
+ * Images run INLINE on the POST, exactly like generate-marketing-template: they
+ * complete in 5-15s, comfortably inside the edge timeout, and the repo deliberately
+ * avoids EdgeRuntime.waitUntil (local `functions serve` drops background work,
+ * leaving rows stuck at `processing`).
+ *
+ * Video cannot run inline (Veo takes 11s-6min), so it submits to Veo's
+ * `:predictLongRunning` and returns immediately with a `processing` row — the client
+ * polls `get-marketing-generation-job`, and a `pg_cron` sweeper (`marketing-generation-
+ * sweeper`) finalizes it even if the tab closes. See the Phase 2 plan §4.
+ *
+ * Both branches return `{ job }` in one shape so the client always just hands the row
+ * to the poller.
+ *
+ * Gate order (mirrors generate-marketing-template, extended):
+ *   property scope → team permission + plan feature (differs by media type) → rate
+ *   limit → option validation → assertOrgAndPropertyAiQuota →
+ *   assertMarketingGenerationBudget → insert job → generate
+ */
+
+import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { HOST_FACING_GENERATION_FAILED, toHostFacingError } from '../_shared/hostFacingError.ts';
+import {
+  isAiFeatureDisabledError,
+  isAiPlatformDisabledError,
+  isAiQuotaError,
+  assertOrgAndPropertyAiQuota,
+  recordAiUsage,
+} from '../_shared/aiUsageService.ts';
+import { createServiceClient, requirePropertyPermissionAndFeature } from '../_shared/orgAuth.ts';
+import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { rateLimitGate } from '../_shared/rateLimit.ts';
+import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
+import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import {
+  MAX_IMAGE_PROMPT_CHARS,
+  MAX_NEGATIVE_PROMPT_CHARS,
+  MAX_VIDEO_PROMPT_CHARS,
+  assertValidImageOptions,
+  assertValidVideoOptions,
+  estimateGenerationCostUsd,
+  estimateGenerationCredits,
+  isGenerationOptionError,
+} from '../_shared/marketingGenerationPricing.ts';
+import {
+  assertMarketingGenerationBudget,
+  isGenerationConcurrencyError,
+} from '../_shared/marketingGenerationBudget.ts';
+import {
+  claimMarketingGenerationJobBilling,
+  completeMarketingGenerationJob,
+  failMarketingGenerationJob,
+  insertMarketingGenerationJob,
+  recordMarketingGenerationJobUsage,
+  toMarketingGenerationJobDto,
+  touchGenerationReferences,
+} from '../_shared/marketingGenerationJobs.ts';
+import {
+  GenerationOutputError,
+  generateMarketingImage,
+  isGenerationSafetyError,
+  loadReferenceInlineData,
+  type ReferenceInlineData,
+} from '../_shared/marketingImageGenerationAi.ts';
+import {
+  amenitiesFromPropertySettings,
+  buildImageEditPrompt,
+  buildStructuredImagePrompt,
+  enhanceMarketingImagePrompt,
+  type MarketingImagePropertyContext,
+} from '../_shared/marketingImagePromptBuilder.ts';
+import { startMarketingVideoJob } from '../_shared/marketingVideoGenerationAi.ts';
+import {
+  DEFAULT_VIDEO_CAMERA_MOVE,
+  DEFAULT_VIDEO_SOUND,
+  VIDEO_PHOTO_DEFAULT_PROMPT,
+  buildStructuredVideoPrompt,
+  buildVideoNegativePrompt,
+  enhanceMarketingVideoPrompt,
+  isVideoCameraMove,
+  isVideoSoundMode,
+} from '../_shared/marketingVideoPromptBuilder.ts';
+import {
+  allowPremiumForFeature,
+  peekMarketingGenerationOverrides,
+  MARKETING_IMAGE_GENERATE_FEATURE,
+  MARKETING_VIDEO_GENERATE_FEATURE,
+} from '../_shared/marketingGenerationFeatureConfig.ts';
+import {
+  extensionForVisualMime,
+  isDegenerateGeneratedImage,
+  marketingGenerationStoragePath,
+  uploadGenerationBytes,
+} from '../_shared/marketingGenerationStorage.ts';
+import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.ts';
+import { isMarketingThemeKey } from '../_shared/marketingTheme.ts';
+import { isUuid } from '../_shared/marketingTemplateLibrary.ts';
+import { refineParentError, sessionTitleFromPrompt } from '../_shared/marketingAiSessions.ts';
+
+const MAX_REFERENCE_IDS = 14;
+/** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
+const VIDEO_JOB_TTL_MS = 45 * 60_000;
+/** Formats Veo accepts for the first frame. */
+const VIDEO_START_FRAME_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+type ReferenceRow = { id: string; storage_path: string; public_url: string; mime_type: string };
+
+/**
+ * Where this version goes in AI Studio. `sessionId` is the existing conversation (null:
+ * a new one is created right before the job row, so a request rejected earlier leaves
+ * no empty conversation behind).
+ */
+type SessionPlan = {
+  sessionId: string | null;
+  parentJobId: string | null;
+  title: string;
+  themeKey: string | null;
+};
+
+serveAuthenticated('generate-marketing-media', async (req) => {
+  if (req.method !== 'POST') {
+    return jsonError(req, 'Method not allowed', 405);
+  }
+
+  const body = await readJsonBody(req);
+  const mediaType = body.mediaType === 'video' ? 'video' : 'image';
+  const isVideo = mediaType === 'video';
+
+  const permission = isVideo ? 'marketing.generate.video:add' : 'marketing.generate.image:add';
+  const planFeature = isVideo ? 'aiMarketingVideoGeneration' : 'aiMarketingImageGeneration';
+  const feature = isVideo ? 'marketing_video_generate' : 'marketing_image_generate';
+
+  let propertyId: string;
+  let organizationId: string;
+  let actorUserId: string;
+  let actorEmail: string;
+  let accessKind: string;
+  try {
+    const scoped = await resolveScopedPropertyAccess(req, permission);
+    propertyId = scoped.property.id;
+    organizationId = String(scoped.property.organization_id);
+    const access = await requirePropertyPermissionAndFeature(
+      req,
+      propertyId,
+      permission,
+      planFeature
+    );
+    actorUserId = access.user.id;
+    actorEmail = access.user.email;
+    accessKind = access.accessKind;
+  } catch (err) {
+    if (err instanceof Response) return err;
+    throw err;
+  }
+
+  const featureBlocked = await featureUnavailableResponse(req, 'marketing.ai_studio.generate', {
+    user: { id: actorUserId, email: actorEmail },
+  });
+  if (featureBlocked) return featureBlocked;
+
+  const limited = await rateLimitGate(req, {
+    scope: isVideo ? 'marketing-generation-video' : 'marketing-generation-image',
+    identity: actorUserId,
+    limit: isVideo ? 5 : 20,
+    windowSec: 300,
+  });
+  if (limited) return limited;
+
+  const maxPromptChars = isVideo ? MAX_VIDEO_PROMPT_CHARS : MAX_IMAGE_PROMPT_CHARS;
+  const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+  const hasReferenceIds = Array.isArray(body.referenceIds) && body.referenceIds.length > 0;
+  // A video that starts from a photo may leave the description empty.
+  if (!prompt && !(isVideo && hasReferenceIds)) {
+    return jsonError(req, 'Prompt is required', 400);
+  }
+  if (prompt.length > maxPromptChars) {
+    return jsonError(req, 'Prompt is too long', 400);
+  }
+
+  const negativePrompt =
+    typeof body.negativePrompt === 'string' && body.negativePrompt.trim()
+      ? body.negativePrompt.trim().slice(0, MAX_NEGATIVE_PROMPT_CHARS)
+      : null;
+
+  const referenceIds = Array.isArray(body.referenceIds)
+    ? body.referenceIds
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .slice(0, MAX_REFERENCE_IDS)
+    : [];
+
+  const sb = createServiceClient();
+
+  let references: ReferenceRow[] = [];
+  if (referenceIds.length > 0) {
+    const { data, error } = await sb
+      .from('marketing_generation_references')
+      .select('id, property_id, storage_path, public_url, mime_type, media_type')
+      .in('id', referenceIds);
+    if (error) return jsonError(req, error.message, 500);
+
+    const rows = data ?? [];
+    if (rows.length !== referenceIds.length) {
+      return jsonError(req, 'One or more reference files could not be found', 400);
+    }
+    if (rows.some((row) => row.property_id !== propertyId)) {
+      return jsonError(req, 'Reference does not belong to this property', 403);
+    }
+    // Veo's referenceImages (video) and Gemini's inline references (image) are both
+    // still-image guidance — neither branch accepts a video clip as a reference.
+    if (rows.some((row) => row.media_type !== 'image')) {
+      return jsonError(req, 'Only image references are supported', 400);
+    }
+    references = rows as ReferenceRow[];
+  }
+
+  const planned = await planGenerationSession(sb, {
+    body,
+    propertyId,
+    mediaType,
+    prompt,
+  });
+  if (typeof planned === 'string') return jsonError(req, planned, 400);
+  const { plan, parentReference } = planned;
+  // Refining a photo: the current version is the first reference, so the model edits
+  // it instead of starting over. Refining a clip without a new photo: same start photo.
+  if (parentReference && !(isVideo && references.length > 0)) {
+    references = [
+      parentReference,
+      ...references.filter((row) => row.storage_path !== parentReference.storage_path),
+    ];
+  }
+
+  if (isVideo) {
+    return handleVideoGeneration(req, {
+      sb,
+      organizationId,
+      propertyId,
+      actorUserId,
+      actorEmail,
+      accessKind,
+      prompt,
+      negativePrompt,
+      references,
+      body,
+      feature,
+      plan,
+    });
+  }
+
+  return handleImageGeneration(req, {
+    sb,
+    organizationId,
+    propertyId,
+    actorUserId,
+    actorEmail,
+    accessKind,
+    prompt,
+    negativePrompt,
+    references,
+    body,
+    feature,
+    plan,
+  });
+});
+
+type GenerationRequestContext = {
+  sb: ReturnType<typeof createServiceClient>;
+  organizationId: string;
+  propertyId: string;
+  actorUserId: string;
+  actorEmail: string;
+  accessKind: string;
+  prompt: string;
+  negativePrompt: string | null;
+  references: ReferenceRow[];
+  body: Record<string, unknown>;
+  feature: 'marketing_image_generate' | 'marketing_video_generate';
+  plan: SessionPlan;
+};
+
+async function handleImageGeneration(req: Request, ctx: GenerationRequestContext) {
+  const {
+    sb,
+    organizationId,
+    propertyId,
+    actorUserId,
+    actorEmail,
+    accessKind,
+    prompt,
+    negativePrompt,
+    references,
+    body,
+    plan,
+  } = ctx;
+
+  let options: ReturnType<typeof assertValidImageOptions>;
+  try {
+    options = assertValidImageOptions({
+      tier: typeof body.qualityTier === 'string' ? body.qualityTier : undefined,
+      aspectRatio: typeof body.aspectRatio === 'string' ? body.aspectRatio : undefined,
+      imageSize: typeof body.imageSize === 'string' ? body.imageSize : undefined,
+      referenceCount: references.length,
+    });
+  } catch (err) {
+    if (isGenerationOptionError(err)) return jsonError(req, err.message, 400);
+    throw err;
+  }
+
+  const premiumBlocked = await rejectPremiumIfDisabled(
+    req,
+    propertyId,
+    MARKETING_IMAGE_GENERATE_FEATURE,
+    options.tier
+  );
+  if (premiumBlocked) return premiumBlocked;
+
+  const estimatedCredits = estimateGenerationCredits({
+    mediaType: 'image',
+    tier: options.tier,
+    imageSize: options.imageSize,
+  });
+
+  const budgetError = await checkQuotaAndBudget(req, {
+    organizationId,
+    propertyId,
+    feature: 'marketing_image_generate',
+    estimatedCredits,
+  });
+  if (budgetError) return budgetError;
+
+  // Decision 1 (quality-hardening plan): enhancement is on by default, with a
+  // per-generation opt-out — `enhancePrompt: false` in the request body sends the
+  // host's own wording (still platform-framed by buildStructuredImagePrompt) verbatim.
+  const enhancementRequested = body.enhancePrompt !== false;
+  const propertyContext = await loadPropertyContextForPrompt(sb, propertyId);
+
+  const enhancement = plan.parentJobId
+    ? {
+        prompt: buildImageEditPrompt({ instruction: prompt, aspectRatio: options.aspectRatio }),
+        enhanced: false,
+      }
+    : enhancementRequested
+      ? await enhanceMarketingImagePrompt({
+          organizationId,
+          propertyId,
+          prompt,
+          aspectRatio: options.aspectRatio,
+          property: propertyContext,
+          hasReferenceImages: references.length > 0,
+          actorUserId,
+        })
+      : {
+          prompt: buildStructuredImagePrompt({
+            prompt,
+            aspectRatio: options.aspectRatio,
+            property: propertyContext,
+          }),
+          enhanced: false,
+        };
+
+  const sessionId = await ensureGenerationSession(sb, plan, {
+    organizationId,
+    propertyId,
+    output: 'image',
+    actorUserId,
+  });
+  const job = await insertMarketingGenerationJob(sb, {
+    organizationId,
+    propertyId,
+    sessionId,
+    parentJobId: plan.parentJobId,
+    mediaType: 'image',
+    prompt,
+    negativePrompt,
+    // Only populated when enhancement actually ran and succeeded — a null here is
+    // the "off, skipped, or failed open" signal the migration comment describes.
+    // The prompt actually sent to the model (enhancement.prompt) is used below
+    // regardless; this column is for host-facing transparency, not generation.
+    enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
+    promptEnhanced: enhancement.enhanced,
+    model: options.config.model,
+    qualityTier: options.tier,
+    aspectRatio: options.aspectRatio,
+    imageSize: options.imageSize,
+    referencePaths: references.map((reference) => reference.storage_path),
+    referenceUrls: references.map((reference) => reference.public_url),
+    estimatedCredits,
+    estimatedCostUsd: 0,
+    triggeredBy: actorUserId,
+  });
+  const jobId = String(job.id);
+
+  try {
+    const inlineReferences = await loadReferenceInlineData(sb, references);
+    const generated = await generateMarketingImage({
+      config: options.config,
+      prompt: enhancement.prompt,
+      negativePrompt,
+      aspectRatio: options.aspectRatio,
+      imageSize: options.imageSize,
+      references: inlineReferences,
+    });
+
+    const dimensions =
+      generated.width && generated.height
+        ? { width: generated.width, height: generated.height }
+        : null;
+    const degenerate = await isDegenerateGeneratedImage({
+      bytes: generated.bytes,
+      dimensions,
+      requestedAspectRatio: options.aspectRatio,
+    });
+    if (degenerate.degenerate) {
+      throw new GenerationOutputError(degenerate.reason);
+    }
+
+    const storagePath = marketingGenerationStoragePath(
+      propertyId,
+      jobId,
+      extensionForVisualMime(generated.mimeType)
+    );
+    const outputUrl = await uploadGenerationBytes(
+      sb,
+      storagePath,
+      generated.bytes,
+      generated.mimeType
+    );
+
+    const completed = await completeMarketingGenerationJob(sb, jobId, 'pending', {
+      outputStoragePath: storagePath,
+      outputUrl,
+      outputMimeType: generated.mimeType,
+      outputBytes: generated.bytes.byteLength,
+      outputWidth: generated.width,
+      outputHeight: generated.height,
+      estimatedCostUsd: generated.estimatedCostUsd,
+    });
+    if (!completed) {
+      return jsonError(req, 'Generation could not be saved', 500);
+    }
+
+    // Claim billing before calling recordAiUsage, not after — the sweeper's billing-
+    // repair pass covers image jobs too, and without this claim a crash between
+    // recordAiUsage succeeding and the stamp below would look like "never billed" and
+    // get double-billed on repair. See claimMarketingGenerationJobBilling's doc comment.
+    let creditsConsumed = 0;
+    if (await claimMarketingGenerationJobBilling(sb, jobId)) {
+      const usage = await recordAiUsage({
+        organizationId,
+        propertyId,
+        feature: 'marketing_image_generate',
+        provider: 'gemini',
+        model: generated.model,
+        inputTokens: generated.inputTokens,
+        outputTokens: generated.outputTokens,
+        estimatedCostUsd: generated.estimatedCostUsd,
+        actorUserId,
+        actorType: 'staff',
+      });
+      creditsConsumed = usage.creditsConsumed;
+      await recordMarketingGenerationJobUsage(sb, jobId, {
+        creditsConsumed: usage.creditsConsumed,
+        usageEventId: usage.usageEventId,
+      });
+    }
+
+    // Independent bookkeeping writes — run concurrently, neither depends on the other.
+    await Promise.all([
+      touchGenerationReferences(sb, references.map((reference) => reference.id).filter(Boolean)),
+      logAssetActivity({
+        req,
+        user: { id: actorUserId, email: actorEmail },
+        action: 'marketing.image_generated',
+        propertyId,
+        organizationId,
+        accessKind,
+        targetType: 'marketing_generation',
+        targetId: jobId,
+        metadata: {
+          model: generated.model,
+          quality_tier: options.tier,
+          aspect_ratio: options.aspectRatio,
+          image_size: options.imageSize,
+          reference_count: references.length,
+          credits: creditsConsumed,
+          prompt_enhanced: enhancement.enhanced,
+        },
+      }),
+    ]);
+
+    return jsonSuccess(req, {
+      job: toMarketingGenerationJobDto({
+        ...completed,
+        credits_consumed: creditsConsumed,
+      }),
+    });
+  } catch (err) {
+    console.warn('[generate-marketing-media] image generation failed:', err);
+    const safety = isGenerationSafetyError(err);
+    // Phase 4b: the provider returned 200 with unusable bytes. Not a safety block
+    // (400 would wrongly tell the host their prompt was the problem) — treated as a
+    // provider_error, same 502 as any other provider failure, and not billed: the
+    // throw happens before upload/completeMarketingGenerationJob (see the Phase 4
+    // note in the plan doc). `useMarketingGenerationApi.ts`'s `retryable` field only
+    // has meaning on a 429 response (rate limit vs. quota), so it is not set here —
+    // the job card's existing Retry action already covers "try again" for any 502.
+    const errorCode = safety
+      ? 'safety_blocked'
+      : ((err as { code?: string }).code ?? 'provider_error');
+    const message = toHostFacingError(
+      (err as Error).message ?? 'Image generation failed',
+      HOST_FACING_GENERATION_FAILED
+    );
+    const failed = await failMarketingGenerationJob(sb, jobId, errorCode, message);
+
+    return jsonResponse(
+      req,
+      {
+        success: false,
+        error: message,
+        data: failed ? { job: toMarketingGenerationJobDto(failed) } : undefined,
+      },
+      safety ? 400 : 502
+    );
+  }
+}
+
+async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext) {
+  const {
+    sb,
+    organizationId,
+    propertyId,
+    actorUserId,
+    actorEmail,
+    accessKind,
+    prompt,
+    negativePrompt,
+    references,
+    body,
+    plan,
+  } = ctx;
+
+  let options: ReturnType<typeof assertValidVideoOptions>;
+  try {
+    options = assertValidVideoOptions({
+      tier: typeof body.qualityTier === 'string' ? body.qualityTier : undefined,
+      aspectRatio: typeof body.aspectRatio === 'string' ? body.aspectRatio : undefined,
+      resolution: typeof body.resolution === 'string' ? body.resolution : undefined,
+      durationSeconds: typeof body.durationSeconds === 'number' ? body.durationSeconds : undefined,
+      referenceCount: references.length,
+    });
+  } catch (err) {
+    if (isGenerationOptionError(err)) return jsonError(req, err.message, 400);
+    throw err;
+  }
+
+  const premiumBlocked = await rejectPremiumIfDisabled(
+    req,
+    propertyId,
+    MARKETING_VIDEO_GENERATE_FEATURE,
+    options.tier
+  );
+  if (premiumBlocked) return premiumBlocked;
+
+  const estimatedCredits = estimateGenerationCredits({
+    mediaType: 'video',
+    tier: options.tier,
+    resolution: options.resolution,
+    durationSeconds: options.durationSeconds,
+  });
+  const estimatedCostUsd = estimateGenerationCostUsd({
+    mediaType: 'video',
+    tier: options.tier,
+    resolution: options.resolution,
+    durationSeconds: options.durationSeconds,
+  });
+
+  const startFrameReference = references[0] ?? null;
+  if (!prompt && !startFrameReference) return jsonError(req, 'Prompt is required', 400);
+  if (startFrameReference && !VIDEO_START_FRAME_MIME_TYPES.has(startFrameReference.mime_type)) {
+    return jsonError(req, 'Use a JPEG, PNG or WebP photo', 400);
+  }
+  const cameraMove = isVideoCameraMove(body.cameraMove)
+    ? body.cameraMove
+    : DEFAULT_VIDEO_CAMERA_MOVE;
+  const sound = isVideoSoundMode(body.sound) ? body.sound : DEFAULT_VIDEO_SOUND;
+  const hostPrompt = prompt || VIDEO_PHOTO_DEFAULT_PROMPT;
+
+  const budgetError = await checkQuotaAndBudget(req, {
+    organizationId,
+    propertyId,
+    feature: 'marketing_video_generate',
+    estimatedCredits,
+  });
+  if (budgetError) return budgetError;
+
+  // Read before the job row exists so an unreadable photo is a plain 400, not a failed job.
+  let startFrame: ReferenceInlineData | null = null;
+  if (startFrameReference) {
+    try {
+      [startFrame] = await loadReferenceInlineData(sb, [startFrameReference]);
+    } catch (err) {
+      return jsonError(req, (err as Error).message, 400);
+    }
+  }
+
+  const promptInput = {
+    prompt: hostPrompt,
+    cameraMove,
+    sound,
+    aspectRatio: options.aspectRatio,
+    property: await loadPropertyContextForPrompt(sb, propertyId),
+    hasStartFrame: startFrame !== null,
+  };
+  const enhancement =
+    body.enhancePrompt !== false
+      ? await enhanceMarketingVideoPrompt({
+          ...promptInput,
+          organizationId,
+          propertyId,
+          startFrame,
+          actorUserId,
+        })
+      : { prompt: buildStructuredVideoPrompt(promptInput), enhanced: false };
+
+  // The job row is the credit hold, so re-check right before inserting it: the photo
+  // read and the rewrite above take seconds, long enough for parallel requests to pass.
+  const recheckError = await checkQuotaAndBudget(req, {
+    organizationId,
+    propertyId,
+    feature: 'marketing_video_generate',
+    estimatedCredits,
+  });
+  if (recheckError) return recheckError;
+
+  const sessionId = await ensureGenerationSession(sb, plan, {
+    organizationId,
+    propertyId,
+    output: 'video',
+    actorUserId,
+  });
+  const job = await insertMarketingGenerationJob(sb, {
+    organizationId,
+    propertyId,
+    sessionId,
+    parentJobId: plan.parentJobId,
+    mediaType: 'video',
+    prompt: hostPrompt,
+    negativePrompt,
+    enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
+    promptEnhanced: enhancement.enhanced,
+    generationOptions: { cameraMove, sound },
+    model: options.config.model,
+    qualityTier: options.tier,
+    aspectRatio: options.aspectRatio,
+    resolution: options.resolution,
+    durationSeconds: options.durationSeconds,
+    referencePaths: references.map((reference) => reference.storage_path),
+    referenceUrls: references.map((reference) => reference.public_url),
+    estimatedCredits,
+    estimatedCostUsd,
+    expiresAt: new Date(Date.now() + VIDEO_JOB_TTL_MS).toISOString(),
+    triggeredBy: actorUserId,
+  });
+  const jobId = String(job.id);
+
+  try {
+    const processing = await startMarketingVideoJob(sb, jobId, {
+      config: options.config,
+      prompt: enhancement.prompt,
+      negativePrompt: buildVideoNegativePrompt(negativePrompt, startFrame !== null),
+      aspectRatio: options.aspectRatio,
+      resolution: options.resolution,
+      durationSeconds: options.durationSeconds,
+      startFrame,
+    });
+
+    // Independent bookkeeping writes — run concurrently, neither depends on the other.
+    await Promise.all([
+      touchGenerationReferences(sb, references.map((reference) => reference.id).filter(Boolean)),
+      logAssetActivity({
+        req,
+        user: { id: actorUserId, email: actorEmail },
+        action: 'marketing.video_generation_started',
+        propertyId,
+        organizationId,
+        accessKind,
+        targetType: 'marketing_generation',
+        targetId: jobId,
+        metadata: {
+          model: options.config.model,
+          quality_tier: options.tier,
+          aspect_ratio: options.aspectRatio,
+          resolution: options.resolution,
+          duration_seconds: options.durationSeconds,
+          reference_count: references.length,
+          start_frame: startFrame !== null,
+          camera_move: cameraMove,
+          sound,
+          prompt_enhanced: enhancement.enhanced,
+          estimated_credits: estimatedCredits,
+        },
+      }),
+    ]);
+
+    return jsonSuccess(req, { job: toMarketingGenerationJobDto(processing) });
+  } catch (err) {
+    console.warn('[generate-marketing-media] video generation failed to start:', err);
+    const safety = isGenerationSafetyError(err);
+    const errorCode = safety
+      ? 'safety_blocked'
+      : ((err as { code?: string }).code ?? 'provider_error');
+    const message = toHostFacingError(
+      (err as Error).message ?? 'Video generation could not be started',
+      HOST_FACING_GENERATION_FAILED
+    );
+    const failed = await failMarketingGenerationJob(sb, jobId, errorCode, message);
+
+    return jsonResponse(
+      req,
+      {
+        success: false,
+        error: message,
+        data: failed ? { job: toMarketingGenerationJobDto(failed) } : undefined,
+      },
+      safety ? 400 : 502
+    );
+  }
+}
+
+/**
+ * Phase 2 (quality-hardening plan) — property context for prompt enhancement, read
+ * from the same `properties` row already scoped and permission-checked earlier in
+ * the request. Deliberately narrow: only fields useful for describing a photo
+ * (name/type/city/residence/capacity/amenity labels/brand color). Never reads guest,
+ * booking, or contact data — this context reaches an LLM prompt, so anything read
+ * here is a candidate for a future leak if the field list ever grows carelessly.
+ *
+ * Best-effort: a failure loading context must never block image generation, so this
+ * returns null on any error and the caller proceeds with whatever the host typed.
+ */
+async function loadPropertyContextForPrompt(
+  sb: ReturnType<typeof createServiceClient>,
+  propertyId: string
+): Promise<MarketingImagePropertyContext | null> {
+  try {
+    const { data, error } = await sb
+      .from('properties')
+      .select('name, type, city, residence_name, max_guests, settings')
+      .eq('id', propertyId)
+      .maybeSingle();
+    if (error || !data) return null;
+
+    const settings = (data.settings ?? {}) as Record<string, unknown>;
+    const amenities = amenitiesFromPropertySettings(settings);
+
+    // Brand color is NOT on properties.settings — it lives on the per-property
+    // app_settings row with org → env fallback, and propertyBranding.ts already
+    // resolves that chain (with its own short cache). Reuse it rather than
+    // re-deriving the fallback logic here.
+    const brandColor = await loadResolvedBrandColorByPropertyId(propertyId);
+
+    return {
+      name: String(data.name ?? ''),
+      type: (data.type as string | null) ?? null,
+      city: (data.city as string | null) ?? null,
+      residenceName: (data.residence_name as string | null) ?? null,
+      maxGuests: (data.max_guests as number | null) ?? null,
+      amenities,
+      brandColor: brandColor || null,
+    };
+  } catch (err) {
+    console.warn('[generate-marketing-media] property context load failed (non-fatal):', err);
+    return null;
+  }
+}
+
+async function checkQuotaAndBudget(
+  req: Request,
+  input: {
+    organizationId: string;
+    propertyId: string;
+    feature: 'marketing_image_generate' | 'marketing_video_generate';
+    estimatedCredits: number;
+  }
+): Promise<Response | null> {
+  try {
+    await assertOrgAndPropertyAiQuota(input.organizationId, input.propertyId, input.feature);
+    await assertMarketingGenerationBudget(input);
+  } catch (err) {
+    if (isGenerationConcurrencyError(err)) {
+      return jsonResponse(req, { success: false, error: err.message, retryable: true }, 429);
+    }
+    if (isAiQuotaError(err)) {
+      return jsonResponse(
+        req,
+        { success: false, error: (err as Error).message, upgradeHook: true },
+        429
+      );
+    }
+    if (isAiPlatformDisabledError(err) || isAiFeatureDisabledError(err)) {
+      return jsonError(req, (err as Error).message, 503);
+    }
+    throw err;
+  }
+  return null;
+}
+
+async function rejectPremiumIfDisabled(
+  req: Request,
+  propertyId: string,
+  feature: typeof MARKETING_IMAGE_GENERATE_FEATURE | typeof MARKETING_VIDEO_GENERATE_FEATURE,
+  tier: string
+): Promise<Response | null> {
+  if (tier !== 'premium') return null;
+  const overrides = await peekMarketingGenerationOverrides(propertyId);
+  if (allowPremiumForFeature(overrides, feature)) return null;
+  return jsonError(req, 'Premium quality is not enabled for this property', 403);
+}
+
+/**
+ * Validates `sessionId` / `parentJobId` before any credits are held. Returns an error
+ * message, or the plan plus the parent's image to prepend as a reference.
+ */
+async function planGenerationSession(
+  sb: ReturnType<typeof createServiceClient>,
+  input: {
+    body: Record<string, unknown>;
+    propertyId: string;
+    mediaType: 'image' | 'video';
+    prompt: string;
+  }
+): Promise<string | { plan: SessionPlan; parentReference: ReferenceRow | null }> {
+  const { body, propertyId, mediaType, prompt } = input;
+  const themeKey =
+    typeof body.themeKey === 'string' && isMarketingThemeKey(body.themeKey) ? body.themeKey : null;
+
+  let sessionId: string | null = null;
+  if (body.sessionId !== undefined && body.sessionId !== null) {
+    if (!isUuid(body.sessionId)) return 'sessionId must be a UUID';
+    sessionId = body.sessionId;
+  }
+
+  let parent: Record<string, unknown> | null = null;
+  if (body.parentJobId !== undefined && body.parentJobId !== null) {
+    if (!isUuid(body.parentJobId)) return 'parentJobId must be a UUID';
+    const { data, error } = await sb
+      .from('marketing_generation_jobs')
+      .select(
+        'id, property_id, session_id, media_type, job_status, output_storage_path, output_url, output_mime_type, reference_paths, reference_urls'
+      )
+      .eq('id', body.parentJobId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data || data.property_id !== propertyId) return 'The version to refine was not found';
+    parent = data as Record<string, unknown>;
+    sessionId ??= (parent.session_id as string | null) ?? null;
+  }
+
+  if (sessionId) {
+    const { data: session, error } = await sb
+      .from('marketing_ai_sessions')
+      .select('id, property_id, output, deleted_at')
+      .eq('id', sessionId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!session || session.property_id !== propertyId) return 'Conversation not found';
+    if (session.output !== mediaType) return 'That conversation makes a different kind of media';
+    if (session.deleted_at) return 'Restore this creation to keep working on it';
+  }
+
+  if (parent) {
+    const parentError = refineParentError(
+      {
+        session_id: parent.session_id,
+        media_type: parent.media_type,
+        job_status: parent.job_status,
+        output_storage_path: parent.output_storage_path,
+      },
+      sessionId ?? '',
+      mediaType
+    );
+    if (parentError) return parentError;
+  }
+
+  let parentReference: ReferenceRow | null = null;
+  if (parent && mediaType === 'image') {
+    parentReference = {
+      id: '',
+      storage_path: String(parent.output_storage_path),
+      public_url: String(parent.output_url ?? ''),
+      mime_type: String(parent.output_mime_type ?? 'image/png'),
+    };
+  } else if (parent && mediaType === 'video') {
+    // Same start photo as the clip being refined, when it is still in the library
+    // (references are pruned after 90 days unused; then the refinement is text-only).
+    const startPath = Array.isArray(parent.reference_paths)
+      ? (parent.reference_paths as string[])[0]
+      : undefined;
+    if (startPath) {
+      const { data } = await sb
+        .from('marketing_generation_references')
+        .select('id, storage_path, public_url, mime_type')
+        .eq('property_id', propertyId)
+        .eq('storage_path', startPath)
+        .maybeSingle();
+      if (data) parentReference = data as ReferenceRow;
+    }
+  }
+
+  return {
+    plan: {
+      sessionId,
+      parentJobId: parent ? String(parent.id) : null,
+      title: sessionTitleFromPrompt(prompt, mediaType),
+      themeKey,
+    },
+    parentReference,
+  };
+}
+
+/** The conversation for this job: the existing one (touched), or a new one. */
+async function ensureGenerationSession(
+  sb: ReturnType<typeof createServiceClient>,
+  plan: SessionPlan,
+  input: {
+    organizationId: string;
+    propertyId: string;
+    output: 'image' | 'video';
+    actorUserId: string;
+  }
+): Promise<string> {
+  if (plan.sessionId) {
+    await sb
+      .from('marketing_ai_sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', plan.sessionId);
+    return plan.sessionId;
+  }
+  const { data, error } = await sb
+    .from('marketing_ai_sessions')
+    .insert({
+      organization_id: input.organizationId,
+      property_id: input.propertyId,
+      output: input.output,
+      title: plan.title,
+      theme_key: plan.themeKey,
+      created_by: input.actorUserId,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  return String(data.id);
+}

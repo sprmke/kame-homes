@@ -1,0 +1,74 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".cursor/rules/project-context.mdc",
+    ".cursor/rules/ai-usage.mdc",
+    ".cursor/rules/documentation-maintenance.mdc",
+    ".cursor/rules/ui-minimal-copy.mdc",
+    ".cursor/rules/human-copy.mdc",
+    ".cursor/rules/superpowers-opt-in.mdc",
+    ".cursor/rules/git-commits.mdc",
+    ".cursor/rules/no-prod-deploy.mdc",
+    ".cursor/rules/markitdown-mcp.mdc",
+    ".cursor/rules/route-guides.mdc",
+    ".cursor/rules/plans-and-permissions.mdc",
+    ".cursor/rules/audit-logging.mdc",
+    ".cursor/rules/unsaved-changes.mdc",
+    ".cursor/rules/testing.mdc",
+    ".cursor/rules/mobile-native-ui.mdc",
+    ".cursor/rules/karpathy-guidelines.mdc",
+    "DESIGN.md"
+  ],
+  "skills": {
+    "paths": [".agent/skills", ".agents/skills"]
+  },
+  "mcp": {
+    "supabase": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "{env:SUPABASE_PROJECT_REF}",
+        "--read-only"
+      ],
+      "enabled": true,
+      "environment": {
+        "SUPABASE_ACCESS_TOKEN": "{env:SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "enabled": true
+    },
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    },
+    "markitdown": {
+      "type": "local",
+      "command": ["markitdown-mcp"],
+      "enabled": true
+    }
+  },
+  "permission": {
+    "edit": {
+      "*": "allow",
+      "supabase/migrations/**": "deny",
+      "**/supabase/migrations/**": "deny"
+    },
+    "bash": {
+      "*": "allow",
+      "rm -rf /": "deny",
+      "rm -rf /*": "deny",
+      "rm -rf ~": "deny",
+      "rm -rf ~/*": "deny"
+    },
+    "skill": {
+      "*": "allow"
+    }
+  }
+}

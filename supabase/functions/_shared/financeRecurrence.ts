@@ -51,7 +51,7 @@ function daysInMonth(y: number, m: number): number {
 function twiceMonthlySlots(
   primaryDay: number,
   y: number,
-  m: number,
+  m: number
 ): { first: number; second: number } {
   const dim = daysInMonth(y, m);
   const first = Math.min(primaryDay, dim);
@@ -87,18 +87,14 @@ function subtractTwiceMonthly(iso: string, primaryDay: number): string {
     nm = 12;
     ny -= 1;
   }
-  const { first: prevFirst, second: prevSecond } = twiceMonthlySlots(
-    primaryDay,
-    ny,
-    nm,
-  );
+  const { first: prevFirst, second: prevSecond } = twiceMonthlySlots(primaryDay, ny, nm);
   return formatIso(ny, nm, prevSecond > prevFirst ? prevSecond : prevFirst);
 }
 
 export function addRecurrenceInterval(
   iso: string,
   interval: RecurrenceInterval,
-  primaryDay?: number,
+  primaryDay?: number
 ): string {
   const { y, m, d } = parseIso(iso);
   const anchorDay = primaryDay ?? d;
@@ -163,7 +159,7 @@ export function addRecurrenceInterval(
 function subtractRecurrenceInterval(
   iso: string,
   interval: RecurrenceInterval,
-  primaryDay?: number,
+  primaryDay?: number
 ): string {
   const { y, m, d } = parseIso(iso);
   const anchorDay = primaryDay ?? d;
@@ -225,10 +221,7 @@ function subtractRecurrenceInterval(
   }
 }
 
-function defaultRecurrenceUntil(
-  start: string,
-  interval: RecurrenceInterval,
-): string {
+function defaultRecurrenceUntil(start: string, interval: RecurrenceInterval): string {
   const { y, m, d } = parseIso(start);
   switch (interval) {
     case 'daily':
@@ -259,7 +252,7 @@ function defaultRecurrenceUntil(
 /** Default end date for daily — 90 occurrences from start. */
 export function defaultRecurrenceUntilForInterval(
   start: string,
-  interval: RecurrenceInterval,
+  interval: RecurrenceInterval
 ): string {
   if (interval === 'daily') {
     const dates = generateRecurrenceDates(start, interval, '2099-12-31', 90);
@@ -273,7 +266,7 @@ export function generateRecurrenceDates(
   interval: RecurrenceInterval,
   until: string,
   maxCount = 500,
-  seriesPrimaryDay?: number,
+  seriesPrimaryDay?: number
 ): string[] {
   if (until < start) return [start];
   const primaryDay = seriesPrimaryDay ?? parseIso(start).d;
@@ -294,7 +287,7 @@ export function generateRecurrenceDatesBackward(
   interval: RecurrenceInterval,
   until: string,
   maxCount = 500,
-  seriesPrimaryDay?: number,
+  seriesPrimaryDay?: number
 ): string[] {
   if (until > anchor) return [];
   const primaryDay = seriesPrimaryDay ?? parseIso(anchor).d;

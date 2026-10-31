@@ -21,20 +21,5 @@ ALTER TABLE public.finance_line_items
 COMMENT ON COLUMN public.finance_line_items.recurrence_interval IS
   'daily | weekly | monthly | twice_monthly | every_2_months | quarterly | yearly; NULL for one-off lines.';
 
-ALTER TABLE public.maintenance_items
-  DROP CONSTRAINT IF EXISTS maintenance_items_recurrence_interval_check;
-
-ALTER TABLE public.maintenance_items
-  ADD CONSTRAINT maintenance_items_recurrence_interval_check
-  CHECK (
-    recurrence_interval IS NULL
-    OR recurrence_interval IN (
-      'daily',
-      'weekly',
-      'monthly',
-      'twice_monthly',
-      'every_2_months',
-      'quarterly',
-      'yearly'
-    )
-  );
+-- maintenance_items is created in 20260818120000_maintenance_module.sql; interval
+-- updates for that table run in 20260819120000 + 20260821130000.

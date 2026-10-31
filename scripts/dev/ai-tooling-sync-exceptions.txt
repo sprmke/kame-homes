@@ -1,0 +1,16 @@
+# Intentional Cursor/Claude/OpenCode AI-tooling asymmetries.
+#
+# One entry per line, format: <check-kind>:<name>  # note
+# check-kind is one of: hook, skill
+#
+# Entries here are skipped by scripts/dev/check-ai-tooling-sync.sh so
+# pre-commit does not block on known, already-tracked gaps.
+
+# NOTE (not a check exception): lint-staged uses --no-stash in .husky/pre-commit
+# because git stash fails when staged skill paths are symlinks into .agent/skills.
+#
+# OpenCode notes (documented, not exceptions):
+# - Agents use OpenCode frontmatter (mode/permission) vs Cursor/Claude tools models — content mirrored manually.
+# - MCP: root .mcp.json (Cursor/Claude) vs opencode.json local-server shape (type + command array).
+# - Hooks: Cursor hooks.json / Claude settings.json vs .opencode/plugins/gfm-ai-tooling.ts calling .claude/hooks/.
+# - Skills also auto-load from .claude/skills and .agents/skills; opencode.json skills.paths is belt-and-suspenders.

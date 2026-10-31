@@ -1,0 +1,68 @@
+---
+description: File and directory naming — bulletproof-react aligned for Vite + feature folders
+globs:
+  - 'ui/src/**/*'
+  - 'supabase/functions/**/*'
+---
+
+# Naming conventions
+
+Reference: [bulletproof-react](https://github.com/alan2207/bulletproof-react) (principles, not their Next.js layout).
+
+## Files
+
+| Kind                        | Pattern                                  | Example                                     |
+| --------------------------- | ---------------------------------------- | ------------------------------------------- |
+| React component             | `PascalCase.tsx`                         | `BookingTable.tsx`                          |
+| Page                        | `PascalCase` + `Page.tsx`                | `FinancePage.tsx`                           |
+| Hook                        | `use` + `PascalCase.ts`                  | `useBookings.ts`                            |
+| Lib / util / schema / types | `camelCase.ts`                           | `bookingStatus.ts`, `guestFormSchema.ts`    |
+| Route module                | `routes/index.tsx` or `{area}Routes.tsx` | `propertyRoutes.tsx`                        |
+| Edge function entry         | `index.ts` in kebab folder               | `supabase/functions/list-bookings/index.ts` |
+| shadcn UI primitive         | `kebab-case.tsx` (keep as generated)     | `dropdown-menu.tsx`                         |
+| Tests (when added)          | same as source + `.test.ts(x)`           | `currency.test.ts`                          |
+
+## Directories
+
+- **Features:** `kebab-case` if multi-word (`guest-form`, `pay-parking`); single word lowercase (`admin`, `org`, `finance`)
+- **Subfolders:** lowercase — `components`, `hooks`, `lib`, `pages`, `routes`, `schemas`, `types`
+- **Grouped UI:** nested folder ok — `components/property-settings/PropertySettingsFields.tsx`
+
+## Exports
+
+- **Named exports** for components and hooks (no default export for shared components)
+- **One primary component per file**; co-locate small private helpers in the same file
+
+## Do not
+
+- Mix `MyComponent.tsx` and `myComponent.tsx` for components — use **PascalCase** only
+- Add kebab-case component files (except shadcn `components/ui/`)
+- Use barrel `index.ts` re-exports across feature boundaries (hurts tree-shaking)
+
+## Migration
+
+Renames are **batch-safe** when tracked in `docs/archive/reference/naming-audit.md`. Run `./scripts/dev/check-ui-filename-conventions.sh` after renames.
+
+## ESLint (warn-only)
+
+`ui/eslint.config.js` uses `eslint-plugin-unicorn/filename-case`:
+
+| Glob                                                                | Case         |
+| ------------------------------------------------------------------- | ------------ |
+| `features/**/components/**/*.tsx`, `pages/**/*.tsx`                 | `PascalCase` |
+| `features/**/hooks/**/*.ts`                                         | `camelCase`  |
+| `features/**/lib/**`, `schemas/**`, co-located `components/**/*.ts` | `camelCase`  |
+
+**Excluded:** `routes/**`, `components/ui/**` (shadcn kebab-case).
+
+## Intentional exceptions
+
+| Pattern                         | Example                                            | Why                                               |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| Route modules                   | `routes/index.tsx`, `authRoutes.tsx`, `guards.tsx` | Composition, not components                       |
+| shadcn primitives               | `dropdown-menu.tsx`                                | Generated; do not rename                          |
+| Co-located lib in `components/` | `calendar/calendarDateUtils.ts`                    | Utils, not React — `camelCase.ts`                 |
+| Edge function folders           | `list-bookings/index.ts`                           | Kebab-case directory                              |
+| Vite entry                      | `main.tsx`, `vite-env.d.ts`                        | Framework conventions                             |
+| Shared `lib/utils.ts`           | `lib/utils.ts`                                     | shadcn `cn()` — single file at `lib/` root        |
+| Shared categorized lib          | `lib/theme/`, `lib/validation/`, …                 | See `docs/archive/reference/project-structure.md` |

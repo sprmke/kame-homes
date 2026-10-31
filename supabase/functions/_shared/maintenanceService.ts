@@ -2,7 +2,7 @@
  * Maintenance items CRUD and period summaries.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient } from './supabaseJs.ts';
 import {
   addDaysToIso,
   addRecurrenceInterval,
@@ -14,15 +14,15 @@ import {
   isRecurrenceInterval,
   type RecurrenceEditScope,
   type RecurrenceInterval,
-} from "./financeRecurrence.ts";
-import { rebuildMaterializedRecurrenceSeries } from "./recurringSeriesScheduleRebuild.ts";
+} from './financeRecurrence.ts';
+import { rebuildMaterializedRecurrenceSeries } from './recurringSeriesScheduleRebuild.ts';
 import {
   type MaintenanceTelegramReminderInput,
   normalizeMaintenanceReminderInterval,
   reminderFieldsForInsert,
   reminderFieldsForRecurringRow,
   reminderFieldsForUpdate,
-} from "./telegramMaintenance.ts";
+} from './telegramMaintenance.ts';
 
 export type MaintenanceItemRow = {
   id: string;
@@ -36,11 +36,7 @@ export type MaintenanceItemRow = {
   telegram_due_date: string | null;
   telegram_days_before: number;
   telegram_reminder_interval:
-    | "hourly"
-    | "every_2_hours"
-    | "every_4_hours"
-    | "every_12_hours"
-    | "daily_noon";
+    'hourly' | 'every_2_hours' | 'every_4_hours' | 'every_12_hours' | 'daily_noon';
   telegram_message_template: string | null;
   completed_at: string | null;
   created_by: string | null;
@@ -60,9 +56,7 @@ export type MaintenanceSummaryResult = {
   byCategory: { category: string; count: number }[];
 };
 
-function mapMaintenanceItemRow(
-  row: Record<string, unknown>,
-): MaintenanceItemRow {
+function mapMaintenanceItemRow(row: Record<string, unknown>): MaintenanceItemRow {
   const interval = row.recurrence_interval;
   return {
     id: String(row.id),
@@ -70,17 +64,13 @@ function mapMaintenanceItemRow(
     category: row.category ? String(row.category) : null,
     scheduled_on: String(row.scheduled_on).slice(0, 10),
     notes: row.notes ? String(row.notes) : null,
-    recurrence_series_id: row.recurrence_series_id
-      ? String(row.recurrence_series_id)
-      : null,
+    recurrence_series_id: row.recurrence_series_id ? String(row.recurrence_series_id) : null,
     recurrence_interval: isRecurrenceInterval(interval) ? interval : null,
     telegram_reminder_enabled: Boolean(row.telegram_reminder_enabled),
-    telegram_due_date: row.telegram_due_date
-      ? String(row.telegram_due_date).slice(0, 10)
-      : null,
+    telegram_due_date: row.telegram_due_date ? String(row.telegram_due_date).slice(0, 10) : null,
     telegram_days_before: Number(row.telegram_days_before ?? 3),
     telegram_reminder_interval: normalizeMaintenanceReminderInterval(
-      row.telegram_reminder_interval,
+      row.telegram_reminder_interval
     ),
     telegram_message_template: row.telegram_message_template
       ? String(row.telegram_message_template)
@@ -94,26 +84,36 @@ function mapMaintenanceItemRow(
 
 function getSupabase() {
   return createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 }
 
-function filterMaintenanceItems(
-  items: MaintenanceItemRow[],
-  q?: string,
-): MaintenanceItemRow[] {
-  const needle = q?.trim().toLowerCase() ?? "";
+export async function getMaintenanceItem(id: string): Promise<MaintenanceItemRow | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('maintenance_items')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`fetch maintenance_item failed: ${error.message}`);
+  if (!data) return null;
+  return mapMaintenanceItemRow(data as Record<string, unknown>);
+}
+
+function filterMaintenanceItems(items: MaintenanceItemRow[], q?: string): MaintenanceItemRow[] {
+  const needle = q?.trim().toLowerCase() ?? '';
   if (!needle) return items;
   return items.filter((item) => {
     const hay = [item.label, item.category, item.notes]
-      .map((v) => String(v ?? "").toLowerCase())
-      .join(" ");
+      .map((v) => String(v ?? '').toLowerCase())
+      .join(' ');
     return hay.includes(needle);
   });
 }
 
 export async function listMaintenanceItems(params: {
+  propertyId?: string;
   from: string | null;
   to: string | null;
   q?: string;
@@ -121,31 +121,36 @@ export async function listMaintenanceItems(params: {
   includeDueInRange?: boolean;
 }): Promise<MaintenanceItemRow[]> {
   const supabase = getSupabase();
-  let query = supabase
-    .from("maintenance_items")
-    .select("*")
-    .order("scheduled_on", {
-      ascending: false,
-    });
-  if (params.from) query = query.gte("scheduled_on", params.from);
-  if (params.to) query = query.lte("scheduled_on", params.to);
+  let query = supabase.from('maintenance_items').select('*').order('scheduled_on', {
+    ascending: false,
+  });
+  if (params.propertyId) query = query.eq('property_id', params.propertyId);
+  if (params.from) query = query.gte('scheduled_on', params.from);
+  if (params.to) query = query.lte('scheduled_on', params.to);
   const { data, error } = await query;
-  if (error)
-    throw new Error(`maintenance_items query failed: ${error.message}`);
+  if (error) throw new Error(`maintenance_items query failed: ${error.message}`);
   const byScheduled = (data ?? []).map((row) =>
-    mapMaintenanceItemRow(row as Record<string, unknown>),
+    mapMaintenanceItemRow(row as Record<string, unknown>)
   );
 
   if (!params.includeDueInRange || !params.from || !params.to) {
     return filterMaintenanceItems(byScheduled, params.q);
   }
 
-  const { data: dueData, error: dueError } = await supabase
-    .from("maintenance_items")
-    .select("*")
-    .gte("telegram_due_date", params.from)
-    .lte("telegram_due_date", params.to)
-    .order("telegram_due_date", { ascending: true });
+  const { data: dueData, error: dueError } = await (params.propertyId
+    ? supabase
+        .from('maintenance_items')
+        .select('*')
+        .eq('property_id', params.propertyId)
+        .gte('telegram_due_date', params.from)
+        .lte('telegram_due_date', params.to)
+        .order('telegram_due_date', { ascending: true })
+    : supabase
+        .from('maintenance_items')
+        .select('*')
+        .gte('telegram_due_date', params.from)
+        .lte('telegram_due_date', params.to)
+        .order('telegram_due_date', { ascending: true }));
   if (dueError) {
     throw new Error(`maintenance_items due query failed: ${dueError.message}`);
   }
@@ -160,37 +165,33 @@ export async function listMaintenanceItems(params: {
   return filterMaintenanceItems([...merged.values()], params.q);
 }
 
-export async function listRecurringSeriesItems(
-  seriesId: string,
-): Promise<MaintenanceItemRow[]> {
+export async function listRecurringSeriesItems(seriesId: string): Promise<MaintenanceItemRow[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("maintenance_items")
-    .select("*")
-    .eq("recurrence_series_id", seriesId)
-    .order("scheduled_on", { ascending: true });
+    .from('maintenance_items')
+    .select('*')
+    .eq('recurrence_series_id', seriesId)
+    .order('scheduled_on', { ascending: true });
   if (error) {
     throw new Error(`maintenance_items series query failed: ${error.message}`);
   }
-  return (data ?? []).map((row) =>
-    mapMaintenanceItemRow(row as Record<string, unknown>),
-  );
+  return (data ?? []).map((row) => mapMaintenanceItemRow(row as Record<string, unknown>));
 }
 
 export async function extendRecurringSeries(
   seriesId: string,
-  direction: "before" | "after",
+  direction: 'before' | 'after',
   extendUntil: string,
-  createdBy: string,
+  createdBy: string
 ): Promise<{ rows: MaintenanceItemRow[]; created_count: number }> {
   const supabase = getSupabase();
   const existing = await listRecurringSeriesItems(seriesId);
-  if (existing.length === 0) throw new Error("recurrence_series_not_found");
+  if (existing.length === 0) throw new Error('recurrence_series_not_found');
 
   const template = existing[0];
   const interval = template.recurrence_interval;
   if (!interval || !isRecurrenceInterval(interval)) {
-    throw new Error("recurrence_series_not_recurring");
+    throw new Error('recurrence_series_not_recurring');
   }
 
   const existingDates = new Set(existing.map((r) => r.scheduled_on));
@@ -200,27 +201,13 @@ export async function extendRecurringSeries(
   const primaryDay = Number(minDate.slice(8, 10));
 
   let candidateDates: string[] = [];
-  if (direction === "after") {
-    if (until <= maxDate)
-      throw new Error("extend_until_must_be_after_series_end");
+  if (direction === 'after') {
+    if (until <= maxDate) throw new Error('extend_until_must_be_after_series_end');
     const firstNew = addRecurrenceInterval(maxDate, interval, primaryDay);
-    candidateDates = generateRecurrenceDates(
-      firstNew,
-      interval,
-      until,
-      500,
-      primaryDay,
-    );
+    candidateDates = generateRecurrenceDates(firstNew, interval, until, 500, primaryDay);
   } else {
-    if (until >= minDate)
-      throw new Error("extend_until_must_be_before_series_start");
-    candidateDates = generateRecurrenceDatesBackward(
-      minDate,
-      interval,
-      until,
-      500,
-      primaryDay,
-    );
+    if (until >= minDate) throw new Error('extend_until_must_be_before_series_start');
+    candidateDates = generateRecurrenceDatesBackward(minDate, interval, until, 500, primaryDay);
   }
 
   const newDates = candidateDates.filter((d) => !existingDates.has(d));
@@ -250,28 +237,21 @@ export async function extendRecurringSeries(
     ...reminderFieldsForRecurringRow(seriesReminderInput, scheduled_on),
   }));
 
-  const { data, error } = await supabase
-    .from("maintenance_items")
-    .insert(rows)
-    .select("*");
+  const { data, error } = await supabase.from('maintenance_items').insert(rows).select('*');
   if (error) {
-    throw new Error(
-      `extend recurring maintenance_items failed: ${error.message}`,
-    );
+    throw new Error(`extend recurring maintenance_items failed: ${error.message}`);
   }
 
-  const inserted = ((data ?? []) as Record<string, unknown>[]).map(
-    mapMaintenanceItemRow,
-  );
+  const inserted = ((data ?? []) as Record<string, unknown>[]).map(mapMaintenanceItemRow);
   const merged = [...existing, ...inserted].sort((a, b) =>
-    a.scheduled_on.localeCompare(b.scheduled_on),
+    a.scheduled_on.localeCompare(b.scheduled_on)
   );
   return { rows: merged, created_count: inserted.length };
 }
 
 function summarizeMaintenanceItems(
-  items: MaintenanceItemRow[],
-): Omit<MaintenanceSummaryResult, "period"> {
+  items: MaintenanceItemRow[]
+): Omit<MaintenanceSummaryResult, 'period'> {
   let telegramEnabled = 0;
   let completed = 0;
   let pending = 0;
@@ -282,7 +262,7 @@ function summarizeMaintenanceItems(
     if (item.completed_at) completed += 1;
     else pending += 1;
 
-    const key = item.category?.trim() || "—";
+    const key = item.category?.trim() || '—';
     categoryCounts.set(key, (categoryCounts.get(key) ?? 0) + 1);
   }
 
@@ -300,12 +280,14 @@ function summarizeMaintenanceItems(
 }
 
 export async function computeMaintenanceSummary(params: {
+  propertyId?: string;
   from: string | null;
   to: string | null;
   q?: string;
   includeDueInRange?: boolean;
 }): Promise<MaintenanceSummaryResult> {
   const items = await listMaintenanceItems({
+    propertyId: params.propertyId,
     from: params.from,
     to: params.to,
     q: params.q,
@@ -324,6 +306,7 @@ export async function computeMaintenanceSummary(params: {
 
 export async function createMaintenanceItem(
   input: {
+    propertyId: string;
     label: string;
     category?: string | null;
     scheduled_on: string;
@@ -332,11 +315,12 @@ export async function createMaintenanceItem(
     recurrence_until?: string | null;
     telegramReminder?: MaintenanceTelegramReminderInput;
   },
-  createdBy: string,
+  createdBy: string
 ): Promise<{ row: MaintenanceItemRow; created_count: number }> {
   const supabase = getSupabase();
   const now = new Date().toISOString();
   const base = {
+    property_id: input.propertyId,
     label: input.label.slice(0, 200),
     category: input.category?.slice(0, 80) ?? null,
     notes: input.notes?.slice(0, 2000) ?? null,
@@ -348,7 +332,7 @@ export async function createMaintenanceItem(
   const interval = input.recurrence_interval;
   if (!interval || !isRecurrenceInterval(interval)) {
     const { data, error } = await supabase
-      .from("maintenance_items")
+      .from('maintenance_items')
       .insert({
         ...base,
         scheduled_on: input.scheduled_on,
@@ -356,10 +340,9 @@ export async function createMaintenanceItem(
         recurrence_interval: null,
         ...reminderFieldsForInsert(input.telegramReminder, input.scheduled_on),
       })
-      .select("*")
+      .select('*')
       .single();
-    if (error)
-      throw new Error(`create maintenance_item failed: ${error.message}`);
+    if (error) throw new Error(`create maintenance_item failed: ${error.message}`);
     const row = mapMaintenanceItemRow(data as Record<string, unknown>);
     return { row, created_count: 1 };
   }
@@ -370,7 +353,7 @@ export async function createMaintenanceItem(
       : defaultRecurrenceUntilForInterval(input.scheduled_on, interval);
   const dates = generateRecurrenceDates(input.scheduled_on, interval, until);
   if (dates.length === 0) {
-    throw new Error("recurrence_generated_no_dates");
+    throw new Error('recurrence_generated_no_dates');
   }
 
   const seriesId = crypto.randomUUID();
@@ -382,19 +365,12 @@ export async function createMaintenanceItem(
     ...reminderFieldsForRecurringRow(input.telegramReminder, scheduled_on),
   }));
 
-  const { data, error } = await supabase
-    .from("maintenance_items")
-    .insert(rows)
-    .select("*");
-  if (error)
-    throw new Error(
-      `create recurring maintenance_items failed: ${error.message}`,
-    );
+  const { data, error } = await supabase.from('maintenance_items').insert(rows).select('*');
+  if (error) throw new Error(`create recurring maintenance_items failed: ${error.message}`);
   const inserted = ((data ?? []) as Record<string, unknown>[]).sort((a, b) =>
-    String(a.scheduled_on).localeCompare(String(b.scheduled_on)),
+    String(a.scheduled_on).localeCompare(String(b.scheduled_on))
   );
-  if (inserted.length === 0)
-    throw new Error("create recurring maintenance_items empty");
+  if (inserted.length === 0) throw new Error('create recurring maintenance_items empty');
   return {
     row: mapMaintenanceItemRow(inserted[0]),
     created_count: inserted.length,
@@ -408,21 +384,21 @@ export async function updateMaintenanceItem(
     category: string | null;
     scheduled_on: string;
     notes: string | null;
+    completed_at: string | null;
     recurrence_interval: RecurrenceInterval;
     recurrence_until: string;
     telegramReminder?: MaintenanceTelegramReminderInput;
   }>,
-  scope: RecurrenceEditScope = "this",
+  scope: RecurrenceEditScope = 'this'
 ): Promise<{ row: MaintenanceItemRow; updated_count: number }> {
   const supabase = getSupabase();
   const { data: existing, error: fetchErr } = await supabase
-    .from("maintenance_items")
-    .select("*")
-    .eq("id", id)
+    .from('maintenance_items')
+    .select('*')
+    .eq('id', id)
     .maybeSingle();
-  if (fetchErr)
-    throw new Error(`fetch maintenance_item failed: ${fetchErr.message}`);
-  if (!existing) throw new Error("maintenance_item_not_found");
+  if (fetchErr) throw new Error(`fetch maintenance_item failed: ${fetchErr.message}`);
+  if (!existing) throw new Error('maintenance_item_not_found');
 
   const row = mapMaintenanceItemRow(existing as Record<string, unknown>);
   const seriesId = row.recurrence_series_id;
@@ -445,15 +421,15 @@ export async function updateMaintenanceItem(
   if (seriesId && row.recurrence_interval) {
     const intervalCandidate = patch.recurrence_interval ?? row.recurrence_interval;
     if (!isRecurrenceInterval(intervalCandidate)) {
-      throw new Error("invalid_recurrence_interval");
+      throw new Error('invalid_recurrence_interval');
     }
 
     let seriesEnd = row.scheduled_on;
     const { data: endRow, error: endErr } = await supabase
-      .from("maintenance_items")
-      .select("scheduled_on")
-      .eq("recurrence_series_id", seriesId)
-      .order("scheduled_on", { ascending: false })
+      .from('maintenance_items')
+      .select('scheduled_on')
+      .eq('recurrence_series_id', seriesId)
+      .order('scheduled_on', { ascending: false })
       .limit(1)
       .maybeSingle();
     if (endErr) {
@@ -469,12 +445,16 @@ export async function updateMaintenanceItem(
 
     if (intervalChanged || untilChanged) {
       const reminderInput = patch.telegramReminder;
+      // 'this' can't carry a series-level schedule change — treat it as the
+      // narrowest valid scope (this and future) instead of always widening to 'all'.
+      const rebuildScope = scope === 'this' ? 'this_and_future' : scope;
       return await rebuildMaterializedRecurrenceSeries({
         supabase,
-        table: "maintenance_items",
-        dateColumn: "scheduled_on",
+        table: 'maintenance_items',
+        dateColumn: 'scheduled_on',
         seriesId,
         anchorId: id,
+        scope: rebuildScope,
         newInterval: intervalCandidate,
         newUntil: untilCandidate,
         mapRow: mapMaintenanceItemRow,
@@ -486,10 +466,7 @@ export async function updateMaintenanceItem(
             updated_at: updatedAt,
           };
           if (reminderInput) {
-            Object.assign(
-              rowPatch,
-              reminderFieldsForRecurringRow(reminderInput, dateYmd),
-            );
+            Object.assign(rowPatch, reminderFieldsForRecurringRow(reminderInput, dateYmd));
           } else if (existingRow.telegram_reminder_enabled) {
             rowPatch.telegram_due_date = dateYmd;
           }
@@ -520,7 +497,7 @@ export async function updateMaintenanceItem(
                   telegram_reminder_enabled: false,
                   telegram_due_date: null,
                   telegram_days_before: 3,
-                  telegram_reminder_interval: "daily_noon",
+                  telegram_reminder_interval: 'daily_noon',
                   telegram_message_template: null,
                 }),
         }),
@@ -528,33 +505,31 @@ export async function updateMaintenanceItem(
     }
   }
 
-  const effectiveScope =
-    row.recurrence_series_id && isRecurrenceEditScope(scope) ? scope : "this";
+  const effectiveScope = row.recurrence_series_id && isRecurrenceEditScope(scope) ? scope : 'this';
 
   const update: Record<string, unknown> = { ...contentUpdate };
 
-  if (effectiveScope !== "this" && patch.telegramReminder) {
+  if (effectiveScope !== 'this' && patch.telegramReminder) {
     delete update.telegram_due_date;
   }
 
-  if (effectiveScope === "this") {
+  if (effectiveScope === 'this') {
     if (patch.scheduled_on) update.scheduled_on = patch.scheduled_on;
+    if (patch.completed_at !== undefined) update.completed_at = patch.completed_at;
     const { data, error } = await supabase
-      .from("maintenance_items")
+      .from('maintenance_items')
       .update(update)
-      .eq("id", id)
-      .select("*")
+      .eq('id', id)
+      .select('*')
       .single();
-    if (error)
-      throw new Error(`update maintenance_item failed: ${error.message}`);
+    if (error) throw new Error(`update maintenance_item failed: ${error.message}`);
     return {
       row: mapMaintenanceItemRow(data as Record<string, unknown>),
       updated_count: 1,
     };
   }
 
-  const dateChanged =
-    Boolean(patch.scheduled_on) && patch.scheduled_on !== row.scheduled_on;
+  const dateChanged = Boolean(patch.scheduled_on) && patch.scheduled_on !== row.scheduled_on;
   const interval = row.recurrence_interval;
 
   if (dateChanged && interval) {
@@ -570,21 +545,17 @@ export async function updateMaintenanceItem(
   }
 
   let q = supabase
-    .from("maintenance_items")
+    .from('maintenance_items')
     .update(update)
-    .eq("recurrence_series_id", row.recurrence_series_id);
-  if (effectiveScope === "this_and_future") {
-    q = q.gte("scheduled_on", row.scheduled_on);
+    .eq('recurrence_series_id', row.recurrence_series_id);
+  if (effectiveScope === 'this_and_future') {
+    q = q.gte('scheduled_on', row.scheduled_on);
   }
 
-  const { data, error } = await q.select("*");
-  if (error)
-    throw new Error(
-      `update maintenance_items series failed: ${error.message}`,
-    );
+  const { data, error } = await q.select('*');
+  if (error) throw new Error(`update maintenance_items series failed: ${error.message}`);
   const updated = (data ?? []) as Record<string, unknown>[];
-  const anchor =
-    updated.find((r) => String(r.id) === id) ?? updated[0] ?? existing;
+  const anchor = updated.find((r) => String(r.id) === id) ?? updated[0] ?? existing;
   return {
     row: mapMaintenanceItemRow(anchor as Record<string, unknown>),
     updated_count: updated.length,
@@ -603,51 +574,43 @@ async function reshiftRecurringSeriesDates(params: {
   const { supabase, id, row, patch, update, effectiveScope, interval } = params;
   const seriesId = row.recurrence_series_id;
   if (!seriesId || !patch.scheduled_on) {
-    throw new Error("invalid_recurring_date_shift");
+    throw new Error('invalid_recurring_date_shift');
   }
 
   let seriesQuery = supabase
-    .from("maintenance_items")
-    .select("*")
-    .eq("recurrence_series_id", seriesId)
-    .order("scheduled_on", { ascending: true });
-  if (effectiveScope === "this_and_future") {
-    seriesQuery = seriesQuery.gte("scheduled_on", row.scheduled_on);
+    .from('maintenance_items')
+    .select('*')
+    .eq('recurrence_series_id', seriesId)
+    .order('scheduled_on', { ascending: true });
+  if (effectiveScope === 'this_and_future') {
+    seriesQuery = seriesQuery.gte('scheduled_on', row.scheduled_on);
   }
 
   const { data: scopedRows, error: fetchErr } = await seriesQuery;
   if (fetchErr) {
-    throw new Error(
-      `fetch maintenance_items series failed: ${fetchErr.message}`,
-    );
+    throw new Error(`fetch maintenance_items series failed: ${fetchErr.message}`);
   }
 
   const rows = (scopedRows ?? []) as Record<string, unknown>[];
-  if (rows.length === 0) throw new Error("maintenance_item_not_found");
+  if (rows.length === 0) throw new Error('maintenance_item_not_found');
 
   let newDates: string[];
-  if (effectiveScope === "all") {
+  if (effectiveScope === 'all') {
     const delta = daysBetweenIso(row.scheduled_on, patch.scheduled_on);
-    newDates = rows.map((r) =>
-      addDaysToIso(String(r.scheduled_on).slice(0, 10), delta),
-    );
+    newDates = rows.map((r) => addDaysToIso(String(r.scheduled_on).slice(0, 10), delta));
   } else {
     const { data: allSeriesRows, error: allErr } = await supabase
-      .from("maintenance_items")
-      .select("scheduled_on")
-      .eq("recurrence_series_id", seriesId)
-      .order("scheduled_on", { ascending: false })
+      .from('maintenance_items')
+      .select('scheduled_on')
+      .eq('recurrence_series_id', seriesId)
+      .order('scheduled_on', { ascending: false })
       .limit(1);
     if (allErr) {
-      throw new Error(
-        `fetch maintenance_items series end failed: ${allErr.message}`,
-      );
+      throw new Error(`fetch maintenance_items series end failed: ${allErr.message}`);
     }
-    const seriesEnd = String(
-      allSeriesRows?.[0]?.scheduled_on ?? row.scheduled_on,
-    ).slice(0, 10);
+    const seriesEnd = String(allSeriesRows?.[0]?.scheduled_on ?? row.scheduled_on).slice(0, 10);
     newDates = generateRecurrenceDates(patch.scheduled_on, interval, seriesEnd);
-    if (newDates.length === 0) throw new Error("recurrence_generated_no_dates");
+    if (newDates.length === 0) throw new Error('recurrence_generated_no_dates');
   }
 
   const now = String(update.updated_at);
@@ -670,42 +633,36 @@ async function reshiftRecurringSeriesDates(params: {
       updated_at: now,
     };
     const { data, error } = await supabase
-      .from("maintenance_items")
+      .from('maintenance_items')
       .update(rowUpdate)
-      .eq("id", rowId)
-      .select("*")
+      .eq('id', rowId)
+      .select('*')
       .single();
     if (error) {
-      throw new Error(
-        `update maintenance_item date shift failed: ${error.message}`,
-      );
+      throw new Error(`update maintenance_item date shift failed: ${error.message}`);
     }
     if (rowId === id) anchor = data as Record<string, unknown>;
   }
 
   if (idsToDelete.length > 0) {
     const { error: deleteErr } = await supabase
-      .from("maintenance_items")
+      .from('maintenance_items')
       .delete()
-      .in("id", idsToDelete);
+      .in('id', idsToDelete);
     if (deleteErr) {
-      throw new Error(
-        `delete maintenance_items after date shift failed: ${deleteErr.message}`,
-      );
+      throw new Error(`delete maintenance_items after date shift failed: ${deleteErr.message}`);
     }
   }
 
   const updatedCount = rows.length - idsToDelete.length;
   if (!anchor) {
     const { data: refetched, error: refetchErr } = await supabase
-      .from("maintenance_items")
-      .select("*")
-      .eq("id", id)
+      .from('maintenance_items')
+      .select('*')
+      .eq('id', id)
       .maybeSingle();
     if (refetchErr) {
-      throw new Error(
-        `fetch maintenance_item anchor failed: ${refetchErr.message}`,
-      );
+      throw new Error(`fetch maintenance_item anchor failed: ${refetchErr.message}`);
     }
     anchor = (refetched as Record<string, unknown> | null) ?? rows[0];
   }
@@ -718,47 +675,33 @@ async function reshiftRecurringSeriesDates(params: {
 
 export async function deleteMaintenanceItem(
   id: string,
-  scope: RecurrenceEditScope = "this",
+  scope: RecurrenceEditScope = 'this'
 ): Promise<{ deleted_count: number }> {
   const supabase = getSupabase();
   const { data: existing, error: fetchErr } = await supabase
-    .from("maintenance_items")
-    .select("id, recurrence_series_id, scheduled_on")
-    .eq("id", id)
+    .from('maintenance_items')
+    .select('id, recurrence_series_id, scheduled_on')
+    .eq('id', id)
     .maybeSingle();
-  if (fetchErr)
-    throw new Error(`fetch maintenance_item failed: ${fetchErr.message}`);
-  if (!existing) throw new Error("maintenance_item_not_found");
+  if (fetchErr) throw new Error(`fetch maintenance_item failed: ${fetchErr.message}`);
+  if (!existing) throw new Error('maintenance_item_not_found');
 
-  const seriesId = existing.recurrence_series_id
-    ? String(existing.recurrence_series_id)
-    : null;
+  const seriesId = existing.recurrence_series_id ? String(existing.recurrence_series_id) : null;
   const scheduledOn = String(existing.scheduled_on).slice(0, 10);
-  const effectiveScope =
-    seriesId && isRecurrenceEditScope(scope) ? scope : "this";
+  const effectiveScope = seriesId && isRecurrenceEditScope(scope) ? scope : 'this';
 
-  if (effectiveScope === "this" || !seriesId) {
-    const { error } = await supabase
-      .from("maintenance_items")
-      .delete()
-      .eq("id", id);
-    if (error)
-      throw new Error(`delete maintenance_item failed: ${error.message}`);
+  if (effectiveScope === 'this' || !seriesId) {
+    const { error } = await supabase.from('maintenance_items').delete().eq('id', id);
+    if (error) throw new Error(`delete maintenance_item failed: ${error.message}`);
     return { deleted_count: 1 };
   }
 
-  let q = supabase
-    .from("maintenance_items")
-    .delete()
-    .eq("recurrence_series_id", seriesId);
-  if (effectiveScope === "this_and_future") {
-    q = q.gte("scheduled_on", scheduledOn);
+  let q = supabase.from('maintenance_items').delete().eq('recurrence_series_id', seriesId);
+  if (effectiveScope === 'this_and_future') {
+    q = q.gte('scheduled_on', scheduledOn);
   }
 
-  const { data, error } = await q.select("id");
-  if (error)
-    throw new Error(
-      `delete maintenance_items series failed: ${error.message}`,
-    );
+  const { data, error } = await q.select('id');
+  if (error) throw new Error(`delete maintenance_items series failed: ${error.message}`);
   return { deleted_count: (data ?? []).length };
 }

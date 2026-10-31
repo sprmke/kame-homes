@@ -1,0 +1,214 @@
+import { useCallback, useEffect, useState } from 'react';
+
+import { OtpCodeInput } from '@/features/guest/auth/components/OtpCodeInput';
+
+import { storeSuperAdminOtpToken } from '@/features/dashboard/org/lib/edgeClient';
+import { useSuperAdminVerification } from '@/features/dashboard/super-admin/hooks/useSuperAdminVerification';
+
+import { Button } from '@/components/ui/button';
+import { SpinnerIcon } from '@/components/ui/icons';
+import { Label } from '@/components/ui/label';
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from '@/components/ui/responsive-modal';
+import { cn } from '@/lib/utils';
+
+type Props = {
+  open: boolean;
+  /** Gated action key from the 401 envelope, forwarded to the OTP email for context. */
+  gatedAction?: string;
+  onCancel: () => void;
+  onVerified: () => void;
+};
+
+export function SuperAdminOtpDialog({ open, gatedAction, onCancel, onVerified }: Props) {
+  const { sendOtp, verifyOtp } = useSuperAdminVerification();
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [emailMasked, setEmailMasked] = useState('');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  const otpSent = Boolean(challengeId);
+
+  const reset = useCallback(() => {
+    setChallengeId(null);
+    setEmailMasked('');
+    setCode('');
+    setError(null);
+    setSending(false);
+    setVerifying(false);
+    setResendCooldown(0);
+  }, []);
+
+  useEffect(() => {
+    if (!open) reset();
+  }, [open, reset]);
+
+  const dispatchOtp = useCallback(async () => {
+    setSending(true);
+    setError(null);
+    setCode('');
+    try {
+      const result = await sendOtp(gatedAction);
+      setChallengeId(result.challengeId);
+      setEmailMasked(result.emailMasked);
+      setResendCooldown(60);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not send the code');
+    } finally {
+      setSending(false);
+    }
+  }, [gatedAction, sendOtp]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleVerify = async (nextCode?: string) => {
+    const trimmed = (nextCode ?? code).trim();
+    if (!challengeId || trimmed.length < 6) {
+      setError('Enter the 6-digit code');
+      return;
+    }
+    setVerifying(true);
+    setError(null);
+    try {
+      const result = await verifyOtp(challengeId, trimmed);
+      storeSuperAdminOtpToken(result.verificationToken, result.expiresAt);
+      onVerified();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Verification failed');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const busy = sending || verifying;
+
+  return (
+    <ResponsiveModal open={open} onOpenChange={(next) => (next ? undefined : onCancel())}>
+      <ResponsiveModalContent
+        sheetLayout="split"
+        className="flex max-h-[min(90dvh,36rem)] max-w-[min(calc(100vw-1.5rem),32rem)] flex-col gap-0 overflow-hidden p-0 pb-0 pt-0 sm:max-w-lg sm:p-0"
+        showCloseButton={false}
+      >
+        <ResponsiveModalHeader className="shrink-0 space-y-1 px-5 pb-1 pt-5 text-left sm:px-6">
+          <ResponsiveModalTitle>Confirm it's you</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="break-words">
+            {otpSent && emailMasked
+              ? `Enter the code sent to ${emailMasked}.`
+              : 'Send a verification code to your email, then enter it to continue.'}
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
+
+        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 sm:px-6">
+          {otpSent ? (
+            <div className="space-y-3">
+              <Label className="sr-only">Verification code</Label>
+              <OtpCodeInput
+                key={challengeId}
+                value={code}
+                onChange={(value) => {
+                  setCode(value);
+                  if (error) setError(null);
+                }}
+                onComplete={(value) => void handleVerify(value)}
+                onEnter={() => void handleVerify()}
+                disabled={busy}
+                error={Boolean(error)}
+                autoFocus
+                compact
+              />
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="text-destructive text-center text-sm" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            This code is required for sensitive admin changes. It stays valid for a short time, so
+            you will not be asked again for every action.
+          </p>
+        </div>
+
+        <ResponsiveModalFooter className="border-border shrink-0 !flex-row flex-nowrap items-center justify-end gap-2 border-t px-5 py-3 sm:px-6">
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-[44px] shrink-0 px-3"
+            disabled={busy}
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          {otpSent ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] shrink-0 px-3"
+                disabled={busy || resendCooldown > 0}
+                onClick={() => void dispatchOtp()}
+              >
+                {sending ? (
+                  <>
+                    <SpinnerIcon className="size-4" aria-hidden />
+                    Sending
+                  </>
+                ) : resendCooldown > 0 ? (
+                  `Resend (${resendCooldown}s)`
+                ) : (
+                  'Resend code'
+                )}
+              </Button>
+              <Button
+                type="button"
+                className={cn('min-h-[44px] shrink-0 px-3')}
+                disabled={busy || code.length < 6}
+                onClick={() => void handleVerify()}
+              >
+                {verifying ? (
+                  <>
+                    <SpinnerIcon className="size-4" aria-hidden />
+                    Verifying
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              className="min-h-[44px] shrink-0 px-3"
+              disabled={busy}
+              onClick={() => void dispatchOtp()}
+            >
+              {sending ? (
+                <>
+                  <SpinnerIcon className="size-4" aria-hidden />
+                  Sending
+                </>
+              ) : (
+                'Send OTP'
+              )}
+            </Button>
+          )}
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
+  );
+}

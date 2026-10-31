@@ -1,0 +1,464 @@
+/**
+ * Central model routing for platform AI features — keeps Flash vs Flash-Lite tiering
+ * in one place instead of hard-coded model strings per service.
+ *
+ * Tiering guidance:
+ * - flash_lite: cheap, fast text-only tasks that do not need reasoning (classify, caption,
+ *   simple map, text verify, polish).
+ * - flash: vision, structured JSON with many fields, multi-step reasoning, safety-critical
+ *   validation (receipts, IDs, booking summaries, templates, dashboard assistant).
+ * - live: native audio (voice receptionist).
+ */
+
+import { GEMINI_LIVE_MODEL } from './geminiLiveEphemeral.ts';
+
+export const AI_FEATURES = [
+  'receipt_validation',
+  'inbox_suggest',
+  'inbox_auto_reply',
+  'marketing_caption',
+  'marketing_template',
+  'marketing_image_prompt_enhance',
+  'marketing_video_prompt_enhance',
+  'import_column_map',
+  'voice_polish',
+  'ai_integration_verify',
+  'booking_ai_summary_guests',
+  'booking_ai_summary_pets',
+  'booking_ai_summary_pricing',
+  'voice_receptionist',
+  'dashboard_assistant',
+  'smart_pricing',
+  'host_analytics',
+  'review_draft',
+  'marketing_image_generate',
+  'marketing_video_generate',
+] as const;
+
+export type AiFeature = (typeof AI_FEATURES)[number];
+
+export type AiModelTier = 'flash_lite' | 'flash' | 'live';
+
+export type AiModelConfig = {
+  model: string;
+  tier: AiModelTier;
+  /** USD per 1M input tokens (text/image; audio uses separate rates for Live). */
+  inputUsdPer1M: number;
+  /** USD per 1M output tokens. */
+  outputUsdPer1M: number;
+  /** Default max output tokens for this feature. */
+  defaultMaxOutputTokens: number;
+  /** Whether thinking tokens should be budgeted for this task. */
+  thinkingBudget: number;
+  /** Per-attempt provider timeout (llmTransport). */
+  timeoutMs: number;
+  /** Fall back to Groq (GROQ_FALLBACK_MODEL) when every Gemini key fails. */
+  groqFallback: boolean;
+};
+
+/**
+ * Groq fallback model (OpenAI-compatible API; text + vision). Priced separately so fallback
+ * calls are billed at Groq rates, not the Gemini feature rates.
+ */
+export const GROQ_FALLBACK_MODEL = {
+  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+  inputUsdPer1M: 0.11,
+  outputUsdPer1M: 0.34,
+} as const;
+
+/** Voice-preview TTS models, tried in order (not host-billed; see geminiLiveVoicePreview.ts). */
+export const GEMINI_TTS_PREVIEW_MODELS = [
+  'gemini-2.5-flash-preview-tts',
+  'gemini-3.1-flash-tts-preview',
+  'gemini-2.5-pro-preview-tts',
+] as const;
+
+/** Authoritative feature → model map. */
+const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
+  receipt_validation: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  inbox_suggest: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 25000,
+    groqFallback: true,
+  },
+  inbox_auto_reply: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 25000,
+    groqFallback: true,
+  },
+  marketing_caption: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 256,
+    thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
+  },
+  marketing_template: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 1024,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  // Rewrites the host's short Generate-tab prompt into a full scene description
+  // before it reaches the image model — see marketingImagePromptBuilder.ts. Billed
+  // as platform cost, not host credits (see the quality-hardening plan, "Decision 2");
+  // recordAiUsage is still called so spend stays visible in the AI usage dashboards.
+  marketing_image_prompt_enhance: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 8000,
+    groqFallback: false,
+  },
+  // Writes the Veo shot description, looking at the start-frame photo when there is one —
+  // see marketingVideoPromptBuilder.ts. Platform cost, same as the image enhancement.
+  marketing_video_prompt_enhance: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 10000,
+    groqFallback: false,
+  },
+  import_column_map: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 1024,
+    thinkingBudget: 0,
+    timeoutMs: 18000,
+    groqFallback: true,
+  },
+  voice_polish: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: false,
+  },
+  ai_integration_verify: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 16,
+    thinkingBudget: 0,
+    timeoutMs: 10000,
+    groqFallback: false,
+  },
+  booking_ai_summary_guests: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  booking_ai_summary_pets: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  booking_ai_summary_pricing: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 512,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: true,
+  },
+  voice_receptionist: {
+    model: GEMINI_LIVE_MODEL,
+    tier: 'live',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 1024,
+    thinkingBudget: 0,
+    timeoutMs: 15000,
+    groqFallback: false,
+  },
+  dashboard_assistant: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 2048,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+  },
+  smart_pricing: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 768,
+    thinkingBudget: 0,
+    timeoutMs: 30000,
+    groqFallback: false,
+  },
+  host_analytics: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 1024,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+  },
+  review_draft: {
+    model: 'gemini-3.1-flash-lite',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 1.5,
+    defaultMaxOutputTokens: 256,
+    thinkingBudget: 0,
+    timeoutMs: 20000,
+    groqFallback: true,
+  },
+  // Media generation is priced from MARKETING_IMAGE_MODELS / MARKETING_VIDEO_MODELS
+  // below, not from these rows. They exist so getModelConfig() and the kill-switch
+  // allowlist resolve for every AiFeature; callers always pass an explicit
+  // estimatedCostUsd to recordAiUsage.
+  marketing_image_generate: {
+    model: 'gemini-3.1-flash-image',
+    tier: 'flash',
+    inputUsdPer1M: 0.5,
+    outputUsdPer1M: 60,
+    defaultMaxOutputTokens: 8192,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+  },
+  marketing_video_generate: {
+    model: 'veo-3.1-fast-generate-preview',
+    tier: 'flash',
+    inputUsdPer1M: 0,
+    outputUsdPer1M: 0,
+    defaultMaxOutputTokens: 0,
+    thinkingBudget: 0,
+    timeoutMs: 30000,
+    groqFallback: false,
+  },
+};
+
+/**
+ * Optional local/dev override: `GEMINI_MODEL_OVERRIDE_<FEATURE>` (e.g.
+ * `GEMINI_MODEL_OVERRIDE_DASHBOARD_ASSISTANT=gemini-3.5-flash-lite`) or a global
+ * `GEMINI_MODEL_OVERRIDE`. Used when free-tier quota is exhausted on the default model.
+ * Does not change pricing metadata — only the model id sent to Gemini.
+ */
+export function getModelConfig(feature: AiFeature): AiModelConfig {
+  const base = FEATURE_MODELS[feature];
+  const featureKey = `GEMINI_MODEL_OVERRIDE_${feature.toUpperCase()}`;
+  const override =
+    (typeof Deno !== 'undefined' ? Deno.env.get(featureKey) : undefined)?.trim() ||
+    (typeof Deno !== 'undefined' ? Deno.env.get('GEMINI_MODEL_OVERRIDE') : undefined)?.trim();
+  if (!override) return base;
+  return { ...base, model: override };
+}
+
+export function estimateTokenCostUsd(
+  config: AiModelConfig,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const input = (inputTokens / 1_000_000) * config.inputUsdPer1M;
+  const output = (outputTokens / 1_000_000) * config.outputUsdPer1M;
+  return Math.round((input + output) * 1_000_000) / 1_000_000;
+}
+
+export function isValidAiFeature(value: string): value is AiFeature {
+  return (AI_FEATURES as readonly string[]).includes(value);
+}
+
+/* ── Marketing Studio media generation ──────────────────────────────────────
+ *
+ * Model ids and prices for the Generate tab live here, next to every other
+ * model fact, rather than in ai_platform_global_settings: there are 3 tiers x
+ * 2 resolutions of Veo pricing, which a single settings column cannot express
+ * (voice_receptionist_cost_per_minute_usd works because voice has one scalar).
+ *
+ * Swapping a provider means rewriting one generation module plus one of these
+ * tables. Prices are USD, verified against Google's published rates.
+ */
+
+export type MarketingGenerationTier = 'draft' | 'standard' | 'premium';
+
+export type AiImageModelConfig = AiModelConfig & {
+  /** Total reference images the model accepts in one request. */
+  maxReferenceImages: number;
+  allowedSizes: readonly string[];
+  allowedAspectRatios: readonly string[];
+};
+
+export type AiVideoModelConfig = {
+  model: string;
+  usdPerSecondByResolution: Record<'720p' | '1080p', number>;
+  /** Start-frame photos (Veo `image`). Asset `referenceImages` are not used: Lite rejects them. */
+  maxStartFrames: number;
+  allowedDurations: readonly number[];
+  allowedAspectRatios: readonly string[];
+  allowedResolutions: readonly string[];
+};
+
+const IMAGE_ASPECT_RATIOS = [
+  '1:1',
+  '3:2',
+  '2:3',
+  '3:4',
+  '4:3',
+  '4:5',
+  '5:4',
+  '9:16',
+  '16:9',
+  '21:9',
+] as const;
+
+export const MARKETING_IMAGE_MODELS: Record<MarketingGenerationTier, AiImageModelConfig> = {
+  draft: {
+    model: 'gemini-3.1-flash-lite-image',
+    tier: 'flash_lite',
+    inputUsdPer1M: 0.25,
+    outputUsdPer1M: 30,
+    defaultMaxOutputTokens: 8192,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+    maxReferenceImages: 14,
+    allowedSizes: ['1K'],
+    allowedAspectRatios: IMAGE_ASPECT_RATIOS,
+  },
+  standard: {
+    model: 'gemini-3.1-flash-image',
+    tier: 'flash',
+    inputUsdPer1M: 0.5,
+    outputUsdPer1M: 60,
+    defaultMaxOutputTokens: 8192,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+    maxReferenceImages: 10,
+    allowedSizes: ['512px', '1K', '2K', '4K'],
+    allowedAspectRatios: IMAGE_ASPECT_RATIOS,
+  },
+  premium: {
+    model: 'gemini-3-pro-image',
+    tier: 'flash',
+    inputUsdPer1M: 2,
+    outputUsdPer1M: 120,
+    defaultMaxOutputTokens: 8192,
+    thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+    maxReferenceImages: 6,
+    allowedSizes: ['512px', '1K', '2K', '4K'],
+    allowedAspectRatios: IMAGE_ASPECT_RATIOS,
+  },
+};
+
+/**
+ * Prices per Google's Gemini API pricing page (2026-10). 4k is not offered: Meta
+ * re-encodes Reels to 1080 wide, so 4k costs more and posts the same.
+ * 8s only: Veo requires 8s for 1080p, and 6s saved little while cutting Reel length.
+ */
+export const MARKETING_VIDEO_MODELS: Record<MarketingGenerationTier, AiVideoModelConfig> = {
+  draft: {
+    model: 'veo-3.1-lite-generate-preview',
+    usdPerSecondByResolution: { '720p': 0.05, '1080p': 0.08 },
+    maxStartFrames: 1,
+    allowedDurations: [8],
+    allowedAspectRatios: ['16:9', '9:16'],
+    allowedResolutions: ['720p'],
+  },
+  standard: {
+    model: 'veo-3.1-fast-generate-preview',
+    usdPerSecondByResolution: { '720p': 0.1, '1080p': 0.12 },
+    maxStartFrames: 1,
+    allowedDurations: [8],
+    allowedAspectRatios: ['16:9', '9:16'],
+    allowedResolutions: ['720p', '1080p'],
+  },
+  premium: {
+    model: 'veo-3.1-generate-preview',
+    usdPerSecondByResolution: { '720p': 0.4, '1080p': 0.4 },
+    maxStartFrames: 1,
+    allowedDurations: [8],
+    allowedAspectRatios: ['16:9', '9:16'],
+    allowedResolutions: ['720p', '1080p'],
+  },
+};
+
+export function getMarketingImageModel(tier: MarketingGenerationTier): AiImageModelConfig {
+  const base = MARKETING_IMAGE_MODELS[tier];
+  const override = (
+    typeof Deno !== 'undefined'
+      ? Deno.env.get(`GEMINI_MODEL_OVERRIDE_MARKETING_IMAGE_${tier.toUpperCase()}`)
+      : undefined
+  )?.trim();
+  return override ? { ...base, model: override } : base;
+}
+
+export function getMarketingVideoModel(tier: MarketingGenerationTier): AiVideoModelConfig {
+  const base = MARKETING_VIDEO_MODELS[tier];
+  const override = (
+    typeof Deno !== 'undefined'
+      ? Deno.env.get(`GEMINI_MODEL_OVERRIDE_MARKETING_VIDEO_${tier.toUpperCase()}`)
+      : undefined
+  )?.trim();
+  return override ? { ...base, model: override } : base;
+}
+
+export function estimateVideoCostUsd(
+  config: AiVideoModelConfig,
+  resolution: '720p' | '1080p',
+  durationSeconds: number
+): number {
+  const perSecond = config.usdPerSecondByResolution[resolution];
+  return Math.round(perSecond * durationSeconds * 1_000_000) / 1_000_000;
+}

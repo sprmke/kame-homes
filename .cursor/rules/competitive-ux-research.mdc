@@ -1,0 +1,44 @@
+---
+description: Material UX only — research Airbnb + PMS before new flows/screens. Skip polish and bugfixes.
+globs:
+  - 'ui/src/features/**/*.tsx'
+  - 'ui/src/features/**/pages/**/*'
+  - 'ui/src/features/**/routes/**/*'
+alwaysApply: false
+---
+
+# Competitive UX research — agent reference
+
+For **material** user-facing work, run the **`competitive-ux-research`** skill (`.cursor/skills/competitive-ux-research/SKILL.md`) **before** designing or coding.
+
+## When required
+
+- New routes, pages, modals, or multi-step flows
+- Auth, checkout, booking, payments, messaging, settings, onboarding
+- Material UX redesign of an existing screen (layout/flow change, not polish)
+
+## When skipped (do not WebSearch / do not write a brief)
+
+- Pure backend / edge / DB with no UX change
+- Bug fixes that restore documented behavior
+- Copy-only tweaks the user requested verbatim
+- Visual polish: spacing, alignment, colors, typography scale, icon size
+- Compactness / density tweaks (e.g. control height to match neighbors)
+- Renames, refactors, dead-code removal with no interaction change
+- Wiring an already-specced control from an in-progress plan or route guide
+
+## Minimum output (before coding, when required)
+
+Short **Competitive UX brief** (template in the skill):
+
+1. **Airbnb** (guest/explore) — how they handle this task
+2. **PMS leaders** (host/admin) — Guesty, Hostaway, Lodgify, or closest match
+3. **Adopt / adapt / skip** for Kame Homes — cite `minimal-ui-copy`, `mobile-responsive`, checkout auth modal
+
+Use **WebSearch** only when you lack current product knowledge. Do not guess competitor flows.
+
+## Pair with
+
+- `frontend-design` — visual execution after research
+- `minimal-ui-copy` — sparse copy
+- `route-guides` — document chosen patterns in `docs/guides/routes/`

@@ -1,0 +1,129 @@
+---
+description: Property and parking Guest Inbox — Meta messaging, webhooks, permissions, AI auto-reply invariants
+globs:
+  - supabase/functions/**/meta-inbox-*/**
+  - supabase/functions/**/social-inbox-*/**
+  - supabase/functions/_shared/metaInbox*.ts
+  - supabase/functions/_shared/socialInbox*.ts
+  - supabase/functions/**/guest-web-chat-*/**
+  - supabase/functions/_shared/webGuestChatService.ts
+  - supabase/functions/_shared/webInboxAutoReply.ts
+  - supabase/functions/_shared/inboxAiGuestContext.ts
+  - supabase/functions/_shared/inboxAiSafetyGuard.ts
+  - ui/src/features/guest/chat/**
+  - ui/src/features/dashboard/inbox/**
+  - docs/guides/routes/org/inbox.md
+  - docs/guides/routes/org/property/inbox.md
+  - docs/guides/routes/org/parking/inbox.md
+---
+
+# Social Guest Inbox — agent reference
+
+Guest Inbox at **property** and **parking** scopes (org-level Inbox UI removed). Phase 1 ships **Meta** (Facebook Messenger + Instagram DMs) and **Web** (on-site guest chat from property pages). Facebook / Instagram post comments are **out of scope** for this inbox and should not be surfaced in UI, webhook handling, or docs. TikTok / Airbnb messaging APIs are **out of scope** (partnership / approval barriers) — do not show Coming soon placeholders or fake connectivity.
+
+## Routes
+
+| Scope    | Path                                         |
+| -------- | -------------------------------------------- |
+| Property | `/org/:orgSlug/property/:propertySlug/inbox` |
+| Parking  | `/org/:orgSlug/parking/:parkingSlug/inbox`   |
+
+`/org/:orgSlug/inbox` redirects to Properties.
+
+## Permissions
+
+| Property / parking | Capability                                            |
+| ------------------ | ----------------------------------------------------- |
+| `inbox:view`       | Read threads and messages                             |
+| `inbox:reply`      | Send replies                                          |
+| `inbox:manage`     | Channels + (property only) quick replies / automation |
+
+Keep in sync: `propertyTeamPermissions.ts`, `parkingTeamPermissions.ts` and UI team constants. Org `org:inbox:*` permissions were removed.
+
+## Data scope
+
+- Every row keyed by `organization_id`. Use `resolveInboxAccess(req, capability)` — requires `property_id` or `parking_id` + `inbox:*`.
+- Org Meta default: `social_channel_connections` with `property_id`/`parking_id` null. Overrides set one of those FKs.
+- **First Meta connect from a property** (no org-default yet) writes the **org-default** row so Marketing and other units can inherit.
+- Effective Meta = override if connected, else org default (`metaInboxScope.ts`). Inherited Meta threads = full Page inbox (1A).
+- Webhook handler is public but **must** verify `X-Hub-Signature-256` and dedupe via `social_webhook_events`. Resolve by `meta_page_id` to the owning connection row.
+- Tokens encrypted with `META_INBOX_TOKEN_ENCRYPTION_KEY`.
+- Org reconnect/disconnect must **not** delete property/parking override rows (`metaInboxLifecycle.ts`).
+- Marketing publish uses **org-default** Meta (first property connect establishes it).
+
+## Meta messaging rules
+
+- **24-hour window:** outbound DMs only when `messaging_window_expires_at` > now (set from last inbound). **Does not apply to `platform=web`.**
+- **Webhook-first:** Conversations API backfill on connect only; do not poll in a loop.
+- **App Review:** production requires Advanced Access — see `docs/archive/operations/meta-app-review.md`.
+
+## AI auto-reply
+
+- No auto-fill-on-open — operators trigger AI drafts manually via the composer's **Suggest** (sparkles) button on any thread. There is no `auto_reply_mode = draft` UI path; the column stays in `social_inbox_settings` for backward compat but is not surfaced.
+- Auto-send (`send`, `auto_reply_mode = 'send'`) requires explicit org opt-in in Automation tab (property Manage → Automation).
+- Never auto-reply outside Meta messaging window (**Meta only** — web chat has no 24h window).
+- Platform toggles under auto-send: Facebook, Instagram, **Chat** (`platform_toggles.web`).
+- Web auto-send runs from `guest-web-chat-messages` POST via `webInboxAutoReply.ts` after guest inbound.
+- Text auto-reply uses the same closed guest tool layer as voice (`guestReceptionistTools.ts` + `guestReceptionistTurn.ts`): Flash-Lite, ≤2 tool rounds. Web may include one maps URL or markdown table; Meta is flattened to prose. Parking threads use `get_parking_facts`.
+- Cooldown is per inbound message (a new guest question after an AI reply reopens). At 10 AI replies per conversation per hour, insert the host-will-reply line once per hour (`AUTO_REPLY_BUDGET_EXHAUSTED_LINE`).
+- Flag outbound AI messages with `is_ai_generated = true`.
+- **Manage AI response** (Automation → Manage button → `InboxAiResponseDialog`) edits `ai_system_prompt` — free-text org **Tone & rules** layered on top of the base prompt in `socialInboxAiService.ts`. This custom text is additive; it never replaces Known facts, quick-reply guidance, or the mandatory safety policy. Field help lives on a **?** tooltip (`FieldLabel`). Includes a **Reset to default** action that fills `DEFAULT_AI_RESPONSE_CONTEXT`.
+
+## AI grounding & guard
+
+Before every AI call, `suggestInboxReply` builds a guest-safe facts bundle via **`inboxAiGuestContext.ts`** and runs output through **`inboxAiSafetyGuard.ts`**.
+
+**Allowed in facts (org/property scoped):**
+
+- Active property list (org-level fallback when thread has no `property_id`)
+- Property name, full address, city, residence, tower/unit, floor, capacity, check-in/out times, map link
+- Payment methods with account name and number (same as guest form / property settings)
+- Weekday/weekend rates, security deposit, pet fee, parking rate, holiday % rules
+- Amenities, house rules, cancellation policy (title + description)
+- **Development/residence facts** (when property `residence_name` matches a development): development name, amenities, pool fee, pool schedule, guest requirements, guide entries, document requirement labels, other important info — via `_shared/developmentGuestInfo.ts`
+- Today/tomorrow availability, next open check-in dates, blocked stay date ranges
+- Inquiry-date availability + estimated stay total when thread has inquiry dates
+- Booking form URL, calendar URL
+- Org quick reply snippets (`social_reply_templates`, platform-filtered) as fallback when property facts are incomplete
+
+**Never in facts or replies:**
+
+- Other guests' PII (names, email, phone, IDs, receipts)
+- Finance (revenue, expenses, profit, ledger rows)
+- Maintenance/reminders, Telegram settings, OAuth tokens, internal ops fields
+- Ungrounded PHP amounts (guard rejects amounts not derivable from allowed pricing facts)
+
+**Enforcement:**
+
+- Facts injected into user prompt under `Known facts (property/booking data + quick reply snippets):`
+- `classifyGuestInquiryIntent` distinguishes normal vs sensitive guest asks
+- `assertSafeGuestReply` blocks other-guest name leaks, owner/internal topics, ungrounded prices; allows polite refusals on sensitive asks
+- On flag: return safe fallback copy; `social-inbox-ai-suggest` sets `flagged: true` for operator UI
+
+**Do not** wire guest AI to admin endpoints (`list-bookings`, `app-settings`, `finance-*`, `maintenance-*`) or raw `guest_submissions` rows with PII.
+
+## Edge functions
+
+| Function                                             | Auth            |
+| ---------------------------------------------------- | --------------- |
+| `meta-inbox-oauth-start`                             | JWT + org       |
+| `meta-inbox-oauth-callback`                          | Public redirect |
+| `meta-inbox-status` / `disconnect`                   | JWT + org       |
+| `meta-inbox-webhook`                                 | Public (signed) |
+| `social-inbox-threads` / `messages` / `send`         | JWT + org       |
+| `guest-web-chat-start` / `guest-web-chat-messages`   | JWT (guest)     |
+| `social-inbox-templates` / `settings` / `ai-suggest` | JWT + org       |
+
+All JWT routes: `verify_jwt = false` in config + `serveAuthenticated` + in-handler checks.
+
+## UI
+
+- Feature folder: `ui/src/features/dashboard/inbox/`
+- Mobile: master–detail with back button on conversation view
+- Realtime: Supabase channel on `social_messages` + `social_conversations` for org id
+
+## Don'ts
+
+- Don't leak cross-org data in webhooks (resolve connection by `meta_page_id`).
+- Don't scrape Airbnb/TikTok or claim inbox connectivity without official messaging APIs.
+- Don't skip route guide + `docs/PROJECT.md` updates when changing behavior.

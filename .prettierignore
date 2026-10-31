@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+.cache
+*.tsbuildinfo
+package-lock.json
+ui/bun.lock
+supabase/migrations
+supabase_backup_*.sql
+coverage
+.env*
+.fallow
+.opencode/commands/**

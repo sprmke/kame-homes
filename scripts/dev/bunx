@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Bun exposes package binaries via `bun x`; some installs have no `bunx` on PATH.
+set -euo pipefail
+
+resolve_bun() {
+  if [[ -n "${BUN:-}" && -x "$BUN" ]]; then
+    echo "$BUN"
+    return 0
+  fi
+  if command -v bun >/dev/null 2>&1; then
+    command -v bun
+    return 0
+  fi
+  local candidate
+  for candidate in /usr/local/bin/bun /opt/homebrew/bin/bun "${HOME}/.bun/bin/bun"; do
+    if [[ -x "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+BUN_BIN="$(resolve_bun)" || {
+  echo "bun not found (needed for bun x). Install Bun or add it to PATH." >&2
+  exit 127
+}
+
+exec "$BUN_BIN" x "$@"

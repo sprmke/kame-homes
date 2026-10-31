@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Template preview</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f3f4f6;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+      }
+      .shell-pad {
+        padding: 22px 12px 30px;
+      }
+      .email-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .accent-bar {
+        height: 5px;
+        background: {{brandColor}};
+        border-radius: 20px 20px 0 0;
+      }
+      .email-card {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-top: none;
+        border-radius: 0 0 20px 20px;
+        overflow: hidden;
+      }
+      .content-pad {
+        padding: 28px 24px 30px;
+        color: #333;
+        font-size: 15px;
+        line-height: 1.65;
+        text-align: left;
+      }
+      .brand-micro {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #666;
+      }
+      .text-subheading {
+        font-size: 15px;
+        font-weight: 700;
+        color: #333;
+      }
+      .h1-title {
+        margin: 16px 0 8px;
+        font-size: 22px;
+        font-weight: 700;
+        color: #333;
+      }
+      .body-copy {
+        font-size: 15px;
+        line-height: 1.65;
+      }
+      .body-copy h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 1.5rem 0 0.5rem;
+      }
+      .body-copy h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        line-height: 1.3;
+        margin: 1.25rem 0 0.5rem;
+      }
+      .body-copy h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: 1rem 0 0.5rem;
+      }
+      .body-copy p {
+        margin: 0 0 16px;
+      }
+      .body-copy ul,
+      .body-copy ol {
+        margin: 0 0 16px;
+        padding-left: 1.5rem;
+      }
+      .body-copy ul {
+        list-style-type: disc;
+      }
+      .body-copy ol {
+        list-style-type: decimal;
+      }
+      .body-copy li {
+        display: list-item;
+        margin: 0.25rem 0;
+      }
+      .body-copy li p {
+        margin: 0;
+      }
+      .body-copy img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+      }
+      .legal-footer {
+        padding: 22px 16px 0;
+        text-align: center;
+        font-size: 12px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell-pad">
+      <div class="email-wrapper">
+        {{emailHeaderLogo}}
+        <div class="accent-bar"></div>
+        <div class="email-card">
+          <div class="content-pad">
+            <div class="brand-micro">{{brandName}}</div>
+            <div class="text-subheading">{{unitLabel}}</div>
+            <h1 class="h1-title">{{previewTitle}}</h1>
+            <div class="body-copy">{{bodyContent}}</div>
+          </div>
+        </div>
+        <div class="legal-footer">&copy; {{brandName}}. Preview only.</div>
+      </div>
+    </div>
+  </body>
+</html>

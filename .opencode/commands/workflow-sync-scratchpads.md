@@ -1,0 +1,1 @@
+../../.claude/commands/workflow-sync-scratchpads.md

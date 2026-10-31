@@ -1,0 +1,5 @@
+[install]
+# Hoist workspace deps like npm workspaces
+linker = "hoisted"
+
+[install.scopes]

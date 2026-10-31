@@ -1,0 +1,129 @@
+name: CD Prod (mt-prod — gated until release)
+
+# INACTIVE until Phase B (prod release):
+#   1. Create MULTI_TENANT_PROD Supabase + legacy data migration
+#   2. Merge develop → main; kame-homes Production branch = main
+#   3. GitHub Environment `production` secrets → mt-prod ref
+#   4. Set repository variable CUTOVER_ENABLED=true
+# See docs/workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md § Phase B
+
+on:
+  workflow_dispatch:
+    inputs:
+      acknowledge:
+        description: 'Type CUTover to acknowledge production Supabase deploy'
+        required: true
+        type: string
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cutover gate
+        env:
+          CUTOVER_ENABLED: ${{ vars.CUTOVER_ENABLED }}
+          ACK: ${{ github.event.inputs.acknowledge }}
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Production deploys must run from main."
+            exit 1
+          fi
+          if [[ "${CUTOVER_ENABLED:-}" != "true" ]]; then
+            echo "Cutover not enabled."
+            echo "Set repository variable CUTOVER_ENABLED=true only after Phase B (mt-prod release)."
+            echo "See docs/workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md § Phase B."
+            exit 1
+          fi
+          if [[ "$ACK" != "CUTover" ]]; then
+            echo "Workflow input acknowledge must be exactly: CUTover"
+            exit 1
+          fi
+          echo "Cutover gate passed. Target validation runs inside the protected production environment."
+
+  quality:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bun x playwright install chromium --with-deps
+
+      - name: Production quality gate
+        run: ./scripts/dev/ci-quality-gate.sh --skip-install
+
+  deploy:
+    needs: quality
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Link production project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          ./scripts/dev/bunx --bun supabase@latest link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Capture pre-deploy schema diff
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: ./scripts/dev/bunx --bun supabase@latest db diff --linked > pre-deploy-schema-diff.sql
+
+      - name: Upload schema diff
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-schema-diff-${{ github.sha }}
+          path: pre-deploy-schema-diff.sql
+          retention-days: 30
+
+      - name: Deploy Supabase (MULTI_TENANT_PROD)
+        env:
+          CI: '1'
+          DEPLOY_CONFIRM: prod
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+          MULTI_TENANT_DEV_PROJECT_REF: ${{ secrets.MULTI_TENANT_DEV_PROJECT_REF }}
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+        run: ./scripts/deploy/ci-deploy.sh prod
+
+      - name: Upload pre-deploy backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-backup-${{ github.sha }}
+          path: backups/prod/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Smoke public endpoints
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
+        run: ./scripts/deploy/ci-smoke.sh prod

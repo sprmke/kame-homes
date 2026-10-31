@@ -1,43 +1,22 @@
 /**
- * upload-app-settings-asset — Admin upload for operator-level assets (GCash QR, team logo, GAF signature).
- * Auth: verifyAdminJwt. Writes public URL to app_settings.
+ * upload-app-settings-asset — Admin upload for operator-level assets (GCash QR, GAF signature, review proof).
+ * Auth: verifyAdminJwt. Writes public URL to app_settings when configured.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from '../_shared/supabaseJs.ts';
 import { corsHeaders } from '../_shared/cors.ts';
-import { verifyAdminJwt } from '../_shared/auth.ts';
-import { DatabaseService } from '../_shared/databaseService.ts';
-import { invalidateAppSettingsCache } from '../_shared/appSettings.ts';
+import { handleEdgeError } from '../_shared/httpResponse.ts';
+import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import {
+  applyAppSettingsAssetFromBytes,
+  isAppSettingsApplyAssetType,
+} from '../_shared/appSettingsAssetUpload.ts';
+import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
+import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
 
 const BUCKET = 'app-settings-assets';
-
-const ASSET_CONFIG = {
-  gcash_qr: {
-    column: 'gcash_qr_image_url',
-    storagePrefix: 'gcash-qr',
-  },
-  team_logo: {
-    column: 'email_logo_url',
-    storagePrefix: 'team-logo',
-  },
-  gaf_unit_owner_signature: {
-    column: 'gaf_unit_owner_signature_url',
-    storagePrefix: 'gaf-unit-owner-signature',
-    allowedMime: new Set(['image/jpeg', 'image/png']),
-  },
-} as const satisfies Record<
-  string,
-  {
-    column: string;
-    storagePrefix: string;
-    allowedMime?: Set<string>;
-  }
->;
-
-type AssetType = keyof typeof ASSET_CONFIG;
-
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 serve(async (req) => {
@@ -46,99 +25,101 @@ serve(async (req) => {
   }
 
   try {
-    await verifyAdminJwt(req);
-
     if (req.method !== 'POST') {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
     const formData = await req.formData();
-    const assetType = formData.get('assetType') as AssetType;
+    const assetType = String(formData.get('assetType') ?? '').trim();
     const file = formData.get('file') as File;
     const fileName = (formData.get('fileName') as string) || file?.name;
+    const reviewId = (formData.get('reviewId') as string | null)?.trim() || undefined;
+    const photoIndexRaw = formData.get('photoIndex');
+    const photoIndex =
+      photoIndexRaw == null || photoIndexRaw === '' ? undefined : Number(photoIndexRaw);
 
-    if (!assetType || !ASSET_CONFIG[assetType]) {
-      throw new Error(`Invalid assetType: "${assetType}"`);
-    }
     if (!file) throw new Error('file is required');
     if (!fileName) throw new Error('fileName is required');
 
-    const mime = (file.type || '').toLowerCase();
-    const allowedMime = ASSET_CONFIG[assetType].allowedMime ?? ALLOWED_MIME;
-    if (!allowedMime.has(mime)) {
-      throw new Error(
-        assetType === 'gaf_unit_owner_signature'
-          ? 'Signature must be PNG or JPEG'
-          : 'File must be JPEG, PNG, or WebP',
+    if (assetType === 'gcash_qr') {
+      const { property } = await resolveScopedPropertyAccess(req, 'settings.payment:edit');
+      const propertyId = property.id;
+      const mime = (file.type || '').toLowerCase();
+      if (!ALLOWED_MIME.has(mime)) {
+        throw new Error('File must be JPEG, PNG, or WebP');
+      }
+      assertUploadMatchesBytes(new Uint8Array(await file.arrayBuffer()), mime, ALLOWED_MIME);
+      assertWithinUploadLimit(file, 'image');
+      const ext = fileName.includes('.')
+        ? `.${fileName.split('.').pop()?.toLowerCase()}`
+        : mime === 'image/png'
+          ? '.png'
+          : mime === 'image/webp'
+            ? '.webp'
+            : '.jpg';
+      const storagePath = `gcash-qr/${propertyId}/${crypto.randomUUID()}${ext}`;
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(storagePath, file, { upsert: true, contentType: mime, cacheControl: '31536000' });
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+      const safePublicUrl = formatPublicUrl(publicUrl);
+      console.log(`[upload-app-settings-asset] Uploaded gcash_qr: ${safePublicUrl}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            url: safePublicUrl,
+            bucket: BUCKET,
+            path: storagePath,
+            column: null,
+          },
+        }),
+        { headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error('File must be 5 MB or smaller');
+
+    if (!isAppSettingsApplyAssetType(assetType)) {
+      throw new Error(`Invalid assetType: "${assetType}"`);
     }
 
-    const ext = fileName.includes('.')
-      ? `.${fileName.split('.').pop()?.toLowerCase()}`
-      : mime === 'image/png'
-        ? '.png'
-        : mime === 'image/webp'
-          ? '.webp'
-          : '.jpg';
-    const storagePath = `${ASSET_CONFIG[assetType].storagePrefix}/current${ext}`;
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(storagePath, file, { upsert: true, contentType: mime });
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-    const safePublicUrl = formatPublicUrl(publicUrl);
-
-    await DatabaseService.updateAppSettings({
-      [ASSET_CONFIG[assetType].column]: safePublicUrl,
+    const permission =
+      assetType === 'gaf_unit_owner_signature'
+        ? ('settings.buildingForms:edit' as const)
+        : ('settings.socials:edit' as const);
+    const { property } = await resolveScopedPropertyAccess(req, permission);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const result = await applyAppSettingsAssetFromBytes({
+      propertyId: property.id,
+      assetType,
+      bytes,
+      mimeType: file.type || '',
+      fileName,
+      reviewId,
+      photoIndex,
     });
-    invalidateAppSettingsCache();
 
-    console.log(
-      `[upload-app-settings-asset] Uploaded ${assetType}: ${safePublicUrl}`,
-    );
+    console.log(`[upload-app-settings-asset] Uploaded ${assetType}: ${result.url}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
-          url: safePublicUrl,
-          bucket: BUCKET,
-          path: storagePath,
-          column: ASSET_CONFIG[assetType].column,
+          url: result.url,
+          bucket: result.bucket,
+          path: result.path,
+          column: result.column,
         },
       }),
-      { headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
+      { headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('[upload-app-settings-asset]', error);
-    const status = error instanceof Response ? error.status : 400;
-    const message =
-      error instanceof Response
-        ? await error
-            .clone()
-            .json()
-            .then((b: { error?: string }) => b.error)
-            .catch(() => 'Unauthorized')
-        : (error as Error).message;
-
-    return new Response(JSON.stringify({ success: false, error: message }), {
-      status,
-      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
-    });
+    return await handleEdgeError(req, error, '[upload-app-settings-asset]');
   }
 });

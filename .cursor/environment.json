@@ -1,0 +1,20 @@
+{
+  "name": "Kame Home — develop",
+  "install": "./.cursor/install.sh",
+  "start": "./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "edge-functions",
+      "command": "./.cursor/serve-functions.sh"
+    },
+    {
+      "name": "ui",
+      "command": "cd ui && bun run dev -- --host 0.0.0.0"
+    }
+  ],
+  "ports": [
+    { "name": "ui", "port": 5173 },
+    { "name": "supabase-api", "port": 54321 },
+    { "name": "supabase-studio", "port": 54323 }
+  ]
+}

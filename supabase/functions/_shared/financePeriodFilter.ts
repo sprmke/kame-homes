@@ -6,12 +6,9 @@ import { checkInDateToIso } from './bookingsListSort.ts';
 
 export type FinancePeriodBasis = 'check_in' | 'check_out' | 'completed';
 
-const CANCELLED = new Set(['CANCELLED', 'canceled']);
+const CANCELLED = new Set(['CANCELLED']);
 
-function bookingDateForPeriod(
-  row: Record<string, unknown>,
-  basis: FinancePeriodBasis,
-): string {
+function bookingDateForPeriod(row: Record<string, unknown>, basis: FinancePeriodBasis): string {
   if (basis === 'completed') {
     const settled = row.settled_at;
     if (typeof settled === 'string' && settled.length >= 10) {
@@ -35,7 +32,7 @@ export function passesFinancePeriodFilter(
   row: Record<string, unknown>,
   from: string | null,
   to: string | null,
-  basis: FinancePeriodBasis,
+  basis: FinancePeriodBasis
 ): boolean {
   if (basis === 'completed' && row.status !== 'COMPLETED') return false;
   const iso = bookingDateForPeriod(row, basis);

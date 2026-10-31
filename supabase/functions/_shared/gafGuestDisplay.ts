@@ -11,17 +11,13 @@ function formatAgeLabelForGaf(age: number): string {
  */
 export function formatGafGuestDisplayName(
   name: string | undefined | null,
-  age: number | undefined | null,
+  age: number | undefined | null
 ): string | undefined {
   const trimmed = name?.trim();
   if (!trimmed) return undefined;
 
-  const numericAge =
-    age != null ? Number(age) : Number.NaN;
-  if (
-    Number.isFinite(numericAge) &&
-    numericAge <= GAF_CHILD_MAX_AGE
-  ) {
+  const numericAge = age != null ? Number(age) : Number.NaN;
+  if (Number.isFinite(numericAge) && numericAge <= GAF_CHILD_MAX_AGE) {
     return `${trimmed} (${formatAgeLabelForGaf(numericAge)})`;
   }
 

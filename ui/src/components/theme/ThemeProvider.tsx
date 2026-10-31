@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+
 import {
   applyThemeClass,
   persistTheme,
@@ -14,7 +15,7 @@ import {
   resolveTheme,
   type ResolvedTheme,
   type ThemePreference,
-} from '@/lib/theme';
+} from '@/lib/theme/preferences';
 
 type ThemeContextValue = {
   theme: ThemePreference;
@@ -26,11 +27,9 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemePreference>(() =>
-    readStoredTheme(),
-  );
+  const [theme, setThemeState] = useState<ThemePreference>(() => readStoredTheme());
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    resolveTheme(readStoredTheme()),
+    resolveTheme(readStoredTheme())
   );
 
   useEffect(() => {
@@ -60,12 +59,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({ theme, resolvedTheme, setTheme, toggleTheme }),
-    [theme, resolvedTheme, setTheme, toggleTheme],
+    [theme, resolvedTheme, setTheme, toggleTheme]
   );
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

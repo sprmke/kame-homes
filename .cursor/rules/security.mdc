@@ -1,0 +1,70 @@
+---
+description: Auth, org/property RBAC, secrets, and data scoping — edge + admin UI
+globs:
+  - 'supabase/functions/**/*.ts'
+  - 'ui/src/features/dashboard/org/**/*.ts'
+  - 'ui/src/features/dashboard/team/**/*.ts'
+  - 'ui/src/features/dashboard/bookings/components/RequireAdmin.tsx'
+  - 'ui/src/lib/supabase/client.ts'
+alwaysApply: false
+---
+
+# Security
+
+## Layers
+
+| Surface               | Gate                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| Legacy platform admin | `verifyAdminJwt` + `ADMIN_ALLOWED_EMAILS` — `.cursor/rules/admin-auth.mdc`                            |
+| Org / property admin  | `verifyOrgAccess`, `verifyPropertyAccess` — `_shared/orgAuth.ts`, `_shared/propertyScope.ts`          |
+| Public guest          | Anon key; validate inputs; no PII in logs                                                             |
+| Cron / webhooks       | `cronSecretGate` — fail-closed on `ENVIRONMENT=production` when job secret unset                      |
+| Public GET scrape     | Durable RL via `publicEndpointRateLimit.ts` + platform `public_rate_limit_per_min`                    |
+| Guest booking PII     | Staged `?access=` tokens on **reads and writes** (`guestBookingAccessToken.ts`); enforce via env flag |
+| Guest doc storage     | Private buckets + signed URLs (`storageSignedUrl.ts`, `get-form`, `get-booking-asset-url`)            |
+
+## Non-negotiables
+
+1. **Server enforces** — never trust client-only allow lists or role checks.
+2. **Scope every query** by `organization_id` / `property_id` / `booking.property_id`.
+3. **Service role** only inside edge functions — never in UI env.
+4. **Encrypt** OAuth refresh tokens + Telegram bot tokens at rest (`GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY`).
+5. **No secrets** in URLs, commits, or guest-visible errors.
+
+## Property-scoped edge functions
+
+```typescript
+import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { serveAuthenticated } from '../_shared/serveEdge.ts';
+
+serveAuthenticated('list-bookings', async (req) => {
+  const { property } = await resolveScopedPropertyAccess(req, 'bookings:view');
+  // all DB reads/writes filter by property.id — never fall back to DEFAULT_PROPERTY
+});
+```
+
+Public guest handlers (`submit-form`, `get-booked-dates`, `get-guest-payment-info`) require `?property=` or `?property_id=`. Unknown slug is **404**. Missing scope is **400**.
+
+Team RBAC: `_shared/propertyTeamPermissions.ts`, `_shared/orgTeamPermissions.ts`.
+
+## UI
+
+- `RequireAdmin.tsx` — session hydrate, allow-list UX, sign-out on reject.
+- `callEdgeFunction` reuses the cached JWT (`getSessionJwt`); refreshes only when the access token is near expiry. Do not refresh on every edge call (Auth 429 → logout).
+- Property context: `usePropertyIdParam`, `scopedFunctionsUrl`, route params `orgSlug` / `propertySlug`.
+
+## Guest PII
+
+Minimize logs. Storage paths: `{propertyId}/…` via `bookingStoragePaths.ts` (legacy flat keys may exist — run `bun scripts/media/storage-audit.ts --key-shapes` before cutover).
+
+Guest form **reads and writes** (`get-form`, `get-sd-form`, `get-guest-review`, `submit-form` updates, `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`) require `authorizeGuestBookingAccess` when `GUEST_BOOKING_ACCESS_ENFORCE=true`. Token may be `?access=` or body/FormData `access`. Never return unsigned storage URLs for private guest-doc buckets.
+
+Two-way reviews: unpublished counterpart text never leaves the authoring side (lists, emails, bells, PostHog, AI drafts). `host_guest_reviews.internal_note` stays inside the authoring org. Public listing aggregates use `property_review_summary` (published only).
+
+Public writes: `antiSpamGate` (heuristics + Turnstile when keys live + durable RL). New `servePublic` handlers must wire `publicGetRateLimitGate` (CI: `check-serve-public-rate-limit.sh`).
+
+## Don'ts
+
+- Skip `verifyAdminJwt` / `verifyPropertyAccess` because `verify_jwt = false` in config.toml
+- Return stack traces or secret env names to clients
+- Cross-tenant reads using only client-supplied UUIDs without membership check

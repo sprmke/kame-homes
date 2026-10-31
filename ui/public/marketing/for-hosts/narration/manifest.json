@@ -1,0 +1,158 @@
+[
+  {
+    "id": "intro",
+    "text": "Meet Kame Space. Everything you need to run your rentals, in one place.",
+    "file": "intro.mp3",
+    "seconds": 4.51
+  },
+  {
+    "id": "setup-guide",
+    "text": "Setup takes minutes. A guided checklist walks you through every step.",
+    "file": "setup-guide.mp3",
+    "seconds": 5.26
+  },
+  {
+    "id": "portfolio",
+    "text": "See all your properties and parking spots together, with revenue and occupancy.",
+    "file": "portfolio.mp3",
+    "seconds": 5.11
+  },
+  {
+    "id": "command-center",
+    "text": "Each property gets a simple home page: earnings, your calendar, and what needs you today.",
+    "file": "command-center.mp3",
+    "seconds": 5.45
+  },
+  {
+    "id": "booking-workflow",
+    "text": "Bookings move forward on their own. Documents, receipts, and guest emails are handled for you.",
+    "file": "booking-workflow.mp3",
+    "seconds": 6
+  },
+  {
+    "id": "bookings-board",
+    "text": "Prefer a board? Drag a booking to its next step, or add one by hand.",
+    "file": "bookings-board.mp3",
+    "seconds": 5.02
+  },
+  {
+    "id": "data-import",
+    "text": "Moving from a spreadsheet? Upload it, and AI fills in the right fields.",
+    "file": "data-import.mp3",
+    "seconds": 4.56
+  },
+  {
+    "id": "channel-sync",
+    "text": "Connect Airbnb once. Bookings and blocked dates stay in sync both ways.",
+    "file": "channel-sync.mp3",
+    "seconds": 5.3
+  },
+  {
+    "id": "pricing",
+    "text": "Set your rates on a calendar, or turn on Smart Pricing and let AI suggest them.",
+    "file": "pricing.mp3",
+    "seconds": 5.5
+  },
+  {
+    "id": "finance",
+    "text": "Income is recorded automatically. Add expenses and see your real profit.",
+    "file": "finance.mp3",
+    "seconds": 5.26
+  },
+  {
+    "id": "maintenance",
+    "text": "Schedule upkeep, get reminders, and check off tasks as you go.",
+    "file": "maintenance.mp3",
+    "seconds": 4.39
+  },
+  {
+    "id": "analytics",
+    "text": "Analytics shows how you are doing, and an AI review tells you what to improve.",
+    "file": "analytics.mp3",
+    "seconds": 4.7
+  },
+  {
+    "id": "guest-inbox",
+    "text": "Facebook, Instagram, and website chat land in one inbox. AI drafts the replies.",
+    "file": "guest-inbox.mp3",
+    "seconds": 6.12
+  },
+  {
+    "id": "ai-receptionist",
+    "text": "Guests can call Kame, your AI receptionist. It answers questions about your place, day or night.",
+    "file": "ai-receptionist.mp3",
+    "seconds": 6.29
+  },
+  {
+    "id": "public-pages",
+    "text": "Your listing, stay guide, and showcase page update live as you edit.",
+    "file": "public-pages.mp3",
+    "seconds": 4.68
+  },
+  {
+    "id": "guest-booking",
+    "text": "Guests find you in search or on your own page, pick open dates, and book in a few taps.",
+    "file": "guest-booking.mp3",
+    "seconds": 5.57
+  },
+  {
+    "id": "guest-journey",
+    "text": "Once booked, guests get a stay guide, chat with you anytime, and earn a voucher when they leave a review.",
+    "file": "guest-journey.mp3",
+    "seconds": 6.26
+  },
+  {
+    "id": "templates",
+    "text": "Customize every guest email, and preview exactly what guests will see.",
+    "file": "templates.mp3",
+    "seconds": 4.49
+  },
+  {
+    "id": "marketing-studio",
+    "text": "Content Studio makes calendars, social posts, and short videos for your property.",
+    "file": "marketing-studio.mp3",
+    "seconds": 5.21
+  },
+  {
+    "id": "ai-photo",
+    "text": "Describe a shot, add your photos, and AI creates posts and images that look like your place.",
+    "file": "ai-photo.mp3",
+    "seconds": 5.57
+  },
+  {
+    "id": "ai-video",
+    "text": "Pick a photo and a camera move. AI turns it into a short video clip.",
+    "file": "ai-video.mp3",
+    "seconds": 5.02
+  },
+  {
+    "id": "team",
+    "text": "Invite your team, and choose exactly what each person can see and do.",
+    "file": "team.mp3",
+    "seconds": 4.66
+  },
+  {
+    "id": "notifications",
+    "text": "Get instant Telegram alerts for bookings, messages, and maintenance.",
+    "file": "notifications.mp3",
+    "seconds": 4.46
+  },
+  {
+    "id": "ai-mode",
+    "text": "Switch to AI mode, ask in plain words, and the right page opens beside the chat.",
+    "file": "ai-mode.mp3",
+    "seconds": 5.38
+  },
+  {
+    "id": "plans-billing",
+    "text": "Simple plans, priced per property, with one bill for your whole organization.",
+    "file": "plans-billing.mp3",
+    "seconds": 5.11
+  },
+  {
+    "id": "outro",
+    "text": "Kame Space. Less busywork, more happy guests. Start free today.",
+    "file": "outro.mp3",
+    "seconds": 5.3
+  }
+]

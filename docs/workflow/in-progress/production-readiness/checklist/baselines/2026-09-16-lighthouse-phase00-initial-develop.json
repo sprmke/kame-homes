@@ -1,0 +1,153 @@
+{
+  "capturedAt": "2026-09-16T10:55:39.618Z",
+  "label": "phase00-initial-develop",
+  "baseUrl": "http://localhost:5148",
+  "mode": "local-vite-preview",
+  "note": "Local `vite preview` — no CDN/brotli negotiation. Relative regression detection only; see doc 00 Phase 0.4 for the deployed-preview run.",
+  "routes": [
+    {
+      "path": "/",
+      "persona": "guest-anon",
+      "name": "Public landing",
+      "url": "http://localhost:5148/",
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 9717.077299999997,
+        "clsScore": 0.01810789336386912,
+        "tbtMs": 28,
+        "fcpMs": 6256.362349999999,
+        "speedIndexMs": 6256.362349999999,
+        "totalByteWeightBytes": 2313672
+      },
+      "error": null
+    },
+    {
+      "path": "/properties",
+      "persona": "guest-anon",
+      "name": "Property search/list",
+      "url": "http://localhost:5148/properties",
+      "metrics": {
+        "performanceScore": 59,
+        "lcpMs": 9694.152800000002,
+        "clsScore": 0,
+        "tbtMs": 4,
+        "fcpMs": 6461.6234,
+        "speedIndexMs": 6522.564634630155,
+        "totalByteWeightBytes": 1103933
+      },
+      "error": null
+    },
+    {
+      "path": "/properties/demo-property/form",
+      "persona": "guest-anon",
+      "name": "Guest booking form",
+      "url": "http://localhost:5148/properties/demo-property/form",
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 8306.984950000002,
+        "clsScore": 0,
+        "tbtMs": 43,
+        "fcpMs": 6261.303499999999,
+        "speedIndexMs": 6261.303499999999,
+        "totalByteWeightBytes": 1158431
+      },
+      "error": null
+    },
+    {
+      "path": "/parkings",
+      "persona": "guest-anon",
+      "name": "Parking landing",
+      "url": "http://localhost:5148/parkings",
+      "metrics": {
+        "performanceScore": 59,
+        "lcpMs": 9305.87385,
+        "clsScore": 0,
+        "tbtMs": 91,
+        "fcpMs": 6434.70255,
+        "speedIndexMs": 6434.70255,
+        "totalByteWeightBytes": 1100086
+      },
+      "error": null
+    },
+    {
+      "path": "/account",
+      "persona": "guest-auth",
+      "name": "Guest account (redirects to sign-in if anon)",
+      "url": "http://localhost:5148/account",
+      "metrics": {
+        "performanceScore": 61,
+        "lcpMs": 7218.3047,
+        "clsScore": 0,
+        "tbtMs": 75,
+        "fcpMs": 6160.3485,
+        "speedIndexMs": 6160.3485,
+        "totalByteWeightBytes": 1074019
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/bookings",
+      "persona": "host",
+      "name": "Admin bookings dashboard (needs auth session + real slugs)",
+      "url": "http://localhost:5148/org/demo-org/property/demo-property/bookings",
+      "metrics": {
+        "performanceScore": 47,
+        "lcpMs": 8493.515699999998,
+        "clsScore": 0,
+        "tbtMs": 502,
+        "fcpMs": 6290.1386,
+        "speedIndexMs": 6290.1386,
+        "totalByteWeightBytes": 1252752
+      },
+      "error": null
+    },
+    {
+      "path": "/org/demo-org/property/demo-property/finance",
+      "persona": "host",
+      "name": "Admin finance (needs auth session + real slugs)",
+      "url": "http://localhost:5148/org/demo-org/property/demo-property/finance",
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 8538.142399999997,
+        "clsScore": 0,
+        "tbtMs": 33,
+        "fcpMs": 6246.06615,
+        "speedIndexMs": 6246.06615,
+        "totalByteWeightBytes": 1252735
+      },
+      "error": null
+    },
+    {
+      "path": "/for-hosts/pricing",
+      "persona": "host",
+      "name": "Plans/pricing page",
+      "url": "http://localhost:5148/for-hosts/pricing",
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 7893.463500000002,
+        "clsScore": 0,
+        "tbtMs": 0,
+        "fcpMs": 6298.4239,
+        "speedIndexMs": 6298.4239,
+        "totalByteWeightBytes": 1082337
+      },
+      "error": null
+    },
+    {
+      "path": "/admin",
+      "persona": "super-admin",
+      "name": "Super-admin shell (redirects if unauthenticated)",
+      "url": "http://localhost:5148/admin",
+      "metrics": {
+        "performanceScore": 60,
+        "lcpMs": 8499.308949999999,
+        "clsScore": 0,
+        "tbtMs": 0,
+        "fcpMs": 6290.294050000001,
+        "speedIndexMs": 6290.294050000001,
+        "totalByteWeightBytes": 1252572
+      },
+      "error": null
+    }
+  ]
+}

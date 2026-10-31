@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "UI: Chrome (Vite)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/ui/src",
+      "pathMapping": {
+        "/@": "${workspaceFolder}/ui/src",
+        "/@fs": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "UI: Chrome (attach)",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/ui/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start dev server + Chrome",
+      "configurations": ["UI: Chrome (Vite)"],
+      "preLaunchTask": "Start dev server"
+    },
+    {
+      "name": "Dev: UI only + Chrome",
+      "configurations": ["UI: Chrome (Vite)"],
+      "preLaunchTask": "Dev: UI only (remote Supabase)"
+    },
+    {
+      "name": "Dev: Hosted dev + Chrome",
+      "configurations": ["UI: Chrome (Vite)"],
+      "preLaunchTask": "Dev: Hosted dev (UI only)"
+    },
+    {
+      "name": "Dev: Hosted dev (hybrid) + Chrome",
+      "configurations": ["UI: Chrome (Vite)"],
+      "preLaunchTask": "Dev: Hosted dev (hybrid — API + UI)"
+    }
+  ]
+}

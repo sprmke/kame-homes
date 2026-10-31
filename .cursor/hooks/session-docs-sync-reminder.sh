@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# SessionStart: remind agents that docs must update in the same change as code.
+# Mirrors .claude/hooks/session-docs-sync-reminder.sh (Claude SessionStart shape).
+set -uo pipefail
+
+MSG='DOCS SYNC (mandatory): Material code/behavior changes must update matching docs in the SAME change — not later. Route/page UX → docs/guides/routes/* (route-guides skill). API/env/architecture → docs/PROJECT.md. Plans/tiers → docs/architecture/plans-feature-matrix.md + Plans guides. Booking/auth invariants → .cursor/rules/booking-workflow.mdc or admin-auth.mdc. Invoke documentation-maintenance skill before claiming done. Canonical: .cursor/rules/documentation-maintenance.mdc · CLAUDE.md § Docs are the source of truth.'
+
+escape_for_json() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
+escaped=$(escape_for_json "$MSG")
+printf '{\n  "additional_context": "%s"\n}\n' "$escaped"

@@ -1,0 +1,174 @@
+{
+  "get_property_analytics_30d": {
+    "toolName": "get_property_analytics",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "enough": true,
+      "period": { "from": "2026-09-20", "to": "2026-10-19" },
+      "state": {
+        "forwardOccupancyState30d": "building",
+        "forwardOccupancyState30dLabel": "Building — occupancy is picking up, keep current approach",
+        "forwardOccupancyState60d": "underbooked",
+        "balanceCollectionState": "attention_needed",
+        "balanceCollectionStateLabel": "Attention needed — some upcoming bookings carry unpaid balances",
+        "unpaidBalanceUpcomingTotalDisplay": "₱7,000",
+        "unpaidBalanceUpcomingCount": 2
+      },
+      "kpis": {
+        "occupancyRatePct": 68,
+        "occupancyRateVsPrior": "+6.0%",
+        "occupancyRateVsLastYear": "+12.5%",
+        "adrDisplay": "₱3,450",
+        "adrVsPrior": "+2.1%",
+        "revparDisplay": "₱2,346",
+        "revparVsPrior": "+8.2%",
+        "grossRevenueDisplay": "₱72,700",
+        "grossRevenueVsPrior": "+9.4%",
+        "grossRevenueVsLastYear": "+15.0%",
+        "netProfitDisplay": "₱52,100",
+        "netProfitVsPrior": "+7.7%",
+        "reservations": 11,
+        "reservationsVsPrior": "+10.0%",
+        "avgLeadTimeDays": 14,
+        "cancellationRatePct": 8,
+        "cancellationRateVsPrior": "-2.0%",
+        "avgRating": 4.8,
+        "repeatGuestRatePct": 18,
+        "avgResponseMinutes": 23,
+        "responseWithin24hRatePct": 96
+      },
+      "forward": {
+        "windowDays": 90,
+        "occupancyOnBooksPct": 42,
+        "revenueOnBooksDisplay": "₱94,300",
+        "openNightsCount": 52
+      },
+      "pickup": { "last7d": 3, "last30d": 9 },
+      "channelMix": [
+        { "channel": "direct", "count": 6 },
+        { "channel": "airbnb", "count": 3 },
+        { "channel": "facebook", "count": 2 }
+      ],
+      "topGuestOrigins": [
+        { "origin": "Metro Manila", "count": 5 },
+        { "origin": "Cebu", "count": 3 },
+        { "origin": "Davao", "count": 2 }
+      ],
+      "publicPage": { "pageViews": 412, "uniqueVisitors": 286 },
+      "benchmark": {
+        "available": true,
+        "sampleSize": 24,
+        "medianOccupancyRatePct": 61,
+        "occupancyPercentile": 72,
+        "medianAdrDisplay": "₱3,100",
+        "adrPercentile": 65
+      },
+      "suggestedPlaybookArticles": [
+        { "title": "Raise weekend rates when forward occupancy is strong", "category": "pricing" }
+      ]
+    }
+  },
+  "get_property_analytics_no_benchmark": {
+    "toolName": "get_property_analytics",
+    "data": {
+      "propertyId": "p-shore-2b",
+      "enough": false,
+      "sampleSize": 6,
+      "note": "Not enough completed booking history yet for a full review (needs 10+ non-cancelled bookings ever).",
+      "period": { "from": "2026-09-20", "to": "2026-10-19" },
+      "state": {
+        "forwardOccupancyState30d": "underbooked",
+        "forwardOccupancyState30dLabel": "Underbooked — worth a pricing and marketing check",
+        "forwardOccupancyState60d": "underbooked",
+        "balanceCollectionState": "clear",
+        "balanceCollectionStateLabel": "Clear — no upcoming balances at risk",
+        "unpaidBalanceUpcomingTotalDisplay": "₱0",
+        "unpaidBalanceUpcomingCount": 0
+      },
+      "kpis": {
+        "occupancyRatePct": 31,
+        "occupancyRateVsPrior": "-4.0%",
+        "occupancyRateVsLastYear": "n/a",
+        "adrDisplay": "₱2,900",
+        "adrVsPrior": "0.0%",
+        "revparDisplay": "₱899",
+        "revparVsPrior": "-4.0%",
+        "grossRevenueDisplay": "₱26,100",
+        "grossRevenueVsPrior": "-3.5%",
+        "grossRevenueVsLastYear": "n/a",
+        "netProfitDisplay": "₱18,400",
+        "netProfitVsPrior": "-5.0%",
+        "reservations": 4,
+        "reservationsVsPrior": "0.0%",
+        "avgLeadTimeDays": 9,
+        "cancellationRatePct": 0,
+        "cancellationRateVsPrior": "0.0%",
+        "avgRating": 4.5,
+        "repeatGuestRatePct": 0,
+        "avgResponseMinutes": 41,
+        "responseWithin24hRatePct": 88
+      },
+      "forward": {
+        "windowDays": 90,
+        "occupancyOnBooksPct": 18,
+        "revenueOnBooksDisplay": "₱21,000",
+        "openNightsCount": 74
+      },
+      "pickup": { "last7d": 1, "last30d": 3 },
+      "channelMix": [{ "channel": "direct", "count": 4 }],
+      "topGuestOrigins": [{ "origin": "Metro Manila", "count": 4 }],
+      "publicPage": { "pageViews": 97, "uniqueVisitors": 71 },
+      "benchmark": { "available": false }
+    }
+  },
+  "get_analytics_demographics": {
+    "toolName": "get_analytics_demographics",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "period": { "from": "2026-07-21", "to": "2026-10-19" },
+      "partySize": [
+        { "label": "1-2 guests", "count": 14 },
+        { "label": "3-4 guests", "count": 9 },
+        { "label": "5+ guests", "count": 3 }
+      ],
+      "leadTimeBands": [
+        { "label": "0-7 days", "count": 8 },
+        { "label": "8-30 days", "count": 12 },
+        { "label": "31+ days", "count": 6 }
+      ],
+      "channelMix": [
+        { "channel": "direct", "count": 15 },
+        { "channel": "airbnb", "count": 7 },
+        { "channel": "facebook", "count": 4 }
+      ],
+      "reservations": 26
+    }
+  },
+  "get_smart_pricing_preview": {
+    "toolName": "get_smart_pricing_preview",
+    "data": {
+      "runId": "spr-2026-10-19-01",
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "next30": {
+        "currentTotal": 103500,
+        "proposedTotal": 112800,
+        "currentTotalDisplay": "₱103,500",
+        "proposedTotalDisplay": "₱112,800",
+        "changedNights": 11
+      },
+      "changes": [
+        {
+          "date": "2026-10-24",
+          "current": 3450,
+          "proposed": 3900,
+          "reason": "Saturday, high forward demand"
+        },
+        { "date": "2026-10-25", "current": 3450, "proposed": 3700, "reason": "Sunday" },
+        { "date": "2026-10-31", "current": 3450, "proposed": 4200, "reason": "Holiday weekend" },
+        { "date": "2026-11-01", "current": 3450, "proposed": 4200, "reason": "All Saints' Day" },
+        { "date": "2026-11-07", "current": 3450, "proposed": 3800, "reason": "Saturday" }
+      ]
+    }
+  }
+}

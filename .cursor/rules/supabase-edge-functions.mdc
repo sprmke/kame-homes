@@ -13,6 +13,7 @@ alwaysApply: false
 - **CORS**: use `corsHeaders(req)` from `_shared/cors.ts` on every response including errors and OPTIONS preflight.
 - **Supabase admin**: `createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)` inside services; never expose the service role key to the browser.
 - **Production vs local dev**: `Deno.env.get('DENO_DEPLOYMENT_ID')` is set on hosted Supabase Edge; some handlers log or gate optional behavior on it. There is no separate “test booking” pipeline — use a staging project or local Supabase for safe experimentation.
+- **`SECURITY DEFINER` RPCs**: immediately `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated`, then grant only the role(s) that must execute them. Policy helper functions may grant `authenticated` explicitly. A `GRANT ... TO service_role` does not remove Postgres's default `PUBLIC` execute privilege.
 
 ## Email HTML templates (`static_files`)
 
@@ -22,20 +23,26 @@ When you add a function that imports `emailService` or `workflowOrchestrator`, c
 
 ## Function categories & JWT policy
 
-This repo has three categories. Set JWT policy in `supabase/config.toml` accordingly.
+This repo has four categories. Set JWT policy in `supabase/config.toml` accordingly.
 
-| Category             | Functions                                                                                                                                                             | `verify_jwt` | Notes                                                                                                                                                                                                                                    |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public (guest)       | `submit-form`, `get-form`, `get-booked-dates`, `get-guest-payment-info`                                                                                                                         | `false`      | UI passes anon key. Never trust request body blindly.                                                                                                                                                                                    |
-| Admin                | `list-bookings`, `transition-booking`, `upload-booking-asset`, `upload-app-settings-asset`, `parking-broadcast-email`, `cancel-booking`, `gmail-backfill-approvals`, `backfill-calendar-event-dates`, `app-settings`, `telegram-marketing-settings`, `telegram-staff-settings`, `telegram-admin-settings` | `false`      | Kong JWT gate off (ES256 tokens); **first line** of handler must call `verifyAdminJwt(req)` — that is the real gate.                                                                                                                     |
-| Scheduled / internal | `gmail-listener`, `sd-refund-cron`, `telegram-marketing-cron`, `telegram-staff-cron`, `telegram-admin-cron`                                                                                                           | `false`      | Invoked by hosted **`pg_cron` + `net.http_post`** (see `docs/SCHEDULED_JOBS_AND_TESTING.md`); handlers do **not** call `verifyAdminJwt` except SD scoped body. Telegram crons optionally check **`X-Telegram-Cron-Secret`**. |
+| Category                     | Functions                                                                                                                                                                                                                                    | `verify_jwt` | Notes                                                                                                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public (guest)               | `submit-form`, `get-form`, `get-booked-dates`, `get-guest-payment-info`, `get-public-property`                                                                                                                                               | `false`      | UI passes anon key. Never trust request body blindly.                                                                                                                                                                                           |
+| Admin                        | `list-bookings`, `transition-booking`, `upload-booking-asset`, `upload-app-settings-asset`, `parking-broadcast-email`, `cancel-booking`, `app-settings`, `telegram-marketing-settings`, `telegram-staff-settings`, `telegram-admin-settings` | `false`      | Kong JWT gate off (ES256 tokens); **first line** of handler must call `verifyAdminJwt(req)` — that is the real gate.                                                                                                                            |
+| Org / property authenticated | `copy-property-settings`                                                                                                                                                                                                                     | `false`      | `serveAuthenticated`; handler auth via **`verifyPropertyAccess`** (source `settings:view`; per-target group edit leaves + plan gates). Not `verifyAdminJwt`.                                                                                    |
+| Scheduled / internal         | `sd-refund-cron`, `telegram-marketing-cron`, `telegram-staff-cron`, `telegram-admin-cron`                                                                                                                                                    | `false`      | Invoked by hosted **`pg_cron` + `net.http_post`** (see `docs/archive/operations/scheduled-jobs-and-testing.md`); handlers do **not** call `verifyAdminJwt` except SD scoped body. Telegram crons optionally check **`X-Telegram-Cron-Secret`**. |
 
 ## Handler skeleton (copy this)
 
 Prefer **`serveAdmin`**, **`servePublic`**, or **`serveCronPost`** from `_shared/serveEdge.ts` plus JSON helpers from `_shared/httpResponse.ts`. Telegram settings endpoints also use `_shared/telegramSettingsHttp.ts`.
 
 ```ts
-import { jsonError, jsonSuccess, readJsonBody, requireHttpMethod } from '../_shared/httpResponse.ts';
+import {
+  jsonError,
+  jsonSuccess,
+  readJsonBody,
+  requireHttpMethod,
+} from '../_shared/httpResponse.ts';
 import { serveAdmin } from '../_shared/serveEdge.ts';
 
 serveAdmin('<function-name>', async (req, admin) => {
@@ -79,28 +86,44 @@ See `.cursor/rules/admin-auth.mdc` for the full admin contract.
 
 ## Scheduled functions (new in the redesign)
 
-- **`[functions.gmail-listener]`**, **`[functions.sd-refund-cron]`**, and **`[functions.telegram-marketing-cron]`** in `supabase/config.toml` use **`verify_jwt = false`**. Do **not** add **`schedule = ...`** to `config.toml` in this repo — the local CLI rejects or mishandles it; hosted recurrence for Gmail/SD is **`pg_cron` + `pg_net`** (SQL + Vault), documented in **`docs/SCHEDULED_JOBS_AND_TESTING.md`**. Telegram marketing recurrence is **`pg_cron`** (**`telegram-marketing-daily-slot-*`**) driven by **`sync_telegram_marketing_daily_cron_jobs`** after **Marketing → Save**, or fallback legacy **`0 2,7,13 * * *`** from **`supabase/snippets/telegram-marketing-cron.sql`**; see **`docs/reference/telegram-marketing-reminders.md`**.
+- **`[functions.sd-refund-cron]`** and **`[functions.telegram-marketing-cron]`** in `supabase/config.toml` use **`verify_jwt = false`**. Do **not** add **`schedule = ...`** to `config.toml` in this repo — the local CLI rejects or mishandles it; hosted recurrence for SD is **`pg_cron` + `pg_net`** (SQL + Vault), documented in **`docs/archive/operations/scheduled-jobs-and-testing.md`**. GAF/pet approvals use **`approval-email-webhook`** (Resend inbound), not a cron poll. Telegram marketing recurrence is **`pg_cron`** (**`telegram-marketing-daily-slot-*`**) driven by **`sync_telegram_marketing_daily_cron_jobs`** after **Marketing → Save**, or fallback legacy **`0 2,7,13 * * *`** from **`supabase/snippets/telegram-marketing-cron.sql`**; see **`docs/archive/reference/telegram-marketing-reminders.md`**.
 
 - Idempotency: if a scheduled job could fire twice for the same booking/message (it can), **store a processed marker in DB** (`processed_emails` for Gmail; `status_updated_at` + state comparison for SD cron).
 - Logging: always log run summary (how many messages scanned, how many bookings advanced) so you can read Supabase logs and understand it at a glance.
 
 ## Orchestrating side effects
 
-Per `booking-workflow.mdc`, **never put fan-out logic inside handler functions**. All transitions (from `transition-booking`, `gmail-listener`, `sd-refund-cron`, `cancel-booking`) call the shared `_shared/workflowOrchestrator.ts#transition(bookingId, toStatus, payload)` so:
+Per `booking-workflow.mdc`, **never put fan-out logic inside handler functions**. All transitions (from `transition-booking`, `approval-email-webhook`, `sd-refund-cron`, `cancel-booking`) call the shared `_shared/workflowOrchestrator.ts#transition(bookingId, toStatus, payload)` so:
 
 - Validation is in one place.
 - Calendar + sheet + email behavior is consistent regardless of caller.
 - New transitions require one patch, not four.
 
+## File uploads — size ceiling + MIME allow-list
+
+Any handler that reads a `File` from `req.formData()` (or `databaseService` processing a form file):
+
+- Call **`assertWithinUploadLimit(file, kind)`** from `_shared/uploadLimits.ts` (`kind`: `'image' | 'avatar' | 'document' | 'pdf' | 'video'`) — it throws `File must be N MB or smaller`. Never hardcode a `file.size > N` check; the ceilings live in one place and are mirrored (with a parity unit test) by `ui/src/lib/media/uploadLimits.ts`.
+- The MIME allow-list **must accept `image/webp`** (the client optimizer's default output) and `image/heic` / `image/heif` (undecodable-source pass-through). PDF-capable surfaces also accept `application/pdf`.
+- Ceilings are a **bypass safety net**, not the primary limit — the client (`prepareUpload`) already downscales/re-encodes and validates. Set bucket `file_size_limit` `>=` the ceiling in the migration.
+
+See `docs/architecture/storage.md` §7.1.
+
+## Anti-spam — public / lightly-authed writes
+
+Any **new anonymous write endpoint** (or a self-service-authed one that fans out email/Telegram) must gate on **`antiSpamGate(req, body, { scope, rateLimit, captcha?, heuristics? })`** from `_shared/antiSpam.ts` and `return` the `Response` it yields (bot heuristics → Turnstile `siteverify` → durable `request_rate_limits` counter). Behind the auth wall with no CAPTCHA, use **`rateLimitGate(req, { scope, identity: identityFromRequest(req, user), limit, windowSec })`** from `_shared/rateLimit.ts`. Never `throw` these from a `servePublic`/`serveAuthenticated` handler — `handleEdgeError` flattens a thrown `Response` and drops the `captchaFailed` / `rateLimited` flags. Client side: `ui/src/components/security/useAntiSpamSubmit.ts` + `ui/src/lib/security/antiSpamResponse.ts`. Full map: `docs/architecture/edge-functions.md` (Anti-spam & CAPTCHA).
+
 ## Adding a new function — checklist
 
 1. Create `supabase/functions/<name>/index.ts` using the skeleton above.
 2. Decide JWT category; set `[functions.<name>]` block in `supabase/config.toml`. If the function sends email (imports `emailService` or `workflowOrchestrator`), add **`static_files`** for `_shared/email-templates` globs (see **Email HTML templates** above).
-3. If scheduled, add **`pg_cron` + `net.http_post`** in the hosted project (see `docs/SCHEDULED_JOBS_AND_TESTING.md`) — do not add `schedule` to `config.toml` here.
-4. Document env vars in `docs/PROJECT.md` §11.
-5. Update the API table in `docs/PROJECT.md` §8.
+3. If scheduled, add **`pg_cron` + `net.http_post`** in the hosted project (see `docs/archive/operations/scheduled-jobs-and-testing.md`) — do not add `schedule` to `config.toml` here.
+4. Document env vars in `docs/architecture/validation-and-env.md`.
+5. Update the API table in `docs/architecture/edge-functions.md`.
 6. If the function participates in the booking workflow, make it go through `workflowOrchestrator`.
-7. Add a `README` comment at the top of `index.ts` with: purpose, trigger, idempotency strategy.
+7. If the handler **mutates org / property / parking data** (or records a guest/public action worth accountability), call **`logActivity`** from `_shared/activityLog.ts` after the write succeeds — `buildActorContext` + a redacted `diffRecord`, never in a `catch`, never blocking the response. See **`.cursor/rules/audit-logging.mdc`** / the `audit-logging` skill. Mark `activity-log: N/A — <why>` if it genuinely does not apply.
+8. Add a `README` comment at the top of `index.ts` with: purpose, trigger, idempotency strategy.
+9. **PostHog:** Prefer `serveAdmin` / `servePublic` / `serveCronPost` so `handleEdgeError` captures exceptions. For **conversion** events (submit succeeded, workflow transition, org created), call **`capturePostHogEvent`** from `_shared/posthog.ts` after the write — use catalog names in `posthogCatalog.ts`; never log PII in properties. Mark `posthog: N/A — <why>` for pure reads or health checks. Client must not duplicate the same `*_submitted` / `*_completed` name.
 
 ## Don'ts
 
@@ -108,3 +131,12 @@ Per `booking-workflow.mdc`, **never put fan-out logic inside handler functions**
 - Don’t hand-roll JWT verification — use `supabase.auth.getUser`.
 - Don’t log guest PII beyond what’s strictly needed for debugging; never log tokens.
 - Don’t create or touch buckets inline — declare them in a migration under `supabase/migrations/`.
+
+## Setup Guide / host reward functions
+
+- `setup-guide-state` — JWT + any active org member; writes via `set_org_setup_guide_state` RPC only.
+- `get-host-reward-offer` — JWT + any active org member; read-only offer/eligibility for the Setup Guide Recommended step.
+
+## Copy property settings
+
+- `copy-property-settings` — `verify_jwt = false`; `serveAuthenticated` + `verifyPropertyAccess` (not `verifyAdminJwt`). Same-org targets only; per-(target, group) leaf + plan skip+report. Needs `static_files` for settings-change notice email templates.

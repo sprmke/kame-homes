@@ -1,19 +1,17 @@
 import * as React from 'react';
+
 import { startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
+
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
   DATE_PICKER_DISPLAY_FORMAT,
   dateToString,
   formatIsoDateForDisplay,
   stringToDate,
-} from '@/utils/dates';
+} from '@/utils/format/dates';
 
 export interface IsoDateInputProps {
   value?: string;
@@ -42,7 +40,7 @@ function isoToDate(iso: string | undefined): Date | undefined {
 function emitIsoChange(
   onChange: IsoDateInputProps['onChange'],
   name: string | undefined,
-  iso: string,
+  iso: string
 ) {
   onChange?.({
     target: { value: iso, name: name ?? '' },
@@ -71,7 +69,7 @@ const IsoDateInput = React.forwardRef<HTMLButtonElement, IsoDateInputProps>(
       onBlur,
       'aria-label': ariaLabel,
     },
-    ref,
+    ref
   ) => {
     const [open, setOpen] = React.useState(false);
     const isControlled = value !== undefined;
@@ -87,11 +85,7 @@ const IsoDateInput = React.forwardRef<HTMLButtonElement, IsoDateInputProps>(
       }
     }, [isControlled, value]);
 
-    const isoValue = isControlled
-      ? typeof value === 'string'
-        ? value
-        : ''
-      : internalIso;
+    const isoValue = isControlled ? (typeof value === 'string' ? value : '') : internalIso;
     const selectedDate = isoToDate(isoValue);
     const minDate = isoToDate(min);
     const maxDate = isoToDate(max);
@@ -120,19 +114,16 @@ const IsoDateInput = React.forwardRef<HTMLButtonElement, IsoDateInputProps>(
             aria-expanded={open}
             onBlur={onBlur}
             className={cn(
-              'relative flex h-10 w-full items-center rounded-lg border border-input bg-background pl-3 pr-10 text-left text-sm transition-colors',
-              'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+              'border-input bg-card field-focus relative flex h-10 w-full items-center rounded-lg border pl-3 pr-10 text-left text-sm transition-colors',
               'disabled:cursor-not-allowed disabled:opacity-50',
               display ? 'text-foreground' : 'text-muted-foreground',
               wrapperClassName,
-              className,
+              className
             )}
           >
-            <span className="truncate">
-              {display || DATE_PICKER_DISPLAY_FORMAT}
-            </span>
+            <span className="truncate">{display || DATE_PICKER_DISPLAY_FORMAT}</span>
             <CalendarIcon
-              className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              className="text-muted-foreground pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2"
               aria-hidden
             />
           </button>
@@ -153,7 +144,7 @@ const IsoDateInput = React.forwardRef<HTMLButtonElement, IsoDateInputProps>(
         </PopoverContent>
       </Popover>
     );
-  },
+  }
 );
 IsoDateInput.displayName = 'IsoDateInput';
 

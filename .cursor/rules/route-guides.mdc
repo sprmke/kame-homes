@@ -1,0 +1,46 @@
+---
+description: Keep docs/guides route guides in sync when pages, sections, or features change
+alwaysApply: true
+---
+
+# Route guides maintenance
+
+Whenever you **implement or materially change** a page, section, or feature, update the matching guide under **`docs/guides/routes/`** in the **same change** — not as a follow-up.
+
+## Which file to update
+
+Mirror the app URL (omit dynamic params). **Authoritative index:** [`docs/guides/routes/README.md`](../../docs/guides/routes/README.md) — do not maintain a second route→file table here.
+
+Examples of the convention:
+
+| Route pattern                              | Guide location                                             |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `/org/:orgSlug/...`                        | `docs/guides/routes/org/...`                               |
+| `/org/:orgSlug/property/:propertySlug/...` | `docs/guides/routes/org/property/...`                      |
+| `/org/:orgSlug/parking/:parkingSlug/...`   | `docs/guides/routes/org/parking/...`                       |
+| `/admin/...`                               | `docs/guides/routes/admin/...`                             |
+| `/account/...`                             | `docs/guides/routes/account/...`                           |
+| Public marketing / guest operational       | top-level or nested under `docs/guides/routes/` per README |
+
+Workflow: **`.cursor/skills/route-guides/SKILL.md`**.
+
+## What to document
+
+Per page/section: **behavior**, **save paths**, **validation**, **API/edge functions**, **DB/storage columns**, **permissions**, **edge cases**, **implementation map** (UI + server paths), and **Host-facing knowledge** (plain-language summary + common host Q&A — no code, DB columns, or internal endpoint names).
+
+Update the **Progress overview** table when section status changes. Mark guide **Status** from `Pending` → `Documented` when substantive.
+
+## Relationship to other docs
+
+| Doc                                          | Role                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| **`docs/guides/routes/*.md`**                | Per-route behavior spec (operator + agent reference)                  |
+| **`docs/PROJECT.md`**                        | Architecture, API inventory, env vars                                 |
+| **`.cursor/rules/*.mdc`**                    | Canonical invariants (booking workflow, auth) — link, don't duplicate |
+| **`docs/archive/planning/NEW_FLOW_PLAN.md`** | Redesign plan / decisions                                             |
+
+New route → create guide from **`docs/guides/_template.md`**, add row to **`docs/guides/routes/README.md`**.
+
+## When guides need no change
+
+Typos, internal renames with no behavior change, or pure refactors that don't alter UX/API/validation.

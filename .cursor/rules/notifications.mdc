@@ -1,0 +1,57 @@
+---
+description: In-app Notification Center — bell, realtime toasts, dedupe, RLS-for-realtime grants
+globs:
+  - supabase/migrations/*notifications*.sql
+  - supabase/functions/_shared/notificationService.ts
+  - supabase/functions/_shared/notificationsAccess.ts
+  - supabase/functions/notifications-list/**
+  - supabase/functions/notifications-mark-read/**
+  - ui/src/features/dashboard/notifications/**
+---
+
+# In-App Notification Center — agent reference
+
+Org-wide bell + realtime toast for booking status changes, GAF/pet auto-approvals, new bookings, and new inbox messages. Shipped 2026-08-14 — plan: `docs/workflow/done/in-app-notifications.md`.
+
+## Architecture map
+
+| Layer              | Path                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Migration          | `supabase/migrations/20261015120000_notifications.sql`                                                 |
+| Event insert       | `supabase/functions/_shared/notificationService.ts`                                                    |
+| Access resolve     | `supabase/functions/_shared/notificationsAccess.ts`                                                    |
+| List / mark-read   | `supabase/functions/notifications-list`, `supabase/functions/notifications-mark-read`                  |
+| UI hooks           | `ui/src/features/dashboard/notifications/hooks/useNotifications.ts`, `useNotificationsRealtime.ts`     |
+| UI provider + bell | `ui/src/features/dashboard/notifications/components/NotificationsProvider.tsx`, `NotificationBell.tsx` |
+
+## Event catalog (v1 — 7 types, all in `notifications_type_check`)
+
+`booking_pending_review`, `booking_ready_for_checkin`, `booking_ready_for_checkout`, `booking_sd_refund_due`, `booking_gaf_auto_approved`, `booking_pet_auto_approved`, `inbox_new_message`.
+
+New type → new migration extending the CHECK constraint (never edit the shipped one) + `NotificationType` union in `notificationService.ts` **and** the UI's `notificationsApi.ts`.
+
+## Rules
+
+- **Always go through `createNotification`** (`_shared/notificationService.ts`) — never a raw insert into `notifications` at the call site.
+- **Non-fatal by design.** `createNotification` try/catches internally and never throws. A notification failure must never fail a booking transition, email send, or webhook ack.
+- **Dedupe key convention:** `${bookingId}:${type or toStatus}` for booking events (plain `createNotification`, one row per transition); `${conversationId}:inbox_new_message` for chat via `createOrCoalesceNotification` — one row per thread, latest body, re-unread on each new message.
+- **The dedupe unique index is partial** (`(type, dedupe_key) WHERE dedupe_key IS NOT NULL`). `createNotification` does a **plain insert + swallows `23505`**, not `.upsert(..., { onConflict })` — PostgREST can't target a partial index's predicate, so `ON CONFLICT` fails with `"no unique or exclusion constraint matching"`. Verified against the local DB; keep it a plain insert.
+- **RLS-for-realtime:** `notifications` needs both RLS policies (`user_can_access_org_notifications`) **and** explicit `GRANT`s for `service_role` / `authenticated` in the same migration, or edge functions hit `"permission denied"` (see `20260913120000_social_inbox_service_role_grants.sql` precedent). `REPLICA IDENTITY FULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications` are required for the realtime channel.
+- **RLS is stricter than the edge-function gate.** `user_can_access_org_notifications` only checks `organization_members`, so a property/parking-only team member (no org-level row) gets no realtime push, even though list/mark-read still works via the edge function (service role, gated on `org:dashboard:view` / `bookings:view`, not RLS). Known v1 gap.
+- **Read state is per-user.** Absence of a `notification_reads` row = unread — never add a shared `read_at` on `notifications`.
+- **One realtime channel per org** (`notifications-${orgId}`), mounted once via `NotificationsProvider` in `AdminLayout.tsx` — never per-page.
+- **OS push is now a channel for _every_ event type** (PWA — `docs/architecture/pwa.md` §5, `.cursor/rules/pwa.mdc`). An `AFTER INSERT` trigger on `notifications` → `pg_net` → `push-fanout` → Web Push, gated on a **per-device opt-in** (`PushNotificationsCard` in the Notifications page). Nothing to wire per event type — a new `notifications` row fans out automatically. Recipients mirror the realtime rule (org owner + active `organization_members`). The old "no OS `Notification` popups / inbox-chat-only" restriction is retired; `inboxNotifications.ts` (foreground same-tab `new Notification()`) is now a minor fallback, superseded by the SW push path.
+- **A new type needs a `NOTIFICATION_ICONS` entry** in `notificationsDisplay.ts` — the `Record<NotificationType, LucideIcon>` is exhaustive, and both the bell list and the realtime toast (`notificationToast.tsx`) read from it so they can't drift.
+- **Toast chrome is CSS, not props.** `[data-sonner-toast] [data-button]` in `index.css` overrides Sonner's near-black action chip to `--primary` app-wide; the 32px category badge needs the `data-notification-toast-icon` hook to override Sonner's fixed 16×16 `[data-icon]`. Toasts are keyed by `row.id` so coalesced inbox `UPDATE`s replace rather than stack.
+- **Mobile bell placement:** do **not** put the bell in the hero or top bar. Desktop (`lg+`): floating bell above the AI assistant FAB, same slide-over panel. Mobile (`max-lg`): **Notifications** bottom tab opens the same sheet. The full Notifications page stays in **More**.
+
+## Permissions
+
+`org:dashboard:view` (org scope) / `bookings:view` (property/parking scope) via `notificationsAccess.ts` — **not** `notifications:view` / `notifications:edit`, which gate the unrelated Telegram outbound-alert settings pages (`propertyTeamPermissions.ts`).
+
+## Related rules
+
+- `.agent/skills/notifications/SKILL.md`
+- `.cursor/rules/pwa.mdc` + `docs/architecture/pwa.md` §5 — OS push pipeline (trigger → `push-fanout` → Web Push)
+- `.cursor/rules/booking-workflow.mdc` §3 — which booking transitions also emit a notification
+- `docs/architecture/data-model.md` — `notifications` / `notification_reads` / `push_subscriptions` sections

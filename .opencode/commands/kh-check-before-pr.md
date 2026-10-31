@@ -1,0 +1,1 @@
+../../.claude/commands/kh-check-before-pr.md

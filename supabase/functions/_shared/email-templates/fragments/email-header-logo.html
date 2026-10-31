@@ -1,21 +1,39 @@
-<table
-  role="presentation"
-  width="100%"
-  cellspacing="0"
-  cellpadding="0"
-  border="0"
->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
   <tr>
     <td class="email-logo-wrap" style="{{emailLogoWrapTdStyle}}">
-      <img
-        src="{{logoUrl}}"
-        width="80"
-        height="80"
-        alt="Kame Home"
+      <table
+        role="presentation"
+        cellspacing="0"
+        cellpadding="0"
         border="0"
-        class="email-logo"
-        style="{{emailLogoImgStyle}}"
-      />
+        align="center"
+        style="{{emailLogoFrameTableStyle}}"
+      >
+        <tr>
+          <!--[if mso]>
+            <td
+              width="80"
+              height="80"
+              style="width:80px;height:80px;border-radius:12px;overflow:hidden;background:url('{{logoUrl}}') center center / cover no-repeat;"
+            >
+              <span style="color: transparent; font-size: 0; line-height: 0">{{logoAlt}}</span>
+            </td>
+          <![endif]-->
+          <!--[if !mso]><!-->
+          <td class="email-logo-frame" style="{{emailLogoFrameTdStyle}}">
+            <img
+              src="{{logoUrl}}"
+              width="80"
+              height="80"
+              alt="{{logoAlt}}"
+              border="0"
+              class="email-logo"
+              style="{{emailLogoImgStyle}}"
+            />
+          </td>
+          <!--<![endif]-->
+        </tr>
+      </table>
     </td>
   </tr>
 </table>

@@ -1,0 +1,33 @@
+---
+description: Property-level dashboard QA — use property-dashboard-qa skill for deep review
+globs:
+  - ui/src/features/dashboard/property/**
+  - ui/src/features/dashboard/bookings/**
+  - ui/src/features/dashboard/finance/**
+  - ui/src/features/dashboard/pricing/**
+  - ui/src/features/dashboard/maintenance/**
+  - ui/src/features/dashboard/team/**
+  - ui/src/features/dashboard/marketing/**
+  - ui/src/features/dashboard/inbox/**
+  - ui/src/features/dashboard/custom-pages/**
+  - docs/guides/routes/org/property/**
+  - docs/workflow/qa/property-dashboard/**
+alwaysApply: false
+---
+
+# Property dashboard QA — agent reference
+
+When reviewing or verifying **property-scoped** dashboard work (`/org/:orgSlug/property/:propertySlug/*`), follow **`.agent/skills/property-dashboard-qa/SKILL.md`**.
+
+## Must
+
+1. Prefer **live UI** (Playwright / browser) over docs-only review.
+2. Write findings under **`docs/workflow/qa/property-dashboard/`** (per-module files + README).
+3. Fix or flag bare deep-links (`/bookings`, `/finance`, …) — always use `propertySectionPath`.
+4. Check **plan gates** (`plans-feature-matrix.md`) and **team templates** (Full Access / Operations / Read Only).
+5. Update matching **`docs/guides/routes/org/property/*.md`** when product and docs disagree.
+6. For deep passes, follow skill § **Deep interaction pass** / **Phase 4** (Settings save, Marketing download, GAF, Telegram live preview, Meta OAuth start) and write `18-` / `19-*.md` evidence. Never log bot tokens or Meta secrets.
+
+## Out of scope here
+
+Org-level pages and parking module — separate QA passes later.

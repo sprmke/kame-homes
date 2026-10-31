@@ -1,0 +1,5 @@
+{
+  "disabled": false,
+  "minBuild": 0,
+  "note": "PWA kill-switch. Set disabled:true to make every installed service worker unregister + wipe caches on next check. Set minBuild to a recent epoch-seconds value to retire only builds older than that. Served with Cache-Control: no-cache (see ui/vercel.json)."
+}

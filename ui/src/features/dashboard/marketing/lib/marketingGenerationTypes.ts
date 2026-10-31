@@ -1,0 +1,68 @@
+/** DTOs returned by generate-marketing-media, get-marketing-generation-job, marketing-generations. */
+
+export type MarketingGenerationMediaType = 'image' | 'video';
+
+export type MarketingGenerationStatus =
+  'pending' | 'processing' | 'finalizing' | 'completed' | 'failed' | 'cancelled';
+
+export type MarketingGenerationTier = 'draft' | 'standard' | 'premium';
+
+export type MarketingGenerationJob = {
+  id: string;
+  organizationId: string;
+  propertyId: string;
+  mediaType: MarketingGenerationMediaType;
+  jobStatus: MarketingGenerationStatus;
+  prompt: string;
+  negativePrompt: string | null;
+  /** The full prompt actually sent to the model, when prompt enhancement ran. Null
+   *  when enhancement was off or failed open. */
+  enhancedPrompt: string | null;
+  /** True only when enhancement actually ran and succeeded. */
+  promptEnhanced: boolean;
+  /** Video: `{ cameraMove, sound }`. Empty for images and older video jobs; may be
+   *  missing on responses from an older edge deploy. */
+  generationOptions?: { cameraMove?: string; sound?: string };
+  model: string;
+  qualityTier: MarketingGenerationTier;
+  aspectRatio: string;
+  imageSize: string | null;
+  resolution: string | null;
+  durationSeconds: number | null;
+  referenceUrls: string[];
+  referencePaths: string[];
+  outputUrl: string | null;
+  outputMimeType: string | null;
+  outputBytes: number | null;
+  outputWidth: number | null;
+  outputHeight: number | null;
+  estimatedCredits: number;
+  creditsConsumed: number | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  expiresAt: string | null;
+  completedAt: string | null;
+  /** AI Studio conversation (missing on responses from an older edge deploy). */
+  sessionId?: string | null;
+  /** The version this one refines. */
+  parentJobId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MarketingGenerationReference = {
+  id: string;
+  organization_id: string;
+  property_id: string;
+  media_type: MarketingGenerationMediaType;
+  storage_path: string;
+  public_url: string;
+  mime_type: string;
+  file_name: string | null;
+  byte_size: number;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  last_used_at: string | null;
+  created_at: string;
+};

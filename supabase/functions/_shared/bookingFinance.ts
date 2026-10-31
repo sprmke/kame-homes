@@ -1,8 +1,9 @@
 /**
- * Server mirror of ui/src/features/admin/lib/bookingFinance.ts — keep formulas in sync.
+ * Server mirror of ui/src/features/dashboard/bookings/lib/bookingFinance.ts — keep formulas in sync.
  */
 
 import { computeTotalGuestBalanceFromBooking } from './totalGuestBalance.ts';
+import { voucherLiabilityPhp } from './voucher.ts';
 
 type SdSettlementLineItem = { label: string; amount: number };
 
@@ -37,14 +38,10 @@ function petFeeForHostNet(booking: Record<string, unknown>): number {
 }
 
 function parkingFeeForHostNet(booking: Record<string, unknown>): number {
-  return bookingFlagTrue(booking.need_parking)
-    ? num(booking.parking_rate_guest)
-    : 0;
+  return bookingFlagTrue(booking.need_parking) ? num(booking.parking_rate_guest) : 0;
 }
 
-function guestBalanceForStayDisplay(
-  booking: Record<string, unknown>,
-): number | null {
+function guestBalanceForStayDisplay(booking: Record<string, unknown>): number | null {
   const rate = booking.booking_rate;
   if (rate !== null && rate !== undefined && rate !== '') {
     return roundMoney(num(rate) - num(booking.down_payment));
@@ -65,9 +62,7 @@ export function bookingRateForDisplay(booking: Record<string, unknown>): number 
 function otherFeesForDisplay(booking: Record<string, unknown>): number {
   const pet = petFeeForHostNet(booking);
   const parkingMargin = bookingFlagTrue(booking.need_parking)
-    ? roundMoney(
-        parkingFeeForHostNet(booking) - num(booking.parking_rate_paid),
-      )
+    ? roundMoney(parkingFeeForHostNet(booking) - num(booking.parking_rate_paid))
     : 0;
   const additional = num(booking.guest_additional_fee);
   return roundMoney(pet + parkingMargin + additional);
@@ -77,16 +72,12 @@ function guestBalanceForHostNet(booking: Record<string, unknown>): number | null
   return guestBalanceForStayDisplay(booking);
 }
 
-function includeSdSettlementInOperatingNet(
-  booking: Record<string, unknown>,
-): boolean {
+function includeSdSettlementInOperatingNet(booking: Record<string, unknown>): boolean {
   return String(booking.status ?? '') === 'COMPLETED';
 }
 
 /** Host net excluding SD pass-through; SD settlement only when COMPLETED. */
-function computeOperatingHostNet(
-  booking: Record<string, unknown>,
-): number {
+function computeOperatingHostNet(booking: Record<string, unknown>): number {
   const down = num(booking.down_payment);
   const guestBalance = guestBalanceForHostNet(booking) ?? 0;
   const pet = petFeeForHostNet(booking);
@@ -110,7 +101,7 @@ function computeOperatingHostNet(
       additional -
       parkingPaid +
       sdProfitTotal -
-      sdExpenseTotal,
+      sdExpenseTotal
   );
 }
 
@@ -120,9 +111,7 @@ export function financeDisplayNet(fin: BookingFinancials): number | null {
 }
 
 /** Admin dashboard net profit — same operating host net as Finance stays. */
-export function dashboardNetProfitKpi(
-  booking: Record<string, unknown>,
-): number {
+export function dashboardNetProfitKpi(booking: Record<string, unknown>): number {
   return computeOperatingHostNet(booking);
 }
 
@@ -163,12 +152,14 @@ function buildSdExpenseProfitRows(booking: Record<string, unknown>): {
 } {
   const expJson = parseSdLineItemsFromBooking(booking.sd_additional_expense_items);
   const profJson = parseSdLineItemsFromBooking(booking.sd_additional_profit_items);
-  const expFallback = parseSdNumberArray(booking.sd_additional_expenses).map(
-    (amount, i) => ({ label: `Expense line ${i + 1}`, amount }),
-  );
-  const profFallback = parseSdNumberArray(booking.sd_additional_profits).map(
-    (amount, i) => ({ label: `Profit line ${i + 1}`, amount }),
-  );
+  const expFallback = parseSdNumberArray(booking.sd_additional_expenses).map((amount, i) => ({
+    label: `Expense line ${i + 1}`,
+    amount,
+  }));
+  const profFallback = parseSdNumberArray(booking.sd_additional_profits).map((amount, i) => ({
+    label: `Profit line ${i + 1}`,
+    amount,
+  }));
   return {
     expenses: expJson.length ? expJson : expFallback,
     profits: profJson.length ? profJson : profFallback,
@@ -183,17 +174,13 @@ function guestBalancePaidRecorded(booking: Record<string, unknown>): number {
   return roundMoney(n);
 }
 
-export function computeBookingFinancials(
-  booking: Record<string, unknown>,
-): BookingFinancials {
+export function computeBookingFinancials(booking: Record<string, unknown>): BookingFinancials {
   const status = String(booking.status ?? '');
   const isCompleted = status === 'COMPLETED';
   const totalGuestBalance = computeTotalGuestBalanceFromBooking(booking);
   const guestCollected = guestBalancePaidRecorded(booking);
   const guestUnpaid =
-    totalGuestBalance != null
-      ? roundMoney(totalGuestBalance - guestCollected)
-      : null;
+    totalGuestBalance != null ? roundMoney(totalGuestBalance - guestCollected) : null;
 
   const deposit = num(booking.security_deposit);
   const parkingGuest = num(booking.parking_rate_guest);
@@ -206,14 +193,11 @@ export function computeBookingFinancials(
   const sdExpenseTotal = roundMoney(sumSdLineAmounts(expenses));
   const sdProfitTotal = roundMoney(sumSdLineAmounts(profits));
   const voucherCode =
-    typeof booking.next_stay_voucher_code === 'string'
-      ? booking.next_stay_voucher_code.trim()
-      : '';
-  const voucherCost = voucherCode ? roundMoney(num(booking.next_stay_voucher_amount)) : 0;
+    typeof booking.next_stay_voucher_code === 'string' ? booking.next_stay_voucher_code.trim() : '';
+  // Percent-off awards (OFF-* / FREE-STAY) have no peso liability until redeemed.
+  const voucherCost = voucherLiabilityPhp(voucherCode, booking.next_stay_voucher_amount);
 
-  const stayRevenue = isCompleted
-    ? roundMoney(guestCollected - deposit)
-    : null;
+  const stayRevenue = isCompleted ? roundMoney(guestCollected - deposit) : null;
 
   const hostInflows = roundMoney(
     num(booking.down_payment) +
@@ -221,7 +205,7 @@ export function computeBookingFinancials(
       parkingFeeForHostNet(booking) +
       petFeeForHostNet(booking) +
       num(booking.guest_additional_fee) +
-      (isCompleted ? sdProfitTotal : 0),
+      (isCompleted ? sdProfitTotal : 0)
   );
 
   let hostProfit = 0;

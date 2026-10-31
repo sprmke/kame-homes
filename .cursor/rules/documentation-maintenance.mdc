@@ -7,25 +7,34 @@ alwaysApply: true
 
 Whenever you **implement or materially change** behavior (features, routes, validation, edge functions, DB schema/migrations, env vars, integrations, or user-visible flows), **update documentation in the same change**, not as a follow-up the user must request.
 
+**Claude Code / skill picker:** invoke **`documentation-maintenance`** (and **`route-guides`** for page/section changes) before claiming done — Claude cannot auto-load this always-on `.mdc`. SessionStart + PostToolUse hooks also remind after code edits under `ui/` / `supabase/functions/` / `supabase/migrations/`.
+
 ## What to update
 
-| Change type | Update |
-|-------------|--------|
-| Architecture, routes, env vars, API surface, data model, flows, deployment | **`docs/PROJECT.md`** — adjust the relevant section(s); add new tables/rows if you add endpoints or columns |
-| Shipped / cancelled backlog items, new roadmap tasks | **`docs/TODOS.md`** — checkboxes, wording, or new bullets so backlog matches reality |
-| Anything about the **new booking flow redesign** (status machine, admin dashboard, Gmail listener, SD refund cron, new emails) | **`docs/NEW_FLOW_PLAN.md`** — update the plan as decisions land, answered questions, and phases ship. Also flip items to answered / in progress / done |
-| Database migration or one-shot backfill instructions | **`docs/MIGRATION_RUNBOOK.md`** (create when Phase 0 lands) |
-| Global conventions agents rely on (paths, stack, “where things live”) | **`.cursor/rules/project-context.mdc`** if the old text would mislead future sessions |
-| New Edge Function patterns or JWT/CORS policy | **`.cursor/rules/supabase-edge-functions.mdc`** if the shared contract changed |
-| Booking status / transition / side-effect matrix changes | **`.cursor/rules/booking-workflow.mdc`** — this file is canonical |
-| Admin auth rules, allow list, or new admin endpoints | **`.cursor/rules/admin-auth.mdc`** |
+| Change type                                                                                                                       | Update                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture, routes, env vars, API surface, data model, flows, deployment                                                        | **`docs/architecture/overview.md`** (full-app picture) and **`docs/PROJECT.md`** (topic index / API / env). Adjust the relevant section(s); add new tables/rows if you add endpoints or columns                                                                           |
+| Shipped / cancelled backlog items, new roadmap tasks                                                                              | **GitHub Issues** + [`docs/README.md`](../docs/README.md) (Product backlog section); shipped history in `docs/archive/todos/shipped/`                                                                                                                                     |
+| Anything about the **new booking flow redesign** (status machine, admin dashboard, Gmail listener, SD refund cron, new emails)    | **`docs/archive/planning/NEW_FLOW_PLAN.md`** — update the plan as decisions land, answered questions, and phases ship. Also flip items to answered / in progress / done                                                                                                   |
+| Database migration or one-shot backfill instructions                                                                              | **`docs/archive/operations/migration-runbook.md`** (create when Phase 0 lands)                                                                                                                                                                                            |
+| Global conventions agents rely on (paths, stack, “where things live”)                                                             | **`.cursor/rules/project-context.mdc`** if the old text would mislead future sessions                                                                                                                                                                                     |
+| New Edge Function patterns or JWT/CORS policy                                                                                     | **`.cursor/rules/supabase-edge-functions.mdc`** if the shared contract changed                                                                                                                                                                                            |
+| Booking status / transition / side-effect matrix changes                                                                          | **`.cursor/rules/booking-workflow.mdc`** — this file is canonical                                                                                                                                                                                                         |
+| Admin auth rules, allow list, or new admin endpoints                                                                              | **`.cursor/rules/admin-auth.mdc`**                                                                                                                                                                                                                                        |
+| Page/section behavior, save flows, validation, per-route UX                                                                       | **`docs/guides/routes/*.md`** — see **`.cursor/rules/route-guides.mdc`** and **`.cursor/skills/route-guides/SKILL.md`**                                                                                                                                                   |
+| **Pricing plans / tier catalog / `planPresentation` / entitlements**                                                              | **`/for-hosts/pricing`** (live via `list-public-pricing-plans` + shared `planPresentation.ts`) **and** **`docs/architecture/plans-feature-matrix.md`** + host Plans route guides (`org/plans.md` — the only in-app Plans page, billing is org-level only; `for-hosts.md`) |
+| **New host feature (Plans and/or Team RBAC)**                                                                                     | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A in the same change                                                                                                                                  |
+| **New / changed mutating capability** (edge write, workflow transition, cron, webhook, direct-write surface, guest/public action) | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event via `_shared/activityLog.ts`, or mark `activity-log: N/A — <why>`, in the same change                                                                          |
+| **UI layout, modals, menus, navigation, or mobile chrome** in `ui/src/**`                                                         | Invoke **`mobile-responsive`** skill + follow **`.cursor/rules/mobile-native-ui.mdc`** (always-on gate) and **`mobile-responsive.mdc`**; route guide if page UX changed                                                                                                   |
 
 ## Rules of thumb
 
 - Prefer **small, accurate edits** over rewriting the whole doc unless the feature is cross-cutting.
 - If you add a **new query param, env var, or HTTP route**, document it in `docs/PROJECT.md` (API tables or env sections).
 - If behavior **diverges** from what `docs/PROJECT.md` says, **fix the doc**—do not leave contradictions.
-- Do **not** create extra markdown files unless the user asked for them; stay within `docs/` and `.cursor/rules/` for this project.
+- Per-route guides belong in **`docs/guides/routes/`** (mirrors app URLs). Use **`docs/guides/_template.md`** for new pages; update **`docs/guides/routes/README.md`** when adding routes.
+- Operations runbooks live in **`docs/archive/operations/`**; active plans in **`docs/workflow/planned/`**; legacy in **`docs/archive/`**. Index: **`docs/README.md`**.
+- Do **not** create extra markdown outside `docs/` (and subfolders), `scripts/README.md`, and `.cursor/rules/` unless the user asked for them.
 
 ## When docs need no change
 

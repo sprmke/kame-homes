@@ -1,0 +1,49 @@
+---
+description: >-
+  Every new or changed mutating capability (edge function, workflow transition,
+  cron, webhook, direct-write surface, guest/public action) must emit an
+  activity_log event in the same change, or explicitly document activity-log N/A.
+alwaysApply: true
+---
+
+# Activity / audit logging — new & changed mutations
+
+**Non-negotiable:** any change that mutates organization / property / parking
+state — or records a guest/public action worth accountability — must **emit an
+`activity_log` event, or write `activity-log: N/A — <why>`** in the same change.
+
+This is the Cursor always-on gate. Full checklist: **`audit-logging`** skill
+(`.agent/skills/audit-logging/SKILL.md`). Claude Code / OpenCode: invoke that
+skill before claiming mutating work done.
+
+## Mandatory decision (before / during implementation)
+
+| Question                                                                                    | If **yes**                                                                                                   | If **no**                                                                     |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Does this change insert / update / delete org-scoped data, or record a guest/public action? | Emit `logActivity(...)` from the handler after the write, with `buildActorContext` + a redacted `diffRecord` | Note **N/A** (pure read, refactor, rename, platform-only super-admin surface) |
+
+## Do not ship without
+
+- An action key in `ACTIVITY_ACTION_CATALOG` (`_shared/activityLog.ts`) — reuse
+  one, or add `{ category, severity, targetType, summary }`. A new `category`
+  also goes in the client mirror `ui/.../activity/lib/activityCatalog.ts`.
+- `logActivity` / `logActivityBatch` called **after** the write succeeds, **never
+  in a `catch`** (except `security.denied_destructive_action`).
+- Bulk ops → **one summary row** with `metadata.count`, never one per entity.
+- Webhooks → emit **inside** the provider dedupe guard.
+- Crons → one `system.cron_run` summary row per run.
+- The writer never throws and never blocks the mutation (contract identical to
+  `superAdminAudit.ts` / `notificationService.ts`).
+
+## Reference
+
+- Property transitions: pass `actor` to `WorkflowOrchestrator.transition()` — the
+  orchestrator emits `booking.status_changed` / `booking.cancelled` once.
+- Parking status writes: call `_shared/parkingActivity.ts#logParkingStatusChange`.
+- Plan + full surface inventory: **`docs/workflow/planned/org-activity-audit-log.md`**.
+
+## Related
+
+- Skill: **`audit-logging`**
+- Also decide: **`plans-and-permissions.mdc`**
+- Docs rule: **`documentation-maintenance.mdc`** · Edge contract: **`supabase-edge-functions.mdc`**

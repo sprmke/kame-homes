@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- PREVIEW ONLY — not used for live sends. The real live template lives in supabase/functions/_shared/propertyTemplateEmailSections.ts + propertyTemplateEmail.ts. This file only feeds the admin template editor's full-design preview / local preview:emails server. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -12,8 +13,7 @@
         margin: 0;
         min-height: 100vh;
         font-family:
-          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-          'Helvetica Neue', Arial, sans-serif;
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         background: #f0f4f8;
         color: #334155;
         line-height: 1.5;
@@ -102,8 +102,8 @@
       <div class="bar"></div>
       <h1>Email template previews</h1>
       <p class="sub">
-        <strong>Source templates</strong> — <code>{{placeholders}}</code> stay
-        literal (layout check only).
+        <strong>Source templates</strong> — <code>{{placeholders}}</code> stay literal (layout check
+        only).
       </p>
       <ul>
         <li>
@@ -125,22 +125,28 @@
         </li>
         <li>
           <a href="ready-for-checkin.html"
-            >Ready for check-in (guest)<span class="path"
-              >ready-for-checkin.html</span
-            ></a
+            >Ready for check-in (guest)<span class="path">ready-for-checkin.html</span></a
           >
         </li>
         <li>
           <a href="parking-broadcast.html"
-            >Parking broadcast<span class="path"
-              >parking-broadcast.html</span
-            ></a
+            >Parking broadcast<span class="path">parking-broadcast.html</span></a
+          >
+        </li>
+        <li>
+          <a href="sd-refund-form-request.html"
+            >SD refund form request (guest)<span class="path">sd-refund-form-request.html</span></a
+          >
+        </li>
+        <li>
+          <a href="new-booking-request.html"
+            >New booking request (ops)<span class="path">new-booking-request.html</span></a
           >
         </li>
         <li>
           <a href="ready-for-checkin-house-rules.html"
-            >Important reminders source fragment (no layout/CSS; embedded in RFI
-            email)<span class="path"
+            >Important reminders source fragment (no layout/CSS; embedded in RFI email)<span
+              class="path"
               >ready-for-checkin-house-rules.html</span
             ></a
           >
@@ -162,27 +168,47 @@
         </li>
       </ul>
 
+      <h2>Body-only (wrapped at send)</h2>
+      <p class="section-hint">
+        These files are <strong>body fragments</strong> — live sends wrap them in
+        <code>fragments/configurable-template-send.html</code> via
+        <code>renderBrandedEmailShell</code>. Opening them alone shows copy only, not the full card
+        shell.
+      </p>
+      <ul>
+        <li>
+          <a href="guest-chat-reply.html"
+            >Guest chat reply<span class="path">guest-chat-reply.html</span></a
+          >
+        </li>
+        <li>
+          <a href="contract-lifecycle-notice.html"
+            >Contract lifecycle notice<span class="path">contract-lifecycle-notice.html</span></a
+          >
+        </li>
+        <li>
+          <a href="org-verification-rejected.html"
+            >Org verification rejected<span class="path">org-verification-rejected.html</span></a
+          >
+        </li>
+      </ul>
+
       <h2>Filled from database</h2>
       <p class="section-hint">
         Run <code>npm run preview:emails:db</code> from the repo root (uses
         <code>supabase/.env.local</code>), then refresh. Picks a real
-        <code>guest_submissions</code> row with pets + parking when possible;
-        otherwise falls back to demo data. See
-        <code>_preview/preview-meta.json</code> for which row was used.
+        <code>guest_submissions</code> row with pets + parking when possible; otherwise falls back
+        to demo data. See <code>_preview/preview-meta.json</code> for which row was used.
       </p>
       <ul>
         <li>
           <a href="_preview/gaf-request.html"
-            >GAF request (filled)<span class="path"
-              >_preview/gaf-request.html</span
-            ></a
+            >GAF request (filled)<span class="path">_preview/gaf-request.html</span></a
           >
         </li>
         <li>
           <a href="_preview/pet-request.html"
-            >Pet request (filled)<span class="path"
-              >_preview/pet-request.html</span
-            ></a
+            >Pet request (filled)<span class="path">_preview/pet-request.html</span></a
           >
         </li>
         <li>
@@ -194,22 +220,17 @@
         </li>
         <li>
           <a href="_preview/ready-for-checkin.html"
-            >Ready for check-in (filled)<span class="path"
-              >_preview/ready-for-checkin.html</span
-            ></a
+            >Ready for check-in (filled)<span class="path">_preview/ready-for-checkin.html</span></a
           >
         </li>
         <li>
           <a href="_preview/parking-broadcast.html"
-            >Parking broadcast (filled)<span class="path"
-              >_preview/parking-broadcast.html</span
-            ></a
+            >Parking broadcast (filled)<span class="path">_preview/parking-broadcast.html</span></a
           >
         </li>
         <li>
           <a href="_preview/ready-for-checkin-house-rules.html"
-            >Important reminders (filled, styled preview with logo)<span
-              class="path"
+            >Important reminders (filled, styled preview with logo)<span class="path"
               >_preview/ready-for-checkin-house-rules.html</span
             ></a
           >
@@ -219,9 +240,8 @@
       <p class="note">
         <strong>404 “File not found”?</strong> Include the file extension:
         <code>gaf-request.html</code>, not <code>gaf-request</code>. Open
-        <code>http://localhost:3334/</code> (this page) or a full filename. Do
-        not use <code>/email-templates/…</code> in the path — the server root is
-        already this folder.
+        <code>http://localhost:3334/</code> (this page) or a full filename. Do not use
+        <code>/email-templates/…</code> in the path — the server root is already this folder.
       </p>
     </div>
   </body>

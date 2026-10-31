@@ -1,0 +1,29 @@
+@keyframes voucher-preview-flip {
+  0%,
+  42% {
+    transform: rotateY(0deg);
+  }
+  50%,
+  92% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.voucher-preview-wheel-disc {
+  animation: spin 3.5s linear infinite;
+}
+
+.voucher-preview-flip-inner {
+  animation: voucher-preview-flip 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  transform-style: preserve-3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voucher-preview-wheel-disc,
+  .voucher-preview-flip-inner {
+    animation: none !important;
+  }
+}

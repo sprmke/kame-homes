@@ -1,0 +1,36 @@
+---
+description: >-
+  Any editable form, settings card, editor or modal with a manual Save must warn
+  before unsaved edits are lost (Save & leave / Discard / Keep editing) using the
+  shared unsaved-changes guard. Never hand-roll beforeunload, useBlocker or leave dialogs.
+alwaysApply: true
+---
+
+# Unsaved-changes guard (always-on)
+
+**Non-negotiable:** a new or changed UI in `ui/src/**` where the user edits
+fields and must press Save / Apply / Update must prompt before those edits are
+lost (route change, back button, tab close, modal close).
+
+Full spec and recipes: **`unsaved-changes-guard`** skill
+(`.agent/skills/unsaved-changes-guard/SKILL.md`). Claude Code / OpenCode: invoke
+it before claiming UI work done.
+
+| Surface                               | Use                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| Page, settings card, editor, RHF form | `useUnsavedChangesGuard({ isDirty, onSave })` (`@/hooks/useUnsavedChangesGuard`) |
+| Modal, sheet, inline editor           | `useGuardedClose` + `<UnsavedChangesDialog {...dialogProps} />`                  |
+| `navigate()` right after a save       | `useRunUnguarded()`                                                              |
+
+## Do not
+
+- Hand-roll `beforeunload`, `useBlocker`, `window.confirm`, or a per-feature "leave?" dialog.
+- Call `setOpen(false)` directly from Cancel / X / Esc on a dirty modal (use `requestClose`).
+- Add `<BrowserRouter>`; the app uses `createBrowserRouter` so `useBlocker` works.
+
+## Exempt (state why in the PR)
+
+Autosave surfaces, filters/search, confirm/delete/OTP dialogs with no draft, chat
+composers, guest drafts already persisted by `useOfflineFormDraft`.
+
+Docs: `docs/architecture/unsaved-changes.md`.

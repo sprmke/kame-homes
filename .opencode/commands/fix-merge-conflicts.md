@@ -1,0 +1,1 @@
+../../.claude/commands/fix-merge-conflicts.md

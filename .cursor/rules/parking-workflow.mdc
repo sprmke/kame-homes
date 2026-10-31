@@ -1,0 +1,557 @@
+---
+description: Parking booking status machine (broadcast/claim/decline/expire), invariants, and the "which file do I edit?" map
+globs:
+  - 'supabase/functions/_shared/parkingStatusMachine.ts'
+  - 'supabase/functions/_shared/parkingBroadcast.ts'
+  - 'supabase/functions/_shared/parkingBroadcastRanking.ts'
+  - 'supabase/functions/_shared/parkingBroadcastActions.ts'
+  - 'supabase/functions/_shared/parkingBroadcastEmail.ts'
+  - 'supabase/functions/_shared/parkingBroadcastExpireCron.ts'
+  - 'supabase/functions/_shared/parkingDateOverlap.ts'
+  - 'supabase/functions/_shared/parkingPaymentOrchestrator.ts'
+  - 'supabase/functions/_shared/parkingPlatformSettings.ts'
+  - 'supabase/functions/_shared/parkingPricing.ts'
+  - 'supabase/functions/_shared/parkingCancellation.ts'
+  - 'supabase/functions/_shared/parkingAntiSpam.ts'
+  - 'supabase/functions/_shared/parkingEndorsementEmail.ts'
+  - 'supabase/functions/_shared/parkingAutomationToggles.ts'
+  - 'supabase/functions/_shared/parkingPropertyLink.ts'
+  - 'supabase/functions/_shared/parkingReminderCron.ts'
+  - 'supabase/functions/_shared/paymongoWebhookMetadata.ts'
+  - 'supabase/functions/_shared/subscriptionOrchestrator.ts'
+  - 'supabase/functions/_shared/telegramParking.ts'
+  - 'supabase/functions/submit-parking-booking-request/**/*'
+  - 'supabase/functions/claim-parking-booking/**/*'
+  - 'supabase/functions/decline-parking-booking/**/*'
+  - 'supabase/functions/expire-parking-broadcasts/**/*'
+  - 'supabase/functions/get-parking-booking-status/**/*'
+  - 'supabase/functions/get-parking-broadcast-status/**/*'
+  - 'supabase/functions/transition-parking-booking/**/*'
+  - 'supabase/functions/create-parking-payment-checkout/**/*'
+  - 'supabase/functions/cancel-parking-booking/**/*'
+  - 'supabase/functions/paymongo-webhook/**/*'
+  - 'supabase/functions/platform-parking-settings/**/*'
+  - 'supabase/functions/parking-payouts/**/*'
+  - 'supabase/functions/request-parking-endorsement/**/*'
+  - 'supabase/functions/list-linkable-property-bookings/**/*'
+  - 'supabase/functions/get-linked-parking-booking/**/*'
+  - 'supabase/functions/send-parking-reminders/**/*'
+  - 'ui/src/features/dashboard/parking/**/*'
+  - 'ui/src/features/guest/marketing/parkings/**/*'
+  - 'ui/src/features/dashboard/bookings/hooks/useBookingParkingShareLink.ts'
+  - 'ui/src/features/dashboard/bookings/hooks/useLinkedParkingBooking.ts'
+  - 'ui/src/features/dashboard/bookings/components/booking-detail/panels/ParkingPanel.tsx'
+alwaysApply: false
+---
+
+# Parking workflow — agent reference
+
+Canonical spec for the **parking broadcast-and-claim lifecycle**. Parking keeps its own status
+machine and its own edge functions — it is **never** routed through the property
+`workflowOrchestrator.ts` / `statusMachine.ts` (see `[[booking-workflow]]`). Design history and
+locked decisions: `docs/workflow/done/parking-e2e-phase1-overview.md` and its companion
+docs in `docs/workflow/done/` (status-workflow, host-broadcast-notifications, guest-request-realtime-status,
+bookings-page-updates, phase0-registration-dimensions). Later phases: `docs/workflow/planned/parking-e2e-later-phases.md`.
+
+## Status graph
+
+```
+PENDING_HOST_ACCEPTANCE → PENDING_PAYMENT | NO_HOST_AVAILABLE | CANCELLED
+PENDING_PAYMENT         → PENDING_REVIEW | PENDING_HOST_ACCEPTANCE | CANCELLED
+PENDING_REVIEW          → READY_FOR_CHECKIN | CANCELLED
+READY_FOR_CHECKIN       → COMPLETED | CANCELLED
+NO_HOST_AVAILABLE       → (terminal)
+CANCELLED               → (terminal)
+COMPLETED               → (terminal)
+```
+
+`parkingStatusMachine.ts` is the source of truth (`canTransition` / `availableTransitions`),
+mirrored client-side in `ui/src/features/dashboard/parking/lib/parkingWorkflow.ts` (keep both in
+sync manually — no shared import between server/client bundles).
+`transition-parking-booking/index.ts` explicitly **rejects** any transition where `fromStatus`
+is `PENDING_HOST_ACCEPTANCE` or `PENDING_PAYMENT` — both only resolve via their own dedicated
+functions below, never the generic transition endpoint.
+
+**`PENDING_PAYMENT` (Phase 3) sits between claim and confirmation** — Accept no longer means
+confirmed. A host's Accept sets `PENDING_PAYMENT` (not `PENDING_REVIEW`); the guest must pay
+before the booking is truly confirmed. `PENDING_REVIEW` still means "paid & confirmed," its
+meaning from Phase 1/2 is unchanged — only what precedes it changed. See "Payment (Phase 3)"
+below.
+
+## The broadcast round (PENDING_HOST_ACCEPTANCE)
+
+1. **Submit** (`submit-parking-booking-request`, **guest-authenticated since Phase 3** —
+   `serveAuthenticated`, was `servePublic`; the client-side Reserve/form flows already required
+   guest sign-in before this endpoint was ever called, this just verifies it server-side too):
+   stamps `guest_auth_user_id` on the row from the caller's JWT (ownership check for
+   pay-now/cancel, and the anti-spam identity for a future fast-follow). **No hard check that
+   `guestEmail` matches the caller's own email** — the admin dashboard's "New booking" modal
+   legitimately reuses this same endpoint to submit on a guest's behalf (host authenticated,
+   guest's email in the body); `guest_auth_user_id` is the real ownership binding, not
+   `guestEmail`. **Known gap**: an admin-submitted booking's `guest_auth_user_id` is the host's
+   own id, so the actual guest can't self-serve pay/cancel it later unless signed in as that
+   same host account — not solved in Phase 3, see the org bookings route guide. Resolves the
+   first ranked batch
+   (`parkingBroadcast.ts#resolveNextParkingBatch` → `findParkingBroadcastCandidates` — same
+   `organization_id`, `status = 'ACTIVE'`, `accepted_vehicle_types @> [...]`, no
+   date-overlapping/turnover-buffer-violating booking — then `parkingBroadcastRanking.ts#
+rankAndDedupeParkingCandidates` and a `PARKING_BATCH_SIZE` slice; see "Ranked batched dispatch"
+   below). Zero candidates after ranking/cap/dedupe → **422 `no_parking_available`, no row
+   inserted**. Otherwise inserts a `guest_submissions` row at `PENDING_HOST_ACCEPTANCE` with
+   `parking_id = null`, `parking_broadcast_batch_number = 1`, and `parking_pinned_id` set only
+   if the guest requested one specific listing directly (not an org-wide search — see below),
+   and fans out (`fanOutParkingBroadcast`): one `parking_booking_broadcasts` row per candidate
+   (stamped `batch_number` + `host_gross_at_broadcast`) + Telegram + per-recipient email (never
+   BCC). **If the fan-out insert itself throws**, the booking row is rolled back (deleted) and
+   the guest gets a 500 to retry cleanly — never leave an orphaned `PENDING_HOST_ACCEPTANCE` row
+   with zero broadcast rows.
+2. **TTL**: 15 min if check-in is today (Asia/Manila), else 1 hr (`parkingBroadcastTtlMs`) —
+   **per batch**, not per whole search. Re-applied fresh on every batch advance.
+3. **Claim** (`claim-parking-booking`, host, `verifyParkingTeamAccess(..., 'bookings:edit')`
+   scoped to the specific `parkingId`): first-Accept-wins is enforced by a single guarded
+   `UPDATE guest_submissions ... WHERE id = $bookingId AND status = 'PENDING_HOST_ACCEPTANCE'`.
+   **This status-guarded UPDATE on the booking row is the actual source of truth for the
+   win condition** — the broadcast-row pre-check (`response = 'pending'`) is a fast-fail UX
+   optimization only, not a second authority; a concurrent claim/decline/expire always loses
+   the race at the `guest_submissions.status` guard, so it can never double-win even if the
+   broadcast-row pre-check briefly disagrees. A losing claim gets `409 already_claimed`.
+   Optional endorsement note (host-authored, shown to guest after Accept; ≤500 chars in the
+   UI, ≤2000 server-side). **Sets `PENDING_PAYMENT`** (not `PENDING_REVIEW`) with a fresh
+   `parking_payment_expires_at` (same TTL asymmetry via `parkingBroadcastTtlMs`), and emails the
+   guest `sendParkingAwaitingPaymentEmail` (not the confirmation email — that now fires on
+   payment success, see below).
+4. **Decline** (`decline-parking-booking`, host, same access check): marks the caller's
+   broadcast row `declined`. If it was the **last `pending` row in the current batch**, calls
+   `advanceOrTerminateParkingBatch` (see below) — never terminates directly.
+5. **Expire** (`expire-parking-broadcasts`, cron): sweeps bookings past
+   `parking_broadcast_expires_at`, marks that batch's still-`pending` rows `expired`, then also
+   calls `advanceOrTerminateParkingBatch`. **Scheduling**:
+   `public.sync_parking_broadcast_expire_cron_job()`
+   (migration `20261018120000_parking_broadcast_expire_cron.sql`) — see
+   `docs/archive/operations/scheduled-jobs-and-testing.md` for activation.
+
+All terminal-or-advancing transitions funnel through the same guarded-UPDATE idempotency
+pattern (claim / decline-all-in-batch / expire), which is also what makes the guest's final
+"no host available" email exactly-once — never add a second write path to
+`guest_submissions.status` or `parking_broadcast_batch_number` for this state.
+
+## Ranked batched dispatch (Phase 2)
+
+Replaces the old "notify every eligible candidate at once" with a Grab-style ranked, batched
+offer. Locked constants (not admin-configurable in v1): `PARKING_BATCH_SIZE = 3`,
+`PARKING_TURNOVER_BUFFER_MINUTES = 30` (both in `parkingBroadcastRanking.ts`).
+
+- **Turnover buffer**: a same-day back-to-back (new check-in date == an existing booking's
+  checkout date on the same slot, or vice versa) is not a date-range overlap but still needs
+  ≥30 min between the two bookings. Sourced from the **listing's own standard check-in/
+  check-out time** — `parkings.settings.checkInTime`/`checkOutTime` (already stored, already
+  editable in `ParkingDetailsSection.tsx`, defaults `14:00`/`12:00`) — via
+  `minutesBetweenTimes()` (`cleaningBuffer.ts`, the same helper the property vertical's
+  same-day cleaning buffer uses). **Not** guest-selected times — the guest form only collects
+  dates, never per-booking times.
+- **Price ranking**: `computeParkingHostGross` averages nightly `host_gross` across the stay
+  (weekday/weekend mix + `parking_pricing_date_overrides`, via `loadParkingPricing`). Ascending
+  sort; **tie-break is `parkings.created_at` ascending** (earliest-listed spot wins) — a
+  deliberate choice, not insertion order.
+- **Guest rate cap (D5, live config since Phase 4)**: `resolveParkingPlatformSettings()`
+  (`parkingPlatformSettings.ts`) resolves `guestRateWeekday`/`guestRateWeekend` from the
+  super-admin-configurable `platform_parking_settings` singleton — a candidate priced above the
+  cap for any night in the stay is **excluded from the pool entirely**, not ranked last. Falls
+  back to a flat ₱400 stub only if that row is somehow missing (shouldn't happen — the
+  migration seeds it).
+- **Multi-spot host dedupe**: `resolvePrimaryHostKey` — earliest active `parking_members` row
+  with edit access (same predicate `resolveParkingHostRecipients` uses), else the org owner.
+  Two candidates sharing a key collapse to the cheaper one.
+- **Pinned requests stay single-round**: when the guest requests one specific listing directly
+  (`parkingId` in the submit payload → `parking_pinned_id` set), `advanceOrTerminateParkingBatch`
+  never expands the search to other org parkings once that one candidate's batch is exhausted —
+  it terminates, matching pre-batching Phase 1 behavior. Only org-wide searches
+  (`parking_pinned_id` null) advance through multiple batches.
+- **`advanceOrTerminateParkingBatch`** (`parkingBroadcastExpireCron.ts`) is the single shared
+  brain for "this batch is fully resolved, what now" — called from both decline-all-in-batch and
+  TTL expiry. Race-safe via a guarded UPDATE on
+  `status = 'PENDING_HOST_ACCEPTANCE' AND parking_broadcast_batch_number = fromBatchNumber`: only
+  the first caller to resolve a given batch applies (advance to `fromBatchNumber + 1` with a
+  fresh TTL, or terminate to `NO_HOST_AVAILABLE`); a losing concurrent call just no-ops. **Never
+  reimplement this guard per-caller.**
+
+## Payment (Phase 3/4)
+
+`PENDING_PAYMENT` resolves exactly three ways, all funneled through
+`parkingPaymentOrchestrator.ts`:
+
+- **Guest pays**: `create-parking-payment-checkout` (guest-authenticated) lazily creates a
+  PayMongo Payment Link on "Pay now" click — reuses an existing `pending`
+  `parking_payment_transactions` row if one exists (idempotent across repeated clicks), else
+  computes amounts via `computeParkingPaymentAmounts`, which (Phase 4) walks each occupied
+  night individually and sums the guest rate and host rate per night by weekday/weekend
+  classification (guest side from `resolveParkingPlatformSettings()`, host side from
+  `loadParkingPricing()` including date overrides) — **per-night-prorated, not averaged** (a
+  stay spanning both a weekday and a weekend night is billed per actual night, not a blended
+  rate × nights, which was Phase 3's interim approach). `commissionPct` also resolves live from
+  `platform_parking_settings`. **Resolved values are snapshotted onto the
+  `parking_payment_transactions` row at creation time** — a later admin config change never
+  touches an already-created transaction (see "Platform config & payouts" below).
+  `paymongo-webhook` → `handlePaymongoWebhookEvent` dispatches on `metadata.kind ===
+'parking_booking'` **first** (checked before the org-subscription path — without this a
+  parking webhook would silently no-op against the wrong table) → `fulfillParkingPayment`:
+  idempotent (`status === 'paid'` early-return), guarded `UPDATE ... WHERE status =
+'PENDING_PAYMENT'` to `PENDING_REVIEW`, **then** sends `sendParkingConfirmedEmail` (moved here
+  from claim-time). If the booking already moved on by the time the webhook lands (released by
+  a timeout race), the transaction is still marked `paid` with a manual-review flag instead of
+  forcing a status flip — never creates a second paid reservation for one request.
+- **Payment window times out**: `runExpireParkingPayments` (same cron tick as
+  `runExpireParkingBroadcasts`, `expire-parking-broadcasts` endpoint — no separate `pg_cron`
+  entry) sweeps `parking_payment_expires_at`, calls `releaseParkingClaim` then
+  `advanceOrTerminateParkingBatch` — **resumes the search** (next batch, or terminate once
+  exhausted). The guest didn't ask to stop.
+- **Guest cancels**: `cancel-parking-booking` → `cancelParkingBooking`
+  (`parkingCancellation.ts`) — while `PENDING_HOST_ACCEPTANCE`, straight to `CANCELLED`; while
+  `PENDING_PAYMENT`, calls the **same** `releaseParkingClaim` primitive but then sets
+  `CANCELLED` instead of resuming — **the guest explicitly asked to stop**, this must never
+  fall through to `advanceOrTerminateParkingBatch`.
+
+`releaseParkingClaim` (`parkingPaymentOrchestrator.ts`) is the shared low-level "un-claim"
+primitive both paths above call — it never decides what happens next, only the caller does. Do
+not add a third caller that skips this split.
+
+## Anti-spam (Phase 3 fast-follow)
+
+`parkingAntiSpam.ts#assertParkingSubmitAllowed` — locked v1 constants (overview D15, not
+admin-configurable): max `PARKING_MAX_CONCURRENT_PENDING` (3) live requests
+(`PENDING_HOST_ACCEPTANCE`/`PENDING_PAYMENT`) per `guest_auth_user_id`, and a
+`PARKING_CANCELLATION_COOLDOWN_HOURS` (24h) cooldown after
+`PARKING_CANCELLATION_COOLDOWN_THRESHOLD` (3) cancellations in that window. Called from
+`submit-parking-booking-request` **only when `guestEmail` matches the caller's own email** — a
+host submitting via the admin "New booking" modal (see "Guest sign-in requirement" above) is
+never rate-limited against their own account for creating bookings on guests' behalf. IP/device
+throttling is still deferred — the endpoint is guest-authenticated now, which already narrows
+that surface; revisit once Phase 8's unauthenticated direct-link entry point exists.
+
+## Platform config & payouts (Phase 4)
+
+- **Config resolver**: `parkingPlatformSettings.ts#resolveParkingPlatformSettings()` is the
+  single source of truth for `commissionPct`/`guestRateWeekday`/`guestRateWeekend`, reading the
+  singleton `platform_parking_settings` row (`id = 1` CHECK, mirrors `platform_payment_settings`).
+  Every caller (`parkingBroadcastRanking.ts` for the cap, `parkingPaymentOrchestrator.ts` for
+  payment amounts, `parkingPricing.ts` for the host-facing cap + display) resolves it **once per
+  operation** and threads the values through — never re-query per candidate/night.
+- **Super-admin config page**: `platform-parking-settings` edge function (GET/PUT singleton,
+  `serveSuperAdmin`, mirrors `platform-payment-settings`) + `SuperAdminParkingPayoutsPage.tsx`
+  (`/admin/parking/payouts`). Changing commission/guest rate here only affects bookings created
+  **after** saving — see the snapshot invariant above.
+- **Host-readable cap**: hosts can't call the super-admin-gated settings endpoint, so
+  `parking-pricing` GET piggybacks the live cap (`guestRateCapWeekday`/`guestRateCapWeekend`)
+  and `commissionPct` onto its own response (`ParkingPricingDto`) for
+  `ParkingPricingRatesFormCard.tsx`'s inline warning + fee/net-payout display.
+  `parkingPricingDefaults.ts`'s `STUB_*` constants are fallback-only now (used only before the
+  real response loads) — never the enforcement source.
+- **Payout ledger — manual disbursement only**: `parking_payment_transactions` (Phase 3) gained
+  `disbursed_at`/`disbursed_by`/`disbursement_reference`/`disbursement_method` (default
+  `'manual'` — `'paymongo_platforms'` is reserved for when real PayMongo Platforms split-payout
+  ships, not yet built) and `clawback_amount`/`clawback_reason`/`clawback_at`/`clawback_by`
+  (audit trail only, no automated collection). `parking-payouts` edge function
+  (`serveSuperAdmin`): GET lists `status = 'paid'` transactions; PATCH with
+  `{action: 'mark_disbursed', transactionId, reference?}` or `{action: 'record_clawback',
+transactionId, amount, reason}` — mirrors `org-subscriptions-admin`'s GET/PATCH action-dispatch
+  shape.
+- **Out of scope until PayMongo Platforms business/compliance work lands**: real automated
+  split-payout, host KYC onboarding, PayMongo's real fee schedule, volume eligibility threshold —
+  these require directly contacting PayMongo, not code. Don't build a "real payout" API path
+  ahead of that.
+
+## Endorsement automation & communication (Phase 5)
+
+- **Endorsement ≠ confirmation email.** `sendParkingEndorsementEmail()`
+  (`parkingEndorsementEmail.ts`) is addressed to the matching development's PMO (approval to let
+  the guest's vehicle onsite), CC guest — distinct from `sendParkingConfirmedEmail()`
+  (`parkingBroadcastEmail.ts`), the guest-facing "you're confirmed" notice. Both fire from the
+  same `fulfillParkingPayment()` payment-success path in `parkingPaymentOrchestrator.ts`, each in
+  its own isolated `try/catch` — a Resend outage on either must never fail payment fulfillment or
+  cascade into marking the transaction `failed`.
+- **PMO recipient resolution**: a parking has no dedicated recipient config — the send resolves
+  the PMO email via `loadDevelopmentPmoEmailByName(supabase, parking.residence_name)`
+  (`developmentSerialize.ts`), matching against `developments.name`. If no matching development
+  row (or no `pmoEmail` on it) exists, the send throws `ParkingEndorsementRecipientError` — this
+  becomes `endorsement_send_error`, a concrete, fixable reason (configure the development's PMO
+  email), not a silent failure.
+- **Idempotency**: `guest_submissions.endorsement_sent_at` is the guard — every write (success or
+  failure path) is a guarded `UPDATE ... WHERE endorsement_sent_at IS NULL`. First successful send
+  wins; a later retry (webhook double-fire, or the guest's manual resend racing the auto-send)
+  can never overwrite an already-sent record. On success, `endorsement_email_snapshot` stores the
+  **exact rendered HTML** sent — the guest-facing "view copy" panel renders this stored snapshot
+  verbatim, never a re-render (which could drift if templates change later).
+- **Guest resend**: `request-parking-endorsement` edge function
+  (`requestParkingEndorsementResend()`) — same ownership check as `cancel-parking-booking`
+  (`guest_auth_user_id === user.id`), only usable once the booking is past payment
+  (`PENDING_REVIEW`/`READY_FOR_CHECKIN`/`COMPLETED`) and no send has succeeded yet.
+- **Auto-accept**: `parking_settings.automation_toggles.autoAcceptTopMatch` (extends the existing
+  JSONB automation-toggle bag from Phase 2/3's email toggles — no new column). Checked only
+  against the **initial** batch's top candidate, in `submit-parking-booking-request/index.ts`
+  right after `fanOutParkingBroadcast()` — calls the exact same `claimParkingBooking()` primitive
+  the manual `claim-parking-booking` endpoint uses, so first-accept-wins safety is untouched. A
+  re-batch after a decline/timeout does **not** re-check auto-accept (v1 scope — see file map doc
+  for why: hooking it inside `fanOutParkingBroadcast()` itself would create a circular import
+  between `parkingBroadcast.ts` → `parkingBroadcastActions.ts` → `parkingBroadcastExpireCron.ts` →
+  `parkingBroadcast.ts`).
+- **Post-match chat reuses existing infra, not a new system.** The guest-facing web chat widget
+  (`ui/src/features/guest/chat/`) already exists and already accepts a `parkingSlug` — it's
+  scoped per `(parking, guest_user_id)` via `social_conversations`, not per booking. `ParkingChatSheet.tsx`
+  is a thin wrapper around that existing `useGuestChatResume`/`useGuestChatStart`/`GuestChatThread`
+  stack (skipping the inquiry-specific FAQ/date-picker/voice-session pieces that don't apply
+  post-booking). The chat CTA is gated client-side on `endorsementSentAt` being set — the
+  underlying thread itself isn't booking-scoped, so a guest with multiple sequential bookings at
+  the same parking shares one thread across them. Accepted v1 limitation; do **not** add a
+  `booking_id` column to `social_conversations` speculatively — only if this proves to be a real
+  problem.
+- **Contact reveal is guest-sees-host-contact only.** `resolveParkingHostContact()`
+  (`parkingBroadcast.ts`) — reuses `resolveParkingHostRecipients()`'s owner-first candidate pool,
+  enriched with `parking_members.display_name`/`contact_phone`. `get-parking-booking-status`
+  includes this only when `endorsement_sent_at IS NOT NULL`. The host side (guest email/phone on
+  `ParkingBookingDetailPage.tsx`) was already unconditional before this phase and is intentionally
+  **not** gated — that's baseline booking info the host needs for on-site verification, not part
+  of the "post-match communication" contact-sharing concept.
+- **Admin escalation contact**: `platform_parking_settings.support_escalation_phone` (extends
+  Phase 4's singleton config + `/admin/parking/payouts` page) — surfaced on the guest status page
+  **unconditionally**, regardless of chat/endorsement state.
+
+## Property-booking migration (Phase 7)
+
+- **`guest_submissions.linked_property_booking_id`** — set only on a `parking_id` row, pointing
+  at a `property_id` row it was self-served from. Self-referencing FK on the same table (property
+  vs. parking rows are mutually exclusive via a `property_id`/`parking_id` CHECK constraint).
+  Ownership + linkability are verified in `submit-parking-booking-request` at insert time
+  (`parkingPropertyLink.ts#verifyLinkablePropertyBooking`), not enforced by a DB constraint — same
+  RLS-is-permissive-here convention as the rest of this table.
+- **Linkability ≠ stay-guide eligibility.** `isParkingLinkableStatus()` allows `PENDING_DOCUMENTS`
+  or later (excludes `PENDING_REVIEW`/`CANCELLED`/`IMPORTED`) — deliberately earlier than the
+  RFCI+ stay-guide gate, because linking needs to work well before check-in. It matches the two
+  status shapes `transition-booking`'s same-status `document_completion_target` call can actually
+  act on (`PENDING_DOCUMENTS` same-status, or the RFCI+ "late parking" rule above) — see the
+  file's own comment for the residual gap on legacy `PENDING_GAF`/`PENDING_PARKING_REQUEST`/
+  `PENDING_PET_REQUEST` literal statuses.
+- **Self-serve entry**: `list-linkable-property-bookings` (guest-authenticated) resolves the
+  signed-in guest's linkable stays by `guest_user_id`/`guest_email` — same identity match as
+  `guestProfileService.ts#listGuestTrips`, deliberately reimplemented rather than imported to keep
+  this marketplace module decoupled from the guest-portal trips list. `ParkingRegistrationForm.tsx`
+  shows a "which stay is this for?" picker (single match auto-selects) and prefills unit + vehicle
+  fields only — **not** check-in/out dates, since a pinned listing's dates come from that
+  listing's own availability calendar, not the property stay (prefilling them could silently
+  submit dates the listing isn't actually available for).
+- **Auto-complete**: `parkingPaymentOrchestrator.ts#fulfillParkingPayment`, after a successful
+  payment, if `linked_property_booking_id` is set, reads that property booking's **current**
+  status and calls `WorkflowOrchestrator.transition()` same-status with
+  `document_completion_target: 'PENDING_PARKING_REQUEST'` — the same call
+  `ParkingRequestForm.tsx`'s manual "Mark as Complete" makes, never a raw column write. Isolated
+  try/catch (mirrors the endorsement email send in the same function) — a failure here never
+  fails the parking payment, and is not retried. Fires a `booking_parking_matched` in-app
+  notification on success.
+- **Property booking detail panel**: `get-linked-parking-booking` (property-scoped read, mirrors
+  `get-booking-ai-review`'s `resolveScopedPropertyAccess` + `verifyBookingBelongsToProperty`
+  pattern) resolves the linked booking's status/endorsement/host contact via
+  `resolveParkingHostContact()`. `ParkingPanel.tsx` renders this when linked, else the legacy
+  owner/rate fields unchanged — never both.
+- **Host-assist share link**: `useBookingParkingShareLink.ts` + `useOwnerDefaultParking` /
+  `resolve-owner-default-parking`. When the property’s org has an **available** own parking for
+  the stay dates, primary share/open uses `guestParkingOwnDefaultPath`
+  (`/parkings/:slug/form?linkStay=…&checkInDate=…&checkOutDate=…`); otherwise
+  `guestParkingFindPath` (`/parkings?linkStay=…`). Host **Use your parking** / **Find parking**
+  opens that URL; **Search other parkings** always opens marketplace browse. Already-linked stays
+  open the request status page. Legacy pay-parking URLs redirect via `PayParkingPage` +
+  `get-pay-parking` (prefer own-default when available). Multi-slot: booking detail opens
+  `OwnerParkingConfirmSheet`. Ranking: `preferredOwnerParkingId` (property settings) → same
+  `residence_name` → earliest `created_at`.
+- **Same-org owner-owned auto-claim**: `submit-parking-booking-request` — when `parkingId` is
+  pinned **and** `linkedPropertyBookingId` is set **and** both belong to the same
+  `organization_id` (`isSameOrgOwnerOwnedPin`), fan-out inserts broadcast rows with
+  `skipNotify: true` then immediately `claimParkingBooking` → `PENDING_PAYMENT` (no Accept
+  self-notify). If the linked property has `complimentaryOwnerParking: true`,
+  `claimParkingBooking` skips the awaiting-payment guest email, then
+  `fulfillComplimentaryOwnerParking` confirms with a ₱0 `provider: complimentary`
+  ledger row (endorsement + property gate) — no PayMongo. Cross-org / unlinked pins keep the
+  normal Accept path. Occupancy for defaults includes `PENDING_PAYMENT` and in-flight
+  `parking_pinned_id` requests. Large orgs: occupancy `.in(parking_id, …)` / pinned-id lookups
+  use `postgrestInChunks` so resolution does not fail with **URI too long**.
+- **Guest parking CTAs (emails / reminders)**: `resolveGuestParkingCtaAbsoluteUrl` — booking
+  acknowledgement and `parkingReminderCron` prefer own-default form deep links when an org
+  slot is available for the stay; otherwise stay-scoped `/parkings?linkStay=…`.
+- **Host-on-behalf ownership (Phase B)**: pay/cancel/endorsement accept caller email matching
+  `guest_email` and rebind `guest_auth_user_id` (`parkingGuestOwnership.ts`) so Admin New booking
+  guests can self-serve after signing in with the booking email.
+- **Pre-arrival reminder**: `send-parking-reminders` cron (`parkingReminderCron.ts`, daily,
+  `parking-reminder-daily` job) — one-time reminder (dedupe: `parking_reminder_sent_at`) to any
+  linkable, unlinked, `need_parking = true` property booking within 3 days of check-in.
+  CTA URL uses `resolveGuestParkingCtaAbsoluteUrl` (own-default when available).
+- **Legacy broadcast retirement**: `workflowOrchestrator.ts` no longer calls
+  `sendParkingBroadcast()` on a new `need_parking` signal (see `.cursor/rules/booking-workflow.mdc`).
+  `submit-pay-parking` remains for historical tooling only — host **Find parking** no longer opens
+  the vehicle form.
+
+## Direct-booking link (Phase 8)
+
+- **Reuses the existing pinned-listing route** — no new landing page. A host's shareable link is
+  `/parkings/:slug/form?dl=<token>`, the same route Phase 2's pinned single-round submit already
+  uses; the `?dl=` marker is the only new thing riding along.
+- **Still guest-authenticated.** Do not build an anonymous/unauthenticated variant of this path —
+  Phase 3 already made every parking submit require guest sign-in (ownership binding for
+  pay-now/cancel, plus `parkingAntiSpam.ts`'s per-account limits), and those protections apply to
+  a direct-link submission exactly the same way. The link only changes which commission rate
+  applies, never the auth requirement.
+- **Token generation/verification**: `parkingDirectLink.ts`. `ensureParkingDirectBookingToken`
+  lazily generates and persists `parkings.direct_booking_token` (two concatenated
+  `crypto.randomUUID()`s, same pattern as `parkingTeamService.ts`'s invite tokens) the first time
+  a host's dashboard requests it (`parking-pricing` GET) — idempotent, never regenerated on
+  subsequent calls. `resolveParkingBookingChannel` verifies a guest-supplied token server-side
+  against the pinned parking's stored token at submit time; a missing or mismatched token is
+  **never an error** — it silently resolves to `'standard'`. Don't ever trust a client-supplied
+  channel/discount flag directly.
+- **Channel snapshot, same discipline as commission_pct**: `guest_submissions.parking_booking_channel`
+  is set once, at submit time, in `submit-parking-booking-request`. It is read once at payment-link
+  creation (`parkingPaymentOrchestrator.ts#createParkingPaymentTransaction`) to pick
+  `direct_commission_pct` vs `commission_pct`
+  (`computeParkingPaymentAmounts`'s new `bookingChannel` param), then that resolved rate is
+  snapshotted onto `parking_payment_transactions.booking_channel` — don't re-derive the channel by
+  joining back to `guest_submissions` later, the transaction row is the permanent record.
+- **Anti-spam scope is narrower than a naive "public link" read would suggest** — see the phase
+  doc's decision #4 write-up. Only `get-public-parking` (the read-only landing lookup) got a new
+  per-IP rate limit (`checkIpRateLimit`, mirrors `search-suggestions`); the authenticated submit
+  endpoint itself was **not** given a separate IP throttle — the existing per-account limit already
+  covers it, and stacking an IP limit on top would risk penalizing legitimate guests behind a
+  shared IP (hotel/condo wifi) for no real additional protection.
+
+## Multi-tenancy
+
+Candidate queries filter by `organization_id` at the source (`findParkingBroadcastCandidates`).
+Every host-facing endpoint (`claim`, `decline`, `get-parking-broadcast-status`,
+`transition-parking-booking`) re-verifies access via `verifyParkingTeamAccess` scoped to the
+**specific `parkingId` in the request**, not just "any authenticated org member" — never trust
+a client-supplied `organizationId` for authorization, only for candidate matching.
+
+## Guest status surface
+
+`get-parking-booking-status` (public/anon) takes a booking UUID (unguessable, bearer-capability
+style) and returns a narrow projection — no listing/enumeration endpoint exists, and it 404s
+identically whether the row doesn't exist or isn't a parking row. The guest status page
+(`ParkingRequestStatusPage.tsx`) **polls every 4s**, not Supabase Realtime — this is a
+documented deviation from the original "locked" Realtime decision in
+`parking-e2e-phase1-guest-request-realtime-status.md`; it was kept because it already satisfies
+that doc's own ≤5s fallback acceptance bar. If true Realtime is ever implemented, it needs a
+`guest_auth_user_id` column + RLS-scoped channel per that doc's "locked approach" section — do
+not silently half-implement it.
+
+**Non-refundable notice** (`NonRefundableNotice` in `ParkingRequestStatusView.tsx`) is a single
+component mounted at two conditions — `status === 'PENDING_PAYMENT'` (pre-payment) and `isPaid`
+(persistent post-payment) — which together cover all three touchpoints the policy asks for
+("before payment, payment confirmation, ongoing status page"), since this app has no separate
+payment-confirmation page (PayMongo redirects back to this same status view).
+
+## Notification deep links
+
+Both Telegram and email host notifications deep-link straight to
+`/org/:orgSlug/parking/:parkingSlug/bookings/:bookingId` (`ParkingBookingDetailPage`) — not the
+bare bookings list. Telegram has no button/CTA affordance, so the link is appended as plain text
+after the templated message body (not part of the user-editable template).
+
+## Host dashboard
+
+`ParkingBookingDetailPage.tsx` shows Accept/Decline only when
+`broadcastStatus.response === 'pending'` for **this** parking (`useParkingBroadcastStatus`).
+`BookingRow.parking_broadcast_expires_at` (already returned by `select('*')` / list-bookings —
+just was missing from the TS type) drives `ParkingBroadcastCountdown`
+(`ui/src/features/dashboard/bookings/components/ParkingBroadcastCountdown.tsx`), shown next to
+the status badge on the detail page, list table, and card grid whenever status is
+`PENDING_HOST_ACCEPTANCE` — this is the host's only urgency signal while racing to Accept, keep
+it wired whenever `BookingRow` or the broadcast payload shape changes.
+
+## File map
+
+| Concern                                                                                             | File                                                                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status graph                                                                                        | `supabase/functions/_shared/parkingStatusMachine.ts`                                                                                                                                                                                             |
+| Candidate matching, TTL, batch resolution, fan-out                                                  | `supabase/functions/_shared/parkingBroadcast.ts`                                                                                                                                                                                                 |
+| Price ranking, cap exclusion, host dedupe                                                           | `supabase/functions/_shared/parkingBroadcastRanking.ts`                                                                                                                                                                                          |
+| Claim / decline (batch-scoped)                                                                      | `supabase/functions/_shared/parkingBroadcastActions.ts`                                                                                                                                                                                          |
+| Email templates (request/confirmed/no-host)                                                         | `supabase/functions/_shared/parkingBroadcastEmail.ts`                                                                                                                                                                                            |
+| Telegram templates/settings                                                                         | `supabase/functions/_shared/telegramParking.ts`                                                                                                                                                                                                  |
+| Date-overlap check                                                                                  | `supabase/functions/_shared/parkingDateOverlap.ts`                                                                                                                                                                                               |
+| TTL sweep + `advanceOrTerminateParkingBatch`                                                        | `supabase/functions/_shared/parkingBroadcastExpireCron.ts`                                                                                                                                                                                       |
+| Cron scheduling                                                                                     | `supabase/migrations/20261018120000_parking_broadcast_expire_cron.sql`                                                                                                                                                                           |
+| Batching schema (`batch_number`, `parking_pinned_id`, …)                                            | `supabase/migrations/20261115120600_parking_broadcast_batching.sql`, `20261115120700_parking_broadcast_pinned_id.sql`                                                                                                                            |
+| Guest submit                                                                                        | `supabase/functions/submit-parking-booking-request/index.ts`                                                                                                                                                                                     |
+| Guest status read                                                                                   | `supabase/functions/get-parking-booking-status/index.ts`                                                                                                                                                                                         |
+| Host claim / decline                                                                                | `supabase/functions/claim-parking-booking/`, `supabase/functions/decline-parking-booking/`                                                                                                                                                       |
+| Host broadcast-row read                                                                             | `supabase/functions/get-parking-broadcast-status/index.ts`                                                                                                                                                                                       |
+| Non-broadcast transitions (`PENDING_REVIEW` → …)                                                    | `supabase/functions/transition-parking-booking/index.ts`                                                                                                                                                                                         |
+| Guest form + status UI                                                                              | `ui/src/features/guest/marketing/parkings/components/ParkingRegistrationForm.tsx`, `ParkingBookingFormModal.tsx`, `ui/src/features/guest/marketing/parkings/pages/ParkingRequestStatusPage.tsx`                                                  |
+| Host list/detail UI                                                                                 | `ui/src/features/dashboard/parking/pages/ParkingBookingsPage.tsx`, `ui/src/features/dashboard/parking/pages/ParkingBookingDetailPage.tsx`                                                                                                        |
+| Client status labels/tones                                                                          | `ui/src/features/dashboard/bookings/lib/bookingStatus.ts` (`PARKING_ONLY_STATUSES`)                                                                                                                                                              |
+| Payment orchestration (checkout, webhook fulfillment, release)                                      | `supabase/functions/_shared/parkingPaymentOrchestrator.ts`                                                                                                                                                                                       |
+| Guest cancel                                                                                        | `supabase/functions/_shared/parkingCancellation.ts`, `supabase/functions/cancel-parking-booking/index.ts`                                                                                                                                        |
+| Guest pay-now checkout                                                                              | `supabase/functions/create-parking-payment-checkout/index.ts`                                                                                                                                                                                    |
+| Webhook dispatch (`kind` routing)                                                                   | `supabase/functions/_shared/subscriptionOrchestrator.ts` (`handlePaymongoWebhookEvent`), `supabase/functions/_shared/paymongoWebhookMetadata.ts`                                                                                                 |
+| Payment schema (`parking_payment_transactions`, `guest_auth_user_id`, `parking_payment_expires_at`) | `supabase/migrations/20261128120100_parking_payment.sql`                                                                                                                                                                                         |
+| Guest rate/commission config resolver (live, Phase 4)                                               | `supabase/functions/_shared/parkingPlatformSettings.ts` (`resolveParkingPlatformSettings`)                                                                                                                                                       |
+| Server-side price-cap enforcement + host-readable cap/commission on the pricing DTO                 | `supabase/functions/_shared/parkingPricing.ts` (`assertWithinGuestRateCap`, `ParkingPricingDto.guestRateCapWeekday/Weekend/commissionPct`)                                                                                                       |
+| Platform config schema + payout ledger columns                                                      | `supabase/migrations/20261129120000_parking_platform_settings.sql`                                                                                                                                                                               |
+| Super-admin config GET/PUT                                                                          | `supabase/functions/platform-parking-settings/index.ts`                                                                                                                                                                                          |
+| Payout ledger (list, mark-disbursed, record-clawback)                                               | `supabase/functions/parking-payouts/index.ts`                                                                                                                                                                                                    |
+| Super-admin config + payout ledger UI                                                               | `ui/src/features/dashboard/super-admin/pages/SuperAdminParkingPayoutsPage.tsx`, `ui/src/features/dashboard/super-admin/hooks/usePlatformParkingSettings.ts`                                                                                      |
+| Host-facing gross/fee/net display, client-side price-cap warning                                    | `ui/src/features/dashboard/parking/components/ParkingPricingRatesFormCard.tsx`, `ui/src/features/dashboard/parking/lib/parkingPricingDefaults.ts` (fallback-only stubs)                                                                          |
+| Anti-spam (guest submit rate limit)                                                                 | `supabase/functions/_shared/parkingAntiSpam.ts`                                                                                                                                                                                                  |
+| Endorsement email send + guest resend                                                               | `supabase/functions/_shared/parkingEndorsementEmail.ts`, `supabase/functions/request-parking-endorsement/index.ts`                                                                                                                               |
+| Endorsement status columns + escalation phone                                                       | `supabase/migrations/20261130120000_parking_endorsement.sql`                                                                                                                                                                                     |
+| Automation toggle bag (email + auto-accept)                                                         | `supabase/functions/_shared/parkingAutomationToggles.ts`, `ui/src/features/dashboard/parking/lib/parkingEmailAutomation.ts`                                                                                                                      |
+| Auto-accept host UI                                                                                 | `ui/src/features/dashboard/parking/components/ParkingBookingAutomationSection.tsx`                                                                                                                                                               |
+| Guest-facing endorsement copy/resend/chat/contact-reveal UI                                         | `ui/src/features/guest/marketing/parkings/components/ParkingRequestStatusView.tsx`, `ParkingChatSheet.tsx`                                                                                                                                       |
+| Host-contact resolver (guest-facing reveal)                                                         | `supabase/functions/_shared/parkingBroadcast.ts` (`resolveParkingHostContact`)                                                                                                                                                                   |
+| Property↔parking link + linkability rule                                                            | `supabase/functions/_shared/parkingPropertyLink.ts`, `supabase/migrations/20261201120000_parking_property_link.sql`                                                                                                                              |
+| Guest self-serve lookup (linkable stays)                                                            | `supabase/functions/list-linkable-property-bookings/index.ts`, `ui/src/features/guest/marketing/parkings/hooks/useLinkableParkingBookings.ts`                                                                                                    |
+| Property booking detail panel read                                                                  | `supabase/functions/get-linked-parking-booking/index.ts`, `ui/src/features/dashboard/bookings/hooks/useLinkedParkingBooking.ts`                                                                                                                  |
+| Host-assist share / Find parking / own default                                                      | `useBookingParkingShareLink.ts`, `useOwnerDefaultParking.ts`, `useEnsureNeedParking.ts`, `ownerDefaultParking.ts`, `resolve-owner-default-parking`, `parkingLinkStay.ts`, `guestPublicPaths.guestParkingFindPath` / `guestParkingOwnDefaultPath` |
+
+| Guest ownership (host-on-behalf) | `supabase/functions/_shared/parkingGuestOwnership.ts` |
+| Auto-complete workflow gate | `supabase/functions/_shared/parkingPaymentOrchestrator.ts` (`autoCompletePendingParkingRequest`) |
+| Pre-arrival reminder cron | `supabase/functions/send-parking-reminders/index.ts`, `supabase/functions/_shared/parkingReminderCron.ts`, `supabase/migrations/20261201120200_parking_reminder_cron.sql` |
+| Direct-link token generation/verification, channel resolution | `supabase/functions/_shared/parkingDirectLink.ts` |
+| Direct-link schema (`direct_booking_token`, `direct_commission_pct`, `parking_booking_channel`, `booking_channel`) | `supabase/migrations/20261202120000_parking_direct_booking_link.sql` |
+| Direct-link host dashboard card | `ui/src/features/dashboard/parking/components/ParkingDirectLinkCard.tsx` |
+
+## Don'ts
+
+- Don't route `PENDING_HOST_ACCEPTANCE` through `transition-parking-booking` — it's explicitly
+  blocked; use claim/decline/expire.
+- Don't add a second write path to `guest_submissions.status` for the terminal transitions —
+  the guarded UPDATE pattern is what makes emails/notifications exactly-once.
+- Don't trust a client-supplied `organizationId`/`parkingId` for authorization — always
+  re-verify via `verifyParkingTeamAccess` scoped to the specific parking in the request.
+- Don't add a "settings UI" for the TTL cron cadence unless product actually asks for a
+  configurable schedule — it's intentionally fixed at 5 min, unlike the Telegram cron jobs.
+- Don't reimplement the batch-advance-or-terminate guard per-caller — always call
+  `advanceOrTerminateParkingBatch`, the same way claim/decline/expire never reimplement the
+  claim-win guard.
+- Don't invent per-booking guest-selected check-in/check-out times for the turnover buffer —
+  it's sourced from the listing's own standard times (`parkings.settings.checkInTime`/
+  `checkOutTime`), not the guest form.
+- Don't call `releaseParkingClaim` without immediately deciding what happens next — a timeout
+  resumes the search (`advanceOrTerminateParkingBatch`), a guest cancel terminates
+  (`CANCELLED`). Never let a release silently fall through to the wrong outcome.
+- Don't add a new webhook branch that skips the `metadata.kind` check in
+  `handlePaymongoWebhookEvent` — every kind must be dispatched explicitly, never assumed by
+  fallthrough (that's exactly the bug this rule replaced).
+- Don't send `sendParkingConfirmedEmail` from claim — it fires from `fulfillParkingPayment` on
+  payment success only; claim sends `sendParkingAwaitingPaymentEmail` instead.
+- Don't hardcode a guest rate/commission constant anywhere new — resolve
+  `resolveParkingPlatformSettings()` instead, and don't recompute it retroactively for an
+  already-created `parking_payment_transactions` row; the values are snapshotted at checkout
+  creation on purpose (a later admin config change must never move a paid or in-flight
+  transaction's numbers).
+- Don't build a real automated split-payout path yet — `disbursement_method` stays `'manual'`
+  until PayMongo Platforms business/compliance work actually lands; the ledger is a manual
+  disburse/clawback audit trail only.
+- Don't trust a client-supplied `directLinkToken`/channel flag directly — always verify it
+  server-side against `parkings.direct_booking_token` via `resolveParkingBookingChannel`. A
+  missing/mismatched token silently falls back to `'standard'`, never an error.
+- Don't build an unauthenticated variant of the direct-booking-link submit path — guest auth is
+  already required for every parking submission (Phase 3) and that protection applies here too;
+  see the Phase 8 doc's decision #4 write-up before "fixing" this to be more literally
+  "unauthenticated."

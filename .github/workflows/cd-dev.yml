@@ -1,0 +1,259 @@
+name: CD Dev (multi-tenant Supabase)
+
+# Push to git branch `develop` → deploy backend to MULTI_TENANT_DEV (fwor…).
+# ci-deploy.sh uses db push --include-all so out-of-order migration history does not block deploy.
+# UI deploys separately via Vercel Preview → dev.kamehomes.space.
+# Secrets: GitHub Environment `development` (not Vercel).
+# Matrix: docs/archive/operations/ci-cd-environment-matrix.md
+
+on:
+  push:
+    branches:
+      - develop
+    # Supabase-only workflow — skip when a push touches only docs/UI (Vercel deploys UI separately).
+    paths:
+      - '.github/workflows/cd-dev.yml'
+      - 'scripts/deploy/**'
+      - 'supabase/**'
+
+concurrency:
+  group: supabase-mt-dev
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Cache bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+          restore-keys: deno-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run type-check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Filename conventions
+        run: bun run check:filenames
+
+      - name: Migration conventions
+        run: |
+          bash scripts/dev/check-migration-versions.sh
+          bash scripts/dev/check-migration-security.sh
+
+      - name: Unit tests (Vitest)
+        run: bun run test
+
+      - name: Edge type check (Deno)
+        run: bun run check:edge-types
+
+      - name: Edge unit tests (Deno _shared)
+        run: bun run test:edge
+
+      - name: servePublic rate-limit coverage
+        run: bash scripts/dev/check-serve-public-rate-limit.sh
+
+      - name: Authenticated wrapper log-only rate check
+        run: bash scripts/dev/check-authenticated-rate-limit.sh
+
+      - name: Unbounded query guard
+        run: bash scripts/dev/check-unbounded-select.sh
+
+      - name: Cache class guard
+        run: bash scripts/dev/check-cache-class.sh
+
+      - name: select('*') guard
+        run: bash scripts/dev/check-select-star.sh
+
+      - name: Public static asset size
+        run: bash scripts/dev/check-public-asset-size.sh
+
+      - name: Vercel cache and security headers
+        run: bash scripts/dev/check-vercel-headers.sh
+
+      - name: Storage upload cacheControl
+        run: node scripts/dev/check-storage-cache-control.mjs
+
+      - name: Edge function serve-wrapper allowlist
+        run: node scripts/dev/audit-edge-functions.mjs --check
+
+      - name: AI gateway guard (all model calls via _shared/ai)
+        run: node scripts/dev/check-ai-gateway.mjs
+
+      - name: Auth matrix — zero-authz-signal guard (production-readiness doc 21)
+        run: node scripts/dev/audit-auth-matrix.mjs --check
+
+      - name: Edge handler tests (Deno)
+        run: bun run test:edge:handlers
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install Playwright Chromium
+        run: bun x playwright install chromium --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright OS deps only (cache hit)
+        run: bun x playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Playwright smoke (@smoke)
+        run: bun run test:e2e:smoke
+
+      - name: Playwright CI suite (@ci)
+        run: bun run test:e2e:ci
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/playwright/
+          retention-days: 7
+
+      - name: Build UI
+        env:
+          # Vite chunk rendering exceeds default ~2GB Node heap on ubuntu-latest.
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run build
+
+  deploy:
+    needs: quality
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Deploy Supabase (MULTI_TENANT_DEV)
+        env:
+          CI: '1'
+          DEPLOY_CONFIRM: dev
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+        run: |
+          chmod +x scripts/deploy/ci-deploy.sh scripts/deploy/deploy-supabase-dev.sh
+          ./scripts/deploy/ci-deploy.sh dev
+
+      - name: Smoke (functions + edge gateway)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
+        run: ./scripts/deploy/ci-smoke.sh dev
+
+      - name: Adversarial auth smoke (production-readiness doc 21)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # shellcheck source=scripts/deploy/ci-deploy-lib.sh
+          source scripts/deploy/ci-deploy-lib.sh
+          ci_deploy_ensure_anon_key
+          export SUPABASE_URL="https://${SUPABASE_PROJECT_REF}.supabase.co"
+          deno test --allow-net --allow-env supabase/functions/tests/adversarialAuthLive.test.ts
+
+      - name: pg_stat_statements snapshot (production-readiness doc 00)
+        continue-on-error: true
+        env:
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+        run: |
+          if [[ -z "${DEV_DB_URL:-}" ]]; then
+            echo "::warning title=pg_stat skipped (doc 00)::Set DEV_DB_URL on GitHub Environment development — docs/archive/operations/github-environments-setup.md"
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          bash scripts/performance/capture-pg-stat-statements.sh hosted-dev-ci
+
+      - name: Upload pg_stat baseline artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pg-stat-statements-hosted-dev
+          path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-pg-stat-statements-hosted-dev-ci.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Edge latency snapshot (production-readiness doc 00)
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # shellcheck source=scripts/deploy/ci-deploy-lib.sh
+          source scripts/deploy/ci-deploy-lib.sh
+          ci_deploy_ensure_anon_key
+          export SUPABASE_URL="https://${SUPABASE_PROJECT_REF}.supabase.co"
+          node scripts/performance/edge-latency-baseline.mjs --iterations=8 --label=hosted-dev-ci
+
+      - name: Upload edge latency baseline artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-latency-hosted-dev
+          path: docs/workflow/in-progress/production-readiness/checklist/baselines/*-edge-latency-hosted-dev-ci.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Deployed preview headers (production-readiness doc 02/16)
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          export PREVIEW_URL=https://dev.kamehomes.space
+          export HEALTH_URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/get-health"
+          for attempt in $(seq 1 12); do
+            if bun run verify:deployed-preview; then
+              exit 0
+            fi
+            echo "verify:deployed-preview attempt ${attempt}/12 failed (Vercel may still be building); sleeping 30s"
+            sleep 30
+          done
+          exit 1

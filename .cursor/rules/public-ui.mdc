@@ -1,0 +1,76 @@
+---
+description: Public guest routes — marketing site, calendar, form, sd-form, pay-parking (unauthenticated)
+globs:
+  - 'ui/src/features/guest/marketing/**/*'
+  - 'ui/src/features/guest/calendar/**/*'
+  - 'ui/src/features/guest/form/**/*'
+  - 'ui/src/features/guest/sd-form/**/*'
+  - 'ui/src/features/guest/pay-parking/**/*'
+  - 'ui/src/components/theme/MarketingThemeToggle.tsx'
+  - 'ui/src/layouts/MainLayout.tsx'
+alwaysApply: false
+---
+
+# Public UI
+
+## Route groups
+
+| Group                    | Routes                                                                                                                    | Data                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Marketing** (PMA port) | `/`, `/for-hosts`, `/properties/*`, `/developments/*`, `/about`, `/contact`, `/support`, `/terms`, `/privacy`, `/cookies` | Phase 1: **mock data** only |
+| **Operational**          | `/calendar`, `/form`, `/success`, `/sd-form`, `/bookings/:id/parking`                                                     | Live edge functions         |
+
+No admin auth on these routes. Property scope via `?property=<slug>` or `?property_id=`.
+
+## Marketing layout
+
+- **`MarketingLayoutShell`** — nav, footer, `<Outlet />`, theme toggle
+- **`MarketingImage`** — Vite substitute for Next.js `Image` (`fill`, `priority`, sizes)
+- **`MarketingThemeToggle`** — light/dark (CSS variables)
+- **React Router:** `Link to=` (not `href=`); `useSearchParams()` → `const [searchParams] = useSearchParams()`
+- Guides: `docs/guides/routes/index-landing.md`, `properties.md`, `developments.md`
+
+**Legacy:** `/?property=` redirects to `/calendar?property=` on the landing page.
+
+## Calendar → form (operational)
+
+`CalendarPage` at **`/calendar`** only. Preserves query params when navigating to `/form`.
+
+Share links: `guestPublicPaths.guestCalendarPath(slug)` → `/calendar?property=`.
+
+## Guest form
+
+| Concern      | Location                                              |
+| ------------ | ----------------------------------------------------- |
+| Main UI      | `ui/src/features/guest/form/components/GuestForm.tsx` |
+| Schema       | `guestFormSchema.ts`                                  |
+| Submit       | `submit-form` edge function (FormData)                |
+| Booked dates | `get-booked-dates`                                    |
+
+Production: full save path. Non-prod: checkbox panel; flags via FormData (not URL).
+
+## SD refund / pay parking
+
+- `/sd-form?bookingId=` — `get-sd-form`, `submit-sd-form`, `claim-sd-voucher`
+- `/bookings/:bookingId/parking` — owner broadcast flow
+
+## API calls
+
+Use `VITE_SUPABASE_URL` + anon key. Pass `?property=` or `?property_id=` when scoped.
+
+## UX
+
+- Mobile-first (375px) — see `mobile-responsive.mdc`
+- Minimal copy (`ui-minimal-copy.mdc`)
+- Framer Motion animations preserved from PMA port
+
+## Don'ts
+
+- Require Google sign-in on public routes
+- Expose admin URLs or service role in guest bundle
+- Use Next.js `Image`, `styled-jsx`, or `href` on React Router `Link` in marketing code
+- Assume marketing **Reserve** submits bookings — wire to `/form` in Phase 2
+
+## Port from PMA
+
+Skill: **`.cursor/skills/public-ui/SKILL.md`**. Source: `property-management-app/apps/web/src/features/marketing/`.

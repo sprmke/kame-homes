@@ -1,5 +1,34 @@
+import { Suspense } from 'react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import { GuestAuthProvider } from '@/features/guest/auth/context/GuestAuthContext';
+import { GuestEmbedPreviewEffect } from '@/features/guest/components/GuestEmbedPreviewEffect';
+import { SavedPropertiesSync } from '@/features/guest/marketing/properties/components/SavedPropertiesSync';
+import { ModeSwitchTransitionProvider } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
+
+import { PlatformMaintenanceBanner } from '@/components/platform/PlatformMaintenanceBanner';
+import { PwaProvider } from '@/components/pwa/PwaProvider';
+import { PwaQueryPersistence } from '@/components/pwa/PwaQueryPersistence';
+import { PageLoadingFallback } from '@/components/routing/RouteFallback';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AdminEdgeFetchError } from '@/lib/api/adminEdgeFetch';
+
 import { AppRoutes } from '@/routes';
+
+/**
+ * Never retry a 429 (or any 4xx) — retrying a rate-limited request
+ * immediately amplifies the problem instead of backing off. Production-
+ * readiness doc 23 Phase 23.4. `AdminEdgeFetchError` carries the real HTTP
+ * status; anything else falls back to one retry as before.
+ */
+function shouldRetryQuery(failureCount: number, error: unknown): boolean {
+  if (error instanceof AdminEdgeFetchError) {
+    if (error.status >= 400 && error.status < 500) return false;
+    return failureCount < 1;
+  }
+  return failureCount < 1;
+}
 
 // Conservative defaults: short stale time so admins see fresh data, but refetch on window focus
 // is disabled to avoid hammering Supabase while an admin has multiple tabs open.
@@ -8,7 +37,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 15_000,
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: shouldRetryQuery,
     },
   },
 });
@@ -16,7 +45,21 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppRoutes />
+      <PwaQueryPersistence />
+      <TooltipProvider delayDuration={200}>
+        <GuestAuthProvider>
+          {/* Global so the curtain survives AdminLayout ↔ MarketingLayoutShell remounts. */}
+          <ModeSwitchTransitionProvider>
+            <GuestEmbedPreviewEffect />
+            <SavedPropertiesSync />
+            <PwaProvider />
+            <PlatformMaintenanceBanner />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AppRoutes />
+            </Suspense>
+          </ModeSwitchTransitionProvider>
+        </GuestAuthProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

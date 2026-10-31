@@ -3,79 +3,117 @@
  * POST `action` = manual tests (verifyAdminJwt). Auth: verifyAdminJwt
  */
 
-import { DatabaseService } from "../_shared/databaseService.ts";
+import { DatabaseService } from '../_shared/databaseService.ts';
 import {
-  ensureTelegramSettingsRow,
   prepareTelegramTemplateMessage,
   renderMarketingDraftPreview,
   sendTelegramAdminPreview,
   serializeTelegramSettings,
   TelegramTemplateError,
   verifyTelegramEnv,
-} from "../_shared/telegramMarketing.ts";
+} from '../_shared/telegramMarketing.ts';
 import {
   parseManilaReminderSlots,
   type ManilaReminderSlot,
-} from "../_shared/telegramMarketingCronSync.ts";
+} from '../_shared/telegramMarketingCronSync.ts';
 import {
   jsonError,
   jsonResponse,
-  readJsonBody,
-} from "../_shared/httpResponse.ts";
-import { serveAdmin } from "../_shared/serveEdge.ts";
-import {
-  parseAction,
+  jsonSuccess,
   parseDraftText,
+  readJsonBody,
+} from '../_shared/httpResponse.ts';
+import {
+  ensureTelegramAssetSettings,
+  resolveTelegramAssetAccess,
+  telegramDbScope,
+} from '../_shared/telegramAssetScope.ts';
+import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { normalizeTelegramTemplateText } from '../_shared/telegramTemplateNormalize.ts';
+import {
+  mergeTelegramCredentialsPatch,
+  parseAction,
   parseMarketingDraftDates,
+  gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
-  telegramSettingsGetResponse,
   telegramUnknownAction,
   telegramVerifyResponse,
   templateErrorMessage,
-} from "../_shared/telegramSettingsHttp.ts";
+} from '../_shared/telegramSettingsHttp.ts';
+import {
+  parseTelegramVerifyOverrides,
+  telegramCredentialsDto,
+} from '../_shared/telegramCredentialsPatch.ts';
 
-serveAdmin("telegram-marketing-settings", async (req) => {
-  if (req.method === "GET") {
-    return telegramSettingsGetResponse(
-      req,
-      ensureTelegramSettingsRow,
-      () => DatabaseService.getTelegramMarketingSettings(),
-      (row) => serializeTelegramSettings(row as never),
+serveAuthenticated('telegram-marketing-settings', async (req, user) => {
+  const asset = await resolveTelegramAssetAccess(req, 'marketing');
+  const scope = telegramDbScope(asset);
+
+  if (req.method === 'GET') {
+    await ensureTelegramAssetSettings(asset);
+    const row = await DatabaseService.getTelegramMarketingSettings(
+      scope.propertyId,
+      scope.parkingId
     );
+    if (!row) return jsonError(req, 'Settings row missing', 500);
+    const credentials = await telegramCredentialsDto('marketing', scope);
+    return jsonSuccess(req, {
+      ...serializeTelegramSettings(row as never),
+      credentials,
+    });
   }
 
-  if (req.method === "PATCH") {
+  if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
+    const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
+    if (gateResponse) return gateResponse;
     const patch: Record<string, unknown> = {};
     let slotsParsed: ManilaReminderSlot[] | undefined;
 
-    if (typeof body.enabled === "boolean") patch.enabled = body.enabled;
-    if (typeof body.notifyOnNewBooking === "boolean") {
+    if (typeof body.enabled === 'boolean') patch.enabled = body.enabled;
+    if (typeof body.notifyOnNewBooking === 'boolean') {
       patch.notify_on_new_booking = body.notifyOnNewBooking;
     }
-    if (typeof body.notifyOnCancellation === "boolean") {
+    if (typeof body.notifyOnCancellation === 'boolean') {
       patch.notify_on_cancellation = body.notifyOnCancellation;
     }
-    if (typeof body.urgencyDaysThreshold === "number") {
+    if (typeof body.notifyOnDailyDefault === 'boolean') {
+      patch.notify_on_daily_default = body.notifyOnDailyDefault;
+    }
+    if (typeof body.notifyOnDailyUrgency === 'boolean') {
+      patch.notify_on_daily_urgency = body.notifyOnDailyUrgency;
+    }
+    if (typeof body.urgencyDaysThreshold === 'number') {
       const n = Math.floor(body.urgencyDaysThreshold);
       if (n >= 1 && n <= 30) patch.urgency_days_threshold = n;
     }
-    if (typeof body.newBookingDatesLimit === "number") {
+    if (typeof body.newBookingDatesLimit === 'number') {
       const n = Math.floor(body.newBookingDatesLimit);
       if (n >= 1 && n <= 31) patch.new_booking_dates_limit = n;
     }
-    if (typeof body.dailyDefaultTemplate === "string") {
-      patch.daily_default_template = body.dailyDefaultTemplate.slice(0, 4000);
+    if (typeof body.dailyDefaultTemplate === 'string') {
+      patch.daily_default_template = normalizeTelegramTemplateText(
+        body.dailyDefaultTemplate.slice(0, 4000)
+      );
     }
-    if (typeof body.dailyUrgencyTemplate === "string") {
-      patch.daily_urgency_template = body.dailyUrgencyTemplate.slice(0, 4000);
+    if (typeof body.dailyUrgencyTemplate === 'string') {
+      patch.daily_urgency_template = normalizeTelegramTemplateText(
+        body.dailyUrgencyTemplate.slice(0, 4000)
+      );
     }
-    if (typeof body.newBookingTemplate === "string") {
-      patch.new_booking_template = body.newBookingTemplate.slice(0, 4000);
+    if (typeof body.newBookingTemplate === 'string') {
+      patch.new_booking_template = normalizeTelegramTemplateText(
+        body.newBookingTemplate.slice(0, 4000)
+      );
     }
-    if (typeof body.cancellationTemplate === "string") {
-      patch.cancellation_template = body.cancellationTemplate.slice(0, 4000);
+    if (typeof body.cancellationTemplate === 'string') {
+      patch.cancellation_template = normalizeTelegramTemplateText(
+        body.cancellationTemplate.slice(0, 4000)
+      );
     }
 
     if (body.dailyReminderTimesManila !== undefined) {
@@ -87,12 +125,22 @@ serveAdmin("telegram-marketing-settings", async (req) => {
       patch.daily_reminder_times_manila = slotsParsed;
     }
 
-    if (Object.keys(patch).length === 0) {
+    let finalPatch: Record<string, unknown>;
+    try {
+      finalPatch = await mergeTelegramCredentialsPatch(body, patch);
+    } catch (e) {
+      return jsonError(req, e instanceof Error ? e.message : 'Invalid credentials');
+    }
+
+    if (Object.keys(finalPatch).length === 0) {
       return telegramPatchNoFields(req);
     }
 
-    const updated =
-      await DatabaseService.updateTelegramMarketingSettings(patch);
+    const updated = await DatabaseService.updateTelegramMarketingSettings(
+      finalPatch,
+      scope.propertyId,
+      scope.parkingId
+    );
     let cronSync:
       | {
           ok: boolean;
@@ -102,44 +150,41 @@ serveAdmin("telegram-marketing-settings", async (req) => {
         }
       | undefined;
     if (slotsParsed) {
-      cronSync =
-        await DatabaseService.syncTelegramMarketingDailyCronJobs(slotsParsed);
+      cronSync = await DatabaseService.ensureTelegramMultiPropertyCronDispatch();
     }
 
-    return telegramPatchSuccessResponse(
-      req,
-      serializeTelegramSettings(updated as never),
-      cronSync,
-    );
+    return telegramPatchSuccessResponse(req, serializeTelegramSettings(updated as never), cronSync);
   }
 
-  if (req.method === "POST") {
-    await ensureTelegramSettingsRow();
+  if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
+    await ensureTelegramAssetSettings(asset);
     const body = await readJsonBody(req);
     const action = parseAction(body).trim();
 
-    if (action === "verify_telegram_env") {
-      return telegramVerifyResponse(req, await verifyTelegramEnv());
+    if (action === 'verify_telegram_env') {
+      const overrides = parseTelegramVerifyOverrides(body);
+      return telegramVerifyResponse(req, await verifyTelegramEnv(scope, overrides));
     }
 
-    if (
-      action === "send_draft_preview" ||
-      action === "send_draft_with_sample_placeholders"
-    ) {
+    if (action === 'send_draft_preview' || action === 'send_draft_with_sample_placeholders') {
       const text = parseDraftText(body, 4000);
-      if (!text) return jsonError(req, "text is required");
+      if (!text) return jsonError(req, 'text is required');
 
-      const row = await DatabaseService.getTelegramMarketingSettings();
-      if (!row) return jsonError(req, "Settings row missing", 500);
+      const row = await DatabaseService.getTelegramMarketingSettings(
+        scope.propertyId,
+        scope.parkingId
+      );
+      if (!row) return jsonError(req, 'Settings row missing', 500);
 
       const dates = parseMarketingDraftDates(body);
       try {
-        const filled = await prepareTelegramTemplateMessage(
-          text,
-          row as never,
-          dates,
-        );
-        const r = await sendTelegramAdminPreview(filled);
+        const filled = await prepareTelegramTemplateMessage(text, row as never, {
+          ...dates,
+          propertyId: scope.propertyId,
+        });
+        const r = await sendTelegramAdminPreview(filled, scope);
         return jsonResponse(
           req,
           {
@@ -148,34 +193,36 @@ serveAdmin("telegram-marketing-settings", async (req) => {
             error: r.error,
             messageCharCount: filled.length,
           },
-          r.ok ? 200 : 400,
+          r.ok ? 200 : 400
         );
       } catch (e) {
         const message =
-          e instanceof TelegramTemplateError || e instanceof Error
-            ? e.message
-            : String(e);
+          e instanceof TelegramTemplateError || e instanceof Error ? e.message : String(e);
         return jsonError(req, message);
       }
     }
 
-    if (action === "render_draft_preview") {
+    if (action === 'render_draft_preview') {
       const text = parseDraftText(body, 4000);
-      if (!text) return jsonError(req, "text is required");
+      if (!text) return jsonError(req, 'text is required');
 
-      const row = await DatabaseService.getTelegramMarketingSettings();
-      if (!row) return jsonError(req, "Settings row missing", 500);
+      const row = await DatabaseService.getTelegramMarketingSettings(
+        scope.propertyId,
+        scope.parkingId
+      );
+      if (!row) return jsonError(req, 'Settings row missing', 500);
 
       const dates = parseMarketingDraftDates(body);
       try {
-        const { renderedText, placeholders } =
-          await renderMarketingDraftPreview(text, row as never, dates);
+        const { renderedText, placeholders } = await renderMarketingDraftPreview(
+          text,
+          row as never,
+          { ...dates, propertyId: scope.propertyId }
+        );
         return jsonResponse(req, { success: true, renderedText, placeholders });
       } catch (e) {
         const message =
-          e instanceof TelegramTemplateError || e instanceof Error
-            ? e.message
-            : String(e);
+          e instanceof TelegramTemplateError || e instanceof Error ? e.message : String(e);
         return jsonError(req, message);
       }
     }
@@ -183,7 +230,7 @@ serveAdmin("telegram-marketing-settings", async (req) => {
     return telegramUnknownAction(
       req,
       action,
-      "Use verify_telegram_env | send_draft_preview | render_draft_preview",
+      'Use verify_telegram_env | send_draft_preview | render_draft_preview'
     );
   }
 

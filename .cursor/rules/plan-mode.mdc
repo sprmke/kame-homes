@@ -1,0 +1,41 @@
+---
+description: Plan mode — persist finished plans to docs/workflow/planned before implementation
+alwaysApply: false
+---
+
+# Plan mode — save finished plans
+
+Applies when you are in **Plan mode**, when the user asks you to plan without implementing, or when a planning session ends with an approved approach ready for execution.
+
+## Required output
+
+When the plan is **finished**, write it to disk before handing off or switching to Agent mode:
+
+**Directory:** `docs/workflow/planned/`
+
+**Filename:** `<kebab-case-slug>.md` — **no date prefix** (use frontmatter `updated:` for the date)
+
+**Example:** `docs/workflow/planned/services-coming-soon.md`
+
+## Plan file contents
+
+Keep it actionable — not a transcript. Include:
+
+1. **Goal** — one paragraph
+2. **Scope** — in / out
+3. **Approach** — design / trade-offs
+4. **Implementation tasks** — ordered checklist with file paths
+5. **Docs to update** — route guides, `docs/PROJECT.md`, rules, etc.
+6. **Open questions** — prefer empty
+
+Add an index row to `docs/workflow/planned/README.md` in the same write.
+
+## Constraints
+
+- **Do not implement** in Plan mode.
+- **Do not** use `YYYY-MM-DD-` filename prefixes — forbidden in `docs/workflow/**`.
+- **Do not** create `docs/superpowers/**` — use `docs/workflow/planned/` (see `.agent/skills/superpowers/SKILL.md`).
+
+## Active implementation
+
+Move to `docs/workflow/in-progress/` via `/workflow-start` (see `.agent/skills/workflow/SKILL.md`).
