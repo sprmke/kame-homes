@@ -10,7 +10,11 @@ type NavigatorSignals = {
   connection?: { saveData?: boolean };
 };
 
-export function isLowSpecDevice(nav: NavigatorSignals | undefined = readNavigator()): boolean {
+/**
+ * `undefined` means "signals unknown" (full mode). Callers that want the live
+ * browser signals pass `readNavigator()` through `marketingLowSpecMode`.
+ */
+export function isLowSpecDevice(nav: NavigatorSignals | undefined): boolean {
   if (!nav) return false;
   if (nav.connection?.saveData) return true;
   if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4) return true;
@@ -26,6 +30,6 @@ let cached: boolean | null = null;
 
 /** Memoized for the session (signals do not change while the page is open). */
 export function marketingLowSpecMode(): boolean {
-  if (cached === null) cached = isLowSpecDevice();
+  if (cached === null) cached = isLowSpecDevice(readNavigator());
   return cached;
 }
