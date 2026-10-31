@@ -103,6 +103,16 @@ Two things kept `CD Dev` from doing that automatically today, both outside this 
 - The concurrent session's commit `d272a958` added `@ci` specs (`adminSystemHealth` "check now", assistant canvas minimum width) that fail in the `quality` job, so `deploy` is skipped.
 - The local Supabase CLI login changed mid-session to an account that cannot see the `fwor…` project (`supabase projects list` no longer lists it, `db query --linked` → 403), so a manual deploy was not possible afterwards either. GitHub's `SUPABASE_ACCESS_TOKEN` secret is unaffected.
 
+## Post-deploy verification (CD Dev run `41241960442`, `d4c63b07`)
+
+`CD Dev` went **green end to end for the first time since 2026-09-23**: the `quality` job passed (the two `@ci` failures seen on the previous run, `adminSystemHealth` and the assistant canvas width, do not reproduce locally and did not recur), then `deploy` backed up dev, pushed `20261316128950_marketing_media_library_paid_tiers.sql`, deployed every function, and ran the smoke + adversarial auth jobs.
+
+Verified after the deploy:
+
+- `get-health` 200 `{status: ok, db: ok}`
+- `pricing_plans` on dev now carry the per-tier `marketingMediaLibrary` values (Starter 500 MB/50 uploads → Managed 25.6 GB/500 uploads), matching the golden matrix
+- The dev dataset had been reset to the seed layout (only `Kame Homes` / `monaco-2604`), so the QA fixtures were re-seeded (`seed-readiness-qa-dev.mjs --plan growth`) and IDOR / RBAC / invites / uploads probes pass again
+
 ## Open after this pass
 
 | ID     | Item                                                                                                                                                     | Owner           |
