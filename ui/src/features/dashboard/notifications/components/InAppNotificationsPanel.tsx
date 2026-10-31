@@ -79,7 +79,10 @@ export function InAppNotificationsPanel({
     if (variant !== 'feed' || !hasNextPage) return;
 
     const sentinel = sentinelRef.current;
-    if (!sentinel || !scrollRoot) return;
+    // The hub renders the feed inside the admin content scrollport; use it when
+    // the caller did not hand a root in, so scroll paging keeps working there.
+    const root = scrollRoot ?? sentinel?.closest<HTMLElement>('[data-admin-content-scroll]') ?? null;
+    if (!sentinel || !root) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -87,7 +90,7 @@ export function InAppNotificationsPanel({
           handleLoadMore();
         }
       },
-      { root: scrollRoot, rootMargin: '120px', threshold: 0 }
+      { root, rootMargin: '120px', threshold: 0 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();

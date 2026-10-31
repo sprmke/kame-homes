@@ -1,7 +1,7 @@
 ---
 title: 'To fix (working)'
 status: active
-updated: 2026-10-19
+updated: 2026-11-01
 stage: in-progress
 kind: reference
 ---
@@ -9,6 +9,18 @@ kind: reference
 # To fix
 
 Working copy of ledger rows that block or delay launch. Final grouping is Phase 10; this list is live.
+
+## 2026-11-01 status
+
+| Item                                               | State                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| PR-130 (dev migrations ahead of `develop`)         | ✅ Closed — hosted dev and `develop` migration history match                                                  |
+| PR-076 (hosted-dev function drift)                 | ✅ Closed — functions redeployed from `develop` (`deploy-supabase-dev.sh --functions-only`)                   |
+| PR-025 (GitHub `development` secrets)              | 🔴 Still open. Also blocks DB-level checks on dev (`supabase db query --linked` → 403), so PR-024/PR-041 wait |
+| CI red (`marketingDeviceTier`)                     | ✅ Fixed in #185                                                                                              |
+| `@ci` E2E suite (27 failing → blocks CD Dev)       | ✅ Repaired; 297 passed / 9 skipped / 0 failed                                                                |
+| Notifications hub could not page past 20 rows      | ✅ Fixed (load-more observer had no scroll root)                                                              |
+| Marketing studio specs after the New post redesign | ⏸️ 9 specs `test.fixme` → PR-133                                                                              |
 
 ## PR status (2026-10-19)
 

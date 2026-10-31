@@ -2,7 +2,7 @@
 title: 'Production readiness ledger'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-10-19
+updated: 2026-11-01
 stage: in-progress
 kind: reference
 ---
@@ -22,6 +22,27 @@ Tag legend: [`README.md`](./README.md). Gates A–G: same file.
 | Tag   | ✅ verified · 🟡 unverified · 🔴 failing · ⛔ operator · 🧭 decision · ⏸️ deferred · 🆕 untracked |
 
 ---
+
+## 2026-11-01 re-verification on `develop` `497c7772`
+
+Evidence: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-2026-11-01.md). Flips and new rows from today's pass:
+
+| ID     | Change                                                                                                                | Evidence                                                           |
+| ------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| PR-008 | ✅ re-verified: guest-link tokens 401 without/forged, 200 inside grace                                                | `probe-readiness-guest-token-dev.mjs`                              |
+| PR-009 | ✅ re-verified: `GUEST_BOOKING_ACCESS_ENFORCE=true` on hosted dev                                                     | same probe                                                         |
+| PR-014 | ✅ re-verified: RBAC matrix + invite abuse on current dev                                                             | `probe-readiness-rbac-dev.mjs`, `probe-readiness-invites-dev.mjs`  |
+| PR-016 | ✅ uploads: byte sniffing rejects HTML-as-PNG and PDF-as-PNG on every probed path                                     | `probe-readiness-uploads-dev.mjs`                                  |
+| PR-069 | ✅ abuse/CORS/storage probes run against hosted dev (CORS probe fixed, #186)                                          | `abuse-public-endpoints.sh`, `check-cors-origins.sh`               |
+| PR-076 | ✅ hosted-dev functions are on `develop` again (deployed 2026-11-01); migrations in sync                              | `deploy-supabase-dev.sh --functions-only`, `migrations:status:dev` |
+| PR-130 | ✅ closed: hosted dev and `develop` migration history match                                                           | `bun run migrations:status:dev`                                    |
+| PR-133 | 🆕 9 marketing-studio `@ci` specs sit `test.fixme` after the 2026-10-30 New post gallery redesign                     | `ui/e2e/features/marketing/*`                                      |
+| PR-134 | 🆕 Total JS 4932.8 KiB gzip vs the 4200 KiB budget (warn-only); decide budget or trim lazy chunks                     | `bun run check:budgets`                                            |
+| PR-135 | 🆕 55 `ui/src/**/lib` modules still have no unit test                                                                 | `scripts/dev/lib-unit-test-inventory.mjs`                          |
+| PR-136 | 🆕 Assistant pinned-context "Preview template" action exists but the composer never passes `onPreview`                | `ChatComposer.tsx`, `ChatContextPillSuggestions.tsx`               |
+| PR-025 | 🔴 still open: GitHub `development` secrets missing; DB-level checks on dev (pg_stat_statements, cron.job) cannot run | `env matrix` + `supabase db query --linked` 403                    |
+
+Fixed in this pass (product): the notifications hub feed never attached its load-more observer (`scrollRoot` was never passed), so the feed could not page past 20 rows. See `InAppNotificationsPanel.tsx`.
 
 ## Counts (2026-10-19, pre-baseline)
 

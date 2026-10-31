@@ -50,50 +50,38 @@ test.describe('@ci notifications hub', () => {
     await installPropertyTeamRbacMocks(page, 'full_access');
   });
 
-  test('opens on Activity and switches to Telegram via the URL', async ({ page }) => {
+  test('opens on the in-app Activity feed', async ({ page }) => {
     await page.goto(HUB);
-    await expect(page.getByRole('tab', { name: /Activity/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-      { timeout: 20_000 }
-    );
-
-    await page.getByRole('tab', { name: 'Telegram' }).click();
-    await expect(page).toHaveURL(/view=telegram/);
-    await expect(page.locator('#section-global-bot')).toBeVisible();
-    await expect(page.locator('#global-bot-token')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Notifications', level: 1 })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.locator('#section-activity')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'In-app notifications' })).toBeVisible();
   });
 
-  test('a module deep link opens the Telegram view', async ({ page }) => {
+  test('a module deep link lands on that Telegram section', async ({ page }) => {
     await page.goto(`${HUB}?module=finance`);
-    await expect(page.getByRole('tab', { name: 'Telegram' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-      { timeout: 20_000 }
-    );
+    await expect(page.locator('#section-finance')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#section-finance')).toContainText('Due-date reminders');
   });
 
   test('the legacy activity anchor still opens the feed', async ({ page }) => {
     await page.goto(`${HUB}#section-activity`);
-    await expect(page.getByRole('tab', { name: /Activity/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-      { timeout: 20_000 }
-    );
+    await expect(page.locator('#section-activity')).toBeVisible({ timeout: 20_000 });
   });
 
   test('the feed owns one scrollport and pages as it scrolls', async ({ page }) => {
     await mockNotificationsList(page);
     await page.goto(HUB);
-    const scroller = page.locator('[data-admin-content-scroll]');
+    const scroller = page.locator('[data-admin-content-scroll]').first();
     await expect(scroller).toBeVisible({ timeout: 20_000 });
 
-    const rows = page.locator('[role="tabpanel"] li');
+    const rows = page.locator('#section-activity li');
     await expect(rows).toHaveCount(20);
 
     // The feed must not scroll inside a capped box: one scrollport, not two.
     const nested = await page.evaluate(() =>
-      [...document.querySelectorAll('[role="tabpanel"] *')].filter((el) => {
+      [...document.querySelectorAll('#section-activity *')].filter((el) => {
         if (el.hasAttribute('data-admin-content-scroll')) return false;
         const style = getComputedStyle(el);
         const scrolls = style.overflowY === 'auto' || style.overflowY === 'scroll';
@@ -102,43 +90,34 @@ test.describe('@ci notifications hub', () => {
     );
     expect(nested).toHaveLength(0);
 
-    await scroller.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
-    await expect(rows).toHaveCount(40);
+    // Scroll the feed to its load-more sentinel, the way a reader reaches it.
+    await page.locator('#section-activity [role="status"]').scrollIntoViewIfNeeded();
+    await expect(rows).toHaveCount(40, { timeout: 15_000 });
   });
 
-  test('switching tabs prompts before a dirty bot token is lost', async ({ page }) => {
-    await page.goto(`${HUB}?view=telegram`);
+  test('leaving with a dirty bot token prompts before it is lost', async ({ page }) => {
+    await page.goto(`${HUB}?module=chat`);
     const token = page.locator('#global-bot-token');
     await expect(token).toBeVisible({ timeout: 20_000 });
     await token.fill('123456:TEST-TOKEN');
 
-    await page.getByRole('tab', { name: /Activity/ }).click();
+    await page.getByRole('link', { name: 'Bookings' }).click();
     await expect(page.getByRole('alertdialog')).toBeVisible();
 
     await page.getByRole('button', { name: 'Keep editing' }).click();
-    await expect(page.getByRole('tab', { name: 'Telegram' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    await expect(token).toHaveValue('123456:TEST-TOKEN');
+    await expect(page.locator('#global-bot-token')).toHaveValue('123456:TEST-TOKEN');
 
-    await page.getByRole('tab', { name: /Activity/ }).click();
+    await page.getByRole('link', { name: 'Bookings' }).click();
     await page.getByRole('button', { name: 'Discard' }).click();
-    await expect(page.getByRole('tab', { name: /Activity/ })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    await expect(page).toHaveURL(/\/bookings$/);
   });
 
-  test('a clean tab switch does not prompt', async ({ page }) => {
-    await page.goto(`${HUB}?view=telegram`);
+  test('leaving with a clean bot token does not prompt', async ({ page }) => {
+    await page.goto(`${HUB}?module=chat`);
     await expect(page.locator('#global-bot-token')).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole('tab', { name: /Activity/ }).click();
-    await expect(page.getByRole('tab', { name: /Activity/ })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Bookings' }).click();
+    await expect(page.getByRole('alertdialog')).toBeHidden();
+    await expect(page).toHaveURL(/\/bookings$/);
   });
 });

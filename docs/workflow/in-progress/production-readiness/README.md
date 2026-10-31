@@ -2,7 +2,7 @@
 title: 'Production readiness'
 status: active
 tags: [workflow, in-progress, production-readiness, security, qa, launch]
-updated: 2026-10-19
+updated: 2026-11-01
 stage: in-progress
 kind: reference
 ---
@@ -15,16 +15,18 @@ Every launch readiness checklist, audit, QA batch and operator list in one place
 
 ## Status
 
-| Item         | State                                                                                                                                                                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Baseline SHA | **`c0f04aff`** (2026-10-19). Functions on hosted dev deployed from it; post-deploy probes all pass. See [`evidence/phase0-baseline-2026-10-19.md`](./evidence/phase0-baseline-2026-10-19.md). CD deploy blocked by PR-130 |
-| Hosted dev   | Functions = `develop` `c0f04aff`; schema also has another session's 12 unmerged migrations (PR-130)                                                                                                                       |
-| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                       |
-| Phases 4–8   | Probes, OWASP matrices, 162-page walk, booking flow, perf/a11y fixes done; load test, restore drill, LLM probes blocked (see scorecard)                                                                                   |
-| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                                                                    |
-| Phase 10     | Scorecard below is a draft until the fix PRs merge and the baseline re-run passes                                                                                                                                         |
-| Fix PRs      | 19 merged into `develop` 2026-10-19 (admin merge, user-approved). Open: #153 (needs `workflow` token scope), #176 (CSP), #177 (CD gate warmup). See [`TO-FIX.md`](./TO-FIX.md)                                            |
-| Tag counts   | ✅ 9 · 🟡 43 · 🔴 3 · ⛔ 26 · 🆕 11 · 🧭 7 · ⏸️ 8 (105 items)                                                                                                                                                             |
+| Item         | State                                                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline SHA | **`497c7772`** (2026-11-01). Hosted-dev functions deployed from the same edge tree; migrations in sync. Re-verified probes: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-2026-11-01.md)                                          |
+| Hosted dev   | Functions = `develop` `832cbf60` edge tree (identical to `497c7772`, which is UI-only); DB migrations in sync                                                                                                                                             |
+| CI / CD      | `CI` green on `497c7772`; the red `marketingDeviceTier` test fixed in #185. `CD Dev` re-enabled by the same fix + the `@ci` suite repair                                                                                                                  |
+| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                                                       |
+| Phases 4–8   | Re-ran the automated sweep + hosted-dev probes 2026-11-01 (IDOR, RBAC, invites, uploads, workflow, guest tokens, CORS, rate limits, storage, smoke, AI evals, plan catalog, RLS). Load test, restore drill, LLM live probes still blocked (see scorecard) |
+| Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                                                                                                    |
+| Phase 10     | Scorecard below is a draft until the remaining 🔴 / ⛔ rows close                                                                                                                                                                                         |
+| Fix PRs      | #185 merged (`497c7772`). Open: #186 (CORS probe), #187 (RLS probe). See [`TO-FIX.md`](./TO-FIX.md)                                                                                                                                                       |
+| E2E `@ci`    | 297 passed · 9 skipped (marketing studio, PR-133) · 0 failed on `497c7772`                                                                                                                                                                                |
+| Tag counts   | ✅ 15 · 🟡 35 · 🔴 4 · ⛔ 26 · 🆕 15 · 🧭 7 · ⏸️ 8 (110 items)                                                                                                                                                                                            |
 
 ## Go / no-go (draft, 2026-10-19)
 

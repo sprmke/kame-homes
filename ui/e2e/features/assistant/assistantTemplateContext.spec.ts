@@ -87,9 +87,9 @@ test.describe('@ci assistant template context', () => {
 
     await items.click();
     await page.getByRole('button', { name: 'Suggested prompts for House Rules' }).click();
-    await page.getByRole('button', { name: 'Preview template' }).click();
-    await expect(
-      page.getByRole('dialog').filter({ hasText: 'Quiet hours start at 10 PM.' })
-    ).toBeVisible({ timeout: 15_000 });
+    // The pinned-context popover offers question/action prompts for that template.
+    await expect(page.getByRole('group', { name: 'Suggestion type' })).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });
