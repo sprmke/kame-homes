@@ -2,7 +2,7 @@
 title: 'Bookings List — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-27
+updated: 2026-11-02
 ---
 
 # Bookings List — operator guide
@@ -57,6 +57,8 @@ This page is your main dashboard for all bookings at this property. Summary card
   A: Yes on **Starter and above**. Use **Import** beside **New booking** (property bookings only). You can open the wizard and upload a file on Free to try it, but continuing past the first step asks you to upgrade. On a paid plan, confirm column mapping, then review the rows. Select **Need fixing** to see problem rows; **Fix** opens the complete row so you can correct every invalid value together. **Skipped** rows stay openable the same way, so use **Restore** to bring them back, or **Fix** to correct them. Past stays commit as **Imported**; today and future stays show **Pending Review** but still appear when you filter by **Imported**. No new-booking emails or calendar events on import.
 - Q: How do I read the calendar view?
   A: Use **Month**, **Week**, or **Day** in the calendar toolbar. Month shows stays as colored pills across nights — click a pill to open that booking, or click a day for the side list. If a day has more stays than fit in the cell, you’ll see a **+N** chip — click the day to review them all. Week and Day show an hour grid so you can see checkout/check-in gaps; multi-night stays read as one continuous block. Hover uses a darker shade of that booking’s status color (not the brand primary). A pricing-style tip appears on hover. In week view, tap a day header to zoom into that day.
+- Q: Why don’t I see past / completed bookings in the table?
+  A: The default list focuses on active work (review, docs, check-in/out). Completed and cancelled stays are counted on the **History** card but stay out of the table until you tap **History** (or pick Completed / Cancelled under Status). The Done / Cancelled labels under History are a legend, not separate filters. Year / month in the header still limits what shows by check-in date.
 
 ---
 
@@ -117,6 +119,8 @@ Counts come from a secondary list fetch (same date range, up to 100 rows, includ
 
 When a stage is active, the list query sends the matching `status[]` values to `list-bookings` (intersected with manual status filters when compatible; otherwise stage wins).
 
+**Default visibility:** without a stage or status filter, `list-bookings` hides `COMPLETED` and `CANCELLED` so the table stays focused on the live pipeline. Summary card counts use a separate fetch that includes completed rows (same date range, up to 100). **History** (or Filters → Completed / Cancelled) sends those statuses in `status[]`; the list then includes them. Inline Done / Cancelled hints on the History card are legend labels only (`max-lg:hidden`) — click the card itself. Calendar / kanban still auto-set `showCompletedBookings=true` (completed yes; cancelled still omitted unless filtered).
+
 ---
 
 ## Views
@@ -147,7 +151,7 @@ Existing params unchanged: `q`, `status`, `from`, `to`, `hasPets`, `needParking`
 
 `from` / `to` filter on **check-in date** and apply to **every status** — navigating to a month with no check-ins shows an empty list. (Pending Review rows used to be exempt so new submissions were never hidden; that made month navigation look broken and was removed.) No range is applied until the host picks one, so the default landing view still lists all active bookings.
 
-`showCompletedBookings` remains supported for calendar/kanban (auto-enabled in those views); there is no UI toggle — use the **History** stage card or status filter for completed rows.
+`showCompletedBookings` remains supported for calendar/kanban (auto-enabled in those views); there is no UI toggle. Table/card views surface completed (and cancelled) rows via the **History** stage card or Status filter — those set `status[]`, which overrides the default hide for matching terminal statuses.
 
 New: `stage` (see above).
 

@@ -965,10 +965,12 @@ export class DatabaseService {
         ? request.eq('parking_id', parkingId)
         : request.eq('property_id', propertyId!);
       request = applyBookingsListFilters(request);
-      // Same AND precedence as the in-memory path: visibility filtering always applies,
-      // independent of an explicit status filter (see matchesDefaultBookingsListVisibility).
-      request = request.neq('status', 'CANCELLED');
-      if (!showCompletedBookings) request = request.neq('status', 'COMPLETED');
+      // Match matchesDefaultBookingsListVisibility: hide cancelled/completed by default,
+      // but honor an explicit status filter (History stage / Filters → Done|Cancelled).
+      if (!status.includes('CANCELLED')) request = request.neq('status', 'CANCELLED');
+      if (!showCompletedBookings && !status.includes('COMPLETED')) {
+        request = request.neq('status', 'COMPLETED');
+      }
 
       const ascending = sqlSortDir === 'asc';
       request =
@@ -1026,8 +1028,10 @@ export class DatabaseService {
       rows = rows.filter((r) => passesListCheckInDateRangeFilter(r, from, to));
     }
 
-    // Default list: hide cancelled + completed unless toggle is on
-    rows = rows.filter((r) => matchesDefaultBookingsListVisibility(r, showCompletedBookings));
+    // Default list: hide cancelled + completed unless toggle / status filter asks for them
+    rows = rows.filter((r) =>
+      matchesDefaultBookingsListVisibility(r, showCompletedBookings, status)
+    );
 
     const listSort = sort as BookingsListSort;
     rows.sort((a, b) => compareBookingsForListSort(a, b, listSort, todayManila));
