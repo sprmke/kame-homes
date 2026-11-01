@@ -89,6 +89,30 @@ export async function createSignedStorageUrlIfPrivate(
   return formatPublicUrl(data.signedUrl);
 }
 
+/** Service-role check that an object exists before minting a signed URL for the browser. */
+export async function storageObjectExists(
+  supabase: SupabaseClient,
+  bucket: string,
+  objectPath: string
+): Promise<boolean> {
+  const path = objectPath.replace(/^\/+/, '');
+  if (!path) return false;
+
+  const slash = path.lastIndexOf('/');
+  const prefix = slash >= 0 ? path.slice(0, slash) : '';
+  const name = slash >= 0 ? path.slice(slash + 1) : path;
+
+  const { data, error } = await supabase.storage.from(bucket).list(prefix, {
+    limit: 100,
+    search: name,
+  });
+  if (error) {
+    console.warn(`[storageSignedUrl] list ${bucket}/${prefix}:`, error.message);
+    return false;
+  }
+  return (data ?? []).some((entry) => entry.name === name && entry.id != null);
+}
+
 export async function signGuestFormDataStorageUrls(
   formData: GuestFormData,
   supabase: SupabaseClient
