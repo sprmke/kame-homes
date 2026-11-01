@@ -12,6 +12,7 @@ import {
   DEFAULT_SIGNED_URL_TTL_SEC,
   parseStorageObjectUrl,
   PRIVATE_STORAGE_BUCKETS,
+  storageObjectExists,
 } from '../_shared/storageSignedUrl.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 import {
@@ -22,7 +23,8 @@ import {
 } from '../_shared/httpResponse.ts';
 import {
   bookingAssetUrlColumnList,
-  bookingRowReferencesStorageObject,
+  buildStoragePathCandidates,
+  resolveMatchingStorageLocFromBookingRow,
 } from '../_shared/bookingAssetUrlScope.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -55,7 +57,7 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
   // for property B's private guest documents.
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  let inScope = false;
+  let matchedRow: Record<string, unknown> | null = null;
   if (bookingId) {
     const { data: row, error: rowError } = await supabase
       .from('guest_submissions')
@@ -64,7 +66,9 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
       .eq('property_id', propertyId)
       .maybeSingle();
     if (rowError) throw new Error(rowError.message);
-    inScope = Boolean(row && bookingRowReferencesStorageObject(row, loc));
+    if (row && resolveMatchingStorageLocFromBookingRow(row, loc)) {
+      matchedRow = row as Record<string, unknown>;
+    }
   } else {
     const { data: rows, error: rowsError } = await supabase
       .from('guest_submissions')
@@ -72,10 +76,15 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
       .eq('property_id', propertyId)
       .limit(200);
     if (rowsError) throw new Error(rowsError.message);
-    inScope = (rows ?? []).some((row) => bookingRowReferencesStorageObject(row, loc));
+    for (const row of rows ?? []) {
+      if (resolveMatchingStorageLocFromBookingRow(row as Record<string, unknown>, loc)) {
+        matchedRow = row as Record<string, unknown>;
+        break;
+      }
+    }
   }
 
-  if (!inScope) {
+  if (!matchedRow) {
     return jsonResponse(
       req,
       { success: false, error: 'Object not in scope for this property' },
@@ -83,9 +92,39 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
     );
   }
 
+  const storedLoc = resolveMatchingStorageLocFromBookingRow(matchedRow, loc) ?? loc;
+  const pathCandidates = buildStoragePathCandidates(storedLoc.path, {
+    propertyId,
+    bookingId: bookingId || String(matchedRow.id ?? ''),
+  });
+
+  let objectPath: string | null = null;
+  for (const candidate of pathCandidates) {
+    if (await storageObjectExists(supabase, loc.bucket, candidate)) {
+      objectPath = candidate;
+      break;
+    }
+  }
+
+  if (!objectPath) {
+    console.warn(
+      `[get-booking-asset-url] Storage object missing: ${loc.bucket}/` +
+        `[${pathCandidates.join(', ')}]`
+    );
+    return jsonResponse(
+      req,
+      {
+        success: false,
+        error: 'Object not found',
+        code: 'STORAGE_OBJECT_NOT_FOUND',
+      },
+      404
+    );
+  }
+
   const { data, error } = await supabase.storage
     .from(loc.bucket)
-    .createSignedUrl(loc.path, DEFAULT_SIGNED_URL_TTL_SEC);
+    .createSignedUrl(objectPath, DEFAULT_SIGNED_URL_TTL_SEC);
 
   if (error || !data?.signedUrl) {
     const msg = error?.message ?? 'Failed to create signed URL for storage object';
