@@ -78,15 +78,4 @@ fi
 
 echo "→ supabase link --project-ref $(ci_deploy_mask_ref "$SUPABASE_PROJECT_REF")"
 "$ROOT/scripts/dev/bunx" --bun supabase@latest link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null
-
-# Supabase CLI bundler and `deno test` disagree on esm.sh tslib@2.8.1 integrity on CI.
-# Keep repo lock on the deno test hash; patch functions lock only for deploy bundling.
-FUNCS_LOCK="$ROOT/supabase/functions/deno.lock"
-TSlib_DENO_TEST_HASH="c38da5dd6da6281964435002ce204cd586634fe3bdfb24a0ee116f48cf3292e9"
-TSlib_BUNDLER_HASH="ebce3cd5facb654623020337f867b426ba95f71596ba87acc9e6c6f4e55905ca"
-if [[ -f "$FUNCS_LOCK" ]] && grep -q "$TSlib_DENO_TEST_HASH" "$FUNCS_LOCK"; then
-  sed -i.bak "s/$TSlib_DENO_TEST_HASH/$TSlib_BUNDLER_HASH/g" "$FUNCS_LOCK"
-  rm -f "${FUNCS_LOCK}.bak"
-fi
-
 exec "$ROOT/scripts/deploy/deploy-supabase.sh" --allow-multi-tenancy "$@"
