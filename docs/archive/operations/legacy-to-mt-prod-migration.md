@@ -43,6 +43,7 @@ The detailed, authoritative plan with decisions (D1–D7), phases, runbook timel
 - [x] **Script location** — `scripts/migrate/legacy-to-mt-prod/` (implemented, see its README)
 - [x] **Dry-run mode** — restore-then-upgrade rehearsed locally (R1/R2); `db push --dry-run` also verified read-only against legacy
 - [x] **Storage sync** — `storage/copyBuckets.ts`: full dry-run verified 1,471/1,471 objects (0 missing, exact sizes) with `LEGACY_SERVICE_ROLE_KEY` from `supabase/.env.local`; `copy` mode executes on R3/cutover.
+- [ ] **Hosted blob repair (fwor)** — If `storage.objects` metadata was loaded without `copyBuckets.ts copy` to hosted Storage, the Dashboard lists files but downloads return `NoSuchKey` / broken previews. Repair: `bun scripts/migrate/legacy-to-mt-prod/storage/repairHostedBlobs.ts dry-run` then `copy` (uses legacy public/service URLs → fwor upsert). Edge `get-booking-asset-url` verifies signed-URL HEAD before returning a link.
 - [x] **Idempotency** — restore = rebuild-from-dump; rewrite/derived-rebuild guarded + re-runnable
 - [~] **Validation** — `verify/compareCounts.ts` automated; `sql/90-verify.sql` runner wiring + guest/host smoke flows pending (R3)
 - [x] **Rollback** — plan §8 rollback (legacy unfreeze + DNS revert); local snapshot in `backups/migration/r1-20261024/local-dev-public-snapshot.dump`

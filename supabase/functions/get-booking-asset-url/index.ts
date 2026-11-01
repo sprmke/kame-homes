@@ -12,7 +12,7 @@ import {
   DEFAULT_SIGNED_URL_TTL_SEC,
   parseStorageObjectUrl,
   PRIVATE_STORAGE_BUCKETS,
-  storageObjectExists,
+  storageObjectReadable,
 } from '../_shared/storageSignedUrl.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 import {
@@ -98,17 +98,20 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
     bookingId: bookingId || String(matchedRow.id ?? ''),
   });
 
-  let objectPath: string | null = null;
+  let signedUrl: string | null = null;
   for (const candidate of pathCandidates) {
-    if (await storageObjectExists(supabase, loc.bucket, candidate)) {
-      objectPath = candidate;
-      break;
-    }
+    signedUrl = await storageObjectReadable(
+      supabase,
+      loc.bucket,
+      candidate,
+      DEFAULT_SIGNED_URL_TTL_SEC
+    );
+    if (signedUrl) break;
   }
 
-  if (!objectPath) {
+  if (!signedUrl) {
     console.warn(
-      `[get-booking-asset-url] Storage object missing: ${loc.bucket}/` +
+      `[get-booking-asset-url] Storage blob missing (metadata may exist): ${loc.bucket}/` +
         `[${pathCandidates.join(', ')}]`
     );
     return jsonResponse(
@@ -122,26 +125,5 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
     );
   }
 
-  const { data, error } = await supabase.storage
-    .from(loc.bucket)
-    .createSignedUrl(objectPath, DEFAULT_SIGNED_URL_TTL_SEC);
-
-  if (error || !data?.signedUrl) {
-    const msg = error?.message ?? 'Failed to create signed URL for storage object';
-    if (/not found/i.test(msg)) {
-      console.warn(`[get-booking-asset-url] Storage object missing: ${loc.bucket}/${loc.path}`);
-      return jsonResponse(
-        req,
-        {
-          success: false,
-          error: 'Object not found',
-          code: 'STORAGE_OBJECT_NOT_FOUND',
-        },
-        404
-      );
-    }
-    throw new Error(msg);
-  }
-
-  return jsonSuccess(req, { url: formatPublicUrl(data.signedUrl) });
+  return jsonSuccess(req, { url: signedUrl });
 });

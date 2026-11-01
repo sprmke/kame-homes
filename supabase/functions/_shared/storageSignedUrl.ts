@@ -89,28 +89,30 @@ export async function createSignedStorageUrlIfPrivate(
   return formatPublicUrl(data.signedUrl);
 }
 
-/** Service-role check that an object exists before minting a signed URL for the browser. */
-export async function storageObjectExists(
+/**
+ * Postgres `storage.objects` metadata can exist without a backing blob (NoSuchKey).
+ * List/metadata alone is not enough — verify the signed URL returns bytes.
+ */
+export async function storageObjectReadable(
   supabase: SupabaseClient,
   bucket: string,
-  objectPath: string
-): Promise<boolean> {
+  objectPath: string,
+  ttlSec = 60
+): Promise<string | null> {
   const path = objectPath.replace(/^\/+/, '');
-  if (!path) return false;
+  if (!path) return null;
 
-  const slash = path.lastIndexOf('/');
-  const prefix = slash >= 0 ? path.slice(0, slash) : '';
-  const name = slash >= 0 ? path.slice(slash + 1) : path;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, ttlSec);
+  if (error || !data?.signedUrl) return null;
 
-  const { data, error } = await supabase.storage.from(bucket).list(prefix, {
-    limit: 100,
-    search: name,
-  });
-  if (error) {
-    console.warn(`[storageSignedUrl] list ${bucket}/${prefix}:`, error.message);
-    return false;
+  const signedUrl = formatPublicUrl(data.signedUrl);
+  try {
+    const res = await fetch(signedUrl, { method: 'HEAD' });
+    if (res.ok) return signedUrl;
+  } catch {
+    /* ignore network errors */
   }
-  return (data ?? []).some((entry) => entry.name === name && entry.id != null);
+  return null;
 }
 
 export async function signGuestFormDataStorageUrls(
