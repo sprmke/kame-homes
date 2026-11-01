@@ -11,10 +11,11 @@ import {
   isStorageObjectNotFoundError,
   resolveAssetUrlForBrowser,
 } from '@/features/dashboard/bookings/lib/storageUrls';
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
 export type BookingAssetPreviewHandler = (label: string, rawUrl: string) => void | Promise<void>;
 
-export type BookingAssetPreviewState = {
+type BookingAssetPreviewState = {
   label: string;
   url: string;
   rawUrl: string;
@@ -29,31 +30,35 @@ function getDocType(url: string): 'image' | 'pdf' | 'file' {
 }
 
 export function useBookingAssetPreview() {
+  const propertyId = usePropertyIdParam();
   const [previewAsset, setPreviewAsset] = useState<BookingAssetPreviewState | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const handlePreview = useCallback(async (label: string, rawUrl: string) => {
-    setPreviewLoading(true);
-    try {
-      const resolved = await resolveAssetUrlForBrowser(rawUrl);
-      setPreviewAsset({
-        label,
-        url: resolved,
-        rawUrl,
-        type: getDocType(resolved),
-      });
-    } catch (err) {
-      toast.error(
-        isStorageObjectNotFoundError(err)
-          ? 'This file is no longer in storage'
-          : err instanceof Error
-            ? err.message
-            : 'Failed to open document'
-      );
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, []);
+  const handlePreview = useCallback(
+    async (label: string, rawUrl: string) => {
+      setPreviewLoading(true);
+      try {
+        const resolved = await resolveAssetUrlForBrowser(rawUrl, propertyId);
+        setPreviewAsset({
+          label,
+          url: resolved,
+          rawUrl,
+          type: getDocType(resolved),
+        });
+      } catch (err) {
+        toast.error(
+          isStorageObjectNotFoundError(err)
+            ? 'This file is no longer in storage'
+            : err instanceof Error
+              ? err.message
+              : 'Failed to open document'
+        );
+      } finally {
+        setPreviewLoading(false);
+      }
+    },
+    [propertyId]
+  );
 
   const closePreview = useCallback(() => {
     if (!previewLoading) setPreviewAsset(null);

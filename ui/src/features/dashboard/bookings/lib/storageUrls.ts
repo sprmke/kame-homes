@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { adminEdgeFetch } from '@/lib/api/adminEdgeFetch';
 
 function deriveProjectBaseUrl(): string | null {
   const explicit = import.meta.env.VITE_SUPABASE_PROJECT_URL as string | undefined;
@@ -68,8 +68,6 @@ export function parseStorageUrl(
   return { bucket, path: decodeURIComponent(rawPath) };
 }
 
-const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
-
 class StorageObjectNotFoundError extends Error {
   constructor() {
     super('Object not found');
@@ -86,23 +84,27 @@ export function isStorageObjectNotFoundError(err: unknown): err is StorageObject
  * Public-bucket URLs are returned unchanged; private buckets get a short-lived
  * signed URL via the `get-booking-asset-url` edge function.
  */
-export async function resolveAssetUrlForBrowser(url: string): Promise<string> {
+export async function resolveAssetUrlForBrowser(
+  url: string,
+  propertyId: string | null
+): Promise<string> {
   const normalized = normalizeStoragePublicUrl(url) ?? url;
   const loc = parseStorageUrl(normalized);
   if (!loc || !PRIVATE_STORAGE_BUCKETS.has(loc.bucket)) return normalized;
 
-  const { data } = await supabase.auth.getSession();
-  const jwt = data.session?.access_token;
-  if (!jwt) throw new Error('No active admin session');
+  if (!propertyId?.trim()) {
+    throw new Error('property_id is required');
+  }
 
-  const res = await fetch(`${FUNCTIONS_URL}/get-booking-asset-url`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwt}`,
+  const res = await adminEdgeFetch(
+    '/get-booking-asset-url',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: normalized }),
     },
-    body: JSON.stringify({ url: normalized }),
-  });
+    propertyId
+  );
   const json = await res.json();
   if (res.status === 404 || json.code === 'STORAGE_OBJECT_NOT_FOUND') {
     throw new StorageObjectNotFoundError();

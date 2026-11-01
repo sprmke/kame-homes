@@ -3,7 +3,7 @@
  * Supabase Storage objects. Public buckets: normalized public URL. Private buckets
  * private buckets (guest docs + admin PDFs): short-lived signed URL.
  *
- * POST JSON: `{ "url": "<stored storage or kong URL>" }`
+ * POST JSON: `{ "url": "<stored storage or kong URL>" }` with `?property_id=` (RBAC scope).
  * Auth: verifyAdminJwt (see admin-auth.mdc §6).
  */
 
@@ -20,8 +20,14 @@ import {
   readJsonBody,
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
+import { BOOKING_ASSET_CONFIG } from '../_shared/bookingAssetTypes.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+
+function guestSubmissionStorageColumnOrFilter(storagePath: string): string {
+  const columns = [...new Set(Object.values(BOOKING_ASSET_CONFIG).map((entry) => entry.column))];
+  return columns.map((column) => `${column}.ilike.%${storagePath}%`).join(',');
+}
 
 serveAuthenticated('get-booking-asset-url', async (req) => {
   const access = await resolveScopedPropertyAccess(req, 'bookings:view');
@@ -53,12 +59,14 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
     .from('guest_submissions')
     .select('id')
     .eq('property_id', propertyId)
-    .or(
-      `valid_id_url.ilike.%${loc.path}%,payment_receipt_url.ilike.%${loc.path}%,pet_vaccination_url.ilike.%${loc.path}%,pet_image_url.ilike.%${loc.path}%`
-    )
+    .or(guestSubmissionStorageColumnOrFilter(loc.path))
     .limit(1);
   if (!owning || owning.length === 0) {
-    return jsonResponse(req, { success: false, error: 'Object not in scope for this property' }, 403);
+    return jsonResponse(
+      req,
+      { success: false, error: 'Object not in scope for this property' },
+      403
+    );
   }
 
   const { data, error } = await supabase.storage
