@@ -125,7 +125,7 @@ export function GuestBalanceSettlementForm({
     let cancelled = false;
     setReceiptImgSrc(null);
     setReceiptImgFailed(false);
-    resolveAssetUrlForBrowser(receiptUrl)
+    resolveAssetUrlForBrowser(receiptUrl, booking.property_id ?? null)
       .then((u) => {
         if (!cancelled) setReceiptImgSrc(u);
       })
@@ -142,7 +142,7 @@ export function GuestBalanceSettlementForm({
     return () => {
       cancelled = true;
     };
-  }, [receiptUrl, receiptPreviewBust]);
+  }, [receiptUrl, receiptPreviewBust, booking.property_id]);
 
   useEffect(() => {
     if (totalDue === 0 && paidInput !== '0') {
