@@ -125,7 +125,7 @@ export function GuestBalanceSettlementForm({
     let cancelled = false;
     setReceiptImgSrc(null);
     setReceiptImgFailed(false);
-    resolveAssetUrlForBrowser(receiptUrl, booking.property_id ?? null)
+    resolveAssetUrlForBrowser(receiptUrl, booking.property_id ?? null, booking.id)
       .then((u) => {
         if (!cancelled) setReceiptImgSrc(u);
       })

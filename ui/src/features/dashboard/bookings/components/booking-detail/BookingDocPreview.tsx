@@ -71,17 +71,22 @@ export function DocPreview({
   /** Square thumbnail for dense guest-roster rows (no caption chrome). */
   compact = false,
   className,
+  bookingId = null,
+  propertyId: propertyIdProp = null,
 }: {
   label: string;
   url: string;
   onPreview: (label: string, rawUrl: string) => void;
+  bookingId?: string | null;
+  propertyId?: string | null;
   receiptAiVerdict?: ReceiptAiVerdict;
   receiptAiLoading?: boolean;
   receiptAiVariant?: DocumentAiVerdictVariant;
   compact?: boolean;
   className?: string;
 }) {
-  const propertyId = usePropertyIdParam();
+  const propertyIdFromRoute = usePropertyIdParam();
+  const propertyId = propertyIdProp ?? propertyIdFromRoute;
   const normalized = normalizeStoragePublicUrl(url) ?? url;
   const parsed = parseStorageUrl(normalized);
   const inPrivateBucket = Boolean(parsed && PRIVATE_STORAGE_BUCKETS.has(parsed.bucket));
@@ -107,7 +112,7 @@ export function DocPreview({
     setDisplayUrl(null);
     setImgError(false);
     setMissingInStorage(false);
-    resolveAssetUrlForBrowser(url, propertyId)
+    resolveAssetUrlForBrowser(url, propertyId, bookingId)
       .then((u) => {
         if (!cancelled) setDisplayUrl(u);
       })
@@ -119,12 +124,13 @@ export function DocPreview({
           setImgError(true);
           return;
         }
-        setDisplayUrl(n);
+        setDisplayUrl(null);
+        setImgError(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [url, propertyId]);
+  }, [url, propertyId, bookingId]);
 
   const hrefForOpen = displayUrl ?? normalized;
   const widthClass = className ?? docPreviewOuterWidth(compact);

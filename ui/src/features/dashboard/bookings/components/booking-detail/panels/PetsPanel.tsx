@@ -40,12 +40,20 @@ export function PetsPanel({
         <BookingDetailRowBlock className="border-border/60 border-t">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {booking.pet_image_url ? (
-              <DocPreview label="Pet photo" url={booking.pet_image_url} onPreview={onPreview} />
+              <DocPreview
+                label="Pet photo"
+                url={booking.pet_image_url}
+                bookingId={booking.id}
+                propertyId={booking.property_id ?? null}
+                onPreview={onPreview}
+              />
             ) : null}
             {booking.pet_vaccination_url ? (
               <DocPreview
                 label="Vaccination record"
                 url={booking.pet_vaccination_url}
+                bookingId={booking.id}
+                propertyId={booking.property_id ?? null}
                 onPreview={onPreview}
               />
             ) : null}
@@ -53,6 +61,8 @@ export function PetsPanel({
               <DocPreview
                 label="Approved pet form"
                 url={booking.approved_pet_pdf_url}
+                bookingId={booking.id}
+                propertyId={booking.property_id ?? null}
                 onPreview={onPreview}
               />
             ) : null}

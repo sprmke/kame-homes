@@ -143,7 +143,8 @@ export function BookingDetailPage() {
     useGuestReputation(bookingId);
   const [editMode, setEditMode] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<BookingEditTabId | undefined>(undefined);
-  const { previewAsset, previewLoading, handlePreview, closePreview } = useBookingAssetPreview();
+  const { previewAsset, previewLoading, handlePreview, closePreview } =
+    useBookingAssetPreview(bookingId);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [viewTab, setViewTab] = useState<BookingViewTab>('overview');
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);

@@ -143,6 +143,8 @@ export function GuestsPanel({
                             compact
                             label={`${slot.label} guest valid ID`}
                             url={validIdUrl}
+                            bookingId={booking.id}
+                            propertyId={booking.property_id ?? null}
                             onPreview={onPreview}
                             receiptAiVerdict={
                               slot.validIdAiVerdictKey

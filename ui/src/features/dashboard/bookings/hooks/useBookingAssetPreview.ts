@@ -29,7 +29,7 @@ function getDocType(url: string): 'image' | 'pdf' | 'file' {
   return 'file';
 }
 
-export function useBookingAssetPreview() {
+export function useBookingAssetPreview(bookingId: string | null | undefined = null) {
   const propertyId = usePropertyIdParam();
   const [previewAsset, setPreviewAsset] = useState<BookingAssetPreviewState | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -38,7 +38,7 @@ export function useBookingAssetPreview() {
     async (label: string, rawUrl: string) => {
       setPreviewLoading(true);
       try {
-        const resolved = await resolveAssetUrlForBrowser(rawUrl, propertyId);
+        const resolved = await resolveAssetUrlForBrowser(rawUrl, propertyId, bookingId ?? null);
         setPreviewAsset({
           label,
           url: resolved,
@@ -57,7 +57,7 @@ export function useBookingAssetPreview() {
         setPreviewLoading(false);
       }
     },
-    [propertyId]
+    [propertyId, bookingId]
   );
 
   const closePreview = useCallback(() => {
