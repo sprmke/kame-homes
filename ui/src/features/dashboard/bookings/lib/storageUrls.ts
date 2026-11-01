@@ -86,7 +86,8 @@ export function isStorageObjectNotFoundError(err: unknown): err is StorageObject
  */
 export async function resolveAssetUrlForBrowser(
   url: string,
-  propertyId: string | null
+  propertyId: string | null,
+  bookingId: string | null = null
 ): Promise<string> {
   const normalized = normalizeStoragePublicUrl(url) ?? url;
   const loc = parseStorageUrl(normalized);
@@ -101,7 +102,10 @@ export async function resolveAssetUrlForBrowser(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: normalized }),
+      body: JSON.stringify({
+        url: normalized,
+        ...(bookingId?.trim() ? { booking_id: bookingId.trim() } : {}),
+      }),
     },
     propertyId
   );

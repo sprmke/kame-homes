@@ -3,7 +3,7 @@
  * Supabase Storage objects. Public buckets: normalized public URL. Private buckets
  * private buckets (guest docs + admin PDFs): short-lived signed URL.
  *
- * POST JSON: `{ "url": "<stored storage or kong URL>" }` with `?property_id=` (RBAC scope).
+ * POST JSON: `{ "url": "<stored storage or kong URL>", "booking_id"?: "<uuid>" }` with `?property_id=` (RBAC scope).
  * Auth: verifyAdminJwt (see admin-auth.mdc §6).
  */
 
@@ -20,14 +20,12 @@ import {
   readJsonBody,
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
-import { BOOKING_ASSET_CONFIG } from '../_shared/bookingAssetTypes.ts';
+import {
+  bookingAssetUrlColumnList,
+  bookingRowReferencesStorageObject,
+} from '../_shared/bookingAssetUrlScope.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
-
-function guestSubmissionStorageColumnOrFilter(storagePath: string): string {
-  const columns = [...new Set(Object.values(BOOKING_ASSET_CONFIG).map((entry) => entry.column))];
-  return columns.map((column) => `${column}.ilike.%${storagePath}%`).join(',');
-}
 
 serveAuthenticated('get-booking-asset-url', async (req) => {
   const access = await resolveScopedPropertyAccess(req, 'bookings:view');
@@ -35,6 +33,7 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
   requireHttpMethod(req, 'POST');
   const body = await readJsonBody(req);
   const rawUrl = typeof body.url === 'string' ? body.url.trim() : '';
+  const bookingId = typeof body.booking_id === 'string' ? body.booking_id.trim() : '';
   if (!rawUrl) throw new Error('url is required');
 
   const normalized = formatPublicUrl(rawUrl);
@@ -55,13 +54,28 @@ serveAuthenticated('get-booking-asset-url', async (req) => {
   // this check an admin with bookings:view on property A could mint signed URLs
   // for property B's private guest documents.
   const supabase = createClient(supabaseUrl, serviceKey);
-  const { data: owning } = await supabase
-    .from('guest_submissions')
-    .select('id')
-    .eq('property_id', propertyId)
-    .or(guestSubmissionStorageColumnOrFilter(loc.path))
-    .limit(1);
-  if (!owning || owning.length === 0) {
+
+  let inScope = false;
+  if (bookingId) {
+    const { data: row, error: rowError } = await supabase
+      .from('guest_submissions')
+      .select(`id, ${bookingAssetUrlColumnList()}`)
+      .eq('id', bookingId)
+      .eq('property_id', propertyId)
+      .maybeSingle();
+    if (rowError) throw new Error(rowError.message);
+    inScope = Boolean(row && bookingRowReferencesStorageObject(row, loc));
+  } else {
+    const { data: rows, error: rowsError } = await supabase
+      .from('guest_submissions')
+      .select(`id, ${bookingAssetUrlColumnList()}`)
+      .eq('property_id', propertyId)
+      .limit(200);
+    if (rowsError) throw new Error(rowsError.message);
+    inScope = (rows ?? []).some((row) => bookingRowReferencesStorageObject(row, loc));
+  }
+
+  if (!inScope) {
     return jsonResponse(
       req,
       { success: false, error: 'Object not in scope for this property' },
