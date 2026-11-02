@@ -16,6 +16,21 @@ describe('resolvePlatformAppName', () => {
     expect(resolvePlatformAppName(' STAYS ')).toBe(DEFAULT_PLATFORM_APP_NAME);
   });
 
+  it('replaces every form of the retired Kame Homes label', () => {
+    for (const retired of [
+      'Kame Homes',
+      'Kame Home',
+      'kame-homes',
+      'kame-home',
+      'KameHomes',
+      'KameHome',
+      'KAME_HOMES',
+      'kame_homes',
+    ]) {
+      expect(resolvePlatformAppName(retired)).toBe(DEFAULT_PLATFORM_APP_NAME);
+    }
+  });
+
   it('keeps a configured operator name', () => {
     expect(resolvePlatformAppName('Acme Hosts')).toBe('Acme Hosts');
   });
