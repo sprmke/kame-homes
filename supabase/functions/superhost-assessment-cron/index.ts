@@ -14,6 +14,7 @@ import {
   verifySuperhostAssessmentCronSecret,
 } from '../_shared/superhostAssessment.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 import {
   handleOptions,
   jsonError,
@@ -58,6 +59,16 @@ serve(async (req) => {
     return jsonResponse(req, { success: true, ...result });
   } catch (error) {
     console.error('superhost-assessment-cron:', error);
+    // Nothing else observes a scheduled run: without this the job fails, the endpoint returns
+    // 500, and no human is ever told. Same shape as the other hand-rolled cron handlers.
+    await captureSentryException(error, {
+      logPrefix: 'cron:superhost-assessment-cron',
+      url: req.url,
+      method: req.method,
+      traceHeader: req.headers.get('sentry-trace'),
+      tags: { cron: 'superhost-assessment-cron' },
+      fingerprint: ['cron', 'superhost-assessment-cron'],
+    });
     return jsonError(req, (error as Error).message);
   }
 });

@@ -336,6 +336,13 @@ thousands.
       with `failed_count` / `attempted_count`. Wired into `calendar-sync-cron`, the only job
       that tallies per-item failures; its response still answers 200 + `success: true`.
       Covered by two tests in `_shared/sentryCron_test.ts`.
+- [x] Silent-500 audit across scheduled and trigger-driven functions.
+      **Done** — `superhost-assessment-cron` caught its own error and answered 500 with no
+      event, and `push-fanout` (pg_net trigger) did the same on a failed notification read.
+      Both now capture. `parking-broadcast-email` is a retired 410 stub and has nothing to
+      report. Request/response handlers that answer their own 500 remain covered from the
+      browser side, because the SPA's query/mutation hooks report 5xx with the same
+      `request_id`.
 
 ### S3.2 Webhooks
 

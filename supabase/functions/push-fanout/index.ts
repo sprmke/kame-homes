@@ -8,6 +8,7 @@
  * caller as anything other than a count.
  */
 import {
+  captureFaultIfServerError,
   jsonError,
   jsonSuccess,
   readJsonBody,
@@ -50,7 +51,13 @@ servePublic('push-fanout', async (req) => {
     .eq('id', notificationId)
     .maybeSingle();
 
-  if (error) return jsonError(req, error.message, 500);
+  // A trigger, not a user request, so nobody sees this 500. Without the capture, a broken
+  // notifications read means push silently stops and the only signal is a guest saying they
+  // were never notified.
+  if (error) {
+    await captureFaultIfServerError(req, new Error(error.message), 'push-fanout');
+    return jsonError(req, error.message, 500);
+  }
   if (!notification) return jsonSuccess(req, { sent: 0, reason: 'notification not found' });
 
   const row = notification as NotificationRow;
