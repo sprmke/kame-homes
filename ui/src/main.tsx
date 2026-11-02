@@ -11,11 +11,15 @@ import { RouteErrorFallback } from '@/components/error/RouteErrorFallback';
 import { AppShell } from '@/components/routing/AppShell';
 import { bootstrapPostHogTelemetry } from '@/lib/posthog/bootstrapTelemetry';
 import { posthog } from '@/lib/posthog/client';
+import { initSentry } from '@/lib/sentry/init';
 
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import '@/lib/pwa/installPrompt'; // capture beforeinstallprompt early
 import 'react-day-picker/dist/style.css';
 import './index.css';
+
+// First, so an error thrown while the rest of the app boots is still reported.
+initSentry();
 
 bootstrapPostHogTelemetry();
 
