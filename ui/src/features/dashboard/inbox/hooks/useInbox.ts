@@ -328,6 +328,7 @@ export function useInboxMutations(
       attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
       templateKey?: string;
       bookingId?: string | null;
+      aiDrafted?: boolean;
     }) => {
       if (mockMode) {
         await mockSendReply(opts.conversationId, opts.text, opts.templateKey);
@@ -356,6 +357,7 @@ export function useInboxMutations(
         attachments: opts.attachments,
         templateKey: opts.templateKey,
         bookingId: opts.bookingId,
+        aiDrafted: opts.aiDrafted,
         scope,
       });
     },

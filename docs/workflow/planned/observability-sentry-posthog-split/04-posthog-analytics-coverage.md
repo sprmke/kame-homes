@@ -124,27 +124,34 @@ and `listing_published` (first property-showcase publish only). `public_write_bl
 
 ## A2 — Booking ops, guest account, reviews, trip hub
 
-| Event                                                                                     | Src | Status      | Key properties                                                         | Trigger                             |
-| ----------------------------------------------------------------------------------------- | --- | ----------- | ---------------------------------------------------------------------- | ----------------------------------- |
-| `booking_workflow_transitioned`                                                           | E   | live        | `from`, `to`, `actor_kind`                                             | Orchestrator                        |
-| `booking_workflow_cta_clicked`                                                            | B   | live        | `cta`, `status`                                                        |                                     |
-| `booking_document_step_completed`                                                         | E   | live        | `step`                                                                 |                                     |
-| `booking_updated` / `booking_rescheduled` / `booking_cancelled`                           | B/E | live        | `changed_fields` (keys only), `actor_kind`                             |                                     |
-| `booking_imported`                                                                        | E   | live        | `count`, `source` (csv, airbnb, booking_com, sheet), `mapping_ai_used` | Import commit (one event per batch) |
-| `import_started` / `import_mapping_confirmed`                                             | B   | live        | `source`, `row_count_bucket`                                           | Import wizard                       |
-| `guest_review_submitted`                                                                  | E   | live        | `rating`, `has_text`                                                   |                                     |
-| `host_guest_review_submitted`                                                             | E   | live        | `rating`                                                               | Add to catalogs (F-08)              |
-| `review_pair_published` / `review_response_posted` / `review_reported` / `review_removed` | E   | live        | `reason` enum where relevant                                           | Add to catalogs (F-08)              |
-| `review_draft_ai_used`                                                                    | E   | new         | `accepted` (bool)                                                      | `reviewDraftAi.ts` success          |
-| `trip_hub_opened`                                                                         | B   | new         | `trip_stage` (upcoming, in_stay, past)                                 | `/account/trips/:id` mount          |
-| `trip_hub_section_opened`                                                                 | B   | new         | `section` (guide, documents, chat, parking, review)                    |                                     |
-| `guest_message_sent`                                                                      | B   | live        | `channel` (web_chat)                                                   |                                     |
-| `guest_favorite_toggled` / `guest_voucher_viewed`                                         | B   | live / wire | `state`                                                                |                                     |
-| `inbox_reply_sent`                                                                        | E   | wire        | `channel` (messenger, instagram, web_chat), `ai_drafted` (bool)        | Inbox send edge success             |
-| `inbox_ai_suggest_used`                                                                   | B   | wire        | `action` (inserted, edited, discarded)                                 |                                     |
-| `inbox_auto_reply_sent`                                                                   | E   | new         | `channel`, `handoff` (bool)                                            | `metaInboxAutoReply.ts`             |
-| `meta_inbox_connected` / `_disconnected`                                                  | E   | wire        | `channel`, `reason` (user, token_expired, revoked)                     | OAuth callback / lifecycle          |
-| `calendar_sync_connected`                                                                 | E   | wire        | `provider` (airbnb, booking_com, vrbo, other)                          | Feed added                          |
+**Complete (2026-11-03).** Import funnel, inbox replies and AI suggestions, Meta connect /
+disconnect, calendar feed connect, review drafting, the trip hub and the voucher wallet all
+emit. Four properties were refined where the sketch was not implementable: review drafts
+report `kind` (acceptance is not knowable at generation), auto replies drop `handoff` (the bot
+either sends or stays silent), a Meta disconnect reports `channel: meta` (one switch clears
+every connection for the scope), and trip sections report the shortcut key.
+
+| Event                                                                                     | Src | Status | Key properties                                                                       | Trigger                             |
+| ----------------------------------------------------------------------------------------- | --- | ------ | ------------------------------------------------------------------------------------ | ----------------------------------- |
+| `booking_workflow_transitioned`                                                           | E   | live   | `from`, `to`, `actor_kind`                                                           | Orchestrator                        |
+| `booking_workflow_cta_clicked`                                                            | B   | live   | `cta`, `status`                                                                      |                                     |
+| `booking_document_step_completed`                                                         | E   | live   | `step`                                                                               |                                     |
+| `booking_updated` / `booking_rescheduled` / `booking_cancelled`                           | B/E | live   | `changed_fields` (keys only), `actor_kind`                                           |                                     |
+| `booking_imported`                                                                        | E   | live   | `count`, `source` (csv, airbnb, booking_com, sheet), `mapping_ai_used`               | Import commit (one event per batch) |
+| `import_started` / `import_mapping_confirmed`                                             | B   | live   | `source`, `row_count_bucket`                                                         | Import wizard                       |
+| `guest_review_submitted`                                                                  | E   | live   | `rating`, `has_text`                                                                 |                                     |
+| `host_guest_review_submitted`                                                             | E   | live   | `rating`                                                                             | Add to catalogs (F-08)              |
+| `review_pair_published` / `review_response_posted` / `review_reported` / `review_removed` | E   | live   | `reason` enum where relevant                                                         | Add to catalogs (F-08)              |
+| `review_draft_ai_used`                                                                    | E   | live   | `kind` (accepted is not knowable at generation; the send is a separate event)        | `reviewDraftAi.ts` success          |
+| `trip_hub_opened`                                                                         | B   | live   | `trip_stage` (upcoming, in_stay, past)                                               | `/account/trips/:id` mount          |
+| `trip_hub_section_opened`                                                                 | B   | live   | `section` = shortcut key (guide, message, call, directions, edit, listing, calendar) |                                     |
+| `guest_message_sent`                                                                      | B   | live   | `channel` (web_chat)                                                                 |                                     |
+| `guest_favorite_toggled` / `guest_voucher_viewed`                                         | B   | live   | `state`                                                                              |                                     |
+| `inbox_reply_sent`                                                                        | E   | live   | `channel` (messenger, instagram, web_chat), `ai_drafted` (bool)                      | Inbox send edge success             |
+| `inbox_ai_suggest_used`                                                                   | B   | live   | `action` (inserted, edited, discarded)                                               |                                     |
+| `inbox_auto_reply_sent`                                                                   | E   | live   | `channel` (handoff is not modelled: the bot either sends or stays silent)            | `metaInboxAutoReply.ts`             |
+| `meta_inbox_connected` / `_disconnected`                                                  | E   | live   | `channel` (messenger, instagram; `meta` on disconnect), `reason` (user)              | OAuth callback / lifecycle          |
+| `calendar_sync_connected`                                                                 | E   | live   | `provider` (airbnb, booking_com, vrbo, other)                                        | Feed added                          |
 
 ## A3 — Parking, billing, plans
 

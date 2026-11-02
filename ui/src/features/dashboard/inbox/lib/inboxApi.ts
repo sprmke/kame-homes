@@ -351,6 +351,7 @@ export async function sendInboxReply(
     attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
     templateKey?: string;
     bookingId?: string | null;
+    aiDrafted?: boolean;
     scope?: InboxApiScope | null;
   }
 ): Promise<void> {
@@ -367,6 +368,7 @@ export async function sendInboxReply(
       text,
       replyToMessageId: opts?.replyToMessageId,
       useHumanAgentTag: opts?.useHumanAgentTag === true,
+      aiDrafted: opts?.aiDrafted === true,
       attachments: opts?.attachments,
       templateKey: opts?.templateKey,
       bookingId: opts?.bookingId ?? undefined,
@@ -429,6 +431,7 @@ export function inboxSendBody(
     text: string;
     replyToMessageId?: string;
     useHumanAgentTag?: boolean;
+    aiDrafted?: boolean;
   },
   scope?: InboxApiScope | null
 ): Record<string, unknown> {
@@ -437,6 +440,7 @@ export function inboxSendBody(
     text: input.text,
     replyToMessageId: input.replyToMessageId,
     useHumanAgentTag: input.useHumanAgentTag === true,
+    aiDrafted: input.aiDrafted === true,
     ...inboxScopeBody(scope),
   };
 }

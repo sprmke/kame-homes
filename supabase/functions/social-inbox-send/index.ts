@@ -23,6 +23,7 @@ import {
   parseGuestWebChatAttachments,
 } from '../_shared/guestChatAttachments.ts';
 import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import {
   MAX_META_TEMPLATE_TEXT_CHARS,
   renderChatTemplateForChat,
@@ -75,6 +76,26 @@ serveAuthenticated(
     }
 
     const now = new Date().toISOString();
+
+    // One outcome event per successful send, on either path. `ai_drafted` is true only when
+    // the host sent the suggestion verbatim: the composer clears it on the first keystroke.
+    const replyChannel =
+      conv.platform === 'facebook'
+        ? 'messenger'
+        : conv.platform === 'instagram'
+          ? 'instagram'
+          : 'web_chat';
+    const reportReplySent = () =>
+      capturePostHogEvent('inbox_reply_sent', {
+        logPrefix: 'social-inbox-send',
+        request: req,
+        distinctId: user.id,
+        groups: {
+          organization: ctx.org.id,
+          ...(conv.property_id ? { property: conv.property_id } : {}),
+        },
+        properties: { channel: replyChannel, ai_drafted: body.aiDrafted === true },
+      });
 
     const templatePropertyId = conv.property_id ?? ctx.propertyId;
     let template: Awaited<ReturnType<typeof renderChatTemplateForChat>> | null = null;
@@ -169,6 +190,7 @@ serveAuthenticated(
         conversationId: conv.id,
         externalMessageId: externalId,
       }).catch((err) => console.warn('[social-inbox-send] guest notify:', err));
+      await reportReplySent();
       return jsonSuccess(req, { sent: true });
     }
 
@@ -264,6 +286,7 @@ serveAuthenticated(
       unread_delta: 0,
     });
 
+    await reportReplySent();
     return jsonSuccess(req, { sent: true });
   })
 );

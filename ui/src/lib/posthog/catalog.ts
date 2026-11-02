@@ -62,7 +62,11 @@ export const APP_ANALYTICS_EVENTS = [
   'org_plan_checkout_failed',
   // Host adoption
   'inbox_reply_sent',
+  'inbox_auto_reply_sent',
   'inbox_ai_suggest_used',
+  'review_draft_ai_used',
+  'trip_hub_opened',
+  'trip_hub_section_opened',
   'meta_inbox_connected',
   'meta_inbox_disconnected',
   'marketing_caption_generated',

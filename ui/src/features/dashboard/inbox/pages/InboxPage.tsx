@@ -461,6 +461,7 @@ export function InboxPage({
                     attachments: opts?.attachments,
                     templateKey: opts?.templateKey,
                     bookingId: opts?.bookingId,
+                    aiDrafted: opts?.aiDrafted,
                   });
                 }}
                 onUploadAttachment={

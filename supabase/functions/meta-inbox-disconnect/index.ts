@@ -13,6 +13,7 @@ import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts
 import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('meta-inbox-disconnect', async (req, user) => {
   if (req.method !== 'POST') {
@@ -75,6 +76,19 @@ serveAuthenticated('meta-inbox-disconnect', async (req, user) => {
       connections_removed: connectionsRemoved,
       conversations_cleared: conversationsCleared,
     },
+  });
+
+  await capturePostHogEvent('meta_inbox_disconnected', {
+    logPrefix: 'meta-inbox-disconnect',
+    request: req,
+    distinctId: user.id,
+    groups: {
+      organization: ctx.orgId,
+      ...(ctx.kind === 'property' && ctx.propertyId ? { property: ctx.propertyId } : {}),
+      ...(ctx.kind === 'parking' && ctx.parkingId ? { parking: ctx.parkingId } : {}),
+    },
+    // One switch clears every Meta connection for the scope, so this is not per-channel.
+    properties: { channel: 'meta', reason: 'user' },
   });
 
   return jsonSuccess(req, {

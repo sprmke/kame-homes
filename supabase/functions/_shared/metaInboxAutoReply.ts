@@ -19,6 +19,7 @@ import {
   updateConversationAfterMessage,
 } from './socialInboxService.ts';
 import { isFeatureAvailable } from './featureAvailability.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import type { SocialPlatform } from './socialInboxTypes.ts';
 
 export async function maybeAutoReplyToInboundDm(
@@ -104,5 +105,18 @@ export async function maybeAutoReplyToInboundDm(
     subject_preview: draft.slice(0, 500),
     last_message_at: now,
     reply_status: 'replied',
+  });
+
+  // The reply exists at this point, so this is a sent outcome and not an attempt. No person
+  // context: the webhook caller is Meta. `handoff` is not modelled — the replier either sends
+  // or stays silent, and silence is the absence of this event rather than a second one.
+  await capturePostHogEvent('inbox_auto_reply_sent', {
+    logPrefix: 'metaInboxAutoReply',
+    groups: {
+      organization: orgId,
+      ...(conv.property_id ? { property: conv.property_id } : {}),
+    },
+    properties: { channel: platform === 'facebook' ? 'messenger' : 'instagram' },
+    system: true,
   });
 }
