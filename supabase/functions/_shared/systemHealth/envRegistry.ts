@@ -405,13 +405,13 @@ export const EDGE_ENV_REGISTRY: EnvDef[] = [
     console: 'https://app.posthog.com/settings/project',
     group: OBSERVABILITY,
     level: 'prodRecommended',
-    features: ['Server error tracking'],
+    features: ['Server product analytics'],
   },
   {
     key: 'POSTHOG_HOST',
     group: OBSERVABILITY,
     level: 'optional',
-    features: ['Server error tracking'],
+    features: ['Server product analytics'],
     showValue: true,
     validate: validateUrl,
   },
@@ -420,8 +420,15 @@ export const EDGE_ENV_REGISTRY: EnvDef[] = [
     console: 'https://sentry.io/settings/projects/',
     group: OBSERVABILITY,
     level: 'optional',
-    features: ['Server alerting'],
+    features: ['Server error monitoring'],
     validate: validateSentryDsn,
+  },
+  {
+    key: 'APP_RELEASE',
+    group: OBSERVABILITY,
+    level: 'optional',
+    features: ['Error grouping by deploy', 'Error and analytics correlation'],
+    hint: 'Set by the deploy scripts from the git SHA — do not set by hand.',
   },
 
   {
