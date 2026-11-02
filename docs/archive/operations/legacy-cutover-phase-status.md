@@ -27,6 +27,9 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
 
 **2026-11-03 post-cutover fixes:**
+- **Parking reminders hit historic guests.** `calendarDaysBetween` clamps negatives to 0, so three 2025 bookings looked like "today" and received a reminder at 06:00 on 2026-11-02 (two `.con` typos, one dead yahoo address). Eligibility moved to `parkingReminderEligibility.ts`, rejects check-ins before today, and is unit-tested; a manual sweep now returns `sent: 0`.
+- **Telegram verification:** admin group received a real summary; staff/finance/maintenance use the same encrypted row path and run hourly.
+
 - **Review lifecycle cron was failing hourly** (`getPlatformSettingsSnapshot is not defined`, plus a `skip` helper used before declaration). Fixed, redeployed, verified 200 on the scheduled :17 run. The review modules are now in `check:edge-types` so it cannot ship again.
 - **Telegram was silently off** on prod: legacy used env credentials, the new app needs per-property encrypted rows. Rotated `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY` (no encrypted data existed), migrated admin/staff/finance/maintenance bot tokens + chat ids, enabled those channels. `telegram-admin-cron` returned `sent: true`; the other channels run at :00.
 - Property location set (`settings.city/province`, address) so the public page no longer shows "Philippines, Philippines".
