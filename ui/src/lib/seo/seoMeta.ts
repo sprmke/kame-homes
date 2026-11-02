@@ -231,7 +231,8 @@ export const ROBOTS_DISALLOW = [
 
 /** Hosts that may be indexed. Anything else (dev, Vercel previews) gets `Disallow: /`. */
 export const DEFAULT_INDEXABLE_HOSTS: readonly string[] = [
-  // Current production domain (kamespace rebrand).
+  // Current production domain (kamespace rebrand). Without these the production
+  // build served `Disallow: /` and Lighthouse SEO capped at 69.
   'kamespace.com',
   'www.kamespace.com',
   'app.kamespace.com',
