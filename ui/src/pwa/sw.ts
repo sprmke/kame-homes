@@ -34,12 +34,18 @@ import {
   SW_MESSAGE,
 } from './shared';
 
+import { installSwErrorRelay } from './swErrorRelay';
+
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
 declare const __PWA_BUILD_ID__: string;
 
 const BUILD_ID = Number(__PWA_BUILD_ID__) || 0;
+
+// Before anything else: an error thrown while the worker boots is the one class of failure
+// nobody can currently see. Global hooks catch what the individual handlers leave uncaught.
+installSwErrorRelay();
 const OFFLINE_URL = 'offline.html';
 
 // ───────────────────────────── precache ──────────────────────────────────────
