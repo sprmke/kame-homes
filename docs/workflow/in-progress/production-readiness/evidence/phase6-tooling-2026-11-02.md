@@ -84,7 +84,7 @@ FAIL-NEW: 0 · WARN-NEW: 11 · PASS: 57
 | Suspicious comments                                                               | Info          | Reviewed: code comments only, no credentials or internal hosts                                                                                                           |
 | Cache/storage informational alerts                                                | Info          | Matches the intentional cache matrix in `vercel.json`                                                                                                                    |
 
-After the `X-Frame-Options` deploy, re-run the baseline once to confirm the Medium clickjacking warning clears (recorded in the checklist row).
+**Re-scan after the `X-Frame-Options` deploy (2026-11-02):** `FAIL-NEW: 0 · WARN-NEW: 10 · PASS: 58` — the anti-clickjacking warning is gone (11 → 10 warnings, 57 → 58 passes). `curl -I https://dev.kamehomes.space` shows `x-frame-options: SAMEORIGIN`.
 
 ## Commands
 
