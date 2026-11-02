@@ -101,13 +101,37 @@ function releaseTag(): string | undefined {
   return value || undefined;
 }
 
-function environmentTag(): 'local' | 'preview' | 'production' | 'development' {
-  const explicit = Deno.env.get('ENVIRONMENT') ?? Deno.env.get('DENO_ENV');
-  if (explicit === 'production' || explicit === 'preview' || explicit === 'local') {
-    return explicit;
+/**
+ * True when this isolate is a deployed function rather than `functions serve` on a laptop.
+ *
+ * `DENO_DEPLOYMENT_ID` is a Deno Deploy variable and Supabase never sets it, so the old
+ * check always fell through to "local" and every deployed event was tagged `local`. That
+ * makes a laptop indistinguishable from production and silently breaks alert rules scoped
+ * to an environment. The Supabase URL is the signal that actually exists here.
+ */
+function isDeployedRuntime(): boolean {
+  if (Deno.env.get('DENO_DEPLOYMENT_ID')) return true;
+  const url = (Deno.env.get('SUPABASE_URL') ?? Deno.env.get('API_URL') ?? '').trim();
+  if (!url) return false;
+  return !/(127\.0\.0\.1|localhost|0\.0\.0\.0)/.test(url);
+}
+
+function environmentTag(): 'local' | 'preview' | 'production' {
+  const explicit = (Deno.env.get('ENVIRONMENT') ?? Deno.env.get('DENO_ENV') ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (explicit === 'production' || explicit === 'prod') return 'production';
+  if (explicit === 'preview' || explicit === 'staging') return 'preview';
+  if (explicit === 'local') return 'local';
+  if (explicit === 'dev' || explicit === 'development') {
+    // A deployed dev environment is still deployed. Tagging it `local` is what hid every
+    // edge event from an environment filter in the first place.
+    return isDeployedRuntime() ? 'preview' : 'local';
   }
-  if (explicit === 'development') return 'local';
-  return Deno.env.get('DENO_DEPLOYMENT_ID') ? 'production' : 'local';
+
+  // Unset: a deployed project default is production; a laptop is local.
+  return isDeployedRuntime() ? 'production' : 'local';
 }
 
 /** Fraction of `warning` events to send. Errors are never sampled. */

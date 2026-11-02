@@ -256,3 +256,55 @@ Deno.test('accepts a non-Error throw', async () => {
     restoreEnv();
   }
 });
+
+// ─────────────── environment resolution ───────────────
+// A deployed dev project used to report `local`, which made a laptop and the server
+// indistinguishable and hid every edge event from an environment-scoped alert rule.
+
+function captureEnvironment(): Promise<string | undefined> {
+  return captureSentryException(new Error('env probe'), { logPrefix: 'env-probe' }).then(() => {
+    const event = parseEvent(captured[captured.length - 1]!.body);
+    return event.environment as string | undefined;
+  });
+}
+
+Deno.test('ENVIRONMENT=development on a deployed project reports preview', async () => {
+  resetCaptureEnv();
+  try {
+    stubEnv({
+      ENVIRONMENT: 'development',
+      SUPABASE_URL: 'https://fworvijbrwpyngycotbz.supabase.co',
+      DENO_DEPLOYMENT_ID: undefined,
+    });
+    resetSentryDsnCacheForTests();
+    assertEquals(await captureEnvironment(), 'preview');
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('ENVIRONMENT=development locally still reports local', async () => {
+  resetCaptureEnv();
+  try {
+    stubEnv({
+      ENVIRONMENT: 'development',
+      SUPABASE_URL: 'http://127.0.0.1:54321',
+      DENO_DEPLOYMENT_ID: undefined,
+    });
+    resetSentryDsnCacheForTests();
+    assertEquals(await captureEnvironment(), 'local');
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('ENVIRONMENT=production wins regardless of runtime', async () => {
+  resetCaptureEnv();
+  try {
+    stubEnv({ ENVIRONMENT: 'production', SUPABASE_URL: 'http://127.0.0.1:54321' });
+    resetSentryDsnCacheForTests();
+    assertEquals(await captureEnvironment(), 'production');
+  } finally {
+    restoreEnv();
+  }
+});
