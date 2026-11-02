@@ -40,6 +40,9 @@ targets=(
   _shared/reviewLifecycle.ts
   _shared/reviewAutomation.ts
   _shared/propertyAutomationToggles.ts
+  send-parking-reminders/index.ts
+  _shared/parkingReminderCron.ts
+  _shared/parkingReminderEligibility.ts
 )
 
 echo "→ deno check (${#targets[@]} launch and cron edge modules)"

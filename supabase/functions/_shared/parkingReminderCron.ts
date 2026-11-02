@@ -8,11 +8,8 @@
  * Mirrors `parkingBroadcastExpireCron.ts`'s cron-secret + sweep shape.
  */
 
-import {
-  calendarDaysBetween,
-  manilaTodayYmd,
-  normalizeBookingDateToYmd,
-} from './calendarAvailabilityManila.ts';
+import { manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { isParkingReminderDue } from './parkingReminderEligibility.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
@@ -28,9 +25,6 @@ export function verifyParkingReminderCronSecret(req: Request): boolean {
     headerName: 'x-parking-reminder-cron-secret',
   });
 }
-
-/** Send the one-time reminder this many days (or fewer) before check-in. */
-const REMINDER_LEAD_DAYS = 3;
 
 const REMINDER_BODY_TEMPLATE = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Hi {{guest_name}}, your stay at <strong>{{unit_label}}</strong> starts on {{check_in_date}} — you mentioned you'd like paid parking.</p>
 <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Reserve and pay for a spot separately through our parking marketplace: <a href="{{parking_url}}" style="color:#5c4428;font-weight:700;text-decoration:underline;">find parking near your stay</a>.</p>`;
@@ -76,13 +70,9 @@ async function loadUnlinkedCandidates(): Promise<ReminderCandidateRow[]> {
   const linkedIds = new Set((linked ?? []).map((row) => String(row.linked_property_booking_id)));
 
   const today = manilaTodayYmd();
-  return eligible.filter((row) => {
-    if (linkedIds.has(row.id)) return false;
-    const checkInYmd = normalizeBookingDateToYmd(row.check_in_date);
-    if (!checkInYmd) return false;
-    const daysUntil = calendarDaysBetween(today, checkInYmd);
-    return daysUntil >= 0 && daysUntil <= REMINDER_LEAD_DAYS;
-  });
+  return eligible.filter((row) =>
+    isParkingReminderDue(row.check_in_date, today, row.status, linkedIds.has(row.id))
+  );
 }
 
 async function sendReminderEmail(row: ReminderCandidateRow): Promise<void> {
