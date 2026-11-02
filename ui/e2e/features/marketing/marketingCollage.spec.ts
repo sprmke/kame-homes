@@ -60,20 +60,16 @@ test.describe('@ci marketing studio collage', () => {
       await page.getByRole('button', { name: 'New post', exact: true }).click();
       await page.getByRole('button', { name: 'Collage', exact: true }).click();
 
-      const sheet = page.getByRole('dialog');
-      if (await sheet.count()) {
-        await expect(sheet.getByRole('button', { name: '2x2 grid' })).toBeVisible({
-          timeout: 20_000,
-        });
-        await sheet.getByRole('button', { name: '2x2 grid' }).click();
-        await expect(sheet.getByText('Pick a layout above to start your collage.')).toBeHidden({
-          timeout: 30_000,
-        });
-      } else {
-        await expect(page.getByRole('button', { name: '2x2 grid' })).toBeVisible({
-          timeout: 20_000,
-        });
-      }
+      // The layout picker renders inline in the editor; a sheet may also be present. Scoping
+      // to the dialog was wrong because `count()` includes hidden elements, so a closed sheet
+      // matched and the assertion looked in the wrong subtree. A page-level locator finds the
+      // button either way, and `toBeVisible` is what actually waits for it.
+      const layoutButton = page.getByRole('button', { name: '2x2 grid' });
+      await expect(layoutButton).toBeVisible({ timeout: 20_000 });
+      await layoutButton.click();
+      await expect(page.getByText('Pick a layout above to start your collage.')).toBeHidden({
+        timeout: 30_000,
+      });
 
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
