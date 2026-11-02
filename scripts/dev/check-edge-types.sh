@@ -33,7 +33,14 @@ targets=(
   _shared/propertyScope.ts
   _shared/publicEndpointRateLimit.ts
   _shared/webCryptoKey.ts
+  # Cron / automation graph — added after the 2026-11-02 review-lifecycle failure
+  # (missing import shipped because these modules were not in the launch surface).
+  review-lifecycle-cron/index.ts
+  review-automation-settings/index.ts
+  _shared/reviewLifecycle.ts
+  _shared/reviewAutomation.ts
+  _shared/propertyAutomationToggles.ts
 )
 
-echo "→ deno check (${#targets[@]} launch-surface edge modules)"
+echo "→ deno check (${#targets[@]} launch and cron edge modules)"
 deno check --allow-import "${targets[@]}"

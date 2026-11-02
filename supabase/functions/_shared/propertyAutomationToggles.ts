@@ -20,6 +20,8 @@ export const PROPERTY_AUTOMATION_TOGGLE_KEYS = [
   'emailParkingBroadcast',
   'emailReadyForCheckin',
   'emailSdRefundCheckout',
+  'emailReviewRequest',
+  'emailReviewReminder',
 ] as const;
 
 /** Subset of PROPERTY_AUTOMATION_TOGGLE_KEYS gated by the `automatedBookingFlow` plan feature. */
@@ -44,6 +46,8 @@ export const DEFAULT_PROPERTY_AUTOMATION_TOGGLES: PropertyAutomationToggles = {
   emailParkingBroadcast: true,
   emailReadyForCheckin: true,
   emailSdRefundCheckout: true,
+  emailReviewRequest: true,
+  emailReviewReminder: true,
 };
 
 export function mergePropertyAutomationToggles(raw: unknown): PropertyAutomationToggles {

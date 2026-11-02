@@ -6,6 +6,8 @@ export const PROPERTY_AUTOMATION_TOGGLE_KEYS = [
   'emailParkingBroadcast',
   'emailReadyForCheckin',
   'emailSdRefundCheckout',
+  'emailReviewRequest',
+  'emailReviewReminder',
 ] as const;
 
 export type PropertyAutomationToggleKey = (typeof PROPERTY_AUTOMATION_TOGGLE_KEYS)[number];
@@ -20,6 +22,8 @@ export const DEFAULT_PROPERTY_AUTOMATION_TOGGLES: PropertyAutomationToggles = {
   emailParkingBroadcast: true,
   emailReadyForCheckin: true,
   emailSdRefundCheckout: true,
+  emailReviewRequest: true,
+  emailReviewReminder: true,
 };
 
 export type PropertyAutomationToggleGroup = {
@@ -87,6 +91,24 @@ export const PROPERTY_AUTOMATION_TOGGLE_GROUPS: PropertyAutomationToggleGroup[] 
         label: 'Check-out & SD refund form',
         recipient: 'Guest email',
         trigger: 'Before check-out and when the stay advances to ready for check-out status.',
+      },
+    ],
+  },
+  {
+    id: 'guest-reviews',
+    title: 'Reviews',
+    items: [
+      {
+        key: 'emailReviewRequest',
+        label: 'Review request',
+        recipient: 'Guest email',
+        trigger: 'After check-out when the review window opens.',
+      },
+      {
+        key: 'emailReviewReminder',
+        label: 'Review reminder',
+        recipient: 'Guest email',
+        trigger: 'Before the review window closes.',
       },
     ],
   },

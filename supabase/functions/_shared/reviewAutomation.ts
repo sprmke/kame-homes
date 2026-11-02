@@ -204,15 +204,6 @@ export async function runAutoReviews(
         .maybeSingle();
       if (!booking) continue;
       if (booking.status === 'CANCELLED') continue;
-      if (
-        shouldSkipForCutoverWatermark(
-          booking.check_out_date as string | null,
-          await getPlatformSettingsSnapshot().then((s) => s.migrationCutoverAt)
-        )
-      ) {
-        await skip('cutover_watermark');
-        continue;
-      }
 
       const skip = async (reason: string) => {
         const { error } = await supabase
@@ -222,6 +213,16 @@ export async function runAutoReviews(
         if (error) console.warn('[reviewAutomation] skip mark failed:', bookingId, error.message);
         record(rules.organizationId, 'skipped');
       };
+
+      if (
+        shouldSkipForCutoverWatermark(
+          booking.check_out_date as string | null,
+          await getPlatformSettingsSnapshot().then((s) => s.migrationCutoverAt)
+        )
+      ) {
+        await skip('cutover_watermark');
+        continue;
+      }
 
       const skipReason = await shouldSkipAutoReview(rules, booking as Record<string, unknown>);
       if (skipReason) {
