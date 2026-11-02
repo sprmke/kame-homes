@@ -39,26 +39,26 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
       (P1.5).
 
       **Where the toggle actually is.** PostHog has renamed this panel more than once, so
-                  try in order:
+                          try in order:
 
-                  1. **Settings → Project → Error tracking** (most common location; the toggle is
-                     "Enable exception autocapture").
-                  2. **Settings → Data pipeline → Error tracking**.
-                  3. The settings search box, for `exception`.
+                          1. **Settings → Project → Error tracking** (most common location; the toggle is
+                             "Enable exception autocapture").
+                          2. **Settings → Data pipeline → Error tracking**.
+                          3. The settings search box, for `exception`.
 
-                  **If none of those exist, there is nothing to turn off.** PostHog only renders the
-                  panel once the feature has been used on that project, and error tracking may never
-                  have been enabled.
+                          **If none of those exist, there is nothing to turn off.** PostHog only renders the
+                          panel once the feature has been used on that project, and error tracking may never
+                          have been enabled.
 
-                  **Do not stop here either way — verify behaviour instead**, because it is the stronger
-                  check and it does not depend on PostHog's menu:
+                          **Do not stop here either way — verify behaviour instead**, because it is the stronger
+                          check and it does not depend on PostHog's menu:
 
-                  - **Activity → Live events** → filter `event = $exception` → expect **zero**.
-                  - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
+                          - **Activity → Live events** → filter `event = $exception` → expect **zero**.
+                          - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
 
-                  The code already sets `capture_exceptions: false` and
-                  `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
-                  so this dashboard setting is defence in depth, not a blocker.
+                          The code already sets `capture_exceptions: false` and
+                          `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
+                          so this dashboard setting is defence in depth, not a blocker.
 
 - [ ] Both projects → Settings → Product analytics: "Filter out internal and test users"
       on; add filter `is_internal = true` (A0.8).
@@ -70,8 +70,21 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
       them on. Verified by observation — `$web_vitals` events kept arriving while the client
       flag was already false.
 - [ ] Session replay stays off.
-- [ ] Data retention per your plan; IP capture: **discard client IP** on (Settings →
-      Project → IP data capture).
+- [ ] IP capture: **discard client IP** on, **per project**.
+
+      Careful, two similarly named things exist:
+
+                  | What you will find                | Where                | Effect                              |
+                  | --------------------------------- | -------------------- | ----------------------------------- |
+                  | "IP data capture **default**"     | Organization settings | **New projects only.** Existing projects are explicitly not affected. |
+                  | "Discard client IP data"          | **Project** settings  | The one that matters.               |
+
+                  The client SDK cannot do this: the `ip` init option is deprecated and has no effect
+                  (its own type says so, pointing at this project setting). Open the project (not the
+                  organization), use the settings search box for `IP`, and toggle "Discard client IP
+                  data".
+
+- [ ] Data retention per your plan.
 - [ ] After P1 ships: revoke the PostHog **personal** API key used for source maps.
 
 ## 3. Keys and env vars
