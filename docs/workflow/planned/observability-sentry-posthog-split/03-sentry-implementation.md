@@ -74,7 +74,9 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 
 ### S1.1 Init module
 
-- [ ] New `ui/src/lib/sentry/init.ts`, imported **first** in `ui/src/main.tsx`:
+- [x] New `ui/src/lib/sentry/init.ts`, imported **first** in `ui/src/main.tsx`.
+      **Done 2026-11-02.** Shipping as written, except the router integration, which is still
+      S1.3 (using plain `browserTracingIntegration()` for now):
   - `dsn: VITE_SENTRY_DSN` (no DSN = no-op, local default).
   - `release`, `environment`, `initialScope.tags.app_track`.
   - `sendDefaultPii: false`; `maxBreadcrumbs: 50`.
@@ -90,23 +92,21 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
     `ResizeObserver loop completed with undelivered notifications`, `AbortError`,
     `Non-Error promise rejection captured with value: undefined`, `Load failed` **only when**
     the request was aborted by navigation (handled in `beforeSend`, not by string).
-- [ ] Delete the hand-rolled shim `ui/src/lib/sentry/client.ts` once callers move to
-      `ui/src/lib/sentry/capture.ts` (thin wrapper: `captureError(error, { tags, extra,
-level, fingerprint })` that no-ops without DSN and never throws).
+- [x] Deleted the hand-rolled shim `ui/src/lib/sentry/client.ts`. `ui/src/lib/sentry/capture.ts`
+      is now the only SDK call surface (`captureError`, `captureMessage`,
+      `captureRenderError`, `reactRootErrorHandlers`); all no-op without a DSN and never throw.
 - [ ] Optional tunnel (decide from S0.1 data on ad-block loss): `tunnel: '/monitoring'` +
       Vercel rewrite to the project envelope URL. If adopted, CSP needs no change.
 
 ### S1.2 React 19 root hooks + boundaries
 
-- [ ] `createRoot(el, { onUncaughtError: Sentry.reactErrorHandler(), onCaughtError:
-Sentry.reactErrorHandler(), onRecoverableError: Sentry.reactErrorHandler() })`.
-- [ ] `AppErrorBoundary`: replace manual calls with `Sentry.captureException(error, {
-mechanism: { handled: false }, contexts: { react: { componentStack } } })`; render the
-      returned `eventId` as a small "Reference" line so support can find it (copy: `Ref:
-abc123`). Avoid double capture with the root hook by tagging boundary captures and
-      letting `dedupeIntegration` drop the repeat; verify in S1 tests.
-- [ ] `RouteErrorFallback`: capture only for non-404 route errors; 404
-      `isRouteErrorResponse` stays out of Sentry. Same "Reference" line.
+- [x] `createRoot(el, reactRootErrorHandlers())` — returns `{}` when no DSN is set so
+      `createRoot` keeps its defaults instead of receiving undefined callbacks.
+- [x] `AppErrorBoundary`: uses `captureRenderError` (`captureReactException`), so
+      `contexts.react.componentStack` is attached and `dedupeIntegration` drops a repeat the
+      root hook already sent. Renders the event id as `Ref: abc123` in the crash UI.
+- [x] `RouteErrorFallback`: 404 `isRouteErrorResponse` stays out of Sentry; everything else
+      is captured with the same `Ref:` line.
 
 ### S1.3 Router
 
