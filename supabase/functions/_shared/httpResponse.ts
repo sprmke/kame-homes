@@ -1,5 +1,4 @@
 import { corsHeaders } from './cors.ts';
-import { capturePostHogException } from './posthog.ts';
 import { logEvent, resolveRequestId } from './requestLog.ts';
 import { captureSentryException } from './sentry.ts';
 
@@ -80,6 +79,9 @@ export function jsonResponse(
     headers: {
       ...corsHeaders(req),
       'Content-Type': 'application/json',
+      // Every response carries the correlation id, so a successful call and a failed one
+      // are equally traceable and the client reads this instead of inventing its own.
+      'x-request-id': resolveRequestId(req),
       ...cacheHeaders(cacheClass),
     },
   });
@@ -347,11 +349,26 @@ export async function errorMessageFromThrown(
   return { status: 400, message };
 }
 
+/**
+ * Per-request facts the `serve*` wrappers know after auth but the thrown error does not.
+ * Passing them in is what lets an issue say which user and which tenant it belongs to,
+ * instead of every edge error looking identical.
+ */
+export type EdgeErrorContext = {
+  userId?: string;
+  orgId?: string;
+  propertyId?: string;
+  parkingId?: string;
+  /** Cron monitor slug, when the caller is a scheduled job. */
+  cron?: string;
+};
+
 export async function handleEdgeError(
   req: Request,
   error: unknown,
   logPrefix: string,
-  unauthorizedFallback = 'Unauthorized'
+  unauthorizedFallback = 'Unauthorized',
+  context: EdgeErrorContext = {}
 ): Promise<Response> {
   const { status, message, code } = await errorMessageFromThrown(error, unauthorizedFallback);
   const requestId = resolveRequestId(req);
@@ -372,21 +389,25 @@ export async function handleEdgeError(
       meta: { code },
     });
     const safeUrl = sanitizeUrlForTelemetry(req.url);
-    // PostHog keeps the exception history; Sentry carries the alert (doc 28 records
-    // PostHog alerting as operator-blocked). Settled together so one vendor being slow
-    // or down cannot make the other wait, and neither can fail the response — both
-    // swallow their own errors internally.
+    // Sentry owns faults, once. PostHog no longer receives a copy: duplicated exception
+    // history meant two sources that could disagree about the same incident.
     await Promise.allSettled([
-      capturePostHogException(error, {
-        logPrefix,
-        request: req,
-        extra: { status, message, code, url: safeUrl, requestId },
-      }),
       captureSentryException(error, {
         logPrefix,
         requestId,
         url: safeUrl,
         method: req.method,
+        userAgent: req.headers.get('user-agent') ?? undefined,
+        userId: context.userId,
+        traceHeader: req.headers.get('sentry-trace'),
+        tags: {
+          http_status: String(status),
+          ...(context.cron ? { cron: context.cron } : {}),
+          ...(context.orgId ? { org_id: context.orgId } : {}),
+          ...(context.propertyId ? { property_id: context.propertyId } : {}),
+          ...(context.parkingId ? { parking_id: context.parkingId } : {}),
+          ...(code ? { edge_code: code } : {}),
+        },
         extra: { status, message, code },
       }),
     ]);
@@ -409,6 +430,49 @@ export async function handleEdgeError(
     );
   }
   return jsonError(req, message, status, status >= 500 ? requestId : undefined);
+}
+
+/**
+ * Capture a thrown error from a raw `serve()` handler, but only when it is a real fault.
+ *
+ * Several hand-rolled handlers catch everything and answer 400 with the message. That is
+ * right for the client and wrong for alerting: a `TypeError` from a bad property access
+ * would arrive as a validation error and never page. Reusing the same status inference as
+ * `handleEdgeError` means a deliberate 4xx stays an outcome (PostHog's job) and anything
+ * that resolves to 5xx reaches Sentry.
+ */
+export async function captureFaultIfServerError(
+  req: Request,
+  error: unknown,
+  logPrefix: string,
+  context: EdgeErrorContext = {}
+): Promise<void> {
+  try {
+    const { status, message, code } = await errorMessageFromThrown(error);
+    if (status < 500) return;
+
+    const requestId = resolveRequestId(req);
+    await captureSentryException(error, {
+      logPrefix,
+      requestId,
+      url: sanitizeUrlForTelemetry(req.url),
+      method: req.method,
+      userAgent: req.headers.get('user-agent') ?? undefined,
+      userId: context.userId,
+      traceHeader: req.headers.get('sentry-trace'),
+      tags: {
+        http_status: String(status),
+        ...(context.cron ? { cron: context.cron } : {}),
+        ...(context.orgId ? { org_id: context.orgId } : {}),
+        ...(context.propertyId ? { property_id: context.propertyId } : {}),
+        ...(context.parkingId ? { parking_id: context.parkingId } : {}),
+        ...(code ? { edge_code: code } : {}),
+      },
+      extra: { status, message, code },
+    });
+  } catch {
+    // telemetry must never change the response
+  }
 }
 
 export async function readJsonBody(req: Request): Promise<Record<string, unknown>> {

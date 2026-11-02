@@ -10,7 +10,7 @@ import {
   requireHttpMethod,
 } from './httpResponse.ts';
 import { corsHeaders } from './cors.ts';
-import { capturePostHogException } from './posthog.ts';
+import { captureSentryException } from './sentry.ts';
 import { getPlatformSettingsSnapshot } from './platformSettingsCache.ts';
 import { checkRateLimit, identityFromRequest, isIdentityBlocked } from './rateLimit.ts';
 
@@ -101,13 +101,17 @@ export function serveAdmin(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    // Verified outside the try so the catch can name the user. A JWT failure leaves it
+    // unknown, which is correct: there is no one to attribute it to.
+    let userId: string | undefined;
     try {
       const admin = await verifyAdminJwt(req);
+      userId = admin.id;
       const limited = await enforceOrLogRateCheck(req, logPrefix, admin.id);
       if (limited) return limited;
       return await handler(req, admin);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -120,11 +124,13 @@ export function serveSuperAdmin(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    let userId: string | undefined;
     try {
       const user = await verifySuperAdminJwt(req);
+      userId = user.id;
       return await handler(req, user);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -137,13 +143,15 @@ export function serveAuthenticated(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    let userId: string | undefined;
     try {
       const user = await verifyAuthenticatedUser(req);
+      userId = user.id;
       const limited = await enforceOrLogRateCheck(req, logPrefix, user.id);
       if (limited) return limited;
       return await handler(req, user);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -178,8 +186,38 @@ export function serveCronPost(
       return jsonResponse(req, { success: true, ...result });
     } catch (error) {
       console.error(`${logPrefix}:`, error);
-      await capturePostHogException(error, { logPrefix: `cron:${logPrefix}`, request: req });
+      // A scheduled job that fails silently is the worst failure mode in the system:
+      // nobody is watching the endpoint, so the run just does not happen. The `cron`
+      // tag is what lets an alert rule target scheduled work specifically.
+      await captureSentryException(error, {
+        logPrefix: `cron:${logPrefix}`,
+        requestId: req.headers.get('x-request-id') ?? undefined,
+        url: req.url,
+        method: req.method,
+        traceHeader: req.headers.get('sentry-trace'),
+        tags: { cron: logPrefix },
+        fingerprint: ['cron', logPrefix],
+        extra: { result: 'check the cron run log for the last successful pass' },
+      });
       return jsonError(req, (error as Error).message);
     }
   });
+}
+
+/**
+ * Wraps a raw `serve()` handler that cannot use a `serve*` wrapper (multipart bodies, a
+ * non-JSON response, a provider callback). Same capture as the wrappers, so a raw function
+ * is not a hole in the error path.
+ */
+export function withEdgeErrorCapture(
+  logPrefix: string,
+  handler: (req: Request) => Promise<Response>
+): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
+    try {
+      return await handler(req);
+    } catch (error) {
+      return handleEdgeError(req, error, logPrefix);
+    }
+  };
 }

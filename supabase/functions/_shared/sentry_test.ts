@@ -1,175 +1,258 @@
-import { captureSentryException, resetSentryDsnCacheForTests } from './sentry.ts';
+/**
+ * Edge Sentry client tests. No network: `fetch` is stubbed so the envelope is inspected
+ * rather than delivered, and a missing DSN means every path must no-op.
+ */
 
-const DSN = 'https://abc123@o1.ingest.sentry.io/456';
+import {
+  assert,
+  assertEquals,
+  assertNotEquals,
+} from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
-type Captured = { url: string; init: RequestInit };
+import {
+  captureSentryException,
+  captureSentryMessage,
+  resetSentryDsnCacheForTests,
+} from './sentry.ts';
 
-/** Swaps globalThis.fetch, returning what was sent plus a restore fn. */
-function stubFetch(status = 200): { sent: Captured[]; restore: () => void } {
-  const sent: Captured[] = [];
-  const original = globalThis.fetch;
-  globalThis.fetch = ((url: string | URL | Request, init?: RequestInit) => {
-    sent.push({ url: String(url), init: init ?? {} });
-    return Promise.resolve(new Response('', { status }));
+const DSN = 'https://publickey@o1.ingest.us.sentry.io/4512354438021120';
+
+type Captured = { url: string; body: string };
+
+let captured: Captured[] = [];
+const originalFetch = globalThis.fetch;
+
+function stubEnv(vars: Record<string, string | undefined>): void {
+  for (const [key, value] of Object.entries(vars)) {
+    if (value === undefined) Deno.env.delete(key);
+    else Deno.env.set(key, value);
+  }
+}
+
+function stubFetch(impl?: () => Promise<Response>): void {
+  globalThis.fetch = ((
+    input: RequestInfo | URL,
+    init?: RequestInit
+  ) => {
+    captured.push({ url: String(input), body: String(init?.body ?? '') });
+    return impl ? impl() : Promise.resolve(new Response('{"id":"e"}', { status: 200 }));
   }) as typeof fetch;
-  return {
-    sent,
-    restore: () => {
-      globalThis.fetch = original;
-    },
-  };
 }
 
-function withDsn(value: string | null, run: () => Promise<void>): Promise<void> {
-  const previous = Deno.env.get('SENTRY_DSN');
-  if (value === null) Deno.env.delete('SENTRY_DSN');
-  else Deno.env.set('SENTRY_DSN', value);
+function parseEvent(body: string): Record<string, unknown> {
+  const lines = body.split('\n').filter((line) => line.trim());
+  // envelope header, item header, payload
+  return JSON.parse(lines[2]!) as Record<string, unknown>;
+}
+
+function resetCaptureEnv(): void {
+  captured = [];
+  stubFetch();
+  stubEnv({
+    SENTRY_DSN: DSN,
+    APP_RELEASE: 'abc123',
+    ENVIRONMENT: 'preview',
+    SENTRY_SAMPLE_RATE_WARNING: '1',
+  });
   resetSentryDsnCacheForTests();
-  return run().finally(() => {
-    if (previous === undefined) Deno.env.delete('SENTRY_DSN');
-    else Deno.env.set('SENTRY_DSN', previous);
-    resetSentryDsnCacheForTests();
-  });
 }
 
-// The state this ships in: no DSN set. It must cost nothing and reach nobody.
-Deno.test('no DSN configured sends nothing', async () => {
-  await withDsn(null, async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-      if (sent.length !== 0) throw new Error(`expected no request, got ${sent.length}`);
-    } finally {
-      restore();
-    }
-  });
+function restoreEnv(): void {
+  globalThis.fetch = originalFetch;
+  stubEnv({ SENTRY_DSN: undefined, APP_RELEASE: undefined, ENVIRONMENT: undefined });
+  resetSentryDsnCacheForTests();
+}
+
+Deno.test('posts an envelope with release, environment and fn tag', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException(new Error('booking exploded'), {
+      logPrefix: 'submit-form',
+      requestId: 'req-1',
+      url: 'https://x.test/submit-form?token=secret&tab=1',
+      method: 'POST',
+      userAgent: 'Mozilla/5.0',
+    });
+
+    assertEquals(captured.length, 1);
+    assertEquals(
+      captured[0]!.url,
+      'https://o1.ingest.us.sentry.io/api/4512354438021120/envelope/'
+    );
+
+    const event = parseEvent(captured[0]!.body);
+    assertEquals(event.release, 'abc123');
+    assertEquals(event.environment, 'preview');
+    assertEquals(event.level, 'error');
+    assertEquals(event.logger, 'submit-form');
+    const tags = event.tags as Record<string, string>;
+    assertEquals(tags.fn, 'submit-form');
+    assertEquals(tags.request_id, 'req-1');
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('a malformed DSN disables Sentry rather than throwing', async () => {
-  await withDsn('not-a-url', async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-      if (sent.length !== 0) throw new Error('expected no request for malformed DSN');
-    } finally {
-      restore();
-    }
-  });
+Deno.test('scrubs capability-token query values out of the request url', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException(new Error('nope'), {
+      logPrefix: 'get-form',
+      url: 'https://x.test/form?access=aaa&complete=bbb&tab=dates',
+    });
+
+    const url = (parseEvent(captured[0]!.body).request as { url: string }).url;
+    assertEquals(url.includes('access='), false);
+    assertEquals(url.includes('complete='), false);
+    assert(url.includes('tab=dates'));
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('a DSN without a project id is rejected', async () => {
-  await withDsn('https://key@o1.ingest.sentry.io/', async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-      if (sent.length !== 0) throw new Error('expected no request without project id');
-    } finally {
-      restore();
-    }
-  });
+Deno.test('carries the user id and no email', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException(new Error('nope'), { logPrefix: 'fn', userId: 'user-1' });
+    assertEquals(parseEvent(captured[0]!.body).user, { id: 'user-1' });
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('posts an envelope to the derived ingest URL with auth', async () => {
-  await withDsn(DSN, async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-      if (sent.length !== 1) throw new Error(`expected 1 request, got ${sent.length}`);
-      const [{ url, init }] = sent;
-      if (url !== 'https://o1.ingest.sentry.io/api/456/envelope/') {
-        throw new Error(`unexpected ingest url: ${url}`);
-      }
-      const auth = (init.headers as Record<string, string>)['X-Sentry-Auth'] ?? '';
-      if (!auth.includes('sentry_key=abc123')) {
-        throw new Error(`auth header missing key: ${auth}`);
-      }
-    } finally {
-      restore();
-    }
-  });
+Deno.test('links a browser trace when the header is well formed', async () => {
+  resetCaptureEnv();
+  try {
+    const traceId = 'a'.repeat(32);
+    const spanId = 'b'.repeat(16);
+    await captureSentryException(new Error('nope'), {
+      logPrefix: 'fn',
+      traceHeader: `${traceId}-${spanId}-1`,
+    });
+
+    const trace = (parseEvent(captured[0]!.body).contexts as { trace: Record<string, string> })
+      .trace;
+    assertEquals(trace.trace_id, traceId);
+    assertEquals(trace.span_id, spanId);
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('envelope declares the payload byte length, not String.length', async () => {
-  await withDsn(DSN, async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      // Non-ASCII: byte length exceeds String.length, so a naive count desyncs.
-      await captureSentryException(new Error('naïve café 日本'), { logPrefix: 'test-fn' });
-      const body = String(sent[0].init.body);
-      const [, itemHeader, payload] = body.split('\n');
-      const declared = JSON.parse(itemHeader).length as number;
-      const actual = new TextEncoder().encode(payload).length;
-      if (declared !== actual) {
-        throw new Error(`declared ${declared} bytes, payload is ${actual}`);
-      }
-    } finally {
-      restore();
-    }
-  });
+Deno.test('ignores a malformed trace header instead of guessing', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException(new Error('nope'), { logPrefix: 'fn', traceHeader: 'garbage' });
+    assertEquals(parseEvent(captured[0]!.body).contexts, undefined);
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('PII in extra is stripped by the shared denylist', async () => {
-  await withDsn(DSN, async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException(new Error('boom'), {
-        logPrefix: 'test-fn',
-        extra: {
-          status: 500,
-          email: 'guest@example.com',
-          phone: '+639171234567',
-          access_token: 'secret-value',
-          bookingId: 'abc-123',
-        },
-      });
-      const body = String(sent[0].init.body);
-      for (const leaked of ['guest@example.com', '+639171234567', 'secret-value']) {
-        if (body.includes(leaked)) throw new Error(`leaked PII: ${leaked}`);
-      }
-      // Identifiers are what makes the alert actionable — they must survive.
-      if (!body.includes('abc-123')) throw new Error('bookingId was stripped');
-    } finally {
-      restore();
-    }
-  });
+Deno.test('drops denied keys from extra', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException(new Error('nope'), {
+      logPrefix: 'fn',
+      extra: { email: 'a@b.com', orgId: 'org-1', token: 'secret' },
+    });
+    assertEquals(parseEvent(captured[0]!.body).extra, { orgId: 'org-1' });
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('a non-Error throw is still reported', async () => {
-  await withDsn(DSN, async () => {
-    const { sent, restore } = stubFetch();
-    try {
-      await captureSentryException('plain string failure', { logPrefix: 'test-fn' });
-      if (sent.length !== 1) throw new Error('expected non-Error throw to be captured');
-      const payload = String(sent[0].init.body).split('\n')[2];
-      if (!payload.includes('plain string failure')) {
-        throw new Error('message missing from payload');
-      }
-    } finally {
-      restore();
-    }
-  });
+Deno.test('dedupes the same fingerprint and message inside the window', async () => {
+  resetCaptureEnv();
+  try {
+    const options = { logPrefix: 'fn', fingerprint: ['edge', 'x'] };
+    await captureSentryException(new Error('same'), options);
+    await captureSentryException(new Error('same'), options);
+    assertEquals(captured.length, 1);
+  } finally {
+    restoreEnv();
+  }
 });
 
-// Telemetry must never turn a working request into a failed one.
-Deno.test('a failing transport does not throw to the caller', async () => {
-  await withDsn(DSN, async () => {
-    const original = globalThis.fetch;
-    globalThis.fetch = (() => Promise.reject(new Error('network down'))) as typeof fetch;
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-    } finally {
-      globalThis.fetch = original;
+Deno.test('caps events per isolate per minute', async () => {
+  resetCaptureEnv();
+  try {
+    for (let i = 0; i < 40; i += 1) {
+      // Distinct messages so dedupe does not mask the cap.
+      await captureSentryException(new Error(`distinct-${i}`), { logPrefix: 'fn' });
     }
-  });
+    assertEquals(captured.length, 30);
+  } finally {
+    restoreEnv();
+  }
 });
 
-Deno.test('a non-2xx ingest response does not throw to the caller', async () => {
-  await withDsn(DSN, async () => {
-    const { restore } = stubFetch(429);
-    try {
-      await captureSentryException(new Error('boom'), { logPrefix: 'test-fn' });
-    } finally {
-      restore();
-    }
-  });
+Deno.test('samples warnings at the configured rate', async () => {
+  resetCaptureEnv();
+  try {
+    stubEnv({ SENTRY_SAMPLE_RATE_WARNING: '0' });
+    resetSentryDsnCacheForTests();
+    await captureSentryMessage('degraded', { logPrefix: 'fn', fingerprint: ['w'] });
+    assertEquals(captured.length, 0);
+
+    stubEnv({ SENTRY_SAMPLE_RATE_WARNING: '1' });
+    resetSentryDsnCacheForTests();
+    await captureSentryMessage('degraded', { logPrefix: 'fn', fingerprint: ['w'] });
+    assertEquals(captured.length, 1);
+    assertEquals(parseEvent(captured[0]!.body).level, 'warning');
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('never sends info-level events', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryMessage('just info', { logPrefix: 'fn', level: 'info' });
+    assertEquals(captured.length, 0);
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('no-ops without a DSN', async () => {
+  resetCaptureEnv();
+  try {
+    stubEnv({ SENTRY_DSN: undefined });
+    resetSentryDsnCacheForTests();
+    await captureSentryException(new Error('ignored'), { logPrefix: 'fn' });
+    assertEquals(captured.length, 0);
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('swallows a network failure', async () => {
+  resetCaptureEnv();
+  try {
+    stubFetch(() => Promise.reject(new Error('offline')));
+    await captureSentryException(new Error('boom'), { logPrefix: 'fn' });
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('swallows a non-ok response', async () => {
+  resetCaptureEnv();
+  try {
+    stubFetch(() => Promise.resolve(new Response('nope', { status: 500 })));
+    await captureSentryException(new Error('boom'), { logPrefix: 'fn' });
+  } finally {
+    restoreEnv();
+  }
+});
+
+Deno.test('accepts a non-Error throw', async () => {
+  resetCaptureEnv();
+  try {
+    await captureSentryException('a string', { logPrefix: 'fn' });
+    assertNotEquals(parseEvent(captured[0]!.body).exception, undefined);
+  } finally {
+    restoreEnv();
+  }
 });

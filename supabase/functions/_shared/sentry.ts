@@ -1,28 +1,59 @@
-import { sanitizePostHogProperties } from './posthogSanitize.ts';
+import { getWaitUntil } from './backgroundTask.ts';
+import { scrubRecord, scrubUrl } from './telemetryScrub.ts';
 
 /**
  * Server-side Sentry for edge functions — alerting on unexpected faults.
  *
- * **Why this exists alongside PostHog.** `posthog.ts` already captures the same
- * exceptions, but PostHog alerting is operator-blocked (doc 28), so today nothing
- * pages when the edge starts throwing. Sentry is added for the alert path, not to
- * replace PostHog's exception history — both receive the capture from the single
- * `handleEdgeError` choke point.
+ * Sentry owns faults; PostHog owns outcomes (docs/architecture/observability.md). One
+ * exception is reported once, here, and never duplicated into PostHog.
  *
- * **Fails silent and open.** No DSN configured, a malformed DSN, or an unreachable
- * Sentry all degrade to a no-op: telemetry must never turn a working request into a
- * failed one. Every entry point swallows its own errors.
+ * Uses the Sentry **envelope HTTP API** directly rather than an SDK: the Deno SDK pulls a
+ * large dependency tree into every one of ~300 isolates for what is one POST of a JSON
+ * envelope, and cold-start cost is paid per isolate.
  *
- * Uses the Sentry **envelope HTTP API** directly rather than an SDK: the Deno SDK
- * pulls a large dependency tree into every one of ~300 isolates for what is one
- * POST of a JSON envelope, and cold-start cost is paid per isolate here.
+ * **Fails silent and open.** No DSN, a malformed DSN, a sampler that says no, or an
+ * unreachable Sentry all degrade to a no-op. Telemetry must never turn a working request
+ * into a failed one, so every entry point swallows its own errors.
  *
- * Never send PII. `captureSentryException` runs `extra` through the shared
- * `sanitizePostHogProperties` denylist (email/phone/name/token/url/...) — the same
- * one guarding PostHog, reused so the two cannot drift apart.
+ * Never send PII. `extra` runs through the shared `telemetryScrub` deny list, and URLs are
+ * scrubbed of capability-token query values before they leave the isolate.
  */
 
 const CAPTURE_TIMEOUT_MS = 3000;
+
+/** Identical `(fingerprint, message)` pairs inside this window are one incident, not N. */
+const DEDUPE_WINDOW_MS = 60_000;
+const DEDUPE_MAX_ENTRIES = 50;
+
+/**
+ * A runaway loop can otherwise spend the whole monthly error quota in minutes and leave
+ * the rest of the month blind. Dropping after the cap keeps the signal that something is
+ * broken while bounding the cost.
+ */
+const RATE_CAP_PER_MINUTE = 30;
+
+const DEFAULT_WARNING_SAMPLE_RATE = 0.25;
+
+export type SentryLevel = 'error' | 'warning' | 'info';
+
+export type SentryCaptureOptions = {
+  /** Function name. Becomes `logger`, `transaction` and the `fn` tag. */
+  logPrefix: string;
+  requestId?: string;
+  /** Already scrubbed. Pass `sanitizeUrlForTelemetry(req.url)`, never raw `req.url`. */
+  url?: string;
+  method?: string;
+  userAgent?: string;
+  /** Pseudonymous Supabase user id only — never an email. */
+  userId?: string;
+  tags?: Record<string, string | undefined>;
+  extra?: Record<string, unknown>;
+  level?: SentryLevel;
+  /** Stable grouping when the message text varies between occurrences. */
+  fingerprint?: string[];
+  /** Raw `sentry-trace` header, to link the browser trace with this event. */
+  traceHeader?: string | null;
+};
 
 type ParsedDsn = {
   envelopeUrl: string;
@@ -65,6 +96,12 @@ function getDsn(): ParsedDsn | null {
   return parsedDsn;
 }
 
+/** Shared with the browser's `VITE_APP_VERSION` so both sides name the same commit. */
+function releaseTag(): string | undefined {
+  const value = (Deno.env.get('APP_RELEASE') ?? '').trim();
+  return value || undefined;
+}
+
 function environmentTag(): 'local' | 'preview' | 'production' | 'development' {
   const explicit = Deno.env.get('ENVIRONMENT') ?? Deno.env.get('DENO_ENV');
   if (explicit === 'production' || explicit === 'preview' || explicit === 'local') {
@@ -73,6 +110,48 @@ function environmentTag(): 'local' | 'preview' | 'production' | 'development' {
   if (explicit === 'development') return 'local';
   return Deno.env.get('DENO_DEPLOYMENT_ID') ? 'production' : 'local';
 }
+
+/** Fraction of `warning` events to send. Errors are never sampled. */
+function warningSampleRate(): number {
+  const raw = (Deno.env.get('SENTRY_SAMPLE_RATE_WARNING') ?? '').trim();
+  if (!raw) return DEFAULT_WARNING_SAMPLE_RATE;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_WARNING_SAMPLE_RATE;
+  return Math.min(1, parsed);
+}
+
+// ───────────────────────── per-isolate guards ────────────────────────────────
+
+const dedupeSeen = new Map<string, number>();
+
+function isDuplicate(key: string, now: number): boolean {
+  for (const [seenKey, at] of dedupeSeen) {
+    if (now - at > DEDUPE_WINDOW_MS) dedupeSeen.delete(seenKey);
+  }
+  const previous = dedupeSeen.get(key);
+  if (previous !== undefined && now - previous <= DEDUPE_WINDOW_MS) return true;
+
+  dedupeSeen.set(key, now);
+  if (dedupeSeen.size > DEDUPE_MAX_ENTRIES) {
+    const oldest = dedupeSeen.keys().next().value;
+    if (oldest !== undefined) dedupeSeen.delete(oldest);
+  }
+  return false;
+}
+
+let rateWindowStart = 0;
+let rateWindowCount = 0;
+
+function overRateCap(now: number): boolean {
+  if (now - rateWindowStart > 60_000) {
+    rateWindowStart = now;
+    rateWindowCount = 0;
+  }
+  rateWindowCount += 1;
+  return rateWindowCount > RATE_CAP_PER_MINUTE;
+}
+
+// ───────────────────────────── event shape ──────────────────────────────────
 
 /** Sentry groups by the first frames, so keep the top of the stack, not the bottom. */
 function stackFrames(error: Error): Array<{ filename: string; function: string; lineno?: number }> {
@@ -91,96 +170,174 @@ function stackFrames(error: Error): Array<{ filename: string; function: string; 
   return frames.reverse();
 }
 
-export async function captureSentryException(
-  error: unknown,
-  options: {
-    logPrefix: string;
-    requestId?: string;
-    /** Already-sanitized URL — pass `sanitizeUrlForTelemetry(req.url)`, never `req.url`. */
-    url?: string;
-    method?: string;
-    extra?: Record<string, unknown>;
+/**
+ * `sentry-trace` is `traceId-spanId-sampled`. Forwarding it is what lets a browser
+ * transaction and the edge event behind it appear as one trace instead of two strangers.
+ * Malformed headers are ignored rather than guessed at.
+ */
+function traceContext(
+  header: string | null | undefined
+): { trace_id: string; span_id: string; op?: string } | null {
+  if (!header) return null;
+  const [traceId, spanId] = header.trim().split('-');
+  if (!traceId || !spanId) return null;
+  if (!/^[0-9a-f]{32}$/i.test(traceId) || !/^[0-9a-f]{16}$/i.test(spanId)) return null;
+  return { trace_id: traceId, span_id: spanId, op: 'http.server' };
+}
+
+function cleanTags(tags: Record<string, string | undefined> | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tags ?? {})) {
+    if (typeof value === 'string' && value) out[key] = value;
   }
+  return out;
+}
+
+function buildEvent(
+  options: SentryCaptureOptions,
+  level: SentryLevel,
+  payload: { message?: string; error?: Error }
+): Record<string, unknown> {
+  const fn = options.logPrefix;
+  const timestamp = new Date().toISOString();
+  const eventId = crypto.randomUUID().replace(/-/g, '');
+  const trace = traceContext(options.traceHeader);
+
+  return {
+    event_id: eventId,
+    timestamp,
+    platform: 'javascript',
+    level,
+    logger: fn,
+    environment: environmentTag(),
+    server_name: fn,
+    transaction: fn,
+    release: releaseTag(),
+    ...(options.fingerprint ? { fingerprint: options.fingerprint } : {}),
+    ...(options.userId ? { user: { id: options.userId } } : {}),
+    tags: {
+      runtime: 'deno-edge-function',
+      surface: 'edge',
+      fn,
+      ...(options.requestId ? { request_id: options.requestId } : {}),
+      ...cleanTags(options.tags),
+    },
+    ...(trace ? { contexts: { trace } } : {}),
+    ...(payload.error
+      ? {
+          exception: {
+            values: [
+              {
+                type: payload.error.name || 'Error',
+                value: payload.error.message,
+                stacktrace: { frames: stackFrames(payload.error) },
+              },
+            ],
+          },
+        }
+      : { message: payload.message }),
+    ...(options.url || options.method || options.userAgent
+      ? {
+          request: {
+            ...(options.url ? { url: scrubUrl(options.url) } : {}),
+            ...(options.method ? { method: options.method } : {}),
+            // Only the user agent: cookies and authorization must never leave the isolate.
+            ...(options.userAgent ? { headers: { 'User-Agent': options.userAgent } } : {}),
+          },
+        }
+      : {}),
+    extra: scrubRecord({
+      ...(options.extra ?? {}),
+      ...(options.requestId ? { requestId: options.requestId } : {}),
+    }),
+  };
+}
+
+// ─────────────────────────────── transport ──────────────────────────────────
+
+function shouldSend(level: SentryLevel, sampleRateSeed = Math.random()): boolean {
+  if (level === 'error') return true;
+  if (level === 'info') return false; // info is a log line, not an event
+  return sampleRateSeed < warningSampleRate();
+}
+
+async function sendEnvelope(dsn: ParsedDsn, event: Record<string, unknown>): Promise<void> {
+  const payload = JSON.stringify(event);
+  const payloadBytes = new TextEncoder().encode(payload).length;
+  const envelope =
+    `${JSON.stringify({ event_id: event.event_id, sent_at: event.timestamp })}\n` +
+    `${JSON.stringify({ type: 'event', length: payloadBytes })}\n` +
+    `${payload}\n`;
+
+  const response = await fetch(dsn.envelopeUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-sentry-envelope',
+      'X-Sentry-Auth': `Sentry sentry_version=7, sentry_client=gfm-edge/2.0, sentry_key=${dsn.publicKey}`,
+    },
+    body: envelope,
+    // A hung socket would hold the isolate open after the response was already sent.
+    signal: AbortSignal.timeout(CAPTURE_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    console.error(`[sentry] capture rejected: ${response.status}`);
+  }
+}
+
+async function capture(
+  options: SentryCaptureOptions,
+  payload: { message?: string; error?: Error }
 ): Promise<void> {
   const dsn = getDsn();
   if (!dsn) return;
 
+  const level = options.level ?? 'error';
+  if (!shouldSend(level)) return;
+
+  const dedupeKey = `${(options.fingerprint ?? []).join('|')}::${payload.message ?? payload.error?.message ?? ''}`;
+  const now = Date.now();
+  if (isDuplicate(dedupeKey, now)) return;
+  if (overRateCap(now)) return;
+
+  const event = buildEvent(options, level, payload);
+
   try {
-    const err = error instanceof Error ? error : new Error(String(error));
-    const eventId = crypto.randomUUID().replace(/-/g, '');
-    const timestamp = new Date().toISOString();
-
-    const event = {
-      event_id: eventId,
-      timestamp,
-      platform: 'javascript',
-      level: 'error',
-      logger: options.logPrefix,
-      environment: environmentTag(),
-      server_name: 'supabase-edge',
-      transaction: options.logPrefix,
-      tags: {
-        runtime: 'deno-edge-function',
-        surface: 'edge',
-        fn: options.logPrefix,
-        ...(options.requestId ? { request_id: options.requestId } : {}),
-      },
-      exception: {
-        values: [
-          {
-            type: err.name || 'Error',
-            value: err.message,
-            stacktrace: { frames: stackFrames(err) },
-          },
-        ],
-      },
-      ...(options.url || options.method
-        ? {
-            request: {
-              ...(options.url ? { url: options.url } : {}),
-              ...(options.method ? { method: options.method } : {}),
-            },
-          }
-        : {}),
-      extra: sanitizePostHogProperties({
-        ...(options.extra ?? {}),
-        ...(options.requestId ? { requestId: options.requestId } : {}),
-      }),
-    };
-
-    // Envelope = newline-delimited JSON: header, item header, item payload.
-    // Auth travels in the X-Sentry-Auth header, so the envelope header needs no `dsn`.
-    // `length` is byte length, not String.length — a non-ASCII error message (a guest
-    // name in a constraint violation, a vendor's localized text) would otherwise declare
-    // a short count and get the envelope rejected.
-    const payload = JSON.stringify(event);
-    const payloadBytes = new TextEncoder().encode(payload).length;
-    const envelope =
-      `${JSON.stringify({ event_id: eventId, sent_at: timestamp })}\n` +
-      `${JSON.stringify({ type: 'event', length: payloadBytes })}\n` +
-      `${payload}\n`;
-
-    const response = await fetch(dsn.envelopeUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-sentry-envelope',
-        'X-Sentry-Auth': `Sentry sentry_version=7, sentry_client=gfm-edge/1.0, sentry_key=${dsn.publicKey}`,
-      },
-      body: envelope,
-      // Vendor calls elsewhere in this codebase have no timeout; a hung socket here
-      // would hold the isolate open after the response is already sent.
-      signal: AbortSignal.timeout(CAPTURE_TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-      console.error(`[sentry] capture rejected: ${response.status}`);
+    const sending = sendEnvelope(dsn, event);
+    // A warning is diagnostic, not an incident: hand it to the isolate's background queue
+    // so a slow Sentry never holds a user's response open. Errors stay awaited because the
+    // response is already a 5xx and the event is the point.
+    const waitUntil = level === 'error' ? null : getWaitUntil();
+    if (waitUntil) {
+      waitUntil(sending.catch(() => {}));
+      return;
     }
+    await sending;
   } catch (captureError) {
-    console.error('[sentry] failed to capture exception', captureError);
+    console.error('[sentry] failed to capture', captureError);
   }
 }
 
-/** Test seam — clears the memoized DSN so a test can vary `SENTRY_DSN`. */
+export async function captureSentryException(
+  error: unknown,
+  options: SentryCaptureOptions
+): Promise<void> {
+  const err = error instanceof Error ? error : new Error(String(error));
+  await capture(options, { error: err, message: err.message });
+}
+
+/** For degraded states that are not exceptions: a provider 429, a fail-open limiter. */
+export async function captureSentryMessage(
+  message: string,
+  options: SentryCaptureOptions
+): Promise<void> {
+  await capture({ ...options, level: options.level ?? 'warning' }, { message });
+}
+
+/** Test seam — clears memoized DSN and the per-isolate guards. */
 export function resetSentryDsnCacheForTests(): void {
   parsedDsn = undefined;
+  dedupeSeen.clear();
+  rateWindowStart = 0;
+  rateWindowCount = 0;
 }
