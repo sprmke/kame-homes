@@ -3,11 +3,17 @@ stage: planned
 title: 'Observability split: Sentry for errors, PostHog for analytics'
 status: planned
 tags: [workflow, planned, observability, sentry, posthog, analytics, error-tracking]
-updated: 2026-11-01
+updated: 2026-11-03
 kind: plan
 ---
 
 # Observability split: Sentry for errors, PostHog for analytics
+
+**Status 2026-11-03 — code complete, verification open.** S0–S5, P1, A0–A5 are implemented
+and on `develop`; every coverage-matrix row is wired or N/A. Two items remain and neither is
+code: the browser source-map drill on production, and the eight PostHog insights (needs a
+personal API key). Production also still needs the 17 pending migrations applied before the
+deployed edge functions and the database agree — see the runbook below.
 
 ## Goal
 
@@ -237,6 +243,9 @@ Concrete things that would show the split is failing (treat any of these as a bu
       failed mutation, edge 500, cron failure, webhook failure, SW error) appears in Sentry
       with a readable stack, release, environment, user id and request id, and **not** in
       PostHog.
+      **Edge half verified** — the fire drill produced a real issue with release, trace and
+      user id. The browser half needs one deliberate production error to confirm source-mapped
+      frames; steps are in `docs/guides/testing/observability-manual.md`.
 - [x] `rg -n "captureException|\\$exception|capturePostHogException|captureAppException"` over
       `ui/src` and `supabase/functions` returns only Sentry modules (CI guard green).
       **Verified** — both `check-posthog-analytics-only.sh` and `check-sentry-imports.sh` pass.
@@ -249,14 +258,18 @@ Concrete things that would show the split is failing (treat any of these as a bu
       **Partially verified** — delivery is email-only to `sprmke.dev@gmail.com` (D14) and the
       edge drill landed in `kame-space-edge` with release, trace and user id. Ownership
       routing and multi-recipient rules wait for the Team tier; noted in 05 §"At plan upgrade".
-- [ ] Every row of the coverage matrix in doc 04 is either wired or marked N/A with a
+- [x] Every row of the coverage matrix in doc 04 is either wired or marked N/A with a
       reason; UI and edge catalogs are in parity (test green).
-      **A1 is complete. A2–A5 are not instrumented yet.**
+      **Done** — A1–A5 all wired (two N/A rows with reasons in A4), and the parity test now
+      enforces declared-to-emitted as well as emitted-to-declared.
 - [x] PostHog `$current_url` / `$referrer` never contain token query values (unit test +
       manual check in Live events).
       **Verified** — `beforeSend.test.ts` covers `?access=` / `?complete=` / `?token=` on all
       four URL fields, and the event is dropped if scrubbing throws.
 - [ ] Insights 1–8 from doc 04 exist in the prod PostHog project.
+      **Blocked on a credential** — insight creation needs a PostHog personal API key, and the
+      only one was deleted as part of P1. Definitions are in doc 04 §A6; a key scoped to
+      `insight:read` + `insight:write` unblocks it.
 - [x] Privacy / Cookies copy updated and shipped before prod keys.
       **Shipped, but order was violated** — the copy is live now; production DSNs already
       existed when it merged. Recorded so the next instance of this gate is applied first.
