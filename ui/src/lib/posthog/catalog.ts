@@ -24,6 +24,7 @@ export const APP_ANALYTICS_EVENTS = [
   'property_created',
   'parking_created',
   'setup_guide_step_completed',
+  'listing_published',
   'team_invite_accepted',
   'team_invite_sent',
   'host_verification_submitted',

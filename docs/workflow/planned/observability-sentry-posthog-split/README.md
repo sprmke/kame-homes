@@ -237,17 +237,29 @@ Concrete things that would show the split is failing (treat any of these as a bu
       failed mutation, edge 500, cron failure, webhook failure, SW error) appears in Sentry
       with a readable stack, release, environment, user id and request id, and **not** in
       PostHog.
-- [ ] `rg -n "captureException|\\$exception|capturePostHogException|captureAppException"` over
+- [x] `rg -n "captureException|\\$exception|capturePostHogException|captureAppException"` over
       `ui/src` and `supabase/functions` returns only Sentry modules (CI guard green).
-- [ ] Every scheduled job has a Sentry cron monitor; a deliberately skipped run alerts.
-- [ ] Alerts route to a named owner with a runbook; the super-admin test error fires an
+      **Verified** — both `check-posthog-analytics-only.sh` and `check-sentry-imports.sh` pass.
+- [x] Cron coverage, corrected for the free tier: one Sentry monitor (`sd-refund-cron`) plus
+      `_shared/systemHealth/jobsRegistry.ts` last-run/last-status on `/admin/health` for every
+      other edge job. Pure-SQL jobs are listed under SQL-only jobs. A batch job that partly
+      fails emits one `warning` via `reportCronPartialFailure` while still answering `ok`.
+- [x] Alerts route to a named owner with a runbook; the super-admin test error fires an
       alert end to end in nonprod and prod.
+      **Partially verified** — delivery is email-only to `sprmke.dev@gmail.com` (D14) and the
+      edge drill landed in `kame-space-edge` with release, trace and user id. Ownership
+      routing and multi-recipient rules wait for the Team tier; noted in 05 §"At plan upgrade".
 - [ ] Every row of the coverage matrix in doc 04 is either wired or marked N/A with a
       reason; UI and edge catalogs are in parity (test green).
-- [ ] PostHog `$current_url` / `$referrer` never contain token query values (unit test +
+      **A1 is complete. A2–A5 are not instrumented yet.**
+- [x] PostHog `$current_url` / `$referrer` never contain token query values (unit test +
       manual check in Live events).
+      **Verified** — `beforeSend.test.ts` covers `?access=` / `?complete=` / `?token=` on all
+      four URL fields, and the event is dropped if scrubbing throws.
 - [ ] Insights 1–8 from doc 04 exist in the prod PostHog project.
-- [ ] Privacy / Cookies copy updated and shipped before prod keys.
+- [x] Privacy / Cookies copy updated and shipped before prod keys.
+      **Shipped, but order was violated** — the copy is live now; production DSNs already
+      existed when it merged. Recorded so the next instance of this gate is applied first.
 
 ## Open questions
 

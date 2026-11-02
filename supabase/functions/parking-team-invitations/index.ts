@@ -13,6 +13,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { PARKING_TEAM_API_PERMISSIONS } from '../_shared/parkingTeamPermissions.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import {
   cancelParkingInvitation,
   createParkingInvitation,
@@ -95,6 +96,16 @@ serveAuthenticated('parking-team-invitations', async (req, user) => {
         targetType: 'invitation',
         targetId: (invitation as { id?: string })?.id ?? null,
         targetLabel: (invitation as { email?: string })?.email ?? null,
+      });
+      await capturePostHogEvent('team_invite_sent', {
+        logPrefix: 'parking-team-invitations',
+        request: req,
+        distinctId: ctx.user.id,
+        groups: { organization: ctx.org.id, parking: ctx.parking.id },
+        properties: {
+          scope: 'parking',
+          role: typeof body.roleId === 'string' ? body.roleId.trim() : 'unknown',
+        },
       });
       return jsonSuccess(req, { invitation });
     } catch (e) {

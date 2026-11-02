@@ -6,6 +6,7 @@
 
 import { createServiceClient, serializeOrganization, type OrgRow } from '../_shared/orgAuth.ts';
 import {
+  hoursSinceSubmission,
   orgVerificationToSettingsValue,
   readOrgVerificationFromSettings,
 } from '../_shared/orgVerification.ts';
@@ -19,6 +20,7 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
 import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { maybeGrantHostVerificationReward } from '../_shared/hostVerificationReward.ts';
 
 serveAuthenticated('approve-org-verification', async (req) => {
@@ -112,6 +114,20 @@ serveAuthenticated('approve-org-verification', async (req) => {
     targetId: orgId,
     targetLabel: (data as OrgRow).name ?? 'the organization',
     metadata: { kind: `${tier} host verification`, via: 'platform_review' },
+  });
+
+  await capturePostHogEvent('host_verification_resolved', {
+    logPrefix: 'approve-org-verification',
+    request: req,
+    distinctId: admin.id,
+    groups: { organization: orgId },
+    properties: {
+      outcome: 'approved',
+      tier,
+      hours_to_resolve: hoursSinceSubmission(
+        tier === 'enhanced' ? verification.enhancedSubmittedAt : verification.baseSubmittedAt
+      ),
+    },
   });
 
   let rewardGrant: Awaited<ReturnType<typeof maybeGrantHostVerificationReward>> | null = null;

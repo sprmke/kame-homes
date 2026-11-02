@@ -21,6 +21,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { catchPlanFeatureError, requireOrgPropertyFeature } from '../_shared/planEntitlements.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import {
   isOrgEligibleForHostRewardGateBypass,
   maybeGrantHostVerificationReward,
@@ -154,6 +155,14 @@ serveAuthenticated('submit-org-verification', async (req) => {
     metadata: {
       kind: tier === 'enhanced' ? 'enhanced host verification' : 'base host verification',
     },
+  });
+
+  await capturePostHogEvent('host_verification_submitted', {
+    logPrefix: 'submit-org-verification',
+    request: req,
+    distinctId: user.id,
+    groups: { organization: orgId },
+    properties: { tier_requested: tier },
   });
 
   return jsonSuccess(req, {

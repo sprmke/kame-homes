@@ -3,7 +3,7 @@ stage: planned
 title: 'Observability split — 04 PostHog analytics coverage (Phases A0–A6)'
 status: planned
 tags: [workflow, planned, observability, posthog, analytics]
-updated: 2026-11-01
+updated: 2026-11-03
 kind: plan
 ---
 
@@ -83,6 +83,13 @@ emitted), `new` (add to catalog). Phase = A1–A5.
 
 ## A1 — Guest booking + host activation (launch bar)
 
+**Complete (2026-11-03).** Every row below is live. The last five were wired together:
+`setup_guide_step_completed` (first snapshot seeds the baseline, so pre-existing steps are
+not re-reported), `team_invite_sent` (org / property / parking), `host_verification_submitted`,
+`host_verification_resolved` (approved / needs_info / rejected, with `hours_to_resolve`),
+and `listing_published` (first property-showcase publish only). `public_write_blocked`,
+`auth_failed` and `guest_document_opened` were already emitting and are now marked live.
+
 ### Guest discovery and booking
 
 | Event                                                                    | Src       | Status | Key properties                                                           | Trigger                                   |
@@ -94,9 +101,9 @@ emitted), `new` (add to catalog). Phase = A1–A5.
 | `guest_form_started` / `_step_completed` / `_step_failed` / `_abandoned` | B         | live   | `step`, `field_group` (no values)                                        |                                           |
 | `guest_form_submitted`                                                   | E         | live   | `property_id`, `has_pets`, `has_parking`, `nights`, `source`             | After insert                              |
 | `guest_form_rejected`                                                    | E         | live   | `reason` enum (captcha, antispam, rate_limit, validation, blocked_dates) | Before 4xx                                |
-| `public_write_blocked`                                                   | E         | new    | `scope` (form, sd, parking, review, chat), `reason`                      | Replaces captcha/antispam exceptions (P1) |
+| `public_write_blocked`                                                   | E         | live   | `scope` (form, sd, parking, review, chat), `reason`                      | Replaces captcha/antispam exceptions (P1) |
 | `guest_form_completion_submitted`                                        | E         | live   |                                                                          |                                           |
-| `guest_document_opened`                                                  | B         | wire   | `document_kind` (gaf, pet, parking, contract)                            | Booking documents page                    |
+| `guest_document_opened`                                                  | B         | live   | `document_kind` (gaf, pet, parking, contract)                            | Booking documents page                    |
 | `guest_stay_guide_opened`                                                | B         | live   |                                                                          |                                           |
 | `sd_form_opened` / `sd_form_submitted` / `sd_voucher_claimed`            | B / E / E | live   | `refund_method`                                                          |                                           |
 
@@ -105,15 +112,15 @@ emitted), `new` (add to catalog). Phase = A1–A5.
 | Event                                                  | Src | Status | Key properties                                                                             | Trigger                           |
 | ------------------------------------------------------ | --- | ------ | ------------------------------------------------------------------------------------------ | --------------------------------- |
 | `auth_signed_in` / `_signed_out`                       | B   | live   | `method` (google, otp, password), `persona`                                                |                                   |
-| `auth_failed`                                          | B   | wire   | `method`, `reason` enum (cancelled, otp_invalid, otp_expired, not_allowed, provider_error) | Auth error handlers               |
+| `auth_failed`                                          | B   | live   | `method`, `reason` enum (cancelled, otp_invalid, otp_expired, not_allowed, provider_error) | Auth error handlers               |
 | `onboarding_step_completed`                            | B   | live   | `step`                                                                                     |                                   |
 | `org_created` / `property_created` / `parking_created` | E   | live   | `vertical`                                                                                 |                                   |
-| `setup_guide_step_completed`                           | B   | wire   | `step_key`, `completed_count`, `total_count`                                               | Setup guide check                 |
-| `listing_published`                                    | E   | new    | `property_id`, `days_since_org_created`                                                    | First time a property goes public |
-| `team_invite_sent`                                     | E   | wire   | `scope` (org, property, parking), `role`                                                   | Invite edge success               |
+| `setup_guide_step_completed`                           | B   | live   | `step_key`, `completed_count`, `total_count`                                               | Setup guide check                 |
+| `listing_published`                                    | E   | live   | `property_id`, `days_since_org_created`                                                    | First time a property goes public |
+| `team_invite_sent`                                     | E   | live   | `scope` (org, property, parking), `role`                                                   | Invite edge success               |
 | `team_invite_accepted`                                 | E   | live   | `scope`, `role`                                                                            |                                   |
-| `host_verification_submitted`                          | E   | wire   | `tier_requested`                                                                           | Org verification submit           |
-| `host_verification_resolved`                           | E   | wire   | `outcome` (approved, rejected, needs_info), `hours_to_resolve`                             | Super-admin resolve               |
+| `host_verification_submitted`                          | E   | live   | `tier_requested`                                                                           | Org verification submit           |
+| `host_verification_resolved`                           | E   | live   | `outcome` (approved, rejected, needs_info), `hours_to_resolve`                             | Super-admin resolve               |
 
 ## A2 — Booking ops, guest account, reviews, trip hub
 
