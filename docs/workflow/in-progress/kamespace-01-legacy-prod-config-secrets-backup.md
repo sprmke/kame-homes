@@ -9,11 +9,11 @@ blocks: [kamespace-02-legacy-prod-to-mt-prod-cutover, kamespace-03-rebrand-kame-
 
 # Legacy prod config and secrets backup
 
-## Progress (2026-11-01)
+## Progress (2026-11-03) — required scope complete
 
-- **Done:** B0 inventory; B1–B2 partial (32/32 local env keys captured, liveness checks, encrypted tar).
-- **In progress:** B1–B2 tail.
-- **Done:** B-06 hosted digest match; **B-18 signed 2026-11-01 and re-verified 2026-11-03**. B-18 no longer gates decommission.
+- **Done:** B0 inventory; B1–B2 local capture (32/32 edge keys + 15 UI keys, liveness checks, sealed tar); B-06 hosted digests; **B-18 signed 2026-11-01 and re-verified 2026-11-03**.
+- **Optional tails (do not block cutover, rebrand or decommission):** B-12 dashboard screenshots, B-16 off-machine archive copy, B-17 scratch restore drill, B-19 name mapping, B-22 revoke markers after legacy deletion.
+- The legacy stack is **paused**; its write-only values are marked “replaced at cutover”. B-18 no longer gates anything.
 
 **Series.** Plan 1 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](../planned/kamespace-05-google-services-verification.md).
 
