@@ -94,15 +94,15 @@ window with no capture.
 - [x] `envRegistry.ts` / `uiEnvRegistry.ts` (super-admin System health) — remove
       **N/A** — no PostHog personal-key rows exist in either registry; the keys were only ever build-time.
       PostHog personal key / project id rows if present; PostHog rows describe analytics.
-- [ ] Remove `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` from Vercel
+- [x] Remove `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` from Vercel
       (operator, doc 05 §3).
 
 ## P1.5 PostHog project settings (operator, doc 05 §2)
 
-- [ ] Error tracking → disable exception autocapture in **both** projects.
-- [ ] Delete any exception alerts / error-tracking dashboards; delete uploaded symbol
+- [x] Error tracking → disable exception autocapture in **both** projects.
+- [x] Delete any exception alerts / error-tracking dashboards; delete uploaded symbol
       sets.
-- [ ] Keep insights that used `$exception` only if needed for history; otherwise archive.
+- [x] Keep insights that used `$exception` only if needed for history; otherwise archive.
 
 ## P1.6 Legal copy
 

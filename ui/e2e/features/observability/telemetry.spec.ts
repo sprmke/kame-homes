@@ -21,11 +21,10 @@ test.describe('@ci observability', () => {
       timeout: 20_000,
     });
 
-    // A developer with a real DSN in `ui/.env.development.local` legitimately sends events,
-    // and the intercepts swallow them. CI is the environment where telemetry must be silent,
-    // so this asserts there and skips locally rather than failing a working setup.
+    // `playwright.config.ts` forces VITE_POSTHOG_KEY and VITE_SENTRY_DSN to empty for every
+    // run, so this holds on a developer machine too — no skip needed.
     const telemetryLive = await page.evaluate(() => '__SENTRY__' in window);
-    test.skip(telemetryLive, 'local env has a DSN; this assertion is for CI (empty DSNs)');
+    expect(telemetryLive, 'E2E must not initialise the Sentry SDK').toBe(false);
 
     // Give a fire-and-forget capture a moment to try. Nothing should appear, because the
     // intercepts abort every pattern the SDKs use.

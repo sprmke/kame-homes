@@ -55,7 +55,11 @@ telemetry.spec.ts` covers the part that can be asserted without one — that a
       a developer's `.env` carries a real DSN.
       crash route in test mode; fallback shows `Ref:` line; one Sentry envelope attempted;
       zero PostHog requests contain `$exception`.
-- [ ] Smoke specs keep `VITE_SENTRY_DSN` and `VITE_POSTHOG_KEY` empty except the one spec
+- [x] Smoke specs keep `VITE_SENTRY_DSN` and `VITE_POSTHOG_KEY` empty except the one spec
+      **Done, and stronger than planned:** `playwright.config.ts` now sets
+      `VITE_POSTHOG_KEY: ''` and `VITE_SENTRY_DSN: ''` for every run, so a developer with
+      real DSNs in `.env.development.local` cannot post synthetic events either. The spec
+      asserts the SDK is not initialised instead of skipping locally.
       above, which sets a fake DSN.
 
 ## 4. Manual fire drill (`docs/guides/testing/observability-manual.md`, new)
@@ -88,16 +92,16 @@ Add both new scripts to `.cursor/hooks` docs index and `scripts/README.md`.
 
 ## 6. Rules, skills, docs
 
-- [ ] New always-on `.cursor/rules/observability.mdc` (short): new feature must decide
+- [x] New always-on `.cursor/rules/observability.mdc` (short): new feature must decide
       its PostHog events (matrix row or N/A) and confirm faults reach a Sentry choke point;
       "fault vs outcome" rule; no PII; no PostHog exceptions. Mirror in `.claude/` and
       `.opencode/` via `bun run setup:ai-tooling` sync, and add a line to `CLAUDE.md`.
-- [ ] New skill `observability` (`.cursor/skills/observability/SKILL.md`): how to add an
+- [x] New skill `observability` (`.cursor/skills/observability/SKILL.md`): how to add an
       event (catalog both sides, properties rules, edge vs browser), how to capture a
       swallowed fault, how to add a cron monitor, how to test.
-- [ ] Update `supabase-edge-functions.mdc` checklist item 9, `security.mdc` telemetry
+- [x] Update `supabase-edge-functions.mdc` checklist item 9, `security.mdc` telemetry
       line, and every doc in the README "Docs to update" table.
-- [ ] Route guides: `admin/health.md` (test button, registry rows), `legal.md`; add a
+- [x] Route guides: `admin/health.md` (test button, registry rows), `legal.md`; add a
       Testing row for the error-boundary spec where relevant.
 
 ## 7. Phase verification summary

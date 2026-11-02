@@ -88,8 +88,14 @@ export default defineConfig({
     stdout: 'pipe',
     stderr: 'pipe',
     timeout: 120_000,
-    // PostHog unset in E2E — client no-ops without VITE_POSTHOG_KEY (no network calls).
+    // Telemetry is forced OFF for every test run, not merely unset by convention.
+    // A developer with real DSNs in `ui/.env.development.local` would otherwise have locally
+    // driven runs posting synthetic events into the production PostHog project and synthetic
+    // exceptions into Sentry. Declared explicitly so `observability/telemetry.spec.ts` can
+    // assert zero network attempts everywhere, not just in CI.
     env: {
+      VITE_POSTHOG_KEY: '',
+      VITE_SENTRY_DSN: '',
       // Pre-transform heavy routes at start (ui/vite.config.ts server.warmup).
       E2E_WARMUP: '1',
       // Guest form auto-fills random dev data when unset; keep E2E deterministic.

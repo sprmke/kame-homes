@@ -53,15 +53,57 @@ Host → platform recurring plan payments via **Payment Links** (QRPH, Maya, onl
 
 - `_shared/pdfService.ts` generates the filled main guest GAF PDF and optional pet request PDF; invoked from **`workflowOrchestrator`** when admins transition **`PENDING_REVIEW` → initial documents** (dev control `generatePdf`), gated by the property's resolved **`documentRequirements[]`** list (`documentRequirements.ts` — only requirements with a matching `pdfTemplateId` run). Properties with an **empty** requirements override skip `PENDING_DOCUMENTS` and go straight to **`READY_FOR_CHECKIN`** (D2). PDFs attach to GAF/pet request emails and optionally upload to Storage (`gaf_request_pdf_url`, `pet_request_pdf_url` on `guest_submissions`). **`generatePDF` / `generatePetPDF`** re-apply **`applyGafDefaultsToFormData`** at generation time so owner/unit fields and the uploaded signature always reflect current **Settings → GAF Details** / **Pet Details** (shared `app_settings` keys — not a stale booking-row snapshot). Guest names on the GAF PDF append **`(N years old)`** when age is **≤ 3** (`gafGuestDisplay.ts`). The GAF template is **`guest-form-template.pdf`**; the pet template is **`pet-form-template.pdf`** — both in Storage bucket **`templates`** (service role read at runtime). **Admin PDF previews** load **`ui/public/templates/guest-form-template.pdf`** and **`ui/public/templates/pet-form-template.pdf`** — after editing a template in Acrobat, copy/upload the same file to Storage so workflow-generated PDFs match. GAF AcroForm fields filled by code include **`unitOwnerSignatureName`**, **`unitOwnerSignature_es_:signer:signature`** (uploaded signature image drawn into the widget), and **`carparkSlotNumber`** (optional on `GuestFormData`; empty until a slot is assigned). Pet form fields include **`unitOwner`**, **`unitTower`**, **`unitNumber`**, **`unitOwnerSignatureName`**, **`unitOwnerSignature`** (signature image), plus guest booking fields **`petName`**, **`petType`**, **`petAge`**, **`petBreed`**, **`petVaccinationDate`**, **`checkInDate`**.
 
-### 9.5 Observability (PostHog)
+### 9.5 Observability — PostHog (product analytics only)
 
-- **UI** (`ui/src/lib/posthog/`): `posthog-js` singleton in `client.ts` — `defaults: '2026-05-30'`, `person_profiles: 'identified_only'`, `capture_exceptions: true`, input masking for session replay, first-party **`/ingest`** in production when `VITE_POSTHOG_INGEST_PATH=/ingest` (see `ui/vercel.json` rewrites). Unset **`VITE_POSTHOG_KEY`** → no-op (`isPostHogEnabled === false`); DEV/E2E do not require a real project key.
-- **Product events**: typed catalog (`catalog.ts`) + **`captureAppEvent`** / **`captureAppException`** (`capture.ts`) — PII denylist, shared `environment` / `app_track` / `persona` / `surface` / org-property-parking ids from `context.ts`. **`analytics_mode`** (`analyticsMode.ts`): `full` | `sampled` | `errors_only` | `off` (default `sampled` prod, `full` nonprod).
-- **Identify + groups**: `PostHogIdentitySync.tsx` — `auth_signed_in` / `auth_signed_out`; hosts/super-admins may get email on the person profile; **`/account` guests omit email**. `PostHogAdminScopeSync` registers PostHog **groups** (`organization`, `property`, `parking`) inside admin shells.
-- **PWA + media**: `bootstrapPostHogTelemetry()` wires `pwaTelemetry` + `mediaTelemetry` sinks to catalog events.
-- **React render errors**: `AppErrorBoundary` (trees outside the data router) and `RouteErrorFallback` (`errorElement` on `createBrowserRouter` in `main.tsx`) both render `RuntimeErrorFallback` and call `captureAppException` / `captureSentryException`. Route render crashes do **not** bubble to the outer boundary — without `errorElement`, React Router shows its default "Unexpected Application Error!" page.
-- **Server conversions**: `capturePostHogEvent` in `_shared/posthog.ts` — guest form submit/reject, workflow transitions (orchestrator), org/property/parking create, invite accept, SD form/review/voucher, etc. Client fires funnel **steps** only; edge fires **completed** actions (no duplicate `*_submitted` from both sides).
-- **Edge functions** (`supabase/functions/_shared/posthog.ts`): `posthog-node` (esm.sh import), `flushAt: 1, flushInterval: 0`, and every capture `await`s `flush()` before returning — Deno Edge isolates can terminate immediately after the response, so nothing may be buffered. `flush()` has no built-in network timeout, so it's raced against a 3s timeout (`CAPTURE_TIMEOUT_MS`) — a slow/unreachable PostHog ingestion endpoint can never add more than a bounded delay to the real response this is only meant to observe. Prefer routing new functions through `serveEdge.ts`'s wrappers over calling this directly. It is wired into two choke points that cover most functions for free: `httpResponse.ts#handleEdgeError` (covers `serveAdmin` / `serveSuperAdmin` / `serveAuthenticated` / `servePublic` — skips capture for `Response`-instance throws with status < 500, since those are intentional control flow like 401/403/validation, not bugs; the `url` sent as `extra` is passed through `sanitizeUrlForTelemetry`, which redacts every query-param **value** — several public GET endpoints accept unguessable bearer-capability tokens via `?token=`/`?complete=`, e.g. `get-guest-stay-guide`, `get-form-completion`, `get-guest-booking-document`, `get-team-invite-preview`, `ical-export`, and a raw URL would leak one into PostHog on any unexpected error) and `serveEdge.ts#serveCronPost`'s catch block (scheduled cron jobs built on that wrapper). A handful of functions predate `serveEdge.ts` and call `serve()` directly with custom multipart/webhook/redirect handling — those call `capturePostHogException` (or `handleEdgeError`, for `meta-inbox-webhook`) explicitly from their own catch: `submit-form`, `submit-sd-form`, `submit-pay-parking`, `submit-form-completion`, `sd-refund-cron`, `calendar-sync-cron`, `upload-development-media`, `meta-inbox-backfill`, `meta-inbox-oauth-callback`, `meta-inbox-webhook`, `ical-export`. `parking-broadcast-email` is a retired 410 stub with no real logic — intentionally uninstrumented. Distinct id is `edge:<logPrefix>` / `cron:<logPrefix>` (service-identified, not per-end-user). Unset **`POSTHOG_API_KEY`** → no-op. Error messages passed to capture must never interpolate guest/user PII (e.g. an invite email) — they're logged and forwarded verbatim.
-- **Source maps**: `ui/vite.config.ts` conditionally adds `@posthog/rollup-plugin` and sets `build.sourcemap: 'hidden'` only when `POSTHOG_PERSONAL_API_KEY` (personal API key, build-time env — not `VITE_*`) and `POSTHOG_PROJECT_ID` are set in the build environment (Vercel/CI). Without them the build is unchanged (no source maps generated, same as before this integration). With them, production stack traces in PostHog resolve to real file/line instead of minified bundle positions. The plugin's `writeBundle` hook (source map upload) is wrapped in `vite.config.ts#resilientPosthogSourcemapsPlugin` to warn-and-continue instead of throwing — it runs after Rollup has already written the real bundle to disk, so a bad/expired personal API key or a PostHog outage during upload must never fail the production build; the only loss is readable stack traces for that release.
-- **Env**: `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_POSTHOG_INGEST_PATH`, `VITE_POSTHOG_SESSION_REPLAY`, `VITE_APP_TRACK` (UI); `POSTHOG_API_KEY` / `POSTHOG_HOST` (edge); `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` (build-time source maps, release = git SHA). Two PostHog projects: **prod** vs **nonprod**. Plan: `docs/workflow/in-progress/production-readiness/audits/posthog-analytics-production-readiness.md`.
-- **Env detail**: `docs/architecture/validation-and-env.md` §11.1 / §11.2.
+Sentry owns faults, PostHog owns outcomes. Contract: [`observability.md`](./observability.md).
+
+- **Client** (`ui/src/lib/posthog/`): `posthog-js` singleton in `client.ts` with
+  `capture_exceptions: false` and `capture_performance: false` — errors and web vitals belong
+  to Sentry. `person_profiles: 'identified_only'`, replay off in production unless
+  `VITE_POSTHOG_SESSION_REPLAY=true`, first-party `/ingest` in production via
+  `VITE_POSTHOG_INGEST_PATH` (`ui/vercel.json` rewrites). Unset `VITE_POSTHOG_KEY` → no-op.
+- **`before_send`** (`beforeSend.ts`): strips `?access=` / `?complete=` / `?token=` from
+  `$current_url`, `$referrer` and both `$initial_*` variants, **drops `$web_vitals` events**
+  (the project setting overrides the client flag, so the guarantee lives here), and drops the
+  whole event if scrubbing throws.
+- **Events**: typed catalog (`catalog.ts`) + `captureAppEvent` (`capture.ts`), PII denylist
+  from `lib/telemetry/scrub.ts`, shared props from `context.ts` (`environment`, `app_track`,
+  `app_release`, `persona`, `surface`, org/property/parking ids). `analytics_mode` is
+  `full` | `sampled` | `off` (a stored `errors_only` reads as `off`).
+- **Identity + groups**: `PostHogIdentitySync.tsx` sends `auth_signed_in` / `auth_signed_out`,
+  sets `is_internal: true` for `VITE_SUPER_ADMIN_EMAILS` accounts, and omits guest email.
+  `PostHogAdminScopeSync` registers the `organization` / `property` / `parking` groups.
+- **Server conversions**: `capturePostHogEvent` in `_shared/posthog.ts`, after the write
+  succeeds, off the response path (`runAfterResponse`), with `app_release` and optional
+  `$groups`. Client fires funnel **steps**, edge fires **completed** actions.
+- **Edge choke points**: `handleEdgeError` and `serveCronPost`. PostHog capture happens only
+  for product events — the exception channel was removed in phase P1.
+- **Guard**: `scripts/dev/check-posthog-analytics-only.sh` fails CI if `captureException`,
+  `$exception`, `PostHogErrorBoundary` or `captureAppException` reappear.
+
+### 9.6 Observability — Sentry (errors)
+
+- **Browser**: `@sentry/react` initialised once in `lib/sentry/init.ts` — release from
+  `VITE_APP_VERSION` (git SHA), `environment` from the same resolver as PostHog, route-aware
+  tracing, extension frames denied, no replay, no feedback widget. All SDK calls go through
+  `lib/sentry/capture.ts`; `scripts/dev/check-sentry-imports.sh` keeps the import inside
+  `lib/sentry/**`.
+- **Choke points**: React 19 root hooks and both error boundaries, TanStack `QueryCache` /
+  `MutationCache` (`reportQueryError`, skips abort / offline / 401 / all 4xx), and the edge
+  fetch wrappers (`adminEdgeFetch`, `callEdgeFunction`, `publicEdgeFetch`) which send
+  `x-request-id` and report 5xx / network faults.
+- **Edge**: lightweight envelope client `_shared/sentry.ts` (no Deno SDK — cold start),
+  capturing at `handleEdgeError`, `serveCronPost` and `withEdgeErrorCapture`, with release
+  from `APP_RELEASE`, `user.id`, trace context from the browser, per-isolate dedupe and a
+  30/min cap. `captureSideEffectFailure` covers email / PDF / calendar / Telegram side effects
+  that fail after the request succeeded.
+- **Crons**: one monitor on the free tier, `sd-refund-cron` (`_shared/sentryCron.ts`);
+  `cronMonitorConfig_test.ts` fails if a second starts sending check-ins.
+- **Source maps**: `@sentry/vite-plugin` uploads hidden maps when `SENTRY_AUTH_TOKEN`,
+  `SENTRY_ORG` and `SENTRY_PROJECT` are set, then a `closeBundle` hook deletes any surviving
+  `.map` so a failed upload can never ship source.
+- **Privacy**: `sendDefaultPii` does not exist in SDK 11 — no email, no IP, `user.id` only;
+  requests run through `_shared/telemetryScrub.ts` / `lib/telemetry/scrub.ts`.
+- **Docs**: [`observability.md`](./observability.md) · runbook
+  [`sentry-runbook.md`](../archive/operations/sentry-runbook.md) · drill
+  [`observability-manual.md`](../guides/testing/observability-manual.md).

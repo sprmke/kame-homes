@@ -57,6 +57,15 @@ System health is a super-admin-only page. Hosts never see it.
 
 ## Behavior notes
 
+**Send test error** (Overview and Integrations sections, next to _Run live checks_) calls
+`super-admin-sentry-test`, which captures one tagged event in Sentry and writes a
+`system.sentry_test_sent` super-admin audit row. Copy: button `Send test error`, toast
+`Test error sent`. It answers 200 rather than throwing, so a drill cannot fire the alert it is
+meant to verify. Expected result: one issue with fingerprint `sentry_test` in
+`kame-space-edge`, `environment: production`, and **nothing** in PostHog.
+
+Full walkthrough: `docs/guides/testing/observability-manual.md`.
+
 - **Data path.** `useSystemHealth` → `GET super-admin-system-health?view=summary` (`staleTime` 60s,
   refetch every 2 min). The function makes **one** RPC (`get_system_health_snapshot`) plus in-memory
   `Deno.env` reads; it never calls a third party. UI env checks are evaluated client-side from
