@@ -26,6 +26,12 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                         |
 | **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
 
+**2026-11-03 operator completions:**
+- PMO notified of the new sender/approval address.
+- `dev.kamehomes.space` removed from Vercel, the Auth allow list, Turnstile and the Maps key; the host now returns 404.
+- Legacy Vercel project Git integration disconnected (no more builds on `main`).
+- **PayMongo stays open/pending** until the account is approved for live mode. Current state: test mode, both webhooks disabled. Guest bookings use manual GCash and are unaffected.
+
 **2026-11-03 post-cutover fixes:**
 - **Parking reminders hit historic guests.** `calendarDaysBetween` clamps negatives to 0, so three 2025 bookings looked like "today" and received a reminder at 06:00 on 2026-11-02 (two `.con` typos, one dead yahoo address). Eligibility moved to `parkingReminderEligibility.ts`, rejects check-ins before today, and is unit-tested; a manual sweep now returns `sent: 0`.
 - **Telegram verification:** admin group received a real summary; staff/finance/maintenance use the same encrypted row path and run hourly.

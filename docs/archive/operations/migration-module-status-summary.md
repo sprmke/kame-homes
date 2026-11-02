@@ -35,9 +35,9 @@ bun scripts/migrate/legacy-to-mt-prod/verify-fwor-secrets-from-local.mjs
 
 ## Needs you (cannot fully automate)
 
-1. **T0 DNS move:** `kamespace.com` is live; at T0 point the legacy apex `kamehomes.space` + `www` at `kame-homes` with the redirect rules.
+1. **Legacy Vercel project:** Git is disconnected and domains are 308s. Keep the project for 30 days, then delete it (`sprmkes-projects`).
 2. **Google Cloud:** Prod OAuth client (origins `kamespace.com`, `dev.kamespace.com`; callback `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`). No CLI access to the project from this machine.
-3. **Resend:** Done — both domains verified, sender + inbound switched on fwor, inbound webhook recreated with bounce/complaint events.
+3. **Resend:** Done — both domains verified, sender + inbound switched, webhook recreated with bounce/complaint events.
 4. **PayMongo dashboard:** the account is in **test mode** and both existing webhooks are `disabled` (`max_retries_exceeded`), including `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/paymongo-webhook`. Guest bookings are unaffected (legacy uses manual GCash), but plan/parking checkout cannot confirm until live keys and a fresh webhook exist.
 5. **T0 window:** Pick freeze night; notify host; run [`t0-go-live-checklist.md`](./t0-go-live-checklist.md) with **kamewave**.
 6. **Git:** Large dirty **`develop`** tree remains in the main checkout (unrelated PWA work). Migration docs + tooling are committed; do not `git add -A`.
