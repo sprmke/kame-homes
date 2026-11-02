@@ -43,7 +43,7 @@ function RailGroupSkeleton({ rows, labelWidth }: { rows: number; labelWidth: str
  */
 export function TemplateWorkbenchSkeleton() {
   return (
-    <div
+    <div role="status"
       className={templateWorkbenchShellClassName}
       aria-busy="true"
       aria-label="Loading templates"

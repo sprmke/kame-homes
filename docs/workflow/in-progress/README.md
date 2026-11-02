@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-10-30
+updated: 2026-11-02
 stage: in-progress
 kind: reference
 ---
@@ -14,6 +14,8 @@ Implementation **started** — plan not fully complete. Partial phases or v1 sli
 Plans with **implementation complete** and only manual QA left live in [`../for-testing/`](../for-testing/) (**🧪**). **Start QA:** [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md).
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
+
+**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 02 (legacy → mt-prod cutover) has data, storage, accounts, extensions and crons on `fwor…`; T0 freeze + DNS is the remaining step. 01 keeps its optional sign-off tails (B-06, B-16, B-17). 04's DNS/Resend/Auth phases gate T0.
 
 **Moved in 2026-10-25:** [`chat-templates.md`](./chat-templates.md) ← [`../planned/`](../planned/) — property stay-guide/custom templates in Guest Inbox Insert → Templates and AI Assistant Pin context. Code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
 
@@ -33,15 +35,16 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved in 2026-09-27:** [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) ← [`../planned/`](../planned/) — Activity Manage modal toolbar, refine, modal-scroll virtualization, friendly summaries.
 
-| Doc                                                                         | Summary                                                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`production-readiness/`](./production-readiness/README.md)                 | **Launch readiness umbrella**: checklist (00–30), audits, OWASP, module cards, QA batch, operator inputs, evidence. Ledger + to-fix / all-good lists. Phase 0 baseline done 2026-10-19                                                                                         |
-| [`guest-trip-hub.md`](./guest-trip-hub.md)                                  | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                                                                                            |
-| [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
-| [`marketing-themes.md`](./marketing-themes.md)                              | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
-| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)          | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
-| [`ci-cd-environments/`](./ci-cd-environments/README.md)                     | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
-| See [`../done/`](../done/) for completed work.                              |
+| Doc                                                                                                  | Summary                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`production-readiness/`](./production-readiness/README.md)                                          | **Launch readiness umbrella**: checklist (00–30), audits, OWASP, module cards, QA batch, operator inputs, evidence. Ledger + to-fix / all-good lists. Phase 0 baseline done 2026-10-19                                                                                         |
+| [`guest-trip-hub.md`](./guest-trip-hub.md)                                                           | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                                                                                            |
+| [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md)                          | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
+| [`marketing-themes.md`](./marketing-themes.md)                                                       | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
+| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)                                   | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
+| [`ci-cd-environments/`](./ci-cd-environments/README.md)                                              | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
+| [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) | Legacy prod → multi-tenant prod cutover. Production is `fwor…`; data + storage + shaping done, crons installed and parked; T0 reload, DNS and hypercare remain                                                                                                                 |
+| See [`../done/`](../done/) for completed work.                                                       |
 
 **Super admin console:** Phases 0–7 **done** — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) (+ audit log, AI usage, platform settings, global search in `done/`). Remaining 6 modules: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md).
 

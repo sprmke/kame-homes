@@ -75,7 +75,7 @@ export function ApplyTemplatePicker({
         }}
         disabled={disabled || sorted.length === 0}
       >
-        <SelectTrigger id="apply-baseline-role" className="h-11">
+        <SelectTrigger id="apply-baseline-role" aria-label="Role template" className="h-11">
           <SelectValue placeholder="Choose a role">{matched?.name ?? 'Custom'}</SelectValue>
         </SelectTrigger>
         <SelectContent>

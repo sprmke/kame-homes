@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { MapPin, Star, Building2, Home, Layers, ArrowRight } from 'lucide-react';
 
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
@@ -59,6 +59,7 @@ export function DevelopmentCard({
   index = 0,
   variant = 'default',
 }: DevelopmentCardProps) {
+  const reduceMotion = useReducedMotion();
   const typeConfig = TYPE_CONFIG[development.type];
   const TypeIcon = typeConfig.icon;
   const coverImage = resolveListingCoverImage(
@@ -71,9 +72,12 @@ export function DevelopmentCard({
   if (variant === 'carousel') {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
+        transition={{
+          duration: reduceMotion ? 0 : 0.35,
+          delay: reduceMotion ? 0 : Math.min(index, 6) * 0.04,
+        }}
         className="group"
       >
         <Link to={`/developments/${development.slug}`} className="block">
@@ -125,9 +129,12 @@ export function DevelopmentCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.06 }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.4,
+        delay: reduceMotion ? 0 : index * 0.06,
+      }}
       className="group"
     >
       <Link to={`/developments/${development.slug}`}>

@@ -13,7 +13,7 @@ type Props = {
 
 export function SuperAdminPageLoading({ metricCount = 0, metricGridClassName, className }: Props) {
   return (
-    <div className={cn('space-y-3 sm:space-y-4', className)} aria-busy="true" aria-label="Loading">
+    <div role="status" className={cn('space-y-3 sm:space-y-4', className)} aria-busy="true" aria-label="Loading">
       {metricCount > 0 ? (
         <div className={metricGridClassName ?? 'grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4'}>
           {Array.from({ length: metricCount }).map((_, index) => (

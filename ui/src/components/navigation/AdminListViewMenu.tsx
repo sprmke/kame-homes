@@ -41,7 +41,8 @@ export function AdminListViewMenu<T extends string>({
   const trigger = (
     <button
       type="button"
-      aria-label={ariaLabel}
+      /* Include the visible current view so the name matches (WCAG 2.5.3). */
+      aria-label={`${ariaLabel}: ${current?.label ?? 'View'}`}
       aria-expanded={open}
       aria-haspopup={isMobileLayout ? 'dialog' : 'listbox'}
       onClick={() => setOpen((next) => !next)}

@@ -115,7 +115,7 @@ export function DashboardMaintenanceRemindersCard({ from, to, rangeLabel, classN
         )}
       >
         {isLoading ? (
-          <div
+          <div role="status"
             className="min-h-0 flex-1 space-y-2"
             aria-busy="true"
             aria-label="Loading maintenance"

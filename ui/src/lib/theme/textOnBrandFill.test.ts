@@ -6,23 +6,7 @@ import { describe, expect, it } from 'vitest';
 const SRC = resolve(import.meta.dirname, '../..');
 
 /** Pending move to `bg-primary-strong`; remove entries as they migrate. */
-const PENDING = new Set([
-  'components/chat/ChatMessageBubble.tsx',
-  'components/ui/button.tsx',
-  'features/dashboard/bookings/components/AdminLayout.tsx',
-  'features/dashboard/marketing/components/ai-studio/AiPostPanel.tsx',
-  'features/dashboard/super-admin/components/shared/SuperAdminSecondaryNav.tsx',
-  'features/guest/chat/components/voice/VoiceSessionPanel.tsx',
-  'features/guest/marketing/for-hosts/components/HostDashboardTourPlayer.tsx',
-  'features/guest/marketing/for-hosts/components/HostHowItWorks.tsx',
-  'features/guest/marketing/for-hosts/v3/components/V3Faq.tsx',
-  'features/guest/marketing/for-hosts/v3/components/V3FeatureBento.tsx',
-  'features/guest/marketing/for-hosts/v3/components/V3Hero.tsx',
-  'features/guest/marketing/pages/AboutPage.tsx',
-  'features/guest/marketing/pages/ForHostsPage.tsx',
-  'features/guest/marketing/pages/SupportPage.tsx',
-  'features/guest/marketing/properties/components/PropertyCard.tsx',
-]);
+const PENDING = new Set<string>([]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

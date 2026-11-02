@@ -220,7 +220,7 @@ export function PropertiesFilters({
                   className={cn(
                     'flex min-h-[44px] items-center gap-2 rounded-lg border p-3 text-left text-sm transition-all',
                     isSelected
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary/10 text-brand-ink'
                       : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted'
                   )}
                 >
@@ -265,7 +265,7 @@ export function PropertiesFilters({
                 className={cn(
                   'flex min-h-[44px] w-full items-center justify-between rounded-lg border p-3 text-sm transition-all',
                   isSelected
-                    ? 'border-primary bg-primary/10 text-primary'
+                    ? 'border-primary bg-primary/10 text-brand-ink'
                     : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted'
                 )}
               >
@@ -326,7 +326,7 @@ export function PropertiesFilters({
                   className={cn(
                     'flex min-h-[44px] items-center gap-2 rounded-lg border p-3 text-left text-sm transition-all',
                     isSelected
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary/10 text-brand-ink'
                       : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted'
                   )}
                 >
@@ -360,7 +360,7 @@ export function PropertiesFilters({
                   className={cn(
                     'flex min-h-[44px] w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all',
                     isSelected
-                      ? 'border-primary bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary/10 text-brand-ink'
                       : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted'
                   )}
                 >

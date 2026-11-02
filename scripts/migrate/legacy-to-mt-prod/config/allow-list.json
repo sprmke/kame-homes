@@ -1,0 +1,11 @@
+{
+  "propertySlug": "monaco-2604",
+  "tables": [
+    "property_template_contents",
+    "property_pricing_date_overrides",
+    "property_blocked_dates",
+    "property_calendar_feeds",
+    "property_calendar_export",
+    "property_smart_pricing_settings"
+  ]
+}

@@ -1,10 +1,5 @@
 import { newRequestId, readServerRequestId } from '@/lib/api/edgeRequestId';
 import { reportEdgeFailure } from '@/lib/api/reportEdgeFailure';
-import {
-  isTransportFailure,
-  reportNetworkFailure,
-  reportNetworkSuccess,
-} from '@/lib/pwa/connectivity';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -152,13 +147,10 @@ async function callEdgeFunctionInner<T>(
       },
     });
   } catch (error) {
-    // Transport-level failure: feed the connectivity model so the UI can show
-    // "no connection" instead of a generic error (lie-fi detection, 5.1).
-    if (isTransportFailure(error)) reportNetworkFailure();
+    // A dead request: no response to inspect, so report it here before rethrowing.
     reportEdgeFailure({ path, status: 0, method: init?.method, requestId });
     throw error;
   }
-  reportNetworkSuccess();
   const json = await res.json().catch(() => ({}) as Record<string, unknown>);
 
   if (!res.ok || !json.success) {

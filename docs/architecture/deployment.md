@@ -17,19 +17,19 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 Until multi-tenant cutover is complete, **two parallel stacks** (same git repo, **separate** Vercel + Supabase projects):
 
-| Track                | Git branch (today)         | Vercel project                                                                                          | Supabase ref                                           |
-| -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Live users**       | **`main`** (hotfixes only) | **LEGACY** [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) | **LEGACY_PROD** `zfttdwtceyqszyeyhilc`                 |
-| **Multi-tenant WIP** | **`develop`**              | **NEW** [`kame-homes`](https://vercel.com/kame-works/kame-homes) Preview                                | **MULTI_TENANT_DEV** `fwor…` only _(mt-prod deferred)_ |
+| Track                | Git branch (today)         | Vercel project                                                                                          | Supabase ref                                                                      |
+| -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Live users**       | **`main`** (hotfixes only) | **LEGACY** [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) | **LEGACY_PROD** `zfttdwtceyqszyeyhilc`                                            |
+| **Multi-tenant WIP** | **`develop`**              | **NEW** [`kame-homes`](https://vercel.com/kame-works/kame-homes) Preview                                | **MULTI_TENANT_PROD** `fwor…` (reused as prod 2026-10-27; no separate mt-dev yet) |
 
 ### Vercel project inventory (canonical)
 
 Each project’s **Production** environment (not Preview) is the deploy surface for that track.
 
-| Logical name            | Vercel project              | Team               | Production branch (configured)                                                 | Production env → Supabase                                            |
-| ----------------------- | --------------------------- | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| **LEGACY_VERCEL**       | `guest-form-management-app` | `sprmkes-projects` | **`main`**                                                                     | LEGACY `zftt…`                                                       |
-| **MULTI_TENANT_VERCEL** | `kame-homes`                | `kame-works`       | Preview: **`develop`** · Production: **`main`** _(at release — not wired yet)_ | Preview → **fwor…** · Production → **mt-prod** _(create at release)_ |
+| Logical name            | Vercel project              | Team               | Production branch (configured)                  | Production env → Supabase               |
+| ----------------------- | --------------------------- | ------------------ | ----------------------------------------------- | --------------------------------------- |
+| **LEGACY_VERCEL**       | `guest-form-management-app` | `sprmkes-projects` | **`main`**                                      | LEGACY `zftt…`                          |
+| **MULTI_TENANT_VERCEL** | `kame-homes`                | `kame-works`       | Preview: **`develop`** · Production: **`main`** | Preview + Production → **fwor…** (prod) |
 
 Same monorepo is connected to **both** Vercel projects. Pushing to `main` deploys only the legacy project; pushing to the multi-tenant branch deploys only `kame-homes`.
 
@@ -37,13 +37,15 @@ Same monorepo is connected to **both** Vercel projects. Pushing to `main` deploy
 
 Project **refs** are public in API URLs; **keys** stay in gitignored env only.
 
-| Logical name          | Env var(s)                                          | Project ref                           | Host                               | Used for                                                                                       |
-| --------------------- | --------------------------------------------------- | ------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **LEGACY_PROD**       | `PROD_PROJECT_REF` (guard in `.env.dev.local`)      | `zfttdwtceyqszyeyhilc`                | `zfttdwtceyqszyeyhilc.supabase.co` | **`guest-form-management-app`** Production (`main`), live users                                |
-| **MULTI_TENANT_DEV**  | `DEV_PROJECT_REF` in `supabase/.env.dev.local`      | `fworvijbrwpyngycotbz`                | `fworvijbrwpyngycotbz.supabase.co` | **`kame-homes`** Preview / `develop` URL, `deploy:supabase:dev`, `cd-dev.yml`                  |
-| **MULTI_TENANT_PROD** | `MT_PROD_PROJECT_REF` in `supabase/.env.prod.local` | _(deferred — create at prod release)_ | —                                  | **`app.kamehomes.space`** after **`develop` → `main`**; legacy data migration from **`zftt…`** |
+| Logical name          | Env var(s)                                          | Project ref                           | Host                               | Used for                                                                           |
+| --------------------- | --------------------------------------------------- | ------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| **LEGACY_PROD**       | `PROD_PROJECT_REF` (guard in `.env.dev.local`)      | `zfttdwtceyqszyeyhilc`                | `zfttdwtceyqszyeyhilc.supabase.co` | **`guest-form-management-app`** Production (`main`), live users                    |
+| **MULTI_TENANT_DEV**  | `DEV_PROJECT_REF` in `supabase/.env.dev.local`      | `fworvijbrwpyngycotbz`                | `fworvijbrwpyngycotbz.supabase.co` | Same project as prod today: `develop` Preview, `deploy:supabase:dev`, `cd-dev.yml` |
+| **MULTI_TENANT_PROD** | `MT_PROD_PROJECT_REF` in `supabase/.env.prod.local` | `fworvijbrwpyngycotbz` (same project) | `fworvijbrwpyngycotbz.supabase.co` | Production app on **`kamespace.com`**; legacy data migrated from **`zftt…`**       |
 
-Aliases: informal **NEW_PROD** in older docs meant **MULTI_TENANT_DEV** during early wiring — **mt-prod is now a separate project** (see [`multi-tenant-dev-prod-setup.md`](../archive/operations/multi-tenant-dev-prod-setup.md)).
+**2026-10-27 change:** no separate mt-prod project. `fwor…` was promoted to production and holds the migrated legacy dataset. A dedicated dev project is added later, once there are paying users. `cd-dev.yml` and `cd-prod.yml` therefore deploy to the same ref; the prod workflow is the only one used for release deploys.
+
+Aliases: informal **NEW_PROD** in older docs meant **MULTI_TENANT_DEV** during early wiring.
 
 **Do not:**
 
@@ -53,8 +55,8 @@ Aliases: informal **NEW_PROD** in older docs meant **MULTI_TENANT_DEV** during e
 
 **Do:**
 
-- Multi-tenant **dev** only for now: push **`develop`** → **`dev.kamehomes.space`** → **`fwor…`**.
-- **At prod release:** create mt-prod, migrate legacy data ([`legacy-to-mt-prod-migration.md`](../archive/operations/legacy-to-mt-prod-migration.md)), merge **`develop` → `main`**, wire **`app.kamehomes.space`** → mt-prod.
+- Multi-tenant work: push **`develop`** → `dev.kamehomes.space` (and `dev.kamespace.com` once DNS lands) → **`fwor…`**.
+- **At prod release:** run the T0 cutover ([`legacy-to-mt-prod-migration.md`](../archive/operations/legacy-to-mt-prod-migration.md)), merge **`develop` → `main`**, attach **`kamespace.com`** to `kame-homes` Production, and keep the legacy apex redirecting in.
 - Legacy UI: push hotfixes to **`main`** → **`guest-form-management-app`** only.
 - Use `bun run deploy:supabase:dev` against **`fwor…`** only; mt-prod deploy manual until scripted.
 - Git branches: **`develop`** (mt-dev, daily work) · **`main`** (legacy live today; mt-prod UI at release after **`develop` → `main`** merge).

@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** Matches `BookingsSummaryCards` four stage cards. */
 export function BookingsStageSummarySkeleton() {
   return (
-    <div
+    <div role="status"
       className="grid grid-cols-2 items-start gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4"
       aria-busy="true"
       aria-label="Loading summary"
@@ -19,7 +19,7 @@ export function BookingsStageSummarySkeleton() {
 /** Horizontal kanban columns with card stacks (phone scrolls). */
 export function BookingsKanbanSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-busy="true"
       aria-label="Loading board"

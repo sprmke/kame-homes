@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 /** Help documentation topic list (icon + title + description rows). */
 export function HelpDocumentationTopicsSkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading guides">
+    <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading guides">
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
@@ -58,7 +58,7 @@ function HelpSupportModuleNavSkeleton() {
 export function HelpSupportSectionSkeleton({ section }: { section: HelpSupportSection }) {
   if (section === 'tickets') {
     return (
-      <div
+      <div role="status"
         className="border-border/80 bg-card flex min-h-[20rem] overflow-hidden rounded-xl border shadow-sm lg:min-h-[480px]"
         aria-busy="true"
         aria-label="Loading tickets"

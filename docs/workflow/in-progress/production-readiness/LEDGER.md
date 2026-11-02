@@ -2,7 +2,7 @@
 title: 'Production readiness ledger'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-11-01
+updated: 2026-11-02
 stage: in-progress
 kind: reference
 ---
@@ -44,6 +44,13 @@ Evidence: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-
 | PR-137 | ✅ fresh `db reset` failed: `supabase/seed.sql` pointed its property/parking fixtures at an organization no migration creates any more (FK violation), so `supabase start`, `db reset` and `Migration Replay` failed for everyone | `migration-replay` run `41234319626`; org now seeded in `seed.sql`          |
 | PR-138 | ✅ paid plans came up with Free marketing media-library limits on a fresh DB (plan-catalog drift for Starter → Managed); the per-tier backfill is guarded so it never fired                                                       | `bun run check:plan-catalog`; `…950_marketing_media_library_paid_tiers.sql` |
 | PR-139 | 🟡 `Migration Replay` lint step reports `relation "cron.job" does not exist` (local stack has no `pg_cron`) plus two older function lint errors                                                                                   | `migration-replay` run for #190                                             |
+| PR-140 | ✅ Phase 6 tooling ran: gitleaks full history (0 real secrets, allowlist committed), semgrep (2 sanitized FP), OSV + `bun audit` triaged, ZAP baseline on dev (0 fail / 11 warn / 57 pass)                                        | `evidence/phase6-tooling-2026-11-02.md`                                     |
+| PR-141 | 🆕 zod 3.x memory-exhaustion advisory (fix = zod 4 major) + quill 1.3.7 XSS (unused) — plan a dependency upgrade                                                                                                                  | `bun audit`, OSV                                                            |
+| PR-142 | 🆕 Two lockfiles (`bun.lock` + tracked `package-lock.json`) must stay in sync; OSV reports the same trees twice. Decide: generate-only or retire the npm one                                                                      | OSV per-lockfile report                                                     |
+| PR-143 | ✅ Anti-clickjacking: `X-Frame-Options: SAMEORIGIN` added to `vercel.json` + guard (CSP `frame-ancestors` only applies once CSP enforces)                                                                                         | ZAP baseline + `check-vercel-headers.sh`                                    |
+| PR-144 | 🆕 `.agents/skills/mcp-builder/requirements.txt` pins `python-multipart` 0.0.9 (16 advisories) — vendored tooling, bump or pin a patched version                                                                                  | OSV                                                                         |
+| PR-145 | 🆕 Guest/host data-subject export + delete path and retention jobs are not implemented (RA 10173); needs product + legal decision (financial records have a lawful retention basis)                                               | checklist 31                                                                |
+| PR-146 | 🟡 `dev.kamehomes.space/sitemap.xml` serves dev URLs; robots blocks crawling, but the sitemap must switch to the production origin at cutover                                                                                     | checklist 34                                                                |
 
 Fixed in this pass (product): the notifications hub feed never attached its load-more observer (`scrollRoot` was never passed), so the feed could not page past 20 rows. See `InAppNotificationsPanel.tsx`.
 

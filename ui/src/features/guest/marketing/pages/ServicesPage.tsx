@@ -68,7 +68,7 @@ export function ServicesPage() {
 
         <div className="relative z-10 flex w-full max-w-3xl flex-col items-center text-center">
           <section aria-labelledby="services-title" className="animate-fade-in-up">
-            <span className="public-eyebrow text-primary">Services</span>
+            <span className="public-eyebrow text-brand-ink">Services</span>
             <h1
               id="services-title"
               className="text-foreground mt-3 text-[2rem] font-bold leading-tight tracking-tight md:mt-4 md:text-5xl lg:text-6xl"

@@ -134,7 +134,7 @@ export function AuthLayout() {
         </Suspense>
       ) : (
         <div className="relative hidden flex-col overflow-hidden lg:flex">
-          <div className="absolute inset-0 bg-gradient-to-br from-teal-400 via-teal-500 to-cyan-500" />
+          <div className="absolute inset-0 bg-[image:var(--brand-gradient)]" />
           <div className="absolute left-0 top-0 h-[600px] w-[600px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-white/20 blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-[500px] w-[500px] translate-x-1/4 translate-y-1/4 rounded-full bg-white/20 blur-[100px]" />
           <div className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/15 blur-[80px]" />

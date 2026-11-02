@@ -44,6 +44,15 @@ if (!URL_BASE.includes(DEV_REF) || URL_BASE.includes(LEGACY_PROD_REF)) {
   console.error(`Refusing: ${URL_BASE || '(empty url)'} is not hosted dev ${DEV_REF}.`);
   process.exit(1);
 }
+// fwor is production since 2026-10-27. Seeding here creates test tenants in prod
+// (cleaned by scripts/migrate/legacy-to-mt-prod/sql/70-clean-prod-test-data.sql).
+if (process.env.QA_SEED_CONFIRM !== 'yes') {
+  console.error(
+    'Refusing: fwor is production. Re-run with QA_SEED_CONFIRM=yes only if you ' +
+      'intend to add test orgs/users to prod, then clean them with 70-clean-prod-test-data.sql.'
+  );
+  process.exit(1);
+}
 if (!SRK || !ANON) {
   console.error('Missing DEV_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY.');
   process.exit(1);

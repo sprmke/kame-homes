@@ -86,10 +86,10 @@ test.describe('@ci marketing themes', () => {
       timeout: 20_000,
     });
     // Only the host's own themes are listed; starter looks wait behind "New theme".
-    await expect(page.getByRole('button', { name: 'Open Garden Bloom' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Garden Bloom/ })).toHaveCount(0);
     await page.screenshot({ path: 'test-results/marketing-themes-home.png', fullPage: false });
 
-    await page.getByRole('button', { name: 'Open Property colors' }).click();
+    await page.getByRole('button', { name: /Property colors/ }).first().click();
     await expect(page.getByRole('tab', { name: 'Calendar' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Posts' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Videos' })).toBeVisible();
@@ -125,7 +125,7 @@ test.describe('@ci marketing themes', () => {
         .getByRole('button', { name: /New theme/ })
     ).toBeVisible();
     // The look you're working in stays listed even with nothing saved in it.
-    await expect(page.getByRole('button', { name: 'Open Garden Bloom' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Garden Bloom/ }).first()).toBeVisible();
 
     await page.getByRole('button', { name: /New theme/ }).click();
     const looks = page.getByRole('dialog', { name: 'New theme' });
@@ -178,7 +178,7 @@ test.describe('@ci marketing themes', () => {
     await page.getByRole('button', { name: 'Summer 2026 options' }).click();
     await page.getByRole('menuitem', { name: 'Delete' }).click();
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Open Summer 2026' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Summer 2026/ })).toHaveCount(0);
   });
 
   // fixme: Theme bar labels changed on 2026-10-30 (ledger PR-133).
@@ -254,7 +254,7 @@ test.describe('@ci marketing themes', () => {
       },
     ]);
     await page.goto(teamRbacPaths.marketing);
-    await page.getByRole('button', { name: 'Open Ocean' }).click({ timeout: 20_000 });
+    await page.getByRole('button', { name: /Ocean/ }).first().click({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: /Theme: Ocean/ })).toBeVisible();
   });
 
@@ -280,7 +280,7 @@ test.describe('@ci marketing themes', () => {
       await page.screenshot({ path: 'test-results/marketing-themes-new-375.png' });
       await page.getByRole('button', { name: 'Cancel' }).click();
 
-      await page.getByRole('button', { name: 'Open Property colors' }).click();
+      await page.getByRole('button', { name: /Property colors/ }).first().click();
       const switcher = page.getByRole('button', { name: /Theme: Property colors/ });
       await expect(switcher).toBeVisible();
       await expectNoPageHorizontalOverflow(page);

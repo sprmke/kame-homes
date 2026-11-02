@@ -114,7 +114,7 @@ export function GuestFormPageSkeleton({
   embed?: boolean;
 }) {
   return (
-    <div
+    <div role="status"
       className={cn('relative', embed ? 'space-y-4 p-0 sm:p-1' : 'space-y-6 p-4 sm:p-6 lg:p-8')}
       aria-busy="true"
       aria-label="Loading form"
@@ -134,7 +134,7 @@ export function PropertyCalendarBodySkeleton({
   gapClassName?: string;
 }) {
   return (
-    <div className="w-full" aria-busy="true" aria-label="Loading calendar">
+    <div role="status" className="w-full" aria-busy="true" aria-label="Loading calendar">
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-6 w-36 rounded-md" />
         <div className="flex gap-2">
@@ -162,7 +162,7 @@ export function PropertyCalendarBodySkeleton({
 
 export function CalendarPageSkeleton() {
   return (
-    <div
+    <div role="status"
       className="relative min-w-0 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading availability"
@@ -211,7 +211,7 @@ function SdFormReviewSectionSkeleton() {
 /** Mirrors `SdFormPage`'s step-1 shape: 3-step stepper, bordered greeting header, review section. */
 export function SdFormPageSkeleton({ title }: { title: string }) {
   return (
-    <div
+    <div role="status"
       className="relative space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
@@ -238,7 +238,7 @@ export function SdFormPageSkeleton({ title }: { title: string }) {
 /** Mirrors `GuestReviewPage`'s 'review' phase: no stepper, narrower max-w-xl shell, plain centered greeting. */
 export function GuestReviewPageSkeleton({ title }: { title: string }) {
   return (
-    <div
+    <div role="status"
       className="relative mx-auto w-full max-w-xl space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
@@ -269,7 +269,7 @@ function PayParkingSectionShellSkeleton({ children }: { children: React.ReactNod
 /** Mirrors `PayParkingPage`'s real stack: Booking Info, Parking Details, Vehicle Info cards. */
 export function PayParkingPageSkeleton({ title }: { title: string }) {
   return (
-    <div
+    <div role="status"
       className="relative space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
@@ -365,7 +365,7 @@ export function PublicFullBleedPageSkeleton({ label = 'Loading page' }: { label?
  */
 export function ParkingRequestStatusPageSkeleton() {
   return (
-    <div
+    <div role="status"
       className="relative space-y-5 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading parking request"

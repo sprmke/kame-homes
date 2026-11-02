@@ -61,7 +61,7 @@ export function AiSummaryPanel({ booking, onPreview }: Props) {
   if (isLoading) {
     return (
       <PanelShell>
-        <div className="divide-border divide-y" aria-busy="true" aria-label="Loading AI Summary">
+        <div role="status" className="divide-border divide-y" aria-busy="true" aria-label="Loading AI Summary">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex px-3.5 py-3.5">
               <div className="min-w-0 flex-1 space-y-2">

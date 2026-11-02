@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 
 import { Link } from 'react-router-dom';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Star, MapPin, Users, Bed, Bath, ChevronLeft, ChevronRight, Wifi, Car } from 'lucide-react';
 
 import { PropertySaveButton } from '@/features/guest/marketing/properties/components/PropertySaveButton';
@@ -57,6 +57,7 @@ export const PropertyCard = memo(function PropertyCard({
   index = 0,
   variant = 'default',
 }: PropertyCardProps) {
+  const reduceMotion = useReducedMotion();
   const [isHovered, setIsHovered] = useState(false);
   const images = resolveListingImages(property.images, 'property', property.slug);
   const gallery = useGalleryWindow(images.length);
@@ -80,9 +81,12 @@ export const PropertyCard = memo(function PropertyCard({
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.04 }}
+        transition={{
+          duration: reduceMotion ? 0 : 0.35,
+          delay: reduceMotion ? 0 : Math.min(index, 6) * 0.04,
+        }}
         className="group"
       >
         <Link to={`/properties/${property.slug}`} className="block">
@@ -130,9 +134,12 @@ export const PropertyCard = memo(function PropertyCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: cardEntranceDelay(index) }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.4,
+        delay: reduceMotion ? 0 : cardEntranceDelay(index),
+      }}
       className="group"
       onMouseEnter={() => {
         setIsHovered(true);
@@ -172,7 +179,7 @@ export const PropertyCard = memo(function PropertyCard({
                 </span>
               )}
               {property.isNew && (
-                <span className="bg-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                <span className="bg-primary-strong rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                   New
                 </span>
               )}
@@ -210,13 +217,19 @@ export const PropertyCard = memo(function PropertyCard({
                         gallery.goTo(idx);
                       }}
                       aria-label={`Image ${idx + 1}`}
-                      className={cn(
-                        'h-1.5 rounded-full transition-all',
-                        idx === currentImageIndex
-                          ? 'w-4 bg-white'
-                          : 'w-1.5 bg-white/60 hover:bg-white/80'
-                      )}
-                    />
+                      /* 24px hit area (WCAG 2.2 target size); the visible dot stays 6px tall. */
+                      className="flex size-6 items-center justify-center"
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'h-1.5 rounded-full transition-all',
+                          idx === currentImageIndex
+                            ? 'w-4 bg-white'
+                            : 'w-1.5 bg-white/60 hover:bg-white/80'
+                        )}
+                      />
+                    </button>
                   ))}
                 </div>
               </>
@@ -225,7 +238,7 @@ export const PropertyCard = memo(function PropertyCard({
 
           <div className="p-4">
             <div className="mb-2 flex items-start justify-between gap-2">
-              <h3 className="text-foreground group-hover:text-primary line-clamp-1 text-sm font-semibold transition-colors lg:text-base">
+              <h3 className="text-foreground group-hover:text-brand-ink line-clamp-1 text-sm font-semibold transition-colors lg:text-base">
                 {property.name}
               </h3>
               {property.rating != null && property.reviews != null && (

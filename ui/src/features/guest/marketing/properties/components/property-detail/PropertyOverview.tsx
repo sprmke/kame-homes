@@ -128,7 +128,7 @@ export function PropertyOverview({
           animate={{ opacity: 1, y: 0 }}
           className="mb-2 flex flex-wrap items-center gap-2"
         >
-          <span className="bg-primary/10 text-primary @xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
+          <span className="bg-primary/10 text-brand-ink @xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
             <Home className="h-3.5 w-3.5" />
             {propertyTypeLabels[type] || type}
           </span>

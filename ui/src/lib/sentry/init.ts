@@ -1,4 +1,9 @@
-import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router-dom';
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
 
 import * as Sentry from '@sentry/react';
 
@@ -86,7 +91,9 @@ export function initSentry(): void {
       dsn,
       release: (import.meta.env.VITE_APP_VERSION as string | undefined) ?? undefined,
       environment: detectAnalyticsEnvironment(),
-      sendDefaultPii: false,
+      // `sendDefaultPii` was removed from the JS SDK options; PII is controlled by our own
+      // scrub list (beforeSend / beforeBreadcrumb) plus `user.id` being the only identity
+      // we ever set. See docs/architecture/observability.md.
       maxBreadcrumbs: 50,
       initialScope: {
         tags: { app_track: detectAppTrack(), runtime: 'browser' },
@@ -101,14 +108,21 @@ export function initSentry(): void {
           createRoutesFromChildren,
           matchRoutes,
         }),
-        Sentry.breadcrumbsIntegration({ console: false, dom: true, fetch: true, history: true }),
+        // Console breadcrumbs are not an option in SDK 11; DOM/fetch/history carry the
+        // useful trail without capturing arbitrary console output.
+        Sentry.breadcrumbsIntegration({ dom: true, fetch: true, history: true }),
         Sentry.dedupeIntegration(),
         Sentry.httpContextIntegration(),
       ],
       tracesSampleRate: resolveTracesSampleRate(),
       tracePropagationTargets: resolveTracePropagationTargets(),
       // Browser extensions throw constantly and nothing in them is ours to fix.
-      denyUrls: [/^chrome-extension:/, /^moz-extension:/, /^safari-extension:/, /^safari-web-extension:/],
+      denyUrls: [
+        /^chrome-extension:/,
+        /^moz-extension:/,
+        /^safari-extension:/,
+        /^safari-web-extension:/,
+      ],
       // Deliberately small. Grow it from real data, not from guesses.
       ignoreErrors: [
         'ResizeObserver loop limit exceeded',

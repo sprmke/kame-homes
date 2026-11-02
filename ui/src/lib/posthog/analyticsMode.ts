@@ -8,7 +8,9 @@ const STORAGE_KEY = 'gfm:analytics_mode';
  * start capturing events the stored setting was meant to suppress.
  */
 const VALID: AnalyticsMode[] = ['full', 'sampled', 'off'];
-const RETIRED: AnalyticsMode[] = ['errors_only'];
+/** Values a previous release could have stored. Typed loosely on purpose: they are not
+ * members of the union any more, so they can never be assigned, only compared. */
+const RETIRED: readonly string[] = ['errors_only'];
 
 function compiledDefault(): AnalyticsMode {
   return import.meta.env.PROD ? 'sampled' : 'full';
@@ -17,7 +19,7 @@ function compiledDefault(): AnalyticsMode {
 export function getAnalyticsMode(): AnalyticsMode {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)?.trim().toLowerCase();
-    if (raw && RETIRED.includes(raw as AnalyticsMode)) return 'off';
+    if (raw && RETIRED.includes(raw)) return 'off';
     if (raw && VALID.includes(raw as AnalyticsMode)) return raw as AnalyticsMode;
   } catch {
     // private mode

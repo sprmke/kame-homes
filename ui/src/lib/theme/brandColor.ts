@@ -10,6 +10,16 @@ import {
 /** WCAG AA for normal-size text. White labels sit on brand fills (buttons, badges, pills). */
 export const WHITE_TEXT_MIN_CONTRAST = 4.5;
 
+/**
+ * Brand-coloured *text* on the light canvas (`--background`, 220 18% 97%).
+ * Teal at the picker lightness is a fill colour; as 14-20px text it lands near 2.8:1.
+ * 4.8 leaves headroom for text that sits on a `bg-primary/10` tint, not the canvas.
+ */
+export const BRAND_TEXT_MIN_CONTRAST = 4.8;
+
+/** `--background` in the light theme (`hsl(220 18% 97%)`). */
+const LIGHT_CANVAS_LUMINANCE = 0.9247;
+
 function relativeLuminance({ r, g, b }: Rgb): number {
   const channel = (value: number) => {
     const c = value / 255;
@@ -34,6 +44,22 @@ export function textSafeLightness(h: number, s: number, l: number): number {
   const sR = Math.round(s);
   let safe = Math.round(l);
   while (safe > 0 && whiteTextContrast(hR, sR, safe) < WHITE_TEXT_MIN_CONTRAST) safe -= 1;
+  return Math.max(safe, 0);
+}
+
+/** Lowest lightness at which `hsl(h s% l%)` text reaches AA on the light canvas. */
+export function textInkLightness(h: number, s: number, l: number): number {
+  const hR = Math.round(h);
+  const sR = Math.round(s);
+  let safe = Math.round(l);
+  const contrastAt = (lightness: number) => {
+    const rgb = parseHexRgb(hslToHex(hR, sR, lightness));
+    if (!rgb) return 1;
+    const textLuminance = relativeLuminance(rgb);
+    const [hi, lo] = [LIGHT_CANVAS_LUMINANCE, textLuminance].sort((a, b) => b - a);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  while (safe > 0 && contrastAt(safe) < BRAND_TEXT_MIN_CONTRAST) safe -= 1;
   return Math.max(safe, 0);
 }
 
@@ -198,6 +224,7 @@ const DEFAULT_LIGHT_THEME: Record<string, string> = {
   '--primary': '168 65% 40%',
   '--primary-foreground': '0 0% 100%',
   '--primary-strong': '168 65% 31%',
+  '--brand-ink': '168 65% 26%',
   '--ring': '168 65% 40%',
   '--success': '168 65% 40%',
   '--info': '168 65% 46%',
@@ -225,6 +252,7 @@ const DEFAULT_DARK_THEME: Record<string, string> = {
   '--primary': '168 65% 45%',
   '--primary-foreground': '0 0% 100%',
   '--primary-strong': '168 65% 31%',
+  '--brand-ink': '168 65% 60%',
   '--ring': '168 65% 45%',
   '--success': '168 65% 45%',
   '--info': '168 65% 50%',
@@ -255,6 +283,12 @@ function generateBrandTheme(hex: string, isDark: boolean): Record<string, string
   const primary = hslString({ h, s, l });
   const primaryFg = '0 0% 100%';
   const primaryStrong = hslString({ h, s, l: textSafeLightness(h, s, l) });
+  // On dark themes the canvas is dark, so brand ink is a lighter step of the same hue.
+  const brandInk = hslString({
+    h,
+    s,
+    l: isDark ? clamp(l + 15, 0, 88) : textInkLightness(h, s, l),
+  });
   const brandGradient = buildTextSafeBrandGradientCss(h, s, l);
   const gradientFrom = hslString({ h, s, l: clamp(l + 4, 0, 100) });
   const gradientMid = primary;
@@ -288,6 +322,7 @@ function generateBrandTheme(hex: string, isDark: boolean): Record<string, string
     '--primary': primary,
     '--primary-foreground': primaryFg,
     '--primary-strong': primaryStrong,
+    '--brand-ink': brandInk,
     '--ring': primary,
     '--success': primary,
     '--info': hslString({ h, s, l: infoL }),

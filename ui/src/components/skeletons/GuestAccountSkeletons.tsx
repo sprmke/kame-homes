@@ -10,7 +10,7 @@ export function GuestProfileFormSkeleton({
 } = {}) {
   if (embedded) {
     return (
-      <div className={cn('space-y-4', className)} aria-busy="true" aria-label="Loading profile">
+      <div role="status" className={cn('space-y-4', className)} aria-busy="true" aria-label="Loading profile">
         <div className="flex justify-center px-1 pb-1 pt-2">
           <Skeleton className="size-24 rounded-full sm:size-28" />
         </div>
@@ -24,7 +24,7 @@ export function GuestProfileFormSkeleton({
   }
 
   return (
-    <div
+    <div role="status"
       className={cn('grid grid-cols-1 gap-6 sm:grid-cols-[auto,1fr] sm:gap-8', className)}
       aria-busy="true"
       aria-label="Loading profile"
@@ -59,7 +59,7 @@ export function GuestVoucherRowSkeleton() {
 
 export function GuestReviewsPageSkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading reviews">
+    <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading reviews">
       <Skeleton className="h-11 w-full rounded-lg" />
       <Skeleton className="h-28 w-full rounded-2xl" />
       <Skeleton className="h-28 w-full rounded-2xl" />
@@ -69,7 +69,7 @@ export function GuestReviewsPageSkeleton() {
 
 export function GuestVouchersPageSkeleton({ rows = 4 }: { rows?: number } = {}) {
   return (
-    <div
+    <div role="status"
       className="grid grid-cols-1 gap-2 sm:grid-cols-2"
       aria-busy="true"
       aria-label="Loading vouchers"

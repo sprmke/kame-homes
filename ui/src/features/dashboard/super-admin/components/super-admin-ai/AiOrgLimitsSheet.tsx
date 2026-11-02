@@ -64,7 +64,7 @@ export function AiOrgLimitsSheet({ orgId, onOpenChange }: AiOrgLimitsSheetProps)
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4 sm:px-0">
             {isLoading ? (
-              <div className="space-y-2" aria-label="Loading AI limits">
+              <div role="status" className="space-y-2" aria-label="Loading AI limits">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-8 w-full" />
                 ))}

@@ -89,18 +89,7 @@ function Row({
   children: ReactNode;
 }) {
   return (
-    <tr
-      role="button"
-      tabIndex={0}
-      className={adminTableRowClass(index)}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-    >
+    <tr className={adminTableRowClass(index)} onClick={onOpen}>
       {children}
     </tr>
   );
@@ -162,7 +151,16 @@ export function ReceivedReviewsTable({
           return (
             <Row key={review.id} index={index} onOpen={() => onOpen(review)}>
               <td className={adminTableCell.status}>
-                <GuestCell name={guestName} secondary={propertyName || stayRange} />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpen(review);
+                  }}
+                  className="focus-visible:ring-ring rounded text-left focus-visible:outline-none focus-visible:ring-2"
+                >
+                  <GuestCell name={guestName} secondary={propertyName || stayRange} />
+                </button>
               </td>
               {showProperty ? (
                 <td className={cn('hidden sm:table-cell', adminTableCell.body)}>
@@ -379,7 +377,16 @@ export function ToWriteReviewsTable({
               onOpen={() => (mayWrite ? onWrite(row) : undefined)}
             >
               <td className={adminTableCell.status}>
-                <GuestCell name={guestName} secondary={propertyName || stayRange} />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (mayWrite) onWrite(row);
+                  }}
+                  className="focus-visible:ring-ring rounded text-left focus-visible:outline-none focus-visible:ring-2"
+                >
+                  <GuestCell name={guestName} secondary={propertyName || stayRange} />
+                </button>
               </td>
               {showProperty ? (
                 <td className={cn('hidden sm:table-cell', adminTableCell.body)}>

@@ -1,3 +1,5 @@
+import type { BeforeSendFn, CaptureResult } from 'posthog-js';
+
 import { scrubUrl } from '@/lib/telemetry/scrub';
 
 /**
@@ -55,3 +57,11 @@ export function scrubPostHogEvent<T extends PostHogLikeEvent>(event: T | null): 
     return null;
   }
 }
+
+/**
+ * Adapter for the posthog-js option. `CaptureResult` is a class, so the tested function
+ * above stays generic and this is the single cast at the library boundary — rather than
+ * spreading `any` through the implementation or rebuilding CaptureResult objects in tests.
+ */
+export const postHogBeforeSend: BeforeSendFn = (captureResult) =>
+  scrubPostHogEvent(captureResult as unknown as PostHogLikeEvent) as CaptureResult | null;

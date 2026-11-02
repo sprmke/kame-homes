@@ -99,6 +99,8 @@ On **Supabase Cloud**, recurring invocations are implemented with **Postgres ext
 
 Official guide: [Scheduling Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions).
 
+**Hosted install gotcha (2026-11-02):** every cron migration is written to no-op when `pg_cron` is missing, so a project can show **all migrations applied with zero scheduled jobs**. On `fwor` that was true until the extension was installed by hand. Install and rebuild in one step with `scripts/migrate/legacy-to-mt-prod/sql/60-install-extensions-and-crons.sql` (creates `pg_cron` + `pg_net`, calls every `sync_*_cron_job()`), then check `select jobname, schedule, active from cron.job;`. The `V11 cron-extensions` invariant in `sql/90-verify.sql` now fails when the extensions are absent.
+
 Typical pattern (simplified from Supabase docs):
 
 - Store `https://<project-ref>.supabase.co` and your **`anon` key** (or another key your gateway accepts) in Vault.

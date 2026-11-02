@@ -134,7 +134,7 @@ export function ConversationHistoryList({
   let body;
   if (isLoading) {
     body = (
-      <div className="space-y-2 p-2" aria-busy="true" aria-label="Loading conversations">
+      <div role="status" className="space-y-2 p-2" aria-busy="true" aria-label="Loading conversations">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className={cn('w-full rounded-lg', rail ? 'h-9' : 'h-16 rounded-xl')} />
         ))}
