@@ -1,2 +1,4 @@
 anthropic>=0.39.0
 mcp>=1.1.0
+# Transitive via mcp's server extras; floored at the release that fixes the 2026 advisories.
+python-multipart>=0.0.31
