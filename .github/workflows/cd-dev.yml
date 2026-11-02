@@ -14,6 +14,10 @@ on:
     paths:
       - '.github/workflows/cd-dev.yml'
       - 'scripts/deploy/**'
+      # The deploy path sources the shared helpers from scripts/dev (linked-project
+      # classifier, migration-status, env parsing). A change there could silently break or
+      # unblock a deploy, so it has to run the pipeline that uses it.
+      - 'scripts/dev/**'
       - 'supabase/**'
 
 concurrency:
