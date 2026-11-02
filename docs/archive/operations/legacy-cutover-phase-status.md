@@ -26,6 +26,8 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                         |
 | **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
 
+- **Vercel Production branch is now `main`** (2026-11-03). Next push/merge to `main` builds Production automatically; `develop` continues to build Preview and deploy the backend. No more manual `vercel --prod`.
+
 **2026-11-03 operator completions:**
 - PMO notified of the new sender/approval address.
 - `dev.kamehomes.space` removed from Vercel, the Auth allow list, Turnstile and the Maps key; the host now returns 404.
