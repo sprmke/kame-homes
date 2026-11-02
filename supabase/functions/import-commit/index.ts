@@ -29,6 +29,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { occupiedStayNights } from '../_shared/utils.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -121,7 +122,7 @@ serveAuthenticated('import-commit', async (req) => {
   // Load and validate batch.
   const { data: batch, error: batchLoadError } = await supabase
     .from('import_batches')
-    .select('id, organization_id, property_id, status')
+    .select('id, organization_id, property_id, status, original_file_name')
     .eq('id', batchId)
     .maybeSingle();
 
@@ -279,6 +280,25 @@ serveAuthenticated('import-commit', async (req) => {
       targetId: access.propertyId,
       targetLabel: access.property?.name ?? null,
       metadata: { batch_id: batchId, count: inserted, skipped, failed: failed.length },
+    });
+
+    // One event per batch, matching the activity row. The OTA origin is not in the file, so
+    // `source` is the file kind; `mapping_ai_used` comes from the wizard, which knows whether
+    // the host ran AI mapping (the batch row does not persist that).
+    const fileName = String(
+      (batch as { original_file_name?: string | null }).original_file_name ?? ''
+    );
+    const extension = fileName.trim().toLowerCase().split('.').pop() ?? '';
+    await capturePostHogEvent('booking_imported', {
+      logPrefix: 'import-commit',
+      request: req,
+      distinctId: access.user.id,
+      groups: { organization: access.orgId, property: access.propertyId },
+      properties: {
+        count: inserted,
+        source: extension === 'xlsx' || extension === 'xls' ? extension : 'csv',
+        mapping_ai_used: body.mappingAiUsed === true,
+      },
     });
   }
 

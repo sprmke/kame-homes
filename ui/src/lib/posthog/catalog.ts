@@ -36,6 +36,8 @@ export const APP_ANALYTICS_EVENTS = [
   'booking_updated',
   'booking_workflow_cta_clicked',
   'booking_imported',
+  'import_started',
+  'import_mapping_confirmed',
   'booking_rescheduled',
   // Stay / money
   'sd_form_opened',
