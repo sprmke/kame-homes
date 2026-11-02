@@ -26,6 +26,7 @@ import {
   patchOpenPolotnoHighlighter,
   openPolotnoHighlighterEsbuildPlugin,
 } from './vite-plugins/patchOpenPolotnoHighlighter';
+import { resolveReleaseId } from './vite-plugins/releaseId';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -228,14 +229,19 @@ function gfmPwaPlugin(): Plugin[] {
 /** Monotonic build id (epoch seconds) — the PWA kill-switch compares against it. */
 const pwaBuildId = String(Math.floor(Date.now() / 1000));
 
-const posthogReleaseName =
-  process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
-  process.env.GITHUB_SHA?.trim() ||
-  `guest-form-management-ui@${pwaBuildId}`;
+/**
+ * The one release id, shared with the edge `APP_RELEASE` secret and the PostHog
+ * `app_release` property, so a Sentry issue, a PostHog event and an edge error from the
+ * same deploy all carry the same id. See `vite-plugins/releaseId.ts`.
+ */
+const appRelease = resolveReleaseId();
 
 export default defineConfig({
   define: {
     __PWA_BUILD_ID__: JSON.stringify(pwaBuildId),
+    // Read by the Sentry client and the super-admin env registry. Nothing in the Vercel or
+    // CI setup exports this into `import.meta.env` on its own.
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appRelease),
   },
   // Strip dev-only code from production output (production-readiness doc 02,
   // Phase 2.2). Deliberately does NOT drop console.log/warn/error — those are
@@ -266,7 +272,7 @@ export default defineConfig({
             projectId: process.env.POSTHOG_PROJECT_ID!,
             host: process.env.POSTHOG_HOST,
             sourcemaps: {
-              releaseName: posthogReleaseName,
+              releaseName: appRelease,
               deleteAfterUpload: true,
             },
           }),
