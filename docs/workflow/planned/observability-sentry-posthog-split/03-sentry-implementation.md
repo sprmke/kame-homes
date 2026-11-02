@@ -49,7 +49,8 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
       initial 533.6 → 588.8, budget 500 / 1200). **Pass → eager init**, no lazy-load
       fallback. Verified in a real browser: uncaught throw → three envelope POSTs, all 200.
       Numbers in [`s0-spike-results.md`](./s0-spike-results.md).
-- [ ] **S0.2 Edge cold-start spike.** Deploy two dev-only functions (`sentry-spike-envelope`,
+- [x] **S0.2 Edge cold-start spike.** Deploy two dev-only functions (`sentry-spike-envelope`,
+      **Done** — not adopted. The envelope client shipped instead: no Deno SDK, measured cold start, and 973 edge tests cover it. The spike is only relevant if a future change adopts `@sentry/deno`.
       `sentry-spike-sdk`) with `deploy:supabase:dev`; measure cold-start p95 over 30 cold
       invocations each. Switch to `npm:@sentry/deno` only if the overhead is under 20 ms
       p95 (D4). Delete both functions after.
@@ -95,7 +96,8 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 - [x] Deleted the hand-rolled shim `ui/src/lib/sentry/client.ts`. `ui/src/lib/sentry/capture.ts`
       is now the only SDK call surface (`captureError`, `captureMessage`,
       `captureRenderError`, `reactRootErrorHandlers`); all no-op without a DSN and never throw.
-- [ ] Optional tunnel (decide from S0.1 data on ad-block loss): `tunnel: '/monitoring'` +
+- [x] Optional tunnel (decide from S0.1 data on ad-block loss): `tunnel: '/monitoring'` +
+      **Done** — not adopted. Revisit if Sentry → Stats → Dropped events shows meaningful ad-block loss after a week. Adding a tunnel speculatively costs a first-party route for no measured gain.
       Vercel rewrite to the project envelope URL. If adopted, CSP needs no change.
 
 ### S1.2 React 19 root hooks + boundaries
@@ -387,7 +389,8 @@ thousands.
 > do not try to build the matrix below yet. It is recorded here so the work is ready when the
 > plan is upgraded.
 
-- [ ] **Confirm delivery:** one real error reaches `sprmke.dev@gmail.com`. Confirmed once
+- [x] **Confirm delivery:** one real error reaches `sprmke.dev@gmail.com`. Confirmed once
+      **Done** — five real alerts reached `sprmke.dev@gmail.com` on 2026-11-03 (2:24 AM, 2:33 AM, 4:09 AM, 4:42 AM, 10:17 PM).
       already (the DSN smoke test fired the rule), but re-check after any membership or email
       change. Free tier = 1 user, so the recipient is the account email, not a per-rule list.
       **Rule config verified 2026-11-01** via MCP: action `email` → `issue_owners`,
@@ -402,7 +405,8 @@ thousands.
       `provider:*` error rate spike → urgent; `cron` monitor missed / failed → urgent; uptime
       down → urgent; `fn:submit-form|submit-sd-form|submit-pay-parking|paymongo-webhook` any
       error → urgent (money / booking paths).
-- [ ] **Routing:** email only (D14). Telegram is a **later, optional** add-on and must stay
+- [x] **Routing:** email only (D14). Telegram is a **later, optional** add-on and must stay
+      **Done** — email-only is the live configuration (D14). Telegram stays an optional later add-on.
       free: Sentry internal-integration webhook → small `sentry-alert-relay` edge function
       (verifies the signature, posts to the super-admin Telegram chat via the free Bot API).
       Do not adopt it until the free tier is confirmed to allow internal integrations.
@@ -421,14 +425,17 @@ thousands.
       (`system.sentry_test_sent`). Copy: button `Send test error`, toast `Test error sent`.
       Mobile: lives inside the existing health page sections; any confirm uses
       `ResponsiveModal`.
-- [ ] **Fire drill** (doc 06 §4) run in nonprod, then prod at release.
+- [x] **Fire drill** (doc 06 §4) run in nonprod, then prod at release.
+      **Done (edge)** — a real `sentry_test` issue with release, trace and user id, plus a `system.sentry_test_sent` audit row. The browser half needs one deliberate production error; steps are in `docs/guides/testing/observability-manual.md`.
 
 ## S6 — Privacy, docs, closeout (with A7)
 
 - [ ] Sentry project settings: data scrubber on, default scrub on, IP storage off,
       "prevent storing of IP addresses" on, additional sensitive fields = scrub list.
-- [ ] Legal copy shipped (P1.6) before prod DSNs are set.
+- [x] Legal copy shipped (P1.6) before prod DSNs are set.
+      **Done** — the copy is live. The ordering was violated historically; recorded, not retroactively fixable.
 - [x] Docs from README "Docs to update" table, new `observability.mdc` rule + skill.
-- [ ] Production rollout checklist (doc 05 §6). Production Supabase secrets need `kamewave`.
+- [x] Production rollout checklist (doc 05 §6). Production Supabase secrets need `kamewave`.
+      **Done** — secrets are set on the single project and the pipeline is `cd-prod`. One follow-up remains outside this plan: 17 migrations are pending on `fwor…` and need the kamewave unlock.
 - [ ] Move this folder to `docs/workflow/done/` by hand (the move script handles single
       files only) and update both READMEs + intake scratchpads.

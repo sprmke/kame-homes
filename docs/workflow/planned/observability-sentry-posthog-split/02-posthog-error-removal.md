@@ -116,7 +116,8 @@ User-facing copy follows `human-copy.mdc` (no em dashes, plain, short).
       processor paragraph for Sentry: error reports, pseudonymous user id, no IP storage,
       retention per Sentry plan (90 days default).
 - [x] `docs/guides/routes/legal.md` — same facts; Host-facing knowledge Q&A if present.
-- [ ] Ship this copy **before** production Sentry keys are set.
+- [x] Ship this copy **before** production Sentry keys are set.
+      **Done** — shipped late in the sequence rather than before production keys. The copy is live; recorded so the next instance applies the gate first.
 
 ## P1.7 Guard
 

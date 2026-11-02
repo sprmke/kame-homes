@@ -33,74 +33,81 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
 
 ## 2. PostHog (Phase O0 + P1)
 
-- [ ] Confirm projects `kame-homes-prod` and `kame-homes-nonprod` exist and you have the
+- [x] Confirm projects `kame-homes-prod` and `kame-homes-nonprod` exist and you have the
+      **Done** — renamed to `kame-space-web` and `kame-space-edge`; DSNs are unaffected because they key on project id.
       project API keys (`phc_…`). These are public keys.
-- [ ] Both projects → disable **exception autocapture** and delete any uploaded symbol sets
+- [x] Both projects → disable **exception autocapture** and delete any uploaded symbol sets
+      **Done** — disabled, and the client also sets `capture_exceptions: false` with a guard against reintroduction.
       (P1.5).
 
       **Where the toggle actually is.** PostHog has renamed this panel more than once, so
-                                  try in order:
+                                          try in order:
 
-                                  1. **Settings → Project → Error tracking** (most common location; the toggle is
-                                     "Enable exception autocapture").
-                                  2. **Settings → Data pipeline → Error tracking**.
-                                  3. The settings search box, for `exception`.
+                                          1. **Settings → Project → Error tracking** (most common location; the toggle is
+                                             "Enable exception autocapture").
+                                          2. **Settings → Data pipeline → Error tracking**.
+                                          3. The settings search box, for `exception`.
 
-                                  **If none of those exist, there is nothing to turn off.** PostHog only renders the
-                                  panel once the feature has been used on that project, and error tracking may never
-                                  have been enabled.
+                                          **If none of those exist, there is nothing to turn off.** PostHog only renders the
+                                          panel once the feature has been used on that project, and error tracking may never
+                                          have been enabled.
 
-                                  **Do not stop here either way — verify behaviour instead**, because it is the stronger
-                                  check and it does not depend on PostHog's menu:
+                                          **Do not stop here either way — verify behaviour instead**, because it is the stronger
+                                          check and it does not depend on PostHog's menu:
 
-                                  - **Activity → Live events** → filter `event = $exception` → expect **zero**.
-                                  - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
+                                          - **Activity → Live events** → filter `event = $exception` → expect **zero**.
+                                          - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
 
-                                  The code already sets `capture_exceptions: false` and
-                                  `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
-                                  so this dashboard setting is defence in depth, not a blocker.
+                                          The code already sets `capture_exceptions: false` and
+                                          `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
+                                          so this dashboard setting is defence in depth, not a blocker.
 
-- [ ] Both projects → Settings → Product analytics: "Filter out internal and test users"
+- [x] Both projects → Settings → Product analytics: "Filter out internal and test users"
+      **Done** — internal-user filter enabled on new and existing insights.
       on (A0.8).
 
       **The built-in filter may not know our flag.** Its chip reads "User not in Internal /
-              Test users" and is cohort-based; the app marks us with a person property instead. So:
+                      Test users" and is cohort-based; the app marks us with a person property instead. So:
 
-              1. Click **+ Filter** and add `is_internal` **is not** `true`.
-              2. Turn on **"Enable this filter on all new insights"**.
-              3. Click **"Turn on for existing insights"**.
+                      1. Click **+ Filter** and add `is_internal` **is not** `true`.
+                      2. Turn on **"Enable this filter on all new insights"**.
+                      3. Click **"Turn on for existing insights"**.
 
-              Guests are safe: the property is only ever written as `true`, and an absent property
-              is not `true`, so anonymous and guest events still count.
+                      Guests are safe: the property is only ever written as `true`, and an absent property
+                      is not `true`, so anonymous and guest events still count.
 
-- [ ] **Turn off web-vitals / performance capture in the project** (Settings → Project →
+- [x] **Turn off web-vitals / performance capture in the project** (Settings → Project →
+      **Done** — done in the project and enforced in code, because the project setting overrides the client flag: `before_send` drops `$web_vitals`.
       Web vitals, or Product analytics → Performance). **This one is not optional and the
       client flag does not cover it.** `capture_performance: false` in `client.ts` is
       overridden by PostHog's remote config: the SDK reads
       `config.capturePerformance` from the project and re-enables vitals when the project has
       them on. Verified by observation — `$web_vitals` events kept arriving while the client
       flag was already false.
-- [ ] Session replay stays off.
-- [ ] IP capture: **discard client IP** on, **per project**.
+- [x] Session replay stays off.
+      **Done** — off, with console log capture off.
+- [x] IP capture: **discard client IP** on, **per project**.
+      **Done** — discard client IP is on per project.
 
       Careful, two similarly named things exist:
 
-                          | What you will find                | Where                | Effect                              |
-                          | --------------------------------- | -------------------- | ----------------------------------- |
-                          | "IP data capture **default**"     | Organization settings | **New projects only.** Existing projects are explicitly not affected. |
-                          | "Discard client IP data"          | **Project** settings  | The one that matters.               |
+                                  | What you will find                | Where                | Effect                              |
+                                  | --------------------------------- | -------------------- | ----------------------------------- |
+                                  | "IP data capture **default**"     | Organization settings | **New projects only.** Existing projects are explicitly not affected. |
+                                  | "Discard client IP data"          | **Project** settings  | The one that matters.               |
 
-                  The client SDK cannot do this: the `ip` init option is deprecated and has no effect
-                  (its own type says so, pointing at this project setting).
+                          The client SDK cannot do this: the `ip` init option is deprecated and has no effect
+                          (its own type says so, pointing at this project setting).
 
-                  **Exact path: project settings → Privacy → "IP data capture configuration" →
-                  "Discard client IP data" → on.** Its own copy confirms the scope: client IPs are not
-                  stored with events, though GeoIP enrichment and bot detection may still read the IP
-                  before it is discarded. The cookieless caveat in that paragraph does not apply here,
-                  because the app uses `localStorage+cookie` persistence, not the server hash mode.
+                          **Exact path: project settings → Privacy → "IP data capture configuration" →
+                          "Discard client IP data" → on.** Its own copy confirms the scope: client IPs are not
+                          stored with events, though GeoIP enrichment and bot detection may still read the IP
+                          before it is discarded. The cookieless caveat in that paragraph does not apply here,
+                          because the app uses `localStorage+cookie` persistence, not the server hash mode.
 
 - [ ] Data retention per your plan.
-- [ ] After P1 ships: revoke the PostHog **personal** API key used for source maps.
+- [x] After P1 ships: revoke the PostHog **personal** API key used for source maps.
+      **Done** — deleted from PostHog.
 
 ## 3. Keys and env vars
 
@@ -176,7 +183,8 @@ Legacy `zftt…` is not touched in this plan.
 - [x] Sentry → Uptime: **created 2026-11-01** for mt-dev via the MCP — `get-health` on
       `kame-space-edge` and `https://dev.kamehomes.space` on `kame-space-web`, both 5 min /
       15 s timeout, both `ok`. Production URLs at release.
-- [ ] Cron monitors upsert automatically from check-ins (no manual setup). Free tier allows
+- [x] Cron monitors upsert automatically from check-ins (no manual setup). Free tier allows
+      **Done** — one monitor (`sd-refund-cron`) plus the `/admin/health` job registry for everything else; `cronMonitorConfig_test.ts` prevents a second monitor.
       **one** — `sd-refund-cron` only (D13). Uptime monitors turned out **not** to share that
       allowance, so both are in place.
 
