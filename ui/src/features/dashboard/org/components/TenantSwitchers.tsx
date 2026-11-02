@@ -57,7 +57,7 @@ import { cn } from '@/lib/utils';
 
 function TenantSwitcherListSkeleton({ variant }: { variant: 'menu' | 'sheet' }) {
   return (
-    <div
+    <div role="status"
       className={cn(
         'min-w-0 space-y-1 overflow-hidden px-1 py-1',
         variant === 'sheet' ? 'max-h-[65vh]' : 'max-h-80'
@@ -514,8 +514,9 @@ export function SidebarTenantScope({
         onPrimary &&
           'text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground'
       )}
-      aria-label="Switch workspace"
     >
+      {/* WCAG 2.5.3: the accessible name contains every visible token (initials + names). */}
+      <span className="sr-only">Switch workspace: </span>
       {scopeReadout}
       <ChevronDown
         className={cn(

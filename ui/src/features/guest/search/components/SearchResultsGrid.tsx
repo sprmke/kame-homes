@@ -68,7 +68,7 @@ function CategoryHeading({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-primary hover:text-primary/80 min-h-[44px] shrink-0 cursor-pointer text-sm font-semibold underline-offset-4 hover:underline"
+          className="text-brand-ink hover:text-brand-ink/80 min-h-[44px] shrink-0 cursor-pointer text-sm font-semibold underline-offset-4 hover:underline"
         >
           See all
         </button>

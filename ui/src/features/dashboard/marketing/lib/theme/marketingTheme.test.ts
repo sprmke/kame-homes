@@ -131,8 +131,18 @@ describe('resolveMarketingTheme', () => {
     const resolved = resolveMarketingTheme(awkward);
     expect(contrastRatio(resolved.readableInk, resolved.surface)).toBeGreaterThanOrEqual(7);
     expect(contrastRatio(resolved.muted, resolved.surface)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(resolved.onPrimary, resolved.primary)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(resolved.onPrimary, resolved.primary)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(resolved.onAccent, resolved.accent)).toBeGreaterThanOrEqual(4.5);
     expect(marketingThemeContrastIssues(awkward).length).toBeGreaterThan(0);
+  });
+
+  it('keeps on-colors at AA for a mid-tone accent (axe #1c83d9 regression)', () => {
+    const midBlue: MarketingThemeTokens = {
+      ...base,
+      palette: { ...base.palette, accent: '#1c83d9' },
+    };
+    const resolved = resolveMarketingTheme(midBlue);
+    expect(contrastRatio(resolved.onAccent, resolved.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('flags nothing for the default theme', () => {

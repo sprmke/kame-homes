@@ -133,13 +133,19 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
                         gallery.goTo(idx);
                       }}
                       aria-label={`Image ${idx + 1}`}
-                      className={cn(
-                        'h-1.5 rounded-full transition-all',
-                        idx === currentImageIndex
-                          ? 'w-4 bg-white'
-                          : 'w-1.5 bg-white/60 hover:bg-white/80'
-                      )}
-                    />
+                      /* 24px hit area (WCAG 2.2 target size); the visible dot stays 6px tall. */
+                      className="flex size-6 items-center justify-center"
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'h-1.5 rounded-full transition-all',
+                          idx === currentImageIndex
+                            ? 'w-4 bg-white'
+                            : 'w-1.5 bg-white/60 hover:bg-white/80'
+                        )}
+                      />
+                    </button>
                   ))}
                   {property.images.length > 5 && (
                     <span className="text-xs text-white/80">+{property.images.length - 5}</span>
@@ -159,7 +165,7 @@ export function PropertyListItem({ property, index = 0 }: PropertyListItemProps)
                     {property.type}
                   </span>
                 </div>
-                <h3 className="text-foreground group-hover:text-primary text-base font-semibold transition-colors md:text-lg">
+                <h3 className="text-foreground group-hover:text-brand-ink text-base font-semibold transition-colors md:text-lg">
                   {property.name}
                 </h3>
               </div>

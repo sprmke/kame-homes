@@ -169,7 +169,7 @@ export function OrgPropertiesPerformanceCard({
           ) : (
             <Link
               to={viewListingsHref}
-              className="text-primary hover:bg-primary/10 inline-flex min-h-[44px] items-center rounded-lg px-2 text-sm font-semibold transition-colors"
+              className="text-brand-ink hover:bg-primary/10 inline-flex min-h-[44px] items-center rounded-lg px-2 text-sm font-semibold transition-colors"
             >
               View
             </Link>

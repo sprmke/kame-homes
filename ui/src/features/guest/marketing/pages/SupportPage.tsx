@@ -38,7 +38,7 @@ const guestFaqs: MarketingPublicFaqItem[] = [
         given. Otherwise email{' '}
         <a
           href={`mailto:${PLATFORM_CONTACT_EMAIL}`}
-          className="text-primary font-medium hover:underline"
+          className="text-brand-ink font-medium hover:underline"
         >
           {PLATFORM_CONTACT_EMAIL}
         </a>{' '}
@@ -54,7 +54,7 @@ const hostFaqs: MarketingPublicFaqItem[] = [
     answer: (
       <>
         Open{' '}
-        <Link to="/for-hosts" className="text-primary font-medium hover:underline">
+        <Link to="/for-hosts" className="text-brand-ink font-medium hover:underline">
           For Hosts
         </Link>
         , create an account, and set up your organization and properties. Team invites and
@@ -72,7 +72,7 @@ const hostFaqs: MarketingPublicFaqItem[] = [
     answer: (
       <>
         See{' '}
-        <Link to="/for-hosts/pricing" className="text-primary font-medium hover:underline">
+        <Link to="/for-hosts/pricing" className="text-brand-ink font-medium hover:underline">
           host pricing
         </Link>
         —free for one property, with upgrades from the dashboard when you add listings, parking, or
@@ -92,7 +92,7 @@ export function SupportPage() {
         description={
           <>
             Short answers for the booking workflow you see in the product. Still stuck?{' '}
-            <Link to="/contact" className="text-primary font-medium hover:underline">
+            <Link to="/contact" className="text-brand-ink font-medium hover:underline">
               Contact us
             </Link>
             .
@@ -116,7 +116,7 @@ export function SupportPage() {
               Email{' '}
               <a
                 href={`mailto:${PLATFORM_CONTACT_EMAIL}`}
-                className="text-primary font-medium hover:underline"
+                className="text-brand-ink font-medium hover:underline"
               >
                 {PLATFORM_CONTACT_EMAIL}
               </a>{' '}
@@ -129,7 +129,7 @@ export function SupportPage() {
                 <Link to="/contact">Contact</Link>
               </Button>
               <Button
-                className="bg-primary hover:bg-primary/90 min-h-[44px] rounded-full text-white"
+                className="bg-primary-strong hover:bg-primary/90 min-h-[44px] rounded-full text-white"
                 asChild
               >
                 <Link to="/for-hosts">

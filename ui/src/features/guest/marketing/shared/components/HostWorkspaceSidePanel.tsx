@@ -41,7 +41,7 @@ export function HostWorkspaceSidePanel({ variant, className }: HostWorkspaceSide
 
   return (
     <aside
-      className={cn('bg-primary relative hidden min-h-screen flex-col lg:flex', className)}
+      className={cn('bg-primary-strong relative hidden min-h-screen flex-col lg:flex', className)}
       aria-label="Host workspace preview"
     >
       <Link
@@ -60,7 +60,7 @@ export function HostWorkspaceSidePanel({ variant, className }: HostWorkspaceSide
             <h1 className="text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl xl:text-3xl">
               {content.title}
             </h1>
-            <p className="text-base leading-relaxed text-white/80 sm:text-lg">
+            <p className="text-base leading-relaxed text-white sm:text-lg">
               {content.description}
             </p>
           </div>

@@ -170,7 +170,7 @@ export function TeamMembersTab({
                 />
               </div>
               <Select value={filterRole} onValueChange={onFilterRoleChange}>
-                <SelectTrigger className="h-8 w-full shrink-0 px-2.5 text-xs sm:w-[136px]">
+                <SelectTrigger aria-label="Filter by role" className="h-8 w-full shrink-0 px-2.5 text-xs sm:w-[136px]">
                   <Filter className="mr-1.5 size-3.5 shrink-0" aria-hidden />
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>

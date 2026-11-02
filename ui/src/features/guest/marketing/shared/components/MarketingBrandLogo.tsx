@@ -53,7 +53,7 @@ export function MarketingBrandLogo({
           ) : (
             <>
               {wordmark.primary}
-              {wordmark.accent ? <span className="text-primary">{wordmark.accent}</span> : null}
+              {wordmark.accent ? <span className="text-brand-ink">{wordmark.accent}</span> : null}
             </>
           )}
         </span>

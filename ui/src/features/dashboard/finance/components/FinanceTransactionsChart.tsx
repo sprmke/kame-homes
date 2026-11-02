@@ -156,7 +156,7 @@ function CashFlowTooltip({ active, payload, label }: CashFlowTooltipProps) {
 
 function CashFlowChartSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading cash flow chart">
+    <div role="status" aria-busy="true" aria-label="Loading cash flow chart">
       <Skeleton className={`${CHART_HEIGHT_CLASS} w-full rounded-xl`} />
       <div className="mt-4 flex justify-center gap-6">
         <Skeleton className="h-4 w-16" />
@@ -168,7 +168,7 @@ function CashFlowChartSkeleton() {
 
 function BreakdownChartSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex min-h-0 flex-1 flex-col"
       aria-busy="true"
       aria-label="Loading breakdown chart"

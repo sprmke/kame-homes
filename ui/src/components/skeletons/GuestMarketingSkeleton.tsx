@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 /** Properties / parkings browse under a development (hero + toolbar + grid). */
 export function PublicListingBrowseSkeleton() {
   return (
-    <div
+    <div role="status"
       className="bg-background min-h-screen pb-16"
       aria-busy="true"
       aria-label="Loading listings"
@@ -31,7 +31,7 @@ export function PublicListingBrowseSkeleton() {
 /** Development detail / sub-pages: hero band + content sections. */
 export function DevelopmentDetailPageSkeleton() {
   return (
-    <div className="min-w-0 space-y-6 pb-10" aria-busy="true" aria-label="Loading development">
+    <div role="status" className="min-w-0 space-y-6 pb-10" aria-busy="true" aria-label="Loading development">
       <Skeleton className="mx-auto aspect-[21/9] w-full max-w-6xl rounded-2xl sm:aspect-[2.4/1]" />
       <div className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6">
         <div className="space-y-2">
@@ -52,7 +52,7 @@ export function DevelopmentDetailPageSkeleton() {
 
 export function GuestAccountGateSkeleton() {
   return (
-    <div
+    <div role="status"
       className="mx-auto w-full max-w-lg space-y-4 p-4"
       aria-busy="true"
       aria-label="Loading account"
@@ -73,7 +73,7 @@ export function GuestAccountGateSkeleton() {
 
 export function PropertyChatPageSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex min-h-[50dvh] flex-col gap-3"
       aria-busy="true"
       aria-label="Loading messages"

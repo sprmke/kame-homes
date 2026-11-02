@@ -210,7 +210,7 @@ export function AiLimitsTab() {
       ) : null}
 
       {isLoading && !data ? (
-        <div className="space-y-2" aria-label="Loading organizations">
+        <div role="status" className="space-y-2" aria-label="Loading organizations">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-14 w-full" />
           ))}

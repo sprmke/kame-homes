@@ -45,7 +45,6 @@ function ThemeCard({
         type="button"
         onClick={onOpen}
         className="focus-visible:ring-ring block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset"
-        aria-label={`Open ${entry.name}`}
       >
         <ThemeShowcase
           tokens={entry.tokens}
@@ -56,9 +55,11 @@ function ThemeCard({
         />
         <span className="flex min-h-[52px] flex-col justify-center px-3 py-2 pr-11">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-medium">{entry.name}</span>
+            <span className="truncate text-sm font-medium">
+              {entry.name}
+            </span>
             {active ? (
-              <span className="bg-primary/10 text-primary shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+              <span className="bg-primary/10 text-brand-ink shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                 Open now
               </span>
             ) : null}

@@ -13,7 +13,7 @@ export function SuperAdminAdminListBodySkeleton({
   tableRows?: number;
 } = {}) {
   return (
-    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading">
+    <div role="status" className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading">
       {metricCount > 0 ? (
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
           {Array.from({ length: metricCount }).map((_, i) => (
@@ -58,7 +58,7 @@ export function SuperAdminOverviewBodySkeleton({
   metricCount = 10,
 }: { metricCount?: number } = {}) {
   return (
-    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading overview">
+    <div role="status" className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading overview">
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
         {Array.from({ length: metricCount }).map((_, i) => (
           <AdminMetricCardSkeleton key={i} style={{ opacity: 1 - (i % 4) * 0.05 }} />
@@ -79,7 +79,7 @@ export function SuperAdminOverviewBodySkeleton({
 
 export function SuperAdminAuditBodySkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading audit log">
+    <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading audit log">
       <Skeleton className="h-10 w-full max-w-md rounded-lg" />
       <ListRowsSkeleton rows={8} />
     </div>

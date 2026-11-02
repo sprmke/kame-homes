@@ -15,7 +15,7 @@ function PlanDiscountPill({ label, className }: { label: string; className?: str
   return (
     <span
       className={cn(
-        'bg-primary/10 text-primary shrink-0 whitespace-nowrap rounded-full px-1.5 font-semibold tabular-nums leading-4',
+        'bg-primary/10 text-brand-ink shrink-0 whitespace-nowrap rounded-full px-1.5 font-semibold tabular-nums leading-4',
         className
       )}
     >

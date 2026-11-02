@@ -193,7 +193,7 @@ export function OrgInviteMemberDialog({
                     );
                   }}
                 >
-                  <SelectTrigger id="org-invite-role" className="h-10">
+                  <SelectTrigger id="org-invite-role" aria-label="Role" className="h-10">
                     <SelectValue>
                       {getRoleLabelForScope('org', form.roleId, customRoles)}
                     </SelectValue>

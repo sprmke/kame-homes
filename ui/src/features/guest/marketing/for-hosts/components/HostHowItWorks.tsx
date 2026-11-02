@@ -36,7 +36,7 @@ export function HostHowItWorks() {
           viewport={{ once: true, margin: '-80px' }}
           className="mx-auto mb-6 max-w-2xl text-center md:mb-14"
         >
-          <p className="public-eyebrow text-primary mb-2.5 md:mb-3">How it works</p>
+          <p className="public-eyebrow text-brand-ink mb-2.5 md:mb-3">How it works</p>
           <h2 className="text-foreground text-2xl font-bold leading-tight tracking-tight md:text-4xl">
             Set it once. Every stay follows the same path.
           </h2>
@@ -56,10 +56,10 @@ export function HostHowItWorks() {
               transition={{ delay: reduceMotion ? 0 : index * 0.08 }}
               className="border-border bg-card public-card-pad relative rounded-2xl border shadow-sm"
             >
-              <div className="bg-primary text-primary-foreground relative z-10 mb-4 flex size-11 items-center justify-center rounded-xl shadow-md lg:mb-8 lg:size-16 lg:rounded-2xl lg:shadow-lg">
+              <div className="bg-primary-strong text-primary-foreground relative z-10 mb-4 flex size-11 items-center justify-center rounded-xl shadow-md lg:mb-8 lg:size-16 lg:rounded-2xl lg:shadow-lg">
                 <step.icon className="size-5 lg:size-6" aria-hidden />
               </div>
-              <p className="text-primary mb-2 text-xs font-black tracking-[0.16em]">
+              <p className="text-brand-ink mb-2 text-xs font-black tracking-[0.16em]">
                 {step.number}
               </p>
               <h3 className="public-card-title text-foreground font-bold">{step.title}</h3>

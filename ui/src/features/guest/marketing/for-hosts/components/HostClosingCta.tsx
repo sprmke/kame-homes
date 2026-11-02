@@ -18,7 +18,7 @@ export function HostClosingCta() {
           Start free on one listing. See{' '}
           <Link
             to="/for-hosts/pricing"
-            className="text-primary font-medium hover:underline"
+            className="text-brand-ink font-medium hover:underline"
             onClick={() => captureAppEvent('for_hosts_cta_clicked', { cta: 'pricing_inline' })}
           >
             pricing

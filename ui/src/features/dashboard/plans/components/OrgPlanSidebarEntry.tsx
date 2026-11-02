@@ -89,9 +89,6 @@ export function OrgPlanSidebarEntry({
   const needsAttention = status?.tone === 'destructive';
   const isFree = currentPlan?.isDefault ?? planCode === 'free';
   const chipLabel = `${planName} plan`;
-  const triggerLabel = needsAttention
-    ? `${chipLabel}, ${status?.label ?? 'needs attention'}. View features`
-    : `${chipLabel}. View features`;
 
   const goToPlans = (tab: PlansTab) => {
     setOpen(false);
@@ -212,7 +209,11 @@ export function OrgPlanSidebarEntry({
           type="button"
           onClick={() => setOpen(true)}
           title={needsAttention && status ? `${chipLabel}, ${status.label}` : chipLabel}
-          aria-label={triggerLabel}
+          aria-label={
+            needsAttention && status
+              ? `${chipLabel}, ${status.label}. View features`
+              : `${chipLabel}. View features`
+          }
           aria-haspopup="dialog"
           className={cn(
             'focus-visible:ring-sidebar-ring relative mx-auto flex size-10 shrink-0 items-center justify-center rounded-xl transition-[filter] hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 dark:hover:brightness-125',
@@ -238,7 +239,6 @@ export function OrgPlanSidebarEntry({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={triggerLabel}
         aria-haspopup="dialog"
         className={cn(
           surface,
@@ -248,6 +248,8 @@ export function OrgPlanSidebarEntry({
         )}
       >
         <PlanTierIconWell planCode={planCode} size="sm" className="size-8 rounded-lg" />
+        {/* WCAG 2.5.3: name keeps the visible plan + status text; the affordance is sr-only. */}
+        <span className="sr-only">View features. </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-foreground truncate text-[13px] font-semibold leading-tight">
             {chipLabel}

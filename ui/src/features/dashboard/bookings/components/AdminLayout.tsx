@@ -864,7 +864,7 @@ function AdminMobileTopBar({ superAdmin }: { superAdmin: boolean }) {
 /** Middle-section placeholder while the AI mode chunk loads (header and footer stay mounted). */
 function AiRailBodyFallback() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-busy="true" aria-label="Loading">
+    <div role="status" className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-busy="true" aria-label="Loading">
       <Skeleton className="h-11 w-full rounded-xl" />
       {[0, 1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-8 w-full rounded-lg" />
@@ -875,7 +875,7 @@ function AiRailBodyFallback() {
 
 function AiChatFallback() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading assistant">
+    <div role="status" className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading assistant">
       <AiAssistantPanelSkeleton />
     </div>
   );
@@ -1053,7 +1053,7 @@ function AdminSidebarNav({
       >
         <div ref={containerRef} className="relative space-y-1.5">
           {navPillBounds ? (
-            <SlidingActivePill bounds={navPillBounds} className="bg-primary rounded-xl shadow-sm" />
+            <SlidingActivePill bounds={navPillBounds} className="bg-primary-strong rounded-xl shadow-sm" />
           ) : null}
           {navSections.map((section) => {
             const showHeading =
@@ -1333,7 +1333,6 @@ function AdminProfileFooter({
             onClick={() => setProfileOpen((o) => !o)}
             aria-haspopup="menu"
             aria-expanded={profileOpen}
-            aria-label={`Account menu, ${displayName}`}
             className={cn(
               'relative z-10 flex min-h-[44px] w-full min-w-0 items-center rounded-xl border transition-all duration-150',
               'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
@@ -1349,9 +1348,12 @@ function AdminProfileFooter({
               className="ring-background h-8 w-8 shadow-sm ring-2"
               fallbackClassName="text-xs"
             />
+            {/* WCAG 2.5.3: keep the visible name in the accessible name. */}
+            <span className="sr-only">Account menu</span>
             {!collapsed && (
               <>
-                <div className="min-w-0 flex-1 text-left">
+                <span className="sr-only">{displayName}</span>
+                <div className="min-w-0 flex-1 text-left" aria-hidden>
                   <p className="text-foreground truncate text-sm font-semibold leading-tight">
                     {displayName}
                   </p>

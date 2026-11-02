@@ -35,6 +35,7 @@ type TriggerProps = {
   onClick: (event: React.MouseEvent) => void;
   'aria-expanded': boolean;
   'aria-haspopup': 'dialog' | 'menu';
+  'aria-label'?: string;
 };
 
 type Props = {
@@ -80,6 +81,8 @@ export function ResponsiveOverflowMenu({
     onClick: openSheet,
     'aria-expanded': sheetOpen,
     'aria-haspopup': isMobileLayout ? 'dialog' : 'menu',
+    /* A custom icon-only trigger still needs a name (axe button-name). */
+    'aria-label': label,
   };
 
   const defaultTrigger = (

@@ -269,7 +269,7 @@ export function OrgListingAssignmentPicker({
                           }
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 w-[8.5rem] text-xs">
+                          <SelectTrigger aria-label="Listing role template" className="h-8 w-[8.5rem] text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -347,7 +347,7 @@ export function OrgListingAssignmentPicker({
                           onValueChange={(value) => updateParkingRole(parking.id, value)}
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-8 w-[8.5rem] text-xs">
+                          <SelectTrigger aria-label="Listing role template" className="h-8 w-[8.5rem] text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

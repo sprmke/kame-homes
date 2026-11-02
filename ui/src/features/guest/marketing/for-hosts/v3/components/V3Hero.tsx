@@ -123,7 +123,7 @@ function GuestReplyCard() {
         >
           <img src={TURTLE_IDLE_POSTER_SRC} alt="" className="h-full w-full object-cover" />
         </span>
-        <p className="bg-primary w-fit rounded-2xl rounded-bl-md px-3 py-2 text-xs text-white">
+        <p className="bg-primary-strong w-fit rounded-2xl rounded-bl-md px-3 py-2 text-xs text-white">
           {answer}
         </p>
       </div>
