@@ -155,19 +155,27 @@ every connection for the scope), and trip sections report the shortcut key.
 
 ## A3 — Parking, billing, plans
 
+**Complete (2026-11-03).** Parking funnel, broadcast, plan checkout and plan changes emit.
+Two notes: `parking_checkout_started` is emitted on the edge (the amount exists only
+server-side, so the browser cannot bucket it), and `parking_booking_started` reports
+`duration_kind: nightly` because that is the only pricing unit the catalog has.
+`org_plan_checkout_completed` now fires from the payment webhook, not the browser (F-22),
+and `org_plan_changed` covers upgrade, downgrade and admin assignment. A lapse is not a
+separate emergency path: it is the downgrade that follows it.
+
 | Event                                                   | Src | Status | Key properties                                                     | Trigger                                                                    |
 | ------------------------------------------------------- | --- | ------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `parking_booking_started`                               | B   | wire   | `parking_id`, `duration_kind` (hourly, daily, monthly)             | Pay-parking form start                                                     |
-| `parking_checkout_started`                              | B   | wire   | `amount_bucket`                                                    | PayMongo redirect                                                          |
-| `parking_payment_completed`                             | E   | wire   | `amount_bucket`, `method`                                          | `paymongo-webhook` paid (inside dedupe)                                    |
-| `parking_payment_failed`                                | E   | wire   | `reason` enum, `request_id`                                        | Webhook failed / expired                                                   |
-| `parking_request_submitted` / `_approved` / `_declined` | E   | new    | `request_kind`                                                     | Parking request edge fns                                                   |
-| `parking_broadcast_sent` / `_claimed`                   | E   | new    | `recipient_count_bucket`                                           |                                                                            |
+| `parking_booking_started`                               | B   | live   | `parking_id`, `duration_kind` (nightly: the only pricing unit)     | Pay-parking form start                                                     |
+| `parking_checkout_started`                              | E   | live   | `amount_bucket` (emitted where the server computes the charge)     | PayMongo redirect                                                          |
+| `parking_payment_completed`                             | E   | live   | `amount_bucket`, `method`                                          | `paymongo-webhook` paid (inside dedupe)                                    |
+| `parking_payment_failed`                                | E   | live   | `reason` enum, `request_id`                                        | Webhook failed / expired                                                   |
+| `parking_request_submitted` / `_approved` / `_declined` | E   | live   | `request_kind`                                                     | Parking request edge fns                                                   |
+| `parking_broadcast_sent` / `_claimed`                   | E   | live   | `recipient_count_bucket`                                           |                                                                            |
 | `org_plan_checkout_started` / `_cancelled` / `_failed`  | B   | live   | `plan_id`, `interval`                                              |                                                                            |
-| `org_plan_checkout_completed`                           | E   | move   | `plan_id`, `interval`, `is_upgrade`                                | Move from browser to `paymongo-webhook` (F-22)                             |
-| `org_plan_changed`                                      | E   | new    | `from_plan`, `to_plan`, `cause` (upgrade, downgrade, lapse, admin) | `subscriptionOrchestrator`, `apply-org-plan-downgrade`, `platform-billing` |
+| `org_plan_checkout_completed`                           | E   | live   | `plan_id`, `interval`, `is_upgrade`                                | Move from browser to `paymongo-webhook` (F-22)                             |
+| `org_plan_changed`                                      | E   | live   | `from_plan`, `to_plan`, `cause` (upgrade, downgrade, lapse, admin) | `subscriptionOrchestrator`, `apply-org-plan-downgrade`, `platform-billing` |
 | `upgrade_modal_shown` / `_cta_clicked`                  | B   | live   | `feature_key`, `required_tier`                                     |                                                                            |
-| `feature_gate_hit`                                      | B   | new    | `feature_key`, `plan_tier`                                         | `useFeatureGate` deny render (once per session per key)                    |
+| `feature_gate_hit`                                      | B   | live   | `feature_key`, `plan_tier`                                         | `useFeatureGate` deny render (once per session per key)                    |
 
 ## A4 — Host modules, AI, marketing, content
 

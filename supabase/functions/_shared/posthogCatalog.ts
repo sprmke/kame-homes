@@ -32,6 +32,14 @@ export const POSTHOG_EVENTS = [
   'review_reported',
   'review_removed',
   'parking_payment_completed',
+  'parking_checkout_started',
+  'parking_request_submitted',
+  'parking_request_approved',
+  'parking_request_declined',
+  'parking_broadcast_sent',
+  'parking_broadcast_claimed',
+  'org_plan_changed',
+  'org_plan_checkout_completed',
   'parking_payment_failed',
 ] as const;
 

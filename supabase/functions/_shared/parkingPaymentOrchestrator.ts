@@ -9,6 +9,8 @@
  */
 
 import { createServiceClient, type ParkingRow } from './orgAuth.ts';
+import { amountBucketPhp } from './analyticsBuckets.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import { createNotification } from './notificationService.ts';
 import { createPaymongoPaymentLink, phpToCentavos } from './paymongoClient.ts';
 import { loadParkingPricing } from './parkingPricing.ts';
@@ -232,6 +234,12 @@ export async function createParkingPaymentTransaction(
       .from('parking_payment_transactions')
       .update({ provider_reference: link.id, checkout_url: link.checkoutUrl })
       .eq('id', inserted.id);
+    await capturePostHogEvent('parking_checkout_started', {
+      logPrefix: 'parking-payment',
+      distinctId: userId,
+      groups: { organization: String(parking.organization_id), parking: parkingId },
+      properties: { amount_bucket: amountBucketPhp(amounts.guestChargeTotal) },
+    });
     return { checkoutUrl: link.checkoutUrl };
   } catch (err) {
     await supabase
@@ -499,6 +507,19 @@ export async function fulfillParkingPayment(input: {
       })
       .eq('id', input.transactionId);
 
+    await capturePostHogEvent('parking_payment_completed', {
+      logPrefix: 'parking-payment',
+      groups: {
+        organization: String(txn.organization_id ?? confirmed.organization_id ?? ''),
+        parking: parkingId,
+      },
+      properties: {
+        amount_bucket: amountBucketPhp(Number(txn.guest_charge_total ?? 0)),
+        method: input.paymentMethodType ?? 'unknown',
+      },
+      system: true,
+    });
+
     const guestEmail = String(confirmed.guest_email ?? '').trim();
     const parkingId = String(confirmed.parking_id ?? '');
     if (guestEmail && parkingId) {
@@ -644,6 +665,18 @@ export async function handleParkingPaymentWebhookEvent(
     const txn = await resolveParkingTransactionFromWebhookPayload(payload);
     if (!txn || txn.status !== 'pending') return { handled: false };
     await markParkingPaymentFailed(txn.id, 'Payment failed', payload);
+    await capturePostHogEvent('parking_payment_failed', {
+      logPrefix: 'parking-payment',
+      groups: {
+        organization: String(txn.organization_id ?? ''),
+        ...(txn.parking_id ? { parking: String(txn.parking_id) } : {}),
+      },
+      properties: {
+        reason: 'payment_failed',
+        amount_bucket: amountBucketPhp(Number(txn.guest_charge_total ?? 0)),
+      },
+      system: true,
+    });
     return { handled: true, action: 'marked_parking_payment_failed' };
   }
 

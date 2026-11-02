@@ -18,6 +18,7 @@ import {
   type PlanFeatures,
 } from './planFeatures.ts';
 import { jsonUpgradeHook } from './httpResponse.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import type { TelegramAssetScope } from './telegramAssetScope.ts';
 import { upsertAiPlatformOrgSettings } from './aiUsageService.ts';
 import {
@@ -1606,6 +1607,21 @@ export async function applyOrgPlanDowngrade(
   const fromPlanName = live.planName;
   const toPlanName = String(targetPlan.name);
 
+  // Emitted here rather than in the HTTP handler so every downgrade path reports the same
+  // pair, including a future system-driven one. Cause is always 'downgrade': upgrades go
+  // through checkout and report from the payment webhook.
+  const reportDowngrade = () =>
+    capturePostHogEvent('org_plan_changed', {
+      logPrefix: 'plan-entitlements',
+      distinctId: changedBy ?? undefined,
+      groups: { organization: organizationId },
+      properties: {
+        from_plan: live.planId,
+        to_plan: targetPlanId,
+        cause: 'downgrade',
+      },
+    });
+
   if (toFree) {
     await cancelOrgSubscriptionToFree({
       orgSubscriptionId: live.id,
@@ -1624,6 +1640,7 @@ export async function applyOrgPlanDowngrade(
       toPlanName,
       toFree: true,
     });
+    await reportDowngrade();
     return { orgSubscriptionId: live.id, toFree: true, planName: toPlanName };
   }
 
@@ -1638,6 +1655,7 @@ export async function applyOrgPlanDowngrade(
     toPlanName,
     toFree: false,
   });
+  await reportDowngrade();
   return { orgSubscriptionId: live.id, toFree: false, planName: toPlanName };
 }
 

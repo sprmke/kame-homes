@@ -17,6 +17,7 @@ import {
   ParkingBroadcastActionError,
 } from '../_shared/parkingBroadcastActions.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('decline-parking-booking', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -33,6 +34,13 @@ serveAuthenticated('decline-parking-booking', async (req) => {
   try {
     const result = await declineParkingBooking(parkingId, bookingId, {
       actor: buildActorContext('dashboard', { parkingAccess }, req),
+    });
+    await capturePostHogEvent('parking_request_declined', {
+      logPrefix: 'decline-parking-booking',
+      request: req,
+      distinctId: parkingAccess.user.id,
+      groups: { organization: parkingAccess.parking.organization_id, parking: parkingId },
+      properties: { request_kind: 'marketplace' },
     });
     return jsonSuccess(req, result);
   } catch (err) {
