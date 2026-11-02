@@ -35,6 +35,24 @@ describe('handleSeoRequest', () => {
     expect(await res!.text()).toContain('Sitemap: https://kamehomes.space/sitemap.xml');
   });
 
+  it('keeps production hosts indexable even when SEO_INDEXABLE_HOSTS omits them', async () => {
+    const res = await handleSeoRequest(
+      new Request('https://kamespace.com/robots.txt', { headers: { 'user-agent': BROWSER } }),
+      { ...deps(vi.fn()), indexableHosts: ['legacy.example.com'] },
+      shell
+    );
+    const txt = await res!.text();
+    expect(txt).toContain('Allow: /');
+    expect(txt).toContain('Sitemap: https://kamespace.com/sitemap.xml');
+    // The env list still adds hosts.
+    const legacy = await handleSeoRequest(
+      new Request('https://legacy.example.com/robots.txt', { headers: { 'user-agent': BROWSER } }),
+      { ...deps(vi.fn()), indexableHosts: ['legacy.example.com'] },
+      shell
+    );
+    expect(await legacy!.text()).toContain('Allow: /');
+  });
+
   it('proxies sitemap.xml (with part param) and passes through on upstream failure', async () => {
     const fetchOk = vi.fn().mockResolvedValue(new Response('<urlset/>', { status: 200 }));
     const res = await handleSeoRequest(req('/sitemap.xml?part=2', BROWSER), deps(fetchOk), shell);

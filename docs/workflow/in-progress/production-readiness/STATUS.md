@@ -15,8 +15,9 @@ One page answering "what is done, what is in progress, what is pending". Detail 
 [`LEDGER.md`](./LEDGER.md) (one row per item), the phase plan
 ([`production-readiness-launch-audit.md`](./production-readiness-launch-audit.md)) and `evidence/`.
 
-**Snapshot:** `develop` `2224ef7c` · hosted dev `fworvijbrwpyngycotbz` (functions + migrations in
-sync, `get-health` ok) · CI green · `CD Dev` green end-to-end (first since 2026-09-23) ·
+**Snapshot:** `develop` `e8e7a7f3` · **hosted `fworvijbrwpyngycotbz` is production** (since
+2026-10-27; `kamespace.com` and `dev.kamehomes.space` share it, so hosted writes need
+`kamewave`) · CI green · `CD Dev` green end-to-end ·
 `ci:quality` green · `@ci` E2E 301 passed / 9 skipped (marketing studio, PR-133) / 0 failed.
 
 ## Phase scoreboard
@@ -52,6 +53,14 @@ sync, `get-health` ok) · CI green · `CD Dev` green end-to-end (first since 202
 1. **Phase 6 tooling executed for the first time** — gitleaks (2877 commits, 0 real secrets, allowlist committed), semgrep (2 findings, both sanitized), OSV + `bun audit` triaged, **ZAP baseline on dev (0 fail / 11 warn / 57 pass)**. Anti-clickjacking fixed with `X-Frame-Options: SAMEORIGIN` (+ guard).
 2. **Accessibility gate now automated and green** — new axe sweep over 35 routes in `@ci`; fixed brand-text contrast (derived `--brand-ink`), muted ink, every white-on-brand fill, theme preview AA, target sizes, table-row semantics, unnamed controls, skeleton ARIA, reduced-motion.
 3. **Shopping list made explicit** — new ledger rows PR-140…PR-145 (see below).
+
+## Production audit (2026-11-02)
+
+`fwor…` is production and the live site runs from `main`. First live audit found: robots.txt blocking
+all crawling (fixed in code on `main`), sitemap pointing at the preview host (fixed via the production
+`PUBLIC_GUEST_APP_ORIGIN` secret), missing anti-clickjacking header (fixed in code), and **production
+UI stale relative to `main`** because the Vercel project builds `main` as Preview only (operator).
+Detail: [`evidence/production-audit-2026-11-02.md`](./evidence/production-audit-2026-11-02.md).
 
 ## Next actions, in order
 
