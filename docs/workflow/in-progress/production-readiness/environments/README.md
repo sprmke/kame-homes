@@ -10,14 +10,19 @@ launch_gate: F
 
 # Test environments
 
-Phase 4 of the launch audit. Destructive tests: local Docker first, then hosted **dev**. Never prod.
+Phase 4 of the launch audit. Destructive tests: **local Docker first**. Hosted writes need the `kamewave` unlock (see below).
 
-| Env         | UI                            | API / DB                          | Safe for                                              |
-| ----------- | ----------------------------- | --------------------------------- | ----------------------------------------------------- |
-| Local       | `./dev.sh`                    | Docker Supabase `127.0.0.1:54321` | Full reset, adversarial, load seed                    |
-| Hosted dev  | `https://dev.kamehomes.space` | `fworvijbrwpyngycotbz`            | Smoke, live auth, PayMongo **sandbox**, restore drill |
-| Legacy prod | `guest-form-management-app`   | `zftt…`                           | **Read-only** without `kamewave`                      |
-| mt-prod     | not created                   | —                                 | Cutover only                                          |
+| Env                 | UI                            | API / DB               | Safe for                                                               |
+| ------------------- | ----------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| Local               | `./dev.sh`                    | `127.0.0.1:54321`      | Full reset, adversarial, seeds, load tests (no unlock needed)          |
+| **Production (mt)** | `https://kamespace.com`       | `fworvijbrwpyngycotbz` | Read-only probes by default; writes/seeds/deploys only with `kamewave` |
+| Staging UI          | `https://dev.kamehomes.space` | `fwor…` (**same DB**)  | UI review only — not a separate backend                                |
+| Legacy production   | `guest-form-management-app`   | `zftt…`                | Read-only only; no new work                                            |
+
+**2026-11-02 correction:** `fwor…` became MULTI_TENANT_PROD on 2026-10-27
+(`docs/architecture/deployment.md`). There is **no separate staging backend**, so
+`dev.kamehomes.space` shares production data and the `CD Dev` workflow deploys to
+production. Treat every hosted write as a production write.
 
 ## GitHub Environment `development` (2026-10-19)
 

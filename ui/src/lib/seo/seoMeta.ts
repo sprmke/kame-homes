@@ -231,6 +231,11 @@ export const ROBOTS_DISALLOW = [
 
 /** Hosts that may be indexed. Anything else (dev, Vercel previews) gets `Disallow: /`. */
 export const DEFAULT_INDEXABLE_HOSTS: readonly string[] = [
+  // Current production domain (kamespace rebrand).
+  'kamespace.com',
+  'www.kamespace.com',
+  'app.kamespace.com',
+  // Legacy production domain, kept while it still serves the app.
   'app.kamehomes.space',
   'kamehomes.space',
   'www.kamehomes.space',
