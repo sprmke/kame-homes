@@ -37,8 +37,8 @@ Confirm on fwor: `pgcrypto`, `pg_trgm`, `pg_cron`, `pg_net`, `plpgsql` (see Phas
 
 - [ ] Site URL: `https://kamespace.com` (keep `dev.kamehomes.space` until T0; **2026-11-01** allow list includes kamespace + legacy apex)
 - [x] Redirect URLs: **`app`**, **`dev`**, **`kamespace.com`** verified **2026-11-01** (`verify-fwor-auth-redirects.mjs`)
-- [ ] Site URL → `https://kamespace.com` at T0 (currently `dev.kamehomes.space`)
-- [ ] Google provider: **prod** OAuth client (not legacy client if rotating at cutover)
+- [x] Site URL → `https://kamespace.com` (2026-11-02)
+- [ ] Google provider: **prod** OAuth client (optional for T0; the current client already points at the Supabase callback)
 
 ### Dev vs prod URL (same data, different domains)
 
@@ -74,7 +74,9 @@ Confirm on fwor: `pgcrypto`, `pg_trgm`, `pg_cron`, `pg_net`, `plpgsql` (see Phas
 - [x] Secrets bootstrapped **2026-11-01** — `bootstrap-github-production-env.sh` (`SUPABASE_PROJECT_REF`, legacy ref, token, DB password, anon)
 - [x] `CUTOVER_ENABLED=true` repo variable (verified 2026-11-02) — CD Prod deploys on `main`
 
-## DNS records to add (Namecheap, zone `kamespace.com`)
+## DNS records — DONE (2026-11-02)
+
+All records below are live and verified: Vercel serves `https://kamespace.com` (current `develop` build) and `https://www.kamespace.com` 308s to the apex; Resend reports both domains **verified**.
 
 Vercel project `kame-homes` already has `kamespace.com` and `www.kamespace.com` (308 → apex) attached and verified. The apex still resolves to the Namecheap parking IP, so Production will not serve until these records exist.
 

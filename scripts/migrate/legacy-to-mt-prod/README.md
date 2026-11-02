@@ -27,6 +27,7 @@ sql/50-cleanup-guest-auth.sql      post-restore: drop legacy guest sign-ins
 sql/60-install-extensions-and-crons.sql  pg_cron/pg_net + 26 jobs, outbound parked
 sql/61-activate-all-crons.sql      T0: activate every parked job
 sql/70-clean-prod-test-data.sql    remove readiness-QA orgs/users from a prod project
+sql/75-restore-public-grants.sql    re-assert PostgREST grants after a restore
 ```
 
 `sql.run` usage: `PSQLVAR_TARGET_HOST=<mt-prod host> ./migrate.sh sql.run <file-name-without-.sql>` (preprocesses `__LEGACY_PROJECT_REF__`/`__TARGET_HOST__`/`__NEW_ORIGIN__` placeholders and runs the file on `$TARGET_DB_NAME`).

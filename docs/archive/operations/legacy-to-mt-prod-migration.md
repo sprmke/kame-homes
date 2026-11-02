@@ -54,7 +54,7 @@ Production baseline (2026-11-02, `hosted-prod-verify` + live queries):
 3. `inventory.ts` against legacy at freeze time → `backups/migration/inventory-<freeze>.json`.
 4. `migrate.sh dump <run>` → `restore` → `upgrade` → `sql.run 30-rewrite-storage-urls` (`PSQLVAR_TARGET_HOST=fwor…`) → `sql.run 40-derived-rebuild` on the local rehearsal DB.
 5. `KAMEWAVE=kamewave pushLocalRehearsalToHosted.sh backups/migration/<run>` — truncates `public`/`auth`/`storage` on `fwor` and restores the rehearsal data. This also clears any fixture rows and sets `platform_settings.migration_cutover_at`.
-6. `sql/20-shape-tenant-org.sql` on `fwor`, then the storage sync (`syncHostedStorageFromLegacy.ts copy-booking-paths` + `copy-legacy-buckets` + `verify-booking-paths`).
+6. `sql/20-shape-tenant-org.sql` on `fwor`, then **`sql/75-restore-public-grants.sql`** (a restore can leave tables with RLS but no PostgREST grants; that silently broke `processed_emails` on 2026-11-02), then the storage sync (`syncHostedStorageFromLegacy.ts copy-booking-paths` + `copy-legacy-buckets` + `verify-booking-paths`).
 7. `CUTOVER_FREEZE_PAIR=1 LEGACY_INVENTORY=… bun scripts/migrate/legacy-to-mt-prod/hosted-prod-verify.ts` — counts must match before anything is switched.
 8. Deploy functions (`cd-prod.yml`), then go call → `sql/61-activate-all-crons.sql` and remove the legacy maintenance redirect.
 

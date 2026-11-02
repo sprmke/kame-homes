@@ -26,7 +26,7 @@ Legacy takes bookings until the freeze, so the Oct 31 copy is not final. At T0:
 2. Freeze legacy `/form`, then `sql/05-legacy-freeze.sql`.
 3. `migrate.sh dump` → `restore` → `upgrade` → `sql.run 30-rewrite-storage-urls` → `sql.run 40-derived-rebuild` locally.
 4. `KAMEWAVE=kamewave pushLocalRehearsalToHosted.sh backups/migration/<run>`.
-5. `sql/20-shape-tenant-org.sql` + `syncHostedStorageFromLegacy.ts` (copy + verify).
+5. `sql/20-shape-tenant-org.sql`, `sql/75-restore-public-grants.sql`, then `syncHostedStorageFromLegacy.ts` (copy + verify).
 6. `CUTOVER_FREEZE_PAIR=1 … hosted-prod-verify.ts` must pass before DNS moves.
 
 Skip 3–5 only if the freeze dump shows zero drift (counts + `max(created_at)` + `max(updated_at)`).

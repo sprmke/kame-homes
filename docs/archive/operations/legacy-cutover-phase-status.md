@@ -26,6 +26,8 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                                                              |
 | **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                                                                                            |
 
+**2026-11-02 email + grants:** `kamespace.com` and `inbound.kamespace.com` are **verified** in Resend. A test message from `mail@kamespace.com` delivered; a signed inbound event and a real Resend webhook both wrote `processed_emails`; a bounce wrote `email_suppressions`. Root cause of the earlier silent inbound failure: a restore left 9 public tables with **RLS but no grants** for `service_role`. Fixed and captured in `sql/75-restore-public-grants.sql` (run after every reload).
+
 **Phase 6:** edge secrets synced **2026-11-01**; CD Prod deploy green; Resend domains created (`kamespace.com`, `inbound.kamespace.com`). Open: DNS records, prod Google OAuth, PayMongo live mode. Operator summary: [`migration-module-status-summary.md`](./migration-module-status-summary.md).
 
 **Phase 6+** T0 freeze pair: `CUTOVER_FREEZE_PAIR=1` + fresh legacy inventory.
