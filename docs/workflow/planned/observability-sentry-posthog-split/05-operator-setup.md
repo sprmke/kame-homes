@@ -35,8 +35,31 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
 
 - [ ] Confirm projects `kame-homes-prod` and `kame-homes-nonprod` exist and you have the
       project API keys (`phc_…`). These are public keys.
-- [ ] Both projects → Settings → Error tracking: **disable** exception autocapture and
-      delete any uploaded symbol sets (P1.5).
+- [ ] Both projects → disable **exception autocapture** and delete any uploaded symbol sets
+      (P1.5).
+
+      **Where the toggle actually is.** PostHog has renamed this panel more than once, so
+                      try in order:
+
+                      1. **Settings → Project → Error tracking** (most common location; the toggle is
+                         "Enable exception autocapture").
+                      2. **Settings → Data pipeline → Error tracking**.
+                      3. The settings search box, for `exception`.
+
+                      **If none of those exist, there is nothing to turn off.** PostHog only renders the
+                      panel once the feature has been used on that project, and error tracking may never
+                      have been enabled.
+
+                      **Do not stop here either way — verify behaviour instead**, because it is the stronger
+                      check and it does not depend on PostHog's menu:
+
+                      - **Activity → Live events** → filter `event = $exception` → expect **zero**.
+                      - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
+
+                      The code already sets `capture_exceptions: false` and
+                      `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
+                      so this dashboard setting is defence in depth, not a blocker.
+
 - [ ] Both projects → Settings → Product analytics: "Filter out internal and test users"
       on; add filter `is_internal = true` (A0.8).
 - [ ] Session replay stays off.
