@@ -66,6 +66,10 @@ Rules:
 2. Sentry cron monitors are capped at **one** on the current plan and it is taken
    (`sd-refund-cron`). Another cron gets no Sentry monitor; `cronMonitorConfig_test.ts` fails
    if a second starts sending check-ins.
+3. If the job sweeps a batch, call `reportCronPartialFailure` from `_shared/sentryCron.ts`
+   after the loop with `attempted` and `failed`. It sends one sampled `warning` tagged
+   `outcome: partial_failure` with `failed_count`; the endpoint still answers `ok`. Never
+   turn a partial miss into a 500 — the next tick retries the items.
 
 ## Verify
 

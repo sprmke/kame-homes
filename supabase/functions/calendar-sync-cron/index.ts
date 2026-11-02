@@ -31,6 +31,7 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 import { isFeatureAvailable, featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
+import { reportCronPartialFailure } from '../_shared/sentryCron.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GLOBAL_BATCH = 100;
@@ -198,6 +199,12 @@ serve(async (req) => {
     }
 
     console.log('[calendar-sync-cron]', JSON.stringify({ runId, ...summary }));
+    await reportCronPartialFailure({
+      cron: 'calendar-sync-cron',
+      attempted: summary.feedsProcessed + summary.errors,
+      failed: summary.errors,
+      extra: { run_id: runId, skipped_no_entitlement: summary.skippedNoEntitlement },
+    });
     return json(req, { success: true, scoped: false, runId, ...summary });
   } catch (err) {
     if (err instanceof Response) return err;

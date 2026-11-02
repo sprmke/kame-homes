@@ -91,8 +91,14 @@ the response path.
 3. Decide the fault path. If the new code can throw, it must reach a choke point above.
    A swallowed failure needs an explicit `captureSentryException` with a provider or
    side-effect tag.
-4. If it schedules work, give the cron a monitor (`serveCronPost` `cron` option, phase S3).
-5. Mark the row N/A with a reason if the surface genuinely has neither.
+4. If it schedules work, register it in `_shared/systemHealth/jobsRegistry.ts` so
+   `/admin/health` shows last run and last status. Sentry cron monitors are capped at one on
+   the free tier (`sd-refund-cron`); every other job is covered by the registry.
+5. If the job is a batch and some items can fail while the run still succeeds, call
+   `_shared/sentryCron.ts#reportCronPartialFailure` after the loop. One sampled `warning`
+   per run with `failed_count` / `attempted_count` — without it, "3 of 40 failed" looks
+   exactly like a clean sweep.
+6. Mark the row N/A with a reason if the surface genuinely has neither.
 
 ## Do not
 

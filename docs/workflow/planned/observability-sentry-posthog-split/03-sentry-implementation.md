@@ -321,10 +321,21 @@ thousands.
       `superhost-assessment-cron`, `telegram-*-cron` (5), `voice-receptionist-reaper`,
       `push-fanout`. They are covered by `SCHEDULED_JOBS`; mark each N/A-for-Sentry in the PR.
       **At plan upgrade:** flip them on by passing `cron` — the wrapper already supports it.
-- [ ] Pure-SQL `pg_cron` jobs (no edge function): list them; add them to `SCHEDULED_JOBS`
+- [x] Pure-SQL `pg_cron` jobs (no edge function): list them; add them to `SCHEDULED_JOBS`
       rather than Sentry, or mark N/A.
-- [ ] A cron that succeeds with partial failures (e.g. 3 of 40 calendars failed) reports
+      **Done** — exactly one: `ai-data-retention-nightly` (`20261316123050_ai_llm_hardening.sql`),
+      a plain `DELETE`. The registry already separates it: `evaluateJobs` puts every job whose
+      command has no `/functions/v1/<fn>` path into `sqlOnlyJobs`, which
+      `super-admin-system-health` returns and `/admin/health` renders under _SQL-only jobs_.
+      A pure-SQL job has no isolate to check in from, so a Sentry monitor would need a new
+      heartbeat endpoint for one nightly delete — not worth the surface.
+- [x] A cron that succeeds with partial failures (e.g. 3 of 40 calendars failed) reports
       `ok` plus one `warning` summary event with `metadata.failed_count`.
+      **Done** — `_shared/sentryCron.ts#reportCronPartialFailure` sends one sampled warning
+      tagged `cron` + `outcome: partial_failure`, fingerprinted `cron_partial_failure/<cron>`,
+      with `failed_count` / `attempted_count`. Wired into `calendar-sync-cron`, the only job
+      that tallies per-item failures; its response still answers 200 + `success: true`.
+      Covered by two tests in `_shared/sentryCron_test.ts`.
 
 ### S3.2 Webhooks
 
