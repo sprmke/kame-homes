@@ -1163,8 +1163,6 @@ verify_jwt = false
 [functions.notifications-mark-read]
 verify_jwt = false
 
-[functions.notification-preferences]
-verify_jwt = false
 
 # Web Push (PWA). subscribe/unsubscribe do their own auth (serveAuthenticated);
 # push-fanout is secret-gated (X-Push-Fanout-Secret) and called by the
