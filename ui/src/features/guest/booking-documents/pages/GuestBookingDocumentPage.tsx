@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchGuestBookingDocument } from '@/features/guest/booking-documents/lib/api';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
 const NOT_AVAILABLE_MESSAGE = 'This link is not available.';
@@ -41,7 +42,11 @@ export function GuestBookingDocumentPage() {
     let cancelled = false;
     void fetchGuestBookingDocument(propertySlug, token, doc)
       .then((data) => {
-        if (!cancelled) window.location.replace(data.url);
+        if (cancelled) return;
+        // A guest opening their approved document: an outcome, useful for "are documents
+        // actually being read before arrival". `document_kind` only, never the token or URL.
+        captureAppEvent('guest_document_opened', { document_kind: doc });
+        window.location.replace(data.url);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
