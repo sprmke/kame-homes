@@ -156,3 +156,38 @@ export async function fetchPublicHttp(
 
   throw new UnsafeOutboundUrlError('Too many redirects', 'too_many_redirects');
 }
+
+/**
+ * Fetch a URL that may point at our own Supabase project (public storage asset)
+ * or at a third party. First-party origins are trusted as-is — they are often
+ * `http://127.0.0.1:54321` locally, which the private-host rules intentionally
+ * reject — everything else goes through {@link fetchPublicHttp}.
+ */
+export async function fetchFirstPartyOrPublic(
+  raw: string,
+  firstPartyOrigins: string[],
+  init: RequestInit = {},
+  options: FetchPublicHttpOptions = {}
+): Promise<Response> {
+  let origin = '';
+  try {
+    origin = new URL(raw.trim()).origin;
+  } catch {
+    throw new UnsafeOutboundUrlError('Enter a valid URL', 'bad_url');
+  }
+  if (firstPartyOrigins.includes(origin)) {
+    return await fetch(raw.trim(), { ...init, redirect: 'manual' });
+  }
+  return await fetchPublicHttp(raw, init, options);
+}
+
+/** Origins that belong to this Supabase project (public asset storage). */
+export function firstPartySupabaseOrigins(): string[] {
+  const raw = (Deno.env.get('SUPABASE_URL') ?? '').trim();
+  if (!raw) return [];
+  try {
+    return [new URL(raw).origin];
+  } catch {
+    return [];
+  }
+}

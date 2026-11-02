@@ -16,6 +16,7 @@ import {
 } from './emailService.ts';
 import { DatabaseService } from './databaseService.ts';
 import { parseStorageUrl } from './receiptValidationService.ts';
+import { fetchPublicHttp } from './safeOutboundUrl.ts';
 import {
   rawPropertyAutomationEnabled,
   type PropertyAutomationToggleKey,
@@ -78,7 +79,8 @@ async function downloadPdfBytes(url: string): Promise<Uint8Array | null> {
     return new Uint8Array(await data.arrayBuffer());
   }
   try {
-    const res = await fetch(url);
+    // SSRF: stored URLs are host-written but revalidate the host + redirects.
+    const res = await fetchPublicHttp(url, {}, { httpsOnly: true, maxHops: 3 });
     if (!res.ok) return null;
     return new Uint8Array(await res.arrayBuffer());
   } catch (err) {

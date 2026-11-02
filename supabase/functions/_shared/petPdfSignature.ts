@@ -12,6 +12,7 @@ import {
   type PDFSignature,
 } from 'https://esm.sh/pdf-lib@1.17.1';
 import { formatGafUnitOwnerPrintedName, setGafPdfTextField } from './gafPdfSignature.ts';
+import { fetchFirstPartyOrPublic, firstPartySupabaseOrigins } from './safeOutboundUrl.ts';
 
 const PET_PDF_FIELD_UNIT_OWNER_SIGNATURE = 'unitOwnerSignature';
 const PET_PDF_FIELD_UNIT_OWNER_SIGNATURE_NAME = 'unitOwnerSignatureName';
@@ -77,7 +78,8 @@ async function drawSignatureInFormField(
 
   let bytes: Uint8Array;
   try {
-    const res = await fetch(signatureUrl);
+    // SSRF: signature URL is host-configured, so validate host + redirects.
+    const res = await fetchFirstPartyOrPublic(signatureUrl, firstPartySupabaseOrigins(), {}, { maxHops: 3 });
     if (!res.ok) {
       console.warn(`[petPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`);
       return;
