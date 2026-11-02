@@ -177,7 +177,7 @@ run_db_push() {
   # for the linked project"). `--linked` is not a flag this CLI accepts. Without `--remote`
   # a deploy pushes migrations at 127.0.0.1:54322: a no-op on a CI runner, and the wrong
   # database on a developer machine that then reports a successful deploy.
-  local -a push_args=(db push --remote)
+  local -a push_args=(db push --remote --yes)
   if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
     push_args+=(--password "$SUPABASE_DB_PASSWORD")
   fi
