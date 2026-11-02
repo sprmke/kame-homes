@@ -41,11 +41,12 @@ if (isPostHogEnabled) {
       maskTextSelector: '[data-ph-mask], input, textarea',
     },
     ...(supabaseFunctionsHost ? { tracing_headers: [supabaseFunctionsHost] } : {}),
-    capture_exceptions: {
-      capture_unhandled_errors: true,
-      capture_unhandled_rejections: true,
-      capture_console_errors: false,
-    },
+    // PostHog is analytics only. Sentry owns every error, and having both capture the same
+    // exception produced two histories that disagreed about the same incident.
+    capture_exceptions: false,
+    // Web vitals and network timing belong to Sentry tracing; two sources would be two
+    // versions of the truth.
+    capture_performance: false,
     loaded: (ph) => {
       ph.register({
         environment: detectAnalyticsEnvironment(),

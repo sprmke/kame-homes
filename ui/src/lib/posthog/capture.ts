@@ -22,13 +22,3 @@ export function captureAppEvent(
   }
 }
 
-export function captureAppException(error: unknown, properties?: Record<string, unknown>): void {
-  if (!isPostHogEnabled) return;
-  try {
-    const err = error instanceof Error ? error : new Error(String(error));
-    const extra = properties ? sanitizeAnalyticsProperties(properties) : {};
-    posthog.captureException(err, extra);
-  } catch {
-    // ignore
-  }
-}

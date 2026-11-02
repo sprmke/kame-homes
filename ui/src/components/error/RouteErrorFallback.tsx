@@ -4,7 +4,6 @@ import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
 import { RuntimeErrorFallback } from '@/components/error/RuntimeErrorFallback';
 import { isChunkLoadError, reloadForChunkError } from '@/lib/chunkReload';
-import { captureAppException } from '@/lib/posthog/capture';
 import { captureRenderError } from '@/lib/sentry/capture';
 
 function toError(error: unknown): Error {
@@ -32,7 +31,6 @@ export function RouteErrorFallback() {
     const isNotFound = isRouteErrorResponse(routeError) && routeError.status === 404;
     console.error('[RouteErrorFallback]', error);
     if (isNotFound) return;
-    captureAppException(error, { source: 'route-error-element' });
     const eventId = captureRenderError(error, null);
     if (eventId) setReference(eventId);
   }, [routeError]);

@@ -56,6 +56,10 @@ export const APP_ANALYTICS_EVENTS = [
   'meta_inbox_connected',
   'meta_inbox_disconnected',
   'marketing_caption_generated',
+  'ai_studio_sample_viewed',
+  'ai_studio_sample_applied',
+  'ai_studio_sample_cleared',
+  'ai_studio_generate_started',
   'marketing_post_published',
   'marketing_publish_failed',
   'ai_assistant_turn_completed',
@@ -109,9 +113,9 @@ export const APP_ANALYTICS_EVENTS = [
   'pwa_sync_failed',
   'pwa_update_applied',
   'pwa_kill_switch',
+  'pwa_launch_fallback',
+  'pwa_offline_state',
   'media_optimized',
-  // Reliability
-  'edge_request_failed',
 ] as const;
 
 export type AppAnalyticsEventName = (typeof APP_ANALYTICS_EVENTS)[number];

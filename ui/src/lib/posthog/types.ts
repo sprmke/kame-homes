@@ -17,7 +17,7 @@ export type AnalyticsSurface =
 
 export type AnalyticsPlanTier = 'free' | 'starter' | 'growth' | 'pro' | 'managed';
 
-export type AnalyticsMode = 'full' | 'sampled' | 'errors_only' | 'off';
+export type AnalyticsMode = 'full' | 'sampled' | 'off';
 
 export type AnalyticsScope = {
   orgId?: string;

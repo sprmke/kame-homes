@@ -2,7 +2,13 @@ import type { AnalyticsMode } from '@/lib/posthog/types';
 
 const STORAGE_KEY = 'gfm:analytics_mode';
 
-const VALID: AnalyticsMode[] = ['full', 'sampled', 'errors_only', 'off'];
+/**
+ * `errors_only` was removed with the PostHog exception channel. A browser that still has it
+ * in localStorage reads as `off` rather than silently falling back to `full`, which would
+ * start capturing events the stored setting was meant to suppress.
+ */
+const VALID: AnalyticsMode[] = ['full', 'sampled', 'off'];
+const RETIRED: AnalyticsMode[] = ['errors_only'];
 
 function compiledDefault(): AnalyticsMode {
   return import.meta.env.PROD ? 'sampled' : 'full';
@@ -11,6 +17,7 @@ function compiledDefault(): AnalyticsMode {
 export function getAnalyticsMode(): AnalyticsMode {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)?.trim().toLowerCase();
+    if (raw && RETIRED.includes(raw as AnalyticsMode)) return 'off';
     if (raw && VALID.includes(raw as AnalyticsMode)) return raw as AnalyticsMode;
   } catch {
     // private mode
