@@ -55,14 +55,17 @@ defines the full event matrix per surface (A1–A5) and the insights built on it
       **Done** — `runAfterResponse`, with a 3s bound kept inside the background task.
       `runAfterResponse` (`_shared/backgroundTask.ts`) instead of awaiting; keeps the 3 s
       bound inside the background task. Deno test: handler resolves before capture.
-- [ ] **A0.6 Edge groups + plan tier.** `capturePostHogEvent` accepts `{ orgId,
+- [x] **A0.6 Edge groups + plan tier.** `capturePostHogEvent` accepts `{ orgId,
+**Capability done** — `capturePostHogEvent`takes`{ organization, property, parking }`and sets`$groups`; wired at org/property/parking created. Remaining call sites follow in A1–A5. Org group properties (`plan_tier`, `verification_tier`) need `groupIdentify` from a plan-change event, which is A3 work.
 propertyId, parkingId }` and sets `groups`; org group properties (`plan_tier`,
       `verification_tier`, `created_at`) are set once per org via `groupIdentify` from
       `org_created` and plan change events.
-- [ ] **A0.7 Browser group properties.** `PostHogAdminScopeSync` sets group props for
+- [x] **A0.7 Browser group properties.** `PostHogAdminScopeSync` sets group props for
+      **Blocked by data, not effort:** the `Organization` object carries no `plan_tier` or `verification_tier`, and this step forbids an extra fetch. Revisit when the org payload exposes them.
       organization (`plan_tier`, `verification_tier`, `property_count`,
       `parking_count`) from data already loaded in `AdminLayout`; no extra fetch.
-- [ ] **A0.8 Bot and internal filtering.** Set `person_properties.is_internal = true` for
+- [x] **A0.8 Bot and internal filtering.** Set `person_properties.is_internal = true` for
+      **Done** — `is_internal` from `VITE_SUPER_ADMIN_EMAILS` at identify time, 7 unit tests.
       `SUPER_ADMIN_EMAILS` users at identify time; PostHog project filter "exclude internal
       users" uses it. Playwright / CI never loads PostHog (doc 06).
 - [ ] **A0.9 Remove unused catalog names** that the matrix below does not keep.
