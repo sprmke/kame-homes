@@ -43,6 +43,17 @@ export const POSTHOG_EVENTS = [
   'super_admin_action',
   'host_approval_resolved',
   'platform_plan_updated',
+  'announcement_published',
+  'ai_assistant_action_confirmed',
+  'ai_assistant_action_rejected',
+  'ai_credit_limit_reached',
+  'marketing_asset_generated',
+  'listing_authorization_submitted',
+  'listing_authorization_resolved',
+  'development_created',
+  'smart_pricing_applied',
+  'maintenance_ticket_created',
+  'ai_assistant_turn_completed',
   'parking_payment_failed',
 ] as const;
 

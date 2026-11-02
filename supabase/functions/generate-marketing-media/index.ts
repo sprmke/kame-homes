@@ -100,6 +100,7 @@ import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.
 import { isMarketingThemeKey } from '../_shared/marketingTheme.ts';
 import { isUuid } from '../_shared/marketingTemplateLibrary.ts';
 import { refineParentError, sessionTitleFromPrompt } from '../_shared/marketingAiSessions.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const MAX_REFERENCE_IDS = 14;
 /** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
@@ -491,6 +492,14 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
         },
       }),
     ]);
+
+    await capturePostHogEvent('marketing_asset_generated', {
+      logPrefix: 'generate-marketing-media',
+      request: req,
+      distinctId: user.id,
+      groups: { organization: organizationId, property: propertyId },
+      properties: { kind: mediaType },
+    });
 
     return jsonSuccess(req, {
       job: toMarketingGenerationJobDto({

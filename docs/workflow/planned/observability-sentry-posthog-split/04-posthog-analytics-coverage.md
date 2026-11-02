@@ -71,10 +71,14 @@ propertyId, parkingId }` and sets `groups`; org group properties (`plan_tier`,
       **Done** — `is_internal` from `VITE_SUPER_ADMIN_EMAILS` at identify time, 7 unit tests.
       `SUPER_ADMIN_EMAILS` users at identify time; PostHog project filter "exclude internal
       users" uses it. Playwright / CI never loads PostHog (doc 06).
-- [ ] **A0.9 Remove unused catalog names** that the matrix below does not keep.
-      **Deferred to A1–A5 on purpose:** removing a name now would delete a place a
-      matrix row is about to wire. The parity test already fails on an emitted-but-
-      undeclared event, which is the direction that breaks data.
+- [x] **A0.9 Remove unused catalog names** that the matrix below does not keep.
+      **Done** — seven dead names removed (`ai_studio_*` four, `pwa_launch_fallback`,
+      `pwa_offline_state`, `public_page_published`), plus `booking_rescheduled`, which never
+      had an emitter (a reschedule is `booking_updated` with `changed_fields`). The reverse
+      direction is now enforced too: `catalogParity.test.ts` fails when a declared name has no
+      emitter, with a documented ten-name allow-list for the two dynamic emitters (the voice
+      ternary and the PWA name mapping). The PWA sink now actually forwards to PostHog, so
+      those eight names are no longer decorative.
 
 ## Matrix legend
 
@@ -136,7 +140,7 @@ every connection for the scope), and trip sections report the shortcut key.
 | `booking_workflow_transitioned`                                                           | E   | live   | `from`, `to`, `actor_kind`                                                           | Orchestrator                        |
 | `booking_workflow_cta_clicked`                                                            | B   | live   | `cta`, `status`                                                                      |                                     |
 | `booking_document_step_completed`                                                         | E   | live   | `step`                                                                               |                                     |
-| `booking_updated` / `booking_rescheduled` / `booking_cancelled`                           | B/E | live   | `changed_fields` (keys only), `actor_kind`                                           |                                     |
+| `booking_updated` / `booking_cancelled`                                                   | B/E | live   | `changed_fields` (keys only), `actor_kind` (a reschedule is `booking_updated`)       |                                     |
 | `booking_imported`                                                                        | E   | live   | `count`, `source` (csv, airbnb, booking_com, sheet), `mapping_ai_used`               | Import commit (one event per batch) |
 | `import_started` / `import_mapping_confirmed`                                             | B   | live   | `source`, `row_count_bucket`                                                         | Import wizard                       |
 | `guest_review_submitted`                                                                  | E   | live   | `rating`, `has_text`                                                                 |                                     |
@@ -179,29 +183,40 @@ separate emergency path: it is the downgrade that follows it.
 
 ## A4 — Host modules, AI, marketing, content
 
-| Event                                                                                   | Src | Status | Key properties                                              | Trigger                                           |
-| --------------------------------------------------------------------------------------- | --- | ------ | ----------------------------------------------------------- | ------------------------------------------------- |
-| `pricing_rates_saved`                                                                   | B   | wire   | `scope` (base, season, date_override), `count`              | Pricing save success                              |
-| `smart_pricing_applied`                                                                 | E   | wire   | `nights_changed`, `mode` (suggest, auto)                    |                                                   |
-| `finance_entry_saved`                                                                   | B   | wire   | `kind` (income, expense), `has_receipt`, `ai_validated`     |                                                   |
-| `maintenance_ticket_created`                                                            | E   | wire   | `priority`, `source` (dashboard, telegram, guest)           |                                                   |
-| `settings_saved`                                                                        | B   | wire   | `section` key (never values)                                | Shared settings save hook, one place              |
-| `public_page_published`                                                                 | E   | wire   | `page_kind` (custom, landing), `block_count_bucket`         | Custom page publish                               |
-| `announcement_published`                                                                | E   | new    | `audience` (guests, team), `channel_count`                  |                                                   |
-| `analytics_module_viewed`                                                               | B   | new    | `report` (overview, occupancy, revenue, ai_review), `range` | Host analytics page                               |
-| `analytics_ai_review_opened`                                                            | B   | new    | `period`                                                    |                                                   |
-| `activity_log_viewed`                                                                   | B   | new    | `filter_count`                                              |                                                   |
-| `ai_assistant_turn_completed`                                                           | E   | wire   | `tool_count`, `had_pending_action`, `model_tier`            | Assistant turn end                                |
-| `ai_assistant_action_confirmed` / `_rejected`                                           | E   | new    | `tool`                                                      | Pending action resolve                            |
-| `ai_credit_limit_reached`                                                               | E   | new    | `scope` (org, platform)                                     | `aiLimitGuard` deny                               |
-| `marketing_caption_generated` / `marketing_post_published` / `marketing_publish_failed` | B   | live   | `channel`, `media_kind`                                     | Move publish result to edge (`metaPublishing.ts`) |
-| `marketing_asset_generated`                                                             | E   | new    | `kind` (image, video, template, poster), `theme`            | Generation success                                |
-| `voice_*` (20 events)                                                                   | B   | live   | unchanged                                                   |                                                   |
-| `contract_sent` / `contract_signed`                                                     | E   | new    | `contract_kind`                                             | Contract lifecycle                                |
-| `listing_authorization_submitted` / `_resolved`                                         | E   | new    | `outcome`                                                   |                                                   |
-| `development_created`                                                                   | E   | new    |                                                             | Developments module                               |
-| `help_article_viewed`                                                                   | B   | new    | `article_slug` (public slug only), `surface`                | Help center                                       |
-| `support_ticket_submitted`                                                              | B   | live   | `category`                                                  |                                                   |
+**Complete (2026-11-03).** Host saves, analytics/activity/help views, assistant turns and
+actions, credit limits, smart pricing, marketing assets, approvals and developments emit.
+Five properties were refined where the sketch did not match the product: finance has no
+`ai_validated` on the row, maintenance has no `priority`, `settings_saved` reports the
+settings surface rather than one shared hook (there are four save paths), assistant turns
+have no tool counter or model tier to report, and `report` uses the real tab key. Two rows
+are N/A for now, with the reason in place: `public_page_published` (the only publish
+transition is the property showcase, already `listing_published`, so a second event would
+double count) and `contract_sent` / `contract_signed` (no contract lifecycle exists yet;
+contract consideration is a verification field, not a document that is sent or signed).
+
+| Event                                                                                   | Src | Status | Key properties                                                                       | Trigger                                           |
+| --------------------------------------------------------------------------------------- | --- | ------ | ------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `pricing_rates_saved`                                                                   | B   | live   | `scope` (base, season, date_override), `count`                                       | Pricing save success                              |
+| `smart_pricing_applied`                                                                 | E   | live   | `nights_changed`, `mode` (suggest, auto)                                             |                                                   |
+| `finance_entry_saved`                                                                   | B   | live   | `kind`, `has_receipt` (no AI validation field on the row)                            |                                                   |
+| `maintenance_ticket_created`                                                            | E   | live   | `source`, `category` (no priority field)                                             |                                                   |
+| `settings_saved`                                                                        | B   | live   | `section` = organization_profile / property_profile / parking_profile / org_settings | Shared settings save hook, one place              |
+| `public_page_published`                                                                 | E   | n/a    | N/A — showcase publish is `listing_published`; a second event would double count     | Custom page publish                               |
+| `announcement_published`                                                                | E   | live   | `audience` (guests, team), `channel_count`                                           |                                                   |
+| `analytics_module_viewed`                                                               | B   | live   | `report` = the real tab key, `range` = date preset                                   | Host analytics page                               |
+| `analytics_ai_review_opened`                                                            | B   | live   | `period`                                                                             |                                                   |
+| `activity_log_viewed`                                                                   | B   | live   | `filter_count`                                                                       |                                                   |
+| `ai_assistant_turn_completed`                                                           | E   | live   | `had_pending_action` (the turn runner has no tool counter or model tier)             | Assistant turn end                                |
+| `ai_assistant_action_confirmed` / `_rejected`                                           | E   | live   | `tool`                                                                               | Pending action resolve                            |
+| `ai_credit_limit_reached`                                                               | E   | live   | `scope` (org, platform)                                                              | `aiLimitGuard` deny                               |
+| `marketing_caption_generated` / `marketing_post_published` / `marketing_publish_failed` | B   | live   | `channel`, `media_kind`                                                              | Move publish result to edge (`metaPublishing.ts`) |
+| `marketing_asset_generated`                                                             | E   | live   | `kind` (image, video, template, poster), `theme`                                     | Generation success                                |
+| `voice_*` (20 events)                                                                   | B   | live   | unchanged                                                                            |                                                   |
+| `contract_sent` / `contract_signed`                                                     | E   | n/a    | N/A — no contract send/sign lifecycle exists yet                                     | Contract lifecycle                                |
+| `listing_authorization_submitted` / `_resolved`                                         | E   | live   | `outcome`                                                                            |                                                   |
+| `development_created`                                                                   | E   | live   |                                                                                      | Developments module                               |
+| `help_article_viewed`                                                                   | B   | live   | `article_slug` (public slug only), `surface`                                         | Help center                                       |
+| `support_ticket_submitted`                                                              | B   | live   | `category`                                                                           |                                                   |
 
 ## A5 — Notifications, PWA, super-admin
 

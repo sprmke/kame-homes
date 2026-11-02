@@ -19,6 +19,7 @@ import { createServiceClient, requirePropertyPermissionAndFeature } from '../_sh
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 /** Context blocks are host-derived property data; clipped so they cannot flood the prompt. */
 const CONTEXT_TEXT_MAX = 1_000;
@@ -175,6 +176,12 @@ serveAuthenticated('generate-marketing-template', async (req, user) => {
       actorType: 'staff',
     });
 
+    await capturePostHogEvent('marketing_asset_generated', {
+      logPrefix: 'generate-marketing-template',
+      request: req,
+      distinctId: user.id,
+      properties: { kind: 'template' },
+    });
     return jsonSuccess(req, result);
   } catch (err) {
     return aiErrorResponse(req, err, 'generate-marketing-template');
@@ -231,7 +238,8 @@ async function handlePoster(
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
       return jsonError(req, 'revise.spec must be an object', 400);
     }
-    if (JSON.stringify(spec).length > 16_000) return jsonError(req, 'revise.spec is too large', 400);
+    if (JSON.stringify(spec).length > 16_000)
+      return jsonError(req, 'revise.spec is too large', 400);
     if (!instruction) return jsonError(req, 'Describe the change', 400);
     if (instruction.length > 300) return jsonError(req, 'Change request is too long', 400);
     revise = { spec: spec as Record<string, unknown>, instruction };
@@ -273,6 +281,12 @@ async function handlePoster(
       revise,
     });
     // photoUrls tells the client which of its photos each photoIndex refers to.
+    await capturePostHogEvent('marketing_asset_generated', {
+      logPrefix: 'generate-marketing-template',
+      request: req,
+      distinctId: user.id,
+      properties: { kind: 'poster' },
+    });
     return jsonSuccess(req, { contentType: 'poster', variants, photoUrls: urls });
   } catch (err) {
     return aiErrorResponse(req, err, 'generate-marketing-template');

@@ -41,6 +41,7 @@ import {
 } from '../_shared/planEntitlements.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 async function loadActionMessage(
   sb: ReturnType<typeof createServiceClient>,
@@ -150,6 +151,13 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
           .update({ blocks: updateActionBlockStatus(deniedMsg.blocks, actionId, 'denied') })
           .eq('id', deniedMsg.id);
       }
+      await capturePostHogEvent('ai_assistant_action_rejected', {
+        logPrefix: 'dashboard-assistant-confirm',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: conversation.organization_id as string },
+        properties: { tool: pending.tool_name as string },
+      });
       return jsonSuccess(req, { status: 'denied' });
     }
 
@@ -258,6 +266,14 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
         writeAction: true,
       });
     }
+
+    await capturePostHogEvent('ai_assistant_action_confirmed', {
+      logPrefix: 'dashboard-assistant-confirm',
+      request: req,
+      distinctId: user.id,
+      groups: { organization: conversation.organization_id as string },
+      properties: { tool: pending.tool_name as string },
+    });
 
     return jsonSuccess(req, {
       status: newStatus,

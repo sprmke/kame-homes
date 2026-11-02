@@ -17,6 +17,7 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
 import { assertAssetRowInScope } from '../_shared/assetRowScope.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('maintenance-items', async (req, user) => {
   const permission =
@@ -38,7 +39,11 @@ serveAuthenticated('maintenance-items', async (req, user) => {
   if (req.method === 'GET') {
     const seriesId = url.searchParams.get('recurrence_series_id');
     if (seriesId) {
-      await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, recurrenceSeriesId: seriesId });
+      await assertAssetRowInScope({
+        table: 'maintenance_items',
+        scope: { propertyId },
+        recurrenceSeriesId: seriesId,
+      });
       const items = await listRecurringSeriesItems(seriesId);
       return jsonSuccess(req, items);
     }
@@ -64,7 +69,11 @@ serveAuthenticated('maintenance-items', async (req, user) => {
       if (!seriesId || !/^\d{4}-\d{2}-\d{2}$/.test(extend_until)) {
         return jsonError(req, 'Invalid fields');
       }
-      await assertAssetRowInScope({ table: 'maintenance_items', scope: { propertyId }, recurrenceSeriesId: seriesId });
+      await assertAssetRowInScope({
+        table: 'maintenance_items',
+        scope: { propertyId },
+        recurrenceSeriesId: seriesId,
+      });
       const result = await extendRecurringSeries(seriesId, direction, extend_until, email);
       return jsonSuccess(req, result.rows, {
         created_count: result.created_count,
@@ -123,6 +132,13 @@ serveAuthenticated('maintenance-items', async (req, user) => {
         recurring: Boolean(recurrence_interval),
         created_count: result.created_count,
       },
+    });
+    await capturePostHogEvent('maintenance_ticket_created', {
+      logPrefix: 'maintenance-items',
+      request: req,
+      distinctId: user.id,
+      groups: { organization: access.org.id, property: propertyId },
+      properties: { source: 'dashboard', category },
     });
     return jsonSuccess(req, result.row, {
       created_count: result.created_count,

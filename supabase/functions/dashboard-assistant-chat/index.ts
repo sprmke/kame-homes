@@ -174,6 +174,7 @@ import {
   invalidateGroundingCache,
 } from '../_shared/dashboardAssistantGroundingCache.ts';
 import { shouldRunLlmGuard } from '../_shared/dashboardAssistantGuardPolicy.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 /**
  * Adaptive loop: up to 8 rounds, but a turn ends as soon as the model stops calling tools or
@@ -1222,6 +1223,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         messageId: (assistantRow?.id as string | undefined) ?? undefined,
         userMessageId: userMessageRow.id,
         timing: timer.snapshot(),
+        hadPendingAction: Boolean(pendingActionId),
       };
     };
 
@@ -1249,6 +1251,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
                 blocks: result.blocks,
                 messageId: result.messageId,
                 userMessageId: result.userMessageId,
+              });
+              await capturePostHogEvent('ai_assistant_turn_completed', {
+                logPrefix: 'dashboard-assistant-chat',
+                request: req,
+                distinctId: user.id,
+                groups: { organization: orgCtx.org.id },
+                properties: { had_pending_action: result.hadPendingAction },
               });
               controller.close();
             } catch (err) {
@@ -1297,6 +1306,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
     try {
       const result = await runTurn();
+      await capturePostHogEvent('ai_assistant_turn_completed', {
+        logPrefix: 'dashboard-assistant-chat',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: orgCtx.org.id },
+        properties: { had_pending_action: result.hadPendingAction },
+      });
       return jsonSuccess(req, {
         conversationId: result.conversationId,
         blocks: result.blocks,

@@ -26,6 +26,7 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export type ActivityLogScope = 'org' | 'property' | 'parking';
 
@@ -57,6 +58,17 @@ export function ActivityLogPanel({ scope, className }: Props) {
   );
 
   const query = useActivityLog(effectiveFilters);
+
+  const reportedViewRef = useRef(false);
+  useEffect(() => {
+    if (reportedViewRef.current) return;
+    reportedViewRef.current = true;
+    captureAppEvent('activity_log_viewed', {
+      filter_count: Object.entries(filters).filter(
+        ([key, value]) => key !== 'scope' && value !== undefined && value !== null && value !== ''
+      ).length,
+    });
+  }, [filters]);
   const [selected, setSelected] = useState<ActivityEvent | null>(null);
 
   const orgSlug = useOrgSlugParam();
