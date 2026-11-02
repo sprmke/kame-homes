@@ -190,7 +190,7 @@ Short version:
 
 **Correction: this repo has no separate multi-tenant production project.** Per
 `docs/architecture/deployment.md`, `fwor…` was promoted to production on 2026-10-27 and holds
-the migrated legacy dataset; `cd-dev.yml` and `cd-prod.yml` deploy to the same ref. The
+the migrated legacy dataset; there is now a single backend pipeline (`cd-prod.yml`). The
 function deploy above therefore already reached the project that will serve live users.
 
 Better than it reads: production previously had **no** Sentry at all, so P1 removing PostHog
