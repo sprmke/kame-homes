@@ -32,6 +32,8 @@
     "audit:edge-functions": "node scripts/dev/audit-edge-functions.mjs",
     "check:edge-conformance": "node scripts/dev/audit-edge-functions.mjs --check",
     "check:ai-gateway": "node scripts/dev/check-ai-gateway.mjs",
+    "check:posthog-analytics-only": "bash scripts/dev/check-posthog-analytics-only.sh",
+    "check:sentry-imports": "bash scripts/dev/check-sentry-imports.sh",
     "check:plan-catalog": "bun scripts/dev/check-plan-catalog.ts",
     "audit:auth-matrix": "node scripts/dev/audit-auth-matrix.mjs",
     "check:auth-matrix": "node scripts/dev/audit-auth-matrix.mjs --check",
@@ -97,7 +99,7 @@
     "perf:pg-stat-statements": "bash scripts/performance/capture-pg-stat-statements.sh",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --project=chromium-ci --project=mobile-chromium-smoke --project=tablet-chromium-smoke --grep @smoke",
-    "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci",
+    "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci && playwright test --project=pwa",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:parking": "playwright test ui/e2e/features/parking --project=chromium --grep-invert \"parking live local flow\"",
     "test:e2e:parking:headed": "playwright test ui/e2e/features/parking --project=chromium --grep-invert \"parking live local flow\" --headed",
@@ -145,7 +147,8 @@
     "env:reorganize": "bun scripts/dev/reorganize-env-files.mjs",
     "env:sync:dev": "bun scripts/dev/sync-dev-env.mjs",
     "env:sync:vercel:dev": "bun scripts/dev/sync-vercel-dev-env.mjs",
-    "env:sync:all": "bun scripts/dev/sync-all-env.mjs"
+    "env:sync:all": "bun scripts/dev/sync-all-env.mjs",
+    "test:e2e:pwa": "playwright test --project=pwa"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",

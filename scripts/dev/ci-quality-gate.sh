@@ -43,6 +43,9 @@ run_step "edge unit tests (Deno _shared)" bun run test:edge
 run_step "servePublic rate-limit coverage" bash scripts/dev/check-serve-public-rate-limit.sh
 run_step "authenticated wrapper log-only rate check" bash scripts/dev/check-authenticated-rate-limit.sh
 run_step "unbounded query guard" bash scripts/dev/check-unbounded-select.sh
+run_step "posthog is analytics only (observability split P1)" \
+  bash scripts/dev/check-posthog-analytics-only.sh
+run_step "sentry has one import surface" bash scripts/dev/check-sentry-imports.sh
 run_step "cache class guard" bash scripts/dev/check-cache-class.sh
 run_step "select('*') guard" bash scripts/dev/check-select-star.sh
 run_step "public static asset size" bash scripts/dev/check-public-asset-size.sh
