@@ -33,4 +33,5 @@ last_verified: none
 ### Notes (2026-11-02)
 
 - Fixed by the sweep: brand teal as text (2.7–3.0:1) replaced by a derived `--brand-ink` (4.8:1 target, per-tenant); muted ink 46% → 40%; every white-on-brand fill moved to `bg-primary-strong` (the `textOnBrandFill` allowlist is now empty); theme previews derive AA on-colours; carousel dots 24px hit area; table rows no longer fake `role="button"`; skeletons get `role="status"`; marketing cards honour `prefers-reduced-motion`.
+- The same sweep also passes on the **mobile (390px)** and **tablet (768px)** Playwright projects when run manually; it stays tagged `@ci` (not `@smoke`) because hero-search morph animations make the mobile run flaky, and mobile target-size coverage is still being hardened.
 - Marketing theme previews inherit AA via `resolveMarketingTheme` (`ensureContrast` now pushes ink away from the background luminance), so user-chosen palettes keep a contrast floor.
