@@ -82,7 +82,7 @@ async function audit(page: Page, paths: string[]) {
       const step = Math.max(window.innerHeight * 0.8, 400);
       for (let y = 0; y < document.body.scrollHeight; y += step) {
         window.scrollTo(0, y);
-        await new Promise((resolve) => setTimeout(resolve, 120));
+        await new Promise((resolve) => setTimeout(resolve, 60));
       }
       window.scrollTo(0, 0);
     });
@@ -90,15 +90,15 @@ async function audit(page: Page, paths: string[]) {
     await page.waitForFunction(
       () => document.getAnimations().every((animation) => animation.playState !== 'running'),
       undefined,
-      { timeout: 8000 }
+      { timeout: 4000 }
     ).catch(() => undefined);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(250);
     let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
     let found = formatViolations(path, results.violations);
     if (found.length) {
       // Loading placeholders can briefly render unnamed controls; only persistent
       // violations should fail the gate.
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(900);
       results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
       found = formatViolations(path, results.violations);
     }
@@ -109,7 +109,8 @@ async function audit(page: Page, paths: string[]) {
 
 test.describe('@ci accessibility sweep', () => {
   test.describe.configure({ mode: 'serial' });
-  test.setTimeout(180_000);
+  // CI runners compile heavy routes cold; the sweep covers 35 pages.
+  test.setTimeout(420_000);
 
   test('public routes have no serious or critical axe violations', async ({ page }) => {
     const problems = await audit(page, PUBLIC_PATHS);
