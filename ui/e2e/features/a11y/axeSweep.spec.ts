@@ -90,7 +90,7 @@ async function audit(page: Page, paths: string[]) {
     await page.waitForFunction(
       () => document.getAnimations().every((animation) => animation.playState !== 'running'),
       undefined,
-      { timeout: 4000 }
+      { timeout: 2000 }
     ).catch(() => undefined);
     await page.waitForTimeout(250);
     let results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
@@ -109,11 +109,18 @@ async function audit(page: Page, paths: string[]) {
 
 test.describe('@ci accessibility sweep', () => {
   test.describe.configure({ mode: 'serial' });
-  // CI runners compile heavy routes cold; the sweep covers 35 pages.
-  test.setTimeout(420_000);
+  // No retries: one slow run must never multiply into three on the runner.
+  test.describe.configure({ retries: 0 });
+  // Six small groups instead of four large ones so a stall cannot eat the job budget.
+  test.setTimeout(180_000);
 
-  test('public routes have no serious or critical axe violations', async ({ page }) => {
-    const problems = await audit(page, PUBLIC_PATHS);
+  test('public routes (core) have no serious or critical axe violations', async ({ page }) => {
+    const problems = await audit(page, PUBLIC_PATHS.slice(0, 7));
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  test('public routes (marketing) have no serious or critical axe violations', async ({ page }) => {
+    const problems = await audit(page, PUBLIC_PATHS.slice(7));
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
@@ -122,9 +129,19 @@ test.describe('@ci accessibility sweep', () => {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
-  test('property dashboard routes have no serious or critical axe violations', async ({ page }) => {
+  test('property dashboard routes (core) have no serious or critical axe violations', async ({
+    page,
+  }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    const problems = await audit(page, PROPERTY_PATHS);
+    const problems = await audit(page, PROPERTY_PATHS.slice(0, 8));
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  test('property dashboard routes (ops) have no serious or critical axe violations', async ({
+    page,
+  }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access');
+    const problems = await audit(page, PROPERTY_PATHS.slice(8));
     expect(problems, problems.join('\n')).toEqual([]);
   });
 

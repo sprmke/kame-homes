@@ -104,7 +104,7 @@ export function SearchResultsToolbar({
               'hidden h-9 gap-2 lg:inline-flex',
               filtersOpen &&
                 !filtersCategoryLabel &&
-                'border-primary bg-primary/10 text-primary hover:bg-primary/15'
+                'border-primary bg-primary/10 text-brand-ink hover:bg-primary/15'
             )}
           >
             <SlidersHorizontal className="h-4 w-4" aria-hidden />
@@ -155,7 +155,7 @@ export function SearchResultsToolbar({
                   className={cn(
                     "relative flex size-8 items-center justify-center rounded-md transition-all before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] lg:size-9 lg:before:content-none",
                     isActive
-                      ? 'bg-background text-primary shadow-sm'
+                      ? 'bg-background text-brand-ink shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                   aria-label={mode.label}
