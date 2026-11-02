@@ -41,9 +41,14 @@ Skip 3–5 only if the freeze dump shows zero drift (counts + `max(created_at)` 
 
 ## Ship app code to Production
 
-**2026-11-01:** **`develop` → `main`** cutover merge landed in PR #188. **`main`** may be **ahead** of **`develop`** on CD/deploy hotfixes only — merge **`main` → `develop`** so Preview matches Production tooling.
+**2026-11-01:** **`develop` → `main`** cutover merge landed in PR #188. **`main`** may be **ahead** of **`develop`** on CD/deploy hotfixes only — merge **`main` → `develop`** so Preview matches Production tooling. **2026-11-02: done**, and `develop` carries the storage/asset fixes.
 
-Before T0, confirm Vercel Production branch = **`main`** and redeploy after any release merge.
+**2026-11-02 finding:** the Vercel project's **Production branch is `production`**, not `main`, so `main` pushes build Preview only and Production (`app.kamehomes.space`) still serves a **2026-09-07** build. At T0 either:
+
+- set Production branch to `main` in the Vercel dashboard (the API rejects `productionBranch` on PATCH), or
+- deploy Production explicitly from the merged `main` worktree: `vercel --prod`.
+
+Confirm the deployed `/assets/index-*.js` points at fwor before handing the URL to reviewers.
 
 ## DNS (Namecheap → Vercel)
 
@@ -62,6 +67,17 @@ Attach domains in Vercel **kame-homes** before Google OAuth origins use `https:/
 - **Google OAuth:** production client with redirect `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`
 
 Plan 05: submit Google verification after the above.
+
+## Deploy functions
+
+CD Prod (`cd-prod.yml`) and CD Dev (`cd-dev.yml`) both shell out to `supabase functions deploy` with Docker bundling. On 2026-11-02 the Docker path stalled mid-run on `fwor`; this works and is much faster:
+
+```bash
+supabase functions deploy --project-ref fworvijbrwpyngycotbz \
+  --use-api --import-map supabase/functions/deno.json
+```
+
+`--import-map` is required server-side, otherwise bare `zod` imports in `_shared` fail to bundle. Deploy from a clean worktree of the release commit, never from a dirty tree.
 
 ## PayMongo
 

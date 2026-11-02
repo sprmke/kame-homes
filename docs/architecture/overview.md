@@ -312,7 +312,9 @@ Until multi-tenant cutover, **two parallel stacks** share this git repo. Do not 
 | ------------------- | -------------------- | --------------------------- | ---------------------- | --------------------- |
 | Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production     |
 | Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `dev.kamehomes.space` |
-| mt-prod (deferred)  | `main` after cutover | `kame-homes` Production     | Create at release      | `app.kamehomes.space` |
+| Multi-tenant prod   | `main` after cutover | `kame-homes` Production     | `fworvijbrwpyngycotbz` | `kamespace.com`       |
+
+**2026-10-27:** `fworvijbrwpyngycotbz` is both the dev and the production project until a separate dev project is created after launch. The T0 cutover is [here](../archive/operations/legacy-to-mt-prod-migration.md).
 
 **CI:** `.github/workflows/ci.yml` runs five parallel jobs into a required `quality` gate. `cd-dev.yml` adds Playwright `@ci` then deploys `develop`. Local parity: `bun run ci:quality`.
 
