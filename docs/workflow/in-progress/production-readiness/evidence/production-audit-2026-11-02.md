@@ -58,6 +58,12 @@ CSP is Report-Only, so `frame-ancestors 'self'` does not apply. Added
 
 ### 4. Production is behind `main` (operator — Vercel configuration)
 
+**Root cause (confirmed through the Vercel API):** the `kame-homes` project's Git link has
+`productionBranch: "production"`, a branch that does not exist in the repo. Every push to `main`
+therefore lands as a **Preview** deployment and `kamespace.com` keeps whatever build it had. Fix
+(options, operator): set the project's production branch to `main` (or `develop`, whichever is the
+release line) in Vercel → Project → Settings → Git, or push a `production` branch at the release commit.
+
 Merges to `main` produce Vercel deployments in the **Preview** environment
 (`gh api repos/sprmke/kame-homes/deployments` shows `Preview – kame-homes` for every `main` commit),
 and `kamespace.com` keeps serving an older build:
@@ -91,6 +97,25 @@ setting, not a code change.
 - Perf 59–63 with LCP 6.8–11.7s: Lighthouse attributes ~832 KiB of image savings, 370 ms render-blocking,
   332 KiB unused JS. Part of this is already improved on `develop` (#152/#156/#172) but cannot reach
   production until finding 4 is resolved.
+
+## Post-deploy verification (2026-11-02, after #213 + functions deploy)
+
+Edge functions on production were redeployed from `develop` `2e90c498` (331 functions, exit 0) so the
+SSRF hardening and every other merged edge change are live. Read-only probes with the production anon
+key:
+
+| Probe                                    | Result                       |
+| ---------------------------------------- | ---------------------------- |
+| `get-health`                             | 200 `{status: ok, db: ok}`   |
+| `get-public-platform-status`             | 200 (maintenance off)        |
+| `list-public-properties`                 | 200 (1 listing: `kame-home`) |
+| `list-public-pricing-plans`              | 200                          |
+| `get-public-property?property=kame-home` | 200                          |
+| `get-booked-dates?property=kame-home`    | 200                          |
+| `search-listings?pageSize=3`             | 200                          |
+
+Note: the production public slug is `kame-home` (not `monaco-2604`), so `ci-smoke.sh prod` must be run
+with `SMOKE_PROPERTY_SLUG=kame-home`.
 
 ## Operator actions
 
