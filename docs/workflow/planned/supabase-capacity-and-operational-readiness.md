@@ -526,7 +526,7 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 - `.github/workflows/cd-dev.yml`
 - `docs/architecture/deployment.md`
 - `docs/workflow/in-progress/ci-cd-environments/README.md`
-- `docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`
+- `docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`
 
 **Steps:**
 

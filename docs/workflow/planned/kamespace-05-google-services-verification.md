@@ -15,7 +15,7 @@ depends_on: [kamespace-03-rebrand-kame-homes-to-kame-space, kamespace-04-domain-
 | #   | Plan                                                                                                       | Role                                                         |
 | --- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | 01  | [`kamespace-01-legacy-prod-config-secrets-backup.md`](./kamespace-01-legacy-prod-config-secrets-backup.md) | Back up every legacy env var, secret and dashboard setting   |
-| 02  | [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md)       | Move legacy data, storage and accounts onto mt-prod          |
+| 02  | [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md)       | Move legacy data, storage and accounts onto mt-prod          |
 | 03  | [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md)   | Rename the product everywhere                                |
 | 04  | [`kamespace-04-domain-move-kamespace-com.md`](./kamespace-04-domain-move-kamespace-com.md)                 | Move every hostname, mailbox and allow-list to kamespace.com |
 | 05  | **this plan**                                                                                              | Google verification + every Google service production-ready  |

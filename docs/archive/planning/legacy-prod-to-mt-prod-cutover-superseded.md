@@ -8,7 +8,7 @@ updated: 2026-11-01
 
 # Legacy prod → multi-tenant prod cutover
 
-> **Archived 2026-11-01.** Superseded by [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/in-progress/kamespace-02-legacy-prod-to-mt-prod-cutover.md). Kept for history; use the numbered Kame Space plan.
+> **Archived 2026-11-01.** Superseded by [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md). Kept for history; use the numbered Kame Space plan.
 > **Goal.** Move Kame Homes off the live legacy stack (`main` → Vercel `guest-form-management-app` on `sprmkes-projects` → Supabase `zfttdwtceyqszyeyhilc`) onto the new multi-tenant app (`develop` → Vercel `kame-homes` on `kame-works` → a new **mt-prod** Supabase project under the new Supabase account). Every legacy row, Auth user and Storage object lands in mt-prod under a proper **Kame Homes org → property** shape. Every booking already on the books (especially future stays) keeps working end to end: links in emails already sent, document approvals, SD refunds, calendar availability, Telegram summaries. After a stable hypercare period, retire the legacy repo branch, Vercel project, Supabase project, domain wiring and service accounts.
 
 This plan supersedes the stub task list in [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md) and fills in Phase B of [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md).

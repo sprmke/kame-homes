@@ -14,7 +14,7 @@
 -- Legacy guest sign-ins (the five Google users legacy guests never needed) are
 -- handled separately by 50-cleanup-guest-auth.sql.
 --
--- Plan: docs/workflow/in-progress/kamespace-02-legacy-prod-to-mt-prod-cutover.md
+-- Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md
 
 -- activity_log is append-only (a BEFORE DELETE trigger rejects deletes), and the
 -- rows carry no FK to organizations. Delete them under replica role so the guard

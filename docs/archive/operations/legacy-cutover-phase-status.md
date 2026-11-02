@@ -7,11 +7,11 @@ tags: [operations, migration]
 
 # Legacy cutover — phase completion status
 
-**Status:** Prep through Phase 5 is done. **Live site is still legacy** until cutover day (T0).
+**Status: complete 2026-11-03.** `kamespace.com` is production; legacy `kamehomes.space` + `app` are 308s; both legacy projects are paused. Hypercare runs to 2026-12-03, then decommission.
 
-**Only step left before go-live:** the T0 freeze day (freeze legacy → reload from the freeze dump → move the legacy apex → activate crons). `kamespace.com` is already live with the current build, Resend sending/inbound are verified, and Auth points at it. Say **`kamewave`** when you want that day’s run.
+**Deferred (tracked, not blockers):** Maps Embed API on the key, property photos, PayMongo live mode (pending approval), and the 30-day decommission (delete paused legacy projects + revoke old Google credentials).
 
-Single progress view for Plan 02 (`kamespace-02`) and prerequisite Plan 01 (`kamespace-01`). **Production Supabase = `fworvijbrwpyngycotbz`** (2026-10-27). Live guests still on legacy Vercel + `zftt…` until T0.
+Single progress view for Plan 02 ([done](../../workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md)) and prerequisite Plan 01 ([in progress](../../workflow/in-progress/kamespace-01-legacy-prod-config-secrets-backup.md)). **Production Supabase = `fworvijbrwpyngycotbz`**.
 
 Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 
@@ -20,11 +20,11 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | Phase             | Status           | Gate to Phase 6                                                                                                                                                                                                            |
 | ----------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **0** Inventory   | **Done**         | B-18 signed off 2026-11-01; optional B-16/B-17/B-12 later                                                                                                                                                                  |
-| **1** Prod wiring | **Partial**      | **2026-11-02:** extensions enabled (`pg_cron`/`pg_net`), 26 cron jobs defined and outbound ones parked. Open: prod Google OAuth (optional for T0) — [`phase1-prod-wiring-checklist.md`](./phase1-prod-wiring-checklist.md) |
+| **1** Prod wiring | **Done**         | Extensions + 26 jobs, Auth on `kamespace.com`, Vercel Production branch `main`. A dedicated prod Google OAuth client is deferred to plan 05. |
 | **2** Tooling     | **Done**         | —                                                                                                                                                                                                                          |
 | **3** Shaping     | **Done** on fwor | `kameworks.tech` first login; super-admin secret on fwor; D6 scripts shipped                                                                                                                                               |
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                         |
-| **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
+| **5** App prep    | **Done**         | Redirects, resolver, watermarks; calendar blocking verified; structural SQL green.                                                                                                                              |
 
 - **Vercel Production branch is now `main`** (2026-11-03). Next push/merge to `main` builds Production automatically; `develop` continues to build Preview and deploy the backend. No more manual `vercel --prod`.
 

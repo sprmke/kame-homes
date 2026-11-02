@@ -33,7 +33,7 @@ updated: 2026-10-25
 
 ## Legacy → mt-prod cutover (canonical plan)
 
-The detailed, authoritative plan with decisions (D1–D7), phases, runbook timeline and risk table lives in [`docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md). This file becomes the operational companion (commands + timings) as phases land.
+The detailed, authoritative plan with decisions (D1–D7), phases, runbook timeline and risk table lives in [`docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md). This file becomes the operational companion (commands + timings) as phases land.
 
 **Status 2026-11-02 — data, storage and accounts are on production `fwor…`; cutover day (T0) is the only remaining migration step.**
 Tooling proven in [`scripts/migrate/legacy-to-mt-prod/`](../../../scripts/migrate/legacy-to-mt-prod/README.md): dump (CLI + docker `pg_dump` for managed schemas) → restore into an isolated rehearsal db → `10-post-restore-fixups` → `--include-all` upgrade (1 chain fix shipped: `20260629215000_gmail_listener_state_singleton_drop_guard.sql`) → `30-rewrite-storage-urls` → `40-derived-rebuild` → inventory-diff verify. Storage sync through the Storage API (not SQL metadata only); all 1,303 booking-referenced paths verify readable.

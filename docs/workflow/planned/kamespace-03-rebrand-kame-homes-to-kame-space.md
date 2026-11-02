@@ -10,7 +10,7 @@ followed_by: [kamespace-04-domain-move-kamespace-com, kamespace-05-google-servic
 
 # Rebrand: Kame Homes → Kame Space
 
-**Series.** Plan 3 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
+**Series.** Plan 3 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
 
 **Goal.** After the legacy → mt-prod cutover is verified on dev and new prod, rename the product from **Kame Homes** to **Kame Space** everywhere a person or a third party can see it: UI copy, tab titles, PWA install name, emails, PDFs, AI replies, voice narration, social creative, SEO metadata, legal pages, third-party app listings, docs and agent tooling. Rename code identifiers that carry the old name, and add a CI guard so the old name cannot come back. Stable technical identifiers whose change would break data, links or guests' calendars are kept on purpose and listed in an allow-list (§5).
 
@@ -67,7 +67,7 @@ So most visible text flips by changing two env values and two constants. Everyth
 
 **Prerequisite 0:** [`kamespace-01-legacy-prod-config-secrets-backup.md`](./kamespace-01-legacy-prod-config-secrets-backup.md) signed off (B-18): every legacy Supabase/Vercel env var, secret and dashboard config backed up and verified. Nothing in this plan starts before that.
 
-This plan starts **only after** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) reaches go and hypercare day 7 is clean (user's sequencing: migrate, verify on dev and new prod, then rename). Decisions R1 and R2 below must be answered **before** cutover Phase 3 shaping, because they change what the cutover writes.
+This plan starts **only after** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) reaches go and hypercare day 7 is clean (user's sequencing: migrate, verify on dev and new prod, then rename). Decisions R1 and R2 below must be answered **before** cutover Phase 3 shaping, because they change what the cutover writes.
 
 Cutover status as of 2026-10-25 (from that plan's checkboxes):
 
@@ -385,7 +385,7 @@ Each phase is shippable alone and reversible until Phase 8. Local first, then ho
 - `docs/guides/routes/*.md` (via `route-guides`): any route copy that names the product.
 - `scripts/README.md`: `check:brand`, `check:brand:db`, brand data script.
 - `.cursor/rules/*`, `CLAUDE.md`, `.claude/README.md`, `.opencode/README.md`: names, `ks-*` commands, Phase 8 repo name. Keep Cursor and Claude copies in sync.
-- `docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`: R1/R2 outcome recorded in its Q1 / 3.1 / 1.4 / 6.1 / 6.2.
+- `docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`: R1/R2 outcome recorded in its Q1 / 3.1 / 1.4 / 6.1 / 6.2.
 - Activity log: `org.brand_renamed` event in D-03; everything else `activity-log: N/A — copy/config only`.
 - Plans and permissions: N/A, no gated feature.
 
