@@ -176,6 +176,23 @@ Short version:
 | `docs/workflow/planned/super-admin-service-cost-monitoring.md`                                    | Amend D8.1 (`errors_only` removed)                                                      |
 | `ui/.env.example`, `supabase/.env.example`, `scripts/dev/env-sync-lib.mjs`, `sync-dev-env.mjs`    | Key lists                                                                               |
 
+## Deployment state (2026-11-02)
+
+**mt-dev (`fwor…`) is deployed and verified.**
+
+| Item           | State                                                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edge functions | All ~300 deployed, `EXIT=0`, plus `super-admin-sentry-test`                                                                                                 |
+| Edge secrets   | `SENTRY_DSN` (**was missing**), `SENTRY_SAMPLE_RATE_WARNING=1`, `APP_RELEASE` stamped from git HEAD                                                         |
+| Verified live  | `x-request-id` on real responses, `Access-Control-Expose-Headers: x-request-id, retry-after`, `sentry-trace`/`baggage` preflight accepted, `get-health` 200 |
+| Vercel Preview | `VITE_SENTRY_DSN`, traces `0.2`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` set (takes effect on the next Preview build)                           |
+| Not deployed   | Production. Requires `kamewave`; nothing here touches it.                                                                                                   |
+
+**Still open on dev, in order:** one real event must be seen arriving in Sentry for each
+runtime. The fastest way is `/admin/health` → **Send test error** (edge) and the same page in
+a browser with the Preview DSN (web). This session could not confirm receipt because the
+Sentry MCP tools went away mid-session and there is no super-admin JWT here.
+
 ## Exit gate
 
 - [ ] A thrown error in each surface (render crash, unhandled rejection, failed query,

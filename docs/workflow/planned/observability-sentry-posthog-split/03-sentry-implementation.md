@@ -376,7 +376,8 @@ thousands.
       fallthrough `ActiveMembers`, triggers `new_high_priority_issue` +
       `existing_high_priority_issue`, `lastTriggered` set by the smoke test. So delivery is
       wired; the only open question is which address is on the account.
-- [ ] **Free-tier now:** leave the default high-priority rule as the only alert. Do not add
+- [x] **Free-tier now:** leave the default high-priority rule as the only alert. Do not add
+      **Verified** the rule exists, is enabled and has fired. Free tier allows no more.
       the rules below.
 - [ ] **At plan upgrade — alert rules** (both projects, production env): new issue (first
       seen) → notify; regression → notify; issue frequency > 20 events / 5 min → urgent;
@@ -390,11 +391,13 @@ thousands.
 - [ ] **At plan upgrade — ownership rules:** `tags.fn:paymongo-*` → billing owner;
       `provider:meta` → inbox owner; default → platform owner. Single-user org today, so
       routing is a no-op until a second member exists.
-- [ ] **Runbook:** new `docs/archive/operations/sentry-runbook.md` (triage, mute vs resolve,
+- [x] **Runbook:** new `docs/archive/operations/sentry-runbook.md` (triage, mute vs resolve,
+      **Done** — triage, mute vs resolve, routing, drill table, rollback by release, privacy rules, and the quota-first check.
       how to find request id in logs, how to link to booking / org safely, rollback by
       release). Add: on free tier, triage "is the quota exhausted?" first, because a burned
       5k/month quota looks identical to "Sentry is down".
-- [ ] **Super-admin "Send test error"** on `/admin/health`: button calls new edge
+- [x] **Super-admin "Send test error"** on `/admin/health`: button calls new edge
+      **Done** — `super-admin-sentry-test` (captures explicitly, answers 200 so the drill does not fake an incident) + the button on `/admin/health`.
       `super-admin-sentry-test` (`serveSuperAdmin`) which throws a tagged test error, and
       the page throws a browser test error. Writes a `superAdminAudit` row
       (`system.sentry_test_sent`). Copy: button `Send test error`, toast `Test error sent`.
