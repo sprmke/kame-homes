@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { GuestAuthProvider } from '@/features/guest/auth/context/GuestAuthContext';
 import { GuestEmbedPreviewEffect } from '@/features/guest/components/GuestEmbedPreviewEffect';
@@ -13,6 +13,7 @@ import { PwaQueryPersistence } from '@/components/pwa/PwaQueryPersistence';
 import { PageLoadingFallback } from '@/components/routing/RouteFallback';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AdminEdgeFetchError } from '@/lib/api/adminEdgeFetch';
+import { reportQueryError } from '@/lib/sentry/reportQueryError';
 
 import { AppRoutes } from '@/routes';
 
@@ -33,6 +34,16 @@ function shouldRetryQuery(failureCount: number, error: unknown): boolean {
 // Conservative defaults: short stale time so admins see fresh data, but refetch on window focus
 // is disabled to avoid hammering Supabase while an admin has multiple tabs open.
 const queryClient = new QueryClient({
+  // Every read and write passes through one of these two hooks, so failed fetches are
+  // reported once here instead of at each call site. Bare admins used to see only a toast
+  // when a read broke (observability plan F-12).
+  queryCache: new QueryCache({
+    onError: (error, query) => reportQueryError(error, 'query', query.queryKey, query.meta),
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) =>
+      reportQueryError(error, 'mutation', mutation.options.mutationKey, mutation.meta),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 15_000,
