@@ -193,7 +193,8 @@ run_functions_deploy() {
   assert_functions_match_db_schema
   sync_release_secret
   echo "→ supabase functions deploy"
-  "${SUPABASE[@]}" functions deploy
+  # Non-interactive CI: the hosted CLI now requires an explicit yes.
+  "${SUPABASE[@]}" functions deploy --yes
 }
 
 # Stamps every function with the commit it was built from, so a Sentry issue can be tied to
@@ -207,7 +208,7 @@ sync_release_secret() {
     return 0
   fi
   echo "→ supabase secrets set APP_RELEASE=$release"
-  if ! "${SUPABASE[@]}" secrets set "APP_RELEASE=$release" >/dev/null; then
+  if ! "${SUPABASE[@]}" secrets set --yes "APP_RELEASE=$release" >/dev/null; then
     echo "⚠️  APP_RELEASE not updated; edge errors will not carry this deploy's release id." >&2
   fi
 }
