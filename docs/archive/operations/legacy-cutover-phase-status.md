@@ -9,7 +9,7 @@ tags: [operations, migration]
 
 **Status:** Prep through Phase 5 is done. **Live site is still legacy** until cutover day (T0).
 
-**Only step left before go-live:** On cutover day, run T0 (freeze + reload + deploy + DNS). Say **`kamewave`** in chat when you want that day’s deploy run; agents handle the scripts.
+**Only step left before go-live:** the T0 freeze day (freeze legacy → reload from the freeze dump → move the legacy apex → activate crons). `kamespace.com` is already live with the current build, Resend sending/inbound are verified, and Auth points at it. Say **`kamewave`** when you want that day’s run.
 
 Single progress view for Plan 02 (`kamespace-02`) and prerequisite Plan 01 (`kamespace-01`). **Production Supabase = `fworvijbrwpyngycotbz`** (2026-10-27). Live guests still on legacy Vercel + `zftt…` until T0.
 
@@ -20,7 +20,7 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | Phase             | Status           | Gate to Phase 6                                                                                                                                                                                                                                                 |
 | ----------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **0** Inventory   | **Done**         | B-18 signed off 2026-11-01; optional B-16/B-17/B-12 later                                                                                                                                                                                                       |
-| **1** Prod wiring | **Partial**      | **2026-11-02:** extensions enabled (`pg_cron`/`pg_net`), 26 cron jobs defined and outbound ones parked. Open: Site URL → `kamespace.com` at T0, prod Google OAuth — [`phase1-prod-wiring-checklist.md`](./phase1-prod-wiring-checklist.md) |
+| **1** Prod wiring | **Partial**      | **2026-11-02:** extensions enabled (`pg_cron`/`pg_net`), 26 cron jobs defined and outbound ones parked. Open: prod Google OAuth (optional for T0) — [`phase1-prod-wiring-checklist.md`](./phase1-prod-wiring-checklist.md) |
 | **2** Tooling     | **Done**         | —                                                                                                                                                                                                                                                               |
 | **3** Shaping     | **Done** on fwor | `kameworks.tech` first login; super-admin secret on fwor; D6 scripts shipped                                                                                                                                                                                    |
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                                                              |
