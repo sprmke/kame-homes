@@ -62,6 +62,13 @@ all crawling (fixed in code on `main`), sitemap pointing at the preview host (fi
 UI stale relative to `main`** because the Vercel project builds `main` as Preview only (operator).
 Detail: [`evidence/production-audit-2026-11-02.md`](./evidence/production-audit-2026-11-02.md).
 
+## Restore drill (2026-11-03)
+
+First measured drill: production backup 80 s (3.4 MB), restore of application data 3 s with 100% row
+parity. Two blockers surfaced: production schema drift (no `valid_dates` constraint) and 43/450
+bookings that violate it, so restoring prod data into a fresh project fails. Detail:
+[`evidence/restore-drill-2026-11-03.md`](./evidence/restore-drill-2026-11-03.md).
+
 ## Next actions, in order
 
 | #   | Action                                                                                                                                                          | Owner              |
