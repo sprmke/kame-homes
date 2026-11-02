@@ -1973,11 +1973,11 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                                         currentBookingId
                                       )(date);
 
-                                      // Disable dates before or equal to check-in date
+                                      // Same-day stays are allowed (day use); only earlier dates are out
                                       const checkInDate = form.watch('checkInDate');
                                       if (checkInDate) {
                                         const checkIn = stringToDate(checkInDate);
-                                        if (date <= checkIn) {
+                                        if (date < checkIn) {
                                           return true;
                                         }
                                       }
@@ -1986,7 +1986,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                                     }}
                                     minDate={
                                       form.watch('checkInDate')
-                                        ? stringToDate(getNextDay(form.watch('checkInDate')))
+                                        ? stringToDate(form.watch('checkInDate'))
                                         : new Date()
                                     }
                                     placeholder={DATE_PICKER_DISPLAY_FORMAT}

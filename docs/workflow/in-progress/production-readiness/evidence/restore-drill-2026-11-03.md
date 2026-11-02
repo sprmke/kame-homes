@@ -46,6 +46,10 @@ Two causes, both real:
 Until this is reconciled, a disaster-recovery restore into a newly created project (the cutover path)
 will fail on those 43 rows.
 
+**Resolved 2026-11-03:** `valid_dates` was added with same-day support and the legacy rows
+grandfathered (migration `20261317120000_same_day_stay_dates.sql`), so a production dump restores into
+a freshly migrated project. Detail: [`same-day-stays-2026-11-03.md`](./same-day-stays-2026-11-03.md).
+
 **Decision needed (product):** are same-day bookings legitimate (day use)? Two ways out:
 
 1. Widen the constraint to `check_out >= check_in`, repair the 41 reversed rows (swap after checking
@@ -78,7 +82,7 @@ docker exec -i supabase_db_guest-form-management psql -U postgres -d restore_dri
 
 | #   | Item                                                                                               |
 | --- | -------------------------------------------------------------------------------------------------- |
-| 1   | Product decision on same-day bookings, then repair the 43 rows and reconcile `valid_dates` on prod |
+| 1   | ~~Product decision on same-day bookings~~ — decided 2026-11-03: day use is allowed; `valid_dates` now permits equal dates and is validated, 41 legacy reversed rows grandfathered. See [`same-day-stays-2026-11-03.md`](./same-day-stays-2026-11-03.md) |
 | 2   | `PROD_DB_URL` (or equivalent) so one drill covers auth/storage/cron metadata end to end            |
 | 3   | Repeat the drill after each release and record the numbers here                                    |
 | 4   | Add `audit-booking-dates.mjs` to the deploy preflight                                              |

@@ -1,5 +1,10 @@
 import dayjs from 'dayjs';
-import { formatTime, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
+import {
+  formatTime,
+  occupiedStayNights,
+  DEFAULT_CHECK_IN_TIME,
+  DEFAULT_CHECK_OUT_TIME,
+} from './utils.ts';
 import { computeGuestCounts } from './guestCounts.ts';
 
 // ─── Booking status enum ──────────────────────────────────────────────────────
@@ -296,7 +301,8 @@ export const transformFormToSubmission = (
     nationality: formData.nationality,
     number_of_adults: guestCounts.adults,
     number_of_children: guestCounts.children,
-    number_of_nights: toNumber(formData.numberOfNights),
+    // Derived from the dates, not the client: same-day stays count as one night.
+    number_of_nights: occupiedStayNights(formData.checkInDate, formData.checkOutDate),
     primary_guest_age: toNumber(formData.primaryGuestAge),
     guest2_name: validateGuestName(formData.guest2Name),
     guest2_age: formData.guest2Name?.trim() ? toNumber(formData.guest2Age) : undefined,

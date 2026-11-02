@@ -66,8 +66,13 @@ Detail: [`evidence/production-audit-2026-11-02.md`](./evidence/production-audit-
 
 First measured drill: production backup 80 s (3.4 MB), restore of application data 3 s with 100% row
 parity. Two blockers surfaced: production schema drift (no `valid_dates` constraint) and 43/450
-bookings that violate it, so restoring prod data into a fresh project fails. Detail:
+bookings that violate it, so restoring prod data into a fresh project failed. Detail:
 [`evidence/restore-drill-2026-11-03.md`](./evidence/restore-drill-2026-11-03.md).
+
+**Resolved 2026-11-03:** same-day stays are now a supported product rule (`check_out >= check_in`,
+one occupied night) and the missing `valid_dates` constraint was added with the 41 pre-2025-06
+reversed rows grandfathered, so a production dump restores into a fresh project. See
+[`evidence/same-day-stays-2026-11-03.md`](./evidence/same-day-stays-2026-11-03.md).
 
 ## Next actions, in order
 

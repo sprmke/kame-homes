@@ -5,6 +5,7 @@ import {
   BOOKING_PATCH_COLUMN_PERMISSIONS,
   assertBookingPropertyScope,
   bookingAssetClearPatch,
+  assertStayDateOrder,
   canRescheduleBookingAtStatus,
   impliedBookingPatchColumns,
   requiredPermissionsForOperation,
@@ -181,4 +182,12 @@ Deno.test('sanitizeBookingPatchPayload validates settlement line items', () => {
     Error,
     'must not be negative'
   );
+});
+
+Deno.test('assertStayDateOrder — same-day allowed, inverted rejected', () => {
+  assertStayDateOrder('2026-01-10', '2026-01-10');
+  assertStayDateOrder('2026-01-10', '2026-01-12');
+  assertStayDateOrder('01-10-2026', '01-10-2026');
+  assertThrows(() => assertStayDateOrder('2026-01-12', '2026-01-10'));
+  assertThrows(() => assertStayDateOrder('not-a-date', '2026-01-10'));
 });

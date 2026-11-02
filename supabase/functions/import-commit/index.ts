@@ -29,6 +29,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { occupiedStayNights } from '../_shared/utils.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 /** previewed = normal path; failed = retry after a prior commit attempt inserted nothing. */
@@ -90,6 +91,17 @@ function buildSubmissionRow(
     } else {
       row[column] = rawValue;
     }
+  }
+
+  // Keep nights consistent with the dates: a same-day stay occupies one night, and a CSV
+  // that omits number_of_nights still needs a value (the column is NOT NULL).
+  const nightsFromDates = occupiedStayNights(
+    mappedData.check_in_date ?? '',
+    mappedData.check_out_date ?? ''
+  );
+  const importedNights = Number(row.number_of_nights);
+  if (nightsFromDates > 0 && (!Number.isFinite(importedNights) || importedNights < 1)) {
+    row.number_of_nights = nightsFromDates;
   }
 
   return row;

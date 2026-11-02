@@ -351,11 +351,12 @@ function validateDateOrder(
 
   const inDate = new Date(inParts[2], inParts[0] - 1, inParts[1]);
   const outDate = new Date(outParts[2], outParts[0] - 1, outParts[1]);
-  if (outDate <= inDate) {
+  // Same-day stays are allowed (day use); only an inverted range is an error.
+  if (outDate < inDate) {
     return {
       field: 'check_out_date',
       code: 'date_order',
-      message: 'Check-out must be after check-in',
+      message: 'Check-out cannot be before check-in',
       severity: 'error',
       value: sourceByField.check_out_date || checkOut,
     };

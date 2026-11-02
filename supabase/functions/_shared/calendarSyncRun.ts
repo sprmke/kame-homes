@@ -14,7 +14,7 @@
 import type { SupabaseClient } from './supabaseJs.ts';
 
 import { resolveAppSettings } from './appSettings.ts';
-import { manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { addDaysYmd, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { createNotification } from './notificationService.ts';
 import { buildActorContext } from './activityLog.ts';
@@ -26,7 +26,6 @@ import {
   ExternalFetchError,
   fetchExternalIcs,
   hashFeedBody,
-  nightsBetween,
   parseIcsCalendar,
   ymdToMmDdYyyy,
   type CalendarFeedProvider,
@@ -41,7 +40,7 @@ import {
 export type IcsFetcher = (url: string, opts: FetchIcsOptions) => Promise<FetchIcsResult>;
 import { resolveGuestFormSettings } from './guestFormSettings.ts';
 import { decryptIntegrationSecret } from './secretsCrypto.ts';
-import { DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
+import { DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME, occupiedStayNights } from './utils.ts';
 import { WorkflowOrchestrator } from './workflowOrchestrator.ts';
 
 export { buildExportCalendar };
@@ -81,12 +80,15 @@ export async function loadExportRanges(
     if (excludeProvider && b.external_source === excludeProvider) continue;
     const s = toYmd(b.check_in_date);
     const e = toYmd(b.check_out_date);
-    if (!s || !e || e <= s) continue;
+    if (!s || !e || e < s) continue;
+    // Same-day stays occupy their check-in night: publish [check-in, check-in + 1) so an OTA
+    // importing this feed blocks that night instead of seeing the day as free.
+    const occupiedEnd = e === s ? addDaysYmd(s, 1) : e;
     bump(b.updated_at);
     ranges.push({
       uidLocalPart: `gfm-booking-${b.id}`,
       startDate: s,
-      endDate: e,
+      endDate: occupiedEnd,
       summary: 'Booked',
     });
   }
@@ -802,7 +804,8 @@ async function reconcileExternalBookings(
     const existing = currentByUid.get(ev.uid);
     const startMdy = ymdToMmDdYyyy(ev.startDate);
     const endMdy = ymdToMmDdYyyy(ev.endDate);
-    const nights = nightsBetween(ev.startDate, ev.endDate);
+    // Same-day implied stays occupy one night; the DB CHECK rejects an inverted event.
+    const nights = occupiedStayNights(startMdy, endMdy);
 
     if (!existing) {
       const displayName = ev.confirmationCode

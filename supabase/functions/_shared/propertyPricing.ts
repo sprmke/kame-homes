@@ -337,10 +337,12 @@ export async function loadBookedDateKeys(
     if (row.status === 'CANCELLED' || row.status === 'IMPORTED') continue;
     const checkIn = parseOccupancyDate(row.check_in_date);
     const checkOut = parseOccupancyDate(row.check_out_date);
-    if (!checkIn || !checkOut || checkIn >= checkOut) continue;
+    if (!checkIn || !checkOut || checkIn > checkOut) continue;
+    // Same-day stay: the check-in night is occupied, so block [check-in, check-in + 1).
+    const occupiedOut = checkIn.getTime() === checkOut.getTime() ? addDays(checkOut, 1) : checkOut;
 
     let cursor = new Date(checkIn);
-    const lastNight = addDays(checkOut, -1);
+    const lastNight = addDays(occupiedOut, -1);
     while (cursor <= lastNight) {
       const key = formatDateKey(cursor);
       if (!rangeStart || !rangeEnd || (cursor >= rangeStart && cursor <= rangeEnd)) {
@@ -359,8 +361,10 @@ function bookingOverlapsMonth(
   monthStart: Date,
   monthEnd: Date
 ): boolean {
-  if (checkIn >= checkOut) return false;
-  const lastNight = addDays(checkOut, -1);
+  if (checkIn > checkOut) return false;
+  // Same-day stay occupies its check-in night.
+  const occupiedOut = checkIn.getTime() === checkOut.getTime() ? addDays(checkOut, 1) : checkOut;
+  const lastNight = addDays(occupiedOut, -1);
   return checkIn <= monthEnd && lastNight >= monthStart;
 }
 

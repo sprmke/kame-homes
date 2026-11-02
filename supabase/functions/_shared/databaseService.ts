@@ -1191,6 +1191,18 @@ export class DatabaseService {
       const newCheckIn = normalizeDate(checkInDate);
       const newCheckOut = normalizeDate(checkOutDate);
 
+      // Same-day stays (check in and out on one date) occupy the check-in night, so the
+      // half-open range they block is [check-in, check-in + 1 day). Without this the zero
+      // length range would never collide with another booking on that night.
+      const toOccupiedRange = (checkIn: string, checkOut: string): [string, string] => {
+        if (checkOut > checkIn) return [checkIn, checkOut];
+        const [y, m, d] = checkIn.split('-').map(Number);
+        if (!y || !m || !d) return [checkIn, checkOut];
+        const next = new Date(Date.UTC(y, m - 1, d + 1));
+        return [checkIn, next.toISOString().slice(0, 10)];
+      };
+      const [newOccupiedIn, newOccupiedOut] = toOccupiedRange(newCheckIn, newCheckOut);
+
       console.log('Normalized dates - Check-in:', newCheckIn, 'Check-out:', newCheckOut);
 
       // Query for overlapping bookings
@@ -1235,8 +1247,10 @@ export class DatabaseService {
       // Filter overlapping bookings in memory
       const overlappingBookings =
         activeBookings?.filter((booking) => {
-          const existingCheckIn = normalizeDate(booking.check_in_date);
-          const existingCheckOut = normalizeDate(booking.check_out_date);
+          const [existingCheckIn, existingCheckOut] = toOccupiedRange(
+            normalizeDate(booking.check_in_date),
+            normalizeDate(booking.check_out_date)
+          );
 
           console.log(`Comparing with existing booking ${booking.id}:`);
           console.log(`  Existing: ${existingCheckIn} to ${existingCheckOut}`);
@@ -1248,9 +1262,9 @@ export class DatabaseService {
           // - New check-out is after existing check-in
           // However, we allow check-in on checkout dates (same day turnover)
           const overlaps =
-            newCheckIn < existingCheckOut &&
-            newCheckOut > existingCheckIn &&
-            !(newCheckIn === existingCheckOut || newCheckOut === existingCheckIn);
+            newOccupiedIn < existingCheckOut &&
+            newOccupiedOut > existingCheckIn &&
+            !(newOccupiedIn === existingCheckOut || newOccupiedOut === existingCheckIn);
 
           console.log(`  Overlap detected: ${overlaps}`);
           console.log(
