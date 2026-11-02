@@ -13,7 +13,7 @@ blocks: [kamespace-02-legacy-prod-to-mt-prod-cutover, kamespace-03-rebrand-kame-
 
 - **Done:** B0 inventory; B1–B2 partial (32/32 local env keys captured, liveness checks, encrypted tar).
 - **In progress:** B1–B2 tail.
-- **Pending:** B-06 hosted digest match (needs CLI access), B-18 sign-off. B-18 gates cutover Phase 1 decommission and plan 02 §10.
+- **Done:** B-06 hosted digest match; **B-18 signed 2026-11-01 and re-verified 2026-11-03**. B-18 no longer gates decommission.
 
 **Series.** Plan 1 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](../planned/kamespace-05-google-services-verification.md).
 
@@ -208,3 +208,5 @@ Committed to the repo: **only** the names-only template `supabase/.env.legacy-pr
 - Activity log: N/A, no org/property state changes. Plans and permissions: N/A.
 
 Back to [planned index](./README.md).
+
+**B-18 verification (2026-11-03):** `backups/legacy-prod-config/20261101/legacy-prod-config.tar` SHA-256 matches (`cac086ea…a1e666`). A comprehensive archive `backups/legacy-prod-config/2026-11-03/env-archive.tar` (SHA-256 recorded beside it, 24 files) adds the current local env files, the rotated prod secrets, Vercel env backups and the legacy config JSON. All are gitignored and chmod 600. Legacy Supabase is paused, so no further hosted values can be read; anything write-only was already marked “replaced at cutover”.

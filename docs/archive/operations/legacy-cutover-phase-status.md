@@ -65,7 +65,7 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | B0 Prep     | **Done**    | gitignore, hooks, templates, env skip                                                |
 | B1 Capture  | **Partial** | 32+6 local keys; capture + liveness ok; legacy CLI secrets **403**; Vercel pull open |
 | B2 Seal     | **Partial** | Tar + SHA256; age + B-17 drill open                                                  |
-| B3 Hand-off | **Partial** | Integration inventory; B-18 sign-off open                                            |
+| B3 Hand-off | **Done**    | Integration inventory complete; **B-18 signed and re-verified 2026-11-03** (archives + hashes) |
 
 Scripts: `merge-legacy-prod-env.mjs`, `capture-legacy-config.ts`, `verify-secret-hashes.ts`, `legacy-env-liveness.ts`, `build-legacy-prod-archive.sh`.
 

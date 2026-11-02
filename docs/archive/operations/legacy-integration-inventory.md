@@ -47,4 +47,4 @@ Captured as JSON: `backups/legacy-prod-config/<date>/cron-jobs.json`. Legacy Tel
 
 - [x] Names recorded (this file + Plan 01 templates).
 - [ ] Hosted digest match (`verify-secret-hashes.ts` with `secrets-digests.json` from CLI).
-- [ ] Plan 01 B-18 operator sign-off.
+- [x] Plan 01 B-18 operator sign-off **2026-11-01**, verified again 2026-11-03: `backups/legacy-prod-config/20261101/legacy-prod-config.tar` + SHA-256 `cac086ea…a1e666`; comprehensive `backups/legacy-prod-config/2026-11-03/env-archive.tar` + SHA-256 verified (24 files).

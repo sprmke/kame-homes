@@ -76,7 +76,7 @@ Fallback: if the freeze dump shows zero drift vs the Oct 31 copy (same counts, s
 - [x] **Extensions + scheduled jobs** — `pg_cron` + `pg_net` installed 2026-11-02; 26 jobs defined, 13 outbound jobs parked until T0 (`sql/60-install-extensions-and-crons.sql`, `sql/61-activate-all-crons.sql`)
 - [x] **Test-fixture cleanup** — QA orgs/users and legacy guest sign-ins removed (`sql/70-clean-prod-test-data.sql`, `sql/50-cleanup-guest-auth.sql`); prod holds only the Kame Homes tenant
 - [ ] **T0 freeze pair** — fresh dump + reload per the T0 data path above, `compareCounts` green at freeze time
-- [ ] **Plan 01 B-18 sign-off** — gates decommission (§10), not T0
+- [x] **Plan 01 B-18 sign-off** — signed 2026-11-01, re-verified 2026-11-03 (archives + SHA-256)
 
 ---
 
