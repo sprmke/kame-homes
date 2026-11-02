@@ -15,6 +15,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
+**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 02 (legacy → mt-prod cutover) has data, storage, accounts, extensions and crons on `fwor…`; T0 freeze + DNS is the remaining step. 01 keeps its optional sign-off tails (B-06, B-16, B-17). 04's DNS/Resend/Auth phases gate T0.
+
 **Moved in 2026-10-25:** [`chat-templates.md`](./chat-templates.md) ← [`../planned/`](../planned/) — property stay-guide/custom templates in Guest Inbox Insert → Templates and AI Assistant Pin context. Code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
 
 **Moved out 2026-09-09:** `org-granular-team-permissions` + `super-admin-step-up-otp` → [`../for-testing/`](../for-testing/) (code shipped, QA-only — batches 6 & 7 in [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md)). `marketing-module-refinement` → [`../done/`](../done/); remaining Meta-publishing feature gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
@@ -41,6 +43,7 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 | [`marketing-themes.md`](./marketing-themes.md)                              | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
 | [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)          | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
 | [`ci-cd-environments/`](./ci-cd-environments/README.md)                     | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
+| [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) | Legacy prod → multi-tenant prod cutover. Production is `fwor…`; data + storage + shaping done, crons installed and parked; T0 reload, DNS and hypercare remain |
 | See [`../done/`](../done/) for completed work.                              |
 
 **Super admin console:** Phases 0–7 **done** — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) (+ audit log, AI usage, platform settings, global search in `done/`). Remaining 6 modules: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md).
