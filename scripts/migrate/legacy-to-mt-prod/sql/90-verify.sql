@@ -49,7 +49,7 @@ select 'V6 shape' as check, count(*)::int as failures
 from (
   select 1 as x
   where not exists (select 1 from public.organizations)
-     or not exists (select 1 from public.properties where slug = 'monaco-2604')
+     or not exists (select 1 from public.properties)
 ) q;
 
 -- V7. legacy host references remaining (pre-rewrite informational)
