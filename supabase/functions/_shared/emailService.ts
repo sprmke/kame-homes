@@ -54,6 +54,8 @@ import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { buildSupportTicketThreadUrl } from './supportTicketStatus.ts';
 
 /** Resolve property scope for operator settings (email routing, GCash, logos, etc.). */
+
+import { captureSentryMessage } from './sentry.ts';
 export function resolveEmailPropertyId(
   booking?: { property_id?: string | null } | null
 ): string | undefined {
@@ -124,6 +126,12 @@ async function downloadStorageFile(
 
     if (error || !data) {
       console.error('[emailService] Storage download failed:', error?.message);
+      void captureSentryMessage('email attachment download failed', {
+        logPrefix: 'emailService',
+        level: 'warning',
+        tags: { provider: 'supabase_storage', side_effect: 'email_attachment' },
+        fingerprint: ['provider', 'supabase_storage', 'download'],
+      });
       return null;
     }
 

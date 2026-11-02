@@ -6,6 +6,8 @@
  * to force inline on a non-local URL.
  */
 
+import { captureSideEffectFailure } from './sentry.ts';
+
 /** `EdgeRuntime.waitUntil` is a Supabase-provided global; not in Deno's lib types. */
 export function getWaitUntil(): ((p: Promise<unknown>) => void) | null {
   try {
@@ -27,7 +29,15 @@ export function shouldInlineBackgroundTasks(): boolean {
 }
 
 export async function runAfterResponse(label: string, task: () => Promise<unknown>): Promise<void> {
-  const guarded = task().catch((err) => console.warn(`[${label}] background task failed:`, err));
+  const guarded = task().catch(async (err) => {
+    console.warn(`[${label}] background task failed:`, err);
+    // Nobody is waiting on this work, so without a capture the failure exists only in a
+    // log line that may have been flushed before the isolate was recycled.
+    await captureSideEffectFailure(`background:${label}`, err, {
+      level: 'warning',
+      logPrefix: label,
+    });
+  });
   const waitUntil = shouldInlineBackgroundTasks() ? null : getWaitUntil();
   if (waitUntil) {
     waitUntil(guarded);

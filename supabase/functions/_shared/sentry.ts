@@ -334,6 +334,38 @@ export async function captureSentryMessage(
   await capture({ ...options, level: options.level ?? 'warning' }, { message });
 }
 
+/**
+ * A side effect that failed while the request itself succeeded — a workflow transition
+ * that still moved the booking but could not send the email, or a calendar sync that gave
+ * up. These are the failures nobody notices: the UI says the transition worked, and the
+ * guest never receives what they were promised.
+ *
+ * Fingerprint per effect, so one broken provider is one issue instead of one per booking.
+ */
+export async function captureSideEffectFailure(
+  sideEffect: string,
+  error: unknown,
+  options: {
+    provider?: string;
+    level?: SentryLevel;
+    bookingStatusTo?: string;
+    logPrefix?: string;
+    extra?: Record<string, unknown>;
+  } = {}
+): Promise<void> {
+  await captureSentryException(error, {
+    logPrefix: options.logPrefix ?? `side_effect:${sideEffect}`,
+    level: options.level ?? 'error',
+    tags: {
+      side_effect: sideEffect,
+      ...(options.provider ? { provider: options.provider } : {}),
+      ...(options.bookingStatusTo ? { booking_status_to: options.bookingStatusTo } : {}),
+    },
+    fingerprint: ['side_effect', sideEffect],
+    extra: options.extra,
+  });
+}
+
 /** Test seam — clears memoized DSN and the per-isolate guards. */
 export function resetSentryDsnCacheForTests(): void {
   parsedDsn = undefined;

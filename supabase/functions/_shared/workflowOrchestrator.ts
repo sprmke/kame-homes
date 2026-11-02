@@ -9,6 +9,7 @@
  */
 
 import { DatabaseService } from './databaseService.ts';
+import { captureSideEffectFailure } from './sentry.ts';
 import { ensureGuestStayGuideToken } from './guestStayGuide.ts';
 import {
   checkGuestBalanceSettlement,
@@ -846,6 +847,7 @@ export class WorkflowOrchestrator {
         shouldGenerateGafRequestPdf
           ? generatePDF(fd, propertyId).catch((err) => {
               console.error('[orchestrator] GAF PDF generation failed:', err);
+          void captureSideEffectFailure('pdf:gaf', err, { bookingStatusTo: toStatus });
               throw new Error(
                 `GAF request PDF could not be generated. Ensure templates/guest-form-template.pdf exists in Storage. ${
                   err instanceof Error ? err.message : String(err)
@@ -856,6 +858,7 @@ export class WorkflowOrchestrator {
         shouldGeneratePetRequestPdf
           ? generatePetPDF(fd, propertyId).catch((err) => {
               console.error('[orchestrator] Pet request PDF generation failed:', err);
+          void captureSideEffectFailure('pdf:pet_request', err, { bookingStatusTo: toStatus });
               throw new Error(
                 `Pet request PDF could not be generated. Ensure templates/pet-form-template.pdf exists in Storage. ${
                   err instanceof Error ? err.message : String(err)
@@ -942,6 +945,10 @@ export class WorkflowOrchestrator {
         } catch (err) {
           console.error('[orchestrator] GAF request email failed:', err);
           emailsFailed.push('gaf_request');
+          await captureSideEffectFailure('email:gaf_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
         }
       } else if (
         isReviewToInitialDocs &&
@@ -967,6 +974,10 @@ export class WorkflowOrchestrator {
         } catch (err) {
           console.error('[orchestrator] Booking acknowledgement email failed:', err);
           emailsFailed.push('booking_acknowledgement');
+          await captureSideEffectFailure('email:booking_acknowledgement', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
         }
       } else if (flag(devControls, 'sendBookingAcknowledgementEmail')) {
         console.log('[orchestrator] Booking acknowledgement email skipped (org automation off)');
@@ -992,6 +1003,10 @@ export class WorkflowOrchestrator {
           emailsSent.push('pet_request');
         } catch (err) {
           console.error('[orchestrator] Pet request email failed:', err);
+          await captureSideEffectFailure('email:pet_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
           emailsFailed.push('pet_request');
         }
       } else if (
@@ -1019,6 +1034,10 @@ export class WorkflowOrchestrator {
         if (refreshed) updatedBooking = refreshed;
       } catch (err) {
         console.error('[orchestrator] Stay guide token failed (non-fatal):', err);
+        await captureSideEffectFailure('stay_guide_token', err, {
+          level: 'warning',
+          bookingStatusTo: toStatus,
+        });
       }
     }
 
@@ -1051,6 +1070,10 @@ export class WorkflowOrchestrator {
       } catch (err) {
         console.error('[orchestrator] Ready-for-check-in email failed:', err);
         emailsFailed.push('ready_for_checkin');
+        await captureSideEffectFailure('email:ready_for_checkin', err, {
+          provider: 'resend',
+          bookingStatusTo: toStatus,
+        });
       }
     } else if (
       toStatus === 'READY_FOR_CHECKIN' &&
@@ -1096,6 +1119,10 @@ export class WorkflowOrchestrator {
           }
         } catch (err) {
           console.error('[orchestrator] SD refund form request email failed:', err);
+          await captureSideEffectFailure('email:sd_refund_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
           emailsFailed.push('sd_refund_form_request');
         }
       }
