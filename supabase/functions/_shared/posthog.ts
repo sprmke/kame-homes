@@ -76,6 +76,15 @@ export async function capturePostHogEvent(
     distinctId?: string;
     request?: Request;
     properties?: Record<string, unknown>;
+    /**
+     * PostHog groups, so an event is attributable to a tenant and not only to a person.
+     * Ids only, never names. Set at the call site where the scope is known.
+     */
+    groups?: {
+      organization?: string | null;
+      property?: string | null;
+      parking?: string | null;
+    };
     /** Cron/webhook/system events — no person profile. */
     system?: boolean;
   }
@@ -89,6 +98,13 @@ export async function capturePostHogEvent(
       options.distinctId ?? `edge:${options.logPrefix}`
     );
     const systemEvent = options.system ?? !hasUserContext;
+    const builtGroups = {
+      ...(options.groups?.organization ? { organization: options.groups.organization } : {}),
+      ...(options.groups?.property ? { property: options.groups.property } : {}),
+      ...(options.groups?.parking ? { parking: options.groups.parking } : {}),
+    };
+    const hasGroups = Object.keys(builtGroups).length > 0;
+
     // An outcome is worth recording, but it is not worth making the guest wait: the
     // analytics write must never sit on the response path. `runAfterResponse` hands the
     // capture to the isolate where the platform supports it and runs inline otherwise.
@@ -103,6 +119,7 @@ export async function capturePostHogEvent(
           persona: systemEvent ? 'system' : 'host',
           surface: 'edge',
           log_prefix: options.logPrefix,
+          ...(hasGroups ? { $groups: builtGroups } : {}),
           ...(sessionId ? { $session_id: sessionId } : {}),
           ...(systemEvent ? { $process_person_profile: false } : {}),
           ...options.properties,

@@ -442,6 +442,7 @@ serveAuthenticated('create-organization', async (req, user) => {
     logPrefix: 'create-organization',
     request: req,
     distinctId: user.id,
+    groups: { organization: org.id },
     properties: {
       org_id: org.id,
       with_property: Boolean(property),
@@ -453,6 +454,7 @@ serveAuthenticated('create-organization', async (req, user) => {
       logPrefix: 'create-organization',
       request: req,
       distinctId: user.id,
+      groups: { organization: org.id, property: (property as { id: string }).id },
       properties: {
         org_id: org.id,
         property_id: (property as { id: string }).id,
@@ -465,6 +467,7 @@ serveAuthenticated('create-organization', async (req, user) => {
       logPrefix: 'create-organization',
       request: req,
       distinctId: user.id,
+      groups: { organization: org.id, parking: (parking as { id: string }).id },
       properties: {
         org_id: org.id,
         parking_id: (parking as { id: string }).id,
