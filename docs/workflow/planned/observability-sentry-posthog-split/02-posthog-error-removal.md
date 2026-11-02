@@ -41,7 +41,7 @@ window with no capture.
       `errors_only` value reads as `off`. Update `analyticsMode.test.ts`.
 - [x] `ui/src/lib/posthog/catalog.ts` — remove `edge_request_failed` from the
       "Reliability" group (delete the group).
-- [ ] `@posthog/react` — confirm `PostHogProvider` is only used as a client provider; do
+- [x] `@posthog/react` — confirm `PostHogProvider` is only used as a client provider; do
       not adopt `PostHogErrorBoundary`.
 
 ## P1.2 Build
@@ -54,9 +54,9 @@ window with no capture.
       split into `analytics-vendor` / `errors-vendor` if the S0 bundle measurement says so.
 - [x] `ui/package.json` — remove `@posthog/rollup-plugin`; `bun install`; update lockfiles.
       **Done.**
-- [ ] Update the comment in `vite.config.ts` `esbuild` block that refers to "PostHog's
+- [x] Update the comment in `vite.config.ts` `esbuild` block that refers to "PostHog's
       exception capture".
-- [ ] `scripts/performance/assert-no-sourcemaps.mjs` — message and doc comment reference
+- [x] `scripts/performance/assert-no-sourcemaps.mjs` — message and doc comment reference
       Sentry instead of PostHog.
 
 ## P1.3 Edge
@@ -79,7 +79,7 @@ window with no capture.
     `provider: cloudflare_turnstile`.
   - `logCaptchaEvent` (synthetic `Error(name)`) → structured `logEvent('info'|'warn', …)`
     plus, for outcome counts, the PostHog system event `public_write_blocked` (A2).
-- [ ] `_shared/antiSpam.ts` heuristic block → structured log + `public_write_blocked`
+- [x] `_shared/antiSpam.ts` heuristic block → structured log + `public_write_blocked`
       PostHog system event with `reason`, `scope` (never a Sentry event: it is expected).
 - [x] `_shared/posthogCatalog.ts` — remove `edge_request_failed`.
 - [x] Remove `capturePostHogException` imports everywhere;
@@ -91,7 +91,8 @@ window with no capture.
       **Done for the docs**; the operator half is Vercel (doc 05 §3).
       section; PostHog block says analytics only.
 - [x] `supabase/.env.example` — PostHog comment: "product events only".
-- [ ] `envRegistry.ts` / `uiEnvRegistry.ts` (super-admin System health) — remove
+- [x] `envRegistry.ts` / `uiEnvRegistry.ts` (super-admin System health) — remove
+      **N/A** — no PostHog personal-key rows exist in either registry; the keys were only ever build-time.
       PostHog personal key / project id rows if present; PostHog rows describe analytics.
 - [ ] Remove `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` from Vercel
       (operator, doc 05 §3).
@@ -107,14 +108,14 @@ window with no capture.
 
 User-facing copy follows `human-copy.mdc` (no em dashes, plain, short).
 
-- [ ] `CookiesPage.tsx` — PostHog sentence: "first-party product analytics (PostHog)".
+- [x] `CookiesPage.tsx` — PostHog sentence: "first-party product analytics (PostHog)".
       Remove "and errors". Add one sentence: error monitoring (Sentry) records technical
       details when something breaks, without names, emails, phone numbers, or message
       content. Sentry does not set advertising cookies.
-- [ ] `PrivacyPage.tsx` — analytics paragraph: PostHog for usage and funnels only. New
+- [x] `PrivacyPage.tsx` — analytics paragraph: PostHog for usage and funnels only. New
       processor paragraph for Sentry: error reports, pseudonymous user id, no IP storage,
       retention per Sentry plan (90 days default).
-- [ ] `docs/guides/routes/legal.md` — same facts; Host-facing knowledge Q&A if present.
+- [x] `docs/guides/routes/legal.md` — same facts; Host-facing knowledge Q&A if present.
 - [ ] Ship this copy **before** production Sentry keys are set.
 
 ## P1.7 Guard

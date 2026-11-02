@@ -36,6 +36,7 @@ import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 import { verifyResendWebhookSignature } from '../_shared/resendWebhookVerify.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
+import { captureSentryMessage } from '../_shared/sentry.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
 import { buildActorContext } from '../_shared/activityLog.ts';
@@ -498,6 +499,14 @@ servePublic('approval-email-webhook', async (req) => {
       windowSec: 60,
     });
     if (limited) return limited;
+    // Resend inbound carries guest ID and pet documents. A rejected signature is either a
+    // rotated secret (which stops approvals silently) or someone probing the endpoint.
+    await captureSentryMessage('resend inbound signature rejected', {
+      logPrefix: 'approval-email-webhook',
+      level: 'warning',
+      tags: { provider: 'resend', webhook: 'signature' },
+      fingerprint: ['webhook_signature', 'resend'],
+    });
     return jsonError(req, 'Invalid signature', 403);
   }
 

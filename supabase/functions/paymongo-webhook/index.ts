@@ -11,6 +11,7 @@ import {
 } from '../_shared/subscriptionOrchestrator.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
+import { captureSentryException, captureSentryMessage } from '../_shared/sentry.ts';
 
 servePublic('paymongo-webhook', async (req) => {
   if (req.method !== 'POST') {
@@ -38,6 +39,14 @@ servePublic('paymongo-webhook', async (req) => {
       windowSec: 60,
     });
     if (limited) return limited;
+    // Could be an attack or a rotated secret. A warning, tagged by provider, so a spike is
+    // visible without every probe counting as an incident.
+    await captureSentryMessage('paymongo webhook signature rejected', {
+      logPrefix: 'paymongo-webhook',
+      level: 'warning',
+      tags: { provider: 'paymongo', webhook: 'signature' },
+      fingerprint: ['webhook_signature', 'paymongo'],
+    });
     return jsonError(req, 'Invalid signature', 401);
   }
 
@@ -74,6 +83,17 @@ servePublic('paymongo-webhook', async (req) => {
     return jsonSuccess(req, { eventType, ...result });
   } catch (err) {
     console.error('[paymongo-webhook]', err);
+    // Captured here, inside the dedupe guard and after the event was accepted: this handler
+    // answers its own 500, so the shared choke point never sees the throw. A failed payment
+    // webhook is the highest-value fault in the system.
+    await captureSentryException(err, {
+      logPrefix: 'paymongo-webhook',
+      requestId: req.headers.get('x-request-id') ?? undefined,
+      method: req.method,
+      tags: { provider: 'paymongo', webhook: 'processing', event_type: eventType },
+      fingerprint: ['webhook', 'paymongo', 'processing'],
+      extra: { eventType },
+    });
     return jsonError(req, (err as Error).message, 500);
   }
 });

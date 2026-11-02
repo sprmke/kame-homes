@@ -1,0 +1,71 @@
+---
+description: >-
+  Every new feature must decide its PostHog events and confirm its faults reach a
+  Sentry choke point in the same change (or mark N/A). Faults go to Sentry, user
+  outcomes go to PostHog, and the two are linked by request id and release id,
+  never duplicated.
+alwaysApply: true
+---
+
+# Observability gate — Sentry faults, PostHog outcomes
+
+**Non-negotiable:** a new or changed feature must answer two questions in the same change.
+"Forgot" is not an answer.
+
+| Question                                          | If yes                                                                                                           | If no                                 |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Does it produce a **fault** an engineer must fix? | Make sure it reaches a choke point (below), or call `captureError` / `captureSentryException` if it is swallowed | Mark `sentry: N/A` with the reason    |
+| Does the user **do** something worth measuring?   | Add the event to **both** catalogs and emit it once                                                              | Mark `analytics: N/A` with the reason |
+
+## Faults (Sentry)
+
+Captured **once**, at a shared seam. Do not add a second capture at the call site.
+
+| Runtime | Seam                                                                               |
+| ------- | ---------------------------------------------------------------------------------- |
+| Edge    | `handleEdgeError`, `serveCronPost`, `withEdgeErrorCapture`                         |
+| Edge    | `captureSideEffectFailure` for a side effect that fails after the request          |
+| Browser | `AppErrorBoundary` / `RouteErrorFallback`, TanStack `QueryCache` / `MutationCache` |
+| Browser | `adminEdgeFetch` / `callEdgeFunction` / `publicEdgeFetch`                          |
+| Browser | `captureError` for a swallowed failure nothing else sees                           |
+
+- An expected result is **not** a fault: validation, a blocked captcha, an anti-spam block, a
+  404, a deliberate 4xx `EdgeError`, an offline request, an aborted request.
+- No PII. `user.id` only, no email, no IP, no message bodies, no capability-token query
+  values. The scrub list is `ui/src/lib/telemetry/scrub.ts` + `_shared/telemetryScrub.ts`
+  (a parity test keeps them identical).
+- Fingerprint anything that can repeat (`['edge', fn, statusBucket]`), so one broken
+  endpoint is one issue and not thousands.
+
+## Outcomes (PostHog)
+
+- Name: `object_action`, snake_case, past tense. Declared in `ui/src/lib/posthog/catalog.ts`
+  **and** `_shared/posthogCatalog.ts` when emitted server-side; `catalogParity.test.ts`
+  fails otherwise.
+- Server-decided outcomes emit on the **edge after the write succeeds**. Browser is for
+  intent and UI-only steps. Never both.
+- Properties: ids, enums, counts, booleans, buckets. No free text, names, emails, phones,
+  URLs with query strings. Money as `amount_bucket`.
+- **Never** `captureException` / `$exception` in PostHog. There is no helper for it, and
+  `scripts/dev/check-posthog-analytics-only.sh` fails CI if one appears.
+
+## Scheduled work
+
+A new cron must be listed in `_shared/systemHealth/jobsRegistry.ts` so it appears on
+`/admin/health`. Sentry cron monitors are limited to **one** on the current plan
+(`sd-refund-cron`); see `_shared/sentryCron.ts`.
+
+## Verify
+
+- `bun run check:posthog-analytics-only`
+- `bun run check:sentry-imports`
+- `bun run test` (catalog parity, scrub parity)
+
+Live drill: `docs/guides/testing/observability-manual.md`.
+
+## Related
+
+- Contract: `docs/architecture/observability.md`
+- Edge error contract: `.cursor/rules/supabase-edge-functions.mdc`
+- Also decide: `plans-and-permissions.mdc`, `audit-logging.mdc`
+- Skill: `observability`
