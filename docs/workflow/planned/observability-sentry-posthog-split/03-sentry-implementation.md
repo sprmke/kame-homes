@@ -350,11 +350,16 @@ thousands.
 
 ## S4 — Source maps + release health
 
-- [ ] `@sentry/vite-plugin` in `ui/vite.config.ts`, enabled only when `SENTRY_AUTH_TOKEN`,
+- [x] `@sentry/vite-plugin` in `ui/vite.config.ts`, enabled only when `SENTRY_AUTH_TOKEN`,
+      **Done** — enabled only with token+org+project; a failed upload logs and the build still exits 0 (verified with a bad token).
       `SENTRY_ORG`, `SENTRY_PROJECT` are set: `release.name` = S0.3 id, `sourcemaps.assets:
 './dist/**'`, `filesToDeleteAfterUpload: ['./dist/**/*.map']`, `telemetry: false`.
-- [ ] `build.sourcemap: 'hidden'` only when the plugin is enabled.
-- [ ] Wrap the plugin like today's PostHog resilient wrapper: upload failure logs a
+- [x] `build.sourcemap: 'hidden'` only when the plugin is enabled.
+      **Done.**
+- [x] Wrap the plugin like today's PostHog resilient wrapper: upload failure logs a
+      **Done differently, and better:** the published plugin does not fail the build anyway, so instead of
+      wrapping, a `closeBundle` hook deletes any surviving `.map`. A failed upload therefore cannot leave
+      source on disk (verified: bad token → 0 maps, guard passes).
       warning and the build continues.
 - [ ] Keep `scripts/performance/assert-no-sourcemaps.mjs` in CI (no public maps).
 - [ ] Release health: SDK sessions on (default); deploy marker via plugin

@@ -13,6 +13,7 @@ export const APP_ANALYTICS_EVENTS = [
   'guest_form_abandoned',
   'guest_form_submitted',
   'guest_form_rejected',
+  'public_write_blocked',
   'guest_form_completion_submitted',
   // Auth + host activation
   'auth_signed_in',

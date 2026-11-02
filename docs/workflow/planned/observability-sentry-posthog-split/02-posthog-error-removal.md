@@ -46,12 +46,14 @@ window with no capture.
 
 ## P1.2 Build
 
-- [ ] `ui/vite.config.ts` — remove `posthogRollupPlugin` import,
+- [x] `ui/vite.config.ts` — remove `posthogRollupPlugin` import,
+      **Done** — done together with S4, since removing the PostHog uploader and adding the Sentry one is one change to one file.
       `resilientPosthogSourcemapsPlugin`, `posthogSourceMapsEnabled`,
       `posthogReleaseName`; `build.sourcemap` is now driven by the Sentry flag (S4).
       Keep `'observability-vendor'` chunk but list `@sentry/*` in it alongside PostHog, or
       split into `analytics-vendor` / `errors-vendor` if the S0 bundle measurement says so.
-- [ ] `ui/package.json` — remove `@posthog/rollup-plugin`; `bun install`; update lockfiles.
+- [x] `ui/package.json` — remove `@posthog/rollup-plugin`; `bun install`; update lockfiles.
+      **Done.**
 - [ ] Update the comment in `vite.config.ts` `esbuild` block that refers to "PostHog's
       exception capture".
 - [ ] `scripts/performance/assert-no-sourcemaps.mjs` — message and doc comment reference

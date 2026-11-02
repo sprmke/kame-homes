@@ -26,6 +26,7 @@
  */
 
 import { logEvent } from './requestLog.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import { captureSentryMessage } from './sentry.ts';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -119,7 +120,18 @@ export async function verifyCaptchaToken(
     outcome: 'monitored_pass' | 'monitored_fail',
     extra: Record<string, unknown>
   ): Promise<CaptchaVerifyResult> => {
-    await logCaptchaEvent('captcha_monitor', { scope: options.expectedAction, outcome, ...extra });
+    logCaptchaEvent('captcha_monitor', { scope: options.expectedAction, outcome, ...extra });
+    // Monitor mode never blocks, so this is pure measurement: how often would enforce have
+    // rejected a real visitor. Not a fault, so it goes to PostHog and never to Sentry.
+    await capturePostHogEvent('public_write_blocked', {
+      logPrefix: 'captcha:monitor',
+      system: true,
+      properties: {
+        scope: options.expectedAction ?? 'unknown',
+        reason: outcome === 'monitored_fail' ? 'captcha_monitored_fail' : 'captcha_monitored_pass',
+        mode: 'monitor',
+      },
+    });
     return { ok: true, outcome, ...extra } as CaptchaVerifyResult;
   };
 

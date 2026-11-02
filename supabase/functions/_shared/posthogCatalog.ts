@@ -3,6 +3,7 @@
 export const POSTHOG_EVENTS = [
   'guest_form_submitted',
   'guest_form_rejected',
+  'public_write_blocked',
   'guest_form_completion_submitted',
   'org_created',
   'property_created',

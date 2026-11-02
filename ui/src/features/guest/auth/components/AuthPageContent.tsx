@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 
 import type { AuthPageConfig } from '@/features/guest/auth/config/auth-page-config';
+import { classifyAuthFailure } from '@/features/guest/auth/lib/authFailureReason';
 
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useCaptchaToken } from '@/components/security/useCaptchaToken';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { SpinnerIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
 import { AuthDivider } from './AuthDivider';
@@ -61,6 +63,15 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
     return () => clearInterval(timer);
   }, [step, resendCooldown]);
 
+  /**
+   * Every failed attempt is an outcome, so it goes to PostHog and never to Sentry: a mistyped
+   * code is not something an engineer fixes. The reason enum separates user error from a
+   * broken provider.
+   */
+  const trackAuthFailure = (method: 'otp', error: { message?: string } | null | undefined) => {
+    captureAppEvent('auth_failed', { method, reason: classifyAuthFailure(error?.message) });
+  };
+
   const handleContinueEmail = async () => {
     const trimmed = email.trim();
     if (!trimmed || !isValidEmail(trimmed)) {
@@ -74,6 +85,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
     captcha.reset();
     setIsSending(false);
     if (otpError) {
+      trackAuthFailure('otp', otpError);
       setError(otpError.message);
       return;
     }
@@ -94,6 +106,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
     const verifyError = await actions.verifyEmailOtp(email.trim(), trimmedCode);
     setIsVerifying(false);
     if (verifyError) {
+      trackAuthFailure('otp', verifyError);
       setError(verifyError.message);
     }
   };
@@ -107,6 +120,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
     captcha.reset();
     setIsSending(false);
     if (otpError) {
+      trackAuthFailure('otp', otpError);
       setError(otpError.message);
       return;
     }
