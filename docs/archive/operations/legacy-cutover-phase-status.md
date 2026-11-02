@@ -26,6 +26,13 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                         |
 | **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
 
+**2026-11-03 post-cutover fixes:**
+- **Review lifecycle cron was failing hourly** (`getPlatformSettingsSnapshot is not defined`, plus a `skip` helper used before declaration). Fixed, redeployed, verified 200 on the scheduled :17 run. The review modules are now in `check:edge-types` so it cannot ship again.
+- **Telegram was silently off** on prod: legacy used env credentials, the new app needs per-property encrypted rows. Rotated `GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY` (no encrypted data existed), migrated admin/staff/finance/maintenance bot tokens + chat ids, enabled those channels. `telegram-admin-cron` returned `sent: true`; the other channels run at :00.
+- Property location set (`settings.city/province`, address) so the public page no longer shows "Philippines, Philippines".
+- QA sign-in removed; prod has 2 auth users.
+- Production backup taken (`backups/prod/20261102T181127Z_*`).
+
 **2026-11-03 switch complete:** `kamespace.com` is the working app. Apex + `www` + `app` redirect 308 with path/query preserved. Legacy crons unscheduled (0 jobs); prod crons active (26/26). The property was renamed in-app to **Kame Home** / `kame-home` (450 bookings still linked); verify V6 no longer hardcodes `monaco-2604`.
 
 **2026-11-03 cutover delta (targeted, not a reload):** legacy vs prod parity checked table by table. Only one booking had changed on legacy (`f9e646d0…` GAF approved 2026-11-01, `PENDING_DOCUMENTS → READY_FOR_CHECKIN`) plus five `processed_emails` rows. Both were synced directly; the approved PDF was already in Storage. Status mix and counts now match exactly (450 bookings; 426/14/8/1/1). `platform_settings.migration_cutover_at` reset to the switch time. `app.kamehomes.space` now 308s to `kamespace.com`. **DONE 2026-11-03:** `kamehomes.space`, `www` and `app` are 308s to `kamespace.com` with paths and queries preserved; legacy intake is closed; legacy cron count is **0**; the 26 prod jobs are **active**.
