@@ -9,6 +9,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import { resolvePlatformAppName } from './src/lib/platformAppName';
+
 const require = createRequire(import.meta.url);
 /** Shared with scripts/pwa/check-precache-budget.mjs — edit the JSON, not here. */
 const precacheGlobs = require('../scripts/pwa/precache-globs.json') as {
@@ -194,8 +196,8 @@ function gfmPwaPlugin(): Plugin[] {
     },
     manifest: {
       id: '/?app',
-      name: 'Kame Homes',
-      short_name: 'Kame Homes',
+      name: resolvePlatformAppName(process.env.VITE_PLATFORM_APP_NAME),
+      short_name: resolvePlatformAppName(process.env.VITE_PLATFORM_APP_NAME),
       description:
         'Manage bookings, guest messages, pricing and your property operations from one place.',
       lang: 'en',
