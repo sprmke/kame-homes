@@ -44,3 +44,16 @@ describe('scrubPostHogEvent', () => {
     expect(scrubPostHogEvent(hostile)).toBeNull();
   });
 });
+
+describe('performance events belong to Sentry', () => {
+  it('drops web vitals events, whatever the project setting says', () => {
+    // The project's remote config re-enables vitals over the client flag, so the drop has to
+    // happen here or PostHog becomes a second source of truth for LCP/INP/CLS.
+    expect(scrubPostHogEvent({ event: '$web_vitals', properties: {} })).toBeNull();
+    expect(scrubPostHogEvent({ event: '$web_vitals_lcp_event', properties: {} })).toBeNull();
+  });
+
+  it('keeps ordinary product events', () => {
+    expect(scrubPostHogEvent({ event: 'listing_viewed', properties: {} })).not.toBeNull();
+  });
+});

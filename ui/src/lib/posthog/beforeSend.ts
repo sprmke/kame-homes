@@ -14,6 +14,18 @@ import { scrubUrl } from '@/lib/telemetry/scrub';
  *    token, and "sanitizer crashed so we sent it anyway" is the worst possible outcome.
  */
 
+/**
+ * Performance metrics belong to Sentry tracing, and PostHog's **project** setting wins over
+ * the client's `capture_performance: false`: the SDK reads `capturePerformance` from remote
+ * config and re-enables web vitals when the project has them on. That was observed live —
+ * `$web_vitals` events kept arriving while the client flag was already false.
+ *
+ * So the guarantee is enforced here instead of trusting a dashboard toggle: an event whose
+ * name starts with `$web_vitals` is dropped. Sentry remains the single source for LCP / INP /
+ * CLS, which is the whole point of the split.
+ */
+const DROPPED_EVENT_PREFIXES = ['$web_vitals'] as const;
+
 const URL_PROPERTIES = [
   '$current_url',
   '$initial_current_url',
@@ -49,6 +61,10 @@ type PostHogLikeEvent = {
  */
 export function scrubPostHogEvent<T extends PostHogLikeEvent>(event: T | null): T | null {
   if (!event) return null;
+
+  const name = typeof event.event === 'string' ? event.event : '';
+  if (DROPPED_EVENT_PREFIXES.some((prefix) => name.startsWith(prefix))) return null;
+
   try {
     scrubProperties(event.properties);
     return event;
