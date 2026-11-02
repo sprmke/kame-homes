@@ -3,8 +3,8 @@
  * CI guard (production-readiness doc 02, Phase 2.1/2.5) — no `.map` file may
  * reach the deployed output.
  *
- * `ui/vite.config.ts` sets `sourcemap: 'hidden'` only when PostHog source-map
- * upload is configured (POSTHOG_PERSONAL_API_KEY + POSTHOG_PROJECT_ID), and
+ * `ui/vite.config.ts` sets `sourcemap: 'hidden'` only when Sentry source-map
+ * upload is configured (SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT), and
  * that plugin's `deleteAfterUpload: true` removes the generated `.map` files
  * from `dist` once they've been uploaded for symbolication. A public `.map`
  * file hands an attacker the readable source of the admin dashboard — this
@@ -46,7 +46,7 @@ if (mapFiles.length > 0) {
     console.error(`  - ${path.relative(distDir, f)} (${statSync(f).size} bytes)`);
   }
   console.error(
-    '\nA public .map file exposes readable admin-dashboard source. If PostHog source-map ' +
+    '\nA public .map file exposes readable admin-dashboard source. If Sentry source-map ' +
       'upload is enabled, deleteAfterUpload should have removed these — check the upload step.'
   );
   process.exit(1);

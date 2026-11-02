@@ -2,7 +2,9 @@ import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import posthogRollupPlugin, { type PostHogRollupPluginOptions } from '@posthog/rollup-plugin';
+import { readdirSync, rmSync } from 'node:fs';
+
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -42,43 +44,64 @@ const useSyncExternalStoreShimRoot = path.resolve(
 );
 const classnamesShim = path.resolve(__dirname, './src/lib/shims/classnames.ts');
 
-// Build-time only (Node context, never bundled into client code) — set these in
-// CI/Vercel to enable readable production stack traces in PostHog. Requires a
-// *personal* API key (error tracking write scope) — deliberately not named
-// POSTHOG_API_KEY, which is a different (project) key used by the edge runtime.
-// See docs/architecture/validation-and-env.md §11.1.
-const posthogSourceMapsEnabled = Boolean(
-  process.env.POSTHOG_PERSONAL_API_KEY && process.env.POSTHOG_PROJECT_ID
+/**
+ * Source maps go to Sentry only (plan D5). Error grouping and a readable stack are the whole
+ * point of an error tracker; without maps every browser stack is minified.
+ *
+ * Enabled only when all three build-time vars are present. A missing token means "no maps",
+ * not "no build": local and fork builds must not need Sentry credentials.
+ */
+const sentrySourceMapsEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
 );
 
 /**
- * `@posthog/rollup-plugin`'s `writeBundle` hook shells out to `posthog-cli sourcemap upload`
- * and rejects the whole build on any non-zero exit (bad/expired personal API key, network
- * blip, PostHog outage, rate limit) — see `spawnLocal` in `@posthog/plugin-utils`. That hook
- * runs *after* Rollup has already written the real JS/CSS bundle to disk, so a failed upload
- * has nothing left to roll back; the only loss is readable stack traces for this release.
- * Losing that must never block a production deploy (including an urgent hotfix), so this
- * wraps the hook to warn-and-continue instead of throwing.
+ * `@sentry/vite-plugin` uploads inside `writeBundle`, which runs *after* Rollup has already
+ * written the real JS/CSS to disk. A failed upload has nothing left to roll back: the only
+ * loss is readable stack traces for this release. That must never block a deploy, least of
+ * all an urgent hotfix, so the plugin is wrapped to warn-and-continue instead of throwing.
  */
-function resilientPosthogSourcemapsPlugin(options: PostHogRollupPluginOptions): Plugin {
-  const plugin = posthogRollupPlugin(options);
-  const writeBundle = plugin.writeBundle;
+function sentrySourceMapsPlugin(): Plugin[] {
+  const plugins = sentryVitePlugin({
+    org: process.env.SENTRY_ORG!,
+    project: process.env.SENTRY_PROJECT!,
+    authToken: process.env.SENTRY_AUTH_TOKEN!,
+    release: { name: appRelease },
+    sourcemaps: {
+      assets: './dist/**',
+      filesToDeleteAfterUpload: ['./dist/**/*.map'],
+    },
+    // Do not send build telemetry to Sentry from a customer repository.
+    telemetry: false,
+  });
 
-  if (writeBundle && typeof writeBundle === 'object' && 'handler' in writeBundle) {
-    const originalHandler = writeBundle.handler.bind(writeBundle);
-    writeBundle.handler = async (...args: Parameters<typeof originalHandler>) => {
+  // Upload failure never fails the build (verified: a bad token logs and the build still
+  // exits 0). What it *can* do is leave the maps on disk, and `sourcemap: 'hidden'` means
+  // they are one stray static-server change away from being public. So deletion is not
+  // left to the plugin: `closeBundle` runs after every `writeBundle`, and removes any map
+  // that survived, uploaded or not.
+  const cleanup: Plugin = {
+    name: 'delete-source-maps-after-build',
+    apply: 'build',
+    enforce: 'post',
+    closeBundle() {
+      const dir = path.resolve(__dirname, 'dist');
+      const walk = (current: string): void => {
+        for (const entry of readdirSync(current, { withFileTypes: true })) {
+          const full = path.join(current, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (entry.name.endsWith('.map')) rmSync(full, { force: true });
+        }
+      };
       try {
-        await originalHandler(...args);
+        walk(dir);
       } catch (error) {
-        console.warn(
-          '[posthog-rollup-plugin] source map upload failed; continuing build without readable production stack traces for this release.',
-          error
-        );
+        console.warn('[sentry-vite-plugin] could not remove source maps from dist', error);
       }
-    };
-  }
+    },
+  };
 
-  return plugin;
+  return [...(plugins as unknown as Plugin[]), cleanup];
 }
 
 let scopedPolotnoBlueprintCache: string | null = null;
@@ -265,24 +288,12 @@ export default defineConfig({
     scopeBlueprintCssPlugin(),
     react(),
     ...gfmPwaPlugin(),
-    ...(posthogSourceMapsEnabled
-      ? [
-          resilientPosthogSourcemapsPlugin({
-            personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
-            projectId: process.env.POSTHOG_PROJECT_ID!,
-            host: process.env.POSTHOG_HOST,
-            sourcemaps: {
-              releaseName: appRelease,
-              deleteAfterUpload: true,
-            },
-          }),
-        ]
-      : []),
+    ...(sentrySourceMapsEnabled ? sentrySourceMapsPlugin() : []),
   ],
   build: {
     // 'hidden' still generates + uploads maps but omits the sourceMappingURL
     // comment from shipped JS, so they aren't publicly fetchable.
-    sourcemap: posthogSourceMapsEnabled ? 'hidden' : false,
+    sourcemap: sentrySourceMapsEnabled ? 'hidden' : false,
     // Explicit (production-readiness doc 02, Phase 2.1) — these already match
     // Vite 4's defaults, but pinning them means a future debugging change
     // (e.g. `minify: false`) can never ship to production silently. esbuild

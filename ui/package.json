@@ -115,7 +115,7 @@
     "@axe-core/playwright": "4",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.24.0",
-    "@posthog/rollup-plugin": "^1.5.1",
+    "@sentry/vite-plugin": "^11.10.0",
     "@types/google.maps": "^3.65.2",
     "@types/node": "^20.9.4",
     "@types/react": "19.2.17",
