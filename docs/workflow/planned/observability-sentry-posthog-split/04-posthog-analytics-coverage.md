@@ -36,19 +36,23 @@ defines the full event matrix per surface (A1–A5) and the insights built on it
 
 ## A0 — Analytics hardening
 
-- [ ] **A0.1 URL scrub.** posthog-js `before_send`: run `scrubUrl` (S0.4) on `$current_url`,
+- [x] **A0.1 URL scrub.** posthog-js `before_send`: run `scrubUrl` (S0.4) on `$current_url`,
+      **Done** — `lib/posthog/beforeSend.ts`, 4 unit tests, drops the event if scrubbing throws.
       `$referrer`, `$initial_current_url`, `$initial_referrer`, `$pathname` stays. Drop
       the whole event if a sanitizer throws. Unit test with `?access=…&complete=…&token=…`.
 - [ ] **A0.2 Analytics-only init** confirmed after P1: `capture_exceptions: false`,
       `capture_performance: false`, autocapture only in `full` mode, `mask_all_text` and
       `mask_all_element_attributes` for autocapture in guest surfaces, replay off.
-- [ ] **A0.3 Catalog parity test.** Vitest reads both catalogs and a static scan of
+- [x] **A0.3 Catalog parity test.** Vitest reads both catalogs and a static scan of
+      **Done for the emitted→declared direction**, and it immediately caught the five review events from F-08. The declared→emitted direction waits for A1–A5.
       `capturePostHogEvent('…')` in `supabase/functions/**`; fails when an emitted name is
       missing from either catalog or a declared name has no emitter and no `// planned`
       allow-list entry. Fixes today's 5 missing review events (F-08).
-- [ ] **A0.4 Release prop.** `context.ts` adds `app_release` (`VITE_APP_VERSION`); edge
+- [x] **A0.4 Release prop.** `context.ts` adds `app_release` (`VITE_APP_VERSION`); edge
+      **Done** — browser `app_release` in the shared props, edge `app_release` from `APP_RELEASE`.
       `capturePostHogEvent` adds `app_release` from `APP_RELEASE`.
-- [ ] **A0.5 Edge capture off the response path.** `capturePostHogEvent` uses
+- [x] **A0.5 Edge capture off the response path.** `capturePostHogEvent` uses
+      **Done** — `runAfterResponse`, with a 3s bound kept inside the background task.
       `runAfterResponse` (`_shared/backgroundTask.ts`) instead of awaiting; keeps the 3 s
       bound inside the background task. Deno test: handler resolves before capture.
 - [ ] **A0.6 Edge groups + plan tier.** `capturePostHogEvent` accepts `{ orgId,

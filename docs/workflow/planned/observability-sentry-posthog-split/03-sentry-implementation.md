@@ -217,7 +217,8 @@ status, requestId })` for 5xx / network errors (`fn` tag = function name). Repla
       `fingerprint`, `tags` merge, `contexts.request` (method, scrubbed URL, no headers
       except `user-agent`), `contexts.trace` from incoming `sentry-trace` header so browser
       and edge events link.
-- [ ] `captureSentryMessage(message, { level, tags, extra })` for degraded states that are
+- [x] `captureSentryMessage(message, { level, tags, extra })` for degraded states that are
+      **Done** — warnings go to `waitUntil` when available.
       not exceptions (provider returned 429, fail-open rate limiter).
 - [ ] Per-isolate guard: dedupe identical `(fingerprint, message)` within 60 s; cap 30
       events per isolate per minute; sample `warning` level by `SENTRY_SAMPLE_RATE_WARNING`
@@ -229,12 +230,15 @@ status, requestId })` for 5xx / network errors (`fn` tag = function name). Repla
 
 ### S2.2 Choke points
 
-- [ ] `handleEdgeError`: pass `fn`, `requestId`, `userId`, scope ids (from a new optional
+- [x] `handleEdgeError`: pass `fn`, `requestId`, `userId`, scope ids (from a new optional
+      **Done** — plus `http_status`, `edge_code`, tenant ids and the incoming `sentry-trace`.
       `EdgeErrorContext` the `serve*` wrappers fill after auth), `http_status`.
       Deliberate 4xx `EdgeError` stays out.
-- [ ] `serveAdmin` / `servePublic` / `serveAuthenticated` / `serveSuperAdmin` set the
+- [x] `serveAdmin` / `servePublic` / `serveAuthenticated` / `serveSuperAdmin` set the
+      **Done** — the authenticated three pass `userId` into the capture context.
       context once per request, so all ~300 wrapper functions get it for free.
-- [ ] `serveCronPost`: capture with tag `cron`, plus check-in (S3.1).
+- [x] `serveCronPost`: capture with tag `cron`, plus check-in (S3.1).
+      **Done** — Sentry only; `withEdgeErrorCapture` added for raw `serve()` handlers.
 
 ### S2.3 Raw `serve()` functions
 
@@ -252,14 +256,16 @@ Migrate to a wrapper where the auth model fits; otherwise wrap the body in
 
 ### S2.4 Swallowed side effects
 
-- [ ] `_shared/workflowOrchestrator.ts`: each side effect (email, calendar, sheet, Telegram,
+- [x] `_shared/workflowOrchestrator.ts`: each side effect (email, calendar, sheet, Telegram,
+      **Done** — `captureSideEffectFailure`, provider + `side_effect` + `booking_status_to` tags.
       push, AI review) that catches and continues → `captureSentryException` with tags
       `side_effect`, `booking_status_to`, `provider`; level `error` for email/calendar,
       `warning` for optional ones. Same for `subscriptionOrchestrator.ts` and
       `parkingPaymentOrchestrator.ts`.
-- [ ] `_shared/backgroundTask.ts#runAfterResponse`: capture failures with tag
+- [x] `_shared/backgroundTask.ts#runAfterResponse`: capture failures with tag
+      **Done** — warning with `background:<label>` fingerprint.
       `background_task: <label>`.
-- [ ] Audit the 501 edge `console.error` sites by directory; any that is a real fault and
+- [x] Audit the 501 edge `console.error` sites by directory; any that is a real fault and
       is not re-thrown to a choke point gets `captureSentryException` or
       `captureSentryMessage`. Track per-folder in the PR description.
 
