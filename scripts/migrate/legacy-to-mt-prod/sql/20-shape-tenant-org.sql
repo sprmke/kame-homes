@@ -28,7 +28,7 @@ set name        = 'Kame Homes',
     updated_at  = now()
 from public.app_settings a
 where o.slug in ('kame-home', 'kame-home-')
-  and a.property_id = (select id from public.properties where slug = 'monaco-2604');
+  and a.property_id = (select id from public.properties where slug in ('monaco-2604', 'kame-home'));
 
 -- no-op when already shaped; also catches a name-only legacy state
 update public.organizations
@@ -56,11 +56,20 @@ end $$;
 -- ── 3.3 property: house rules stay in legacy app_settings (property-scoped);
 --       ensure the plain columns + minimum settings are right. ────────────────
 
+-- Final tenant shape: Kame Home / kame-home (owner-confirmed 2026-11-03).
 update public.properties
-set status          = 'ACTIVE',
+set slug            = 'kame-home',
+    name            = 'Kame Home',
+    status          = 'ACTIVE',
     max_guests      = coalesce(max_guests, 6),
-    tower_and_unit  = coalesce(tower_and_unit, 'Monaco 2604'),
-    residence_name  = coalesce(residence_name, 'Azure North'),
+    tower           = coalesce(tower, 'Monaco'),
+    unit_number     = coalesce(nullif(trim(unit_number), ''), '2604'),
+    tower_and_unit  = coalesce(nullif(trim(tower_and_unit), ''), 'Monaco 2604'),
+    residence_name  = case
+                        when lower(trim(coalesce(residence_name, ''))) in ('', 'azure north')
+                          then 'Azure North Residences'
+                        else residence_name
+                      end,
     type            = coalesce(type, 'CONDO'),
     settings        = settings || '{
       "checkInWindow": "14:00",
@@ -68,7 +77,7 @@ set status          = 'ACTIVE',
       "houseRules": "No smoking indoors. Keep bicycle/parking area clear. Quiet hours 22:00–06:00."
     }'::jsonb,
     updated_at = now()
-where slug = 'monaco-2604';
+where slug in ('monaco-2604', 'kame-home');
 
 -- ── 3.4 team: seat every ADMIN_ALLOWED_EMAILS member (owner excluded) ────────
 
