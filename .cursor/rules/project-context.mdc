@@ -9,7 +9,7 @@ alwaysApply: true
 
 1. `docs/README.md` → **`docs/architecture/overview.md`** (full-app picture) → **`docs/PROJECT.md`** (topic index / API / env)
 2. `docs/guides/routes/README.md` — per-page behavior (update when changing a page)
-3. **Deploy / multi-tenant track:** **`docs/architecture/deployment.md`** — legacy: **`guest-form-management-app`**+`main`+`zftt…`; new app **now:** **`kame-homes`**+`develop`+`dev.kamehomes.space`+`fwor…`; **at release:** `main`+`app.kamehomes.space`+mt-prod. Plan: [`ci-cd-environments/README.md`](docs/workflow/in-progress/ci-cd-environments/README.md).
+3. **Deploy:** **`docs/architecture/deployment.md`** — **one** Supabase project (`fwor…`, serves production) + `kame-homes` on Vercel. Legacy `zftt…` / `guest-form-management-app` are retired. Backend deploy is the single workflow `cd-prod.yml`.
 4. Booking status / email / calendar / sheets → **read** `.cursor/rules/booking-workflow.mdc` (not always-on; load when relevant)
 5. Admin JWT / allow list / `/bookings` auth → **read** `.cursor/rules/admin-auth.mdc`
 6. Product backlog → GitHub Issues + `docs/README.md`; shipped → `docs/archive/todos/shipped/`
@@ -52,7 +52,7 @@ Stale if a skill mentions Next.js App Router, tRPC, Drizzle, Neon, or AWS S3 for
 - Dates: DB guest fields often `MM-DD-YYYY`; UI/query often `YYYY-MM-DD`. TZ: **Asia/Manila**.
 - Secrets: `supabase/.env.local` — never commit or log tokens/PII.
 - Imports: UI `@/`; edge relative `../_shared/...`.
-- Prod Supabase deploy: blocked unless user says **`kamewave`** (`.cursor/rules/no-prod-deploy.mdc`). Dual-track: **`main`** → legacy live; **`develop`** → `kame-homes` Preview + **`fwor…`** (mt-prod deferred until release).
+- Supabase deploy: blocked unless user says **`kamewave`** (`.cursor/rules/no-prod-deploy.mdc`). One project: **`develop`** deploys the same database production uses, so `deploy:supabase:dev` is a production action.
 - Dev/staging: **`docs/archive/operations/dev-staging-environment.md`** — `dev.kamehomes.space`, `./dev.sh --ui-only --env dev`, `bun run deploy:supabase:dev`.
 - CI/CD: **`docs/workflow/in-progress/ci-cd-environments/`** · matrix **`ci-cd-environment-matrix.md`**.
 

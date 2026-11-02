@@ -19,7 +19,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEV_REF = 'fworvijbrwpyngycotbz';
-const LEGACY_PROD_REF = 'zfttdwtceyqszyeyhilc';
 const CREDENTIALS_FILE = resolve(ROOT, 'supabase/.env.qa.dev.local');
 
 function readEnv(file) {
@@ -40,7 +39,7 @@ const URL_BASE = (devEnv.DEV_SUPABASE_URL ?? '').replace(/\/$/, '').replace(/\/f
 const SRK = devEnv.DEV_SERVICE_ROLE_KEY ?? '';
 const ANON = uiEnv.VITE_SUPABASE_ANON_KEY ?? '';
 
-if (!URL_BASE.includes(DEV_REF) || URL_BASE.includes(LEGACY_PROD_REF)) {
+if (!URL_BASE.includes(DEV_REF)) {
   console.error(`Refusing: ${URL_BASE || '(empty url)'} is not hosted dev ${DEV_REF}.`);
   process.exit(1);
 }

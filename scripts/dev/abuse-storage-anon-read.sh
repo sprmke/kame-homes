@@ -17,8 +17,11 @@ if [[ -z "$SUPABASE_URL" || -z "$ANON_KEY" || -z "$OBJECT_PATH" ]]; then
   echo "Set SUPABASE_URL, ANON_KEY, and STORAGE_OBJECT_PATH." >&2
   exit 1
 fi
-if [[ "$SUPABASE_URL" == *"zfttdwtceyqszyeyhilc"* ]]; then
-  echo "Refusing legacy production project ref." >&2
+# One Supabase project serves production since 2026-10-27, so there is no disposable
+# target for an abuse run. Refusing is the safe behaviour: this script sends hostile
+# traffic and must never point at the live database.
+if [[ "$SUPABASE_URL" == *"fworvijbrwpyngycotbz"* ]]; then
+  echo "Refusing: this ref serves production. Run abuse checks against a disposable project." >&2
   exit 1
 fi
 

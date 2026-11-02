@@ -40,9 +40,6 @@ ci_deploy_require_env SUPABASE_PROJECT_REF
 ci_deploy_ensure_anon_key
 ci_deploy_default_smoke_property_slug "$TARGET"
 
-if [[ "$TARGET" == "dev" && -n "${LEGACY_PROD_PROJECT_REF:-}" ]]; then
-  ci_deploy_assert_not_legacy_ref "$SUPABASE_PROJECT_REF" "$LEGACY_PROD_PROJECT_REF"
-fi
 
 REF="$SUPABASE_PROJECT_REF"
 BASE="https://${REF}.supabase.co/functions/v1"

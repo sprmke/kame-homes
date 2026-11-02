@@ -16,8 +16,8 @@ if [[ -z "$BASE_URL" ]]; then
   echo "Set BASE_URL to hosted dev functions root (…/functions/v1)." >&2
   exit 1
 fi
-if [[ "$BASE_URL" == *"zfttdwtceyqszyeyhilc"* ]]; then
-  echo "Refusing legacy production project ref." >&2
+if [[ "$BASE_URL" == *"fworvijbrwpyngycotbz"* ]]; then
+  echo "Refusing: this ref serves production. Run cost probes against a disposable project." >&2
   exit 1
 fi
 

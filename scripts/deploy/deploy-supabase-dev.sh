@@ -80,7 +80,7 @@ if ci_deploy_is_ci || [[ "$CI_MODE" == true ]]; then
   export CI=1
   if [[ -n "${SUPABASE_PROJECT_REF:-}" ]]; then
     DEV_REF="$(tr -d '[:space:]' <<<"${SUPABASE_PROJECT_REF}")"
-    PROD_REF_GUARD="$(tr -d '[:space:]' <<<"${LEGACY_PROD_PROJECT_REF:-${PROD_PROJECT_REF:-}}")"
+    PROD_REF_GUARD="$(tr -d '[:space:]' <<<"${PROD_PROJECT_REF:-}")"
   fi
 fi
 
@@ -116,10 +116,6 @@ if [[ -n "$PROD_REF_GUARD" && "$DEV_REF" == "$PROD_REF_GUARD" ]]; then
   echo "Refusing dev deploy: DEV_PROJECT_REF matches PROD_PROJECT_REF in .env.dev.local." >&2
   echo "Use a separate Supabase project for dev." >&2
   exit 1
-fi
-
-if [[ "$ALLOW_MULTI_TENANCY" == true ]]; then
-  ci_deploy_assert_not_legacy_ref "$DEV_REF" "${LEGACY_PROD_PROJECT_REF:-$PROD_REF_GUARD}"
 fi
 
 print_linked_project

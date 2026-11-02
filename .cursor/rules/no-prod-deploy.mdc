@@ -7,19 +7,25 @@ alwaysApply: true
 
 **Default for every agent session — new or existing.** Active development happens on git branches while **production Supabase/Postgres stays untouched** until the team is ready to ship. Multiple contributors use AI tools; this rule prevents accidental prod breakage.
 
-## Dual-track (multi-tenant WIP) — read before any deploy advice
+## One project — a dev deploy is a production deploy
 
-Until multi-tenant cutover finishes:
+The legacy dual-track is over (2026-11-02). There is **one** Supabase project,
+`fworvijbrwpyngycotbz` ("Kame Homes - Dev"), and it serves production on `kamespace.com`.
+Legacy `zftt…` is retired; do not use, deploy to, or recommend it.
 
-| Branch / surface                                                                                                     | Safe backend                                | Unsafe                                                                   |
-| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------ |
-| **`main` + [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) Production** | **LEGACY** `zfttdwtceyqszyeyhilc`           | Multi-tenant migrations/functions; flipping legacy Vercel env to `fwor…` |
-| **mt branch + [`kame-homes`](https://vercel.com/kame-works/kame-homes) Production**                                  | **MULTI_TENANT_DEV** `fworvijbrwpyngycotbz` | Pointing `kame-homes` at LEGACY, or multi-tenant schema push to LEGACY   |
+| Surface             | Value                                                    |
+| ------------------- | -------------------------------------------------------- |
+| Supabase            | `fworvijbrwpyngycotbz` (dev **and** production)          |
+| Vercel multi-tenant | `kame-homes` — Preview `develop`, Production `main`      |
+| Vercel legacy       | `guest-form-management-app` — **retired, do not deploy** |
+| Backend deploy      | `.github/workflows/cd-prod.yml` (the only pipeline)      |
 
-Authoritative design + plan: **`docs/workflow/in-progress/ci-cd-environments/`** ([`README.md`](docs/workflow/in-progress/ci-cd-environments/README.md)). Ref inventory: **`docs/architecture/deployment.md`** § Supabase project inventory.
+**This is why the unlock word exists.** `bun run deploy:supabase:dev` writes to the database
+real guests use: a migration or edge-function deploy is a production action even when the
+script says "dev". Ref inventory: **`docs/architecture/deployment.md`**.
 
-- Prefer PRs into **`develop`** for multi-tenant work. Do **not** recommend merging multi-tenant-only trees into **`main`** until cutover.
-- Do **not** run or recommend multi-tenant `db push` / `functions deploy` against whatever Supabase project **Vercel Production** currently uses for live users.
+- Prefer PRs into **`develop`**; it is the only long-lived branch for multi-tenant work.
+- Never point any Vercel project at legacy Supabase, or at a project you have not verified.
 
 ## Unlock word
 

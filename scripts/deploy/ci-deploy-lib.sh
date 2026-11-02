@@ -47,18 +47,6 @@ ci_deploy_assert_target_ref() {
   echo "Ref check OK: $(ci_deploy_mask_ref "$linked")"
 }
 
-ci_deploy_assert_not_legacy_ref() {
-  local target="$1"
-  local legacy_ref="${2:-}"
-  if [[ -z "$legacy_ref" ]]; then
-    echo "WARNING: LEGACY_PROD_PROJECT_REF unset — legacy deny-list skipped." >&2
-    return 0
-  fi
-  if [[ "$target" == "$legacy_ref" ]]; then
-    echo "ERROR: refusing deploy — target ref matches LEGACY_PROD ($legacy_ref)." >&2
-    exit 1
-  fi
-}
 
 ci_deploy_mask_ref() {
   local ref="$1"
