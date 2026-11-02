@@ -1,3 +1,5 @@
+import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router-dom';
+
 import * as Sentry from '@sentry/react';
 
 import { detectAnalyticsEnvironment, detectAppTrack } from '@/lib/posthog/env';
@@ -90,7 +92,15 @@ export function initSentry(): void {
         tags: { app_track: detectAppTrack(), runtime: 'browser' },
       },
       integrations: [
-        Sentry.browserTracingIntegration(),
+        // Route-aware: transactions are named by route pattern
+        // (`/org/:orgSlug/property/:propertySlug/bookings`), never by slug. A raw pathname
+        // would create one transaction per tenant and make latency unreadable.
+        Sentry.reactRouterBrowserTracingIntegration({
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
         Sentry.breadcrumbsIntegration({ console: false, dom: true, fetch: true, history: true }),
         Sentry.dedupeIntegration(),
         Sentry.httpContextIntegration(),

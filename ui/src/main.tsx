@@ -13,6 +13,8 @@ import { bootstrapPostHogTelemetry } from '@/lib/posthog/bootstrapTelemetry';
 import { posthog } from '@/lib/posthog/client';
 import { reactRootErrorHandlers } from '@/lib/sentry/capture';
 import { initSentry } from '@/lib/sentry/init';
+import { wrapRouterForSentry } from '@/lib/sentry/router';
+import { installServiceWorkerErrorBridge } from '@/lib/sentry/swBridge';
 
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import '@/lib/pwa/installPrompt'; // capture beforeinstallprompt early
@@ -23,6 +25,7 @@ import './index.css';
 initSentry();
 
 bootstrapPostHogTelemetry();
+installServiceWorkerErrorBridge();
 
 /**
  * Data router (not `<BrowserRouter>`) so `useBlocker` works for the global
@@ -30,7 +33,7 @@ bootstrapPostHogTelemetry();
  * `errorElement` is required: createBrowserRouter catches route render errors
  * itself and does not bubble them to the outer `AppErrorBoundary`.
  */
-const router = createBrowserRouter([
+const router = wrapRouterForSentry(createBrowserRouter)([
   { path: '*', element: <AppShell />, errorElement: <RouteErrorFallback /> },
 ]);
 
