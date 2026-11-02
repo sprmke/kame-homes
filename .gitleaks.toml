@@ -1,0 +1,45 @@
+# Secret scanning for the whole git history (production-readiness checklist 38).
+# Run: bash scripts/dev/check-gitleaks.sh
+title = "guest-form-management secrets"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local Supabase demo keys, test fixtures and tooling state"
+paths = [
+  # Local-only tool state and shell history that embeds the demo anon key.
+  '''^\.claude/''',
+  '''^\.superpowers/''',
+  '''^\.agents/''',
+  '''^\.agent/''',
+  # Local SQL scratch pads (contain the localhost demo JWT).
+  '''^supabase/snippets/''',
+  # Tests and E2E harnesses pin the local demo JWT on purpose.
+  '''_test\.ts$''',
+  '''\.test\.ts$''',
+  '''\.spec\.ts$''',
+  '''^supabase/functions/tests/''',
+  '''^ui/e2e/''',
+  # QA script pins seeded role UUIDs; the media storage audit embeds the local demo JWT.
+  '''qa-org-property-team-roles\.mjs$''',
+  '''storage-audit\.ts$''',
+]
+regexes = [
+  # Local Supabase stack JWT (`"iss":"supabase-demo"`, http://127.0.0.1:54321).
+  '''eyJpc3MiOiJzdXBhYmFzZS1kZW1v''',
+  '''127\.0\.0\.1:54321''',
+  # Column/slot names that trip the generic-api-key rule (`guest2_valid_id_url`, ...).
+  '''valid_?[Ii]d''',
+  '''guest[2-5]ValidId''',
+  '''validId[A-Za-z]*Key''',
+  # Storage keys (not secrets).
+  '''storage_?[Kk]ey''',
+  '''guest-voice-receptionist-consent''',
+  # Seeded custom-role / fixture UUIDs used by QA scripts.
+  '''ROLE_ID = ''',
+  # Local demo service-role JWT lives in the media storage audit helper.
+  '''storage-audit\.ts''',
+  # Deliberate fixture value used in activity-log redaction tests.
+  '''sk_live_abc123''',
+]
