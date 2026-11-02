@@ -25,6 +25,7 @@ import { postgrestOrIlikeValue } from '../_shared/publicSearch.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 function serializePlan(row: Record<string, unknown>) {
   return {
@@ -182,6 +183,16 @@ serveSuperAdmin('pricing-plans', async (req, user) => {
       metadata: { code },
     });
 
+    await capturePostHogEvent('platform_plan_updated', {
+      logPrefix: 'pricing-plans',
+      request: req,
+      distinctId: user.id,
+      properties: {
+        plan_id: typeof data.id === 'string' ? data.id : null,
+        fields_changed: ['created'],
+      },
+    });
+
     return jsonSuccess(req, { plan: serializePlan(data as Record<string, unknown>) });
   }
 
@@ -253,6 +264,13 @@ serveSuperAdmin('pricing-plans', async (req, user) => {
       targetId: id,
       summary: 'Updated pricing plan',
       metadata: { fields: Object.keys(patch) },
+    });
+
+    await capturePostHogEvent('platform_plan_updated', {
+      logPrefix: 'pricing-plans',
+      request: req,
+      distinctId: user.id,
+      properties: { plan_id: id, fields_changed: Object.keys(patch) },
     });
 
     return jsonSuccess(req, { plan: serializePlan(data as Record<string, unknown>) });

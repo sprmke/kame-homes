@@ -205,15 +205,20 @@ separate emergency path: it is the downgrade that follows it.
 
 ## A5 — Notifications, PWA, super-admin
 
+**Complete (2026-11-03).** Notification opens report `in_app` and `push` (the service worker
+now forwards the push `kind` with the click), the browser prompt reports its outcome,
+`super_admin_action` fires from the one audit helper so every super-admin write is counted,
+inbound approvals report their resolution, and plan edits report which fields changed.
+
 | Event                                       | Src | Status     | Key properties                                                                    | Trigger                                           |
 | ------------------------------------------- | --- | ---------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `notification_opened`                       | B   | wire       | `kind`, `channel` (in_app, push, email_link)                                      | Notification click / SW `notificationclick` relay |
+| `notification_opened`                       | B   | live       | `kind`, `channel` (in_app, push, email_link)                                      | Notification click / SW `notificationclick` relay |
 | `push_opt_in_prompted` / `pwa_push_changed` | B   | new / live | `outcome`                                                                         |                                                   |
 | `pwa_*` (8 events)                          | B   | live       | unchanged; `pwa_sync_failed` stays as an outcome, its fault goes to Sentry (S1.9) |                                                   |
 | `media_optimized`                           | B   | live       |                                                                                   |                                                   |
-| `super_admin_action`                        | E   | wire       | `action` key (same key as `superAdminAudit`), no target names                     | Super-admin edge writes                           |
-| `host_approval_resolved`                    | E   | wire       | `outcome`                                                                         |                                                   |
-| `platform_plan_updated`                     | E   | wire       | `plan_id`, `fields_changed` (keys)                                                |                                                   |
+| `super_admin_action`                        | E   | live       | `action` key (same key as `superAdminAudit`), no target names                     | Super-admin edge writes                           |
+| `host_approval_resolved`                    | E   | live       | `outcome`                                                                         |                                                   |
+| `platform_plan_updated`                     | E   | live       | `plan_id`, `fields_changed` (keys)                                                |                                                   |
 
 Every row ends as wired or explicitly N/A with a reason in the PR. Rows marked `new` are
 added to both catalogs in the same PR as the emitter.

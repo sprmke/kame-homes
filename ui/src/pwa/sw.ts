@@ -367,7 +367,11 @@ self.addEventListener('push', (event) => {
     icon: '/icons/pwa-192.png',
     badge: '/icons/notification-badge.png',
     tag: payload.tag ?? payload.notificationId ?? payload.type ?? 'gfm',
-    data: { path: safeAppPath(payload.path), notificationId: payload.notificationId ?? null },
+    data: {
+      path: safeAppPath(payload.path),
+      notificationId: payload.notificationId ?? null,
+      kind: payload.type,
+    },
   };
   // `renotify` re-alerts when a same-tag notification is replaced; not yet in the
   // TS lib's NotificationOptions.
@@ -378,7 +382,10 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const path = safeAppPath((event.notification.data as { path?: unknown } | undefined)?.path);
+  const notificationData = event.notification.data as
+    { path?: unknown; kind?: unknown } | undefined;
+  const path = safeAppPath(notificationData?.path);
+  const kind = typeof notificationData?.kind === 'string' ? notificationData.kind : undefined;
   const targetUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
@@ -387,7 +394,7 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of clientList) {
         if (new URL(client.url).origin !== self.location.origin) continue;
         await client.focus();
-        client.postMessage({ type: SW_MESSAGE.NOTIFICATION_CLICK, path });
+        client.postMessage({ type: SW_MESSAGE.NOTIFICATION_CLICK, path, kind });
         return;
       }
       await self.clients.openWindow(targetUrl);

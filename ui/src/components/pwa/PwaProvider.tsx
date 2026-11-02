@@ -12,6 +12,7 @@ import { UpdatePrompt } from '@/components/pwa/UpdatePrompt';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getPwaCapabilities, isStandalone, requestPersistentStorage } from '@/lib/pwa/capabilities';
 import { purgeOfflineState } from '@/lib/pwa/purgeOfflineState';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { pwaTelemetry } from '@/lib/pwa/pwaTelemetry';
 import { pingVersionCheck, setSwRegistration } from '@/lib/pwa/swRegistration';
 import { initSyncEngine } from '@/lib/pwa/syncEngine';
@@ -85,7 +86,8 @@ export function PwaProvider() {
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { type?: string; path?: string; keys?: string[] } | undefined;
+      const data = event.data as
+        { type?: string; path?: string; keys?: string[]; kind?: string } | undefined;
       if (data?.type === SW_MESSAGE.KILLED) {
         setKilled(true);
         pwaTelemetry('kill-switch');
@@ -95,7 +97,13 @@ export function PwaProvider() {
       } else if (data?.type === SW_MESSAGE.NOTIFICATION_CLICK && data.path) {
         // Only same-origin, app-relative targets (belt-and-suspenders — the SW
         // already sanitises before posting).
-        if (data.path.startsWith('/') && !data.path.startsWith('//')) navigate(data.path);
+        if (data.path.startsWith('/') && !data.path.startsWith('//')) {
+          captureAppEvent('notification_opened', {
+            channel: 'push',
+            ...(data.kind ? { kind: data.kind } : {}),
+          });
+          navigate(data.path);
+        }
       } else if (data?.type === SW_MESSAGE.REVALIDATE && Array.isArray(data.keys)) {
         for (const key of data.keys) void queryClient.invalidateQueries({ queryKey: [key] });
       }

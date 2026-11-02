@@ -3,6 +3,7 @@ import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 import { getPwaCapabilities } from '@/lib/pwa/capabilities';
 import { pwaTelemetry } from '@/lib/pwa/pwaTelemetry';
 import { whenSwReady } from '@/lib/pwa/swRegistration';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
 
@@ -58,8 +59,12 @@ export async function enablePush(): Promise<PushState> {
   const caps = getPwaCapabilities();
   if (!caps.push || !VAPID_PUBLIC_KEY) return getPushState();
 
-  const permission =
-    Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+  const prompting = Notification.permission !== 'granted';
+  const permission = prompting ? await Notification.requestPermission() : 'granted';
+  if (prompting) {
+    // A real browser prompt, inside the user gesture. `outcome` is what the browser said.
+    captureAppEvent('push_opt_in_prompted', { outcome: permission });
+  }
   if (permission !== 'granted') return getPushState();
 
   const reg = await whenSwReady();

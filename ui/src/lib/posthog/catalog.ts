@@ -92,6 +92,7 @@ export const APP_ANALYTICS_EVENTS = [
   'settings_saved',
   'public_page_published',
   'notification_opened',
+  'push_opt_in_prompted',
   'upgrade_modal_shown',
   'upgrade_modal_cta_clicked',
   // Discovery + guest account

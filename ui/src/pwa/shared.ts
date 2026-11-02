@@ -58,7 +58,7 @@ export type SwMessage =
   | { type: typeof SW_MESSAGE.REVALIDATE; keys: string[] }
   | { type: typeof SW_MESSAGE.SET_BADGE; count: number }
   | { type: typeof SW_MESSAGE.PUSH_RESYNC }
-  | { type: typeof SW_MESSAGE.NOTIFICATION_CLICK; path: string };
+  | { type: typeof SW_MESSAGE.NOTIFICATION_CLICK; path: string; kind?: string };
 
 /** Background Sync tag for the outbox drainer (Phase 4). */
 export const OUTBOX_SYNC_TAG = 'gfm-outbox-drain';
