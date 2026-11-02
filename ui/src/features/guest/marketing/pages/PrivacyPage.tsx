@@ -72,8 +72,9 @@ export function PrivacyPage() {
         {
           title: 'Analytics and error reporting',
           paragraphs: [
-            'When enabled, we use PostHog (first-party analytics) to understand product usage, funnels, and client-side errors. Events use pseudonymous ids and avoid message bodies, government IDs, and payment account details. Host dashboards may include email on the person profile; guest account sessions do not.',
+            'When enabled, we use PostHog (first-party analytics) to understand product usage and funnels. Events use pseudonymous ids and avoid message bodies, government IDs, and payment account details. Host dashboards may include email on the person profile; guest account sessions do not. PostHog is not used for error reporting.',
             'We do not sell personal information or use ad-network pixels for retargeting.',
+            'We use Sentry as an error monitoring processor. When something breaks, it records the technical details of the failure, a pseudonymous user id, and the page it happened on. It does not store names, emails, phone numbers, message content, or IP addresses, and retention follows our Sentry plan (90 days by default).',
           ],
         },
         {

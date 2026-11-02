@@ -16,12 +16,25 @@ Routes: `/terms` · `/privacy` · `/cookies` · `/about` · `/contact` · `/supp
 | Section          | E2E save | Validation | Docs       | Notes                                                                                          |
 | ---------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
 | Terms of Service | —        | —          | Documented | Grounded in booking workflow + PH law                                                          |
-| Privacy Policy   | —        | —          | Documented | Guest/host PII + named processors                                                              |
-| Cookie Policy    | —        | —          | Documented | Auth/session + prefs; PostHog when enabled; no ad pixels                                       |
+| Privacy Policy   | —        | —          | Documented | Guest/host PII + named processors (PostHog analytics, Sentry errors)                           |
+| Cookie Policy    | —        | —          | Documented | Auth/session + prefs; PostHog analytics when enabled; Sentry errors; no ad pixels              |
 | About            | —        | —          | Documented | Product capabilities; no fabricated history                                                    |
 | Contact          | Yes      | Yes        | Documented | Explore guest auth + ticket modal; guest Tickets under `/account/tickets`                      |
 | Support          | —        | —          | Documented | Guest + host FAQ                                                                               |
 | Mobile shell     | —        | —          | Documented | `MarketingLayoutShell` bottom tabs — see [index-landing.md](./index-landing.md) § Mobile shell |
+
+### Vendors named on the legal pages
+
+| Vendor   | What it does                  | What it never receives                                      |
+| -------- | ----------------------------- | ----------------------------------------------------------- |
+| Supabase | Auth, database, storage, edge | n/a                                                         |
+| PostHog  | Product analytics and funnels | Error reports, guest email, message bodies, tokens          |
+| Sentry   | Error monitoring              | Names, emails, phone numbers, message content, IP addresses |
+| Resend   | Transactional email           | n/a                                                         |
+
+PostHog no longer records errors; Sentry does not record product analytics. Both scrub the
+same deny list (`ui/src/lib/telemetry/scrub.ts`). Ship copy changes here **before** turning
+on production keys.
 
 ---
 
