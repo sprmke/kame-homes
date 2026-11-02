@@ -173,7 +173,7 @@ run_backup_if_needed() {
 }
 
 run_db_push() {
-  local -a push_args=(db push)
+  local -a push_args=(db push --linked)
   if [[ "$INCLUDE_ALL" == true ]]; then
     push_args+=(--include-all)
     echo "Using db push --include-all (dev default — applies migrations even when timestamps predate remote head)"
