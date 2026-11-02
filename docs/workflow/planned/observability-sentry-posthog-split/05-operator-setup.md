@@ -20,7 +20,7 @@ Never paste secrets into chat, commits or docs. Put them in Vercel, Supabase sec
       30-day retention, 1 cron monitor, default alert rules only. Upgrade to Team at the first
       paying customer. Consequences are applied in doc 03 §S3.1 and §S5.
 
-- [x] Projects: `kame-homes-web` (`javascript-react`) and `kame-homes-edge`
+- [x] Projects: `kame-space-web` (`javascript-react`) and `kame-space-edge`
       (`javascript`). DSNs go in gitignored env / Vercel / Supabase secrets only.
 - [ ] Org settings → Security & Privacy: data scrubber **on**, default scrubbers **on**,
       "Prevent storing of IP addresses" **on**, additional sensitive fields: `access,
@@ -28,7 +28,7 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
 - [x] Each project → spike protection on; per-project rate limit (start: web 1,000
       events / hour, edge 500 / hour).
       **Done:** web 1000 / 3600s, edge 500 / 3600s (set via the Sentry API).
-- [ ] Inbound filters on `kame-homes-web`: legacy browsers, browser extensions, localhost
+- [ ] Inbound filters on `kame-space-web`: legacy browsers, browser extensions, localhost
       (production env only), web crawlers.
 
 ## 2. PostHog (Phase O0 + P1)
@@ -50,11 +50,11 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
 
 | Variable                                         | Preview (develop)       | Production (at release)  | Secret?         |
 | ------------------------------------------------ | ----------------------- | ------------------------ | --------------- |
-| `VITE_SENTRY_DSN`                                | `kame-homes-web` DSN    | same DSN (env separates) | No (public DSN) |
+| `VITE_SENTRY_DSN`                                | `kame-space-web` DSN    | same DSN (env separates) | No (public DSN) |
 | `VITE_SENTRY_TRACES_SAMPLE_RATE`                 | `0.2`                   | `0.05`                   | No              |
 | `SENTRY_AUTH_TOKEN`                              | Org auth token          | same                     | **Yes**         |
 | `SENTRY_ORG`                                     | `kame-tech`             | same                     | No              |
-| `SENTRY_PROJECT`                                 | `kame-homes-web`        | same                     | No              |
+| `SENTRY_PROJECT`                                 | `kame-space-web`        | same                     | No              |
 | `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST`         | nonprod key / `/ingest` | prod key / `/ingest`     | No              |
 | `POSTHOG_PERSONAL_API_KEY`, `POSTHOG_PROJECT_ID` | **remove** after S4     | **remove** after S4      | —               |
 
@@ -84,7 +84,7 @@ Still missing: **`SENTRY_AUTH_TOKEN`** (needs a token created in Sentry first) a
 
 | Secret                            | mt-dev `fwor…`                          | mt-prod (at release)      |
 | --------------------------------- | --------------------------------------- | ------------------------- |
-| `SENTRY_DSN`                      | `kame-homes-edge` DSN                   | same                      |
+| `SENTRY_DSN`                      | `kame-space-edge` DSN                   | same                      |
 | `SENTRY_SAMPLE_RATE_WARNING`      | `1`                                     | `0.25`                    |
 | `APP_RELEASE`                     | set by `deploy:supabase:dev`            | set by prod deploy script |
 | `POSTHOG_API_KEY`, `POSTHOG_HOST` | nonprod key, `https://us.i.posthog.com` | prod key                  |
@@ -116,7 +116,7 @@ Legacy `zftt…` is not touched in this plan.
 ## 5. Uptime and crons
 
 - [x] Sentry → Uptime: **created 2026-11-01** for mt-dev via the MCP — `get-health` on
-      `kame-homes-edge` and `https://dev.kamehomes.space` on `kame-homes-web`, both 5 min /
+      `kame-space-edge` and `https://dev.kamehomes.space` on `kame-space-web`, both 5 min /
       15 s timeout, both `ok`. Production URLs at release.
 - [ ] Cron monitors upsert automatically from check-ins (no manual setup). Free tier allows
       **one** — `sd-refund-cron` only (D13). Uptime monitors turned out **not** to share that

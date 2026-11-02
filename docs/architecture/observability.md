@@ -16,7 +16,7 @@ instrument, not a preference.
 | **PostHog** | Pageviews, named product events, funnels, identify, groups, (masked) session replay when enabled         | Exception capture, error alerts, error source maps |
 
 Full plan and phase order: `docs/workflow/planned/observability-sentry-posthog-split/`.
-Org: **`kame-tech`** (US). Projects: **`kame-homes-web`** / **`kame-homes-edge`**.
+Org: **`kame-tech`** (US). Projects: **`kame-space-web`** / **`kame-space-edge`**.
 Agent skill: **`sentry`**. OpenCode MCP: `opencode mcp auth sentry`.
 
 ## The rule

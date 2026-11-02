@@ -55,7 +55,7 @@ Decision applied: within budget → eager init in `ui/src/main.tsx` via
 Decision rule (plan D4): switch to the SDK only when the overhead is under 20 ms p95.
 Both spike functions are deleted after measuring.
 
-Needs: `SENTRY_DSN` for `kame-homes-edge` plus a dev deploy (`bun run deploy:supabase:dev`).
+Needs: `SENTRY_DSN` for `kame-space-edge` plus a dev deploy (`bun run deploy:supabase:dev`).
 
 ## S0.3 Release id
 

@@ -15,7 +15,7 @@ Run after any change to capture, releases or alerts. Record date, release and re
 **Preconditions**
 
 - One Supabase project serves production, so treat every step as a production action.
-- Sentry projects `kame-homes-web` and `kame-homes-edge` exist; DSNs are set for the
+- Sentry projects `kame-space-web` and `kame-space-edge` exist; DSNs are set for the
   environment under test.
 - PostHog Live events open in the matching project.
 

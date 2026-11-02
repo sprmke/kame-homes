@@ -119,7 +119,7 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 
 ### S1.4 Global error coverage
 
-- [x] Global handlers come from the SDK (`globalHandlersIntegration`) once posthog-js
+- [ ] Global handlers come from the SDK (`globalHandlersIntegration`) once posthog-js
       exception capture is off (P1). Until P1, both run; that is expected for one release.
 - [x] `ui/src/lib/chunkReload.ts`: on a dynamic-import failure that triggers the reload,
       **Done** — first failure is a `warning` (stale tab, the reload fixes it), a repeat inside the window is an `error` (the new build is broken). Two-tier on purpose so a normal deploy does not flood the error feed. Covered by a test.
@@ -184,7 +184,7 @@ status, requestId })` for 5xx / network errors (`fn` tag = function name). Repla
       with that module's in-flight work. Still open: the `chunkReload` warning/error split.
       a PostHog outcome event (expected user-facing result), or stays as a dev log with a
       reason comment only if truly debug-only. Tracked as a checklist in the PR.
-- [x] Shared toast: do **not** auto-report from `toast.error` (514 sites, most are
+- [ ] Shared toast: do **not** auto-report from `toast.error` (514 sites, most are
       validation). Instead, the query / mutation / fetch choke points above cover the real
       faults.
 - [x] Third parties: Turnstile `error-callback` (`provider: turnstile`, warning), Google
@@ -194,18 +194,18 @@ status, requestId })` for 5xx / network errors (`fn` tag = function name). Repla
 
 ### S1.9 Service worker (`ui/src/pwa/sw.ts`)
 
-- [x] SW cannot import `@/` modules or the SDK. Add `ui/src/pwa/swErrorRelay.ts`: wrap
+- [ ] SW cannot import `@/` modules or the SDK. Add `ui/src/pwa/swErrorRelay.ts`: wrap
       `push`, `notificationclick`, `sync`, `fetch` fallback and kill-switch handlers in
       try/catch; on error, `postMessage({ type: 'sw-error', message, stack, handler })` to
       all clients; if no client is open, send a minimal envelope directly to the web DSN
       (DSN injected at build via `define`, with the same scrub rules, release and
       environment).
-- [x] `ui/src/lib/sentry/swBridge.ts` in the page listens for `sw-error` and calls
+- [ ] `ui/src/lib/sentry/swBridge.ts` in the page listens for `sw-error` and calls
       `captureError` with tag `runtime: service_worker`.
 
 ### S1.10 Performance (lightweight)
 
-- [x] Web vitals via `browserTracingIntegration` (LCP, INP, CLS) on the sampled
+- [ ] Web vitals via `browserTracingIntegration` (LCP, INP, CLS) on the sampled
       transactions only. PostHog `capture_performance` is off (P1), so Sentry is the one
       source for performance.
 
@@ -213,19 +213,19 @@ status, requestId })` for 5xx / network errors (`fn` tag = function name). Repla
 
 ### S2.1 Extend `_shared/sentry.ts`
 
-- [x] Add: `release` (`APP_RELEASE`), `server_name` (function), `user.id`, `level`,
+- [ ] Add: `release` (`APP_RELEASE`), `server_name` (function), `user.id`, `level`,
       `fingerprint`, `tags` merge, `contexts.request` (method, scrubbed URL, no headers
       except `user-agent`), `contexts.trace` from incoming `sentry-trace` header so browser
       and edge events link.
 - [x] `captureSentryMessage(message, { level, tags, extra })` for degraded states that are
       **Done** — warnings go to `waitUntil` when available.
       not exceptions (provider returned 429, fail-open rate limiter).
-- [x] Per-isolate guard: dedupe identical `(fingerprint, message)` within 60 s; cap 30
+- [ ] Per-isolate guard: dedupe identical `(fingerprint, message)` within 60 s; cap 30
       events per isolate per minute; sample `warning` level by `SENTRY_SAMPLE_RATE_WARNING`
       (default 0.25). Errors are never sampled.
-- [x] Never throw, 3 s bound kept, `waitUntil` when available (`backgroundTask.ts`) so the
+- [ ] Never throw, 3 s bound kept, `waitUntil` when available (`backgroundTask.ts`) so the
       response is not delayed for non-fatal reports.
-- [x] Unit tests (`_shared/sentry_test.ts`): envelope shape, scrub, dedupe, cap, release,
+- [ ] Unit tests (`_shared/sentry_test.ts`): envelope shape, scrub, dedupe, cap, release,
       missing DSN no-op, network failure swallowed.
 
 ### S2.2 Choke points
@@ -328,22 +328,20 @@ thousands.
 
 ### S3.2 Webhooks
 
-- [x] `paymongo-webhook`, `meta-inbox-webhook`, `approval-email-webhook`, Resend inbound /
-      **Done.** PayMongo captures a processing failure inside the dedupe guard (its handler answers its own 500, so the shared choke point never saw it) and warns on a rejected signature. Resend inbound warns on a rejected Svix signature. Meta was already on `handleEdgeError`. Return codes unchanged.
+- [ ] `paymongo-webhook`, `meta-inbox-webhook`, `approval-email-webhook`, Resend inbound /
       events: signature failures → warning with `provider` tag (could be an attack or a
       rotated secret; alert on spikes). Processing errors → error, captured **inside** the
       provider dedupe guard so retries do not create duplicate issues.
-- [x] Return codes unchanged (do not start returning 500 where providers would retry storms).
-      Kept — every response code is exactly what it was.
+- [ ] Return codes unchanged (do not start returning 500 where providers would retry storms).
 
 ### S3.3 Uptime
 
 > **Done 2026-11-01 for mt-dev** via the Sentry MCP. Free tier allowed uptime monitors
 > (separate from the 1 cron-monitor allowance), so D13 does not block this.
 
-- [x] Sentry Uptime monitors created, both 5-minute interval, both reporting `ok`: - `Edge API liveness (mt-dev get-health)` on project `kame-homes-edge` →
+- [x] Sentry Uptime monitors created, both 5-minute interval, both reporting `ok`: - `Edge API liveness (mt-dev get-health)` on project `kame-space-edge` →
       `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/get-health`
-      (15 s timeout: the endpoint cold-starts around 4 s). - `MT-dev app origin` on project `kame-homes-web` → `https://dev.kamehomes.space`
+      (15 s timeout: the endpoint cold-starts around 4 s). - `MT-dev app origin` on project `kame-space-web` → `https://dev.kamehomes.space`
       (15 s timeout).
 - [ ] Production URLs at release: add `get-health` on mt-prod and the production origin
       (needs `kamewave` for the secrets half, but the monitor itself is just Sentry config).
@@ -352,21 +350,16 @@ thousands.
 
 ## S4 — Source maps + release health
 
-- [x] `@sentry/vite-plugin` in `ui/vite.config.ts`, enabled only when `SENTRY_AUTH_TOKEN`,
-      **Done** — enabled only with token+org+project; a failed upload logs and the build still exits 0 (verified with a bad token).
+- [ ] `@sentry/vite-plugin` in `ui/vite.config.ts`, enabled only when `SENTRY_AUTH_TOKEN`,
       `SENTRY_ORG`, `SENTRY_PROJECT` are set: `release.name` = S0.3 id, `sourcemaps.assets:
 './dist/**'`, `filesToDeleteAfterUpload: ['./dist/**/*.map']`, `telemetry: false`.
-- [x] `build.sourcemap: 'hidden'` only when the plugin is enabled.
-      **Done.**
-- [x] Wrap the plugin like today's PostHog resilient wrapper: upload failure logs a
-      **Done differently, and better:** the published plugin does not fail the build anyway, so instead of
-      wrapping, a `closeBundle` hook deletes any surviving `.map`. A failed upload therefore cannot leave
-      source on disk (verified: bad token → 0 maps, guard passes).
+- [ ] `build.sourcemap: 'hidden'` only when the plugin is enabled.
+- [ ] Wrap the plugin like today's PostHog resilient wrapper: upload failure logs a
       warning and the build continues.
-- [x] Keep `scripts/performance/assert-no-sourcemaps.mjs` in CI (no public maps).
+- [ ] Keep `scripts/performance/assert-no-sourcemaps.mjs` in CI (no public maps).
 - [ ] Release health: SDK sessions on (default); deploy marker via plugin
       `release.deploy.env` = environment.
-- [x] Edge: no source maps needed (Deno stacks are readable TS paths); set `release` only.
+- [ ] Edge: no source maps needed (Deno stacks are readable TS paths); set `release` only.
 
 ## S5 — Alerts, runbooks, test fire drill
 
@@ -417,8 +410,7 @@ thousands.
 - [ ] Sentry project settings: data scrubber on, default scrub on, IP storage off,
       "prevent storing of IP addresses" on, additional sensitive fields = scrub list.
 - [ ] Legal copy shipped (P1.6) before prod DSNs are set.
-- [x] Docs from README "Docs to update" table, new `observability.mdc` rule + skill.
-      **Done for the rule + skill** (`.cursor/rules/observability.mdc`, `.agent/skills/observability`, symlinked into `.cursor`/`.claude`). The README doc table is tracked in the closeout item below.
+- [ ] Docs from README "Docs to update" table, new `observability.mdc` rule + skill.
 - [ ] Production rollout checklist (doc 05 §6). Production Supabase secrets need `kamewave`.
 - [ ] Move this folder to `docs/workflow/done/` by hand (the move script handles single
       files only) and update both READMEs + intake scratchpads.
