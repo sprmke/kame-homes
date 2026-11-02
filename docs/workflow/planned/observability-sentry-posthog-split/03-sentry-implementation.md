@@ -298,15 +298,18 @@ thousands.
 > tracks last-run/last-status and costs nothing. Do **not** build a second monitoring path for
 > jobs the health page already covers.
 
-- [ ] `_shared/sentryCron.ts`: `withCronCheckIn(slug, schedule, fn)` sends `check_in`
+- [x] `_shared/sentryCron.ts`: `withCronCheckIn(slug, schedule, fn)` sends `check_in`
+      **Done** — `sendCronCheckIn` + `withCronCheckIn`, monitor_config upsert, 6 Deno tests.
       envelopes (`in_progress` → `ok` / `error` with `duration`), using `monitor_config`
       (crontab, `checkin_margin: 5`, `max_runtime` per job, `timezone: 'Asia/Manila'` or
       UTC to match `cron.schedule`) so the monitor upserts without dashboard clicks.
-- [ ] `serveCronPost` takes a `cron: { slug, schedule, maxRuntimeMinutes }` option.
+- [x] `serveCronPost` takes a `cron: { slug, schedule, maxRuntimeMinutes }` option.
+      **Done** — `serveCronPost` accepts the config; `sd-refund-cron` (a raw `serve()` handler) sends check-ins directly.
       **Free tier: only `sd-refund-cron` passes it.** It is the money path and the only job
       whose silent failure has financial consequences. Adding a second monitor will start
       dropping check-ins until the plan is upgraded.
-- [ ] Deno test (`cronMonitorConfig_test.ts`): exactly one cron function declares
+- [x] Deno test (`cronMonitorConfig_test.ts`): exactly one cron function declares
+      **Done** — fails if a second cron sends check-ins.
       `cron.slug`, and its schedule matches the matching `cron.schedule` migration. Fails if a
       second is added, so the free-tier limit cannot be exceeded by accident.
 - [ ] No change needed for the other jobs in the inventory: `activity-log-retention`,
