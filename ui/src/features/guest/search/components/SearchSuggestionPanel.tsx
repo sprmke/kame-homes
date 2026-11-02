@@ -182,7 +182,7 @@ function SearchAllResultsButton({
       onClick={onClick}
       className="border-border hover:bg-muted focus-visible:ring-primary/40 group flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2"
     >
-      <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+      <span className="bg-primary/10 text-brand-ink flex size-10 shrink-0 items-center justify-center rounded-xl">
         <Search className="size-4" aria-hidden />
       </span>
       <span className="text-primary min-w-0 flex-1 truncate text-sm font-semibold underline-offset-4 group-hover:underline">
