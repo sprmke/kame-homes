@@ -74,6 +74,33 @@ Confirm on fwor: `pgcrypto`, `pg_trgm`, `pg_cron`, `pg_net`, `plpgsql` (see Phas
 - [x] Secrets bootstrapped **2026-11-01** — `bootstrap-github-production-env.sh` (`SUPABASE_PROJECT_REF`, legacy ref, token, DB password, anon)
 - [x] `CUTOVER_ENABLED=true` repo variable (verified 2026-11-02) — CD Prod deploys on `main`
 
+## DNS records to add (Namecheap, zone `kamespace.com`)
+
+Vercel project `kame-homes` already has `kamespace.com` and `www.kamespace.com` (308 → apex) attached and verified. The apex still resolves to the Namecheap parking IP, so Production will not serve until these records exist.
+
+| Host                        | Type  | Value                                             | Notes                                    |
+| --------------------------- | ----- | ------------------------------------------------- | ---------------------------------------- |
+| `@`                         | A     | `216.198.79.1`                                    | same Vercel anycast IP the legacy apex uses |
+| `www`                       | CNAME | `cname.vercel-dns.com`                            | Vercel serves the 308 → apex             |
+| `resend._domainkey`         | TXT   | copy from Resend → Domains → `kamespace.com`      | DKIM                                     |
+| `send`                      | MX    | `feedback-smtp.ap-northeast-1.amazonses.com` (10) | Resend return-path                       |
+| `send`                      | TXT   | `v=spf1 include:amazonses.com ~all`               | SPF for the return-path                  |
+| `rsend`                     | CNAME | `send.forge.rmta.net`                             | Resend click/open domain                 |
+| `inbound`                   | MX    | `receive-apne1.forge.rmta.net` (10)               | Resend **receiving** (PMO approvals)     |
+| `resend._domainkey.inbound` | TXT   | copy from Resend → Domains → `inbound.kamespace.com` | DKIM for the inbound subdomain        |
+| `send.inbound`              | MX    | `feedback-smtp.ap-northeast-1.amazonses.com` (10) | inbound subdomain return-path            |
+| `send.inbound`              | TXT   | `v=spf1 include:amazonses.com ~all`               | inbound subdomain SPF                    |
+| `rsend.inbound`             | CNAME | `send.forge.rmta.net`                             | inbound subdomain click/open             |
+| `_dmarc`                    | TXT   | `v=DMARC1; p=none; rua=mailto:mail@kamespace.com` | tighten to `quarantine` after hypercare  |
+
+Resend state (2026-11-02): `kamespace.com` added with sending enabled and receiving **disabled**; `inbound.kamespace.com` added with sending + receiving enabled. Both are `pending` until DNS lands.
+
+## Auth and OAuth at T0
+
+- [ ] `site_url` → `https://kamespace.com` (currently `https://dev.kamehomes.space`). Redirect allow-list already contains `kamespace.com/**` and `www.kamespace.com/**`.
+- [ ] Google provider: production OAuth client with redirect `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback` (current client id is the legacy/shared one).
+- [ ] After DNS: verify Resend domains, then update `RESEND_FROM_EMAIL=mail@kamespace.com` and `RESEND_APPROVAL_INBOUND_DOMAIN=inbound.kamespace.com` on `fwor`, and redeploy `send-*`/approval functions.
+
 ## 1.2 Rehearsal project (optional)
 
 Throwaway Supabase project for B-17 restore drill; delete after cutover.

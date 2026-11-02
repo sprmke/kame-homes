@@ -18,6 +18,8 @@ bun scripts/migrate/legacy-to-mt-prod/hosted-r3-smoke.ts
 bun scripts/migrate/legacy-to-mt-prod/verify-phase1-wiring.ts
 ```
 
+**2026-11-02 re-run:** all three green. `get-booked-dates?property=monaco-2604` returns every future stay (Nov 2–4, Nov 7–9, Nov 22–23, Dec 12–13, Dec 31–Jan 1, Mar 13–15 2027), so calendar blocking is confirmed on migrated data. The Resend inbound webhook was exercised with a correctly signed `email.received` event: `200 {"success":true,"action":"skipped","reason":"subject_no_match"}`, proving signature verification and parsing on `fwor`. A real forwarded PMO reply still needs a human inbox.
+
 At T0 freeze (legacy stopped taking bookings):
 
 ```bash
