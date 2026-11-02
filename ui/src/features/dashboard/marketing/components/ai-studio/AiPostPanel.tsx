@@ -405,7 +405,7 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
                       'transition-[border-color,background-color,color] duration-150 ease-out',
                       'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                       goal === option.value
-                        ? 'border-primary bg-primary text-primary-foreground'
+                        ? 'border-primary bg-primary-strong text-primary-foreground'
                         : 'border-border/80 bg-background text-foreground hover:bg-muted/60'
                     )}
                   >

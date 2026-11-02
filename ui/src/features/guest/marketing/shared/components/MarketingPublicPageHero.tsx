@@ -52,7 +52,7 @@ export function MarketingPublicPageHero({
             centered && 'text-center'
           )}
         >
-          <span className="public-eyebrow text-primary">{eyebrow}</span>
+          <span className="public-eyebrow text-brand-ink">{eyebrow}</span>
           <h1
             className={cn(
               'public-display text-foreground mt-3 text-balance font-bold md:mt-4',

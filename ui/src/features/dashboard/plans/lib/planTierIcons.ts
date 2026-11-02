@@ -31,7 +31,7 @@ export function planTierIconWellClass(planCode: string, muted = false): string {
     case 'free':
       return 'bg-muted text-muted-foreground';
     case 'starter':
-      return 'bg-primary/10 text-primary';
+      return 'bg-primary/10 text-brand-ink';
     case 'growth':
       return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
     case 'pro':
@@ -43,7 +43,7 @@ export function planTierIconWellClass(planCode: string, muted = false): string {
     case 'commission':
       return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
     default:
-      return 'bg-primary/10 text-primary';
+      return 'bg-primary/10 text-brand-ink';
   }
 }
 

@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** Parking dashboard: attention strip + 4 KPIs + calendar block. */
 export function ParkingDashboardSkeleton() {
   return (
-    <div
+    <div role="status"
       className="native-stagger flex min-w-0 flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading parking dashboard"
@@ -32,7 +32,7 @@ export function ParkingDashboardRouteSkeleton() {
 
 export function ParkingBookingDetailSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading parking booking">
+    <div role="status" className="space-y-4" aria-busy="true" aria-label="Loading parking booking">
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-8 w-24 rounded-lg" />

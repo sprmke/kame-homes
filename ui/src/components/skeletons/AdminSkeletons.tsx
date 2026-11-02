@@ -44,7 +44,7 @@ export function AdminPageHeaderSkeleton({
  * Card-per-section main content; sidebar hidden below `lg` like the real layout. */
 export function AppSettingsNavLayoutSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row lg:gap-8 xl:gap-10"
       aria-busy="true"
       aria-label="Loading settings"
@@ -125,7 +125,7 @@ function DetailCardSkeleton({ lines = 3 }: { lines?: number }) {
 
 export function BookingDetailPageSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading booking">
+    <div role="status" className="space-y-4" aria-busy="true" aria-label="Loading booking">
       <Skeleton className="h-3 w-28" />
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5 lg:gap-6">
         <div className="border-border/80 bg-card min-w-0 flex-1 overflow-hidden rounded-2xl border">
@@ -190,7 +190,7 @@ function ParkingDetailFieldSkeleton() {
 
 export function ParkingBookingDetailPageSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading parking booking">
+    <div role="status" className="space-y-4" aria-busy="true" aria-label="Loading parking booking">
       <div className="flex flex-wrap gap-2 lg:hidden">
         <Skeleton className="h-11 w-28 rounded-lg" />
         <Skeleton className="h-11 w-24 rounded-lg" />
@@ -242,7 +242,7 @@ export function AdminListToolbarSkeleton({ sort = false }: { sort?: boolean } = 
 
 export function BookingsTableSkeleton() {
   return (
-    <div
+    <div role="status"
       className="surface-card surface-card-clip overflow-hidden"
       aria-busy="true"
       aria-label="Loading bookings"
@@ -297,7 +297,7 @@ export function BookingsTableSkeleton() {
 
 export function BookingsCardGridSkeleton() {
   return (
-    <div
+    <div role="status"
       className="native-stagger grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-4"
       aria-busy="true"
       aria-label="Loading bookings"
@@ -362,7 +362,7 @@ function FinanceKpiGridSkeleton({ count = 4 }: { count?: number }) {
 
 export function FinanceOverviewSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading finance overview">
+    <div role="status" aria-busy="true" aria-label="Loading finance overview">
       <FinanceKpiGridSkeleton count={4} />
     </div>
   );
@@ -370,7 +370,7 @@ export function FinanceOverviewSkeleton() {
 
 export function MaintenanceOverviewSkeleton() {
   return (
-    <div
+    <div role="status"
       className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4"
       aria-busy="true"
       aria-label="Loading maintenance overview"
@@ -386,7 +386,7 @@ export function MaintenanceOverviewSkeleton() {
  * the Billing tab's payment history card. */
 export function PlansPageSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex min-w-0 flex-col gap-4 sm:gap-5"
       aria-busy="true"
       aria-label="Loading plans"
@@ -445,7 +445,7 @@ export function PlansPageSkeleton() {
 
 export function FinanceStaysCardGridSkeleton() {
   return (
-    <div
+    <div role="status"
       className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
       aria-busy="true"
       aria-label="Loading stays"
@@ -481,7 +481,7 @@ export function FinanceStaysCardGridSkeleton() {
 /** Finance ledger table (Date+icon | Description | Category(md) | Status | Amount | Actions). */
 export function FinanceStaysTableSkeleton() {
   return (
-    <div
+    <div role="status"
       className="surface-card surface-card-clip overflow-hidden"
       aria-busy="true"
       aria-label="Loading transactions"
@@ -528,7 +528,7 @@ export function FinanceStaysTableSkeleton() {
 /** Maintenance reminders table (Date | Label | Category(md) | Status(md) | Notes(sm) | Actions). */
 export function FinanceOperatingTabSkeleton() {
   return (
-    <div
+    <div role="status"
       className="surface-card surface-card-clip overflow-hidden"
       aria-busy="true"
       aria-label="Loading reminders"
@@ -627,14 +627,14 @@ export function BookingsCalendarSkeleton({
 
   if (gridOnly) {
     return (
-      <div aria-busy="true" aria-label="Loading calendar">
+      <div role="status" aria-busy="true" aria-label="Loading calendar">
         {grid}
       </div>
     );
   }
 
   return (
-    <div
+    <div role="status"
       className="grid gap-3 sm:gap-4 lg:grid-cols-3"
       aria-busy="true"
       aria-label="Loading calendar"
@@ -698,7 +698,7 @@ function DashboardListRowSkeleton({ tall = false }: { tall?: boolean }) {
 
 export function DashboardSkeleton() {
   return (
-    <div
+    <div role="status"
       className="native-stagger flex min-w-0 flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading dashboard"
@@ -923,7 +923,7 @@ export function SettingsRowsSkeleton({
 /** Name, large figure, then a 3-column field row from `sm`. */
 export function WalletResultSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading wallet">
+    <div role="status" className="space-y-4" aria-busy="true" aria-label="Loading wallet">
       <div className="space-y-2">
         <Skeleton className="h-4 w-36" />
         <Skeleton className="h-8 w-28 sm:h-9" />
@@ -936,7 +936,7 @@ export function WalletResultSkeleton() {
 /** Review dialog body: document tiles, then stacked fields. Tiles sit side by side from `sm`. */
 export function ReviewDialogSkeleton() {
   return (
-    <div className="space-y-5 py-2" aria-busy="true" aria-label="Loading review">
+    <div role="status" className="space-y-5 py-2" aria-busy="true" aria-label="Loading review">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
           <Skeleton key={i} className="aspect-video w-full rounded-xl" />
@@ -955,7 +955,7 @@ export function ReviewDialogSkeleton() {
 /** Booking workflow sheet: status chips, then stacked detail cards. */
 export function WorkflowSheetSkeleton() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading booking">
+    <div role="status" className="space-y-4" aria-busy="true" aria-label="Loading booking">
       <div className="flex flex-wrap gap-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-8 w-24 rounded-lg" />
@@ -985,7 +985,7 @@ export function SectionContentSkeleton({
   className?: string;
 } = {}) {
   return (
-    <div className={cn('space-y-3', className)} aria-busy="true" aria-label="Loading">
+    <div role="status" className={cn('space-y-3', className)} aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }).map((_, i) => (
         <Skeleton key={i} className="h-4 w-full" style={{ opacity: 1 - i * 0.1 }} />
       ))}
@@ -1107,7 +1107,7 @@ export function HostOrgCardGridSkeleton({
 /** Recurring-series modal table — Date [+Amount] | Notes(sm) | Actions, sticky header. */
 export function RecurringSeriesTableSkeleton({ showAmount = true }: { showAmount?: boolean } = {}) {
   return (
-    <div
+    <div role="status"
       className="surface-card surface-card-clip flex min-h-0 flex-1 flex-col overflow-hidden"
       aria-busy="true"
       aria-label="Loading series"
@@ -1147,7 +1147,7 @@ export function DocThumbnailSkeleton({ className }: { className?: string } = {})
 /** Larger centered placeholder for modal/panel media previews (PDF, image, asset viewer). */
 export function MediaPreviewSkeleton({ className }: { className?: string } = {}) {
   return (
-    <div
+    <div role="status"
       className={cn('flex items-center justify-center py-6', className)}
       aria-busy="true"
       aria-label="Loading preview"
@@ -1160,7 +1160,7 @@ export function MediaPreviewSkeleton({ className }: { className?: string } = {})
 /** Team page (org/parking/property) — stat card strip + tab row + member list card. */
 export function TeamPageSkeleton() {
   return (
-    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading team">
+    <div role="status" className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading team">
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <AdminMetricCardSkeleton key={i} style={{ opacity: 1 - i * 0.05 } as CSSProperties} />
@@ -1209,7 +1209,7 @@ export function TeamPageSkeleton() {
 /** Org dashboard — KPI strip + 2×2 board + listings list. */
 export function OrgDashboardSkeleton() {
   return (
-    <div
+    <div role="status"
       className="native-stagger flex min-w-0 flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading organization dashboard"
@@ -1306,7 +1306,7 @@ export function MarketingLibraryGridSkeleton({
  */
 export function MarketingLibraryBodySkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       aria-busy="true"
       aria-label="Loading marketing"
@@ -1338,7 +1338,7 @@ export function MarketingStudioSkeleton() {
 /** Open editor: back row, then the canvas. The tab row is already hidden in focus mode. */
 export function MarketingEditorSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading editor">
+    <div role="status" className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading editor">
       <div className="border-border flex min-h-[52px] items-center gap-2 border-b px-2 sm:px-3">
         <Skeleton className="h-9 w-20 shrink-0 rounded-md" />
         <Skeleton className="h-5 w-36" />

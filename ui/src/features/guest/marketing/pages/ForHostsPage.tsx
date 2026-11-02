@@ -66,7 +66,7 @@ export function ForHostsPage() {
               >
                 <Button
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 shadow-primary/30 h-11 rounded-full px-7 text-[15px] font-semibold text-white shadow-lg md:h-12 md:text-base"
+                  className="bg-primary-strong hover:bg-primary/90 shadow-primary/30 h-11 rounded-full px-7 text-[15px] font-semibold text-white shadow-lg md:h-12 md:text-base"
                   asChild
                 >
                   <Link to="/for-hosts/login">

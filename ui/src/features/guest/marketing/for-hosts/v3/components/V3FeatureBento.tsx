@@ -119,7 +119,7 @@ function ReceptionistChat() {
           {inbox.question}
         </motion.p>
         <motion.div {...bubble(0.9)} className="flex items-end justify-end gap-2">
-          <p className="bg-primary w-fit max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2.5 text-sm text-white">
+          <p className="bg-primary-strong w-fit max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2.5 text-sm text-white">
             {inbox.answer}
           </p>
           <span

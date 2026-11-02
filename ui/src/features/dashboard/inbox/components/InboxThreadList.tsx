@@ -155,7 +155,7 @@ export function InboxThreadList({
       </div>
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {isLoading ? (
-          <div className="py-1" aria-busy="true" aria-label="Loading conversations">
+          <div role="status" className="py-1" aria-busy="true" aria-label="Loading conversations">
             {Array.from({ length: 6 }).map((_, i) => (
               <InboxThreadRowSkeleton key={i} opacity={1 - i * 0.08} />
             ))}

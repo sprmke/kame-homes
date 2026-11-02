@@ -9,7 +9,7 @@ export function PricingPageBodySkeleton() {
   const compactChrome = useDashboardCompactChrome();
 
   return (
-    <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading pricing">
+    <div role="status" className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading pricing">
       <div className="flex flex-wrap gap-2 sm:gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton

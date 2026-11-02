@@ -101,10 +101,16 @@ export function contrastRatio(a: string, b: string): number {
   return (light + 0.05) / (dark + 0.05);
 }
 
-/** Push `color` toward black or white until it reaches `minRatio` against `background`. */
+/**
+ * Push `color` away from the background's luminance until it reaches `minRatio`.
+ * A light background needs darker ink and vice versa; picking the target from the
+ * background (not the text) is what lets a mid-tone fill reach AA at all.
+ */
 export function ensureContrast(color: string, background: string, minRatio: number): string {
   if (contrastRatio(color, background) >= minRatio) return color;
-  const target = relativeLuminance(background) > 0.4 ? BLACK : WHITE;
+  const backgroundLuminance = relativeLuminance(background);
+  // 0.18 is the luminance at which white text reaches 4.5:1.
+  const target = backgroundLuminance > 0.18 ? BLACK : WHITE;
   for (let step = 1; step <= 20; step += 1) {
     const candidate = mixHexToward(color, target, step * 0.05);
     if (contrastRatio(candidate, background) >= minRatio) return candidate;

@@ -737,7 +737,7 @@ export function InboxConversationView({
         )}
       >
         {isLoading ? (
-          <div className="space-y-3" aria-busy="true" aria-label="Loading messages">
+          <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading messages">
             {MESSAGE_SKELETON_ROWS.map((row, i) => (
               <InboxMessageBubbleSkeleton
                 key={i}

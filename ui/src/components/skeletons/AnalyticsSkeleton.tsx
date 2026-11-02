@@ -34,7 +34,7 @@ export function AnalyticsSectionTabsSkeleton() {
  * (toolbar + listings in the default org listing view). */
 export function OrgAnalyticsSkeleton({ view }: { view: OrgListingViewMode }) {
   return (
-    <div
+    <div role="status"
       className="flex min-w-0 flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading portfolio analytics"
@@ -55,7 +55,7 @@ export function OrgAnalyticsSkeleton({ view }: { view: OrgListingViewMode }) {
 /** Default property analytics overview tab: KPIs + tabs + 2×2 chart cards. */
 export function PropertyAnalyticsSkeleton() {
   return (
-    <div
+    <div role="status"
       className="flex flex-col gap-2.5 sm:gap-3 lg:gap-4"
       aria-busy="true"
       aria-label="Loading analytics"

@@ -165,7 +165,7 @@ export function AiProfilesTab() {
 
   if (isLoading && !data) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading profiles">
+      <div role="status" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading profiles">
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-44 w-full" />
         ))}

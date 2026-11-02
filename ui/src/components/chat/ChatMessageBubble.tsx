@@ -67,7 +67,7 @@ export function ChatMessageBubble({
       (unsent
         ? 'bg-muted/45 text-muted-foreground border-border/50 border italic'
         : outbound
-          ? 'bg-primary text-primary-foreground'
+          ? 'bg-primary-strong text-primary-foreground'
           : 'border-border/60 bg-background text-foreground border shadow-sm'),
     deliveryStatus === 'failed' && outbound && !unsent && 'opacity-80'
   );

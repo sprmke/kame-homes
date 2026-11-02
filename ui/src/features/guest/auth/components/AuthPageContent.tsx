@@ -132,7 +132,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
 
       <div className={cn(step === 'otp' ? 'mb-6 text-center' : 'mb-8')}>
         {step === 'email' && mode === 'login' ? (
-          <div className="bg-primary/10 text-primary mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
+          <div className="bg-primary/10 text-brand-ink mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
             <span>{config.login.badge}</span>
           </div>
         ) : null}
@@ -245,7 +245,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
             Don&apos;t have an account?{' '}
             <Link
               to={config.login.registerHref}
-              className="text-primary hover:text-primary/80 font-semibold transition-colors"
+              className="text-brand-ink hover:text-brand-ink/80 font-semibold transition-colors"
             >
               Create one now
             </Link>
@@ -255,7 +255,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
             Already have an account?{' '}
             <Link
               to={config.register.loginHref}
-              className="text-primary hover:text-primary/80 font-semibold transition-colors"
+              className="text-brand-ink hover:text-brand-ink/80 font-semibold transition-colors"
             >
               Sign in
             </Link>

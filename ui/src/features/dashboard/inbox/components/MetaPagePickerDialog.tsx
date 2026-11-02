@@ -66,7 +66,7 @@ export function MetaPagePickerDialog({
             tone={metaConnectAvailability.tone}
           />
         ) : loading ? (
-          <div className="space-y-2 py-2" aria-busy="true" aria-label="Loading pages">
+          <div role="status" className="space-y-2 py-2" aria-busy="true" aria-label="Loading pages">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}

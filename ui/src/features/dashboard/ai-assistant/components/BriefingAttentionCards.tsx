@@ -40,7 +40,7 @@ export function BriefingAttentionCards({
 
   if (loading) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading">
+      <div role="status" className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-[72px] rounded-xl" />
         ))}

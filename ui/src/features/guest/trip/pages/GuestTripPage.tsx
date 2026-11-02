@@ -88,7 +88,7 @@ import {
 
 function GuestTripSkeleton() {
   return (
-    <div className="px-4 py-5 sm:px-6 sm:py-7" aria-busy="true" aria-label="Loading trip">
+    <div role="status" className="px-4 py-5 sm:px-6 sm:py-7" aria-busy="true" aria-label="Loading trip">
       <div className="lg:grid lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] lg:gap-10">
         <div className="space-y-4">
           <div className="flex items-center gap-4">

@@ -200,9 +200,11 @@ export function resolveMarketingTheme(tokens: MarketingThemeTokens): ResolvedMar
   return {
     ...tokens.palette,
     tokens,
-    onPrimary: readableOn(primary, '#ffffff', darkText),
-    onSecondary: readableOn(secondary, '#ffffff', darkText),
-    onAccent: readableOn(accent, '#ffffff', darkText),
+    // Prefer the better of white/dark ink, then force AA: a mid-tone brand fill can
+    // leave both below 4.5:1 (checklist 33).
+    onPrimary: ensureContrast(readableOn(primary, '#ffffff', darkText), primary, 4.5),
+    onSecondary: ensureContrast(readableOn(secondary, '#ffffff', darkText), secondary, 4.5),
+    onAccent: ensureContrast(readableOn(accent, '#ffffff', darkText), accent, 4.5),
     primaryDark: mixTowardBlack(primary, 0.18),
     primaryLight: mixTowardWhite(primary, 0.38),
     readableInk,

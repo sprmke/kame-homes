@@ -130,7 +130,7 @@ function TourChapterStrip({
               className={cn(
                 'focus-visible:ring-ring relative flex h-11 shrink-0 snap-start items-center gap-2 rounded-xl border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
                 active
-                  ? 'border-primary bg-primary text-primary-foreground'
+                  ? 'border-primary bg-primary-strong text-primary-foreground'
                   : 'border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground'
               )}
             >

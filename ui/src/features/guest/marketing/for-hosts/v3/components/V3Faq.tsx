@@ -40,7 +40,7 @@ function FaqItem({
           <span
             className={cn(
               'border-border flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,border-color] duration-300',
-              open && 'border-primary bg-primary rotate-45 text-white'
+              open && 'border-primary bg-primary-strong rotate-45 text-white'
             )}
           >
             <Plus className="h-4 w-4" aria-hidden />

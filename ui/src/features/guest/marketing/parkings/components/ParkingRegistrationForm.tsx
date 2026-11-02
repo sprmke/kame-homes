@@ -278,7 +278,7 @@ export function ParkingRegistrationForm({
 
   if (phase === 'loading') {
     return (
-      <div className="space-y-3" aria-busy="true" aria-label="Loading stays">
+      <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading stays">
         <Skeleton className="h-5 w-28" />
         <Skeleton className="h-[4.25rem] w-full rounded-xl" />
         <Skeleton className="h-[4.25rem] w-full rounded-xl" />
