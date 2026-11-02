@@ -92,6 +92,22 @@ export function useSystemHealthCapacity(enabled = true) {
   });
 }
 
+/**
+ * Fire drill: sends one tagged event through the real edge capture path so an operator can
+ * confirm that Sentry receives it with the release, environment and alert routing attached.
+ */
+export function useSendSentryTestError() {
+  return useMutation({
+    mutationFn: () =>
+      callEdgeFunction<{ sent: boolean; runtime: string; elapsedMs: number }>(
+        'super-admin-sentry-test',
+        { method: 'POST', body: JSON.stringify({}) }
+      ),
+    onSuccess: () => toast.success('Test error sent'),
+    onError: (error: Error) => toast.error(error.message || 'Could not send test error'),
+  });
+}
+
 export function useRunHealthProbes() {
   const qc = useQueryClient();
   return useMutation({

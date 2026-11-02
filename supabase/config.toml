@@ -525,6 +525,9 @@ verify_jwt = false
 [functions.super-admin-rate-limits]
 verify_jwt = false
 
+[functions.super-admin-sentry-test]
+verify_jwt = false
+
 [functions.list-super-admin-audit]
 verify_jwt = false
 
@@ -1158,6 +1161,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.notifications-mark-read]
+verify_jwt = false
+
+[functions.notification-preferences]
 verify_jwt = false
 
 # Web Push (PWA). subscribe/unsubscribe do their own auth (serveAuthenticated);

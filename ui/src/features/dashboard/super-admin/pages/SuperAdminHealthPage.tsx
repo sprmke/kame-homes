@@ -4,25 +4,26 @@ import { Navigate, useLocation, useParams } from 'react-router-dom';
 
 import { Activity, RefreshCw } from 'lucide-react';
 
+import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
+import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
+import { SuperAdminSecondaryNav } from '@/features/dashboard/super-admin/components/shared/SuperAdminSecondaryNav';
 import { HealthCheckList } from '@/features/dashboard/super-admin/components/super-admin-health/HealthCheckList';
 import { HealthIntegrationsSection } from '@/features/dashboard/super-admin/components/super-admin-health/HealthIntegrationsSection';
 import { HealthJobsSection } from '@/features/dashboard/super-admin/components/super-admin-health/HealthJobsSection';
 import { HealthOverviewSection } from '@/features/dashboard/super-admin/components/super-admin-health/HealthOverviewSection';
 import { HealthUsageSection } from '@/features/dashboard/super-admin/components/super-admin-health/HealthUsageSection';
-import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
-import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
-import { SuperAdminSecondaryNav } from '@/features/dashboard/super-admin/components/shared/SuperAdminSecondaryNav';
 import {
   allHealthChecks,
   useRunHealthProbes,
+  useSendSentryTestError,
   useSystemHealth,
 } from '@/features/dashboard/super-admin/hooks/useSystemHealth';
+import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 import {
   HEALTH_SECTIONS,
   parseHealthSection,
   type HealthSectionId,
 } from '@/features/dashboard/super-admin/lib/systemHealth/healthSections';
-import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
 import { Button } from '@/components/ui/button';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
@@ -61,6 +62,7 @@ export function SuperAdminHealthPage() {
 
   const { data: summary, isLoading, error } = useSystemHealth();
   const runProbes = useRunHealthProbes();
+  const sendTestError = useSendSentryTestError();
 
   const probes = useMemo(
     () => ({
@@ -88,7 +90,18 @@ export function SuperAdminHealthPage() {
       error={error}
       actions={
         resolvedSection === 'overview' || resolvedSection === 'integrations' ? (
-          <Button
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="settings-action"
+              disabled={sendTestError.isPending}
+              onClick={() => sendTestError.mutate()}
+            >
+              Send test error
+            </Button>
+            <Button
             type="button"
             variant="outline"
             size="sm"
@@ -100,8 +113,9 @@ export function SuperAdminHealthPage() {
               className={cn('size-4 shrink-0', runProbes.isPending && 'animate-spin')}
               aria-hidden
             />
-            Run live checks
-          </Button>
+              Run live checks
+            </Button>
+          </div>
         ) : undefined
       }
       toolbar={
