@@ -205,6 +205,11 @@ No capture window existed at any point. **Production launch still waits on the T
 (`docs/archive/operations/legacy-to-mt-prod-migration.md`: DNS, `kamespace.com`, `develop` →
 `main`), which is outside this module.
 
+**Fire drill executed 2026-11-02 (edge half):** `POST super-admin-sentry-test` with a real
+super-admin JWT returned `HTTP 200` and `{"sent":true,"runtime":"edge","elapsedMs":281}`, so
+auth, capture and the envelope POST all completed without a rejection. Visual confirmation in
+Sentry is the remaining step (the agent had no Sentry API access at that point).
+
 **Still open on dev, in order:** one real event must be seen arriving in Sentry for each
 runtime. The fastest way is `/admin/health` → **Send test error** (edge) and the same page in
 a browser with the Preview DSN (web). This session could not confirm receipt because the
