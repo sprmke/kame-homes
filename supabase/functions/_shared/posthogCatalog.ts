@@ -17,6 +17,11 @@ export const POSTHOG_EVENTS = [
   'sd_form_submitted',
   'sd_voucher_claimed',
   'guest_review_submitted',
+  'host_guest_review_submitted',
+  'review_pair_published',
+  'review_response_posted',
+  'review_reported',
+  'review_removed',
   'parking_payment_completed',
   'parking_payment_failed',
 ] as const;

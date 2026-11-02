@@ -34,6 +34,8 @@ export type AnalyticsScope = {
 export type SharedAnalyticsProperties = {
   environment: AnalyticsEnvironment;
   app_track: AnalyticsAppTrack;
+  /** Deploy id (git SHA) — matches the Sentry release and the edge APP_RELEASE. */
+  app_release?: string;
   persona: AnalyticsPersona;
   surface: AnalyticsSurface;
   org_id?: string;

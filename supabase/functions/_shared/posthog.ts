@@ -1,5 +1,7 @@
 import { PostHog } from 'https://esm.sh/posthog-node@5.51.5';
 
+import { runAfterResponse } from './backgroundTask.ts';
+
 import type { PostHogEventName } from './posthogCatalog.ts';
 import { sanitizePostHogProperties } from './posthogSanitize.ts';
 
@@ -87,21 +89,27 @@ export async function capturePostHogEvent(
       options.distinctId ?? `edge:${options.logPrefix}`
     );
     const systemEvent = options.system ?? !hasUserContext;
-    ph.capture({
-      distinctId,
-      event,
-      properties: sanitizePostHogProperties({
-        environment: environmentTag(),
-        app_track: 'mt',
-        persona: systemEvent ? 'system' : 'host',
-        surface: 'edge',
-        log_prefix: options.logPrefix,
-        ...(sessionId ? { $session_id: sessionId } : {}),
-        ...(systemEvent ? { $process_person_profile: false } : {}),
-        ...options.properties,
-      }),
+    // An outcome is worth recording, but it is not worth making the guest wait: the
+    // analytics write must never sit on the response path. `runAfterResponse` hands the
+    // capture to the isolate where the platform supports it and runs inline otherwise.
+    await runAfterResponse(`posthog:${event}`, async () => {
+      ph.capture({
+        distinctId,
+        event,
+        properties: sanitizePostHogProperties({
+          environment: environmentTag(),
+          app_track: 'mt',
+          app_release: (Deno.env.get('APP_RELEASE') ?? '').trim() || undefined,
+          persona: systemEvent ? 'system' : 'host',
+          surface: 'edge',
+          log_prefix: options.logPrefix,
+          ...(sessionId ? { $session_id: sessionId } : {}),
+          ...(systemEvent ? { $process_person_profile: false } : {}),
+          ...options.properties,
+        }),
+      });
+      await flushWithTimeout(ph);
     });
-    await flushWithTimeout(ph);
   } catch (captureError) {
     console.error('[posthog] failed to capture event', captureError);
   }

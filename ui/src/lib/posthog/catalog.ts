@@ -40,6 +40,12 @@ export const APP_ANALYTICS_EVENTS = [
   'sd_form_submitted',
   'sd_voucher_claimed',
   'guest_review_submitted',
+  // Reviews (declared after the edge started emitting them — plan F-08)
+  'host_guest_review_submitted',
+  'review_pair_published',
+  'review_response_posted',
+  'review_reported',
+  'review_removed',
   'guest_stay_guide_opened',
   'guest_document_opened',
   'parking_booking_started',

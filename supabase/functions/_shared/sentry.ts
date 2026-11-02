@@ -1,4 +1,3 @@
-import { getWaitUntil } from './backgroundTask.ts';
 import { scrubRecord, scrubUrl } from './telemetryScrub.ts';
 
 /**
@@ -118,6 +117,27 @@ function warningSampleRate(): number {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_WARNING_SAMPLE_RATE;
   return Math.min(1, parsed);
+}
+
+/**
+ * `EdgeRuntime.waitUntil` is a Supabase-provided global, not in Deno's lib types.
+ *
+ * Kept local rather than imported from `backgroundTask.ts`: that module now imports this
+ * one for `captureSideEffectFailure`, and a cycle between a telemetry module and the
+ * background-task runner is not worth the eight saved lines.
+ */
+function deferToIsolate(promise: Promise<unknown>): void {
+  try {
+    const runtime = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: unknown } })
+      .EdgeRuntime;
+    if (typeof runtime?.waitUntil === 'function') {
+      (runtime.waitUntil as (p: Promise<unknown>) => void).call(runtime, promise);
+      return;
+    }
+  } catch {
+    // fall through to awaiting
+  }
+  void promise;
 }
 
 // ───────────────────────── per-isolate guards ────────────────────────────────
@@ -307,9 +327,8 @@ async function capture(
     // A warning is diagnostic, not an incident: hand it to the isolate's background queue
     // so a slow Sentry never holds a user's response open. Errors stay awaited because the
     // response is already a 5xx and the event is the point.
-    const waitUntil = level === 'error' ? null : getWaitUntil();
-    if (waitUntil) {
-      waitUntil(sending.catch(() => {}));
+    if (level !== 'error') {
+      deferToIsolate(sending.catch(() => {}));
       return;
     }
     await sending;
