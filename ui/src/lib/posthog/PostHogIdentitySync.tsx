@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { captureAppEvent } from '@/lib/posthog/capture';
 import { isPostHogEnabled, posthog } from '@/lib/posthog/client';
 import { setAnalyticsSignedIn } from '@/lib/posthog/context';
+import { isInternalUser } from '@/lib/posthog/internalUsers';
 import { supabase } from '@/lib/supabase/client';
 
 function authMethodFromUser(user: { app_metadata?: Record<string, unknown> }): string {
@@ -32,7 +33,9 @@ export function PostHogIdentitySync() {
   useEffect(() => {
     if (!isPostHogEnabled) return;
 
-    const identifySessionUser = (user: { id: string; email?: string } | null | undefined) => {
+    const identifySessionUser = (
+      user: { id: string; email?: string | null } | null | undefined
+    ) => {
       setAnalyticsSignedIn(Boolean(user));
 
       if (!user) {
@@ -48,11 +51,13 @@ export function PostHogIdentitySync() {
       if (identifiedUserId.current) posthog.reset();
 
       const guestPersona = isGuestAccountPath(pathname);
-      const traits: Record<string, string> = {};
+      const traits: Record<string, string | boolean> = {};
       if (!guestPersona && user.email) traits.email = user.email;
       if (isSuperAdminPath(pathname)) traits.persona = 'super_admin';
       else if (guestPersona) traits.persona = 'guest';
       else if (pathname.startsWith('/org')) traits.persona = 'host';
+      // Our own accounts otherwise dominate every funnel and retention curve.
+      if (isInternalUser(user.email)) traits.is_internal = true;
 
       posthog.identify(user.id, traits);
       identifiedUserId.current = user.id;
