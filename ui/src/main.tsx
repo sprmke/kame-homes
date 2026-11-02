@@ -11,6 +11,7 @@ import { RouteErrorFallback } from '@/components/error/RouteErrorFallback';
 import { AppShell } from '@/components/routing/AppShell';
 import { bootstrapPostHogTelemetry } from '@/lib/posthog/bootstrapTelemetry';
 import { posthog } from '@/lib/posthog/client';
+import { reactRootErrorHandlers } from '@/lib/sentry/capture';
 import { initSentry } from '@/lib/sentry/init';
 
 import { ThemeProvider } from './components/theme/ThemeProvider';
@@ -33,7 +34,7 @@ const router = createBrowserRouter([
   { path: '*', element: <AppShell />, errorElement: <RouteErrorFallback /> },
 ]);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root')!, reactRootErrorHandlers()).render(
   <React.StrictMode>
     <AppErrorBoundary>
       <PostHogProvider client={posthog}>

@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 
 type RuntimeErrorFallbackProps = {
   onReload: () => void;
+  /** Sentry event id, so support can pull the exact report. */
+  reference?: string;
 };
 
 /** Shared crash UI for React error boundaries and React Router `errorElement`. */
-export function RuntimeErrorFallback({ onReload }: RuntimeErrorFallbackProps) {
+export function RuntimeErrorFallback({ onReload, reference }: RuntimeErrorFallbackProps) {
   return (
     <div className="bg-background flex min-h-screen items-center justify-center px-4 py-16">
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
@@ -19,6 +21,9 @@ export function RuntimeErrorFallback({ onReload }: RuntimeErrorFallbackProps) {
           <RotateCw className="h-4 w-4" />
           Reload
         </Button>
+        {reference ? (
+          <p className="text-muted-foreground select-all text-xs">Ref: {reference}</p>
+        ) : null}
       </div>
     </div>
   );
