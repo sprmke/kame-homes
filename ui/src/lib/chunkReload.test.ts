@@ -57,3 +57,34 @@ describe('reloadForChunkError', () => {
     expect(reload).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('chunk-load reporting', () => {
+  it('warns once on the first failure and errors when the guard trips', async () => {
+    vi.resetModules();
+    const capture = vi.fn();
+    vi.doMock('@/lib/sentry/capture', () => ({ captureError: capture }));
+
+    const { reloadForChunkError: reload } = await import('@/lib/chunkReload');
+    const storage = memoryStorage();
+    const fn = vi.fn();
+
+    // First failure: a stale tab, so a warning, and it reloads.
+    expect(reload({ storage, now: 5_000, reload: fn })).toBe(true);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture.mock.calls[0]?.[1]).toMatchObject({
+      level: 'warning',
+      fingerprint: ['chunk_load', 'first_failure'],
+    });
+
+    // Second failure inside the window: the new build is broken. Error, no further reload.
+    expect(reload({ storage, now: 6_000, reload: fn })).toBe(false);
+    expect(capture).toHaveBeenCalledTimes(2);
+    expect(capture.mock.calls[1]?.[1]).toMatchObject({
+      level: 'error',
+      fingerprint: ['chunk_load', 'repeat_failure'],
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    vi.doUnmock('@/lib/sentry/capture');
+  });
+});

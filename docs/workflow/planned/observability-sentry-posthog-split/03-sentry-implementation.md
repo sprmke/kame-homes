@@ -121,7 +121,8 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 
 - [ ] Global handlers come from the SDK (`globalHandlersIntegration`) once posthog-js
       exception capture is off (P1). Until P1, both run; that is expected for one release.
-- [ ] `ui/src/lib/chunkReload.ts`: on a dynamic-import failure that triggers the reload,
+- [x] `ui/src/lib/chunkReload.ts`: on a dynamic-import failure that triggers the reload,
+      **Done** — first failure is a `warning` (stale tab, the reload fixes it), a repeat inside the window is an `error` (the new build is broken). Two-tier on purpose so a normal deploy does not flood the error feed. Covered by a test.
       capture a `warning` with fingerprint `['chunk-load-failed']`; after the reload guard
       trips (second failure), capture an `error`. Prevents noise after each deploy while
       still catching real breakage.

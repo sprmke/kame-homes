@@ -1,7 +1,14 @@
+import { captureError } from '@/lib/sentry/capture';
+
 /**
  * Recover from lazy chunks that no longer exist after a deploy: an open tab built on the
  * previous release requests old hashed `/assets/*` files. One reload fetches the new
  * `index.html` and its chunks.
+ *
+ * Reporting is two-tier on purpose. The first failure is almost always a stale tab and the
+ * reload fixes it, so it is a `warning` — reporting it as an error every deploy would make
+ * the error feed useless. A second failure inside the window means the new build itself is
+ * broken and the user is stuck, so that one is an error.
  */
 
 const RELOAD_KEY = 'kh-chunk-reload-at';
@@ -39,14 +46,32 @@ function sessionStorageOrNull(): Pick<Storage, 'getItem' | 'setItem'> | null {
 export function reloadForChunkError(deps: ReloadDeps = {}): boolean {
   const storage = deps.storage === undefined ? sessionStorageOrNull() : deps.storage;
   const now = deps.now ?? Date.now();
+  let alreadyReloaded = false;
   try {
     const raw = storage?.getItem(RELOAD_KEY);
     const last = raw ? Number(raw) : Number.NEGATIVE_INFINITY;
-    if (now - last < RELOAD_WINDOW_MS) return false;
-    storage?.setItem(RELOAD_KEY, String(now));
+    alreadyReloaded = now - last < RELOAD_WINDOW_MS;
+    if (!alreadyReloaded) storage?.setItem(RELOAD_KEY, String(now));
   } catch {
     // Storage blocked: still reload once; the browser's own error UI covers a loop.
   }
+  // The reload guard just tripped again: the fresh build is missing its own chunks, which
+  // one reload cannot fix. This is the case worth paging on.
+  if (alreadyReloaded) {
+    captureError(new Error('Chunk load failed twice after a reload'), {
+      level: 'error',
+      tags: { chunk_load: 'repeat_failure' },
+      fingerprint: ['chunk_load', 'repeat_failure'],
+    });
+    return false;
+  }
+
+  captureError(new Error('Chunk load failed, reloading once'), {
+    level: 'warning',
+    tags: { chunk_load: 'first_failure' },
+    fingerprint: ['chunk_load', 'first_failure'],
+  });
+
   (deps.reload ?? (() => window.location.reload()))();
   return true;
 }
