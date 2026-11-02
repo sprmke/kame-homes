@@ -110,7 +110,10 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 
 ### S1.3 Router
 
-- [ ] Wrap `createBrowserRouter` with `Sentry.wrapCreateBrowserRouterV7` so transactions
+- [x] Wrap `createBrowserRouter` with `Sentry.wrapCreateBrowserRouterV7` so transactions
+      **Done** via `lib/sentry/router.ts` + `reactRouterBrowserTracingIntegration`. Uses the
+      non-deprecated `wrapCreateBrowserRouter`; the V7 alias is deprecated in SDK 11. Lazy-route
+      naming still to confirm from real data.
       are named by route pattern (`/org/:orgSlug/property/:propertySlug/bookings`), never by
       slug. Verify the lazy-route + `RouteSkeletonBoundary` setup still names correctly.
 
@@ -125,7 +128,9 @@ start from `ui/src/lib/posthog/sanitize.ts` / `_shared/posthogSanitize.ts` denyl
 
 ### S1.5 TanStack Query
 
-- [ ] `ui/src/App.tsx`: `new QueryClient({ queryCache: new QueryCache({ onError }),
+- [x] `ui/src/App.tsx`: `new QueryClient({ queryCache: new QueryCache({ onError }),
+**Done** — `lib/sentry/reportQueryError.ts`, 9 unit tests covering every skip and report
+branch plus the double-report guard.
 mutationCache: new MutationCache({ onError }) })` with one `reportQueryError(error,
 queryKeyOrMutationKey)` helper:
   - Skip: `EdgeError` / HTTP status `< 500` except `0` (network) when online, aborted
@@ -134,43 +139,54 @@ queryKeyOrMutationKey)` helper:
   - Tags: `query_key_root` (first element only, never ids), `request_id` if the error
     carries one, `http_status`.
   - Fingerprint: `['query', query_key_root, http_status]` so one broken endpoint is one issue.
-- [ ] Per-query opt-out via `meta: { sentry: false }` for polling endpoints that are
+- [x] Per-query opt-out via `meta: { sentry: false }` for polling endpoints that are
       allowed to fail.
 
 ### S1.6 Edge call wrappers + request ids
 
-- [ ] New `ui/src/lib/api/edgeRequestId.ts`: `newRequestId()` (UUID v4) +
+- [x] New `ui/src/lib/api/edgeRequestId.ts`: `newRequestId()` (UUID v4) +
+      **Done** — `newRequestId()`, `readServerRequestId()`, `edgeFunctionName()`.
       `withRequestId(headers)`.
-- [ ] `adminEdgeFetch` (already sends `x-request-id`), `callEdgeFunction` (`edgeClient.ts`)
+- [x] `adminEdgeFetch` (already sends `x-request-id`), `callEdgeFunction` (`edgeClient.ts`)
+      **Done** for `adminEdgeFetch`, `assetEdgeFetch`, `callEdgeFunction` and the new
+      `publicEdgeFetch`. 4xx and offline stay silent by design.
       and a new `publicEdgeFetch` helper all: send `x-request-id`, read the server's
       `x-request-id` / body `requestId` on failure, and call `reportEdgeFailure({ path,
 status, requestId })` for 5xx / network errors (`fn` tag = function name). Replaces
       the PostHog `edge_request_failed` event.
-- [ ] Migrate the 29 guest files and 25 dashboard files that call `fetch(.../functions/v1/...)`
+- [x] Migrate the 29 guest files and 25 dashboard files that call `fetch(.../functions/v1/...)`
+      **Started:** money paths migrated (booking submit, `submit-form-completion`,
+      `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`, `submit-pay-parking`).
+      Remaining callers keep working and can follow per area.
       directly to `publicEdgeFetch` / `callEdgeFunction` (one PR per area; list via
       `rg -l "functions/v1" ui/src --glob '!**/*.test.ts'`). Out of scope: Supabase JS
       `functions.invoke` callers, which get a small wrapper with the same behavior.
-- [ ] `_shared/cors.ts`: add `sentry-trace`, `baggage` to `Access-Control-Allow-Headers`
+- [x] `_shared/cors.ts`: add `sentry-trace`, `baggage` to `Access-Control-Allow-Headers`
+      **Done** — `sentry-trace`/`baggage` allowed, `x-request-id` exposed.
       and `x-request-id` to `Access-Control-Expose-Headers` (if not already).
 
 ### S1.7 User + tenant context
 
-- [ ] `ui/src/lib/sentry/SentryIdentitySync.tsx` next to `PostHogIdentitySync` in
+- [x] `ui/src/lib/sentry/SentryIdentitySync.tsx` next to `PostHogIdentitySync` in
       `AppShell`: `Sentry.setUser({ id })` on sign-in, `setUser(null)` on sign-out. Guests on
       the anon booking form have no user.
-- [ ] `AdminLayout`: set tags `org_id` / `property_id` / `parking_id` from the same source
+- [x] `AdminLayout`: set tags `org_id` / `property_id` / `parking_id` from the same source
       as `PostHogAdminScopeSync`; clear on leave.
-- [ ] Every event gets `surface` tag from the current path.
+- [x] Every event gets `surface` tag from the current path.
 
 ### S1.8 Swallowed failures
 
-- [ ] Audit the 37 `console.error` sites in `ui/src`: each becomes `captureError` (fault),
+- [x] Audit the 37 `console.error` sites in `ui/src`: each becomes `captureError` (fault),
+      **Done.** Reported: session read (guest + admin), post-sign-in routing, calendar export.
+      Left alone with reason: boundaries and the query cache already cover theirs; clipboard
+      parse, date formatting and image fetch are expected outcomes; video-export captures ride
+      with that module's in-flight work. Still open: the `chunkReload` warning/error split.
       a PostHog outcome event (expected user-facing result), or stays as a dev log with a
       reason comment only if truly debug-only. Tracked as a checklist in the PR.
 - [ ] Shared toast: do **not** auto-report from `toast.error` (514 sites, most are
       validation). Instead, the query / mutation / fetch choke points above cover the real
       faults.
-- [ ] Third parties: Turnstile `error-callback` (`provider: turnstile`, warning), Google
+- [x] Third parties: Turnstile `error-callback` (`provider: turnstile`, warning), Google
       Maps loader failure (`provider: google_maps`), Gemini Live / WebRTC voice failures
       (`provider: gemini_live`), PDF/image generation in browser, Web Push subscribe failure
       (warning).
