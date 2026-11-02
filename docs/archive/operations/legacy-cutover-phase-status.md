@@ -1,7 +1,7 @@
 ---
 title: Legacy cutover — phase completion status
 status: active
-updated: 2026-11-01
+updated: 2026-11-02
 tags: [operations, migration]
 ---
 
@@ -24,11 +24,13 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 | **2** Tooling     | **Done**         | —                                                                                                                                                                                                                                                               |
 | **3** Shaping     | **Done** on fwor | `kameworks.tech` first login; super-admin secret on fwor; D6 scripts shipped                                                                                                                                                                                    |
 | **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                                                              |
-| **5** App prep    | **Done** (code)  | §5.7 manual calendar/PMO walkthrough at T0; structural SQL automated                                                                                                                                                                                            |
+| **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                                                                                            |
 
-**Phase 6:** edge secrets synced **2026-11-01**; CD Prod deploy green. Open: Resend inbound MX, prod Google OAuth, T0 vault/cron spot-check. Operator summary: [`migration-module-status-summary.md`](./migration-module-status-summary.md).
+**Phase 6:** edge secrets synced **2026-11-01**; CD Prod deploy green; Resend domains created (`kamespace.com`, `inbound.kamespace.com`). Open: DNS records, prod Google OAuth, PayMongo live mode. Operator summary: [`migration-module-status-summary.md`](./migration-module-status-summary.md).
 
 **Phase 6+** T0 freeze pair: `CUTOVER_FREEZE_PAIR=1` + fresh legacy inventory.
+
+**2026-11-02 cron proof:** the every-minute jobs (`marketing-generation-sweeper`, `voice-receptionist-reaper`) fire and the Edge handlers return `200` (`net._http_response`), so the `pg_cron → pg_net → function` loop is proven on prod.
 
 **2026-11-02 prod cleanup:** QA fixtures and legacy guest sign-ins removed. Prod now holds 1 org (`kame-homes`), 1 property (`monaco-2604`), 2 auth users. Re-running the QA seed against `fwor` now requires `QA_SEED_CONFIRM=yes`.
 

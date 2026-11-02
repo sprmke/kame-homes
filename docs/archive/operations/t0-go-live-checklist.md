@@ -77,7 +77,7 @@ supabase functions deploy --project-ref fworvijbrwpyngycotbz \
   --use-api --import-map supabase/functions/deno.json
 ```
 
-`--import-map` is required server-side, otherwise bare `zod` imports in `_shared` fail to bundle. Deploy from a clean worktree of the release commit, never from a dirty tree.
+`--import-map` is required server-side, otherwise bare `zod` imports in `_shared` fail to bundle. `import-parse-file` is the exception: it imports `https://cdn.sheetjs.com/...`, which the server-side bundler refuses, so deploy that one with Docker (`supabase functions deploy import-parse-file --project-ref …`). Deploy from a clean worktree of the release commit, never from a dirty tree.
 
 ## PayMongo
 
