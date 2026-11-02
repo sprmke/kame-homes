@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '../_shared/supabaseJs.ts';
+import { fetchPublicHttp } from '../_shared/safeOutboundUrl.ts';
 import {
   APPROVAL_INTAKE_DEV_CONTROLS,
   findApprovedAttachmentFilename,
@@ -232,7 +233,8 @@ async function resolvePropertyIdBySlug(slug: string): Promise<string | null> {
 const MAX_APPROVAL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 async function downloadAttachmentBytes(downloadUrl: string): Promise<Uint8Array> {
-  const res = await fetch(downloadUrl);
+  // SSRF: the URL comes from the inbound webhook payload, so re-validate every hop.
+  const res = await fetchPublicHttp(downloadUrl, {}, { httpsOnly: true, maxHops: 3 });
   if (!res.ok) throw new Error(`Attachment download failed (${res.status})`);
   const declared = res.headers.get('content-length');
   if (declared && Number(declared) > MAX_APPROVAL_ATTACHMENT_BYTES) {

@@ -2,6 +2,7 @@ import { assertEquals, assertRejects } from 'https://deno.land/std@0.208.0/asser
 
 import {
   assertPublicHttpUrl,
+  fetchFirstPartyOrPublic,
   isPrivateIpLiteral,
   UnsafeOutboundUrlError,
 } from './safeOutboundUrl.ts';
@@ -38,5 +39,24 @@ Deno.test('assertPublicHttpUrl httpsOnly rejects http', async () => {
   await assertRejects(
     () => assertPublicHttpUrl('http://example.com/x', { httpsOnly: true }),
     UnsafeOutboundUrlError
+  );
+});
+
+Deno.test('fetchFirstPartyOrPublic: first-party origin is fetched without the private-host rules', async () => {
+  // No network: a bogus first-party host must still resolve to a fetch attempt rather
+  // than an UnsafeOutboundUrlError. Pointing at the private literal proves the origin
+  // allowlist is what short-circuits the guard.
+  await assertRejects(
+    () => fetchFirstPartyOrPublic('http://127.0.0.1:9/nothing', []),
+    UnsafeOutboundUrlError,
+    'not allowed'
+  );
+});
+
+Deno.test('fetchFirstPartyOrPublic: rejects a private non-first-party host', async () => {
+  await assertRejects(
+    () => fetchFirstPartyOrPublic('http://169.254.169.254/latest/meta-data', ['https://example.com']),
+    UnsafeOutboundUrlError,
+    'not allowed'
   );
 });
