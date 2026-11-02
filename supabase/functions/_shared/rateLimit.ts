@@ -28,7 +28,7 @@
 
 import { corsHeaders } from './cors.ts';
 import { createServiceClient } from './orgAuth.ts';
-import { capturePostHogException } from './posthog.ts';
+import { captureSentryMessage } from './sentry.ts';
 import { clientIpFromRequest } from './publicRateLimit.ts';
 
 export type RateLimitDecision = {
@@ -101,7 +101,13 @@ async function loadBlockedIdentities(
     blockedCache = { at: now, identities };
     return identities;
   } catch (error) {
-    await capturePostHogException(error, { logPrefix: 'rateLimit:blockList' });
+    await captureSentryMessage('rate limit block-list read failed (fail open)', {
+      logPrefix: 'rateLimit:blockList',
+      level: 'warning',
+      tags: { fail_open: 'true', store: 'block_list' },
+      fingerprint: ['rate_limit', 'block_list_read'],
+      extra: { error: (error as Error)?.message },
+    });
     // Fail open: an outage reading the (rarely-written) block list must not
     // itself start blocking every authenticated request.
     return blockedCache?.identities ?? new Set();
@@ -163,8 +169,11 @@ export async function checkRateLimit(options: RateLimitOptions): Promise<RateLim
 
     if (error) {
       // Function missing (older env) or transient failure → fail open, logged.
-      await capturePostHogException(error, {
+      await captureSentryMessage('rate limit bump failed (fail open)', {
         logPrefix: 'rateLimit:bump',
+        level: 'warning',
+        tags: { fail_open: 'true', store: 'rate_limit_bump' },
+        fingerprint: ['rate_limit', 'bump'],
         extra: { scope, code: (error as { code?: string }).code },
       });
       return base;
@@ -178,7 +187,13 @@ export async function checkRateLimit(options: RateLimitOptions): Promise<RateLim
       retryAfterSec: retryAfterSec(windowSec, now),
     };
   } catch (error) {
-    await capturePostHogException(error, { logPrefix: 'rateLimit:bump', extra: { scope } });
+    await captureSentryMessage('rate limit bump threw (fail open)', {
+      logPrefix: 'rateLimit:bump',
+      level: 'warning',
+      tags: { fail_open: 'true', store: 'rate_limit_bump' },
+      fingerprint: ['rate_limit', 'bump'],
+      extra: { scope },
+    });
     return base;
   }
 }

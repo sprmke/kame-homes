@@ -49,7 +49,7 @@ import { checkGuestBalanceSettlement } from '../_shared/totalGuestBalance.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { sendSdRefundFormRequest } from '../_shared/emailService.ts';
 import { propertyAutomationEnabled } from '../_shared/propertyAutomationToggles.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 import { evaluateSdRefundLeadWindow, parseCheckoutManila } from '../_shared/sdRefundCronLead.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
@@ -440,7 +440,13 @@ serve(async (req) => {
       return error;
     }
     console.error('[sd-refund-cron] Fatal error:', error);
-    await capturePostHogException(error, { logPrefix: 'cron:sd-refund-cron', request: req });
+    await captureSentryException(error, {
+      logPrefix: 'cron:sd-refund-cron',
+      url: req.url,
+      method: req.method,
+      tags: { cron: 'sd-refund-cron' },
+      fingerprint: ['cron', 'sd-refund-cron'],
+    });
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

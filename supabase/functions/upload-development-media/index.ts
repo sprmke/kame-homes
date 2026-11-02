@@ -10,6 +10,7 @@ import { createServiceClient } from '../_shared/orgAuth.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 import {
   classifyPropertyMediaMime,
   countPropertyMediaByType,
@@ -22,7 +23,6 @@ import {
   type PropertyMediaRecord,
   ALLOWED_PROPERTY_MEDIA_MIME,
 } from '../_shared/propertyMedia.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
 
 function extensionForMime(mime: string, fileName: string): string {
   const fromName = fileName.includes('.') ? `.${fileName.split('.').pop()?.toLowerCase()}` : '';
@@ -260,7 +260,7 @@ serve(async (req) => {
     console.error('[upload-development-media]', error);
     const message = error instanceof Error ? error.message : 'Request failed';
     const status = message.includes('Unauthorized') || message.includes('restricted') ? 403 : 400;
-    await capturePostHogException(error, { logPrefix: 'upload-development-media', request: req });
+    await captureFaultIfServerError(req, error, 'upload-development-media');
 
     return new Response(JSON.stringify({ success: false, error: message }), {
       status,

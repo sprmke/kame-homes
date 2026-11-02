@@ -30,7 +30,7 @@ import { createServiceClient } from '../_shared/orgAuth.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 import { isFeatureAvailable, featureUnavailableResponse } from '../_shared/featureAvailability.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GLOBAL_BATCH = 100;
@@ -202,7 +202,13 @@ serve(async (req) => {
   } catch (err) {
     if (err instanceof Response) return err;
     console.error('[calendar-sync-cron] fatal:', err);
-    await capturePostHogException(err, { logPrefix: 'cron:calendar-sync-cron', request: req });
+    await captureSentryException(err, {
+      logPrefix: 'cron:calendar-sync-cron',
+      url: req.url,
+      method: req.method,
+      tags: { cron: 'calendar-sync-cron' },
+      fingerprint: ['cron', 'calendar-sync-cron'],
+    });
     return json(req, { success: false, error: (err as Error).message }, 500);
   }
 });

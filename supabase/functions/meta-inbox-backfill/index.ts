@@ -10,7 +10,7 @@ import { createServiceClient, verifyAuthenticatedUser } from '../_shared/orgAuth
 import { resolveSupabaseServiceRoleKey } from '../_shared/supabaseRuntimeEnv.ts';
 import type { SocialChannelConnectionRow } from '../_shared/socialInboxTypes.ts';
 import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 
 function isServiceRoleRequest(req: Request): boolean {
   const auth = req.headers.get('Authorization') ?? '';
@@ -111,7 +111,13 @@ serve(async (req) => {
     return jsonSuccess(req, result);
   } catch (e) {
     console.error('[meta-inbox-backfill]', e);
-    await capturePostHogException(e, { logPrefix: 'meta-inbox-backfill', request: req });
+    await captureSentryException(e, {
+      logPrefix: 'meta-inbox-backfill',
+      url: req.url,
+      method: req.method,
+      tags: { provider: 'meta' },
+      fingerprint: ['meta-inbox-backfill'],
+    });
     return jsonError(req, (e as Error).message, 500);
   }
 });

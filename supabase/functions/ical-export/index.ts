@@ -23,7 +23,7 @@ import type { CalendarFeedProvider } from '../_shared/calendarSyncService.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { readPropertySlugFromUrl, resolvePropertyIdBySlug } from '../_shared/propertyScope.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 
 const PROVIDERS: readonly CalendarFeedProvider[] = ['airbnb', 'booking_com', 'vrbo', 'other'];
@@ -151,7 +151,14 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('[ical-export] error:', err);
-    await capturePostHogException(err, { logPrefix: 'ical-export', request: req });
+    // Reported even though the response is a deliberate 404: the 404 hides internals from
+    // the caller, and hiding it from Sentry too would make a broken feed invisible.
+    await captureSentryException(err, {
+      logPrefix: 'ical-export',
+      url: req.url,
+      method: req.method,
+      fingerprint: ['ical-export', 'handler'],
+    });
     // Still a 404 — never leak internals on this public endpoint.
     return notFound(req);
   }

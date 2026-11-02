@@ -26,7 +26,7 @@ import { createServiceClient, tryGetAuthenticatedUser } from '../_shared/orgAuth
 import { applyVoucherToBooking, assertVoucherEligible } from '../_shared/voucherRedemption.ts';
 import { linkGuestBookingsByEmail } from '../_shared/guestProfileService.ts';
 import { checkIpRateLimit, clientIpFromRequest } from '../_shared/publicRateLimit.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import {
   validateGuestFormCheckOutAfterCheckIn,
@@ -38,6 +38,7 @@ import {
   mintGuestBookingAccessToken,
 } from '../_shared/guestBookingAccessToken.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -540,7 +541,9 @@ serve(async (req) => {
       system: true,
       properties: { reason: 'validation' },
     });
-    await capturePostHogException(error, { logPrefix: 'submit-form', request: req });
+    // A rejected guest form is an outcome (already emitted as guest_form_rejected).
+    // Only a genuine server fault reaches Sentry.
+    await captureFaultIfServerError(req, error, 'submit-form');
 
     return new Response(
       JSON.stringify({

@@ -10,13 +10,13 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { isBookingStatus, isPostPendingDocumentsStatus } from '../_shared/statusMachine.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { logGuestActivity } from '../_shared/guestActivity.ts';
 import { authorizeGuestBookingAccess, guestBookingAccessTokenFromRequest } from '../_shared/guestBookingAccessToken.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 
 type SubmitBody = {
   bookingId?: string;
@@ -136,7 +136,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('[submit-pay-parking]', error);
-    await capturePostHogException(error, { logPrefix: 'submit-pay-parking', request: req });
+    await captureFaultIfServerError(req, error, 'submit-pay-parking');
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

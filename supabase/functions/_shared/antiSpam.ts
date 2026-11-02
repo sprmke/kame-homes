@@ -24,7 +24,7 @@ import { resolveCaptchaMode, verifyCaptchaToken, readCaptchaToken } from './capt
 import { checkBotHeuristics } from './botHeuristics.ts';
 import { checkRateLimit, identityFromRequest } from './rateLimit.ts';
 import { clientIpFromRequest } from './publicRateLimit.ts';
-import { capturePostHogException } from './posthog.ts';
+import { logEvent, resolveRequestId } from './requestLog.ts';
 
 type BodyLike = Record<string, unknown> | FormData | URLSearchParams;
 
@@ -65,10 +65,13 @@ export async function antiSpamGate(
     const tuning = typeof options.heuristics === 'object' ? options.heuristics : {};
     const heur = checkBotHeuristics(body, { minElapsedMs: tuning.minElapsedMs });
     if (!heur.ok) {
-      await capturePostHogException(new Error('antispam_heuristic_block'), {
-        logPrefix: `antispam:${scope}`,
-        request: req,
-        extra: { reason: heur.reason },
+      // A heuristic block is the system working: expected, frequent, and not a fault.
+      // Sending it as an exception buried real errors and billed for the privilege.
+      logEvent('warn', {
+        fn: `antispam:${scope}`,
+        requestId: resolveRequestId(req),
+        event: 'antispam_heuristic_block',
+        meta: { reason: heur.reason },
       });
       // Deliberately vague to the client — don't teach a bot which check tripped.
       return blockedResponse(

@@ -6,7 +6,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
@@ -17,6 +17,7 @@ import { notifyTelegramAdminSdFormSubmitted } from '../_shared/telegramAdmin.ts'
 import { isSdRefundBank, type SdRefundBank } from '../_shared/sdRefundBank.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 import {
   authorizeGuestBookingAccess,
   guestBookingAccessTokenFromRequest,
@@ -186,7 +187,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('[submit-sd-form]', error);
-    await capturePostHogException(error, { logPrefix: 'submit-sd-form', request: req });
+    await captureFaultIfServerError(req, error, 'submit-sd-form');
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

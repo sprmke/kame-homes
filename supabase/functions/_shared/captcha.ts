@@ -25,7 +25,8 @@
  *     rate limiter + bot heuristics are still in force on every protected route.
  */
 
-import { capturePostHogException } from './posthog.ts';
+import { logEvent } from './requestLog.ts';
+import { captureSentryMessage } from './sentry.ts';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const SITEVERIFY_TIMEOUT_MS = 4_000;
@@ -171,7 +172,16 @@ export async function verifyCaptchaToken(
         signal: controller.signal,
       });
       if (!res.ok) {
-        await logCaptchaEvent('captcha_provider_error', { status: res.status });
+        logCaptchaEvent('captcha_provider_error', { status: res.status });
+        // Degraded, not broken: we fail open and the rate limiter + heuristics still
+        // apply, so this is a warning, sampled, tagged by provider.
+        await captureSentryMessage(`turnstile siteverify HTTP ${res.status}`, {
+          logPrefix: 'captcha',
+          level: 'warning',
+          tags: { provider: 'cloudflare_turnstile' },
+          fingerprint: ['provider', 'cloudflare_turnstile', `${Math.floor(res.status / 100)}xx`],
+          extra: { status: res.status },
+        });
         return { ok: true, outcome: 'provider_error', reason: `siteverify_http_${res.status}` };
       }
       data = (await res.json()) as SiteverifyResponse;
@@ -179,8 +189,15 @@ export async function verifyCaptchaToken(
       clearTimeout(timer);
     }
   } catch (error) {
-    await capturePostHogException(error, { logPrefix: 'captcha:siteverify' });
-    // Network / abort / parse failure → fail open.
+    // Network / abort / parse failure → fail open, but recorded: a Turnstile outage
+    // silently disables bot protection, which is worth knowing about.
+    await captureSentryMessage('turnstile siteverify unreachable (fail open)', {
+      logPrefix: 'captcha',
+      level: 'warning',
+      tags: { provider: 'cloudflare_turnstile', fail_open: 'true' },
+      fingerprint: ['provider', 'cloudflare_turnstile', 'network'],
+      extra: { error: error instanceof Error ? error.message : String(error) },
+    });
     return { ok: true, outcome: 'provider_error', reason: 'siteverify_unreachable' };
   }
 
@@ -234,13 +251,21 @@ export function readCaptchaToken(
   return typeof v === 'string' ? v : '';
 }
 
-async function logCaptchaEvent(name: string, props: Record<string, unknown>): Promise<void> {
-  // Reuse the exception pipeline as a lightweight structured logger (it no-ops
-  // without POSTHOG_API_KEY). A synthetic Error keeps the call signature simple.
+/**
+ * Structured log line, not an exception.
+ *
+ * This used to fabricate `new Error(name)` and push it through the exception pipeline,
+ * which polluted error grouping with events that were never errors and billed PostHog for
+ * them. Captcha outcomes are counts, not incidents.
+ */
+function logCaptchaEvent(name: string, props: Record<string, unknown>): void {
   try {
-    await capturePostHogException(new Error(name), {
-      logPrefix: `captcha:${name}`,
-      extra: props,
+    logEvent('info', {
+      fn: `captcha:${name}`,
+      // Verification has no Request object; the scope is the useful correlation here.
+      requestId: typeof props.scope === 'string' ? `captcha:${props.scope}` : 'captcha',
+      event: name,
+      meta: props,
     });
   } catch {
     // never let logging break verification

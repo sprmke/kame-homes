@@ -28,11 +28,12 @@ import { bookingNotificationMetadata } from '../_shared/notificationEnrichment.t
 import { tryGetAuthenticatedUser } from '../_shared/orgAuth.ts';
 import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 import type { GuestSubmission } from '../_shared/types.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { validateGuestFormFormatFields } from '../_shared/guestFormSubmitValidation.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import { syncReviewIdentityKey } from '../_shared/hostGuestReviewService.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -193,7 +194,7 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[submit-form-completion] error:', message);
-    await capturePostHogException(error, { logPrefix: 'submit-form-completion', request: req });
+    await captureFaultIfServerError(req, error, 'submit-form-completion');
     return json({ success: false, error: message }, 400);
   }
 });

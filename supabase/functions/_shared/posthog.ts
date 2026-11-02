@@ -4,7 +4,11 @@ import type { PostHogEventName } from './posthogCatalog.ts';
 import { sanitizePostHogProperties } from './posthogSanitize.ts';
 
 /**
- * Server-side PostHog for edge functions — exceptions + product events.
+ * Server-side PostHog for edge functions — **product events only**.
+ *
+ * PostHog owns outcomes; Sentry owns faults (`docs/architecture/observability.md`). There
+ * is deliberately no exception helper here: an error must never be reported to both
+ * vendors, because that produces two histories that disagree.
  *
  * Prefer routing new functions through `serveEdge.ts` / `handleEdgeError` choke points.
  * Deno Edge isolates can terminate after the response; every capture awaits flush()
@@ -61,40 +65,6 @@ function distinctIdFromRequest(
     sessionId: requestSessionId || undefined,
     hasUserContext: Boolean(requestDistinctId),
   };
-}
-
-export async function capturePostHogException(
-  error: unknown,
-  options: {
-    logPrefix: string;
-    distinctId?: string;
-    request?: Request;
-    extra?: Record<string, unknown>;
-  }
-): Promise<void> {
-  const ph = getClient();
-  if (!ph) return;
-
-  try {
-    const { distinctId, sessionId, hasUserContext } = distinctIdFromRequest(
-      options.request,
-      options.distinctId ?? `edge:${options.logPrefix}`
-    );
-    const err = error instanceof Error ? error : new Error(String(error));
-    ph.captureException(err, distinctId, {
-      logPrefix: options.logPrefix,
-      environment: environmentTag(),
-      runtime: 'deno-edge-function',
-      persona: 'system',
-      surface: 'edge',
-      ...(sessionId ? { $session_id: sessionId } : {}),
-      ...(hasUserContext ? {} : { $process_person_profile: false }),
-      ...sanitizePostHogProperties(options.extra ?? {}),
-    });
-    await flushWithTimeout(ph);
-  } catch (captureError) {
-    console.error('[posthog] failed to capture exception', captureError);
-  }
 }
 
 export async function capturePostHogEvent(

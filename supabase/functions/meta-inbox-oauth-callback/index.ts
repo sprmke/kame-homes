@@ -23,7 +23,7 @@ import {
 } from '../_shared/metaInboxGraph.ts';
 import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -128,7 +128,13 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error('[meta-inbox-oauth-callback]', e);
-    await capturePostHogException(e, { logPrefix: 'meta-inbox-oauth-callback', request: req });
+    await captureSentryException(e, {
+      logPrefix: 'meta-inbox-oauth-callback',
+      url: req.url,
+      method: req.method,
+      tags: { provider: 'meta' },
+      fingerprint: ['meta-inbox-oauth-callback'],
+    });
     const dest = buildMetaOAuthErrorRedirect(
       st.return_origin,
       st.return_path,

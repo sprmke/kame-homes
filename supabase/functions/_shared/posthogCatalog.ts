@@ -19,7 +19,6 @@ export const POSTHOG_EVENTS = [
   'guest_review_submitted',
   'parking_payment_completed',
   'parking_payment_failed',
-  'edge_request_failed',
 ] as const;
 
 export type PostHogEventName = (typeof POSTHOG_EVENTS)[number];
