@@ -4,6 +4,9 @@ import { scopedAssetPath } from '@/features/dashboard/org/lib/adminAssetScope';
 
 import { supabase } from '@/lib/supabase/client';
 
+import { newRequestId } from './edgeRequestId';
+import { reportEdgeFailure } from './reportEdgeFailure';
+
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 /**
@@ -35,9 +38,36 @@ export class AdminEdgeFetchError extends Error {
   }
 }
 
-/** One id per outgoing edge call — threaded into `x-request-id` and back via `handleEdgeError`. */
-function newRequestId(): string {
-  return crypto.randomUUID();
+/**
+ * Runs the fetch and reports a failure once, at this wrapper rather than at each caller.
+ *
+ * A transport failure (status 0) is reported and rethrown: the caller still owns the
+ * user-facing behaviour, but a dead request must not disappear. `requestId` is the one we
+ * sent — the server never answered, so there is nothing to read back.
+ */
+async function sendEdge(
+  path: string,
+  method: string | undefined,
+  requestId: string,
+  run: () => Promise<Response>
+): Promise<Response> {
+  let res: Response;
+  try {
+    res = await run();
+  } catch (error) {
+    reportEdgeFailure({ path, status: 0, method, requestId });
+    throw error;
+  }
+
+  if (!res.ok) {
+    reportEdgeFailure({
+      path,
+      status: res.status,
+      method,
+      requestId: res.headers.get('x-request-id') ?? requestId,
+    });
+  }
+  return res;
 }
 
 export async function adminEdgeFetch(
@@ -52,14 +82,17 @@ export async function adminEdgeFetch(
     path.includes('property_id=') || path.includes('parking_id=')
       ? path
       : scopedAdminPath(path, propertyId);
-  return fetch(`${FUNCTIONS_URL}${scopedPath}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      'x-request-id': newRequestId(),
-      ...(init?.headers ?? {}),
-    },
-  });
+  const requestId = newRequestId();
+  return sendEdge(scopedPath, init?.method, requestId, () =>
+    fetch(`${FUNCTIONS_URL}${scopedPath}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        'x-request-id': requestId,
+        ...(init?.headers ?? {}),
+      },
+    })
+  );
 }
 
 export async function assetEdgeFetch(
@@ -72,14 +105,17 @@ export async function assetEdgeFetch(
   if (!jwt) throw new Error('No admin session');
   const hasScope = path.includes('property_id=') || path.includes('parking_id=');
   const scopedPath = hasScope ? path : scopedAssetPath(path, scope);
-  return fetch(`${FUNCTIONS_URL}${scopedPath}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      'x-request-id': newRequestId(),
-      ...(init?.headers ?? {}),
-    },
-  });
+  const requestId = newRequestId();
+  return sendEdge(scopedPath, init?.method, requestId, () =>
+    fetch(`${FUNCTIONS_URL}${scopedPath}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        'x-request-id': requestId,
+        ...(init?.headers ?? {}),
+      },
+    })
+  );
 }
 
 export async function parseAdminEdgeJson<T>(res: Response, fallbackError: string): Promise<T> {

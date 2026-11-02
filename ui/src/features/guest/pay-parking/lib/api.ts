@@ -3,6 +3,7 @@ import {
   type GuestPayParkingPathOptions,
 } from '@/features/guest/lib/guestPublicPaths';
 
+import { publicEdgeFetch } from '@/lib/api/publicEdgeFetch';
 import { withAntiSpam, type AntiSpamRequestFields } from '@/lib/security/antiSpamRequest';
 import { antiSpamErrorMessage, isAntiSpamFailure } from '@/lib/security/antiSpamResponse';
 
@@ -87,7 +88,7 @@ export async function submitPayParking(
 ): Promise<SubmitPayParkingResult> {
   const sendParkingBroadcast = options.sendParkingBroadcast !== false;
   const parkingOwnerEmail = (options.parkingOwnerEmail ?? '').trim();
-  const res = await fetch(`${FUNCTIONS_URL}/submit-pay-parking`, {
+  const res = await publicEdgeFetch('submit-pay-parking', {
     method: 'POST',
     headers: fnHeaders(),
     body: JSON.stringify(

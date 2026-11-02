@@ -7,6 +7,7 @@ import {
 
 import type { CategoryRatings } from '@/features/reviews/lib/reviewCatalog';
 
+import { publicEdgeFetch } from '@/lib/api/publicEdgeFetch';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import {
   appendAntiSpamToFormData,
@@ -110,7 +111,7 @@ export async function claimSdVoucher(
   bookingId: string,
   antiSpam?: AntiSpamRequestFields
 ): Promise<ClaimVoucherResponse> {
-  const res = await fetch(`${FUNCTIONS_URL}/claim-sd-voucher`, {
+  const res = await publicEdgeFetch('claim-sd-voucher', {
     method: 'POST',
     headers: fnHeaders(),
     body: JSON.stringify(
@@ -186,7 +187,7 @@ export async function submitGuestReview(
   appendGuestBookingAccess(form, input.bookingId);
   appendAntiSpamToFormData(form, antiSpam);
 
-  const res = await fetch(`${FUNCTIONS_URL}/submit-guest-review`, {
+  const res = await publicEdgeFetch('submit-guest-review', {
     method: 'POST',
     headers: {
       apikey: ANON,
@@ -208,7 +209,7 @@ export async function submitSdForm(
   body: SubmitSdRefundBody,
   antiSpam?: AntiSpamRequestFields
 ): Promise<void> {
-  const res = await fetch(`${FUNCTIONS_URL}/submit-sd-form`, {
+  const res = await publicEdgeFetch('submit-sd-form', {
     method: 'POST',
     headers: fnHeaders(),
     body: JSON.stringify(

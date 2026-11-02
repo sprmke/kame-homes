@@ -33,7 +33,18 @@ export const CORS_ALLOW_HEADERS = [
   // Doc 27 Phase 27.2 — client-generated correlation id, threaded through
   // handleEdgeError into structured logs + PostHog + the user-facing error.
   'x-request-id',
+  // Sentry trace propagation from the browser SDK. Without these the preflight fails and
+  // the call never happens, so browser and edge errors cannot be linked to one trace.
+  'sentry-trace',
+  'baggage',
 ].join(', ');
+
+/**
+ * Headers a browser is allowed to read off the response. `x-request-id` is the join key
+ * between a Sentry issue and the edge log line, so the client must be able to read the
+ * server's id rather than guess its own.
+ */
+export const CORS_EXPOSE_HEADERS = ['x-request-id', 'retry-after'].join(', ');
 
 function hostnameOf(origin: string): string | null {
   try {
@@ -70,6 +81,7 @@ export const corsHeaders = (req: Request) => {
     Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+    'Access-Control-Expose-Headers': CORS_EXPOSE_HEADERS,
     'Access-Control-Max-Age': '7200', // 2 hours - Chrome's maximum limit
   };
   if (allowOrigin) {
