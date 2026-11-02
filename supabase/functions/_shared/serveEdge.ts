@@ -11,6 +11,7 @@ import {
 } from './httpResponse.ts';
 import { corsHeaders } from './cors.ts';
 import { captureSentryException } from './sentry.ts';
+import { sendCronCheckIn, type CronMonitorConfig } from './sentryCron.ts';
 import { getPlatformSettingsSnapshot } from './platformSettingsCache.ts';
 import { checkRateLimit, identityFromRequest, isIdentityBlocked } from './rateLimit.ts';
 
@@ -171,7 +172,12 @@ export function servePublic(logPrefix: string, handler: (req: Request) => Promis
 export function serveCronPost(
   logPrefix: string,
   verifySecret: (req: Request) => boolean,
-  run: () => Promise<Record<string, unknown>>
+  run: () => Promise<Record<string, unknown>>,
+  /**
+   * Optional Sentry monitor. Free tier allows exactly one (plan D13), so this is passed by
+   * `sd-refund-cron` only; every other job is covered by the systemHealth jobs registry.
+   */
+  cron?: CronMonitorConfig
 ): void {
   serve(async (req) => {
     const options = handleOptions(req);
@@ -181,7 +187,10 @@ export function serveCronPost(
       if (!verifySecret(req)) {
         return jsonError(req, 'Unauthorized', 401);
       }
+      if (cron) await sendCronCheckIn(cron, 'in_progress');
+      const startedAt = Date.now();
       const result = await run();
+      if (cron) await sendCronCheckIn(cron, 'ok', { durationMs: Date.now() - startedAt });
       console.log(`[${logPrefix}]`, JSON.stringify(result));
       return jsonResponse(req, { success: true, ...result });
     } catch (error) {
@@ -199,6 +208,7 @@ export function serveCronPost(
         fingerprint: ['cron', logPrefix],
         extra: { result: 'check the cron run log for the last successful pass' },
       });
+      if (cron) await sendCronCheckIn(cron, 'error', { durationMs: 0 });
       return jsonError(req, (error as Error).message);
     }
   });

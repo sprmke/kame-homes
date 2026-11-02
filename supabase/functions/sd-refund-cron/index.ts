@@ -50,6 +50,7 @@ import { DatabaseService } from '../_shared/databaseService.ts';
 import { sendSdRefundFormRequest } from '../_shared/emailService.ts';
 import { propertyAutomationEnabled } from '../_shared/propertyAutomationToggles.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
+import { sendCronCheckIn } from '../_shared/sentryCron.ts';
 import { evaluateSdRefundLeadWindow, parseCheckoutManila } from '../_shared/sdRefundCronLead.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
@@ -133,6 +134,19 @@ async function parseOptionalBookingId(req: Request): Promise<string | undefined>
   return undefined;
 }
 
+/**
+ * The one Sentry monitor the free tier allows (plan D13). Chosen because a missed SD refund
+ * run leaves a guest waiting for money, and nothing else notices: no request fails.
+ *
+ * Every other scheduled job is covered by `_shared/systemHealth/jobsRegistry.ts`.
+ */
+const CRON_MONITOR = {
+  slug: 'sd-refund-cron',
+  schedule: '*/5 * * * *',
+  timezone: 'Asia/Manila',
+  maxRuntimeMinutes: 10,
+} as const;
+
 // ─── Main handler ──────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -142,6 +156,8 @@ serve(async (req) => {
 
   const runStarted = new Date().toISOString();
   console.log('[sd-refund-cron] Run started at', runStarted);
+  const monitorStartedAt = Date.now();
+  await sendCronCheckIn(CRON_MONITOR, 'in_progress');
 
   try {
     const scopedBookingId = await parseOptionalBookingId(req);
@@ -431,6 +447,11 @@ serve(async (req) => {
       JSON.stringify({ scanned: candidates.length, transitioned, skipped })
     );
 
+    // `ok` even when individual bookings failed: the run itself completed, and those
+    // failures are reported individually. Reporting error here would make a partially
+    // failing sweep indistinguishable from a dead scheduler.
+    await sendCronCheckIn(CRON_MONITOR, 'ok', { durationMs: Date.now() - monitorStartedAt });
+
     return new Response(JSON.stringify(summary), {
       status: 200,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
@@ -447,6 +468,7 @@ serve(async (req) => {
       tags: { cron: 'sd-refund-cron' },
       fingerprint: ['cron', 'sd-refund-cron'],
     });
+    await sendCronCheckIn(CRON_MONITOR, 'error', { durationMs: Date.now() - monitorStartedAt });
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
