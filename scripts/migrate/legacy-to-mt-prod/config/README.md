@@ -11,14 +11,14 @@ Do **not** export from live `fwor` after the 2026-10-27 legacy load. Use the pre
 ## Scripts
 
 ```bash
-DB_URL=postgresql://… bun scripts/migrate/legacy-to-mt-prod/config/exportDevConfig.ts --out backups/migration/d6-export-monaco-2604.json
-DRY_RUN=1 DB_URL=… bun scripts/migrate/legacy-to-mt-prod/config/importConfig.ts backups/migration/d6-export-monaco-2604.json
+DB_URL=postgresql://… bun scripts/migrate/legacy-to-mt-prod/config/exportDevConfig.ts --out backups/migration/d6-export-kame-home.json
+DRY_RUN=1 DB_URL=… bun scripts/migrate/legacy-to-mt-prod/config/importConfig.ts backups/migration/d6-export-kame-home.json
 ```
 
 ## Manual allow-list export (fallback)
 
 1. Restore that dump to a local scratch DB (see `migrate.sh restore`).
-2. Export only property-scoped config tables keyed by `monaco-2604` slug (templates, public pages, pricing rules, property media metadata).
+2. Export only property-scoped config tables keyed by `kame-home` slug (templates, public pages, pricing rules, property media metadata).
 3. Import onto production `fwor` with slug joins, never dev UUIDs.
 4. Copy referenced Storage objects from the backup manifest into `property-media` on fwor.
 
