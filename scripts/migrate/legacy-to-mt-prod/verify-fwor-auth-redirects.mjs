@@ -15,16 +15,12 @@ const ROOT = join(import.meta.dir, '..', '..', '..');
 const REF = 'fworvijbrwpyngycotbz';
 const OUT = join(ROOT, 'backups/legacy-prod-config/20261101/fwor-auth-config-redacted.json');
 
-/** Required before T0 (kamespace.com can be added at cutover). */
+/** Production hosts only — hosted dev and app.kamehomes.space are retired. */
 const REQUIRED_REDIRECT_SUBSTRINGS = [
-  'https://dev.kamehomes.space',
-  'https://app.kamehomes.space',
+  'https://kamespace.com',
 ];
 
-/** At T0, Site URL should be kamespace.com; until then dev URL is acceptable. */
 const ACCEPTABLE_SITE_URL_PREFIXES = [
-  'https://dev.kamehomes.space',
-  'https://app.kamehomes.space',
   'https://kamespace.com',
 ];
 

@@ -29,7 +29,7 @@ CUTOVER_FREEZE_PAIR=1 LEGACY_INVENTORY=backups/migration/inventory-<freeze>.json
 
 ### Host walkthrough (§5.7)
 
-- Sign in on `dev.kamehomes.space` (or Preview pointed at fwor) with owner Google account.
+- Sign in on `https://kamespace.com` (or a Vercel preview pointed at fwor) with the owner Google account.
 - Open Monaco 2604 bookings list; open one future booking; calendar shows blocked dates.
 - Guest link: `/sd-form?bookingId=<uuid>` resolves without `?property=`.
 - Optional: forward one PMO test mail to Resend inbound with Documents Approver `From` on the allow list.

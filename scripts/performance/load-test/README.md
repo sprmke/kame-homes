@@ -13,7 +13,7 @@ k6 run scripts/performance/load-test/mixed.js
 `public-api.js` adds the public edge functions behind those pages (listings, search, place groups, listing detail, suggestions) with the anon key, ramping to `VUS` and holding for `HOLD`. Per-IP rate limits answer 429 to one load generator; those count in `rate_limited`, not as failures.
 
 ```bash
-BASE_URL=https://dev.kamehomes.space FUNCTIONS_URL=https://<dev-ref>.supabase.co/functions/v1 \
+BASE_URL=https://<preview>.vercel.app FUNCTIONS_URL=https://fworvijbrwpyngycotbz.supabase.co/functions/v1 \
 ANON_KEY=... PROPERTY_SLUG=<listing-slug> VUS=50 HOLD=8m k6 run scripts/performance/load-test/public-api.js
 ```
 

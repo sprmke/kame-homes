@@ -127,7 +127,7 @@ describe('robots trip pages', () => {
   });
 
   it('blocks all crawling on hosts outside the indexable list (dev, previews)', () => {
-    for (const origin of ['https://dev.kamehomes.space', 'https://kame-homes-git-x.vercel.app']) {
+    for (const origin of ['https://dev.kamespace.com', 'https://kame-homes-git-x.vercel.app']) {
       expect(buildRobotsTxt(origin)).toBe('User-agent: *\nDisallow: /\n');
     }
     expect(buildRobotsTxt('https://app.kamehomes.space')).toContain('Allow: /');

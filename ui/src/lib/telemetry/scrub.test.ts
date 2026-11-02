@@ -99,9 +99,9 @@ describe('scrubRecord', () => {
 describe('scrubUrl', () => {
   it('removes every capability query param', () => {
     const url = scrubUrl(
-      'https://dev.kamehomes.space/form?access=aaa&complete=bbb&token=ccc&code=ddd&state=eee&signature=fff&t=ggg&tab=dates'
+      'https://dev.kamespace.com/form?access=aaa&complete=bbb&token=ccc&code=ddd&state=eee&signature=fff&t=ggg&tab=dates'
     );
-    expect(url).toBe('https://dev.kamehomes.space/form?tab=dates');
+    expect(url).toBe('https://dev.kamespace.com/form?tab=dates');
   });
 
   it('covers every declared query key', () => {

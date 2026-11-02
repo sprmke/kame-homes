@@ -31,7 +31,7 @@ const SKIP_REMOTE = process.argv.includes('--skip-remote');
 const SKIP_LOCAL = process.argv.includes('--skip-local');
 
 const DEV_REF = 'fworvijbrwpyngycotbz';
-const DEV_ORIGIN = 'https://dev.kamehomes.space';
+const DEV_ORIGIN = 'https://kamespace.com';
 const DEV_SUPABASE_URL = `https://${DEV_REF}.supabase.co`;
 
 /** Keys that belong on hosted DEV edge secrets (copied from .env.local when missing). */
@@ -285,7 +285,7 @@ function mergeDevLocal() {
   }
 
   // Meta OAuth return origins must include hosted-dev SPA
-  const metaOrigins = 'http://127.0.0.1:5173,http://localhost:5173,https://dev.kamehomes.space';
+  const metaOrigins = 'http://127.0.0.1:5173,http://localhost:5173,https://kamespace.com';
   const rMeta = setAlways(dev, 'META_OAUTH_ALLOWED_RETURN_ORIGINS', metaOrigins);
   if (rMeta) changes.push(`${rMeta} META_OAUTH_ALLOWED_RETURN_ORIGINS`);
 

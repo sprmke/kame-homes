@@ -10,18 +10,18 @@ describe('scrubPostHogEvent', () => {
   it('removes capability tokens from every URL property', () => {
     const out = scrubPostHogEvent(
       event({
-        $current_url: 'https://dev.kamehomes.space/sd-form?access=aaa&tab=review',
-        $initial_current_url: 'https://dev.kamehomes.space/form?token=bbb',
-        $referrer: 'https://dev.kamehomes.space/complete?complete=ccc',
-        $initial_referrer: 'https://dev.kamehomes.space/p?t=ddd&keep=1',
+        $current_url: 'https://dev.kamespace.com/sd-form?access=aaa&tab=review',
+        $initial_current_url: 'https://dev.kamespace.com/form?token=bbb',
+        $referrer: 'https://dev.kamespace.com/complete?complete=ccc',
+        $initial_referrer: 'https://dev.kamespace.com/p?t=ddd&keep=1',
       })
     );
 
     const props = out!.properties!;
-    expect(props.$current_url).toBe('https://dev.kamehomes.space/sd-form?tab=review');
-    expect(props.$initial_current_url).toBe('https://dev.kamehomes.space/form');
-    expect(props.$referrer).toBe('https://dev.kamehomes.space/complete');
-    expect(props.$initial_referrer).toBe('https://dev.kamehomes.space/p?keep=1');
+    expect(props.$current_url).toBe('https://dev.kamespace.com/sd-form?tab=review');
+    expect(props.$initial_current_url).toBe('https://dev.kamespace.com/form');
+    expect(props.$referrer).toBe('https://dev.kamespace.com/complete');
+    expect(props.$initial_referrer).toBe('https://dev.kamespace.com/p?keep=1');
   });
 
   it('keeps non-URL properties untouched', () => {

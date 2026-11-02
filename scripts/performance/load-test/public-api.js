@@ -2,7 +2,7 @@
  * k6 public read scenario with the edge functions behind the public pages (launch audit
  * Phase 8). GETs only, no writes, anon key like the browser. Hosted dev only.
  *
- *   BASE_URL=https://dev.kamehomes.space FUNCTIONS_URL=https://<ref>.supabase.co/functions/v1 \
+ *   BASE_URL=https://<preview>.vercel.app FUNCTIONS_URL=https://fworvijbrwpyngycotbz.supabase.co/functions/v1 \
  *   ANON_KEY=... PROPERTY_SLUG=qa-monaco-1801 VUS=50 HOLD=8m \
  *   k6 run scripts/performance/load-test/public-api.js
  *

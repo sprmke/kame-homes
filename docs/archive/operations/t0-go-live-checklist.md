@@ -6,6 +6,8 @@ updated: 2026-11-01
 
 # T0 go-live checklist
 
+> **Superseded 2026-11-03:** there is one environment. `kamespace.com` is production; `dev.kamehomes.space`, `app.kamehomes.space` and the legacy apex are redirects/retired. Any dev-domain references below are historical.
+
 Use this when production is **fwor** and the public URL for reviewers is **`https://kamespace.com`**.
 
 ## Already done (2026-11-01 / 2026-11-02)

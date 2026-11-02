@@ -27,7 +27,7 @@ describe('telemetry scrub parity', () => {
   });
 
   it('scrubs a token URL the same way on both runtimes', () => {
-    const url = 'https://dev.kamehomes.space/sd-form?access=aaa&complete=bbb&token=ccc&tab=review';
+    const url = 'https://dev.kamespace.com/sd-form?access=aaa&complete=bbb&token=ccc&tab=review';
     expect(clientScrubUrl(url)).toBe(edgeScrubUrl(url));
     expect(clientScrubUrl(url)).not.toContain('access=');
   });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Launch-audit Phase 7 walker for hosted dev (`dev.kamehomes.space`).
+ * Launch-audit Phase 7 walker. Hosted dev is retired; run against local or a Vercel preview.
  *
  * Signs in as the seeded QA accounts (scripts/dev/seed-readiness-qa-dev.mjs), visits each host,
  * guest and public route at 375 / 768 / 1280 px and records: final path (redirects), tab title,
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEV_REF = 'fworvijbrwpyngycotbz';
-const UI = 'https://dev.kamehomes.space';
+const UI = process.env.QA_WALK_BASE_URL?.trim() || 'http://localhost:5173';
 const ARTIFACTS = resolve(ROOT, 'ui/e2e/artifacts/readiness');
 
 function readEnv(file) {

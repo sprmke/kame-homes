@@ -30,7 +30,7 @@ echo "== Public endpoint abuse smoke =="
 
 echo ""
 echo "== CORS origin probe =="
-ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-https://dev.kamehomes.space}" ./scripts/dev/check-cors-origins.sh
+ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-http://localhost:5173}" ./scripts/dev/check-cors-origins.sh
 
 if [[ -n "${SUPABASE_URL:-}" && -n "${ANON_KEY:-}" && -n "${STORAGE_OBJECT_PATH:-}" ]]; then
   echo ""

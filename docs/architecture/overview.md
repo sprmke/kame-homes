@@ -311,7 +311,7 @@ Until multi-tenant cutover, **two parallel stacks** share this git repo. Do not 
 | Track               | Git                  | Vercel                      | Supabase               | URL                   |
 | ------------------- | -------------------- | --------------------------- | ---------------------- | --------------------- |
 | Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production     |
-| Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `dev.kamehomes.space` |
+| Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `kamespace.com` |
 | Multi-tenant prod   | `main` after cutover | `kame-homes` Production     | `fworvijbrwpyngycotbz` | `kamespace.com`       |
 
 **2026-10-27:** `fworvijbrwpyngycotbz` is both the dev and the production project until a separate dev project is created after launch. The T0 cutover is [here](../archive/operations/legacy-to-mt-prod-migration.md).

@@ -7,6 +7,8 @@ updated: 2026-08-09
 
 # Multi-tenant setup — dev now · prod at release
 
+> **Superseded 2026-11-03:** hosted dev is retired. `fworvijbrwpyngycotbz` serves production on `kamespace.com`; keep this document for historical context only.
+
 **Plan:** [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · **Matrix:** [`ci-cd-environment-matrix.md`](./ci-cd-environment-matrix.md)
 
 **Scope:** New app [`kame-homes`](https://vercel.com/kame-works/kame-homes). Legacy [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) + **`zftt…`** unchanged.

@@ -6,6 +6,8 @@ updated: 2026-11-01
 
 # Phase 1 — prod wiring (operator)
 
+> **Superseded 2026-11-03:** one Supabase project and one public domain. `dev.kamehomes.space` was removed from Vercel and the Auth allow list; the tables below are historical.
+
 Production Supabase is **`fworvijbrwpyngycotbz`**. Legacy guests still use **`zftt…`** until T0.
 
 Local verify (no dashboard writes):

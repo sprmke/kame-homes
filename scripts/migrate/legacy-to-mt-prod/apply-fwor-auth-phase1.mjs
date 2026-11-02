@@ -21,11 +21,10 @@ if (!token) {
   process.exit(2);
 }
 
-const siteUrl = process.env.AUTH_SITE_URL?.trim() || 'https://dev.kamehomes.space';
+const siteUrl = process.env.AUTH_SITE_URL?.trim() || 'https://kamespace.com';
 const extraRedirects = [
-  'https://dev.kamehomes.space/**',
-  'https://app.kamehomes.space/**',
   'https://kamespace.com/**',
+  'https://www.kamespace.com/**',
   'http://localhost:5173/**',
 ];
 

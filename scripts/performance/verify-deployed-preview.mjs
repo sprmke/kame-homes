@@ -5,7 +5,7 @@
  * headers for HTML vs hashed assets.
  *
  * Usage:
- *   PREVIEW_URL=https://dev.kamehomes.space node scripts/performance/verify-deployed-preview.mjs
+ *   PREVIEW_URL=https://<deployment>.vercel.app node scripts/performance/verify-deployed-preview.mjs
  *   bun run verify:deployed-preview
  *
  * Optional:
@@ -25,7 +25,7 @@ function fail(msg) {
 }
 
 if (!previewUrl) {
-  fail('Set PREVIEW_URL (e.g. https://dev.kamehomes.space)');
+  fail('Set PREVIEW_URL (e.g. https://<deployment>.vercel.app)');
 }
 
 async function head(url, headers = {}) {

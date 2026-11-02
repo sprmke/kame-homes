@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dir, '..', '..', '..');
 const FWOR_REF = 'fworvijbrwpyngycotbz';
-const DEFAULT_ORIGIN = process.env.SMOKE_ORIGIN?.trim() || 'https://dev.kamehomes.space';
+const DEFAULT_ORIGIN = process.env.SMOKE_ORIGIN?.trim() || 'https://kamespace.com';
 
 function loadAnonKey(): string {
   const devEnv = join(ROOT, 'ui', '.env.development.dev');

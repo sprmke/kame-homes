@@ -7,6 +7,8 @@ updated: 2026-09-21
 
 # Hosted-dev rollback rehearsal
 
+> **Superseded 2026-11-03:** hosted dev is retired. Rollback guidance now applies to production and needs **`kamewave`**.
+
 **Goal:** Prove the team can recover MULTI_TENANT_DEV (`fworvijbrwpyngycotbz`) within a measured RTO using the scripts in this repo — not just read them.
 
 **This document does not replace** `migration-runbook.md` §6 or `production-deployment.md` §12. Read those before any restore.
