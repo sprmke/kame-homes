@@ -2,6 +2,8 @@ import { UnsavedChangesProvider } from '@/components/forms/UnsavedChangesProvide
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 import { ThemedToaster } from '@/components/theme/ThemedToaster';
 import { PostHogIdentitySync } from '@/lib/posthog/PostHogIdentitySync';
+import { SentryIdentitySync } from '@/lib/sentry/SentryIdentitySync';
+import { SentrySurfaceSync } from '@/lib/sentry/SentrySurfaceSync';
 
 import App from '@/App';
 
@@ -11,6 +13,8 @@ export function AppShell() {
     <UnsavedChangesProvider>
       <ScrollToTop />
       <PostHogIdentitySync />
+      <SentryIdentitySync />
+      <SentrySurfaceSync />
       <App />
       <ThemedToaster />
     </UnsavedChangesProvider>

@@ -8,8 +8,13 @@ import { useOrganizations } from '@/features/dashboard/org/hooks/useOrganization
 
 import { isPostHogEnabled, posthog } from '@/lib/posthog/client';
 import { PostHogContextSync } from '@/lib/posthog/PostHogContextSync';
+import { setSentryTenantScope } from '@/lib/sentry/scope';
 
-/** Resolves org / property / parking UUIDs inside admin shells for group analytics. */
+/**
+ * Resolves org / property / parking UUIDs inside admin shells, once, for both vendors:
+ * PostHog groups and Sentry tenant tags. Resolving them twice would be two chances to
+ * disagree about which tenant an error belongs to.
+ */
 export function PostHogAdminScopeSync() {
   const tenant = useOptionalOrgContext();
   const parkingTenant = useOptionalParkingContext();
@@ -44,6 +49,17 @@ export function PostHogAdminScopeSync() {
         name: parkingTenant.parking.name,
       });
     }
+    // Sentry gets the same ids so an issue can be filtered by tenant without joining
+    // against PostHog. Clearing happens in the cleanup: leaving a property must not leave
+    // its tag on the next page's events.
+    setSentryTenantScope({
+      orgId,
+      propertyId: tenant?.property.id,
+      parkingId: parkingTenant?.parking.id,
+    });
+
+    // Leaving the admin shell must not leave its tenant tags on the next page's events.
+    return () => setSentryTenantScope({});
   }, [
     orgId,
     orgSlug,
