@@ -40,7 +40,10 @@ defines the full event matrix per surface (A1–A5) and the insights built on it
       **Done** — `lib/posthog/beforeSend.ts`, 4 unit tests, drops the event if scrubbing throws.
       `$referrer`, `$initial_current_url`, `$initial_referrer`, `$pathname` stays. Drop
       the whole event if a sanitizer throws. Unit test with `?access=…&complete=…&token=…`.
-- [ ] **A0.2 Analytics-only init** confirmed after P1: `capture_exceptions: false`,
+- [x] **A0.2 Analytics-only init** confirmed after P1: `capture_exceptions: false`,
+      **Done, and asserted:** `client.test.ts` now proves `capture_exceptions: false`,
+      `capture_performance: false`, replay masking on, and that `before_send` strips
+      `?access=` from `$current_url`.
       `capture_performance: false`, autocapture only in `full` mode, `mask_all_text` and
       `mask_all_element_attributes` for autocapture in guest surfaces, replay off.
 - [x] **A0.3 Catalog parity test.** Vitest reads both catalogs and a static scan of
@@ -69,6 +72,9 @@ propertyId, parkingId }` and sets `groups`; org group properties (`plan_tier`,
       `SUPER_ADMIN_EMAILS` users at identify time; PostHog project filter "exclude internal
       users" uses it. Playwright / CI never loads PostHog (doc 06).
 - [ ] **A0.9 Remove unused catalog names** that the matrix below does not keep.
+      **Deferred to A1–A5 on purpose:** removing a name now would delete a place a
+      matrix row is about to wire. The parity test already fails on an emitted-but-
+      undeclared event, which is the direction that breaks data.
 
 ## Matrix legend
 

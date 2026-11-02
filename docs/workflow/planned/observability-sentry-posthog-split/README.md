@@ -215,7 +215,23 @@ runtime. The fastest way is `/admin/health` → **Send test error** (edge) and t
 a browser with the Preview DSN (web). This session could not confirm receipt because the
 Sentry MCP tools went away mid-session and there is no super-admin JWT here.
 
-## Exit gate
+## Revisit check (status, not exit)
+
+The architecture is complete; coverage is not. Come back and answer these with data rather
+than opinion.
+
+| When       | What to check                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| +1 week    | Sentry: are issues arriving from the edge and the browser, with a release and a readable stack? PostHog: any `$exception` (should be zero)? Insights 1–2 have data? |
+| +1 month   | Monthly error volume vs the 5k free-tier quota. Which catalog events are still never emitted. Whether A1–A6 coverage is worth a paid Sentry tier.                   |
+| +1 quarter | Re-read the alerts section: is the free tier still enough, or has a missed incident justified Team?                                                                 |
+
+Concrete things that would show the split is failing (treat any of these as a bug, not noise):
+
+- an issue in Sentry with no release, or with `environment: local` from a server;
+- a PostHog event carrying `$exception`, or a `$current_url` containing `access=`/`complete=`;
+- the uptime monitor reporting a domain that no longer exists;
+- a webhook failure that only shows up as a guest complaint.
 
 - [ ] A thrown error in each surface (render crash, unhandled rejection, failed query,
       failed mutation, edge 500, cron failure, webhook failure, SW error) appears in Sentry

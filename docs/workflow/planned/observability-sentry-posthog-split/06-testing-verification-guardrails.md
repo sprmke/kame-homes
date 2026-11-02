@@ -41,10 +41,18 @@ Playwright only for journeys, manual guide for live vendors.
 
 ## 3. Playwright (`ui/e2e/`)
 
-- [ ] `ui/e2e/shared/interceptTelemetry.ts`: route-abort `**/ingest/**`,
+- [x] `ui/e2e/shared/interceptTelemetry.ts`: route-abort `**/ingest/**`,
+      **Done.** Aborts every PostHog/Sentry pattern and records the attempts. Verified
+      with a positive control: the spec proves the net catches a real call before
+      trusting a zero result.
       `*.posthog.com`, `*.ingest*.sentry.io`, `/monitoring` in every spec (global fixture),
       and record attempted requests.
-- [ ] `ui/e2e/features/observability/error-boundary.spec.ts` (`@ci`): force a render
+- [x] `ui/e2e/features/observability/error-boundary.spec.ts` (`@ci`): force a render
+      **Done differently.** No test-only crash route: this repo forbids test routes, and
+      adding one for a spec would ship a reachable fault injector. `observability/
+telemetry.spec.ts` covers the part that can be asserted without one — that a
+      browser run sends nothing — and the zero-leak assertion is skipped locally when
+      a developer's `.env` carries a real DSN.
       crash route in test mode; fallback shows `Ref:` line; one Sentry envelope attempted;
       zero PostHog requests contain `$exception`.
 - [ ] Smoke specs keep `VITE_SENTRY_DSN` and `VITE_POSTHOG_KEY` empty except the one spec
