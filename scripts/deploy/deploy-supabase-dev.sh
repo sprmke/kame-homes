@@ -171,8 +171,8 @@ run_backup_if_needed() {
     echo "⚠️  If this db push goes wrong, you will have nothing scripted to roll back to." >&2
     return 0
   fi
-  echo "→ Backing up before db push (./scripts/deploy/backup-supabase.sh dev)"
-  "$ROOT/scripts/deploy/backup-supabase.sh" dev
+  echo "→ Backing up before db push (./scripts/deploy/backup-supabase.sh dev --expect-ref $DEV_REF)"
+  "$ROOT/scripts/deploy/backup-supabase.sh" dev --expect-ref "$DEV_REF"
   echo
 }
 

@@ -17,7 +17,7 @@ source "$ROOT/scripts/dev/check-linked-project.sh"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/deploy/backup-supabase.sh <dev|prod> [--dry-run]
+Usage: ./scripts/deploy/backup-supabase.sh <dev|prod> [--dry-run] [--expect-ref <ref>]
 
 Dumps the schema and data of the CURRENTLY LINKED <dev|prod> Supabase project
 into backups/<env>/<UTC-timestamp>_{schema,data}.sql (gitignored). Read-only
@@ -28,8 +28,11 @@ captured with PostgreSQL 17 pg_dump. Dev captures the same metadata when
 DEV_DB_URL is configured and warns when it is not.
 
 Options:
-  --dry-run   Print the dump commands and target paths; do not execute
-  -h, --help  Show this help
+  --dry-run              Print the dump commands and target paths; do not execute
+  --expect-ref <ref>     Trust this ref as the target (skip the dev/prod kind check).
+                         Used by the deploy scripts, which already know which project
+                         they are about to change (fwor… is production since 2026-10-27).
+  -h, --help             Show this help
 
 Examples:
   bun run backup:supabase:dev
@@ -40,6 +43,7 @@ EOF
 
 ENV_ARG=""
 DRY_RUN=false
+EXPECT_REF=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +54,10 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       DRY_RUN=true
       shift
+      ;;
+    --expect-ref)
+      EXPECT_REF="${2:-}"
+      shift 2
       ;;
     -h | --help)
       usage
@@ -76,7 +84,16 @@ if [[ -z "$LINKED_PROJECT_REF" ]]; then
   echo "Link first: bunx supabase@latest link --project-ref <${ENV_ARG}-ref>" >&2
   exit 1
 fi
-if [[ "$LINKED_PROJECT_KIND" != "$ENV_ARG" && "$LINKED_PROJECT_KIND" != "unknown" ]]; then
+if [[ -n "$EXPECT_REF" && "$LINKED_PROJECT_REF" != "$EXPECT_REF" ]]; then
+  echo "" >&2
+  echo "ERROR: --expect-ref $EXPECT_REF but the linked project is $LINKED_PROJECT_REF." >&2
+  echo "Re-link to the target project, then re-run." >&2
+  exit 1
+fi
+if [[ -n "$EXPECT_REF" && "$LINKED_PROJECT_REF" == "$EXPECT_REF" && "$LINKED_PROJECT_KIND" != "$ENV_ARG" ]]; then
+  echo "WARNING: '$LINKED_PROJECT_REF' is classified '$LINKED_PROJECT_KIND' but is the requested deploy target ($ENV_ARG) — backing it up anyway." >&2
+fi
+if [[ -z "$EXPECT_REF" && "$LINKED_PROJECT_KIND" != "$ENV_ARG" && "$LINKED_PROJECT_KIND" != "unknown" ]]; then
   echo "" >&2
   echo "ERROR: You asked to back up '$ENV_ARG' but the linked project looks like '$LINKED_PROJECT_KIND' ($LINKED_PROJECT_REF)." >&2
   echo "Re-link to $ENV_ARG first, then re-run." >&2

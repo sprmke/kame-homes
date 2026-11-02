@@ -174,8 +174,7 @@ test.describe('@ci marketing library', () => {
     });
   });
 
-  // fixme: Marketing Studio toolbar moved on 2026-10-30 (ledger PR-133).
-  test.fixme('one toolbar menu holds Recent publishes and Recently deleted', async ({ page }) => {
+  test('one toolbar menu holds Recent publishes and Recently deleted', async ({ page }) => {
     const captured: Captured[] = [];
     await installPropertyTeamRbacMocks(page, 'full_access');
     await installLibraryMocks(page, [libraryItem(ITEM_A, 'Weekday promo')], captured);
