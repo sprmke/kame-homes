@@ -26,21 +26,21 @@ dropped same-day rows. This closes the gap.
 
 ## What changed
 
-| Layer | File | Change |
-| --- | --- | --- |
-| Guest form UI | `features/guest/form/components/GuestForm.tsx` | Check-out picker accepts the check-in date (min date = check-in, only earlier dates disabled) |
-| Guest form payload | `utils/text/formatters.ts` | Nights never go below 1 |
-| Success page | `features/guest/form/components/GuestFormSuccess.tsx` | Shows "1 Night" for a same-day stay |
-| Edge validation | `_shared/guestFormSubmitValidation.ts` | `validateGuestFormCheckOutNotBeforeCheckIn` accepts equal, rejects inverted |
-| Edge payload | `_shared/types.ts` | `number_of_nights` derived from the dates, not the client |
-| Overlap | `_shared/databaseService.ts` | Same-day ranges normalize to one occupied night |
-| Pricing occupancy | `_shared/propertyPricing.ts` | `loadBookedDateKeys` + `bookingOverlapsMonth` include the day-use night |
-| Availability | `_shared/calendarAvailabilityManila.ts` | `collectBlockedNights` / `bookingOccupiesNight` |
-| ICS export | `_shared/calendarSyncRun.ts` | `loadExportRanges` publishes `[check-in, check-in + 1)` so OTAs block the night |
-| Admin edit | `_shared/bookingDetailsPatch.ts` | Reschedule + field-level edits validate the merged pair and recompute nights |
-| Import | `_shared/importPreviewService.ts`, `ui/.../importRowDraftValidation.ts`, `import-commit` | Same-day rows preview as valid and commit with 1 night |
-| Guest calendar | `features/guest/calendar/lib/guestCalendarAvailability.ts`, `utils/format/dates.ts` | Same-day bookings block their day |
-| Database | `migrations/20261317120000_same_day_stay_dates.sql` | Adds the missing `valid_dates` CHECK allowing equal dates |
+| Layer              | File                                                                                     | Change                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Guest form UI      | `features/guest/form/components/GuestForm.tsx`                                           | Check-out picker accepts the check-in date (min date = check-in, only earlier dates disabled) |
+| Guest form payload | `utils/text/formatters.ts`                                                               | Nights never go below 1                                                                       |
+| Success page       | `features/guest/form/components/GuestFormSuccess.tsx`                                    | Shows "1 Night" for a same-day stay                                                           |
+| Edge validation    | `_shared/guestFormSubmitValidation.ts`                                                   | `validateGuestFormCheckOutNotBeforeCheckIn` accepts equal, rejects inverted                   |
+| Edge payload       | `_shared/types.ts`                                                                       | `number_of_nights` derived from the dates, not the client                                     |
+| Overlap            | `_shared/databaseService.ts`                                                             | Same-day ranges normalize to one occupied night                                               |
+| Pricing occupancy  | `_shared/propertyPricing.ts`                                                             | `loadBookedDateKeys` + `bookingOverlapsMonth` include the day-use night                       |
+| Availability       | `_shared/calendarAvailabilityManila.ts`                                                  | `collectBlockedNights` / `bookingOccupiesNight`                                               |
+| ICS export         | `_shared/calendarSyncRun.ts`                                                             | `loadExportRanges` publishes `[check-in, check-in + 1)` so OTAs block the night               |
+| Admin edit         | `_shared/bookingDetailsPatch.ts`                                                         | Reschedule + field-level edits validate the merged pair and recompute nights                  |
+| Import             | `_shared/importPreviewService.ts`, `ui/.../importRowDraftValidation.ts`, `import-commit` | Same-day rows preview as valid and commit with 1 night                                        |
+| Guest calendar     | `features/guest/calendar/lib/guestCalendarAvailability.ts`, `utils/format/dates.ts`      | Same-day bookings block their day                                                             |
+| Database           | `migrations/20261317120000_same_day_stay_dates.sql`                                      | Adds the missing `valid_dates` CHECK allowing equal dates                                     |
 
 ## The database guard (and why 41 rows are grandfathered)
 
@@ -65,3 +65,17 @@ cutoff from the constraint.
 - Constraint exercised on a scratch table: same-day (MM-DD-YYYY and YYYY-MM-DD) accepted, inverted
   row created today rejected, inverted legacy row accepted
 - `bun run type-check`, `bun run lint` — clean
+
+## Production verification (2026-11-03)
+
+| Check        | Result                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deploy       | `CD Deploy (Supabase)` run `41539328461` on `4a4d6ccf` — quality + deploy **success**                                                                               |
+| Constraint   | `valid_dates` present on `fwor…` with `convalidated = true`                                                                                                         |
+| Data         | `node scripts/dev/audit-booking-dates.mjs` → `OK — 450 rows restore cleanly (41 pre-2025-06 reversed rows grandfathered, 1 same-day stays, 1 non-canonical format)` |
+| Public reads | `get-health` ok; `get-booked-dates` and `get-public-property` return data                                                                                           |
+| Captcha      | `submit-form` rejects unverified probes with `Human verification is required` (enforced)                                                                            |
+
+The **frontend** half (picker allows the same-day selection) ships with the next `develop → main`
+release; the backend half is live. Until that release, the production UI still hides same-day
+checkout, so no guest can hit the backend gap.
