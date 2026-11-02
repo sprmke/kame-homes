@@ -72,6 +72,8 @@ const DEV_EDGE_FROM_LOCAL = [
   'JAMENDO_CLIENT_ID',
   'POSTHOG_API_KEY',
   'POSTHOG_HOST',
+  'SENTRY_DSN',
+  'SENTRY_SAMPLE_RATE_WARNING',
   'VAPID_KEYS',
   'VAPID_SUBJECT',
   'PUSH_FANOUT_SECRET',
@@ -127,6 +129,8 @@ const EDGE_ALWAYS_FROM_LOCAL = new Set([
   'CAPTCHA_MODE',
   'POSTHOG_API_KEY',
   'POSTHOG_HOST',
+  'SENTRY_DSN',
+  'SENTRY_SAMPLE_RATE_WARNING',
   'PUSH_FANOUT_SECRET',
   'GUEST_BOOKING_ACCESS_SECRET',
   'GUEST_BOOKING_ACCESS_ENFORCE',
@@ -139,7 +143,12 @@ const UI_SECTIONS_HOSTED = [
   { title: 'App', keys: ['VITE_NODE_ENV'] },
   {
     title: 'Supabase',
-    keys: ['VITE_SUPABASE_URL', 'VITE_API_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_SUPABASE_PROJECT_URL'],
+    keys: [
+      'VITE_SUPABASE_URL',
+      'VITE_API_URL',
+      'VITE_SUPABASE_ANON_KEY',
+      'VITE_SUPABASE_PROJECT_URL',
+    ],
   },
   {
     title: 'Platform branding (UI only)',
@@ -147,6 +156,10 @@ const UI_SECTIONS_HOSTED = [
   },
   { title: 'Maps', keys: ['VITE_GOOGLE_MAPS_API_KEY'] },
   { title: 'Observability', keys: ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'] },
+  {
+    title: 'Observability — error tracking',
+    keys: ['VITE_SENTRY_DSN', 'VITE_SENTRY_TRACES_SAMPLE_RATE'],
+  },
   { title: 'PWA', keys: ['VITE_VAPID_PUBLIC_KEY'] },
   { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
 ];
@@ -272,8 +285,7 @@ function mergeDevLocal() {
   }
 
   // Meta OAuth return origins must include hosted-dev SPA
-  const metaOrigins =
-    'http://127.0.0.1:5173,http://localhost:5173,https://dev.kamehomes.space';
+  const metaOrigins = 'http://127.0.0.1:5173,http://localhost:5173,https://dev.kamehomes.space';
   const rMeta = setAlways(dev, 'META_OAUTH_ALLOWED_RETURN_ORIGINS', metaOrigins);
   if (rMeta) changes.push(`${rMeta} META_OAUTH_ALLOWED_RETURN_ORIGINS`);
 

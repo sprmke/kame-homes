@@ -10,6 +10,8 @@ import { join } from 'node:path';
 export const UI_SHARED_KEYS = [
   'VITE_POSTHOG_KEY',
   'VITE_POSTHOG_HOST',
+  'VITE_SENTRY_DSN',
+  'VITE_SENTRY_TRACES_SAMPLE_RATE',
   'VITE_TURNSTILE_SITE_KEY',
   'VITE_PLATFORM_APP_NAME',
   'VITE_PLATFORM_CONTACT_EMAIL',
@@ -21,6 +23,17 @@ export const POSTHOG_UI_TO_EDGE = {
   VITE_POSTHOG_KEY: 'POSTHOG_API_KEY',
   VITE_POSTHOG_HOST: 'POSTHOG_HOST',
 };
+
+/**
+ * Never derived from a UI key.
+ *
+ * The browser and the edge are two separate Sentry projects with their own DSNs, so
+ * `VITE_SENTRY_DSN` must never be copied into `SENTRY_DSN`: doing so would send edge
+ * faults into the web project and break the per-runtime alert rules. The edge DSN is set
+ * by hand in `supabase/.env.local` and pushed to hosted dev from there.
+ * Same story for `APP_RELEASE`, which the deploy scripts stamp from the git SHA.
+ */
+export const EDGE_ONLY_KEYS = ['SENTRY_DSN', 'SENTRY_SAMPLE_RATE_WARNING', 'APP_RELEASE'];
 
 /** @param {string} raw */
 export function parseEnvFile(raw) {
