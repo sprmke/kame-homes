@@ -2,14 +2,14 @@
 title: 'Production readiness'
 status: active
 tags: [workflow, in-progress, production-readiness, security, qa, launch]
-updated: 2026-11-01
+updated: 2026-11-02
 stage: in-progress
 kind: reference
 ---
 
 # Production readiness
 
-Every launch readiness checklist, audit, QA batch and operator list in one place. Plan: [`production-readiness-launch-audit.md`](./production-readiness-launch-audit.md).
+Every launch readiness checklist, audit, QA batch and operator list in one place. **Start with [`STATUS.md`](./STATUS.md)** for the current done / in-progress / pending view. Plan: [`production-readiness-launch-audit.md`](./production-readiness-launch-audit.md).
 
 **Folder = stage exception:** docs moved here from `planned/`, `for-testing/` and `done/` keep that history as `origin_stage` in frontmatter. They are re-verified against one baseline SHA before any is marked good. Do not move them back out with `workflow-move.sh`; that script only handles top-level stage folders.
 

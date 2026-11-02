@@ -1,7 +1,7 @@
 ---
 title: 'Security matrices'
 status: active
-updated: 2026-10-19
+updated: 2026-11-02
 stage: in-progress
 kind: reference
 readiness: unverified
@@ -11,6 +11,8 @@ launch_gate: B
 # Security matrices
 
 Filled in Phase 6. Live probes run on **hosted-dev** after Phase 0.6, not prod.
+
+**2026-11-02 tooling pass:** gitleaks (history), semgrep, OSV/`bun audit` and a ZAP baseline on dev are recorded in [`../evidence/phase6-tooling-2026-11-02.md`](../evidence/phase6-tooling-2026-11-02.md); each matrix row below points at that evidence where relevant.
 
 | Matrix                     | File                                           |
 | -------------------------- | ---------------------------------------------- |
