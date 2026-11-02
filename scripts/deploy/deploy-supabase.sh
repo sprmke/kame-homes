@@ -150,7 +150,14 @@ run_backup_if_needed() {
 }
 
 run_db_push() {
-  local -a push_args=(db push --linked)
+  # `db push` is LOCAL by default in current CLI versions ("Local by default. Pass --remote
+  # for the linked project"). `--linked` is not a flag this CLI accepts. Without `--remote`
+  # a deploy pushes migrations at 127.0.0.1:54322: a no-op on a CI runner, and the wrong
+  # database on a developer machine that then reports a successful deploy.
+  local -a push_args=(db push --remote)
+  if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
+    push_args+=(--password "$SUPABASE_DB_PASSWORD")
+  fi
   if [[ "$INCLUDE_ALL" == true ]]; then
     push_args+=(--include-all)
   fi
