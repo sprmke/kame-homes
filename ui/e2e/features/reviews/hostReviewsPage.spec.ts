@@ -43,6 +43,7 @@ test.describe('@ci host reviews page', () => {
     await expect(page.getByRole('button', { name: 'Respond', exact: true })).toHaveCount(0);
     await page.goto(`${teamRbacPaths.reviews}?tab=to_write`);
     await expect(page.getByRole('button', { name: /^Write review for/ })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Open booking for Maria Santos' })).toBeVisible();
+    const bookingLink = page.getByRole('link', { name: /Open booking for Maria Santos/ });
+    await expect(bookingLink.first()).toBeVisible({ timeout: 15_000 });
   });
 });

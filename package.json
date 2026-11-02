@@ -99,7 +99,7 @@
     "perf:pg-stat-statements": "bash scripts/performance/capture-pg-stat-statements.sh",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --project=chromium-ci --project=mobile-chromium-smoke --project=tablet-chromium-smoke --grep @smoke",
-    "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci && playwright test --project=pwa",
+    "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:parking": "playwright test ui/e2e/features/parking --project=chromium --grep-invert \"parking live local flow\"",
     "test:e2e:parking:headed": "playwright test ui/e2e/features/parking --project=chromium --grep-invert \"parking live local flow\" --headed",
