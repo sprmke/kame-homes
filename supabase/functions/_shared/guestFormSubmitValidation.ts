@@ -8,15 +8,19 @@ export type GuestFormFormatValidationResult =
   | { ok: true }
   | { ok: false; message: string };
 
-export function validateGuestFormCheckOutAfterCheckIn(
+/**
+ * Check-out may equal check-in: same-day stays are allowed (day use) and occupy the
+ * check-in night. Only an inverted range is rejected.
+ */
+export function validateGuestFormCheckOutNotBeforeCheckIn(
   checkInDate: string,
   checkOutDate: string
 ): GuestFormFormatValidationResult {
   if (!checkInDate || !checkOutDate) {
     return { ok: false, message: 'Check-in and check-out dates are required' };
   }
-  if (checkOutDate <= checkInDate) {
-    return { ok: false, message: 'Check-out date must be after check-in date' };
+  if (checkOutDate < checkInDate) {
+    return { ok: false, message: 'Check-out date cannot be before check-in date' };
   }
   return { ok: true };
 }

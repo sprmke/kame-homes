@@ -29,7 +29,7 @@ import { checkIpRateLimit, clientIpFromRequest } from '../_shared/publicRateLimi
 import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import {
-  validateGuestFormCheckOutAfterCheckIn,
+  validateGuestFormCheckOutNotBeforeCheckIn,
   validateGuestFormFormatFields,
 } from '../_shared/guestFormSubmitValidation.ts';
 import {
@@ -143,7 +143,7 @@ serve(async (req) => {
     console.log('  Check-out:', checkOutDate);
     console.log('  Booking ID:', bookingId);
 
-    const dateOrder = validateGuestFormCheckOutAfterCheckIn(checkInDate, checkOutDate);
+    const dateOrder = validateGuestFormCheckOutNotBeforeCheckIn(checkInDate, checkOutDate);
     if (!dateOrder.ok) throw new Error(dateOrder.message);
 
     const formatValidation = validateGuestFormFormatFields(formData);

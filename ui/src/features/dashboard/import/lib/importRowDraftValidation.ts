@@ -93,10 +93,11 @@ export function validateImportFieldDraft({
     const checkIn = parseImportDraftDate(drafts.check_in_date ?? mappedData.check_in_date ?? '');
     const checkOut = parseImportDraftDate(drafts.check_out_date ?? mappedData.check_out_date ?? '');
 
-    if (checkIn && checkOut && !checkOut.isAfter(checkIn, 'day')) {
+    // Same-day stays are allowed (day use); only an inverted range is an error.
+    if (checkIn && checkOut && checkOut.isBefore(checkIn, 'day')) {
       return fieldId === 'check_out_date'
-        ? 'Check-out must be after check-in.'
-        : 'Check-in must be before check-out.';
+        ? 'Check-out cannot be before check-in.'
+        : 'Check-in cannot be after check-out.';
     }
   }
 

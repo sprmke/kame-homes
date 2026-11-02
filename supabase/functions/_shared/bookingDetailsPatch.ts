@@ -22,7 +22,15 @@ import {
   shouldRevertGuestFieldEditsToPendingReview,
   isPostPendingDocumentsStatus,
 } from './statusMachine.ts';
-import { countStayNights, formatTime, normalizeDateToYYYYMMDD } from './utils.ts';
+import { formatTime, normalizeDateToYYYYMMDD, occupiedStayNights } from './utils.ts';
+
+/** Check-out may equal check-in (same-day stay); it may never come before it. */
+export function assertStayDateOrder(checkInDate: string, checkOutDate: string): void {
+  const ci = normalizeDateToYYYYMMDD(checkInDate);
+  const co = normalizeDateToYYYYMMDD(checkOutDate);
+  if (!ci || !co) throw new Error('checkInDate and checkOutDate must be valid dates');
+  if (co < ci) throw new Error('Check-out date cannot be before check-in date');
+}
 
 const SD_BANKS = ['GCash', 'GoTyme', 'Maribank'] as const;
 const SD_REFUND_METHODS = ['same_phone', 'other_bank', 'cash'] as const;
@@ -754,10 +762,12 @@ export async function applyBookingDetailsPatch(
     if (!checkInDate || !checkOutDate) {
       throw new Error('checkInDate and checkOutDate are required');
     }
+    assertStayDateOrder(checkInDate, checkOutDate);
     const patch: Record<string, unknown> = {
       check_in_date: formatDateForGuestSubmission(checkInDate),
       check_out_date: formatDateForGuestSubmission(checkOutDate),
-      number_of_nights: countStayNights(checkInDate, checkOutDate),
+      // Same-day stays occupy one night (day use).
+      number_of_nights: occupiedStayNights(checkInDate, checkOutDate),
       ...pendingDocumentsClearPatchForGuestEditRevert(),
       document_requirement_completions: pendingDocumentsClearCompletionsJsonbPatch(
         body.currentDocumentRequirementCompletions ?? existing.document_requirement_completions
@@ -792,6 +802,23 @@ export async function applyBookingDetailsPatch(
   }
 
   patch = patchGuestSubmissionForDb(patch);
+
+  // A field-by-field edit may touch only one side of the stay. Validate the merged pair so
+  // an admin cannot save check-out before check-in, and keep nights consistent with the dates.
+  const touchesCheckIn = Object.prototype.hasOwnProperty.call(patch, 'check_in_date');
+  const touchesCheckOut = Object.prototype.hasOwnProperty.call(patch, 'check_out_date');
+  if (touchesCheckIn || touchesCheckOut) {
+    const mergedCheckIn = String(
+      touchesCheckIn ? patch.check_in_date : (existing.check_in_date ?? '')
+    );
+    const mergedCheckOut = String(
+      touchesCheckOut ? patch.check_out_date : (existing.check_out_date ?? '')
+    );
+    assertStayDateOrder(mergedCheckIn, mergedCheckOut);
+    if (!Object.prototype.hasOwnProperty.call(patch, 'number_of_nights')) {
+      patch.number_of_nights = occupiedStayNights(mergedCheckIn, mergedCheckOut);
+    }
+  }
 
   const revertToPendingReview = body.revertToPendingReview === true;
   let statusGuard: string | null = null;
