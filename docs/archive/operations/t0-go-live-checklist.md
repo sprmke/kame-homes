@@ -79,6 +79,18 @@ supabase functions deploy --project-ref fworvijbrwpyngycotbz \
 
 `--import-map` is required server-side, otherwise bare `zod` imports in `_shared` fail to bundle. `import-parse-file` is the exception: it imports `https://cdn.sheetjs.com/...`, which the server-side bundler refuses, so deploy that one with Docker (`supabase functions deploy import-parse-file --project-ref …`). Deploy from a clean worktree of the release commit, never from a dirty tree.
 
+## Actual switch (2026-11-03) — targeted delta instead of a reload
+
+Drift was measured and enumerated, so the reload was skipped:
+
+- Legacy had **no new bookings** (same 450, same max `created_at`).
+- One booking changed on legacy: `f9e646d0…` GAF approved 2026-11-01 → `READY_FOR_CHECKIN`.
+- Five `processed_emails` rows were missing; the approved PDF already existed in Storage.
+- Booking fields + `processed_emails` were copied directly; parity re-checked (status mix identical).
+- `migration_cutover_at` reset to the switch time; `app.kamehomes.space` → 308 to `kamespace.com`.
+
+Still open: **move `kamehomes.space` + `www.kamehomes.space` off the legacy Vercel project** (`sprmkes-projects`), then attach them to `kame-homes` as 308s to `kamespace.com`. Until that lands, the apex still accepts legacy bookings.
+
 ## PayMongo
 
 - Webhook URL: `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/paymongo-webhook`
