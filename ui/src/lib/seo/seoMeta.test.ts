@@ -133,4 +133,14 @@ describe('robots trip pages', () => {
     expect(buildRobotsTxt('https://app.kamehomes.space')).toContain('Allow: /');
     expect(buildRobotsTxt('https://app.kamehomes.space')).toContain('Sitemap:');
   });
+
+  it('indexes the kamespace production domain', () => {
+    // Regression: the rebrand moved production to kamespace.com but the host list
+    // still only knew kamehomes.space, so production served `Disallow: /`.
+    for (const origin of ['https://kamespace.com', 'https://www.kamespace.com']) {
+      const txt = buildRobotsTxt(origin);
+      expect(txt).toContain('Allow: /');
+      expect(txt).toContain(`Sitemap: ${origin}/sitemap.xml`);
+    }
+  });
 });
