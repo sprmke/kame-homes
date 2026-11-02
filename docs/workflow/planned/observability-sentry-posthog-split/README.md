@@ -186,7 +186,24 @@ Short version:
 | Edge secrets   | `SENTRY_DSN` (**was missing**), `SENTRY_SAMPLE_RATE_WARNING=1`, `APP_RELEASE` stamped from git HEAD                                                         |
 | Verified live  | `x-request-id` on real responses, `Access-Control-Expose-Headers: x-request-id, retry-after`, `sentry-trace`/`baggage` preflight accepted, `get-health` 200 |
 | Vercel Preview | `VITE_SENTRY_DSN`, traces `0.2`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` set (takes effect on the next Preview build)                           |
-| Not deployed   | Production. Requires `kamewave`; nothing here touches it.                                                                                                   |
+| Not deployed   | Nothing left to deploy — see the correction below.                                                                                                          |
+
+**Correction: this repo has no separate multi-tenant production project.** Per
+`docs/architecture/deployment.md`, `fwor…` was promoted to production on 2026-10-27 and holds
+the migrated legacy dataset; `cd-dev.yml` and `cd-prod.yml` deploy to the same ref. The
+function deploy above therefore already reached the project that will serve live users.
+
+Better than it reads: production previously had **no** Sentry at all, so P1 removing PostHog
+capture could have opened a blind window. Instead Sentry arrived first.
+
+| Production surface | State                                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Edge functions     | Deployed, with `SENTRY_DSN` + `APP_RELEASE` on the project                                                                  |
+| Web build          | `VITE_SENTRY_DSN`, traces `0.05`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` set at **Production** scope in Vercel |
+
+No capture window existed at any point. **Production launch still waits on the T0 cutover**
+(`docs/archive/operations/legacy-to-mt-prod-migration.md`: DNS, `kamespace.com`, `develop` →
+`main`), which is outside this module.
 
 **Still open on dev, in order:** one real event must be seen arriving in Sentry for each
 runtime. The fastest way is `/admin/health` → **Send test error** (edge) and the same page in
