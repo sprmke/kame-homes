@@ -50,12 +50,11 @@ print_linked_project() {
 
   LINKED_PROJECT_REF="$(tr -d '[:space:]' <"$ref_file")"
 
-  # Dev wins when a ref is both. Since 2026-10-27 there is one multi-tenant project
-  # (`fwor…`) serving as both dev and mt-prod, and the old `!= mt_prod_ref` clause made it
-  # classify as prod — which is what refused `backup-supabase.sh dev` in CD and stopped
-  # every dev deploy. The guard's purpose is unchanged: a ref that is only legacy prod
-  # (`zftt…`) still classifies as prod and is refused for dev work.
-  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" ]]; then
+  # `fwor…` is both the dev target and production (one project since 2026-10-27) and is
+  # classified **prod** on purpose: it holds the live dataset, so prod semantics are the safe
+  # default. The deploy scripts pass `--expect-ref`, which is what keeps the label from
+  # blocking a legitimate deploy; `backup-supabase.sh dev` is no longer used by CI.
+  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" && "$LINKED_PROJECT_REF" != "$mt_prod_ref" ]]; then
     LINKED_PROJECT_KIND="dev"
   elif [[ -n "$prod_ref" && "$LINKED_PROJECT_REF" == "$prod_ref" ]]; then
     LINKED_PROJECT_KIND="prod"

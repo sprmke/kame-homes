@@ -60,7 +60,7 @@ jobs:
   deploy:
     needs: quality
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -95,17 +95,19 @@ jobs:
       - name: Deploy Supabase
         env:
           CI: '1'
-          DEPLOY_CONFIRM: dev
+          DEPLOY_CONFIRM: prod
           INCLUDE_ALL: ${{ github.event.inputs.include_all }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
         run: |
+          # Strict migration order by default: this project holds the live booking dataset.
+          # `--include-all` is available from the manual dispatch input for migration repair.
           if [[ "${INCLUDE_ALL:-}" == "true" ]]; then
-            ./scripts/deploy/ci-deploy.sh dev -- --include-all
+            ./scripts/deploy/ci-deploy.sh prod -- --include-all
           else
-            ./scripts/deploy/ci-deploy.sh dev
+            ./scripts/deploy/ci-deploy.sh prod
           fi
 
       - name: Upload pre-deploy backup
@@ -113,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pre-deploy-backup-${{ github.sha }}
-          path: backups/dev/
+          path: backups/prod/
           if-no-files-found: error
           retention-days: 7
 
@@ -123,4 +125,4 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
-        run: ./scripts/deploy/ci-smoke.sh dev
+        run: ./scripts/deploy/ci-smoke.sh prod
