@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+
 import { useGuestAuthActions } from '@/features/guest/auth/hooks/useGuestAuthActions';
 import { hostGoogleOAuthRedirectTo, safeRedirect } from '@/features/guest/auth/lib/hostAuthPaths';
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 import { resolvePostSignInPath } from '@/features/dashboard/org/lib/postSignInRouting';
 
+import { captureError } from '@/lib/sentry/capture';
 import { supabase } from '@/lib/supabase/client';
 
 type Options = {
@@ -39,6 +41,12 @@ export function useHostGoogleAuth({ callbackPathname, defaultRedirect = '/dashbo
       .catch((err) => {
         if (!cancelled) {
           console.error('[useHostGoogleAuth] post-sign-in routing failed', err);
+          // The user is signed in but stranded: every post-login landing breaks the same way.
+          captureError(err, {
+            level: 'error',
+            tags: { auth: 'post_sign_in_routing' },
+            fingerprint: ['auth', 'post_sign_in_routing'],
+          });
           setError('Could not load your workspace. Try again.');
           setIsResolving(false);
         }

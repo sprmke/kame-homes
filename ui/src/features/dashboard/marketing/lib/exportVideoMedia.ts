@@ -3,6 +3,9 @@ import { toast } from 'sonner';
 
 import type { VideoCompositionProps } from '@/features/dashboard/marketing/components/video-editor/VideoCompositions';
 
+import { captureError } from '@/lib/sentry/capture';
+
+
 type ExportVideoInput = {
   templateId: string;
   component: React.ComponentType<VideoCompositionProps>;
@@ -42,6 +45,11 @@ export async function exportVideoToBlob(input: ExportVideoInput): Promise<Blob> 
     return blob;
   } catch (error) {
     console.error('Video export error:', error);
+    captureError(error, {
+      level: 'warning',
+      tags: { media_export: 'video_media' },
+      fingerprint: ['media_export', 'video_media'],
+    });
     toast.error('Video export failed', { id: toastId });
     throw error;
   }

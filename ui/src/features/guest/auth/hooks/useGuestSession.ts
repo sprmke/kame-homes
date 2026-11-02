@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { readE2EGuestSession } from '@/lib/e2e/guestSession';
+import { captureError } from '@/lib/sentry/capture';
 import { supabase } from '@/lib/supabase/client';
 
 import type { Session } from '@supabase/supabase-js';
@@ -34,6 +35,13 @@ export function useGuestSession() {
       .catch((err) => {
         if (cancelled) return;
         console.error('[useGuestSession] getSession failed', err);
+        // A failed session read leaves the guest logged out with no explanation. Grouped so
+        // an auth outage is one issue, not one per visitor.
+        captureError(err, {
+          level: 'warning',
+          tags: { auth: 'session_read', persona: 'guest' },
+          fingerprint: ['auth', 'get_session'],
+        });
         setIsLoading(false);
       });
 
