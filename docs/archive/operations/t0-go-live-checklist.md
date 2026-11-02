@@ -65,8 +65,8 @@ Plan 05: submit Google verification after the above.
 
 ## PayMongo
 
-- Webhook URL: `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/<paymongo-handler>` (match env in Dashboard)
-- Live keys in fwor Edge secrets after functions deploy
+- Webhook URL: `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/paymongo-webhook`
+- **Status 2026-11-02:** account still in test mode; both webhooks are `disabled` (`max_retries_exceeded`). Live keys in fwor Edge secrets plus a re-enabled webhook are required before plan or parking checkout can confirm. Guest bookings use manual GCash, so cutover is not blocked by this.
 
 ## Cutover watermark (after go decision)
 

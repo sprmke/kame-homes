@@ -38,7 +38,7 @@ bun scripts/migrate/legacy-to-mt-prod/verify-fwor-secrets-from-local.mjs
 1. **Namecheap / DNS:** add the 12 records in [`phase1-prod-wiring-checklist.md`](./phase1-prod-wiring-checklist.md#dns-records-to-add-namecheap-zone-kamespacecom) (apex A, `www`, Resend send + inbound). Vercel domains and Resend domains are already created; they verify as soon as DNS lands. At T0 move apex `kamehomes.space` to `kame-homes`.
 2. **Google Cloud:** Prod OAuth client (origins `kamespace.com`, `dev.kamespace.com`; callback `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`). No CLI access to the project from this machine.
 3. **Resend:** Nothing to create — `kamespace.com` (sending) and `inbound.kamespace.com` (receiving) exist; they need the DNS records above.
-4. **PayMongo dashboard:** confirm the webhook URL points at fwor functions and add live keys if missing (secret already synced).
+4. **PayMongo dashboard:** the account is in **test mode** and both existing webhooks are `disabled` (`max_retries_exceeded`), including `https://fworvijbrwpyngycotbz.supabase.co/functions/v1/paymongo-webhook`. Guest bookings are unaffected (legacy uses manual GCash), but plan/parking checkout cannot confirm until live keys and a fresh webhook exist.
 5. **T0 window:** Pick freeze night; notify host; run [`t0-go-live-checklist.md`](./t0-go-live-checklist.md) with **kamewave**.
 6. **Git:** Large dirty **`develop`** tree remains in the main checkout (unrelated PWA work). Migration docs + tooling are committed; do not `git add -A`.
 7. **Security:** Rotate any PAT pasted in chat; keep `sbp_` only in `.env.management.local` + GitHub.

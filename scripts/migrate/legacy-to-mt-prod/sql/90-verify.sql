@@ -73,6 +73,15 @@ from public.organizations o
 left join auth.users u on u.id = o.owner_id
 where o.owner_id is null or u.id is null;
 
+-- V11. cron surface installed. Every cron migration no-ops without pg_cron, so a
+-- project can show all migrations applied while nothing is scheduled. This caught
+-- fwor on 2026-11-02.
+select 'V11 cron-extensions' as check, count(*)::int as failures
+from (
+  select unnest(array['pg_cron', 'pg_net']) as ext
+) e
+where not exists (select 1 from pg_extension x where x.extname = e.ext);
+
 -- V10. migrated finance line items match legacy count (expects :legacy_finance_line_items)
 select 'V10 finance-line-items' as check,
        (select count(*)::int from public.finance_line_items) as actual,
