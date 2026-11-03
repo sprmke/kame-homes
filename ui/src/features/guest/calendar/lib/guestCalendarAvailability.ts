@@ -42,8 +42,13 @@ export function isDateBookedForCheckoutSelection(
     try {
       const bookingCheckIn = toMidnight(stringToDate(booking.checkInDate));
       const bookingCheckOut = toMidnight(stringToDate(booking.checkOutDate));
+      // Same-day stays occupy their check-in night, so that day is not a free checkout.
+      const checkOutExclusive =
+        bookingCheckOut > bookingCheckIn
+          ? bookingCheckOut
+          : new Date(bookingCheckIn.getTime() + 24 * 60 * 60 * 1000);
       const dateToCheck = toMidnight(date);
-      return dateToCheck > bookingCheckIn && dateToCheck < bookingCheckOut;
+      return dateToCheck > bookingCheckIn && dateToCheck < checkOutExclusive;
     } catch {
       return false;
     }
@@ -63,7 +68,8 @@ export function isGuestCalendarDateDisabled(
 
   if (checkIn && !checkOut) {
     const ci = toMidnight(checkIn);
-    if (d <= ci) return true;
+    // Same-day stays are allowed: the check-in day is a legal check-out day.
+    if (d < ci) return true;
     if (isDateBookedForCheckoutSelection(bookedDates, date)) return true;
 
     const firstBlocking = getFirstBlockingCheckIn(bookedDates, checkIn);
@@ -98,7 +104,7 @@ export function clampGuestCalendarCheckoutHover(
 ): Date | null {
   const ci = toMidnight(checkIn);
   const hd = toMidnight(hoverDate);
-  if (hd <= ci) return null;
+  if (hd < ci) return null;
 
   const cursor = new Date(ci);
   cursor.setDate(cursor.getDate() + 1);

@@ -100,9 +100,12 @@ export function GuestFormSuccess() {
 
   // Calculate number of nights
   const numberOfNights = bookingData
-    ? Math.ceil(
-        (dayjs(bookingData.checkOutDate).valueOf() - dayjs(bookingData.checkInDate).valueOf()) /
-          (1000 * 60 * 60 * 24)
+    ? Math.max(
+        1,
+        Math.ceil(
+          (dayjs(bookingData.checkOutDate).valueOf() - dayjs(bookingData.checkInDate).valueOf()) /
+            (1000 * 60 * 60 * 24)
+        )
       )
     : 0;
 

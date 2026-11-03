@@ -289,6 +289,10 @@ export function toGuestSubmissionTime(text: string): string {
 }
 
 // Create a disabled date matcher for react-day-picker (for check-in dates)
+/** End of the occupied range: same-day stays occupy the check-in day (one night). */
+const occupiedRangeEnd = (checkIn: Date, checkOut: Date): Date =>
+  checkOut > checkIn ? checkOut : new Date(checkIn.getTime() + 24 * 60 * 60 * 1000);
+
 export const createDisabledDateMatcher = (
   bookedDates: BookedDateRange[],
   currentBookingId?: string | null
@@ -307,8 +311,9 @@ export const createDisabledDateMatcher = (
         const dateToCheck = startOfDay(date);
 
         // Check if date is within the booked range (check-in inclusive, check-out exclusive)
-        // This allows guests to check in on checkout dates
-        return dateToCheck >= startOfDay(checkIn) && dateToCheck < startOfDay(checkOut);
+        // This allows guests to check in on checkout dates. Same-day stays occupy one night.
+        const checkOutExclusive = occupiedRangeEnd(startOfDay(checkIn), startOfDay(checkOut));
+        return dateToCheck >= startOfDay(checkIn) && dateToCheck < checkOutExclusive;
       } catch (e) {
         return false;
       }
@@ -337,8 +342,10 @@ export const createDisabledCheckoutDateMatcher = (
 
         // For checkout dates: Only disable dates that are AFTER check-in and BEFORE check-out
         // This allows selecting a checkout date that matches another booking's check-in date
-        // (Guest A checks out on Dec 15, Guest B checks in on Dec 15)
-        return dateToCheck > startOfDay(checkIn) && dateToCheck < startOfDay(checkOut);
+        // (Guest A checks out on Dec 15, Guest B checks in on Dec 15). Same-day stays occupy
+        // one night, so their check-in day is blocked here too.
+        const checkOutExclusive = occupiedRangeEnd(startOfDay(checkIn), startOfDay(checkOut));
+        return dateToCheck > startOfDay(checkIn) && dateToCheck < checkOutExclusive;
       } catch (e) {
         return false;
       }
