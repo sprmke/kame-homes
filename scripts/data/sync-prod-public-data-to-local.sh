@@ -33,9 +33,12 @@ DUMP_FILE="${DUMP_FILE:-$ROOT/supabase/.temp/prod_public_data.sql}"
 CONTAINER="${LOCAL_DB_CONTAINER:-supabase_db_guest-form-management}"
 RESTORE_ONLY="${RESTORE_ONLY:-0}"
 
-# Optional: PROD_DB_URL= in supabase/.env.local (gitignored) — read one line only (safe for multiline secrets).
-if [[ -z "${PROD_DB_URL:-}" && -f "$ROOT/supabase/.env.local" ]]; then
-  _prod_line="$(grep -E '^[[:space:]]*PROD_DB_URL=' "$ROOT/supabase/.env.local" | head -1 || true)"
+# Optional: PROD_DB_URL= in supabase/.env.management.local or supabase/.env.local
+# (both gitignored) — read one line only (safe for multiline secrets).
+for _env_file in "$ROOT/supabase/.env.management.local" "$ROOT/supabase/.env.local"; do
+  [[ -n "${PROD_DB_URL:-}" ]] && break
+  [[ -f "$_env_file" ]] || continue
+  _prod_line="$(grep -E '^[[:space:]]*PROD_DB_URL=' "$_env_file" | head -1 || true)"
   if [[ -n "$_prod_line" ]]; then
     PROD_DB_URL="${_prod_line#PROD_DB_URL=}"
     PROD_DB_URL="${PROD_DB_URL#"${PROD_DB_URL%%[![:space:]]*}"}"
@@ -46,8 +49,8 @@ if [[ -z "${PROD_DB_URL:-}" && -f "$ROOT/supabase/.env.local" ]]; then
     PROD_DB_URL="${PROD_DB_URL%\'}"
     export PROD_DB_URL
   fi
-  unset _prod_line
-fi
+done
+unset _prod_line _env_file
 
 if [[ "$RESTORE_ONLY" == "1" ]]; then
   if [[ ! -s "$DUMP_FILE" ]]; then
@@ -60,7 +63,7 @@ else
   if [[ -z "${PROD_DB_URL:-}" ]]; then
     echo "ERROR: Set PROD_DB_URL to your prod Postgres URI (Dashboard → Connect → Session pooler)."
     echo "Example: export PROD_DB_URL='postgresql://postgres.[REF]:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres'"
-    echo "Or add PROD_DB_URL=... to supabase/.env.local (gitignored)."
+    echo "Or add PROD_DB_URL=... to supabase/.env.management.local (gitignored)."
     if [[ -s "$DUMP_FILE" ]]; then
       echo "To re-apply the last local dump without prod access: RESTORE_ONLY=1 ./scripts/data/sync-prod-public-data-to-local.sh"
     fi

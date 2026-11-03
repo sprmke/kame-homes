@@ -78,6 +78,28 @@ Deno.test('tuning knobs show their default when unset', () => {
   assertEquals(check.detail, 'Default 30');
 });
 
+Deno.test('assistant budget knobs show their defaults', () => {
+  const tool = find(evaluateEdgeEnv(getter({}), true), 'env.edge.ASSISTANT_TOOL_TIMEOUT_MS');
+  const turn = find(evaluateEdgeEnv(getter({}), true), 'env.edge.ASSISTANT_TURN_DEADLINE_MS');
+  assertEquals(tool.status, 'off');
+  assertEquals(tool.detail, 'Default 20000');
+  assertEquals(turn.status, 'off');
+  assertEquals(turn.detail, 'Default 110000');
+});
+
+Deno.test('warning sample rate must be a fraction from 0 to 1', () => {
+  const id = 'env.edge.SENTRY_SAMPLE_RATE_WARNING';
+  assertEquals(find(evaluateEdgeEnv(getter({}), true), id).detail, 'Default 0.25');
+  assertEquals(
+    find(evaluateEdgeEnv(getter({ SENTRY_SAMPLE_RATE_WARNING: '0.25' }), true), id).status,
+    'ok'
+  );
+  assertEquals(
+    find(evaluateEdgeEnv(getter({ SENTRY_SAMPLE_RATE_WARNING: '2' }), true), id).status,
+    'error'
+  );
+});
+
 Deno.test('review pepper is recommended in production only', () => {
   const id = 'env.edge.REVIEW_IDENTITY_PEPPER';
   assertEquals(find(evaluateEdgeEnv(getter({}), true), id).status, 'warn');

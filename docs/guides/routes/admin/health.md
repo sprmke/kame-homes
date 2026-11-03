@@ -81,13 +81,17 @@ Full walkthrough: `docs/guides/testing/observability-manual.md`.
   Vault is read for **names** only.
 - **Coverage.** Every `Deno.env.get` key used by edge functions and every `import.meta.env.VITE_*`
   key used by the UI has a registry row (tuning knobs show `Default N` when unset; legacy social URL
-  fallbacks are grouped under **Legacy**). New keys this round: `REVIEW_IDENTITY_PEPPER`
+  fallbacks are grouped under **Legacy**). Rows added for `SENTRY_SAMPLE_RATE_WARNING`,
+  `ASSISTANT_TOOL_TIMEOUT_MS`, `ASSISTANT_TURN_DEADLINE_MS`, `VITE_SENTRY_TRACES_SAMPLE_RATE`,
+  `VITE_CANONICAL_APP_ORIGIN`, `VITE_LEGACY_APP_HOSTS`, `VITE_SUPER_ADMIN_EMAILS`,
+  `VITE_VIDEO_EDITOR_V2`, `VITE_REMOTION_LICENSE_KEY`. Earlier round: `REVIEW_IDENTITY_PEPPER`
   (prodRecommended), `META_OAUTH_EXTRA_SCOPES`, `CALENDAR_SYNC_MIN_INTERVAL_MINUTES`,
   `AI_ASSISTANT_ATTACHMENT_RETENTION_DAYS`, `GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS`,
   `FACEBOOK_REVIEWS_URL` / `AIRBNB_URL` / `INSTAGRAM_URL` / `TIKTOK_URL`; UI
   `VITE_SUPABASE_PROJECT_URL`, `VITE_PLATFORM_CONTACT_PHONE`, `VITE_PLATFORM_SOCIAL_*`,
   `VITE_POSTHOG_HOST` / `_INGEST_PATH` / `_SESSION_REPLAY`, `VITE_APP_TRACK`,
   `VITE_SUPABASE_IMAGE_TRANSFORMS`, `VITE_IMAGE_OPT_SURFACES`.
+  Keep it honest with `bun run env:audit` (it fails when code reads a key with no registry row).
 - **UI and edge match** (Configuration): compares the UI build's Supabase project ref
   (`VITE_SUPABASE_URL`) with the edge runtime's, and `VITE_VAPID_PUBLIC_KEY` with the public half of
   `VAPID_KEYS`. Skipped when either side cannot be compared (local URLs).
@@ -98,9 +102,10 @@ Full walkthrough: `docs/guides/testing/observability-manual.md`.
   `VITE_INBOX_MOCK_DATA=true`, `VITE_DISABLE_IMAGE_OPTIMIZATION=1`; plus platform
   settings (maintenance mode, signups, authenticated rate-limit enforcement) and AI switches (platform
   AI on, quota enforcement). Rows with a fix link go to Platform settings or the AI console.
-- **Jobs.** Every `serveCronPost` function, plus `sd-refund-cron` (unscoped runs), `calendar-sync-cron`
-  (global sweep) and `superhost-assessment-cron` (cron-secret runs), writes one row per run to
-  `system_job_heartbeats` via `record_system_job_heartbeat`. Auth failures are not recorded. The
+- **Jobs.** Every `serveCronPost` function writes one row per run to `system_job_heartbeats` via
+  `record_system_job_heartbeat`. `sd-refund-cron`, `calendar-sync-cron` and
+  `superhost-assessment-cron` use raw `serve()` handlers and still show **Unknown** until the same
+  heartbeat call is wired into their cron paths (follow-up). Auth failures are not recorded. The
   expected interval comes from the matching `cron.job` schedule (matched by `/functions/v1/<fn>` in the
   command). Status order: not used in production → off; no pg_cron → unknown; not scheduled / paused →
   warn in production, off elsewhere; 3+ consecutive failures → error; no heartbeat → unknown; last run

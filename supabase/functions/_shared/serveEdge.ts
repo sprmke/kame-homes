@@ -14,6 +14,7 @@ import { captureSentryException } from './sentry.ts';
 import { sendCronCheckIn, type CronMonitorConfig } from './sentryCron.ts';
 import { getPlatformSettingsSnapshot } from './platformSettingsCache.ts';
 import { checkRateLimit, identityFromRequest, isIdentityBlocked } from './rateLimit.ts';
+import { recordJobHeartbeat } from './systemHealth/jobHeartbeat.ts';
 
 /**
  * Default per-user authenticated-wrapper limit — production-readiness doc 23
@@ -189,7 +190,16 @@ export function serveCronPost(
       }
       if (cron) await sendCronCheckIn(cron, 'in_progress');
       const startedAt = Date.now();
-      const result = await run();
+      let result: Record<string, unknown>;
+      try {
+        result = await run();
+      } catch (error) {
+        // Record the failed run before the outer handler logs it, so the health page sees
+        // consecutive failures instead of a stalled "no runs yet" row.
+        await recordJobHeartbeat(logPrefix, { ok: false, startedAt, error });
+        throw error;
+      }
+      await recordJobHeartbeat(logPrefix, { ok: true, startedAt });
       if (cron) await sendCronCheckIn(cron, 'ok', { durationMs: Date.now() - startedAt });
       console.log(`[${logPrefix}]`, JSON.stringify(result));
       return jsonResponse(req, { success: true, ...result });

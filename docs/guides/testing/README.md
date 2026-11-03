@@ -92,6 +92,7 @@ interactive controls have an accessible name.
 | [`public-marketing-playwright.md`](./public-marketing-playwright.md)     | Landing, search, listings, legal    |
 | [`super-admin-manual.md`](./super-admin-manual.md)                       | Super admin OTP + payouts           |
 | [`cost-abuse-verification.md`](./cost-abuse-verification.md)             | Cost/abuse/security dev verify      |
+| [`local-google-setup.md`](./local-google-setup.md)                       | Local Maps key + OAuth client       |
 
 Manual-only (existing):
 
