@@ -436,6 +436,6 @@ thousands.
       **Done** — the copy is live. The ordering was violated historically; recorded, not retroactively fixable.
 - [x] Docs from README "Docs to update" table, new `observability.mdc` rule + skill.
 - [x] Production rollout checklist (doc 05 §6). Production Supabase secrets need `kamewave`.
-      **Done** — secrets are set on the single project and the pipeline is `cd-prod`. One follow-up remains outside this plan: 17 migrations are pending on `fwor…` and need the kamewave unlock.
+      **Done** — secrets are set on the single project and the pipeline is `cd-prod`. The pending migrations were applied on 2026-11-03 (429/429) and every function redeployed, so schema and code agree.
 - [ ] Move this folder to `docs/workflow/done/` by hand (the move script handles single
       files only) and update both READMEs + intake scratchpads.
