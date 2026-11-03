@@ -80,9 +80,16 @@ docker exec -i supabase_db_guest-form-management psql -U postgres -d restore_dri
 
 ## Follow-ups
 
-| #   | Item                                                                                               |
-| --- | -------------------------------------------------------------------------------------------------- |
+| #   | Item                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | ~~Product decision on same-day bookings~~ — decided 2026-11-03: day use is allowed; `valid_dates` now permits equal dates and is validated, 41 legacy reversed rows grandfathered. See [`same-day-stays-2026-11-03.md`](./same-day-stays-2026-11-03.md) |
-| 2   | `PROD_DB_URL` (or equivalent) so one drill covers auth/storage/cron metadata end to end            |
-| 3   | Repeat the drill after each release and record the numbers here                                    |
-| 4   | Add `audit-booking-dates.mjs` to the deploy preflight                                              |
+| 2   | `PROD_DB_URL` (or equivalent) so one drill covers auth/storage/cron metadata end to end                                                                                                                                                                 |
+| 3   | Repeat the drill after each release and record the numbers here                                                                                                                                                                                         |
+| 4   | Add `audit-booking-dates.mjs` to the deploy preflight                                                                                                                                                                                                   |
+
+## Re-run after the strict constraint (2026-11-03)
+
+With the 65 legacy rows repaired and `20261318120000_strict_valid_dates.sql` live (constraint
+validated, no grandfather clause), a fresh production backup restored into a scratch database in
+**2 s**: 0 `valid_dates` errors, 1 organization, 1 property, **450/450 bookings**, constraint back as
+`convalidated = true`. The cutover/DR path this document flagged as broken is now clean.
