@@ -20,8 +20,11 @@ import {
 } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { ThemeContextBar } from '@/features/dashboard/marketing/components/themes/ThemeContextBar';
 import { ThemesHome } from '@/features/dashboard/marketing/components/themes/ThemesHome';
-import type { VideoExportPayload } from '@/features/dashboard/marketing/components/video-editor/VideoEditor';
-import { loadMarketingEditor } from '@/features/dashboard/marketing/lib/marketingEditorPreload';
+import type { MarketingVideoExportPayload } from '@/features/dashboard/marketing/lib/marketingEditorPreload';
+import {
+  loadMarketingEditor,
+  loadMarketingVideoEditor,
+} from '@/features/dashboard/marketing/lib/marketingEditorPreload';
 import {
   isMarketingEditorTab,
   normalizeMarketingStudioTab,
@@ -43,7 +46,7 @@ const DesignEditor = lazy(() =>
   loadMarketingEditor.design().then((m) => ({ default: m.DesignEditor }))
 );
 const VideoEditor = lazy(() =>
-  loadMarketingEditor.video().then((m) => ({ default: m.VideoEditor }))
+  loadMarketingVideoEditor().then((m) => ({ default: m.VideoEditor }))
 );
 const MarketingCalendarSection = lazy(() =>
   loadMarketingEditor.calendar().then((m) => ({ default: m.MarketingCalendarSection }))
@@ -153,7 +156,7 @@ function MarketingStudioWorkspace() {
               <VideoEditor
                 document={document}
                 nav={nav}
-                onPublish={(payload: VideoExportPayload) =>
+                onPublish={(payload: MarketingVideoExportPayload) =>
                   openPublishWithBlob(payload.blob, 'video', payload.templateId)
                 }
               />

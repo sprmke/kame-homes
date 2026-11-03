@@ -1,6 +1,7 @@
 import { renderStillOnWeb } from '@remotion/web-renderer';
 
 import { CampaignVideoComposition } from '@/features/dashboard/marketing/components/video-editor/VideoCompositions';
+import { CampaignVideoCompositionV2 } from '@/features/dashboard/marketing/components/video-editor/VideoCompositionV2';
 import type { DesignBinding } from '@/features/dashboard/marketing/lib/designCanvasTypes';
 import { blobToDataUrl } from '@/features/dashboard/marketing/lib/exportVideoMedia';
 import { resolveMarketingThumbBinding } from '@/features/dashboard/marketing/lib/marketingDefaultBinding';
@@ -17,6 +18,8 @@ import {
   sceneStartFrame,
   videoProjectDurationInFrames,
 } from '@/features/dashboard/marketing/lib/video/videoProjectUtils';
+import { projectDurationInFrames } from '@/features/dashboard/marketing/lib/video/v2/timelineTiming';
+import type { VideoProjectV2 } from '@/features/dashboard/marketing/lib/video/v2/videoProjectV2Types';
 import { getSceneLayers } from '@/features/dashboard/marketing/lib/video/videoSceneLayers';
 import {
   getVideoCampaignTemplate,
@@ -222,4 +225,97 @@ export async function renderVideoProjectThumbnail(
       return null;
     }
   });
+}
+
+/**
+ * Still of a v2 (track timeline) project. Audio tracks are dropped: a thumbnail never needs
+ * sound, and their URLs are Jamendo/CDN streams that would fail the canvas CORS check.
+ */
+export async function renderVideoProjectThumbnailV2(
+  project: VideoProjectV2,
+  brandColor?: string,
+  theme?: MarketingThemeTokens | null
+): Promise<string | null> {
+  if (typeof document !== 'undefined' && document.hidden) {
+    return null;
+  }
+
+  return runVideoThumbnailCapture(async () => {
+    const dims = VIDEO_FORMAT_DIMENSIONS[project.format];
+    const durationInFrames = projectDurationInFrames(project);
+    const frame = thumbnailFrameForProjectV2(project);
+
+    try {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise<void>((resolve) => window.setTimeout(resolve, 400)),
+      ]);
+      await preloadProjectV2Images(project);
+
+      const stillProps = {
+        project: {
+          ...project,
+          tracks: project.tracks.filter((track) => track.kind !== 'audio'),
+        },
+        brandColor,
+        theme: theme ?? null,
+        previewMuted: true,
+      };
+
+      const result = await renderStillOnWeb({
+        composition: {
+          id: project.templateId,
+          component: CampaignVideoCompositionV2,
+          width: dims.width,
+          height: dims.height,
+          fps: project.fps,
+          durationInFrames,
+          defaultProps: stillProps,
+        },
+        inputProps: stillProps,
+        frame,
+        scale: THUMB_SCALE,
+      });
+
+      const blob = await result.blob({ format: 'jpeg', quality: 0.78 });
+      if (!blob || blob.size < 64) return null;
+      return blobToDataUrl(blob);
+    } catch {
+      return null;
+    }
+  });
+}
+
+/** Frame inside the first main-track clip, late enough that its enter motion has settled. */
+export function thumbnailFrameForProjectV2(project: VideoProjectV2): number {
+  const main = project.tracks.find((track) => track.kind === 'main');
+  const first = main?.items[0];
+  if (!first) return Math.min(1, Math.max(projectDurationInFrames(project) - 1, 0));
+  const offset = Math.min(
+    Math.max(first.durationInFrames - 1, 0),
+    Math.round(first.durationInFrames * 0.6)
+  );
+  return Math.min(first.from + offset, Math.max(projectDurationInFrames(project) - 1, 0));
+}
+
+async function preloadProjectV2Images(project: VideoProjectV2): Promise<void> {
+  const urls = new Set<string>();
+  for (const track of project.tracks) {
+    for (const item of track.items) {
+      if (item.type === 'image' && item.media.url) urls.add(item.media.url);
+      if (item.type === 'layer' && item.layer.imageUrl) urls.add(item.layer.imageUrl);
+    }
+  }
+  await Promise.all(
+    [...urls].map(
+      (url) =>
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = url;
+        })
+    )
+  );
 }
