@@ -8,7 +8,33 @@
 -- `marketing.content:edit`. Roles that never had the source leaves are untouched, and the new
 -- leaves stay individually revocable (no read-time expansion).
 --
--- Reuses `_gfm_grant_leaf_if_has` from 20261316125000_team_permissions_plan_coverage_leaves.sql.
+-- The grant helper is created and dropped here, exactly like the earlier leaf migrations do:
+-- it is a per-migration utility, not a permanent function.
+
+CREATE OR REPLACE FUNCTION public._gfm_grant_leaf_if_has(
+  raw jsonb,
+  source_leaves text[],
+  new_leaf text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+BEGIN
+  IF raw IS NULL OR jsonb_typeof(raw) <> 'array' THEN
+    RETURN raw;
+  END IF;
+  IF raw ? new_leaf THEN
+    RETURN raw;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(source_leaves) AS s(leaf) WHERE raw ? s.leaf
+  ) THEN
+    RETURN raw || to_jsonb(new_leaf);
+  END IF;
+  RETURN raw;
+END;
+$$;
 
 -- Property scope ----------------------------------------------------------------------------
 
@@ -27,3 +53,5 @@ UPDATE public.property_custom_roles
 SET permissions = public._gfm_grant_leaf_if_has(permissions, ARRAY['marketing.content:edit'], 'marketing.media:delete');
 UPDATE public.property_invitations
 SET permissions = public._gfm_grant_leaf_if_has(permissions, ARRAY['marketing.content:edit'], 'marketing.media:delete');
+
+DROP FUNCTION public._gfm_grant_leaf_if_has(jsonb, text[], text);
