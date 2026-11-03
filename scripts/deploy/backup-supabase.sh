@@ -114,6 +114,7 @@ MANAGED_DATA_FILE="$BACKUP_DIR/${STAMP}_managed_data.sql"
 DB_URL=""
 if [[ "$ENV_ARG" == "prod" ]]; then
   DB_URL="${PROD_DB_URL:-}"
+  [[ -z "$DB_URL" ]] && DB_URL="$(read_env_file_var "$ROOT/supabase/.env.management.local" "PROD_DB_URL")"
   [[ -z "$DB_URL" ]] && DB_URL="$(read_env_file_var "$ROOT/supabase/.env.local" "PROD_DB_URL")"
 else
   DB_URL="${DEV_DB_URL:-}"

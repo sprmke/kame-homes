@@ -424,6 +424,21 @@ export const EDGE_ENV_REGISTRY: EnvDef[] = [
     validate: validateSentryDsn,
   },
   {
+    key: 'SENTRY_SAMPLE_RATE_WARNING',
+    group: OBSERVABILITY,
+    level: 'optional',
+    features: ['Error monitoring sampling'],
+    showValue: true,
+    defaultValue: '0.25',
+    validate: (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 && n <= 1
+        ? null
+        : { status: 'error', detail: 'Use a number from 0 to 1' };
+    },
+    hint: 'Only warning-level edge captures are sampled. Dev 1, production 0.25.',
+  },
+  {
     key: 'APP_RELEASE',
     group: OBSERVABILITY,
     level: 'optional',
@@ -472,6 +487,26 @@ export const EDGE_ENV_REGISTRY: EnvDef[] = [
     showValue: true,
     defaultValue: '30',
     validate: validatePositiveNumber,
+  },
+  {
+    key: 'ASSISTANT_TOOL_TIMEOUT_MS',
+    group: TUNING,
+    level: 'optional',
+    features: ['AI assistant'],
+    showValue: true,
+    defaultValue: '20000',
+    validate: validatePositiveNumber,
+    hint: 'Per-tool call cap in ms. Defaults to 20s when unset.',
+  },
+  {
+    key: 'ASSISTANT_TURN_DEADLINE_MS',
+    group: TUNING,
+    level: 'optional',
+    features: ['AI assistant'],
+    showValue: true,
+    defaultValue: '110000',
+    validate: validatePositiveNumber,
+    hint: 'Whole-turn budget in ms (20s to 140s). Defaults to 110s when unset.',
   },
 
   ...['FACEBOOK_REVIEWS_URL', 'AIRBNB_URL', 'INSTAGRAM_URL', 'TIKTOK_URL'].map((key): EnvDef => ({

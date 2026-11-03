@@ -2,15 +2,15 @@
 /**
  * Sync local secrets → hosted multi-tenant DEV (linked Supabase project fwor…).
  *
- * 1. Merge shared edge secrets from supabase/.env.local into supabase/.env.dev.local
- * 2. Align ui/.env.development.dev with hosted-dev branding / observability / PWA keys
- * 3. Push edge secrets to linked Supabase (DEV)
- * 4. Unset legacy Google/Gmail secrets migrated to DB
+ * 1. Align ui/.env.development.dev with hosted branding / observability / PWA keys
+ * 2. Report hosted keys missing from supabase/.env.dev.local (never copies local values)
+ * 3. Optionally push supabase/.env.dev.local edge secrets to the hosted project
  *
  * Usage:
- *   bun scripts/dev/sync-dev-env.mjs [--dry-run] [--skip-remote] [--skip-local]
+ *   bun scripts/dev/sync-dev-env.mjs [--dry-run] [--skip-remote] [--skip-local] [--push-hosted]
  *
- * Does NOT touch Vercel (requires a valid `vercel login`) or LEGACY/prod Supabase.
+ * `fwor…` is the production project, so pushing secrets is a production write: it only runs
+ * with `--push-hosted`. Does NOT touch Vercel or LEGACY/prod Supabase.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -18,24 +18,27 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   POSTHOG_UI_TO_EDGE,
+  UI_HOSTED_ONLY_KEYS,
   UI_SHARED_KEYS,
   readEnvFile,
   setAlways,
-  setIfMissing,
   writeSectionedEnvSync,
 } from './env-sync-lib.mjs';
+import { SCHEMAS } from './env-file-schemas.mjs';
 
 const ROOT = join(import.meta.dir, '../..');
 const DRY_RUN = process.argv.includes('--dry-run');
 const SKIP_REMOTE = process.argv.includes('--skip-remote');
 const SKIP_LOCAL = process.argv.includes('--skip-local');
+const PUSH_HOSTED = process.argv.includes('--push-hosted');
 
 const DEV_REF = 'fworvijbrwpyngycotbz';
 const DEV_ORIGIN = 'https://kamespace.com';
 const DEV_SUPABASE_URL = `https://${DEV_REF}.supabase.co`;
 
-/** Keys that belong on hosted DEV edge secrets (copied from .env.local when missing). */
-const DEV_EDGE_FROM_LOCAL = [
+/** Keys that belong on the hosted edge project. The hosted file is authoritative:
+ * `.env.local` is a local stack file and its values must never be copied here. */
+const DEV_EDGE_KEYS = [
   'ENVIRONMENT',
   'ADMIN_ALLOWED_EMAILS',
   'SUPER_ADMIN_EMAILS',
@@ -78,6 +81,7 @@ const DEV_EDGE_FROM_LOCAL = [
   'VAPID_SUBJECT',
   'PUSH_FANOUT_SECRET',
   'PLATFORM_APP_NAME',
+  'REVIEW_IDENTITY_PEPPER',
   'SD_REFUND_CRON_SECRET',
   'TELEGRAM_CRON_SECRET',
   'TELEGRAM_STAFF_CRON_SECRET',
@@ -98,6 +102,10 @@ const DEV_EDGE_FROM_LOCAL = [
   'ANALYTICS_AI_REVIEW_CRON_SECRET',
   'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
   'ACTIVITY_LOG_RETENTION_CRON_SECRET',
+  'QUERY_CACHE_SWEEP_CRON_SECRET',
+  'VOICE_RECEPTIONIST_REAPER_SECRET',
+  'VOICE_RECEPTIONIST_CANARY_SECRET',
+  'REVIEW_LIFECYCLE_CRON_SECRET',
 ];
 
 /** Never push to hosted DEV from local-only ngrok / override paths. */
@@ -122,22 +130,6 @@ const LEGACY_REMOTE_UNSET = [
   'GOOGLE_SERVICE_ACCOUNT',
   'GOOGLE_SPREADSHEET_ID',
 ];
-
-/** Copied from .env.local → .env.dev.local with setAlways (not only when missing). */
-const EDGE_ALWAYS_FROM_LOCAL = new Set([
-  'TURNSTILE_SECRET_KEY',
-  'CAPTCHA_MODE',
-  'POSTHOG_API_KEY',
-  'POSTHOG_HOST',
-  'SENTRY_DSN',
-  'SENTRY_SAMPLE_RATE_WARNING',
-  'PUSH_FANOUT_SECRET',
-  'GUEST_BOOKING_ACCESS_SECRET',
-  'GUEST_BOOKING_ACCESS_ENFORCE',
-  'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
-  'SUPER_ADMIN_VERIFICATION_SECRET',
-  'MARKETING_GENERATION_CRON_SECRET',
-]);
 
 const UI_SECTIONS_HOSTED = [
   { title: 'App', keys: ['VITE_NODE_ENV'] },
@@ -164,7 +156,10 @@ const UI_SECTIONS_HOSTED = [
   { title: 'Anti-spam', keys: ['VITE_TURNSTILE_SITE_KEY'] },
 ];
 
-/** Propagate shared UI keys across development env files (ui/.env stays PostHog-only). */
+/** Propagate shared UI keys across development env files (ui/.env stays PostHog-only).
+ * Hosted telemetry keys sync between `ui/.env` and `ui/.env.development.dev` only; the
+ * local profile keeps its own (empty) values so a laptop never writes to production
+ * analytics or error tracking. */
 function mergeUiShared() {
   const uiRootPath = join(ROOT, 'ui/.env');
   const uiDevPath = join(ROOT, 'ui/.env.development');
@@ -175,23 +170,16 @@ function mergeUiShared() {
   const uiHosted = readEnvFile(uiHostedPath);
   const changes = [];
 
-  const posthogKeys = ['VITE_POSTHOG_KEY', 'VITE_POSTHOG_HOST'];
-  for (const key of posthogKeys) {
-    const canonical =
-      uiRoot.get(key)?.trim() || uiDev.get(key)?.trim() || uiHosted.get(key)?.trim() || '';
+  for (const key of UI_HOSTED_ONLY_KEYS) {
+    const canonical = uiRoot.get(key)?.trim() || uiHosted.get(key)?.trim() || '';
     if (!canonical) continue;
-    for (const [label, map] of [
-      ['ui/.env', uiRoot],
-      ['ui/.env.development', uiDev],
-      ['ui/.env.development.dev', uiHosted],
-    ]) {
+    for (const [label, map] of [['ui/.env.development.dev', uiHosted]]) {
       const r = setAlways(map, key, canonical);
       if (r) changes.push(`${label}: ${r} ${key}`);
     }
   }
 
-  const devOnlyKeys = UI_SHARED_KEYS.filter((k) => !posthogKeys.includes(k));
-  for (const key of devOnlyKeys) {
+  for (const key of UI_SHARED_KEYS) {
     const canonical =
       uiDev.get(key)?.trim() || uiHosted.get(key)?.trim() || uiRoot.get(key)?.trim() || '';
     if (!canonical) continue;
@@ -205,14 +193,6 @@ function mergeUiShared() {
   }
 
   if (!SKIP_LOCAL && !DRY_RUN) {
-    if (existsSync(uiRootPath)) {
-      writeSectionedEnvSync(
-        uiRootPath,
-        [{ title: 'Observability (all modes)', keys: posthogKeys }],
-        uiRoot,
-        DRY_RUN
-      );
-    }
     if (existsSync(uiHostedPath)) {
       writeSectionedEnvSync(uiHostedPath, UI_SECTIONS_HOSTED, uiHosted, DRY_RUN);
     }
@@ -222,17 +202,18 @@ function mergeUiShared() {
   for (const c of changes) console.log(`  - ${c}`);
 }
 
-/** Mirror VITE_POSTHOG_* → POSTHOG_* on supabase/.env.local (mergeDevLocal copies to .env.dev.local). */
+/** Mirror VITE_POSTHOG_* → POSTHOG_* on the hosted edge file only.
+ * Never writes to `supabase/.env.local`: local edge must not report to production PostHog. */
 function syncPosthogToEdge() {
   const uiRoot = readEnvFile(join(ROOT, 'ui/.env'));
-  const uiDev = readEnvFile(join(ROOT, 'ui/.env.development'));
+  const uiDev = readEnvFile(join(ROOT, 'ui/.env.development.dev'));
   const posthogKey =
     uiRoot.get('VITE_POSTHOG_KEY')?.trim() || uiDev.get('VITE_POSTHOG_KEY')?.trim() || '';
   const posthogHost =
     uiRoot.get('VITE_POSTHOG_HOST')?.trim() || uiDev.get('VITE_POSTHOG_HOST')?.trim() || '';
   if (!posthogKey && !posthogHost) return;
 
-  const localPath = join(ROOT, 'supabase/.env.local');
+  const localPath = join(ROOT, 'supabase/.env.dev.local');
   if (!existsSync(localPath)) return;
   const map = readEnvFile(localPath);
   const changes = [];
@@ -245,10 +226,9 @@ function syncPosthogToEdge() {
     if (r) changes.push(`${r} POSTHOG_HOST`);
   }
   if (changes.length) {
-    console.log('syncPosthogToEdge (supabase/.env.local):');
+    console.log('syncPosthogToEdge (supabase/.env.dev.local):');
     for (const c of changes) console.log(`  - ${c}`);
   }
-  // Patch .env.local in place; mergeDevLocal + reorganize finish formatting.
   if (!SKIP_LOCAL && !DRY_RUN && changes.length > 0) {
     let raw = readFileSync(localPath, 'utf8');
     for (const [k, v] of [
@@ -265,9 +245,7 @@ function syncPosthogToEdge() {
 }
 
 function mergeDevLocal() {
-  const localPath = join(ROOT, 'supabase/.env.local');
   const devPath = join(ROOT, 'supabase/.env.dev.local');
-  const local = readEnvFile(localPath);
   const dev = readEnvFile(devPath);
 
   const changes = [];
@@ -278,14 +256,17 @@ function mergeDevLocal() {
     ['DEV_SUPABASE_URL', DEV_SUPABASE_URL, 'dev url'],
     ['PUBLIC_API_URL', DEV_SUPABASE_URL, 'public api'],
     ['PUBLIC_GUEST_APP_ORIGIN', DEV_ORIGIN, 'guest origin'],
-    ['ENVIRONMENT', 'development', 'environment'],
+    // fwor… serves production, so this file must never say development: a secret push
+    // with ENVIRONMENT=development would disable cron secret enforcement in production.
+    ['ENVIRONMENT', 'production', 'environment'],
   ]) {
     const r = setAlways(dev, key, value);
     if (r) changes.push(`${r} ${key} (${label})`);
   }
 
-  // Meta OAuth return origins must include hosted-dev SPA
-  const metaOrigins = 'http://127.0.0.1:5173,http://localhost:5173,https://kamespace.com';
+  // Meta OAuth return origins for the hosted app only. Localhost belongs in
+  // supabase/.env.local, never in the hosted project.
+  const metaOrigins = `${DEV_ORIGIN},https://www.kamespace.com`;
   const rMeta = setAlways(dev, 'META_OAUTH_ALLOWED_RETURN_ORIGINS', metaOrigins);
   if (rMeta) changes.push(`${rMeta} META_OAUTH_ALLOWED_RETURN_ORIGINS`);
 
@@ -296,14 +277,7 @@ function mergeDevLocal() {
     if (rSuper) changes.push(`${rSuper} SUPER_ADMIN_EMAILS (from VITE_SUPER_ADMIN_EMAILS)`);
   }
 
-  for (const key of DEV_EDGE_FROM_LOCAL) {
-    const fromLocal = local.get(key)?.trim();
-    if (!fromLocal) continue;
-    const r = EDGE_ALWAYS_FROM_LOCAL.has(key)
-      ? setAlways(dev, key, fromLocal)
-      : setIfMissing(dev, key, fromLocal);
-    if (r) changes.push(`${r} ${key} from .env.local`);
-  }
+  const missing = DEV_EDGE_KEYS.filter((key) => !dev.get(key)?.trim());
 
   // Drop misplaced UI-only key if present
   if (dev.has('PLATFORM_CONTACT_EMAIL')) {
@@ -311,99 +285,7 @@ function mergeDevLocal() {
     changes.push('removed PLATFORM_CONTACT_EMAIL (UI-only → VITE_PLATFORM_CONTACT_EMAIL)');
   }
 
-  const sections = [
-    {
-      title: 'Dev project',
-      keys: ['DEV_PROJECT_REF', 'DEV_SUPABASE_URL', 'DEV_SERVICE_ROLE_KEY', 'PROD_PROJECT_REF'],
-    },
-    { title: 'Scripts', keys: ['DEV_DB_URL'] },
-    { title: 'Env', keys: ['ENVIRONMENT', 'DENO_ENV'] },
-    { title: 'URLs', keys: ['PUBLIC_GUEST_APP_ORIGIN', 'PUBLIC_API_URL', 'SUPABASE_PUBLIC_URL'] },
-    { title: 'Auth', keys: ['ADMIN_ALLOWED_EMAILS', 'SUPER_ADMIN_EMAILS'] },
-    {
-      title: 'Email',
-      keys: [
-        'RESEND_API_KEY',
-        'RESEND_FROM_EMAIL',
-        'RESEND_INBOUND_WEBHOOK_SECRET',
-        'RESEND_APPROVAL_INBOUND_DOMAIN',
-        'SUPPORT_TEAM_EMAIL',
-      ],
-    },
-    {
-      title: 'Crypto',
-      keys: [
-        'GMAIL_OAUTH_TOKEN_ENCRYPTION_KEY',
-        'SETTINGS_VERIFICATION_SECRET',
-        'SUPER_ADMIN_VERIFICATION_SECRET',
-      ],
-    },
-    { title: 'Anti-spam', keys: ['TURNSTILE_SECRET_KEY', 'CAPTCHA_MODE'] },
-    {
-      title: 'Guest booking access',
-      keys: [
-        'GUEST_BOOKING_ACCESS_SECRET',
-        'GUEST_BOOKING_ACCESS_ENFORCE',
-        'GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS',
-      ],
-    },
-    {
-      title: 'Social fallbacks',
-      keys: ['FACEBOOK_REVIEWS_URL', 'AIRBNB_URL', 'INSTAGRAM_URL', 'TIKTOK_URL'],
-    },
-    {
-      title: 'AI',
-      keys: [
-        'GEMINI_API_KEYS',
-        'GEMINI_API_KEY',
-        'GROQ_API_KEY',
-        'AI_PLATFORM_DAILY_COST_USD_CAP',
-        'AI_ASSISTANT_ATTACHMENT_RETENTION_DAYS',
-      ],
-    },
-    {
-      title: 'Meta',
-      keys: [
-        'META_APP_ID',
-        'META_APP_SECRET',
-        'META_INBOX_TOKEN_ENCRYPTION_KEY',
-        'META_WEBHOOK_VERIFY_TOKEN',
-        'META_OAUTH_ALLOWED_RETURN_ORIGINS',
-        'META_OAUTH_EXCLUDE_PUBLISHING_SCOPES',
-        'META_OAUTH_EXTRA_SCOPES',
-      ],
-    },
-    { title: 'PayMongo', keys: ['PAYMONGO_SECRET_KEY', 'PAYMONGO_WEBHOOK_SECRET'] },
-    { title: 'Jamendo', keys: ['JAMENDO_CLIENT_ID'] },
-    { title: 'Observability', keys: ['POSTHOG_API_KEY', 'POSTHOG_HOST'] },
-    { title: 'PWA Web Push', keys: ['VAPID_KEYS', 'VAPID_SUBJECT', 'PUSH_FANOUT_SECRET'] },
-    { title: 'Platform email branding', keys: ['PLATFORM_APP_NAME'] },
-    {
-      title: 'Cron secrets',
-      keys: [
-        'SD_REFUND_CRON_SECRET',
-        'TELEGRAM_CRON_SECRET',
-        'TELEGRAM_STAFF_CRON_SECRET',
-        'TELEGRAM_ADMIN_CRON_SECRET',
-        'TELEGRAM_FINANCE_CRON_SECRET',
-        'TELEGRAM_MAINTENANCE_CRON_SECRET',
-        'PARKING_BROADCAST_EXPIRE_CRON_SECRET',
-        'PARKING_REMINDER_CRON_SECRET',
-        'CONTRACT_EXPIRY_CRON_SECRET',
-        'DASHBOARD_ASSISTANT_EXPIRE_CRON_SECRET',
-        'META_INBOX_WEBHOOK_HEALTHCHECK_CRON_SECRET',
-        'PLATFORM_BILLING_CRON_SECRET',
-        'CALENDAR_SYNC_CRON_SECRET',
-        'CALENDAR_SYNC_MIN_INTERVAL_MINUTES',
-        'SMART_PRICING_CRON_SECRET',
-        'MARKETING_GENERATION_CRON_SECRET',
-        'SUPERHOST_ASSESSMENT_CRON_SECRET',
-        'ANALYTICS_AI_REVIEW_CRON_SECRET',
-        'PROPERTY_PAGE_VIEWS_PRUNE_CRON_SECRET',
-        'ACTIVITY_LOG_RETENTION_CRON_SECRET',
-      ],
-    },
-  ];
+  const sections = SCHEMAS['supabase/.env.dev.local'].sections;
 
   if (!SKIP_LOCAL) {
     writeSectionedEnvSync(devPath, sections, dev, DRY_RUN);
@@ -411,6 +293,10 @@ function mergeDevLocal() {
       `${DRY_RUN ? 'would update' : 'updated'} supabase/.env.dev.local (${changes.length} field changes)`
     );
     for (const c of changes) console.log(`  - ${c}`);
+    if (missing.length) {
+      console.warn(`  ${missing.length} hosted key(s) still missing (set them in the dashboard):`);
+      for (const key of missing) console.warn(`    - ${key}`);
+    }
   }
 
   return dev;
@@ -462,12 +348,20 @@ function pushSupabaseSecrets(dev) {
     console.log('skip remote supabase secrets');
     return;
   }
+  if (!PUSH_HOSTED) {
+    console.log(
+      'skip hosted secrets push (fwor… is production). Pass --push-hosted to sync supabase/.env.dev.local.'
+    );
+    return;
+  }
 
-  // Confirm linked project is DEV
+  // Confirm the linked project is the expected hosted ref
   const status = spawnSync('bun', ['run', 'env:status'], { cwd: ROOT, encoding: 'utf8' });
   const out = `${status.stdout}\n${status.stderr}`;
-  if (!out.includes(DEV_REF) || !out.includes('(dev)')) {
-    console.error('Refusing remote secret push — linked project is not multi-tenant DEV:');
+  if (!out.includes(DEV_REF)) {
+    console.error(
+      'Refusing remote secret push — linked project is not the expected hosted project:'
+    );
     console.error(out.trim());
     process.exit(1);
   }

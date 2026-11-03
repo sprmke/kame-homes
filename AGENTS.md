@@ -36,6 +36,8 @@ bun run deploy:supabase:dev     # deploy migrations + functions to dev project
 bun run backup:supabase:dev / :prod     # pre-deploy backups (also automatic before deploy)
 bun run rollback:supabase:dev / :prod   # restore most recent backup (prod: kamewave required)
 bun run env:status                      # which Supabase project is linked (dev/prod/unknown)
+bun run env:backup                      # snapshot every real env file → .env-backups/<stamp>/
+bun run env:audit -- --hosted --vercel  # read-only env health check (registry, drift, leaks)
 bun run setup:ai-tooling        # once after clone: Cursor/Codex/OpenCode + .agent skills, Taste, Playwright CLI, DESIGN.md, MCP
 
 bun run lint / lint:fix / type-check / build / check:filenames / format:check
@@ -151,6 +153,7 @@ Whenever you implement or materially change behavior (features, routes, validati
    3a. If the change adds or edits any form, settings card, editor, or modal with editable fields and a manual Save → invoke **`unsaved-changes-guard`**: wire `useUnsavedChangesGuard` (pages/cards) or `useGuardedClose` (modals) so leaving with unsaved edits prompts Save / Discard / Keep editing. Never hand-roll `beforeunload`/`useBlocker`/leave dialogs.
 4. If the change mutates org / property / parking state (edge write, workflow transition, cron, webhook, direct-write surface, or a guest/public action worth recording) → invoke **`audit-logging`**: emit an `activity_log` event or write `activity-log: N/A — <why>`.
 5. Confirm the matching files below were updated, or explicitly note why the change is docs-exempt (typo / rename-only).
+6. Invoke **`branch-lifecycle`**: the work must be committed, pushed, and on a PR into `develop` before you call it done. Report the PR URL, ask before merging, delete the branch after the merge.
 
 SessionStart and PostToolUse hooks also inject this reminder — do not ignore them.
 
@@ -163,6 +166,7 @@ SessionStart and PostToolUse hooks also inject this reminder — do not ignore t
 | **Pricing plans / tier catalog / `planPresentation` / entitlements**                               | **`/for-hosts/pricing`** (live via `list-public-pricing-plans` + shared `planPresentation.ts`) **and** **`docs/architecture/plans-feature-matrix.md`** + host Plans route guides (`org/plans.md` — the only in-app Plans page, billing is org-level only; `for-hosts.md`)                                                       |
 | **New host feature (Plans and/or Team RBAC)**                                                      | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A in the same change                                                                                                                                                                                        |
 | **New / changed mutating capability (edge write, transition, cron, webhook, guest/public action)** | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event via `_shared/activityLog.ts`, or mark `activity-log: N/A — <why>`, in the same change                                                                                                                                |
+| **Finishing a task, branch or worktree cleanup**                                                   | **`branch-lifecycle`** skill + always-on **`.cursor/rules/branch-lifecycle.mdc`** — land the work on a `develop` PR, delete the branch after merge; audit with `bun run branch:audit`; record in `docs/archive/operations/branch-cleanup-audit.md`                                                                              |
 | Booking status/transition/side-effects                                                             | `.cursor/rules/booking-workflow.mdc` (canonical)                                                                                                                                                                                                                                                                                |
 | Admin auth, allow list, new admin endpoints                                                        | `.cursor/rules/admin-auth.mdc`                                                                                                                                                                                                                                                                                                  |
 | Edge function conventions / JWT policy                                                             | `.cursor/rules/supabase-edge-functions.mdc`                                                                                                                                                                                                                                                                                     |

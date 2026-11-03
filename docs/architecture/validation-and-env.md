@@ -30,17 +30,33 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 ### Files (templates vs secrets)
 
-| File                                                              | Purpose                               |
-| ----------------------------------------------------------------- | ------------------------------------- |
-| `ui/.env.example`                                                 | UI var inventory (placeholders)       |
-| `ui/.env.development.local.example`                               | Local-stack UI-only template          |
-| `ui/.env.development.dev.example`                                 | Hosted-dev UI template                |
-| `supabase/.env.example`                                           | Edge secrets inventory (placeholders) |
-| `supabase/.env.dev.example`                                       | Dev project deploy + `dev:remote-api` |
-| `supabase/.env.prod.example`                                      | Multi-tenant prod bootstrap template  |
-| Gitignored `*.local`, `.env.development`, `.env.production`, etc. | Real values — never commit            |
+| File                                                              | Purpose                                                                                                                      |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `ui/.env.example`                                                 | UI var inventory (placeholders)                                                                                              |
+| `ui/.env.development.local.example`                               | Local-stack UI-only template                                                                                                 |
+| `ui/.env.development.dev.example`                                 | Hosted-dev UI template                                                                                                       |
+| `supabase/.env.example`                                           | Edge secrets inventory (placeholders)                                                                                        |
+| `supabase/.env.dev.example`                                       | Hosted project deploy + `dev:remote-api` reference (fwor… = production)                                                      |
+| `supabase/.env.prod.example`                                      | Multi-tenant prod bootstrap template                                                                                         |
+| `supabase/.env.local`                                             | **Local stack only.** Local/test provider keys, generated local secrets                                                      |
+| `supabase/.env.management.local`                                  | Script-only credentials: `PROD_DB_URL`, `VERCEL_TOKEN`, `SUPABASE_ACCESS_TOKEN`, `TARGET_*`, `LEGACY_*`, `SENTRY_AUTH_TOKEN` |
+| Gitignored `*.local`, `.env.development`, `.env.production`, etc. | Real values — never commit                                                                                                   |
 
-**Backups:** `.env-backups/<date>/` (gitignored). Re-format after edits: `bun run env:reorganize` (`scripts/dev/reorganize-env-files.mjs`).
+**Never** put a hosted/production provider key in `supabase/.env.local`: `functions serve`
+loads that file, so local guest submissions would send real email and burn the production AI
+quota. Hosted values live in `supabase/.env.dev.local` (reference copy) and the Supabase
+dashboard.
+
+**Backups:** `bun run env:backup` (`scripts/dev/env-backup.mjs`) copies every real env file to
+`.env-backups/<UTC stamp>/` with a sha256 + key-name manifest; `bun run env:backup -- --list`
+shows them. Restore one file with `cp`.
+
+**Audit:** `bun run env:audit` checks registry coverage, local-file shape and script-key
+placement. Add `-- --hosted` to compare local values against the hosted project by sha256
+(never reads values back), and `-- --vercel` to check the production UI target and duplicate
+entries. Exit 1 means a real gap.
+
+Re-format after edits: `bun run env:reorganize` (`scripts/dev/reorganize-env-files.mjs`).
 
 **Keep env files in sync:** `bun run env:sync:all` — reorganize → merge UI (`ui/.env` ↔ `.env.development` ↔ `.env.development.dev`) + PostHog → Edge (`VITE_POSTHOG_*` → `POSTHOG_*`) → `supabase/.env.dev.local` → push Supabase DEV secrets → Vercel `kame-homes`. Subcommands: `env:reorganize`, `env:sync:dev` (local + Supabase only), `env:sync:vercel:dev` (Vercel only; requires `vercel login` on `kame-works`). Does **not** touch LEGACY prod.
 
@@ -92,6 +108,12 @@ Production hosted secrets: Supabase Dashboard → Edge Functions → Secrets. UI
 | `VITE_IMAGE_OPT_SURFACES`                                   | No         | Staged rollout. **Unset** → every group optimizes **except `guest-documents`** (held back until the §9.7 OCR gate runs — safe default for dev, staging and prod); `all` → everything incl. guest docs; `none` → nothing; CSV of rollout groups (`settings,galleries,marketing,guest-profile,guest-documents`) or surface ids → only those. Ceiling checks always run. See [`storage.md`](./storage.md) §7.1                                                                                      |
 | `GOOGLE_CLIENT_ID`                                          | Local only | GoTrue Google OAuth — **not** `VITE_*`; loaded before `supabase start`                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `GOOGLE_CLIENT_SECRET`                                      | Local only | Pair with `GOOGLE_CLIENT_ID`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `VITE_CANONICAL_APP_ORIGIN`                                 | No         | Absolute origin the legacy-origin notice links to (defaults to the current origin). Also drives `LegacyOriginNotice`.                                                                                                                                                                                                                                                                                                                                                                            |
+| `VITE_LEGACY_APP_HOSTS`                                     | No         | Comma-separated old hosts that should show the "moved" notice. Inert when unset.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `VITE_SUPER_ADMIN_EMAILS`                                   | No         | Public build-time list used **only** to flag internal PostHog users. Not an auth gate, not PII-safe.                                                                                                                                                                                                                                                                                                                                                                                             |
+| `VITE_SENTRY_TRACES_SAMPLE_RATE`                            | No         | Sentry browser tracing sample rate, `0`–`1`. Unset → 0.05 production, 0.2 preview, 0 local.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `VITE_VIDEO_EDITOR_V2`                                      | No         | `false` falls back to the scene editor. Unset → track editor.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `VITE_REMOTION_LICENSE_KEY`                                 | No         | Remotion licence key baked into the marketing video renderer. Unset → watermark.                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `VITE_VAPID_PUBLIC_KEY`                                     | No         | base64url raw VAPID public key for PWA Web Push. Unset → the "Notifications on this device" toggle reports unsupported. Generate with `node scripts/pwa/generate-vapid-keys.mjs`. See [`pwa.md`](./pwa.md) §5                                                                                                                                                                                                                                                                                    |
 | `VITE_TURNSTILE_SITE_KEY`                                   | No         | Cloudflare Turnstile **site** key for the anti-spam widget (auth OTP + guest booking/SD/review/pay-parking forms). Unset → `ui/src/components/security/TurnstileWidget.tsx` renders nothing and forms submit on server heuristics + rate limit only. Local/CI test key: `1x00000000000000000000AA` (always passes). See [captcha-anti-spam-hardening](../workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md)                                                        |
 
@@ -287,13 +309,14 @@ connection check; the function rejects `ENVIRONMENT=production`. Both follow
 
 #### Deploy / script-only (not edge runtime)
 
-| Variable                                                      | File                       | Notes                                   |
-| ------------------------------------------------------------- | -------------------------- | --------------------------------------- |
-| `DEV_PROJECT_REF`, `DEV_SUPABASE_URL`, `DEV_SERVICE_ROLE_KEY` | `supabase/.env.dev.local`  | `deploy:supabase:dev`, `dev:remote-api` |
-| `PROD_PROJECT_REF`                                            | `supabase/.env.dev.local`  | Safety deny-list vs dev ref             |
-| `DEV_DB_URL`                                                  | `supabase/.env.dev.local`  | Rollback script                         |
-| `MT_PROD_*`, `LEGACY_PROD_PROJECT_REF`                        | `supabase/.env.prod.local` | Mt-prod bootstrap                       |
-| `PROD_DB_URL`                                                 | `supabase/.env.local`      | `sync-prod-public-data-to-local.sh`     |
+| Variable                                                      | File                                                     | Notes                                                     |
+| ------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| `DEV_PROJECT_REF`, `DEV_SUPABASE_URL`, `DEV_SERVICE_ROLE_KEY` | `supabase/.env.dev.local`                                | `deploy:supabase:dev`, `dev:remote-api`                   |
+| `SUPABASE_ACCESS_TOKEN`, `VERCEL_TOKEN`                       | `supabase/.env.management.local`                         | `env:audit --hosted` / `--vercel`, management API scripts |
+| `PROD_PROJECT_REF`                                            | `supabase/.env.dev.local`                                | Safety deny-list vs dev ref                               |
+| `DEV_DB_URL`                                                  | `supabase/.env.dev.local`                                | Rollback script                                           |
+| `MT_PROD_*`, `LEGACY_PROD_PROJECT_REF`                        | `supabase/.env.prod.local`                               | Mt-prod bootstrap                                         |
+| `PROD_DB_URL`                                                 | `supabase/.env.management.local` (fallback `.env.local`) | `sync-prod-public-data-to-local.sh`, backup/rollback      |
 
 #### Removed (do not add back)
 

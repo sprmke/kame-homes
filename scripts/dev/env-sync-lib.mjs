@@ -6,17 +6,23 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-/** Keys mirrored across UI files (ui/.env → ui/.env.development → ui/.env.development.dev). */
-export const UI_SHARED_KEYS = [
+/** Keys mirrored across every hosted UI file (`ui/.env` ↔ `ui/.env.development.dev`).
+ * Branding only: telemetry, VAPID and Turnstile keys are profile-specific and must never
+ * be copied from a local file into a hosted one. */
+export const UI_SHARED_KEYS = ['VITE_PLATFORM_APP_NAME', 'VITE_PLATFORM_CONTACT_EMAIL'];
+
+/** Live only on hosted/preview builds (`ui/.env` ⇄ `ui/.env.development.dev`). */
+export const UI_HOSTED_ONLY_KEYS = [
   'VITE_POSTHOG_KEY',
   'VITE_POSTHOG_HOST',
   'VITE_SENTRY_DSN',
   'VITE_SENTRY_TRACES_SAMPLE_RATE',
-  'VITE_TURNSTILE_SITE_KEY',
-  'VITE_PLATFORM_APP_NAME',
-  'VITE_PLATFORM_CONTACT_EMAIL',
-  'VITE_VAPID_PUBLIC_KEY',
+  'VITE_POSTHOG_INGEST_PATH',
+  'VITE_POSTHOG_SESSION_REPLAY',
 ];
+
+/** Never shared between the local stack and a hosted project. */
+export const UI_PROFILE_ONLY_KEYS = ['VITE_TURNSTILE_SITE_KEY', 'VITE_VAPID_PUBLIC_KEY'];
 
 /** UI PostHog project key → Edge server-side PostHog. */
 export const POSTHOG_UI_TO_EDGE = {
