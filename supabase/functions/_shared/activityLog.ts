@@ -802,6 +802,26 @@ export const ACTIVITY_ACTION_CATALOG = {
       return `${c.actorName} restored the marketing design ${label(c, 'a design')}`;
     },
   },
+  'marketing.media_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'media',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} deleted ${count} media library files`;
+      return `${c.actorName} deleted the media library file ${label(c, 'a file')}`;
+    },
+  },
+  'marketing.media_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'media',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} media library files`;
+      return `${c.actorName} restored the media library file ${label(c, 'a file')}`;
+    },
+  },
   'marketing.theme_saved': {
     category: 'marketing',
     severity: 'info',
