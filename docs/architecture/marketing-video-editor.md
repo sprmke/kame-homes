@@ -35,7 +35,7 @@ AI-built videos are saved as v1 scene projects and upgrade on open. The builder 
 - `VideoCompositionV2.tsx`: `TransitionSeries` for main, `Sequence` per other item, `Video`/`Audio` from `@remotion/media` (the only ones the web renderer supports). Contain fit uses a blurred backdrop. A missing file shows a striped placeholder; during export `strictMedia` makes it fail instead.
 - `exportVideoV2.ts`: blockers (empty, over 60 s) → `canRenderMediaOnWeb` → reachability probe of every media URL (`exportPreflight.ts`) → `renderMediaOnWeb` with an `AbortSignal` (Cancel) and progress. Muted when nothing can make sound (`projectHasAudio`). Jamendo stream clips are cached to Storage first (`exportAudio.ts`); a clip that cannot be cached is dropped from the export with a notice.
 - Verified in Chromium only. Safari and Firefox need a manual matrix. `maxCanvasSinkFrameSize` is not exposed by the installed `@remotion/media`, so preview decode load is limited by the 3-visible-videos warning and `premountFor`.
-- Thumbnails: `renderVideoProjectThumbnailV2` (audio tracks dropped). Library and template stills render saved v1 or v2 rows through it.
+- Thumbnails: `renderVideoProjectThumbnailV2` (audio tracks dropped) renders a still at 60% into the first main-track clip; the Library card and template stills use it for v2 rows, the v1 renderer for legacy ones.
 
 ## Editor UI
 
@@ -54,7 +54,9 @@ Client (`lib/media/`): sniff, probe, local limit check, image optimize, video re
 
 Quota per property comes from the plan feature `marketingMediaLibrary` (see [`plans-feature-matrix.md`](plans-feature-matrix.md)). Nothing is deleted on downgrade; over quota only blocks new uploads. Deleting asks first and shows how many saved designs use the file (`used-in`); delete is soft for 7 days with Undo.
 
-Posts (Polotno) Upload and Background panels list the same library; `upload-marketing-asset` and `marketing-music` go through the same quota.
+Team RBAC: `marketing.media:add` (reserve / finalize / abandon) and `marketing.media:delete` (delete / restore), split out of `marketing.content:add` / `:edit` by `20261318140000_marketing_media_permissions.sql`.
+
+Only the Videos rail reads this library today. The Posts (Polotno) Upload panel and the `marketing-music` upload still use `upload-marketing-asset` against `property-media`, and `marketing-templates` does not yet validate a v2 project on save; those three integrations are open tasks T2.7, T1.11 and T1.13 in the plan.
 
 `marketing-templates` saves stamp `last_used_at` on referenced assets (best effort, for a future retention policy). Activity: `marketing.media_deleted`, `marketing.media_restored`; uploads and the `last_used_at` stamp are `activity-log: N/A` (high-volume bookkeeping).
 

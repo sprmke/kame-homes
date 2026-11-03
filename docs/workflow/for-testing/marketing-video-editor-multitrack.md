@@ -9,11 +9,13 @@ kind: plan
 
 # Marketing — Multi-track video editor, media library and upload quotas
 
-## Progress (2026-11-01)
+## Progress (2026-11-04)
 
-- **Done:** 68 checklist items across the track model, editor, media library, quotas, migration and tests.
-- **In progress:** none.
-- **Pending:** 20 manual items: export matrix (Safari, Firefox), iPhone HEVC and 150 MB uploads, hosted file limit, Remotion licence, `property-dashboard-qa` pass, security review follow-ups. Deferred: delete the v1 editor, spanning-text recipes (T7.1).
+- **Done:** the track model, migration, renderer, editor UI (desktop + phone), media library (bucket, table, quota RPCs, edge functions, sweeper cron, upload pipeline, UI), plan quotas and RBAC leaves, and the automated suites (Vitest for every pure module, Deno for the edge helpers, Playwright for the editor).
+- **Wired 2026-11-04:** the multi-track editor is reachable again — `loadMarketingVideoEditor()` picks `VideoEditorV2` unless `VITE_VIDEO_EDITOR_V2=false`, and the Videos rail mounts the media library. Before this, both existed as unreachable modules.
+- **Fixed 2026-11-04:** undo/redo was swallowed while a slider had focus (`useVideoProjectHistoryShortcuts` treated every input as text entry), so Split → Undo did nothing. Non-text inputs no longer block the shortcut.
+- **Still open (was marked done too early):** T1.10 (`upload-marketing-asset` through the reserve RPC), T1.11 (`marketing-music` quota + library row), T1.13 (server-side v2 project validation on save), T2.7 (Polotno Upload panel through the library). Those four integrate the library into the Posts/Music paths and are not in this tree yet.
+- **Pending manual:** export matrix (Safari, Firefox), iPhone HEVC and 150 MB uploads, hosted file limit, Remotion licence, `property-dashboard-qa` pass, security review follow-ups. Deferred: delete the v1 editor, spanning-text recipes (T7.1).
 
 **Goal.** Turn the Videos editor in Marketing Content Studio from a scene slideshow into a simple, CapCut-style **multi-track editor**. Images, videos, text and audio each live on their own layer and can span any time range. A real **media library** lets hosts upload images, videos and audio. **Per-plan quotas** stop storage abuse and runaway cost.
 
@@ -412,15 +414,15 @@ Each phase ends shippable behind the existing editor. A feature flag `VITE_VIDEO
 - [x] **T1.2** Migration: `marketing_media_assets` table, indexes, RLS on (service role only), `updated_at` trigger.
 - [x] **T1.3** Migration: `reserve_marketing_media_upload` RPC (advisory lock, limit checks, typed error codes) and `marketing_media_usage(property_id)` SQL function.
 - [x] **T1.4** Migration: `marketingMediaLibrary` seeded into `pricing_plans.features` per §3.1 (all active tiers, plus the inactive ones for safety).
-- [x] **T1.5** `planFeatures.ts` (edge + UI mirror) parse and default for `marketingMediaLibrary`; parity test; `planTierGolden.ts`, `planTierExpectations.ts`, `GATE_COVERAGE`, `PLAN_FEATURE_PERMISSION_COVERAGE`; `bun run check:plan-catalog`.
+- [x] **T1.5** `planFeatures.ts` (edge + UI mirror) parse and default for `marketingMediaLibrary`; parity test; `planTierGolden.ts`, `planTierExpectations.ts`, `GATE_COVERAGE`, `PLAN_FEATURE_PERMISSION_COVERAGE` (+ the Compare row and review-dialog gain). `bun run check:plan-catalog` needs a fresh local DB.
 - [x] **T1.6** `_shared/uploadLimits.ts` + client mirror: add `audio` and `marketingVideo` kinds (plan caps come from features; the static ceiling stays the bypass net).
 - [x] **T1.7** `_shared/marketingMediaStorage.ts`: path builders, signed upload URL creation, Range read of the first 64 KB, `assertUploadMatchesBytes`, MP4 `mvhd` duration parser (pure, with `_test.ts`), object removal.
 - [x] **T1.8** Edge function `marketing-media` (list, usage, reserve, finalize, delete, restore) with `rateLimitGate`, `upgradeHook` envelopes, and `config.toml` `verify_jwt = false` per the repo JWT convention.
 - [x] **T1.9** (also purges `failed` rows after 7 days, partial index in `20261316128940`) Edge function `marketing-media-sweeper` plus the `pg_cron` schedule migration (hosted only, per `scheduled-jobs-and-testing.md`).
-- [x] **T1.10** Route `upload-marketing-asset` through the reserve RPC and library rows (store into `marketing-media`); keep the response shape.
-- [x] **T1.11** `marketing-music` upload: quota plus library row plus `rateLimitGate`.
+- [ ] **T1.10** Route `upload-marketing-asset` through the reserve RPC and library rows (store into `marketing-media`); keep the response shape. _Not in this tree: the function still writes straight to `property-media`._
+- [ ] **T1.11** `marketing-music` upload: quota plus library row plus `rateLimitGate`. _Not in this tree: uploads do not reserve or write a library row yet._
 - [x] **T1.12** Backfill migration: `legacy_upload` rows from `storage.objects` (`property-media/marketing-uploads/%` and the music upload prefix).
-- [x] **T1.13** `marketing-templates` save validation for video (size, version, counts, duration, URL allowlist) with friendly 400s.
+- [ ] **T1.13** `marketing-templates` save validation for video (size, version, counts, duration, URL allowlist) with friendly 400s. _Not in this tree: `_shared/marketingVideoProject.ts` is missing, so saves are not validated server-side._
 - [x] **T1.14** Activity events `marketing.media_deleted` / `marketing.media_restored` via `_shared/activityLog.ts`, plus the event catalog and UI label mapping.
 - [x] **T1.15** Deno tests (pure: `marketingMediaStorage_test.ts`, `marketingMediaSweeper_test.ts`, `marketingVideoProject_test.ts`; live local: `functions/tests/marketingMedia.integration_test.ts`, run with `LOCAL_MEDIA_LIVE=1`; a long-running `functions serve` must be restarted to register `marketing-media`): reserve limits (each error code), concurrency (two parallel reserves at the edge of quota), finalize rejects oversize and mismatched MIME, dedupe, delete/restore window, sweeper expiry and purge, downgrade (over quota → reserve blocked, list still works).
 
@@ -432,7 +434,7 @@ Each phase ends shippable behind the existing editor. A feature flag `VITE_VIDEO
 - [x] **T2.4** `useMarketingMediaLibrary`, `useMarketingMediaUsage`, `useDeleteMarketingMedia`, `useRestoreMarketingMedia` (TanStack Query, invalidation on upload, delete and restore).
 - [x] **T2.5** `MarketingMediaLibrary` component: tabs, grid with posters, drag source (dnd-kit draggable carrying a `MediaRef`), drop zone, multi-select delete with in-use warning, storage meter, upgrade CTA, empty states.
 - [x] **T2.6** Move Jamendo browse from `VideoMusicSettings` into the **Audio** tab.
-- [x] **T2.7** Posts editor: Polotno Upload panel lists and uploads through the library (shared quota).
+- [ ] **T2.7** Posts editor: Polotno Upload panel lists and uploads through the library (shared quota). _Not in this tree: the Polotno upload panel still uses the legacy asset endpoint._
 - [x] **T2.8** Copy pass with the `human-copy` skill for every new string.
 - [ ] **T2.9** Playwright mocked E2E (`ui/e2e/features/marketing/`): upload success, over-quota error and upgrade modal, video-too-long error, delete with in-use warning, restore. _Partly done: `videoEditorV2.spec.ts` covers library pick, storage meter, split, delete and phone flows. Upload success, over-quota and restore are covered by the live Deno suite, not mocked E2E._
 
