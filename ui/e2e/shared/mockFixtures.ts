@@ -29,6 +29,17 @@ const defaultPlanFeatures = {
   smartPricing: false,
   customRoles: false,
   copyPropertySettings: false,
+  analyticsInsights: false,
+  activityLogExport: false,
+  marketingMediaLibrary: {
+    storageMb: 100,
+    maxFiles: 30,
+    maxImageMb: 10,
+    maxVideoMb: 50,
+    maxVideoSec: 30,
+    maxAudioMb: 15,
+    dailyUploads: 20,
+  },
 };
 
 export const mockPublicPricingPlansBody = {

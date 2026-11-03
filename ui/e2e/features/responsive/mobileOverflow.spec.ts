@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 /**
  * Mobile responsive gate (rebrand U-11, mobile-native UI rule).
  *
- * The rename changed the wordmark from "Kame Homes" to the shorter "Kame Space",
+ * The rename shortened the wordmark to "Kame Space",
  * so the layout risk is text width in the shell, cards and nav. This locks the
  * phone and tablet widths: no route may scroll sideways.
  *
