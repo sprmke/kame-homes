@@ -26,21 +26,19 @@ fix that; visibility returns next cycle.
 
 ## 0.5 Check source maps before believing a stack
 
-A minified frame (`index-abc123.js:1:48213`) means the release carries no artifacts, not that
-the app is broken. Verify per release, with a token that can read releases:
+A minified frame (`index-abc123.js:1:48213`) means the release has no usable artifacts, not
+that the app is broken.
 
-```bash
-curl -s "https://us.sentry.io/api/0/projects/kame-tech/kame-space-web/releases/?per_page=5" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-curl -s "https://us.sentry.io/api/0/projects/kame-tech/kame-space-web/releases/<version>/files/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-```
+**The authoritative signal is the build log**, one line per build:
 
-`files/` returning `[]` for every recent release means the build ran without
-`SENTRY_AUTH_TOKEN`, `SENTRY_ORG` or `SENTRY_PROJECT`, so nothing was uploaded. The Vite build
-now prints a `[sentry] source-map upload is OFF …` warning when that happens on Vercel. Fix
-the Vercel env vars (Preview **and** Production) and redeploy; the artifact count on the new
-release is the proof.
+- `[sentry-vite-plugin] Info: Successfully uploaded source maps to Sentry` — uploads worked.
+- `[sentry] source-map upload is OFF … (missing SENTRY_AUTH_TOKEN)` — no credentials, so
+  nothing was uploaded. Set the variable and redeploy.
+
+`GET /projects/{org}/{project}/releases/{version}/files/` is **not** a reliable check: it lists
+only legacy per-file uploads, while current plugin versions upload artifact bundles, so the
+list can be empty on a perfectly good release. Use Sentry → **Releases → \<version\> → Source
+Maps** (or the build log) instead.
 
 ## 1. Triage an issue
 

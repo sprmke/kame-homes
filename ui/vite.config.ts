@@ -5,7 +5,7 @@ import { readdirSync, rmSync } from 'node:fs';
 
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import { resolvePlatformAppName } from './src/lib/platformAppName';
@@ -45,8 +45,18 @@ const classnamesShim = path.resolve(__dirname, './src/lib/shims/classnames.ts');
  * Enabled only when all three build-time vars are present. A missing token means "no maps",
  * not "no build": local and fork builds must not need Sentry credentials.
  */
-const SENTRY_BUILD_VARS = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'] as const;
-const sentryMissingVars = SENTRY_BUILD_VARS.filter((key) => !process.env[key]);
+// Org and project are public identifiers, not secrets, so they default here. Only the auth
+// token has to be supplied: locally through `ui/.env.local` (Bun loads it into process.env),
+// on Vercel through the project's environment variables. One variable to forget, not three.
+// Read from `ui/.env.local` as well as the process environment. The build script is
+// `cd ui && bun run build`, and Bun's loaded .env values do not reach that nested process, so
+// a local build would otherwise skip the upload with no error. `loadEnv` with an empty prefix
+// reads the files directly; Vite still only exposes VITE_* to the client bundle.
+const fileEnv = loadEnv('production', __dirname, '');
+const sentryToken = process.env.SENTRY_AUTH_TOKEN ?? fileEnv.SENTRY_AUTH_TOKEN;
+const sentryOrg = process.env.SENTRY_ORG ?? fileEnv.SENTRY_ORG ?? 'kame-tech';
+const sentryProject = process.env.SENTRY_PROJECT ?? fileEnv.SENTRY_PROJECT ?? 'kame-space-web';
+const sentryMissingVars = sentryToken ? [] : ['SENTRY_AUTH_TOKEN'];
 const sentrySourceMapsEnabled = sentryMissingVars.length === 0;
 
 // A missing variable turns source-map upload off with no error, by design (local and fork
@@ -69,9 +79,9 @@ if (process.env.VERCEL && sentryMissingVars.length > 0) {
  */
 function sentrySourceMapsPlugin(): Plugin[] {
   const plugins = sentryVitePlugin({
-    org: process.env.SENTRY_ORG!,
-    project: process.env.SENTRY_PROJECT!,
-    authToken: process.env.SENTRY_AUTH_TOKEN!,
+    org: sentryOrg,
+    project: sentryProject,
+    authToken: sentryToken!,
     release: { name: appRelease },
     sourcemaps: {
       assets: './dist/**',
