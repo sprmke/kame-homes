@@ -37,6 +37,8 @@ export const PLAN_FEATURE_PERMISSION_COVERAGE: Record<
   marketingStudio: {
     leaves: ['marketing:view', 'marketing.content:add', 'marketing.content:edit'],
   },
+  // View is shared with marketingStudio; a leaf may only map to one plan feature.
+  marketingMediaLibrary: { leaves: ['marketing.media:add', 'marketing.media:delete'] },
   customPages: { na: 'Explore-open on every plan; saving is gated by publicPagesAutosave.' },
   propertyShowcase: { leaves: ['publicPages.showcase:edit'] },
   aiDashboardAssistant: { leaves: ['assistant:view'] },

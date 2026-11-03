@@ -75,6 +75,10 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     client: ['dashboard/marketing/components/design-editor/PolotnoDesignStudio.tsx'],
     server: ['marketing-music', 'publish-to-meta', 'upload-marketing-asset'],
   },
+  marketingMediaLibrary: {
+    client: ['dashboard/marketing/components/media-library/MarketingMediaLibrary.tsx'],
+    server: ['marketing-media'],
+  },
   customPages: {
     clientNa: 'Gallery and editor are open on every plan.',
     serverNa: 'Open on every plan. Saving is publicPagesAutosave.',
@@ -107,12 +111,12 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
   aiMarketingImageGeneration: {
     client: [
       'dashboard/marketing/components/shared/MarketingStudioModeTabs.tsx',
-      'dashboard/marketing/components/ai-studio/AiStudioCreate.tsx',
+      'dashboard/marketing/components/ai-studio/AiStudioConversation.tsx',
     ],
     server: ['upload-marketing-generation-reference', 'generate-marketing-media'],
   },
   aiMarketingVideoGeneration: {
-    client: ['dashboard/marketing/components/ai-studio/AiStudioCreate.tsx'],
+    client: ['dashboard/marketing/components/ai-studio/AiStudioConversation.tsx'],
     server: ['generate-marketing-media'],
   },
   aiChatAutoReply: {

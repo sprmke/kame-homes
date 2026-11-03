@@ -55,6 +55,7 @@ import {
 } from '@/features/dashboard/marketing/hooks/useMarketingGenerationReferences';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
 import { setPendingAiStartPhoto } from '@/features/dashboard/marketing/lib/aiStudioHandoff';
+import { findSample } from '@/features/dashboard/marketing/lib/aiStudioSamples';
 import {
   AI_OUTPUT_LABEL,
   buildAiTurns,
@@ -127,6 +128,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 type Props = {
   onPublish: (payload: { blob: Blob; mediaType: 'image' | 'video' }) => void;
@@ -172,8 +174,16 @@ async function fetchBlob(url: string): Promise<Blob> {
  * large on the right, and a message box to keep changing it.
  */
 export function AiStudioConversation({ onPublish, onOpenInDesign }: Props) {
-  const { item, aiOutput, replaceDraftWithItem, closeItem, startDraft, startAiSession, active } =
-    useMarketingTheme();
+  const {
+    item,
+    aiOutput,
+    aiSampleId,
+    replaceDraftWithItem,
+    closeItem,
+    startDraft,
+    startAiSession,
+    active,
+  } = useMarketingTheme();
   const isBelowLg = useIsBelowLg();
   const { open: openUpgradeModal } = useUpgradeModal();
   const { canPublish } = useMarketingPermissions();
@@ -196,6 +206,18 @@ export function AiStudioConversation({ onPublish, onOpenInDesign }: Props) {
   useEffect(() => {
     if (aiOutput) setNewOutput(aiOutput);
   }, [aiOutput]);
+
+  // An example in the URL applies only to a new creation of the same output; anything
+  // else (unknown id, another output, not ready) is dropped from the URL quietly.
+  const appliedSample = useMemo(() => {
+    const sample = findSample(aiSampleId);
+    return sample && sample.output === newOutput ? sample : null;
+  }, [aiSampleId, newOutput]);
+  useEffect(() => {
+    if (item.mode === 'draft' && aiSampleId && !appliedSample && aiOutput === newOutput) {
+      startAiSession(newOutput, { replace: true });
+    }
+  }, [item.mode, aiSampleId, appliedSample, aiOutput, newOutput, startAiSession]);
 
   const sessionQuery = useAiSession(sessionId);
   const detail = sessionQuery.data;
@@ -272,6 +294,10 @@ export function AiStudioConversation({ onPublish, onOpenInDesign }: Props) {
 
   const create = async (request: AiCreateRequest) => {
     setStarted(true);
+    captureAppEvent('ai_studio_generate_started', {
+      output: request.output,
+      sample_id: request.sampleId,
+    });
     if (request.output === 'post') {
       const turn: AiPendingTurn = {
         key: 'create',
@@ -665,6 +691,12 @@ export function AiStudioConversation({ onPublish, onOpenInDesign }: Props) {
             allowHighResolution={planAllowed.video}
             text={text}
             onTextChange={setText}
+            sample={appliedSample}
+            onApplySample={(sample) =>
+              startAiSession(sample.output, { replace: true, sampleId: sample.id })
+            }
+            onClearSample={() => startAiSession(newOutput, { replace: true })}
+            access={access}
           />
         </div>
       </div>

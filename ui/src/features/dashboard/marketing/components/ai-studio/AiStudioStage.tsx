@@ -67,7 +67,12 @@ export function AiStudioStage({
               }
             />
           ) : version ? (
-            <VersionMedia key={version.key} version={version} onRetry={onRetry} canRetry={canRetry} />
+            <VersionMedia
+              key={version.key}
+              version={version}
+              onRetry={onRetry}
+              canRetry={canRetry}
+            />
           ) : null}
         </div>
       </div>

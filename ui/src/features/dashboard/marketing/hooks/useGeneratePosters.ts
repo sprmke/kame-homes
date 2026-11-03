@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { buildRuleBasedPosterSpecs } from '@/features/dashboard/marketing/lib/poster/posterDefaults';
 import {
   normalizePosterSpec,
+  type PosterArchetypeId,
   type PosterFacts,
   type PosterGoal,
   type PosterSpec,
@@ -23,6 +24,8 @@ export type GeneratePostersInput = {
   count?: number;
   /** AI Studio refinement: revise this post with the host's words (one variant back). */
   revise?: { spec: Record<string, unknown>; instruction: string };
+  /** AI Studio example: the layout the host picked (one variant uses it). */
+  preferredArchetype?: PosterArchetypeId | null;
 };
 
 export type GeneratePostersResult = {
@@ -54,6 +57,9 @@ export async function requestPosterSpecs(
       count: input.count ?? 4,
       brandColor: input.brandColor,
       ...(input.revise ? { revise: input.revise } : {}),
+      ...(input.preferredArchetype && !input.revise
+        ? { preferredArchetype: input.preferredArchetype }
+        : {}),
       photoUrls: input.facts.photos.slice(0, 6),
       facts: {
         propertyName: input.facts.propertyName,

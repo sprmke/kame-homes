@@ -142,8 +142,11 @@ describe('every card bullet is backed by a Compare row that agrees for that tier
         .filter((r) => r.cells.every((c) => c === 'on'))
         .map((r) => r.label)
     );
+    // Rows that are a quota rather than a capability live only in the Compare table: the
+    // tier cards stay short, and the review dialog lists the gain.
+    const compareOnly = new Set(['Media library storage']);
     const uncovered = [...rows.keys()].filter(
-      (label) => !known.has(label) && !baselineLabels.has(label)
+      (label) => !known.has(label) && !baselineLabels.has(label) && !compareOnly.has(label)
     );
     expect(uncovered).toEqual([]);
   });

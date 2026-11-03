@@ -7,6 +7,32 @@ export type PlanTeamManagement = {
   maxMembers: number | null;
 };
 
+/**
+ * Per-tier Marketing Studio media library quota. Seeded by
+ * `20261316128910_marketing_media_library_plan_features.sql` (+ `…950`), editable in the
+ * super-admin plan editor. Mirror of the edge type.
+ */
+export type PlanMarketingMediaLibrary = {
+  storageMb: number;
+  maxFiles: number;
+  maxImageMb: number;
+  maxVideoMb: number;
+  maxVideoSec: number;
+  maxAudioMb: number;
+  dailyUploads: number;
+};
+
+/** Free-tier allowance. Used when a plan row predates the quota migrations. */
+export const DEFAULT_MARKETING_MEDIA_LIBRARY: PlanMarketingMediaLibrary = {
+  storageMb: 100,
+  maxFiles: 30,
+  maxImageMb: 10,
+  maxVideoMb: 50,
+  maxVideoSec: 30,
+  maxAudioMb: 15,
+  dailyUploads: 20,
+};
+
 export type PlanFeatures = {
   automatedBookingFlow: boolean;
   verifiedBadgeEligible: boolean;
@@ -49,6 +75,8 @@ export type PlanFeatures = {
   analyticsInsights: boolean;
   /** CSV export of the org Activity & Audit Log. In-app viewing stays ungated. */
   activityLogExport: boolean;
+  /** Marketing Studio media library storage quotas (images, video, audio). */
+  marketingMediaLibrary: PlanMarketingMediaLibrary;
 };
 
 export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
@@ -85,6 +113,7 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   copyPropertySettings: false,
   analyticsInsights: false,
   activityLogExport: false,
+  marketingMediaLibrary: { ...DEFAULT_MARKETING_MEDIA_LIBRARY },
 };
 
 export type PlanFeatureKey = keyof PlanFeatures;
@@ -109,6 +138,8 @@ export function isFeatureEnabled(features: PlanFeatures, key: PlanFeatureKey): b
     );
   }
   if (key === 'aiMonthlyCreditAllowance') return features.aiMonthlyCreditAllowance > 0;
+  // Object-valued quota: any allowance above zero means the library is usable.
+  if (key === 'marketingMediaLibrary') return features.marketingMediaLibrary.maxFiles > 0;
   return false;
 }
 
@@ -184,4 +215,5 @@ export const PLAN_FEATURE_LABELS: Record<keyof PlanFeatures, string> = {
   copyPropertySettings: 'Copy property settings',
   analyticsInsights: 'Analytics export and AI review',
   activityLogExport: 'Activity log CSV export',
+  marketingMediaLibrary: 'Media library storage',
 };

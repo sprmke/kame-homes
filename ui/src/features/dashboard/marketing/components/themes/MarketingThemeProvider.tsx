@@ -24,6 +24,7 @@ import {
   cameFromLibrary,
   clearItemParams,
   readAiOutput,
+  readAiSampleId,
   readItemState,
   type AiStudioOutput,
   type MarketingStudioItemState,
@@ -91,8 +92,13 @@ type MarketingThemeContextValue = {
   ) => void;
   /** AI Studio: output of the new creation being set up (`item=new&output=…`). */
   aiOutput: AiStudioOutput | null;
+  /** AI Studio step 2: example applied to the new creation (`sample=`), if any. */
+  aiSampleId: string | null;
   /** AI Studio step 2: set up a new post, photo or clip (pushes history). */
-  startAiSession: (output: AiStudioOutput, options?: { replace?: boolean }) => void;
+  startAiSession: (
+    output: AiStudioOutput,
+    options?: { replace?: boolean; sampleId?: string | null }
+  ) => void;
   /** A draft was stored: swap `item=new` for its id without a new history entry. */
   replaceDraftWithItem: (id: string) => void;
   /** Leave the editor for the Library. */
@@ -144,6 +150,7 @@ export function MarketingThemeProvider({ children }: { children: ReactNode }) {
     : resolveDefaultMarketingStudioTab({ lastTab, aiAvailable });
   const item = useMemo(() => readItemState(searchParams), [searchParams]);
   const aiOutput = useMemo(() => readAiOutput(searchParams), [searchParams]);
+  const aiSampleId = useMemo(() => readAiSampleId(searchParams), [searchParams]);
   const lastTheme = useMemo(() => readLastMarketingTheme(propertyId), [propertyId]);
   // No theme in the URL: reopen the last theme; first visit lands on the theme picker.
   const view: MarketingStudioView =
@@ -257,12 +264,12 @@ export function MarketingThemeProvider({ children }: { children: ReactNode }) {
   );
 
   const startAiSession = useCallback(
-    (output: AiStudioOutput, options?: { replace?: boolean }) => {
+    (output: AiStudioOutput, options?: { replace?: boolean; sampleId?: string | null }) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
           next.set(TAB_PARAM, 'generate');
-          applyStartAiSession(next, output);
+          applyStartAiSession(next, output, options?.sampleId ?? null);
           return next;
         },
         {
@@ -333,6 +340,7 @@ export function MarketingThemeProvider({ children }: { children: ReactNode }) {
       openItem,
       startDraft,
       aiOutput,
+      aiSampleId,
       startAiSession,
       replaceDraftWithItem,
       closeItem,
@@ -363,6 +371,7 @@ export function MarketingThemeProvider({ children }: { children: ReactNode }) {
       openItem,
       startDraft,
       aiOutput,
+      aiSampleId,
       startAiSession,
       replaceDraftWithItem,
       closeItem,

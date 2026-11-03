@@ -72,6 +72,11 @@ export const FEATURE_GATE_COPY: Record<PlanFeatureKey, FeatureGateCopy> = {
     description: 'Sending booking alerts to Telegram is available on Starter and above.',
     ctaLabel: 'View plans',
   },
+  marketingMediaLibrary: {
+    title: 'Media library storage',
+    description: 'Your plan sets the media library storage, file count and upload limits.',
+    ctaLabel: 'View plans',
+  },
   teamManagement: {
     title: 'Team members',
     description: 'Invite more team members on a higher plan. Upgrade to add seats.',

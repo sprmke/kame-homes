@@ -337,6 +337,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'telegram-staff-settings': handoff('property.notifications', 'Telegram credentials'),
   'update-parking': handoff('parking.settings', 'Parking profile form'),
   'marketing-ai-sessions': handoff('property.marketing', 'Marketing Studio'),
+  'marketing-media': handoff('property.marketing', 'Marketing Studio media library'),
   'upload-marketing-asset': handoff('property.marketing', 'Marketing Studio'),
   'upload-marketing-generation-reference': handoff('property.marketing', 'Marketing Studio'),
   'upload-parking-settings-asset': handoff('parking.settings', 'Parking settings form'),

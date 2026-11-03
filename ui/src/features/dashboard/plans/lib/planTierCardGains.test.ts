@@ -200,8 +200,15 @@ function ruleFor(label: string): BulletRule | undefined {
  *   "Unlimited team members" bullet. Compare shows it. Decide whether to add the bullet.
  */
 const CARD_OMISSIONS: Record<string, string[]> = {
-  free: ['teamManagement'],
-  managed: ['teamManagement'],
+  // The 1-seat cap and the Free storage allowance are shown in the Compare table, not as
+  // Free bullets: neither is a reason anyone upgrades on its own.
+  free: ['teamManagement', 'marketingMediaLibrary'],
+  // The storage allowance grows every tier, but it belongs in the Compare table: it is a
+  // quota, not a capability you upgrade for.
+  starter: ['marketingMediaLibrary'],
+  growth: ['marketingMediaLibrary'],
+  pro: ['marketingMediaLibrary'],
+  managed: ['teamManagement', 'marketingMediaLibrary'],
 };
 
 const LADDER = GOLDEN_SOLD_PLANS;
@@ -317,10 +324,15 @@ describe('buildPlanTiers', () => {
 
 /** Independent oracle: rows gained = minimum tier inside (from, to] plus numeric bumps. */
 const NUMERIC_BUMPS: Record<string, PlanFeatureKey[]> = {
-  'free>starter': ['teamManagement'],
-  'starter>growth': ['teamManagement'],
-  'growth>pro': ['teamManagement', 'searchVisibilityTier', 'aiMonthlyCreditAllowance'],
-  'pro>managed': ['teamManagement', 'aiMonthlyCreditAllowance'],
+  'free>starter': ['teamManagement', 'marketingMediaLibrary'],
+  'starter>growth': ['teamManagement', 'marketingMediaLibrary'],
+  'growth>pro': [
+    'teamManagement',
+    'searchVisibilityTier',
+    'aiMonthlyCreditAllowance',
+    'marketingMediaLibrary',
+  ],
+  'pro>managed': ['teamManagement', 'aiMonthlyCreditAllowance', 'marketingMediaLibrary'],
 };
 
 describe('planFeatureGains / planFeatureLosses', () => {
@@ -362,6 +374,7 @@ describe('planFeatureGains / planFeatureLosses', () => {
     }
     expect(planFeatureGains(null, GOLDEN_FREE.features).map((g) => g.key)).toEqual([
       'teamManagement',
+      'marketingMediaLibrary',
     ]);
   });
 
@@ -394,10 +407,10 @@ describe('planFeatureGains / planFeatureLosses', () => {
     expect(labels.searchVisibilityTier).toBe('Top 30 search placement');
   });
 
-  it('capability count strictly grows up the ladder and Free is one (team seats)', () => {
+  it('capability count strictly grows up the ladder and Free has two (seats, media library)', () => {
     const counts = LADDER.map((p) => planCapabilityCount(p.features));
     for (let i = 1; i < counts.length; i += 1) expect(counts[i]).toBeGreaterThan(counts[i - 1]);
-    expect(counts[0]).toBe(1);
+    expect(counts[0]).toBe(2);
   });
 });
 

@@ -19,11 +19,28 @@ import {
 } from '@/features/dashboard/marketing/components/ai-studio/AiStudioChoiceGroup';
 import { AiStudioLookPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioLookPicker';
 import { AiStudioPhotoPicker } from '@/features/dashboard/marketing/components/ai-studio/AiStudioPhotoPicker';
+import { AiStudioSampleBanner } from '@/features/dashboard/marketing/components/ai-studio/AiStudioSampleBanner';
+import { AiStudioSampleArt } from '@/features/dashboard/marketing/components/ai-studio/AiStudioSampleCard';
+import { AiStudioSampleGallery } from '@/features/dashboard/marketing/components/ai-studio/AiStudioSampleGallery';
 import { SizeGlyph } from '@/features/dashboard/marketing/components/library/MarketingNewButton';
 import { useOptionalMarketingTheme } from '@/features/dashboard/marketing/components/themes/MarketingThemeProvider';
 import { ThemePostArt } from '@/features/dashboard/marketing/components/themes/ThemePreview';
-import type { GenerateMarketingMediaPayload } from '@/features/dashboard/marketing/hooks/useGenerateMarketingMedia';
+import { useAiStudioPostSampleRenderer } from '@/features/dashboard/marketing/hooks/useAiStudioPostSamples';
+import {
+  buildAiCreateRequest,
+  type AiCreateRequest,
+} from '@/features/dashboard/marketing/lib/aiStudioCreatePayload';
 import { takePendingAiStartPhoto } from '@/features/dashboard/marketing/lib/aiStudioHandoff';
+import {
+  OUTPUT_FEATURE,
+  POST_FORMATS,
+  POST_GOALS,
+} from '@/features/dashboard/marketing/lib/aiStudioPostOptions';
+import {
+  listSamples,
+  sampleToCreateState,
+  type AiStudioSample,
+} from '@/features/dashboard/marketing/lib/aiStudioSamples';
 import { START_EXAMPLES } from '@/features/dashboard/marketing/lib/aiStudioSessions';
 import {
   DEFAULT_VIDEO_CAMERA_MOVE,
@@ -36,7 +53,6 @@ import {
   VIDEO_MAX_REFERENCES,
   VIDEO_RESOLUTION_LABELS,
   VIDEO_SOUND_MODES,
-  composeGenerationPrompt,
   imageSizeOptions,
   imageTierOptions,
   maxReferencesForTier,
@@ -87,42 +103,11 @@ import { SegmentedControl } from '@/components/ui/sliding-tabs';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
-export type AiCreateRequest =
-  | { output: 'post'; goal: PosterGoal; format: DesignTemplateFormat; prompt: string }
-  | {
-      output: 'image' | 'video';
-      prompt: string;
-      aspect: string;
-      payload: GenerateMarketingMediaPayload;
-    };
-
-export const POST_GOALS: Array<{ value: PosterGoal; label: string; hint: string }> = [
-  { value: 'vibe', label: 'Vibe', hint: 'A feel-good moment' },
-  { value: 'promo', label: 'Promo', hint: 'A deal or discount' },
-  { value: 'amenity-spotlight', label: 'Amenities', hint: 'One amenity, up close' },
-  { value: 'feature-spotlight', label: 'Feature', hint: 'One standout feature' },
-  { value: 'stay-info', label: 'Stay info', hint: 'Check-in, house rules' },
-];
-
-export const POST_FORMATS: Array<{
-  value: DesignTemplateFormat;
-  label: string;
-  width: number;
-  height: number;
-}> = [
-  { value: 'instagram-portrait', label: 'Portrait', width: 4, height: 5 },
-  { value: 'instagram-post', label: 'Square', width: 1, height: 1 },
-  { value: 'instagram-story', label: 'Story', width: 9, height: 16 },
-  { value: 'facebook-post', label: 'Facebook', width: 40, height: 21 },
-];
-
-export const OUTPUT_FEATURE: Record<AiStudioOutput, PlanFeatureKey> = {
-  post: 'aiMarketingGeneration',
-  image: 'aiMarketingImageGeneration',
-  video: 'aiMarketingVideoGeneration',
-};
+export type { AiCreateRequest };
+export { OUTPUT_FEATURE, POST_FORMATS, POST_GOALS };
 
 const PLACEHOLDER: Record<AiStudioOutput, string> = {
   post: 'What is the post about? (optional)',
@@ -146,6 +131,14 @@ type Props = {
   /** What the host typed under another output; follows them across outputs. */
   text: string;
   onTextChange: (text: string) => void;
+  /** Example applied from the gallery (`?sample=`), already matched to `output`. */
+  sample: AiStudioSample | null;
+  /** Pick an example from inside the form (fills it; nothing is generated). */
+  onApplySample: (sample: AiStudioSample) => void;
+  /** Drop the example (URL param); the form keeps or resets its own fields. */
+  onClearSample: () => void;
+  /** Which outputs this role may start (for the example detail button). */
+  access: Record<AiStudioOutput, boolean>;
 };
 
 function credits(value: number): string {
@@ -168,6 +161,10 @@ export function AiStudioCreate({
   allowHighResolution,
   text,
   onTextChange,
+  sample,
+  onApplySample,
+  onClearSample,
+  access,
 }: Props) {
   const { open: openUpgradeModal } = useUpgradeModal();
   const generateAvailability = useFeatureAvailability('marketing.ai_studio.generate');
@@ -213,6 +210,99 @@ export function AiStudioCreate({
   useEffect(() => {
     if (!allowPremium && tier === 'premium') setTier(DEFAULT_TIER);
   }, [allowPremium, tier]);
+
+  // ── Examples ──────────────────────────────────────────────────────────────
+  const [openPhotos, setOpenPhotos] = useState(0);
+  const appliedSampleId = useRef<string | null>(null);
+  const snapshot = () => ({
+    text,
+    goal,
+    format,
+    aspect,
+    lookId,
+    tier,
+    imageSize,
+    resolution,
+    cameraMove,
+    sound,
+    enhance,
+  });
+  const restore = (state: ReturnType<typeof snapshot>) => {
+    onTextChange(state.text);
+    setGoal(state.goal);
+    setFormat(state.format);
+    setAspect(state.aspect);
+    setLookId(state.lookId);
+    setTier(state.tier);
+    setImageSize(state.imageSize);
+    setResolution(state.resolution);
+    setCameraMove(state.cameraMove);
+    setSound(state.sound);
+    setEnhance(state.enhance);
+  };
+
+  useEffect(() => {
+    if (!sample) {
+      appliedSampleId.current = null;
+      return;
+    }
+    if (sample.output !== output || appliedSampleId.current === sample.id) return;
+    appliedSampleId.current = sample.id;
+    const before = snapshot();
+    const next = sampleToCreateState(sample, { allowHighResolution });
+    onTextChange(next.text);
+    if (next.output === 'post') {
+      setGoal(next.goal);
+      setFormat(next.format);
+    } else {
+      setAspect(next.aspect);
+      setTier(next.tier);
+      setEnhance(next.enhance);
+      if (next.output === 'image') {
+        setLookId(next.lookId);
+        setImageSize(next.imageSize);
+      } else {
+        setResolution(next.resolution);
+        setCameraMove(next.cameraMove);
+        setSound(next.sound);
+      }
+    }
+    captureAppEvent('ai_studio_sample_applied', { sample_id: sample.id, output: sample.output });
+    const ownWords = before.text.trim();
+    if (ownWords && ownWords !== next.text.trim()) {
+      toast('Example applied', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            restore(before);
+            onClearSample();
+          },
+        },
+      });
+    }
+    // Applies once per example; the form state it reads is the state being replaced.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sample, output]);
+
+  const clearSample = () => {
+    if (sample) captureAppEvent('ai_studio_sample_cleared', { sample_id: sample.id, output });
+    restore({
+      text: '',
+      goal: 'vibe',
+      format: 'instagram-portrait',
+      aspect: isVideo ? DEFAULT_VIDEO_ASPECT_RATIO : DEFAULT_IMAGE_ASPECT_RATIO,
+      lookId: themePhotoLook,
+      tier: DEFAULT_TIER,
+      imageSize: DEFAULT_IMAGE_SIZE,
+      resolution: DEFAULT_VIDEO_RESOLUTION,
+      cameraMove: DEFAULT_VIDEO_CAMERA_MOVE,
+      sound: DEFAULT_VIDEO_SOUND,
+      enhance: true,
+    });
+    onClearSample();
+  };
+  const sampleEdited = Boolean(sample) && text.trim() !== (sample?.prompt ?? '').trim();
+  const hasExamples = listSamples(output).length > 0;
 
   useEffect(() => {
     window.setTimeout(() => promptRef.current?.focus({ preventScroll: true }), 0);
@@ -276,6 +366,11 @@ export function AiStudioCreate({
   };
 
   const submit = () => {
+    // A clip example starts from a photo: ask for one instead of a text-only clip.
+    if (!locked && isVideo && sample && references.length === 0) {
+      setOpenPhotos((count) => count + 1);
+      return;
+    }
     if (!canSubmit) {
       if (!locked && !hasContent) promptRef.current?.focus();
       return;
@@ -284,46 +379,25 @@ export function AiStudioCreate({
       openUpgradeModal(feature);
       return;
     }
-    const description = text.trim();
-    if (isPost) {
-      onSubmit({ output: 'post', goal, format, prompt: description });
-      return;
-    }
-    const prompt = composeGenerationPrompt(description, hasStartFrame ? null : lookId);
-    const referenceIds = references.map((reference) => reference.id);
     onSubmit(
-      isVideo
-        ? {
-            output: 'video',
-            prompt: description,
-            aspect,
-            payload: {
-              mediaType: 'video',
-              prompt,
-              qualityTier: tier,
-              aspectRatio: aspect,
-              resolution: effectiveResolution,
-              durationSeconds: DEFAULT_VIDEO_DURATION,
-              referenceIds,
-              cameraMove,
-              sound,
-              enhancePrompt: enhance,
-            },
-          }
-        : {
-            output: 'image',
-            prompt: description,
-            aspect,
-            payload: {
-              mediaType: 'image',
-              prompt,
-              qualityTier: tier,
-              aspectRatio: aspect,
-              imageSize: tier === 'draft' ? '1K' : imageSize,
-              referenceIds,
-              enhancePrompt: enhance,
-            },
-          }
+      buildAiCreateRequest({
+        output,
+        text,
+        goal,
+        format,
+        aspect,
+        lookId,
+        tier,
+        imageSize,
+        resolution,
+        allowHighResolution,
+        cameraMove,
+        sound,
+        enhance,
+        referenceIds: references.map((reference) => reference.id),
+        sampleId: sample?.id ?? null,
+        preferredArchetype: sample?.output === 'post' ? sample.archetype : null,
+      })
     );
   };
 
@@ -383,6 +457,23 @@ export function AiStudioCreate({
               You do not have permission to make {isPost ? 'posts' : isVideo ? 'clips' : 'photos'}{' '}
               with AI for this property.
             </p>
+          ) : null}
+
+          {sample ? (
+            <AiStudioSampleBanner
+              sample={sample}
+              edited={sampleEdited}
+              disabled={locked}
+              onClear={clearSample}
+            />
+          ) : text.length === 0 && hasExamples ? (
+            <AiStudioSampleGallery
+              mode="strip"
+              output={output}
+              access={access}
+              onUse={onApplySample}
+              className="lg:hidden"
+            />
           ) : null}
 
           <div className="space-y-2">
@@ -455,6 +546,8 @@ export function AiStudioCreate({
               maxPhotos={maxPhotos}
               disabled={locked}
               startFrame={isVideo}
+              need={sample && sample.output !== 'post' ? sample.need : null}
+              openRequest={openPhotos}
               onAdd={(reference) =>
                 setReferences((current) =>
                   current.some((row) => row.id === reference.id) || current.length >= maxPhotos
@@ -665,23 +758,36 @@ export function AiStudioCreate({
       </div>
 
       <div className="bg-muted/30 hidden min-h-0 flex-col lg:flex" aria-label="Preview">
-        <div className="flex min-h-0 flex-1 items-center justify-center p-6 [container-type:size] sm:p-8">
-          <div
-            className="bg-card relative overflow-hidden rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.06),0_12px_32px_-12px_rgba(0,0,0,0.25)]"
-            style={{
-              aspectRatio: `${previewW} / ${previewH}`,
-              width: `min(100cqw, calc(100cqh * ${previewW} / ${previewH}))`,
-            }}
-          >
-            <AiStudioCreatePreview
+        {!sample && hasExamples && (isPost || references.length === 0) ? (
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-6 xl:p-8">
+            <p className="text-section-title">Pick an example or describe your own</p>
+            <AiStudioSampleGallery
+              mode="pane"
               output={output}
-              theme={resolvedTheme}
-              coverPhotoUrl={coverPhotoUrl}
-              propertyName={property.name}
-              references={references}
+              access={access}
+              onUse={onApplySample}
             />
           </div>
-        </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 items-center justify-center p-6 [container-type:size] sm:p-8">
+            <div
+              className="bg-card relative overflow-hidden rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.06),0_12px_32px_-12px_rgba(0,0,0,0.25)]"
+              style={{
+                aspectRatio: `${previewW} / ${previewH}`,
+                width: `min(100cqw, calc(100cqh * ${previewW} / ${previewH}))`,
+              }}
+            >
+              <AiStudioCreatePreview
+                output={output}
+                theme={resolvedTheme}
+                coverPhotoUrl={coverPhotoUrl}
+                propertyName={property.name}
+                references={references}
+                sample={sample}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </form>
   );
@@ -693,13 +799,18 @@ function AiStudioCreatePreview({
   coverPhotoUrl,
   propertyName,
   references,
+  sample,
 }: {
   output: AiStudioOutput;
   theme: ResolvedMarketingTheme | null;
   coverPhotoUrl: string | undefined;
   propertyName: string;
   references: MarketingGenerationReference[];
+  sample: AiStudioSample | null;
 }) {
+  if (sample && (sample.output === 'post' || references.length === 0)) {
+    return <AiStudioCreateSamplePreview sample={sample} />;
+  }
   if (output === 'post') {
     if (!theme) {
       return (
@@ -863,5 +974,18 @@ export function SizeSelect({
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+/** The applied example's result, labelled, until the host adds a photo of their own. */
+function AiStudioCreateSamplePreview({ sample }: { sample: AiStudioSample }) {
+  const renderer = useAiStudioPostSampleRenderer();
+  return (
+    <div className="bg-muted/40 relative flex size-full items-center justify-center p-4">
+      <AiStudioSampleArt sample={sample} renderer={renderer} active eager />
+      <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white">
+        Example
+      </span>
+    </div>
   );
 }

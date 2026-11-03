@@ -270,7 +270,9 @@ export function AiPostPanel({ onOpenInDesign, onPublish, canPublish }: Props) {
       ...variant.spec,
       archetype,
       // In a theme the type is the theme's; only the layout changes.
-      fontPairing: themeTokens ? variant.spec.fontPairing : POSTER_ARCHETYPE_DEFAULT_FONTS[archetype],
+      fontPairing: themeTokens
+        ? variant.spec.fontPairing
+        : POSTER_ARCHETYPE_DEFAULT_FONTS[archetype],
     };
     const next = compile(spec, facts, photoSizes, `${variant.key}-s${Date.now()}`, format);
     setVariants((current) => current.map((item) => (item.key === variant.key ? next : item)));
