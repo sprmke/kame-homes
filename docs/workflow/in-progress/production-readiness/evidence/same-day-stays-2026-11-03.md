@@ -77,6 +77,6 @@ upload filenames, and `20261318120000_strict_valid_dates.sql` drops the cutoff. 
 | Public reads | `get-health` ok; `get-booked-dates` and `get-public-property` return data                                                                                           |
 | Captcha      | `submit-form` rejects unverified probes with `Human verification is required` (enforced)                                                                            |
 
-The **frontend** half (picker allows the same-day selection) ships with the next `develop → main`
-release; the backend half is live. Until that release, the production UI still hides same-day
-checkout, so no guest can hit the backend gap.
+The **frontend** half is live too: `release/same-day-picker` (UI-only cherry-pick) merged to `main`
+as `5fb3dc64` and Vercel deployed production from that commit on 2026-11-04. The same-day checkout
+is now selectable on `kamespace.com`.
