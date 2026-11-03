@@ -144,9 +144,16 @@ Pick per row from the host's records:
 **Format only.** `df39895b` stores `2026-01-15 → 2026-01-17` (ISO) instead of `01-15-2026 →
 01-17-2026`; the constraint accepts both, so this is cosmetic.
 
-## If applied
+## Applied 2026-11-03
 
-- `scripts/dev/repair-legacy-stay-dates.mjs` (dry run by default; `--apply` is guarded per row on the
-  exact current values and runs in one transaction).
-- After the repair every row satisfies the strict rule, so the grandfather cutoff added in
-  `20261317120000_same_day_stay_dates.sql` can be dropped and the constraint validated without it.
+- Backup first: `backups/dev/20261103T000157Z_{schema,data,roles}.sql`.
+- `node scripts/dev/repair-legacy-stay-dates.mjs --apply` → **updated 65/65 rows** in one guarded
+  `UPDATE ... FROM (VALUES …)` (each row matched on its exact current check-in and check-out).
+- Verified after the write:
+  - inconsistent rows **69 → 4** (only the four below, which need the host's records)
+  - reversed rows **0**, same-day rows **0**
+  - `check_out_date`, `number_of_nights`, `status`, `booking_rate` and `down_payment` unchanged
+    for all 65 (compared against the pre-repair backup)
+  - every corrected check-in equals the filename start
+- The constraint is tightened in `20261318120000_strict_valid_dates.sql`: same-day stays remain
+  valid, the 2025-06-01 grandfather clause is gone, and `VALIDATE CONSTRAINT` passes.

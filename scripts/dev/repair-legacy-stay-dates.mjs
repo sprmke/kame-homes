@@ -44,6 +44,11 @@ const toYmd = (mdy) => {
   const [m, d, y] = mdy.split('-');
   return `${y}-${m}-${d}`;
 };
+/** YYYY-MM-DD -> MM-DD-YYYY, the column's canonical format. */
+const toMdy = (ymd) => {
+  const [y, m, d] = ymd.split('-');
+  return `${m}-${d}-${y}`;
+};
 const span = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
 const fixes = [];
@@ -74,7 +79,8 @@ for (const row of rows) {
     status: row.status,
     created: String(row.created_at).slice(0, 10),
     current: row.check_in_date,
-    corrected: start,
+    // The column is MM-DD-YYYY text; the filename carries YYYY-MM-DD.
+    corrected: toMdy(start),
     checkOut: row.check_out_date,
     nights: row.number_of_nights,
     drift: span(start, toYmd(row.check_in_date)),
@@ -117,24 +123,34 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const statements = fixes.map(
-  (f) =>
-    `update public.guest_submissions set check_in_date = '${f.corrected}' ` +
-    `where id = '${f.id}' and check_in_date = '${f.current}' and check_out_date = '${f.checkOut}';`
-);
+// One atomic statement with a per-row guard on the exact current values, so a row that
+// changed since the dry run is skipped instead of overwritten.
+const values = fixes
+  .map((f) => `('${f.id}','${f.current}','${f.corrected}','${f.checkOut}')`)
+  .join(',\n');
 
-const sql = [
-  'begin;',
-  ...statements,
-  `select count(*) as still_inconsistent from public.guest_submissions
-     where abs((check_out_date_sql - check_in_date_sql)) <> number_of_nights;`,
-  'commit;',
-].join('\n');
+const sql = `
+update public.guest_submissions g
+set check_in_date = v.new_in
+from (values
+${values}
+) as v(id, expected_in, new_in, expected_out)
+where g.id = v.id::uuid
+  and g.check_in_date = v.expected_in
+  and g.check_out_date = v.expected_out
+returning g.id;
+`;
 
-console.log(`\napplying ${fixes.length} updates…`);
+console.log(`\napplying ${fixes.length} guarded updates…`);
 const out = execFileSync(
   './scripts/dev/bunx',
   ['--bun', 'supabase@latest', 'db', 'query', '--linked', '--yes', sql],
   { encoding: 'utf8' }
 );
-console.log(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+const json = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+const updated = (json.rows ?? []).length;
+console.log(`updated ${updated}/${fixes.length} rows`);
+if (updated !== fixes.length) {
+  console.error('WARNING: not every row was updated — re-run the dry run to inspect.');
+  process.exit(1);
+}

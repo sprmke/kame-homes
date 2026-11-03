@@ -54,8 +54,9 @@ history (a swap does not fit: only 2 of 41 have `check_in - check_out = nights`)
 before 2025-06-01 are grandfathered; **0** rows created on/after the cutoff violate the rule, so
 `VALIDATE CONSTRAINT` passes and a production dump still restores into a fresh project.
 
-Follow-up (needs the host's records, not code): repair those 41 historical rows and then drop the
-cutoff from the constraint.
+Follow-up: the 41 rows (and 24 more from the same edit bug) were repaired on 2026-11-03 from the
+upload filenames, and `20261318120000_strict_valid_dates.sql` drops the cutoff. See
+[`legacy-stay-date-reconstruction.md`](./legacy-stay-date-reconstruction.md).
 
 ## Verification
 
