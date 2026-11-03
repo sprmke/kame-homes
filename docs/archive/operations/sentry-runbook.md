@@ -2,7 +2,7 @@
 title: Sentry runbook
 status: active
 tags: [operations, sentry, observability, incident-response]
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Sentry runbook
@@ -23,6 +23,24 @@ old.
 Check **Stats → Usage** first. If the quota is gone, the calm answer is usually "one bad
 deploy looped", not "Sentry failed". Grep the recent events for the loudest fingerprint and
 fix that; visibility returns next cycle.
+
+## 0.5 Check source maps before believing a stack
+
+A minified frame (`index-abc123.js:1:48213`) means the release carries no artifacts, not that
+the app is broken. Verify per release, with a token that can read releases:
+
+```bash
+curl -s "https://us.sentry.io/api/0/projects/kame-tech/kame-space-web/releases/?per_page=5" \
+  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+curl -s "https://us.sentry.io/api/0/projects/kame-tech/kame-space-web/releases/<version>/files/" \
+  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+```
+
+`files/` returning `[]` for every recent release means the build ran without
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG` or `SENTRY_PROJECT`, so nothing was uploaded. The Vite build
+now prints a `[sentry] source-map upload is OFF …` warning when that happens on Vercel. Fix
+the Vercel env vars (Preview **and** Production) and redeploy; the artifact count on the new
+release is the proof.
 
 ## 1. Triage an issue
 

@@ -51,9 +51,21 @@ const classnamesShim = path.resolve(__dirname, './src/lib/shims/classnames.ts');
  * Enabled only when all three build-time vars are present. A missing token means "no maps",
  * not "no build": local and fork builds must not need Sentry credentials.
  */
-const sentrySourceMapsEnabled = Boolean(
-  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
-);
+const SENTRY_BUILD_VARS = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'] as const;
+const sentryMissingVars = SENTRY_BUILD_VARS.filter((key) => !process.env[key]);
+const sentrySourceMapsEnabled = sentryMissingVars.length === 0;
+
+// A missing variable turns source-map upload off with no error, by design (local and fork
+// builds must not need Sentry credentials). On Vercel that silence hid a real gap: every
+// release existed but carried zero artifacts, so stacks stayed minified. Warn loudly there,
+// never fail the build.
+if (process.env.VERCEL && sentryMissingVars.length > 0) {
+  console.warn(
+    `[sentry] source-map upload is OFF for this Vercel build (missing ${sentryMissingVars.join(', ')}). ` +
+      'Sentry stack traces will be minified. Set these in Vercel → Settings → Environment Variables ' +
+      'for both Preview and Production, then redeploy.'
+  );
+}
 
 /**
  * `@sentry/vite-plugin` uploads inside `writeBundle`, which runs *after* Rollup has already
