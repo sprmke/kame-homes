@@ -32,8 +32,10 @@ export const transformFieldValues = (
   // Calculate number of nights
   const checkIn = dayjs(values.checkInDate);
   const checkOut = dayjs(values.checkOutDate);
-  const numberOfNights = Math.ceil(
-    (checkOut.valueOf() - checkIn.valueOf()) / (1000 * 60 * 60 * 24)
+  // Same-day stays are allowed and occupy one night (day use), so never submit 0.
+  const numberOfNights = Math.max(
+    1,
+    Math.ceil((checkOut.valueOf() - checkIn.valueOf()) / (1000 * 60 * 60 * 24))
   );
   const useStayParkingDates =
     !values.needParking || numberOfNights <= 1 || values.parkingSameAsBookingDuration !== false;
