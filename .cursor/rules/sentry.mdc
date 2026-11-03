@@ -4,7 +4,7 @@ globs:
   - ui/src/lib/sentry/**
   - supabase/functions/_shared/sentry*.ts
   - docs/architecture/observability.md
-  - docs/workflow/planned/observability-sentry-posthog-split/**
+  - docs/workflow/done/observability-sentry-posthog-split/**
 alwaysApply: false
 ---
 
@@ -33,4 +33,4 @@ Do not put Sentry in project `.mcp.json` (OAuth HTTP; stdio-only there).
 
 ## Privacy
 
-No email/PII in Sentry. Scrub via `telemetry/scrub.ts` + `_shared/telemetryScrub.ts` (keep in sync). Plan: `docs/workflow/planned/observability-sentry-posthog-split/`.
+No email/PII in Sentry. Scrub via `telemetry/scrub.ts` + `_shared/telemetryScrub.ts` (keep in sync). Plan: `docs/workflow/done/observability-sentry-posthog-split/`.

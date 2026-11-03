@@ -21,7 +21,7 @@ description: >-
 | Build / maps | `SENTRY_ORG=kame-tech`, `SENTRY_PROJECT=kame-space-web`, `SENTRY_AUTH_TOKEN` (org token, build-only) |
 
 Canonical product split: **`docs/architecture/observability.md`**.
-Rollout plan: **`docs/workflow/planned/observability-sentry-posthog-split/`**.
+Rollout plan: **`docs/workflow/done/observability-sentry-posthog-split/`**.
 Operator keys checklist: **`…/05-operator-setup.md`**.
 
 ## Faults vs outcomes
