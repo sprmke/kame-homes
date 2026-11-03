@@ -26,4 +26,19 @@ test.describe('brand smoke @smoke', () => {
       await expect(body).not.toContainText('KameHomes');
     });
   }
+
+  test('privacy page discloses the former name', async ({ page }) => {
+    await page.goto('/privacy');
+
+    await expect(page).toHaveTitle(/Kame Space/);
+    await expect(page.locator('body')).toContainText('previously called Kame Homes');
+  });
+
+  test('organization structured data keeps the former name discoverable', async ({ page }) => {
+    await page.goto('/');
+
+    const jsonLd = await page.locator('script[data-organization-jsonld]').textContent();
+    expect(jsonLd).toContain('"name":"Kame Space"');
+    expect(jsonLd).toContain('"alternateName":"Kame Homes"');
+  });
 });

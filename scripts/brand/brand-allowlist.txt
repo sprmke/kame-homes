@@ -108,3 +108,6 @@ ui/e2e/features/brand/brandSmoke.spec.ts  # asserts the retired name is absent
 
 supabase/functions/_shared/emailBrandName_test.ts  # tests the retired-name list
 docs/GLOSSARY.md  # documents the former name and stable identifiers
+docs/guides/routes/legal.md  # documents the rename disclosure and structured data
+ui/src/lib/platformBranding.test.ts  # asserts the rename disclosure copy and legacy-name detector
+ui/src/lib/platformBranding.test.ts  # tests the retired-name disclosure

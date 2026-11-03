@@ -18,9 +18,6 @@ const fs = require('fs');
 const html = fs.readFileSync(process.argv[1], 'utf8').replace(/<!--[\\s\\S]*?-->/g, '');
 const problems = [];
 for (const m of html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/g)) {
-  // JSON-LD is inert data, not a script: nothing executes it, so CSP and the hash-free
-  // script-src are unaffected. Everything else inline still fails.
-  if (/type=[\"']application\\/ld\\+json[\"']/.test(m[1])) continue;
   if (!/\\bsrc=/.test(m[1]) && m[2].trim()) problems.push('inline <script> body');
 }
 if (/<[a-z][^>]*\\son[a-z]+\\s*=/i.test(html)) problems.push('inline on* event handler');

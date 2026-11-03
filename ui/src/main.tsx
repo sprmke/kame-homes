@@ -15,6 +15,7 @@ import { reactRootErrorHandlers } from '@/lib/sentry/capture';
 import { initSentry } from '@/lib/sentry/init';
 import { wrapRouterForSentry } from '@/lib/sentry/router';
 import { installServiceWorkerErrorBridge } from '@/lib/sentry/swBridge';
+import { installOrganizationJsonLd } from '@/lib/seo/organizationJsonLd';
 
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import '@/lib/pwa/installPrompt'; // capture beforeinstallprompt early
@@ -26,6 +27,7 @@ initSentry();
 
 bootstrapPostHogTelemetry();
 installServiceWorkerErrorBridge();
+installOrganizationJsonLd();
 
 /**
  * Data router (not `<BrowserRouter>`) so `useBlocker` works for the global

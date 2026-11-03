@@ -42,6 +42,10 @@ on production keys.
 
 Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Space**; guest fallback **kameworks.tech@gmail.com**.
 
+Privacy and Terms disclose the rename once: **"Kame Space was previously called Kame Homes"**, plus a last-updated line. The sentence comes from `platformFormerNameNote()` in `ui/src/lib/platformBranding.ts`, so the current name stays env-driven.
+
+Site-wide `Organization` structured data is injected at bootstrap by `ui/src/lib/seo/organizationJsonLd.ts` (not inline in `index.html`, which the CSP guard forbids). It carries `name: Kame Space`, `alternateName: Kame Homes` and the request origin, and the brand smoke test asserts it.
+
 Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host Resources were removed from the footer (no backing content).
 
 ---
