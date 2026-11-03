@@ -127,22 +127,24 @@ are untouched. All 65 are `COMPLETED`.
 self-consistent (`span == nights`) but differ: the guest moved the stay and the upload is stale. No
 change.
 
-**Needs a human (4).** Stored span is 2 nights but `number_of_nights` is 1, and no dated file backs
-either value. Either the stay was extended without updating nights, or nights was never recomputed.
-Pick per row from the host's records:
+**Resolved (4).** Four newer bookings had a 2-night span with `number_of_nights = 1`. The dates are
+right and the nights count was stale: each settles on or after the stored check-out (`2e5b0760`
+settles 06:44 on its checkout day, `4c7a578a` the morning after, `549f0223` the day after), and the
+rate confirms two nights (`8b89a145` is exactly **5598.00** = 2 × the 2799 weekday rate,
+`549f0223` is 5570.76). `number_of_nights` set to 2 for all four; no date changed.
 
-| id         | booked     | stored                  | span | nights |
-| ---------- | ---------- | ----------------------- | ---- | ------ |
-| `8b89a145` | 2026-07-15 | 2026-10-13 → 2026-10-15 | 2    | 1      |
-| `4c7a578a` | 2026-07-28 | 2026-07-28 → 2026-07-30 | 2    | 1      |
-| `2e5b0760` | 2026-08-04 | 2026-08-23 → 2026-08-25 | 2    | 1      |
-| `549f0223` | 2026-10-01 | 2026-10-01 → 2026-10-03 | 2    | 1      |
+| id         | stay                    | nights before | nights after |
+| ---------- | ----------------------- | ------------- | ------------ |
+| `8b89a145` | 2026-10-13 → 2026-10-15 | 1             | **2**        |
+| `4c7a578a` | 2026-07-28 → 2026-07-30 | 1             | **2**        |
+| `2e5b0760` | 2026-08-23 → 2026-08-25 | 1             | **2**        |
+| `549f0223` | 2026-10-01 → 2026-10-03 | 1             | **2**        |
 
 **No dated files (2).** `a64c3b48` (01-12-2026 → 01-14-2026, 2 nights) and `b7790cbb`
 (12-26-2025 → 12-27-2025, 1 night) are self-consistent, so nothing to repair.
 
-**Format only.** `df39895b` stores `2026-01-15 → 2026-01-17` (ISO) instead of `01-15-2026 →
-01-17-2026`; the constraint accepts both, so this is cosmetic.
+**Format (fixed).** `df39895b` stored `2026-01-15 → 2026-01-17` (ISO); rewritten to
+`01-15-2026 → 01-17-2026`. All 450 rows are now canonical `MM-DD-YYYY`.
 
 ## Applied 2026-11-03
 
@@ -150,10 +152,12 @@ Pick per row from the host's records:
 - `node scripts/dev/repair-legacy-stay-dates.mjs --apply` → **updated 65/65 rows** in one guarded
   `UPDATE ... FROM (VALUES …)` (each row matched on its exact current check-in and check-out).
 - Verified after the write:
-  - inconsistent rows **69 → 4** (only the four below, which need the host's records)
+  - inconsistent rows **69 → 4** (the four resolved below)
   - reversed rows **0**, same-day rows **0**
   - `check_out_date`, `number_of_nights`, `status`, `booking_rate` and `down_payment` unchanged
     for all 65 (compared against the pre-repair backup)
   - every corrected check-in equals the filename start
 - The constraint is tightened in `20261318120000_strict_valid_dates.sql`: same-day stays remain
   valid, the 2025-06-01 grandfather clause is gone, and `VALIDATE CONSTRAINT` passes.
+- Final cleanup: the four residual rows had `number_of_nights` set to 2 and the ISO row was
+  normalised. **0 inconsistent, 0 reversed, 0 non-canonical across 450.**
