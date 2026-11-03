@@ -400,7 +400,8 @@ thousands.
 - [x] **Free-tier now:** leave the default high-priority rule as the only alert. Do not add
       **Verified** the rule exists, is enabled and has fired. Free tier allows no more.
       the rules below.
-- [ ] **At plan upgrade — alert rules** (both projects, production env): new issue (first
+- [x] **At plan upgrade — alert rules** (both projects, production env): new issue (first
+      **Closed as deferred (paid tier)** — the free Developer tier has default high-priority email alerts only; routing rules and ownership need Team. Revisit at plan upgrade; not a module gap (D13).
       seen) → notify; regression → notify; issue frequency > 20 events / 5 min → urgent;
       `provider:*` error rate spike → urgent; `cron` monitor missed / failed → urgent; uptime
       down → urgent; `fn:submit-form|submit-sd-form|submit-pay-parking|paymongo-webhook` any
@@ -410,7 +411,8 @@ thousands.
       free: Sentry internal-integration webhook → small `sentry-alert-relay` edge function
       (verifies the signature, posts to the super-admin Telegram chat via the free Bot API).
       Do not adopt it until the free tier is confirmed to allow internal integrations.
-- [ ] **At plan upgrade — ownership rules:** `tags.fn:paymongo-*` → billing owner;
+- [x] **At plan upgrade — ownership rules:** `tags.fn:paymongo-*` → billing owner;
+      **Closed as deferred (paid tier)** — same reason as alert rules. The `fn` tag is already on every edge event, so the routing rule is a two-minute change when the tier allows it.
       `provider:meta` → inbox owner; default → platform owner. Single-user org today, so
       routing is a no-op until a second member exists.
 - [x] **Runbook:** new `docs/archive/operations/sentry-runbook.md` (triage, mute vs resolve,
@@ -430,12 +432,14 @@ thousands.
 
 ## S6 — Privacy, docs, closeout (with A7)
 
-- [ ] Sentry project settings: data scrubber on, default scrub on, IP storage off,
+- [x] Sentry project settings: data scrubber on, default scrub on, IP storage off,
+      **Verified 2026-11-03** on both `kame-space-web` and `kame-space-edge`: Data Scrubber on, default scrubbers on, IP storage off, `email` in additional sensitive fields.
       "prevent storing of IP addresses" on, additional sensitive fields = scrub list.
 - [x] Legal copy shipped (P1.6) before prod DSNs are set.
       **Done** — the copy is live. The ordering was violated historically; recorded, not retroactively fixable.
 - [x] Docs from README "Docs to update" table, new `observability.mdc` rule + skill.
 - [x] Production rollout checklist (doc 05 §6). Production Supabase secrets need `kamewave`.
       **Done** — secrets are set on the single project and the pipeline is `cd-prod`. The pending migrations were applied on 2026-11-03 (429/429) and every function redeployed, so schema and code agree.
-- [ ] Move this folder to `docs/workflow/done/` by hand (the move script handles single
+- [x] Move this folder to `docs/workflow/done/` by hand (the move script handles single
+      **Done** — moved to `docs/workflow/done/observability-sentry-posthog-split/` with every reference updated.
       files only) and update both READMEs + intake scratchpads.

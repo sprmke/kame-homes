@@ -92,7 +92,7 @@ docs/workflow/in-progress/marketing-studio-mobile-and-dashboard-responsive.md  #
 docs/workflow/in-progress/agentic-ai-assistants.md  # seed org reference
 docs/workflow/intake/**  # intake notes quoting project names
 docs/workflow/planned/marketing-studio-mobile-and-dashboard-responsive.md  # seed slug
-docs/workflow/planned/observability-sentry-posthog-split/**  # project name references
+docs/workflow/done/observability-sentry-posthog-split/**  # project name references
 docs/workflow/planned/README.md  # plan filenames
 docs/workflow/planned/rebrand-kame-homes-to-kame-space.md  # stub links the live plan
 scripts/dev/batch-commit-run-*.sh  # historical batch scripts

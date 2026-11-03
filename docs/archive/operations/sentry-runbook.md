@@ -9,7 +9,7 @@ updated: 2026-11-03
 
 How to triage, route and close an error in this product. Companion to
 [`docs/architecture/observability.md`](../architecture/observability.md) and the plan at
-`docs/workflow/planned/observability-sentry-posthog-split/`.
+`docs/workflow/done/observability-sentry-posthog-split/`.
 
 **The one rule:** Sentry owns faults, PostHog owns outcomes. If you are looking at an
 exception, you are in the right place. If you are looking at a user journey, you want PostHog.

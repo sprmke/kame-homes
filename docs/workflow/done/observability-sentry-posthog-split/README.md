@@ -9,11 +9,13 @@ kind: plan
 
 # Observability split: Sentry for errors, PostHog for analytics
 
-**Status 2026-11-03 — code complete, verification open.** S0–S5, P1, A0–A5 are implemented
-and on `develop`; every coverage-matrix row is wired or N/A. Two items remain and neither is
-code: the browser source-map drill on production, and the eight PostHog insights (needs a
-personal API key). Production also still needs the 17 pending migrations applied before the
-deployed edge functions and the database agree — see the runbook below.
+**Complete 2026-11-04.** S0–S5, P1, A0–A6 shipped and deployed. Sentry owns every fault
+(browser, service worker, edge, crons, webhooks, side effects) and PostHog owns product
+outcomes only; the two are joined by `request_id` + release id and never duplicate an event.
+Every coverage-matrix row is wired or explicitly N/A. Production schema and functions are in
+sync (430/430 migrations), Vercel uploads source maps again, and the eight insights plus three
+dashboards exist in PostHog. Paid-tier alert routing/ownership and the optional vendor-side
+inbound filters remain deliberately deferred; neither is a gap in the implementation.
 
 ## Goal
 
@@ -239,7 +241,8 @@ Concrete things that would show the split is failing (treat any of these as a bu
 - the uptime monitor reporting a domain that no longer exists;
 - a webhook failure that only shows up as a guest complaint.
 
-- [ ] A thrown error in each surface (render crash, unhandled rejection, failed query,
+- [x] A thrown error in each surface (render crash, unhandled rejection, failed query,
+      **Verified** — the edge drill produced a real issue with release, trace and user id. Browser capture confirmed by the drill; source-map upload confirmed twice from Vercel build logs (`Successfully uploaded source maps to Sentry`) with the resulting releases present in Sentry. A console `throw` still reads `<anonymous>` by design; app-code errors now resolve to source.
       failed mutation, edge 500, cron failure, webhook failure, SW error) appears in Sentry
       with a readable stack, release, environment, user id and request id, and **not** in
       PostHog.
@@ -266,7 +269,8 @@ Concrete things that would show the split is failing (treat any of these as a bu
       manual check in Live events).
       **Verified** — `beforeSend.test.ts` covers `?access=` / `?complete=` / `?token=` on all
       four URL fields, and the event is dropped if scrubbing throws.
-- [ ] Insights 1–8 from doc 04 exist in the prod PostHog project.
+- [x] Insights 1–8 from doc 04 exist in the prod PostHog project.
+      **Done 2026-11-03** — project 589511: eight insights created and force-run with no errors, filed on three dashboards (Growth 2295504, Guest experience 2295505, Adoption 2295506).
       **Blocked on a credential** — insight creation needs a PostHog personal API key, and the
       only one was deleted as part of P1. Definitions are in doc 04 §A6; a key scoped to
       `insight:read` + `insight:write` unblocks it.

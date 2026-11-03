@@ -15,7 +15,7 @@ instrument, not a preference.
 | **Sentry**  | Exceptions, crashes, failed requests, failed crons, failed webhooks, third-party faults, alerts, tracing | Product analytics, funnels, feature flags          |
 | **PostHog** | Pageviews, named product events, funnels, identify, groups, (masked) session replay when enabled         | Exception capture, error alerts, error source maps |
 
-Full plan and phase order: `docs/workflow/planned/observability-sentry-posthog-split/`.
+Full plan and phase order: `docs/workflow/done/observability-sentry-posthog-split/`.
 Org: **`kame-tech`** (US). Projects: **`kame-space-web`** / **`kame-space-edge`**.
 Agent skill: **`sentry`**. OpenCode MCP: `opencode mcp auth sentry`.
 
