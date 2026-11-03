@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = [
   'https://dev.kamespace.com', // New dev origin
 ];
 
-const DEFAULT_ORIGIN = 'https://www.kamehomes.space';
+const DEFAULT_ORIGIN = 'https://kamespace.com';
 
 /** Request headers the browser may send on a CORS-preflighted edge call. */
 export const CORS_ALLOW_HEADERS = [

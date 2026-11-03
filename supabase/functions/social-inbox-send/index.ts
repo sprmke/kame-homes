@@ -183,6 +183,7 @@ serveAuthenticated(
         reply_status: 'replied',
         unread_delta: 0,
         guest_unread_delta: 1,
+        aiHandoff: { clear_ai_handoff: true },
       });
       if (template) await logChatTemplateSent(templatePropertyId!, template);
       void maybeNotifyGuestOfHostWebReply({
@@ -284,6 +285,7 @@ serveAuthenticated(
       last_message_at: now,
       reply_status: 'replied',
       unread_delta: 0,
+      aiHandoff: { clear_ai_handoff: true },
     });
 
     await reportReplySent();

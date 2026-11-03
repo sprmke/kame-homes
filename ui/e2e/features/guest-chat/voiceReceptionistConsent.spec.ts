@@ -48,7 +48,7 @@ async function installVoiceReceptionistMocks(
         conversationId: '00000000-0000-4000-8000-000000000121',
         property: { id: '00000000-0000-4000-8000-000000000122', slug: 'solea', name: 'Solea' },
         host: {
-          organizationName: 'Kame Homes',
+          organizationName: 'Sample Stays',
           ownerName: 'Host',
           ownerAvatarUrl: null,
         },

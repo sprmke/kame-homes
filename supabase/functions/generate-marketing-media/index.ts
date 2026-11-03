@@ -55,6 +55,7 @@ import {
   completeMarketingGenerationJob,
   failMarketingGenerationJob,
   insertMarketingGenerationJob,
+  readSampleId,
   recordMarketingGenerationJobUsage,
   toMarketingGenerationJobDto,
   touchGenerationReferences,
@@ -297,6 +298,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     body,
     plan,
   } = ctx;
+  const sampleId = readSampleId(body.sampleId);
 
   let options: ReturnType<typeof assertValidImageOptions>;
   try {
@@ -383,6 +385,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     // regardless; this column is for host-facing transparency, not generation.
     enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
     promptEnhanced: enhancement.enhanced,
+    generationOptions: sampleId ? { sampleId } : {},
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,
@@ -552,6 +555,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     body,
     plan,
   } = ctx;
+  const sampleId = readSampleId(body.sampleId);
 
   let options: ReturnType<typeof assertValidVideoOptions>;
   try {
@@ -662,7 +666,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     negativePrompt,
     enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
     promptEnhanced: enhancement.enhanced,
-    generationOptions: { cameraMove, sound },
+    generationOptions: { cameraMove, sound, ...(sampleId ? { sampleId } : {}) },
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,

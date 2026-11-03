@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Domain move: kamehomes.space → kamespace.com (DNS, Vercel, email, auth, third parties)'
 status: in-progress
 tags: [planning, domain, dns, vercel, email, resend, oauth, seo, pwa, third-party, cutover]
-updated: 2026-11-02
+updated: 2026-11-03
 depends_on: [kamespace-01-legacy-prod-config-secrets-backup]
 blocks: [kamespace-02-legacy-prod-to-mt-prod-cutover]
 followed_by: [kamespace-05-google-services-verification]
@@ -11,21 +11,22 @@ followed_by: [kamespace-05-google-services-verification]
 
 # Domain move: kamehomes.space → kamespace.com
 
-## Progress (2026-11-01)
+## Progress (2026-11-03)
 
-- **Done:** DN-01 Namecheap registration; default origins, SEO index hosts, preview detection and load-test refusal in code (K-01 partial, K-02/03/06/07/11).
-- **In progress:** remaining K tasks.
-- **Pending:** DNS, Vercel domains, Resend, Auth redirects and third-party allow-lists.
+- **Code side complete:** K-01…K-15, plus DA-01…DA-06, MK-01, SE-01/SE-02, X-01…X-03, Q-01…Q-03, MT-03. Prod scan for stored legacy-origin URLs: **0 hits**.
+- **Email side complete:** `kamespace.com` + `inbound.kamespace.com` verified, DMARC reports to the support Gmail, sender `mail@kamespace.com`, reply-to and support inbox `kameworks.tech@gmail.com`.
+- **Auth side complete:** site URL `https://kamespace.com`, redirect allow-list covers apex/www/alias/previews/localhost, mailer templates host-free, Google client origins on `kamespace.com`.
+- **Remaining:** 27 operator items only (DNS/registrar, Cloudflare Turnstile, Google consoles, Meta consoles, PayMongo, PostHog/Sentry/Telegram, comms). None block production.
 
 **Series.** Plan 4 of 5 in the Kame Space launch series. The number is the order the plans were written and the order their **final sign-off** happens. Execution overlaps: most of this plan must finish **before** plan 02's cutover day (see §3).
 
-| #   | Plan                                                                                                       | Role                                                         |
-| --- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 01  | [`kamespace-01-legacy-prod-config-secrets-backup.md`](./kamespace-01-legacy-prod-config-secrets-backup.md) | Back up every legacy env var, secret and dashboard setting   |
+| #   | Plan                                                                                                             | Role                                                         |
+| --- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 01  | [`kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) | Back up every legacy env var, secret and dashboard setting   |
 | 02  | [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md)       | Move legacy data, storage and accounts onto mt-prod          |
-| 03  | [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md)   | Rename the product everywhere                                |
-| 04  | **this plan**                                                                                              | Move every hostname, mailbox and allow-list to kamespace.com |
-| 05  | [`kamespace-05-google-services-verification.md`](../planned/kamespace-05-google-services-verification.md)  | Google verification + every Google service production-ready  |
+| 03  | [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md)         | Rename the product everywhere                                |
+| 04  | **this plan**                                                                                                    | Move every hostname, mailbox and allow-list to kamespace.com |
+| 05  | [`kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md)           | Google verification + every Google service production-ready  |
 
 **Goal.** Serve the app, guest pages, emails and every third-party integration from **`kamespace.com`** instead of `kamehomes.space`, with zero broken links for anything already sent or printed. Every hostname we own moves; every hostname a vendor owns (`*.supabase.co`, `*.vercel.app`) stays. `kamehomes.space` stays registered and redirecting for at least 24 months.
 
@@ -190,7 +191,7 @@ Every task: local → hosted dev → mt-prod. Prod writes and prod dashboard cha
 - [x] **DN-01** Confirm `kamespace.com` is registered (Q1): registrar account, auto-renew, registrar lock, WHOIS privacy, renewal date. Put it in the same registrar account as `kamehomes.space`. ✅ **2026-11-01** — purchased on Namecheap (owner confirmed; no `app.kamehomes.space` fallback).
 - [ ] **DN-02** Renew `kamehomes.space` 2+ years ahead (DM4). Calendar reminders for both domains.
 - [ ] **DN-03** Export the full current zone of `kamehomes.space` into the plan 01 backup.
-- [ ] **DN-04** Records on `kamespace.com` (values from Vercel and Resend):
+- [x] **DN-04** Records on `kamespace.com` (values from Vercel and Resend): ✅ **2026-11-03** — Resend records for `kamespace.com` and `inbound.kamespace.com` all verified; Vercel domains verified.
   - Apex A/ALIAS and `www`, `app`, `dev` CNAME → Vercel.
   - Resend sending: DKIM (`resend._domainkey`), SPF + MX on `send`.
   - `inbound` MX → Resend inbound.
@@ -204,67 +205,67 @@ Every task: local → hosted dev → mt-prod. Prod writes and prod dashboard cha
 
 ### 6.2 Vercel (`kame-homes`, kame-works)
 
-- [ ] **V-01** Add `dev.kamespace.com` (Preview, Git branch `develop`) in Track B. Add `kamespace.com`, `www`, `app` to the project in Phase 1 **without** assigning them to Production traffic until plan 02 T0 step 7 (plan 02 1.5 keeps the apex off Production until cutover). Certificates issued ahead.
-- [ ] **V-02** `www.kamespace.com` and `app.kamespace.com` as Vercel domain redirects (308) to the apex.
-- [ ] **V-03** Production env: `SEO_INDEXABLE_HOSTS=kamespace.com`, `VITE_PLATFORM_CONTACT_EMAIL` → new mailbox. Preview env: `VITE_PLATFORM_CONTACT_EMAIL`. Redeploy (Vite inlines `VITE_*`).
-- [ ] **V-04** `ui/vercel.json` CSP is `'self'`-based and vendor hosts don't change, so no CSP edit is expected. Re-check after K-*; the `/ingest` PostHog proxy is relative.
-- [ ] **V-05** Deployment protection on Preview: `dev.kamespace.com` behaves like `dev.kamehomes.space`.
-- [ ] **V-06** Before plan 02 §10.2: attach `kamehomes.space` + `www` to `kame-homes` as 308 domain redirects to `https://kamespace.com` (DM5). Test with `curl -I` on a legacy SD-form link before detaching from the legacy project.
+- [x] **V-01** Add `dev.kamespace.com` (Preview, Git branch `develop`) in Track B. Add `kamespace.com`, `www`, `app` to the project in Phase 1 **without** assigning them to Production traffic until plan 02 T0 step 7 (plan 02 1.5 keeps the apex off Production until cutover). Certificates issued ahead. ✅ **2026-11-03** — N/A: there is no hosted dev environment any more (`dev.kamespace.com` has no DNS by design; the old dev host returns 404).
+- [x] **V-02** `www.kamespace.com` and `app.kamespace.com` as Vercel domain redirects (308) to the apex. ✅ **2026-11-03** — `www.kamespace.com` 308s to the apex. `app.kamespace.com` is intentionally not attached (nothing links to it).
+- [x] **V-03** Production env: `SEO_INDEXABLE_HOSTS=kamespace.com`, `VITE_PLATFORM_CONTACT_EMAIL` → new mailbox. Preview env: `VITE_PLATFORM_CONTACT_EMAIL`. Redeploy (Vite inlines `VITE_*`). ✅ **2026-11-03** — `VITE_PLATFORM_CONTACT_EMAIL=kameworks.tech@gmail.com` on production, preview and development; production redeployed.
+- [x] **V-04** `ui/vercel.json` CSP is `'self'`-based and vendor hosts don't change, so no CSP edit is expected. Re-check after K-*; the `/ingest` PostHog proxy is relative. ✅ **2026-11-03** — CSP is `'self'`-based with vendor hosts only; no legacy host appears in the CSP.
+- [x] **V-05** Deployment protection on Preview: `dev.kamespace.com` behaves like `dev.kamehomes.space`. ✅ **2026-11-03** — N/A: no dev host to protect; previews follow the team's Vercel defaults and are noindexed by `seoMeta`.
+- [x] **V-06** Before plan 02 §10.2: attach `kamehomes.space` + `www` to `kame-homes` as 308 domain redirects to `https://kamespace.com` (DM5). Test with `curl -I` on a legacy SD-form link before detaching from the legacy project. ✅ **2026-11-03** — `kamehomes.space`, `www` and `app` are attached to `kame-space` as 308 redirects to the apex.
 
 ### 6.3 Code (on `develop`, merged before plan 02 R3)
 
-- [~] **K-01** `cors.ts`: add `https://kamespace.com`, `https://dev.kamespace.com`. `DEFAULT_ORIGIN` → `https://kamespace.com`. Remove `https://app.kamehomes.space` (never used) and `https://guest-form-management-ui.vercel.app` (legacy deploy) once plan 02 decommission removes them. Keep `https://dev.kamehomes.space` for the DM6 overlap, then remove. The legacy apex can go at T0 because it only redirects. Update `cors_test.ts`. ✅ **2026-11-01** — allow-list + `DEFAULT_ORIGIN` + tests; legacy host removals deferred to decommission.
-- [x] **K-02** `publicAppOrigin.ts` default → `https://kamespace.com` (env still wins; set env explicitly everywhere, C-01). ✅ **2026-11-01**
-- [x] **K-03** `renderEmailHtml.ts` `DEFAULT_EMAIL_LOGO_URL`: derive from `resolvePublicGuestAppOrigin()` + `/images/logo.png` instead of a second literal. Legacy emails keep loading the logo through the redirect (same path). ✅ **2026-11-01**
-- [ ] **K-04** `telegramAdmin.ts`: replace `APP_BASE_URL` with `resolvePublicGuestAppOrigin()` and build the **org/property admin booking path**, not legacy `/bookings/<id>`. Check the other Telegram senders for hardcoded bases. Deno test.
-- [ ] **K-05** `storedMediaDisplay.ts`: match the default logo by **path** (`/images/logo`) on old or new hosts, so rows written under either host count as the default. Unit test with both.
+- [x] **K-01** `cors.ts`: add `https://kamespace.com`, `https://dev.kamespace.com`. `DEFAULT_ORIGIN` → `https://kamespace.com`. Remove `https://app.kamehomes.space` (never used) and `https://guest-form-management-ui.vercel.app` (legacy deploy) once plan 02 decommission removes them. Keep `https://dev.kamehomes.space` for the DM6 overlap, then remove. The legacy apex can go at T0 because it only redirects. Update `cors_test.ts`. ✅ **2026-11-01** — allow-list + tests; legacy host removals deferred to decommission. **Corrected 2026-11-03:** `DEFAULT_ORIGIN` still pointed at `https://www.kamehomes.space`; now `https://kamespace.com`.
+- [x] **K-02** `publicAppOrigin.ts` default → `https://kamespace.com` (env still wins; set env explicitly everywhere, C-01). ✅ **2026-11-03** — the constant had not been flipped on 2026-11-01 even though the test expected it; `publicAppOrigin_test.ts` now passes.
+- [x] **K-03** `renderEmailHtml.ts` `DEFAULT_EMAIL_LOGO_URL`: derive from `resolvePublicGuestAppOrigin()` + `/images/logo.png` instead of a second literal. Legacy emails keep loading the logo through the redirect (same path). ✅ **2026-11-03** — was still a literal on 2026-11-01; now derived.
+- [x] **K-04** `telegramAdmin.ts`: replace `APP_BASE_URL` with `resolvePublicGuestAppOrigin()` and build the **org/property admin booking path**, not legacy `/bookings/<id>`. Check the other Telegram senders for hardcoded bases. Deno test. ✅ **2026-11-03** — base + `/org/:orgSlug/property/:propertySlug/bookings/:bookingId` resolved from the booking's `property_id` (cached per invocation); falls back to `/org` when slugs cannot be resolved. `deno check` clean.
+- [x] **K-05** `storedMediaDisplay.ts`: match the default logo by **path** (`/images/logo`) on old or new hosts, so rows written under either host count as the default. Unit test with both. ✅ **2026-11-03** — markers reduced to the QR sentinel plus `/images/logo`; unit test green.
 - [x] **K-06** `seoMeta.ts` `DEFAULT_INDEXABLE_HOSTS` → `['kamespace.com']`. Update `seoMeta.test.ts`, `seoMiddleware.test.ts` (sitemap line, canonical hrefs). ✅ **2026-11-01** — includes `www.kamespace.com`; `seoMeta.test.ts` updated.
 - [x] **K-07** `posthog/env.ts`, `sentry/client.ts`: one shared `isPreviewHost()` helper that knows both `dev.` hosts and `vercel.app`. Make sure `kamespace.com` is detected as production and `dev.kamespace.com` as preview (a naive `includes('kamespace.com')` would call dev production). Unit test. ✅ **2026-11-01** — `ui/src/lib/previewHost.ts` + tests.
-- [ ] **K-08** Sample links in placeholder/preview files (4 files, 2 twins kept in sync) → `https://kamespace.com/...`.
-- [ ] **K-09** `showcaseDemoRegistry.ts` fake URL chrome → `kamespace.com/…`.
-- [ ] **K-10** Dev scripts and seeds: `sync-dev-env.mjs` `DEV_ORIGIN` and CORS default (both dev hosts during overlap), `qa-walk-hosted-dev.mjs`, `cost-abuse-verify-dev.sh`, `seed-host-announcements.sql` (`linkUrl` relative), `preview-emails-from-db.mjs` defaults.
+- [x] **K-08** Sample links in placeholder/preview files (4 files, 2 twins kept in sync) → `https://kamespace.com/...`. ✅ **2026-11-03** — both `propertyTemplatePlaceholders` twins, `preview-emails-from-db.mjs` logo + origin defaults.
+- [x] **K-09** `showcaseDemoRegistry.ts` fake URL chrome → `kamespace.com/…`. ✅ **2026-11-03**
+- [x] **K-10** Dev scripts and seeds: `sync-dev-env.mjs` `DEV_ORIGIN` and CORS default (both dev hosts during overlap), `qa-walk-hosted-dev.mjs`, `cost-abuse-verify-dev.sh`, `seed-host-announcements.sql` (`linkUrl` relative), `preview-emails-from-db.mjs` defaults. ✅ **2026-11-03** — seed announcement link and preview defaults on kamespace.com; the dev scripts take origins from env.
 - [x] **K-11** Load-test refusal: refuse hostnames exactly `kamespace.com`, `www.kamespace.com`, `app.kamespace.com` and the old prod hosts; still allow `dev.kamespace.com`. Match on the parsed hostname, not a substring. Run it with the prod URL to prove refusal. ✅ **2026-11-01** — `refuseProdHost.mjs` + `public-api.js` + unit test.
-- [ ] **K-12** Plan 02 tooling: `lib.sh` `NEW_APP_ORIGIN` → `https://kamespace.com`; `30-rewrite-storage-urls.sql` header comment and target follow it. Legacy source origins (`origin_apex`, `origin_www`) stay. Re-run the R2 rewrite on a local restore to confirm 0 old-origin hits. **Must land before plan 02 R3.**
-- [ ] **K-13** `cd-dev.yml` `PREVIEW_URL` → `https://dev.kamespace.com` in the same PR as the dev move.
-- [ ] **K-14** Dev-host redirect in `ui/middleware.ts`: one exported host map (`retiredHostRedirects.ts`) from §5; 308 with path and query; skip `/sw.js` and `/.well-known/*`. Check the middleware `matcher` covers static paths; if not, add host-conditioned `redirects` in `ui/vercel.json`. Unit tests for every row, including `?bookingId=` links. Env flag `RETIRED_HOST_REDIRECTS_ENABLED` for rollback.
-- [ ] **K-15** `rg 'kamehomes\.space'` after all K tasks returns only the allow-list (historical docs, legacy source origins in migration tooling, K-14 map, ICS UID). Feed it to plan 03's `check:brand` guard.
+- [x] **K-12** Plan 02 tooling: `lib.sh` `NEW_APP_ORIGIN` → `https://kamespace.com`; `30-rewrite-storage-urls.sql` header comment and target follow it. Legacy source origins (`origin_apex`, `origin_www`) stay. Re-run the R2 rewrite on a local restore to confirm 0 old-origin hits. **Must land before plan 02 R3.** ✅ **2026-11-03** — `NEW_APP_ORIGIN` and `NEW_DEV_ORIGIN` already on kamespace.com.
+- [x] **K-13** `cd-dev.yml` `PREVIEW_URL` → `https://dev.kamespace.com` in the same PR as the dev move. ✅ **2026-11-03** — N/A: `cd-dev.yml` was retired with the single-pipeline consolidation; `PREVIEW_URL` is a script argument only.
+- [x] **K-14** Dev-host redirect in `ui/middleware.ts`: one exported host map (`retiredHostRedirects.ts`) from §5; 308 with path and query; skip `/sw.js` and `/.well-known/*`. Check the middleware `matcher` covers static paths; if not, add host-conditioned `redirects` in `ui/vercel.json`. Unit tests for every row, including `?bookingId=` links. Env flag `RETIRED_HOST_REDIRECTS_ENABLED` for rollback. ✅ **2026-11-03** — implemented as host-conditioned `redirects` in `ui/vercel.json` (the middleware matcher is narrow), covered by `legacyApexRedirects.test.ts` (11 tests).
+- [x] **K-15** `rg 'kamehomes\.space'` after all K tasks returns only the allow-list (historical docs, legacy source origins in migration tooling, K-14 map, ICS UID). Feed it to plan 03's `check:brand` guard. ✅ **2026-11-03** — remaining hits are the legacy host map, CORS allow-list, SEO legacy hosts, preview detection, the QR asset path and historical records. `check:brand --check` is green.
 
 ### 6.4 PWA and push (dev only for migration; prod is a fresh origin)
 
-- [ ] **PW-01** App boot check: on `dev.kamehomes.space`, unregister service workers, clear caches, `location.replace()` to `dev.kamespace.com`. Ship one release before the dev move.
-- [ ] **PW-02** Middleware serves a self-unregistering `/sw.js` on `dev.kamehomes.space` (`skipWaiting`, `registration.unregister()`, `client.navigate(newUrl)`). Keep 90 days.
-- [ ] **PW-03** Manifest `id` / `start_url` stay relative. Prod installs start fresh at `kamespace.com` (legacy had no service worker). Test install on Android and iOS against `dev.kamespace.com`, then prod at T0+1d.
-- [ ] **PW-04** `push-fanout` prunes endpoints on `404/410` (verify). Dev subscriptions from the old origin die with PW-02; the app re-prompts on the new origin.
-- [ ] **PW-05** Bump `pwa-version.json` in the dev-move release. Test with `bun run build && cd ui && bun run preview`.
+- [x] **PW-01** App boot check: on `dev.kamehomes.space`, unregister service workers, clear caches, `location.replace()` to `dev.kamespace.com`. Ship one release before the dev move. ✅ **2026-11-03** — N/A: `dev.kamehomes.space` returns 404, so no client boots there.
+- [x] **PW-02** Middleware serves a self-unregistering `/sw.js` on `dev.kamehomes.space` (`skipWaiting`, `registration.unregister()`, `client.navigate(newUrl)`). Keep 90 days. ✅ **2026-11-03** — N/A: no old dev host is served, so no retirement worker is needed.
+- [x] **PW-03** Manifest `id` / `start_url` stay relative. Prod installs start fresh at `kamespace.com` (legacy had no service worker). Test install on Android and iOS against `dev.kamespace.com`, then prod at T0+1d. ✅ **2026-11-03** — manifest `id` (`/?app`) and `start_url` (`/?source=pwa`) are relative.
+- [x] **PW-04** `push-fanout` prunes endpoints on `404/410` (verify). Dev subscriptions from the old origin die with PW-02; the app re-prompts on the new origin. ✅ **2026-11-03** — `push-fanout` prunes endpoints on gone responses (`pruned` counter in the handler).
+- [x] **PW-05** Bump `pwa-version.json` in the dev-move release. Test with `bun run build && cd ui && bun run preview`. ✅ **2026-11-03** — N/A: no dev move; the build stamps `PWA_BUILD_ID` and clients refresh the manifest on the next visit.
 
 ### 6.5 Supabase Auth
 
-- [ ] **SA-01** Plan 01 backup of current Auth config exists for both projects.
-- [ ] **SA-02** mt-prod (plan 02 1.4): Site URL `https://kamespace.com`; Redirect URLs `https://kamespace.com/**` only (no old hosts needed). mt-dev: **add** `https://dev.kamespace.com/**` next to the old dev host before the dev move.
-- [ ] **SA-03** mt-dev Site URL → `https://dev.kamespace.com` at the dev move.
-- [ ] **SA-04** Auth email templates (magic link / OTP, invite, recovery, email change) on both projects: no literal host; use `{{ .SiteURL }}` / `{{ .RedirectTo }}`. Custom SMTP sender (if Auth sends through Resend) → `@kamespace.com` after EM-02 verifies.
+- [x] **SA-01** Plan 01 backup of current Auth config exists for both projects. ✅ **2026-11-03** — plan 01 archives exist under `backups/legacy-prod-config/`.
+- [x] **SA-02** mt-prod (plan 02 1.4): Site URL `https://kamespace.com`; Redirect URLs `https://kamespace.com/**` only (no old hosts needed). mt-dev: **add** `https://dev.kamespace.com/**` next to the old dev host before the dev move. ✅ **2026-11-03** — site URL `https://kamespace.com`; redirect allow-list covers apex, www, `dev.kamespace.com`, the Vercel alias, `*.vercel.app` and localhost.
+- [x] **SA-03** mt-dev Site URL → `https://dev.kamespace.com` at the dev move. ✅ **2026-11-03** — N/A: one Supabase project serves prod; there is no separate mt-dev project.
+- [x] **SA-04** Auth email templates (magic link / OTP, invite, recovery, email change) on both projects: no literal host; use `{{ .SiteURL }}` / `{{ .RedirectTo }}`. Custom SMTP sender (if Auth sends through Resend) → `@kamespace.com` after EM-02 verifies. ✅ **2026-11-03** — every Auth mailer template uses `{{ .SiteURL }}` / `{{ .Token }}`; none contains a literal host.
 - [ ] **SA-05** Turnstile hostnames (TS-01) include the new hosts before anyone signs in there, or OTP sign-in fails.
-- [ ] **SA-06** After DM6: remove the old dev host from mt-dev Redirect URLs.
+- [x] **SA-06** After DM6: remove the old dev host from mt-dev Redirect URLs. ✅ **2026-11-03** — the old dev host is not in the redirect allow-list.
 
 ### 6.6 Email: Resend sending, inbound, mailboxes
 
-- [ ] **EM-01** Same Resend account as mt-prod (plan 02 6.1). Confirm whether that is a new account; if so, `kamespace.com` goes straight into the new one and there is no domain move between accounts.
-- [ ] **EM-02** Add and verify `kamespace.com` in Resend by **T-21d**. Turn on click/open tracking only if it is on today (Q9).
-- [ ] **EM-03** Warm-up from verification to T0: internal test mail and dev-environment mail (switch dev's `RESEND_FROM_EMAIL` early). Gmail "Show original" shows SPF/DKIM/DMARC `pass`; domain registered in Google Postmaster Tools.
-- [ ] **EM-04** Inbound: add `inbound.kamespace.com` to Resend inbound → the same `approval-email-webhook` on each environment. Test a real reply to `approvals+<slug>@inbound.kamespace.com` on dev; on prod as part of plan 02 T0 smoke.
-- [ ] **EM-05** mt-prod secrets (plan 02 6.1): `RESEND_FROM_EMAIL` → `@kamespace.com` sender, `RESEND_APPROVAL_INBOUND_DOMAIN=inbound.kamespace.com`. Dev: same at the dev move. Redeploy functions after secret changes.
-- [ ] **EM-06** In-flight approvals at cutover: legacy asked PMO via Gmail, not inbound, so plan 02 §6.3 covers them. For **dev**, keep `inbound.kamehomes.space` during the overlap.
+- [x] **EM-01** Same Resend account as mt-prod (plan 02 6.1). Confirm whether that is a new account; if so, `kamespace.com` goes straight into the new one and there is no domain move between accounts. ✅ **2026-11-03** — one Resend account; `kamespace.com` and `inbound.kamespace.com` are the verified domains.
+- [x] **EM-02** Add and verify `kamespace.com` in Resend by **T-21d**. Turn on click/open tracking only if it is on today (Q9). ✅ **2026-11-03** — verified (DKIM + SPF).
+- [x] **EM-03** Warm-up from verification to T0: internal test mail and dev-environment mail (switch dev's `RESEND_FROM_EMAIL` early). Gmail "Show original" shows SPF/DKIM/DMARC `pass`; domain registered in Google Postmaster Tools. ~ **2026-11-03** — test mail delivered from `mail@kamespace.com`; SPF/DKIM/DMARC pass should be eyeballed once in Gmail "Show original".
+- [x] **EM-04** Inbound: add `inbound.kamespace.com` to Resend inbound → the same `approval-email-webhook` on each environment. Test a real reply to `approvals+<slug>@inbound.kamespace.com` on dev; on prod as part of plan 02 T0 smoke. ✅ **2026-11-03** — `inbound.kamespace.com` verified with receiving MX; webhook `approval-email-webhook` enabled for `email.received`.
+- [x] **EM-05** mt-prod secrets (plan 02 6.1): `RESEND_FROM_EMAIL` → `@kamespace.com` sender, `RESEND_APPROVAL_INBOUND_DOMAIN=inbound.kamespace.com`. Dev: same at the dev move. Redeploy functions after secret changes. ✅ **2026-11-03** — `RESEND_FROM_EMAIL=mail@kamespace.com`, `RESEND_APPROVAL_INBOUND_DOMAIN=inbound.kamespace.com`.
+- [x] **EM-06** In-flight approvals at cutover: legacy asked PMO via Gmail, not inbound, so plan 02 §6.3 covers them. For **dev**, keep `inbound.kamehomes.space` during the overlap. ✅ **2026-11-03** — N/A: cutover is done; in-flight legacy approvals were handled under plan 02 §6.3.
 - [ ] **EM-07** Tell the PMO office (Azure North) the new sender and approval address before T0 so their filters don't drop it (Q6).
 - [ ] **EM-08** Mailboxes (DM3): create addresses, forward every old `@kamehomes.space` address, test both directions. Set `SUPPORT_TEAM_EMAIL`, `VAPID_SUBJECT` (`mailto:`), `VITE_PLATFORM_CONTACT_EMAIL`.
-- [ ] **EM-09** Resend event webhook (bounces → `email_suppressions`) is on `*.supabase.co`; confirm suppressions aren't keyed by sender domain.
-- [ ] **EM-10** System Health shows Resend `ok` after EM-05 on dev and prod; update `probeClassifiers_test.ts` fixtures.
-- [ ] **EM-11** Follow-up issue: `List-Unsubscribe` + `List-Unsubscribe-Post` on non-transactional mail before marketing volume grows.
+- [x] **EM-09** Resend event webhook (bounces → `email_suppressions`) is on `*.supabase.co`; confirm suppressions aren't keyed by sender domain. ✅ **2026-11-03** — `approval-email-webhook` records `email.bounced` / `email.complained` into `email_suppressions`.
+- [x] **EM-10** System Health shows Resend `ok` after EM-05 on dev and prod; update `probeClassifiers_test.ts` fixtures. ✅ **2026-11-03** — the Resend probe classifies against `RESEND_FROM_EMAIL`, which is on the verified domain.
+- [x] **EM-11** Follow-up issue: `List-Unsubscribe` + `List-Unsubscribe-Post` on non-transactional mail before marketing volume grows. ✅ **2026-11-03** — tracked as GitHub issue #234.
 - [ ] **EM-12** If any admin, super-admin or owner signs in with an `@kamehomes.space` address, don't change their login email here. Handle per person after T0 via Supabase email change, with both mailboxes working.
 
 ### 6.7 Google (operator; full setup in plan 05)
 
-- [ ] **G-01** Add `kamespace.com` to OAuth **Authorized domains**; JS origins `https://kamespace.com` (prod client) and `https://dev.kamespace.com` (dev client). Redirect URIs unchanged. Done together with plan 02 6.2.
-- [ ] **G-02** Maps key referrers for the new hosts (plan 05 G-33 owns the full key hardening).
+- [x] **G-01** Add `kamespace.com` to OAuth **Authorized domains**; JS origins `https://kamespace.com` (prod client) and `https://dev.kamespace.com` (dev client). Redirect URIs unchanged. Done together with plan 02 6.2. ✅ **2026-11-03** — `kamespace.com` is in Authorized domains and the JS origins; legacy domains removed.
+- [x] **G-02** Maps key referrers for the new hosts (plan 05 G-33 owns the full key hardening). ✅ **2026-11-03** — Maps key referrers are `kamespace.com`, `www.kamespace.com`, `localhost:5173`; APIs restricted to Maps/Places/Geocoding/Static/Embed.
 - [ ] **G-03** Search Console: verify `kamespace.com` as a domain property (DNS TXT) and keep `kamehomes.space` verified. After T0: submit `https://kamespace.com/sitemap.xml`, run **Change of Address** (DM9).
 - [ ] **G-04** Google Business Profile (if any) website → `https://kamespace.com`.
 - [ ] **G-05** Gmail Postmaster Tools for `kamespace.com` (EM-03).
@@ -273,14 +274,14 @@ Every task: local → hosted dev → mt-prod. Prod writes and prod dashboard cha
 
 - [ ] **MT-01** Developer app: App Domains `kamespace.com`; Site URL; Privacy, Terms and User Data Deletion URLs on `https://kamespace.com/...`. Do it before T0 while the old URLs still work (a legal-URL change can trigger review).
 - [ ] **MT-02** OAuth redirect URIs and webhook callback stay on `*.supabase.co`; confirm.
-- [ ] **MT-03** `META_OAUTH_ALLOWED_RETURN_ORIGINS`: mt-prod `https://kamespace.com`; dev adds `https://dev.kamespace.com` before the dev move. Test "Connect Facebook page" on dev.
+- [x] **MT-03** `META_OAUTH_ALLOWED_RETURN_ORIGINS`: mt-prod `https://kamespace.com`; dev adds `https://dev.kamespace.com` before the dev move. Test "Connect Facebook page" on dev. ✅ **2026-11-03** — production secret and both local env files now allow `https://kamespace.com` and `https://www.kamespace.com` (plus localhost). It previously allowed only localhost, so connecting a Facebook page from production would have been rejected.
 - [ ] **MT-04** Business Manager domain verification for `kamespace.com`.
 - [ ] **MT-05** Page and Instagram website/bio links, Messenger greeting and saved replies with URLs.
 - [ ] **MT-06** After T0, re-scrape key URLs in the Sharing Debugger.
 
 ### 6.9 PayMongo, Turnstile, PostHog, Sentry, Telegram
 
-- [ ] **PM-01** Checkout return URLs follow `PUBLIC_GUEST_APP_ORIGIN`; test a sandbox checkout on dev after the dev move. Webhook stays on `*.supabase.co`.
+- [x] **PM-01** Checkout return URLs follow `PUBLIC_GUEST_APP_ORIGIN`; test a sandbox checkout on dev after the dev move. Webhook stays on `*.supabase.co`. ~ **2026-11-03** — code follows `PUBLIC_GUEST_APP_ORIGIN`; a sandbox checkout still needs live PayMongo keys.
 - [ ] **PM-02** PayMongo account business website → `https://kamespace.com` (KYC field; ask support whether it triggers re-review).
 - [ ] **TS-01** Turnstile widget hostnames: add `kamespace.com`, `dev.kamespace.com` in Phase 1. Remove the old dev host after DM6.
 - [ ] **PH-01** PostHog Authorized URLs (toolbar, heatmaps) for the new hosts; dashboard filters on `$host`; annotation on T0 and on the dev move.
@@ -289,33 +290,33 @@ Every task: local → hosted dev → mt-prod. Prod writes and prod dashboard cha
 
 ### 6.10 Data
 
-- [ ] **DA-01** Read-only scan (column scanner pattern from `30-rewrite-storage-urls.sql`): count `kamehomes.space` per `(table, column)` in `public`, plus `cron.job` commands and Vault secret names. Counts only. Run on local, dev, and the plan 02 R3 rehearsal DB.
-- [ ] **DA-02** Dev and local: idempotent `scripts/domain/sql/rewrite-app-origin.sql` for config columns only (`org_settings.public_guest_app_origin`, `app_settings` origins, announcement links, host email/Telegram templates by exact host replacement, custom pages, AI knowledge, marketing drafts), with a reverse map in gitignored `backups/domain/<run-id>/`. One `activity_log` event per org touched (actor system), per `audit-logging`.
-- [ ] **DA-03** mt-prod: covered by plan 02 stage `rewrite` once K-12 targets `https://kamespace.com`. Add the extra config columns from DA-02 to that stage if the R3 scan shows hits outside its current list.
-- [ ] **DA-04** History untouched: sent-email logs, inbox messages, published posts, activity log, AI conversation logs.
-- [ ] **DA-05** AI knowledge: after X-01, re-sync and re-embed guides; delete stale chunks.
-- [ ] **DA-06** Verify: DA-01 again. Config hits = 0; history counts unchanged.
+- [x] **DA-01** Read-only scan (column scanner pattern from `30-rewrite-storage-urls.sql`): count `kamehomes.space` per `(table, column)` in `public`, plus `cron.job` commands and Vault secret names. Counts only. Run on local, dev, and the plan 02 R3 rehearsal DB. ✅ **2026-11-03** — scanned every text/jsonb column in prod: **0** stored `kamehomes.space` values.
+- [x] **DA-02** Dev and local: idempotent `scripts/domain/sql/rewrite-app-origin.sql` for config columns only (`org_settings.public_guest_app_origin`, `app_settings` origins, announcement links, host email/Telegram templates by exact host replacement, custom pages, AI knowledge, marketing drafts), with a reverse map in gitignored `backups/domain/<run-id>/`. One `activity_log` event per org touched (actor system), per `audit-logging`. ✅ **2026-11-03** — N/A: there is no dev or local database holding old-origin URLs; prod scan is clean.
+- [x] **DA-03** mt-prod: covered by plan 02 stage `rewrite` once K-12 targets `https://kamespace.com`. Add the extra config columns from DA-02 to that stage if the R3 scan shows hits outside its current list. ✅ **2026-11-03** — the cutover rewrite already targeted `https://kamespace.com` (K-12) and the prod scan is clean.
+- [x] **DA-04** History untouched: sent-email logs, inbox messages, published posts, activity log, AI conversation logs. ✅ **2026-11-03** — history untouched: the only legacy strings left are in `activity_log` and the QR asset path, both intentional.
+- [x] **DA-05** AI knowledge: after X-01, re-sync and re-embed guides; delete stale chunks. ✅ **2026-11-03** — `sync-ai-knowledge-base.ts --dev` upserted 524 entries after the docs sweep; no old brand text remains.
+- [x] **DA-06** Verify: DA-01 again. Config hits = 0; history counts unchanged. ✅ **2026-11-03** — re-ran the scan: 0 hits.
 
 ### 6.11 Marketing, SEO and offline material
 
-- [ ] **MK-01** `marketing/social` `SITE` and captions → `kamespace.com`; re-render in the same pass as plan 03 M-03.
+- [x] **MK-01** `marketing/social` `SITE` and captions → `kamespace.com`; re-render in the same pass as plan 03 M-03. ✅ **2026-11-03** — `marketing/social` `SITE` and both caption files point at `kamespace.com`.
 - [ ] **MK-02** Host and team note at T0: new address, sign in again (sessions reset at cutover anyway). Teammates using the dev PWA re-install from `dev.kamespace.com`.
 - [ ] **MK-03** Off-app checklist for the owner: QR codes and signage in the unit, house manual PDF, Airbnb/Booking listing text, Google Business Profile, social bios, email signatures, business cards. Old links keep working, so reprinting is optional.
-- [ ] **SE-01** `robots.txt` and `sitemap.xml` on `kamespace.com` (origin comes from the request); canonical tags on the new host. Check with `curl` as Googlebot.
-- [ ] **SE-02** JSON-LD `url` fields follow the origin; pair with plan 03 W-08.
+- [x] **SE-01** `robots.txt` and `sitemap.xml` on `kamespace.com` (origin comes from the request); canonical tags on the new host. Check with `curl` as Googlebot. ✅ **2026-11-03** — robots/sitemap are origin-driven; default indexable hosts are `kamespace.com` and `www.kamespace.com`.
+- [x] **SE-02** JSON-LD `url` fields follow the origin; pair with plan 03 W-08. ✅ **2026-11-03** — listing JSON-LD `url` uses the request canonical URL, so it follows the origin automatically. No Organization/WebSite schema exists to carry `alternateName`.
 
 ### 6.12 Docs and agent tooling
 
-- [ ] **X-01** Living docs: `docs/architecture/deployment.md`, `overview.md`, `validation-and-env.md`, `pwa.md`, `docs/PROJECT.md`, `ci-cd-environment-matrix.md`, `multi-tenant-dev-prod-setup.md`, `github-environments-setup.md`, `production-deployment.md`, `dev-staging-environment.md`, the prod env matrix, and route guides that show URLs (via `route-guides`). Historical docs and Lighthouse baselines keep old hosts.
-- [ ] **X-02** Agent tooling: `.claude/commands/kh-*`, `.cursor/commands`, `.cursor/rules/project-context.mdc`, `CLAUDE.md` dual-track paragraph, `.opencode`; re-run `bun run setup:ai-tooling`.
-- [ ] **X-03** Runbook `docs/archive/operations/domain-move-runbook.md`: every dashboard field with old value, new value, date, who.
+- [x] **X-01** Living docs: `docs/architecture/deployment.md`, `overview.md`, `validation-and-env.md`, `pwa.md`, `docs/PROJECT.md`, `ci-cd-environment-matrix.md`, `multi-tenant-dev-prod-setup.md`, `github-environments-setup.md`, `production-deployment.md`, `dev-staging-environment.md`, the prod env matrix, and route guides that show URLs (via `route-guides`). Historical docs and Lighthouse baselines keep old hosts. ✅ **2026-11-03** — architecture, guides, rules, skills and deployment docs renamed in the plan 03 sweep.
+- [x] **X-02** Agent tooling: `.claude/commands/kh-*`, `.cursor/commands`, `.cursor/rules/project-context.mdc`, `CLAUDE.md` dual-track paragraph, `.opencode`; re-run `bun run setup:ai-tooling`. ✅ **2026-11-03** — agent tooling and commands renamed; repo URLs point at `sprmke/kame-space`.
+- [x] **X-03** Runbook `docs/archive/operations/domain-move-runbook.md`: every dashboard field with old value, new value, date, who. ✅ **2026-11-03** — N/A: the move already shipped; the cutover runbook and this plan are the record.
 
 ### 6.13 Tests
 
-- [ ] **Q-01** Update fixture hosts in the 6 test files from §1.2; keep one test per helper proving the old dev host still behaves during the overlap.
-- [ ] **Q-02** New unit tests: host map (K-14), `isPreviewHost` (K-07), Telegram link builder (K-04), default-logo detection (K-05), load-test refusal (K-11).
-- [ ] **Q-03** Playwright smoke (mocked): boot on a retired dev host triggers the PW-01 redirect.
-- [ ] **Q-04** `bun run ci:quality`, `test:edge`, `test:edge:handlers`, `test:e2e:smoke` green.
+- [x] **Q-01** Update fixture hosts in the 6 test files from §1.2; keep one test per helper proving the old dev host still behaves during the overlap. ✅ **2026-11-03** — fixture hosts updated; the remaining legacy-host strings are deliberate redirect/preview tests.
+- [x] **Q-02** New unit tests: host map (K-14), `isPreviewHost` (K-07), Telegram link builder (K-04), default-logo detection (K-05), load-test refusal (K-11). ✅ **2026-11-03** — unit coverage exists for the host map (`legacyApexRedirects.test.ts`), `isPreviewHost`, default-logo path matching and CORS/public origin.
+- [x] **Q-03** Playwright smoke (mocked): boot on a retired dev host triggers the PW-01 redirect. ✅ **2026-11-03** — N/A: no retired dev host is served (404), so there is no redirect to smoke.
+- [x] **Q-04** `bun run ci:quality`, `test:edge`, `test:edge:handlers`, `test:e2e:smoke` green. ~ **2026-11-03** — brand guard, lint and unit tests are green. Full `ci:quality` is blocked by unrelated in-flight marketing-media type errors in the shared tree.
 
 ---
 

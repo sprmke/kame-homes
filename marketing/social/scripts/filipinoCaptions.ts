@@ -8,7 +8,7 @@ import { featureSpecs } from '../src/features/registry';
 import { featureCopy } from '../src/filipino/copy';
 
 const TAGS = '#KameSpace #AirbnbHostPH #CondoHostPH #KameNaBahala';
-const LINK = 'Libre lang magsimula sa kamehomes.space';
+const LINK = 'Libre lang magsimula sa kamespace.com';
 
 export const filipinoCampaignCaptions: Record<string, string> = {
   '01-kame-na-bahala':

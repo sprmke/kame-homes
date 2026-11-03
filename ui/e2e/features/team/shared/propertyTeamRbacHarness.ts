@@ -12,7 +12,7 @@ import { PLAN_PRO, PLANS_E2E_CATALOG } from '../../plans/shared/orgPlanHarnessSh
 const ORG_ID = 'org-team-e2e-001';
 export const TEAM_E2E_PROPERTY_ID = 'property-team-e2e-001';
 export const TEAM_E2E_PROPERTY_ID_2 = 'property-team-e2e-002';
-export const TEAM_E2E_ORG_SLUG = 'kame-homes-ph';
+export const TEAM_E2E_ORG_SLUG = 'sample-stays-ph';
 export const TEAM_E2E_PROPERTY_SLUG = 'solea-mactan';
 export const TEAM_E2E_PROPERTY_SLUG_2 = 'solea-cebu';
 export const TEAM_E2E_PROPERTY_NAME_2 = 'Solea Cebu';
@@ -254,7 +254,7 @@ function organizationList() {
     organizations: [
       {
         id: ORG_ID,
-        name: 'Kame Homes PH',
+        name: 'Sample Stays PH',
         slug: TEAM_E2E_ORG_SLUG,
         description: null,
         logoUrl: null,
@@ -318,7 +318,7 @@ function propertyAccessPayload(permissions: readonly string[]) {
     memberId: 'member-team-e2e-001',
     propertyId: TEAM_E2E_PROPERTY_ID,
     orgSlug: TEAM_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     propertySlug: TEAM_E2E_PROPERTY_SLUG,
     propertyName: 'Solea Mactan',
     planLimited: false,
@@ -701,7 +701,7 @@ function orgAccessPayload(orgHub = false) {
       permissions: ['org:properties:view', 'org:bookings:view'] as string[],
       orgId: ORG_ID,
       orgSlug: TEAM_E2E_ORG_SLUG,
-      orgName: 'Kame Homes PH',
+      orgName: 'Sample Stays PH',
     };
   }
   return {
@@ -729,7 +729,7 @@ function orgAccessPayload(orgHub = false) {
     canListAllProperties: true,
     orgId: ORG_ID,
     orgSlug: TEAM_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     canManageTeam: true,
     canInviteTeam: true,
     canCreateProperties: true,
@@ -1181,9 +1181,7 @@ function orgReviewsPage(tab: ReviewsTab) {
     tab: tab === 'properties' ? 'received' : tab,
     summary: {
       ...reviewsSummary(),
-      properties: [
-        { ...listing, count: 1, avgOverall: 5, responseRate: 0, dueCount: 1 },
-      ],
+      properties: [{ ...listing, count: 1, avgOverall: 5, responseRate: 0, dueCount: 1 }],
     },
     items: reviewsItems(tab).map((item) => ({
       ...item,
@@ -1497,8 +1495,60 @@ export async function installPropertyTeamRbacMocks(
       case 'dashboard-assistant-confirm': {
         const body = route.request().postDataJSON() as {
           actionId?: string;
+          planId?: string;
           confirm?: boolean;
+          selectedStepIds?: string[];
         };
+        if (body.planId) {
+          const plan = assistantChatBlocks.find(
+            (block) => block.type === 'action_plan' && block.planId === body.planId
+          ) as (AssistantChatBlock & { steps?: Array<Record<string, unknown>> }) | undefined;
+          const steps = plan?.steps ?? [];
+          const selected = new Set(body.selectedStepIds ?? steps.map((s) => s.stepId as string));
+
+          let planStatus: 'completed' | 'partially_failed' | 'cancelled' = body.confirm
+            ? 'completed'
+            : 'cancelled';
+          const resultSteps = steps.map((step) => {
+            const stepId = step.stepId as string;
+            if (!body.confirm) {
+              return { ...step, status: 'denied', errorMessage: undefined };
+            }
+            if (!selected.has(stepId)) {
+              return { ...step, status: 'skipped', errorMessage: 'Not selected.' };
+            }
+            if (step._mockForceFail) {
+              planStatus = 'partially_failed';
+              return {
+                ...step,
+                status: 'failed',
+                errorMessage: (step._mockErrorMessage as string) ?? 'Mocked failure for this step.',
+              };
+            }
+            return { ...step, status: 'executed', errorMessage: undefined };
+          });
+
+          await fulfillJson(route, {
+            success: true,
+            data: {
+              status: planStatus,
+              steps: resultSteps.map((s) => ({
+                id: s.stepId,
+                toolName: s.toolName,
+                stepIndex: s.stepIndex,
+                status: s.status,
+                ok: s.status === 'executed',
+                error: s.status === 'failed' ? s.errorMessage : undefined,
+              })),
+              blocks: assistantChatBlocks.map((block) =>
+                block.type === 'action_plan' && block.planId === body.planId
+                  ? { ...block, status: planStatus, steps: resultSteps }
+                  : block
+              ),
+            },
+          });
+          return;
+        }
         await fulfillJson(route, {
           success: true,
           data: {

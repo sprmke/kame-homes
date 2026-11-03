@@ -86,9 +86,9 @@ test.describe('@ci stay guide token smoke', () => {
               airbnbUrl: '',
             },
             host: {
-              name: 'Kame Homes',
+              name: 'Sample Stays',
               avatarUrl: null,
-              organizationName: 'Kame Homes PH',
+              organizationName: 'Sample Stays PH',
             },
             sections: [],
             checkInDocuments: [],

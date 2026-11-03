@@ -14,7 +14,7 @@ test.describe('@ci dashboard module shells', () => {
     const summaryReady = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/finance-summary') && res.ok()
     );
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/finance');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/finance');
     await summaryReady;
     await expect(page.getByRole('heading', { name: 'Finance' })).toBeVisible({
       timeout: 20_000,
@@ -24,7 +24,7 @@ test.describe('@ci dashboard module shells', () => {
   test('finance card header titles never sit under their filter at 1024px', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 800 });
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/finance');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/finance');
     const filter = page.getByRole('tablist', { name: 'Breakdown filter' });
     await expect(filter).toBeVisible({ timeout: 20_000 });
     const title = page.getByText('Breakdown', { exact: true });
@@ -50,7 +50,7 @@ test.describe('@ci dashboard module shells', () => {
 
   test('property maintenance page loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/maintenance');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/maintenance');
     await expect(page.getByRole('heading', { name: 'Maintenance' })).toBeVisible({
       timeout: 20_000,
     });
@@ -61,7 +61,7 @@ test.describe('@ci dashboard module shells', () => {
     const pricingReady = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/property-pricing') && res.ok()
     );
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/pricing');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/pricing');
     await pricingReady;
     await expect(page.getByRole('heading', { name: 'Pricing' })).toBeVisible({
       timeout: 20_000,
@@ -70,7 +70,7 @@ test.describe('@ci dashboard module shells', () => {
 
   test('property settings page loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/settings');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/settings');
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({
       timeout: 20_000,
     });
@@ -78,7 +78,25 @@ test.describe('@ci dashboard module shells', () => {
 
   test('property notifications page loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/notifications');
+    await page.route('**/functions/v1/notification-preferences**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            preferences: {
+              mutedGroups: [],
+              quietHoursEnabled: false,
+              quietHoursStart: '22:00',
+              quietHoursEnd: '07:00',
+              quietHoursTimezone: 'Asia/Manila',
+            },
+          },
+        }),
+      })
+    );
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/notifications');
     await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible({
       timeout: 20_000,
     });
@@ -92,7 +110,7 @@ test.describe('@ci dashboard module shells', () => {
     const templatesReady = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/property-templates-settings') && res.ok()
     );
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/templates');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/templates');
     await templatesReady;
     await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible({
       timeout: 20_000,
@@ -116,7 +134,7 @@ test.describe('@ci dashboard module shells', () => {
     const templatesReady = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/property-templates-settings') && res.ok()
     );
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/templates');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/templates');
     await templatesReady;
 
     /* `^` keeps this off the row's own "Actions for Welcome Note" trigger. */
@@ -165,7 +183,7 @@ test.describe('@ci dashboard module shells', () => {
 
   test('free host sees upgrade badge before editing listing page', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', { freePlan: true });
-    await page.goto('/org/kame-homes-ph/property/solea-mactan/public-pages/listing/edit');
+    await page.goto('/org/sample-stays-ph/property/solea-mactan/public-pages/listing/edit');
     await expect(page.getByRole('heading', { name: /Edit - /i })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('[data-tier-badge]').first()).toBeVisible();
   });

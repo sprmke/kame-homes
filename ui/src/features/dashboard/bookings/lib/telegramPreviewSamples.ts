@@ -38,7 +38,7 @@ const ADMIN_SAMPLES: Record<string, string> = {
   dp_receipt_ai_summary: 'Amount ₱1,500 matches down payment; sender name matches guest.',
   balance_receipt_ai_verdict: 'Valid',
   balance_receipt_ai_summary: 'Balance receipt shows ₱3,599 paid to host GCash.',
-  booking_link: 'https://kamehomes.space/bookings/00000000-0000-4000-8000-000000000001',
+  booking_link: 'https://kamespace.com/bookings/00000000-0000-4000-8000-000000000001',
 };
 
 const STAFF_SAMPLES: Record<string, string> = {
@@ -106,7 +106,7 @@ const CHAT_SAMPLES: Record<string, string> = {
   attachment_summary: '1 image',
   attachment_line: '\n📎 Photo',
   conversation_link:
-    'https://kamehomes.space/org/demo/property/demo-unit/inbox?conversationId=00000000-0000-4000-8000-000000000001&platform=web',
+    'https://kamespace.com/org/demo/property/demo-unit/inbox?conversationId=00000000-0000-4000-8000-000000000001&platform=web',
   check_in_date: 'June 18, 2026',
   check_out_date: 'June 20, 2026',
   sent_at: 'Jun 15, 2026, 3:42 PM',

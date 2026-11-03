@@ -2,7 +2,7 @@ name: CD Deploy (Supabase)
 
 # The single backend deploy pipeline.
 #
-# There is one Supabase project (`fwor…`, "Kame Homes - Dev") serving both `develop` and the
+# There is one Supabase project (`fwor…`, "Kame Space") serving both `develop` and the
 # production app, so there is nothing for a second pipeline to deploy to. `cd-dev.yml`,
 # `cd-preprod.yml` and the old gated `cd-prod.yml` all pointed at the same ref and each
 # duplicated a quality gate; they are gone.

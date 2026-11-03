@@ -155,7 +155,7 @@ Short version:
 3. `SENTRY_AUTH_TOKEN` (org token, `project:releases` + `org:read`), `SENTRY_ORG`,
    `SENTRY_PROJECT` for the build.
 4. Alert destination(s): email list, and whether you want Telegram (needs a small relay).
-5. PostHog: confirm the `kame-homes-prod` / `kame-homes-nonprod` projects exist, then turn
+5. PostHog: confirm the `kame-space-prod` / `kame-space-nonprod` projects exist, then turn
    **off** Error tracking / exception autocapture in both projects.
 6. Remove `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` from Vercel once S4 lands.
 7. Production Supabase secrets (`SENTRY_DSN`, `APP_RELEASE`) are a prod edge-secret change:

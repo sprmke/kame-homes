@@ -1,0 +1,47 @@
+{
+  "get_property_facts": {
+    "ok": true,
+    "data": {
+      "checkInTime": "2:00 PM",
+      "checkOutTime": "12:00 NN",
+      "wifiName": "AzureNorth_Guest",
+      "parkingAvailable": true,
+      "amenities": "Pool, gym, rooftop lounge"
+    }
+  },
+  "get_parking_facts": { "ok": true, "data": { "parkingAvailable": true, "spotCount": 2 } },
+  "get_stay_guide": {
+    "ok": true,
+    "data": {
+      "sections": [
+        { "title": "Check-in", "body": "Use the lobby keypad code sent on arrival day." }
+      ]
+    }
+  },
+  "get_my_stay": {
+    "ok": true,
+    "data": {
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000002",
+      "hostLabel": "Garcia Family · Dec 24–Dec 26 · Pending Review",
+      "status": "PENDING_REVIEW",
+      "checkIn": "2026-12-24",
+      "checkOut": "2026-12-26"
+    }
+  },
+  "get_inquiry_price": {
+    "ok": true,
+    "data": { "nightly": 3500, "weekendNightly": 4200, "currency": "PHP" }
+  },
+  "check_dates": { "ok": true, "data": { "available": true } },
+  "get_directions": { "ok": true, "data": { "address": "123 Azure North, Pasig City" } },
+  "report_maintenance_issue": { "ok": true, "data": { "hostLabel": "Reported: AC not cooling" } },
+  "request_booking_inquiry": {
+    "ok": true,
+    "data": { "hostLabel": "Inquiry: Dec 24–Dec 26, 2 guests" }
+  },
+  "request_early_checkin_late_checkout": {
+    "ok": true,
+    "data": { "hostLabel": "Early check-in requested: 11:00 AM" }
+  },
+  "handoff_to_host": { "ok": true, "data": { "handoff": true } }
+}

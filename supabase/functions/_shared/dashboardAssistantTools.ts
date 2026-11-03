@@ -273,6 +273,7 @@ import {
 import { downloadAssistantAttachment } from './assistantAttachmentApply.ts';
 import { uploadMarketingMediaFromAssistantBytes } from './marketingMediaUpload.ts';
 import { validateToolArgs } from './ai/toolArgs.ts';
+import { ToolTimeoutError, withToolTimeout } from './ai/agent/toolTimeout.ts';
 
 export type ToolExecutionContext = {
   req: Request;
@@ -1059,6 +1060,7 @@ async function toolListMaintenanceItems(
     propertyId,
     from: str(args, 'from') ?? null,
     to: str(args, 'to') ?? null,
+    q: str(args, 'q') ?? undefined,
   });
   return {
     ok: true,
@@ -4624,13 +4626,15 @@ export async function executeTool(
   try {
     const handler = TOOL_HANDLERS[toolName];
     if (!handler) return { ok: false, error: `Unhandled tool: ${toolName}` };
-    return await handler(ctx, args);
+    return await withToolTimeout(toolName, () => Promise.resolve(handler(ctx, args)));
   } catch (err) {
     // A permission re-check failure (verifyPropertyAccess/verifyOrgAccess throwing a Response)
     // or any other tool error surfaces as a plain refusal — never a confirmation prompt.
     if (err instanceof Response) {
       return { ok: false, error: 'Access restricted for this action.' };
     }
+    // Model-facing: classifyToolFailure's `retryable` pattern matches "timed out" (assistantToolFailureReason.ts).
+    if (err instanceof ToolTimeoutError) return { ok: false, error: err.message };
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -4811,13 +4815,20 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: 'list_maintenance_items',
-    description: 'List maintenance items for a property.',
+    description:
+      'List maintenance items for a property. Only the 10 most recently scheduled are returned ' +
+      "when q is omitted — pass q with the host's wording when they named a specific item, so an " +
+      'older item is still found instead of only searching the most recent 10.',
     parameters: {
       type: 'object',
       properties: {
         propertyId: { type: 'string' },
         from: { type: 'string' },
         to: { type: 'string' },
+        q: {
+          type: 'string',
+          description: "Search text matched against the item's label/category/notes.",
+        },
       },
     },
   },

@@ -202,7 +202,7 @@ Shared components: `ui/src/components/chat/*`, `ui/src/lib/chat/chatMessageForma
 | **9**  | Guest resource hub — self-serve link strip for ongoing threads                                          | **Shipped** |
 | **10** | Stay guide deep link in resource hub when guest has active booking                                      | **Shipped** |
 
-Backlog: [GitHub Issue #110 — Epic 10](https://github.com/sprmke/kame-homes/issues/110) (**Guest ↔ host chat**).
+Backlog: [GitHub Issue #110 — Epic 10](https://github.com/sprmke/kame-space/issues/110) (**Guest ↔ host chat**).
 
 ## Implementation map
 

@@ -20,8 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Filename conventions
         run: bash scripts/dev/check-ui-filename-conventions.sh
+
+      - name: Brand guard (retired product name)
+        run: bun scripts/brand/check-brand.ts --check
 
       - name: Migration conventions
         run: |
@@ -173,6 +180,12 @@ jobs:
 
       - name: Playwright smoke (@smoke)
         run: bun run test:e2e:smoke
+
+      # Production-build PWA checks: installability, launch resolver, shell-only
+      # precache, offline navigation. The service worker is off under `vite` dev,
+      # so these can only run against `vite build && vite preview`.
+      - name: Playwright PWA (@pwa)
+        run: bun run test:e2e:pwa
 
       - name: Upload Playwright report
         if: failure()

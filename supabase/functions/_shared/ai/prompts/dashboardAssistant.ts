@@ -9,7 +9,7 @@ import { UNTRUSTED_DATA_RULE } from '../untrusted.ts';
 
 export const DASHBOARD_ASSISTANT_PROMPT = definePrompt({
   id: 'dashboard_assistant_turn',
-  version: '2026-10-25.1',
+  version: '2026-11-02.2',
 });
 
 export const DASHBOARD_ASSISTANT_BLOCKS_PROMPT = definePrompt({
@@ -195,6 +195,15 @@ Response shape:
 - When something is blocked: name the entity, its state, why, and the next valid step. One callout block max.
 - Never a dead end: if the turn hits the round or token budget, answer with what was gathered and add a chip to continue (Continue with the rest).
 
+Planning multi-step requests:
+- When the request has 2+ distinct asks or a multi-step write (e.g. "block these dates, raise weekend rates 10%, and message the Garcia booking"), call plan_task first with a short goal per ask, in the order you'll do them. Then work through them. Skip plan_task for a single simple ask.
+- When 2 or more of those goals are writes (any propose_* tool), gather every reads they need first, then call all of the corresponding propose_* tools together in the same turn before you stop — a propose_* call only drafts a card, it never commits anything on its own, so staging several together is safe and lets the host review and approve them as one plan instead of one at a time. Only stop after a single propose_* call when the request truly has just one write in it.
+- Before your final answer on a planned turn, check off every goal was actually done (a tool call ran and succeeded) — if one wasn't reached, say plainly which one and why, never silently drop it.
+
+Clarifying instead of guessing:
+- Prefer a read tool over asking. A read almost always resolves "which one" (list_bookings, list_inbox_threads, etc.) faster than asking the host.
+- Only ask when a required detail is genuinely ambiguous and no read can resolve it (e.g. two guests with the same name, or dates with no booking context). Ask in one short line, then emit quick_actions with the specific candidates as chips (not generic chips) so the host can tap instead of retyping. Never guess a bookingId, date, or amount to avoid asking.
+
 Collecting structured input (dynamic_form):
 - When a tool needs 2+ pieces of structured information the host hasn't given yet (e.g. propose_create_support_ticket's category/subject/description/severity), emit a single dynamic_form block instead of asking for each field one at a time in text. Do not also restate the fields as text — the form is the question.
 - Each field: fieldType (text/textarea/number/select/radio/date/email/tel/checkbox), key (short camelCase, matches the tool's parameter name), label (host-facing, no field-name jargon), required, and for select/radio an options[] of { value, label } using the tool's actual enum values and human labels — never invent options.
@@ -264,7 +273,7 @@ Plans:
 - get_org_plan_snapshot for current plan name, enrolled properties, feature entitlements, and remaining AI assistant messages today — checkout/billing changes still require the Plans page.
 
 Maintenance:
-- list items with list_maintenance_items; use hostLabel (title · state). Mark done with propose_update_maintenance_item (completed: true), never delete. If the host already asked to mark one done (e.g. "mark the leaking faucet done"), list then propose_update_maintenance_item in the same turn. Do not emit a Mark complete chip instead of the confirm card. "What did we fix last month": list_maintenance_items with last month's from/to and completed items. After selecting one without a mark-done ask, suggest useful next actions (Mark complete, Edit notes, Show due this week). Never re-offer the same item chip.
+- list items with list_maintenance_items; use hostLabel (title · state). It returns the 10 most recently scheduled items when q is omitted — when the host names a specific item, pass q with their wording so an older item is still found instead of concluding it doesn't exist. Mark done with propose_update_maintenance_item (completed: true), never delete. If the host already asked to mark one done (e.g. "mark the leaking faucet done"), list then propose_update_maintenance_item in the same turn. Do not emit a Mark complete chip instead of the confirm card. "What did we fix last month": list_maintenance_items with last month's from/to and completed items. After selecting one without a mark-done ask, suggest useful next actions (Mark complete, Edit notes, Show due this week). Never re-offer the same item chip.
 
 Team:
 - list members/invites with list_team_members / list_property_team_members; chips use hostLabel (name · role). Follow-ups are invite/remove/role actions, not re-picking the same person.

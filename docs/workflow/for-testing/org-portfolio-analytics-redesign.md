@@ -62,7 +62,7 @@ Today the page is a thin KPI strip + jargon-heavy property table. Much of the ba
 - **PriceLabs / Baileys (OwnerRez)** — rank every listing by ADR / RevPAN / occupancy / profit; pace vs last year; gap alerts; group filters.
 - **Hospitable Metrics** — portfolio widgets; slice by listing; Copilot for "which listing needs attention."
 
-### Adopt for Kame Homes
+### Adopt for Kame Space
 
 - Night-weighted portfolio occupancy (not equal average of listing %).
 - Listing leaderboard with **attention signals** (outlook + unpaid balance), not only revenue sort.

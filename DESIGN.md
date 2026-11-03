@@ -1,10 +1,10 @@
-# DESIGN.md — Kame Homes / Guest Form Management
+# DESIGN.md — Kame Space / Guest Form Management
 
 Plain-text design system for AI coding agents (Google Stitch–compatible). **This file is canonical.** Inspiration catalogs under `.agents/design-md/` never override it.
 
 ## 1. Visual Theme & Atmosphere
 
-- **Product:** Multi-tenant property / parking / guest booking platform (Kame Homes). Trust-first guest flows + dense operational admin.
+- **Product:** Multi-tenant property / parking / guest booking platform (Kame Space). Trust-first guest flows + dense operational admin.
 - **Mood:** Calm hospitality teal, clean surfaces, confident hierarchy — not playful startup purple, not brutalist, not newspaper editorial.
 - **Density:** Guest/marketing = generous whitespace. Dashboard (`/org/...`, bookings) = denser, scan-friendly tables and panels.
 - **Theme:** Light-first; dark tokens exist in CSS — if you touch dark variants, update every surface in the change.
@@ -76,6 +76,7 @@ Guest heroes may use larger tracking-tight headlines; admin stays tighter and qu
 - **Inputs:** Border token, clear focus ring (`--ring` = primary). 44×44px touch targets on guest/mobile.
 - **Cards:** Use only when they contain interaction or a clear grouped control. Prefer flat sections on marketing heroes.
 - **Feedback:** Sonner toasts; inline errors only on failure/validation.
+- **Brand mark:** teal gradient tile (`--primary` → 80% over the page surface) with a white Plus Jakarta Sans Bold **K**, corner radius 30%. Vector sources live in `ui/public/brand/`: `kame-space-mark.svg` (rounded), `kame-space-tile.svg` (full-bleed), `kame-space-mark-mono.svg` (silhouette). Never hand-edit the rasters; regenerate with `node scripts/pwa/generate-icons.mjs`. Google OAuth branding upload is `ui/public/brand/kame-space-mark-120.png`.
 
 ## 5. Layout Principles
 

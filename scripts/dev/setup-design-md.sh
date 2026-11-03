@@ -46,7 +46,7 @@ Curated extracts from [VoltAgent/awesome-design-md](https://github.com/VoltAgent
 
 | Path | Role |
 | ---- | ---- |
-| **`DESIGN.md` (repo root)** | **Canonical** Kame Homes / GFM visual system — always prefer this |
+| **`DESIGN.md` (repo root)** | **Canonical** Kame Space / GFM visual system — always prefer this |
 | `.agents/design-md/<slug>/DESIGN.md` | Optional mood/layout references — never override project tokens/brand |
 
 ## How agents should use this

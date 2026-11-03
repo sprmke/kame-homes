@@ -45,7 +45,7 @@ describe('isCrawlerUserAgent', () => {
 
 describe('injectMetaIntoHtml', () => {
   const shell =
-    '<html><head><title>Kame Homes</title><meta name="description" content="old" /></head><body></body></html>';
+    '<html><head><title>Old Brand</title><meta name="description" content="old" /></head><body></body></html>';
 
   it('replaces title + description and escapes values', () => {
     const html = injectMetaIntoHtml(shell, {

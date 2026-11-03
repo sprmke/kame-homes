@@ -1,12 +1,12 @@
 # GitHub Issues — agent reference
 
-Product backlog on **`sprmke/kame-homes` GitHub Issues** — not duplicated in repo markdown.
+Product backlog on **`sprmke/kame-space` GitHub Issues** — not duplicated in repo markdown.
 
 ## Source of truth
 
 | Layer           | Location                                                                                   |
 | --------------- | ------------------------------------------------------------------------------------------ |
-| Pending work    | https://github.com/sprmke/kame-homes/issues + Project board                                |
+| Pending work    | https://github.com/sprmke/kame-space/issues + Project board                                |
 | Epic parents    | GitHub sub-issue parent (e.g. #104 for §4 emails) — see `docs/README.md` (Product backlog) |
 | Shipped archive | `docs/archive/todos/shipped/`                                                              |
 

@@ -15,6 +15,7 @@ import {
   guestTripStatusTone,
 } from '@/features/guest/trip/lib/guestTripPhase';
 
+import { InstallInlineCard } from '@/components/pwa/InstallInlineCard';
 import { GuestVouchersPageSkeleton } from '@/components/skeletons/GuestAccountSkeletons';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
@@ -122,7 +123,9 @@ export function GuestTripsPage() {
   if (upcoming) upcoming.trips = [...upcoming.trips].reverse();
 
   return (
-    <GuestAccountContentCard bodyClassName="p-2 sm:p-4">
+    <>
+      <InstallInlineCard />
+      <GuestAccountContentCard bodyClassName="p-2 sm:p-4">
       <div className="space-y-4">
         {grouped.map((group) => (
           <section key={group.key} aria-labelledby={`trips-${group.key}`} className="space-y-1">
@@ -140,6 +143,7 @@ export function GuestTripsPage() {
           </section>
         ))}
       </div>
-    </GuestAccountContentCard>
+      </GuestAccountContentCard>
+    </>
   );
 }

@@ -1,0 +1,20 @@
+name: Verify fwor Auth (Phase 1.4)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  auth-redirects:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify Auth Site URL and redirect allow list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: bun scripts/migrate/legacy-to-mt-prod/verify-fwor-auth-redirects.mjs

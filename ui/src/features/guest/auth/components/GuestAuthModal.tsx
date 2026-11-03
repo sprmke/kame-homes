@@ -23,11 +23,18 @@ type Step = 'email' | 'otp';
 
 interface GuestAuthModalProps {
   open: boolean;
+  /** Voluntary sign-in (header) may dismiss; `requireGuestAuth` gates set this false. */
+  dismissible?: boolean;
   onOpenChange: (open: boolean) => void;
   oauthRedirectPath: string;
 }
 
-export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestAuthModalProps) {
+export function GuestAuthModal({
+  open,
+  dismissible = true,
+  onOpenChange,
+  oauthRedirectPath,
+}: GuestAuthModalProps) {
   const { sendEmailOtp, verifyEmailOtp, signInWithGoogle } = useGuestAuthActions();
   const captcha = useCaptchaToken({ action: 'auth-email-otp' });
   const [step, setStep] = useState<Step>('email');
@@ -99,10 +106,25 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
 
   const busy = isSending || isVerifying || isSigningInWithGoogle;
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && !dismissible) return;
+    onOpenChange(nextOpen);
+  };
+
+  const blockDismiss = (event: Event) => {
+    if (dismissible) return;
+    event.preventDefault();
+  };
+
   return (
-    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+    <ResponsiveModal open={open} onOpenChange={handleOpenChange}>
       <ResponsiveModalContent
         sheetLayout="split"
+        showCloseButton={dismissible}
+        disableDrag={!dismissible}
+        onInteractOutside={blockDismiss}
+        onPointerDownOutside={blockDismiss}
+        onEscapeKeyDown={blockDismiss}
         className="gap-0 p-0 sm:max-w-[min(calc(100vw-1.5rem),26rem)]"
       >
         <ResponsiveModalHeader className="border-border/60 space-y-4 border-b px-4 pb-4 pt-5 text-center sm:px-6">

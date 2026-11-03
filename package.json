@@ -118,7 +118,7 @@
     "test:e2e:plans": "playwright test ui/e2e/features/plans --project=chromium",
     "test:e2e:plans:checkout": "playwright test ui/e2e/features/plans/org/orgPlanCheckout.spec.ts --project=chromium",
     "test:e2e:team:headed": "playwright test ui/e2e/features/team --project=chromium --headed",
-    "test:e2e:assistant": "playwright test ui/e2e/features/assistant/assistantConfirmCards.spec.ts ui/e2e/features/assistant/assistantSmoke.spec.ts --project=chromium",
+    "test:e2e:assistant": "playwright test ui/e2e/features/assistant/assistantConfirmCards.spec.ts ui/e2e/features/assistant/assistantActionPlan.spec.ts ui/e2e/features/assistant/assistantSmoke.spec.ts --project=chromium",
     "test:e2e:assistant:live": "PLAYWRIGHT_ASSISTANT_LIVE=1 playwright test ui/e2e/features/assistant/assistantLiveLocal.spec.ts --project=chromium",
     "test:e2e:vouchers": "playwright test ui/e2e/features/vouchers --project=chromium --grep-invert @demo",
     "test:e2e:vouchers:redemption": "playwright test ui/e2e/features/vouchers/guest/voucherWallet.spec.ts ui/e2e/features/vouchers/guest/voucherFormApply.spec.ts ui/e2e/features/vouchers/host/voucherBookingDetailPricing.spec.ts ui/e2e/features/vouchers/flows/voucherRedemptionMocked.spec.ts --project=chromium",

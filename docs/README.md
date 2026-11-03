@@ -9,7 +9,11 @@ updated: 2026-08-18
 
 Navigation for **guest-form-management**.
 
+> **Name note:** the product is **Kame Space**. It was called **Kame Space** before 2026-11. Older plans, archives and `done/` docs still quote the old name on purpose (historical records). Code identifiers such as the `kame-homes` repo, Vercel project and `kame-home` slugs are stable technical names, not branding.
+
 **AI agents:** **[`.cursor/rules/README.md`](../.cursor/rules/README.md)** → **[`architecture/overview.md`](./architecture/overview.md)** (full-app picture, then topic files)
+
+**Vocabulary:** [`GLOSSARY.md`](./GLOSSARY.md) — product names, casing and the identifiers that intentionally keep the old name.
 
 ## Workflow (active feature work)
 
@@ -23,7 +27,7 @@ Navigation for **guest-form-management**.
 
 ## Product backlog (GitHub Issues)
 
-**Source of truth:** [GitHub Issues](https://github.com/sprmke/kame-homes/issues)  
+**Source of truth:** [GitHub Issues](https://github.com/sprmke/kame-space/issues)  
 **Shipped archive:** [`archive/todos/shipped/`](./archive/todos/shipped/)
 
 See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive/todos/BACKLOG_DRAFT.md) or GitHub. Agent CLI: **`.cursor/skills/github-issues/SKILL.md`**.

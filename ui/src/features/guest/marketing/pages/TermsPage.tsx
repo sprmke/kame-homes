@@ -4,6 +4,7 @@ import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import {
   PLATFORM_APP_NAME,
   PLATFORM_CONTACT_EMAIL,
+  platformFormerNameNote,
   platformLegalIntro,
   platformLegalSubject,
 } from '@/lib/platformBranding';
@@ -25,6 +26,7 @@ export function TermsPage() {
           title: 'Who we are',
           paragraphs: [
             platformLegalIntro(),
+            `${platformFormerNameNote()} These terms were last updated on 3 November 2026.`,
             'These Terms apply to the marketing site, guest booking flows, guest portal accounts, and host dashboards. Individual properties may publish additional house rules; those rules apply to stays at that property.',
           ],
         },

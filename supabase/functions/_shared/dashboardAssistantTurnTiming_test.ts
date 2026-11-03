@@ -43,9 +43,32 @@ Deno.test('TurnTimer records each phase and the wall-clock total', async () => {
   assertEquals(snapshot.rounds, 2);
   assertEquals(snapshot.primary_module, 'bookings');
   assertEquals(snapshot.synth_inline, false);
+  assertEquals(snapshot.credits_consumed, 0);
+  assertEquals(snapshot.plan_size, null);
+  assertEquals(snapshot.completion_check_miss, false);
   assertEquals(totalToolMs(snapshot), 250);
   assertEquals(totalModelMs(snapshot), 1_600);
 });
+
+Deno.test('setPlanSize and markCompletionCheckMiss report the Phase 7 telemetry fields', () => {
+  const timer = new TurnTimer(fakeClock().now);
+  timer.setPlanSize(3.7);
+  timer.markCompletionCheckMiss();
+  const snapshot = timer.snapshot();
+  assertEquals(snapshot.plan_size, 4);
+  assertEquals(snapshot.completion_check_miss, true);
+});
+
+Deno.test(
+  'addCredits accumulates across every model/synth/guard call and ignores negatives',
+  () => {
+    const timer = new TurnTimer(fakeClock().now);
+    timer.addCredits(2.5);
+    timer.addCredits(1);
+    timer.addCredits(-5); // never subtracts — a bad caller cannot zero out the turn's real cost
+    assertEquals(timer.snapshot().credits_consumed, 3.5);
+  }
+);
 
 Deno.test('TurnTimer still records a phase when the measured call throws', async () => {
   const clock = fakeClock();

@@ -1,6 +1,6 @@
 # kh-create-new-ticket
 
-Create a **GitHub issue** (or **sub-issue**) on **`sprmke/kame-homes`** with a short, consistent template. Aimed at new teammates (QA / tester / junior dev).
+Create a **GitHub issue** (or **sub-issue**) on **`sprmke/kame-space`** with a short, consistent template. Aimed at new teammates (QA / tester / junior dev).
 
 Repo CLI: `bun scripts/dev/gh-issue.mjs` · skill: `.agent/skills/github-issues/SKILL.md`
 
@@ -19,7 +19,7 @@ Repo CLI: `bun scripts/dev/gh-issue.mjs` · skill: `.agent/skills/github-issues/
    - Type: `bug` | `feature` | `improvement` | `chore`
    - Parent issue number (optional — for sub-issues)
    - Route/page where it happens
-   - Environment: `local` | `dev` (`dev.kamehomes.space`) | other
+   - Environment: `local` | `dev` (`kamespace.com`) | other
    - For bugs: steps, expected, actual
    - For features: acceptance criteria (1–5 bullets)
 2. Fill the **Ticket body template** below (omit unused sections; do not leave `<!-- -->` comments in the filed body).
@@ -74,7 +74,7 @@ bug | feature | improvement | chore
 
 ## Environment
 
-- **App:** local | https://dev.kamehomes.space | other
+- **App:** local | https://kamespace.com | other
 - **Browser / device:** e.g. Chrome desktop, Safari iPhone
 - **Account / role:** e.g. org owner, property member (no passwords)
 

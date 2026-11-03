@@ -287,7 +287,7 @@ export function Cta({
   );
 }
 
-export const SITE = 'kamehomes.space';
+export const SITE = 'kamespace.com';
 
 /** Display line width in em: Jakarta Bold advances with the -0.045em headline tracking. */
 const lineEm = (l: string) =>

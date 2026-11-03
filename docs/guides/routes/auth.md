@@ -36,7 +36,7 @@ Routes:
 
 Guests can sign in two ways, both real and both landing in the same Supabase Auth session:
 
-1. **Contextual checkout modal** (`GuestAuthModal`) — appears when a guest opens a gated surface (booking form, messages, reserve, contact host, **Contact ticket**, save) or commits an action that needs a session.
+1. **Contextual checkout modal** (`GuestAuthModal`) — appears when a guest opens a gated surface (booking form, messages, reserve, contact host, **Contact ticket**, save) or commits an action that needs a session. When opened via **`requireGuestAuth`**, the modal has **no close control** and cannot be dismissed with overlay tap, Escape, or sheet drag (sign-in or use the browser back button to leave). Voluntary sign-in from the operational header keeps a dismissible modal.
 2. **Standalone pages** (`/for-guests/login`, `/for-guests/register`) — reachable directly (nav "Sign In" link, deep links, bookmarks), same email-OTP + Google flow as the modal, just as a full page.
 
 Guests can browse listings and pick dates without signing in. Opening **`/properties/:slug/form`**, **`/parkings/:slug/form`**, or **`/messages`** directly requires auth first (modal + skeleton), same as Reserve / Contact host.

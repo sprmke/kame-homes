@@ -27,7 +27,7 @@ export const TELEGRAM_BOT_TOKEN_HELP: TelegramHelpSection[] = [
       },
       {
         title: 'Choose a username',
-        body: 'Pick a unique username ending in "bot" (e.g. kamehomes_alerts_bot). BotFather confirms when it is available.',
+        body: 'Pick a unique username ending in "bot" (e.g. kamespace_alerts_bot). BotFather confirms when it is available.',
       },
       {
         title: 'Copy the token',

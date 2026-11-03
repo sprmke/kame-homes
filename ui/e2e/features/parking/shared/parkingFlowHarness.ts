@@ -40,9 +40,9 @@ export const parkingFlowPaths = {
   guestForm: '/parkings/slot-12a/form?checkInDate=2026-08-25&checkOutDate=2026-08-27',
   guestDirectLinkForm: `/parkings/slot-12a/form?checkInDate=2026-08-25&checkOutDate=2026-08-27&dl=${DIRECT_LINK_TOKEN}`,
   guestStatus: `/parkings/requests/${BOOKING_ID}`,
-  hostBookings: '/org/kame-homes-ph/parking/slot-12a/bookings?from=2026-08-01&to=2026-08-31',
-  hostBookingDetail: `/org/kame-homes-ph/parking/slot-12a/bookings/${BOOKING_ID}`,
-  hostPricing: '/org/kame-homes-ph/parking/slot-12a/pricing',
+  hostBookings: '/org/sample-stays-ph/parking/slot-12a/bookings?from=2026-08-01&to=2026-08-31',
+  hostBookingDetail: `/org/sample-stays-ph/parking/slot-12a/bookings/${BOOKING_ID}`,
+  hostPricing: '/org/sample-stays-ph/parking/slot-12a/pricing',
 } as const;
 
 export const parkingFlowLabels = {
@@ -292,7 +292,7 @@ function guestStatusPayload(state: ParkingFlowState) {
     brandColor: '#0f766e',
     logoUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200',
     endorsementNote: state.endorsementNote,
-    organizationName: 'Kame Homes PH',
+    organizationName: 'Sample Stays PH',
     endorsementSentAt: state.endorsementSentAt,
     endorsementSendError: state.endorsementSendError,
     endorsementEmailSnapshot: state.endorsementEmailSnapshot,
@@ -337,8 +337,8 @@ function publicParkingDetail() {
     latitude: 10.3285,
     longitude: 123.9053,
     placeId: null,
-    orgSlug: 'kame-homes-ph',
-    orgName: 'Kame Homes PH',
+    orgSlug: 'sample-stays-ph',
+    orgName: 'Sample Stays PH',
   };
 }
 
@@ -347,8 +347,8 @@ function organizationList() {
     organizations: [
       {
         id: ORG_ID,
-        name: 'Kame Homes PH',
-        slug: 'kame-homes-ph',
+        name: 'Sample Stays PH',
+        slug: 'sample-stays-ph',
         description: null,
         logoUrl: null,
         settings: {},
@@ -403,8 +403,8 @@ export function e2ePropertyAccessPayload() {
     ],
     memberId: null,
     propertyId: E2E_PROPERTY_ID,
-    orgSlug: 'kame-homes-ph',
-    orgName: 'Kame Homes PH',
+    orgSlug: 'sample-stays-ph',
+    orgName: 'Sample Stays PH',
     propertySlug: E2E_PROPERTY_SLUG,
     propertyName: 'Solea Mactan',
     planLimited: false,
@@ -630,7 +630,7 @@ export async function installParkingHostSession(page: Page) {
         email: 'host@example.com',
         name: 'Parking Host',
       },
-      orgSlug: 'kame-homes-ph',
+      orgSlug: 'sample-stays-ph',
       parkingSlug: 'slot-12a',
     }
   );

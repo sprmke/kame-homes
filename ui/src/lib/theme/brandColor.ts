@@ -152,8 +152,8 @@ export function resolveBrandTransitionGradientStops(
 }
 
 /**
- * Mode-switch overlay wordmark. "Kame" stays white on the brand fill. "Homes"
- * uses a complementary pastel tint for a two-tone lockup.
+ * Mode-switch overlay wordmark. "Kame" stays white on the brand fill. The
+ * second word ("Space") uses a complementary pastel tint for a two-tone lockup.
  */
 export function resolveBrandWordmarkTextColors(
   brandColor: string | null | undefined,

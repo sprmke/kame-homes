@@ -7,7 +7,7 @@ tags: [operations, migration, legacy]
 
 # Legacy integration inventory (Phase 0.5)
 
-Names and surfaces only. Values live in gitignored `supabase/.env.legacy-prod.local`, `ui/.env.legacy-prod.local`, and `backups/legacy-prod-config/`. Plan: [`kamespace-01-legacy-prod-config-secrets-backup.md`](../../workflow/in-progress/kamespace-01-legacy-prod-config-secrets-backup.md).
+Names and surfaces only. Values live in gitignored `supabase/.env.legacy-prod.local`, `ui/.env.legacy-prod.local`, and `backups/legacy-prod-config/`. Plan: [`kamespace-01-legacy-prod-config-secrets-backup.md`](../../workflow/done/kamespace-01-legacy-prod-config-secrets-backup.md).
 
 ## Supabase legacy project
 

@@ -1,0 +1,135 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`web app manifest > keeps a stable snapshot 1`] = `
+{
+  "background_color": "#f5f6f8",
+  "categories": [
+    "business",
+    "productivity",
+    "travel",
+  ],
+  "description": "Manage bookings, guest messages, pricing and your property operations from one place.",
+  "dir": "ltr",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+  ],
+  "icons": [
+    {
+      "purpose": "any",
+      "sizes": "192x192",
+      "src": "/icons/pwa-192.png",
+      "type": "image/png",
+    },
+    {
+      "purpose": "any",
+      "sizes": "512x512",
+      "src": "/icons/pwa-512.png",
+      "type": "image/png",
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "192x192",
+      "src": "/icons/pwa-maskable-192.png",
+      "type": "image/png",
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "/icons/pwa-maskable-512.png",
+      "type": "image/png",
+    },
+    {
+      "purpose": "monochrome",
+      "sizes": "512x512",
+      "src": "/icons/monochrome-512.png",
+      "type": "image/png",
+    },
+  ],
+  "id": "/?app",
+  "lang": "en",
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto",
+    ],
+  },
+  "name": "Kame Space",
+  "scope": "/",
+  "screenshots": [
+    {
+      "form_factor": "narrow",
+      "label": "Bookings and today’s check-ins",
+      "sizes": "1080x1920",
+      "src": "/screenshots/pwa-bookings-narrow.png",
+      "type": "image/png",
+    },
+    {
+      "form_factor": "narrow",
+      "label": "Guest messages in one inbox",
+      "sizes": "1080x1920",
+      "src": "/screenshots/pwa-inbox-narrow.png",
+      "type": "image/png",
+    },
+    {
+      "form_factor": "narrow",
+      "label": "Property overview",
+      "sizes": "1080x1920",
+      "src": "/screenshots/pwa-dashboard-narrow.png",
+      "type": "image/png",
+    },
+    {
+      "form_factor": "wide",
+      "label": "Property overview on desktop",
+      "sizes": "1920x1080",
+      "src": "/screenshots/pwa-dashboard-wide.png",
+      "type": "image/png",
+    },
+  ],
+  "short_name": "Kame Space",
+  "shortcuts": [
+    {
+      "description": "Open today’s booking list",
+      "icons": [
+        {
+          "sizes": "96x96",
+          "src": "/icons/shortcut-bookings.png",
+          "type": "image/png",
+        },
+      ],
+      "name": "Bookings",
+      "short_name": "Bookings",
+      "url": "/app?shortcut=bookings",
+    },
+    {
+      "description": "Open guest messages",
+      "icons": [
+        {
+          "sizes": "96x96",
+          "src": "/icons/shortcut-inbox.png",
+          "type": "image/png",
+        },
+      ],
+      "name": "Guest Inbox",
+      "short_name": "Inbox",
+      "url": "/app?shortcut=inbox",
+    },
+    {
+      "description": "Bookings arriving today",
+      "icons": [
+        {
+          "sizes": "96x96",
+          "src": "/icons/shortcut-checkins.png",
+          "type": "image/png",
+        },
+      ],
+      "name": "Today's check-ins",
+      "short_name": "Check-ins",
+      "url": "/app?shortcut=checkins",
+    },
+  ],
+  "start_url": "/app?source=pwa",
+  "theme_color": "#f5f6f8",
+}
+`;

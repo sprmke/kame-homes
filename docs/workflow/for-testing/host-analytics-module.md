@@ -237,7 +237,7 @@ bookings. **Role:** operator (host / co-host).
 - **Hospitable Copilot** — conversational AI with access to bookings, reviews, tasks,
   calendar: "ask a simple question, get an actionable insight."
 
-### Adopt for Kame Homes
+### Adopt for Kame Space
 
 - Standard KPI vocabulary: **Occupancy, ADR, RevPAR, Revenue/Net, Booking pace, Pickup,
   Lead time, LOS, Channel mix, Cancellation rate, Rating**. Hosts and any PMS-savvy user

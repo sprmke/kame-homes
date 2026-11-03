@@ -15,9 +15,9 @@ Every page must set a `document.title` so the browser tab is meaningful. Use the
 
 | Scope                                                        | Format                                                             | Example                               |
 | ------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------- |
-| Public marketing pages                                       | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Homes - Search` or `Search`     |
+| Public marketing pages                                       | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Space - Search` or `Search`     |
 | Public property-scoped pages                                 | `${Property Name} - ${page name}`                                  | `Solea Mactan - Calendar`             |
-| Guest account pages                                          | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Homes - Profile` or `Profile`   |
+| Guest account pages                                          | `${platform app name} - ${page name}` or `${page name}` when unset | `Kame Space - Profile` or `Profile`   |
 | App-level dashboard pages (sign-in, onboarding, super admin) | `${platform app name} - ${page name}` or `${page name}` when unset | `Sign In`                             |
 | Org-level dashboard pages                                    | `${Org Name} - ${page name}`                                       | `Acme Stays PH - Bookings`            |
 | Property-level dashboard pages                               | `${Property Name} - ${page name}`                                  | `Solea Mactan - Bookings`             |
@@ -44,7 +44,7 @@ export function OrgDashboardPage() {
 }
 ```
 
-For dynamic data, pass the formatted title once it is resolved. While data is loading, let the parent shell or index.html fallback show `Kame Homes`.
+For dynamic data, pass the formatted title once it is resolved. While data is loading, let the parent shell or index.html fallback show `Kame Space`.
 
 ```tsx
 usePageTitle(org ? `${org.name} - Dashboard` : undefined);
@@ -62,7 +62,7 @@ If no logo is set, the default Kame favicon is used automatically.
 
 ## Default / fallback
 
-`index.html` title must stay `Kame Homes`. Shells and top-level routes should set a title as early as possible so the fallback is rarely visible.
+`index.html` title must stay `Kame Space`. Shells and top-level routes should set a title as early as possible so the fallback is rarely visible.
 
 ## When adding or renaming a page
 
@@ -75,4 +75,4 @@ If no logo is set, the default Kame favicon is used automatically.
 
 - Set `document.title` directly; always use `usePageTitle`.
 - Add a title that is just the page name without a prefix (except if the page is the root landing page).
-- Use the same generic title for every page (e.g., `Kame Homes` on all admin pages).
+- Use the same generic title for every page (e.g., `Kame Space` on all admin pages).

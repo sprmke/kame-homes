@@ -240,8 +240,8 @@ export const mockProperties: Property[] = [
     isSuperhost: true,
   },
   {
-    id: 'property-kame-home',
-    slug: 'kame-home',
+    id: 'property-sample-stay',
+    slug: 'sample-stay',
     name: 'Monaco 2604',
     location: 'San Fernando City, Pampanga',
     price: 4500,

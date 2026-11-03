@@ -48,6 +48,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'accept-org-invite': account,
   'accept-parking-invite': account,
   'accept-property-invite': account,
+  'notification-preferences': account,
   'push-subscribe': account,
   'push-unsubscribe': account,
   'user-ui-preferences': account,

@@ -76,4 +76,50 @@ export function actionConfirmationBlock(input: {
   };
 }
 
+/**
+ * `action_plan` fixture for the Phase 3 plan-card flow. `forceFail`/`forceFailMessage` are
+ * mock-only markers the shared `dashboard-assistant-confirm` route reads (never rendered, not a
+ * real ChatBlock field) to simulate a partial-failure confirm response for that one step.
+ */
+export function actionPlanStep(input: {
+  stepId: string;
+  stepIndex: number;
+  toolName: string;
+  riskTier?: 'tier1_auto' | 'tier2_confirmed';
+  summary: string;
+  details?: Array<{ label: string; value: string }>;
+  dependsOn?: number[];
+  selected?: boolean;
+  isExternalSend?: boolean;
+  forceFail?: boolean;
+  forceFailMessage?: string;
+}) {
+  return {
+    stepId: input.stepId,
+    stepIndex: input.stepIndex,
+    toolName: input.toolName,
+    riskTier: input.riskTier ?? 'tier2_confirmed',
+    summary: input.summary,
+    details: input.details ?? [],
+    dependsOn: input.dependsOn ?? [],
+    selected: input.selected ?? true,
+    status: 'proposed',
+    isExternalSend: input.isExternalSend,
+    ...(input.forceFail ? { _mockForceFail: true } : {}),
+    ...(input.forceFailMessage ? { _mockErrorMessage: input.forceFailMessage } : {}),
+  };
+}
+
+export function actionPlanBlock(input: {
+  planId: string;
+  steps: ReturnType<typeof actionPlanStep>[];
+}): ChatBlock {
+  return {
+    type: 'action_plan',
+    planId: input.planId,
+    status: 'proposed',
+    steps: input.steps,
+  } as ChatBlock;
+}
+
 export { teamRbacPaths };

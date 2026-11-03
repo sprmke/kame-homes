@@ -5,7 +5,12 @@
  * GET  ?view=profiles profiles + assignment/plan/spend impact, developments, plans
  * GET  ?view=org&orgId=  one org's resolved limits, assignment and per-property limits
  * POST { action } create_profile | update_profile | delete_profile | assign | set_overrides
- *      | set_plan_profile   (step-up OTP on every POST)
+ *      | set_kill_switch_overrides | set_plan_profile   (step-up OTP on every POST)
+ *
+ * set_kill_switch_overrides: org-scoped only (no property level) — { organizationId,
+ * agenticModeEnabled?, planApprovalEnabled?, guestActionsEnabled? } each boolean | null,
+ * `null` clears the override so the global `ai_dashboard_assistant_global_settings` value
+ * applies again (see `resolveDashboardAssistantKillSwitch`).
  *
  * Hosts never reach this; they only toggle AI on/off (see aiLimitGuard.ts).
  * Changes apply within `AI_LIMIT_CACHE_TTL_MS` (5 s) across edge instances.
@@ -26,12 +31,14 @@ import {
   type AiLimitScope,
   ORG_OVERRIDE_KEYS,
   organizationIdsForTargets,
+  parseKillSwitchOverrides,
   parseLimitsMap,
   parseProfileInput,
   parseScope,
   parseTargetIds,
   PROPERTY_OVERRIDE_KEYS,
   requireOverrideReason,
+  setKillSwitchOverrides,
   setOverrides,
   setPlanProfile,
   updateProfile,
@@ -229,6 +236,31 @@ serveSuperAdmin('super-admin-ai-limits', async (req, admin) => {
         fields: Object.keys(limits),
       });
       return jsonSuccess(req, { affected: scopeIds.length });
+    }
+
+    if (action === 'set_kill_switch_overrides') {
+      const organizationId =
+        typeof body.organizationId === 'string' ? body.organizationId.trim() : '';
+      if (!organizationId) return jsonError(req, 'organizationId is required', 400);
+      const overrides = parseKillSwitchOverrides(body);
+      if (Object.keys(overrides).length === 0) {
+        return jsonError(req, 'Provide at least one guardrail override to set', 400);
+      }
+      await setKillSwitchOverrides(organizationId, overrides, admin.id);
+      const clearing = Object.values(overrides).every((v) => v === null);
+      await logSuperAdminAction(admin, {
+        action: 'ai.kill_switch_overrides_set',
+        targetType: 'organization',
+        targetId: organizationId,
+        summary: `${clearing ? 'Cleared' : 'Set'} dashboard assistant guardrail override(s) for 1 organization`,
+        metadata: { organizationId, overrides },
+      });
+      await mirrorToOrgs(req, admin, [organizationId], clearing ? 'reset' : 'updated', {
+        scope: 'organization',
+        kind: 'kill_switch_overrides',
+        fields: Object.keys(overrides),
+      });
+      return jsonSuccess(req, { affected: 1 });
     }
 
     if (action === 'set_plan_profile') {

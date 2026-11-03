@@ -98,7 +98,7 @@ Verified by reading each file. "Read at runtime?" is the critical column: it sep
 | 11  | Document requirements (GAF + pet)                                                         | `documentRequirements.ts` → `DEFAULT_DOCUMENT_REQUIREMENTS` | `workflowDefaults.documentRequirements`       | **Yes** — best-shaped example in the codebase      |
 | 12  | Occupancy child-age rule (≤3)                                                             | `guestCounts.ts` → `OCCUPANCY_CHILD_MAX_AGE`                | `propertyDefaults.occupancyChildMaxAge` (new) | No — module constant                               |
 | 13  | Reserved display names (`azurenorth*`)                                                    | `reservedDisplayNames.ts`                                   | platform-level, not per-residence             | Platform constant                                  |
-| 14  | Legacy brand regex (`Kame Home — Azure North`)                                            | `platformBrand.ts`                                          | n/a — legacy migration aid                    | Keep as-is                                         |
+| 14  | Legacy brand regex (`Kame Space — Azure North`)                                           | `platformBrand.ts`                                          | n/a — legacy migration aid                    | Keep as-is                                         |
 
 **Items 11 and 8 are the reference implementations.** `documentRequirements.ts` already does exactly what we want everywhere: residence-type default on `developments.settings.workflowDefaults`, per-property override on `app_settings`, resolved at runtime by a parser with a typed fallback. **Copy that pattern rather than inventing a new one.**
 

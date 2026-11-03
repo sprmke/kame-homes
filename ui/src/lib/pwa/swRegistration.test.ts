@@ -1,32 +1,37 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  setSwRegistration,
   getSwRegistration,
+  setSwRegistration,
   whenSwReady,
-  pingVersionCheck,
 } from '@/lib/pwa/swRegistration';
 
-describe('setSwRegistration', () => {
-  it('setSwRegistration is exported', () => {
-    expect(typeof setSwRegistration).toBe('function');
-  });
+const fakeRegistration = { scope: '/' } as unknown as ServiceWorkerRegistration;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-describe('getSwRegistration', () => {
-  it('getSwRegistration is exported', () => {
-    expect(typeof getSwRegistration).toBe('function');
+describe('swRegistration store', () => {
+  it('publishes and returns the registration', () => {
+    setSwRegistration(fakeRegistration);
+    expect(getSwRegistration()).toBe(fakeRegistration);
+    setSwRegistration(null);
+    expect(getSwRegistration()).toBeNull();
   });
-});
 
-describe('whenSwReady', () => {
-  it('whenSwReady is exported', () => {
-    expect(typeof whenSwReady).toBe('function');
+  it('resolves immediately when a registration already exists', async () => {
+    setSwRegistration(fakeRegistration);
+    await expect(whenSwReady()).resolves.toBe(fakeRegistration);
+    setSwRegistration(null);
   });
-});
 
-describe('pingVersionCheck', () => {
-  it('pingVersionCheck is exported', () => {
-    expect(typeof pingVersionCheck).toBe('function');
+  it('resolves as soon as the provider publishes one', async () => {
+    vi.stubGlobal('navigator', { serviceWorker: {} });
+    setSwRegistration(null);
+    const pending = whenSwReady(1000);
+    setSwRegistration(fakeRegistration);
+    await expect(pending).resolves.toBe(fakeRegistration);
+    setSwRegistration(null);
   });
 });

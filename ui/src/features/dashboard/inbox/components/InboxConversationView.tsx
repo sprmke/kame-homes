@@ -33,6 +33,7 @@ import {
   ChatTemplateCard,
   ChatTemplatePreviewDialog,
 } from '@/features/dashboard/inbox/components/ChatTemplateMessage';
+import { GuestRequestCard } from '@/features/dashboard/inbox/components/GuestRequestCard';
 import { InboxInsertMenu } from '@/features/dashboard/inbox/components/InboxInsertMenu';
 import {
   InboxMediaPreviewDialog,
@@ -61,6 +62,7 @@ import { applyInboxQuickReplyMerge } from '@/features/dashboard/inbox/lib/inboxQ
 import { templatesForConversationPlatform } from '@/features/dashboard/inbox/lib/quickReplyGroups';
 import {
   type ChatTemplateListItem,
+  type GuestRequestDto,
   type InboxConversation,
   type InboxMessage,
   type InboxTemplate,
@@ -187,6 +189,9 @@ type Props = {
   onLoadOlder?: () => void;
   loadError?: string | null;
   onRetryLoad?: () => void;
+  guestRequests?: GuestRequestDto[];
+  onResolveGuestRequest?: (requestId: string, status: 'approved' | 'declined') => Promise<void>;
+  resolvingGuestRequest?: boolean;
 };
 
 export function InboxConversationView({
@@ -201,6 +206,9 @@ export function InboxConversationView({
   onUploadAttachment,
   onEdit,
   onUnsend,
+  guestRequests = [],
+  onResolveGuestRequest,
+  resolvingGuestRequest = false,
   onSuggest,
   sending,
   uploadingAttachment = false,
@@ -794,6 +802,18 @@ export function InboxConversationView({
                 </Button>
               </div>
             )}
+            {guestRequests.length > 0 && onResolveGuestRequest ? (
+              <div className="space-y-2">
+                {guestRequests.map((request) => (
+                  <GuestRequestCard
+                    key={request.id}
+                    request={request}
+                    onResolve={onResolveGuestRequest}
+                    resolving={resolvingGuestRequest}
+                  />
+                ))}
+              </div>
+            ) : null}
             {messages.length > 0 ? (
               <ChatMessageList
                 messages={messages}

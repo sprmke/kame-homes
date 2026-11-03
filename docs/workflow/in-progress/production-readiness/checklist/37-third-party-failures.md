@@ -2,7 +2,7 @@
 title: 'Third-party failure modes'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-10-19
+updated: 2026-11-03
 stage: in-progress
 kind: plan
 origin_stage: untracked
@@ -28,4 +28,4 @@ last_verified: 2026-10-19
 
 ## Exit gate
 
-- [x] One test or manual probe per provider: [`phase8-third-party-failures`](../evidence/phase8-third-party-failures-2026-10-19.md). Resend silent drop fixed in [#157](https://github.com/sprmke/kame-homes/pull/157) (merge pending); PayMongo sandbox still needs keys (PR-030)
+- [x] One test or manual probe per provider: [`phase8-third-party-failures`](../evidence/phase8-third-party-failures-2026-10-19.md). Resend silent drop fixed in [#157](https://github.com/sprmke/kame-space/pull/157) (merge pending); PayMongo sandbox still needs keys (PR-030)

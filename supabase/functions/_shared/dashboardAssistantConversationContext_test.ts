@@ -1,7 +1,9 @@
 import {
   assistantBlocksToSnippet,
   buildConversationSummary,
+  collectKnownFacts,
   conversationContextPromptSection,
+  openPlanStepsFromLastAssistantMessage,
   priorMessagesToGeminiHistory,
   type ConversationMessageRow,
 } from './dashboardAssistantConversationContext.ts';
@@ -87,3 +89,131 @@ Deno.test('conversationContextPromptSection empty when no summary', () => {
     'section header'
   );
 });
+
+Deno.test('collectKnownFacts flattens entity_refs across recent turns, freshest wins', () => {
+  const messages: ConversationMessageRow[] = [
+    {
+      id: '1',
+      role: 'assistant',
+      content_text: null,
+      entity_refs: [{ kind: 'booking', id: 'b1', label: 'Juan (first mention)' }],
+    },
+    {
+      id: '2',
+      role: 'assistant',
+      content_text: null,
+      entity_refs: [{ kind: 'booking', id: 'b1', label: 'Juan (later mention)' }],
+    },
+  ];
+  const facts = collectKnownFacts(messages);
+  assertEqual(facts.length, 1, 'one entity after dedupe');
+  assertEqual(facts[0]?.label, 'Juan (later mention)', 'freshest mention wins');
+});
+
+Deno.test('collectKnownFacts with no entity_refs anywhere returns []', () => {
+  const messages: ConversationMessageRow[] = [
+    { id: '1', role: 'user', content_text: 'hi' },
+    { id: '2', role: 'assistant', content_text: 'hello' },
+  ];
+  assertEqual(collectKnownFacts(messages).length, 0, 'empty');
+});
+
+Deno.test(
+  'openPlanStepsFromLastAssistantMessage returns steps when the last turn left work open',
+  () => {
+    const messages: ConversationMessageRow[] = [
+      { id: '1', role: 'user', content_text: 'do two things' },
+      {
+        id: '2',
+        role: 'assistant',
+        content_text: 'I gathered part of that.',
+        blocks: [
+          { type: 'text', text: 'I gathered part of that.' },
+          {
+            type: 'task_plan',
+            title: 'Working on your request',
+            steps: [
+              { id: 'g0', label: 'First', status: 'done' },
+              { id: 'g1', label: 'Second', status: 'pending' },
+            ],
+          },
+        ],
+      },
+    ];
+    const steps = openPlanStepsFromLastAssistantMessage(messages);
+    assertEqual(steps?.length, 2, 'both steps carried');
+    assertEqual(steps?.[0]?.status, 'done', 'done step stays done');
+    assertEqual(steps?.[1]?.status, 'pending', 'open step stays pending');
+  }
+);
+
+Deno.test(
+  'openPlanStepsFromLastAssistantMessage returns null when the last plan fully completed',
+  () => {
+    const messages: ConversationMessageRow[] = [
+      {
+        id: '1',
+        role: 'assistant',
+        content_text: 'Done.',
+        blocks: [
+          {
+            type: 'task_plan',
+            title: 'Working on your request',
+            steps: [
+              { id: 'g0', label: 'First', status: 'done' },
+              { id: 'g1', label: 'Second', status: 'done' },
+            ],
+          },
+        ],
+      },
+    ];
+    assertEqual(openPlanStepsFromLastAssistantMessage(messages), null, 'nothing to resume');
+  }
+);
+
+Deno.test(
+  'openPlanStepsFromLastAssistantMessage returns null when the last assistant turn has no plan block',
+  () => {
+    const messages: ConversationMessageRow[] = [
+      {
+        id: '1',
+        role: 'assistant',
+        content_text: 'Sure, done.',
+        blocks: [{ type: 'text', text: 'Sure, done.' }],
+      },
+    ];
+    assertEqual(openPlanStepsFromLastAssistantMessage(messages), null, 'no plan block');
+  }
+);
+
+Deno.test(
+  'openPlanStepsFromLastAssistantMessage only looks at the most recent assistant turn',
+  () => {
+    const messages: ConversationMessageRow[] = [
+      {
+        id: '1',
+        role: 'assistant',
+        content_text: 'Still working.',
+        blocks: [
+          {
+            type: 'task_plan',
+            title: 'Working on your request',
+            steps: [{ id: 'g0', label: 'Older open step', status: 'pending' }],
+          },
+        ],
+      },
+      { id: '2', role: 'user', content_text: 'thanks' },
+      {
+        id: '3',
+        role: 'assistant',
+        content_text: 'You are welcome.',
+        blocks: [{ type: 'text', text: 'ok' }],
+      },
+    ];
+    assertEqual(
+      openPlanStepsFromLastAssistantMessage(messages),
+      null,
+      'the latest assistant turn has no plan, the older one does not count'
+    );
+  }
+);

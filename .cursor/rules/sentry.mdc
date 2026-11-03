@@ -1,0 +1,36 @@
+---
+description: Sentry org/projects, MCP harnesses, fault vs PostHog split — load when working on error monitoring, DSNs, Seer, source maps, or crash triage
+globs:
+  - ui/src/lib/sentry/**
+  - supabase/functions/_shared/sentry*.ts
+  - docs/architecture/observability.md
+  - docs/workflow/planned/observability-sentry-posthog-split/**
+alwaysApply: false
+---
+
+# Sentry — agent reference
+
+Full skill: **`sentry`** (`.agent/skills/sentry/SKILL.md`). Claude Code / OpenCode: invoke that skill before Sentry work.
+
+## Defaults
+
+|        |                                      |
+| ------ | ------------------------------------ |
+| Org    | `kame-tech`                          |
+| Region | `https://us.sentry.io`               |
+| Web    | `kame-space-web` → `VITE_SENTRY_DSN` |
+| Edge   | `kame-space-edge` → `SENTRY_DSN`     |
+
+Sentry = faults. PostHog = outcomes. Never reuse DSNs across projects.
+
+## MCP
+
+- **OpenCode:** `opencode.json` `mcp.sentry` → `opencode mcp auth sentry`
+- **Cursor:** Sentry plugin MCP (OAuth when prompted)
+- **Claude Code:** user-scope HTTP MCP to `https://mcp.sentry.dev/mcp/kame-tech`
+
+Do not put Sentry in project `.mcp.json` (OAuth HTTP; stdio-only there).
+
+## Privacy
+
+No email/PII in Sentry. Scrub via `telemetry/scrub.ts` + `_shared/telemetryScrub.ts` (keep in sync). Plan: `docs/workflow/planned/observability-sentry-posthog-split/`.

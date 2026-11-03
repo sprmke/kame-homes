@@ -19,7 +19,9 @@ export type NotificationType =
   | 'analytics_review_updated'
   | 'review_received'
   | 'review_due'
-  | 'review_response_received';
+  | 'review_response_received'
+  | 'maintenance_guest_reported'
+  | 'guest_request_submitted';
 
 export type NotificationRecord = {
   id: string;

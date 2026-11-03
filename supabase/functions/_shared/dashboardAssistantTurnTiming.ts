@@ -51,6 +51,15 @@ export type LatencyBreakdown = {
   rounds: number;
   /** True when the final round used `respond_with_blocks` (no separate synth call). */
   synth_inline: boolean;
+  /** Every model call this turn (rounds + synth + guard), for the AI Usage tab's cost view. */
+  credits_consumed: number;
+  /** Steps in this turn's Phase 3 `action_plan`, or null when the turn never proposed one. */
+  plan_size: number | null;
+  /**
+   * True when the turn ended via the Phase 2 completion check (`completionCheck.ts`) — it ran
+   * out of rounds/token budget/deadline/credit ceiling with a declared goal still open.
+   */
+  completion_check_miss: boolean;
 };
 
 const round = (ms: number): number => Math.max(0, Math.round(ms));
@@ -70,6 +79,9 @@ export class TurnTimer {
   private guardMode: TurnGuardMode | null = null;
   private modules: string[] = [];
   private synthInline = false;
+  private creditsConsumed = 0;
+  private planSize: number | null = null;
+  private completionCheckMiss = false;
 
   constructor(private readonly now: () => number = Date.now) {
     this.startedAt = now();
@@ -123,6 +135,20 @@ export class TurnTimer {
     if (this.synthMs == null) this.synthMs = 0;
   }
 
+  addCredits(credits: number): void {
+    this.creditsConsumed += Math.max(0, credits);
+  }
+
+  /** Phase 3: steps in the `action_plan` this turn proposed (only called when one was built). */
+  setPlanSize(steps: number): void {
+    this.planSize = Math.max(0, Math.round(steps));
+  }
+
+  /** Phase 2 completion check: the turn ended with a declared goal still open — see completionCheck.ts. */
+  markCompletionCheckMiss(): void {
+    this.completionCheckMiss = true;
+  }
+
   snapshot(): LatencyBreakdown {
     return {
       preload_ms: this.preloadMs,
@@ -137,6 +163,9 @@ export class TurnTimer {
       primary_module: primaryModuleFor(this.modules),
       rounds: this.modelMs.length,
       synth_inline: this.synthInline,
+      credits_consumed: this.creditsConsumed,
+      plan_size: this.planSize,
+      completion_check_miss: this.completionCheckMiss,
     };
   }
 }

@@ -4,6 +4,7 @@ import type { AiAssistantChatState } from '@/features/dashboard/ai-assistant/hoo
 import type {
   ChatBlock,
   ConfirmActionResponse,
+  ConfirmPlanResponse,
   PageContext,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import type { AssistantAiOffReason } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
@@ -54,6 +55,11 @@ export type AiAssistantSessionValue = AiAssistantChatState & {
   regenerate: () => void;
   submitEdit: (messageId: string, text: string) => void;
   confirmAction: (actionId: string, confirm: boolean) => Promise<ConfirmActionResponse | null>;
+  confirmPlan: (
+    planId: string,
+    confirm: boolean,
+    selectedStepIds?: string[]
+  ) => Promise<ConfirmPlanResponse | null>;
   newChat: () => void;
   selectConversation: (conversationId: string) => void;
   onConversationDeleted: (conversationId: string) => void;

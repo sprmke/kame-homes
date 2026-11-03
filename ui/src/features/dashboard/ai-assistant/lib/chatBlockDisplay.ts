@@ -1,5 +1,7 @@
 import type {
   ActionConfirmationBlock,
+  ActionPlanBlock,
+  ActionPlanStep,
   ChatBlock,
   DynamicFormField,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
@@ -286,5 +288,33 @@ export function patchActionConfirmationStatus(
       };
     }
     return block;
+  });
+}
+
+/**
+ * Client-side fallback when a plan confirm response didn't include patched `blocks` (e.g. the
+ * assistant message couldn't be found server-side). Marks the whole plan and every step with the
+ * given status — coarser than the server's real per-step outcome, but keeps the card from
+ * looking stuck on "proposed" forever. The server's own `result.blocks` is always preferred when
+ * present; this is a last resort.
+ */
+export function patchActionPlanStatus(
+  blocks: ChatBlock[],
+  planId: string,
+  status: ActionPlanBlock['status']
+): ChatBlock[] {
+  const patchStep = (step: ActionPlanStep): ActionPlanStep => {
+    if (step.status !== 'proposed') return step;
+    const nextStatus: ActionPlanStep['status'] = status === 'cancelled' ? 'denied' : step.status;
+    return { ...step, status: nextStatus };
+  };
+
+  return blocks.map((block) => {
+    if (block.type !== 'action_plan' || block.planId !== planId) return block;
+    return {
+      ...block,
+      status,
+      steps: block.steps.map(patchStep),
+    };
   });
 }

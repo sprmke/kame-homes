@@ -71,7 +71,16 @@ export type MarketingGenerationJobDto = {
 export type MarketingGenerationOptions = {
   cameraMove?: string;
   sound?: string;
+  /** AI Studio example the host started from (attribution only; catalog lives in the client). */
+  sampleId?: string;
 };
+
+const SAMPLE_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** A well-formed example id, or null. Malformed ids are dropped, never a 400. */
+export function readSampleId(value: unknown): string | null {
+  return typeof value === 'string' && value.length <= 64 && SAMPLE_ID_RE.test(value) ? value : null;
+}
 
 function readGenerationOptions(value: unknown): MarketingGenerationOptions {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -79,6 +88,8 @@ function readGenerationOptions(value: unknown): MarketingGenerationOptions {
   const options: MarketingGenerationOptions = {};
   if (typeof raw.cameraMove === 'string') options.cameraMove = raw.cameraMove;
   if (typeof raw.sound === 'string') options.sound = raw.sound;
+  const sampleId = readSampleId(raw.sampleId);
+  if (sampleId) options.sampleId = sampleId;
   return options;
 }
 

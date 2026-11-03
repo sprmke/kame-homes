@@ -133,6 +133,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
+import {
+  clearFormDraft,
+  readFormDraft,
+  saveFormDraft,
+  toDraftValues,
+} from '@/hooks/useOfflineFormDraft';
 import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { publicEdgeFetch } from '@/lib/api/publicEdgeFetch';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
@@ -201,7 +207,7 @@ function guestEarlyLateContactLabel(isAirbnb: boolean, isFacebook: boolean): str
   return 'Contact us to arrange.';
 }
 
-const isProduction = import.meta.env.VITE_NODE_ENV === 'production';
+const isProduction = import.meta.env.PROD;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 /** Step actions lifted into a host footer (e.g. GuestDialogShell). */
@@ -439,7 +445,61 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     mode: 'all',
   });
 
-  // No draft is persisted, so leaving mid-form loses it. Discard-only prompt (no save from here).
+  /**
+   * Local draft (5.11). Values autosave to IndexedDB (never the network, never a
+   * `File` field) so a reload or a dead battery does not lose a half-filled form.
+   * Restoring is an explicit tap, offered only once the server prefill has settled,
+   * so it can never race the `bookingId` `form.reset()` paths.
+   */
+  const draftKey = propertySlug && !embed ? `booking:${propertySlug}:${bookingId ?? 'new'}` : null;
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRestoreOfferedRef = useRef(false);
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const subscription = form.watch((values) => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+      draftSaveTimer.current = setTimeout(() => {
+        void saveFormDraft(draftKey, toDraftValues(values as Record<string, unknown>));
+      }, 1200);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    };
+  }, [draftKey, form]);
+
+  useEffect(() => {
+    if (!draftKey || isLoading || draftRestoreOfferedRef.current) return;
+    draftRestoreOfferedRef.current = true;
+    void readFormDraft<Record<string, unknown>>(draftKey).then((draft) => {
+      if (!draft) return;
+      const differing = Object.entries(draft.values).some(
+        ([key, value]) =>
+          JSON.stringify(value) !==
+          JSON.stringify((form.getValues() as Record<string, unknown>)[key])
+      );
+      if (!differing) return;
+      toast('Continue where you left off?', {
+        description: `Saved ${new Date(draft.savedAt).toLocaleString()}`,
+        duration: 15000,
+        action: {
+          label: 'Restore',
+          onClick: () => {
+            form.reset({ ...form.getValues(), ...draft.values } as GuestFormData);
+            toast.success('Draft restored');
+          },
+        },
+      });
+    });
+  }, [draftKey, isLoading, form]);
+
+  const clearDraft = useCallback(() => {
+    if (!draftKey) return;
+    void clearFormDraft(draftKey);
+  }, [draftKey]);
+
+  // The draft is local only; leaving still loses in-page state, so the guard stays.
   useUnsavedChangesGuard({
     isDirty: form.formState.isDirty,
     enabled: !embed && !isSubmitting,
@@ -1152,6 +1212,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       if (result.skipped) {
         console.log('ℹ️ No changes detected, redirecting to success page');
         clearGuestFormStartedMarker();
+        clearDraft();
 
         // Prepare booking data to pass to success page
         const bookingData = buildBookingSummary(values);
@@ -1177,6 +1238,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       }
 
       clearGuestFormStartedMarker();
+      clearDraft();
 
       // Reset form and redirect to success page
       // Only reset form in normal production mode (not dev controls)

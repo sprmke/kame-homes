@@ -5,6 +5,7 @@
 
 import { resolveEmailOnPrimaryHex, resolveEmailPrimaryHex } from './emailBrandColor.ts';
 import { DEFAULT_ORG_BRAND_COLOR } from './orgSettingsValidation.ts';
+import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 
 export {
   resolveEmailOnPrimaryHex,
@@ -13,7 +14,7 @@ export {
 } from './emailBrandColor.ts';
 
 /** Public absolute URL for `<img src>` (same asset as `ui/public/images/logo.png` on the live site). */
-export const DEFAULT_EMAIL_LOGO_URL = 'https://kamehomes.space/images/logo.png';
+export const DEFAULT_EMAIL_LOGO_URL = `${resolvePublicGuestAppOrigin()}/images/logo.png`;
 
 const templateCache = new Map<string, string>();
 

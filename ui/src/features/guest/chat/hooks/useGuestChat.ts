@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { GUEST_MESSAGES_QUERY_KEY } from '@/features/guest/account/lib/guestAccountApi';
 import {
   editGuestChatMessage,
   fetchGuestChatMessages,
   fetchGuestWebChatResume,
+  guestChatMessagesUrl,
   markGuestChatRead,
   sendGuestChatMessage,
   submitGuestChatAiFeedback,
@@ -28,6 +30,7 @@ import {
 } from '@/lib/chat/chatMessageCache';
 import { normalizeChatReplyStatus, type ChatReplyStatus } from '@/lib/chat/chatReplyStatus';
 import { useChatReadReceiptSync } from '@/lib/chat/useChatReadReceiptSync';
+import { runOfflineMutation } from '@/lib/pwa/offlineMutation';
 import { supabase } from '@/lib/supabase/client';
 
 export const GUEST_CHAT_START_KEY = 'guest-chat-start';
@@ -232,9 +235,33 @@ export function useGuestChatMessages(conversationId: string | null) {
   }, []);
 
   const send = useMutation({
-    mutationFn: (input: GuestChatSendInput | string) => {
+    mutationFn: async (input: GuestChatSendInput | string) => {
       const { text, replyToMessageId, attachments } = normalizeSendInput(input);
-      return sendGuestChatMessage(conversationId!, text, { replyToMessageId, attachments });
+      // Attachments need an upload first, so they stay online-only. A text-only
+      // message goes through the durable outbox and lands when the guest is back
+      // online (server-side idempotency keeps a retry from double-sending).
+      if (attachments?.length) {
+        const online = await sendGuestChatMessage(conversationId!, text, {
+          replyToMessageId,
+          attachments,
+        });
+        return { ...online, queued: false };
+      }
+      const result = await runOfflineMutation<{ assistantWillReply?: boolean }>(
+        {
+          kind: 'guest-chat-message',
+          label: 'Message the host',
+          url: guestChatMessagesUrl(),
+          body: { conversationId, text, replyToMessageId },
+          invalidateKeys: [GUEST_CHAT_MESSAGES_KEY],
+        },
+        qc
+      );
+      if (result.queued) return { assistantWillReply: false, queued: true };
+      return {
+        assistantWillReply: result.data?.assistantWillReply === true,
+        queued: false,
+      };
     },
     onMutate: async (input) => {
       if (!conversationId) return undefined;
@@ -268,6 +295,9 @@ export function useGuestChatMessages(conversationId: string | null) {
     },
     onSuccess: (result) => {
       if (!conversationId) return;
+      if (result.queued) {
+        toast.success('Will send when you are back online.');
+      }
       if (result.assistantWillReply) {
         setAssistantTyping(true);
         if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);

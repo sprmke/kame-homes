@@ -5,7 +5,7 @@
  *
  *   bun run eval:ai                          # all suites
  *   bun run eval:ai -- --suite inbox         # one suite: inbox | import | assistant | documents
- *                                            #            | blocks | quality | guest
+ *                                            #            | blocks | quality | guest | trajectory
  *   bun run eval:ai -- --threshold 0.9       # override the default pass-rate gate
  *   bun run eval:ai -- --latency-budget 9000 # p95 model-call budget (ms) for assistant/blocks
  *   bun run eval:ai -- --suite assistant --routed          # send only the router's modules
@@ -13,10 +13,14 @@
  *                                                          # in ai_assistant_eval_runs (SUPABASE_URL)
  *
  * Suites added by the AI companion plan:
- *   blocks  — fixture tool results → real block synthesis → deterministic shape score
- *             (same scorer as the offline test; `pending` rows are reported, not gated)
- *   quality — same synthesis, then deterministic rubric coverage (facts + style) against the dataset
- *   guest   — guest receptionist tool selection over the voice/text tool allowlist
+ *   blocks     — fixture tool results → real block synthesis → deterministic shape score
+ *                (same scorer as the offline test; `pending` rows are reported, not gated)
+ *   quality    — same synthesis, then deterministic rubric coverage (facts + style) against the dataset
+ *   guest      — guest receptionist tool selection over the voice/text tool allowlist
+ *   trajectory — full multi-round tool-calling loop against a mocked tool layer (see
+ *                trajectoryEval.ts): scores tools called, multi-intent coverage, round count and
+ *                the final answer, for both dashboard and guest datasets (incl. adversarial cases:
+ *                prompt injection in guest-written text, out-of-scope booking ids, plan-gated asks)
  *
  * Reads GEMINI_API_KEY(S) / GROQ_API_KEY from the environment or supabase/.env.local.
  * Writes a JSON report to tmp/ai-evals/ (gitignored) and exits 1 when a suite misses its gate.
@@ -39,8 +43,11 @@ import {
   BLOCKS_RESPONSE_SCHEMA,
   DASHBOARD_ASSISTANT_BLOCKS_PROMPT,
   DASHBOARD_ASSISTANT_PROMPT,
+  RESPOND_WITH_BLOCKS_DECLARATION,
   SYSTEM_PROMPT_PREFIX,
 } from '../../_shared/ai/prompts/dashboardAssistant.ts';
+import { PLAN_TASK_DECLARATION } from '../../_shared/ai/agent/taskPlanTool.ts';
+import { REQUEST_TOOLS_DECLARATION } from '../../_shared/ai/agent/toolRegistry.ts';
 import { shapeAndFinalizeForEval } from '../../_shared/dashboardAssistantResponseShape.ts';
 import type { ChatBlock } from '../../_shared/dashboardAssistantSafetyGuard.ts';
 import { VOICE_RECEPTIONIST_TOOL_DECLARATIONS } from '../../_shared/voiceReceptionistTool.ts';
@@ -72,6 +79,12 @@ import {
   validateValidIdFile,
 } from '../../_shared/receiptValidationService.ts';
 import { readJsonl } from './evalDatasets.ts';
+import {
+  loadMockToolFixtures,
+  readTrajectoryRows,
+  runTrajectory,
+  scoreTrajectory,
+} from './trajectoryEval.ts';
 
 type CaseResult = {
   id: string;
@@ -94,6 +107,7 @@ const DEFAULT_GATES: Record<string, number> = {
   blocks: 0.9,
   quality: 0.85,
   guest: 0.85,
+  trajectory: 0.75,
 };
 
 /** Suites whose per-case latency is one assistant model call; p95 must stay under budget. */
@@ -542,6 +556,79 @@ async function guestSuite(): Promise<CaseResult[]> {
   return out;
 }
 
+// Phase 7: full-turn trajectory evals. Drives the real multi-round tool-calling loop against a
+// mocked tool layer (canned results keyed by tool name, no live DB writes) and scores the set of
+// tools called, coverage of multi-intent asks, and the final answer — a different signal than
+// `assistant`'s single-call tool-selection check.
+async function trajectorySuite(): Promise<CaseResult[]> {
+  const out: CaseResult[] = [];
+
+  const dashboardRows = await readTrajectoryRows('assistant_trajectory.jsonl');
+  const dashboardMocks = await loadMockToolFixtures('trajectory_tools.json');
+  // Mirrors dashboard-assistant-chat/index.ts's real turnTools composition — without the
+  // plan_task/request_tools/respond_with_blocks meta-tools the model has no way to batch a
+  // multi-intent turn into a declared plan, which otherwise leads it into multi-functionCall
+  // rounds the harness never exercises in production (and that can trip provider-side thought
+  // signature errors under live traffic).
+  const dashboardTools: ToolDeclaration[] = [
+    RESPOND_WITH_BLOCKS_DECLARATION,
+    REQUEST_TOOLS_DECLARATION,
+    PLAN_TASK_DECLARATION,
+    ...TOOL_DECLARATIONS,
+  ];
+  for (const row of dashboardRows) {
+    const result = await runCase(row.id, async () => {
+      const trajectory = await runTrajectory({
+        feature: 'dashboard_assistant',
+        prompt: DASHBOARD_ASSISTANT_PROMPT,
+        system: `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\nOrganization: Kame Test Stays. One property: Azure North 1204.`,
+        message: row.message,
+        tools: dashboardTools,
+        mockResults: dashboardMocks,
+        maxRounds: 4,
+      });
+      const score = scoreTrajectory(trajectory, row.expect);
+      return {
+        pass: score.pass,
+        note: score.pass
+          ? undefined
+          : `${score.problems.join('; ')} | calls=${trajectory.calls.map((c) => c.name).join(',') || '(none)'}`,
+      };
+    });
+    out.push({ ...result, module: row.module });
+  }
+
+  const guestRows = await readTrajectoryRows('guest_trajectory.jsonl');
+  const guestMocks = await loadMockToolFixtures('guest_trajectory_tools.json');
+  const guestFacts = JSON.parse(
+    await Deno.readTextFile(new URL('./fixtures/assistant/guest_facts.json', import.meta.url))
+  ) as { factsText: string; phaseLines: Record<string, string> };
+  const guestTools = guestToolDeclarations();
+  for (const row of guestRows) {
+    const result = await runCase(row.id, async () => {
+      const trajectory = await runTrajectory({
+        feature: 'inbox_auto_reply',
+        prompt: GUEST_RECEPTIONIST_EVAL_PROMPT,
+        system: `${GUEST_RECEPTIONIST_EVAL_SYSTEM}\n\n${guestFacts.phaseLines.active}\n\nKnown facts:\n${guestFacts.factsText}`,
+        message: row.message,
+        tools: guestTools,
+        mockResults: guestMocks,
+        maxRounds: 3,
+      });
+      const score = scoreTrajectory(trajectory, row.expect);
+      return {
+        pass: score.pass,
+        note: score.pass
+          ? undefined
+          : `${score.problems.join('; ')} | calls=${trajectory.calls.map((c) => c.name).join(',') || '(none)'}`,
+      };
+    });
+    out.push({ ...result, module: row.module });
+  }
+
+  return out;
+}
+
 const SUITES: Record<string, () => Promise<CaseResult[]>> = {
   inbox: inboxSuite,
   import: importSuite,
@@ -550,6 +637,7 @@ const SUITES: Record<string, () => Promise<CaseResult[]>> = {
   blocks: blocksSuite,
   quality: qualitySuite,
   guest: guestSuite,
+  trajectory: trajectorySuite,
 };
 
 function percentile(values: number[], p: number): number {

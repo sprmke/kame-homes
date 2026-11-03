@@ -17,13 +17,22 @@ import {
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
 import {
+  loadNotificationPreferencesForUsers,
+  shouldDeliverPush,
+} from '../_shared/notificationPreferences.ts';
+import {
   loadPushSubscriptions,
   type NotificationRow,
   reconcilePushFailures,
   resolveNotificationClickPath,
+  countUnreadForUser,
   resolveNotificationRecipientUserIds,
 } from '../_shared/pushRecipients.ts';
-import { isPushConfigured, type PushPayload, sendPushBatch } from '../_shared/webPushService.ts';
+import {
+  buildPushPayload,
+  isPushConfigured,
+  sendPushBatch,
+} from '../_shared/webPushService.ts';
 
 servePublic('push-fanout', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -61,20 +70,54 @@ servePublic('push-fanout', async (req) => {
   if (!notification) return jsonSuccess(req, { sent: 0, reason: 'notification not found' });
 
   const row = notification as NotificationRow;
-  const userIds = await resolveNotificationRecipientUserIds(sb, row.organization_id);
+  const userIds = await resolveNotificationRecipientUserIds(sb, row);
   const subs = await loadPushSubscriptions(sb, userIds);
   if (subs.length === 0) return jsonSuccess(req, { sent: 0, recipients: userIds.length });
 
   const path = await resolveNotificationClickPath(sb, row);
-  const payload: PushPayload = {
-    title: row.title,
-    body: row.body ?? undefined,
-    path,
-    type: row.type,
-    notificationId: row.id,
-  };
 
-  const results = await sendPushBatch(subs, payload);
+  // Encrypted Web Push payloads are capped near 4 KB; keep the body well inside it
+  // and never widen guest PII beyond what the bell already shows (6.9).
+  const basePayload = buildPushPayload(row, path);
+
+  // The OS badge is per user, so the fan-out groups subscriptions by owner and
+  // sends each group its own unread count (6.3).
+  const subsByUser = new Map<string, typeof subs>();
+  for (const sub of subs) {
+    const key = sub.user_id ?? 'unknown';
+    const list = subsByUser.get(key) ?? [];
+    list.push(sub);
+    subsByUser.set(key, list);
+  }
+
+  // Per-user preferences: a muted group or an active quiet window suppresses the
+  // OS push only. The in-app notification row (and the bell badge) is unaffected.
+  const prefsByUser = await loadNotificationPreferencesForUsers(sb, [
+    ...subsByUser.keys(),
+  ].filter((id) => id !== 'unknown'));
+  const now = new Date();
+  let muted = 0;
+  let quiet = 0;
+
+  const results: Awaited<ReturnType<typeof sendPushBatch>> = [];
+  for (const [userId, userSubs] of subsByUser) {
+    if (userId !== 'unknown') {
+      const prefs = prefsByUser.get(userId);
+      if (prefs) {
+        const decision = shouldDeliverPush(row.type, prefs, now);
+        if (!decision.deliver) {
+          if (decision.reason === 'quiet_hours') quiet += userSubs.length;
+          else muted += userSubs.length;
+          continue;
+        }
+      }
+    }
+    const unreadCount =
+      userId === 'unknown' ? undefined : await countUnreadForUser(sb, row, userId);
+    const batchResults = await sendPushBatch(userSubs, { ...basePayload, unreadCount });
+    results.push(...batchResults);
+  }
+
   const sent = results.filter((r) => r.ok).length;
   const goneIds = results.filter((r) => !r.ok && r.gone).map((r) => r.id);
   const failedIds = results.filter((r) => !r.ok && !r.gone).map((r) => r.id);
@@ -88,6 +131,8 @@ servePublic('push-fanout', async (req) => {
     sent,
     pruned: goneIds.length,
     failed: failedIds.length,
+    muted,
+    quiet,
   };
   console.log('[push-fanout]', JSON.stringify(summary));
   return jsonSuccess(req, summary);

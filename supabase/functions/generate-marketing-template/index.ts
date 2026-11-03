@@ -6,6 +6,7 @@
 import { generateMarketingTemplateTokens } from '../_shared/marketingTemplateGenerationAi.ts';
 import { generateMarketingTheme } from '../_shared/marketingThemeDirector.ts';
 import {
+  readPreferredArchetype,
   allowedPropertyPhotoUrls,
   generatePosterSpecs,
   loadPosterPhotos,
@@ -279,6 +280,7 @@ async function handlePoster(
       photos,
       count: revise ? 1 : count,
       revise,
+      preferredArchetype: readPreferredArchetype(body.preferredArchetype),
     });
     // photoUrls tells the client which of its photos each photoIndex refers to.
     await capturePostHogEvent('marketing_asset_generated', {

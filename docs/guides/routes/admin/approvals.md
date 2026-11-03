@@ -51,7 +51,7 @@ The platform team uses this page to approve host identity documents, **request c
 **Common host questions**
 
 - Q: Who reviews my onboarding documents?
-  A: The Kame Homes platform team. You’ll see “In review” until they approve, request changes, or decline.
+  A: The Kame Space platform team. You’ll see “In review” until they approve, request changes, or decline.
 - Q: What if changes are requested?
   A: When you sign in you’ll see a **Changes requested** popup you can’t close. Fix or replace the docs listed, then tap **Resubmit**.
 - Q: What if my verification was declined?

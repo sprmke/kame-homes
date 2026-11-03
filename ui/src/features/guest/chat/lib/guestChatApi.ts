@@ -32,6 +32,11 @@ async function guestJwt(): Promise<string> {
   return token;
 }
 
+/** Absolute URL for the guest message endpoint — used by the offline outbox. */
+export function guestChatMessagesUrl(): string {
+  return `${FUNCTIONS_URL}/guest-web-chat-messages`;
+}
+
 async function guestEdgePost(path: string, body: Record<string, unknown>) {
   const jwt = await guestJwt();
   const res = await fetch(`${FUNCTIONS_URL}/${path}`, {

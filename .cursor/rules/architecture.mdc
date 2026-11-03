@@ -6,7 +6,7 @@ globs:
 
 # Architecture — agent reference
 
-Adapted from [bulletproof-react](https://github.com/alan2207/bulletproof-react) and Kame Homes PMA. **Vite + React SPA** (`ui/`) + **Supabase edge functions** (`supabase/functions/`).
+Adapted from [bulletproof-react](https://github.com/alan2207/bulletproof-react) and Kame Space PMA. **Vite + React SPA** (`ui/`) + **Supabase edge functions** (`supabase/functions/`).
 
 Full map + migration log: **`docs/archive/reference/project-structure.md`**.
 

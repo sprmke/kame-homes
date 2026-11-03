@@ -2,7 +2,7 @@
 title: 'Notifications — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-02
+updated: 2026-11-02
 ---
 
 # Notifications — operator guide
@@ -18,16 +18,16 @@ Deep links:
 
 ## Progress overview
 
-| Section     | E2E save | Validation | Docs       | Notes                                      |
-| ----------- | -------- | ---------- | ---------- | ------------------------------------------ |
-| This device | ⏳       | n/a        | Documented | PWA OS-push opt-in + offline-changes queue |
-| Activity    | ✅       | ✅         | Documented | In-app bell feed (org-wide, paginated)     |
-| Chat        | ✅       | ✅         | Documented | Inbound guest web chat → Telegram template |
-| Marketing   | ✅       | ✅         | Documented | Gated setup + manage cards                 |
-| Staff       | ✅       | ✅         | Documented | Gated setup + manage cards                 |
-| Operations  | ✅       | ✅         | Documented | Gated setup + manage cards                 |
-| Finance     | ✅       | ✅         | Documented | Gated setup + template modal               |
-| Maintenance | ✅       | ✅         | Documented | Gated setup + template modal               |
+| Section     | E2E save | Validation | Docs       | Notes                                                        |
+| ----------- | -------- | ---------- | ---------- | ------------------------------------------------------------ |
+| This device | ✅       | ✅         | Documented | PWA OS-push opt-in, push preferences + offline-changes queue |
+| Activity    | ✅       | ✅         | Documented | In-app bell feed (org-wide, paginated)                       |
+| Chat        | ✅       | ✅         | Documented | Inbound guest web chat → Telegram template                   |
+| Marketing   | ✅       | ✅         | Documented | Gated setup + manage cards                                   |
+| Staff       | ✅       | ✅         | Documented | Gated setup + manage cards                                   |
+| Operations  | ✅       | ✅         | Documented | Gated setup + manage cards                                   |
+| Finance     | ✅       | ✅         | Documented | Gated setup + template modal                                 |
+| Maintenance | ✅       | ✅         | Documented | Gated setup + template modal                                 |
 
 ---
 
@@ -45,6 +45,7 @@ Above the Activity feed (only when the app runs as an installed PWA and/or there
   - **Desktop Chrome/Edge/Firefox and Android**: works in a normal browser tab too.
   - **iPhone/iPad**: only after you **Add to Home Screen** — the toggle shows "Add this app to your Home Screen, then turn on notifications from the installed app" until then.
   - If notifications were blocked in browser settings, the card says so and the toggle is disabled until you re-allow them.
+- **Push preferences** — below the device toggle. One switch per group (**Bookings**, **Messages**, **Reviews**, **Pricing**, **Finance**, **Maintenance**, **Analytics**, **System**) and a **Quiet hours** switch with a start/end time. Changes save instantly; there is no Save button. Preferences are **per account, on every device** (the device toggle above is the per-device switch). Muting a group only stops the phone buzz — the row still appears in **Activity**. Quiet hours use **Asia/Manila** time; if the start and end match, quiet hours are off. Calendar-sync failures still come through during quiet hours.
 - **Offline changes** (Sync Center) — appears only when you made changes while offline (currently: inbox text replies). Lists what is **waiting to sync** and anything that **failed**, with **Sync now**, **Retry**, and **Discard**. Queued changes replay automatically when you reconnect; a failed item shows the server's reason and the affected view refreshes to the real state. A thin top banner also shows "Offline — N changes will sync when you reconnect".
 
 ### In-app activity
@@ -142,7 +143,9 @@ Notifications is the one place to review in-app alerts and set up Telegram for t
 - Q: Do I have to save again after connecting Telegram?
   A: No. Once you enter your bot token and chat ID and tap **Connect** successfully, the credentials save automatically. Template and schedule changes save when you confirm them in each modal.
 - Q: Can I turn off just one type of alert?
-  A: Yes. Each module (Chat, Marketing, Staff, Operations, Finance, Maintenance) has its own **Enable notifications** toggle, so you can turn on only what you need.
+  A: Yes. **Push preferences** has one switch per group (Bookings, Messages, Reviews, Pricing, Finance, Maintenance, Analytics, System) and a **Quiet hours** window. Muting a group stops the phone buzz; the item still appears in **Activity**. Quiet hours use Asia/Manila time and still let calendar-sync failures through. The toggles save instantly.
+- Q: Do these preferences follow me to another device?
+  A: Yes. Push preferences belong to your account; the **Notifications on this device** switch at the top is per device, so turning off one phone does not silence the others.
 - Q: Do I need a different bot for every module?
   A: No, one shared bot token is enough. Save it once at the top and each module can reuse it, or override with its own token if you'd rather. Use different **Chat IDs** so each module posts to the right group.
 - Q: How do I pick a Telegram group?
@@ -215,11 +218,11 @@ Credentials unlock logic: `telegramCredentialsReady()` — saved token **and** c
 
 ## Testing
 
-| Layer | Path / spec                                                                           | Manual                          |
-| ----- | ------------------------------------------------------------------------------------- | ------------------------------- |
-| Unit  | Telegram template validators when pure helpers exist                                  | —                               |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` notifications shell (`@ci`) | Live Telegram send, PWA OS push |
-| N/A   | —                                                                                     | —                               |
+| Layer | Path / spec                                                                                                       | Manual                          |
+| ----- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Unit  | Telegram template validators; `notificationPreferences.test.ts` (group parity, normalize)                         | —                               |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` notifications shell (`@ci`); `notificationsHub.spec.ts` | Live Telegram send, PWA OS push |
+| N/A   | —                                                                                                                 | —                               |
 
 ---
 

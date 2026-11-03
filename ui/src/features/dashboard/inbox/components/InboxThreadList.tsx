@@ -153,7 +153,11 @@ export function InboxThreadList({
         </div>
         <InboxFilterBar statusFilter={statusFilter} onStatusFilter={onStatusFilter} />
       </div>
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div
+        ref={scrollRef}
+        data-pull-to-refresh
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
         {isLoading ? (
           <div role="status" className="py-1" aria-busy="true" aria-label="Loading conversations">
             {Array.from({ length: 6 }).map((_, i) => (

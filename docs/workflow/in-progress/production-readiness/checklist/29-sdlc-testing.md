@@ -2,7 +2,7 @@
 title: 'SDLC testing'
 status: active
 tags: [workflow, planned, production-readiness, testing, quality]
-updated: 2026-10-30
+updated: 2026-11-03
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -34,7 +34,7 @@ Everything else in this doc (risk-tier coverage targets, contract tests against 
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | 1   | Risk-tier coverage targets defined and met for the seven high-risk surfaces (29.1).                                                                                                                                                                                         | Process + tests          |
 | 2   | Table-driven handler harness: **wrapper-level auth rejection done** (15 tests); per-function validation still open (29.2).                                                                                                                                                  | Tests                    |
-| 3   | Doc 21 adversarial matrix executable and green. **Partial:** `adversarialAuthLive.test.ts` **16** cases (hosted dev green 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373). Seeded matrix rows still open. | Doc 21 + tests           |
+| 3   | Doc 21 adversarial matrix executable and green. **Partial:** `adversarialAuthLive.test.ts` **16** cases (hosted dev green 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373). Seeded matrix rows still open. | Doc 21 + tests           |
 | 4   | Contract tests against a real local stack for the top flows (29.3).                                                                                                                                                                                                         | Local Supabase           |
 | 5   | WebKit for the guest flow; large-tenant fixture; Manila timezone pinned in the test env.                                                                                                                                                                                    | Playwright + doc 10 seed |
 | 6   | Zero long-lived quarantined flaky tests (29.4). **Partial:** `marketingCollage.spec.ts` Design-tab wait hardened (cd-dev `35564197137`, 2026-09-21). `guestFormSubmit.spec.ts` still tracked (doc 26).                                                                      | Tests                    |

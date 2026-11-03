@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { InAppNotificationsPanel } from '@/features/dashboard/notifications/components/InAppNotificationsPanel';
+import { NotificationPreferencesCard } from '@/features/dashboard/notifications/components/NotificationPreferencesCard';
 import { PushNotificationsCard } from '@/features/dashboard/notifications/components/PushNotificationsCard';
 import { useNotificationsOrgScope } from '@/features/dashboard/notifications/lib/notificationsScope';
 import { SyncCenterCard } from '@/features/dashboard/offline/components/SyncCenterCard';
@@ -52,6 +53,7 @@ export function NotificationsActivityView() {
       <div className="flex min-h-full w-full min-w-0 flex-col gap-3 sm:gap-4">
         <SyncCenterCard />
         <PushNotificationsCard />
+        <NotificationPreferencesCard />
         <Card className="flex flex-auto flex-col overflow-hidden">
           <InAppNotificationsPanel
             mode="full"

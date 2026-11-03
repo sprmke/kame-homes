@@ -2,7 +2,7 @@
 title: 'Auth and permissions'
 status: active
 tags: [workflow, planned, production-readiness, auth, rbac, security]
-updated: 2026-09-21
+updated: 2026-11-03
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -32,7 +32,7 @@ Every endpoint and every UI surface enforces the correct one of seven auth tiers
 | 4   | ~~Capability-token TTL / purpose / revocation / telemetry audit.~~ **Done** — findings in 21.3 below. Remaining product work: purpose-scoped tokens and cancel-time denylist (not shipped).                                                                                                                    | Product           |
 | 5   | Invite-flow adversarial checks (replay after revoke, non-escalating role). **Code review:** accept uses invite row `role_id` (not the body), email-bound, `status=pending` then `accepted`, expiry checked. Tests not written.                                                                                 | Tests             |
 | 6   | ~~Super-admin mutating audit coverage.~~ **Done** this pass for FAQ, playbook, support reply/status, pricing-plans, platform payment/host/parking settings, dashboard-assistant kill switch, contract consideration. Reads remain N/A. Spot-check any new `serveSuperAdmin` writer.                            | —                 |
-| 7   | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **16** live cases (`list-parkings` added 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373). Full 21.6 table + Playwright still open.                                | Tests + seed data |
+| 7   | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **16** live cases (`list-parkings` added 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373). Full 21.6 table + Playwright still open.                                | Tests + seed data |
 
 ## Measured before / after
 

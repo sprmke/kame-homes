@@ -134,6 +134,47 @@ Deno.test('assistant override columns feed the org override layer', () => {
   assertEquals(limits.assistantMonthlyMessageLimit.value, 1000);
 });
 
+Deno.test('Phase 6 guardrail keys: unset resolves to the pre-Phase-6 hard-coded constants', () => {
+  const limits = resolveFromLayers(buildOrgLayers(orgInputs()));
+  assertEquals(limits.assistantMaxToolRounds, { value: 8, source: 'global', profileCode: null });
+  assertEquals(limits.assistantMaxPlanSteps, { value: 10, source: 'global', profileCode: null });
+  assertEquals(limits.guestRequestDailyLimit, { value: 3, source: 'global', profileCode: null });
+  assertEquals(limits.assistantTurnCreditCeiling, {
+    value: 100,
+    source: 'global',
+    profileCode: null,
+  });
+});
+
+Deno.test('Phase 6 guardrail keys: org override columns feed the org override layer', () => {
+  const inputs = orgInputs({
+    assistantRow: {
+      assistant_max_tool_rounds: 4,
+      assistant_max_plan_steps: null,
+      guest_request_daily_limit: 1,
+      assistant_turn_credit_ceiling: 50,
+    },
+  });
+  const limits = resolveFromLayers(buildOrgLayers(inputs));
+  assertEquals(limits.assistantMaxToolRounds, { value: 4, source: 'override', profileCode: null });
+  assertEquals(limits.assistantMaxPlanSteps.value, 10, 'falls through to the global default');
+  assertEquals(limits.guestRequestDailyLimit.value, 1);
+  assertEquals(limits.assistantTurnCreditCeiling.value, 50);
+});
+
+Deno.test('Phase 6 guardrail keys: a profile layer beats the global default', () => {
+  const inputs = orgInputs({
+    defaultProfile: profile('default', { assistantMaxToolRounds: 6, assistantMaxPlanSteps: 15 }),
+  });
+  const limits = resolveFromLayers(buildOrgLayers(inputs));
+  assertEquals(limits.assistantMaxToolRounds, {
+    value: 6,
+    source: 'default',
+    profileCode: 'default',
+  });
+  assertEquals(limits.assistantMaxPlanSteps.value, 15);
+});
+
 Deno.test('property scope: override > property profile > development profile > org chain', () => {
   const inputs = {
     ...orgInputs({ planProfile: profile('growth', { dailyCallLimit: 80, monthlyCallLimit: 800 }) }),

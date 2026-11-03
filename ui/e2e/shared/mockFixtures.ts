@@ -170,10 +170,10 @@ export const mockPublicPropertyBody = {
     },
     host: {
       unitName: 'Solea Mactan',
-      organizationName: 'Kame Homes PH',
-      organizationSlug: 'kame-homes-ph',
+      organizationName: 'Sample Stays PH',
+      organizationSlug: 'sample-stays-ph',
       organizationLogoUrl: null,
-      ownerName: 'Kame Homes',
+      ownerName: 'Sample Stays',
       ownerAvatarUrl: null,
       brandColor: '#0f766e',
     },

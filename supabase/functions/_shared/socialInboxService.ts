@@ -2,6 +2,7 @@
  * Postgres helpers for org-scoped social inbox data.
  */
 
+import { aiHandoffColumns, type AiHandoffPatch } from './aiHandoff.ts';
 import { socialInboxDb, upsertChannelConnection } from './socialInboxDb.ts';
 import type {
   ConversationType,
@@ -529,12 +530,15 @@ export async function updateConversationAfterMessage(
     messaging_window_expires_at?: string | null;
     participant_name?: string;
     guest_unread_delta?: number;
+    /** Set/clear the guest-AI handoff state (see aiHandoff.ts). */
+    aiHandoff?: AiHandoffPatch;
   }
 ): Promise<void> {
   const sb = socialInboxDb();
   const update: Record<string, unknown> = {
     last_message_at: patch.last_message_at,
     updated_at: new Date().toISOString(),
+    ...(patch.aiHandoff ? aiHandoffColumns(patch.aiHandoff) : {}),
   };
   if (patch.subject_preview !== undefined) update.subject_preview = patch.subject_preview;
   if (patch.last_inbound_at !== undefined) update.last_inbound_at = patch.last_inbound_at;

@@ -645,7 +645,7 @@ visible there.
 - **Lodgify / Hospitable:** Fast self-serve: property basics → channels/payments → go-live. Checklist + expert optional, not a blocking wizard.
 - **OwnerRez:** Front-loaded configuration depth — warns against dumping every settings surface into one forced wizard.
 
-#### Adopt / adapt / skip (Kame Homes)
+#### Adopt / adapt / skip (Kame Space)
 
 | Pattern                                            | Decision                                                                              |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------- |

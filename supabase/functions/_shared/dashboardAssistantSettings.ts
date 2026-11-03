@@ -16,6 +16,10 @@ export type DashboardAssistantGlobalSettings = {
   enabled: boolean;
   /** Full-page AI chat mode (docs/workflow/in-progress/ai-chat-mode.md). Needs `enabled` too. */
   aiModeEnabled: boolean;
+  /** Phase 6 kill switches — platform-wide defaults; an org can override via *Override below. */
+  agenticModeEnabled: boolean;
+  planApprovalEnabled: boolean;
+  guestActionsEnabled: boolean;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -27,32 +31,63 @@ export type DashboardAssistantOrgSettings = {
   dailyMessageLimit: number;
   monthlyMessageLimit: number;
   dailyWriteActionLimit: number;
+  maxToolRounds: number;
+  maxPlanSteps: number;
+  guestRequestDailyLimit: number;
+  turnCreditCeiling: number;
+  /** Phase 6 kill-switch overrides. `null` means "inherit the global value". */
+  agenticModeEnabledOverride: boolean | null;
+  planApprovalEnabledOverride: boolean | null;
+  guestActionsEnabledOverride: boolean | null;
   overrideReason: string | null;
   updatedBy: string | null;
   updatedAt: string;
 };
 
-export async function getDashboardAssistantGlobalSettings(): Promise<DashboardAssistantGlobalSettings> {
-  const sb = createServiceClient();
-  const { data, error } = await sb
-    .from('ai_dashboard_assistant_global_settings')
-    .select('enabled, ai_mode_enabled, updated_by, updated_at')
-    .eq('id', true)
-    .maybeSingle();
-  if (error) {
-    throw new Error(`Failed to load dashboard assistant global settings: ${error.message}`);
-  }
+/** Org override wins when set; otherwise the platform-wide default applies. */
+export function resolveDashboardAssistantKillSwitch(
+  globalEnabled: boolean,
+  orgOverride: boolean | null
+): boolean {
+  return orgOverride ?? globalEnabled;
+}
+
+const GLOBAL_SETTINGS_SELECT =
+  'enabled, ai_mode_enabled, agentic_mode_enabled, plan_approval_enabled, guest_actions_enabled, updated_by, updated_at';
+
+function mapGlobalSettingsRow(
+  data: Record<string, unknown> | null
+): DashboardAssistantGlobalSettings {
   return {
     enabled: Boolean(data?.enabled),
     aiModeEnabled: Boolean(data?.ai_mode_enabled),
+    agenticModeEnabled: data?.agentic_mode_enabled !== false,
+    planApprovalEnabled: data?.plan_approval_enabled !== false,
+    guestActionsEnabled: data?.guest_actions_enabled !== false,
     updatedBy: (data?.updated_by as string | null) ?? null,
     updatedAt: (data?.updated_at as string) ?? new Date().toISOString(),
   };
 }
 
+export async function getDashboardAssistantGlobalSettings(): Promise<DashboardAssistantGlobalSettings> {
+  const sb = createServiceClient();
+  const { data, error } = await sb
+    .from('ai_dashboard_assistant_global_settings')
+    .select(GLOBAL_SETTINGS_SELECT)
+    .eq('id', true)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to load dashboard assistant global settings: ${error.message}`);
+  }
+  return mapGlobalSettingsRow(data);
+}
+
 export async function setDashboardAssistantGlobalSettings(input: {
   enabled?: boolean;
   aiModeEnabled?: boolean;
+  agenticModeEnabled?: boolean;
+  planApprovalEnabled?: boolean;
+  guestActionsEnabled?: boolean;
   updatedBy: string;
 }): Promise<DashboardAssistantGlobalSettings> {
   const sb = createServiceClient();
@@ -62,22 +97,22 @@ export async function setDashboardAssistantGlobalSettings(input: {
   };
   if (input.enabled !== undefined) patch.enabled = input.enabled;
   if (input.aiModeEnabled !== undefined) patch.ai_mode_enabled = input.aiModeEnabled;
+  if (input.agenticModeEnabled !== undefined) patch.agentic_mode_enabled = input.agenticModeEnabled;
+  if (input.planApprovalEnabled !== undefined)
+    patch.plan_approval_enabled = input.planApprovalEnabled;
+  if (input.guestActionsEnabled !== undefined)
+    patch.guest_actions_enabled = input.guestActionsEnabled;
 
   const { data, error } = await sb
     .from('ai_dashboard_assistant_global_settings')
     .update(patch)
     .eq('id', true)
-    .select('enabled, ai_mode_enabled, updated_by, updated_at')
+    .select(GLOBAL_SETTINGS_SELECT)
     .single();
   if (error) {
     throw new Error(`Failed to update dashboard assistant global settings: ${error.message}`);
   }
-  return {
-    enabled: Boolean(data.enabled),
-    aiModeEnabled: Boolean(data.ai_mode_enabled),
-    updatedBy: (data.updated_by as string | null) ?? null,
-    updatedAt: data.updated_at as string,
-  };
+  return mapGlobalSettingsRow(data);
 }
 
 function mapOrgSettingsRow(
@@ -92,6 +127,13 @@ function mapOrgSettingsRow(
     dailyMessageLimit: limitNumber(limits, 'assistantDailyMessageLimit'),
     monthlyMessageLimit: limitNumber(limits, 'assistantMonthlyMessageLimit'),
     dailyWriteActionLimit: limitNumber(limits, 'assistantDailyWriteActionLimit'),
+    maxToolRounds: limitNumber(limits, 'assistantMaxToolRounds'),
+    maxPlanSteps: limitNumber(limits, 'assistantMaxPlanSteps'),
+    guestRequestDailyLimit: limitNumber(limits, 'guestRequestDailyLimit'),
+    turnCreditCeiling: limitNumber(limits, 'assistantTurnCreditCeiling'),
+    agenticModeEnabledOverride: (row?.agentic_mode_enabled as boolean | null) ?? null,
+    planApprovalEnabledOverride: (row?.plan_approval_enabled as boolean | null) ?? null,
+    guestActionsEnabledOverride: (row?.guest_actions_enabled as boolean | null) ?? null,
     overrideReason: (row?.override_reason as string | null) ?? null,
     updatedBy: (row?.updated_by as string | null) ?? null,
     updatedAt: (row?.updated_at as string) ?? new Date().toISOString(),
@@ -128,6 +170,14 @@ export async function upsertDashboardAssistantOrgSettings(input: {
   dailyMessageLimit?: number | null;
   monthlyMessageLimit?: number | null;
   dailyWriteActionLimit?: number | null;
+  maxToolRounds?: number | null;
+  maxPlanSteps?: number | null;
+  guestRequestDailyLimit?: number | null;
+  turnCreditCeiling?: number | null;
+  /** Phase 6 kill-switch overrides. `null` clears the override so the global value applies. */
+  agenticModeEnabled?: boolean | null;
+  planApprovalEnabled?: boolean | null;
+  guestActionsEnabled?: boolean | null;
   overrideReason?: string | null;
   updatedBy: string;
 }): Promise<DashboardAssistantOrgSettings> {
@@ -145,6 +195,17 @@ export async function upsertDashboardAssistantOrgSettings(input: {
     patch.monthly_message_limit = input.monthlyMessageLimit;
   if (input.dailyWriteActionLimit !== undefined)
     patch.daily_write_action_limit = input.dailyWriteActionLimit;
+  if (input.maxToolRounds !== undefined) patch.assistant_max_tool_rounds = input.maxToolRounds;
+  if (input.maxPlanSteps !== undefined) patch.assistant_max_plan_steps = input.maxPlanSteps;
+  if (input.guestRequestDailyLimit !== undefined)
+    patch.guest_request_daily_limit = input.guestRequestDailyLimit;
+  if (input.turnCreditCeiling !== undefined)
+    patch.assistant_turn_credit_ceiling = input.turnCreditCeiling;
+  if (input.agenticModeEnabled !== undefined) patch.agentic_mode_enabled = input.agenticModeEnabled;
+  if (input.planApprovalEnabled !== undefined)
+    patch.plan_approval_enabled = input.planApprovalEnabled;
+  if (input.guestActionsEnabled !== undefined)
+    patch.guest_actions_enabled = input.guestActionsEnabled;
   if (input.overrideReason !== undefined) {
     patch.override_reason = input.overrideReason;
     patch.overridden_by = input.overrideReason === null ? null : input.updatedBy;

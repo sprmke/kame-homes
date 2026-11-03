@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 
 import { AiAssignDialog } from '@/features/dashboard/super-admin/components/super-admin-ai/AiAssignDialog';
+import { AiKillSwitchOverrideDialog } from '@/features/dashboard/super-admin/components/super-admin-ai/AiKillSwitchOverrideDialog';
 import { AiOverrideDialog } from '@/features/dashboard/super-admin/components/super-admin-ai/AiOverrideDialog';
 import { AiResolvedLimits } from '@/features/dashboard/super-admin/components/super-admin-ai/AiResolvedLimits';
 import { useAiLimitsOrgDetail } from '@/features/dashboard/super-admin/hooks/useSuperAdminAiLimits';
@@ -43,6 +44,7 @@ export function AiOrgLimitsSheet({ orgId, onOpenChange }: AiOrgLimitsSheetProps)
   const { data, isLoading, error } = useAiLimitsOrgDetail(orgId);
   const [assignOrg, setAssignOrg] = React.useState(false);
   const [overrideOrg, setOverrideOrg] = React.useState(false);
+  const [killSwitchOverrideOrg, setKillSwitchOverrideOrg] = React.useState(false);
   const [propertyAssign, setPropertyAssign] = React.useState<string | null>(null);
   const [propertyOverride, setPropertyOverride] = React.useState<string | null>(null);
 
@@ -111,7 +113,37 @@ export function AiOrgLimitsSheet({ orgId, onOpenChange }: AiOrgLimitsSheetProps)
                   >
                     Overrides
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setKillSwitchOverrideOrg(true)}
+                  >
+                    Guardrail overrides
+                  </Button>
                 </div>
+
+                <section className="space-y-2">
+                  <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                    Guardrails (effective for this org)
+                  </h4>
+                  <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <li>
+                      Agentic mode: {data.killSwitches.effective.agenticModeEnabled ? 'on' : 'off'}
+                      {data.killSwitches.override.agenticModeEnabled !== null ? ' (override)' : ''}
+                    </li>
+                    <li>
+                      Plan approval:{' '}
+                      {data.killSwitches.effective.planApprovalEnabled ? 'on' : 'off'}
+                      {data.killSwitches.override.planApprovalEnabled !== null ? ' (override)' : ''}
+                    </li>
+                    <li>
+                      Guest actions:{' '}
+                      {data.killSwitches.effective.guestActionsEnabled ? 'on' : 'off'}
+                      {data.killSwitches.override.guestActionsEnabled !== null ? ' (override)' : ''}
+                    </li>
+                  </ul>
+                </section>
 
                 {data.dailySeries.length > 1 ? (
                   <section className="space-y-1">
@@ -254,6 +286,15 @@ export function AiOrgLimitsSheet({ orgId, onOpenChange }: AiOrgLimitsSheetProps)
             targets={[{ id: org.id, name: org.name }]}
             initial={data?.resolved ? overridesOf(data.resolved.limits) : undefined}
           />
+          {data?.killSwitches ? (
+            <AiKillSwitchOverrideDialog
+              open={killSwitchOverrideOrg}
+              onOpenChange={setKillSwitchOverrideOrg}
+              organizationId={org.id}
+              organizationName={org.name}
+              killSwitches={data.killSwitches}
+            />
+          ) : null}
         </>
       ) : null}
       {propertyForAssign ? (

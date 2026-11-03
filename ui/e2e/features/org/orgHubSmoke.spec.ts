@@ -55,7 +55,7 @@ test.describe('@ci org hub shells', () => {
     const activityReady = page.waitForResponse(
       (res) => res.url().includes('/functions/v1/list-activity-log') && res.ok()
     );
-    await page.goto(`/org/kame-homes-ph/activity`);
+    await page.goto(`/org/sample-stays-ph/activity`);
     await activityReady;
     await expect(page.getByRole('heading', { name: 'Activity', exact: true })).toBeVisible({
       timeout: 20_000,

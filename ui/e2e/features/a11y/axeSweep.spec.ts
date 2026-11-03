@@ -10,7 +10,7 @@ import { installPropertyTeamRbacMocks, orgHubPaths, teamRbacPaths } from '../tea
  * mocked, so this runs in CI without a backend. Tag @ci so CD Dev keeps the gate.
  */
 
-const OWNER = '/org/kame-homes-ph/property/solea-mactan';
+const OWNER = '/org/sample-stays-ph/property/solea-mactan';
 
 const PUBLIC_PATHS = [
   '/',

@@ -11,7 +11,7 @@ Create **distinctive, production-grade** frontend interfaces. Avoid generic AI a
 
 - **Design system doc**: Root **`DESIGN.md`** is canonical (Stitch-style). Skill `design-md` explains inspiration refs under `.agents/design-md/` — never let those override project tokens.
 - **Stack**: Vite + React 18 + React Router 6 + Tailwind CSS + shadcn/radix style primitives + Sonner for toasts + Lucide icons. No Next.js, no framer-motion pre-installed (use CSS or ask before adding the dep).
-- **Branding**: Kame Homes, Monaco 2604. The guest-facing surfaces are **trust-first** (payment + ID collection) and mobile-heavy — design accordingly.
+- **Branding**: Kame Space, Monaco 2604. The guest-facing surfaces are **trust-first** (payment + ID collection) and mobile-heavy — design accordingly.
 - **Theme**: Single light theme today. If you add dark-mode variants, do it for **every component in the change**, not half.
 - **Semantic classes**: `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-card` etc. Reach for the shadcn primitives in `ui/src/components/ui/**`; don't duplicate them.
 - **Accessibility**: Always WCAG 2.1 AA. See the `accessibility` skill.

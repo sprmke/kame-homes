@@ -1,7 +1,7 @@
 import { LegalSimplePage } from '@/features/guest/marketing/legal/components/LegalSimplePage';
 
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
-import { PLATFORM_APP_NAME, PLATFORM_CONTACT_EMAIL } from '@/lib/platformBranding';
+import { PLATFORM_APP_NAME, PLATFORM_CONTACT_EMAIL, platformFormerNameNote } from '@/lib/platformBranding';
 
 const platformScopeLabel = PLATFORM_APP_NAME ? `${PLATFORM_APP_NAME} ` : '';
 
@@ -20,6 +20,7 @@ export function PrivacyPage() {
           title: 'Scope',
           paragraphs: [
             `This policy covers the ${platformScopeLabel}marketing site, guest booking and operational flows, guest portal, and host dashboards. Contact: ${PLATFORM_CONTACT_EMAIL} · Manila, Philippines.`,
+            `${platformFormerNameNote()} This policy was last updated on 3 November 2026.`,
             'Property-specific messages or house rules may add stay instructions; they do not replace this policy for how the platform processes data.',
           ],
         },

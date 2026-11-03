@@ -20,6 +20,21 @@ Deno.test('resolvePlatformAppName replaces the retired Stays placeholder', () =>
   assertEquals(resolvePlatformAppName(' STAYS '), DEFAULT_PLATFORM_APP_NAME);
 });
 
+Deno.test('resolvePlatformAppName replaces every form of the retired Kame Homes label', () => {
+  for (const retired of [
+    'Kame Homes',
+    'Kame Home',
+    'kame-homes',
+    'kame-home',
+    'KameHomes',
+    'KameHome',
+    'KAME_HOMES',
+    'kame_homes',
+  ]) {
+    assertEquals(resolvePlatformAppName(retired), DEFAULT_PLATFORM_APP_NAME, retired);
+  }
+});
+
 Deno.test('resolvePlatformAppName keeps a configured operator name', () => {
   assertEquals(resolvePlatformAppName('Acme Hosts'), 'Acme Hosts');
 });

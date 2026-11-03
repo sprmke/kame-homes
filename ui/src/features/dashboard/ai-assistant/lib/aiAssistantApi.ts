@@ -107,6 +107,38 @@ export type ActionConfirmationBlock = {
   resultNote?: string;
 };
 
+/** One step inside an ActionPlanBlock — Phase 3 plan-card approval. */
+export type ActionPlanStep = {
+  stepId: string;
+  stepIndex: number;
+  toolName: string;
+  riskTier: 'tier1_auto' | 'tier2_confirmed';
+  summary: string;
+  details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
+  /** step_index values this step reads a result from — skipped if any of those failed. */
+  dependsOn: number[];
+  /** Host tick state; pre-ticked true, including plan-joined low-risk steps. */
+  selected: boolean;
+  status: 'proposed' | 'confirmed' | 'executed' | 'failed' | 'denied' | 'expired' | 'skipped';
+  isExternalSend?: boolean;
+  errorMessage?: string;
+};
+
+export type ActionPlanBlock = {
+  type: 'action_plan';
+  planId: string;
+  status:
+    | 'proposed'
+    | 'approved'
+    | 'running'
+    | 'completed'
+    | 'partially_failed'
+    | 'cancelled'
+    | 'expired';
+  steps: ActionPlanStep[];
+};
+
 export type ActivityPhase = 'understanding' | 'tool' | 'synthesizing' | 'safety';
 
 export type ActivityTimelineEntry = {
@@ -242,6 +274,7 @@ export type ChatBlock =
   | MapBlock
   | DynamicFormBlock
   | ActionConfirmationBlock
+  | ActionPlanBlock
   | ChartBlock
   | CalendarBlock
   | TimelineBlock
@@ -282,6 +315,21 @@ export type ConfirmActionResponse = {
   blocks?: ChatBlock[];
 };
 
+export type ConfirmPlanResponse = {
+  status: 'completed' | 'partially_failed' | 'cancelled' | 'proposed' | 'running';
+  steps?: Array<{
+    id: string;
+    toolName: string;
+    stepIndex: number;
+    status: 'proposed' | 'confirmed' | 'executed' | 'failed' | 'denied' | 'expired';
+    ok: boolean;
+    error?: string;
+  }>;
+  alreadyResolved?: boolean;
+  text?: string;
+  blocks?: ChatBlock[];
+};
+
 export type AiDashboardAssistantUsageSummary = {
   todayMessageCount: number;
   monthMessageCount: number;
@@ -311,6 +359,10 @@ export type AiDashboardAssistantOrgSettings = {
 export type AiDashboardAssistantGlobalSettings = {
   enabled: boolean;
   aiModeEnabled: boolean;
+  /** Phase 6 kill switches — platform-wide defaults; an org can override (no UI yet). */
+  agenticModeEnabled: boolean;
+  planApprovalEnabled: boolean;
+  guestActionsEnabled: boolean;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -369,6 +421,18 @@ export function confirmAssistantAction(input: {
   });
 }
 
+export function confirmAssistantPlan(input: {
+  planId: string;
+  confirm: boolean;
+  /** Omit to run every step as proposed (the plan's own `selected: true` default). */
+  selectedStepIds?: string[];
+}): Promise<ConfirmPlanResponse> {
+  return callAiAssistantFn<ConfirmPlanResponse>(`${baseUrl()}/dashboard-assistant-confirm`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export function fetchAiDashboardAssistantSettings(
   orgSlug: string | null,
   orgId: string | null,
@@ -407,6 +471,9 @@ export function fetchAiDashboardAssistantGlobalSettings(): Promise<AiDashboardAs
 export function updateAiDashboardAssistantGlobalSettings(patch: {
   enabled?: boolean;
   aiModeEnabled?: boolean;
+  agenticModeEnabled?: boolean;
+  planApprovalEnabled?: boolean;
+  guestActionsEnabled?: boolean;
 }): Promise<AiDashboardAssistantGlobalSettings> {
   return callAiAssistantFn<AiDashboardAssistantGlobalSettings>(
     `${baseUrl()}/dashboard-assistant-global-settings`,

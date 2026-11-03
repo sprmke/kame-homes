@@ -30,7 +30,7 @@ Route: `/for-hosts` · `/for-hosts/pricing` · `/for-hosts/v2` (ground-up redesi
 
 Host acquisition landing (PMA `(marketing)/for-hosts`). The page opens with the platform value proposition and an in-browser, video-like dashboard tour, then capability stats, host onboarding steps, and host reviews.
 
-**Browser tab title:** `Kame Homes - For Hosts` (`/for-hosts/pricing` is `Kame Homes - Pricing`). HTML fallback is `Kame Homes`.
+**Browser tab title:** `Kame Space - For Hosts` (`/for-hosts/pricing` is `Kame Space - Pricing`). HTML fallback is `Kame Space`.
 
 **Pricing** lives on **`/for-hosts/pricing`**. It loads the **active subscription** `pricing_plans` catalog via **`list-public-pricing-plans`** (same ladder as property Plans — Free, Starter, Pro, Business, Managed; excludes **Commission** and org-only **Business Plus**) and renders the shared **`PlanTierRail`** + **`PlanFeatureMatrix`** from `planPresentation.ts` (discounted prices, promo badges, incremental feature bullets). The compare matrix stays inside the page width on phone and scrolls sideways inside the panel. Plan CTAs go to **`/for-hosts/login`**; **Managed** goes to **`/contact?category=business_inquiry&subject=Managed%20plan%20inquiry`** (same ticket flow as Help & Support). Footer **Pricing** and host-mode nav **Pricing** link here. Legacy **`/for-hosts#pricing`** redirects to the pricing page.
 
@@ -69,7 +69,7 @@ Host-mode navigation replaces the explore links with **Features**, **How It Work
 - Footer **Pricing** → **`/for-hosts/pricing`**
 - Host → explore: admin account menu **Explore / Host** switcher, marketing logo on `/for-hosts`, host-auth mobile logo
 
-The curtain closes over 500 ms, holds the Kame Homes wordmark for 350 ms, then reopens over 500 ms. Brand color comes from the listing **`brandColor`** on property/parking pages, scoped admin/property CSS vars on dashboard pages, otherwise default Kame teal.
+The curtain closes over 500 ms, holds the Kame Space wordmark for 350 ms, then reopens over 500 ms. Brand color comes from the listing **`brandColor`** on property/parking pages, scoped admin/property CSS vars on dashboard pages, otherwise default Kame teal.
 
 ---
 

@@ -16,6 +16,7 @@ import {
   marketingSocialLinks,
 } from '@/features/guest/marketing/shared/lib/marketingSiteLinks';
 
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { PLATFORM_CONTACT_EMAIL, platformCopyrightLine } from '@/lib/platformBranding';
 
 const footerLinks = {
@@ -146,7 +147,10 @@ export function MarketingFooter() {
       <div className="border-border border-t">
         <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <p className="text-muted-foreground text-sm">{platformCopyrightLine()}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-muted-foreground text-sm">{platformCopyrightLine()}</p>
+              <InstallAppEntry />
+            </div>
             <div className="flex items-center gap-4">
               {marketingSocialLinks.map((social) => {
                 const Icon = socialIcons[social.label];

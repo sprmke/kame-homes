@@ -2,7 +2,7 @@
 title: 'Production readiness'
 status: active
 tags: [workflow, in-progress, production-readiness, security, qa, launch]
-updated: 2026-11-02
+updated: 2026-11-03
 stage: in-progress
 kind: reference
 ---
@@ -20,7 +20,7 @@ Every launch readiness checklist, audit, QA batch and operator list in one place
 | Baseline SHA | **`96eb9334`** (2026-11-01), after #185–#190. Hosted dev was deployed by `CD Dev` from `d4c63b07` (same edge tree, migrations in sync). Evidence: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-2026-11-01.md)                                                               |
 | Hosted       | **`fwor…` is production since 2026-10-27** (`kamespace.com` and `dev.kamehomes.space` share it; no staging backend). `CD Dev` deploys to it, so hosted writes need `kamewave`                                                                                                                        |
 | CI / CD      | `CI` green on `96eb9334`; **`CD Dev` green end to end** (quality → backup → migrations → functions → smoke → adversarial auth) for the first time since 2026-09-23                                                                                                                                   |
-| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-homes/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                                                                                                  |
+| Phases 1–3   | Done ([#146](https://github.com/sprmke/kame-space/pull/146)): folder, [`LEDGER.md`](./LEDGER.md), 57 module cards, checklists 31–38                                                                                                                                                                  |
 | Phases 4–8   | Automated sweep + hosted-dev probes re-run 2026-11-01 (IDOR, RBAC, invites, uploads, workflow, guest tokens, CORS, rate limits, storage, smoke, preview, AI evals, plan catalog, RLS, clean `db:reset`). Load test, restore drill, Lighthouse medians and LLM live probes still open (see scorecard) |
 | Phase 9      | Operator list done; [prod env matrix](./environments/prod-env-matrix.md) done; cutover dry run partial                                                                                                                                                                                               |
 | Phase 10     | Scorecard below is a draft until the remaining 🔴 / ⛔ / 🧭 rows close                                                                                                                                                                                                                               |

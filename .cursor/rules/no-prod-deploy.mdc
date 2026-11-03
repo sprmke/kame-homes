@@ -10,7 +10,7 @@ alwaysApply: true
 ## One project — a dev deploy is a production deploy
 
 The legacy dual-track is over (2026-11-02). There is **one** Supabase project,
-`fworvijbrwpyngycotbz` ("Kame Homes - Dev"), and it serves production on `kamespace.com`.
+`fworvijbrwpyngycotbz` ("Kame Space - Dev"), and it serves production on `kamespace.com`.
 Legacy `zftt…` is retired; do not use, deploy to, or recommend it.
 
 | Surface             | Value                                                    |

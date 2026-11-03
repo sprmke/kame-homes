@@ -125,3 +125,4 @@ supabase/functions/tests/fixtures/auth-parity-seed.local.json
 
 cli-develop
 .vercel
+scripts/marketing/ai-studio-samples/.cache/

@@ -28,6 +28,7 @@ export const AI_FEATURES = [
   'booking_ai_summary_pricing',
   'voice_receptionist',
   'dashboard_assistant',
+  'dashboard_assistant_complex',
   'smart_pricing',
   'host_analytics',
   'review_draft',
@@ -54,6 +55,12 @@ export type AiModelConfig = {
   timeoutMs: number;
   /** Fall back to Groq (GROQ_FALLBACK_MODEL) when every Gemini key fails. */
   groqFallback: boolean;
+  /**
+   * Same-provider Gemini model to retry once when every key on the primary model exhausts its
+   * attempts with a retryable error (5xx/429/timeout) — see `shouldTryFallbackModel` in
+   * llmTools.ts. Never used for a 400/empty-response (those fail identically on any model).
+   */
+  fallbackModel?: string;
 };
 
 /**
@@ -94,6 +101,7 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     thinkingBudget: 0,
     timeoutMs: 25000,
     groqFallback: true,
+    fallbackModel: 'gemini-2.5-flash',
   },
   inbox_auto_reply: {
     model: 'gemini-3.1-flash-lite',
@@ -104,6 +112,7 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     thinkingBudget: 0,
     timeoutMs: 25000,
     groqFallback: true,
+    fallbackModel: 'gemini-2.5-flash',
   },
   marketing_caption: {
     model: 'gemini-3.1-flash-lite',
@@ -228,6 +237,19 @@ const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
     outputUsdPer1M: 2.5,
     defaultMaxOutputTokens: 2048,
     thinkingBudget: 0,
+    timeoutMs: 45000,
+    groqFallback: false,
+  },
+  // Picked once at turn start by modelPolicy.ts for a complex multi-intent / write turn — same
+  // Flash model, with real reasoning headroom (thinking budget + higher output cap) instead of an
+  // unproven new model tier. See docs/workflow/in-progress/agentic-ai-assistants.md Phase 2.
+  dashboard_assistant_complex: {
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 4096,
+    thinkingBudget: 2048,
     timeoutMs: 45000,
     groqFallback: false,
   },

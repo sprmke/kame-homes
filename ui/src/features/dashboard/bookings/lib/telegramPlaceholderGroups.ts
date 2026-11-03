@@ -112,12 +112,12 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
   booking_link: {
     group: 'Booking',
     description: 'Admin booking URL',
-    example: 'kamehomes.space/bookings/…',
+    example: 'kamespace.com/bookings/…',
   },
   trip_url: {
     group: 'Booking',
     description: 'Guest trip page URL (booking, documents, chat)',
-    example: 'kamehomes.space/properties/…/trip?…',
+    example: 'kamespace.com/properties/…/trip?…',
   },
   chat_source: {
     group: 'Chat',
@@ -142,7 +142,7 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
   conversation_link: {
     group: 'Chat',
     description: 'Inbox deep link to this conversation',
-    example: 'kamehomes.space/org/…/property/…/inbox?conversationId=…',
+    example: 'kamespace.com/org/…/property/…/inbox?conversationId=…',
   },
   sent_at: {
     group: 'Chat',
@@ -157,7 +157,7 @@ const PLACEHOLDER_META: Record<string, PlaceholderMeta> = {
   sd_form_url: {
     group: 'SD refund',
     description: 'Guest SD refund form URL',
-    example: 'kamehomes.space/sd-form?…',
+    example: 'kamespace.com/sd-form?…',
   },
   security_deposit: {
     group: 'Payments',

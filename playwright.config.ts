@@ -2,6 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4173;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+/**
+ * The `pwa` project runs against a **production build** (`vite build` + `vite
+ * preview`): the service worker is disabled under `vite` dev by design, so a
+ * dev-server test could never observe precache, offline navigation or the update
+ * flow (PWA v2 task 9.3).
+ */
+const PWA_PORT = 4174;
+const PWA_BASE_URL = `http://127.0.0.1:${PWA_PORT}`;
 
 const recordVideo = process.env.PLAYWRIGHT_RECORD_VIDEO === '1';
 const slowMoRaw = process.env.PLAYWRIGHT_SLOW_MO;
@@ -73,6 +81,17 @@ export default defineConfig({
       },
     },
     {
+      name: 'pwa',
+      // Production build, service worker enabled.
+      grep: /@pwa/,
+      grepInvert: /@live|@demo|@flaky/,
+      testMatch: /pwa\/.*\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: PWA_BASE_URL,
+      },
+    },
+    {
       name: 'chromium-side-by-side',
       use: {
         ...devices['Desktop Chrome'],
@@ -81,7 +100,27 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
+  webServer: [
+    {
+      // Production build for the PWA project.
+      command: `cd ui && ../node_modules/.bin/vite build && ../node_modules/.bin/vite preview --host 127.0.0.1 --port ${PWA_PORT}`,
+      url: PWA_BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      timeout: 240_000,
+      env: {
+        VITE_NODE_ENV: 'production',
+        VITE_SUPABASE_URL:
+          process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321/functions/v1',
+        VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+        VITE_API_URL:
+          process.env.VITE_API_URL ||
+          process.env.VITE_SUPABASE_URL ||
+          'http://127.0.0.1:54321/functions/v1',
+      },
+    },
+    {
     command: `bun run dev:ui -- --host 127.0.0.1 --port ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
@@ -120,5 +159,6 @@ export default defineConfig({
         process.env.VITE_SUPABASE_URL ||
         'http://127.0.0.1:54321/functions/v1',
     },
-  },
+    },
+  ],
 });

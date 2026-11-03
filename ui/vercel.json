@@ -94,6 +94,96 @@
   ],
   "devCommand": "bun run dev",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/form",
+      "has": [
+        {
+          "type": "host",
+          "value": "kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/form",
+      "permanent": true
+    },
+    {
+      "source": "/calendar",
+      "has": [
+        {
+          "type": "host",
+          "value": "kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/calendar",
+      "permanent": true
+    },
+    {
+      "source": "/success",
+      "has": [
+        {
+          "type": "host",
+          "value": "kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/success",
+      "permanent": true
+    },
+    {
+      "source": "/((?!sw\\.js$|pwa-version\\.json$|manifest\\.webmanifest$|retirement-sw\\.js$|precache-tiers\\.json$).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/$1",
+      "permanent": true
+    },
+    {
+      "source": "/form",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/form",
+      "permanent": true
+    },
+    {
+      "source": "/calendar",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/calendar",
+      "permanent": true
+    },
+    {
+      "source": "/success",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/properties/kame-home/success",
+      "permanent": true
+    },
+    {
+      "source": "/((?!sw\\.js$|pwa-version\\.json$|manifest\\.webmanifest$|retirement-sw\\.js$|precache-tiers\\.json$).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.kamehomes.space"
+        }
+      ],
+      "destination": "https://kamespace.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/ingest/static/:path*",
@@ -261,6 +351,37 @@
     },
     {
       "source": "/worklets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/precache-tiers.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/retirement-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/splash/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

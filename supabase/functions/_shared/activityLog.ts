@@ -897,6 +897,35 @@ export const ACTIVITY_ACTION_CATALOG = {
       `${c.actorName} changed inbox settings for ${label(c, 'a listing')}` +
       (c.changeCount ? ` (${c.changeCount} field${c.changeCount === 1 ? '' : 's'})` : ''),
   },
+  'inbox.ai_handoff': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'conversation',
+    summary: (c) =>
+      `${c.actorName} handed off ${label(c, 'a conversation')} to the host team` +
+      (str(c.metadata, 'reason') ? ` — ${str(c.metadata, 'reason')}` : ''),
+  },
+  'guest_request.booking_inquiry_created': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `A guest submitted a booking inquiry${str(c.metadata, 'checkIn') ? ` for ${str(c.metadata, 'checkIn')} to ${str(c.metadata, 'checkOut')}` : ''}`,
+  },
+  'guest_request.checkin_checkout_requested': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `A guest requested ${str(c.metadata, 'requestType') === 'early_checkin' ? 'an early check-in' : 'a late check-out'}${str(c.metadata, 'requestedTime') ? ` at ${str(c.metadata, 'requestedTime')}` : ''}`,
+  },
+  'guest_request.resolved': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `${c.actorName} ${str(c.metadata, 'status') === 'approved' ? 'approved' : 'declined'} a guest request`,
+  },
 
   // ── AI controls ────────────────────────────────────────────────────────
   'ai.assistant_toggled': {

@@ -22,7 +22,8 @@ function scheduleNotificationsInvalidate(qc: QueryClient) {
 
 /**
  * One realtime channel per org — mount once (NotificationsProvider), never per-page.
- * In-app toast only; OS-level Notification popups stay inbox-chat-only (inboxNotifications.ts).
+ * In-app toast only. OS-level notifications come from the push pipeline
+ * (`push-fanout` → service worker), so a message never produces two banners.
  */
 export function useNotificationsRealtime(
   orgId: string | null,

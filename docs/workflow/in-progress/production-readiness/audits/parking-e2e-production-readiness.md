@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Parking E2E — Production Readiness (Open Questions, Gaps, Remaining Work)'
 status: tracking
 tags: [planning, planned-modules, parking, payments, production-readiness]
-updated: 2026-08-30
+updated: 2026-11-03
 origin_stage: planned
 readiness: unverified
 launch_gate: C
@@ -28,7 +28,7 @@ The parking marketplace is **code-complete for a single guest to search, match, 
 | 3 — PayMongo payment                  | 🚧 shipped, held open | never run against real PayMongo keys                                                                                                                                   |
 | 4 — payout & admin config             | 🚧 shipped, held open | real split payout blocked on PayMongo Platforms business process                                                                                                       |
 | 5 — endorsement & chat                | 🚧 shipped, held open | webhook trigger + mobile pass unverified                                                                                                                               |
-| 6 — behavioral ranking & trust/safety | 📋 not started        | non-refundable banner split out & shipped ([#140](https://github.com/sprmke/kame-homes/issues/140)); ranking engine itself needs live Phase 2/5 data first (by design) |
+| 6 — behavioral ranking & trust/safety | 📋 not started        | non-refundable banner split out & shipped ([#140](https://github.com/sprmke/kame-space/issues/140)); ranking engine itself needs live Phase 2/5 data first (by design) |
 | 7 — property-booking migration        | ✅ done               | none                                                                                                                                                                   |
 | 8 — direct-booking link               | 🚧 shipped, held open | mobile pass unverified; real PayMongo unverified (same as 3/5)                                                                                                         |
 | Parking↔property parity (org plans)   | ✅ done (2026-09-09)  | `requireOrgFeature`/`useOrgPlan` real org entitlement checks replaced the interim ungate for Telegram + AI assistant                                                   |
@@ -76,7 +76,7 @@ Each of these was a conscious scope cut in its phase doc, not an oversight. List
 
 ## Not-yet-started phases
 
-- **Phase 6 — Behavioral ranking & trust/safety.** Needs Phase 2/5 to run in production long enough to accumulate real response-time and incident data before it's meaningful (by design — see Phase 6 doc decision #4's cold-start rationale). Its non-refundable policy banner was split out and shipped separately ([GitHub #140](https://github.com/sprmke/kame-homes/issues/140), 2026-08-26) rather than waiting on the ranking-engine half — see below. What remains is purely the ranking algorithm + transparency explainer, still blocked on live data.
+- **Phase 6 — Behavioral ranking & trust/safety.** Needs Phase 2/5 to run in production long enough to accumulate real response-time and incident data before it's meaningful (by design — see Phase 6 doc decision #4's cold-start rationale). Its non-refundable policy banner was split out and shipped separately ([GitHub #140](https://github.com/sprmke/kame-space/issues/140), 2026-08-26) rather than waiting on the ranking-engine half — see below. What remains is purely the ranking algorithm + transparency explainer, still blocked on live data.
 
 ---
 
@@ -109,7 +109,7 @@ Everything above was verified **manually**, once, by whoever built each phase (d
 | 3   | Rolling-window size for response-time ranking (e.g. last 20 matches vs last 90 days) and the cold-start default?                                                                                                 | Needed before Phase 6 can start                                                                                                                                                                                                                                          | Phase 6 decision #3/#4             |
 | 4   | Exact tie-break weighting between incident-history and response-speed signals?                                                                                                                                   | Explicitly left TBD in Phase 6's own decision table                                                                                                                                                                                                                      | Phase 6 decision #1                |
 | 5   | Sunset date (or explicit "never") for the legacy property-booking manual parking path?                                                                                                                           | **Resolved 2026-08-29** — **new setups** use marketplace only (`parking-pay-parking-marketplace-connect`). Legacy pay-parking URL redirects to `linkStay` / request status. Columns + `submit-pay-parking` retained for historical rows; host entry is **Find parking**. | Phase 7 + pay-parking connect      |
-| 6   | ~~Should the Phase 6 non-refundable banner ship on its own, ahead of the ranking-engine half of that phase?~~ **Resolved 2026-08-26 — yes, shipped as [#140](https://github.com/sprmke/kame-homes/issues/140).** | It's guest-facing payment policy copy, arguably a pre-launch requirement independent of ranking maturity                                                                                                                                                                 | This doc, "Not-yet-started phases" |
+| 6   | ~~Should the Phase 6 non-refundable banner ship on its own, ahead of the ranking-engine half of that phase?~~ **Resolved 2026-08-26 — yes, shipped as [#140](https://github.com/sprmke/kame-space/issues/140).** | It's guest-facing payment policy copy, arguably a pre-launch requirement independent of ranking maturity                                                                                                                                                                 | This doc, "Not-yet-started phases" |
 | 7   | Does a parking-only org (no property) get billed at all before `resolveOrgEntitlements` ships, or do we accept the free ride for the pilot?                                                                      | Direct revenue-leak vs. blocking pilot onboarding                                                                                                                                                                                                                        | `parking-property-parity.md`       |
 
 ---
@@ -120,7 +120,7 @@ Use this as the actual go/no-go gate — check every box before opening parking 
 
 - [ ] Sandbox `PAYMONGO_SECRET_KEY`/`PAYMONGO_WEBHOOK_SECRET` configured in at least the dev environment; one real end-to-end payment (checkout → webhook → endorsement) completed and verified.
 - [ ] Admin manual refund/override path built (currently deferred — see above).
-- [x] Non-refundable policy copy shipped at pre-payment/payment-success/status-page — [#140](https://github.com/sprmke/kame-homes/issues/140), 2026-08-26.
+- [x] Non-refundable policy copy shipped at pre-payment/payment-success/status-page — [#140](https://github.com/sprmke/kame-space/issues/140), 2026-08-26.
 - [x] `resolveOrgEntitlements(organizationId)` ships (via `requireOrgFeature`) and `PARKING_INTERIM_UNGATED_FEATURES` is removed — done 2026-09-09.
 - [ ] Phase 5's mobile (375px) walkthrough of the status-page blocks + chat sheet completed.
 - [ ] At minimum a scripted smoke pass (ideally Playwright) covers payment→endorsement→chat happy path and cancel/expire/decline unhappy paths.

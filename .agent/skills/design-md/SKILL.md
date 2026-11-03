@@ -9,7 +9,7 @@ Google Stitch–style design systems as markdown. This repo wires:
 
 | Path                                 | Purpose                                                                                      |
 | ------------------------------------ | -------------------------------------------------------------------------------------------- |
-| **`DESIGN.md`** (repo root)          | Canonical Kame Homes / Guest Form Management look & feel                                     |
+| **`DESIGN.md`** (repo root)          | Canonical Kame Space / Guest Form Management look & feel                                     |
 | `.agents/design-md/<slug>/DESIGN.md` | Curated inspiration from [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) |
 | `stitch-design-taste`                | Taste Skill variant that can author/update DESIGN.md files                                   |
 

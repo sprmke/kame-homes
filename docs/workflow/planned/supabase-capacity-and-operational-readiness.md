@@ -17,7 +17,7 @@ last_verified: none
 
 ## Goal
 
-Make the Supabase side of Kame Homes safe to operate for hundreds to thousands of concurrent users, with booking, payment, PII storage, Auth, Realtime, AI, webhook, cron, and Edge Function traffic under measured capacity limits. Every tier, connection, cache, index, and retention decision must be backed by evidence and load-test results, not by guesswork.
+Make the Supabase side of Kame Space safe to operate for hundreds to thousands of concurrent users, with booking, payment, PII storage, Auth, Realtime, AI, webhook, cron, and Edge Function traffic under measured capacity limits. Every tier, connection, cache, index, and retention decision must be backed by evidence and load-test results, not by guesswork.
 
 ## Architecture
 
@@ -29,7 +29,7 @@ Captured 2026-10-27 against hosted dev, read-only.
 
 | Area                            | Current evidence                                                                                                                                                                          | Interpretation                                                                                                   |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Project                         | `Kame Homes - Dev`, `fworvijbrwpyngycotbz`, `ap-southeast-1`, `ACTIVE_HEALTHY`                                                                                                            | Singapore region, healthy project                                                                                |
+| Project                         | `Kame Space - Dev`, `fworvijbrwpyngycotbz`, `ap-southeast-1`, `ACTIVE_HEALTHY`                                                                                                            | Singapore region, healthy project                                                                                |
 | Compute                         | About 456.8 MB total RAM, matching the Nano footprint                                                                                                                                     | Too small even for idle development plus Supabase services                                                       |
 | Memory commitment               | `Committed_AS` about 1.24 to 1.25 GB against a `CommitLimit` about 1.30 GB, roughly 96%                                                                                                   | Leading OOM-risk signal. This is what the Dashboard marks problematic                                            |
 | Physical memory                 | `MemAvailable` about 194 MB; `MemFree` under 10 MB, cache about 172 MB                                                                                                                    | Very low headroom, but not yet an active outage                                                                  |

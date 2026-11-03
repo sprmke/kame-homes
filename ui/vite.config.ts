@@ -1,4 +1,3 @@
-import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -9,13 +8,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const require = createRequire(import.meta.url);
-/** Shared with scripts/pwa/check-precache-budget.mjs — edit the JSON, not here. */
-const precacheGlobs = require('../scripts/pwa/precache-globs.json') as {
-  globPatterns: string[];
-  globIgnores: string[];
-  budgetKiB: number;
-};
+import { resolvePlatformAppName } from './src/lib/platformAppName';
+import { buildWebAppManifest } from './src/pwa/manifest';
 
 import {
   buildScopedPolotnoBlueprintCss,
@@ -24,11 +18,11 @@ import {
   POLOTNO_BLUEPRINT_ENTRY,
   scopeBlueprintCss,
 } from './postcss.config.js';
+import { resolveReleaseId } from './vite-plugins/releaseId';
 import {
   patchOpenPolotnoHighlighter,
   openPolotnoHighlighterEsbuildPlugin,
 } from './vite-plugins/patchOpenPolotnoHighlighter';
-import { resolveReleaseId } from './vite-plugins/releaseId';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -176,9 +170,11 @@ function scopeBlueprintCssPlugin(): Plugin {
  * background-sync / kill-switch handlers `generateSW` can't express. See
  * docs/architecture/pwa.md.
  *
- * Precache = app shell + entry chunks only. The heavy feature-lazy chunks
- * (Polotno studio, mediabunny audio encoders, html2canvas) are excluded here and
- * runtime-cached on demand instead — keeps the install payload bounded.
+ * Precache is NOT globbed here. `scripts/pwa/generate-precache-tiers.mjs` splits
+ * the emitted bundle into a small shell tier (every visitor), a host tier warmed
+ * after sign-in, and on-demand chunks that are never precached, then writes
+ * `dist/precache-tiers.json`. The SW fetches that manifest once at install.
+ * Glob-precaching everything is what shipped 12 MiB to anonymous guests (P0-2).
  */
 function gfmPwaPlugin(): Plugin[] {
   return VitePWA({
@@ -197,85 +193,61 @@ function gfmPwaPlugin(): Plugin[] {
       navigateFallback: 'index.html',
     },
     injectManifest: {
-      globPatterns: precacheGlobs.globPatterns,
-      // Feature-lazy heavy chunks — runtime-cached on demand, never precached.
-      globIgnores: precacheGlobs.globIgnores,
-      // The app's main entry chunk is large; allow it past the 2 MB default.
-      // `scripts/pwa/check-precache-budget.mjs` guards the total in CI.
-      maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-    },
-    manifest: {
-      id: '/?app',
-      name: 'Kame Homes',
-      short_name: 'Kame Homes',
-      description:
-        'Manage bookings, guest messages, pricing and your property operations from one place.',
-      lang: 'en',
-      dir: 'ltr',
-      scope: '/',
-      start_url: '/?source=pwa',
-      display: 'standalone',
-      display_override: ['standalone', 'minimal-ui'],
-      orientation: 'portrait',
-      theme_color: '#f5f6f8',
-      background_color: '#f5f6f8',
-      categories: ['business', 'productivity'],
-      launch_handler: { client_mode: ['navigate-existing', 'auto'] },
-      icons: [
-        { src: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: '/icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-        {
-          src: '/icons/pwa-maskable-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/icons/pwa-maskable-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-      ],
-      shortcuts: [
-        {
-          name: 'Bookings',
-          short_name: 'Bookings',
-          url: '/?source=pwa&shortcut=bookings',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
-        {
-          name: 'Guest Inbox',
-          short_name: 'Inbox',
-          url: '/?source=pwa&shortcut=inbox',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
-        {
-          name: "Today's check-ins",
-          short_name: 'Check-ins',
-          url: '/?source=pwa&shortcut=checkins',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
+      // Tier manifests are generated after the bundle is written and fetched by
+      // the SW at install time; nothing is glob-precached any more. Dev mode
+      // (`VITE_PWA_DEV=true`) still gets a glob so local testing has a manifest.
+      globPatterns:
+        process.env.VITE_PWA_DEV === 'true' ? ['**/*.{js,css,html,woff2,svg,png,webmanifest}'] : [],
+      globIgnores: [
+        'assets/PolotnoDesignStudio-*.js',
+        'assets/PolotnoDesignStudio-*.css',
+        'assets/config-*.js',
+        'assets/mediabunny-*.js',
+        'assets/html2canvas*.js',
+        'assets/browser-image-compression-*.js',
+        'maintenance.html',
+        'worklets/**',
       ],
     },
+    manifest: buildWebAppManifest(platformAppName),
   }) as Plugin[];
 }
 
 /** Monotonic build id (epoch seconds) — the PWA kill-switch compares against it. */
 const pwaBuildId = String(Math.floor(Date.now() / 1000));
 
+/** Single source of truth for the installed-app label (manifest, meta, copy). */
+const platformAppName = resolvePlatformAppName(process.env.VITE_PLATFORM_APP_NAME);
+
 /**
- * The one release id, shared with the edge `APP_RELEASE` secret and the PostHog
- * `app_release` property, so a Sentry issue, a PostHog event and an edge error from the
- * same deploy all carry the same id. See `vite-plugins/releaseId.ts`.
+ * Splits the emitted bundle into shell / host / on-demand precache tiers after
+ * Rollup has written `dist` (see `scripts/pwa/generate-precache-tiers.mjs`).
+ * Runs as a `closeBundle` hook so it always sees the final asset names.
+ */
+function pwaPrecacheTiersPlugin(): Plugin {
+  return {
+    name: 'gfm-pwa-precache-tiers',
+    apply: 'build',
+    async closeBundle() {
+      process.env.PWA_BUILD_ID = pwaBuildId;
+      const { generatePrecacheTiers } = await import('../scripts/pwa/generate-precache-tiers.mjs');
+      generatePrecacheTiers();
+    },
+  };
+}
+
+/**
+ * Shared with the edge `APP_RELEASE` secret and the PostHog `app_release` property, so a
+ * Sentry issue, a PostHog event and an edge error from the same deploy all carry the same
+ * id. See `vite-plugins/releaseId.ts`.
  */
 const appRelease = resolveReleaseId();
 
 export default defineConfig({
   define: {
     __PWA_BUILD_ID__: JSON.stringify(pwaBuildId),
-    // Read by the Sentry client and the super-admin env registry. Nothing in the Vercel or
-    // CI setup exports this into `import.meta.env` on its own.
+    // Read by the Sentry client and the super-admin env registry. Injected here because
+    // nothing in the Vercel/CI setup exports it into `import.meta.env` on its own.
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appRelease),
   },
   // Strip dev-only code from production output (production-readiness doc 02,
@@ -299,6 +271,7 @@ export default defineConfig({
     patchOpenPolotnoHighlighter(),
     scopeBlueprintCssPlugin(),
     react(),
+    pwaPrecacheTiersPlugin(),
     ...gfmPwaPlugin(),
     ...(sentrySourceMapsEnabled ? sentrySourceMapsPlugin() : []),
   ],
@@ -306,6 +279,10 @@ export default defineConfig({
     // 'hidden' still generates + uploads maps but omits the sourceMappingURL
     // comment from shipped JS, so they aren't publicly fetchable.
     sourcemap: sentrySourceMapsEnabled ? 'hidden' : false,
+    // Read by the precache tier generator after the bundle is written: it maps
+    // each emitted chunk back to its source folder so `features/guest/**` lands
+    // in the shell tier and `features/dashboard/**` in the host tier.
+    manifest: true,
     // Explicit (production-readiness doc 02, Phase 2.1) — these already match
     // Vite 4's defaults, but pinning them means a future debugging change
     // (e.g. `minify: false`) can never ship to production silently. esbuild

@@ -16,7 +16,7 @@ kind: plan
 > browser, edge, env docs, legal copy and both CI guards — is done.
 
 **Precondition:** S1 (browser Sentry) and S2 (edge Sentry) are deployed to
-`dev.kamehomes.space` / mt-dev and a test error from each side is visible in Sentry.
+`dev.kamespace.com` / mt-dev and a test error from each side is visible in Sentry.
 Never remove the PostHog path before Sentry receives the same error, or there is a
 window with no capture.
 

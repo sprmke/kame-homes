@@ -63,6 +63,8 @@ export type SocialConversationRow = {
   guest_last_read_at?: string | null;
   host_last_read_at?: string | null;
   guest_unread_count?: number;
+  ai_handoff_at?: string | null;
+  ai_handoff_reason?: string | null;
 };
 
 export type SocialMessageRow = {

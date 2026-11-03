@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { installPropertyTeamRbacMocks } from '../team/shared/propertyTeamRbacHarness';
 
-const HUB = '/org/kame-homes-ph/property/solea-mactan/notifications';
+const HUB = '/org/sample-stays-ph/property/solea-mactan/notifications';
 
 function feedRows(start: number, count: number) {
   return Array.from({ length: count }, (_, i) => {
@@ -45,9 +45,41 @@ async function mockNotificationsList(page: import('@playwright/test').Page) {
   });
 }
 
+/** The push-preferences card fetches on mount; keep the hub hermetic. */
+async function mockNotificationPreferences(page: import('@playwright/test').Page) {
+  await page.route('**/functions/v1/notification-preferences**', async (route) => {
+    if (route.request().method() === 'PUT') {
+      const body = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { preferences: body } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          preferences: {
+            mutedGroups: [],
+            quietHoursEnabled: false,
+            quietHoursStart: '22:00',
+            quietHoursEnd: '07:00',
+            quietHoursTimezone: 'Asia/Manila',
+          },
+        },
+      }),
+    });
+  });
+}
+
 test.describe('@ci notifications hub', () => {
   test.beforeEach(async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
+    await mockNotificationPreferences(page);
   });
 
   test('opens on the in-app Activity feed', async ({ page }) => {

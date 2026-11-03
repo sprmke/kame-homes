@@ -26,7 +26,7 @@ Route: `/org/:orgSlug/settings`
 
 ## Overview
 
-**Browser tab title:** `${Org Name} - Settings` (org-scoped); fallback `Kame Homes` while loading.
+**Browser tab title:** `${Org Name} - Settings` (org-scoped); fallback `Kame Space` while loading.
 
 Organization settings uses `AdminSectionNavLayout`. **Save** lives only in the page header (desktop button / phone hero icon) when the form is dirty — no sticky footer bar. Field helpers use a **?** beside the label (`FieldLabel` / `OrgSettingsField` `help`) — not muted text under the control.
 

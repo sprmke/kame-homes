@@ -4,8 +4,8 @@ import type { OrgSettingsFieldSource } from '@/features/dashboard/org/hooks/useO
 /** Platform seed assets — must not appear as uploader previews. */
 const PLATFORM_MEDIA_URL_MARKERS = [
   'kame-home-gcash-qr-payment',
-  'kamehomes.space/images/logo',
-  '/images/logo.png',
+  // Match the default logo by path so rows written under the old or new host count.
+  '/images/logo',
 ] as const;
 
 export function isPlatformSeedMediaUrl(url: string | null | undefined): boolean {

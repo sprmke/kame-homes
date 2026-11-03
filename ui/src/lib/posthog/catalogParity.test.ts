@@ -82,6 +82,7 @@ const DYNAMIC_EMITTERS = new Set([
   'pwa_sync_failed',
   'pwa_update_applied',
   'pwa_kill_switch',
+  'pwa_launch_fallback',
 ]);
 
 describe('posthog catalog parity', () => {

@@ -51,6 +51,8 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { status, email } = useGuestSession();
   const [modalOpen, setModalOpen] = useState(false);
+  /** When false, guest must finish sign-in (no X, overlay, escape, or sheet drag dismiss). */
+  const [modalDismissible, setModalDismissible] = useState(true);
   const [formSubmitResumeTick, setFormSubmitResumeTick] = useState(0);
   const [savePropertyResumeTick, setSavePropertyResumeTick] = useState(0);
   const [savePropertyResumeSlug, setSavePropertyResumeSlug] = useState<string | null>(null);
@@ -164,6 +166,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       if (resume) {
         saveGuestAuthResume(resume);
       }
+      setModalDismissible(false);
       setModalOpen(true);
       return;
     }
@@ -182,6 +185,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
 
   const openAuthModal = useCallback(() => {
     if (status === 'authenticated') return;
+    setModalDismissible(true);
     setOauthRedirectPath(returnPath);
     setModalOpen(true);
   }, [status, returnPath]);
@@ -221,6 +225,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       setOauthRedirectPath(redirectPath);
 
       if (status === 'loading') {
+        setModalDismissible(false);
         pendingActionRef.current = onSuccess;
         pendingResumeRef.current = options?.resume;
         awaitingSessionRef.current = true;
@@ -233,6 +238,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      setModalDismissible(false);
       if (options?.resume) {
         saveGuestAuthResume(options.resume);
       }
@@ -244,15 +250,17 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
 
   const handleModalOpenChange = useCallback(
     (open: boolean) => {
+      if (!open && !modalDismissible) return;
       setModalOpen(open);
       if (open) return;
+      setModalDismissible(true);
       if (status === 'authenticated') return;
       authFlowActiveRef.current = false;
       pendingActionRef.current = null;
       pendingResumeRef.current = undefined;
       clearGuestAuthResume();
     },
-    [status]
+    [status, modalDismissible]
   );
 
   const value: GuestAuthContextValue = useMemo(
@@ -281,6 +289,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       {children}
       <GuestAuthModal
         open={modalOpen}
+        dismissible={modalDismissible}
         onOpenChange={handleModalOpenChange}
         oauthRedirectPath={oauthRedirectPath}
       />

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * GitHub Issues CLI — sprmke/kame-homes is the backlog source of truth.
+ * GitHub Issues CLI — sprmke/kame-space is the backlog source of truth.
  *
  * Usage:
  *   bun scripts/dev/gh-issue.mjs view --github 32
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { computeIssueMetadata } from './backlog-issue-sizing.mjs';
 
-const DEFAULT_REPO = 'sprmke/kame-homes';
+const DEFAULT_REPO = 'sprmke/kame-space';
 const SHIPPED_DIR = 'docs/archive/todos/shipped';
 
 /** @param {string} title */

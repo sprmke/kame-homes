@@ -2,7 +2,7 @@
 title: 'Production readiness checklist'
 status: active
 tags: [workflow, planned, production-readiness, performance, security, reliability]
-updated: 2026-09-21
+updated: 2026-11-03
 stage: in-progress
 kind: reference
 origin_stage: planned
@@ -169,7 +169,7 @@ Several checklist rows stay **partial** until GitHub Environment **`development`
 | **`SMOKE_PROPERTY_SLUG`** (optional) | Doc **24** full `ci-smoke.sh` property/availability/search paths when `list-public-properties` is empty on mt-dev.                                                                                                                  |
 | Measured restore drill               | Docs **24** / **30**: runbook [`hosted-dev-rollback-rehearsal.md`](../../../../archive/operations/hosted-dev-rollback-rehearsal.md); preflight `bun run rehearsal:rollback:dev:preflight` (read-only).                              |
 
-**Latest green cd-dev (2026-09-21):** run [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373) (`e047dd27`) — adversarial **15/15**, partial smoke + cron probe, `verify:deployed-preview`, edge-latency artifact. `pg_stat` skipped (`DEV_DB_URL` unset). Prior green: `35567004695` (14/14). **Tip:** `cd-dev` `paths` filter skips UI-only pushes.
+**Latest green cd-dev (2026-09-21):** run [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373) (`e047dd27`) — adversarial **15/15**, partial smoke + cron probe, `verify:deployed-preview`, edge-latency artifact. `pg_stat` skipped (`DEV_DB_URL` unset). Prior green: `35567004695` (14/14). **Tip:** `cd-dev` `paths` filter skips UI-only pushes.
 
 ## Remaining work index
 
@@ -250,21 +250,21 @@ Still open, correctly not attempted (need operator/hosted access this session di
 
 ### Session (2026-09-21) — hosted-dev CI/CD evidence
 
-- **cd-dev run [`35545944443`](https://github.com/sprmke/kame-homes/actions/runs/35545944443)** green end-to-end: parallel `quality` (`@smoke` + `@ci`), Supabase deploy to `fwor…`, partial `ci-smoke.sh` (no public listings on mt-dev), adversarial auth 3/3, `verify:deployed-preview` on `dev.kamehomes.space`. Matching **CI** run `35545944464` green on the same push (`9299d7fb`).
+- **cd-dev run [`35545944443`](https://github.com/sprmke/kame-space/actions/runs/35545944443)** green end-to-end: parallel `quality` (`@smoke` + `@ci`), Supabase deploy to `fwor…`, partial `ci-smoke.sh` (no public listings on mt-dev), adversarial auth 3/3, `verify:deployed-preview` on `dev.kamehomes.space`. Matching **CI** run `35545944464` green on the same push (`9299d7fb`).
 - **Operator gap unchanged:** `DEV_DB_URL` empty on GitHub Environment `development` — `pg_stat_statements` artifact still not committed (doc 00 row 4). Optional `SMOKE_PROPERTY_SLUG` for full property/availability probes when a public listing exists.
 - **Launch blockers 21–23** remain open (parity tests, CSP enforce, rate-limit enforce). **Doc 24** branch-protection row closed; rollback rehearsal still top residual risk.
-- **Shipped `24a02935`:** `adversarialAuthLive.test.ts` 6/6 on cd-dev; `ci-smoke.sh` transport compression OK on `get-health` + `list-public-pricing-plans`. **cd-dev** [`35547228391`](https://github.com/sprmke/kame-homes/actions/runs/35547228391) green (2026-09-21); CI `35547228444` green.
-- **Shipped `6b21c935`:** edge latency baseline v3 + cd-dev latency artifact step; RLS `authenticated` in `probe-rls-anon-local.sh`. **cd-dev** [`35548494700`](https://github.com/sprmke/kame-homes/actions/runs/35548494700) green; committed `2026-09-21-edge-latency-hosted-dev-ci.json` from Actions artifact.
-- **Shipped `eda02ab0`:** `cd-dev.yml` `paths` filter (doc-only `develop` pushes skip Supabase deploy). **cd-dev** [`35549809634`](https://github.com/sprmke/kame-homes/actions/runs/35549809634) green (2026-09-21).
-- **Shipped `ddbd1724`:** `hosted-dev-rollback-rehearsal.md` + `bun run rehearsal:rollback:dev:preflight` (docs 24/30). **cd-dev** [`35555310204`](https://github.com/sprmke/kame-homes/actions/runs/35555310204) green after push (2026-09-21). Measured restore drill still operator-owned.
-- **Shipped `77944d51`:** adversarial **8/8**, PWA + cron post-deploy checks. **cd-dev** [`35556921767`](https://github.com/sprmke/kame-homes/actions/runs/35556921767) green (2026-09-21). CI [`35556921759`](https://github.com/sprmke/kame-homes/actions/runs/35556921759) green.
+- **Shipped `24a02935`:** `adversarialAuthLive.test.ts` 6/6 on cd-dev; `ci-smoke.sh` transport compression OK on `get-health` + `list-public-pricing-plans`. **cd-dev** [`35547228391`](https://github.com/sprmke/kame-space/actions/runs/35547228391) green (2026-09-21); CI `35547228444` green.
+- **Shipped `6b21c935`:** edge latency baseline v3 + cd-dev latency artifact step; RLS `authenticated` in `probe-rls-anon-local.sh`. **cd-dev** [`35548494700`](https://github.com/sprmke/kame-space/actions/runs/35548494700) green; committed `2026-09-21-edge-latency-hosted-dev-ci.json` from Actions artifact.
+- **Shipped `eda02ab0`:** `cd-dev.yml` `paths` filter (doc-only `develop` pushes skip Supabase deploy). **cd-dev** [`35549809634`](https://github.com/sprmke/kame-space/actions/runs/35549809634) green (2026-09-21).
+- **Shipped `ddbd1724`:** `hosted-dev-rollback-rehearsal.md` + `bun run rehearsal:rollback:dev:preflight` (docs 24/30). **cd-dev** [`35555310204`](https://github.com/sprmke/kame-space/actions/runs/35555310204) green after push (2026-09-21). Measured restore drill still operator-owned.
+- **Shipped `77944d51`:** adversarial **8/8**, PWA + cron post-deploy checks. **cd-dev** [`35556921767`](https://github.com/sprmke/kame-space/actions/runs/35556921767) green (2026-09-21). CI [`35556921759`](https://github.com/sprmke/kame-space/actions/runs/35556921759) green.
 - **Evidence `3c9e635f`:** checklist + edge-latency baseline refresh for run `35556921767`.
 - **Shipped `a5521e90`:** `marketingCollage.spec.ts` CI hardening (Fill all / hidden helper copy waits).
-- **Shipped `d85de641`:** adversarial **11** cases. **cd-dev** [`35558455879`](https://github.com/sprmke/kame-homes/actions/runs/35558455879) green (adversarial **11/11**, partial smoke, `pg_stat` skipped). **Evidence `397ea015`:** checklist pointers + gitignore for artifact downloads.
+- **Shipped `d85de641`:** adversarial **11** cases. **cd-dev** [`35558455879`](https://github.com/sprmke/kame-space/actions/runs/35558455879) green (adversarial **11/11**, partial smoke, `pg_stat` skipped). **Evidence `397ea015`:** checklist pointers + gitignore for artifact downloads.
 - **Evidence `45b53cd2`:** edge-latency baseline refresh (`04:23:04Z`); remaining-work index aligned to `35558455879`.
-- **cd-dev [`35567004695`](https://github.com/sprmke/kame-homes/actions/runs/35567004695)** (`de1a6a05`) green **14/14** adversarial (`property-access` case). **`authParitySeed`** + expansion tests on hosted dev. Evidence docs **`be60384b`**; CI [`35568852116`](https://github.com/sprmke/kame-homes/actions/runs/35568852116) green on that doc push. **`verify:deployed-preview`** OK (2026-09-21).
-- **Evidence (2026-09-21):** edge-latency CI baseline re-downloaded from `35567004695` (`capturedAt` `06:30:12Z`, lower warm p50 than `04:23` snapshot). Doc **00** row 3/4 + doc **13** public gzip (~6.5 KiB `list-public-pricing-plans`). Repeat **`verify:deployed-preview`** OK on `dev.kamehomes.space`. CI on `8584d9b9`: run [`35569386616`](https://github.com/sprmke/kame-homes/actions/runs/35569386616) (in progress at capture).
-- **cd-dev [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373)** (`e047dd27`) green **15/15** adversarial (`list-properties` case). Matching CI [`35569757937`](https://github.com/sprmke/kame-homes/actions/runs/35569757937) green. Edge-latency artifact `07:07:51Z` committed from that run (doc **00**).
+- **cd-dev [`35567004695`](https://github.com/sprmke/kame-space/actions/runs/35567004695)** (`de1a6a05`) green **14/14** adversarial (`property-access` case). **`authParitySeed`** + expansion tests on hosted dev. Evidence docs **`be60384b`**; CI [`35568852116`](https://github.com/sprmke/kame-space/actions/runs/35568852116) green on that doc push. **`verify:deployed-preview`** OK (2026-09-21).
+- **Evidence (2026-09-21):** edge-latency CI baseline re-downloaded from `35567004695` (`capturedAt` `06:30:12Z`, lower warm p50 than `04:23` snapshot). Doc **00** row 3/4 + doc **13** public gzip (~6.5 KiB `list-public-pricing-plans`). Repeat **`verify:deployed-preview`** OK on `dev.kamehomes.space`. CI on `8584d9b9`: run [`35569386616`](https://github.com/sprmke/kame-space/actions/runs/35569386616) (in progress at capture).
+- **cd-dev [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373)** (`e047dd27`) green **15/15** adversarial (`list-properties` case). Matching CI [`35569757937`](https://github.com/sprmke/kame-space/actions/runs/35569757937) green. Edge-latency artifact `07:07:51Z` committed from that run (doc **00**).
 
 ### Session (2026-09-27) — doc 23 closed
 

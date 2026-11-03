@@ -11,8 +11,16 @@ const envContactEmail = import.meta.env.VITE_PLATFORM_CONTACT_EMAIL?.trim();
 /** Product name for marketing, legal, tab titles, PWA install copy, and super-admin chrome. */
 export const PLATFORM_APP_NAME = resolvePlatformAppName(import.meta.env.VITE_PLATFORM_APP_NAME);
 
-/** Support / legal contact — falls back to a placeholder when unset. */
-export const PLATFORM_CONTACT_EMAIL = envContactEmail || 'support@example.com';
+/** Support / legal contact — falls back to the operator mailbox when unset. */
+export const PLATFORM_CONTACT_EMAIL = envContactEmail || 'kameworks.tech@gmail.com';
+
+/** Former product name. Disclosed on legal pages and in structured data for continuity. */
+export const FORMER_PLATFORM_APP_NAME = 'Kame Homes';
+
+/** One-line rename disclosure for legal pages. */
+export function platformFormerNameNote(): string {
+  return `${PLATFORM_APP_NAME} was previously called ${FORMER_PLATFORM_APP_NAME}.`;
+}
 
 /** @deprecated Prefer `PLATFORM_APP_NAME` — kept for gradual import migration. */
 export const APP_TITLE = PLATFORM_APP_NAME;

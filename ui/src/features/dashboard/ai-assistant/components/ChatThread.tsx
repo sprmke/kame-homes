@@ -49,6 +49,7 @@ export function ChatThread({ emptyState, className }: Props) {
     actions,
     regenerate,
     confirmAction,
+    confirmPlan,
     runQuickAction,
     setCanvasBlock,
     submitForm,
@@ -161,6 +162,7 @@ export function ChatThread({ emptyState, className }: Props) {
                     blocks={message.blocks}
                     unboxed={full}
                     onResolveAction={confirmAction}
+                    onResolvePlan={confirmPlan}
                     onRunQuickAction={runQuickAction}
                     quickActionsDisabled={busy}
                     onOpenCanvas={setCanvasBlock}

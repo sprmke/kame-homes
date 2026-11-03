@@ -80,7 +80,7 @@ export const PROPERTY_TEMPLATE_SAMPLE_VARS: Record<string, string> = {
   unit_number: 'Monaco 2604',
   property_name: 'Sample Property',
   booking_source: 'Airbnb',
-  booking_link: 'https://kamehomes.space/bookings/00000000-0000-4000-8000-000000000001',
+  booking_link: 'https://kamespace.com/bookings/00000000-0000-4000-8000-000000000001',
   decor_status: 'No',
   pet_status: 'No',
   has_decor: 'No',
@@ -97,9 +97,9 @@ export const PROPERTY_TEMPLATE_SAMPLE_VARS: Record<string, string> = {
   car_plate_number: 'ABC 1234',
   total_guest_balance: '₱3,599',
   sd_form_url:
-    'https://kamehomes.space/properties/azure-north/sd-form?bookingId=00000000-0000-4000-8000-000000000001',
+    'https://kamespace.com/properties/azure-north/sd-form?bookingId=00000000-0000-4000-8000-000000000001',
   trip_url:
-    'https://kamehomes.space/properties/azure-north/trip?bookingId=00000000-0000-4000-8000-000000000001',
+    'https://kamespace.com/properties/azure-north/trip?bookingId=00000000-0000-4000-8000-000000000001',
   security_deposit: '₱3,000.00',
   facebook_page_url: 'https://www.facebook.com/example',
   airbnb_url: 'https://www.airbnb.com/rooms/example',

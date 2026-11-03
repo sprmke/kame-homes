@@ -72,6 +72,9 @@ export type SuperAdminAiUsage = {
   assistantEvalRuns?: AssistantEvalRun[];
   /** Assistant turn latency in the range (absent on older deploys). */
   assistantLatency?: AssistantLatency;
+  /** Phase 7 telemetry: rounds/credits per turn, plan size + approval outcome, completion-check
+   * misses, step-failure rate (absent on older deploys). */
+  assistantTurnTelemetry?: AssistantTurnTelemetry;
 };
 
 export type AssistantLatencyBucket = {
@@ -90,6 +93,34 @@ export type AssistantLatency = {
   turns: number;
   byModule: AssistantLatencyBucket[];
   byGuardMode: AssistantLatencyBucket[];
+};
+
+export type AssistantPlanOutcomeBucket = {
+  status: string;
+  plans: number;
+  pct: number;
+  totalSteps: number;
+  failedSteps: number;
+};
+
+/** Mirror of `supabase/functions/_shared/assistantTurnTelemetrySummary.ts#AssistantTurnTelemetry`. */
+export type AssistantTurnTelemetry = {
+  turns: number;
+  avgRounds: number | null;
+  p50Rounds: number | null;
+  p95Rounds: number | null;
+  turnsWithPlan: number;
+  avgPlanSize: number | null;
+  completionMissTurns: number;
+  completionMissRatePct: number | null;
+  avgCredits: number | null;
+  p50Credits: number | null;
+  p95Credits: number | null;
+  planOutcomes: AssistantPlanOutcomeBucket[];
+  totalPlans: number;
+  approvalRatePct: number | null;
+  cancelledRatePct: number | null;
+  stepFailureRatePct: number | null;
 };
 
 export type SuperAdminAiPlanUsage = {

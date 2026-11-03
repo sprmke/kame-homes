@@ -141,6 +141,7 @@ export const APP_ANALYTICS_EVENTS = [
   'pwa_sync_failed',
   'pwa_update_applied',
   'pwa_kill_switch',
+  'pwa_launch_fallback',
   'media_optimized',
 ] as const;
 

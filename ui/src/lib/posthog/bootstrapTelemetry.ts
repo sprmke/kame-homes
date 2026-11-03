@@ -1,5 +1,6 @@
 import { setMediaTelemetrySink } from '@/lib/media/mediaTelemetry';
 import { captureAppEvent } from '@/lib/posthog/capture';
+import { posthog } from '@/lib/posthog/client';
 import type { PwaTelemetryEvent } from '@/lib/pwa/pwaTelemetry';
 
 const PWA_EVENT_MAP: Record<PwaTelemetryEvent, Parameters<typeof captureAppEvent>[0]> = {
@@ -15,6 +16,7 @@ const PWA_EVENT_MAP: Record<PwaTelemetryEvent, Parameters<typeof captureAppEvent
   'offline-read': 'pwa_offline_queued',
   'update-applied': 'pwa_update_applied',
   'kill-switch': 'pwa_kill_switch',
+  'launch-offline-fallback': 'pwa_launch_fallback',
 };
 
 /** Wire PWA + media sinks to PostHog once at app bootstrap. */
@@ -32,6 +34,19 @@ export function bootstrapPostHogTelemetry(): void {
   });
 
   if (typeof window === 'undefined') return;
+
+  // `display_mode` makes standalone usage measurable next to browser usage
+  // without a separate event (PWA v2 task 0.3).
+  const displayMode = window.matchMedia('(display-mode: standalone)').matches
+    ? 'standalone'
+    : window.matchMedia('(display-mode: minimal-ui)').matches
+      ? 'minimal-ui'
+      : 'browser';
+  try {
+    posthog.register({ display_mode: displayMode });
+  } catch {
+    // analytics unavailable — never block boot
+  }
 
   window.addEventListener('gfm:pwa-telemetry', (ev) => {
     const detail = (ev as CustomEvent<{ event?: PwaTelemetryEvent; ts?: number }>).detail;

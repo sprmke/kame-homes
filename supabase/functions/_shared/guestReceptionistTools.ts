@@ -3,6 +3,9 @@
  * Handlers only read guest-safe public / own-booking fields (never finance, other guests, or credentials).
  */
 
+import type { ActorContext } from './activityLog.ts';
+import { logActivity } from './activityLog.ts';
+import { limitNumber, resolveOrgAiLimits } from './aiLimitResolver.ts';
 import type { ToolDeclaration } from './ai/llmTools.ts';
 import type { DevelopmentGuestContextDto } from './developmentGuestInfo.ts';
 import {
@@ -11,10 +14,15 @@ import {
   loadGuestSafePropertyContext,
   type PropertyGuestContextDto,
 } from './inboxAiGuestContext.ts';
+import { isAutoReplyEntitled } from './inboxAutoReplyPolicy.ts';
+import { createMaintenanceItem } from './maintenanceService.ts';
+import { createGuestRequest } from './guestRequestsService.ts';
+import { createNotification } from './notificationService.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { loadPublicParkingBySlug } from './parkingScope.ts';
 import { manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import { computeDefaultBookingRateFromDefaults, loadPropertyPricing } from './propertyPricing.ts';
+import { checkRateLimit } from './rateLimit.ts';
 import { guestStayGuidePath } from './publicGuestPaths.ts';
 import {
   loadGuestStayGuideByToken,
@@ -23,6 +31,12 @@ import {
   type StayGuideSectionDto,
 } from './guestStayGuide.ts';
 import { buildGuestTripPayload } from './guestTrip.ts';
+
+/** 3 reports a day per guest — enough for a real issue, not enough to spam the host. */
+const MAINTENANCE_REPORT_DAILY_LIMIT = 3;
+const MAINTENANCE_REPORT_WINDOW_SEC = 24 * 60 * 60;
+// Default 3/day — now resolved per-org via aiLimitResolver's guestRequestDailyLimit (Phase 6).
+const GUEST_REQUEST_WINDOW_SEC = 24 * 60 * 60;
 
 function findAmenityMatching(amenities: string[], pattern: RegExp): string | null {
   return amenities.find((amenity) => pattern.test(amenity)) ?? null;
@@ -282,10 +296,25 @@ export const GUEST_RECEPTIONIST_TOOL_NAMES = [
   'handoff_to_host',
   'get_parking_facts',
   'get_directions',
+  'report_maintenance_issue',
+  'request_booking_inquiry',
+  'request_early_checkin_late_checkout',
 ] as const;
 
 export type GuestReceptionistToolName = (typeof GUEST_RECEPTIONIST_TOOL_NAMES)[number];
 export type VoiceReceptionistToolName = GuestReceptionistToolName;
+
+/**
+ * Tools that write something, not just read. Gated to an authenticated guest with a verified
+ * active stay and excluded from the staff Suggest tool list — a draft for a staff member to
+ * review is never allowed to file anything on the guest's behalf. See
+ * `guestReceptionistTurn.ts#toolsFor`.
+ */
+export const GUEST_WRITE_TOOLS = new Set<GuestReceptionistToolName>([
+  'report_maintenance_issue',
+  'request_booking_inquiry',
+  'request_early_checkin_late_checkout',
+]);
 
 export type GuestReceptionistAction = {
   type:
@@ -408,6 +437,50 @@ export const GUEST_RECEPTIONIST_TOOL_DECLARATIONS: ToolDeclaration[] = [
     name: 'get_directions',
     description: 'Get the public address and map link for the property or parking slot.',
     parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'report_maintenance_issue',
+    description:
+      "File a maintenance issue for the guest's own active stay at this property (requires a signed-in guest with a current booking). Collect what is wrong before calling this — do not call it with a vague description.",
+    parameters: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: "What is wrong, in the guest's own words (e.g. what, where, since when).",
+        },
+      },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'request_booking_inquiry',
+    description:
+      'Submit a hold/inquiry request for a prospective stay at this property, for the host to review — nothing is booked yet. Only for an authenticated guest.',
+    parameters: {
+      type: 'object',
+      properties: {
+        checkIn: { type: 'string', description: 'YYYY-MM-DD' },
+        checkOut: { type: 'string', description: 'YYYY-MM-DD' },
+        guestCount: { type: 'number', description: 'Total guests for the stay.' },
+        notes: { type: 'string', description: 'Anything else the guest said, in their words.' },
+      },
+      required: ['checkIn', 'checkOut', 'guestCount'],
+    },
+  },
+  {
+    name: 'request_early_checkin_late_checkout',
+    description:
+      "Request an early check-in or late check-out time for the guest's own active or upcoming booking at this property, for the host to review — nothing changes on the booking yet. Only for an authenticated guest with a verified stay.",
+    parameters: {
+      type: 'object',
+      properties: {
+        requestType: { type: 'string', enum: ['early_checkin', 'late_checkout'] },
+        requestedTime: { type: 'string', description: 'e.g. "11:00 AM" or "2:00 PM".' },
+        notes: { type: 'string', description: "Why, in the guest's own words." },
+      },
+      required: ['requestType', 'requestedTime'],
+    },
   },
 ];
 
@@ -573,11 +646,16 @@ export async function executeGuestReceptionistTool(input: {
   propertyId: string | null;
   parkingId?: string | null;
   guestUserId: string | null;
+  /** Needed only by guest-write tools that create a `guest_requests` row. */
+  orgId?: string | null;
+  conversationId?: string | null;
 }): Promise<GuestReceptionistToolResult> {
   const actions: GuestReceptionistAction[] = [];
   const propertyId = input.propertyId?.trim() || null;
   const parkingId = input.parkingId?.trim() || null;
   const guestUserId = input.guestUserId?.trim() || null;
+  const orgId = input.orgId?.trim() || null;
+  const conversationId = input.conversationId?.trim() || null;
 
   if (input.name === 'get_property_facts') {
     if (!propertyId) return emptyResult('Property details are not available in this chat.');
@@ -829,6 +907,295 @@ export async function executeGuestReceptionistTool(input: {
       };
     }
     return emptyResult('The address is not listed. Message the host.');
+  }
+
+  if (input.name === 'handoff_to_host') {
+    const propertySlugForHandoff = propertyId ? await loadPropertySlug(propertyId) : null;
+    return {
+      spokenText: sanitizeVoiceToolFact(
+        "I'll get a member of our team to help you with that. You can also message them directly now."
+      ),
+      actions: [
+        {
+          type: 'open_text_chat',
+          label: 'Message host',
+          url: propertySlugForHandoff
+            ? `/account/messages?property=${encodeURIComponent(propertySlugForHandoff)}`
+            : '/account/messages',
+        },
+      ],
+    };
+  }
+
+  if (input.name === 'report_maintenance_issue') {
+    if (!propertyId || !guestUserId) {
+      return emptyResult(
+        'I need to see your active booking to file that — please sign in, or message the host directly.'
+      );
+    }
+    const description = String(input.args.description ?? '').trim();
+    if (!description) {
+      return emptyResult('What is wrong? Describe it and I can file it for the host.');
+    }
+    const booking = await loadOwnBooking(propertyId, guestUserId);
+    const checkIn = booking ? normalizeBookingDate(booking.check_in_date) : null;
+    const checkOut = booking ? normalizeBookingDate(booking.check_out_date) : null;
+    const availability = booking ? await loadGuestSafeAvailabilityContext(propertyId) : null;
+    const hasActiveStay = Boolean(
+      booking &&
+      checkIn &&
+      checkOut &&
+      availability &&
+      availability.asOfDate >= checkIn &&
+      availability.asOfDate <= checkOut
+    );
+    if (!booking || !hasActiveStay) {
+      return emptyResult(
+        'I can only file maintenance reports while you have a stay in progress here. Message the host directly for anything else.'
+      );
+    }
+    const entitled = await isAutoReplyEntitled('', propertyId);
+    if (!entitled) {
+      return emptyResult(
+        'Maintenance reporting through chat is not available here. Please message the host directly.'
+      );
+    }
+    const limitDecision = await checkRateLimit({
+      scope: 'guest-ai-maintenance-report',
+      identity: guestUserId,
+      limit: MAINTENANCE_REPORT_DAILY_LIMIT,
+      windowSec: MAINTENANCE_REPORT_WINDOW_SEC,
+    });
+    if (!limitDecision.allowed) {
+      return emptyResult(
+        `You've reached the limit of ${MAINTENANCE_REPORT_DAILY_LIMIT} reports a day. Message the host directly for anything else urgent.`
+      );
+    }
+    const { row: item } = await createMaintenanceItem(
+      {
+        propertyId,
+        label: description.slice(0, 80) || 'Guest-reported issue',
+        category: 'Guest reported',
+        scheduled_on: manilaTodayYmd(),
+        notes: `Reported by guest via AI assistant: ${description}`,
+      },
+      'guest_ai'
+    );
+    const { data: propertyRow } = await createServiceClient()
+      .from('properties')
+      .select('organization_id, name')
+      .eq('id', propertyId)
+      .maybeSingle();
+    const organizationId = propertyRow?.organization_id
+      ? String(propertyRow.organization_id)
+      : null;
+    if (organizationId) {
+      // Both writes are best-effort (never block the guest's confirmation on them) — matches the
+      // non-fatal posture documented on activityLog.ts / notificationService.ts.
+      await Promise.all([
+        createNotification({
+          organizationId,
+          propertyId,
+          type: 'maintenance_guest_reported',
+          title: 'Guest reported a maintenance issue',
+          body: description.slice(0, 200),
+          metadata: { maintenanceItemId: item.id },
+        }),
+        logActivity({
+          action: 'maintenance.task_created',
+          organizationId,
+          propertyId,
+          actor: {
+            actorType: 'ai_assistant',
+            source: 'ai_assistant',
+            userId: guestUserId,
+            displayName: 'AI receptionist',
+            extraMetadata: { reported_by_guest: true },
+          } satisfies ActorContext,
+          targetId: String(item.id),
+          targetLabel: item.label as string | undefined,
+          metadata: { via: 'guest_ai' },
+        }),
+      ]);
+    }
+    return emptyResult(
+      "Filed. I've let the host team know about it — they'll follow up on the fix."
+    );
+  }
+
+  if (input.name === 'request_booking_inquiry') {
+    if (!propertyId || !guestUserId || !orgId) {
+      return emptyResult(
+        'I need you signed in to submit that — please sign in, or message the host directly.'
+      );
+    }
+    const checkIn = normalizeBookingDate(input.args.checkIn) ?? String(input.args.checkIn ?? '');
+    const checkOut = normalizeBookingDate(input.args.checkOut) ?? String(input.args.checkOut ?? '');
+    const guestCount = Number(input.args.guestCount);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut)) {
+      return emptyResult('I need valid check-in and check-out dates to submit that inquiry.');
+    }
+    if (checkOut <= checkIn) {
+      return emptyResult('Check-out needs to be after check-in.');
+    }
+    if (!Number.isFinite(guestCount) || guestCount < 1) {
+      return emptyResult('How many guests is this for?');
+    }
+    const entitled = await isAutoReplyEntitled('', propertyId);
+    if (!entitled) {
+      return emptyResult(
+        'Booking inquiries through chat are not available here. Please message the host directly.'
+      );
+    }
+    const { limits: orgAiLimits } = await resolveOrgAiLimits(orgId);
+    const guestRequestDailyLimit = limitNumber(orgAiLimits, 'guestRequestDailyLimit');
+    const limitDecision = await checkRateLimit({
+      scope: 'guest-ai-booking-inquiry',
+      identity: guestUserId,
+      limit: guestRequestDailyLimit,
+      windowSec: GUEST_REQUEST_WINDOW_SEC,
+    });
+    if (!limitDecision.allowed) {
+      return emptyResult(
+        `You've reached the limit of ${guestRequestDailyLimit} requests a day. Message the host directly for anything else urgent.`
+      );
+    }
+    const availability = await loadGuestSafeAvailabilityContext(propertyId);
+    const likelyAvailable = !availability.blockedRanges.some(
+      (range) => checkIn < range.checkOut && checkOut > range.checkIn
+    );
+    const notes =
+      String(input.args.notes ?? '')
+        .trim()
+        .slice(0, 1000) || null;
+    const request = await createGuestRequest({
+      organizationId: orgId,
+      propertyId,
+      conversationId,
+      guestUserId,
+      kind: 'booking_inquiry',
+      payload: { checkIn, checkOut, guestCount, notes, likelyAvailable },
+    });
+    const { data: propertyRow } = await createServiceClient()
+      .from('properties')
+      .select('name')
+      .eq('id', propertyId)
+      .maybeSingle();
+    await Promise.all([
+      createNotification({
+        organizationId: orgId,
+        propertyId,
+        type: 'guest_request_submitted',
+        title: 'Guest submitted a booking inquiry',
+        body: `${checkIn} to ${checkOut}, ${guestCount} guest${guestCount === 1 ? '' : 's'}${propertyRow?.name ? ` — ${propertyRow.name}` : ''}`,
+        metadata: { guestRequestId: request.id },
+      }),
+      logActivity({
+        action: 'guest_request.booking_inquiry_created',
+        organizationId: orgId,
+        propertyId,
+        actor: {
+          actorType: 'ai_assistant',
+          source: 'ai_assistant',
+          userId: guestUserId,
+          displayName: 'AI receptionist',
+          extraMetadata: { guest_request_id: request.id },
+        } satisfies ActorContext,
+        targetId: request.id,
+        metadata: { via: 'guest_ai', checkIn, checkOut, guestCount },
+      }),
+    ]);
+    return emptyResult(
+      likelyAvailable
+        ? "Got it. I've sent your inquiry to the host for review — nothing is booked yet."
+        : "Got it. I've sent your inquiry to the host for review, though those dates may already be booked — they'll confirm."
+    );
+  }
+
+  if (input.name === 'request_early_checkin_late_checkout') {
+    if (!propertyId || !guestUserId || !orgId) {
+      return emptyResult(
+        'I need you signed in to submit that — please sign in, or message the host directly.'
+      );
+    }
+    const requestType = String(input.args.requestType ?? '');
+    if (requestType !== 'early_checkin' && requestType !== 'late_checkout') {
+      return emptyResult('Is this for an early check-in or a late check-out?');
+    }
+    const requestedTime = String(input.args.requestedTime ?? '')
+      .trim()
+      .slice(0, 40);
+    if (!requestedTime) {
+      return emptyResult('What time would you like?');
+    }
+    const booking = await loadOwnBooking(propertyId, guestUserId);
+    if (!booking) {
+      return emptyResult(
+        'I can only submit this for your own booking here. Message the host directly for anything else.'
+      );
+    }
+    const entitled = await isAutoReplyEntitled('', propertyId);
+    if (!entitled) {
+      return emptyResult(
+        'This request is not available through chat here. Please message the host directly.'
+      );
+    }
+    const { limits: orgAiLimits } = await resolveOrgAiLimits(orgId);
+    const guestRequestDailyLimit = limitNumber(orgAiLimits, 'guestRequestDailyLimit');
+    const limitDecision = await checkRateLimit({
+      scope: 'guest-ai-checkinout-request',
+      identity: guestUserId,
+      limit: guestRequestDailyLimit,
+      windowSec: GUEST_REQUEST_WINDOW_SEC,
+    });
+    if (!limitDecision.allowed) {
+      return emptyResult(
+        `You've reached the limit of ${guestRequestDailyLimit} requests a day. Message the host directly for anything else urgent.`
+      );
+    }
+    const notes =
+      String(input.args.notes ?? '')
+        .trim()
+        .slice(0, 1000) || null;
+    const request = await createGuestRequest({
+      organizationId: orgId,
+      propertyId,
+      conversationId,
+      guestUserId,
+      bookingId: String(booking.id),
+      kind: 'early_checkin_late_checkout',
+      payload: { requestType, requestedTime, notes },
+    });
+    await Promise.all([
+      createNotification({
+        organizationId: orgId,
+        propertyId,
+        type: 'guest_request_submitted',
+        title:
+          requestType === 'early_checkin'
+            ? 'Guest requested an early check-in'
+            : 'Guest requested a late check-out',
+        body: `Requested ${requestedTime}`,
+        metadata: { guestRequestId: request.id, bookingId: String(booking.id) },
+      }),
+      logActivity({
+        action: 'guest_request.checkin_checkout_requested',
+        organizationId: orgId,
+        propertyId,
+        actor: {
+          actorType: 'ai_assistant',
+          source: 'ai_assistant',
+          userId: guestUserId,
+          displayName: 'AI receptionist',
+          extraMetadata: { guest_request_id: request.id },
+        } satisfies ActorContext,
+        targetId: request.id,
+        metadata: { via: 'guest_ai', requestType, requestedTime, bookingId: String(booking.id) },
+      }),
+    ]);
+    return emptyResult(
+      "Got it. I've sent your request to the host for review — they'll confirm with you."
+    );
   }
 
   const propertySlug = propertyId ? await loadPropertySlug(propertyId) : null;

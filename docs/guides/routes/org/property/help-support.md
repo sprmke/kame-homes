@@ -21,10 +21,15 @@ Announcements moved to dedicated sidebar route: [Announcements](./announcements.
 | Guides  | Yes | N/A        | Yes  | Topic tiles, then articles for the chosen topic          |
 | Tickets | Yes | Yes        | Yes  | Fill-height inbox: 400px list, docked composer           |
 | Ask AI  | Yes | N/A        | Yes  | Opens the existing assistant panel, no new UI            |
+| App     | No  | N/A        | Yes  | App version, Check for updates, Install app entry        |
 
 ## Overview
 
-Property team members open Help & Support to find answers, chat with the AI assistant, and contact the Kame Homes team. FAQs, Guides, and Tickets stay under the same Help & Support title. Four clickable summary cards (same style as Finance and Bookings) stay at the top, with Ask AI last; FAQs, Guides, and Tickets swap the content below. Platform and development **Announcements** live on the dedicated [Announcements](./announcements.md) sidebar item. Visible to **every** non–plan-limited property team member (same baseline as the Help nav item). Route guard (`RequirePropertyPermission`) does **not** require `bookings:view` — plan-limited members still hit the plan gate.
+Property team members open Help & Support to find answers, chat with the AI assistant, and contact the Kame Space team. FAQs, Guides, and Tickets stay under the same Help & Support title. Four clickable summary cards (same style as Finance and Bookings) stay at the top, with Ask AI last; FAQs, Guides, and Tickets swap the content below. Platform and development **Announcements** live on the dedicated [Announcements](./announcements.md) sidebar item. Visible to **every** non–plan-limited property team member (same baseline as the Help nav item). Route guard (`RequirePropertyPermission`) does **not** require `bookings:view` — plan-limited members still hit the plan gate.
+
+## App card
+
+Below the FAQ accordion, `AppInfoCard` (`ui/src/components/pwa/AppInfoCard.tsx`) shows the running build (`VITE_APP_VERSION`), a **Check for updates** action (`checkForPwaUpdate()` — throttled by the update controller), and the **Install app** entry (`InstallAppEntry`), which is hidden when the app is already installed. Support can use the version string to confirm which deploy a host is on.
 
 ## Host-facing knowledge
 

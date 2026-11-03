@@ -2,7 +2,7 @@
 title: 'Performance optimization for production readiness'
 status: active
 tags: [performance, planning, production-readiness, caching]
-updated: 2026-09-14
+updated: 2026-11-03
 stage: in-progress
 kind: plan
 origin_stage: for-testing
@@ -232,7 +232,7 @@ Diagnosing this also surfaced (and ruled out) a **stale service worker as a meas
 
 **Result after both CLS fixes**: **0.5 → 0.84** performance score, **CLS 0.502 → 0.052** (from "poor" to just outside "good," a 90% reduction), LCP **3.9 s → 2.0 s**.
 
-**Manual QA against real data** (not mocked E2E — a live local Supabase stack already running with real accumulated dev data: 2 orgs, 326 properties, 131 bookings): obtained a genuine authenticated admin session for the real org owner (`perezarianna0410@gmail.com`, owner of "Kame Homes") via Supabase's local Auth admin API (`generate_link` → `verify` → `supabase.auth.setSession()` in-page, no credentials guessed or stored) against `bun run dev` (not `preview`, so `import.meta.env.DEV` gates line up the same as production). Verified live, with real network requests and real Postgres writes (cross-checked via direct REST queries before/after, not just UI appearance):
+**Manual QA against real data** (not mocked E2E — a live local Supabase stack already running with real accumulated dev data: 2 orgs, 326 properties, 131 bookings): obtained a genuine authenticated admin session for the real org owner (`perezarianna0410@gmail.com`, owner of "Kame Space") via Supabase's local Auth admin API (`generate_link` → `verify` → `supabase.auth.setSession()` in-page, no credentials guessed or stored) against `bun run dev` (not `preview`, so `import.meta.env.DEV` gates line up the same as production). Verified live, with real network requests and real Postgres writes (cross-checked via direct REST queries before/after, not just UI appearance):
 
 - Dashboard, bookings list, and booking detail pages render correctly with the Phase 1b lazy-loaded components in place (`Get Verified` sidebar CTA, AI Assistant launcher button) — no console errors beyond the expected dev-mode SW-registration-off warning.
 - **`useCancelBooking`** (one of the Phase 2 fixes): cancelled a real booking (`c3333333-…-368`) from the detail page. Confirmed via direct `guest_submissions` REST query that `status` flipped to `CANCELLED` with a fresh `status_updated_at` — the mutation and its scoped `invalidateBookingsListForProperty` both work correctly end-to-end. Returned to the bookings list (a fresh page load, not just an in-memory check) and confirmed the cancelled booking correctly disappeared from the default filtered view, proving the invalidation/refetch cycle produces correct, fresh data.

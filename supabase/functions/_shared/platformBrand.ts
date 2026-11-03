@@ -1,10 +1,20 @@
 /** Keep in sync with `ui/src/lib/platformAppName.ts`. */
 export const DEFAULT_PLATFORM_APP_NAME = 'Kame Space';
-const RETIRED_PLATFORM_APP_NAMES = new Set(['stays']);
+
+/**
+ * Retired product labels that must never render, whatever an env still says.
+ * Normalized to lowercase alphanumerics, so "Kame Homes", "kame-homes",
+ * "KameHomes" and "KAME_HOMES" all resolve to the current default.
+ */
+const RETIRED_PLATFORM_APP_NAMES = new Set(['stays', 'kamehomes', 'kamehome']);
+
+function normalizePlatformName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
 
 export function resolvePlatformAppName(raw: string | null | undefined): string {
   const value = raw?.trim() ?? '';
-  if (!value || RETIRED_PLATFORM_APP_NAMES.has(value.toLowerCase())) {
+  if (!value || RETIRED_PLATFORM_APP_NAMES.has(normalizePlatformName(value))) {
     return DEFAULT_PLATFORM_APP_NAME;
   }
   return value;

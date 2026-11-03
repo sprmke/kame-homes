@@ -156,6 +156,44 @@ export type ActionConfirmationBlock = {
   errorMessage?: string;
 };
 
+/** One step inside an ActionPlanBlock — application-built, never model-authored directly. */
+export type ActionPlanStep = {
+  stepId: string;
+  stepIndex: number;
+  toolName: string;
+  riskTier: ActionRiskTier;
+  summary: string;
+  details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
+  /** step_index values this step reads a {{stepN.field}} placeholder from. */
+  dependsOn: number[];
+  /** Host tick state — pre-ticked true for everything, including plan-joined Tier-1 steps. */
+  selected: boolean;
+  status: 'proposed' | 'confirmed' | 'executed' | 'failed' | 'denied' | 'expired' | 'skipped';
+  isExternalSend?: boolean;
+  errorMessage?: string;
+};
+
+/**
+ * A turn's collected multi-step write proposal — Phase 3 plan-card approval
+ * (docs/workflow/in-progress/agentic-ai-assistants.md). Created instead of a single
+ * ActionConfirmationBlock only when a turn gathers 2+ write proposals (Tier-2, plus any
+ * plan-joined Tier-1 steps); a lone proposal still renders as the existing single-action card.
+ */
+export type ActionPlanBlock = {
+  type: 'action_plan';
+  planId: string;
+  status:
+    | 'proposed'
+    | 'approved'
+    | 'running'
+    | 'completed'
+    | 'partially_failed'
+    | 'cancelled'
+    | 'expired';
+  steps: ActionPlanStep[];
+};
+
 export type StepperStep = {
   label: string;
   status: 'done' | 'current' | 'upcoming';
@@ -289,6 +327,7 @@ export type ChatBlock =
   | MapBlock
   | DynamicFormBlock
   | ActionConfirmationBlock
+  | ActionPlanBlock
   | ChartBlock
   | CalendarBlock
   | TimelineBlock
@@ -319,6 +358,7 @@ export const KNOWN_BLOCK_TYPES: ReadonlySet<ChatBlock['type']> = new Set<ChatBlo
   'map',
   'dynamic_form',
   'action_confirmation',
+  'action_plan',
   'chart',
   'calendar',
   'timeline',

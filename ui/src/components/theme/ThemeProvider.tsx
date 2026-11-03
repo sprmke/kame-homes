@@ -38,6 +38,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyThemeClass(resolvedTheme);
+    // Keep the OS chrome (standalone status bar, browser toolbar) matching the app
+    // theme, not the system scheme (7.2).
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', resolvedTheme === 'dark' ? '#121212' : '#f5f6f8');
   }, [resolvedTheme]);
 
   useEffect(() => {

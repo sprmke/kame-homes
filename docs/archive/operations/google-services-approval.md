@@ -1,6 +1,6 @@
 # Google services — what we use, cleanup, and approval
 
-Short operator guide for **Kame Homes today** (after Gmail / Calendar / Sheets removal).  
+Short operator guide for **Kame Space** (after Gmail / Calendar / Sheets removal).  
 PMO approvals use **Resend inbound** — see [approval-email-inbound.md](./approval-email-inbound.md). **No Gmail API. No CASA.**
 
 ---
@@ -121,7 +121,7 @@ Code references (`ui/src/lib/google-maps/useGoogleMapsLoader.ts`, `PropertyLocat
 - [ ] Production **homepage** (public, not login-only) with links to **Privacy** and **Terms**
 - [ ] **Privacy policy** mentions Google Sign-In (email/profile for authentication) — **not** Gmail mailbox access
 - [ ] **Domain verified** in Google Search Console (same Google account as GCP Owner/Editor)
-- [ ] OAuth consent screen: app name, logo, support email, homepage / privacy / terms URLs filled in
+- [ ] OAuth consent screen: app name, logo (`ui/public/brand/kame-space-mark-120.png`), support email, homepage / privacy / terms URLs filled in
 - [ ] Only **non-sensitive** Sign-in scopes on the consent screen (§3.2)
 - [ ] Supabase Auth redirect URIs match the Web client (§3.3)
 - [ ] UI uses [Sign in with Google branding](https://developers.google.com/identity/branding-guidelines) on `/for-hosts/login` and invite flows
@@ -147,6 +147,44 @@ Code references (`ui/src/lib/google-maps/useGoogleMapsLoader.ts`, `PropertyLocat
 | Google Calendar sync on booking workflow | Removed (optional manual ops; OTA sync is iCal, not Google) |
 | Google Sheets booking row sync           | Removed                                                     |
 | CASA / restricted Gmail verification     | **Not required** while Gmail API stays off                  |
+
+---
+
+## 7. Runbook — project map and console changes (2026-11-03)
+
+### 7.1 Projects
+
+| Project number | Project ID                      | Role                                                      | OAuth callback                                              |
+| -------------- | ------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| `967953419734` | `kame-homes`                    | **Production and only submitted project**                 | `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback` |
+| `351108343134` | `guest-form-management`         | Legacy dev/local (still used by local `GOOGLE_CLIENT_ID`) | `https://zfttdwtceyqszyeyhilc.supabase.co/auth/v1/callback` |
+| `615353244509` | `kame-home-guest-form-calendar` | Legacy production, retired                                | `https://zfttdwtceyqszyeyhilc.supabase.co/auth/v1/callback` |
+
+The submitted client ID is `967953419734-kvd8gg5mjludcggjv0s2idv7titqmls1.apps.googleusercontent.com` (`Kame Space - Supabase`).
+
+### 7.2 Changes
+
+Actor is the operator in the Google Cloud console. Replace with the person's name if the record needs it.
+
+| Date       | Field                   | Old                                                                                                                                        | New                                                                                     |
+| ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| 2026-11-03 | Data access scopes      | Gmail, Calendar, Sheets, Drive scopes                                                                                                      | `openid`, `userinfo.email`, `userinfo.profile`                                          |
+| 2026-11-03 | OAuth client            | "Connect Google" `967953419734-cce416…` (callback `…/google-mail-oauth-callback`)                                                          | Deleted                                                                                 |
+| 2026-11-03 | OAuth client JS origins | `http://localhost:5173`, `http://127.0.0.1:5173`, `https://kamespace.com`, `https://dev.kamespace.com`, `https://kame-space-ui.vercel.app` | `https://kamespace.com`                                                                 |
+| 2026-11-03 | Redirect URI            | `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`                                                                                | Unchanged                                                                               |
+| 2026-11-03 | Authorized domains      | Included `kame-space-ui.vercel.app` and legacy hosts                                                                                       | `fworvijbrwpyngycotbz.supabase.co`, `kamespace.com`                                     |
+| 2026-11-03 | Audience                | Testing, 0 test users                                                                                                                      | External, **In production**                                                             |
+| 2026-11-03 | Branding                | Kame Homes, turtle logo, old links                                                                                                         | `Kame Space`, K logo (`ui/public/brand/kame-space-mark-120.png`), `kamespace.com` links |
+| 2026-11-03 | Brand verification      | Not submitted                                                                                                                              | **Verified and published** (name and logo shown to users)                               |
+| 2026-11-03 | Search Console          | `kamespace.com` not verified                                                                                                               | Domain property verified via TXT `google-site-verification=q06qVO…FXjbx8`               |
+| 2026-11-03 | Enabled APIs            | Gmail, Calendar, Sheets, Drive                                                                                                             | Disabled. Maps set and Generative Language API stay enabled                             |
+
+### 7.3 Rules that follow
+
+- Do not remove the Search Console TXT record. Removing it can lapse ownership and break future reviews.
+- Any change to app name, logo, homepage, privacy URL, terms URL, or authorized domains needs a fresh brand verification, and edits are locked while a review is open.
+- `fworvijbrwpyngycotbz.supabase.co` cannot be verified in Search Console. If Google ever rejects it, the fix is a Supabase custom auth domain (`auth.kamespace.com`, GV3), not deleting the redirect.
+- Never re-add a `*.vercel.app` host as an authorized domain. Use a `preview.kamespace.com` you own if preview sign-in is needed.
 
 ---
 

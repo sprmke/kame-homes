@@ -77,6 +77,8 @@ AI mode turns the dashboard into a chat workspace. Ask questions or ask for chan
   A: The assistant already answered with what it found. Tap the chip to have it keep going from there.
 - Q: Why do extra chips appear after a change?
   A: After you confirm a change, the Confirm card stays with Done and chips offer the next step, such as sending the guest email or showing the stay journey.
+- Q: I asked for two changes at once and got one card with a checklist. What is that?
+  A: That is a plan — the assistant found more than one change to make. Untick anything you don't want, then tap Approve selected. Each step shows Done, Failed, or Skipped once it finishes; a step can depend on an earlier one, so it's skipped if that one fails.
 - Q: How do I mark a maintenance reminder done?
   A: Ask to mark it done. Confirm shows the reminder name. Delete is only when you ask to remove it.
 - Q: Which holidays have no rate?
