@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Domain move: kamehomes.space → kamespace.com (DNS, Vercel, email, auth, third parties)'
 status: in-progress
 tags: [planning, domain, dns, vercel, email, resend, oauth, seo, pwa, third-party, cutover]
-updated: 2026-11-03
+updated: 2026-11-04
 depends_on: [kamespace-01-legacy-prod-config-secrets-backup]
 blocks: [kamespace-02-legacy-prod-to-mt-prod-cutover]
 followed_by: [kamespace-05-google-services-verification]
@@ -16,7 +16,7 @@ followed_by: [kamespace-05-google-services-verification]
 - **Code side complete:** K-01…K-15, plus DA-01…DA-06, MK-01, SE-01/SE-02, X-01…X-03, Q-01…Q-03, MT-03. Prod scan for stored legacy-origin URLs: **0 hits**.
 - **Email side complete:** `kamespace.com` + `inbound.kamespace.com` verified, DMARC reports to the support Gmail, sender `mail@kamespace.com`, reply-to and support inbox `kameworks.tech@gmail.com`.
 - **Auth side complete:** site URL `https://kamespace.com`, redirect allow-list covers apex/www/alias/previews/localhost, mailer templates host-free, Google client origins on `kamespace.com`.
-- **Remaining:** 27 operator items only (DNS/registrar, Cloudflare Turnstile, Google consoles, Meta consoles, PayMongo, PostHog/Sentry/Telegram, comms). None block production.
+- **Remaining:** 24 operator items only (DNS/registrar, Cloudflare Turnstile, Google consoles, Meta consoles, PayMongo, PostHog/Sentry/Telegram, comms). None block production.
 
 **Series.** Plan 4 of 5 in the Kame Space launch series. The number is the order the plans were written and the order their **final sign-off** happens. Execution overlaps: most of this plan must finish **before** plan 02's cutover day (see §3).
 

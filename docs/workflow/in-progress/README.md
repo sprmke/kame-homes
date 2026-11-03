@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-03
+updated: 2026-11-04
 stage: in-progress
 kind: reference
 ---
@@ -18,6 +18,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 **Moved out 2026-11-03:** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) and [`kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) → **done**. Legacy data, storage, auth, domains, email and repo are on the new stack; the secrets backup is closed with its optional tails deferred. Deferred in 02: Maps Embed API, property photos, PayMongo approval, 30-day decommission.
 
 **Moved out 2026-11-03:** [`kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) → **done**. Google sign-in brand verification approved and published. Remaining Maps/Gemini/Fonts/legacy items split to [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md), not pre-production blockers.
+
+**Updated 2026-11-03:** 03 rebrand and 04 domain move are **repo-complete**. Production is live on `kamespace.com`; the brand guard (`bun run check:brand --check`) runs in CI with 0 hits; support email is `kameworks.tech@gmail.com` everywhere. 03 has 5 content/QA items left (mobile pass, social renders, narration audio, full CI gate). 04 has 24 operator/console items left (DNS, Turnstile, Google/Meta/PayMongo, PostHog/Sentry/Telegram, comms).
 
 **Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 01 is closed; 02 (legacy → mt-prod cutover) is closed. 03 rebrand and 04 domain move remain here. 04's DNS/Resend/Auth phases gate T0.
 
