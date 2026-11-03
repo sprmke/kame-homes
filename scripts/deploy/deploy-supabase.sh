@@ -161,7 +161,7 @@ run_db_push() {
   if [[ "$INCLUDE_ALL" == true ]]; then
     push_args+=(--include-all)
   fi
-  echo "→ supabase ${push_args[*]}"
+  print_masked_command "${push_args[@]}"
   "${SUPABASE[@]}" "${push_args[@]}"
 }
 
