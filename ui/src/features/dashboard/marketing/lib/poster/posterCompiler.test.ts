@@ -35,8 +35,8 @@ const FORMATS: DesignTemplateFormat[] = [
 ];
 
 const RICH_FACTS: PosterFacts = buildPosterFacts({
-  propertyName: 'Kame Home',
-  brandName: 'Kame Home',
+  propertyName: 'Sample Stay',
+  brandName: 'Sample Stay',
   property: {
     residenceName: 'Azure North',
     city: 'San Fernando',
