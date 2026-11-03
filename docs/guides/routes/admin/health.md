@@ -102,10 +102,10 @@ Full walkthrough: `docs/guides/testing/observability-manual.md`.
   `VITE_INBOX_MOCK_DATA=true`, `VITE_DISABLE_IMAGE_OPTIMIZATION=1`; plus platform
   settings (maintenance mode, signups, authenticated rate-limit enforcement) and AI switches (platform
   AI on, quota enforcement). Rows with a fix link go to Platform settings or the AI console.
-- **Jobs.** Every `serveCronPost` function writes one row per run to `system_job_heartbeats` via
-  `record_system_job_heartbeat`. `sd-refund-cron`, `calendar-sync-cron` and
-  `superhost-assessment-cron` use raw `serve()` handlers and still show **Unknown** until the same
-  heartbeat call is wired into their cron paths (follow-up). Auth failures are not recorded. The
+- **Jobs.** Every scheduled function writes one row per run to `system_job_heartbeats` via
+  `record_system_job_heartbeat`: `serveCronPost` for wrapper jobs, and the raw
+  `sd-refund-cron` / `calendar-sync-cron` / `superhost-assessment-cron` handlers record only their
+  unscoped cron runs (scoped admin runs are not counted). Auth failures are not recorded. The
   expected interval comes from the matching `cron.job` schedule (matched by `/functions/v1/<fn>` in the
   command). Status order: not used in production → off; no pg_cron → unknown; not scheduled / paused →
   warn in production, off elsewhere; 3+ consecutive failures → error; no heartbeat → unknown; last run
