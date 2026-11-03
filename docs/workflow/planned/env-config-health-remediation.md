@@ -8,9 +8,9 @@ stage: planned
 
 # Environment and configuration health remediation
 
-**Status 2026-11-04:** production backend, Vercel env and the local profile are applied. Remaining:
-create local Google credentials (guide: [`local-google-setup.md`](../../guides/testing/local-google-setup.md))
-and, as a follow-up, heartbeat wiring for the three raw cron handlers.
+**Status 2026-11-04:** complete. Production backend, Vercel env, local profile, registry
+coverage and cron heartbeats are applied. Optional local-only action left to the operator:
+create separate Google credentials ([guide](../../guides/testing/local-google-setup.md)).
 
 Goal: `/admin/health` shows no avoidable errors in production, every value it inspects is a
 real, current value, and a local checkout runs on local/test credentials only.
@@ -214,9 +214,9 @@ expects the two legacy files to exist.
 - `platform_settings`: authenticated rate limit enforced at 300/min.
 - Vercel production env deduplicated and corrected, production redeployed.
 - Local Resend key added to `supabase/.env.local` with `RESEND_FROM_EMAIL=onboarding@resend.dev`.
-- `serveCronPost` now records a heartbeat for every run (19 jobs). `sd-refund-cron`,
-  `calendar-sync-cron` and `superhost-assessment-cron` keep raw `serve()` handlers and need the
-  same wiring in a follow-up; they stay **Unknown** on the Jobs page until then.
+- `serveCronPost` records a heartbeat for every run (19 jobs), and the three raw handlers
+  (`sd-refund-cron`, `calendar-sync-cron`, `superhost-assessment-cron`) record their unscoped
+  cron runs too.
 
 ## Verification
 
