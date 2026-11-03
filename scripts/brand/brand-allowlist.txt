@@ -105,3 +105,6 @@ ui/index.html:alternateName  # documents the former product name for search engi
 docs/workflow/in-progress/production-readiness/modules/**  # readiness audit records
 scripts/dev/capture-readme-extra.mjs  # seed property slug in screenshot URLs
 ui/e2e/features/brand/brandSmoke.spec.ts  # asserts the retired name is absent
+
+supabase/functions/_shared/emailBrandName_test.ts  # tests the retired-name list
+docs/GLOSSARY.md  # documents the former name and stable identifiers

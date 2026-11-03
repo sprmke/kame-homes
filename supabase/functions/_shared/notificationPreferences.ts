@@ -187,7 +187,10 @@ export async function loadNotificationPreferences(
   const { data, error } = await sb
     .from('notification_preferences')
     .select('user_id, muted_groups, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone')
-    .in('user_id', userIds);
+    .in('user_id', userIds)
+    // A recipient set is one booking or one org's staff, never the whole table. The cap is a
+    // guard, not a page size: 500 preferences rows is far past any real fan-out.
+    .limit(500);
   if (error) {
     console.error('[notificationPreferences] batch load failed:', error.message);
     return map;

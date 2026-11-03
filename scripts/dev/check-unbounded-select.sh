@@ -171,6 +171,10 @@ ALLOWLIST=(
   'calendar-sync-settings/index.ts'
   'create-organization/index.ts'
   'dashboard-assistant-conversations/index.ts'
+  # Only the insert-returning `.select('id, step_index')` is unbounded to the line-scan:
+  # it returns exactly the rows just written, and the array is already capped by
+  # assistantMaxPlanSteps. The file's other selects are `.maybeSingle()` or `.limit(20)`.
+  'dashboard-assistant-chat/index.ts'
   'decide-contract-consideration/index.ts'
   'delete-organization/index.ts'
   'generate-marketing-media/index.ts'

@@ -148,7 +148,10 @@ async function handlePlanConfirm(
     .from('ai_dashboard_assistant_pending_actions')
     .select('id, user_id, tool_name, input_payload, risk_tier, step_index, depends_on, selected')
     .eq('plan_id', planId)
-    .order('step_index', { ascending: true });
+    .order('step_index', { ascending: true })
+    // Plan steps are capped by assistantMaxPlanSteps (single digits); the limit only keeps
+    // a corrupt row set from being loaded whole.
+    .limit(50);
   if (stepsError || !steps || steps.length === 0) {
     return jsonError(req, 'Plan has no steps', 404);
   }

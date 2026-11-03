@@ -11,6 +11,10 @@ import { createServiceClient } from './orgAuth.ts';
 export type GuestRequestKind = 'booking_inquiry' | 'early_checkin_late_checkout';
 export type GuestRequestStatus = 'pending' | 'approved' | 'declined';
 
+/** Explicit column list: `guest_requests` is narrow and every field is part of the row type. */
+const GUEST_REQUEST_COLUMNS =
+  'id, organization_id, property_id, conversation_id, guest_user_id, booking_id, kind, status, payload, resolved_at, resolved_by, created_at';
+
 export type GuestRequestRow = {
   id: string;
   organization_id: string;
@@ -46,7 +50,7 @@ export async function createGuestRequest(input: {
       kind: input.kind,
       payload: input.payload,
     })
-    .select('*')
+    .select(GUEST_REQUEST_COLUMNS)
     .single();
   if (error || !data) {
     throw new Error(`Failed to create guest request: ${error?.message ?? 'unknown error'}`);
@@ -60,9 +64,12 @@ export async function listGuestRequestsForConversation(
 ): Promise<GuestRequestRow[]> {
   const { data, error } = await createServiceClient()
     .from('guest_requests')
-    .select('*')
+    .select(GUEST_REQUEST_COLUMNS)
     .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    // One conversation's requests. The cap is a guard, not a page size: a thread with more
+    // than 500 guest requests does not exist, and the ordering has to stay oldest-first.
+    .limit(500);
   if (error) throw new Error(`Failed to load guest requests: ${error.message}`);
   return (data ?? []) as GuestRequestRow[];
 }
@@ -84,7 +91,7 @@ export async function resolveGuestRequest(input: {
     .eq('id', input.id)
     .eq('organization_id', input.organizationId)
     .eq('status', 'pending')
-    .select('*')
+    .select(GUEST_REQUEST_COLUMNS)
     .maybeSingle();
   if (error) throw new Error(`Failed to resolve guest request: ${error.message}`);
   return (data as GuestRequestRow | null) ?? null;
