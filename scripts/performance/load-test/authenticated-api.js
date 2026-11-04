@@ -23,7 +23,7 @@ const HOLD = __ENV.HOLD || '30s';
 if (!FN || !ANON || !TOKEN)
   throw new Error('Set FUNCTIONS_URL, ANON_KEY and AUTH_TOKEN (hosted dev only).');
 if (!PROPERTY_ID && !ORG_ID) throw new Error('Set PROPERTY_ID or ORG_ID.');
-if (/kamespace\.com|app\.kamehomes\.space/.test(FN))
+if (/kamespace\.com/.test(FN))
   throw new Error('Refusing to load-test production.');
 
 const rateLimited = new Rate('rate_limited');

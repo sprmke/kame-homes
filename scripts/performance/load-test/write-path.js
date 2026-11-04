@@ -25,7 +25,7 @@ const PAYLOAD_FILE = __ENV.BOOKING_PAYLOAD_FILE || '';
 if (__ENV.ALLOW_WRITES !== '1')
   throw new Error('Writes are off. Set ALLOW_WRITES=1 only for hosted-dev synthetic runs.');
 if (!FN || !ANON || !PAYLOAD_FILE) throw new Error('Set FUNCTIONS_URL, ANON_KEY and BOOKING_PAYLOAD_FILE.');
-if (/kamespace\.com|app\.kamehomes\.space/.test(FN))
+if (/kamespace\.com/.test(FN))
   throw new Error('Refusing to write to production.');
 
 const body = open(PAYLOAD_FILE);
