@@ -40,8 +40,8 @@ function buildOtpBodyHtml(input: {
     : `Your team member, <strong>${actorName}</strong> (${actorRole}), is saving <strong>${settingLabel}</strong> for <strong>${listingName}</strong>.`;
 
   const cautionLine = input.isOwnerActor
-    ? 'If you did not expect this, do not share this code with anyone. Review your recent activity and this property’s payment settings to confirm nothing unexpected changed.'
-    : `If you did not expect this, do not share this code with anyone. Contact <strong>${actorName}</strong> before approving this payment settings change.`;
+    ? `If you did not expect this, do not share this code with anyone. Review your recent activity and this property’s ${settingLabel.toLowerCase()} to confirm nothing unexpected changed.`
+    : `If you did not expect this, do not share this code with anyone. Contact <strong>${actorName}</strong> before approving this ${settingLabel.toLowerCase()} change.`;
 
   return `<p style="${BODY_P}">Hi ${ownerName},</p>
 <p style="${BODY_P}">${actionLine}</p>
@@ -51,9 +51,13 @@ function buildOtpBodyHtml(input: {
 }
 
 /** Inbox subject — short action + listing. */
-export function settingsVerificationOtpEmailSubject(listingName: string): string {
+export function settingsVerificationOtpEmailSubject(
+  listingName: string,
+  settingLabel = 'Payment settings'
+): string {
   const name = listingName.trim() || 'your listing';
-  return `Payment verification code - ${name}`;
+  const label = settingLabel.trim() || 'Payment settings';
+  return `${label} verification code - ${name}`;
 }
 
 async function resolveBrandingPropertyId(
@@ -128,7 +132,7 @@ export async function sendSettingsVerificationOtpEmail(opts: {
   const html = await renderPropertyTemplateSendEmail({
     propertyId: brandingPropertyId,
     templateKey: 'email-booking-acknowledgement',
-    emailTitle: 'Payment verification',
+    emailTitle: `${opts.settingLabel} verification`,
     contentOverride,
     branding,
     placeholderVars: {
@@ -144,7 +148,7 @@ export async function sendSettingsVerificationOtpEmail(opts: {
     from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
     to: [owner.email.trim()],
     reply_to: settings.emailReplyTo,
-    subject: settingsVerificationOtpEmailSubject(opts.listingName),
+    subject: settingsVerificationOtpEmailSubject(opts.listingName, opts.settingLabel),
     html,
     errorLabel: 'email',
   });

@@ -103,7 +103,7 @@ Resend state (2026-11-02): `kamespace.com` added with sending enabled and receiv
 
 - [ ] `site_url` → `https://kamespace.com` (currently `https://dev.kamehomes.space`). Redirect allow-list already contains `kamespace.com/**` and `www.kamespace.com/**`.
 - [ ] Google provider: production OAuth client with redirect `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback` (current client id is the legacy/shared one).
-- [ ] After DNS: verify Resend domains, then update `RESEND_FROM_EMAIL=mail@kamespace.com` and `RESEND_APPROVAL_INBOUND_DOMAIN=inbound.kamespace.com` on `fwor`, and redeploy `send-*`/approval functions.
+- [x] After DNS: verify Resend domains, then update `RESEND_FROM_EMAIL` / `RESEND_APPROVAL_INBOUND_DOMAIN` on `fwor`. ✅ From is now `mail@notify.kamespace.com` (verified subdomain); inbound stays `inbound.kamespace.com`.
 
 ## 1.2 Rehearsal project (optional)
 

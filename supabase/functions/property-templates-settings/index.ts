@@ -33,6 +33,11 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
 import type { AuthenticatedUser } from '../_shared/orgAuth.ts';
 import type { PropertyAccessContext } from '../_shared/orgAuth.ts';
+import {
+  PROPERTY_TEMPLATES_SUDO_FINGERPRINT,
+  PROPERTY_TEMPLATES_VERIFICATION_ACTION,
+  requireSettingsVerificationToken,
+} from '../_shared/settingsVerification.ts';
 
 function emitTemplateActivity(
   req: Request,
@@ -72,6 +77,37 @@ async function maybeGatePublicPagesAutosave(
     return null;
   } catch (err) {
     return catchPlanFeatureError(req, err);
+  }
+}
+
+/**
+ * Content writes from the Templates page require org-owner OTP (same gate as
+ * payment settings), then a 15-minute fixed sudo token for further saves.
+ * Stay Guide / Page Editor autosave (`publicPagesAutosaveGate`) stays ungated.
+ */
+async function requireTemplateContentOtp(input: {
+  req: Request;
+  body: Record<string, unknown>;
+  organizationId: string;
+  propertyId: string;
+}): Promise<Response | null> {
+  if (input.body.publicPagesAutosaveGate === true) return null;
+  const token =
+    typeof input.body.settingsVerificationToken === 'string'
+      ? input.body.settingsVerificationToken
+      : '';
+  try {
+    await requireSettingsVerificationToken({
+      token,
+      organizationId: input.organizationId,
+      propertyId: input.propertyId,
+      patchFingerprint: PROPERTY_TEMPLATES_SUDO_FINGERPRINT,
+      expectedAction: PROPERTY_TEMPLATES_VERIFICATION_ACTION,
+    });
+    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Verification required';
+    return jsonError(input.req, msg, 403);
   }
 }
 
@@ -274,9 +310,16 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
     const resetPerm: TeamPermissionId =
       builtin.category === 'email' ? 'templates.email:edit' : 'templates.standard:edit';
     const access = await resolveScopedPropertyAccess(req, resetPerm);
-    const { property } = access;
+    const { property, org } = access;
     const gate = await maybeGatePublicPagesAutosave(req, property.id, body);
     if (gate) return gate;
+    const otpGate = await requireTemplateContentOtp({
+      req,
+      body,
+      organizationId: org.id,
+      propertyId: property.id,
+    });
+    if (otpGate) return otpGate;
     await upsertPropertyTemplateRow({
       propertyId: property.id,
       templateKey,
@@ -294,7 +337,7 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
 
   if (body.action === 'create') {
     const access = await resolveScopedPropertyAccess(req, 'templates.custom:add');
-    const { property } = access;
+    const { property, org } = access;
     try {
       await requirePropertyFeature(property.id, 'customTemplates');
     } catch (err) {
@@ -328,6 +371,14 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
         return jsonError(req, 'Folder not found', 404);
       }
     }
+
+    const otpGate = await requireTemplateContentOtp({
+      req,
+      body,
+      organizationId: org.id,
+      propertyId: property.id,
+    });
+    if (otpGate) return otpGate;
 
     const templateKey = `custom-${crypto.randomUUID()}`;
     await upsertPropertyTemplateRow({
@@ -367,7 +418,7 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
 
   if (isCustomTemplateKey(templateKey)) {
     const access = await resolveScopedPropertyAccess(req, 'templates.custom:edit');
-    const { property } = access;
+    const { property, org } = access;
     const gate = await maybeGatePublicPagesAutosave(req, property.id, body);
     if (gate) return gate;
     try {
@@ -391,6 +442,14 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
         ? existingRow.category
         : 'custom';
 
+    const otpGate = await requireTemplateContentOtp({
+      req,
+      body,
+      organizationId: org.id,
+      propertyId: property.id,
+    });
+    if (otpGate) return otpGate;
+
     await upsertPropertyTemplateRow({
       propertyId: property.id,
       templateKey,
@@ -412,7 +471,7 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
     const editPerm: TeamPermissionId =
       builtin.category === 'email' ? 'templates.email:edit' : 'templates.standard:edit';
     const access = await resolveScopedPropertyAccess(req, editPerm);
-    const { property } = access;
+    const { property, org } = access;
     const gate = await maybeGatePublicPagesAutosave(req, property.id, body);
     if (gate) return gate;
     if (builtin.category === 'email') {
@@ -424,6 +483,13 @@ serveAuthenticated('property-templates-settings', async (req, user) => {
         throw err;
       }
     }
+    const otpGate = await requireTemplateContentOtp({
+      req,
+      body,
+      organizationId: org.id,
+      propertyId: property.id,
+    });
+    if (otpGate) return otpGate;
     await upsertPropertyTemplateRow({
       propertyId: property.id,
       templateKey,

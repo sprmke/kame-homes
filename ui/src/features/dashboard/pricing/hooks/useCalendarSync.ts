@@ -19,8 +19,13 @@ import {
   type CalendarSyncClientError,
   type FeedSyncResult,
 } from '@/features/dashboard/pricing/lib/calendarSyncApi';
+import { suppressCalendarConflictRealtimeToasts } from '@/features/dashboard/pricing/lib/calendarConflictToastGate';
 import { PROPERTY_PRICING_QUERY_KEY } from '@/features/dashboard/pricing/lib/propertyPricingApi';
 import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
+
+function conflictLabel(count: number): string {
+  return count === 1 ? '1 conflict' : `${count} conflicts`;
+}
 
 function toastSyncResult(r: FeedSyncResult): void {
   if (!r.ok) {
@@ -31,10 +36,15 @@ function toastSyncResult(r: FeedSyncResult): void {
     toast.success('Already up to date');
     return;
   }
-  toast.success(
-    `Synced: ${r.blocksCreated} added, ${r.blocksUpdated} changed, ${r.blocksRemoved} removed` +
-      (r.conflicts ? `, ${r.conflicts} conflict(s)` : '')
-  );
+  const summary = `${r.blocksCreated} added, ${r.blocksUpdated} changed, ${r.blocksRemoved} removed`;
+  if (r.conflicts > 0) {
+    suppressCalendarConflictRealtimeToasts();
+    toast.warning(
+      `Synced: ${summary}. ${conflictLabel(r.conflicts)}. Check Notifications or Recent activity.`
+    );
+    return;
+  }
+  toast.success(`Synced: ${summary}`);
 }
 
 function handleCalendarSyncError(
@@ -79,6 +89,10 @@ export function useAddCalendarFeed() {
   return useMutation({
     mutationFn: (input: { provider: CalendarFeedProvider; label?: string; icsUrl: string }) =>
       addCalendarFeed(propertyId!, input),
+    onMutate: () => {
+      // Cover the race where conflict notifications arrive over realtime before onSuccess.
+      suppressCalendarConflictRealtimeToasts();
+    },
     onSuccess: (data) => {
       invalidate();
       const sync = data.initialSync;
@@ -98,10 +112,14 @@ export function useAddCalendarFeed() {
         toast.success('Calendar connected');
         return;
       }
-      toast.success(
-        `Calendar connected: ${sync.blocksCreated} imported` +
-          (sync.conflicts ? `, ${sync.conflicts} conflict(s)` : '')
-      );
+      if (sync.conflicts > 0) {
+        suppressCalendarConflictRealtimeToasts();
+        toast.warning(
+          `Calendar connected: ${sync.blocksCreated} imported. ${conflictLabel(sync.conflicts)}. Check Notifications or Recent activity.`
+        );
+        return;
+      }
+      toast.success(`Calendar connected: ${sync.blocksCreated} imported`);
     },
     onError: (error: Error) =>
       handleCalendarSyncError(error, 'Could not connect calendar', queryClient),
@@ -158,6 +176,9 @@ export function useSyncFeedNow() {
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (feedId: string) => syncFeedNow(propertyId!, feedId),
+    onMutate: () => {
+      suppressCalendarConflictRealtimeToasts();
+    },
     onSuccess: (data) => {
       invalidate();
       toastSyncResult(data.result);
