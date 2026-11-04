@@ -94,7 +94,10 @@ const GATE_COVERAGE: Record<PlanFeatureKey, Coverage> = {
     server: ['public-page-configs', 'get-public-showcase', 'issue-guest-stay-guide-token'],
   },
   aiDashboardAssistant: {
-    client: ['dashboard/ai-assistant/hooks/useAiAssistantAccess.ts'],
+    client: [
+      'dashboard/ai-assistant/hooks/useAiAssistantAccess.ts',
+      'dashboard/org/components/org-settings/OrgAiSettingsSection.tsx',
+    ],
     server: ['dashboard-assistant-chat', 'dashboard-assistant-confirm'],
   },
   aiReceptionist: {

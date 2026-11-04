@@ -167,7 +167,7 @@ Progressive disclosure:
 1. Master off → only the org enable toggle (no usage or feature blocks).
 2. Master on → **Usage** (calls, cost, credits) + **Dashboard assistant** group + **Voice receptionist** group.
 3. Assistant / voice off → only that feature's enable toggle inside its group.
-4. Assistant on → assistant usage, per-property disable list, **Save assistant settings**.
+4. Assistant on and neither lock below applies → assistant usage, per-property disable list, **Save assistant settings**.
 5. Voice on → voice picker, **Test voice**, persona prompt, per-property disable list, 30-day usage, **Save voice settings**.
 
 All AI configuration lives here. Property Settings has no AI section.
@@ -187,11 +187,18 @@ Usage summary: `GET ai-platform-usage` (today, this month, per-feature breakdown
 
 **Dashboard assistant (nested)**
 
-Independent opt-in inside the same card. Also gated by a super-admin kill switch.
+Independent opt-in inside the same card. Two locks the host cannot lift keep the switch disabled, so nobody can turn on an assistant that will not run:
+
+| Lock     | When                                                                                                                                                                                              | What the host sees                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Platform | `ai_dashboard_assistant_global_settings.enabled` is false (super admin kill switch), or `dashboard_assistant` is not in `ai_platform_global_settings.allowed_features` (`aiBlocker = 'platform'`) | "Turned off for all organizations. Contact support to turn it on." Switch disabled, no usage or Save  |
+| Plan     | Org plan lacks `aiDashboardAssistant` (Pro+). The group already knows this from `featureGate`                                                                                                     | "Not included in your plan. Upgrade" switch disabled; an org that already has it on may switch it off |
+
+Both locks and the body-visibility rule live in `resolveAssistantSettingsState` (`org/lib/aiAssistantSettingsState.ts`), unit-tested. Usage, the per-property list, and **Save assistant settings** render only when the assistant is on and neither lock applies.
 
 | Field                    | Storage                                                     | Notes                                                                                                                                                 |
 | ------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Assistant enabled        | `ai_dashboard_assistant_org_settings.enabled`               | Org owner/admin; hidden on `/admin/*` regardless                                                                                                      |
+| Assistant enabled        | `ai_dashboard_assistant_org_settings.enabled`               | Org owner/admin; hidden on `/admin/*` regardless. Switch disabled while the platform or plan lock applies                                             |
 | Disable on properties    | `ai_dashboard_assistant_org_settings.disabled_property_ids` | Per-property opt-out                                                                                                                                  |
 | Daily / monthly messages | resolved limit (read-only)                                  | Set by the platform. Hitting the cap shows an upgrade line in the chat panel                                                                          |
 | Daily write-action limit | resolved limit (read-only)                                  | Counts confirmed/auto-executed writes. Enforced server-side (atomic counter): once reached, the assistant commits no more writes that day and says so |
