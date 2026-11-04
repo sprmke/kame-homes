@@ -53,6 +53,31 @@ describe('progressSavePayloadForView', () => {
     });
   });
 
+  it('keeps pricing money fields as numbers (edge rejects strings)', () => {
+    const patch = progressSavePayloadForView(
+      { ...booking, has_pets: false, need_parking: false } as BookingRow,
+      'pricing',
+      {
+        pricing: {
+          booking_rate: 1500,
+          down_payment: 1500,
+          security_deposit: 1500,
+          pet_fee: 0,
+          parking_rate_guest: 0,
+          guest_additional_fee: 0,
+        },
+        parking: null,
+        guestBalance: null,
+        sdRefund: null,
+        sdRefundGuest: null,
+        surpriseDecorStaffAck: false,
+      }
+    );
+    expect(typeof patch?.booking_rate).toBe('number');
+    expect(typeof patch?.down_payment).toBe('number');
+    expect(typeof patch?.security_deposit).toBe('number');
+  });
+
   it('sets surprise decor ack when staff confirms', () => {
     const patch = progressSavePayloadForView(booking, 'pricing', {
       pricing: {
