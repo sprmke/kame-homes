@@ -9,8 +9,7 @@ import { loadAuthUserProfile } from './authUserProfile.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { PLATFORM_BRAND_NAME } from './platformBrand.ts';
 import { escapeHtml, loadEmailTemplate, replacePlaceholders } from './renderEmailHtml.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 export async function sendOrgVerificationRejectedEmail(opts: {
   supabase: SupabaseClient;
@@ -20,14 +19,14 @@ export async function sendOrgVerificationRejectedEmail(opts: {
 }): Promise<void> {
   const owner = await loadAuthUserProfile(opts.supabase, opts.ownerId);
   if (!owner.email?.trim()) {
-    console.warn('[orgVerificationEmail] owner has no email — skip rejection notify');
+    console.warn('[orgVerificationEmail] owner has no email - skip rejection notify');
     return;
   }
 
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!resendKey || !fromEmail) {
-    console.warn('[orgVerificationEmail] RESEND_API_KEY or RESEND_FROM_EMAIL missing — skip');
+    console.warn('[orgVerificationEmail] RESEND_API_KEY or RESEND_FROM_EMAIL missing - skip');
     return;
   }
 
@@ -55,22 +54,11 @@ export async function sendOrgVerificationRejectedEmail(opts: {
     brandColor: null,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [owner.email],
-      subject: `Host verification declined — ${opts.organizationName}`,
-      html,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [owner.email],
+    subject: `Host verification declined - ${opts.organizationName}`,
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend failed (${res.status}): ${body.slice(0, 200)}`);
-  }
 }

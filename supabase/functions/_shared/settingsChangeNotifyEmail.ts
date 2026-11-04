@@ -13,8 +13,7 @@ import {
 } from './settingsChangeNotifyRecipients.ts';
 import { resolveSettingsChangeActor } from './settingsVerificationActor.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 const NOTICE_BODY_TEMPLATE = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;"><strong>{{setting_label}}</strong> for <strong>{{listing_name}}</strong> was updated.</p>
 <p style="margin:0 0 8px 0;font-size:15px;line-height:1.6;color:#333333;">Updated by: <strong>{{actor_name}}</strong> ({{actor_role}})</p>
@@ -64,7 +63,7 @@ export async function sendSettingsChangeNoticeEmails(opts: {
 
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   if (!resendKey) {
-    console.warn('[settingsChangeNotifyEmail] RESEND missing — skip');
+    console.warn('[settingsChangeNotifyEmail] RESEND missing - skip');
     return;
   }
 
@@ -106,27 +105,16 @@ export async function sendSettingsChangeNoticeEmails(opts: {
     },
   });
 
-  const subject = `${opts.listingName} — ${opts.settingLabel} updated`;
+  const subject = `${opts.listingName} - ${opts.settingLabel} updated`;
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
-      to: opts.recipients,
-      reply_to: settings.emailReplyTo,
-      subject,
-      html,
-    }),
+  await sendResendEmail({
+    from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
+    to: opts.recipients,
+    reply_to: settings.emailReplyTo,
+    subject,
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error('[settingsChangeNotifyEmail] send failed', res.status, body.slice(0, 200));
-  }
 }
 
 export async function notifyPropertyPaymentSettingsChanged(opts: {

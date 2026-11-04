@@ -17,7 +17,7 @@ describe('validateImportFieldDraft', () => {
   });
 });
 
-describe('validateImportFieldDraft — stay dates', () => {
+describe('validateImportFieldDraft - stay dates', () => {
   const base = {
     mappedData: {} as Record<string, string | null>,
     drafts: {} as Record<string, string>,

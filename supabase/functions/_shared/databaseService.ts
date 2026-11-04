@@ -1417,7 +1417,7 @@ export class DatabaseService {
       const pg = `${error.code ?? ''} ${error.message ?? ''}`.trim();
       throw new Error(
         `Failed to load Telegram marketing settings${pg ? `: ${pg}` : ''}. ` +
-          `On production this usually means the table is missing — run migration ` +
+          `On production this usually means the table is missing - run migration ` +
           `20260614120000_telegram_marketing_settings.sql (or “supabase db push”) on this project.`
       );
     }
@@ -1511,7 +1511,7 @@ export class DatabaseService {
       const pg = `${error.code ?? ''} ${error.message ?? ''}`.trim();
       throw new Error(
         `Failed to load Telegram staff settings${pg ? `: ${pg}` : ''}. ` +
-          `On production this usually means the table is missing — run migration ` +
+          `On production this usually means the table is missing - run migration ` +
           `20260622120000_telegram_staff_settings.sql (or "supabase db push") on this project.`
       );
     }

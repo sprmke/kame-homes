@@ -42,7 +42,7 @@ export function VideoSuggestionPreview({
           `,
         }}
       />
-      {/* Bottom scrim — same device as live video overlays */}
+      {/* Bottom scrim - same device as live video overlays */}
       <div
         className="absolute inset-x-0 bottom-0 h-[58%]"
         style={{

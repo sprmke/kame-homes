@@ -39,7 +39,7 @@ Template choice and page config are bulk-copyable via org **Properties → Copy 
 
 ## Host-facing knowledge
 
-Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property — use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). Below that, **Other guest pages** covers calendar, booking form, messages, SD refund, guest review, and **Find parking** (stay-scoped marketplace entry) — use **Copy link** or **Open page**. Stay guide, SD refund, guest review, and find-parking links are **per booking** — guests get them by email or from the booking workflow; copy on those cards is the URL pattern or host preview.
+Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property - use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). Below that, **Other guest pages** covers calendar, booking form, messages, SD refund, guest review, and **Find parking** (stay-scoped marketplace entry) - use **Copy link** or **Open page**. Stay guide, SD refund, guest review, and find-parking links are **per booking** - guests get them by email or from the booking workflow; copy on those cards is the URL pattern or host preview.
 
 **Common host questions**
 
@@ -48,17 +48,17 @@ Public Pages lists every guest URL for this property. At the top, **Design your 
 - Q: What is Showcase?
   A: A shareable one-page landing link with animated templates. Separate from the marketing listing. Growth plan and above.
 - Q: Why does the Showcase guest link ask me to upgrade?
-  A: The live Showcase page needs Pro or above. You can still open **Edit** on Free to explore the editor — saving and the public link unlock on Pro.
+  A: The live Showcase page needs Pro or above. You can still open **Edit** on Free to explore the editor - saving and the public link unlock on Pro.
 - Q: Why doesn't the SD refund or find-parking copy link work for guests?
   A: Those URLs need a **booking ID**. Guests receive the full link by email; hosts copy the link from a booking in the workflow panel.
 - Q: Can I change how the stay guide or listing looks?
-  A: Open **Public Pages → Design your pages → Stay Guide or Property → Edit**. For Stay Guide: pick a template, reorder/hide sections, set palette/type/motion, and edit each chapter's text + photo — the same controls as Showcase. For Property: manage photos, brand color, and listing content (also editable in **Property Settings** — same saved data).
+  A: Open **Public Pages → Design your pages → Stay Guide or Property → Edit**. For Stay Guide: pick a template, reorder/hide sections, set palette/type/motion, and edit each chapter's text + photo - the same controls as Showcase. For Property: manage photos, brand color, and listing content (also editable in **Property Settings** - same saved data).
 - Q: How do I get a shareable link for the stay guide?
   A: There isn't one link you can reuse. Each guest gets their own personal link automatically once their booking reaches ready-for-check-in. The Stay Guide card here is a preview for you.
 - Q: Where do I edit the actual text (house rules, check-in steps)?
   A: **Public Pages → Stay Guide → Edit → Content**, or **Templates** for the same body copy. Section photos upload only in the Stay Guide Page Editor.
 - Q: Is there a Save button in the page editor?
-  A: On **Pro and above**, no — changes save automatically. You'll see **Unsaved**, then **Saved**, in the top-right of the editor. On **Free / Starter**, autosave isn't included, so a **Save** button appears once you have unsaved changes — clicking it (or **Save & leave** in the leave dialog) opens the upgrade prompt for Pro instead of saving. You can still **Discard changes** and leave, or stay and keep editing locally until you upgrade.
+  A: On **Pro and above**, no - changes save automatically. You'll see **Unsaved**, then **Saved**, in the top-right of the editor. On **Free / Starter**, autosave isn't included, so a **Save** button appears once you have unsaved changes - clicking it (or **Save & leave** in the leave dialog) opens the upgrade prompt for Pro instead of saving. You can still **Discard changes** and leave, or stay and keep editing locally until you upgrade.
 - Q: Can I preview how the page looks on a phone?
   A: Yes. Use the desktop and phone icons. On a phone they’re in the bar above the bottom tabs, next to **Edit content**.
 - Q: Where do I change Stay Guide text and section photos?

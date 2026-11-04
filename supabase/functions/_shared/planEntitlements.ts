@@ -334,7 +334,7 @@ function assertSubscriptionAllowsPaidFeatures(
   if (subscriptionStatusBlocksFeatureGates(entitlements.status)) {
     throw new PlanFeatureRequiredError(
       feature,
-      'Subscription suspended — pay from Plans & Billing to restore access'
+      'Subscription suspended - pay from Plans & Billing to restore access'
     );
   }
 }
@@ -985,7 +985,7 @@ export async function requireOrgPropertyFeature(
   if (subscription && subscriptionStatusBlocksFeatureGates(subscription.status)) {
     throw new PlanFeatureRequiredError(
       feature,
-      'Subscription suspended — pay from Plans & Billing to restore access'
+      'Subscription suspended - pay from Plans & Billing to restore access'
     );
   }
   const allowed = await orgHasPropertyWithFeature(orgId, feature);
@@ -1172,7 +1172,7 @@ export async function createOrgSubscription(
   if (existingOrgSubError) throw new Error(existingOrgSubError.message);
   if (existingOrgSub) {
     throw new Error(
-      'This organization already has an active subscription — use changeOrgSubscription instead'
+      'This organization already has an active subscription - use changeOrgSubscription instead'
     );
   }
 

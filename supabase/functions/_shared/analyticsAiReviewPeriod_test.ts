@@ -4,7 +4,7 @@ import {
   resolveCurrentAiReviewPeriod,
 } from './analyticsAiReviewPeriod.ts';
 
-Deno.test('currentAiReviewPeriodRange — week is Sun–Sat containing today', () => {
+Deno.test('currentAiReviewPeriodRange - week is Sun–Sat containing today', () => {
   // 2026-09-27 is a Sunday
   const range = currentAiReviewPeriodRange('week', '2026-09-27');
   if (range.from !== '2026-09-27' || range.to !== '2026-10-03') {
@@ -16,7 +16,7 @@ Deno.test('currentAiReviewPeriodRange — week is Sun–Sat containing today', (
   }
 });
 
-Deno.test('currentAiReviewPeriodRange — month and year', () => {
+Deno.test('currentAiReviewPeriodRange - month and year', () => {
   const month = currentAiReviewPeriodRange('month', '2026-09-15');
   if (month.from !== '2026-09-01' || month.to !== '2026-09-30') {
     throw new Error(`unexpected month ${JSON.stringify(month)}`);
@@ -27,7 +27,7 @@ Deno.test('currentAiReviewPeriodRange — month and year', () => {
   }
 });
 
-Deno.test('resolveCurrentAiReviewPeriod — accepts current month only', () => {
+Deno.test('resolveCurrentAiReviewPeriod - accepts current month only', () => {
   const today = '2026-09-27';
   const month = currentAiReviewPeriodRange('month', today);
   const ok = resolveCurrentAiReviewPeriod(month.from, month.to, today);
@@ -50,7 +50,7 @@ Deno.test('resolveCurrentAiReviewPeriod — accepts current month only', () => {
   }
 });
 
-Deno.test('addDaysIso — calendar math', () => {
+Deno.test('addDaysIso - calendar math', () => {
   if (addDaysIso('2026-09-30', 1) !== '2026-10-01') throw new Error('sep→oct');
   if (addDaysIso('2026-10-03', -6) !== '2026-09-27') throw new Error('back to sun');
 });

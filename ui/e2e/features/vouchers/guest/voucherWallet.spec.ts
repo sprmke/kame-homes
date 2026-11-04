@@ -10,7 +10,7 @@ import {
   voucherRedemptionTimeoutMs,
 } from '../shared/voucherRedemptionHarness';
 
-test.describe('@smoke @ci guest — voucher wallet', () => {
+test.describe('@smoke @ci guest - voucher wallet', () => {
   test('lists ready and used vouchers with Book again link', async ({ page }) => {
     test.setTimeout(voucherRedemptionTimeoutMs());
     const guest = createVoucherRedemptionGuestState({

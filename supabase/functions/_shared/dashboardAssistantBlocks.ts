@@ -87,7 +87,7 @@ export function buildStayGuidancePrompt(input: {
       : '';
   return (
     `Help me complete ${guest}'s booking${range}. It is currently at ${status}. ` +
-    `If Completed is not allowed yet, explain why, what is still pending, and the next valid step — do not say the booking is missing.`
+    `If Completed is not allowed yet, explain why, what is still pending, and the next valid step - do not say the booking is missing.`
   );
 }
 
@@ -271,26 +271,26 @@ export function pendingTasksForBooking(booking: Record<string, unknown>): string
       ];
     case 'READY_FOR_CHECKOUT':
       if (!(sd > 0)) {
-        return ['No security deposit on this stay — proceed to complete the booking.'];
+        return ['No security deposit on this stay - proceed to complete the booking.'];
       }
       if (!formSubmitted) {
         const tasks = ['Waiting for the guest to submit the security deposit refund form.'];
         if (!formEmailed) {
           tasks.push(
-            'Check-out instructions have not been emailed yet — resend from Automation Triggers if needed.'
+            'Check-out instructions have not been emailed yet - resend from Automation Triggers if needed.'
           );
         }
         return tasks;
       }
       return [
-        'Guest submitted the SD refund form — move to Pending SD Refund if it has not advanced automatically.',
+        'Guest submitted the SD refund form - move to Pending SD Refund if it has not advanced automatically.',
       ];
     case 'PENDING_SD_REFUND':
       return ['Settle the security deposit refund, then proceed to complete the booking.'];
     case 'COMPLETED':
-      return ['No pending tasks — this stay is complete.'];
+      return ['No pending tasks - this stay is complete.'];
     case 'CANCELLED':
-      return ['No pending tasks — this booking is cancelled.'];
+      return ['No pending tasks - this booking is cancelled.'];
     default:
       return [];
   }

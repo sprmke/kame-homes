@@ -9,6 +9,12 @@
  */
 
 import {
+  bookingTargetLabel,
+  logBookingDetailActivity,
+  workflowEmailActivityMetadata,
+} from '../_shared/bookingActivityLog.ts';
+import { DatabaseService } from '../_shared/databaseService.ts';
+import {
   isBookingWorkflowEmailKind,
   sendBookingWorkflowEmail,
   SendBookingWorkflowEmailError,
@@ -28,8 +34,8 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('send-booking-workflow-email', async (req) => {
   requireHttpMethod(req, 'POST');
-  const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
+  const propertyId = propertyAccess.property.id;
   const body = await readJsonBody(req);
   const bookingId = body?.bookingId;
   const kind = body?.kind;
@@ -45,6 +51,15 @@ serveAuthenticated('send-booking-workflow-email', async (req) => {
 
   try {
     const data = await sendBookingWorkflowEmail(bookingId, propertyId, kind);
+    const booking = await DatabaseService.getBookingById(bookingId);
+    await logBookingDetailActivity({
+      action: 'booking.workflow_email_sent',
+      propertyAccess,
+      req,
+      bookingId,
+      targetLabel: booking ? bookingTargetLabel(booking) : null,
+      metadata: workflowEmailActivityMetadata(kind),
+    });
     return jsonResponse(req, { success: true, ...data });
   } catch (err) {
     if (err instanceof SendBookingWorkflowEmailError) {

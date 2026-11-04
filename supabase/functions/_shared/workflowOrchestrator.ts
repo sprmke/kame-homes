@@ -261,7 +261,7 @@ function requireResolvedDocTarget(
   }
   if (!resolved.configured) {
     console.warn(
-      `[orchestrator] ${field} "${target}" is not in this property's document requirements (${configuredIds}) — writing legacy ${resolved.requirementId} columns only. Set that requirement's pdfTemplateId to "${resolved.requirementId}" so the sub-step tracks it.`
+      `[orchestrator] ${field} "${target}" is not in this property's document requirements (${configuredIds}) - writing legacy ${resolved.requirementId} columns only. Set that requirement's pdfTemplateId to "${resolved.requirementId}" so the sub-step tracks it.`
     );
   }
   return resolved;
@@ -427,7 +427,7 @@ export class WorkflowOrchestrator {
     if (isReviewProceedAttempt) {
       if (documentRequirements.length === 0 && toStatus !== 'READY_FOR_CHECKIN') {
         console.log(
-          `[orchestrator] Empty document requirements for property ${propertyId ?? 'unknown'} — rewriting ${toStatus} → READY_FOR_CHECKIN`
+          `[orchestrator] Empty document requirements for property ${propertyId ?? 'unknown'} - rewriting ${toStatus} → READY_FOR_CHECKIN`
         );
         toStatus = 'READY_FOR_CHECKIN';
       } else if (documentRequirements.length > 0 && toStatus === 'READY_FOR_CHECKIN') {
@@ -793,7 +793,7 @@ export class WorkflowOrchestrator {
       );
       if (allConfigurableDocsDone && parkingDone) {
         console.log(
-          `[orchestrator] All document sub-steps complete for ${bookingId} — auto-advancing to READY_FOR_CHECKIN`
+          `[orchestrator] All document sub-steps complete for ${bookingId} - auto-advancing to READY_FOR_CHECKIN`
         );
         try {
           // Recursive call: preserve caller email flags but always send

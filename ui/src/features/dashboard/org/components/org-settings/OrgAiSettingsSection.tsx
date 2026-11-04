@@ -23,7 +23,6 @@ import {
 } from '@/features/dashboard/org/hooks/useAiPlatformSettings';
 import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
-import { resolveAssistantSettingsState } from '@/features/dashboard/org/lib/aiAssistantSettingsState';
 import {
   AI_SETTINGS_ASSISTANT_TOGGLE_LABEL,
   AI_SETTINGS_CARD_TITLE,
@@ -32,11 +31,7 @@ import {
   AI_SETTINGS_PLATFORM_GROUP_TITLE,
   AI_SETTINGS_SECTION_ID,
 } from '@/features/dashboard/org/lib/aiSettingsLabels';
-import {
-  PlanGatedText,
-  PlanUpgradeLink,
-} from '@/features/dashboard/plans/components/PlanUpgradeLink';
-import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
+import { PlanUpgradeLink } from '@/features/dashboard/plans/components/PlanUpgradeLink';
 import { useOrgPermissions } from '@/features/dashboard/team/hooks/useOrgPermissions';
 
 import { SettingsFormSkeleton } from '@/components/skeletons/AdminSkeletons';
@@ -62,7 +57,6 @@ export function OrgAiSettingsSection() {
   });
   const { data: propertiesData } = useProperties(orgSlug ?? undefined);
   const { data: orgAccess } = useOrgPermissions();
-  const assistantPlanGate = useFeatureGate('aiDashboardAssistant');
   const updatePlatform = useUpdateAiPlatformSettings();
   const updateAssistant = useUpdateAiDashboardAssistantSettings();
 
@@ -130,14 +124,7 @@ export function OrgAiSettingsSection() {
     onSave: handleAssistantSave,
   });
 
-  if (
-    settingsLoading ||
-    usageLoading ||
-    assistantLoading ||
-    !settings ||
-    !assistantSettings ||
-    !assistantDraft
-  ) {
+  if (settingsLoading || usageLoading || assistantLoading || !settings || !assistantDraft) {
     return (
       <AdminSection id={AI_SETTINGS_SECTION_ID} title={AI_SETTINGS_CARD_TITLE} icon={Sparkles}>
         <SettingsFormSkeleton columns={2} fields={4} toggle label="Loading AI features" />
@@ -149,14 +136,6 @@ export function OrgAiSettingsSection() {
   const properties = propertiesData?.properties ?? [];
   const masterEnabled = settings.enabled;
   const assistantOn = assistantDraft.enabled;
-  const assistantState = resolveAssistantSettingsState({
-    active: assistantOn,
-    platformEnabled: assistantSettings.platformEnabled,
-    aiBlocker: assistantSettings.aiBlocker,
-    planAllowed: assistantPlanGate.allowed,
-    planReady: !assistantPlanGate.isLoading && !assistantPlanGate.planUnknown,
-    readOnly: assistantReadOnly,
-  });
 
   return (
     <AdminSection id={AI_SETTINGS_SECTION_ID} title={AI_SETTINGS_CARD_TITLE} icon={Sparkles}>
@@ -219,18 +198,9 @@ export function OrgAiSettingsSection() {
             ) : null}
 
             <AiSettingsFeatureGroup title={AI_SETTINGS_ORG_ASSISTANT_GROUP_TITLE} icon={Bot}>
-              {assistantState.lock === 'platform' ? (
+              {!assistantSettings?.platformEnabled ? (
                 <AiSettingsStatusNote>
-                  Turned off for all organizations. Contact support to turn it on.
-                </AiSettingsStatusNote>
-              ) : null}
-
-              {assistantState.lock === 'plan' ? (
-                <AiSettingsStatusNote>
-                  <PlanGatedText
-                    text="Not included in your plan. Upgrade"
-                    feature="aiDashboardAssistant"
-                  />
+                  The dashboard assistant is currently off platform-wide.
                 </AiSettingsStatusNote>
               ) : null}
 
@@ -244,14 +214,14 @@ export function OrgAiSettingsSection() {
                 id="org-ai-assistant-enabled"
                 label={AI_SETTINGS_ASSISTANT_TOGGLE_LABEL}
                 checked={assistantDraft.enabled}
-                disabled={assistantState.toggleDisabled || assistantPlanGate.isLoading}
+                disabled={assistantReadOnly}
                 onCheckedChange={(enabled) => {
                   setAssistantUserEdited(true);
                   setAssistantDraft((current) => (current ? { ...current, enabled } : current));
                 }}
               />
 
-              {assistantState.showBody ? (
+              {assistantOn ? (
                 <>
                   {assistantSettings?.usage ? (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -308,18 +278,18 @@ export function OrgAiSettingsSection() {
                       </div>
                     </div>
                   ) : null}
-                </>
-              ) : null}
 
-              {assistantDirty && !assistantReadOnly ? (
-                <Button
-                  type="button"
-                  className="min-h-[44px]"
-                  disabled={updateAssistant.isPending}
-                  onClick={() => void handleAssistantSave()}
-                >
-                  {updateAssistant.isPending ? 'Saving…' : 'Save assistant settings'}
-                </Button>
+                  {assistantDirty && !assistantReadOnly ? (
+                    <Button
+                      type="button"
+                      className="min-h-[44px]"
+                      disabled={updateAssistant.isPending}
+                      onClick={() => void handleAssistantSave()}
+                    >
+                      {updateAssistant.isPending ? 'Saving…' : 'Save assistant settings'}
+                    </Button>
+                  ) : null}
+                </>
               ) : null}
             </AiSettingsFeatureGroup>
 

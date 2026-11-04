@@ -574,7 +574,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     const attachedTemplate = await attachedTemplateContext(attachedContext);
     const attachmentLine =
       storedAttachments.length > 0
-        ? `\nThe host attached ${storedAttachments.length} file(s) this turn — use these exact attachmentPath values with propose_apply_booking_attachment (never invent paths or https URLs):\n${storedAttachments
+        ? `\nThe host attached ${storedAttachments.length} file(s) this turn - use these exact attachmentPath values with propose_apply_booking_attachment (never invent paths or https URLs):\n${storedAttachments
             .map(
               (a) =>
                 `- name: ${inlineUntrusted(a.name)}; mimeType: ${a.mimeType}; attachmentPath: ${a.path}`
@@ -614,7 +614,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       !!conversationCtx.resumablePlanSteps &&
       conversationCtx.resumablePlanSteps.length > 0;
     const resumeNote = isResumingPlan
-      ? '\n\nThis turn continues a plan that ran out of room last time — its open goals are already loaded below. Do not call plan_task again; just keep working the remaining open goals.'
+      ? '\n\nThis turn continues a plan that ran out of room last time - its open goals are already loaded below. Do not call plan_task again; just keep working the remaining open goals.'
       : '';
     const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachedTemplate.promptText}${attachmentLine}${conversationContextPromptSection(conversationSummary)}${conversationCtx.knownFactsText}${resumeNote}`;
 

@@ -48,7 +48,7 @@ This page combines every property stay and every parking-slot reservation across
 - Q: Why is there no kanban here?
   A: Parking reservations use a simple status path (review → active → completed). Kanban remains on each property’s bookings page for the full stay workflow.
 - Q: How do I add a parking reservation?
-  A: Open the parking slot’s bookings page and use **New booking** — it opens that slot’s booking form in a dialog, right in the dashboard.
+  A: Open the parking slot’s bookings page and use **New booking** - it opens that slot’s booking form in a dialog, right in the dashboard.
 
 ---
 

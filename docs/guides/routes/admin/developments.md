@@ -35,14 +35,14 @@ Platform-wide directory of **developments** (condo/subdivision/mixed-use complex
 
 ## Host-facing knowledge
 
-A development represents a whole condo or subdivision project — like "The Sapphire Bloc" — that can contain many individual units and parking slots owned by different hosts. The platform team maintains one development profile so shared details (project photos, amenities, the property-management-office email that receives approval requests) don't need to be re-entered for every unit.
+A development represents a whole condo or subdivision project - like "The Sapphire Bloc" - that can contain many individual units and parking slots owned by different hosts. The platform team maintains one development profile so shared details (project photos, amenities, the property-management-office email that receives approval requests) don't need to be re-entered for every unit.
 
 **Common host questions**
 
-- Q: My property doesn't show a development — is that a problem?
+- Q: My property doesn't show a development - is that a problem?
   A: No. Not every property belongs to a registered development; standalone houses or projects the platform team hasn't added yet simply won't show one.
 - Q: Who receives the GAF/pet approval emails for my unit if my building has a development profile?
-  A: The development's registered property-management-office email, if one is set — the platform team manages that address, not the host.
+  A: The development's registered property-management-office email, if one is set - the platform team manages that address, not the host.
 
 ---
 

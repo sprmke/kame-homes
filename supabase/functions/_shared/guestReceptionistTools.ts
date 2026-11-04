@@ -441,7 +441,7 @@ export const GUEST_RECEPTIONIST_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: 'report_maintenance_issue',
     description:
-      "File a maintenance issue for the guest's own active stay at this property (requires a signed-in guest with a current booking). Collect what is wrong before calling this — do not call it with a vague description.",
+      "File a maintenance issue for the guest's own active stay at this property (requires a signed-in guest with a current booking). Collect what is wrong before calling this - do not call it with a vague description.",
     parameters: {
       type: 'object',
       properties: {
@@ -456,7 +456,7 @@ export const GUEST_RECEPTIONIST_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: 'request_booking_inquiry',
     description:
-      'Submit a hold/inquiry request for a prospective stay at this property, for the host to review — nothing is booked yet. Only for an authenticated guest.',
+      'Submit a hold/inquiry request for a prospective stay at this property, for the host to review - nothing is booked yet. Only for an authenticated guest.',
     parameters: {
       type: 'object',
       properties: {
@@ -471,7 +471,7 @@ export const GUEST_RECEPTIONIST_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: 'request_early_checkin_late_checkout',
     description:
-      "Request an early check-in or late check-out time for the guest's own active or upcoming booking at this property, for the host to review — nothing changes on the booking yet. Only for an authenticated guest with a verified stay.",
+      "Request an early check-in or late check-out time for the guest's own active or upcoming booking at this property, for the host to review - nothing changes on the booking yet. Only for an authenticated guest with a verified stay.",
     parameters: {
       type: 'object',
       properties: {
@@ -930,7 +930,7 @@ export async function executeGuestReceptionistTool(input: {
   if (input.name === 'report_maintenance_issue') {
     if (!propertyId || !guestUserId) {
       return emptyResult(
-        'I need to see your active booking to file that — please sign in, or message the host directly.'
+        'I need to see your active booking to file that - please sign in, or message the host directly.'
       );
     }
     const description = String(input.args.description ?? '').trim();
@@ -1019,14 +1019,14 @@ export async function executeGuestReceptionistTool(input: {
       ]);
     }
     return emptyResult(
-      "Filed. I've let the host team know about it — they'll follow up on the fix."
+      "Filed. I've let the host team know about it - they'll follow up on the fix."
     );
   }
 
   if (input.name === 'request_booking_inquiry') {
     if (!propertyId || !guestUserId || !orgId) {
       return emptyResult(
-        'I need you signed in to submit that — please sign in, or message the host directly.'
+        'I need you signed in to submit that - please sign in, or message the host directly.'
       );
     }
     const checkIn = normalizeBookingDate(input.args.checkIn) ?? String(input.args.checkIn ?? '');
@@ -1087,7 +1087,7 @@ export async function executeGuestReceptionistTool(input: {
         propertyId,
         type: 'guest_request_submitted',
         title: 'Guest submitted a booking inquiry',
-        body: `${checkIn} to ${checkOut}, ${guestCount} guest${guestCount === 1 ? '' : 's'}${propertyRow?.name ? ` — ${propertyRow.name}` : ''}`,
+        body: `${checkIn} to ${checkOut}, ${guestCount} guest${guestCount === 1 ? '' : 's'}${propertyRow?.name ? ` - ${propertyRow.name}` : ''}`,
         metadata: { guestRequestId: request.id },
       }),
       logActivity({
@@ -1107,15 +1107,15 @@ export async function executeGuestReceptionistTool(input: {
     ]);
     return emptyResult(
       likelyAvailable
-        ? "Got it. I've sent your inquiry to the host for review — nothing is booked yet."
-        : "Got it. I've sent your inquiry to the host for review, though those dates may already be booked — they'll confirm."
+        ? "Got it. I've sent your inquiry to the host for review - nothing is booked yet."
+        : "Got it. I've sent your inquiry to the host for review, though those dates may already be booked - they'll confirm."
     );
   }
 
   if (input.name === 'request_early_checkin_late_checkout') {
     if (!propertyId || !guestUserId || !orgId) {
       return emptyResult(
-        'I need you signed in to submit that — please sign in, or message the host directly.'
+        'I need you signed in to submit that - please sign in, or message the host directly.'
       );
     }
     const requestType = String(input.args.requestType ?? '');
@@ -1194,7 +1194,7 @@ export async function executeGuestReceptionistTool(input: {
       }),
     ]);
     return emptyResult(
-      "Got it. I've sent your request to the host for review — they'll confirm with you."
+      "Got it. I've sent your request to the host for review - they'll confirm with you."
     );
   }
 

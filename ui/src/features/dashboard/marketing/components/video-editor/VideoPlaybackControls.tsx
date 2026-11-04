@@ -143,7 +143,7 @@ export function VideoPlaybackControls({
         />
 
         <div className="flex flex-wrap items-center justify-between gap-2 max-lg:flex-nowrap max-lg:justify-center max-lg:gap-1">
-          {/* Time readout is redundant on mobile — the scrubber + timeline show duration. */}
+          {/* Time readout is redundant on mobile - the scrubber + timeline show duration. */}
           <div className="text-muted-foreground text-xs tabular-nums max-lg:hidden sm:text-sm">
             <span className="text-foreground">
               {transport.formatTime(transport.displayCurrentSec)}

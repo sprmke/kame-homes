@@ -16,10 +16,17 @@
  */
 
 import {
+  bookingTargetLabel,
+  documentUploadedActivityMetadata,
+  logBookingDetailActivity,
+  logBookingReceiptValidatedOnUpload,
+} from '../_shared/bookingActivityLog.ts';
+import {
   applyBookingAssetFromBytes,
   bookingAssetPermission,
   isBookingAssetType,
 } from '../_shared/bookingAssetUpload.ts';
+import { DatabaseService } from '../_shared/databaseService.ts';
 import { jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
 import {
   resolveScopedPropertyAccess,
@@ -50,8 +57,8 @@ serveAuthenticated('upload-booking-asset', async (req, user) => {
   }
   const assetType = assetTypeRaw;
 
-  const { property } = await resolveScopedPropertyAccess(req, bookingAssetPermission(assetType));
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, bookingAssetPermission(assetType));
+  const propertyId = propertyAccess.property.id;
 
   if (!bookingId) throw new Error('bookingId is required');
   await verifyBookingBelongsToProperty(bookingId, propertyId);
@@ -68,6 +75,25 @@ serveAuthenticated('upload-booking-asset', async (req, user) => {
     bytes,
     actorUserId: user.id,
     logPrefix: '[upload-booking-asset]',
+  });
+
+  const booking = await DatabaseService.getBookingById(bookingId);
+  const targetLabel = booking ? bookingTargetLabel(booking) : null;
+  await logBookingDetailActivity({
+    action: 'booking.document_uploaded',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel,
+    metadata: documentUploadedActivityMetadata(assetType),
+  });
+  await logBookingReceiptValidatedOnUpload({
+    receiptValidation: result.receiptValidation,
+    assetType,
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel,
   });
 
   return jsonSuccess(req, {

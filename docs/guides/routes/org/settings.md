@@ -76,13 +76,13 @@ Organization settings control your brand identity and public presence: logo, nam
 - Q: Why does my logo look cropped in settings?
   A: The logo preview is a square, same as guest forms and your public host page. Upload a square image so nothing important sits at the edges.
 - Q: Do I need a logo?
-  A: Upload one under Basic information for guest forms, emails, and your public host page. Until you do, the dashboard shows initials from your organization name on a brand-colored tile. After upload you can only replace the logo — not remove it.
+  A: Upload one under Basic information for guest forms, emails, and your public host page. Until you do, the dashboard shows initials from your organization name on a brand-colored tile. After upload you can only replace the logo - not remove it.
 - Q: Why do I only see a solid color square for my logo?
   A: That usually means a broken or tiny placeholder file was saved. Replace it with a real square image (tiny 1×1 files are rejected on upload).
 - Q: What can I ask the AI assistant?
-  A: Open the sparkles button on any dashboard page. A new chat has a Questions / Actions switcher with five starters on each side (stays, money, parking, inbox, marketing, and more). Ask about a pinned booking’s next steps, remaining stages, security deposit refund, or this month’s booked dates — answers should name the guest and dates, not show empty tables or raw status codes. Ask to see an approved GAF, receipt, or ID and the chat should show the file (same files as the booking’s Files tab). Suggested chips under a reply fill the message box so you can edit before sending. Actions can move a booking forward, re-check receipts, or cancel a booking, though risky changes still ask you to confirm first.
+  A: Open the sparkles button on any dashboard page. A new chat has a Questions / Actions switcher with five starters on each side (stays, money, parking, inbox, marketing, and more). Ask about a pinned booking’s next steps, remaining stages, security deposit refund, or this month’s booked dates - answers should name the guest and dates, not show empty tables or raw status codes. Ask to see an approved GAF, receipt, or ID and the chat should show the file (same files as the booking’s Files tab). Suggested chips under a reply fill the message box so you can edit before sending. Actions can move a booking forward, re-check receipts, or cancel a booking, though risky changes still ask you to confirm first.
 - Q: Can I attach a receipt or GAF in the assistant?
-  A: Yes. Use the paperclip next to the message box for a photo or PDF (up to three files, 4 MB each). The bookmark icon opens a **module list** (Bookings, Finance, Team, …) — pick a module, then pick the item to pin. The current page’s module is labeled **This page** at the top. **Search all modules…** at the bottom (or **Cmd/Ctrl+K**) opens the same two-step flow in a centered dialog. You can pin several items (up to eight). The message box grows as you type (up to about ten lines).
+  A: Yes. Use the paperclip next to the message box for a photo or PDF (up to three files, 4 MB each). The bookmark icon opens a **module list** (Bookings, Finance, Team, …) - pick a module, then pick the item to pin. The current page’s module is labeled **This page** at the top. **Search all modules…** at the bottom (or **Cmd/Ctrl+K**) opens the same two-step flow in a centered dialog. You can pin several items (up to eight). The message box grows as you type (up to about ten lines).
 - Q: What happens when I tap Open on a long table or booking journey?
   A: On a laptop the chat stays on the right and the table or steps open beside it. On a phone the steps fill the panel; Back returns to the chat. Confirming a step still moves only that one status, same as Confirm in the thread.
 - Q: Why did the assistant ask me to confirm a change it usually makes on its own?
@@ -231,7 +231,7 @@ The dashboard assistant can read and change this config (`get_voice_receptionist
 
 ### Activity
 
-Read-only. Summary: "Who did what across your organization." **Manage** opens a large modal (`ActivitySettingsSection` → `ActivityLogPanel`) with the full org-wide activity feed: search, destructive filter, category/date filters, infinite scroll, detail sheet, and CSV export (owner / org-admin, `activityLogExport` plan gate). Legacy `/org/:orgSlug/activity` redirects here with `?open=activity` so the modal opens automatically. See [activity.md](./activity.md). No save path.
+Read-only. Summary: "Who did what across your organization." **Manage** opens a large modal (`ActivitySettingsSection` → `ActivityLogPanel`) with the full org-wide activity feed: search, destructive filter, category/date filters, infinite scroll, an in-place sliding detail view (Back / Esc, no second modal), and CSV export (owner / org-admin, `activityLogExport` plan gate). Legacy `/org/:orgSlug/activity` redirects here with `?open=activity` so the modal opens automatically. See [activity.md](./activity.md). No save path.
 
 ### Danger zone — delete organization
 
@@ -293,7 +293,7 @@ All of the above are removed via **ON DELETE CASCADE** from `organizations` → 
 | Edge function | `supabase/functions/delete-organization/index.ts`                                                                                                                |
 | FK / cascade  | `supabase/migrations/20260629180000_multi_tenancy_foundation.sql`, `20260703150000_org_settings.sql`, `20260821120000_multi_tenancy_late_tables_property_id.sql` |
 
-**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, F5 / Cmd+Ctrl+R, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../architecture/unsaved-changes.md).
 
 ## Validation
 

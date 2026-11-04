@@ -13,7 +13,7 @@ const MAINTENANCE = "We're working on this right now. It'll be back soon.";
 const propertyPath = (segment: string) =>
   `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/${segment}`;
 
-test.describe('@ci feature availability — host surfaces', () => {
+test.describe('@ci feature availability - host surfaces', () => {
   test('marketing AI studio tab shows maintenance panel when off', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await installPropertyTeamRbacMocks(page, 'full_access', {

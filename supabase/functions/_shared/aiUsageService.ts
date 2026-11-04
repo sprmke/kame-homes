@@ -1047,7 +1047,7 @@ async function assertOrgAndPropertyAiQuotaInner(
       const scope = orgCreditStatus.exceeded ? 'organization' : 'property';
       const period = (orgCreditStatus.exceeded ? orgCreditStatus : propertyCreditStatus).period;
       throw new AiQuotaExceededError(
-        `${period === 'daily' ? 'Daily' : 'Monthly'} AI credit allowance used for this ${scope} — top up credits to continue`
+        `${period === 'daily' ? 'Daily' : 'Monthly'} AI credit allowance used for this ${scope}. Top up credits to continue.`
       );
     }
   }

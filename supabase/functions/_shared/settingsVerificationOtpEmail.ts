@@ -11,8 +11,7 @@ import { formatResendFromAddress, loadPropertyEmailBranding } from './propertyEm
 import { renderPropertyTemplateSendEmail } from './propertyTemplateEmail.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
 import { resolveSettingsChangeActor } from './settingsVerificationActor.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 const BODY_P = 'margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;';
 const BODY_MUTED = 'margin:0;font-size:13px;line-height:1.5;color:#6b7280;';
@@ -54,7 +53,7 @@ function buildOtpBodyHtml(input: {
 /** Inbox subject — short action + listing. */
 export function settingsVerificationOtpEmailSubject(listingName: string): string {
   const name = listingName.trim() || 'your listing';
-  return `Payment verification code — ${name}`;
+  return `Payment verification code - ${name}`;
 }
 
 async function resolveBrandingPropertyId(
@@ -141,24 +140,12 @@ export async function sendSettingsVerificationOtpEmail(opts: {
     },
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
-      to: [owner.email.trim()],
-      reply_to: settings.emailReplyTo,
-      subject: settingsVerificationOtpEmailSubject(opts.listingName),
-      html,
-    }),
+  await sendResendEmail({
+    from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
+    to: [owner.email.trim()],
+    reply_to: settings.emailReplyTo,
+    subject: settingsVerificationOtpEmailSubject(opts.listingName),
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error('[settingsVerificationOtpEmail] send failed', res.status, body.slice(0, 200));
-    throw new Error('Could not send verification email');
-  }
 }

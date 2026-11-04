@@ -9,13 +9,13 @@ const assistant = { actorType: 'ai_assistant', source: 'dashboard' } as ActorCon
 const cron = { actorType: 'cron', source: 'cron' } as ActorContext;
 const message = 'Receipt failed AI validation.';
 
-Deno.test('assertAiVerdictAllowsProceed — non-invalid verdicts never block', () => {
+Deno.test('assertAiVerdictAllowsProceed - non-invalid verdicts never block', () => {
   for (const verdict of ['valid', 'likely_valid', 'unclear', null, undefined]) {
     assertEquals(assertAiVerdictAllowsProceed({ verdict, payload: {}, actor: host, message }), false);
   }
 });
 
-Deno.test('assertAiVerdictAllowsProceed — invalid verdict blocks with a coded 409', () => {
+Deno.test('assertAiVerdictAllowsProceed - invalid verdict blocks with a coded 409', () => {
   const err = assertThrows(
     () => assertAiVerdictAllowsProceed({ verdict: 'invalid', payload: {}, actor: host, message }),
     EdgeError
@@ -24,7 +24,7 @@ Deno.test('assertAiVerdictAllowsProceed — invalid verdict blocks with a coded 
   assertEquals(err.code, 'ai_verdict_blocked');
 });
 
-Deno.test('assertAiVerdictAllowsProceed — a host can explicitly proceed (override applied)', () => {
+Deno.test('assertAiVerdictAllowsProceed - a host can explicitly proceed (override applied)', () => {
   assertEquals(
     assertAiVerdictAllowsProceed({
       verdict: 'invalid',
@@ -36,7 +36,7 @@ Deno.test('assertAiVerdictAllowsProceed — a host can explicitly proceed (overr
   );
 });
 
-Deno.test('assertAiVerdictAllowsProceed — the AI assistant and automation can never override', () => {
+Deno.test('assertAiVerdictAllowsProceed - the AI assistant and automation can never override', () => {
   for (const actor of [assistant, cron, undefined]) {
     assertThrows(
       () =>

@@ -36,7 +36,7 @@ export function buildMarketingCaptionPrompt(input: MarketingCaptionPromptInput):
     (input.contentHint
       ? `Creative brief:\n${wrapUntrusted('host_brief', input.contentHint, 500)}\n`
       : '') +
-    'Write one caption only — no quotes or labels.';
+    'Write one caption only - no quotes or labels.';
   return { system, user };
 }
 

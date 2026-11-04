@@ -209,7 +209,7 @@ rates, bookings, and guest mix.
   A: Analytics uses the same night-by-night calculation as the property Dashboard, but lets you
   pick a custom date range and always shows period-over-period comparison.
 - Q: What does "Unknown" mean in Guest Origins / Age?
-  A: Some bookings don't have a parseable address/nationality or guest age recorded — those are
+  A: Some bookings don't have a parseable address/nationality or guest age recorded - those are
   shown as their own bucket rather than silently excluded, so percentages stay honest.
 - Q: What does Others mean in Guest origins?
   A: The card shows the five largest places plus one Others row when guests come from more than
@@ -244,7 +244,7 @@ rates, bookings, and guest mix.
   A: You can analyze each range once a day. If the AI service is briefly unreachable it keeps
   your last review instead of erroring.
 - Q: Where did the "Ask AI" button go?
-  A: It was removed — it just opened the general assistant without focusing it on this page. For
+  A: It was removed - it just opened the general assistant without focusing it on this page. For
   a plain-language explanation of any metric, hover the small ⓘ next to its name; for a written
   assessment of the whole property, use the **AI review** tab. You can still open the assistant
   from the sparkle button in the corner and ask about this listing.

@@ -55,7 +55,7 @@ VALUES
     'ACTIVE',
     'Parañaque, Metro Manila',
     'Parañaque',
-    'Search fixture — sibling Azure development for typeahead See all.',
+    'Search fixture: sibling Azure development for typeahead See all.',
     'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=85',
     jsonb_build_object(
       'images', jsonb_build_array(
@@ -73,7 +73,7 @@ VALUES
     'ACTIVE',
     'San Fernando, Pampanga',
     'San Fernando',
-    'Search fixture — Azure North Bay promenade cluster.',
+    'Search fixture: Azure North Bay promenade cluster.',
     'https://images.unsplash.com/photo-1599423300746-b62533397364?w=1200&q=85',
     jsonb_build_object(
       'images', jsonb_build_array(
@@ -91,7 +91,7 @@ VALUES
     'ACTIVE',
     'San Fernando, Pampanga',
     'San Fernando',
-    'Search fixture — Phase 2 tower cluster for typeahead.',
+    'Search fixture: Phase 2 tower cluster for typeahead.',
     'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=85',
     jsonb_build_object(
       'images', jsonb_build_array(

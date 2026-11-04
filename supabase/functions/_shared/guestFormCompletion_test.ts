@@ -31,7 +31,7 @@ const base = (over: Partial<GuestSubmission>): GuestSubmission =>
     ...over,
   }) as GuestSubmission;
 
-Deno.test('guestFormCompletionPath — includes token + property slug', () => {
+Deno.test('guestFormCompletionPath - includes token + property slug', () => {
   assertEquals(
     guestFormCompletionPath('https://kame.test/', 'tok123', 'my-unit'),
     'https://kame.test/form?complete=tok123&property=my-unit'
@@ -43,7 +43,7 @@ Deno.test('guestFormCompletionPath — includes token + property slug', () => {
   );
 });
 
-Deno.test('isCompletionLinkLive — future checkout ok; past / cancelled not', () => {
+Deno.test('isCompletionLinkLive - future checkout ok; past / cancelled not', () => {
   assert(isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: futureManila(1) }));
   assert(
     isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: futureManila(0) }),
@@ -60,12 +60,12 @@ Deno.test('isCompletionLinkLive — future checkout ok; past / cancelled not', (
   assert(!isCompletionLinkLive({ status: 'PENDING_REVIEW', check_out_date: '' }), 'no date');
 });
 
-Deno.test('checkCompletionEligibility — happy path', () => {
+Deno.test('checkCompletionEligibility - happy path', () => {
   assertEquals(checkCompletionEligibility(base({})), { ok: true });
 });
 
 Deno.test(
-  'checkCompletionEligibility — booking_source Airbnb without external_source still ok (legacy rows)',
+  'checkCompletionEligibility - booking_source Airbnb without external_source still ok (legacy rows)',
   () => {
     assertEquals(
       checkCompletionEligibility(base({ external_source: null, booking_source: 'Airbnb' })),
@@ -74,7 +74,7 @@ Deno.test(
   }
 );
 
-Deno.test('checkCompletionEligibility — non-OTA booking rejected', () => {
+Deno.test('checkCompletionEligibility - non-OTA booking rejected', () => {
   assertEquals(
     checkCompletionEligibility(base({ external_source: null, booking_source: 'Facebook' })),
     { ok: false, reason: 'not_external' }
@@ -82,7 +82,7 @@ Deno.test('checkCompletionEligibility — non-OTA booking rejected', () => {
 });
 
 Deno.test(
-  'checkCompletionEligibility — already advanced past review rejected (wrong_status)',
+  'checkCompletionEligibility - already advanced past review rejected (wrong_status)',
   () => {
     for (const status of ['PENDING_DOCUMENTS', 'READY_FOR_CHECKIN', 'COMPLETED']) {
       assertEquals(
@@ -99,7 +99,7 @@ Deno.test(
   }
 );
 
-Deno.test('checkCompletionEligibility — stay already over rejected', () => {
+Deno.test('checkCompletionEligibility - stay already over rejected', () => {
   assertEquals(checkCompletionEligibility(base({ check_out_date: futureManila(-2) })), {
     ok: false,
     reason: 'link_expired',

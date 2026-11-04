@@ -190,7 +190,7 @@ Deno.test('defaultLeadTimeConfig is well-formed and gentle', () => {
   assertEquals(cfg.farOut.length, 0);
 });
 
-Deno.test('algorithmic signals are capped — a harsh demand curve cannot slam a night', () => {
+Deno.test('algorithmic signals are capped - a harsh demand curve cannot slam a night', () => {
   // dowDemand 0.6 + monthDemand 0.6 would multiply to 0.36 (−64%) uncapped.
   const harsh = computeSmartRates(
     baseInput({

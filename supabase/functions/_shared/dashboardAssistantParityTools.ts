@@ -1085,7 +1085,7 @@ const runBookingAiReview = defineWriteTool(
   {
     name: 'propose_run_booking_ai_review',
     description:
-      'Run (or refresh) the AI review of a booking — checks stay details, guests, parking, pets and pricing, uses AI credits. Always requires host confirmation.',
+      'Run (or refresh) the AI review of a booking - checks stay details, guests, parking, pets and pricing, uses AI credits. Always requires host confirmation.',
     parameters: { type: 'object', properties: { bookingId: { type: 'string' } } },
   },
   async (ctx, args) => {
@@ -1183,7 +1183,7 @@ const applySmartPricing = defineWriteTool(
   {
     name: 'propose_apply_smart_pricing',
     description:
-      'Apply a Smart Pricing preview (runId from get_smart_pricing_preview) to the calendar — all recommended nights, or only the given ranges. This is the reviewed preview the Pricing page applies; never invent rates. Always requires host confirmation.',
+      'Apply a Smart Pricing preview (runId from get_smart_pricing_preview) to the calendar - all recommended nights, or only the given ranges. This is the reviewed preview the Pricing page applies; never invent rates. Always requires host confirmation.',
     parameters: {
       type: 'object',
       properties: {

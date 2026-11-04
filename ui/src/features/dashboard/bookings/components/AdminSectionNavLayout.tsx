@@ -460,7 +460,9 @@ export function AdminSectionNavLayout({
       <SectionNavGroupsContext.Provider value={sectionGroups ?? null}>
         <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', className)}>
           {header ? (
-            <div className="bg-background relative z-20 hidden shrink-0 lg:block">{header}</div>
+            <div className="bg-background relative z-20 hidden shrink-0 lg:block lg:pb-5">
+              {header}
+            </div>
           ) : null}
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row lg:gap-8 xl:gap-10">

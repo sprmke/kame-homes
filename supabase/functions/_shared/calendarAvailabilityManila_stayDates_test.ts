@@ -5,12 +5,12 @@ import {
   collectBlockedNights,
 } from './calendarAvailabilityManila.ts';
 
-Deno.test('collectBlockedNights — same-day stay blocks its check-in night', () => {
+Deno.test('collectBlockedNights - same-day stay blocks its check-in night', () => {
   const blocked = collectBlockedNights([{ checkInYmd: '2026-01-10', checkOutYmd: '2026-01-10' }]);
   assertEquals([...blocked], ['2026-01-10']);
 });
 
-Deno.test('collectBlockedNights — normal range blocks each night, skips inverted rows', () => {
+Deno.test('collectBlockedNights - normal range blocks each night, skips inverted rows', () => {
   const blocked = collectBlockedNights([
     { checkInYmd: '2026-01-10', checkOutYmd: '2026-01-12' },
     { checkInYmd: '2026-01-20', checkOutYmd: '2026-01-19' },
@@ -18,7 +18,7 @@ Deno.test('collectBlockedNights — normal range blocks each night, skips invert
   assertEquals([...blocked], ['2026-01-10', '2026-01-11']);
 });
 
-Deno.test('bookingOccupiesNight — same-day stay occupies its day only', () => {
+Deno.test('bookingOccupiesNight - same-day stay occupies its day only', () => {
   assertEquals(bookingOccupiesNight('2026-01-10', '2026-01-10', '2026-01-10'), true);
   assertEquals(bookingOccupiesNight('2026-01-10', '2026-01-10', '2026-01-11'), false);
   assertEquals(bookingOccupiesNight('2026-01-10', '2026-01-12', '2026-01-11'), true);

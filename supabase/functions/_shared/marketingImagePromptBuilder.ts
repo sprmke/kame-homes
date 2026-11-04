@@ -240,7 +240,7 @@ export async function enhanceMarketingImagePrompt(
     'subject and action, setting, lighting, camera angle and lens, in flowing sentences ' +
     '(not a keyword list). Stay under 120 words. Do not invent people, brand names, or ' +
     "text to render. Do not contradict the host's request. Output only the finished " +
-    'scene description, nothing else — no preamble, no quotes, no labels.'
+    'scene description, nothing else. No preamble, no quotes, no labels.'
   );
 
   const userPrompt = [
@@ -248,7 +248,7 @@ export async function enhanceMarketingImagePrompt(
     platformLine,
     propertyLine,
     input.hasReferenceImages
-      ? 'Reference images are attached separately for style/subject guidance — describe the scene, do not describe the reference images themselves.'
+      ? 'Reference images are attached separately for style/subject guidance. Describe the scene, do not describe the reference images themselves.'
       : null,
   ]
     .filter(Boolean)

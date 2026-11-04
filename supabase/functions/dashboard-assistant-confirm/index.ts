@@ -141,7 +141,7 @@ async function handlePlanConfirm(
       .from('ai_dashboard_assistant_action_plans')
       .update({ status: 'expired' })
       .eq('id', planId);
-    return jsonError(req, 'This plan has expired — ask the assistant again', 410);
+    return jsonError(req, 'This plan has expired - ask the assistant again', 410);
   }
 
   const { data: steps, error: stepsError } = await sb
@@ -261,7 +261,7 @@ async function handlePlanConfirm(
     const isSkippedByDependency = !isUnselected && skipSet.has(step.step_index);
 
     if (isUnselected || isSkippedByDependency) {
-      const reason = isUnselected ? null : 'Skipped — a step it depends on did not run.';
+      const reason = isUnselected ? null : 'Skipped - a step it depends on did not run.';
       await sb
         .from('ai_dashboard_assistant_pending_actions')
         .update({ status: 'denied', result: reason ? { ok: false, error: reason } : null })
@@ -370,7 +370,7 @@ async function handlePlanConfirm(
   });
   const headline =
     finalPlanStatus === 'cancelled'
-      ? 'Plan cancelled — nothing was applied.'
+      ? 'Plan cancelled - nothing was applied.'
       : `Completed ${executedCount} of ${outcomes.length} step${outcomes.length === 1 ? '' : 's'}` +
         (failedCount > 0 ? `, ${failedCount} failed` : '') +
         (skippedCount > 0 ? `, ${skippedCount} skipped` : '') +
@@ -459,7 +459,7 @@ serveAuthenticated('dashboard-assistant-confirm', async (req, user) => {
         .from('ai_dashboard_assistant_pending_actions')
         .update({ status: 'expired' })
         .eq('id', actionId);
-      return jsonError(req, 'This action has expired — ask the assistant again', 410);
+      return jsonError(req, 'This action has expired - ask the assistant again', 410);
     }
 
     const { data: conversation } = await sb

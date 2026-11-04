@@ -46,7 +46,7 @@ function unavailable(
   };
 }
 
-Deno.test('isBypassedByUser — only with a user, bypass flag, and allow-listed email', () => {
+Deno.test('isBypassedByUser - only with a user, bypass flag, and allow-listed email', () => {
   const previous = Deno.env.get('SUPER_ADMIN_EMAILS');
   Deno.env.set('SUPER_ADMIN_EMAILS', 'super@kame.test');
   try {
@@ -64,13 +64,13 @@ Deno.test('isBypassedByUser — only with a user, bypass flag, and allow-listed 
   }
 });
 
-Deno.test('background jobs never bypass — no user means no bypass regardless of flags', () => {
+Deno.test('background jobs never bypass - no user means no bypass regardless of flags', () => {
   const resolved = unavailable({ superAdminBypass: true });
   assertEquals(isBypassedByUser(resolved, undefined), false);
 });
 
 Deno.test(
-  'resolveFeatureUnavailableMessage — custom message wins; default substitutes {provider}',
+  'resolveFeatureUnavailableMessage - custom message wins; default substitutes {provider}',
   () => {
     const custom = unavailable({ message: 'Back by 3pm.' });
     assertEquals(resolveFeatureUnavailableMessage(custom), 'Back by 3pm.');

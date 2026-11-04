@@ -41,11 +41,11 @@ Telegram module settings (and optional credentials) are bulk-copyable via org **
 
 Above the Activity feed (only when the app runs as an installed PWA and/or there are queued changes):
 
-- **Notifications on this device** — a single toggle to receive OS push notifications (booking, message, and workflow alerts) on this device even when the app is closed. Per **device**, not per account. Turning it on asks the browser for permission; turning it off unsubscribes. Delivered for **every** Notification Center event to the org owner + active org team members who opted in.
+- **Notifications on this device** — a single toggle to receive OS push notifications (booking, message, and workflow alerts) on this device even when the app is closed. Per **device**, not per account. Turning it on asks the browser for permission; turning it off unsubscribes. A toast confirms the switch is on or off (or says permission was not granted, so it stayed off). Delivered for **every** Notification Center event to the org owner + active org team members who opted in.
   - **Desktop Chrome/Edge/Firefox and Android**: works in a normal browser tab too.
   - **iPhone/iPad**: only after you **Add to Home Screen** — the toggle shows "Add this app to your Home Screen, then turn on notifications from the installed app" until then.
   - If notifications were blocked in browser settings, the card says so and the toggle is disabled until you re-allow them.
-- **Push preferences** — below the device toggle. One switch per group (**Bookings**, **Messages**, **Reviews**, **Pricing**, **Finance**, **Maintenance**, **Analytics**, **System**) and a **Quiet hours** switch with a start/end time. Changes save instantly; there is no Save button. Preferences are **per account, on every device** (the device toggle above is the per-device switch). Muting a group only stops the phone buzz — the row still appears in **Activity**. Quiet hours use **Asia/Manila** time; if the start and end match, quiet hours are off. Calendar-sync failures still come through during quiet hours.
+- **Push preferences** — below the device toggle. One switch per group (**Bookings**, **Messages**, **Reviews**, **Pricing**, **Finance**, **Maintenance**, **Analytics**, **System**) and a **Quiet hours** switch with a start/end time. Changes save instantly; there is no Save button. Each switch shows a short toast once the save lands. Preferences are **per account, on every device** (the device toggle above is the per-device switch). Muting a group only stops the phone buzz — the row still appears in **Activity**. Quiet hours use **Asia/Manila** time; if the start and end match, quiet hours are off. Calendar-sync failures still come through during quiet hours.
 - **Offline changes** (Sync Center) — appears only when you made changes while offline (currently: inbox text replies). Lists what is **waiting to sync** and anything that **failed**, with **Sync now**, **Retry**, and **Discard**. Queued changes replay automatically when you reconnect; a failed item shows the server's reason and the affected view refreshes to the real state. A thin top banner also shows "Offline — N changes will sync when you reconnect".
 
 ### In-app activity
@@ -132,7 +132,7 @@ Notifications is the one place to review in-app alerts and set up Telegram for t
   A: Turn on **Notifications on this device** at the top of this page. On iPhone/iPad you first need to **Add to Home Screen** (Share → Add to Home Screen), then open the installed app and turn it on there.
 - Q: I turned it on but get nothing.
   A: Check the phone's notification settings for the app/site, make sure you didn't block notifications, and confirm you opened the **installed** app (not a browser tab) on iPhone. Each device opts in separately.
-- Q: I replied to a guest with no signal — did it send?
+- Q: I replied to a guest with no signal - did it send?
   A: It's queued. The **Offline changes** card shows it "waiting to sync" and it sends automatically when you're back online. If it fails, the card shows why and you can retry or discard.
 - Q: Where do I see everything the bell showed me?
   A: Open **Notifications** from the sidebar or **More** on a phone, then **Activity**. Or tap **View all** in the bell when you have more than five items.

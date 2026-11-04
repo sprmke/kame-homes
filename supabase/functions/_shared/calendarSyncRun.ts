@@ -335,7 +335,7 @@ async function emitConflictNotification(
       propertyId,
       type: 'calendar_conflict',
       title: 'Calendar conflict',
-      body: `${feedLabel}: an imported reservation (${event.startDate} → ${event.endDate}) overlaps ${partner.label} (${partner.startDate} → ${partner.endDate}). Both are kept — resolve on the platform that shouldn't have it.`,
+      body: `${feedLabel}: an imported reservation (${event.startDate} → ${event.endDate}) overlaps ${partner.label} (${partner.startDate} → ${partner.endDate}). Both are kept - resolve on the platform that shouldn't have it.`,
       dedupeKey: `conflict:${event.uid}:${partner.id}`,
       metadata: {
         feed_label: feedLabel,
@@ -554,7 +554,7 @@ export async function runFeedSync(
         property_id: feed.property_id,
         start_date: ev.startDate,
         end_date: ev.endDate,
-        note: `${feedLabel} — ${ev.summary || ev.kind}`,
+        note: `${feedLabel} - ${ev.summary || ev.kind}`,
         source: 'ical_import',
         feed_id: feed.id,
         external_uid: ev.uid,
@@ -598,7 +598,7 @@ export async function runFeedSync(
         start_date: ev.startDate,
         end_date: ev.endDate,
         external_summary: ev.summary || null,
-        note: `${feedLabel} — ${ev.summary || ev.kind}`,
+        note: `${feedLabel} - ${ev.summary || ev.kind}`,
         last_seen_at: new Date().toISOString(),
       })
       .eq('id', row.id);

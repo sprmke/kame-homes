@@ -63,7 +63,7 @@ serveAuthenticated('send-property-custom-template-email', async (req) => {
   );
 
   if (result && 'skipped' in result && result.skipped) {
-    return jsonError(req, 'Guest email is suppressed — cannot send', 409);
+    return jsonError(req, 'Guest email is suppressed - cannot send', 409);
   }
 
   await logActivity({

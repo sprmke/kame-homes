@@ -90,7 +90,7 @@ async function waitForInstagramContainerReady(
     }
   }
 
-  throw new Error('Instagram media is still processing — try publishing again in a moment');
+  throw new Error('Instagram media is still processing - try publishing again in a moment');
 }
 
 /**

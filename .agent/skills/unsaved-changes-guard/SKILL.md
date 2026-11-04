@@ -109,7 +109,7 @@ or keep the panels mounted.
 
 - [ ] Every new/changed editable surface has `useUnsavedChangesGuard` or `useGuardedClose`, or an "Exempt" reason
 - [ ] Manually verified: edit a field, click a sidebar link -> prompt; Save & leave persists and navigates; Discard leaves without saving; Keep editing stays
-- [ ] Verified browser back and tab refresh prompt (`beforeunload`)
+- [ ] Verified browser back and refresh prompt: F5 / Cmd+Ctrl+R open the app dialog; toolbar reload and tab close still use `beforeunload`
 - [ ] `isDirty` is false immediately after a successful save (no prompt after saving)
 - [ ] Modal: Cancel, X, Esc and backdrop all prompt when dirty, none prompt when clean
 - [ ] Route guide updated (`route-guides` skill): one line under the page's Save flow

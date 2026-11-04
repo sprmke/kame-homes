@@ -128,7 +128,7 @@ Deno.test({
     // propose_* calls into one round and gets the Phase 3 action_plan path instead.
     const reply = await askAssistant(
       f,
-      `Open the most recently active inbox thread. In the same reply, propose BOTH marking that thread as read AND marking the maintenance item "${item.label}" done — do not stop after only one proposal, do not ask me to confirm the first one before proposing the second.`
+      `Open the most recently active inbox thread. In the same reply, propose BOTH marking that thread as read AND marking the maintenance item "${item.label}" done - do not stop after only one proposal, do not ask me to confirm the first one before proposing the second.`
     );
     assertEquals(reply.status, 200);
     const planSteps = blocksOfType(reply, 'action_plan').flatMap(

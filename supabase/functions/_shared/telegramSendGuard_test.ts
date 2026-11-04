@@ -44,7 +44,7 @@ Deno.test('telegram sendMessage sites guard delivery availability', async () => 
     const path = join(SHARED, rel);
     const text = await Deno.readTextFile(path);
     if (text.includes('/sendMessage')) {
-      throw new Error(`${rel} uses sendMessage but is not in SEND_MESSAGE_FILES — update the test`);
+      throw new Error(`${rel} uses sendMessage but is not in SEND_MESSAGE_FILES - update the test`);
     }
   }
 });

@@ -56,11 +56,11 @@ Parking **Pricing** sets how much guests pay per night for this slot. You define
 - Q: Will booked or blocked nights block the calendar?
   A: **Booked** nights (claimed reservations) and **Blocked** nights (owner-managed closures) show on the calendar and are excluded from broadcast candidate matching. Block future dates via the pricing modal **Block** action; unblock the same way.
 - Q: What's the "Service fee" and "You get" line under each rate?
-  A: A preview of the platform's commission on that rate — the service fee is what the platform keeps, "You get" is your payout per night at that rate. Disbursement itself is currently handled manually by the platform team, not automatically through the app.
+  A: A preview of the platform's commission on that rate - the service fee is what the platform keeps, "You get" is your payout per night at that rate. Disbursement itself is currently handled manually by the platform team, not automatically through the app.
 - Q: Why can't I save a rate above a certain amount?
-  A: That's the platform's current guest rate — the price a guest actually pays. A host rate at or above it would mean the platform loses money on every match at that rate, so it's blocked from saving rather than silently reduced. The exact cap can change if the platform adjusts its guest rate.
+  A: That's the platform's current guest rate - the price a guest actually pays. A host rate at or above it would mean the platform loses money on every match at that rate, so it's blocked from saving rather than silently reduced. The exact cap can change if the platform adjusts its guest rate.
 - Q: What's the direct booking link for?
-  A: A link you can share yourself (text, chat, wherever) that takes a guest straight to your listing's booking form instead of the general marketplace search. Bookings through it pay a lower platform commission since you sourced the guest yourself — the exact split-savings is shown on the card.
+  A: A link you can share yourself (text, chat, wherever) that takes a guest straight to your listing's booking form instead of the general marketplace search. Bookings through it pay a lower platform commission since you sourced the guest yourself - the exact split-savings is shown on the card.
 
 ---
 

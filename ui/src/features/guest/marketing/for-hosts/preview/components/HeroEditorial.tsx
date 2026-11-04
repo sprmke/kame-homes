@@ -17,7 +17,7 @@ export function HeroEditorial() {
 
   return (
     <section id="top" className="relative overflow-hidden pb-16 pt-28 sm:pt-32 lg:pb-24 lg:pt-36">
-      {/* Single, static, barely-there wash — no canvas, no grid. */}
+      {/* Single, static, barely-there wash - no canvas, no grid. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"

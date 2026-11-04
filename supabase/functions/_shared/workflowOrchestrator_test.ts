@@ -11,18 +11,18 @@ const {
   assertParkingPaymentReceiptIfRequired,
 } = __workflowOrchestratorTesting;
 
-Deno.test('computeBalance — booking rate minus down payment', () => {
+Deno.test('computeBalance - booking rate minus down payment', () => {
   assertEquals(computeBalance(10000, 3000), 7000);
   assertEquals(computeBalance(null, 3000), null);
   assertEquals(computeBalance(10000, null), null);
 });
 
-Deno.test('flag — defaults true when dev control omitted', () => {
+Deno.test('flag - defaults true when dev control omitted', () => {
   assertEquals(flag({}, 'generatePdf'), true);
   assertEquals(flag({ generatePdf: false }, 'generatePdf'), false);
 });
 
-Deno.test('resolveDocTarget — maps legacy PENDING_GAF to gaf requirement id', () => {
+Deno.test('resolveDocTarget - maps legacy PENDING_GAF to gaf requirement id', () => {
   const requirements: DocumentRequirement[] = [
     {
       id: 'gaf',
@@ -40,7 +40,7 @@ Deno.test('resolveDocTarget — maps legacy PENDING_GAF to gaf requirement id', 
   assertEquals(resolved.configured, true);
 });
 
-Deno.test('resolveLegacyCompletionId — falls back when requirement renamed', () => {
+Deno.test('resolveLegacyCompletionId - falls back when requirement renamed', () => {
   const requirements: DocumentRequirement[] = [
     {
       id: 'custom-gaf',
@@ -55,7 +55,7 @@ Deno.test('resolveLegacyCompletionId — falls back when requirement renamed', (
   assertEquals(resolveLegacyCompletionId('PENDING_GAF', requirements), 'custom-gaf');
 });
 
-Deno.test('assertParkingPaymentReceiptIfRequired — throws when receipt missing', () => {
+Deno.test('assertParkingPaymentReceiptIfRequired - throws when receipt missing', () => {
   assertThrows(
     () =>
       assertParkingPaymentReceiptIfRequired(
@@ -67,7 +67,7 @@ Deno.test('assertParkingPaymentReceiptIfRequired — throws when receipt missing
   );
 });
 
-Deno.test('assertParkingPaymentReceiptIfRequired — no-op when fee included', () => {
+Deno.test('assertParkingPaymentReceiptIfRequired - no-op when fee included', () => {
   assertParkingPaymentReceiptIfRequired(
     { parking_fee_included_in_downpayment: true, parking_payment_receipt_url: '' },
     {}

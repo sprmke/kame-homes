@@ -2,7 +2,7 @@ import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
 import { redactSensitiveFields } from './redact.ts';
 
-Deno.test('redactSensitiveFields — masks contact / identity fields at any depth', () => {
+Deno.test('redactSensitiveFields - masks contact / identity fields at any depth', () => {
   const input = {
     bookingId: 'b1',
     primaryGuestName: 'Ana Cruz',
@@ -19,14 +19,14 @@ Deno.test('redactSensitiveFields — masks contact / identity fields at any dept
   });
 });
 
-Deno.test('redactSensitiveFields — masks secret tokens but not token counts', () => {
+Deno.test('redactSensitiveFields - masks secret tokens but not token counts', () => {
   assertEquals(
     redactSensitiveFields({ stay_guide_token: 'abc', accessToken: 'x', inputTokens: 120 }),
     { stay_guide_token: '[redacted]', accessToken: '[redacted]', inputTokens: 120 }
   );
 });
 
-Deno.test('redactSensitiveFields — leaves primitives and empty values alone', () => {
+Deno.test('redactSensitiveFields - leaves primitives and empty values alone', () => {
   assertEquals(redactSensitiveFields('text'), 'text');
   assertEquals(redactSensitiveFields({ email: null, phone: '' }), { email: null, phone: '' });
 });

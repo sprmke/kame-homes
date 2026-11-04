@@ -13,6 +13,7 @@ import {
   type PropertyCustomRoleRow,
 } from './propertyTeamPermissions.ts';
 import { escapeHtml, withEmailShellStyleVars } from './renderEmailHtml.ts';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 function resolveRoleLabel(
   roleId: string,
@@ -139,25 +140,12 @@ export async function sendPropertyTeamInviteEmail(input: {
     },
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
-      to: [input.inviteEmail],
-      reply_to: settings.emailReplyTo,
-      subject: emailSubject,
-      html,
-    }),
+  await sendResendEmail({
+    from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
+    to: [input.inviteEmail],
+    reply_to: settings.emailReplyTo,
+    subject: emailSubject,
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send invitation email (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
 }

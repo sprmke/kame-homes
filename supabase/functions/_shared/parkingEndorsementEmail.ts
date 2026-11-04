@@ -58,7 +58,7 @@ export async function sendParkingEndorsementEmail(
       throw new ParkingEndorsementRecipientError(
         residenceName
           ? `No PMO email configured for development "${residenceName}"`
-          : 'Parking has no residence/development set — cannot resolve a PMO email'
+          : 'Parking has no residence/development set - cannot resolve a PMO email'
       );
     }
 

@@ -35,7 +35,7 @@ Configure one parking slot: cover photo, dimensions and check-in times, amenitie
 
 ## Host-facing knowledge
 
-Parking **Settings** is where you set up a single slot before guests can book it: photos, map location, size and clearance, amenities, brand color, and how guests pay. Parking type, residence, tower, level, and slot number are set once when the slot is created and can't be changed here — delete and recreate the slot if any of those are wrong. Telegram and other integrations link out to **Notifications** for credentials. Most sections save independently, and deleting a slot is permanent, so that option lives in the danger zone at the bottom.
+Parking **Settings** is where you set up a single slot before guests can book it: photos, map location, size and clearance, amenities, brand color, and how guests pay. Parking type, residence, tower, level, and slot number are set once when the slot is created and can't be changed here - delete and recreate the slot if any of those are wrong. Telegram and other integrations link out to **Notifications** for credentials. Most sections save independently, and deleting a slot is permanent, so that option lives in the danger zone at the bottom.
 
 **Common host questions**
 
@@ -49,7 +49,7 @@ Parking **Settings** is where you set up a single slot before guests can book it
   A: On **Notifications** for this slot. Settings here only show integration status and shortcuts, not the bot token fields.
 - Q: Where is listing verification for this slot?
   A: Open **Verification** from the parking sidebar, or upload listing docs in org **Get Verified → Listings**. Listing go-live needs your Parking Rights (and contract end when needed) plus proof of ownership or authorization on listing **Verified**. Additional proof and the Azure Property Management email confirmation are for listing **Recommended**.
-- Q: My hosting contract is ending — what should I do?
+- Q: My hosting contract is ending - what should I do?
   A: A renewal reminder may appear when you log in. Tap **Submit renewal contract** or use **Verification** in the sidebar to upload an updated contract before the grace period ends.
 
 ---
@@ -77,19 +77,19 @@ Logic: `ui/src/features/dashboard/parking/lib/parkingSettingsCompletion.ts`, `ui
 
 ## Sections
 
-| Section            | Storage                                                                                                                                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Basic info         | `parkings` columns + `parkings.settings` — `brandColor`, `description`; `residence_name`, `parking_type`, `tower`, `level`, `slot_label` (**read-only**, set at creation)                                                                    |
-| Photos             | `parkings.settings.coverImage` + `coverImageStoragePath` via **`upload-parking-media`** (single image max)                                                                                                                                   |
-| Parking details    | `parkings.settings` — optional `spaceLengthM`, `spaceWidthM`, `heightClearanceM`; `checkInTime`, `checkOutTime` (defaults `14:00`, `12:00`) via **`ParkingDetailsSection`**                                                                  |
-| Amenities          | `parkings.settings.enabledParkingAmenities`, `customParkingAmenities`, resolved `features[]` (public listing) via **`PATCH update-parking`**                                                                                                 |
-| Location           | `parkings.settings` — `address`, `city`, `province`, `country`, `zipCode`, `latitude`, `longitude`, `mapsUrl`, `placeId` (same shape as property; **`PropertyLocationPicker`**)                                                              |
-| Payment            | `parking_settings` (`payment_methods`, GCash QR via **`upload-parking-settings-asset`**)                                                                                                                                                     |
-| Email              | `parking_settings.automation_toggles` — reservation request, guest confirmed, no-host-available (default **on**)                                                                                                                             |
-| Booking Automation | `parking_settings.automation_toggles.autoAcceptTopMatch` — auto-accepts the top-ranked candidate on the initial dispatch batch instead of waiting for a manual Accept tap (default **off**); guest still has to pay before endorsement fires |
-| Integrations       | `PropertyIntegrationsPanel` (`telegramLayout="parking"`) — Google status (flags), single **Parking** Telegram channel → notifications page, AI services (platform env)                                                                       |
-| Activity           | Read-only summary + **Manage** → modal with full parking-scoped feed (`ActivityLogPanel`). Legacy `/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path.                                       |
-| Danger zone        | **`PATCH update-parking`** `{ status: ACTIVE \| INACTIVE }` archive/restore; **`DELETE delete-parking`** permanent delete                                                                                                                    |
+| Section            | Storage                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Basic info         | `parkings` columns + `parkings.settings` — `brandColor`, `description`; `residence_name`, `parking_type`, `tower`, `level`, `slot_label` (**read-only**, set at creation)                                                                               |
+| Photos             | `parkings.settings.coverImage` + `coverImageStoragePath` via **`upload-parking-media`** (single image max)                                                                                                                                              |
+| Parking details    | `parkings.settings` — optional `spaceLengthM`, `spaceWidthM`, `heightClearanceM`; `checkInTime`, `checkOutTime` (defaults `14:00`, `12:00`) via **`ParkingDetailsSection`**                                                                             |
+| Amenities          | `parkings.settings.enabledParkingAmenities`, `customParkingAmenities`, resolved `features[]` (public listing) via **`PATCH update-parking`**                                                                                                            |
+| Location           | `parkings.settings` — `address`, `city`, `province`, `country`, `zipCode`, `latitude`, `longitude`, `mapsUrl`, `placeId` (same shape as property; **`PropertyLocationPicker`**)                                                                         |
+| Payment            | `parking_settings` (`payment_methods`, GCash QR via **`upload-parking-settings-asset`**)                                                                                                                                                                |
+| Email              | `parking_settings.automation_toggles` — reservation request, guest confirmed, no-host-available (default **on**)                                                                                                                                        |
+| Booking Automation | `parking_settings.automation_toggles.autoAcceptTopMatch` — auto-accepts the top-ranked candidate on the initial dispatch batch instead of waiting for a manual Accept tap (default **off**); guest still has to pay before endorsement fires            |
+| Integrations       | `PropertyIntegrationsPanel` (`telegramLayout="parking"`) — Google status (flags), single **Parking** Telegram channel → notifications page, AI services (platform env)                                                                                  |
+| Activity           | Read-only summary + **Manage** → modal with full parking-scoped feed (`ActivityLogPanel`) and an in-place sliding detail view (Back / Esc). Legacy `/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path. |
+| Danger zone        | **`PATCH update-parking`** `{ status: ACTIVE \| INACTIVE }` archive/restore; **`DELETE delete-parking`** permanent delete                                                                                                                               |
 
 ### Basic info fields
 
@@ -136,7 +136,7 @@ Since parking type, residence, tower, level, and slot number can't change in Set
 
 ---
 
-**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, F5 / Cmd+Ctrl+R, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing**. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Implementation map
 

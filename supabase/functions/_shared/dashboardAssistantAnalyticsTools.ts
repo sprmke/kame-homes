@@ -78,16 +78,16 @@ function pct(n: number | null): string {
 }
 
 const OCCUPANCY_STATE_LABEL: Record<string, string> = {
-  underbooked: 'Underbooked — worth a pricing and marketing check',
-  building: 'Building — occupancy is picking up, keep current approach',
-  strong: 'Strong — occupancy is healthy for this listing',
-  fully_booked: 'Fully booked — a good time to raise rates on remaining open nights',
+  underbooked: 'Underbooked - worth a pricing and marketing check',
+  building: 'Building - occupancy is picking up, keep current approach',
+  strong: 'Strong - occupancy is healthy for this listing',
+  fully_booked: 'Fully booked - a good time to raise rates on remaining open nights',
 };
 
 const BALANCE_STATE_LABEL: Record<string, string> = {
-  clear: 'Clear — no upcoming balances at risk',
-  attention_needed: 'Attention needed — some upcoming bookings carry unpaid balances',
-  at_risk: 'At risk — unpaid balances are due soon on near-term check-ins',
+  clear: 'Clear - no upcoming balances at risk',
+  attention_needed: 'Attention needed - some upcoming bookings carry unpaid balances',
+  at_risk: 'At risk - unpaid balances are due soon on near-term check-ins',
 };
 
 async function resolveAnalyticsProperty(
@@ -281,11 +281,11 @@ const METRIC_EXPLANATIONS: Record<MetricKey, string> = {
   response_rate:
     '24-hour response rate = share of new guest conversations that got a first reply within 24 hours.',
   occupancy_on_books:
-    'Occupancy on the books = nights already reserved in the forward window (default next 90 days) ÷ total nights in that window. Not the same as historical occupancy — this looks forward.',
+    'Occupancy on the books = nights already reserved in the forward window (default next 90 days) ÷ total nights in that window. Not the same as historical occupancy - this looks forward.',
   pickup:
     'Pickup = net new reservations made in the last 7 or 30 days for any future check-in date. A leading indicator of demand.',
   forward_occupancy_state:
-    'A state label (underbooked / building / strong / fully_booked) computed from the next 30 and 60 days’ booked-nights ratio against this property’s own trailing 90-day baseline — not a fixed global threshold.',
+    'A state label (underbooked / building / strong / fully_booked) computed from the next 30 and 60 days’ booked-nights ratio against this property’s own trailing 90-day baseline - not a fixed global threshold.',
   balance_collection_state:
     'A state label (clear / attention_needed / at_risk) from upcoming, non-cancelled bookings that still have an unpaid balance, weighted by how close check-in is.',
 };
@@ -329,7 +329,7 @@ export const GET_PROPERTY_ANALYTICS_TOOL_DECLARATION = {
 export const EXPLAIN_ANALYTICS_METRIC_TOOL_DECLARATION = {
   name: 'explain_metric',
   description:
-    'Explain what an Analytics page metric means in plain language (occupancy, ADR, RevPAR, RevPAR, pickup, the state-assessment labels, etc.) — deterministic glossary, no property data.',
+    'Explain what an Analytics page metric means in plain language (occupancy, ADR, RevPAR, RevPAR, pickup, the state-assessment labels, etc.) - deterministic glossary, no property data.',
   parameters: {
     type: 'object',
     properties: {

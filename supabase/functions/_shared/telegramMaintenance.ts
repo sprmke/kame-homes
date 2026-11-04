@@ -281,11 +281,11 @@ function buildMaintenanceReminderPlaceholders(
   const daysUntil = daysBetweenIso(today, due);
   return {
     label: String(row.label ?? ''),
-    category: String(row.category ?? '—'),
+    category: String(row.category ?? '-'),
     due_date: formatDisplayDate(due),
     scheduled_on: formatDisplayDate(String(row.scheduled_on).slice(0, 10)),
     days_until_due: String(Math.max(0, daysUntil)),
-    notes: String(row.notes ?? '').trim() || '—',
+    notes: String(row.notes ?? '').trim() || '-',
   };
 }
 

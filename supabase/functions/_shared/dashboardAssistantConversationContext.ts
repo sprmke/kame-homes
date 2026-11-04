@@ -124,7 +124,7 @@ function attachmentPathsNote(attachments: unknown): string {
     const path = asText(rec.path);
     const mime = asText(rec.mimeType);
     if (!path) continue;
-    lines.push(`Attached earlier: ${name}${mime ? ` (${mime})` : ''} — attachmentPath: ${path}`);
+    lines.push(`Attached earlier: ${name}${mime ? ` (${mime})` : ''} - attachmentPath: ${path}`);
   }
   return lines.join('\n');
 }
@@ -289,5 +289,5 @@ export async function loadConversationContext(
 /** System-prompt appendix so the model reuses prior thread context. */
 export function conversationContextPromptSection(summary: string): string {
   if (!summary.trim()) return '';
-  return `\n\nConversation so far (use for continuity — do not contradict prior facts unless a newer tool result updates them):\n${summary}`;
+  return `\n\nConversation so far (use for continuity, do not contradict prior facts unless a newer tool result updates them):\n${summary}`;
 }

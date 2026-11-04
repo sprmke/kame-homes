@@ -19,7 +19,7 @@ function withEnv(patch: Record<string, string | null>, fn: () => void): void {
   }
 }
 
-Deno.test('shouldInlineBackgroundTasks — API_URL loopback after SUPABASE_URL is stripped', () => {
+Deno.test('shouldInlineBackgroundTasks - API_URL loopback after SUPABASE_URL is stripped', () => {
   withEnv(
     {
       EDGE_INLINE_BACKGROUND_TASKS: null,
@@ -30,7 +30,7 @@ Deno.test('shouldInlineBackgroundTasks — API_URL loopback after SUPABASE_URL i
   );
 });
 
-Deno.test('shouldInlineBackgroundTasks — hosted URL uses waitUntil unless forced', () => {
+Deno.test('shouldInlineBackgroundTasks - hosted URL uses waitUntil unless forced', () => {
   withEnv(
     {
       EDGE_INLINE_BACKGROUND_TASKS: null,

@@ -203,7 +203,7 @@ export function InboxDemo() {
             <Sparkles className="h-3 w-3" aria-hidden /> AI suggested reply
           </p>
           <p className="text-foreground mt-1.5 text-[11px] leading-relaxed">
-            Yes — Nov 12–15 is open. Parking is included for one vehicle, and I can send the booking
+            Yes - Nov 12–15 is open. Parking is included for one vehicle, and I can send the booking
             link now if you would like to hold it.
           </p>
           <div className="mt-2 flex gap-1.5">

@@ -41,7 +41,7 @@ export function RequirePropertySubscriptionAccess({ section, children }: Props) 
     <>
       {isPastDue ? (
         <div className="border-destructive/30 bg-destructive/5 text-destructive mb-3 rounded-xl border px-3 py-2 text-sm">
-          Subscription past due — pay from Plans & Billing before access is restricted.
+          Subscription past due - pay from Plans & Billing before access is restricted.
         </div>
       ) : null}
       {children}

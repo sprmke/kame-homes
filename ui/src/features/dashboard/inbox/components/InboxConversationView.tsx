@@ -681,7 +681,7 @@ export function InboxConversationView({
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-[min(90vw,18rem)] text-xs">
                     This property has no Facebook Page of its own, so replies use the
-                    organization&rsquo;s shared Meta connection — the same one every other property
+                    organization&rsquo;s shared Meta connection, the same one every other property
                     without its own Page sees.
                   </TooltipContent>
                 </Tooltip>
@@ -1006,7 +1006,7 @@ export function InboxConversationView({
           ) : null}
           {channelDisconnected ? (
             <p className="text-muted-foreground mb-2 px-1 text-xs" aria-live="polite">
-              This channel is disconnected — reconnect Meta to reply.
+              This channel is disconnected. Reconnect Meta to reply.
             </p>
           ) : null}
           {canUseHumanAgentTag ? (
@@ -1019,7 +1019,7 @@ export function InboxConversationView({
               />
               <span className="min-w-0 text-xs">
                 <span className="text-foreground block font-medium">
-                  Reply window closed — send as a support follow-up
+                  Reply window closed. Send as a support follow-up
                 </span>
                 <span className="text-muted-foreground mt-0.5 block">
                   Non-promotional only. This uses Meta&apos;s 7-day `HUMAN_AGENT` tag.

@@ -40,7 +40,7 @@ const redTeam = await readJsonl<RedTeamCase>('injection_red_team.jsonl');
 for (const c of redTeam) {
   const text = c.repeat ? c.text.repeat(c.repeat) : c.text;
 
-  Deno.test(`red team [${c.id}] — cannot break out of the untrusted fence`, () => {
+  Deno.test(`red team [${c.id}] - cannot break out of the untrusted fence`, () => {
     const fenced = wrapUntrusted('guest_message', text, 4000);
     const inner = fenced.slice(fenced.indexOf('\n') + 1, fenced.lastIndexOf('\n'));
     assert(!/<\s*\/?\s*untrusted_data/i.test(inner), 'embedded fence tag survived');
@@ -49,7 +49,7 @@ for (const c of redTeam) {
     assert(inner.length <= 4001, 'fenced content not clipped');
   });
 
-  Deno.test(`red team [${c.id}] — inline labels stay a single quoted line`, () => {
+  Deno.test(`red team [${c.id}] - inline labels stay a single quoted line`, () => {
     const label = inlineUntrusted(text);
     assert(!label.includes('\n'), 'newline survived in inline label');
     assert(label.startsWith('"') && label.endsWith('"'));
