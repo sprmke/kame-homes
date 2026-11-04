@@ -57,11 +57,14 @@ kind: backlog
 - ✅ Fix super admin UI issue on this: https://kamespace.com/admin/orgs/kame-homes
 - ✅ Why stay guide and showcase public page editor is not loading at all (root cause: `public-page-configs` edge function boot error from a duplicate `const row`; also added error states so a failed config no longer leaves the skeleton up forever)
 - ✅ Why "Save Changes" button on settings page is showing when we have new changes but disabled
-- Improve marketing landing page to not use dynamic image on "What do you want to make?" and fix the accent color that looks ugly specially on dark mode
+- ✅ Improve marketing landing page to not use dynamic image on "What do you want to make?" and have our fixed static assets. Also please address and remove the accent color that looks ugly specially on dark mode
+- ✅ Require OTP when we save any changes from Templates page/module
 - Refine and further improve the marketing default generated marketing materials/examples/templates. They all look very ugly!
 - Refine landing page
-- Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
--
+- ✅ Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
+- Refine Channel sync modal
+- Improve ? helper notes from tooltip to a new whole modal with detailed instruction and graphics/images
+  - Pricing -> Channel Sync
 
 ## Post-release items
 

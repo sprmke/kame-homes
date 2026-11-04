@@ -2,7 +2,7 @@
 title: 'Email deliverability'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-11-03
+updated: 2026-11-04
 stage: in-progress
 kind: plan
 origin_stage: untracked
@@ -33,5 +33,5 @@ last_verified: none
 
 ### Notes (2026-11-02)
 
-- `RESEND_FROM_EMAIL=mail@kamespace.com`, inbound approvals at `cyonko.resend.app`.
-- Missing DMARC is the only DNS gap; SPF alignment relies on the `send.` subdomain (relaxed alignment) and DKIM is published, so authentication itself should pass.
+- `RESEND_FROM_EMAIL=mail@notify.kamespace.com` (verified Resend domain `notify.kamespace.com`, Tokyo; CNAMEs `send.notify` / `rsend.notify`). Inbound approvals stay on `inbound.kamespace.com`.
+- Apex/`kamehomes.space` DMARC gaps remain separate from the notify sending subdomain (which has DKIM + SPF CNAMEs verified).

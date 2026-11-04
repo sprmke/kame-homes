@@ -10,8 +10,14 @@ import { formatPaymentAccountNumberDisplay, normalizePaymentProvider } from './p
 import type { PropertyPaymentMethod } from './paymentMethods.ts';
 
 export const SETTINGS_VERIFICATION_ACTION = 'payment_settings' as const;
+export const PROPERTY_TEMPLATES_VERIFICATION_ACTION = 'property_templates' as const;
 
-export type SettingsVerificationAction = typeof SETTINGS_VERIFICATION_ACTION;
+/**
+ * Templates use a fixed sudo window (not content-bound fingerprints). Challenge +
+ * token bind to this constant so Save / Reset / Create can reuse one OTP for
+ * `TEMPLATES_SUDO_TOKEN_TTL_MS`. Keep in sync with the UI constant of the same name.
+ */
+export const PROPERTY_TEMPLATES_SUDO_FINGERPRINT = 'property_templates' as const;
 
 export const SENSITIVE_SETTINGS_ACTIONS = {
   [SETTINGS_VERIFICATION_ACTION]: {
@@ -31,10 +37,24 @@ export const SENSITIVE_SETTINGS_ACTIONS = {
       'gcashQrImageUrl',
     ] as const,
   },
+  [PROPERTY_TEMPLATES_VERIFICATION_ACTION]: {
+    label: 'Templates',
+    propertyPatchKeys: [] as const,
+    parkingPatchKeys: [] as const,
+  },
 } as const;
 
+export type SettingsVerificationAction = keyof typeof SENSITIVE_SETTINGS_ACTIONS;
+
+export function isSettingsVerificationAction(value: string): value is SettingsVerificationAction {
+  return Object.prototype.hasOwnProperty.call(SENSITIVE_SETTINGS_ACTIONS, value);
+}
+
 const OTP_TTL_MS = 10 * 60 * 1000;
+/** Payment: one-shot token bound to the payment patch fingerprint. */
 const TOKEN_TTL_MS = 5 * 60 * 1000;
+/** Templates: fixed reusable sudo window after a successful OTP. */
+const TEMPLATES_SUDO_TOKEN_TTL_MS = 15 * 60 * 1000;
 const MAX_OTP_SENDS_PER_WINDOW = 3;
 const SEND_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -69,13 +89,17 @@ export function canonicalizePaymentMethodsForFingerprint(
     });
 }
 
+async function sha256Hex(json: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function computePaymentSettingsFingerprint(
   methods: PropertyPaymentMethod[]
 ): Promise<string> {
   const canonical = canonicalizePaymentMethodsForFingerprint(methods);
   const json = JSON.stringify({ paymentMethods: canonical });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  return sha256Hex(json);
 }
 
 export function patchBodyTouchesPaymentSettings(body: Record<string, unknown>): boolean {
@@ -166,7 +190,7 @@ export async function verifySettingsVerificationToken(
       new TextDecoder().decode(base64UrlDecode(body))
     ) as SettingsVerificationTokenPayload;
     if (!parsed.exp || Date.now() > parsed.exp) return null;
-    if (parsed.action !== SETTINGS_VERIFICATION_ACTION) return null;
+    if (!isSettingsVerificationAction(parsed.action)) return null;
     return parsed;
   } catch {
     return null;
@@ -348,6 +372,8 @@ export async function requireSettingsVerificationToken(input: {
   propertyId?: string | null;
   parkingId?: string | null;
   patchFingerprint: string;
+  /** Defaults to payment_settings for existing callers. */
+  expectedAction?: SettingsVerificationAction;
 }): Promise<void> {
   const trimmed = input.token?.trim();
   if (!trimmed) {
@@ -357,6 +383,11 @@ export async function requireSettingsVerificationToken(input: {
   const payload = await verifySettingsVerificationToken(trimmed);
   if (!payload) {
     throw new Error('Invalid or expired verification token');
+  }
+
+  const expectedAction = input.expectedAction ?? SETTINGS_VERIFICATION_ACTION;
+  if (payload.action !== expectedAction) {
+    throw new Error('Verification token does not match this action');
   }
 
   if (payload.organizationId !== input.organizationId) {
@@ -372,8 +403,8 @@ export async function requireSettingsVerificationToken(input: {
   }
 
   if (payload.patchFingerprint !== input.patchFingerprint) {
-    throw new Error('Verification token does not match these payment changes');
+    throw new Error('Verification token does not match these changes');
   }
 }
 
-export { OTP_TTL_MS, TOKEN_TTL_MS, MAX_FAILED_ATTEMPTS };
+export { OTP_TTL_MS, TOKEN_TTL_MS, TEMPLATES_SUDO_TOKEN_TTL_MS, MAX_FAILED_ATTEMPTS };
