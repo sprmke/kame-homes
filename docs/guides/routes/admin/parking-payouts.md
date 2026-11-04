@@ -35,13 +35,13 @@ Two things on one page, per Phase 4 of the parking marketplace build:
 2. **Payout ledger** — every paid parking booking (`parking_payment_transactions`, `status =
 'paid'`), with a manual "mark disbursed" and "record clawback" action per row. There is no
    automated payout yet — PayMongo Platforms split-payout requires a business application
-   Kame Homes hasn't made; this is the day-one manual path until that ships.
+   Kame Space hasn't made; this is the day-one manual path until that ships.
 
 **Access:** `RequireSuperAdmin`.
 
 **Step-up OTP:** saving commission/rate config and every mark-disbursed / record-clawback action need a fresh email verification code (~15-min sudo window) — see [`overview.md`](overview.md#step-up-verification-all-admin-pages) / `.cursor/rules/admin-auth.mdc` §8.
 
-**Browser tab title:** `Kame Homes - Parking payouts`
+**Browser tab title:** `Kame Space - Parking payouts`
 
 ---
 

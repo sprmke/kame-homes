@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { aiAssistantConversationsQueryKey } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantConversations';
 import {
   confirmAssistantAction,
+  confirmAssistantPlan,
   fetchAiAssistantConversationMessages,
   sendAssistantFeedback,
   type AiAssistantConversationSummary,
@@ -34,6 +35,7 @@ import type { ChatSendInput } from '@/features/dashboard/ai-assistant/lib/chatAt
 import {
   hostFacingUserMessageText,
   patchActionConfirmationStatus,
+  patchActionPlanStatus,
   patchDynamicFormStatus,
 } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
 import { useOrgScopeKey, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -479,6 +481,36 @@ export function useAiAssistantChat(pageContext: PageContext) {
     }
   }, []);
 
+  /** Phase 3 plan-card approval — mirrors resolveAction for a multi-step action_plan block. */
+  const resolvePlan = useCallback(
+    async (planId: string, confirm: boolean, selectedStepIds?: string[]) => {
+      setPending(true);
+      try {
+        const result = await confirmAssistantPlan({ planId, confirm, selectedStepIds });
+        setMessages((prev) =>
+          prev.map((msg) => {
+            const hasPlan = (msg.blocks ?? []).some(
+              (block) => block.type === 'action_plan' && block.planId === planId
+            );
+            if (!hasPlan || result.status === 'proposed' || result.status === 'running') return msg;
+            if (Array.isArray(result.blocks) && result.blocks.length > 0) {
+              return { ...msg, blocks: result.blocks };
+            }
+            return { ...msg, blocks: patchActionPlanStatus(msg.blocks, planId, result.status) };
+          })
+        );
+        setError(null);
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to resolve plan');
+        return null;
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
+
   /** Thumbs up / down; tapping the active rating again clears it. Optimistic with rollback. */
   const rateMessage = useCallback(
     async (messageId: string, rating: AssistantFeedbackRating) => {
@@ -559,6 +591,7 @@ export function useAiAssistantChat(pageContext: PageContext) {
     regenerateLastTurn,
     editAndResend,
     resolveAction,
+    resolvePlan,
     rateMessage,
     loadConversation,
     startNewConversation,

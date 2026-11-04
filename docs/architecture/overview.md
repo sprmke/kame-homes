@@ -7,9 +7,9 @@ updated: 2026-09-21
 
 # Architecture overview
 
-**Start here** for a picture of the whole Kame Homes app. Topic files under [`docs/architecture/`](./) hold depth. Index: [`docs/PROJECT.md`](../PROJECT.md).
+**Start here** for a picture of the whole Kame Space app. Topic files under [`docs/architecture/`](./) hold depth. Index: [`docs/PROJECT.md`](../PROJECT.md).
 
-Kame Homes is a **multi-tenant short-term rental platform**: public listings and guest booking, a host dashboard (property **and** parking as peer verticals), org billing, and a super-admin console. The original product was a Guest Advice Form (GAF) for one unit. That loop still sits at the center. The app around it is much larger.
+Kame Space is a **multi-tenant short-term rental platform**: public listings and guest booking, a host dashboard (property **and** parking as peer verticals), org billing, and a super-admin console. The original product was a Guest Advice Form (GAF) for one unit. That loop still sits at the center. The app around it is much larger.
 
 ---
 
@@ -103,16 +103,16 @@ Routes: [`routing.md`](routing.md). Per-page behavior: [`docs/guides/routes/`](.
 
 ## 3. Tech stack
 
-| Layer           | What we use                                                                                                     |
-| --------------- | --------------------------------------------------------------------------------------------------------------- |
-| Package manager | **Bun** (`bun install`, `bun run …`)                                                                            |
-| UI              | **Vite 7** (Vitest 4, Node 20.19+), **React 19** (`ui/package.json`), **TypeScript**, **React Router 7**        |
-| UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts |
-| PWA             | `vite-plugin-pwa` injectManifest, Workbox, IndexedDB persist + outbox, Web Push. See [`pwa.md`](pwa.md)         |
-| API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                          |
-| Data            | **Postgres** (SQL in `supabase/migrations/`, no ORM), **Storage**, **Auth**, **Realtime**                       |
-| Jobs            | Hosted **`pg_cron`** fires `pg_net.http_post` into cron functions. Not `config.toml` schedule                   |
-| Tests           | Vitest (UI), Deno (`_shared` + handlers), Playwright mocked E2E (`@smoke` / `@ci` / `@live`)                    |
+| Layer           | What we use                                                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Package manager | **Bun** (`bun install`, `bun run …`)                                                                                                      |
+| UI              | **Vite 7** (Vitest 4, Node 20.19+), **React 19** (`ui/package.json`), **TypeScript**, **React Router 7**                                  |
+| UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts                           |
+| PWA             | `vite-plugin-pwa` injectManifest, tiered precache, launch resolver, IndexedDB persist + drafts + outbox, Web Push. See [`pwa.md`](pwa.md) |
+| API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                                                    |
+| Data            | **Postgres** (SQL in `supabase/migrations/`, no ORM), **Storage**, **Auth**, **Realtime**                                                 |
+| Jobs            | Hosted **`pg_cron`** fires `pg_net.http_post` into cron functions. Not `config.toml` schedule                                             |
+| Tests           | Vitest (UI), Deno (`_shared` + handlers), Playwright mocked E2E (`@smoke` / `@ci` / `@live`)                                              |
 
 Specialized UI: **Polotno** + **Remotion** (Marketing Studio), **Google Maps**, Web Worker image compression, pdf-lib. Phone chrome uses shared primitives (`ResponsiveModal`, `BottomTabBar`, `ContextualActionBar`), not a shrunk desktop layout.
 
@@ -193,7 +193,7 @@ Entry: `ui/src/main.tsx` → `App.tsx` → `ui/src/routes/index.tsx` merges `gue
 | Parking marketplace   | Broadcast, claim, PayMongo, endorsement                                                                                                                                                                                                                                                                                                                                          | parking RBAC                                                                       |
 | AI assistant          | Dashboard chat + tools (sheet in Advanced mode, full-page AI mode with page canvas), credit wallet                                                                                                                                                                                                                                                                               | org credits + allowlist; `aiDashboardAssistant` plan gate; AI mode platform switch |
 | Host Analytics        | Occupancy / ADR bundle, AI review                                                                                                                                                                                                                                                                                                                                                | view free; `analyticsInsights` on export / AI generate                             |
-| PWA                   | Install, offline read, inbox outbox, Web Push                                                                                                                                                                                                                                                                                                                                    | deepest on host dashboard                                                          |
+| PWA                   | Install offer, `/app` launch resolver, tiered precache, offline read + drafts, inbox/notification outbox, Web Push with per-user badge                                                                                                                                                                                                                                           | deepest on host dashboard                                                          |
 
 **Billing is org-level only** (`org_subscriptions`). A property left out of enrollment resolves to Free. Plans UI: `/org/:orgSlug/plans`. Matrix: [`plans-feature-matrix.md`](plans-feature-matrix.md).
 
@@ -241,7 +241,7 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 | Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                                                                        | Service role                              |
 | Inbox    | `social_*` conversations and messages                                                                                                                                                                              | Service role                              |
 | AI       | credit wallet / ledger, assistant messages + feedback, guest web-chat AI thumbs (`guest_chat_ai_feedback`), per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
-| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`                                                                                                                                                | Service role                              |
+| Audit    | `activity_log` (append-only), `notifications`, `notification_preferences`, `push_subscriptions`                                                                                                                    | Service role                              |
 
 Schema: [`data-model.md`](data-model.md).
 
@@ -287,7 +287,7 @@ flowchart LR
   EF --> PostHog[PostHog events + errors]
   EF --> Maps[Google Maps]
   N[notifications INSERT] --> PN[pg_net]
-  PN --> Push[push-fanout → Web Push]
+  PN --> Push[push-fanout → preferences filter → Web Push]
 ```
 
 | Vendor              | Role                                                                                                                                                                  |
@@ -308,11 +308,11 @@ flowchart LR
 
 Until multi-tenant cutover, **two parallel stacks** share this git repo. Do not cross-wire. Production Supabase writes need the unlock word **`kamewave`**.
 
-| Track               | Git                  | Vercel                      | Supabase               | URL                   |
-| ------------------- | -------------------- | --------------------------- | ---------------------- | --------------------- |
-| Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production     |
-| Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `kamespace.com` |
-| Multi-tenant prod   | `main` after cutover | `kame-homes` Production     | `fworvijbrwpyngycotbz` | `kamespace.com`       |
+| Track               | Git                  | Vercel                      | Supabase               | URL               |
+| ------------------- | -------------------- | --------------------------- | ---------------------- | ----------------- |
+| Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production |
+| Multi-tenant WIP    | `develop`            | `kame-space` Preview        | `fworvijbrwpyngycotbz` | `kamespace.com`   |
+| Multi-tenant prod   | `main` after cutover | `kame-space` Production     | `fworvijbrwpyngycotbz` | `kamespace.com`   |
 
 **2026-10-27:** `fworvijbrwpyngycotbz` is both the dev and the production project until a separate dev project is created after launch. The T0 cutover is [here](../archive/operations/legacy-to-mt-prod-migration.md).
 
@@ -356,7 +356,7 @@ Folder conventions: `.cursor/rules/architecture.mdc`. UI map: [`project-structur
 
 **Nuclear reset:** `bun run stop:supabase:clean` deletes Docker volumes (all local DB data is lost). Then `bun run start:supabase`.
 
-Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need the UI. PWA service worker is **off** under `vite` (it would fight HMR); test with `bun run build` + `preview`, or `VITE_PWA_DEV=true`.
+Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need the UI. PWA service worker is **off** under `vite` (it would fight HMR); test with `bun run build` + `preview`, `bun run test:e2e:pwa`, or `VITE_PWA_DEV=true`.
 
 ---
 

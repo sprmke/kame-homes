@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # migrate.sh — orchestrator for the legacy → mt-prod cutover migration.
-# Plan: docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 2
+# Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 2
 #
 # Stages (each idempotent; artifacts + logs under backups/migration/<run-id>/):
 #   preflight      — environment + connectivity checks (read-only)

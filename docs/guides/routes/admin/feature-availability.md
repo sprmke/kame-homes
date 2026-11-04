@@ -22,7 +22,7 @@ Route: `/admin/feature-availability` (Platform sidebar, **Feature availability**
 
 **Plans / Team RBAC:** N/A (super-admin only; step-up gated writes on `feature-availability` edge function).
 
-**Page title:** `Kame Homes - Feature availability`
+**Page title:** `Kame Space - Feature availability`
 
 ## Behavior
 

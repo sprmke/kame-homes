@@ -69,4 +69,18 @@ describe('override key sets', () => {
     expect(ORG_OVERRIDE_KEYS).not.toContain('voiceMaxSessionSeconds');
     expect(PROPERTY_OVERRIDE_KEYS).not.toContain('assistantDailyMessageLimit');
   });
+
+  it('Phase 6 guardrail keys are org-overridable only, not property-overridable', () => {
+    const guardrailKeys = [
+      'assistantMaxToolRounds',
+      'assistantMaxPlanSteps',
+      'guestRequestDailyLimit',
+      'assistantTurnCreditCeiling',
+    ] as const;
+    for (const key of guardrailKeys) {
+      expect(AI_LIMIT_KEYS).toContain(key);
+      expect(ORG_OVERRIDE_KEYS).toContain(key);
+      expect(PROPERTY_OVERRIDE_KEYS).not.toContain(key);
+    }
+  });
 });

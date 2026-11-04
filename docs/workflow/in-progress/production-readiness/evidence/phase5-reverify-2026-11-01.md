@@ -111,7 +111,7 @@ Verified after the deploy:
 
 - `get-health` 200 `{status: ok, db: ok}`
 - `pricing_plans` on dev now carry the per-tier `marketingMediaLibrary` values (Starter 500 MB/50 uploads → Managed 25.6 GB/500 uploads), matching the golden matrix
-- The dev dataset had been reset to the seed layout (only `Kame Homes` / `monaco-2604`), so the QA fixtures were re-seeded (`seed-readiness-qa-dev.mjs --plan growth`) and IDOR / RBAC / invites / uploads probes pass again
+- The dev dataset had been reset to the seed layout (only `Kame Space` / `monaco-2604`), so the QA fixtures were re-seeded (`seed-readiness-qa-dev.mjs --plan growth`) and IDOR / RBAC / invites / uploads probes pass again
 
 ## Open after this pass
 

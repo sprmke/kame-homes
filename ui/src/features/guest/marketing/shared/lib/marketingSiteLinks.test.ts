@@ -10,13 +10,13 @@ describe('resolveSocialLinks', () => {
   it('keeps https URLs in a stable order and drops the rest', () => {
     expect(
       resolveSocialLinks({
-        twitter: 'https://x.com/kamehomes',
-        facebook: ' https://facebook.com/kamehomes ',
+        twitter: 'https://x.com/samplestays',
+        facebook: ' https://facebook.com/samplestays ',
         instagram: 'javascript:alert(1)',
       }).map((l) => [l.label, l.href])
     ).toEqual([
-      ['Facebook', 'https://facebook.com/kamehomes'],
-      ['Twitter', 'https://x.com/kamehomes'],
+      ['Facebook', 'https://facebook.com/samplestays'],
+      ['Twitter', 'https://x.com/samplestays'],
     ]);
   });
 

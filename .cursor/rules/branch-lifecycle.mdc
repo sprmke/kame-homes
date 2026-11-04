@@ -1,0 +1,71 @@
+---
+description: >-
+  Finished work must land on develop in the same session: open a PR, report it, merge when
+  green, delete the branch. No finished feature left on an unmerged branch.
+alwaysApply: true
+---
+
+# Branch lifecycle — finish the branch, do not park it
+
+**Non-negotiable:** when a task, feature, or module is done, the work must be **on a PR into
+`develop`** before you report it done. A green local branch that nobody merged is unfinished
+work, not finished work.
+
+Full procedure: **`branch-lifecycle`** skill
+(`.agent/skills/branch-lifecycle/SKILL.md`). Audit record:
+**`docs/archive/operations/branch-cleanup-audit.md`**.
+
+## Base branch
+
+| Work       | Base      | Target                                             |
+| ---------- | --------- | -------------------------------------------------- |
+| Everything | `develop` | PR into `develop`                                  |
+| Release    | `develop` | `develop` → `main` PR (never push `main` directly) |
+
+`main` is production. It only moves through a reviewed `develop` → `main` PR.
+
+## Definition of done
+
+A branch is done only when **all** of these are true:
+
+1. Committed (no uncommitted files left behind in the worktree).
+2. Pushed to `origin`.
+3. A PR into `develop` exists and its link is in your reply to the user.
+4. CI green (`bun run ci:quality` locally at minimum).
+5. Merged, **after the user approves the merge**.
+6. The branch is deleted, local and remote.
+
+## At the end of every task
+
+1. `git status` — uncommitted work is **not** done. Commit it or say why it is intentionally left.
+2. If you are on a feature branch, open the PR and report the URL. Do not silently switch back to
+   `develop` and leave the branch behind.
+3. Do not merge on your own initiative. Ask, then merge when told.
+4. After the merge, delete the branch:
+   `git branch -d <name>` and `git push origin --delete <name>`.
+
+## Deleting a branch
+
+Only delete when **all** of these hold, and record the tip SHA first:
+
+1. `git merge-base --is-ancestor <branch> develop` is true, **or** `git cherry develop <branch>`
+   shows no `+` lines (content merged, e.g. squash merge).
+2. Every file the branch added exists in `develop`.
+3. Nothing uncommitted lives in a worktree checked out on that branch.
+4. No open PR uses it.
+
+Unsure about any of the four? **Keep it** and say so. Never `--force` a delete to get past a
+refusal.
+
+## Never
+
+- Leave a finished feature only on a branch "for later".
+- Push straight to `develop` or `main`.
+- Delete a branch or worktree you have not verified, or one with uncommitted files.
+- Delete the user's in-progress branches to tidy up. Cleanup is opt-in and reported first.
+
+## Related
+
+- Skill: **`branch-lifecycle`** · audit script **`scripts/dev/branch-audit.sh`**
+- Commits: **`git-commits.mdc`** · Deploys: **`no-prod-deploy.mdc`**
+- Workflow docs: **`workflow`** skill (`docs/workflow/`)

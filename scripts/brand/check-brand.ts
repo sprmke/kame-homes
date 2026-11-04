@@ -31,7 +31,7 @@ const SKIP_EXT = new Set([
   '.db', '.sqlite', '.wasm',
 ]);
 
-// Case-insensitive legacy brand pattern (covers Kame Homes, Kame Home, KameHomes,
+// Case-insensitive legacy brand pattern (covers Kame Space, Kame Space, KameHomes,
 // kame-homes, kamehomes, kamehome, KAME_HOMES, etc.). Bare "Homes"/"Kame" never match.
 const BRAND_RE = /kame[\s_-]?homes?\b/gi;
 
@@ -87,7 +87,12 @@ if (existsSync(ALLOWLIST_PATH)) {
 function globToRegex(glob: string): RegExp {
   // escape regex specials except *
   const escaped = glob.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-  const re = escaped.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
+  // `**` must become `.*` before single `*` becomes `[^/]*`, otherwise the star
+  // inside `.*` gets rewritten and nested paths stop matching.
+  const re = escaped
+    .replace(/\*\*/g, '\u0000')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\u0000/g, '.*');
   return new RegExp('^' + re + '$');
 }
 

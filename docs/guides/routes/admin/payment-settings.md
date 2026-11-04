@@ -29,7 +29,7 @@ Singleton platform config for property subscription billing dunning (**`platform
 
 **Step-up OTP:** saving here needs a fresh email verification code (~15-min sudo window) — see [`overview.md`](overview.md#step-up-verification-all-admin-pages) / `.cursor/rules/admin-auth.mdc` §8.
 
-**Browser tab title:** `Kame Homes - Payment settings`
+**Browser tab title:** `Kame Space - Payment settings`
 
 ---
 

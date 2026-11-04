@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { useActivityRealtime } from '@/features/dashboard/activity/hooks/useActivityRealtime';
 import { useNotificationsList } from '@/features/dashboard/notifications/hooks/useNotifications';
@@ -9,15 +9,9 @@ import { resolveNotificationPath } from '@/features/dashboard/notifications/lib/
 import { useNotificationsOrgScope } from '@/features/dashboard/notifications/lib/notificationsScope';
 import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
-import {
-  getLastParkingSlug,
-  getLastPropertySlug,
-  getLastTenantKind,
-  parkingSectionPath,
-  propertySectionPath,
-} from '@/features/dashboard/org/lib/tenantPaths';
 
 import { getPwaCapabilities } from '@/lib/pwa/capabilities';
+import { markHostInstall } from '@/lib/pwa/installMemory';
 import { resyncPushSubscription } from '@/lib/pwa/push';
 
 import { SW_MESSAGE } from '@/pwa/shared';
@@ -31,7 +25,6 @@ import { SW_MESSAGE } from '@/pwa/shared';
  */
 export function NotificationsProvider() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { orgSlug, orgId } = useNotificationsOrgScope();
 
   // Cached by RequireOrgContext/SidebarTenantScope already mounted alongside —
@@ -91,30 +84,13 @@ export function NotificationsProvider() {
     return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, []);
 
-  // App-shortcut deep links (`start_url` lands here after the tenant redirect).
+  // A host with an org context on this device: remember it so a later cold launch
+  // (signed out, or offline) goes to host sign-in instead of the public
+  // marketplace. Device-scoped, survives sign-out on purpose (P0-1).
   useEffect(() => {
-    const shortcut = searchParams.get('shortcut');
-    if (!shortcut || !orgSlug) return;
-    const kind = getLastTenantKind();
-    let target: string | null = null;
-    if (kind === 'parking') {
-      const slug = getLastParkingSlug();
-      if (slug)
-        target = parkingSectionPath(orgSlug, slug, shortcut === 'inbox' ? 'inbox' : 'bookings');
-    } else {
-      const slug = getLastPropertySlug();
-      if (slug) {
-        target = propertySectionPath(orgSlug, slug, shortcut === 'inbox' ? 'inbox' : 'bookings');
-      }
-    }
-    const next = new URLSearchParams(searchParams);
-    next.delete('shortcut');
-    next.delete('source');
-    setSearchParams(next, { replace: true });
-    if (target) navigate(target);
-    // Run once per shortcut value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get('shortcut'), orgSlug]);
+    if (!orgSlug) return;
+    markHostInstall();
+  }, [orgSlug]);
 
   return null;
 }

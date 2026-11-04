@@ -11,12 +11,12 @@ updated: 2026-10-19
 
 ## Goal
 
-Turn today's one-way, SD-refund-embedded guest review into a complete **two-way review system**, modeled on Airbnb / Vrbo and adapted to Kame Homes:
+Turn today's one-way, SD-refund-embedded guest review into a complete **two-way review system**, modeled on Airbnb / Vrbo and adapted to Kame Space:
 
 1. **Guest → stay** (existing, refined): overall rating + six category ratings, tags, text, photos, private note to the host. Reachable from every post-stay surface, not only the SD refund stepper.
 2. **Host → guest** (new): overall + three categories (cleanliness, communication, house rules), "would host again", strengths / issue tags, a review the guest can read, a private note to the guest, and a team-only internal note.
 3. **Fairness rules**: a 14-day review window that opens at check-out, **double-blind** publishing (neither side sees the other's review until both submit or the window closes), edit-until-published, one public response per review, and a dispute (report review) path to super-admin.
-4. **Host screening value**: when a guest who has stayed on Kame Homes submits a new booking request, the host sees that guest's reputation (average, categories, would-host-again rate, recent reviews) on the booking detail.
+4. **Host screening value**: when a guest who has stayed on Kame Space submits a new booking request, the host sees that guest's reputation (average, categories, would-host-again rate, recent reviews) on the booking detail.
 5. **New screens**: property **Reviews** page for hosts, booking-detail **Review guest** card + **Guest reputation** card, guest **/account/reviews** page, redesigned write-review flows, and a redesigned public rating summary on the listing page. All mobile-native (bottom sheets, ≥44px targets, 375px first).
 
 It also fixes three issues found in the current implementation (see [Current state](#current-state-and-gaps)): the SD refund cannot be reached without leaving a review, the voucher is gated on the review, and the public rating/count is computed from only the newest 20 reviews.
@@ -58,7 +58,7 @@ It also fixes three issues found in the current implementation (see [Current sta
 - US FTC Consumer Reviews Rule (effective 2024-10-21, 16 CFR 465): bans incentives conditioned (expressly or implicitly) on sentiment and **review suppression**; incentives not tied to sentiment are allowed but should be disclosed. Showing "all reviews" while hiding negative ones is a violation. ([eCFR 465](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-D/part-465), [FTC Q&A](https://www.ftc.gov/business-guidance/resources/consumer-reviews-testimonials-rule-questions-answers))
 - Philippines: Consumer Act (RA 7394), Internet Transactions Act (RA 11967) and Data Privacy Act (RA 10173) apply. Host-written reviews about a guest are personal data; sharing them across organizations needs a stated purpose (booking screening), disclosure in Terms/Privacy, and an access path for the guest (they can read reviews about them). Legal sign-off is a Phase 0 task.
 
-### Adopt / adapt / skip for Kame Homes
+### Adopt / adapt / skip for Kame Space
 
 | Pattern                                                                    | Decision                                                                           | Why                                                                                                                          |
 | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -383,7 +383,7 @@ Phone                                   Desktop (account two-column shell)
 - **About you**: header `ReputationSummary` (your average from hosts, count); host reviews of you once published; "Hidden until you review" teaser card when the host reviewed but you have not and the window is open (Airbnb nudge, without revealing content); one-time **Respond** (bottom sheet) and **Report** in the overflow menu.
 - Empty states: icon + one line per tab ("No stays to review", "No reviews yet").
 - Skeleton: tab strip mounted, 2 card skeletons.
-- Requires sign-in (account routes already gated). Page title `Kame Homes - Reviews` via `usePageTitle` (platform name rule).
+- Requires sign-in (account routes already gated). Page title `Kame Space - Reviews` via `usePageTitle` (platform name rule).
 
 ### G3 — Guest: trip page
 

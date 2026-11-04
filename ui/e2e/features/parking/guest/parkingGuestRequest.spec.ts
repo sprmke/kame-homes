@@ -24,7 +24,7 @@ test.describe('@smoke @ci parking guest flow', () => {
     ).toBeVisible();
     await expect(page.getByText(parkingGuestStatusLabels.stayRange)).toBeVisible();
     await expect(
-      page.locator('.section-eyebrow').filter({ hasText: 'Kame Homes PH' })
+      page.locator('.section-eyebrow').filter({ hasText: 'Sample Stays PH' })
     ).toBeVisible();
     await expect(page.getByText(parkingGuestStatusLabels.searchingNearby)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel request' })).toBeVisible();

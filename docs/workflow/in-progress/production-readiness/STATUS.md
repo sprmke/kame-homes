@@ -20,6 +20,32 @@ One page answering "what is done, what is in progress, what is pending". Detail 
 `kamewave`) · CI green · `CD Dev` green end-to-end ·
 `ci:quality` green · `@ci` E2E 301 passed / 9 skipped (marketing studio, PR-133) / 0 failed.
 
+## Closing update (2026-11-04)
+
+Everything in the audit that an agent can do is done. The items below this line are the only ones
+left, and each needs an operator account, a credential, or a product decision.
+
+Closed since the 2026-11-02 snapshot:
+
+- **Same-day stays** shippped end to end: guest picker, edge validator, availability/ICS/pricing
+  overlap, admin reschedule, imports, and the `valid_dates` constraint. UI released to production
+  from `5fb3dc64`.
+- **Restore drill** measured and then re-run clean: production backup → scratch restore in 2 s,
+  450/450 bookings, 0 constraint violations.
+- **Legacy stay dates** repaired: 65 rows rebuilt from the upload filenames; the last four stale
+  night counts and the one ISO row fixed. Final state **0 inconsistent / 0 reversed / 0
+  non-canonical across 450 rows**.
+- **Deploy pipeline**: fixed the four blockers (backup ref check, `--remote`, `--yes`, replay lint)
+  and restored 16 migration files that only existed in one session's local tree, so `db push` works
+  from `develop` again.
+- **Production SEO/a11y**: robots allow, sitemap on `kamespace.com`, `X-Frame-Options`, Lighthouse
+  SEO 100 / a11y 100.
+- **Module coverage**: evidence index + 13 cards filled with re-runnable proof.
+
+Remaining (operator/product, unchanged): `DEV_DB_URL`/`ANON_KEY`/`DB_PASSWORD` GitHub secrets
+(PR-025), DMARC record, PayMongo sandbox keys, paid Gemini + billing cap, Meta app/page token, prod
+captcha review, CSP enforce decision, alerts/on-call (PR-027), final go/no-go.
+
 ## Phase scoreboard
 
 | Phase                | Done                                                                                                                                       | In progress                                                                    | Pending (agent)                                                                                           | Pending (operator / product)                                               |
@@ -66,8 +92,13 @@ Detail: [`evidence/production-audit-2026-11-02.md`](./evidence/production-audit-
 
 First measured drill: production backup 80 s (3.4 MB), restore of application data 3 s with 100% row
 parity. Two blockers surfaced: production schema drift (no `valid_dates` constraint) and 43/450
-bookings that violate it, so restoring prod data into a fresh project fails. Detail:
+bookings that violate it, so restoring prod data into a fresh project failed. Detail:
 [`evidence/restore-drill-2026-11-03.md`](./evidence/restore-drill-2026-11-03.md).
+
+**Resolved 2026-11-03:** same-day stays are now a supported product rule (`check_out >= check_in`,
+one occupied night) and the missing `valid_dates` constraint was added with the 41 pre-2025-06
+reversed rows grandfathered, so a production dump restores into a fresh project. See
+[`evidence/same-day-stays-2026-11-03.md`](./evidence/same-day-stays-2026-11-03.md).
 
 ## Next actions, in order
 

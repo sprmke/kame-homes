@@ -2,7 +2,7 @@
 title: 'Module: For-hosts + tour + pricing'
 status: active
 tags: [workflow, production-readiness, module]
-updated: 2026-10-19
+updated: 2026-11-03
 stage: in-progress
 kind: reference
 readiness: unverified
@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **A**.
 
 ## Evidence
 
-2026-10-19 hosted-dev `/for-hosts`: title `Kame Homes - For Hosts`, tour + Start free. **PR-108:** hero uses an em dash; tour left rail clips labels. Not 375/768. Not ✅.
+2026-10-19 hosted-dev `/for-hosts`: title `Kame Space - For Hosts`, tour + Start free. **PR-108:** hero uses an em dash; tour left rail clips labels. Not 375/768. Not ✅.

@@ -7,7 +7,7 @@ updated: 2026-09-23
 
 # Application coverage model
 
-Kame Homes does **not** use a single “100% Vitest line coverage on `ui/src/**`” bar. The app is a Vite SPA: most files are React pages and components. Unit tests run in **Vitest Node** (no DOM). Page layout, sections, and interactive elements are covered by **Playwright** journeys.
+Kame Space does **not** use a single “100% Vitest line coverage on `ui/src/**`” bar. The app is a Vite SPA: most files are React pages and components. Unit tests run in **Vitest Node** (no DOM). Page layout, sections, and interactive elements are covered by **Playwright** journeys.
 
 ## Three layers (full application)
 

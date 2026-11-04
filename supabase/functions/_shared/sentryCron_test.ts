@@ -7,7 +7,13 @@
 
 import { assert, assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
 
-import { resetSentryCronDsnForTests, sendCronCheckIn, withCronCheckIn } from './sentryCron.ts';
+import { resetSentryDsnCacheForTests } from './sentry.ts';
+import {
+  reportCronPartialFailure,
+  resetSentryCronDsnForTests,
+  sendCronCheckIn,
+  withCronCheckIn,
+} from './sentryCron.ts';
 
 const DSN = 'https://publickey@o1.ingest.us.sentry.io/4512354438021120';
 
@@ -50,10 +56,7 @@ Deno.test('sends an in-progress check-in with a monitor config', async () => {
     await sendCronCheckIn(MONITOR, 'in_progress');
 
     assertEquals(captured.length, 1);
-    assertEquals(
-      captured[0]!.url,
-      'https://o1.ingest.us.sentry.io/api/4512354438021120/envelope/'
-    );
+    assertEquals(captured[0]!.url, 'https://o1.ingest.us.sentry.io/api/4512354438021120/envelope/');
 
     const payload = parseCheckIn(captured[0]!.body);
     assertEquals(payload.monitor_slug, 'sd-refund-cron');
@@ -136,5 +139,66 @@ Deno.test('a rejected check-in never throws', async () => {
     await sendCronCheckIn(MONITOR, 'ok');
   } finally {
     restore();
+  }
+});
+
+// ── partial-failure summary ─────────────────────────────────────────────────
+
+function installCapture(): void {
+  captured = [];
+  Deno.env.set('SENTRY_DSN', DSN);
+  Deno.env.set('SENTRY_SAMPLE_RATE_WARNING', '1');
+  resetSentryDsnCacheForTests();
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    captured.push({ url: String(input), body: String(init?.body ?? '') });
+    return Promise.resolve(new Response('{}', { status: 200 }));
+  }) as typeof fetch;
+}
+
+function restoreCapture(): void {
+  globalThis.fetch = originalFetch;
+  Deno.env.delete('SENTRY_DSN');
+  Deno.env.delete('SENTRY_SAMPLE_RATE_WARNING');
+  resetSentryDsnCacheForTests();
+}
+
+function parseEvent(body: string): Record<string, unknown> {
+  const lines = body.split('\n').filter((line) => line.trim());
+  return JSON.parse(lines[2]!) as Record<string, unknown>;
+}
+
+Deno.test('reportCronPartialFailure sends nothing when every item succeeded', async () => {
+  installCapture();
+  try {
+    await reportCronPartialFailure({ cron: 'calendar-sync-cron', attempted: 40, failed: 0 });
+    assertEquals(captured.length, 0);
+  } finally {
+    restoreCapture();
+  }
+});
+
+Deno.test('reportCronPartialFailure sends one warning with the failure counts', async () => {
+  installCapture();
+  try {
+    await reportCronPartialFailure({
+      cron: 'calendar-sync-cron',
+      attempted: 40,
+      failed: 3,
+      extra: { run_id: 'run-1' },
+    });
+
+    assertEquals(captured.length, 1);
+    const event = parseEvent(captured[0]!.body);
+    assertEquals(event.level, 'warning');
+    assertEquals(event.message, 'calendar-sync-cron: 3 of 40 failed');
+    assertEquals((event.tags as Record<string, string>).cron, 'calendar-sync-cron');
+    assertEquals((event.tags as Record<string, string>).outcome, 'partial_failure');
+
+    const extra = event.extra as Record<string, unknown>;
+    assertEquals(extra.failed_count, 3);
+    assertEquals(extra.attempted_count, 40);
+    assertEquals(extra.run_id, 'run-1');
+  } finally {
+    restoreCapture();
   }
 });

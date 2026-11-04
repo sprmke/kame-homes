@@ -18,6 +18,7 @@ import {
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { draftReviewWithAi } from '../_shared/reviewDraftAi.ts';
 import { getGuestReviewRow } from '../_shared/guestReviewService.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('draft-review-with-ai', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -65,6 +66,16 @@ serveAuthenticated('draft-review-with-ai', async (req) => {
       actorUserId: access.user.id,
       guestReviewText,
       guestRating,
+    });
+    await capturePostHogEvent('review_draft_ai_used', {
+      logPrefix: 'draft-review-with-ai',
+      request: req,
+      distinctId: access.user.id,
+      groups: {
+        organization: access.property.organization_id,
+        property: access.property.id,
+      },
+      properties: { kind },
     });
     return jsonSuccess(req, { text });
   } catch (err) {

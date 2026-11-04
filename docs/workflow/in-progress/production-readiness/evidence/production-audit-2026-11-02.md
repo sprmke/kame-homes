@@ -33,8 +33,8 @@ Disallow: /
 
 Lighthouse mobile on production: **SEO 69**, single failing audit `is-crawlable` ("Page is blocked from indexing"). Two causes:
 
-1. `DEFAULT_INDEXABLE_HOSTS` only listed `kamehomes.space`; the kamespace rebrand never added `kamespace.com` ([#215](https://github.com/sprmke/kame-homes/pull/215)).
-2. Even after that, the middleware replaces the defaults with `SEO_INDEXABLE_HOSTS` whenever Vercel sets it, and production still carries the pre-rebrand list, so `kamespace.com` stayed blocked ([#216](https://github.com/sprmke/kame-homes/pull/216) unions the env list with the defaults so a stale env can only ever _add_ hosts).
+1. `DEFAULT_INDEXABLE_HOSTS` only listed `kamehomes.space`; the kamespace rebrand never added `kamespace.com` ([#215](https://github.com/sprmke/kame-space/pull/215)).
+2. Even after that, the middleware replaces the defaults with `SEO_INDEXABLE_HOSTS` whenever Vercel sets it, and production still carries the pre-rebrand list, so `kamespace.com` stayed blocked ([#216](https://github.com/sprmke/kame-space/pull/216) unions the env list with the defaults so a stale env can only ever _add_ hosts).
 
 Both merged to `main`. **As of this pass the live site still serves the old build** (see finding 4), so the robot fix is not live yet.
 
@@ -54,7 +54,7 @@ sitemap now lists `https://kamespace.com/…`.
 
 ZAP baseline flagged `Missing Anti-clickjacking Header`; production sends no `X-Frame-Options` and the
 CSP is Report-Only, so `frame-ancestors 'self'` does not apply. Added
-`X-Frame-Options: SAMEORIGIN` ([#215](https://github.com/sprmke/kame-homes/pull/215)).
+`X-Frame-Options: SAMEORIGIN` ([#215](https://github.com/sprmke/kame-space/pull/215)).
 
 ### 4. Production is behind `main` (operator — Vercel configuration)
 

@@ -1,7 +1,7 @@
 ---
 name: github-issue
 description: >-
-  Work the GitHub backlog on sprmke/kame-homes: view issues, create new ones,
+  Work the GitHub backlog on sprmke/kame-space: view issues, create new ones,
   ship completed work to docs/archive/todos/shipped. Use when filing tickets, picking up
   work, or closing/shipping an issue.
 disable-model-invocation: false
@@ -9,7 +9,7 @@ disable-model-invocation: false
 
 # GitHub Issues (source of truth)
 
-**Repo:** `sprmke/kame-homes`  
+**Repo:** `sprmke/kame-space`  
 **Pending backlog:** GitHub Issues + Project board  
 **Epic grouping:** GitHub parent issue (`--parent` on create) — not body text  
 **Shipped archive:** `docs/archive/todos/shipped/{issueNumber}-{slug}.md`

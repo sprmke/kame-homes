@@ -372,10 +372,12 @@ export async function handleEdgeError(
 ): Promise<Response> {
   const { status, message, code } = await errorMessageFromThrown(error, unauthorizedFallback);
   const requestId = resolveRequestId(req);
-  // Response-instance throws are intentional control flow (401/403/expected 400s).
-  // Logging the Response object as console.error looks like a crash in `functions serve`.
-  // An EdgeError below 500 is the same: a status the handler chose on purpose.
-  const isDeliberate4xx = (error instanceof Response || error instanceof EdgeError) && status < 500;
+  // Anything that resolves below 500 is a status the handler chose on purpose: a Response
+  // throw, an EdgeError, or a bare `new Error('property_id is required')`, which this codebase
+  // uses for validation and which resolves to 400. The contract is the status, not the class —
+  // `captureFaultIfServerError` already uses exactly this rule. Class-based detection leaked
+  // validation throws and 405s from wrong-verb probes into Sentry as faults to fix.
+  const isDeliberate4xx = status < 500;
   if (isDeliberate4xx) {
     console.warn(`${logPrefix} ${status} ${message}`);
     logEvent('warn', { fn: logPrefix, requestId, event: 'request_failed', status, meta: { code } });
@@ -481,7 +483,10 @@ export async function readJsonBody(req: Request): Promise<Record<string, unknown
 
 export function requireHttpMethod(req: Request, method: string): void {
   if (req.method !== method) {
-    throw new Error(`Method ${req.method} not allowed`);
+    // An EdgeError, not a bare Error: a caller using the wrong verb is a client mistake with
+    // a well-defined status, not a runtime fault. A bare Error would resolve to 400 and, until
+    // the capture rule below changed, page Sentry on every uptime probe and misconfigured client.
+    throw new EdgeError(405, `Method ${req.method} not allowed`, 'method_not_allowed');
   }
 }
 

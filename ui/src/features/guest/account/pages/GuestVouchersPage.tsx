@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { Link } from 'react-router-dom';
 
 import { GuestAccountContentCard } from '@/features/guest/account/components/GuestAccountContentCard';
@@ -12,6 +14,7 @@ import { guestFormPath } from '@/features/guest/lib/guestPublicPaths';
 
 import { GuestVouchersPageSkeleton } from '@/components/skeletons/GuestAccountSkeletons';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 import { formatRelative } from '@/utils/format/bookingDisplay';
 
@@ -84,6 +87,18 @@ export function GuestVouchersPage() {
 
   const available = vouchers.filter((v) => !v.redeemedAt);
   const used = vouchers.filter((v) => v.redeemedAt);
+
+  // Once per page load, after the wallet has actually loaded. A wallet screen is the only
+  // place a guest sees voucher value, so this is the outcome worth recording.
+  const reportedRef = useRef(false);
+  useEffect(() => {
+    if (reportedRef.current || isLoading) return;
+    reportedRef.current = true;
+    captureAppEvent('guest_voucher_viewed', {
+      count: vouchers.length,
+      available_count: available.length,
+    });
+  }, [available.length, isLoading, vouchers.length]);
 
   if (isLoading) {
     return (

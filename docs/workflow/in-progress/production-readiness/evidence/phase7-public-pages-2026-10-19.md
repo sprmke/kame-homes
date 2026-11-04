@@ -4,8 +4,8 @@ UI: `https://dev.kamehomes.space` (Vercel). API still mid-deploy (`3e269a98`, ~1
 
 | Route         | Title                     | Result                                                                                                                                                                                  |
 | ------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`           | `Kame Homes - Home`       | Renders. Search pill, destination chips, featured stays, footer legal links, bottom tab bar in a11y tree.                                                                               |
-| `/properties` | `Kame Homes - Properties` | Filters + empty state **"No properties match" / 0 properties**. Likely listing RPCs not deployed yet (search index migration **is** applied). Re-check after function deploy completes. |
+| `/`           | `Kame Space - Home`       | Renders. Search pill, destination chips, featured stays, footer legal links, bottom tab bar in a11y tree.                                                                               |
+| `/properties` | `Kame Space - Properties` | Filters + empty state **"No properties match" / 0 properties**. Likely listing RPCs not deployed yet (search index migration **is** applied). Re-check after function deploy completes. |
 | `/for-hosts`  | (loading)                 | Navigated; see follow-up snapshot.                                                                                                                                                      |
 
 Not launch-verified. Empty listing is 🟡 until post-deploy retest (could become 🔴).

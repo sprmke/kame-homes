@@ -6,6 +6,7 @@ import {
   AI_OUTPUT_ICON,
   AiSessionCard,
 } from '@/features/dashboard/marketing/components/ai-studio/AiSessionCard';
+import { AiStudioSampleGallery } from '@/features/dashboard/marketing/components/ai-studio/AiStudioSampleGallery';
 import {
   MarketingLibraryToolbar,
   type LibraryFilterField,
@@ -24,6 +25,7 @@ import {
   useRestoreAiSessions,
 } from '@/features/dashboard/marketing/hooks/useMarketingAiSessions';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
+import type { AiStudioSample } from '@/features/dashboard/marketing/lib/aiStudioSamples';
 import type { AiSessionSummary } from '@/features/dashboard/marketing/lib/aiStudioSessions';
 import {
   isAiStudioOutput,
@@ -59,19 +61,19 @@ export const AI_OUTPUT_START: Array<{
   {
     value: 'post',
     title: 'Post',
-    hint: 'A ready-to-share design from your photos',
+    hint: '4 designs with your words and photos',
     feature: 'aiMarketingGeneration',
   },
   {
     value: 'image',
     title: 'Photo',
-    hint: 'A new photo of your place',
+    hint: '1 new photo of your place, no text',
     feature: 'aiMarketingImageGeneration',
   },
   {
     value: 'video',
     title: 'Clip',
-    hint: 'An 8 second video from a photo',
+    hint: '1 video, 8 seconds, from one photo',
     feature: 'aiMarketingVideoGeneration',
   },
 ];
@@ -107,6 +109,11 @@ export function AiStudioHome() {
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [renaming, setRenaming] = useState<AiSessionSummary | null>(null);
   const [confirm, setConfirm] = useState<{ ids: string[]; name: string } | null>(null);
+  const [examplesExpanded, setExamplesExpanded] = useState(false);
+  const startFromExample = useCallback(
+    (sample: AiStudioSample) => startAiSession(sample.output, { sampleId: sample.id }),
+    [startAiSession]
+  );
 
   const list = useAiSessionList({ output: outputFilter, query: debouncedQuery, deleted });
   const items = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data]);
@@ -193,9 +200,9 @@ export function AiStudioHome() {
   if (isFresh) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center gap-5 p-4 py-8 sm:p-6 lg:py-12">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center gap-5 p-4 py-8 sm:p-6 lg:py-12">
           <h2 className="text-admin-page-title text-center">What do you want to make?</h2>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="mx-auto grid w-full max-w-4xl gap-3 sm:grid-cols-3">
             {AI_OUTPUT_START.map((option) => (
               <OutputStartCard
                 key={option.value}
@@ -208,6 +215,12 @@ export function AiStudioHome() {
               />
             ))}
           </div>
+          <AiStudioSampleGallery
+            mode="grid"
+            access={access}
+            onUse={startFromExample}
+            className="mt-4"
+          />
         </div>
       </div>
     );
@@ -239,6 +252,16 @@ export function AiStudioHome() {
             })}
           </div>
         )}
+
+        {!deleted && !selectMode ? (
+          <AiStudioSampleGallery
+            mode={examplesExpanded ? 'grid' : 'row'}
+            access={access}
+            onUse={startFromExample}
+            onSeeAll={() => setExamplesExpanded(true)}
+            onCollapse={() => setExamplesExpanded(false)}
+          />
+        ) : null}
 
         {selectMode ? (
           <div className="border-border bg-card sticky top-0 z-10 flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2 shadow-sm">

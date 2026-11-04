@@ -40,7 +40,7 @@ BEGIN
   VALUES (
     v_org,
     v_owner,
-    'Kame Homes',
+    'Kame Space',
     'kame-homes',
     'Local seed org for search fixtures and dashboard demo'
   )

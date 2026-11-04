@@ -154,6 +154,7 @@ export function AiAssistantPanel({ open, onOpenChange }: Props) {
                 block={canvasBlock}
                 onClose={() => setCanvasBlock(null)}
                 onResolveAction={session.confirmAction}
+                onResolvePlan={session.confirmPlan}
                 onRunQuickAction={session.runQuickAction}
                 quickActionsDisabled={session.sending || session.pending}
                 className="min-h-0 flex-1 lg:min-w-0"

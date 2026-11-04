@@ -384,6 +384,7 @@ export function AiChatColumn({ className }: ChatColumnProps) {
           block={session.canvasBlock}
           onClose={() => session.setCanvasBlock(null)}
           onResolveAction={session.confirmAction}
+          onResolvePlan={session.confirmPlan}
           onRunQuickAction={session.runQuickAction}
           quickActionsDisabled={session.sending || session.pending}
           className="min-h-0 flex-1"

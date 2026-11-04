@@ -44,9 +44,11 @@ export function collectBlockedNights(
 ): Set<string> {
   const blocked = new Set<string>();
   for (const { checkInYmd, checkOutYmd } of ranges) {
-    if (!checkInYmd || !checkOutYmd || checkInYmd >= checkOutYmd) continue;
+    if (!checkInYmd || !checkOutYmd || checkInYmd > checkOutYmd) continue;
+    // Same-day stay occupies its check-in night.
+    const end = checkInYmd === checkOutYmd ? addDaysYmd(checkInYmd, 1) : checkOutYmd;
     let cur = checkInYmd;
-    while (cur < checkOutYmd) {
+    while (cur < end) {
       blocked.add(cur);
       cur = addDaysYmd(cur, 1);
     }
@@ -60,8 +62,9 @@ export function bookingOccupiesNight(
   checkOutYmd: string,
   dayYmd: string
 ): boolean {
-  if (!checkInYmd || !checkOutYmd || checkInYmd >= checkOutYmd) return false;
-  return checkInYmd <= dayYmd && checkOutYmd > dayYmd;
+  if (!checkInYmd || !checkOutYmd || checkInYmd > checkOutYmd) return false;
+  const end = checkInYmd === checkOutYmd ? addDaysYmd(checkInYmd, 1) : checkOutYmd;
+  return checkInYmd <= dayYmd && end > dayYmd;
 }
 
 /** First YYYY-MM-DD >= startYmd where that night is not blocked; null if none within maxSteps. */

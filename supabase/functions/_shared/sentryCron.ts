@@ -1,3 +1,4 @@
+import { captureSentryMessage } from './sentry.ts';
 import { scrubRecord } from './telemetryScrub.ts';
 
 /**
@@ -143,6 +144,38 @@ export async function withCronCheckIn<T>(
     await sendCronCheckIn(config, 'error', { checkInId, durationMs: Date.now() - startedAt });
     throw error;
   }
+}
+
+/**
+ * A batch job that finished but could not do all of its work.
+ *
+ * The run stays `ok`: the endpoint answered, and the next tick retries the items that
+ * failed. But without this event `3 of 40 feeds failed` is indistinguishable from a clean
+ * sweep — nothing outside the loop observes per-item outcomes, and the response body is
+ * only read by whoever happens to open the logs.
+ *
+ * Warning level on purpose, so it follows `SENTRY_SAMPLE_RATE_WARNING` and stays inside the
+ * free-tier budget (D13). A persistent fault is sampled across many runs; a one-off miss
+ * pages nobody.
+ */
+export async function reportCronPartialFailure(input: {
+  cron: string;
+  attempted: number;
+  failed: number;
+  extra?: Record<string, unknown>;
+}): Promise<void> {
+  if (input.failed <= 0) return;
+  await captureSentryMessage(`${input.cron}: ${input.failed} of ${input.attempted} failed`, {
+    logPrefix: `cron:${input.cron}`,
+    level: 'warning',
+    tags: { cron: input.cron, outcome: 'partial_failure' },
+    fingerprint: ['cron_partial_failure', input.cron],
+    extra: {
+      failed_count: input.failed,
+      attempted_count: input.attempted,
+      ...input.extra,
+    },
+  });
 }
 
 /** Test seam. */

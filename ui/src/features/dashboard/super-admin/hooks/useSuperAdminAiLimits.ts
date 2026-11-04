@@ -84,6 +84,16 @@ export type AiLimitsMatrixFilters = {
   offset: number;
 };
 
+export type KillSwitchKey = 'agenticModeEnabled' | 'planApprovalEnabled' | 'guestActionsEnabled';
+
+export type KillSwitchState = Record<KillSwitchKey, boolean>;
+
+export type OrgKillSwitches = {
+  global: KillSwitchState;
+  override: Record<KillSwitchKey, boolean | null>;
+  effective: KillSwitchState;
+};
+
 export type AiLimitsOrgDetail = {
   organization: { id: string; name: string; slug: string };
   resolved: {
@@ -107,6 +117,7 @@ export type AiLimitsOrgDetail = {
   }>;
   dailySeries: Array<{ date: string; calls: number; costUsd: number }>;
   profiles: Array<{ id: string; code: string; name: string }>;
+  killSwitches: OrgKillSwitches;
 };
 
 export function useAiLimitsMatrix(filters: AiLimitsMatrixFilters) {
@@ -166,6 +177,9 @@ export type AiLimitsAction =
       limits: Partial<Record<AiLimitKey, number | null>>;
       reason?: string | null;
     }
+  | ({ action: 'set_kill_switch_overrides'; organizationId: string } & Partial<
+      Record<KillSwitchKey, boolean | null>
+    >)
   | { action: 'set_plan_profile'; planId: string; profileId: string | null };
 
 /** One mutation for every write; invalidates the whole console (and usage, which shows limits). */

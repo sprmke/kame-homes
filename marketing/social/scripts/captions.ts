@@ -6,7 +6,7 @@ import { featureSpecs } from '../src/features/registry';
 import { kitCopy } from '../src/features/kitCopy';
 
 const TAGS = '#KameSpace #CondoHost #AirbnbHostPH';
-const LINK = 'Start free at kamehomes.space';
+const LINK = 'Start free at kamespace.com';
 
 export const campaignCaptions: Record<string, string> = {
   '01-lockscreen':

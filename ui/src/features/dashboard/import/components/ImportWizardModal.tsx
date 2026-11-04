@@ -40,6 +40,10 @@ import { useImportPreview } from '@/features/dashboard/import/hooks/useImportPre
 import { useSaveImportMapping } from '@/features/dashboard/import/hooks/useSaveImportMapping';
 import { downloadImportCsvTemplate } from '@/features/dashboard/import/lib/importCsvTemplate';
 import {
+  importSourceForFile,
+  rowCountBucket,
+} from '@/features/dashboard/import/lib/importAnalytics';
+import {
   labelForImportTarget,
   REQUIRED_TARGET_FIELDS,
 } from '@/features/dashboard/import/lib/importTargetFields';
@@ -53,6 +57,7 @@ import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import {
@@ -717,6 +722,10 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
     setAiError(null);
     setMappingState({});
     setShowMissingRequired(false);
+    captureAppEvent('import_started', {
+      source: importSourceForFile(result.fileName),
+      row_count_bucket: rowCountBucket(result.rowCount),
+    });
   };
 
   const handleRunAiMapping = async () => {
@@ -827,6 +836,10 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
         batchId: parseResult.batchId,
         columnMapping: buildFinalColumnMapping(aiResult, mappingState),
       });
+      captureAppEvent('import_mapping_confirmed', {
+        source: importSourceForFile(parseResult.fileName),
+        row_count_bucket: rowCountBucket(parseResult.rowCount),
+      });
       invalidatePreviewCache(parseResult.batchId);
       setStep('preview');
     } catch (err) {
@@ -849,7 +862,10 @@ export function ImportWizardModal({ open, onOpenChange }: Props) {
     setCommitResultError(null);
     setCommitFailures([]);
     try {
-      const data = await commitMutation.mutateAsync(parseResult.batchId);
+      const data = await commitMutation.mutateAsync({
+        batchId: parseResult.batchId,
+        mappingAiUsed: aiResult !== null,
+      });
 
       if (data.status === 'committed') {
         const importedCount = data.inserted ?? previewSummary.valid;

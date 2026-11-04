@@ -279,6 +279,18 @@ function planTierCardGains(planCode: string): PlanFeatureChange[] {
  * Group sequence matches `buildPropertyNavSections` (plus Visibility / AI / Managed,
  * which are not sidebar items).
  */
+/** 100 MB, 500 MB, 3 GB … — no decimals unless a tier actually uses a fractional GB. */
+function formatMediaStorage(storageMb: number): string {
+  if (storageMb < 1024) return `${storageMb} MB`;
+  const gb = storageMb / 1024;
+  return `${gb % 1 === 0 ? gb : gb.toFixed(1)} GB`;
+}
+
+/** 2,000 rather than 2000, without depending on the runtime locale. */
+function formatCount(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
 export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
   boolRow('automatedBookingFlow', 'Automated booking emails', 'bookings'),
   boolRow('bookingImport', 'AI booking import', 'bookings'),
@@ -377,6 +389,21 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
     rank: (features) => features.aiMonthlyCreditAllowance,
     describe: (features) =>
       `${features.aiMonthlyCreditAllowance.toLocaleString()} AI credits per month`,
+  },
+
+  {
+    key: 'marketingMediaLibrary',
+    label: 'Media library storage',
+    group: 'marketing',
+    value: (features) =>
+      features.marketingMediaLibrary.maxFiles > 0
+        ? { kind: 'text', text: formatMediaStorage(features.marketingMediaLibrary.storageMb) }
+        : { kind: 'off' },
+    rank: (features) => features.marketingMediaLibrary.storageMb,
+    describe: (features) => {
+      const lib = features.marketingMediaLibrary;
+      return `${formatMediaStorage(lib.storageMb)} of media storage, ${formatCount(lib.maxFiles)} files, ${lib.maxVideoSec}s video`;
+    },
   },
 
   boolRow(

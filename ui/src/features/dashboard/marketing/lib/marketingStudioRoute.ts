@@ -16,6 +16,8 @@ export const FROM_PARAM = 'from';
 export const SIZE_PARAM = 'size';
 export const NEW_ITEM = 'new';
 export const OUTPUT_PARAM = 'output';
+/** AI Studio step 2: example applied to the new creation (`item=new&output=…&sample=…`). */
+export const SAMPLE_PARAM = 'sample';
 
 /** What AI Studio makes. Ids match the server (`image` = Photo, `video` = Clip). */
 export const AI_STUDIO_OUTPUTS = ['post', 'image', 'video'] as const;
@@ -104,6 +106,7 @@ export function clearItemParams(params: URLSearchParams): void {
   params.delete(FROM_PARAM);
   params.delete(SIZE_PARAM);
   params.delete(OUTPUT_PARAM);
+  params.delete(SAMPLE_PARAM);
 }
 
 export function applyOpenItem(params: URLSearchParams, id: string): void {
@@ -121,10 +124,26 @@ export function applyStartDraft(
   if (input.size && SIZE_RE.test(input.size)) params.set(SIZE_PARAM, input.size);
 }
 
-export function applyStartAiSession(params: URLSearchParams, output: AiStudioOutput): void {
+export function applyStartAiSession(
+  params: URLSearchParams,
+  output: AiStudioOutput,
+  sampleId?: string | null
+): void {
   clearItemParams(params);
   params.set(ITEM_PARAM, NEW_ITEM);
   params.set(OUTPUT_PARAM, output);
+  if (sampleId && SAMPLE_ID_RE.test(sampleId) && sampleId.length <= 64) {
+    params.set(SAMPLE_PARAM, sampleId);
+  }
+}
+
+const SAMPLE_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** The example id on a new AI Studio creation, or null (only meaningful with `item=new`). */
+export function readAiSampleId(params: URLSearchParams): string | null {
+  if (params.get(ITEM_PARAM) !== NEW_ITEM) return null;
+  const value = params.get(SAMPLE_PARAM);
+  return value && value.length <= 64 && SAMPLE_ID_RE.test(value) ? value : null;
 }
 
 /** Location state marking an editor entry pushed from the Library (so Back can pop it). */

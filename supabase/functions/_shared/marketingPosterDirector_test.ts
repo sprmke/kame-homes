@@ -4,6 +4,9 @@ import {
   allowedPropertyPhotoUrls,
   groundPosterFeatures,
   loadPosterPhotos,
+  preferArchetypeFirst,
+  preferredArchetypeLine,
+  readPreferredArchetype,
   type PosterFactsInput,
   revisableSpec,
   sanitizeVariant,
@@ -11,8 +14,8 @@ import {
 } from './marketingPosterDirector.ts';
 
 const FACTS: PosterFactsInput = {
-  propertyName: 'Kame Home',
-  brandName: 'Kame Home',
+  propertyName: 'Sample Stay',
+  brandName: 'Sample Stay',
   location: 'Azure North, Pampanga',
   checkIn: '2:00 PM',
   checkOut: '12:00 PM',
@@ -189,3 +192,56 @@ Deno.test('revisableSpec sends only the art-direction fields of the current post
     label: 'Morning',
   });
 });
+
+// ── AI Studio examples: picked layout ───────────────────────────────────────
+
+const DIRECTOR_INPUT = {
+  organizationId: 'org',
+  propertyId: 'prop',
+  goal: 'promo' as const,
+  prompt: '',
+  facts: FACTS,
+  brandColor: null,
+  photos: [],
+  count: 4,
+};
+
+Deno.test('readPreferredArchetype keeps known layouts and drops anything else', () => {
+  assertEquals(readPreferredArchetype('night-glass'), 'night-glass');
+  assertEquals(readPreferredArchetype('not-a-layout'), null);
+  assertEquals(readPreferredArchetype(42), null);
+  assertEquals(readPreferredArchetype(undefined), null);
+});
+
+Deno.test('preferredArchetypeLine asks for the picked layout on new batches only', () => {
+  assertEquals(preferredArchetypeLine({ ...DIRECTOR_INPUT }), null);
+  const line = preferredArchetypeLine({ ...DIRECTOR_INPUT, preferredArchetype: 'sky-headline' });
+  assertEquals(line?.includes('"sky-headline"'), true);
+  assertEquals(
+    preferredArchetypeLine({
+      ...DIRECTOR_INPUT,
+      preferredArchetype: 'sky-headline',
+      revise: { spec: {}, instruction: 'shorter headline' },
+    }),
+    null
+  );
+});
+
+Deno.test(
+  'preferArchetypeFirst moves the picked layout to the front, keeping the rest in order',
+  () => {
+    const variants = [
+      { archetype: 'wave-duo' },
+      { archetype: 'feature-sticker' },
+      { archetype: 'night-glass' },
+      { archetype: 'sky-headline' },
+    ];
+    assertEquals(
+      preferArchetypeFirst(variants, 'night-glass').map((v) => v.archetype),
+      ['night-glass', 'wave-duo', 'feature-sticker', 'sky-headline']
+    );
+    assertEquals(preferArchetypeFirst(variants, 'wave-duo'), variants);
+    assertEquals(preferArchetypeFirst(variants, 'magazine-cover'), variants);
+    assertEquals(preferArchetypeFirst(variants, null), variants);
+  }
+);

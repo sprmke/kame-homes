@@ -7,11 +7,13 @@ import {
 
 import {
   fetchNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
   type NotificationsPage,
 } from '@/features/dashboard/notifications/lib/notificationsApi';
 import { useNotificationsOrgScope } from '@/features/dashboard/notifications/lib/notificationsScope';
+import { scopedOrgFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
+
+import { runOfflineMutation } from '@/lib/pwa/offlineMutation';
+import { closeOsNotifications } from '@/lib/pwa/push';
 
 export const NOTIFICATIONS_KEY = 'notifications';
 
@@ -26,6 +28,29 @@ export function notificationsQueryKey(
   mode: NotificationsListMode = 'full'
 ) {
   return [NOTIFICATIONS_KEY, orgSlug, orgId, mode] as const;
+}
+
+/**
+ * Queues the mark-read when the device is offline (PWA v2 task 5.7). The server
+ * endpoint is naturally idempotent and wrapped in `withIdempotency`, so a replay
+ * after a flaky reconnect is safe.
+ */
+function markReadOfflineAware(
+  qc: ReturnType<typeof useQueryClient>,
+  orgSlug: string | null,
+  orgId: string | null,
+  body: { notificationId: string } | { markAll: true }
+) {
+  return runOfflineMutation<{ markedCount: number }>(
+    {
+      kind: 'notifications-mark-read',
+      label: 'notificationId' in body ? 'Mark notification read' : 'Mark all read',
+      url: scopedOrgFunctionsUrl('/notifications-mark-read', orgSlug, orgId),
+      body,
+      invalidateKeys: [NOTIFICATIONS_KEY],
+    },
+    qc
+  );
 }
 
 function notificationsListLimit(mode: NotificationsListMode): number {
@@ -52,7 +77,11 @@ export function useMarkNotificationRead() {
   const queryKeyPrefix = [NOTIFICATIONS_KEY, orgSlug, orgId] as const;
 
   return useMutation({
-    mutationFn: (notificationId: string) => markNotificationRead(orgSlug, orgId, notificationId),
+    mutationFn: (notificationId: string) => {
+      // The OS tray entry for this notification is done: clear it (6.4).
+      void closeOsNotifications(notificationId);
+      return markReadOfflineAware(qc, orgSlug, orgId, { notificationId });
+    },
     onMutate: async (notificationId) => {
       await qc.cancelQueries({ queryKey: queryKeyPrefix });
       const prev = qc.getQueriesData<InfiniteData<NotificationsPage>>({
@@ -97,7 +126,10 @@ export function useMarkAllNotificationsRead() {
   const queryKeyPrefix = [NOTIFICATIONS_KEY, orgSlug, orgId] as const;
 
   return useMutation({
-    mutationFn: () => markAllNotificationsRead(orgSlug, orgId),
+    mutationFn: () => {
+      void closeOsNotifications();
+      return markReadOfflineAware(qc, orgSlug, orgId, { markAll: true });
+    },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: queryKeyPrefix });
       const prev = qc.getQueriesData<InfiniteData<NotificationsPage>>({

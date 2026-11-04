@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 
 export function SuperAdminPlatformSettingsPage() {
   const { data, isLoading, error } = usePlatformSettings();
@@ -185,7 +186,7 @@ export function SuperAdminPlatformSettingsPage() {
               type="email"
               value={supportEmail}
               onChange={(event) => setSupportEmail(event.target.value)}
-              placeholder="support@example.com"
+              placeholder={FORM_PLACEHOLDERS.orgSupportEmail}
             />
           </SuperAdminSettingsRow>
           <SuperAdminSettingsRow stacked label="Terms URL" htmlFor="legal-terms-url">

@@ -2,7 +2,7 @@
 title: 'Module: Legal pages'
 status: active
 tags: [workflow, production-readiness, module]
-updated: 2026-10-19
+updated: 2026-11-03
 stage: in-progress
 kind: reference
 readiness: unverified
@@ -42,4 +42,4 @@ Area: **Guest / public**. Gate **B**.
 
 ## Evidence
 
-2026-10-19 `/privacy` title `Kame Homes - Privacy`. Policy covers bookings, IDs, AI, voice (no raw audio), PostHog, Philippine rights via `support@kamehomes.space`. Export/delete is email-only (checklist 31 still open).
+2026-10-19 `/privacy` title `Kame Space - Privacy`. Policy covers bookings, IDs, AI, voice (no raw audio), PostHog, Philippine rights via `kameworks.tech@gmail.com`. Export/delete is email-only (checklist 31 still open).

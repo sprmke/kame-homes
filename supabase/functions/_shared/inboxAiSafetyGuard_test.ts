@@ -31,6 +31,50 @@ Deno.test('assertSafeGuestReply — blocks other guest names', () => {
   }
 });
 
+Deno.test(
+  'assertSafeGuestReply — a guest surname that is also a word fragment does not false-flag ' +
+    '(reproduced live: "King" matched inside "parking")',
+  () => {
+    const result = assertSafeGuestReply({
+      draftText: 'Yes, parking is available on-site for 400 pesos. Check-in time is at 2:00 PM.',
+      guestMessage: 'Is there parking on site, and what time is check-in?',
+      allowedFacts: { pricingValues: [400] },
+      participantName: 'Scenario Guest',
+      otherGuestNames: ['King'],
+    });
+    assertEquals(result.safe, true);
+  }
+);
+
+Deno.test(
+  'assertSafeGuestReply — a number-word name token never flags an ordinary count/time reply ' +
+    '(reproduced live: "One" / "Two" name tokens from the seeded guest list)',
+  () => {
+    const result = assertSafeGuestReply({
+      draftText: 'You can book one more night, and check-out is at two in the afternoon.',
+      guestMessage: 'Can I extend my stay?',
+      allowedFacts: { pricingValues: [] },
+      participantName: null,
+      otherGuestNames: ['One', 'Two'],
+    });
+    assertEquals(result.safe, true);
+  }
+);
+
+Deno.test(
+  'assertSafeGuestReply — a surname that is a whole word elsewhere in the draft still blocks',
+  () => {
+    const result = assertSafeGuestReply({
+      draftText: 'King is also staying this week in the room next door.',
+      guestMessage: 'Who else is here?',
+      allowedFacts: { pricingValues: [] },
+      participantName: null,
+      otherGuestNames: ['King'],
+    });
+    assertEquals(result.safe, false);
+  }
+);
+
 Deno.test('assertSafeGuestReply — allows grounded pricing amount', () => {
   const result = assertSafeGuestReply({
     draftText: 'The nightly rate is ₱3,500.',
@@ -80,14 +124,17 @@ Deno.test('assertSafeGuestReply — allows the configured payment account number
   assertEquals(result.safe, true);
 });
 
-Deno.test('assertSafeGuestReply — allows numbers present in the grounded facts (host phone)', () => {
-  const result = assertSafeGuestReply({
-    draftText: 'You can reach the host at +63 917 555 0101.',
-    guestMessage: 'What is your number?',
-    allowedFacts: { pricingValues: [], factsText: 'Host contact: +63 917 555 0101' },
-  });
-  assertEquals(result.safe, true);
-});
+Deno.test(
+  'assertSafeGuestReply — allows numbers present in the grounded facts (host phone)',
+  () => {
+    const result = assertSafeGuestReply({
+      draftText: 'You can reach the host at +63 917 555 0101.',
+      guestMessage: 'What is your number?',
+      allowedFacts: { pricingValues: [], factsText: 'Host contact: +63 917 555 0101' },
+    });
+    assertEquals(result.safe, true);
+  }
+);
 
 Deno.test('assertSafeGuestReply — checks amounts written without a currency sign', () => {
   const ungrounded = assertSafeGuestReply({

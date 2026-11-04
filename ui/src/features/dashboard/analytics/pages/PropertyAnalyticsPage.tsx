@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -68,6 +68,7 @@ import { detectPresetFromRange, fromIsoDate, formatDateRangeDisplay } from '@/li
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { pdfPropertyScope } from '@/lib/pdf/pdfScopeLabel';
 import { usePdfBrandColor } from '@/lib/pdf/usePdfBrandColor';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 const SECTION_GAP = 'flex flex-col gap-2.5 sm:gap-3 lg:gap-4';
 
@@ -77,6 +78,10 @@ export function PropertyAnalyticsPage() {
   const compactChrome = useDashboardCompactChrome();
   const reducedMotion = usePrefersReducedMotion();
   const [section, setSection] = useState<AnalyticsSection>('overview');
+
+  // One event per section visit. `report` is the tab key rather than a remapped label, so
+  // the funnel matches the UI a host actually sees.
+  const reportedSectionRef = useRef<string | null>(null);
   const [openPlaybookSlug, setOpenPlaybookSlug] = useState<string | null>(null);
 
   const period = useMemo(() => resolveAnalyticsPeriod(searchParams), [searchParams]);
@@ -106,6 +111,19 @@ export function PropertyAnalyticsPage() {
   );
 
   useSyncDateRangeWithQuery(dateNav, period.from, period.to, patchPeriod);
+
+  useEffect(() => {
+    const key = `${section}:${dateNav.datePreset}`;
+    if (reportedSectionRef.current === key) return;
+    reportedSectionRef.current = key;
+    captureAppEvent('analytics_module_viewed', {
+      report: section,
+      range: dateNav.datePreset,
+    });
+    if (section === 'ai-review') {
+      captureAppEvent('analytics_ai_review_opened', { period: dateNav.datePreset });
+    }
+  }, [dateNav.datePreset, section]);
 
   const handleClearDate = useCallback(() => {
     dateNav.setDatePreset('month');

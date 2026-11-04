@@ -1,9 +1,9 @@
 ---
 name: social-creative
-description: Produce Kame Homes marketing creative for Facebook, Instagram, TikTok, ads and email (feed posts, carousels, stories, reels, link ads, email heroes, landscape) with the Remotion studio in marketing/social. Use when asked for social posts, ads, promo images or videos, launch graphics, email banners, or any off-app marketing material. Enforces the flat brand system, campaign format matrix, and a strict "does not look AI-generated" review.
+description: Produce Kame Space marketing creative for Facebook, Instagram, TikTok, ads and email (feed posts, carousels, stories, reels, link ads, email heroes, landscape) with the Remotion studio in marketing/social. Use when asked for social posts, ads, promo images or videos, launch graphics, email banners, or any off-app marketing material. Enforces the flat brand system, campaign format matrix, and a strict "does not look AI-generated" review.
 ---
 
-# Social creative (Kame Homes)
+# Social creative (Kame Space)
 
 Off-app marketing material. Not in-app UI. Studio: `marketing/social/` (standalone Remotion project, own `package.json`).
 
@@ -99,7 +99,7 @@ Formats borrowed from what works for bigger SaaS brands. Each one is a different
 | --------------- | ---------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------- |
 | `09-group-chat` | Relatable pain: the team chat vs one booking card                            | paper                 | story portrait square landscape link · story square     |
 | `10-day`        | Day in the life: "Saturday, handled." timeline with the module per event     | white                 | story portrait square landscape email · story landscape |
-| `11-versus`     | Comparison table: group chat + spreadsheet vs Kame Homes                     | paper                 | story portrait square landscape link                    |
+| `11-versus`     | Comparison table: group chat + spreadsheet vs Kame Space                     | paper                 | story portrait square landscape link                    |
 | `12-two-sides`  | Two phones, one moment: guest uploads, host sees it verified                 | tint                  | story portrait square landscape · story landscape       |
 | `13-checklist`  | Save-worthy educational carousel: 5 things every guest needs before check-in | paper + brand         | portrait ×7                                             |
 | `14-manifesto`  | Type-only manifesto: chores struck through, "Guests."                        | night                 | story portrait square                                   |

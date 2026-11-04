@@ -67,6 +67,7 @@ export async function mockFetchMessages(conversationId: string) {
     conversation,
     messages: messagesByConv[conversationId] ?? [],
     hasMore: false,
+    guestRequests: [],
   };
 }
 

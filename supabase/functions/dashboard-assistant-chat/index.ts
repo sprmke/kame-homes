@@ -35,7 +35,17 @@ import {
   TurnActivityRecorder,
   TurnTaskPlanRecorder,
 } from '../_shared/dashboardAssistantActivity.ts';
-import { hostFacingToolFailureReason } from '../_shared/assistantToolFailureReason.ts';
+import {
+  capEntityRefs,
+  dedupeEntityRefs,
+  extractEntityRefs,
+  type EntityRef,
+} from '../_shared/dashboardAssistantEntityRefs.ts';
+import {
+  classifyToolFailure,
+  hostFacingToolFailureReason,
+  modelFacingToolFailureHint,
+} from '../_shared/assistantToolFailureReason.ts';
 import {
   AssistantTurnAbortedError,
   assistantStreamResponse,
@@ -64,6 +74,7 @@ import {
   incrementDashboardAssistantUsage,
   remainingDashboardAssistantWrites,
   isDashboardAssistantAccessible,
+  resolveDashboardAssistantKillSwitch,
 } from '../_shared/dashboardAssistantSettings.ts';
 import {
   isExternalSendTool,
@@ -100,8 +111,10 @@ import {
 import {
   guardDashboardAssistantResponse,
   quickSafetyScan,
+  type ActionPlanStep,
   type ChatBlock,
 } from '../_shared/dashboardAssistantSafetyGuard.ts';
+import { capPlanSteps, findStepDependencies } from '../_shared/dashboardAssistantPlans.ts';
 import {
   parseIncomingAttachments,
   persistAssistantAttachments,
@@ -115,6 +128,21 @@ import {
   selectToolDeclarations,
 } from '../_shared/dashboardAssistantToolRouter.ts';
 import { TurnTimer } from '../_shared/dashboardAssistantTurnTiming.ts';
+import { describeOpenPlanSteps } from '../_shared/ai/agent/completionCheck.ts';
+import {
+  countTurnIntents,
+  resolveDashboardAssistantFeature,
+} from '../_shared/ai/agent/modelPolicy.ts';
+import { createTurnDeadline, turnDeadlineMsFromEnv } from '../_shared/ai/agent/turnBudget.ts';
+import { TurnLedger } from '../_shared/ai/agent/turnLedger.ts';
+import { buildHeldBackBlocks } from '../_shared/ai/agent/heldBackSteps.ts';
+import { callSignature } from '../_shared/ai/agent/agentLoop.ts';
+import {
+  REQUEST_TOOLS_DECLARATION,
+  REQUEST_TOOLS_NAME,
+  widenToolsForModules,
+} from '../_shared/ai/agent/toolRegistry.ts';
+import { PLAN_TASK_DECLARATION, PLAN_TASK_NAME } from '../_shared/ai/agent/taskPlanTool.ts';
 import {
   parseMarkMaintenanceDoneQuery,
   pickOpenMaintenanceItem,
@@ -174,12 +202,12 @@ import {
   invalidateGroundingCache,
 } from '../_shared/dashboardAssistantGroundingCache.ts';
 import { shouldRunLlmGuard } from '../_shared/dashboardAssistantGuardPolicy.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
-/**
- * Adaptive loop: up to 8 rounds, but a turn ends as soon as the model stops calling tools or
- * the turn history passes TURN_HISTORY_TOKEN_BUDGET, so simple answers still take one round.
- */
-const MAX_TOOL_ROUNDS = 8;
+// Adaptive loop: up to `orgSettings.maxToolRounds` rounds (Phase 6, aiLimitResolver's
+// assistantMaxToolRounds — defaults to 8, the pre-Phase-6 hard-coded figure), but a turn ends as
+// soon as the model stops calling tools or the turn history passes TURN_HISTORY_TOKEN_BUDGET, so
+// simple answers still take one round. See `effectiveMaxRounds` below, computed per turn.
 /** Host message cap — bounds prompt size / cost before any context is loaded. */
 const MAX_MESSAGE_CHARS = 4_000;
 /** Per-round tool budget — bounds latency/cost when the model fans out many calls at once. */
@@ -250,6 +278,11 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     // Started before any I/O so total_ms is what the host actually waited for.
     const timer = new TurnTimer();
     const preloadStartedAt = Date.now();
+    // Below the edge function's own wall-clock kill limit, so a new round only starts when
+    // there's still time to synthesize, guard and persist the reply.
+    const turnDeadline = createTurnDeadline(
+      turnDeadlineMsFromEnv(Deno.env.get('ASSISTANT_TURN_DEADLINE_MS'))
+    );
 
     const limited = await rateLimitGate(req, {
       scope: 'dashboard-assistant-chat',
@@ -320,6 +353,18 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
     if (!isDashboardAssistantAccessible(globalSettings, orgSettings, pageContext.propertyId)) {
       return jsonError(req, 'AI dashboard assistant is not enabled for this organization', 503);
     }
+
+    // Phase 6 kill switches: org override wins, else the platform-wide default applies.
+    const agenticModeEnabled = resolveDashboardAssistantKillSwitch(
+      globalSettings.agenticModeEnabled,
+      orgSettings.agenticModeEnabledOverride
+    );
+    const planApprovalEnabled = resolveDashboardAssistantKillSwitch(
+      globalSettings.planApprovalEnabled,
+      orgSettings.planApprovalEnabledOverride
+    );
+    // agentic_mode off caps a turn to one tool-calling round instead of disabling the assistant.
+    const effectiveMaxRounds = agenticModeEnabled ? orgSettings.maxToolRounds : 1;
 
     if (pageContext.parkingId && !pageContext.propertyId) {
       // Parking routes: no property to check entitlements through, so gate directly on the org
@@ -551,14 +596,27 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           'dashboard-assistant-chat: conversation context load failed',
           err instanceof Error ? err.message : err
         );
-        return { summary: '', priorHistory: [] as GeminiContent[] };
+        return {
+          summary: '',
+          priorHistory: [] as GeminiContent[],
+          recentToolNames: [] as string[],
+          knownFactsText: '',
+          resumablePlanSteps: null,
+        };
       }),
     ]);
     const groundingPrompt = hostSafeGroundingFactsToPrompt(facts);
     const conversationSummary = conversationCtx.summary;
     const priorHistory = conversationCtx.priorHistory;
 
-    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachedTemplate.promptText}${attachmentLine}${conversationContextPromptSection(conversationSummary)}`;
+    const isResumingPlan =
+      turnMessage.trim() === CONTINUE_REST_ACTION.prompt &&
+      !!conversationCtx.resumablePlanSteps &&
+      conversationCtx.resumablePlanSteps.length > 0;
+    const resumeNote = isResumingPlan
+      ? '\n\nThis turn continues a plan that ran out of room last time — its open goals are already loaded below. Do not call plan_task again; just keep working the remaining open goals.'
+      : '';
+    const systemPrompt = `${SYSTEM_PROMPT_PREFIX}\n\nKnown facts:\n${groundingPrompt}\n\npageContext: ${JSON.stringify(pageContext)}${attachedContextLine}${attachedTemplate.promptText}${attachmentLine}${conversationContextPromptSection(conversationSummary)}${conversationCtx.knownFactsText}${resumeNote}`;
 
     /** True once the assistant reply + usage increment have been committed. */
     let turnCommitted = false;
@@ -647,34 +705,56 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         { role: 'user', parts: [{ text: userTurnText }, ...attachmentParts] },
       ];
       // Phase 6 router: only the modules this turn needs (fails open to every tool).
-      const recentToolNames = priorHistory.flatMap((content) =>
-        (content.parts ?? []).flatMap((part) =>
-          part && typeof part === 'object' && 'functionCall' in part && part.functionCall
-            ? [String((part.functionCall as { name?: unknown }).name ?? '')]
-            : []
-        )
-      );
+      const recentToolNames = conversationCtx.recentToolNames;
       const toolRoute = routeAssistantModules({
         message: userTurnText,
         attachedTypes: attachedContext.map((item) => item.type),
         pageContext,
         recentToolNames: recentToolNames.slice(-12),
       });
-      const turnTools = [
+      // Mutable: request_tools (below) widens this for later rounds of the same turn when the
+      // router under-matched. Never shrinks, and never changes which model is in use mid-turn.
+      let turnTools = [
         RESPOND_WITH_BLOCKS_DECLARATION,
+        REQUEST_TOOLS_DECLARATION,
+        PLAN_TASK_DECLARATION,
         ...selectToolDeclarations(TOOL_DECLARATIONS, toolRoute).filter(
-          (tool) => tool.name !== RESPOND_WITH_BLOCKS_NAME
+          (tool) =>
+            tool.name !== RESPOND_WITH_BLOCKS_NAME &&
+            tool.name !== REQUEST_TOOLS_NAME &&
+            tool.name !== PLAN_TASK_NAME
         ),
       ];
       timer.setModules(toolRoute.failOpen ? [] : toolRoute.modules);
+      // Picked once, before the loop starts, and held for every round of this turn — never
+      // mid-turn, since Gemini's thought signatures are only valid for the model that produced
+      // them (docs/workflow/in-progress/agentic-ai-assistants.md, Phase 2 model policy).
+      const turnFeature = resolveDashboardAssistantFeature({
+        message: userTurnText,
+        attachmentCount: storedAttachments.length,
+        matchedModuleCount: toolRoute.failOpen ? 0 : toolRoute.modules.length,
+        routerFailedOpen: toolRoute.failOpen,
+      });
+      const turnMaxOutputTokens = turnFeature === 'dashboard_assistant_complex' ? 4096 : 2048;
+      // A Tier-2 proposal ends the turn's loop as soon as it's made (current, pre-plan-card
+      // design) — if the message reads as 2+ asks, note that only one part is covered yet,
+      // rather than silently dropping the rest when the model didn't declare a plan or bundle
+      // every write into one round (docs/workflow/in-progress/agentic-ai-assistants.md, Phase 0).
+      const turnHasMultipleIntents = countTurnIntents(userTurnText) >= 2;
       // Everything before the first model call: auth, entitlements, quota, conversation row,
       // attachments, grounding facts and prior-turn context.
       timer.record('preload', Date.now() - preloadStartedAt);
       const toolResultsForGrounding: unknown[] = [];
+      /** Phase 4 working memory: entity refs this turn's successful tool calls touched. */
+      const turnEntityRefs: EntityRef[] = [];
       /** `open_page` handoffs, appended as blocks after grounding (server-built hrefs only). */
       const openPageResults: Array<{ toolName: string; ok: boolean; data?: unknown }> = [];
       let proposedAction: { toolName: string; result: ToolResult } | null = null;
+      /** Extra Tier-2 proposals beyond the first in the same round — never silently dropped. */
+      const extraProposals: Array<{ toolName: string; result: ToolResult }> = [];
       let pendingActionId: string | null = null;
+      /** Set instead of pendingActionId when 2+ write proposals land in one turn — Phase 3. */
+      let planId: string | null = null;
       let executedActions: Array<{ toolName: string; result: ToolResult }> = [];
       let journeyGuidanceIntro: string | null = null;
       let finalText = '';
@@ -688,21 +768,29 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       const knowledgeHits: Array<Record<string, unknown>> = [];
       const activity = new TurnActivityRecorder(emit);
       const taskPlan = new TurnTaskPlanRecorder(emit);
+      // Phase 4 resumable turns: the "Continue with the rest" chip reseeds the plan from the
+      // prior turn's unfinished task_plan block instead of the model re-planning from scratch.
+      if (isResumingPlan && conversationCtx.resumablePlanSteps) {
+        taskPlan.resumeFrom(conversationCtx.resumablePlanSteps);
+      }
+      const bulkLedger = new TurnLedger();
+      /** Signatures of tool calls that already succeeded this turn — never rerun on a repeat. */
+      const seenCallSignatures = new Set<string>();
       activity.recordPhase('understanding', 'Understood your question');
 
-      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      for (let round = 0; round < effectiveMaxRounds; round++) {
         assertTurnActive();
         const streamLiveText = round > 0 && emit != null;
         let streamedPreview = '';
         const modelReq = {
-          feature: 'dashboard_assistant' as const,
+          feature: turnFeature,
           prompt: DASHBOARD_ASSISTANT_PROMPT,
           system: systemPrompt,
           user: userTurnText,
           tools: turnTools,
           toolMode: 'auto' as const,
           history,
-          maxOutputTokens: 2048,
+          maxOutputTokens: turnMaxOutputTokens,
           signal: turnAbort.signal,
           billing: {
             organizationId: orgCtx.org.id,
@@ -737,15 +825,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           });
         }
 
-        const writeCallCount = roundResult.toolCalls.filter((tc) =>
-          WRITE_TOOL_NAMES.has(tc.name)
-        ).length;
-        // Force host confirmation for multi-write rounds, and for every write after this turn
-        // has read guest-written content (injected instructions must never auto-execute).
-        toolCtx.isBulk =
-          untrustedContentRead ||
-          writeCallCount > 1 ||
-          (roundResult.toolCalls.length >= 2 && writeCallCount >= 1);
+        // Turn-level, not per-round: a write is judged against every write and every
+        // guest-text read this whole turn, so spreading writes across rounds cannot dodge
+        // escalation (docs/workflow/in-progress/agentic-ai-assistants.md, Phase 0).
+        toolCtx.isBulk = bulkLedger.planRound(
+          roundResult.toolCalls.map((tc) => tc.name),
+          (name) => WRITE_TOOL_NAMES.has(name)
+        );
 
         history.push({
           role: 'model',
@@ -759,6 +845,8 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
         const responseParts: GeminiContent['parts'] = [];
         let shortCircuit = false;
+        /** Any real (non-meta) tool call that succeeded this round — advances a declared goal. */
+        let anyToolSucceededThisRound = false;
 
         taskPlan.initFromToolCalls(roundResult.toolCalls, round);
 
@@ -787,15 +875,85 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             shortCircuit = true;
             continue;
           }
+          if (call.name === PLAN_TASK_NAME) {
+            const goals = Array.isArray(call.arguments.goals)
+              ? call.arguments.goals.map((g: unknown) => String(g))
+              : [];
+            taskPlan.declareGoals(goals);
+            activity.recordToolComplete(call.name, true, toolStartedAt, stepId, undefined, {
+              omitFromTimeline: true,
+            });
+            responseParts.push({
+              functionResponse: {
+                name: call.name,
+                response: { result: { ok: true, goalCount: goals.length }, error: null },
+              },
+            });
+            continue;
+          }
+          if (call.name === REQUEST_TOOLS_NAME) {
+            const outcome = widenToolsForModules(
+              turnTools,
+              TOOL_DECLARATIONS,
+              Array.isArray(call.arguments.modules) ? call.arguments.modules : []
+            );
+            turnTools = outcome.tools;
+            activity.recordToolComplete(call.name, true, toolStartedAt, stepId, undefined, {
+              omitFromTimeline: true,
+            });
+            taskPlan.markDone(stepId, true);
+            responseParts.push({
+              functionResponse: {
+                name: call.name,
+                response: {
+                  result: {
+                    addedModules: outcome.addedModules,
+                    alreadyHadAll: outcome.alreadyHadAll,
+                    unknownModules:
+                      outcome.unknownModules.length > 0 ? outcome.unknownModules : undefined,
+                  },
+                  error: null,
+                },
+              },
+            });
+            continue;
+          }
+          const callSig = callSignature(call);
+          if (seenCallSignatures.has(callSig)) {
+            // The model already made this exact call (same tool, same arguments) earlier this
+            // turn and it succeeded — never run a write (or any call) twice over a repeated round.
+            activity.recordToolComplete(call.name, true, toolStartedAt, stepId, undefined, {
+              omitFromTimeline: true,
+            });
+            taskPlan.markDone(stepId, true);
+            responseParts.push({
+              functionResponse: {
+                name: call.name,
+                response: {
+                  result: null,
+                  error:
+                    'Skipped: you already made this exact call in this turn. Use the earlier result, or change the arguments.',
+                },
+              },
+            });
+            continue;
+          }
           const result = await timer.measureTool(call.name, () =>
             executeTool(call.name, call.arguments, toolCtx)
           );
+          if (result.ok) {
+            seenCallSignatures.add(callSig);
+            anyToolSucceededThisRound = true;
+          }
           const failureReason = result.ok ? undefined : hostFacingToolFailureReason(result.error);
           activity.recordToolComplete(call.name, result.ok, toolStartedAt, stepId, failureReason, {
             omitFromTimeline: result.ok && result.deferred === true,
           });
           taskPlan.markDone(stepId, result.ok, failureReason);
           toolResultsForGrounding.push(result.data ?? result.error);
+          if (result.ok) {
+            turnEntityRefs.push(...extractEntityRefs(call.name, result.data));
+          }
           if (call.name === 'open_page') {
             openPageResults.push({ toolName: call.name, ok: result.ok, data: result.data });
           }
@@ -803,14 +961,19 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             knowledgeHits.push(...(result.data as Array<Record<string, unknown>>));
           }
           const carriesGuestText = UNTRUSTED_CONTENT_TOOL_NAMES.has(call.name);
-          if (carriesGuestText) untrustedContentRead = true;
+          if (carriesGuestText) {
+            untrustedContentRead = true;
+            bulkLedger.markUntrustedRead();
+          }
           responseParts.push({
             functionResponse: {
               name: call.name,
               response: {
                 // Model-facing copy is size-bounded; grounding keeps the full data.
                 result: result.data == null ? null : boundToolResult(result.data),
-                error: result.error ?? null,
+                error: result.ok
+                  ? null
+                  : `${result.error ?? ''} ${modelFacingToolFailureHint(classifyToolFailure(result.error))}`.trim(),
                 // Marks data the system prompt says must never be followed as instructions.
                 ...(carriesGuestText ? { dataOrigin: 'contains_guest_written_text' } : {}),
               },
@@ -825,7 +988,12 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           }
 
           if (result.proposed) {
-            proposedAction = { toolName: call.name, result };
+            // First proposal in the turn wins the card; later ones are never silently dropped.
+            if (proposedAction) {
+              extraProposals.push({ toolName: call.name, result });
+            } else {
+              proposedAction = { toolName: call.name, result };
+            }
             shortCircuit = true;
           } else if (
             !result.ok &&
@@ -840,6 +1008,8 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
             executedActions.push({ toolName: call.name, result });
           }
         }
+
+        if (anyToolSucceededThisRound) taskPlan.advanceDeclaredGoal();
 
         // Calls beyond the per-round budget get an explicit error response (in call order).
         for (const call of roundResult.toolCalls.slice(MAX_TOOL_CALLS_PER_ROUND)) {
@@ -858,14 +1028,23 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
         if (shortCircuit) break;
         if (
-          round === MAX_TOOL_ROUNDS - 1 ||
-          estimateHistoryTokens(history) > TURN_HISTORY_TOKEN_BUDGET
+          round === effectiveMaxRounds - 1 ||
+          estimateHistoryTokens(history) > TURN_HISTORY_TOKEN_BUDGET ||
+          !turnDeadline.hasRoomForAnotherRound() ||
+          turnCreditsConsumed >= orgSettings.turnCreditCeiling
         ) {
-          const gathered =
+          const openStepsNote = describeOpenPlanSteps(taskPlan.getOpenSteps());
+          // Phase 7 telemetry: the completion check (above) found an open goal when the turn ran
+          // out of rounds/budget — see dashboardAssistantTurnTiming.ts#completion_check_miss.
+          if (openStepsNote) timer.markCompletionCheckMiss();
+          const base =
             (roundResult.text ?? '').trim() ||
             (finalText || '').trim() ||
             summarizeGatheredToolResults(toolResultsForGrounding) ||
+            openStepsNote ||
             'I gathered part of that.';
+          const gathered =
+            openStepsNote && base !== openStepsNote ? `${base} ${openStepsNote}` : base;
           finalText = gathered;
           skipBlockSynthWithText = gathered;
           inlineSynthBlocks = [
@@ -885,7 +1064,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         if (markQuery) {
           let match = pickOpenMaintenanceItem(toolResultsForGrounding, markQuery);
           if (!match) {
-            const listed = await executeTool('list_maintenance_items', {}, toolCtx);
+            const listed = await executeTool('list_maintenance_items', { q: markQuery }, toolCtx);
             if (listed.ok && listed.data) toolResultsForGrounding.push(listed.data);
             match = pickOpenMaintenanceItem(toolResultsForGrounding, markQuery);
           }
@@ -904,7 +1083,171 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
       }
       const blocks: ChatBlock[] = [];
 
-      if (proposedAction) {
+      if (
+        planApprovalEnabled &&
+        proposedAction &&
+        (extraProposals.length > 0 || deferredWrites.length > 0)
+      ) {
+        // Phase 3 plan-card approval: 2+ write proposals (Tier-2, plus any Tier-1 writes that
+        // were queued for deferred commit) in one turn become ONE approvable plan instead of a
+        // single card plus inert "held back, nothing applied" text
+        // (docs/workflow/in-progress/agentic-ai-assistants.md, Phase 3 item 2). A Tier-1 step
+        // joins the plan pre-ticked (selected: true) — it stays low risk, it just no longer
+        // auto-commits on its own once a Tier-2 card exists alongside it this turn.
+        taskPlan.markSynthRunning();
+        activity.recordPhase('synthesizing', 'Prepared a plan for your review');
+
+        type PlanDraftStep = {
+          toolName: string;
+          riskTier: 'tier1_auto' | 'tier2_confirmed';
+          /** What executeConfirmedAction (tier2) / executeTool (tier1) expects at confirm time. */
+          inputPayload: Record<string, unknown>;
+          /** Unscoped payload for host-facing summary/details/diff building. */
+          displayPayload: Record<string, unknown>;
+        };
+        const draftSteps: PlanDraftStep[] = [
+          {
+            toolName: proposedAction.toolName,
+            riskTier: 'tier2_confirmed',
+            inputPayload: withAssistantScope(
+              (proposedAction.result.data ?? {}) as Record<string, unknown>,
+              { pageContext, attachedContext }
+            ),
+            displayPayload: (proposedAction.result.data ?? {}) as Record<string, unknown>,
+          },
+          ...extraProposals.map((p) => ({
+            toolName: p.toolName,
+            riskTier: 'tier2_confirmed' as const,
+            inputPayload: withAssistantScope((p.result.data ?? {}) as Record<string, unknown>, {
+              pageContext,
+              attachedContext,
+            }),
+            displayPayload: (p.result.data ?? {}) as Record<string, unknown>,
+          })),
+          ...deferredWrites.map((dw) => ({
+            toolName: dw.toolName,
+            riskTier: 'tier1_auto' as const,
+            // Scope-embedded like every Tier-2 step so dashboard-assistant-confirm can strip it
+            // uniformly regardless of risk tier (stripAssistantScopeFromPayload is already
+            // tier-agnostic on the single-action path).
+            inputPayload: withAssistantScope(dw.args, { pageContext, attachedContext }),
+            displayPayload: dw.args,
+          })),
+        ];
+        // Deferred Tier-1 writes are now plan steps, not an end-of-turn auto-commit queue — clear
+        // the shared array so the later commitDeferredTier1Writes call (structured-synth branch
+        // only, never reached from this branch anyway) never double-runs them.
+        deferredWrites.length = 0;
+
+        const { kept: planSteps, overflow } = capPlanSteps(draftSteps, orgSettings.maxPlanSteps);
+
+        const { data: planRow, error: planError } = await sb
+          .from('ai_dashboard_assistant_action_plans')
+          .insert({
+            conversation_id: conversationId,
+            message_id: userMessageRow.id,
+            organization_id: orgCtx.org.id,
+            property_id: effectivePropertyId ?? null,
+            parking_id: pageContext.parkingId ?? null,
+            user_id: user.id,
+            status: 'proposed',
+          })
+          .select('id')
+          .single();
+        if (planError || !planRow) {
+          throw new Error(
+            `Failed to persist action plan: ${planError?.message ?? 'unknown error'}`
+          );
+        }
+        planId = planRow.id as string;
+        // Phase 7 telemetry: how many steps this turn's plan card proposed.
+        timer.setPlanSize(planSteps.length);
+
+        const { data: insertedSteps, error: stepsError } = await sb
+          .from('ai_dashboard_assistant_pending_actions')
+          .insert(
+            planSteps.map((step, idx) => ({
+              conversation_id: conversationId,
+              message_id: userMessageRow.id,
+              user_id: user.id,
+              tool_name: step.toolName,
+              input_payload: step.inputPayload,
+              risk_tier: step.riskTier,
+              plan_id: planId,
+              step_index: idx,
+              depends_on: findStepDependencies(step.inputPayload),
+              selected: true,
+            }))
+          )
+          .select('id, step_index');
+        if (stepsError || !insertedSteps) {
+          throw new Error(
+            `Failed to persist plan steps: ${stepsError?.message ?? 'unknown error'}`
+          );
+        }
+        const stepRowIdByIndex = new Map(
+          insertedSteps.map((r) => [r.step_index as number, r.id as string])
+        );
+
+        blocks.push({
+          type: 'action_plan',
+          planId,
+          status: 'proposed',
+          steps: planSteps.map((step, idx) => ({
+            stepId: stepRowIdByIndex.get(idx) as string,
+            stepIndex: idx,
+            toolName: step.toolName,
+            riskTier: step.riskTier,
+            summary: humanizeActionConfirmationSummary(
+              step.toolName,
+              String(step.displayPayload.summary ?? ''),
+              step.displayPayload
+            ),
+            details: buildActionConfirmationDetails(step.toolName, step.displayPayload),
+            diff: buildActionConfirmationDiff(step.toolName, step.displayPayload) ?? undefined,
+            dependsOn: findStepDependencies(step.inputPayload),
+            selected: true,
+            status: 'proposed' as const,
+            isExternalSend: isExternalSendTool(step.toolName),
+          })),
+        });
+
+        if (overflow > 0) {
+          blocks.push({
+            type: 'text',
+            text: `This plan covers the first ${planSteps.length} steps. Approve these, then ask for the rest.`,
+          });
+        }
+
+        for (const step of planSteps) {
+          if (step.toolName === 'propose_transition_booking') {
+            const bookingId = String(step.displayPayload.bookingId ?? '').trim();
+            if (bookingId && !toolResultsForGrounding.some(isBookingJourneyRecord)) {
+              const booking = await DatabaseService.getBookingById(bookingId);
+              if (booking) {
+                toolResultsForGrounding.push(
+                  buildBookingJourneyData(booking as Record<string, unknown>)
+                );
+              }
+            }
+          }
+        }
+
+        const openGoalsAfterPlan = taskPlan.getOpenSteps();
+        if (openGoalsAfterPlan.length > 0) {
+          const labels = openGoalsAfterPlan.map((step) => step.label.replace(/[.!?]+$/, ''));
+          blocks.push({
+            type: 'text',
+            text: `Also still to do: ${labels.join(', ')}. I'll get to that after you review this plan.`,
+          });
+        }
+
+        taskPlan.markSynthDone();
+        timer.setGuardMode('none');
+        const proposedBlocks = prependActivityTimeline(blocks, activity);
+        blocks.length = 0;
+        blocks.push(...prependTaskPlan(proposedBlocks, taskPlan));
+      } else if (proposedAction) {
         taskPlan.markSynthRunning();
         activity.recordPhase('synthesizing', 'Prepared action for your review');
         const { data: pendingRow, error: pendingError } = await sb
@@ -955,6 +1298,42 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
               );
             }
           }
+        }
+
+        const heldBack = buildHeldBackBlocks({
+          proposalSummaries: extraProposals.map((p) => {
+            const extraPayload = (p.result.data ?? {}) as Record<string, unknown>;
+            return humanizeActionConfirmationSummary(
+              p.toolName,
+              String(extraPayload.summary ?? ''),
+              extraPayload
+            );
+          }),
+          queuedWriteLabels: deferredWrites.map((dw) => buildTier1ActionSummary(dw.toolName)),
+        });
+        blocks.push(...heldBack);
+
+        // A Tier-2 proposal ends the loop before a later declared goal was even attempted (not
+        // bundled into the same round as this one) — name it so it's queued, not silently lost.
+        const openGoalsAfterProposal = taskPlan.getOpenSteps();
+        if (openGoalsAfterProposal.length > 0) {
+          const labels = openGoalsAfterProposal.map((step) => step.label.replace(/[.!?]+$/, ''));
+          blocks.push({
+            type: 'text',
+            text: `Also still to do: ${labels.join(', ')}. I'll get to that after you confirm this one.`,
+          });
+        } else if (
+          turnHasMultipleIntents &&
+          extraProposals.length === 0 &&
+          deferredWrites.length === 0
+        ) {
+          // No plan was declared and nothing else already named the rest — the model proposed
+          // just the first part of a multi-ask message. Say plainly that more is still open
+          // rather than letting the card imply the whole request was handled.
+          blocks.push({
+            type: 'text',
+            text: 'This covers one part of your request. Confirm this, then ask for the rest next.',
+          });
         }
 
         taskPlan.markSynthDone();
@@ -1119,7 +1498,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         }
 
         if (safetyApproved && deferredWrites.length > 0) {
-          activity.recordPhase('executing', 'Applying changes');
+          activity.recordPhase('tool', 'Applying changes');
           emit?.({ type: 'phase', phase: 'executing', label: 'Applying changes' });
           const commitResult = await commitDeferredTier1Writes({
             ctx: toolCtx,
@@ -1178,6 +1557,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
       // Persisted breakdown excludes the commit itself (it cannot time its own insert); the
       // `turn_timing` SSE event / JSON `timing` field carry the complete figure.
+      timer.addCredits(turnCreditsConsumed);
       const persistedTiming = timer.snapshot();
       const { data: assistantRow } = await sb
         .from('ai_dashboard_assistant_messages')
@@ -1193,6 +1573,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
               : [],
           latency_breakdown: persistedTiming,
           guard_mode: persistedTiming.guard_mode,
+          entity_refs: capEntityRefs(dedupeEntityRefs(turnEntityRefs)),
         })
         .select('id')
         .single();
@@ -1202,6 +1583,17 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
           .from('ai_dashboard_assistant_pending_actions')
           .update({ message_id: assistantRow.id })
           .eq('id', pendingActionId);
+      }
+
+      if (planId && assistantRow?.id) {
+        await sb
+          .from('ai_dashboard_assistant_action_plans')
+          .update({ message_id: assistantRow.id })
+          .eq('id', planId);
+        await sb
+          .from('ai_dashboard_assistant_pending_actions')
+          .update({ message_id: assistantRow.id })
+          .eq('plan_id', planId);
       }
 
       await sb
@@ -1222,6 +1614,7 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
         messageId: (assistantRow?.id as string | undefined) ?? undefined,
         userMessageId: userMessageRow.id,
         timing: timer.snapshot(),
+        hadPendingAction: Boolean(pendingActionId),
       };
     };
 
@@ -1249,6 +1642,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
                 blocks: result.blocks,
                 messageId: result.messageId,
                 userMessageId: result.userMessageId,
+              });
+              await capturePostHogEvent('ai_assistant_turn_completed', {
+                logPrefix: 'dashboard-assistant-chat',
+                request: req,
+                distinctId: user.id,
+                groups: { organization: orgCtx.org.id },
+                properties: { had_pending_action: result.hadPendingAction },
               });
               controller.close();
             } catch (err) {
@@ -1297,6 +1697,13 @@ serveAuthenticated('dashboard-assistant-chat', async (req, user) => {
 
     try {
       const result = await runTurn();
+      await capturePostHogEvent('ai_assistant_turn_completed', {
+        logPrefix: 'dashboard-assistant-chat',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: orgCtx.org.id },
+        properties: { had_pending_action: result.hadPendingAction },
+      });
       return jsonSuccess(req, {
         conversationId: result.conversationId,
         blocks: result.blocks,

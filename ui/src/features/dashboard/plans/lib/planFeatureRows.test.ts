@@ -48,6 +48,13 @@ const EXPECTED: Record<string, Record<string, PlanFeatureValue>> = {
   },
   customRoles: { free: off(), starter: on(), growth: on(), pro: on(), managed: on() },
   marketingStudio: { free: off(), starter: off(), growth: on(), pro: on(), managed: on() },
+  marketingMediaLibrary: {
+    free: text('100 MB'),
+    starter: text('500 MB'),
+    growth: text('3 GB'),
+    pro: text('10 GB'),
+    managed: text('25 GB'),
+  },
   aiMarketingGeneration: { free: off(), starter: off(), growth: off(), pro: on(), managed: on() },
   aiMarketingImageGeneration: {
     free: off(),

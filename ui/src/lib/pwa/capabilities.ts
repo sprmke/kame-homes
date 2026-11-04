@@ -29,7 +29,7 @@ export function isStandalone(): boolean {
   const mql = displayModes.some((m) => window.matchMedia(`(display-mode: ${m})`).matches);
   // iOS Safari exposes navigator.standalone instead of matching display-mode.
   const iosStandalone =
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    (window.navigator as unknown as { standalone?: boolean } | undefined)?.standalone === true;
   return mql || iosStandalone;
 }
 

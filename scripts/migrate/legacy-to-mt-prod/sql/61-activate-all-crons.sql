@@ -3,7 +3,7 @@
 -- guest traffic.
 --
 -- Idempotent: safe to re-run. Use after 60-install-extensions-and-crons.sql.
--- Plan: docs/workflow/in-progress/kamespace-02-legacy-prod-to-mt-prod-cutover.md
+-- Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md
 --       §8 T0 step 3 and step 5
 
 do $$

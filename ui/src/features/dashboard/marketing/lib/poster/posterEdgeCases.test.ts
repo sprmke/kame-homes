@@ -121,12 +121,12 @@ describe('poster edge cases', () => {
 
   it('survives hostile model output', () => {
     const facts = buildPosterFacts({
-      propertyName: 'Kame Home',
+      propertyName: 'Sample Stay',
       photos: ['https://cdn.test/a.jpg'],
     });
     for (const raw of [null, 42, 'poster', [], { copy: 'x', features: 'y', palette: 7 }]) {
       const spec = normalizePosterSpec(raw, facts);
-      expect(spec.copy.headline).toBe('Kame Home');
+      expect(spec.copy.headline).toBe('Sample Stay');
       for (const format of FORMATS) {
         expect(auditPosterDocument(compilePosterDocument(spec, facts, format))).toEqual([]);
       }
@@ -154,7 +154,7 @@ describe('poster edge cases', () => {
   it('shortens listing names at natural breaks only', () => {
     expect(posterShortName('The Upper Room at Azure North Suites')).toBe('The Upper Room');
     expect(posterShortName('Charming 3BR Home in Makati')).toBe('Charming 3BR Home');
-    expect(posterShortName('Kame Home | Azure North')).toBe('Kame Home');
+    expect(posterShortName('Sample Stay | Azure North')).toBe('Sample Stay');
     expect(posterShortName('At Home')).toBe('At Home');
   });
 

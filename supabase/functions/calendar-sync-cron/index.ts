@@ -20,6 +20,7 @@ import {
   type CalendarFeedRow,
 } from '../_shared/calendarSyncRun.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { recordJobHeartbeat } from '../_shared/systemHealth/jobHeartbeat.ts';
 import {
   catchPlanFeatureError,
   requirePropertyFeature,
@@ -31,6 +32,7 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 import { isFeatureAvailable, featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
+import { reportCronPartialFailure } from '../_shared/sentryCron.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GLOBAL_BATCH = 100;
@@ -68,10 +70,13 @@ serve(async (req) => {
   if (req.method !== 'POST') return json(req, { success: false, error: 'Method not allowed' }, 405);
 
   const runId = crypto.randomUUID();
+  const heartbeatStartedAt = Date.now();
+  let cronRun = false;
 
   try {
     const { feedId, propertyId } = await parseBody(req);
     const scoped = Boolean(feedId || propertyId);
+    cronRun = !scoped;
     const supabase = createServiceClient();
 
     // ── Scoped "Sync now" ──────────────────────────────────────────────────
@@ -143,6 +148,9 @@ serve(async (req) => {
     if (!cronSecretOk(req)) return json(req, { success: false, error: 'Unauthorized' }, 401);
 
     if (!(await isFeatureAvailable('pricing.channel_sync.import'))) {
+      if (cronRun) {
+        await recordJobHeartbeat('calendar-sync-cron', { ok: true, startedAt: heartbeatStartedAt });
+      }
       return json(req, { success: true, skipped: 'feature_unavailable', runId, scoped: false });
     }
 
@@ -198,8 +206,24 @@ serve(async (req) => {
     }
 
     console.log('[calendar-sync-cron]', JSON.stringify({ runId, ...summary }));
+    await reportCronPartialFailure({
+      cron: 'calendar-sync-cron',
+      attempted: summary.feedsProcessed + summary.errors,
+      failed: summary.errors,
+      extra: { run_id: runId, skipped_no_entitlement: summary.skippedNoEntitlement },
+    });
+    if (cronRun) {
+      await recordJobHeartbeat('calendar-sync-cron', { ok: true, startedAt: heartbeatStartedAt });
+    }
     return json(req, { success: true, scoped: false, runId, ...summary });
   } catch (err) {
+    if (cronRun) {
+      await recordJobHeartbeat('calendar-sync-cron', {
+        ok: false,
+        startedAt: heartbeatStartedAt,
+        error: err,
+      });
+    }
     if (err instanceof Response) return err;
     console.error('[calendar-sync-cron] fatal:', err);
     await captureSentryException(err, {

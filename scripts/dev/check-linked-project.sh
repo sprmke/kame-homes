@@ -65,6 +65,27 @@ print_linked_project() {
   echo "You are linked to: $LINKED_PROJECT_REF ($LINKED_PROJECT_KIND)"
 }
 
+# Print a command line with any `--password <value>` masked. Deploy output is routinely
+# pasted into issues and chat; the database password must never appear in it.
+print_masked_command() {
+  local -a shown=()
+  local mask_next=0 arg
+  for arg in "$@"; do
+    if [[ "$mask_next" == "1" ]]; then
+      shown+=("***")
+      mask_next=0
+      continue
+    fi
+    if [[ "$arg" == "--password" ]]; then
+      shown+=("--password")
+      mask_next=1
+      continue
+    fi
+    shown+=("$arg")
+  done
+  printf '→ supabase %s\n' "${shown[*]}"
+}
+
 log_deploy() {
   local env_kind="$1" deploy_kind="$2"
   local log_file="$_CHECK_LINKED_PROJECT_ROOT/backups/deploy-log.csv"

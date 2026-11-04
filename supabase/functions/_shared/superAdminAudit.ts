@@ -6,6 +6,7 @@
 
 import { createServiceClient } from './orgAuth.ts';
 import type { AuthenticatedUser } from './orgAuth.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import {
   type ActivityAction,
   type ActivitySeverity,
@@ -54,6 +55,15 @@ export async function logSuperAdminAction(
     });
     if (error) {
       console.error('[superAdminAudit] insert failed:', error.message);
+    } else {
+      // The action key only. Target names and ids stay in the audit table, which is the
+      // system of record; this is the product view of how often each tool is used.
+      await capturePostHogEvent('super_admin_action', {
+        logPrefix: 'superAdminAudit',
+        distinctId: admin.id ?? undefined,
+        properties: { action: input.action },
+        system: !admin.id,
+      });
     }
   } catch (err) {
     console.error('[superAdminAudit] unexpected:', err instanceof Error ? err.message : err);

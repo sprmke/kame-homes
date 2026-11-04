@@ -105,6 +105,7 @@ export async function sendInboxReply(
       reply_status: 'replied',
       unread_delta: 0,
       guest_unread_delta: 1,
+      aiHandoff: { clear_ai_handoff: true },
     });
     void maybeNotifyGuestOfHostWebReply({
       orgId: ctx.org.id,
@@ -187,6 +188,7 @@ export async function sendInboxReply(
     last_message_at: now,
     reply_status: 'replied',
     unread_delta: 0,
+    aiHandoff: { clear_ai_handoff: true },
   });
 
   return { sent: true };

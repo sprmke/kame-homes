@@ -40,7 +40,11 @@ on production keys.
 
 ## Overview
 
-Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Homes**; guest fallback **hello@kamehomes.com**.
+Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Space**; guest fallback **kameworks.tech@gmail.com**.
+
+Privacy and Terms disclose the rename once: **"Kame Space was previously called Kame Homes"**, plus a last-updated line. The sentence comes from `platformFormerNameNote()` in `ui/src/lib/platformBranding.ts`, so the current name stays env-driven.
+
+Site-wide `Organization` structured data is injected at bootstrap by `ui/src/lib/seo/organizationJsonLd.ts` (not inline in `index.html`, which the CSP guard forbids). It carries `name: Kame Space`, `alternateName: Kame Homes` and the request origin, and the brand smoke test asserts it.
 
 Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host Resources were removed from the footer (no backing content).
 
@@ -48,7 +52,7 @@ Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host R
 
 ## Host-facing knowledge
 
-These public pages explain the company, how to reach support, common guest/host questions, and the legal rules for using Kame Homes. Guests and hosts see the same pages; there is nothing to configure in the dashboard.
+These public pages explain the company, how to reach support, common guest/host questions, and the legal rules for using Kame Space. Guests and hosts see the same pages; there is nothing to configure in the dashboard.
 
 **Common host questions**
 
@@ -59,7 +63,7 @@ These public pages explain the company, how to reach support, common guest/host 
 - Q: Are my verification documents covered by the privacy policy?
   A: Yes. The policy describes host verification uploads and how they're stored privately.
 - Q: Where do guests go for help?
-  A: Support (`/support`) for FAQs, or Contact (`/contact`) — signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email hello@kamehomes.com.
+  A: Support (`/support`) for FAQs, or Contact (`/contact`) — signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email kameworks.tech@gmail.com.
 
 ---
 

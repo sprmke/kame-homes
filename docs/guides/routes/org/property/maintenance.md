@@ -113,6 +113,12 @@ The **Edit reminder** modal (`MaintenanceRemindersTab`) uses a stepper (`Mainten
 
 ---
 
+## Guest-reported issues
+
+The guest AI receptionist (web/Meta auto-reply, host Suggest) can file a reminder on the guest's behalf with the `report_maintenance_issue` tool when a signed-in guest reports something broken during their own active stay. Requires the `aiChatAutoReply` plan feature and is rate-limited to 3 reports a day per guest. Filed rows use `category: 'Guest reported'`, `created_by: 'guest_ai'`, and the guest's own description in `notes` — same table and UI as a host-added reminder, no schema or UI change. The host gets a `maintenance_guest_reported` notification and an `inbox.ai_handoff`-style activity-log row. Source: `_shared/guestReceptionistTools.ts`.
+
+---
+
 ## Testing
 
 | Layer | Path / spec                                                                         | Manual |

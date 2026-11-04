@@ -36,6 +36,8 @@ import {
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { countStayNights } from '../_shared/utils.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
+import { recipientCountBucket } from '../_shared/analyticsBuckets.ts';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -259,6 +261,15 @@ serveAuthenticated('submit-parking-booking-request', async (req, user) => {
       1,
       ownerOwnedSameOrg ? { skipNotify: true } : undefined
     );
+    await capturePostHogEvent('parking_broadcast_sent', {
+      logPrefix: 'submit-parking-booking-request',
+      groups: {
+        organization: organizationId,
+        ...(parkingId ? { parking: parkingId } : {}),
+      },
+      properties: { recipient_count_bucket: recipientCountBucket(batch.length) },
+      system: true,
+    });
   } catch (err) {
     // Broadcast insert itself failed (not just a per-candidate notify failure, which
     // fanOutParkingBroadcast already swallows) — the booking row would otherwise sit at
@@ -339,6 +350,16 @@ serveAuthenticated('submit-parking-booking-request', async (req, user) => {
     .select('id, status, parking_broadcast_expires_at, parking_payment_expires_at')
     .eq('id', inserted.id)
     .maybeSingle();
+
+  await capturePostHogEvent('parking_request_submitted', {
+    logPrefix: 'submit-parking-booking-request',
+    groups: {
+      organization: organizationId,
+      ...(parkingId ? { parking: parkingId } : {}),
+    },
+    properties: { request_kind: parkingId ? 'parking' : 'organization' },
+    system: true,
+  });
 
   return jsonSuccess(req, {
     bookingId: inserted.id,

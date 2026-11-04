@@ -1,8 +1,12 @@
 /**
  * guest-web-chat-messages — List, send, edit, or mark read in a guest web chat thread.
  * Auth: signed-in guest who owns the thread.
+ *
+ * Wrapped in `withIdempotency` so a text message queued by the offline outbox
+ * (PWA v2) lands at most once when the guest reconnects.
  */
 
+import { withIdempotency } from '../_shared/idempotency.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -14,7 +18,9 @@ import {
   unsendGuestWebMessage,
 } from '../_shared/webGuestChatService.ts';
 
-serveAuthenticated('guest-web-chat-messages', async (req, user) => {
+serveAuthenticated(
+  'guest-web-chat-messages',
+  withIdempotency(async (req, user) => {
   const url = new URL(req.url);
   const conversationId = url.searchParams.get('conversation_id')?.trim();
 
@@ -147,4 +153,5 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
   }
 
   return jsonError(req, 'Method not allowed', 405);
-});
+  })
+);

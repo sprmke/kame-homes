@@ -33,6 +33,7 @@ import {
   ChatTemplateCard,
   ChatTemplatePreviewDialog,
 } from '@/features/dashboard/inbox/components/ChatTemplateMessage';
+import { GuestRequestCard } from '@/features/dashboard/inbox/components/GuestRequestCard';
 import { InboxInsertMenu } from '@/features/dashboard/inbox/components/InboxInsertMenu';
 import {
   InboxMediaPreviewDialog,
@@ -61,6 +62,7 @@ import { applyInboxQuickReplyMerge } from '@/features/dashboard/inbox/lib/inboxQ
 import { templatesForConversationPlatform } from '@/features/dashboard/inbox/lib/quickReplyGroups';
 import {
   type ChatTemplateListItem,
+  type GuestRequestDto,
   type InboxConversation,
   type InboxMessage,
   type InboxTemplate,
@@ -113,6 +115,7 @@ import { CHAT_MESSAGE_MAX_CHARS } from '@/lib/chat/messageLimits';
 import { useChatThreadSearch } from '@/lib/chat/useChatThreadSearch';
 import { useChatTyping } from '@/lib/chat/useChatTyping';
 import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 import { formatStayDateRange } from '@/utils/format/dates';
@@ -168,6 +171,8 @@ type Props = {
       attachments?: InboxChatAttachment[];
       templateKey?: string;
       bookingId?: string | null;
+      /** The host sent the AI suggestion without editing it. */
+      aiDrafted?: boolean;
     }
   ) => Promise<void>;
   onUploadAttachment?: (file: File) => Promise<InboxChatAttachment>;
@@ -184,6 +189,9 @@ type Props = {
   onLoadOlder?: () => void;
   loadError?: string | null;
   onRetryLoad?: () => void;
+  guestRequests?: GuestRequestDto[];
+  onResolveGuestRequest?: (requestId: string, status: 'approved' | 'declined') => Promise<void>;
+  resolvingGuestRequest?: boolean;
 };
 
 export function InboxConversationView({
@@ -198,6 +206,9 @@ export function InboxConversationView({
   onUploadAttachment,
   onEdit,
   onUnsend,
+  guestRequests = [],
+  onResolveGuestRequest,
+  resolvingGuestRequest = false,
   onSuggest,
   sending,
   uploadingAttachment = false,
@@ -214,6 +225,9 @@ export function InboxConversationView({
   const [pendingAttachments, setPendingAttachments] = useState<InboxChatAttachment[]>([]);
   const [composerMode, setComposerMode] = useState<ComposerMode>({ kind: 'compose' });
   const [draftFromAi, setDraftFromAi] = useState(false);
+  /** Tracks an AI draft until it is sent, edited or abandoned, so the three actions are
+   *  reported once each instead of on every keystroke. */
+  const aiDraftRef = useRef<{ editedReported: boolean } | null>(null);
   const [draftAiFlagged, setDraftAiFlagged] = useState(false);
   const [useHumanAgentTag, setUseHumanAgentTag] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<InboxAttachmentPreview | null>(null);
@@ -327,6 +341,10 @@ export function InboxConversationView({
   }, [messages]);
 
   useEffect(() => {
+    if (aiDraftRef.current && !aiDraftRef.current.editedReported) {
+      captureAppEvent('inbox_ai_suggest_used', { action: 'discarded' });
+    }
+    aiDraftRef.current = null;
     setDraft('');
     setPendingAttachments([]);
     threadSearch.close();
@@ -485,10 +503,12 @@ export function InboxConversationView({
         if (!onEdit || !text) return;
         await onEdit(composerMode.messageId, text);
       } else {
+        aiDraftRef.current = null;
         await onSend(text, {
           replyToMessageId: composerMode.kind === 'reply' ? composerMode.messageId : undefined,
           useHumanAgentTag,
           attachments: pendingAttachments.length > 0 ? pendingAttachments : undefined,
+          aiDrafted: draftFromAi,
         });
       }
       clearComposerMode();
@@ -508,6 +528,8 @@ export function InboxConversationView({
       setDraft(result.suggestion);
       setDraftFromAi(true);
       setDraftAiFlagged(result.flagged);
+      aiDraftRef.current = { editedReported: false };
+      captureAppEvent('inbox_ai_suggest_used', { action: 'inserted' });
     } catch (e) {
       if (handleFeatureUnavailableMutationError(e, queryClient)) return;
       if (isAiQuotaError(e)) {
@@ -780,6 +802,18 @@ export function InboxConversationView({
                 </Button>
               </div>
             )}
+            {guestRequests.length > 0 && onResolveGuestRequest ? (
+              <div className="space-y-2">
+                {guestRequests.map((request) => (
+                  <GuestRequestCard
+                    key={request.id}
+                    request={request}
+                    onResolve={onResolveGuestRequest}
+                    resolving={resolvingGuestRequest}
+                  />
+                ))}
+              </div>
+            ) : null}
             {messages.length > 0 ? (
               <ChatMessageList
                 messages={messages}
@@ -1049,6 +1083,10 @@ export function InboxConversationView({
               value={draft}
               maxLength={CHAT_MESSAGE_MAX_CHARS}
               onChange={(e) => {
+                if (aiDraftRef.current && !aiDraftRef.current.editedReported) {
+                  aiDraftRef.current.editedReported = true;
+                  captureAppEvent('inbox_ai_suggest_used', { action: 'edited' });
+                }
                 setDraft(e.target.value);
                 setDraftFromAi(false);
                 setDraftAiFlagged(false);

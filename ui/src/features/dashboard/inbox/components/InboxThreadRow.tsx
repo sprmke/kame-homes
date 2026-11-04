@@ -17,6 +17,7 @@ export function InboxThreadRow({ conversation, selected, showPlatform, onSelect 
   const name = conversation.participant_name?.trim() || 'Guest';
   const unread = conversation.unread_count > 0;
   const pending = conversation.reply_status === 'pending';
+  const needsHost = Boolean(conversation.ai_handoff_at);
 
   return (
     <button
@@ -72,6 +73,14 @@ export function InboxThreadRow({ conversation, selected, showPlatform, onSelect 
               className={cn('px-1.5 py-0.5 text-[10px] font-medium', softBadgeClasses('pending'))}
             >
               Pending
+            </span>
+          )}
+          {needsHost && (
+            <span
+              className={cn('px-1.5 py-0.5 text-[10px] font-medium', softBadgeClasses('warning'))}
+              title={conversation.ai_handoff_reason ?? undefined}
+            >
+              Needs you
             </span>
           )}
           {unread && (

@@ -98,6 +98,7 @@ Unit (Vitest, `plans/lib/*.test.ts`): tier entitlements and minimum tier per key
 | `aiValidations`                 | —          | —          | ✅           | ✅             | ✅             | ✅           |
 | `aiMonthlyCreditAllowance`      | 0          | 0          | 5000         | 25000          | 60000          | 1000         |
 | `marketingStudio`               | —          | —          | ✅           | ✅             | ✅             | ✅           |
+| `marketingMediaLibrary`         | 100 MB     | 500 MB     | 3 GB         | 10 GB          | 25 GB          | 100 MB       |
 | `customPages`                   | ✅         | ✅         | ✅           | ✅             | ✅             | ✅           |
 | `aiDashboardAssistant`          | —          | —          | —            | ✅             | ✅             | —            |
 | `aiReceptionist`                | —          | —          | —            | ✅             | ✅             | —            |
@@ -106,6 +107,8 @@ Unit (Vitest, `plans/lib/*.test.ts`): tier entitlements and minimum tier per key
 | `aiMarketingVideoGeneration`    | —          | —          | —            | ✅             | ✅             | —            |
 | `aiChatAutoReply`               | —          | —          | —            | ✅             | ✅             | —            |
 | `fullyManagedByPlatform`        | —          | —          | —            | —              | ✅             | —            |
+
+`marketingMediaLibrary` is an object quota (`storageMb`, `maxFiles`, `maxImageMb`, `maxVideoMb`, `maxVideoSec`, `maxAudioMb`, `dailyUploads`), seeded by `20261316128910_marketing_media_library_plan_features.sql` and corrected per tier by `…950`. It is available on every tier, so it appears in the Compare table as a value row and in the review dialog as a gain, but not as a card bullet. Going over quota blocks new uploads only; nothing is deleted on downgrade. Team RBAC uses `marketing.media:add` / `marketing.media:delete` (`20261318140000_marketing_media_permissions.sql` backfills them from `marketing.content:add` / `:edit`).
 
 \* `commission`'s `searchVisibilityTier` was seeded `top20`, then a legacy-value migration remapped every `top20` row to `top30` — so it now reads `top30` in practice, same as `growth`.
 

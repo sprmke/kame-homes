@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SW_CACHEABLE_FUNCTIONS > matches the reviewed snapshot (adding cacheable data is a security decision) 1`] = `
+[
+  "get-booked-dates",
+  "get-public-host",
+  "get-public-parking",
+  "get-public-property",
+  "get-public-showcase",
+  "get-residence-unit-types",
+  "list-public-developments",
+  "list-public-parkings",
+  "list-public-place-groups",
+  "list-public-pricing-plans",
+  "list-public-properties",
+  "search-listings",
+  "search-suggestions",
+]
+`;

@@ -10,6 +10,7 @@ import {
   guestTripTiming,
   isGuestTripPostStay,
   isGuestTripTimeRule,
+  tripHubStage,
   type GuestTripHeadlineInput,
   type GuestTripPhase,
 } from '@/features/guest/trip/lib/guestTripPhase';
@@ -266,5 +267,17 @@ describe('small helpers', () => {
     expect(isGuestTripTimeRule('Check-in time: 3 PM')).toBe(true);
     expect(isGuestTripTimeRule('Check out the rooftop pool')).toBe(false);
     expect(isGuestTripTimeRule('No smoking')).toBe(false);
+  });
+});
+
+describe('tripHubStage', () => {
+  it('keeps the checkout day inside the stay', () => {
+    expect(tripHubStage({ kind: 'in_stay', night: 2, nights: 3 })).toBe('in_stay');
+    expect(tripHubStage({ kind: 'checkout_day' })).toBe('in_stay');
+  });
+
+  it('distinguishes upcoming from past', () => {
+    expect(tripHubStage({ kind: 'upcoming', daysUntil: 5 })).toBe('upcoming');
+    expect(tripHubStage({ kind: 'past' })).toBe('past');
   });
 });

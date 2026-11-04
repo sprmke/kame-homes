@@ -32,9 +32,48 @@ import {
   formatDateForEmail,
 } from './utils.ts';
 import { formatReceiptVerdictLabel } from './receiptValidationService.ts';
+import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 
 const MANILA_TZ = 'Asia/Manila';
-const APP_BASE_URL = 'https://kamehomes.space';
+
+/** `/org/:orgSlug/property/:propertySlug/bookings` per property, resolved once per invocation. */
+const ADMIN_BOOKING_PATH_CACHE = new Map<string, string>();
+
+async function resolveAdminBookingPathBase(
+  propertyId: string | null | undefined
+): Promise<string | null> {
+  if (!propertyId) return null;
+  const cached = ADMIN_BOOKING_PATH_CACHE.get(propertyId);
+  if (cached) return cached;
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  const { data: property, error: propertyError } = await supabase
+    .from('properties')
+    .select('slug, organization_id')
+    .eq('id', propertyId)
+    .maybeSingle();
+  if (propertyError || !property?.slug || !property.organization_id) {
+    if (propertyError) console.error('[telegram-admin] resolve property slugs:', propertyError);
+    return null;
+  }
+
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('slug')
+    .eq('id', property.organization_id)
+    .maybeSingle();
+  if (orgError || !org?.slug) {
+    if (orgError) console.error('[telegram-admin] resolve org slug:', orgError);
+    return null;
+  }
+
+  const base = `/org/${org.slug}/property/${property.slug}/bookings`;
+  ADMIN_BOOKING_PATH_CACHE.set(propertyId, base);
+  return base;
+}
 
 const DEFAULT_BALANCE_RECEIPT_NEEDED_TEMPLATE = `💳 Balance Receipt Needed
 
@@ -348,7 +387,10 @@ function areAllRequiredDocsComplete(booking: BookingRow): boolean {
   return gafDone && parkingDone && petDone;
 }
 
-function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, string> {
+function buildAdminBookingPlaceholders(
+  booking: BookingRow,
+  adminBookingBase?: string | null
+): Record<string, string> {
   const ciRaw = String(booking.check_in_date ?? '');
   const coRaw = String(booking.check_out_date ?? '');
   const ciYmd = normalizeBookingDateToYmd(ciRaw) ?? ciRaw;
@@ -400,7 +442,9 @@ function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, stri
     ),
     balance_receipt_ai_summary: String(booking.balance_receipt_ai_summary ?? '').trim() || 'N/A',
     ...buildSdRefundPlaceholderFields(booking),
-    booking_link: `${APP_BASE_URL}/bookings/${booking.id}`,
+    booking_link: adminBookingBase
+      ? `${resolvePublicGuestAppOrigin()}${adminBookingBase}/${String(booking.id ?? '')}`
+      : `${resolvePublicGuestAppOrigin()}/org`,
   };
 }
 
@@ -632,7 +676,8 @@ async function sendAdminTemplateForBooking(
   template: string,
   booking: BookingRow
 ): Promise<{ ok: boolean; error?: string }> {
-  const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking));
+  const adminBookingBase = await resolveAdminBookingPathBase(propertyIdFromRow(booking));
+  const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking, adminBookingBase));
   const unresolved = text.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-admin] unresolved placeholders:', unresolved.join(', '));
@@ -1028,7 +1073,8 @@ export async function renderAdminDraftPreview(
     };
   }
 
-  const placeholders = buildAdminBookingPlaceholders(booking);
+  const adminBookingBase = await resolveAdminBookingPathBase(propertyIdFromRow(booking));
+  const placeholders = buildAdminBookingPlaceholders(booking, adminBookingBase);
   const renderedText = applyPlaceholders(trimmed, placeholders);
   return {
     renderedText,

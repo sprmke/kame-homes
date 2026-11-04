@@ -5,13 +5,15 @@
 import { assertEquals, assertThrows } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   AiLimitAdminError,
+  KILL_SWITCH_KEYS,
   MAX_BULK_TARGETS,
   ORG_OVERRIDE_KEYS,
-  PROPERTY_OVERRIDE_KEYS,
+  parseKillSwitchOverrides,
   parseLimitsMap,
   parseProfileInput,
   parseScope,
   parseTargetIds,
+  PROPERTY_OVERRIDE_KEYS,
   requireOverrideReason,
 } from './aiLimitAdmin.ts';
 
@@ -96,4 +98,34 @@ Deno.test('requireOverrideReason: reason needed only when a value is set', () =>
   assertThrows(() => requireOverrideReason({ dailyCallLimit: 5 }, 'ab'), AiLimitAdminError);
   assertEquals(requireOverrideReason({ dailyCallLimit: null }, undefined), null);
   assertThrows(() => requireOverrideReason({}, 'x'.repeat(201)), AiLimitAdminError, '200');
+});
+
+Deno.test('parseKillSwitchOverrides accepts booleans and null, ignores undefined', () => {
+  assertEquals(
+    parseKillSwitchOverrides({
+      agenticModeEnabled: true,
+      planApprovalEnabled: null,
+      guestActionsEnabled: undefined,
+    }),
+    { agenticModeEnabled: true, planApprovalEnabled: null }
+  );
+  assertEquals(parseKillSwitchOverrides({}), {});
+  for (const key of KILL_SWITCH_KEYS) {
+    assertEquals(parseKillSwitchOverrides({ [key]: false }), { [key]: false });
+  }
+});
+
+Deno.test('parseKillSwitchOverrides rejects non-boolean, non-null values and non-objects', () => {
+  assertThrows(
+    () => parseKillSwitchOverrides({ agenticModeEnabled: 'true' }),
+    AiLimitAdminError,
+    'agenticModeEnabled must be a boolean or null'
+  );
+  assertThrows(() => parseKillSwitchOverrides({ guestActionsEnabled: 1 }), AiLimitAdminError);
+  assertThrows(() => parseKillSwitchOverrides(null), AiLimitAdminError, 'must be an object');
+  assertThrows(() => parseKillSwitchOverrides([]), AiLimitAdminError, 'must be an object');
+});
+
+Deno.test('parseKillSwitchOverrides ignores unknown keys (no throw)', () => {
+  assertEquals(parseKillSwitchOverrides({ bogus: true }), {});
 });

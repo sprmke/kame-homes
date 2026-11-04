@@ -3,11 +3,12 @@
  * Run: deno test --allow-env supabase/functions/_shared/orgVerification_test.ts
  */
 
-import { assert, assertFalse } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { assert, assertEquals, assertFalse } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   canSubmitBaseVerification,
   canSubmitEnhancedVerification,
   emptyOrgVerificationState,
+  hoursSinceSubmission,
   type OrgVerificationState,
 } from './orgVerification.ts';
 
@@ -59,4 +60,20 @@ Deno.test('host Recommended requires selfie; Facebook and platform admin are opt
       assets: { ...ready.assets, socialProofPath: null },
     })
   );
+});
+
+Deno.test('hoursSinceSubmission reports whole hours from a submission timestamp', () => {
+  const threeHoursAgo = new Date(Date.now() - 3 * 3_600_000).toISOString();
+  assertEquals(hoursSinceSubmission(threeHoursAgo), 3);
+});
+
+Deno.test('hoursSinceSubmission returns null for a missing or unreadable timestamp', () => {
+  assertEquals(hoursSinceSubmission(null), null);
+  assertEquals(hoursSinceSubmission(undefined), null);
+  assertEquals(hoursSinceSubmission('not-a-date'), null);
+});
+
+Deno.test('hoursSinceSubmission never reports a negative duration', () => {
+  const inTheFuture = new Date(Date.now() + 3_600_000).toISOString();
+  assertEquals(hoursSinceSubmission(inTheFuture), 0);
 });

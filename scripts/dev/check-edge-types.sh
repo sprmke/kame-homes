@@ -43,6 +43,13 @@ targets=(
   send-parking-reminders/index.ts
   _shared/parkingReminderCron.ts
   _shared/parkingReminderEligibility.ts
+  # Marketing media library — added after the 2026-11-04 deploy caught a
+  # missing activity-log action key that only the bundler type-checks.
+  marketing-media/index.ts
+  marketing-media-sweeper/index.ts
+  _shared/marketingMediaStorage.ts
+  _shared/marketingMediaIngest.ts
+  _shared/marketingMediaSweeper.ts
 )
 
 echo "→ deno check (${#targets[@]} launch and cron edge modules)"

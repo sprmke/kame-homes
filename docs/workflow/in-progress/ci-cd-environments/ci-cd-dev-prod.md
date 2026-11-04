@@ -4,7 +4,7 @@ status: active
 stage: in-progress
 kind: plan
 tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, multi-tenancy]
-updated: 2026-09-16
+updated: 2026-11-03
 ---
 
 # CI/CD Dual-Track Implementation Plan
@@ -329,7 +329,7 @@ git push origin feature/support-multi-users-and-properties
    - `https://kame-homes-<team>.vercel.app`
    - Custom domain if you added one under **Settings → Domains**
 4. Copy the **origin only** (no path): e.g. `https://kame-homes.vercel.app`  
-   Save this as **`KAME_HOMES_URL`** in your notes — you need it for Auth and Google OAuth.
+   Save this as **`APP_URL`** in your notes — you need it for Auth and Google OAuth.
 
 **Deployment badge:** On `kame-homes`, a deploy from Production Branch shows as **Production** (green). That is correct — it is Production _for the kame-homes project_, not live users.
 
@@ -337,7 +337,7 @@ git push origin feature/support-multi-users-and-properties
 
 ##### Part F — Supabase Auth on **`fwor…` only**
 
-**Goal:** Google sign-in works on `KAME_HOMES_URL` and hits the multi-tenant database.
+**Goal:** Google sign-in works on `APP_URL` and hits the multi-tenant database.
 
 **Work in Supabase project `fworvijbrwpyngycotbz` — not `zftt…`.**
 
@@ -347,10 +347,10 @@ git push origin feature/support-multi-users-and-properties
 4. Leave Client ID / Secret empty for now if Part G not done — complete Part G then paste here.
 5. **Authentication** → **URL Configuration**:
 
-| Field                          | Value                                                               |
-| ------------------------------ | ------------------------------------------------------------------- |
-| **Site URL**                   | `KAME_HOMES_URL` from Part E (e.g. `https://kame-homes.vercel.app`) |
-| **Redirect URLs** (Additional) | Add **each** of these (one per line):                               |
+| Field                          | Value                                                        |
+| ------------------------------ | ------------------------------------------------------------ |
+| **Site URL**                   | `APP_URL` from Part E (e.g. `https://kame-homes.vercel.app`) |
+| **Redirect URLs** (Additional) | Add **each** of these (one per line):                        |
 
 Redirect URL list to add:
 
@@ -358,7 +358,7 @@ Redirect URL list to add:
 http://localhost:5173
 http://127.0.0.1:5173
 https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback
-<KAME_HOMES_URL>
+<APP_URL>
 https://*.vercel.app/**
 ```
 
@@ -367,7 +367,7 @@ https://*.vercel.app/**
 
 6. **Save**.
 
-**Do not** add `KAME_HOMES_URL` to Supabase **`zftt…`** Auth — legacy Auth should only know legacy production domains.
+**Do not** add `APP_URL` to Supabase **`zftt…`** Auth — legacy Auth should only know legacy production domains.
 
 ---
 
@@ -386,7 +386,7 @@ https://*.vercel.app/**
 ```text
 http://localhost:5173
 http://127.0.0.1:5173
-<KAME_HOMES_URL>
+<APP_URL>
 ```
 
 Example: `https://kame-homes.vercel.app`  
@@ -443,15 +443,15 @@ Do every row before marking Task 2 done.
 | #   | Check            | How                                    | Pass                                                 |
 | --- | ---------------- | -------------------------------------- | ---------------------------------------------------- |
 | 3   | Deploy succeeded | Vercel → kame-homes → Deployments      | Latest **Production** = Ready                        |
-| 4   | SPA loads        | Open `KAME_HOMES_URL`                  | Page renders (errors OK if backend not deployed yet) |
-| 5   | Correct Supabase | Network tab on `KAME_HOMES_URL`        | Requests to **`fworvijbrwpyngycotbz.supabase.co`**   |
+| 4   | SPA loads        | Open `APP_URL`                         | Page renders (errors OK if backend not deployed yet) |
+| 5   | Correct Supabase | Network tab on `APP_URL`               | Requests to **`fworvijbrwpyngycotbz.supabase.co`**   |
 | 6   | Env baked in     | View page source / network request URL | Not `zftt…` anywhere                                 |
 
 **C. Auth (if testing login)**
 
 | #   | Check            | How                              | Pass                                           |
 | --- | ---------------- | -------------------------------- | ---------------------------------------------- |
-| 7   | Admin login page | `KAME_HOMES_URL/for-hosts/login` | Google button loads                            |
+| 7   | Admin login page | `APP_URL/for-hosts/login`        | Google button loads                            |
 | 8   | OAuth redirect   | Sign in with allow-listed email  | Returns to app without `redirect_uri_mismatch` |
 | 9   | Super admin      | `SUPER_ADMIN_EMAILS` on Supabase | Admin tab visible; `/admin` loads after login  |
 
@@ -468,7 +468,7 @@ Reload → filter `fwor` or `zftt` → click any `/functions/v1/` request → **
 | `kame-homes` still hits `zftt…`              | Wrong env scope or old deploy   | Vars on **Production**; **Redeploy** after env change                                                                             |
 | `kame-homes` hits `fwor…` but 404/502 on API | Backend not deployed (Task 3)   | Run `bun run deploy:supabase:dev` on mt branch                                                                                    |
 | Google `redirect_uri_mismatch`               | Redirect URI typo               | GCP redirect must be exactly `https://fworvijbrwpyngycotbz.supabase.co/auth/v1/callback`                                          |
-| Google `origin_mismatch`                     | Missing JS origin               | Add exact `KAME_HOMES_URL` to GCP authorized origins                                                                              |
+| Google `origin_mismatch`                     | Missing JS origin               | Add exact `APP_URL` to GCP authorized origins                                                                                     |
 | Login works but `/admin` access restricted   | Super admin not configured      | Set `SUPER_ADMIN_EMAILS` on Supabase; the UI reads the capability from `list-organizations`                                       |
 | Host APIs 403 before org exists              | Not on allow list               | Set `ADMIN_ALLOWED_EMAILS` on Supabase or complete org onboarding (owner bypass)                                                  |
 | Live site broke after Task 2                 | Edited wrong Vercel project     | Revert env changes on **`guest-form-management-app`** only                                                                        |
@@ -708,7 +708,7 @@ Dashboard → **`fwor…`** → **Project Settings → Edge Functions → Secret
 
 **Defer until feature testing:** Gmail listener, Meta inbox, Telegram, AI keys, Google Calendar/Sheets SA — see [`dev-staging-environment.md`](../../../archive/operations/dev-staging-environment.md) §2.5–2.8.
 
-Template names: [`supabase/.env.example`](../../../supabase/.env.example).
+Template names: [`supabase/.env.example`](../../../../supabase/.env.example).
 
 ---
 

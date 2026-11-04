@@ -1,6 +1,8 @@
 import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
 import type {
   ChatTemplateListItem,
+  GuestRequestDto,
+  GuestRequestStatus,
   InboxAutomationSettings,
   InboxConnection,
   InboxConversation,
@@ -309,7 +311,12 @@ export async function fetchInboxMessages(
   conversationId: string,
   before?: string,
   scope?: InboxApiScope | null
-): Promise<{ conversation: InboxConversation; messages: InboxMessage[]; hasMore: boolean }> {
+): Promise<{
+  conversation: InboxConversation;
+  messages: InboxMessage[];
+  hasMore: boolean;
+  guestRequests: GuestRequestDto[];
+}> {
   const jwt = await getJwt();
   const base = withInboxScope(orgUrl('/social-inbox-messages', orgSlug, orgId), scope);
   const params = new URLSearchParams({ conversation_id: conversationId });
@@ -323,7 +330,28 @@ export async function fetchInboxMessages(
     conversation: payload.conversation as InboxConversation,
     messages: (payload.messages as InboxMessage[] | undefined) ?? [],
     hasMore: !!payload.hasMore,
+    guestRequests: (payload.guestRequests as GuestRequestDto[] | undefined) ?? [],
   };
+}
+
+export async function resolveGuestRequest(
+  orgSlug: string | null,
+  orgId: string | null,
+  conversationId: string,
+  requestId: string,
+  status: Exclude<GuestRequestStatus, 'pending'>,
+  scope?: InboxApiScope | null
+): Promise<GuestRequestDto> {
+  const jwt = await getJwt();
+  const base = withInboxScope(orgUrl('/social-inbox-messages', orgSlug, orgId), scope);
+  const res = await fetch(`${base}&conversation_id=${encodeURIComponent(conversationId)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'resolve_guest_request', requestId, status }),
+  });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json);
+  return payload.request as GuestRequestDto;
 }
 
 export async function markInboxConversationRead(
@@ -351,6 +379,7 @@ export async function sendInboxReply(
     attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
     templateKey?: string;
     bookingId?: string | null;
+    aiDrafted?: boolean;
     scope?: InboxApiScope | null;
   }
 ): Promise<void> {
@@ -367,6 +396,7 @@ export async function sendInboxReply(
       text,
       replyToMessageId: opts?.replyToMessageId,
       useHumanAgentTag: opts?.useHumanAgentTag === true,
+      aiDrafted: opts?.aiDrafted === true,
       attachments: opts?.attachments,
       templateKey: opts?.templateKey,
       bookingId: opts?.bookingId ?? undefined,
@@ -429,6 +459,7 @@ export function inboxSendBody(
     text: string;
     replyToMessageId?: string;
     useHumanAgentTag?: boolean;
+    aiDrafted?: boolean;
   },
   scope?: InboxApiScope | null
 ): Record<string, unknown> {
@@ -437,6 +468,7 @@ export function inboxSendBody(
     text: input.text,
     replyToMessageId: input.replyToMessageId,
     useHumanAgentTag: input.useHumanAgentTag === true,
+    aiDrafted: input.aiDrafted === true,
     ...inboxScopeBody(scope),
   };
 }

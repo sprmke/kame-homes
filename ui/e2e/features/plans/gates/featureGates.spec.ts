@@ -16,7 +16,7 @@ import {
 import { retryThroughDevReload } from '../shared/planPageAssertions';
 import { installTierGateMocks, type TierGateOptions } from '../shared/tierGateMocks';
 
-const PROPERTY = '/org/kame-homes-ph/property/solea-mactan';
+const PROPERTY = '/org/sample-stays-ph/property/solea-mactan';
 
 type Feature = keyof GoldenPlan['features'];
 
@@ -132,7 +132,7 @@ const SURFACES: GateSurface[] = [
   {
     feature: 'activityLogExport',
     name: 'Activity log: Export CSV',
-    path: '/org/kame-homes-ph/activity',
+    path: '/org/sample-stays-ph/activity',
     mocks: { orgHub: true },
     control: (page) => page.getByRole('button', { name: 'Export CSV' }),
     scope: parentScope,
@@ -220,7 +220,7 @@ const SURFACES: GateSurface[] = [
   {
     feature: 'copyPropertySettings',
     name: 'Org properties: Copy settings',
-    path: '/org/kame-homes-ph/properties',
+    path: '/org/sample-stays-ph/properties',
     mocks: { orgHub: true, multiProperty: true },
     control: (page) => page.getByRole('button', { name: /Copy settings/ }),
     scope: parentScope,

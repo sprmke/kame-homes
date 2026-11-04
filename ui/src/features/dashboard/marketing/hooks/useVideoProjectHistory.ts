@@ -5,20 +5,28 @@ import type { VideoProject } from '@/features/dashboard/marketing/lib/video/vide
 const MAX_HISTORY = 50;
 const COALESCE_MS = 400;
 
-function cloneProject(project: VideoProject): VideoProject {
+/**
+ * History/undo for a video project. Generic because the editor is mid-migration: the v1
+ * scene project and the v2 track project are different shapes and both need the same
+ * undo behaviour. `T` defaults to v1 so existing call sites stay unchanged.
+ */
+function cloneProject<T>(project: T): T {
   return structuredClone(project);
 }
 
+/** Text entry only: a focused slider or checkbox must not swallow undo/redo. */
+const NON_TEXT_INPUTS = new Set(['range', 'checkbox', 'radio', 'button', 'submit', 'reset']);
+
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
+  if (target instanceof HTMLInputElement) return !NON_TEXT_INPUTS.has(target.type);
   const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  return target.isContentEditable;
+  return tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
 }
 
-export function useVideoProjectHistory() {
-  const [project, setProjectState] = useState<VideoProject | null>(null);
-  const historyRef = useRef<VideoProject[]>([]);
+export function useVideoProjectHistory<T = VideoProject>() {
+  const [project, setProjectState] = useState<T | null>(null);
+  const historyRef = useRef<T[]>([]);
   const indexRef = useRef(-1);
   const skipPushRef = useRef(false);
   const lastCoalesceAtRef = useRef(0);
@@ -27,7 +35,7 @@ export function useVideoProjectHistory() {
   const bumpRevision = useCallback(() => setRevision((value) => value + 1), []);
 
   const pushSnapshot = useCallback(
-    (next: VideoProject, options?: { force?: boolean }) => {
+    (next: T, options?: { force?: boolean }) => {
       const clone = cloneProject(next);
       const history = historyRef.current.slice(0, indexRef.current + 1);
       const now = Date.now();
@@ -55,9 +63,10 @@ export function useVideoProjectHistory() {
   );
 
   const setProject = useCallback(
-    (updater: VideoProject | null | ((prev: VideoProject | null) => VideoProject | null)) => {
+    (updater: T | null | ((prev: T | null) => T | null)) => {
       setProjectState((prev) => {
-        const next = typeof updater === 'function' ? updater(prev) : updater;
+        const next =
+          typeof updater === 'function' ? (updater as (prev: T | null) => T | null)(prev) : updater;
         if (next && !skipPushRef.current && next !== prev) {
           pushSnapshot(next);
         }
@@ -73,7 +82,7 @@ export function useVideoProjectHistory() {
    * they never count as an edit or add an undo step.
    */
   const amendProject = useCallback(
-    (updater: (prev: VideoProject | null) => VideoProject | null) => {
+    (updater: (prev: T | null) => T | null) => {
       setProjectState((prev) => {
         const next = updater(prev);
         if (next && next !== prev && indexRef.current >= 0) {
@@ -88,7 +97,7 @@ export function useVideoProjectHistory() {
   );
 
   const replaceProject = useCallback(
-    (next: VideoProject | null) => {
+    (next: T | null) => {
       skipPushRef.current = true;
       setProjectState(next);
       skipPushRef.current = false;

@@ -1,6 +1,6 @@
 # Legacy → mt-prod migration tooling
 
-Runbook entry point. **Rationale + phases:** [`docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../../docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md) · **Operational runbook:** [`docs/archive/operations/legacy-to-mt-prod-migration.md`](../../../docs/archive/operations/legacy-to-mt-prod-migration.md)
+Runbook entry point. **Rationale + phases:** [`docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../../docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) · **Operational runbook:** [`docs/archive/operations/legacy-to-mt-prod-migration.md`](../../../docs/archive/operations/legacy-to-mt-prod-migration.md)
 
 **Source:** LEGACY `zfttdwtceyqszyeyhilc` (session pooler URI in `supabase/.env.local` as `PROD_DB_URL`)
 **Target:** `fworvijbrwpyngycotbz` (production since 2026-10-27; also the hosted dev project for now). Local rehearsal for R1/R2 is `TARGET_DB_NAME` (default `legacy_r1`).

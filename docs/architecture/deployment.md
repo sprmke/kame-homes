@@ -18,14 +18,14 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 The legacy dual-track is over. There is **one** Supabase project and **one** Vercel project
 for multi-tenant. Legacy `zftt…` is retired and must not be used.
 
-| Surface               | Value                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| Supabase              | `fworvijbrwpyngycotbz` — "Kame Homes - Dev", **serves production** too              |
-| Vercel (multi-tenant) | `kame-homes` (team `kame-works`) — Preview on `develop`, Production on `main`       |
-| Vercel (legacy)       | `guest-form-management-app` — retired, do not deploy to it                          |
-| Public domain         | `kamespace.com` (production), `dev.kamespace.com` / `dev.kamehomes.space` (preview) |
-| Backend deploy        | `.github/workflows/cd-prod.yml` — the single pipeline, on `develop`                 |
-| UI deploy             | Vercel (separate from the backend pipeline)                                         |
+| Surface               | Value                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| Supabase              | `fworvijbrwpyngycotbz` — "Kame Space - Dev", **serves production** too                                   |
+| Vercel (multi-tenant) | `kame-homes` (team `kame-works`) — Preview on `develop`, Production on `main`                            |
+| Vercel (legacy)       | `guest-form-management-app` — retired, do not deploy to it                                               |
+| Public domain         | `kamespace.com` (production), `www.kamespace.com` (308 to apex). Preview deployments use `*.vercel.app`. |
+| Backend deploy        | `.github/workflows/cd-prod.yml` — the single pipeline, on `develop`                                      |
+| UI deploy             | Vercel (separate from the backend pipeline)                                                              |
 
 **Because one project serves both environments, a "dev deploy" is a production deploy.**
 That is why there is exactly one backend workflow: `cd-dev.yml`, `cd-preprod.yml` and the old
@@ -57,11 +57,11 @@ must not be run.
 
 ### Checklists
 
-| Environment       | Checklist / runbook                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Production**    | [`production-deployment.md`](../archive/operations/production-deployment.md) — backups, `db push`, secrets, Vercel Production (`kamewave` unlock for agents) |
-| **Preview**       | [`dev-staging-environment.md`](../archive/operations/dev-staging-environment.md) — retired as a hosted environment; use local or a Vercel preview URL       |
-| **Migrations**    | [`migration-runbook.md`](../archive/operations/migration-runbook.md)                                                                                         |
+| Environment    | Checklist / runbook                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Production** | [`production-deployment.md`](../archive/operations/production-deployment.md) — backups, `db push`, secrets, Vercel Production (`kamewave` unlock for agents) |
+| **Preview**    | [`dev-staging-environment.md`](../archive/operations/dev-staging-environment.md) — retired as a hosted environment; use local or a Vercel preview URL        |
+| **Migrations** | [`migration-runbook.md`](../archive/operations/migration-runbook.md)                                                                                         |
 
 - `ui/vercel.json`: SPA rewrites to `index.html` for every path except `/assets/*` (a missing old chunk returns 404 instead of HTML cached as `immutable`), Vite build output `dist`. After a deploy, an open tab that hits a removed chunk reloads once (`ui/src/lib/chunkReload.ts`, wired into `RouteErrorFallback` and `AppErrorBoundary`; a second failure within 10s shows the error screen). Headers (doc 16): hashed `/assets/*` is `immutable`; `/index.html` is `public, max-age=0, must-revalidate`; unhashed `ui/public` trees (`/icons`, `/favicon`, `/templates`, `/images`, `/marketing`, `/avatars`, `/fonts`, `/worklets`) use weekly `max-age` + `stale-while-revalidate` (never `immutable`); PWA files stay short/no-cache. Catch-all security headers: HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` (microphone + geolocation `self` only), `Content-Security-Policy-Report-Only` (doc 22; inventory `docs/architecture/third-party-origins.md`). Config guards: `scripts/dev/check-vercel-headers.sh`, `check-csp-theme-hash.sh` (no inline scripts/handlers in `index.html`); post-deploy: `bun run verify:deployed-preview`.
 - **CDN purge:** Vercel invalidates static assets on each deploy. Storage objects do not purge on deploy — change the object key or wait out `cacheControl`. Do not put `immutable` on an unhashed file.

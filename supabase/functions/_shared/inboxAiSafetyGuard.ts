@@ -107,6 +107,27 @@ function isAllowedAmount(amount: number, allowedValues: number[]): boolean {
   return normalizedAllowed.some((allowed) => Math.abs(amount - allowed) <= 5);
 }
 
+/**
+ * Name tokens too common in ordinary guest-facing copy to treat as a leak: number words (any
+ * reply naming a count, a date, or a time uses these) plus other single-token words that collide
+ * with everyday vocabulary. `otherGuestNames` is built from individual name parts split off a
+ * full name (`splitGuestNames`), so a surname like "King" or "One" shows up here as its own
+ * token — reproduced live: "Yes, parking is available..." flagged on "King" (inside "parking"),
+ * and "Kit One" / "Val Two" flag almost any reply that mentions a time or a count.
+ */
+const COMMON_WORD_NAME_STOPLIST = new Set([
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+]);
+
 function containsOtherGuestName(
   draftText: string,
   participantName: string | null | undefined,
@@ -127,7 +148,10 @@ function containsOtherGuestName(
     if (trimmed.length < 3) continue;
     const lower = trimmed.toLowerCase();
     if (participantTokens.has(lower)) continue;
-    if (draftLower.includes(lower)) {
+    if (COMMON_WORD_NAME_STOPLIST.has(lower)) continue;
+    // Word-boundary, not a raw substring match — "king" must not match inside "parking".
+    const pattern = new RegExp(`\\b${lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    if (pattern.test(draftLower)) {
       return trimmed;
     }
   }

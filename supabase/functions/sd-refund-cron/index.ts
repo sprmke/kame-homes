@@ -38,6 +38,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from '../_shared/supabaseJs.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { recordJobHeartbeat } from '../_shared/systemHealth/jobHeartbeat.ts';
 import { resolveAppSettings } from '../_shared/appSettings.ts';
 import {
   resolveScopedPropertyAccess,
@@ -157,10 +158,13 @@ serve(async (req) => {
   const runStarted = new Date().toISOString();
   console.log('[sd-refund-cron] Run started at', runStarted);
   const monitorStartedAt = Date.now();
+  const heartbeatStartedAt = Date.now();
+  let cronRun = false;
   await sendCronCheckIn(CRON_MONITOR, 'in_progress');
 
   try {
     const scopedBookingId = await parseOptionalBookingId(req);
+    cronRun = !scopedBookingId;
     let scoped = false;
     let adminPropertyId: string | null = null;
 
@@ -218,6 +222,9 @@ serve(async (req) => {
         ? `[sd-refund-cron] No READY_FOR_CHECKIN booking for id=${scopedBookingId}.`
         : '[sd-refund-cron] No READY_FOR_CHECKIN bookings. Nothing to do.';
       console.log(msg);
+      if (cronRun) {
+        await recordJobHeartbeat('sd-refund-cron', { ok: true, startedAt: heartbeatStartedAt });
+      }
       return new Response(
         JSON.stringify({
           success: true,
@@ -451,6 +458,9 @@ serve(async (req) => {
     // failures are reported individually. Reporting error here would make a partially
     // failing sweep indistinguishable from a dead scheduler.
     await sendCronCheckIn(CRON_MONITOR, 'ok', { durationMs: Date.now() - monitorStartedAt });
+    if (cronRun) {
+      await recordJobHeartbeat('sd-refund-cron', { ok: true, startedAt: heartbeatStartedAt });
+    }
 
     return new Response(JSON.stringify(summary), {
       status: 200,
@@ -459,6 +469,13 @@ serve(async (req) => {
   } catch (error) {
     if (error instanceof Response) {
       return error;
+    }
+    if (cronRun) {
+      await recordJobHeartbeat('sd-refund-cron', {
+        ok: false,
+        startedAt: heartbeatStartedAt,
+        error,
+      });
     }
     console.error('[sd-refund-cron] Fatal error:', error);
     await captureSentryException(error, {

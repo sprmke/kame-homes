@@ -38,6 +38,7 @@ export const GOLDEN_FREE: GoldenPlan = {
   isActive: true,
   isDefault: true,
   features: {
+    marketingMediaLibrary: { storageMb: 100, maxFiles: 30, maxImageMb: 10, maxVideoMb: 50, maxVideoSec: 30, maxAudioMb: 15, dailyUploads: 20 },
     activityLogExport: false,
     aiChatAutoReply: false,
     aiDashboardAssistant: false,
@@ -94,6 +95,7 @@ export const GOLDEN_STARTER: GoldenPlan = {
   isActive: true,
   isDefault: false,
   features: {
+    marketingMediaLibrary: { storageMb: 500, maxFiles: 100, maxImageMb: 10, maxVideoMb: 100, maxVideoSec: 60, maxAudioMb: 15, dailyUploads: 50 },
     activityLogExport: true,
     aiChatAutoReply: false,
     aiDashboardAssistant: false,
@@ -150,6 +152,7 @@ export const GOLDEN_PRO: GoldenPlan = {
   isActive: true,
   isDefault: false,
   features: {
+    marketingMediaLibrary: { storageMb: 3072, maxFiles: 500, maxImageMb: 10, maxVideoMb: 150, maxVideoSec: 60, maxAudioMb: 25, dailyUploads: 150 },
     activityLogExport: true,
     aiChatAutoReply: false,
     aiDashboardAssistant: false,
@@ -206,6 +209,7 @@ export const GOLDEN_BUSINESS: GoldenPlan = {
   isActive: true,
   isDefault: false,
   features: {
+    marketingMediaLibrary: { storageMb: 10240, maxFiles: 2000, maxImageMb: 10, maxVideoMb: 150, maxVideoSec: 60, maxAudioMb: 25, dailyUploads: 300 },
     activityLogExport: true,
     aiChatAutoReply: true,
     aiDashboardAssistant: true,
@@ -256,6 +260,7 @@ export const GOLDEN_BUSINESS_PLUS: GoldenPlan = {
   isActive: false,
   isDefault: false,
   features: {
+    marketingMediaLibrary: { storageMb: 10240, maxFiles: 2000, maxImageMb: 10, maxVideoMb: 150, maxVideoSec: 60, maxAudioMb: 25, dailyUploads: 300 },
     activityLogExport: true,
     aiChatAutoReply: true,
     aiDashboardAssistant: true,
@@ -312,6 +317,7 @@ export const GOLDEN_MANAGED: GoldenPlan = {
   isActive: true,
   isDefault: false,
   features: {
+    marketingMediaLibrary: { storageMb: 25600, maxFiles: 5000, maxImageMb: 10, maxVideoMb: 150, maxVideoSec: 60, maxAudioMb: 25, dailyUploads: 500 },
     activityLogExport: true,
     aiChatAutoReply: true,
     aiDashboardAssistant: true,
@@ -428,4 +434,5 @@ export const GOLDEN_MINIMUM_TIER: Record<keyof PlanFeatures, string> = {
   copyPropertySettings: 'growth',
   analyticsInsights: 'growth',
   activityLogExport: 'starter',
+  marketingMediaLibrary: 'free',
 };

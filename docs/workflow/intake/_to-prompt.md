@@ -2,7 +2,7 @@ I---
 title: 'Tasks To Prompt'
 status: archived
 tags: [planning]
-updated: 2026-09-28
+updated: 2026-11-03
 ---
 
 **Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
@@ -98,7 +98,7 @@ Guide: `docs/guides/routes/org/property/calendar.md`
 ✅ Improve dashboard UI at org & property level
 ===
 
-✅ Make sure all media uploader default image is empty (ex. org logo). Please analyze all our dashboard image uploader and make sure we don't have static or default images that's tied to Kame Home (2604)
+✅ Make sure all media uploader default image is empty (ex. org logo). Please analyze all our dashboard image uploader and make sure we don't have static or default images that's tied to Kame Space (2604)
 ===
 
 ✅ Do not allow the following names for org and property name.
@@ -136,7 +136,7 @@ Shipped: [`../done/google-map-listing-view.md`](../done/google-map-listing-view.
 
 ✅ Update each page browser title to be dynamic.
 
-Public Pages - Kame Homes - ${page name}
+Public Pages - Kame Space - ${page name}
 
 Property public pages - ${Property Name} - ${page name}
 

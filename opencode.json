@@ -16,6 +16,7 @@
     ".cursor/rules/unsaved-changes.mdc",
     ".cursor/rules/testing.mdc",
     ".cursor/rules/mobile-native-ui.mdc",
+    ".cursor/rules/branch-lifecycle.mdc",
     ".cursor/rules/karpathy-guidelines.mdc",
     "DESIGN.md"
   ],

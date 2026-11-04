@@ -9,6 +9,7 @@
  */
 
 import { createClient } from './supabaseJs.ts';
+import { capturePostHogEvent } from './posthog.ts';
 
 import {
   estimateTokenCostUsd,
@@ -951,7 +952,34 @@ export async function resolveAiFeatureBlocker(
 }
 
 /** Fail closed when platform/org/property disabled or quota exceeded. */
+/**
+ * One product event when the quota guard denies, then the same throw as before. Emitted here
+ * rather than at each call site so every AI feature reports the same signal, and so the
+ * deny path cannot drift back into "the button just did nothing".
+ */
 export async function assertOrgAndPropertyAiQuota(
+  organizationId: string,
+  propertyId: string | null | undefined,
+  feature: AiFeature
+): Promise<void> {
+  try {
+    await assertOrgAndPropertyAiQuotaInner(organizationId, propertyId, feature);
+  } catch (err) {
+    if (isAiQuotaError(err)) {
+      await capturePostHogEvent('ai_credit_limit_reached', {
+        logPrefix: 'ai-usage',
+        groups: { organization: organizationId },
+        properties: {
+          scope: (err as Error).message.toLowerCase().includes('platform') ? 'platform' : 'org',
+        },
+        system: true,
+      });
+    }
+    throw err;
+  }
+}
+
+async function assertOrgAndPropertyAiQuotaInner(
   organizationId: string,
   propertyId: string | null | undefined,
   feature: AiFeature

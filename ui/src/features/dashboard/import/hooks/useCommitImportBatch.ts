@@ -30,11 +30,17 @@ export type CommitImportBatchResult = {
   failed: CommitImportBatchFailure[];
 };
 
+export type CommitImportBatchInput = {
+  batchId: string;
+  /** Wizard-only knowledge: the batch row does not persist whether AI mapping ran. */
+  mappingAiUsed?: boolean;
+};
+
 export function useCommitImportBatch() {
   const propertyId = usePropertyIdParam();
 
   return useMutation({
-    mutationFn: async (batchId: string): Promise<CommitImportBatchResult> => {
+    mutationFn: async (input: CommitImportBatchInput): Promise<CommitImportBatchResult> => {
       if (!propertyId) throw new Error('Property context is required');
 
       const jwt = await getSessionJwt();
@@ -44,7 +50,10 @@ export function useCommitImportBatch() {
           Authorization: `Bearer ${jwt}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ batchId }),
+        body: JSON.stringify({
+          batchId: input.batchId,
+          mappingAiUsed: input.mappingAiUsed === true,
+        }),
       });
 
       const json = await readImportEdgeJson<CommitImportBatchResult>(res);

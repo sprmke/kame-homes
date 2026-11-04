@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 
 import { ImagePlus, Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,6 +29,10 @@ type Props = {
   /** Video: one photo that becomes the first frame. Veo takes JPEG, PNG or WebP only;
    *  leaving HEIC out of `accept` makes iOS convert to JPEG on pick. */
   startFrame?: boolean;
+  /** From an AI Studio example: which photo gives a result like it. */
+  need?: string | null;
+  /** Bump to open the photo sheet from outside (e.g. Generate on a clip with no photo). */
+  openRequest?: number;
 };
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
@@ -45,11 +49,16 @@ export function AiStudioPhotoPicker({
   maxPhotos,
   disabled,
   startFrame = false,
+  need = null,
+  openRequest = 0,
 }: Props) {
   const accept = startFrame ? START_FRAME_ACCEPT : ACCEPT;
   const { property } = useOrgContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => {
+    if (openRequest > 0 && !disabled) setSheetOpen(true);
+  }, [openRequest, disabled]);
   const [dragging, setDragging] = useState(false);
   const [pendingListingUrls, setPendingListingUrls] = useState<ReadonlySet<string>>(new Set());
   // Listing URL → reference id picked this session. The file-name stem also finds
@@ -195,7 +204,8 @@ export function AiStudioPhotoPicker({
             'transition-[border-color,background-color] duration-150 ease-out',
             'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
             'disabled:cursor-not-allowed disabled:opacity-60',
-            dragging && 'border-primary bg-primary/10'
+            dragging && 'border-primary bg-primary/10',
+            need && 'border-primary/50 bg-primary/[0.04]'
           )}
         >
           {previews.length > 0 ? (
@@ -225,7 +235,8 @@ export function AiStudioPhotoPicker({
               {busy ? 'Adding photo' : maxPhotos > 1 ? 'Add photos' : 'Add a photo'}
             </span>
             <span className="text-muted-foreground block text-xs">
-              {previews.length > 0 ? 'From your listing or your device' : 'From your device'}
+              {need ??
+                (previews.length > 0 ? 'From your listing or your device' : 'From your device')}
             </span>
           </span>
         </button>

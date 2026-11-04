@@ -13,6 +13,7 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { applyRun, clearRecommendations } from '../_shared/smartPricingRun.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -92,6 +93,13 @@ serveAuthenticated('smart-pricing-apply', async (req) => {
         partial: Boolean(ranges),
         related_event_ref: { table: 'property_smart_pricing_runs', id: runId },
       },
+    });
+    await capturePostHogEvent('smart_pricing_applied', {
+      logPrefix: 'smart-pricing-apply',
+      request: req,
+      distinctId: user.id,
+      groups: { organization: access.org.id, property: property.id },
+      properties: { nights_changed: result.applied, mode: 'suggest' },
     });
     return jsonSuccess(req, result);
   } catch (err) {

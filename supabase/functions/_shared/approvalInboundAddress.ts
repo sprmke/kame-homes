@@ -2,7 +2,7 @@
  * Per-property Resend inbound address for Azure GAF/pet approval replies.
  *
  * Env:
- *   RESEND_APPROVAL_INBOUND_DOMAIN — e.g. `inbound.kamehomes.space`
+ *   RESEND_APPROVAL_INBOUND_DOMAIN — e.g. `inbound.kamespace.com`
  *   → address `approvals+{propertySlug}@{domain}`
  */
 

@@ -1099,6 +1099,11 @@ function buildMagazineCover(ctx: PosterBuildContext): PosterBuildResult {
     })
   );
   cursor = after(headline, cursor);
+  // A one-line headline can take a deep pull-up for the magazine "kiss" look; a
+  // wrapped headline already ends close to the script, so pulling up the same
+  // amount would run the script through the headline's last line.
+  const scriptPullUp =
+    headline && headline.fitted.lines.length <= 1 ? headline.fitted.fontSize * 0.3 : 0;
   const script = push(
     children,
     posterText({
@@ -1108,7 +1113,7 @@ function buildMagazineCover(ctx: PosterBuildContext): PosterBuildResult {
       role: fonts.script,
       x: pad + W * 0.04,
       allowOverlap: true,
-      y: cursor - (headline ? headline.fitted.fontSize * 0.3 : 0),
+      y: cursor - scriptPullUp,
       width: textW,
       maxFontSize: canvas.s(pick(canvas, { square: 0.15, story: 0.17, wide: 0.13 })),
       maxLines: 2,

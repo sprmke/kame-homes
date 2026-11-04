@@ -41,6 +41,21 @@ const GUEST_FORM_STORAGE_URL_FIELDS: (keyof GuestFormData)[] = [
   'petImageUrl',
 ];
 
+/** Decode `%2520`-style double-encoding left from legacy URL rewrites. */
+export function fullyDecodeStorageObjectPath(rawPath: string): string {
+  let path = rawPath;
+  for (let i = 0; i < 4; i++) {
+    try {
+      const next = decodeURIComponent(path);
+      if (next === path) break;
+      path = next;
+    } catch {
+      break;
+    }
+  }
+  return path;
+}
+
 export function parseStorageObjectUrl(url: string): { bucket: string; path: string } | null {
   const withoutQuery = url.split('?')[0] ?? '';
   const match = withoutQuery.match(STORAGE_OBJECT_PATH_RE);
@@ -48,11 +63,7 @@ export function parseStorageObjectUrl(url: string): { bucket: string; path: stri
   const bucket = match[1];
   const rawPath = match[2] ?? '';
   if (!bucket || !rawPath) return null;
-  try {
-    return { bucket, path: decodeURIComponent(rawPath) };
-  } catch {
-    return { bucket, path: rawPath };
-  }
+  return { bucket, path: fullyDecodeStorageObjectPath(rawPath) };
 }
 
 export function isPrivateStorageBucket(bucket: string): boolean {
@@ -105,14 +116,10 @@ export async function storageObjectReadable(
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, ttlSec);
   if (error || !data?.signedUrl) return null;
 
-  const signedUrl = formatPublicUrl(data.signedUrl);
-  try {
-    const res = await fetch(signedUrl, { method: 'HEAD' });
-    if (res.ok) return signedUrl;
-  } catch {
-    /* ignore network errors */
-  }
-  return null;
+  const { data: blob, error: downloadError } = await supabase.storage.from(bucket).download(path);
+  if (downloadError || !blob?.size) return null;
+
+  return formatPublicUrl(data.signedUrl);
 }
 
 export async function signGuestFormDataStorageUrls(

@@ -1,3 +1,5 @@
+import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyConstants';
+
 /** Default map center — Azure North Residences (2MWV+QVR). */
 export const AZURE_NORTH_LOCATION_ADDRESS = '2MWV+QVR, San Fernando, Pampanga, Philippines';
 
@@ -14,6 +16,14 @@ export const DEFAULT_PROPERTY_MAP_CENTER = {
 export function isAzureNorthResidence(residenceName: string): boolean {
   const normalized = residenceName.trim().toLowerCase();
   return normalized === 'azure north residences' || normalized === 'azure north';
+}
+
+/** Map legacy cutover label to the canonical residence name used in tower validation. */
+export function canonicalPropertyResidenceName(residenceName: string): string {
+  const trimmed = residenceName.trim();
+  if (!trimmed) return DEFAULT_RESIDENCE_NAME;
+  if (isAzureNorthResidence(trimmed)) return DEFAULT_RESIDENCE_NAME;
+  return trimmed;
 }
 
 export function isPropertyLocationEmpty(

@@ -186,7 +186,7 @@ function propertyAccessWithAnalytics() {
     memberId: 'member-team-e2e-001',
     propertyId: TEAM_E2E_PROPERTY_ID,
     orgSlug: TEAM_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     propertySlug: TEAM_E2E_PROPERTY_SLUG,
     propertyName: 'Solea Mactan',
     planLimited: false,

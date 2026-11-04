@@ -1,135 +1,235 @@
 ---
-title: 'PWA — installable app, service worker, push, offline'
+title: 'PWA — installable app, service worker, precache tiers, push, offline'
 status: active
-tags: [architecture, pwa, service-worker, offline, notifications]
-updated: 2026-09-17
+tags: [architecture, pwa, service-worker, offline, notifications, install]
+updated: 2026-11-01
 ---
 
-# PWA — installable app, service worker, push, offline
+# PWA — installable app, service worker, precache tiers, push, offline
 
 Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
-Plan: [`docs/workflow/for-testing/pwa-installable-offline-push.md`](../workflow/for-testing/pwa-installable-offline-push.md).
+Current plan: [`docs/workflow/for-testing/pwa-v2-native-app-experience.md`](../workflow/for-testing/pwa-v2-native-app-experience.md) (v2, implementation complete — device QA remains).
+Shipped v1 baseline: [`docs/workflow/for-testing/pwa-installable-offline-push.md`](../workflow/for-testing/pwa-installable-offline-push.md).
 
 ---
 
-## 1. What ships
+## 1. Shape of the app
 
-The whole origin is one installable PWA (one manifest, one service worker, `scope: "/"`). Feature depth is **tiered**:
+The whole origin is one installable PWA (one manifest, one service worker, `scope: "/"`). Capability is **tiered by route**, and the tier table lives in code —
+`ui/src/lib/pwa/routeCapabilities.ts` — so the install offer, the precache tier and the offline behaviour of every route are one decision, not three.
 
-| Tier                         | Surfaces                                                        | Install              | Offline read                               | Offline write                                   | Push                                                 |
-| ---------------------------- | --------------------------------------------------------------- | -------------------- | ------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------- |
-| **A — Host/admin dashboard** | `/for-hosts/login`, `/bookings/*`, `/org/*`, `/admin/*`         | ✅                   | ✅ allowlist                               | ✅ inbox text replies (transitions = follow-up) | ✅ all Notification Center events, per-device opt-in |
-| **B — Guest portal**         | `/account/*`                                                    | ✅                   | ✅ messages / profile / vouchers / tickets | —                                               | — (needs a guest notification model — follow-up)     |
-| **C — Public / anon**        | booking `form`, `sd-form`, `pay-parking`, marketing, stay-guide | ✅ installable shell | shell + last-viewed page                   | —                                               | —                                                    |
+| Tier                       | Surfaces                                                                          | Install offer                            | Offline read                                  | Offline write                              | Push                |
+| -------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------------- | ------------------------------------------ | ------------------- |
+| **A — Host / operator**    | `/org/**` (dashboard, bookings, inbox, finance, pricing, maintenance, analytics…) | proactive (engaged hosts only)           | allowlisted reads + booking status            | inbox text replies, notification mark-read | Notification Center |
+| **B — Guest portal**       | `/account/**`, `/properties/:slug/**`, `/parkings/:slug/**`                       | passive; inline card on `/account/trips` | last viewed page (SW API cache) + form drafts | none (drafts are local)                    | not yet (own plan)  |
+| **C — Public / anonymous** | marketing, legal, auth, booking form, sd-form, pay-parking                        | passive only; **blocked** mid-task       | shell + last viewed page                      | none                                       | —                   |
+| **Staff**                  | `/admin/**`                                                                       | passive only                             | none (online only)                            | none                                       | —                   |
 
-Platform support: desktop Chrome/Edge/Firefox + Android work fully. **iOS/iPadOS: push and reliable SW need the app installed to the Home Screen** (16.4+); the "Notifications on this device" control is hidden until then.
+The full per-route contract (install offer / precache tier / offline mode) is the table in the plan, §6, and is asserted by `routeCapabilities.test.ts`.
+
+### Launch routing
+
+`start_url` is **`/app?source=pwa`**, never `/`. `/app` (`ui/src/features/launch/pages/AppLaunchPage.tsx`) is a resolver with no UI:
+
+1. Signed-in host with an org → `resolvePostSignInPath('/org')` (last org + last property/parking), then the `?shortcut=` is applied to that dashboard.
+2. Signed-in super admin without an org → `/admin`.
+3. Signed-in guest (no org) → `/account`.
+4. Signed out → host login with a return path if this device has hosted before (`gfm:install:memory.hostInstall`), else the public landing.
+5. Offline cold start → the last tenant dashboard, so an installed host app opens on cached data instead of a blank screen.
+
+Shortcuts (`bookings`, `inbox`, `checkins`) are resolved **here**, not inside `AdminLayout` — v1 handled them in `NotificationsProvider`, which only mounts inside the dashboard, so the shortcuts did nothing (P0-1). `checkins` maps to the bookings list filtered to today's arrival date in **Asia/Manila**.
 
 ## 2. Build wiring
 
-- **`ui/vite.config.ts`** — `VitePWA({ strategies: 'injectManifest', srcDir: 'src/pwa', filename: 'sw.ts', registerType: 'prompt', injectRegister: false })`. The manifest is defined inline in `gfmPwaPlugin()`. `injectManifest` (not `generateSW`) because the SW hand-rolls push / sync / periodicsync / kill-switch handlers.
-- **Vite stays on 4.4** — `vite-plugin-pwa@1.3.0` supports Vite `^3..^8` (verified via its `peerDependencies`); no upgrade needed.
-- **`__PWA_BUILD_ID__`** — epoch-seconds `define` in `vite.config.ts`; the SW kill-switch and the query-persist `buster` compare against it.
-- **Precache budget** — `scripts/pwa/precache-globs.json` is the single source of truth for `globPatterns` / `globIgnores` / `budgetKiB` (12800). `scripts/pwa/check-precache-budget.mjs` runs at the end of `bun run build` (so CI enforces it) and fails if the precache set exceeds budget. Heavy feature-lazy chunks (Polotno studio and its shared OpenPolotno vendor chunk `config-*`, mediabunny encoders, html2canvas, `browser-image-compression`) are `globIgnores`d and runtime-cached on demand instead.
-- **Icons** — `scripts/pwa/generate-icons.mjs` (root `sharp` devDep) → `ui/public/icons/` (`pwa-{192,512}.png` any, `pwa-maskable-{192,512}.png`, `apple-touch-icon.png`, `notification-badge.png`). Re-run after changing `ui/public/favicon/web-app-manifest-512x512.png`.
-- **`ui/index.html`** — iOS `<meta>` tags + dual `theme-color`; fallback `<title>`, `application-name`, and `apple-mobile-web-app-title` are **Kame Homes**. The plugin injects `<link rel="manifest">`. The old `favicon/site.webmanifest` link was removed.
-- **`ui/vercel.json`** — `sw.js` served `no-cache` + `Service-Worker-Allowed: /`; `manifest.webmanifest`, `offline.html`, `pwa-version.json` served `no-cache`/`no-store`. Applies to both Vercel projects (`guest-form-management-app`, `kame-homes`) — same file.
+- **`ui/vite.config.ts`** — `VitePWA({ strategies: 'injectManifest', srcDir: 'src/pwa', filename: 'sw.ts', registerType: 'prompt', injectRegister: false })`.
+  The manifest lives in `ui/src/pwa/manifest.ts` (`buildWebAppManifest(platformAppName)`) so it can be snapshot-tested.
+- **Vite 7.3.7** (the v1 doc said 4.4 — that was stale).
+- **`__PWA_BUILD_ID__`** — epoch-seconds `define`; the kill-switch, `forceUpdateBelow` and the query-persist `buster` compare against it.
+- **Precache tiers** — `scripts/pwa/precache-globs.json` is the single source of truth. `scripts/pwa/generate-precache-tiers.mjs` runs as a `closeBundle` step, reads `dist/.vite/manifest.json`, and writes `dist/precache-tiers.json`:
+  - **shell** — precached on install for every visitor (`features/guest/**`, the entry, vendored shell deps, `index.html`, `offline.html`, icons). Target ≤ 4.5 MiB.
+  - **host** — warmed into the runtime cache after a host signs in (or immediately in standalone) on Wi-Fi/unmetered.
+  - **on-demand** — never precached (editors, PDF render/export, charts, video, media compression); runtime-cached the first time a route needs them.
+
+  Classification is by **source folder plus the import graph** (a chunk inherits the lightest tier of its importers, so a shared vendor chunk reaches the shell tier whenever shell code needs it). `scripts/pwa/check-precache-budget.mjs` fails the build on a shell / host / total budget overrun.
+
+- **Icons + splash + screenshots** — `scripts/pwa/generate-icons.mjs` (icons, monochrome, shortcut glyphs, iOS launch screens) and `scripts/pwa/generate-screenshots.mjs` (install-dialog screenshots). Both write into `ui/public/`.
+- **`ui/index.html`** — one `theme-color` meta (kept in sync by `theme-init.js` before first paint and by `ThemeProvider` on an in-app toggle), `apple-touch-startup-image` links for the current device sizes (light + dark), `interactive-widget=resizes-content` in the viewport.
+- **`ui/vercel.json`** — `sw.js` served `no-cache` + `Service-Worker-Allowed: /`; `precache-tiers.json` and `pwa-version.json` `no-store`; `offline.html` `no-cache`; splash/icons long-lived. The legacy-apex redirects **must not** catch `sw.js`, `pwa-version.json`, `manifest.webmanifest`, `precache-tiers.json` or `retirement-sw.js` — a redirected service worker script can never install, which stranded every install on the old origin (P0-3). `ui/src/lib/legacyApexRedirects.test.ts` asserts this.
 
 ## 3. Service worker (`ui/src/pwa/sw.ts`)
 
-Worker-only (never imports `@/…` app code — that would pull DOM modules into the worker). Type-checked with `ui/src/pwa/tsconfig.json` (WebWorker lib), wired into `bun run type-check` / `build`. Shared constants live in `ui/src/pwa/shared.ts` (importable by app + worker).
+Worker-only (never imports `@/…` app code). Type-checked with `ui/src/pwa/tsconfig.json` (WebWorker lib). Pure helpers live in `ui/src/pwa/swLogic.ts` and are unit-tested (`swLogic.test.ts`); shared constants are in `ui/src/pwa/shared.ts`.
 
-| Concern                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Precache                 | `precacheAndRoute(self.__WB_MANIFEST)` + `cleanupOutdatedCaches()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Navigation               | `NavigationRoute` → precached `index.html`; falls back to `offline.html` when the shell isn't cached; `denylist` for `/functions/`, `/api/`, `/auth/`, file-looking paths                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Runtime caches (`gfm-*`) | Google Fonts CSS (SWR) + files (CacheFirst 1y), Supabase Storage images (SWR, 80 entries / 30d / `purgeOnQuotaError` — opaque responses pad ~7 MB each toward quota), `/assets/*` chunks (SWR), allowlisted **public** Edge Function GETs (NetworkFirst, 6s timeout, 10-minute max-age; `RUNTIME_CACHES.api`) — allowlist is `SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts` (see "API cache allowlist" below), plus a separate route for `get-booking`/`list-bookings` (`RUNTIME_CACHES.bookingStatus`, same NetworkFirst/6s timeout, 10-minute max-age) since booking status is operator-actionable and a stale fallback would be misleading, not just cosmetic. **No `setDefaultHandler`** — POSTs, SSE (dashboard assistant), auth pass straight to the network |
-| Update                   | `install` does **not** `skipWaiting`; the app prompts, then posts `SKIP_WAITING` (or `gfm:skip-waiting`) → `self.skipWaiting()` + `clientsClaim()` on `activate`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Kill-switch              | fetches `/pwa-version.json` (`{ disabled, minBuild }`) on `activate`, throttled on each navigation, and on a `gfm:check-version` message. If `disabled` or `minBuild > __PWA_BUILD_ID__`: wipe all `gfm-*` + `workbox-*` caches, `postMessage KILLED` to clients, `registration.unregister()`, navigate clients to a clean reload                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Push                     | `push` → `showNotification` (icon + `notification-badge.png` + `tag` + `renotify` + `data.path`); `notificationclick` → focus an existing same-origin client + `postMessage NOTIFICATION_CLICK`, else `openWindow(path)`; `pushsubscriptionchange` → best-effort local re-subscribe + `PUSH_RESYNC` to clients                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Background Sync          | `sync` (tag `gfm-outbox-drain`) → wake clients with `DRAIN_OUTBOX` (the SW can't replay — each request needs the app's fresh JWT); rejects if no client so the browser retries                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Periodic Sync            | `periodicsync` (tag `gfm-periodic-refresh`) → `REVALIDATE` message → clients invalidate `bookings` / `notifications` / `dashboard-stats`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Concern                  | Behaviour                                                                                                                                                                                                                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Precache                 | Custom `PrecacheController` (`gfm-precache`). **The tier list is rebuilt on every worker start** from a cached copy of `/precache-tiers.json`, not only during `install` — a worker is stopped aggressively by the browser, and a list that existed only in the install handler left the app unable to boot offline. |
+| Navigation               | `NavigationRoute` → precached `/index.html`; falls back to `offline.html`; `denylist` for `/functions/`, `/api/`, `/auth/`, file-looking paths                                                                                                                                                                       |
+| Build assets             | `gfm-static` runtime cache, resolved precache → runtime cache → network (a plain `CacheFirst` would miss precached shell chunks on the second visit)                                                                                                                                                                 |
+| Runtime caches (`gfm-*`) | Google Fonts (SWR + 1y), Supabase Storage images (SWR, 80 entries / 30d / `purgeOnQuotaError`), public Edge Function GETs (`SW_CACHEABLE_FUNCTIONS`, NetworkFirst 6s / 10 min), booking status (NetworkFirst 6s / 10 min, separate cache). No `setDefaultHandler` — POSTs / SSE / auth go straight to the network    |
+| Updates                  | `install` never `skipWaiting`; the update controller decides (see §5)                                                                                                                                                                                                                                                |
+| Kill-switch              | `/pwa-version.json` → `{ disabled, minBuild, forceUpdateBelow }`. `disabled`/`minBuild` wipes caches + unregisters; `forceUpdateBelow` only asks the app to show the blocking update sheet. Checked on `activate`, throttled on navigation, and on a `gfm:check-version` message                                     |
+| Push                     | `push` → `showNotification` (icon, badge, `tag`, `renotify`, actions Open / Mark read, truncated body) + **per-user `unreadCount` → `setAppBadge`**; `notificationclick` → focus + `postMessage`, else `openWindow`; `pushsubscriptionchange` → re-subscribe + `PUSH_RESYNC`                                         |
+| Background Sync          | `sync` (`gfm-outbox-drain`) → wake clients with `DRAIN_OUTBOX` (the SW cannot replay; each request needs the app's fresh JWT)                                                                                                                                                                                        |
+| Periodic Sync            | `periodicsync` (`gfm-periodic-refresh`) → `REVALIDATE` → clients invalidate `bookings` / `notifications` / `dashboard-stats`                                                                                                                                                                                         |
 
-App-side glue: **`ui/src/components/pwa/PwaProvider.tsx`** (mounted in `App.tsx`) registers the SW via **`@/lib/pwa/useRegisterSW`** (`workbox-window` — not `virtual:pwa-register/*`), renders `UpdatePrompt` / `OfflineBanner` / `InstallPrompt`, reacts to `KILLED` (→ `purgeOfflineState` + reload), polls `registration.update()` hourly + on foreground, requests `navigator.storage.persist()` on idle, registers periodic sync, and calls `initSyncEngine(queryClient)`. Under plain `vite` serve the hook is a no-op stub so HMR is never contested.
+Supported app→SW messages: `SKIP_WAITING`, `CHECK_VERSION`, `WARM_HOST_TIER`, `SET_BADGE`, `CLOSE_NOTIFICATIONS`. SW→app: `KILLED`, `FORCE_UPDATE`, `REVALIDATE`, `PUSH_RESYNC`, `NOTIFICATION_CLICK`, `WARM_DONE`.
 
 ### API cache allowlist
 
-`SW_CACHEABLE_FUNCTIONS` (`ui/src/pwa/shared.ts`) is the **canonical, explicit** set of Edge Function names the SW may runtime-cache as a GET — mirrors the shape of `ui/src/lib/pwa/offlineQueryAllowlist.ts#OFFLINE_PERSIST_KEY_ROOTS`. Every entry must match a `publicStatic`/`publicDynamic`/`publicAvailability` cache class in `supabase/functions/_shared/httpResponse.ts` (see [[edge-functions#Response caching contract]]) — i.e. a genuinely public, non-personalized read the server itself marks `public`. Adding a function here is a deliberate, security-reviewed decision, same bar as adding to `OFFLINE_PERSIST_KEY_ROOTS`.
+`SW_CACHEABLE_FUNCTIONS` (`ui/src/pwa/shared.ts`) is the **canonical, explicit** set of Edge Function names the SW may runtime-cache as a GET. Every entry must be a genuinely public read whose server classification is `publicStatic` / `publicDynamic` / `publicAvailability`. `ui/src/lib/pwa/swCacheableFunctions.test.ts` enforces three things: the function exists on disk, its own source declares a public cache class, and its name follows the public-read convention. Adding a name is a security decision.
 
-**This replaced a broad `get-*`/`list-*` prefix regex (`READONLY_FUNCTION_RE`)** that matched every function whose name started with `get-`/`list-`, including an explicit list of admin/tenant/guest-PII functions (`dashboard-stats`, `finance-summary`, `finance-bookings`, `finance-line-items`, `maintenance-items`, `maintenance-summary`, `notifications-list`, `social-inbox-threads`, `social-inbox-messages`, `org-settings`, `property-templates-settings`, `parking-settings`, `guest-trips`, `guest-messages`, `guest-profile`) — all of them server-classified `private, no-store` today — with a **3-day** `maxAgeSeconds`. That let up to 3 days of another operator's booking/finance/guest data sit in the SW's Cache Storage on a shared or kiosk device after logout (Cache Storage, unlike the query persister, is not scoped per signed-in identity). Production-readiness doc 11 calls this "the most serious single issue in this doc"; fixed by replacing the regex with `SW_CACHEABLE_FUNCTIONS` (currently the 13 genuinely public listing/search/detail/catalog functions) and dropping the general allowlist's max-age from 3 days to 10 minutes. `get-booking`/`list-bookings` were already on their own separate, correctly-scoped route (`BOOKING_STATUS_FUNCTION_RE`, unaffected by this change) before this fix.
-
-The SW also refuses to store a response whose `Cache-Control` is `private` or `no-store` (Workbox otherwise caches on HTTP 200 alone), and never matches `get-public-showcase?preview=1` / `?embed=1` (unpublished host draft).
-
-Full before/after detail: [`11-cache-api-responses.md`](../workflow/in-progress/production-readiness/checklist/11-cache-api-responses.md) Phase 11.5.
+The SW also refuses to store a response whose `Cache-Control` is `private` or `no-store`, and never matches `get-public-showcase?preview=1` / `?embed=1`.
 
 ### Local dev
 
-The SW is **off** under `vite` dev (would fight HMR). Test it with `bun run build && cd ui && bun run preview`, or set `VITE_PWA_DEV=true`. To clear a stuck SW: DevTools → Application → Service Workers → Unregister, then hard-reload.
+The SW is **off** under `vite` dev (it would fight HMR). Test it with `bun run build && cd ui && bun run preview`, `bun run test:e2e:pwa`, or set `VITE_PWA_DEV=true`.
+To clear a stuck SW: DevTools → Application → Service Workers → Unregister, then hard-reload.
 
-## 4. Offline read
+## 4. Install experience
 
-- **App shell** — precache + `navigateFallback`. A cached page boots offline; the SPA then shows `OfflineBanner` and serves stale query data.
-- **Query cache** — `@tanstack/react-query-persist-client` + an `idb-keyval`-backed `AsyncStoragePersister` (`ui/src/lib/pwa/queryPersister.ts`), keyed **per signed-in identity** (`user-<uuid>` / `anon`) so a shared device never restores one viewer's cache into another's session. `maxAge` 24h, `buster: __PWA_BUILD_ID__`. Wired by `ui/src/components/pwa/PwaQueryPersistence.tsx`; `queryClient.clear()` + `purgeOfflineState()` on `SIGNED_OUT`.
-- **Allowlist** — `ui/src/lib/pwa/offlineQueryAllowlist.ts` (`OFFLINE_PERSIST_KEY_ROOTS`) is **canonical**. Only allowlisted query-key roots with `status === 'success'` are written to IndexedDB. **Adding a root is a deliberate decision** (it puts operator PII on a possibly shared, unencrypted-at-rest device that's wiped on logout) — see `.cursor/rules/pwa.mdc`.
-- **Persistent storage** — `requestPersistentStorage()` asks for durable storage; `getStorageEstimate()` exposes usage/quota. Eviction: Workbox `ExpirationPlugin` `purgeOnQuotaError` on runtime caches; the query persister drops its largest entries first and retries.
+`ui/src/lib/pwa/installEligibility.ts` is the single decision point: it takes capabilities, platform, route, viewer role, engagement counters, dismissal history and current UI state and returns `{ show: false, reason }` or `{ show: true, variant, placement }`. Components only render.
 
-## 5. Push notifications
+- **Never offered**: already installed / standalone, in-app browsers (Facebook, Messenger, Instagram, TikTok, LINE, Viber, Google app, Telegram), browsers that cannot install, mid-task routes (`routeCapabilities.installOffer === 'blocked'`), a dirty unsaved-changes guard, an open sheet/dialog, another PWA surface, the first page view of a session, the first-ever visit, and during a dismissal cooldown.
+- **Who gets a proactive offer**: an engaged host (a value moment, or a 2nd session within 7 days on mobile / 3rd session on desktop). Guests with an upcoming trip get an inline card on `/account/trips`. Anonymous visitors never get a floating offer — only the permanent entry point.
+- **Cooldown**: dismissal 1 → 14 days, 2 → 30 days, 3 → 90 days, 4+ → passive entry only. "Don't ask again" ends proactive offers.
+- **Variants**: Chromium native `beforeinstallprompt`; iOS/iPadOS Safari step guide (version-aware: iOS 26 moved Share behind "…"); other iOS browsers get an "open in Safari" path; macOS Safari 17+ "Add to Dock"; Android overflow-menu guide.
+- **Memory** (`ui/src/lib/pwa/installMemory.ts`, `gfm:install:memory`) is **device-scoped on purpose**: it survives sign-out so a later cold launch goes to host login instead of the public marketplace, and it is therefore _not_ part of `purgeOfflineState`.
+- **Permanent entry**: `InstallAppEntry` in the admin More sheet, the marketing More sheet/footer, and Help & Support (`AppInfoCard`, which also shows the build id and a "Check for updates" action).
+- **First standalone launch**: one-time welcome sheet. On iOS the installed app has separate storage from Safari, so it explains the sign-in and offers notifications behind a real user gesture.
+- **One surface at a time**: `ui/src/lib/pwa/pwaSurfaceStore.ts` arbitrates kill notice > forced update > offline strip > update prompt > push ask > install offer.
+
+### First launch
+
+`FirstLaunchWelcome` shows **only when the app is running installed** (`useDisplayMode().standalone`). It explains that an iOS install has its own storage, offers a one-tap sign-in with the return path, and asks for notifications behind a real user gesture. It is marked seen once. It must never open in a browser tab: an earlier build keyed only off the device flag and covered the guest landing page on every first visit.
+
+## 5. Updates
+
+`ui/src/lib/pwa/updateController.ts` (pure) + `useRegisterSW` (wiring).
+
+- Phases: waiting → `needRefresh` → accepted → `controllerchange` → one reload.
+- **Safe auto-apply** with no prompt when nothing would be lost (`canApplyNow`): no dirty unsaved-changes guard, no open sheet/dialog, no outbox drain, no in-flight task. Applied at the next route change, after ≥30 s in the background, or on cold start — installed apps are rarely closed, so waiting for a click meant updates never landed (P1-3).
+- **"Later" snoozes 4 hours**, not the whole session.
+- **Multi-tab** via `BroadcastChannel('gfm-pwa')`: one tab applies; the others reload only when their own guard is clean.
+- **Loop guard**: at most two automatic reloads per tab session (`gfm:pwa:auto-reloads`).
+- **`forceUpdateBelow`** shows a blocking but polite sheet; caches are kept, so no reinstall is needed.
+- `registration.update()` is throttled to once per 10 minutes.
+
+## 6. Connectivity and offline UX
+
+- **Three states** (`ui/src/lib/pwa/connectivity.ts`): `online`, `offline`, `degraded` (browser says online but requests fail — li-fi). Driven by real request outcomes reported from `callEdgeFunction`, cleared by the next success. No polling.
+- **`OfflineBanner`** is anchored to the **bottom**, above the tab bar / contextual action bar. In v1 it was `fixed top-0 z-[55]` with no offset and covered page headers and the standalone status bar (P1-7). Tapping it opens the Sync Center.
+- **Action-level gating**: `useConnectivity()` + `NeedsConnectionHint` for online-only actions. Applied today to notification-preference saves and the Sync Center; other online-only actions still fail with a toast (see §15).
+- **Stale data label**: `StaleDataLabel` (`ui/src/lib/pwa/staleData.ts`) shows "Updated 2h ago" from the query's `dataUpdatedAt` **only** while offline or degraded. Wired into bookings, inbox and notifications.
+- **Pull to refresh** (standalone): `usePullToRefresh` + `PullToRefreshIndicator` — a downward drag from the top of the list refreshes the query. Wired into bookings and inbox. Normal scrolling is untouched (the gesture only starts at `scrollTop === 0`).
+- **Scroll restore across an update reload**: `ui/src/lib/pwa/scrollMemory.ts` saves the window plus `[data-admin-content-scroll]` offsets on `pagehide` and restores them once on the next mount of the same path. A normal navigation still starts at the top.
+- **Resume**: after ≥60 s hidden, `PwaProvider` refreshes the Supabase session, reconnects the realtime socket (iOS drops sockets in the background) and refetches active queries.
+- **Guest form drafts**: `ui/src/hooks/useOfflineFormDraft.ts`. Text values and file `Blob`s live in IndexedDB (`gfm-drafts`), 7-day TTL, never synced, cleared on submit and by `purgeOfflineState`. **Restoring is an explicit tap** on a toast, offered only after the server prefill has settled, so it can never race the `bookingId` `form.reset()` paths. Wired into the booking form and the parking registration form. The SD refund wizard is deliberately **not** drafted: its only local inputs are bank account fields, the flow is three short steps and server-prefilled, and keeping account numbers on a shared device is worse than retyping them.
+- **Submit while offline**: booking submits are never queued (captcha, availability, payments); the draft is what survives.
+
+## 7. Offline read
+
+- **App shell** — shell-tier precache + navigation fallback.
+- **Query cache** — TanStack `persistQueryClient` over an `idb-keyval` persister (`ui/src/lib/pwa/queryPersister.ts`), keyed **per signed-in identity** (`user-<uuid>` / `anon`) so a shared device never restores one viewer's cache into another's session. `maxAge` 24h, `buster: __PWA_BUILD_ID__`. `queryClient.clear()` + `purgeOfflineState()` on `SIGNED_OUT`.
+- **Allowlist** — `ui/src/lib/pwa/offlineQueryAllowlist.ts` (`OFFLINE_PERSIST_KEY_ROOTS`) is canonical. Only allowlisted roots with `status === 'success'` and data are persisted; infinite queries are capped at two pages so a deep scroll cannot grow the cache without bound.
+- **Persistent storage** — requested at the first standalone launch / when notifications are granted; `purgeOnQuotaError` on runtime caches; the persister drops its largest entries first and retries.
+
+## 8. Push notifications
 
 ```
 booking transition / webhook / cron
-  → _shared/notificationService.ts#createNotification            (unchanged — inserts a `notifications` row)
-      → trigger trg_notifications_push_fanout_{ins,upd}  (INSERT, or a coalesced
-         UPDATE where created_at moved — matches the in-app realtime rule)
-          → notify_push_fanout()  → pg_net POST → supabase/functions/push-fanout   (X-Push-Fanout-Secret)
-              → _shared/pushRecipients.ts: recipients = org owner + active organization_members
-              → load push_subscriptions (disabled_at IS NULL)
-              → _shared/webPushService.ts (jsr @negrel/webpush, concurrency 20)
+  → _shared/notificationService.ts#createNotification
+      → trigger trg_notifications_push_fanout_{ins,upd} → pg_net POST → supabase/functions/push-fanout (X-Push-Fanout-Secret)
+              → _shared/pushRecipients.ts: org owner + active org members
+                                           + property_members / parking_members scoped to the notification,
+                                             gated on `notifications:view` + the section leaf for the type
+              → _shared/notificationPreferences.ts: drop users who muted the type group,
+                                             or whose quiet window covers "now" (Asia/Manila)
+              → load push_subscriptions (disabled_at IS NULL), grouped per user
+              → _shared/webPushService.ts (jsr @negrel/webpush, concurrency 20), per-user `unreadCount`
               → 404/410 → disable subscription; 429/5xx → failure_count++ (retire at 5)
-  → SW push → showNotification → notificationclick → focus/navigate
+  → SW push → showNotification + setAppBadge → notificationclick → focus/navigate
 ```
 
-- **VAPID** — `scripts/pwa/generate-vapid-keys.mjs` (Node Web Crypto, no dep) prints `VITE_VAPID_PUBLIC_KEY` (base64url raw public key, UI env — all Vercel projects), `VAPID_KEYS` (JWK pair JSON, Supabase secret), `VAPID_SUBJECT` (`mailto:` — Supabase secret). Also set the Supabase secret **`PUSH_FANOUT_SECRET`** and the Vault secret **`push_fanout_secret`** (same value) for the trigger.
-- **`push_subscriptions`** — one row per device endpoint (`endpoint` unique). RLS: owner select/delete; writes via edge functions (service role). See [[data-model]].
-- **Edge functions** — `push-subscribe` / `push-unsubscribe` (`serveAuthenticated`), `push-fanout` (`servePublic` + secret). All `verify_jwt = false` in `config.toml`. See [[edge-functions]].
-- **Client** — `ui/src/lib/pwa/push.ts` (`getPushState` / `enablePush` / `disablePush` / `resyncPushSubscription`), `usePushNotifications` hook, `PushNotificationsCard` in the Notifications page. `enablePush` must be called from a user gesture (iOS). `NotificationsProvider` heals a rotated / server-pruned subscription on session start and sets the app icon badge from the bell unread count.
-- **This changes the old "no OS notifications" rule** — OS push is now a first-class channel for **every** Notification Center event, gated on the per-device opt-in. See `.cursor/rules/notifications.mdc`.
+- **Recipients** closed the v1 gap where property-only and parking-only team members got no push (P1-4). RBAC is enforced in `permissionForNotificationType`: a finance-scoped notification never reaches a member without `finance:view`.
+- **One notification per message**: the inbox no longer fires a foreground `new Notification()` next to the push path (P1-6); a focused tab gets an in-app toast instead.
+- **Reading in-app clears the OS tray** (`closeOsNotifications`) and the badge.
+- **VAPID** — `scripts/pwa/generate-vapid-keys.mjs` prints `VITE_VAPID_PUBLIC_KEY` (UI env, every Vercel project), `VAPID_KEYS` (JWK pair JSON, Supabase secret), `VAPID_SUBJECT`. Also set `PUSH_FANOUT_SECRET` (Supabase secret) and the Vault secret `push_fanout_secret`.
+- **Client** — `ui/src/lib/pwa/push.ts` (`getPushState` / `enablePush` / `disablePush` / `resyncPushSubscription` / `closeOsNotifications`), `usePushNotifications`, `PushNotificationsCard` on the Notifications page. `enablePush` must run inside a user gesture (iOS). `NotificationsProvider` heals a rotated / pruned subscription on session start.
+- **Preferences (per user, global across orgs)** — `notification_preferences` (`20261316129000_notification_preferences.sql`) stores muted type groups and a quiet-hours window. Read by `push-fanout`; written by `notification-preferences` (authenticated) and edited on the Notifications page (`NotificationPreferencesCard`, instant toggles). Only the OS push is filtered — the in-app bell keeps every row. `calendar_sync_failing` bypasses quiet hours; a mute still wins. A missing row means "everything on", so no backfill exists.
+- **Quiet hours** — `start > end` wraps midnight; `start === end` means "no window" (a mis-set form can never silence push for a full day). Local time comes from the stored IANA zone, not the server's.
+- **Guest push (Tier B)** is **not** in this plan — it needs its own notification model; tracked separately.
+- **Delivery observability** — `push-fanout` logs `[push-fanout] {notificationId,type,recipients,endpoints,sent,pruned,failed}`. Alert on a rising `failed/sent` ratio.
 
 ### VAPID rotation
 
-Keys are per-environment. Rotating invalidates every existing subscription; clients re-subscribe automatically on next load (`resyncPushSubscription` + `pushsubscriptionchange`). Procedure: generate a new pair → update `VITE_VAPID_PUBLIC_KEY` (redeploy UI) + `VAPID_KEYS` (Supabase secret). Old subscriptions 410 on the next fanout and are pruned by `reconcilePushFailures`.
+Rotating invalidates every subscription; clients re-subscribe on next load. Procedure: generate a new pair → update `VITE_VAPID_PUBLIC_KEY` (redeploy UI) + `VAPID_KEYS` (Supabase secret). Old subscriptions 410 on the next fanout and are pruned.
 
-### Delivery observability
+## 9. Offline write + sync
 
-`push-fanout` logs `[push-fanout] {notificationId,type,recipients,endpoints,sent,pruned,failed}` per run. Save a Supabase log query filtering `[push-fanout]` and alert on a rising `failed/sent` ratio. No stats table.
+- **Outbox** — `ui/src/lib/pwa/outbox.ts` (`gfm-outbox` / `mutations`), FIFO by `createdAt`.
+- **Enqueue** — `runOfflineMutation`: tries online first with a fresh JWT + `Idempotency-Key`; queues **only** on a connectivity failure. A server rejection re-throws — a validation error is never queued. Applies an optimistic cache update.
+- **Drain** — `drainOutbox`: FIFO, fresh JWT, `Idempotency-Key`. 2xx → remove + invalidate; 408/425/429/5xx → keep + exponential backoff (cap 60 s), `failed` at 6 attempts; other 4xx → `failed` + invalidate so the server's real state shows. Triggers: `online`, `visibilitychange`, SW `DRAIN_OUTBOX`, the backoff timer, init.
+- **Server idempotency** — `_shared/idempotency.ts#withIdempotency` wraps `transition-booking`, `transition-parking-booking`, `social-inbox-send`, `notifications-mark-read`, and `guest-web-chat-messages`. Claim-first, releases the claim on non-2xx, opportunistic 48 h TTL sweep.
+- **Wired offline writes**: host inbox text-only replies, guest portal text-only messages, notification mark-read / mark-all-read. Attachments, template replies, booking transitions and maintenance status stay online-only (uploads and irreversible email side effects — see the plan's D3).
+- **UI** — `SyncCenterCard` (pending + failed, retry/discard, "Sync now", last synced), opened from the offline strip.
 
-## 6. Offline write + sync (Tier A)
+## 10. Security / privacy
 
-- **Outbox** — `ui/src/lib/pwa/outbox.ts`, an `idb` store `gfm-outbox` / `mutations`, FIFO by `createdAt`.
-- **Enqueue** — `ui/src/lib/pwa/offlineMutation.ts#runOfflineMutation({ url, body, invalidateKeys, applyOptimistic })`: tries online first with a fresh JWT + `Idempotency-Key`; queues **only** on a connectivity failure. A server 4xx/5xx **re-throws** — a validation error must never be queued. Applies an optimistic cache update on queue.
-- **Drain** — `ui/src/lib/pwa/syncEngine.ts#drainOutbox()`: FIFO, fresh JWT per drain, `Idempotency-Key` header. 2xx → remove + invalidate; 408/425/429/5xx → keep + an exponential-backoff self-retry (`2^attempts` s, cap 60s), then `failed` at 6 attempts; other 4xx → `failed` + invalidate (surface the server's real state). Triggers: `online`, `visibilitychange`, SW `DRAIN_OUTBOX`, the backoff timer, and on init. Background Sync tag registered best-effort (Chromium).
-- **Server idempotency** — `_shared/idempotency.ts#withIdempotency(handler)` wraps `transition-booking`, `transition-parking-booking`, `social-inbox-send`. Claim-first: inserts a placeholder row (`request_idempotency`, `status = 0`) before running the handler, so a concurrent replay blocks and returns the stored response instead of double-executing. Releases the claim on non-2xx / throw. Opportunistic TTL sweep (~48h). See [[data-model]].
-- **Wired** — inbox **text-only** replies (`useInbox` `sendReply`); attachment replies stay online-only. Booking-status transitions are online-only for v1 (WorkflowPanel couples them with file uploads; see the plan).
-- **UI** — `SyncCenterCard` (pending + failed list, retry/discard, "Sync now", last-synced) in the Notifications page; `OfflineBanner` shows pending/syncing counts. `offlineSyncStore` (zustand) is the in-memory projection the sync engine keeps current. `purgeOfflineState` wipes the outbox + resets the store on logout.
+- **Tenant isolation** — all Cache API + IndexedDB keys are `gfm-`-prefixed; the query persister is keyed per viewer id. `purgeOfflineState()` (on `SIGNED_OUT`, kill-switch, and "Clear offline data") deletes every `gfm-*` / `workbox-*` cache, clears the owned IndexedDB stores (store-level `clear()` — an open `idb` connection blocks `deleteDatabase`), clears drafts, unsubscribes push locally, and clears the badge.
+- **Host-tier warming caches code only** — never API responses.
+- **Cached data = what the viewer could already see.** RLS is not the boundary in this app (edge-function checks are); the offline cache holds only responses that viewer's session fetched. IndexedDB is **not encrypted at rest** and is cleared on logout — keep the allowlist tight.
+- **Drafts hold guest PII** — device-local, 7-day TTL, cleared on submit and logout, never synced.
+- **`push-fanout`** is secret-gated (`X-Push-Fanout-Secret`), never JWT-authed.
+- **Launch/notification paths** are same-origin only: `/app` has no `next=` parameter, and the SW sanitises every click path (`safeAppPath`).
+- **Notification preferences are per user, not per org** — RLS lets a user read/write only `user_id = auth.uid()`; `push-fanout` reads with the service client. It is a personal device preference, so `activity-log: N/A`.
+- **External links** — every `target="_blank"` anchor sets `rel=noopener` and every `window.open(..., '_blank')` passes `noopener,noreferrer`; `ui/src/lib/pwa/externalLinks.test.ts` fails the build otherwise, because a standalone window has no browser chrome to escape from.
 
-## 7. Native-feel extras
+## 11. Retirement of a legacy origin
 
-`InstallPrompt` (title **Install {platform app name}**, default **Kame Homes**; Chromium `beforeinstallprompt` button + iOS instruction line, dismissal memory; on `max-lg` sits above the floating bottom tab bar via `aboveBottomTabBarOverlayClassName` so nav stays usable — same offset as `UpdatePrompt`; both use `z-[45]` so they stay under Sheet `z-50` / Dialog `z-100` and never cover choice sheets or modals), manifest `name` / `short_name` **Kame Homes**, `shortcuts` (`?shortcut=bookings|inbox` handled in `NotificationsProvider`), `ui/src/lib/pwa/share.ts` (Web Share + clipboard fallback), Periodic Background Sync, `ui/src/hooks/useWakeLock.ts` (kiosk mode), `ui/src/hooks/useOfflineFormDraft.ts` (generic form-draft persistence), `ui/src/lib/pwa/pwaTelemetry.ts` (event sink — point at a real analytics channel later). Feature detection: `ui/src/lib/pwa/capabilities.ts` — UI reads from here, never sniffs UA.
+`ui/public/retirement-sw.js` is a standalone worker that wipes `gfm-*` / `workbox-*` caches and IndexedDB, unregisters, and navigates clients to the canonical origin. It is inert until the legacy host rewrites `/sw.js` to it. When the domain move goes live:
 
-## 8. Security / privacy
+```json
+{
+  "source": "/sw.js",
+  "has": [{ "type": "host", "value": "kamehomes.space" }],
+  "destination": "/retirement-sw.js"
+}
+```
 
-- **Tenant isolation** — all Cache API + IndexedDB keys are `gfm-`-prefixed; the query persister is keyed per viewer id. `purgeOfflineState()` (on `SIGNED_OUT` and kill-switch) deletes every `gfm-*` / `workbox-*` cache, **empties** the owned IndexedDB stores via a store-level `clear()` (an open `idb` connection _blocks_ `deleteDatabase`, so `clear()` is what actually removes the bytes without a reload — `deleteDatabase` is still attempted as a next-reload fallback), unsubscribes push locally, clears the badge, and resets the sync store.
-- **Cached data = what the viewer could already see.** RLS is not the boundary in this app (edge-function checks are); the offline cache holds only responses the viewer's own session fetched. IndexedDB is **not encrypted at rest** and is cleared on logout — documented tradeoff, keep the allowlist tight.
-- **`push_subscriptions`** RLS is owner-only; `request_idempotency` is service-role-only. Both migrations add explicit `service_role` grants (RLS-enabled tables without grants fail "permission denied" — same lesson as `notifications`).
-- **`push-fanout`** is secret-gated (`X-Push-Fanout-Secret`), never JWT-authed. The trigger only fires it when the Vault secret is present.
+The in-app `LegacyOriginNotice` shows a one-time sheet when `VITE_CANONICAL_APP_ORIGIN` is set and `VITE_LEGACY_APP_HOSTS` contains the current host.
 
-## 9. Deploy checklist
+## 12. Deploy checklist
 
-1. `bun run deploy:supabase:dev` (or prod with `kamewave`) — applies `20261303120000_push_subscriptions.sql`, `20261303120100_push_fanout_trigger.sql`, `20261303120200_request_idempotency.sql`, `20261303120300_push_fanout_on_coalesce.sql` and deploys `push-subscribe` / `push-unsubscribe` / `push-fanout`.
-2. Set Supabase secrets: `VAPID_KEYS`, `VAPID_SUBJECT`, `PUSH_FANOUT_SECRET`.
-3. Set Vault secrets (SQL): `push_fanout_secret` (= `PUSH_FANOUT_SECRET`); `project_url` + `anon_key` if not already present (shared with the calendar-sync cron).
-4. Set `VITE_VAPID_PUBLIC_KEY` on every Vercel UI project; redeploy the UI.
-5. Verify: install on Chrome desktop / Android / iOS 16.4+; toggle "Notifications on this device"; trigger a booking transition and confirm the push arrives + click-through routes; toggle airplane mode on an inbox reply and confirm it queues + syncs.
-6. **Server send path** (`@negrel/webpush` in the Deno edge runtime) is only exercisable after deploy — this is the one link not verified locally. Fallback if it misbehaves: swap `_shared/webPushService.ts` to npm `web-push`.
+1. `bun run deploy:supabase:dev` — applies `20261303120000_push_subscriptions.sql`, `20261303120100_push_fanout_trigger.sql`, `20261303120200_request_idempotency.sql`, `20261303120300_push_fanout_on_coalesce.sql`, `20261316129000_notification_preferences.sql`; deploys `push-subscribe` / `push-unsubscribe` / `push-fanout` / `notifications-mark-read` / `notification-preferences`.
+2. Supabase secrets: `VAPID_KEYS`, `VAPID_SUBJECT`, `PUSH_FANOUT_SECRET`.
+3. Vault secrets: `push_fanout_secret` (= `PUSH_FANOUT_SECRET`), `project_url`, `anon_key`.
+4. `VITE_VAPID_PUBLIC_KEY` on every Vercel UI project; redeploy the UI.
+5. Verify: install on Chrome desktop / Android / iOS 16.4+; confirm the launch resolver opens the last dashboard; every shortcut lands correctly; airplane mode on bookings / inbox / stay-guide; queue a reply and sync; update while open (clean and dirty form); push arrives with the app closed, badge updates, click routes.
+6. **Server send path** (`@negrel/webpush` in the Deno edge runtime) can only be exercised after deploy. Fallback: swap `_shared/webPushService.ts` to npm `web-push`.
 
-## 10. Kill-switch runbook
+## 13. Kill-switch runbook
 
-To disable the SW for every installed client (bad deploy): edit `ui/public/pwa-version.json` → `"disabled": true` and redeploy (or serve that one file changed). Within ~6h (or on next foreground / navigation) every SW unregisters, wipes its caches, and reloads clients onto the plain network app. To retire only old builds, set `"minBuild"` to a recent epoch-seconds value instead.
+To disable the SW for every installed client (bad deploy): edit `ui/public/pwa-version.json` → `"disabled": true` and redeploy that file. Within ~6 h (or on next foreground / navigation) every SW unregisters, wipes its caches and reloads onto the plain network app. To retire only old builds, set `"minBuild"` to a recent epoch-seconds value. To force an update without wiping, set `"forceUpdateBelow"` — those builds keep working but show a blocking update sheet.
+
+## 14. Testing
+
+| Layer            | Command                           | Covers                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (Vitest)    | `bun run test`                    | `platform`, `installEligibility`, `installMemory`, `installPrompt`, `routeCapabilities`, `offlineQueryAllowlist`, `updateController`, `swLogic`, `outbox`, `syncEngine`, `purgeOfflineState`, `connectivity`, `pwaSurfaceStore`, `manifest` snapshot, `swCacheableFunctions`, `launchRouting`, `staleData`, `scrollMemory`, `notificationPreferences` parity, `externalLinks` |
+| Edge (Deno)      | `bun run test:edge`               | `notificationPreferences` (groups, quiet hours, payload validation), `webPushService` (payload caps, batch, retire), `pushRecipients`                                                                                                                                                                                                                                         |
+| E2E (production) | `bun run test:e2e:pwa`            | installability, manifest assets, shell-only precache, `/app` routing, offline deep link, `offline.html` CSP, Cache Storage allowlist                                                                                                                                                                                                                                          |
+| Manual           | plan §13.4 (real-device QA sheet) | in-app browsers, OAuth returns, push on real hardware, splash, rotation                                                                                                                                                                                                                                                                                                       |
+
+## 15. Accepted non-goals (documented, not built)
+
+These were considered in the v2 plan and deliberately closed without code. Revisit only with a new product requirement.
+
+| Capability                                                                | Why it is out                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Declarative Web Push (Safari 18.4+)                                       | `@negrel/webpush` sends RFC 8291 encrypted payloads; Safari's declarative format needs a different server payload shape and a `web_push` header path. The encrypted path already works on iOS 16.4+ standalone, so this adds maintenance for one browser generation.                                                |
+| File Handling, Protocol Handlers, Contact Picker, Window Controls Overlay | No product flow needs them today (receipts and marketing files go through the in-app picker; desktop install stays `standalone`).                                                                                                                                                                                   |
+| Web Share Target                                                          | Requires a manifest `share_target` + a service-worker POST handler; no host workflow consumes incoming shares yet.                                                                                                                                                                                                  |
+| Route view transitions / haptics                                          | Cosmetic. `prefers-reduced-motion` already governs the existing motion.                                                                                                                                                                                                                                             |
+| Pull to refresh on every list                                             | Shipped on bookings and inbox (the two lists operators scroll most). Other lists keep their explicit refresh and native browser behaviour rather than wrapping every scrollport.                                                                                                                                    |
+| Custom scroll restoration on back/forward                                 | React Router's navigation already scrolls to top; history restoration is a separate UX decision, not an update-reload concern.                                                                                                                                                                                      |
+| `NeedsConnectionHint` on every online-only control                        | The hook and the inline hint ship and are used on settings-style saves. Wiring every upload / payment / AI / marketing-publish button is a UI pass across ~9 unrelated modules, and disabling an action wrongly is worse than the toast those actions already show. Add the hint when that surface is next touched. |

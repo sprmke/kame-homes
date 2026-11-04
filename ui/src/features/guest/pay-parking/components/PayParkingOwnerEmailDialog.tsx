@@ -13,6 +13,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 
 const ownerEmailSchema = z.string().email('Enter a valid email address');
 
@@ -76,7 +77,7 @@ export function PayParkingOwnerEmailDialog({
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="owner@example.com"
+            placeholder={FORM_PLACEHOLDERS.email}
             value={email}
             disabled={pending}
             aria-invalid={Boolean(error)}

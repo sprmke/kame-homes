@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 
@@ -65,6 +65,7 @@ import {
   guestTripNextAction,
   guestTripPhase,
   guestTripProgress,
+  tripHubStage,
   guestTripTiming,
   isGuestTripActive,
   isGuestTripParkingReserved,
@@ -72,6 +73,7 @@ import {
 } from '@/features/guest/trip/lib/guestTripPhase';
 
 import { Button } from '@/components/ui/button';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePageMeta } from '@/lib/seo/usePageMeta';
 import { formatMoney, formatMoneyCompact } from '@/utils/format/currency';
@@ -88,7 +90,12 @@ import {
 
 function GuestTripSkeleton() {
   return (
-    <div role="status" className="px-4 py-5 sm:px-6 sm:py-7" aria-busy="true" aria-label="Loading trip">
+    <div
+      role="status"
+      className="px-4 py-5 sm:px-6 sm:py-7"
+      aria-busy="true"
+      aria-label="Loading trip"
+    >
       <div className="lg:grid lg:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] lg:gap-10">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
@@ -280,6 +287,12 @@ function GuestTripContent({
   const phase = guestTripPhase(trip.status, timing);
   const active = isGuestTripActive(phase);
   const cancelled = phase === 'cancelled';
+  const reportedTripRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (reportedTripRef.current === trip.bookingId) return;
+    reportedTripRef.current = trip.bookingId;
+    captureAppEvent('trip_hub_opened', { trip_stage: tripHubStage(timing) });
+  }, [timing, trip.bookingId]);
 
   const address = property?.address?.trim() || property?.location || '';
   const placeLabel = [property?.city, property?.state].filter(Boolean).join(', ') || address;
@@ -444,7 +457,10 @@ function GuestTripContent({
             }
           />
           <GuestTripReviewCard trip={trip} />
-          <GuestTripShortcuts items={shortcuts} />
+          <GuestTripShortcuts
+            items={shortcuts}
+            onOpen={(key) => captureAppEvent('trip_hub_section_opened', { section: key })}
+          />
         </div>
 
         <div className="mt-10 space-y-6 lg:mt-0">

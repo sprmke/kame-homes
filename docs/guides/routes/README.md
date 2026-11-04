@@ -103,6 +103,12 @@ Platform-level control panel, distinct from org/property admin and the legacy `A
 | `/admin/support`                                 | [admin/support.md](./admin/support.md)                           | Documented — ticket triage (table/card)                                                      |
 | `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor (first-class nav)                                                    |
 
+## App shell
+
+| Route                                                         | Guide              | Status                                                                    |
+| ------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------- |
+| `/app` (`?source=pwa`, `?shortcut=bookings\|inbox\|checkins`) | [app.md](./app.md) | Documented — installed-app launch resolver + manifest shortcut deep links |
+
 ## Public (guest)
 
 ### Marketing site (PMA port — Phase 1 UI, mock data)

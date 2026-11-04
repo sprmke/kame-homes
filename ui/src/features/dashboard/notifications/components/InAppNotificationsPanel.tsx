@@ -29,6 +29,7 @@ import {
 
 import { ListRowsSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Button } from '@/components/ui/button';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -81,7 +82,8 @@ export function InAppNotificationsPanel({
     const sentinel = sentinelRef.current;
     // The hub renders the feed inside the admin content scrollport; use it when
     // the caller did not hand a root in, so scroll paging keeps working there.
-    const root = scrollRoot ?? sentinel?.closest<HTMLElement>('[data-admin-content-scroll]') ?? null;
+    const root =
+      scrollRoot ?? sentinel?.closest<HTMLElement>('[data-admin-content-scroll]') ?? null;
     if (!sentinel || !root) return;
 
     const observer = new IntersectionObserver(
@@ -97,6 +99,7 @@ export function InAppNotificationsPanel({
   }, [variant, hasNextPage, handleLoadMore, notifications.length, scrollRoot]);
 
   const handleRowClick = (notification: NotificationRecord) => {
+    captureAppEvent('notification_opened', { channel: 'in_app', kind: notification.type });
     if (!notification.isRead) markRead.mutate(notification.id);
     const path = resolveNotificationPath(notification, pathScope);
     if (path) {

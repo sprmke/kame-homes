@@ -17,7 +17,13 @@ const TILE_CLASS =
   'bg-card hover:bg-muted/70 ring-border focus-visible:ring-ring flex min-h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 text-center ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98]';
 
 /** Up to four phase-picked shortcuts under the Now card. */
-export function GuestTripShortcuts({ items }: { items: GuestTripShortcut[] }) {
+export function GuestTripShortcuts({
+  items,
+  onOpen,
+}: {
+  items: GuestTripShortcut[];
+  onOpen?: (key: string) => void;
+}) {
   if (items.length === 0) return null;
   return (
     <nav
@@ -39,13 +45,26 @@ export function GuestTripShortcuts({ items }: { items: GuestTripShortcut[] }) {
         );
         if (item.to) {
           return (
-            <GuestTripSmartLink key={item.key} to={item.to} className={TILE_CLASS}>
+            <GuestTripSmartLink
+              key={item.key}
+              to={item.to}
+              className={TILE_CLASS}
+              onClick={() => onOpen?.(item.key)}
+            >
               {content}
             </GuestTripSmartLink>
           );
         }
         return (
-          <button key={item.key} type="button" onClick={item.onSelect} className={TILE_CLASS}>
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => {
+              onOpen?.(item.key);
+              item.onSelect?.();
+            }}
+            className={TILE_CLASS}
+          >
             {content}
           </button>
         );

@@ -27,9 +27,29 @@ describe('propertyGuestCapacityTotal', () => {
   });
 });
 
+import type { Property } from '@/features/dashboard/org/types';
+
 describe('propertyProfileDraftFromProperty', () => {
   it('propertyProfileDraftFromProperty is exported', () => {
     expect(typeof propertyProfileDraftFromProperty).toBe('function');
+  });
+
+  it('derives Monaco tower from legacy tower_and_unit when tower column is empty', () => {
+    const property = {
+      name: 'Sample Stay',
+      type: 'condo',
+      status: 'ACTIVE',
+      residenceName: 'Azure North',
+      tower: null,
+      unitNumber: '2604',
+      towerAndUnit: 'Monaco 2604',
+      settings: {},
+    } as Property;
+
+    const draft = propertyProfileDraftFromProperty(property);
+    expect(draft.tower).toBe('Monaco');
+    expect(draft.unitNumber).toBe('2604');
+    expect(draft.residenceName).toBe('Azure North Residences');
   });
 });
 

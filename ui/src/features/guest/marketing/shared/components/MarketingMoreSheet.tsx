@@ -24,6 +24,7 @@ import {
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { ThemeToggle } from '@/components/theme/MarketingThemeToggle';
 import {
   BottomSheet,
@@ -157,6 +158,10 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
                 </a>
               ) : null}
             </div>
+            <InstallAppEntry
+              variant="menu-item"
+              className="text-foreground hover:bg-muted/60 h-auto min-h-11 w-full justify-start gap-2 px-2.5 text-sm font-medium"
+            />
             <div className="flex items-center justify-between gap-3 px-2.5">
               <p className="text-muted-foreground min-w-0 text-xs">{platformCopyrightLine()}</p>
               <div className="flex shrink-0 items-center gap-1">

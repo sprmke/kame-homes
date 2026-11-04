@@ -24,6 +24,7 @@ import {
 } from '@/features/dashboard/marketing/lib/marketingTemplateThumbnailCache';
 import { withGlobalRenderSlot } from '@/features/dashboard/marketing/lib/marketingThumbnailQueue';
 import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import type { VideoProjectV2 } from '@/features/dashboard/marketing/lib/video/v2/videoProjectV2Types';
 import type {
   VideoFormat,
   VideoProject,
@@ -146,4 +147,16 @@ export async function captureVideoProjectThumbnail(
     '@/features/dashboard/marketing/lib/renderMarketingVideoThumbnail'
   );
   return renderVideoProjectThumbnail(project, brandColor, theme);
+}
+
+/** Same, for a v2 track project (the editor's autosave shape). */
+export async function captureVideoProjectThumbnailV2(
+  project: VideoProjectV2,
+  brandColor?: string,
+  theme?: MarketingThemeTokens | null
+): Promise<string | null> {
+  const { renderVideoProjectThumbnailV2 } = await import(
+    '@/features/dashboard/marketing/lib/renderMarketingVideoThumbnail'
+  );
+  return renderVideoProjectThumbnailV2(project, brandColor, theme);
 }

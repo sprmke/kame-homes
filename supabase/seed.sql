@@ -33,7 +33,7 @@ INSERT INTO organizations (id, owner_id, name, slug, settings, host_modes)
 VALUES (
   '405ea07f-cc21-4bcc-b540-28729be79f0d',
   'd74b9d44-6244-40f0-9160-7c281738e8c0',
-  'Kame Homes',
+  'Kame Space',
   'kame-homes',
   '{}'::jsonb,
   ARRAY['property']::text[]

@@ -2,7 +2,7 @@
 title: 'Module: Sign-in + accept-invite'
 status: active
 tags: [workflow, production-readiness, module]
-updated: 2026-10-19
+updated: 2026-11-03
 stage: in-progress
 kind: reference
 readiness: unverified
@@ -42,4 +42,4 @@ Area: **Host core**. Gate **B**.
 
 ## Evidence
 
-2026-10-19 `/for-hosts/login` title `Kame Homes - Sign In`. Email Continue + Google. Auth layout, no bottom tab bar. Invite path not walked.
+2026-10-19 `/for-hosts/login` title `Kame Space - Sign In`. Email Continue + Google. Auth layout, no bottom tab bar. Invite path not walked.

@@ -7,32 +7,36 @@ tags: [operations, migration]
 
 # Legacy cutover — phase completion status
 
-**Status:** Prep through Phase 5 is done. **Live site is still legacy** until cutover day (T0).
+**Status: complete 2026-11-03.** `kamespace.com` is production; legacy `kamehomes.space` + `app` are 308s; both legacy projects are paused. Hypercare runs to 2026-12-03, then decommission.
 
-**Only step left before go-live:** the T0 freeze day (freeze legacy → reload from the freeze dump → move the legacy apex → activate crons). `kamespace.com` is already live with the current build, Resend sending/inbound are verified, and Auth points at it. Say **`kamewave`** when you want that day’s run.
+**Deferred (tracked, not blockers):** Maps Embed API on the key, property photos, PayMongo live mode (pending approval), and the 30-day decommission (delete paused legacy projects + revoke old Google credentials).
 
-Single progress view for Plan 02 (`kamespace-02`) and prerequisite Plan 01 (`kamespace-01`). **Production Supabase = `fworvijbrwpyngycotbz`** (2026-10-27). Live guests still on legacy Vercel + `zftt…` until T0.
+Single progress view for Plan 02 ([done](../../workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md)) and prerequisite Plan 01 ([done](../../workflow/done/kamespace-01-legacy-prod-config-secrets-backup.md)). **Production Supabase = `fworvijbrwpyngycotbz`**.
 
 Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 
 ## Summary (phases 0–5)
 
-| Phase             | Status           | Gate to Phase 6                                                                                                                                                                                                            |
-| ----------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0** Inventory   | **Done**         | B-18 signed off 2026-11-01; optional B-16/B-17/B-12 later                                                                                                                                                                  |
-| **1** Prod wiring | **Partial**      | **2026-11-02:** extensions enabled (`pg_cron`/`pg_net`), 26 cron jobs defined and outbound ones parked. Open: prod Google OAuth (optional for T0) — [`phase1-prod-wiring-checklist.md`](./phase1-prod-wiring-checklist.md) |
-| **2** Tooling     | **Done**         | —                                                                                                                                                                                                                          |
-| **3** Shaping     | **Done** on fwor | `kameworks.tech` first login; super-admin secret on fwor; D6 scripts shipped                                                                                                                                               |
-| **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md)                                                                         |
-| **5** App prep    | **Done** (code)  | §5.7 calendar blocking verified 2026-11-02; PMO forward proof at T0; structural SQL automated                                                                                                                              |
+| Phase             | Status           | Gate to Phase 6                                                                                                                                    |
+| ----------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0** Inventory   | **Done**         | B-18 signed off 2026-11-01; optional B-16/B-17/B-12 later                                                                                          |
+| **1** Prod wiring | **Done**         | Extensions + 26 jobs, Auth on `kamespace.com`, Vercel Production branch `main`. A dedicated prod Google OAuth client is deferred to plan 05.       |
+| **2** Tooling     | **Done**         | —                                                                                                                                                  |
+| **3** Shaping     | **Done** on fwor | `kameworks.tech` first login; super-admin secret on fwor; D6 scripts shipped                                                                       |
+| **4** Rehearsals  | **Partial**      | R3 automated + host walkthrough **2026-11-01** done; rollback dry-run sign-off optional — [`r3-rollback-rehearsal.md`](./r3-rollback-rehearsal.md) |
+| **5** App prep    | **Done**         | Redirects, resolver, watermarks; calendar blocking verified; structural SQL green.                                                                 |
+
+- **Vercel Production branch is now `main`** (2026-11-03). Next push/merge to `main` builds Production automatically; `develop` continues to build Preview and deploy the backend. No more manual `vercel --prod`.
 
 **2026-11-03 operator completions:**
+
 - PMO notified of the new sender/approval address.
 - `dev.kamehomes.space` removed from Vercel, the Auth allow list, Turnstile and the Maps key; the host now returns 404.
 - Legacy Vercel project Git integration disconnected (no more builds on `main`).
 - **PayMongo stays open/pending** until the account is approved for live mode. Current state: test mode, both webhooks disabled. Guest bookings use manual GCash and are unaffected.
 
 **2026-11-03 post-cutover fixes:**
+
 - **Parking reminders hit historic guests.** `calendarDaysBetween` clamps negatives to 0, so three 2025 bookings looked like "today" and received a reminder at 06:00 on 2026-11-02 (two `.con` typos, one dead yahoo address). Eligibility moved to `parkingReminderEligibility.ts`, rejects check-ins before today, and is unit-tested; a manual sweep now returns `sent: 0`.
 - **Telegram verification:** admin group received a real summary; staff/finance/maintenance use the same encrypted row path and run hourly.
 
@@ -58,12 +62,12 @@ Legend: **Done** | **Partial** | **Open** | **N/A (T0 / operator)**
 
 ## Plan 01 — legacy secrets backup
 
-| Phase       | Status      | Notes                                                                                |
-| ----------- | ----------- | ------------------------------------------------------------------------------------ |
-| B0 Prep     | **Done**    | gitignore, hooks, templates, env skip                                                |
-| B1 Capture  | **Partial** | 32+6 local keys; capture + liveness ok; legacy CLI secrets **403**; Vercel pull open |
-| B2 Seal     | **Partial** | Tar + SHA256; age + B-17 drill open                                                  |
-| B3 Hand-off | **Partial** | Integration inventory; B-18 sign-off open                                            |
+| Phase       | Status      | Notes                                                                                          |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------- |
+| B0 Prep     | **Done**    | gitignore, hooks, templates, env skip                                                          |
+| B1 Capture  | **Partial** | 32+6 local keys; capture + liveness ok; legacy CLI secrets **403**; Vercel pull open           |
+| B2 Seal     | **Partial** | Tar + SHA256; age + B-17 drill open                                                            |
+| B3 Hand-off | **Done**    | Integration inventory complete; **B-18 signed and re-verified 2026-11-03** (archives + hashes) |
 
 Scripts: `merge-legacy-prod-env.mjs`, `capture-legacy-config.ts`, `verify-secret-hashes.ts`, `legacy-env-liveness.ts`, `build-legacy-prod-archive.sh`.
 

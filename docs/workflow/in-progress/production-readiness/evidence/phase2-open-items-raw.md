@@ -1,4 +1,3 @@
-
 ## docs/guides/testing/ai-dashboard-assistant-manual.md
 
 - L400 (box, 14.1 Two-surface checklist (run for any assistant UI change)): Send, stream, stop (Esc), regenerate, Retry after an error
@@ -273,7 +272,7 @@
 
 - L420 (box, Tasks): Take a pre-migration backup (`bun run backup:supabase:dev`, and the prod equivalent at rollout time) — this migration is a data backfill, not just a schema change, so the standard rollback path is restore-from-backup, not a down-migration.
 - L433 (box, Tasks): Manual QA (or the `verify` skill): log in as a former Manager, Staff, and Viewer post-migration each; confirm identical access to before, for every page.
-- L636 (row, Open Questions): Q1–Q6 | **Locked** in Phase 0 § Locked decisions (2026-08-27) | 
+- L636 (row, Open Questions): Q1–Q6 | **Locked** in Phase 0 § Locked decisions (2026-08-27) |
 - L637 (row, Open Questions): Q7 | **Locked** (Phase 7) | `marketing.templates:add` / `:edit` → `customTemplates`; `:delete` permission-only
 
 ## docs/workflow/done/guest-form-configurable-sections.md
@@ -1397,7 +1396,7 @@
 - L30 (row, Remaining work to finalize): 2 | Client/server parity test for every role × endpoint (21.2). **Partial:** table-driven harness `authParitySeed.test.ts` + `fixtures/auth-parity-seed.example.json` (JWT fixture; not green until local seed filled). | Tests + seed data
 - L31 (row, Remaining work to finalize): 3 | Sign-out on a shared device: query cache / realtime / PWA Cache Storage. **Code path exists** (`PwaQueryPersistence` + `purgeOfflineState` on `SIGNED_OUT`; `clearOrgRenewalAutoShownForUser` on admin sign-out — unit-tested in `listing...
 - L33 (row, Remaining work to finalize): 5 | Invite-flow adversarial checks (replay after revoke, non-escalating role). **Code review:** accept uses invite row `role_id` (not the body), email-bound, `status=pending` then `accepted`, expiry checked. Tests not written. | Tests
-- L35 (row, Remaining work to finalize): 7 | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **16** live cases (`list-parkings` added 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373). Fu...
+- L35 (row, Remaining work to finalize): 7 | Adversarial suite (21.6 table). **Partial:** `adversarialAuthLive.test.ts` **16** live cases (`list-parkings` added 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373). Fu...
 - L187 (box, Exit gate): Client/server parity test passes for every role × endpoint combination. Not attempted — needs seeded roles against a running stack.
 - L188 (box, Exit gate): Sign-out clears query cache, realtime, and PWA-cached tenant data — **code path exists**; not verified on a shared-device scenario.
 - L190 (box, Exit gate): Invite flows proven single-use, expiring, email-bound, non-escalating **by test**. Code review says they are; suite not written.
@@ -1423,7 +1422,7 @@
 - L27 (row, Remaining work to finalize): 1 | Verify the environment matrix against live projects; deploy-time env var assertion (24.1). | Hosted
 - L28 (row, Remaining work to finalize): 2 | Rehearse rollback on hosted-dev with a measured RTO (24.2). **Partial:** runbook + preflight (`2026-09-21`: linked `fwor…`, dev backups on disk; `rollback --dry-run` needs `DEV_DB_URL`). Measured drill still open. | Hosted-dev operator
 - L29 (row, Remaining work to finalize): 3 | Prod path: manual approval with the schema diff attached (24.4). `kamewave` stays the unlock. | CI + policy
-- L30 (row, Remaining work to finalize): 4 | Smoke tests: authenticated reads, a cleaned-up write, asset headers, PWA version, cron presence (24.5). **Partial (2026-09-21):** cd-dev [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/35569769373) — cron probe + pa...
+- L30 (row, Remaining work to finalize): 4 | Smoke tests: authenticated reads, a cleaned-up write, asset headers, PWA version, cron presence (24.5). **Partial (2026-09-21):** cd-dev [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/35569769373) — cron probe + pa...
 - L32 (row, Remaining work to finalize): 6 | Preview env scoping (no prod secrets). | GitHub/Vercel
 - L33 (row, Remaining work to finalize): 7 | Cutover checklist with named owners (24.6). Depends on 17, 21, 22, 23, 27, 30. | Those docs
 - L137 (box, Phase 24.6 — Cutover plan (Phase B)): Docs 21, 22, 23 exit gates met (the launch blockers).
@@ -1502,7 +1501,7 @@
 
 - L35 (row, Remaining work to finalize): 1 | Risk-tier coverage targets defined and met for the seven high-risk surfaces (29.1). | Process + tests
 - L36 (row, Remaining work to finalize): 2 | Table-driven handler harness: **wrapper-level auth rejection done** (15 tests); per-function validation still open (29.2). | Tests
-- L37 (row, Remaining work to finalize): 3 | Doc 21 adversarial matrix executable and green. **Partial:** `adversarialAuthLive.test.ts` **16** cases (hosted dev green 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-homes/actions/runs/3556976937...
+- L37 (row, Remaining work to finalize): 3 | Doc 21 adversarial matrix executable and green. **Partial:** `adversarialAuthLive.test.ts` **16** cases (hosted dev green 2026-09-21); last cd-dev **15/15** [`35569769373`](https://github.com/sprmke/kame-space/actions/runs/3556976937...
 - L38 (row, Remaining work to finalize): 4 | Contract tests against a real local stack for the top flows (29.3). | Local Supabase
 - L39 (row, Remaining work to finalize): 5 | WebKit for the guest flow; large-tenant fixture; Manila timezone pinned in the test env. | Playwright + doc 10 seed
 - L40 (row, Remaining work to finalize): 6 | Zero long-lived quarantined flaky tests (29.4). **Partial:** `marketingCollage.spec.ts` Design-tab wait hardened (cd-dev `35564197137`, 2026-09-21). `guestFormSubmit.spec.ts` still tracked (doc 26). | Tests

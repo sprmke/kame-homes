@@ -26,6 +26,7 @@ import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
 import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -253,6 +254,17 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
           .select(FEED_COLUMNS)
           .single();
         if (error) throw new Error(error.message);
+
+        await capturePostHogEvent('calendar_sync_connected', {
+          logPrefix: 'calendar-sync-settings',
+          request: req,
+          distinctId: user.id,
+          groups: {
+            organization: property.organization_id,
+            property: property.id,
+          },
+          properties: { provider },
+        });
 
         let initialSync = null;
         const inserted = await loadCalendarFeed(supabase, data.id as string);

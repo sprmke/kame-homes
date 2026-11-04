@@ -123,7 +123,14 @@ Any **new anonymous write endpoint** (or a self-service-authed one that fans out
 6. If the function participates in the booking workflow, make it go through `workflowOrchestrator`.
 7. If the handler **mutates org / property / parking data** (or records a guest/public action worth accountability), call **`logActivity`** from `_shared/activityLog.ts` after the write succeeds — `buildActorContext` + a redacted `diffRecord`, never in a `catch`, never blocking the response. See **`.cursor/rules/audit-logging.mdc`** / the `audit-logging` skill. Mark `activity-log: N/A — <why>` if it genuinely does not apply.
 8. Add a `README` comment at the top of `index.ts` with: purpose, trigger, idempotency strategy.
-9. **PostHog:** Prefer `serveAdmin` / `servePublic` / `serveCronPost` so `handleEdgeError` captures exceptions. For **conversion** events (submit succeeded, workflow transition, org created), call **`capturePostHogEvent`** from `_shared/posthog.ts` after the write — use catalog names in `posthogCatalog.ts`; never log PII in properties. Mark `posthog: N/A — <why>` for pure reads or health checks. Client must not duplicate the same `*_submitted` / `*_completed` name.
+9. **Observability:** two vendors, one job each. **Sentry owns faults** — prefer
+   `serveAdmin` / `servePublic` / `serveCronPost` so `handleEdgeError` captures any throw;
+   a handler that catches and answers its own 4xx/500 calls `captureFaultIfServerError`, and a
+   side effect that fails after the write calls `captureSideEffectFailure`. **PostHog owns
+   outcomes** — for a conversion (submit succeeded, workflow transition, org created) call
+   `capturePostHogEvent` **after** the write with a `posthogCatalog.ts` name, never with PII;
+   mark `posthog: N/A — <why>` for pure reads. Never report the same error to both, and never
+   `captureException` to PostHog (the helper is gone and CI blocks it).
 
 ## Don'ts
 

@@ -34,7 +34,7 @@ Property-only team members who cannot open org routes still reach announcements 
 
 ## Host-facing knowledge
 
-This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group.
+This is where you read official notices from Kame Space — scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group.
 
 **Common host questions**
 

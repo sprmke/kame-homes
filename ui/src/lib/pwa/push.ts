@@ -3,6 +3,9 @@ import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 import { getPwaCapabilities } from '@/lib/pwa/capabilities';
 import { pwaTelemetry } from '@/lib/pwa/pwaTelemetry';
 import { whenSwReady } from '@/lib/pwa/swRegistration';
+import { captureAppEvent } from '@/lib/posthog/capture';
+
+import { SW_MESSAGE } from '@/pwa/shared';
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
 
@@ -58,8 +61,12 @@ export async function enablePush(): Promise<PushState> {
   const caps = getPwaCapabilities();
   if (!caps.push || !VAPID_PUBLIC_KEY) return getPushState();
 
-  const permission =
-    Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+  const prompting = Notification.permission !== 'granted';
+  const permission = prompting ? await Notification.requestPermission() : 'granted';
+  if (prompting) {
+    // A real browser prompt, inside the user gesture. `outcome` is what the browser said.
+    captureAppEvent('push_opt_in_prompted', { outcome: permission });
+  }
   if (permission !== 'granted') return getPushState();
 
   const reg = await whenSwReady();
@@ -121,6 +128,26 @@ export async function disablePush(): Promise<PushState> {
     pwaTelemetry('push-disabled');
   }
   return getPushState();
+}
+
+/**
+ * Close OS notifications the user has already dealt with in the app (6.4): the
+ * message they just read, or the whole tray after "mark all read". Falls back to
+ * `getNotifications()` when no worker is controlling the page yet.
+ */
+export async function closeOsNotifications(tag?: string): Promise<void> {
+  try {
+    const controller = navigator.serviceWorker?.controller;
+    if (controller) {
+      controller.postMessage({ type: SW_MESSAGE.CLOSE_NOTIFICATIONS, tag });
+      return;
+    }
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const notifications = await reg?.getNotifications(tag ? { tag } : undefined);
+    for (const notification of notifications ?? []) notification.close();
+  } catch {
+    // Notification API unavailable — nothing to clear
+  }
 }
 
 /**

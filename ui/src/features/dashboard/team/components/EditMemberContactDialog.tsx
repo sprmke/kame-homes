@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useGuardedClose } from '@/hooks/useGuardedClose';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 
 const ASSIGNABLE_ORG_ROLES = ORG_ROLES.filter((role) => role.value !== 'OWNER');
 
@@ -134,8 +135,9 @@ export function EditMemberContactDialog({
                 type="tel"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
+                placeholder={FORM_PLACEHOLDERS.phone}
                 autoComplete="tel"
-                className="h-10"
+                className="h-10 tabular-nums"
               />
             </div>
             <div className="space-y-2">

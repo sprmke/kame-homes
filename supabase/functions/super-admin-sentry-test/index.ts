@@ -52,6 +52,6 @@ serveSuperAdmin('super-admin-sentry-test', async (req, user) => {
     sent: true,
     runtime: 'edge',
     elapsedMs: Date.now() - startedAt,
-    note: 'Look for fingerprint sentry_test in the kame-homes-edge project.',
+    note: 'Look for fingerprint sentry_test in the kame-space-edge project.',
   });
 });

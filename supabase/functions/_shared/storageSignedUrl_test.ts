@@ -13,6 +13,12 @@ Deno.test('parseStorageObjectUrl decodes public storage paths', () => {
   assertEquals(loc, { bucket: 'valid-ids', path: 'prop-1/guest id.jpg' });
 });
 
+Deno.test('parseStorageObjectUrl decodes double-encoded legacy rewrite paths', () => {
+  const url = 'https://example.supabase.co/storage/v1/object/public/valid-ids/file%2520name.jpg';
+  const loc = parseStorageObjectUrl(url);
+  assertEquals(loc, { bucket: 'valid-ids', path: 'file name.jpg' });
+});
+
 Deno.test('parseStorageObjectUrl accepts signed path segment', () => {
   const url =
     'https://example.supabase.co/storage/v1/object/sign/payment-receipts/receipt.pdf?token=abc';

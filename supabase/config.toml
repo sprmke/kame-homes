@@ -981,6 +981,12 @@ verify_jwt = false
 [functions.marketing-music]
 verify_jwt = false
 
+[functions.marketing-media]
+verify_jwt = false
+
+[functions.marketing-media-sweeper]
+verify_jwt = false
+
 [functions.list-developments]
 verify_jwt = false
 

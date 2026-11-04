@@ -9,6 +9,7 @@ import {
   formatTemplateRef,
   parseTemplateRef,
   readAiOutput,
+  readAiSampleId,
   readItemState,
   templateRefEquals,
 } from '@/features/dashboard/marketing/lib/marketingStudioRoute';
@@ -19,7 +20,10 @@ describe('parseTemplateRef', () => {
   it('reads every template ref shape', () => {
     expect(parseTemplateRef('blank')).toEqual({ kind: 'blank' });
     expect(parseTemplateRef('collage')).toEqual({ kind: 'collage' });
-    expect(parseTemplateRef('preset:promo-500-off')).toEqual({ kind: 'preset', id: 'promo-500-off' });
+    expect(parseTemplateRef('preset:promo-500-off')).toEqual({
+      kind: 'preset',
+      id: 'promo-500-off',
+    });
     expect(parseTemplateRef(`tpl:${ID}`)).toEqual({ kind: 'template', id: ID });
   });
 
@@ -116,5 +120,41 @@ describe('AI Studio params', () => {
     const params = new URLSearchParams('tab=generate&item=new&output=image');
     applyOpenItem(params, ID);
     expect(params.toString()).toBe(`tab=generate&item=${ID}`);
+  });
+});
+
+describe('AI Studio example param', () => {
+  it('starts a new creation with a well-formed example id', () => {
+    const params = new URLSearchParams('tab=generate&item=abc');
+    applyStartAiSession(params, 'image', 'photo-golden-balcony');
+    expect(params.get('item')).toBe('new');
+    expect(params.get('output')).toBe('image');
+    expect(readAiSampleId(params)).toBe('photo-golden-balcony');
+  });
+
+  it('ignores a malformed example id', () => {
+    const params = new URLSearchParams();
+    applyStartAiSession(params, 'post', 'Not An Id');
+    expect(params.has('sample')).toBe(false);
+    expect(readAiSampleId(new URLSearchParams('item=new&output=post&sample=../x'))).toBeNull();
+  });
+
+  it('reads the example only on a new creation', () => {
+    expect(readAiSampleId(new URLSearchParams(`item=${ID}&sample=post-book-direct`))).toBeNull();
+    expect(readAiSampleId(new URLSearchParams('item=new&sample=post-book-direct'))).toBe(
+      'post-book-direct'
+    );
+  });
+
+  it('drops the example when the item changes or closes', () => {
+    const params = new URLSearchParams('item=new&output=post&sample=post-book-direct');
+    applyOpenItem(params, ID);
+    expect(params.has('sample')).toBe(false);
+    const next = new URLSearchParams('item=new&output=post&sample=post-book-direct');
+    clearItemParams(next);
+    expect(next.has('sample')).toBe(false);
+    const switched = new URLSearchParams('item=new&output=post&sample=post-book-direct');
+    applyStartAiSession(switched, 'video');
+    expect(switched.has('sample')).toBe(false);
   });
 });

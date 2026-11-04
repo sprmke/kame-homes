@@ -1,7 +1,7 @@
 /**
  * copyBuckets.ts — resumable Storage object copy (legacy → target).
  * Plan: docs/workflow/planned/legacy-to-mt-prod §2.6
- *       docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.6
+ *       docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.6
  *
  * Object paths and metadata (size/content-type) come from the restored
  * `storage.objects` rows (target DB), so no listing session is needed against

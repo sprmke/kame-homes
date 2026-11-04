@@ -202,7 +202,7 @@ Platform defaults (not property-specific): **`DEFAULT_EMAIL_LOGO_URL`** when org
 
 ## Dynamic section data sources (live sends)
 
-Preview uses **`buildSampleDynamicSections()`** with demo dates/names/phones. **Production sends** resolve real values from booking rows + org/property settings (never legacy Kame Home / Monaco 2604 literals).
+Preview uses **`buildSampleDynamicSections()`** with demo dates/names/phones. **Production sends** resolve real values from booking rows + org/property settings (never legacy Kame Space / Monaco 2604 literals).
 
 | Section placeholder                             | Templates                                              | Live data source                                                                                                                      |
 | ----------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |

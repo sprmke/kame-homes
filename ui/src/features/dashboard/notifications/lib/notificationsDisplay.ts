@@ -17,6 +17,7 @@ import {
   Sparkles,
   Star,
   Wallet,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,6 +61,8 @@ const NOTIFICATION_ICONS: Record<NotificationType, LucideIcon> = {
   review_received: Star,
   review_due: Star,
   review_response_received: Reply,
+  maintenance_guest_reported: Wrench,
+  guest_request_submitted: CalendarPlus,
 };
 
 /** Category glyph shared by the bell list, Activity page, and realtime toast. */

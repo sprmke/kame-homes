@@ -23,6 +23,7 @@ Keep this list **small**. Heavy domain specs use globs.
 | `audit-logging.mdc`             | Mutating changes must emit an `activity_log` event (or N/A)                         |
 | `unsaved-changes.mdc`           | Editable surfaces with a manual Save must warn before edits are lost (shared guard) |
 | `mobile-native-ui.mdc`          | Always-on gate: native mobile look/feel for any UI change in `ui/src/**`            |
+| `branch-lifecycle.mdc`          | Finished work lands on `develop`: PR, report, merge when green, delete the branch   |
 | `karpathy-guidelines.mdc`       | Think first, simplicity, surgical diffs, verifiable goals (Karpathy-inspired)       |
 
 ## New developer setup (AI tooling)

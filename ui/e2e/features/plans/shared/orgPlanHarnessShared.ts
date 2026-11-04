@@ -12,7 +12,7 @@ import {
 import type { Page, Route } from '@playwright/test';
 
 export const PLANS_E2E_ORG_ID = 'org-plans-downgrade-e2e';
-export const PLANS_E2E_ORG_SLUG = 'kame-homes-ph';
+export const PLANS_E2E_ORG_SLUG = 'sample-stays-ph';
 export const PLANS_E2E_PROPERTY_ID = 'property-plans-downgrade-e2e';
 export const PLANS_E2E_PROPERTY_SLUG = 'solea-mactan';
 
@@ -77,7 +77,7 @@ export function organizationList(accessKind: 'owner' | 'member') {
     organizations: [
       {
         id: PLANS_E2E_ORG_ID,
-        name: 'Kame Homes PH',
+        name: 'Sample Stays PH',
         slug: PLANS_E2E_ORG_SLUG,
         description: null,
         logoUrl: null,
@@ -120,7 +120,7 @@ export function orgAccessPayload(accessKind: 'owner' | 'member') {
     canListAllProperties: accessKind === 'owner',
     orgId: PLANS_E2E_ORG_ID,
     orgSlug: PLANS_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     planLimited: false,
     canManageTeam: accessKind === 'owner',
     canInviteTeam: accessKind === 'owner',

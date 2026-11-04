@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
+
 import { usePropertyIdParam, useResolvedOrgId } from '@/features/dashboard/org/lib/adminApiScope';
 import { useOrgPlan } from '@/features/dashboard/plans/hooks/useOrgPlan';
 import { usePropertyEntitlements } from '@/features/dashboard/plans/hooks/usePropertyEntitlements';
 import { deriveOrgEntitlementsFromPlan } from '@/features/dashboard/plans/lib/orgEntitlements';
 import { resolveFeatureGateState } from '@/features/dashboard/plans/lib/featureGateState';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 /**
  * Property-scoped routes check that property's own entitlement; every other route (org-only
@@ -36,6 +39,22 @@ export function useFeatureGate(feature: PlanFeatureKey, propertyIdOverride?: str
     },
     feature
   );
+
+  // One event per surface per session: a denied gate renders on every route visit, and the
+  // product question is "which locked feature did this host run into", not how many re-renders.
+  useEffect(() => {
+    if (query.isLoading || planUnknown || allowed) return;
+    try {
+      const key = 'gfm:feature_gate_reported';
+      const seen = new Set<string>(JSON.parse(sessionStorage.getItem(key) ?? '[]') as string[]);
+      if (seen.has(feature)) return;
+      seen.add(feature);
+      sessionStorage.setItem(key, JSON.stringify([...seen]));
+    } catch {
+      return; // storage unavailable: skip rather than emit on every render
+    }
+    captureAppEvent('feature_gate_hit', { feature_key: feature });
+  }, [allowed, feature, planUnknown, query.isLoading]);
 
   return {
     ...query,

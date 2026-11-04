@@ -1,25 +1,23 @@
 /// <reference lib="webworker" />
 /**
- * Guest Form Management — custom service worker (Workbox `injectManifest`).
+ * Kame Space — custom service worker (Workbox `injectManifest`).
  *
- * Responsibilities, by plan phase:
- *   1. Precache the app shell; SPA navigation fallback; offline fallback page;
- *      update-on-demand (`SKIP_WAITING`); kill-switch (`/pwa-version.json`).
+ * Responsibilities, by plan phase (`docs/workflow/in-progress/pwa-v2-native-app-experience.md`):
+ *   1. Precache the **shell tier only**; SPA navigation fallback; offline page;
+ *      update-on-demand (`SKIP_WAITING`); kill-switch (`/pwa-version.json`) and
+ *      `forceUpdateBelow`.
  *   2. Runtime caching for fonts / images / static assets / allowlisted API GETs.
- *   3. Web Push: `push`, `notificationclick`, `pushsubscriptionchange`.
+ *   3. Web Push: `push`, `notificationclick`, `pushsubscriptionchange`, badge.
  *   4. Offline write: Background Sync `sync` handler draining the outbox.
- *   5. Periodic Background Sync refresh.
+ *   5. Host-tier warming: background download of dashboard chunks after sign-in.
+ *   6. Periodic Background Sync refresh.
  *
  * Never import app (`@/…`) code here — it would pull DOM-only modules into the
  * worker bundle. Worker-only. See docs/architecture/pwa.md.
  */
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
-import {
-  cleanupOutdatedCaches,
-  createHandlerBoundToURL,
-  precacheAndRoute,
-} from 'workbox-precaching';
+import { PrecacheController } from 'workbox-precaching';
 import { NavigationRoute, registerRoute, setCatchHandler } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies';
 
@@ -27,18 +25,29 @@ import {
   CACHE_PREFIX,
   OUTBOX_SYNC_TAG,
   PERIODIC_REFRESH_TAG,
+  PRECACHE_TIERS_PATH,
   PWA_VERSION_CHECK_INTERVAL_MS,
   PWA_VERSION_URL,
   RUNTIME_CACHES,
   SW_CACHEABLE_FUNCTIONS,
   SW_MESSAGE,
 } from './shared';
-
 import { installSwErrorRelay } from './swErrorRelay';
+import {
+  cacheableFunctionName,
+  isKillSwitchTripped,
+  isForceUpdateRequired,
+  normalizeBadgeCount,
+  parsePrecacheTiers,
+  safeAppPath,
+  shouldWarmHostTier,
+  truncatePushBody,
+  type KillSwitchDescriptor,
+  type PrecacheEntry,
+  type PrecacheTiers,
+} from './swLogic';
 
-declare const self: ServiceWorkerGlobalScope & {
-  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
-};
+declare const self: ServiceWorkerGlobalScope;
 declare const __PWA_BUILD_ID__: string;
 
 const BUILD_ID = Number(__PWA_BUILD_ID__) || 0;
@@ -46,32 +55,117 @@ const BUILD_ID = Number(__PWA_BUILD_ID__) || 0;
 // Before anything else: an error thrown while the worker boots is the one class of failure
 // nobody can currently see. Global hooks catch what the individual handlers leave uncaught.
 installSwErrorRelay();
-const OFFLINE_URL = 'offline.html';
+const OFFLINE_URL = '/offline.html';
+const NAVIGATION_FALLBACK = '/index.html';
 
 // ───────────────────────────── precache ──────────────────────────────────────
 
-precacheAndRoute(self.__WB_MANIFEST);
-cleanupOutdatedCaches();
+/**
+ * Custom controller rather than `precacheAndRoute(self.__WB_MANIFEST)` because the
+ * precache list is decided at install time from `/precache-tiers.json` (shell
+ * tier only). Glob-precaching the whole bundle shipped ~12 MiB to every visitor.
+ */
+const precache = new PrecacheController({ cacheName: RUNTIME_CACHES.precache });
 
-// ─────────────────────────── lifecycle ───────────────────────────────────────
+/** Host-tier entries from the last loaded manifest, kept in memory for warming. */
+let hostTier: PrecacheEntry[] = [];
+let hostTierWarmed = false;
+/** `addToCacheList` throws on conflicting duplicate entries, so load exactly once. */
+let precacheListLoaded = false;
 
-self.addEventListener('install', () => {
-  // Do NOT skipWaiting automatically — the app prompts the user, then posts
-  // SKIP_WAITING. This keeps a running operator from being reloaded mid-edit.
+async function readTiersFromCache(): Promise<PrecacheTiers | null> {
+  try {
+    const cache = await caches.open(RUNTIME_CACHES.static);
+    const cached = await cache.match(PRECACHE_TIERS_PATH);
+    return cached ? parsePrecacheTiers(await cached.json()) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTiersFromNetwork(): Promise<PrecacheTiers | null> {
+  try {
+    const res = await fetch(`${PRECACHE_TIERS_PATH}?b=${BUILD_ID}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const copy = res.clone();
+    const parsed = parsePrecacheTiers(await res.json());
+    if (parsed) {
+      const cache = await caches.open(RUNTIME_CACHES.static);
+      await cache.put(PRECACHE_TIERS_PATH, copy);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The precache list must be rebuilt on **every worker start**, not just `install`.
+ * A service worker is stopped aggressively by the browser; in-memory route state
+ * added only during `install` is gone when it wakes up to serve a navigation, which
+ * would leave the app unable to boot offline (the bug this replaces).
+ */
+const precacheReady: Promise<void> = (async () => {
+  const tiers = (await readTiersFromCache()) ?? (await fetchTiersFromNetwork());
+  if (tiers) {
+    hostTier = tiers.host;
+    precache.addToCacheList(tiers.shell);
+    precacheListLoaded = true;
+  }
+})();
+
+/**
+ * Dev (`VITE_PWA_DEV=true`) has no tier manifest, and a transient CDN miss must
+ * not leave the app bootless — fall back to the plugin-injected glob manifest.
+ * In production that manifest is empty, so installation fails loudly and the
+ * previous worker (with a working shell) keeps running.
+ */
+function fallbackEntries(): PrecacheEntry[] {
+  const manifest = (self.__WB_MANIFEST ?? []) as Array<{ url: string; revision: string | null }>;
+  const injected = manifest.map((entry) => ({
+    url: entry.url.startsWith('/') ? entry.url : `/${entry.url}`,
+    revision: entry.revision,
+  }));
+  if (injected.length > 0) return injected;
+  return [
+    { url: NAVIGATION_FALLBACK, revision: String(BUILD_ID || 'dev') },
+    { url: OFFLINE_URL, revision: String(BUILD_ID || 'dev') },
+  ];
+}
+
+self.addEventListener('install', (event) => {
+  // Do NOT skipWaiting automatically — the update controller decides, so a
+  // running operator is never reloaded mid-edit (Phase 4).
+  event.waitUntil(
+    (async () => {
+      await precacheReady;
+      if (!precacheListLoaded) {
+        // `precacheReady` resolves before `install` when the manifest is missing
+        // (dev), so the fallback is added here instead.
+        precache.addToCacheList(fallbackEntries());
+        precacheListLoaded = true;
+      }
+      await precache.install(event);
+    })()
+  );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Never run cleanup with an empty expected set: that would delete the whole
+      // precached shell.
+      await precacheReady;
+      if (precacheListLoaded) await precache.activate(event);
       await self.clients.claim();
       await dropStrayCaches();
-      await checkKillSwitch('activate');
+      await checkVersionDescriptor('activate');
     })()
   );
 });
 
 self.addEventListener('message', (event) => {
-  const data = event.data as { type?: string } | undefined;
+  const data = event.data as { type?: string; count?: number; tag?: string } | undefined;
   if (!data?.type) return;
 
   // `SKIP_WAITING` is what vite-plugin-pwa's prompt register posts; the prefixed
@@ -81,8 +175,19 @@ self.addEventListener('message', (event) => {
     return;
   }
   if (data.type === SW_MESSAGE.CHECK_VERSION) {
-    event.waitUntil(checkKillSwitch('message'));
+    event.waitUntil(checkVersionDescriptor('message'));
     return;
+  }
+  if (data.type === SW_MESSAGE.WARM_HOST_TIER) {
+    event.waitUntil(warmHostTier('message'));
+    return;
+  }
+  if (data.type === SW_MESSAGE.SET_BADGE) {
+    event.waitUntil(setBadge(data.count ?? 0));
+    return;
+  }
+  if (data.type === SW_MESSAGE.CLOSE_NOTIFICATIONS) {
+    event.waitUntil(closeNotifications(data.tag));
   }
 });
 
@@ -106,8 +211,7 @@ self.addEventListener('sync', (event) => {
 
 /**
  * Periodic Background Sync (Chromium installed): nudge open clients to revalidate
- * their bookings + notifications caches, and refresh the NetworkFirst API cache
- * for anything already stored.
+ * their bookings + notifications caches.
  */
 self.addEventListener('periodicsync', (event) => {
   const pEvent = event as ExtendableEvent & { tag?: string };
@@ -125,20 +229,22 @@ self.addEventListener('periodicsync', (event) => {
   );
 });
 
-// ─────────────────────────── navigation ──────────────────────────────────────
+// ─────────────────────── navigation ──────────────────────────────────────────
 
-const navigationHandler = createHandlerBoundToURL('index.html');
-
+/**
+ * Every SPA navigation is answered from the precached shell. The precache list is
+ * populated during `install`, so this must resolve at request time rather than
+ * bind to a URL up front (`createHandlerBoundToURL` would throw if called before
+ * the list existed).
+ */
 registerRoute(
   new NavigationRoute(
-    async (options) => {
-      try {
-        return await navigationHandler(options);
-      } catch {
-        const cache = await caches.open(RUNTIME_CACHES.static);
-        const cached = (await cache.match(OFFLINE_URL)) ?? (await caches.match(OFFLINE_URL));
-        return cached ?? Response.error();
-      }
+    async () => {
+      await precacheReady;
+      const shell = await precache.matchPrecache(NAVIGATION_FALLBACK);
+      if (shell) return shell;
+      const offline = (await caches.match(OFFLINE_URL)) ?? (await caches.match(NAVIGATION_FALLBACK));
+      return offline ?? Response.error();
     },
     {
       // Let the SW ignore these — they must always hit the network / other routes.
@@ -152,7 +258,7 @@ registerRoute(
   )
 );
 
-// ─────────────────────── runtime caching (Phase 2) ───────────────────────────
+// ─────────────────────── runtime caching ─────────────────────────────────────
 
 // Google Fonts stylesheet — SWR so a new font list lands next load.
 registerRoute(
@@ -202,20 +308,54 @@ registerRoute(
         maxAgeSeconds: 60 * 60 * 24 * 30,
         purgeOnQuotaError: true,
       }),
-    ],
+    ]
   })
 );
 
-// Same-origin build assets not caught by precache (hashed lazy chunks etc.).
+/**
+ * Hashed build assets. Resolution order:
+ *   1. the precache (shell tier — the files that must work offline),
+ *   2. the runtime cache (host-tier warming + on-demand chunks fetched earlier),
+ *   3. the network, which then populates the runtime cache.
+ *
+ * This must be hand-ordered rather than a Workbox strategy: the precache lives in
+ * its own cache, so a plain `CacheFirst` would miss precached shell chunks on the
+ * second visit and break offline boot.
+ */
 registerRoute(
   ({ url, request, sameOrigin }) =>
     sameOrigin &&
     url.pathname.startsWith('/assets/') &&
     (request.destination === 'script' ||
       request.destination === 'style' ||
-      request.destination === 'worker'),
+      request.destination === 'worker' ||
+      request.destination === 'font'),
+  async ({ request, url }) => {
+    await precacheReady;
+    const precached = await precache.matchPrecache(url.href);
+    if (precached) return precached;
+
+    const cache = await caches.open(RUNTIME_CACHES.static);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(request);
+      if (response.ok) await cache.put(request, response.clone());
+      return response;
+    } catch {
+      return Response.error();
+    }
+  }
+);
+
+// Public runtime files referenced by the SW itself / the OS shell.
+registerRoute(
+  ({ url, sameOrigin }) =>
+    sameOrigin &&
+    /^\/(?:icons|favicon|images|screenshots|fonts)\//.test(url.pathname),
   new StaleWhileRevalidate({
-    cacheName: RUNTIME_CACHES.static,
+    cacheName: `${CACHE_PREFIX}media`,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
@@ -223,7 +363,7 @@ registerRoute(
         maxAgeSeconds: 60 * 60 * 24 * 30,
         purgeOnQuotaError: true,
       }),
-    ],
+    ]
   })
 );
 
@@ -264,30 +404,16 @@ registerRoute(
 // Allowlisted PUBLIC Edge Function GETs only — NetworkFirst with a short timeout
 // so the app stays live but can fall back to the last good copy offline.
 //
-// `SW_CACHEABLE_FUNCTIONS` (production-readiness doc 11, Phase 11.5) replaced a
-// broad `get-*`/`list-*` prefix regex here. That regex matched every
-// admin/tenant/guest-PII read whose function name happened to start with
-// `get-`/`list-` (bookings, finance, maintenance, notifications, inbox, org
-// settings, guest profile/messages/trips — all server-classified `private,
-// no-store` or `no-store` in `_shared/httpResponse.ts`), caching them for up to
-// 3 days. A 3-day-stale SW cache of tenant/guest PII on a shared or kiosk
-// device is a persistent leak, not just staleness — the SW must never
-// runtime-cache anything in a `no-store` class, full stop. Only the small,
-// explicit, security-reviewed set of genuinely public functions in
-// `SW_CACHEABLE_FUNCTIONS` may be cached here; a new function is never
-// implicitly included by matching a naming pattern.
-const FUNCTION_PATH_RE = /\/functions\/v1\/([^/?]+)/;
-
-function cacheableFunctionName(pathname: string): string | null {
-  const match = FUNCTION_PATH_RE.exec(pathname);
-  const name = match?.[1];
-  return name && SW_CACHEABLE_FUNCTIONS.has(name) ? name : null;
-}
-
+// `SW_CACHEABLE_FUNCTIONS` replaced a broad `get-*`/`list-*` prefix regex here.
+// That regex matched every admin/tenant/guest-PII read whose function name
+// happened to start with `get-`/`list-`, caching them for up to 3 days. A
+// 3-day-stale SW cache of tenant/guest PII on a shared or kiosk device is a
+// persistent leak, not just staleness — the SW must never runtime-cache anything
+// in a `no-store` class, full stop.
 registerRoute(
   ({ url, request }) => {
     if (request.method !== 'GET') return false;
-    const name = cacheableFunctionName(url.pathname);
+    const name = cacheableFunctionName(url.pathname, SW_CACHEABLE_FUNCTIONS);
     if (!name) return false;
     // Host-only unpublished draft. Server already returns `private, no-store`,
     // but Workbox caches on status 200 unless we also refuse the URL.
@@ -316,8 +442,6 @@ registerRoute(
       new ExpirationPlugin({
         // Public listing/search data — short-lived like the server's own
         // `publicDynamic`/`publicAvailability` classes, not the old 3-day TTL.
-        // This is strictly an offline/flaky-network fallback (NetworkFirst,
-        // 6s timeout), not a substitute for a fresh hit.
         maxEntries: 200,
         maxAgeSeconds: 60 * 10,
         purgeOnQuotaError: true,
@@ -330,28 +454,111 @@ registerRoute(
 // assistant, auth) pass straight to the network with no SW involvement.
 setCatchHandler(async ({ request }) => {
   if (request.destination === 'document') {
-    const cached = (await caches.match('index.html')) ?? (await caches.match(OFFLINE_URL));
-    if (cached) return cached;
+    await precacheReady;
+    const shell = await precache.matchPrecache(NAVIGATION_FALLBACK);
+    if (shell) return shell;
+    const offline = await caches.match(OFFLINE_URL);
+    if (offline) return offline;
   }
   return Response.error();
 });
 
-// ─────────────────────────── web push (Phase 3) ─────────────────────────────
+// ─────────────────────── host tier warming ───────────────────────────────────
 
-/** Only allow same-origin, app-relative click targets (defence in depth). */
-function safeAppPath(raw: unknown): string {
-  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/';
-  return raw;
+type WarmResult = { warmed: number; skipped?: string };
+
+/**
+ * Downloads the host-tier chunks (dashboard routes) one at a time so dashboard
+ * code is already local when a host opens a screen offline — without making a
+ * guest's first visit download it (P0-2 / 1.8).
+ */
+async function warmHostTier(reason: string): Promise<WarmResult> {
+  const connection = (
+    self.navigator as unknown as {
+      connection?: { saveData?: boolean; effectiveType?: string };
+      onLine?: boolean;
+    }
+  )?.connection;
+  const decision = shouldWarmHostTier({
+    online: self.navigator.onLine !== false,
+    saveData: connection?.saveData === true,
+    effectiveType: connection?.effectiveType,
+    standalone: false,
+    alreadyWarmed: hostTierWarmed,
+  });
+  if (!decision.warm) return { warmed: 0, skipped: decision.reason };
+
+  await precacheReady;
+  if (hostTier.length === 0) {
+    const tiers = (await readTiersFromCache()) ?? (await fetchTiersFromNetwork());
+    hostTier = tiers?.host ?? [];
+  }
+  if (hostTier.length === 0) return { warmed: 0, skipped: 'no-host-tier' };
+
+  const cache = await caches.open(RUNTIME_CACHES.static);
+  let warmed = 0;
+  for (const entry of hostTier) {
+    if (self.navigator.onLine === false) return { warmed, skipped: 'went-offline' };
+    if (await cache.match(entry.url)) continue;
+    try {
+      const res = await fetch(entry.url, { cache: 'default', credentials: 'same-origin' });
+      if (res.ok) {
+        await cache.put(entry.url, res);
+        warmed += 1;
+      }
+    } catch {
+      return { warmed, skipped: 'network-error' };
+    }
+  }
+  hostTierWarmed = true;
+  // eslint-disable-next-line no-console
+  console.info('[sw] host tier warmed', { warmed, reason });
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of clientList) client.postMessage({ type: SW_MESSAGE.WARM_DONE, warmed });
+  return { warmed };
 }
 
+// ─────────────────────────── web push ────────────────────────────────────────
+
 type PushPayload = {
-  title: string;
+  title?: string;
   body?: string;
   path?: string;
   tag?: string;
   notificationId?: string;
   type?: string;
+  unreadCount?: number;
+  /** Thread/booking key so a busy conversation shows one updating notification. */
+  groupKey?: string;
 };
+
+type PushNotificationOptions = NotificationOptions & {
+  renotify?: boolean;
+  actions?: Array<{ action: string; title: string }>;
+  data: { path: string; notificationId: string | null; type?: string };
+};
+
+async function setBadge(count: number): Promise<void> {
+  const nav = self.navigator as unknown as {
+    setAppBadge?: (n?: number) => Promise<void>;
+    clearAppBadge?: () => Promise<void>;
+  };
+  try {
+    if (count > 0) await nav.setAppBadge?.(count);
+    else await nav.clearAppBadge?.();
+  } catch {
+    // Badging is unsupported or blocked — non-fatal.
+  }
+}
+
+async function closeNotifications(tag?: string): Promise<void> {
+  try {
+    const notifications = await self.registration.getNotifications(tag ? { tag } : undefined);
+    for (const notification of notifications) notification.close();
+  } catch {
+    // ignore
+  }
+}
 
 self.addEventListener('push', (event) => {
   let payload: PushPayload;
@@ -360,34 +567,76 @@ self.addEventListener('push', (event) => {
   } catch {
     payload = { title: 'New notification', body: event.data?.text() };
   }
-  if (!payload?.title) payload = { ...payload, title: 'New notification' };
+  if (!payload || typeof payload !== 'object') payload = {};
+  const title = typeof payload.title === 'string' && payload.title ? payload.title : 'New notification';
+  const body = truncatePushBody(payload.body);
+  const tag = payload.groupKey || payload.tag || payload.notificationId || payload.type || 'gfm';
+  const badge = normalizeBadgeCount(payload.unreadCount);
 
-  const options: NotificationOptions = {
-    body: payload.body ?? '',
+  const options: PushNotificationOptions = {
+    body,
     icon: '/icons/pwa-192.png',
     badge: '/icons/notification-badge.png',
-    tag: payload.tag ?? payload.notificationId ?? payload.type ?? 'gfm',
-    data: { path: safeAppPath(payload.path), notificationId: payload.notificationId ?? null },
+    tag,
+    data: {
+      path: safeAppPath(payload.path),
+      notificationId: payload.notificationId ?? null,
+      type: payload.type,
+    },
+    // `renotify` re-alerts when a same-tag notification is replaced; Android
+    // needs a tag for it, which we always provide. Actions are supported on
+    // Android / desktop Chrome and ignored safely on iOS.
+    renotify: true,
+    actions: [
+      { action: 'open', title: 'Open' },
+      { action: 'mark-read', title: 'Mark read' },
+    ],
   };
-  // `renotify` re-alerts when a same-tag notification is replaced; not yet in the
-  // TS lib's NotificationOptions.
-  (options as NotificationOptions & { renotify?: boolean }).renotify = true;
 
-  event.waitUntil(self.registration.showNotification(payload.title, options));
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(title, options);
+      if (badge !== null) await setBadge(badge);
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clientList) {
+        client.postMessage({
+          type: SW_MESSAGE.REVALIDATE,
+          keys: ['notifications'],
+        });
+      }
+    })()
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const path = safeAppPath((event.notification.data as { path?: unknown } | undefined)?.path);
-  const targetUrl = new URL(path, self.location.origin).href;
+  const data = event.notification.data as
+    | { path?: unknown; kind?: unknown; notificationId?: string | null }
+    | undefined;
+  const path = safeAppPath(data?.path);
+  const kind = typeof data?.kind === 'string' ? data.kind : undefined;
+  const markReadOnly = event.action === 'mark-read';
+  const targetUrl = new URL(markReadOnly ? '/app?shortcut=inbox' : path, self.location.origin).href;
 
   event.waitUntil(
     (async () => {
+      // Read in the OS tray: the app shows it read once the bell refetches.
+      if (markReadOnly && data?.notificationId) {
+        const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientList) {
+          client.postMessage({
+            type: SW_MESSAGE.NOTIFICATION_CLICK,
+            path: '/app?shortcut=inbox',
+            markReadId: data.notificationId,
+          });
+        }
+        return;
+      }
       const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clientList) {
         if (new URL(client.url).origin !== self.location.origin) continue;
         await client.focus();
-        client.postMessage({ type: SW_MESSAGE.NOTIFICATION_CLICK, path });
+        client.postMessage({ type: SW_MESSAGE.NOTIFICATION_CLICK, path, kind });
         return;
       }
       await self.clients.openWindow(targetUrl);
@@ -423,37 +672,46 @@ self.addEventListener('pushsubscriptionchange', (event) => {
   );
 });
 
-// ──────────────────────────── kill-switch ────────────────────────────────────
+// ──────────────────────── kill-switch / updates ──────────────────────────────
 
 let lastVersionCheck = 0;
 
 /**
- * Fetches `/pwa-version.json`. If it says this build is disabled or below the
- * required floor, the SW wipes every cache, unregisters itself and tells open
- * clients to hard-reload onto the plain network app.
+ * Fetches `/pwa-version.json`. Three outcomes:
  *
- * `{ "disabled": false, "minBuild": 0 }`
+ *   `disabled: true` / `minBuild > build`  → wipe caches, unregister, reload onto
+ *                                            the plain network app (v1 kill-switch).
+ *   `forceUpdateBelow > build`             → tell open clients to show the blocking
+ *                                            update sheet. Caches are kept, so a
+ *                                            reinstall is never required.
+ *   otherwise                              → nothing.
+ *
+ * `{ "disabled": false, "minBuild": 0, "forceUpdateBelow": 0 }`
  */
-async function checkKillSwitch(reason: string): Promise<void> {
+async function checkVersionDescriptor(reason: string): Promise<void> {
   const now = Date.now();
   if (reason === 'interval' && now - lastVersionCheck < PWA_VERSION_CHECK_INTERVAL_MS) return;
   lastVersionCheck = now;
 
-  type VersionDescriptor = { disabled?: boolean; minBuild?: number };
-  let descriptor: VersionDescriptor | null = null;
+  let descriptor: KillSwitchDescriptor | null = null;
   try {
     const res = await fetch(`${PWA_VERSION_URL}?t=${now}`, { cache: 'no-store' });
     if (res.ok) {
       const parsed: unknown = await res.json();
-      if (parsed && typeof parsed === 'object') descriptor = parsed as VersionDescriptor;
+      if (parsed && typeof parsed === 'object') descriptor = parsed as KillSwitchDescriptor;
     }
   } catch {
     return; // network down / malformed — never self-destruct on a failed check
   }
   if (!descriptor) return;
 
-  const killed = descriptor.disabled === true || (descriptor.minBuild ?? 0) > BUILD_ID;
-  if (!killed) return;
+  if (isForceUpdateRequired(descriptor, BUILD_ID) && !isKillSwitchTripped(descriptor, BUILD_ID)) {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) client.postMessage({ type: SW_MESSAGE.FORCE_UPDATE });
+    return;
+  }
+
+  if (!isKillSwitchTripped(descriptor, BUILD_ID)) return;
 
   // eslint-disable-next-line no-console
   console.warn('[sw] kill-switch tripped; unregistering', { BUILD_ID, descriptor });
@@ -479,21 +737,29 @@ async function wipeAllCaches(): Promise<void> {
   );
 }
 
-/** Best-effort cleanup of caches from a prior major SW design. */
+/** Best-effort cleanup of caches from a prior SW design (v1 glob precache). */
 async function dropStrayCaches(): Promise<void> {
   const keys = await caches.keys();
   const known = new Set<string>([
     ...Object.values(RUNTIME_CACHES),
     `${CACHE_PREFIX}google-fonts-css`,
+    `${CACHE_PREFIX}media`,
   ]);
   await Promise.all(
-    keys.filter((k) => k.startsWith(CACHE_PREFIX) && !known.has(k)).map((k) => caches.delete(k))
+    keys
+      .filter(
+        (k) =>
+          (k.startsWith(CACHE_PREFIX) && !known.has(k)) ||
+          // v1 used Workbox's default precache name.
+          k.startsWith('workbox-precache')
+      )
+      .map((k) => caches.delete(k))
   );
 }
 
 // Opportunistic kill-switch re-check on navigation, throttled to the interval.
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
-    event.waitUntil(checkKillSwitch('interval'));
+    event.waitUntil(checkVersionDescriptor('interval'));
   }
 });

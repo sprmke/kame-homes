@@ -401,7 +401,7 @@ Guest web chat G-01…G-78 captured at 375 and 1440 (2026-10-19). Early 375 G-03
       | G-75 | voice | 375 | 10344 | | | | | | | | | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-75.png` |
       | G-76 | voice | 375 | 9843 | | | | | | | | | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-76.png` |
       | G-77 | voice | 375 | 9078 | | | | | | | | | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-77.png` |
-      | G-78 | voice | 375 | 0 | | | | | | | | textbox "Message" not found after reloads at http://localhost:5173/properties/monaco-2612/messages?checkInDate=2026-12-24&checkOutDate=2026-12-26 (Kame Homes). screenshot ui/e2e/artifacts/ai-conversations/run-3/voice/375/_guest-composer-fail.png | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-78.png` |
+      | G-78 | voice | 375 | 0 | | | | | | | | textbox "Message" not found after reloads at http://localhost:5173/properties/monaco-2612/messages?checkInDate=2026-12-24&checkOutDate=2026-12-26 (Kame Space). screenshot ui/e2e/artifacts/ai-conversations/run-3/voice/375/_guest-composer-fail.png | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-78.png` |
       | G-78 | voice | 375 | 8829 | | | | | | | | | `ui/e2e/artifacts/ai-conversations/run-3/voice/375/G-78.png` |
       | G-13 | guest | 1440 | 45251 | | | | | | | | no Automated guest reply in 45000ms | `ui/e2e/artifacts/ai-conversations/run-3/guest/1440/G-13.png` |
       | G-61 | guest | 1440 | 5038 | | | | | | | | | `ui/e2e/artifacts/ai-conversations/run-3/guest/1440/G-61.png` |

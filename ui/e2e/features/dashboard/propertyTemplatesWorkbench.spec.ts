@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { installPropertyTeamRbacMocks } from '../team/shared/propertyTeamRbacHarness';
 
-const TEMPLATES_PATH = '/org/kame-homes-ph/property/solea-mactan/templates';
+const TEMPLATES_PATH = '/org/sample-stays-ph/property/solea-mactan/templates';
 
 const tpl = (
   templateKey: string,

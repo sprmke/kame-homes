@@ -2,7 +2,7 @@
 title: 'Claude To Plan'
 status: archived
 tags: [planning]
-updated: 2026-10-28
+updated: 2026-11-03
 ---
 
 **Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
@@ -580,7 +580,7 @@ Team
 Marketing
 
 - make sure download, publish button (if there's meta connected), display upgrade plan modal
-- make the preview overlay more evident and rendered multiple times to fill the whole canvas for calendar, canvas and video. Meaning, I want these overlay to have many text that covers entire canvas. Also, use "Kame Homes" instead of "Preview"?
+- make the preview overlay more evident and rendered multiple times to fill the whole canvas for calendar, canvas and video. Meaning, I want these overlay to have many text that covers entire canvas. Also, use "Kame Space" instead of "Preview"?
 - clicking generate inside the generate modal should open display our upgrade plan modal.
 
 Notifications
@@ -755,7 +755,7 @@ Apply to all pages including both public and dashboard pages
 
 🚧 CI/CD + multi-tenant environments — [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · matrix [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md)
 
-**Now:** `develop` → `dev.kamehomes.space` → **fwor…** (`cd-dev.yml` + Vercel Preview). Legacy unchanged (`main` → `kamehomes.space` → **zftt…**).
+**Now:** `develop` → `dev.kamespace.com` → **fwor…** (`cd-dev.yml` + Vercel Preview). Legacy unchanged (`main` → `kamespace.com` → **zftt…**).
 
 **Pending at prod release (Phase B):**
 
@@ -1012,9 +1012,9 @@ Merge every production readiness checklist and plan into one folder, re-test eve
 
 📋 Back up legacy prod env vars, secrets and config (prerequisite)
 
-Save or make sure we still have access to all the important environment variables for both Vercel and Supabase that we have on the legacy prod, so that if we need it on the new app, we still have access to them. Save them on another environment variable file for backup, covering the legacy prod environment variables, secrets, and configuration. Do this before we start working on the Kame Homes renaming or rebranding plan.
+Save or make sure we still have access to all the important environment variables for both Vercel and Supabase that we have on the legacy prod, so that if we need it on the new app, we still have access to them. Save them on another environment variable file for backup, covering the legacy prod environment variables, secrets, and configuration. Do this before we start working on the Kame Space renaming or rebranding plan.
 
-→ **Planned:** [`../planned/kamespace-01-legacy-prod-config-secrets-backup.md`](../planned/kamespace-01-legacy-prod-config-secrets-backup.md) — blocks the cutover (Phase 1 and decommission) and the rebrand.
+→ **Done:** [`../done/kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) — closed 2026-11-03; blocks the cutover (Phase 1 and decommission) and the rebrand no more.
 
 ===
 
@@ -1022,15 +1022,15 @@ Save or make sure we still have access to all the important environment variable
 
 let's prepare the migration and make sure that we successfully transfer all the data all the storage assets that we have from the current super base that we have in production to our new super base which is different account also I think we have different Versailles account as well so we need to make sure that we consider that. Next, I want you to make sure that we properly do the migration that we have on the main repo. If you will notice and check we have huge thousands or few thousands of new changes especially if you compare the broad applications that we have and the new dev and new applications that we have so our goal is to make sure that we restore and we properly do the data migrations to the new apps. that we have right now. Make sure that we consider everything from data from doing and creating a migration script to create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle everything especially in our new app we have this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new new application and data structure that we have. again I want you to be very careful on this and our goal is to properly migrate and use our new application to the new services new repo new Vercel account new super base account and new other services that you have so that we can properly use this new application and deploy them to production once everything is good and then once everything's good I want you to clean up the old repo the old domain and other things that we need to clean up. you to plan this carefully list on all the tasks that we need to do make sure we cover everything and what I want you to make sure as well is that future bookings that we have on our current and production app should still work and should be considered as well in our new app so that we have this seamless transition from the current app that we have on the production and the one that we have this new Kami Space application
 
-→ **Planned:** [`../planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md) — Phase 0 inventory and R1 local rehearsal (dump, restore, upgrade) partly done; `resolve-booking-property` shipped.
+→ **Planned:** [`../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) — Phase 0 inventory and R1 local rehearsal (dump, restore, upgrade) partly done; `resolve-booking-property` shipped.
 
 ===
 
-📋 Rename "Kame Homes" to "Kame Space"
+📋 Rename "Kame Space" to "Kame Space"
 
 Once we did the migration properly and check on the dev and new prod that everything is working properly, our next goal is to rename Kami Homes to be Kami Space I want you to carefully check every text every label every environment variables every dynamic text that is related to Kami Homes and make sure that we update them to Kami Space I want you to update all the docs all the usages and all the occurrence that we use the Kami Homes I want you to carefully check the different casing text casing and make sure that we will no longer use Kami Homes on the entire applications either code wise and text label or any text that is displayed in the application make sure to also check any back-end related services or back-end code changes that using this Kami Homes I want you to check the email templates and third-party usages that we use this Kami Homes and make sure to update everything I want you to review this carefully if you need to create a plan to make sure that we missed anything please do but I want you to make sure that we update all the Kami Homes text labels and code related changes that ties to homes so that we could have this transition of naming to Kami Space
 
-→ **Planned:** [`../planned/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../planned/kamespace-03-rebrand-kame-homes-to-kame-space.md) — starts after cutover hypercare; R1/R2 decisions needed before cutover org shaping.
+→ **Planned:** [`../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) — starts after cutover hypercare; R1/R2 decisions needed before cutover org shaping.
 
 ===
 
@@ -1046,5 +1046,7 @@ another goal that we will need to do is to update the existing domain from using
 
 that we updated our domain and updated our app name and prepared the application for production release the next important thing that I would like you to do is to get approval from Google about the different Google related services that we are using in our app. I think we already have an existing plan or documentation for this but I think it's outdated because of these recent changes that we did so what I want you to do is to make sure that we update these docs review this carefully if you think we will need to create one from the scratch then please do but our goal is to make sure that we generate an updated guide on what are the things that we need to do what are the things that we need to configure set up so that we could do this Google API services approval so that our user can use our app especially the multi-tenant support and so that user will no longer see this not yet verified app when they sign in using Google. So the goal of this is to make sure that our app is fully ready for production and we consider any Google related service to be production ready as well.
 
-→ **Planned:** [`../planned/kamespace-05-google-services-verification.md`](../planned/kamespace-05-google-services-verification.md) — submit brand verification after the rebrand and domain pre-wire.
+→ **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) — brand verification approved and published 2026-11-03; sign-in closed.
+
+→ **Planned:** [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md) — post-launch billing upgrade (by 2026-12-03), Maps quotas/budget, Gemini paid tier, Fonts, legacy cleanup (H-01…H-12).
 ===

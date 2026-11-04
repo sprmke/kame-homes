@@ -14,7 +14,7 @@
 -- live. Run 61-activate-all-crons.sql at T0 to turn them on.
 --
 -- Ops reference: docs/archive/operations/scheduled-jobs-and-testing.md
--- Plan: docs/workflow/in-progress/kamespace-02-legacy-prod-to-mt-prod-cutover.md
+-- Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md
 --       Phase 1.3 + §5.6
 
 create extension if not exists pg_cron;

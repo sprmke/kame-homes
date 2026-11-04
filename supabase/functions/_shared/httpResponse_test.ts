@@ -1,10 +1,15 @@
+import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+
 import {
   badRequest,
   EdgeError,
   errorMessageFromThrown,
+  handleEdgeError,
   internalError,
+  requireHttpMethod,
   statusConflict,
 } from './httpResponse.ts';
+import { resetSentryDsnCacheForTests } from './sentry.ts';
 
 function assertStatus(actual: number, expected: number): void {
   if (actual !== expected) {
@@ -111,4 +116,72 @@ Deno.test('Response throws without a JSON body fall back to the supplied message
   );
   assertStatus(result.status, 401);
   assertMessage(result.message, 'Unauthorized');
+});
+
+Deno.test('requireHttpMethod reports 405, not 400', async () => {
+  const result = await errorMessageFromThrown(
+    (() => {
+      try {
+        requireHttpMethod(new Request('https://x.test/fn', { method: 'HEAD' }), 'POST');
+      } catch (error) {
+        return error;
+      }
+      throw new Error('requireHttpMethod did not throw');
+    })()
+  );
+  assertStatus(result.status, 405);
+  assertMessage(result.message, 'Method HEAD not allowed');
+  assertEquals(result.code, 'method_not_allowed');
+});
+
+/** Points the Sentry client at a stubbed transport and returns the captured calls. */
+function stubSentry(): { calls: string[]; restore: () => void } {
+  const original = globalThis.fetch;
+  const calls: string[] = [];
+  Deno.env.set('SENTRY_DSN', 'https://publickey@o1.ingest.us.sentry.io/4512354438021120');
+  Deno.env.set('SENTRY_SAMPLE_RATE_WARNING', '1');
+  resetSentryDsnCacheForTests();
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    calls.push(String(input));
+    return Promise.resolve(new Response('{}', { status: 200 }));
+  }) as typeof fetch;
+  return {
+    calls,
+    restore: () => {
+      globalThis.fetch = original;
+      Deno.env.delete('SENTRY_DSN');
+      Deno.env.delete('SENTRY_SAMPLE_RATE_WARNING');
+      resetSentryDsnCacheForTests();
+    },
+  };
+}
+
+Deno.test('handleEdgeError does not page Sentry for a client 4xx', async () => {
+  const sentry = stubSentry();
+  try {
+    const response = await handleEdgeError(
+      new Request('https://x.test/fn', { method: 'POST' }),
+      new Error('property_id is required'),
+      'test-fn'
+    );
+    assertEquals(response.status, 400);
+    assertEquals(sentry.calls.length, 0);
+  } finally {
+    sentry.restore();
+  }
+});
+
+Deno.test('handleEdgeError still reports a genuine 500', async () => {
+  const sentry = stubSentry();
+  try {
+    const response = await handleEdgeError(
+      new Request('https://x.test/fn', { method: 'POST' }),
+      new TypeError('undefined is not a function'),
+      'test-fn'
+    );
+    assertEquals(response.status, 500);
+    assertEquals(sentry.calls.length, 1);
+  } finally {
+    sentry.restore();
+  }
 });

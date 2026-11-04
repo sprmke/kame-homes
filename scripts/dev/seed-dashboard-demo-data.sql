@@ -783,7 +783,7 @@ BEGIN
       '07-10-2026', '07-13-2026', '14:00', '11:00',
       'Filipino', 2, 0, 3,
       'Airbnb', v_receipt, v_id,
-      'Kame Homes', 'Bali 1101', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1101', 'Michael D Manlulu', '09625647541',
       4500.00, 1500.00, 0.00, 1500.00,
       3000.00, '2026-07-13 12:00:00+08', '2026-07-01 10:00:00+08', now()
     ),
@@ -794,7 +794,7 @@ BEGIN
       '08-08-2026', '08-11-2026', '14:00', '11:00',
       'Filipino', 2, 0, 3,
       'Airbnb', v_receipt, v_id,
-      'Kame Homes', 'Bali 1101', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1101', 'Michael D Manlulu', '09625647541',
       4500.00, 1500.00, 3000.00, 1500.00,
       NULL, now(), '2026-08-02 10:00:00+08', now()
     ),
@@ -805,7 +805,7 @@ BEGIN
       '08-18-2026', '08-20-2026', '14:00', '11:00',
       'Filipino', 1, 0, 2,
       'Facebook', v_receipt, v_id,
-      'Kame Homes', 'Bali 1101', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1101', 'Michael D Manlulu', '09625647541',
       3200.00, 1000.00, 2200.00, 1200.00,
       NULL, now(), '2026-08-07 10:00:00+08', now()
     ),
@@ -816,7 +816,7 @@ BEGIN
       '09-12-2026', '09-15-2026', '14:00', '11:00',
       'Filipino', 2, 0, 3,
       'Instagram', v_receipt, v_id,
-      'Kame Homes', 'Bali 1101', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1101', 'Michael D Manlulu', '09625647541',
       4800.00, 1500.00, 3300.00, 1500.00,
       NULL, now(), '2026-08-08 10:00:00+08', now()
     );
@@ -840,7 +840,7 @@ BEGIN
       '07-18-2026', '07-21-2026', '14:00', '11:00',
       'Filipino', 2, 1, 3,
       'Airbnb', v_receipt, v_id,
-      'Kame Homes', 'Bali 1205', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1205', 'Michael D Manlulu', '09625647541',
       7800.00, 3000.00, 0.00, 2000.00,
       4800.00, '2026-07-21 12:00:00+08', '2026-07-05 10:00:00+08', now()
     ),
@@ -851,7 +851,7 @@ BEGIN
       '08-02-2026', '08-05-2026', '14:00', '11:00',
       'Filipino', 2, 1, 3,
       'Airbnb', v_receipt, v_id,
-      'Kame Homes', 'Bali 1205', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1205', 'Michael D Manlulu', '09625647541',
       7800.00, 3000.00, 0.00, 2000.00,
       4800.00, '2026-08-05 12:00:00+08', '2026-07-28 10:00:00+08', now()
     ),
@@ -862,7 +862,7 @@ BEGIN
       '08-08-2026', '08-10-2026', '14:00', '11:00',
       'Filipino', 2, 0, 2,
       'Instagram', v_receipt, v_id,
-      'Kame Homes', 'Bali 1205', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1205', 'Michael D Manlulu', '09625647541',
       5200.00, 2000.00, 0.00, 1600.00,
       3200.00, now(), '2026-08-03 10:00:00+08', now()
     ),
@@ -873,7 +873,7 @@ BEGIN
       '09-08-2026', '09-11-2026', '14:00', '11:00',
       'Filipino', 2, 0, 3,
       'Facebook', v_receipt, v_id,
-      'Kame Homes', 'Bali 1205', 'Michael D Manlulu', '09625647541',
+      'Kame Space', 'Bali 1205', 'Michael D Manlulu', '09625647541',
       8100.00, 3000.00, 5100.00, 2000.00,
       NULL, now(), '2026-08-06 10:00:00+08', now()
     );

@@ -1,0 +1,278 @@
+{
+  "list_bookings": {
+    "ok": true,
+    "data": {
+      "total": 3,
+      "bookings": [
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000001",
+          "hostLabel": "Maria Santos · Dec 20–Dec 22 · Ready for Check-in",
+          "guestName": "Maria Santos",
+          "status": "READY_FOR_CHECKIN",
+          "statusLabel": "Ready for Check-in",
+          "checkIn": "2026-12-20",
+          "checkOut": "2026-12-22"
+        },
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000002",
+          "hostLabel": "Garcia Family · Dec 24–Dec 26 · Pending Review",
+          "guestName": "Garcia Family",
+          "status": "PENDING_REVIEW",
+          "statusLabel": "Pending Review",
+          "checkIn": "2026-12-24",
+          "checkOut": "2026-12-26"
+        },
+        {
+          "bookingId": "b1a2c3d4-0000-4000-8000-000000000003",
+          "hostLabel": "Ana Reyes · Dec 23–Dec 26 · Pending Review",
+          "guestName": "Ana Reyes",
+          "status": "PENDING_REVIEW",
+          "statusLabel": "Pending Review",
+          "checkIn": "2026-12-23",
+          "checkOut": "2026-12-26"
+        }
+      ]
+    }
+  },
+  "get_booking": {
+    "ok": true,
+    "data": {
+      "bookingId": "b1a2c3d4-0000-4000-8000-000000000002",
+      "hostLabel": "Garcia Family · Dec 24–Dec 26 · Pending Review",
+      "guestName": "Garcia Family",
+      "status": "PENDING_REVIEW",
+      "statusLabel": "Pending Review",
+      "checkIn": "2026-12-24",
+      "checkOut": "2026-12-26",
+      "balanceDue": 3500
+    }
+  },
+  "get_available_dates": { "ok": true, "data": { "availableDates": ["2026-12-27", "2026-12-28"] } },
+  "get_available_transitions": {
+    "ok": true,
+    "data": { "current": "PENDING_REVIEW", "next": ["PENDING_DOCUMENTS"] }
+  },
+  "get_dashboard_stats": {
+    "ok": true,
+    "data": { "occupancyRate": 0.72, "pendingReview": 2, "openMaintenance": 4 }
+  },
+  "get_finance_summary": {
+    "ok": true,
+    "data": { "month": "2026-11", "revenue": 125000, "expenses": 32000, "netProfit": 93000 }
+  },
+  "get_finance_trend": {
+    "ok": true,
+    "data": { "months": ["2026-06", "2026-07", "2026-08"], "netProfit": [70000, 81000, 93000] }
+  },
+  "list_finance_bookings": { "ok": true, "data": { "total": 2, "bookings": [] } },
+  "propose_add_finance_line_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Add expense: Pool maintenance — ₱1,200" }
+  },
+  "propose_update_finance_line_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update line item: Pool maintenance" }
+  },
+  "propose_delete_finance_line_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Delete line item: Pool maintenance" }
+  },
+  "list_maintenance_items": {
+    "ok": true,
+    "data": [
+      { "id": "m1", "hostLabel": "Pest control spray · Open", "label": "Pest control spray" },
+      { "id": "m2", "hostLabel": "Smoke detector test · Open", "label": "Smoke detector test" }
+    ]
+  },
+  "get_maintenance_summary": { "ok": true, "data": { "open": 4, "overdue": 1 } },
+  "propose_create_maintenance_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "New maintenance item: Replace hallway bulb" }
+  },
+  "propose_update_maintenance_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Mark Pest control spray done." }
+  },
+  "propose_delete_maintenance_item": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Delete maintenance item: Pest control spray" }
+  },
+  "get_property_pricing": {
+    "ok": true,
+    "data": { "baseRate": 3500, "weekendRate": 4200, "currency": "PHP" }
+  },
+  "propose_block_property_dates": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Block Dec 24–Dec 26" }
+  },
+  "propose_unblock_property_dates": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Unblock Dec 24–Dec 26" }
+  },
+  "propose_update_property_base_rate": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Raise weekend rate 10% to ₱4,620" }
+  },
+  "propose_set_property_date_rate_override": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Set Dec 24 rate to ₱5,000" }
+  },
+  "get_parking_pricing": { "ok": true, "data": { "baseRate": 1500 } },
+  "propose_update_parking_base_rate": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Raise parking base rate to ₱1,650" }
+  },
+  "propose_set_parking_date_rate_override": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Set parking Dec 24 rate to ₱2,000" }
+  },
+  "list_parkings": { "ok": true, "data": { "total": 1, "parkings": [] } },
+  "list_parking_bookings": { "ok": true, "data": { "total": 0, "bookings": [] } },
+  "get_parking_booking": { "ok": true, "data": { "status": "pending" } },
+  "get_parking_available_transitions": { "ok": true, "data": { "next": [] } },
+  "propose_claim_parking_booking": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Claim parking slot" }
+  },
+  "propose_decline_parking_booking": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Decline parking slot" }
+  },
+  "propose_transition_parking_booking": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Advance parking booking" }
+  },
+  "list_inbox_threads": {
+    "ok": true,
+    "data": [
+      {
+        "conversationId": "c1",
+        "hostLabel": "Garcia Family · web",
+        "participantName": "Garcia Family"
+      }
+    ]
+  },
+  "get_inbox_thread": {
+    "ok": true,
+    "data": { "conversationId": "c1", "hostLabel": "Garcia Family · web", "replyStatus": "pending" }
+  },
+  "get_inbox_settings": { "ok": true, "data": { "autoReplyMode": "draft" } },
+  "list_inbox_quick_reply_templates": { "ok": true, "data": [] },
+  "propose_send_inbox_reply": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Send reply to Garcia Family" }
+  },
+  "propose_mark_inbox_thread_read": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Mark thread read" }
+  },
+  "list_team_members": {
+    "ok": true,
+    "data": [{ "memberId": "t1", "hostLabel": "Jane Dela Cruz · admin" }]
+  },
+  "list_property_team_members": {
+    "ok": true,
+    "data": [{ "memberId": "t2", "hostLabel": "Mark Reyes · manager" }]
+  },
+  "list_pending_invitations": { "ok": true, "data": [] },
+  "list_property_pending_invitations": { "ok": true, "data": [] },
+  "propose_invite_team_member": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Invite jane@example.com" }
+  },
+  "propose_invite_property_team_member": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Invite jane@example.com" }
+  },
+  "propose_remove_team_member": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Remove Jane Dela Cruz" }
+  },
+  "propose_remove_property_team_member": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Remove Mark Reyes" }
+  },
+  "propose_update_team_member_role": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update Jane's role to admin" }
+  },
+  "propose_update_property_team_member_role": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update Mark's role to manager" }
+  },
+  "propose_revoke_invitation": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Revoke invitation" }
+  },
+  "propose_revoke_property_invitation": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Revoke invitation" }
+  },
+  "get_org_profile": { "ok": true, "data": { "name": "Kame Test Stays" } },
+  "propose_update_org_profile": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update org name" }
+  },
+  "get_org_verification_status": { "ok": true, "data": { "status": "verified" } },
+  "get_property_profile": { "ok": true, "data": { "name": "Azure North 1204" } },
+  "propose_update_property_profile": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update property name" }
+  },
+  "get_property_settings": { "ok": true, "data": { "autoReplyMode": "draft" } },
+  "propose_update_property_settings": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Update property settings" }
+  },
+  "propose_transition_booking": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Advance booking to Pending Documents" }
+  },
+  "propose_cancel_booking": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Cancel booking" }
+  },
+  "get_booking_documents": { "ok": true, "data": { "documents": [] } },
+  "list_marketing_templates": { "ok": true, "data": [] },
+  "get_marketing_publish_history": { "ok": true, "data": [] },
+  "propose_publish_to_meta": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Publish to Facebook" }
+  },
+  "propose_add_property_holiday_rule": {
+    "ok": true,
+    "proposed": true,
+    "data": { "hostLabel": "Add holiday pricing rule" }
+  }
+}

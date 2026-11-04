@@ -23,7 +23,9 @@ export type NotificationType =
   | 'analytics_review_updated'
   | 'review_received'
   | 'review_due'
-  | 'review_response_received';
+  | 'review_response_received'
+  | 'maintenance_guest_reported'
+  | 'guest_request_submitted';
 
 /** Legacy inbox rows stored this generic title before participant names shipped. */
 export const LEGACY_INBOX_NOTIFICATION_TITLE = 'New guest message';

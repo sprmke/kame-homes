@@ -44,6 +44,8 @@ export type GenerateMarketingMediaPayload = {
   /** The version being refined (photo: its image is the first reference). */
   parentJobId?: string;
   themeKey?: string;
+  /** AI Studio example the host started from (attribution only). */
+  sampleId?: string;
 };
 
 export function useGenerateMarketingMedia() {

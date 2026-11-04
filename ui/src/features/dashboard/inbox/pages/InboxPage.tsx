@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
-import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
 import { InboxConversationView } from '@/features/dashboard/inbox/components/InboxConversationView';
 import {
@@ -33,8 +32,6 @@ import {
 } from '@/features/dashboard/inbox/hooks/useInbox';
 import type { InboxApiScope } from '@/features/dashboard/inbox/lib/inboxApi';
 import { metaInboxOAuthErrorMessage } from '@/features/dashboard/inbox/lib/metaInboxOAuthErrors';
-import { toastFeatureUnavailable } from '@/lib/featureAvailability/featureUnavailableError';
-import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import type {
   InboxConversation,
   ThreadPlatformFilter,
@@ -43,9 +40,15 @@ import type {
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
+import { PullToRefreshIndicator } from '@/components/pwa/PullToRefreshIndicator';
+import { StaleDataLabel } from '@/components/pwa/StaleDataLabel';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { toastFeatureUnavailable } from '@/lib/featureAvailability/featureUnavailableError';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 export type InboxPageProps = {
@@ -145,6 +148,7 @@ export function InboxPage({
     fetchNextPage: fetchMoreThreads,
     hasNextPage: hasMoreThreads,
     isFetchingNextPage: loadingMoreThreads,
+    dataUpdatedAt: threadsDataUpdatedAt,
     canLoadOlderFromMeta,
     loadOlderFromMeta,
     loadingOlderFromMeta,
@@ -167,6 +171,7 @@ export function InboxPage({
     hasNextPage: hasOlderMessages,
     isFetchingNextPage: loadingOlderMessages,
   } = useInboxMessages(orgSlug, orgId, selectedId, scope);
+  const pullToRefresh = usePullToRefresh({ onRefresh: () => refetchThreads() });
   const {
     connectMeta,
     disconnectMeta,
@@ -176,6 +181,7 @@ export function InboxPage({
     editMessage,
     unsendMessage,
     aiSuggest,
+    resolveGuestRequest,
   } = useInboxMutations(orgSlug, orgId, scope);
   const templatesQuery = useInboxTemplates(orgSlug, orgId, scope, showSettingsManageTabs);
   const automationQuery = useInboxAutomationSettings(orgSlug, orgId, scope, showSettingsManageTabs);
@@ -198,6 +204,7 @@ export function InboxPage({
     return [...messagesData.pages].reverse().flatMap((p) => p.messages);
   }, [messagesData?.pages]);
   const messagesConversation = messagesData?.pages[0]?.conversation ?? null;
+  const guestRequests = messagesData?.pages[0]?.guestRequests ?? [];
   const metaConnected = useMemo(
     () =>
       (connectionsData?.connections ?? []).some(
@@ -364,6 +371,12 @@ export function InboxPage({
           </div>
         )}
 
+        <PullToRefreshIndicator
+          pullDistance={pullToRefresh.pullDistance}
+          refreshing={pullToRefresh.refreshing}
+        />
+        <StaleDataLabel updatedAt={threadsDataUpdatedAt} className="px-1" />
+
         <div className="border-border/80 bg-card @container relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
           <InboxPlatformTabs
             value={platformFilter}
@@ -441,6 +454,19 @@ export function InboxPage({
               <InboxConversationView
                 conversation={selectedConversation}
                 messages={messages}
+                guestRequests={guestRequests}
+                onResolveGuestRequest={
+                  selectedId
+                    ? async (requestId, status) => {
+                        await resolveGuestRequest.mutateAsync({
+                          conversationId: selectedId,
+                          requestId,
+                          status,
+                        });
+                      }
+                    : undefined
+                }
+                resolvingGuestRequest={resolveGuestRequest.isPending}
                 isLoading={messagesLoading && !!selectedId}
                 canReply={canReply}
                 templates={templatesQuery.data ?? []}
@@ -461,6 +487,7 @@ export function InboxPage({
                     attachments: opts?.attachments,
                     templateKey: opts?.templateKey,
                     bookingId: opts?.bookingId,
+                    aiDrafted: opts?.aiDrafted,
                   });
                 }}
                 onUploadAttachment={

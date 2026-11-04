@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ORGANIZATIONS_QUERY_KEY } from '@/features/dashboard/org/hooks/useOrganizations';
 import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 import type { Organization } from '@/features/dashboard/org/types';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export type UpdateOrganizationInput = {
   orgId: string;
@@ -26,6 +27,7 @@ export function useUpdateOrganization() {
         body: JSON.stringify(input),
       }),
     onSuccess: (data) => {
+      captureAppEvent('settings_saved', { section: 'organization_profile' });
       queryClient.setQueryData(
         ORGANIZATIONS_QUERY_KEY,
         (old: { organizations: Organization[] } | undefined) => {

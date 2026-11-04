@@ -29,6 +29,17 @@ const defaultPlanFeatures = {
   smartPricing: false,
   customRoles: false,
   copyPropertySettings: false,
+  analyticsInsights: false,
+  activityLogExport: false,
+  marketingMediaLibrary: {
+    storageMb: 100,
+    maxFiles: 30,
+    maxImageMb: 10,
+    maxVideoMb: 50,
+    maxVideoSec: 30,
+    maxAudioMb: 15,
+    dailyUploads: 20,
+  },
 };
 
 export const mockPublicPricingPlansBody = {
@@ -170,10 +181,10 @@ export const mockPublicPropertyBody = {
     },
     host: {
       unitName: 'Solea Mactan',
-      organizationName: 'Kame Homes PH',
-      organizationSlug: 'kame-homes-ph',
+      organizationName: 'Sample Stays PH',
+      organizationSlug: 'sample-stays-ph',
       organizationLogoUrl: null,
-      ownerName: 'Kame Homes',
+      ownerName: 'Sample Stays',
       ownerAvatarUrl: null,
       brandColor: '#0f766e',
     },

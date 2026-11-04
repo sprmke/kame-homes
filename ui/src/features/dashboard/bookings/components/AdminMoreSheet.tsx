@@ -18,6 +18,7 @@ import { GetVerifiedSidebarCta } from '@/features/dashboard/org/components/verif
 import { OrgPlanSidebarEntry } from '@/features/dashboard/plans/components/OrgPlanSidebarEntry';
 
 import { scrollAdminViewToTop } from '@/components/navigation/ScrollToTop';
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import {
   BottomSheet,
@@ -150,6 +151,13 @@ export function AdminMoreSheet({
               </div>
             </>
           ) : null}
+
+          <div className="border-border/60 border-t py-1.5">
+            <InstallAppEntry
+              variant="menu-item"
+              className="hover:bg-muted/60 text-foreground h-auto min-h-11 w-full justify-start gap-3 px-2 text-sm font-medium"
+            />
+          </div>
 
           <div className="border-border/60 flex items-center gap-2 border-t py-2.5">
             <ThemeToggle

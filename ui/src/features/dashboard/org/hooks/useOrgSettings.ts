@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { scopedOrgFunctionsUrl, useOrgScopeKey } from '@/features/dashboard/org/lib/adminApiScope';
 
 import { supabase } from '@/lib/supabase/client';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export type OrgSettingsFieldSource = 'db' | 'default';
 
@@ -114,6 +115,7 @@ export function useUpdateOrgSettings() {
       return json.data;
     },
     onSuccess: (data) => {
+      captureAppEvent('settings_saved', { section: 'org_settings' });
       qc.setQueryData(['org-settings', orgSlug ?? orgId], data);
       qc.invalidateQueries({ queryKey: ['app-settings'] });
     },

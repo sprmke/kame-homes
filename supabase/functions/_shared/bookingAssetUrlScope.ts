@@ -10,12 +10,10 @@ export function bookingAssetUrlColumnList(): string {
   return ASSET_URL_COLUMNS.join(', ');
 }
 
+import { fullyDecodeStorageObjectPath } from './storageSignedUrl.ts';
+
 function normalizePath(path: string): string {
-  try {
-    return decodeURIComponent(path);
-  } catch {
-    return path;
-  }
+  return fullyDecodeStorageObjectPath(path);
 }
 
 /** True when a stored URL points at the same private object (bucket + object path). */

@@ -2,14 +2,14 @@
 title: Sentry runbook
 status: active
 tags: [operations, sentry, observability, incident-response]
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Sentry runbook
 
 How to triage, route and close an error in this product. Companion to
 [`docs/architecture/observability.md`](../architecture/observability.md) and the plan at
-`docs/workflow/planned/observability-sentry-posthog-split/`.
+`docs/workflow/done/observability-sentry-posthog-split/`.
 
 **The one rule:** Sentry owns faults, PostHog owns outcomes. If you are looking at an
 exception, you are in the right place. If you are looking at a user journey, you want PostHog.
@@ -23,6 +23,22 @@ old.
 Check **Stats → Usage** first. If the quota is gone, the calm answer is usually "one bad
 deploy looped", not "Sentry failed". Grep the recent events for the loudest fingerprint and
 fix that; visibility returns next cycle.
+
+## 0.5 Check source maps before believing a stack
+
+A minified frame (`index-abc123.js:1:48213`) means the release has no usable artifacts, not
+that the app is broken.
+
+**The authoritative signal is the build log**, one line per build:
+
+- `[sentry-vite-plugin] Info: Successfully uploaded source maps to Sentry` — uploads worked.
+- `[sentry] source-map upload is OFF … (missing SENTRY_AUTH_TOKEN)` — no credentials, so
+  nothing was uploaded. Set the variable and redeploy.
+
+`GET /projects/{org}/{project}/releases/{version}/files/` is **not** a reliable check: it lists
+only legacy per-file uploads, while current plugin versions upload artifact bundles, so the
+list can be empty on a perfectly good release. Use Sentry → **Releases → \<version\> → Source
+Maps** (or the build log) instead.
 
 ## 1. Triage an issue
 

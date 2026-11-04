@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useLocation, useParams } from 'react-router-dom';
 
 import { isSuperAdminPath } from '@/features/dashboard/bookings/lib/adminSidebarNav';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import {
@@ -83,6 +84,39 @@ export function SetupGuideProvider({ children }: { children: ReactNode }) {
     steps,
     superAdmin,
   ]);
+
+  // Report each step moving to complete once per session. The baseline is seeded from the
+  // first real snapshot, so steps that were already done before the page loaded are not
+  // re-reported, and a priority-ordered settings refetch cannot double-count a step.
+  const telemetryOrgRef = useRef<string | null>(null);
+  const reportedStepsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!org?.id) {
+      telemetryOrgRef.current = null;
+      reportedStepsRef.current = new Set();
+      return;
+    }
+    if (progress.steps.length === 0) return; // still loading; wait for the first snapshot
+    if (telemetryOrgRef.current !== org.id) {
+      telemetryOrgRef.current = org.id;
+      reportedStepsRef.current = new Set(
+        progress.steps.filter((entry) => entry.status === 'complete').map((entry) => entry.step.id)
+      );
+      return;
+    }
+    const completedIds = progress.steps
+      .filter((entry) => entry.status === 'complete')
+      .map((entry) => entry.step.id);
+    for (const id of completedIds) {
+      if (reportedStepsRef.current.has(id)) continue;
+      reportedStepsRef.current.add(id);
+      captureAppEvent('setup_guide_step_completed', {
+        step_key: id,
+        completed_count: completedIds.length,
+        total_count: progress.steps.length,
+      });
+    }
+  }, [org?.id, progress.steps]);
 
   const openGuide = useCallback(
     (stepId?: string | null) => {

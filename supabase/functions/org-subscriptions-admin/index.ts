@@ -25,6 +25,7 @@ import { postgrestOrIlikeValue } from '../_shared/publicSearch.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 // Statuses that count as an org's current ("live") subscription — mirrors the partial unique
 // index (org_subscriptions_one_live_per_org_idx) plus 'suspended', which can still be the
@@ -294,6 +295,21 @@ serveSuperAdmin('org-subscriptions-admin', async (req, admin) => {
     } else {
       orgSubscriptionId = existing.id;
       await changeOrgSubscription(orgSubscriptionId, planId, propertyIds, admin.id);
+    }
+
+    const planChanged = !existing || String(existing.plan_id) !== planId;
+    if (planChanged) {
+      await capturePostHogEvent('org_plan_changed', {
+        logPrefix: 'org-subscriptions-admin',
+        request: req,
+        distinctId: admin.id,
+        groups: { organization: organizationId },
+        properties: {
+          from_plan: existing ? String(existing.plan_id) : 'free',
+          to_plan: planId,
+          cause: 'admin',
+        },
+      });
     }
 
     if (overridePricePhp != null) {

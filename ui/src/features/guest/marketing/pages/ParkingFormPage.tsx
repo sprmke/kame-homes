@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -26,6 +26,7 @@ import { useRunUnguarded } from '@/hooks/useUnsavedChangesGuard';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useFavicon } from '@/lib/favicon';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 /** Server error codes/messages mapped to guest-facing copy — anything unmapped falls back to a generic message. */
 const GUEST_FACING_SUBMIT_ERRORS: Record<string, string> = {
@@ -54,6 +55,18 @@ export function ParkingFormPage() {
 
   usePageTitle(data ? propertyPublicPageTitle(data.name, 'Request parking') : undefined);
   useFavicon(data?.coverImage ?? data?.images[0] ?? undefined);
+
+  // Once per page load. Pricing for a parking slot is nightly, so that is the unit a request
+  // is measured in; there is no hourly/monthly catalog yet.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (startedRef.current || !data) return;
+    startedRef.current = true;
+    captureAppEvent('parking_booking_started', {
+      parking_id: data.id,
+      duration_kind: 'nightly',
+    });
+  }, [data]);
 
   // Same entry gate as property `/messages` and `/form`: require sign-in before the form is usable.
   useEffect(() => {
@@ -160,6 +173,7 @@ export function ParkingFormPage() {
 
         <ParkingRegistrationForm
           mobileVariant="page"
+          draftKey={parkingSlug}
           defaultValues={{ checkInDate, checkOutDate }}
           towerLabel={data.tower}
           linkableBookings={linkableBookingsQuery.data ?? []}

@@ -14,12 +14,15 @@ import {
   invalidateMarketingLibrary,
   saveMarketingTemplate,
 } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
+import { orderPosterBatch } from '@/features/dashboard/marketing/lib/aiStudioSamples';
 import type { PolotnoDesignDocument } from '@/features/dashboard/marketing/lib/polotno/polotnoCampaignDocuments';
+import { POSTER_ARCHETYPE_DEFAULT_FONTS } from '@/features/dashboard/marketing/lib/poster/posterArchetypes';
 import { auditPosterDocument } from '@/features/dashboard/marketing/lib/poster/posterAudit';
 import {
   compilePosterDocument,
   type PhotoSizeMap,
 } from '@/features/dashboard/marketing/lib/poster/posterCompiler';
+import { buildRuleBasedPosterSpecs } from '@/features/dashboard/marketing/lib/poster/posterDefaults';
 import { buildPosterFacts } from '@/features/dashboard/marketing/lib/poster/posterFacts';
 import { preloadPosterFonts } from '@/features/dashboard/marketing/lib/poster/posterFontLoader';
 import { loadPosterPhotoSizes } from '@/features/dashboard/marketing/lib/poster/posterPhotoSizes';
@@ -27,6 +30,7 @@ import type { renderPosterDocument as RenderPosterDocument } from '@/features/da
 import {
   compactPosterPhotos,
   normalizePosterSpec,
+  type PosterArchetypeId,
   type PosterFacts,
   type PosterGoal,
   type PosterSpec,
@@ -53,6 +57,8 @@ const renderPosterDocument: typeof RenderPosterDocument = (...args) =>
 
 /** Stored with each version: sharp enough for the stage, small enough for Storage. */
 const PREVIEW_PIXEL_RATIO = 0.75;
+/** Example cards are small; a lighter render keeps the gallery quick on phones. */
+const SAMPLE_PIXEL_RATIO = 0.5;
 
 export type RenderedPost = {
   spec: PosterSpec;
@@ -168,13 +174,19 @@ export function useAiPosterEngine(themeKey?: string | null) {
 
   /** First message: four posts, best-laid-out first. */
   const generateBatch = useCallback(
-    async (input: { goal: PosterGoal; prompt: string; format: DesignTemplateFormat }) => {
+    async (input: {
+      goal: PosterGoal;
+      prompt: string;
+      format: DesignTemplateFormat;
+      preferredArchetype?: PosterArchetypeId | null;
+    }) => {
       const [result] = await Promise.all([
         generatePosters(propertyId, {
           goal: input.goal,
           prompt: input.prompt,
           facts: baseFacts,
           brandColor,
+          preferredArchetype: input.preferredArchetype ?? null,
         }),
         loadFonts(),
       ]);
@@ -185,10 +197,11 @@ export function useAiPosterEngine(themeKey?: string | null) {
           issues: auditPosterDocument(await compile(spec, photos, input.format)).length,
         }))
       );
-      // Layout QA: posts with collisions or overflow go last, never first.
-      scored.sort((a, b) => a.issues - b.issues);
+      // Layout QA: posts with collisions or overflow go last, never first. A layout the
+      // host picked from an example leads when it passes QA.
+      const ordered = orderPosterBatch(scored, input.preferredArchetype ?? null);
       return {
-        specs: scored.map((item) => item.spec),
+        specs: ordered.map((item) => item.spec),
         photoUrls: photos,
         aiDirected: result.aiDirected,
       };
@@ -226,6 +239,43 @@ export function useAiPosterEngine(themeKey?: string | null) {
       return { spec: normalizePosterSpec(raw, nextFacts), photoUrls: nextFacts.photos };
     },
     [propertyId, factsFor, brandColor]
+  );
+
+  /**
+   * AI Studio example preview: one rule-based post in a fixed layout, drawn with the
+   * given facts (the host's listing, or the stand-in showcase). No AI call.
+   */
+  const renderSample = useCallback(
+    async (input: {
+      goal: PosterGoal;
+      archetype: PosterArchetypeId;
+      format: DesignTemplateFormat;
+      facts: PosterFacts;
+    }): Promise<string> => {
+      await loadFonts();
+      const specs = buildRuleBasedPosterSpecs(input.facts, input.goal, { accent: brandColor });
+      const spec = specs.find((item) => item.archetype === input.archetype) ?? specs[0];
+      if (!spec) throw new Error('No layout for this example');
+      const pinned = normalizePosterSpec(
+        {
+          ...spec,
+          archetype: input.archetype,
+          fontPairing: POSTER_ARCHETYPE_DEFAULT_FONTS[input.archetype],
+        },
+        input.facts
+      );
+      const document = await compilePosterDocument(pinned, input.facts, input.format, {
+        photoSizes: await photoSizes(input.facts.photos),
+        brandColor,
+        theme: themeTokens,
+      });
+      const rendered = await renderPosterDocument(document, {
+        pixelRatio: SAMPLE_PIXEL_RATIO,
+        mimeType: 'image/jpeg',
+      });
+      return rendered.dataUrl;
+    },
+    [loadFonts, brandColor, photoSizes, themeTokens]
   );
 
   /** Full-size PNG for Download / Publish. */
@@ -281,6 +331,7 @@ export function useAiPosterEngine(themeKey?: string | null) {
     baseFacts,
     generateBatch,
     render,
+    renderSample,
     revise,
     exportBlob,
     saveToPosts,

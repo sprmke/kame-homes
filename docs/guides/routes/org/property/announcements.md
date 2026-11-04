@@ -28,7 +28,7 @@ Property-only team members can open this deep-link route to read platform mainte
 
 ## Host-facing knowledge
 
-This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your building or development. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group. The list always shows active notices until we turn them off or the schedule ends.
+This is where you read official notices from Kame Space — scheduled maintenance, new features, and updates for your building or development. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group. The list always shows active notices until we turn them off or the schedule ends.
 
 **Common host questions**
 

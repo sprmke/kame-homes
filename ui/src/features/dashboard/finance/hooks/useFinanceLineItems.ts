@@ -18,6 +18,7 @@ import type {
 import { assetScopeKey, useAdminAssetScope } from '@/features/dashboard/org/lib/adminAssetScope';
 
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 const FINANCE_LINE_ITEMS_KEY = ['finance-line-items'] as const;
 const FINANCE_RECURRING_SERIES_KEY = ['finance-recurring-series'] as const;
@@ -105,6 +106,10 @@ export function useFinanceLineItemMutations(query: FinanceQuery) {
     mutationFn: (input: Parameters<typeof createFinanceLineItemApi>[0]) =>
       createFinanceLineItemApi(input, scope),
     onSuccess: async (result) => {
+      captureAppEvent('finance_entry_saved', {
+        kind: result.row.kind,
+        has_receipt: Boolean(result.row.receipt_path),
+      });
       toast.success(
         result.created_count > 1
           ? `${result.created_count} recurring transactions created`
@@ -133,6 +138,10 @@ export function useFinanceLineItemMutations(query: FinanceQuery) {
       scope?: RecurrenceEditScope;
     }) => updateFinanceLineItemApi(id, patch, editScope, scope),
     onSuccess: async (result) => {
+      captureAppEvent('finance_entry_saved', {
+        kind: result.row.kind,
+        has_receipt: Boolean(result.row.receipt_path),
+      });
       toast.success(
         result.updated_count > 1
           ? `${result.updated_count} transactions updated`

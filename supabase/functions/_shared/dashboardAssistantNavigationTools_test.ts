@@ -47,25 +47,25 @@ Deno.test('openPageBlocksFromResults rejects non-dashboard hrefs and caps at 3',
 
 Deno.test('openPageBlockFromUserIntent maps notifications and Facebook connect', () => {
   const notifications = openPageBlockFromUserIntent('Open my notifications', {
-    orgSlug: 'kame-home',
+    orgSlug: 'sample-org',
     propertySlug: 'monaco-2612',
   });
   assertEquals(notifications?.routeKey, 'property.notifications');
-  assertEquals(notifications?.href, '/org/kame-home/property/monaco-2612/notifications');
+  assertEquals(notifications?.href, '/org/sample-org/property/monaco-2612/notifications');
   const facebook = openPageBlockFromUserIntent('How do I connect Facebook?', {
-    orgSlug: 'kame-home',
+    orgSlug: 'sample-org',
     propertySlug: 'monaco-2612',
   });
   assertEquals(facebook?.routeKey, 'property.inbox');
   assertEquals(
     openPageBlockFromUserIntent('How much did I make this month?', {
-      orgSlug: 'kame-home',
+      orgSlug: 'sample-org',
       propertySlug: 'monaco-2612',
     }),
     null
   );
   assertEquals(
-    openPageBlockFromUserIntent('Open my notifications', { orgSlug: 'kame-home' }),
+    openPageBlockFromUserIntent('Open my notifications', { orgSlug: 'sample-org' }),
     null
   );
 });

@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-02
+updated: 2026-11-04
 stage: in-progress
 kind: reference
 ---
@@ -15,7 +15,13 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
-**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 02 (legacy → mt-prod cutover) has data, storage, accounts, extensions and crons on `fwor…`; T0 freeze + DNS is the remaining step. 01 keeps its optional sign-off tails (B-06, B-16, B-17). 04's DNS/Resend/Auth phases gate T0.
+**Moved out 2026-11-03:** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) and [`kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) → **done**. Legacy data, storage, auth, domains, email and repo are on the new stack; the secrets backup is closed with its optional tails deferred. Deferred in 02: Maps Embed API, property photos, PayMongo approval, 30-day decommission.
+
+**Moved out 2026-11-03:** [`kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) → **done**. Google sign-in brand verification approved and published. Remaining Maps/Gemini/Fonts/legacy items split to [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md), not pre-production blockers.
+
+**Updated 2026-11-04:** **03 rebrand is complete** (0 open items): production live on `Kame Space`, guard green in CI, narration audio regenerated, 539 social stills re-rendered, mobile overflow gate, legal disclosure, `ks-*` aliases, glossary. **04 domain move** has 19 operator/console items left (Namecheap DNS, Turnstile, Google Business/Postmaster, Meta, PayMongo, PostHog/Sentry, comms). Search Console sitemap is submitted and verified.
+
+**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 01 is closed; 02 (legacy → mt-prod cutover) is closed. 03 rebrand and 04 domain move remain here. 04's DNS/Resend/Auth phases gate T0.
 
 **Moved in 2026-10-25:** [`chat-templates.md`](./chat-templates.md) ← [`../planned/`](../planned/) — property stay-guide/custom templates in Guest Inbox Insert → Templates and AI Assistant Pin context. Code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
 
@@ -35,16 +41,15 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved in 2026-09-27:** [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) ← [`../planned/`](../planned/) — Activity Manage modal toolbar, refine, modal-scroll virtualization, friendly summaries.
 
-| Doc                                                                                                  | Summary                                                                                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`production-readiness/`](./production-readiness/README.md)                                          | **Launch readiness umbrella**: checklist (00–30), audits, OWASP, module cards, QA batch, operator inputs, evidence. Ledger + to-fix / all-good lists. Phase 0 baseline done 2026-10-19                                                                                         |
-| [`guest-trip-hub.md`](./guest-trip-hub.md)                                                           | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                                                                                            |
-| [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md)                          | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
-| [`marketing-themes.md`](./marketing-themes.md)                                                       | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
-| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)                                   | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
-| [`ci-cd-environments/`](./ci-cd-environments/README.md)                                              | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
-| [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) | Legacy prod → multi-tenant prod cutover. Production is `fwor…`; data + storage + shaping done, crons installed and parked; T0 reload, DNS and hypercare remain                                                                                                                 |
-| See [`../done/`](../done/) for completed work.                                                       |
+| Doc                                                                         | Summary                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`production-readiness/`](./production-readiness/README.md)                 | **Launch readiness umbrella**: checklist (00–30), audits, OWASP, module cards, QA batch, operator inputs, evidence. Ledger + to-fix / all-good lists. Phase 0 baseline done 2026-10-19                                                                                         |
+| [`guest-trip-hub.md`](./guest-trip-hub.md)                                  | Guest trip page per booking (`/properties/:slug/trip`) + `/account/trips`, success page / email / SD form entry points; manual QA + host copy-link follow-up remain                                                                                                            |
+| [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
+| [`marketing-themes.md`](./marketing-themes.md)                              | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
+| [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)          | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
+| [`ci-cd-environments/`](./ci-cd-environments/README.md)                     | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
+| See [`../done/`](../done/) for completed work.                              |
 
 **Super admin console:** Phases 0–7 **done** — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) (+ audit log, AI usage, platform settings, global search in `done/`). Remaining 6 modules: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md).
 

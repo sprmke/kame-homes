@@ -19,6 +19,7 @@ import { AiGenerationOutcomesCard } from '@/features/dashboard/super-admin/compo
 import { AiPlanUsageCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AiPlanUsageCard';
 import { AssistantEvalRunsCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantEvalRunsCard';
 import { AssistantLatencyCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantLatencyCard';
+import { AssistantTurnTelemetryCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantTurnTelemetryCard';
 import {
   useSuperAdminAiUsage,
   type SuperAdminAiUsageRange,
@@ -406,6 +407,10 @@ export function AiUsageTab() {
           ) : null}
 
           {data.assistantLatency ? <AssistantLatencyCard latency={data.assistantLatency} /> : null}
+
+          {data.assistantTurnTelemetry ? (
+            <AssistantTurnTelemetryCard telemetry={data.assistantTurnTelemetry} />
+          ) : null}
 
           {data.assistantEvalRuns ? <AssistantEvalRunsCard runs={data.assistantEvalRuns} /> : null}
         </>

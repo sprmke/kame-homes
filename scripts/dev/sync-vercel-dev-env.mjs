@@ -60,6 +60,14 @@ for (const key of UI_KEYS) {
 const targets = ['preview', 'development'];
 if (INCLUDE_PRODUCTION) targets.push('production');
 
+/** Production must never receive the preview/local value of these keys. */
+const PROD_OVERRIDES = new Map([['VITE_NODE_ENV', 'production']]);
+if (INCLUDE_PRODUCTION) {
+  for (const [key, value] of PROD_OVERRIDES) {
+    if (values.has(key)) values.set(key, value);
+  }
+}
+
 console.log(
   `Vercel sync → ${auth.projectName} (${targets.join(', ')}): ${values.size} key(s)${DRY_RUN ? ' [dry-run]' : ''}`
 );

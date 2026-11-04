@@ -5,7 +5,7 @@
  *
  * Env (from supabase/.env.local or process.env):
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
- *   EMAIL_LOGO_URL (optional) — absolute URL for the Kame Homes logo in `<img src>`; default `https://kamehomes.space/images/logo.png`
+ *   EMAIL_LOGO_URL (optional) — absolute URL for the platform logo in `<img src>`; default `https://kamespace.com/images/logo.png`
  *
  * Run: bun run preview:emails:db
  */
@@ -254,7 +254,10 @@ function formatDateForEmail(dateStr) {
   });
 }
 
-const DEFAULT_EMAIL_LOGO_URL = 'https://kamehomes.space/images/logo.png';
+const DEFAULT_EMAIL_LOGO_URL = 'https://kamespace.com/images/logo.png';
+
+/** Preview shell brand — never the retired product name. */
+const PREVIEW_BRAND_NAME = (process.env.PLATFORM_APP_NAME || '').trim() || 'Kame Space';
 
 function buildEmailHeaderLogoHtml(logoUrl, logoAlt = 'Property') {
   const frag = loadTemplate('fragments/email-header-logo');
@@ -465,7 +468,7 @@ function wrapHouseRulesStandalonePreview(fragmentHtml, emailHeaderLogo) {
                 <table role="presentation" class="brand-block" width="100%" cellspacing="0" cellpadding="0" border="0">
                   <tr>
                     <td class="brand-line">
-                      <span class="brand-micro">Kame Homes</span>
+                      <span class="brand-micro">${PREVIEW_BRAND_NAME}</span>
                     </td>
                   </tr>
                   <tr>
@@ -479,7 +482,7 @@ function wrapHouseRulesStandalonePreview(fragmentHtml, emailHeaderLogo) {
             </tr>
             <tr>
               <td align="center" class="legal-footer">
-                &copy; Kame Homes. All rights reserved.
+                &copy; ${PREVIEW_BRAND_NAME}. All rights reserved.
               </td>
             </tr>
           </table>
@@ -696,7 +699,7 @@ async function loadPaymentSettings(supabase) {
       .eq('id', 1)
       .maybeSingle();
     if (error || !data) return defaults;
-    const origin = (data.public_guest_app_origin || 'https://kamehomes.space').replace(
+    const origin = (data.public_guest_app_origin || 'https://kamespace.com').replace(
       /\/+$/,
       '',
     );

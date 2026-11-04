@@ -83,7 +83,7 @@ Same as Cursor's `.cursor/commands/`; Claude Code commands and skills both creat
 | `/kh-submit-for-review` | Push branch + open PR **into `develop`**                                                                    |
 | `/fix-merge-conflicts`  | Resolve merge conflicts without breaking either side's changes                                              |
 | `/fix-migration-issues` | Apply pending **local** migrations (`bun run db:migrate`) — no reset/deploy by default                      |
-| `/github-issue`         | View / create / update / ship issues on `sprmke/kame-homes` (backed by `scripts/dev/gh-issue.mjs`)          |
+| `/github-issue`         | View / create / update / ship issues on `sprmke/kame-space` (backed by `scripts/dev/gh-issue.mjs`)          |
 | `/self-review`          | Deep production-readiness review of a module/change (skill: `self-review`) — gaps, edge cases, ship verdict |
 
 ## Display (`~/.claude/settings.json` — user scope, not committed)

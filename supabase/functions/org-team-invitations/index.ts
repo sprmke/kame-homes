@@ -22,6 +22,7 @@ import {
   resendOrgInvitation,
 } from '../_shared/orgTeamService.ts';
 import { catchPlanFeatureError } from '../_shared/planEntitlements.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -73,6 +74,16 @@ serveAuthenticated('org-team-invitations', async (req, user) => {
     });
     try {
       const invitation = await createOrgInvitation(ctx, body);
+      await capturePostHogEvent('team_invite_sent', {
+        logPrefix: 'org-team-invitations',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: ctx.org.id },
+        properties: {
+          scope: 'org',
+          role: typeof body.roleId === 'string' ? body.roleId.trim() : 'unknown',
+        },
+      });
       return jsonSuccess(req, { invitation });
     } catch (e) {
       const planErr = catchPlanFeatureError(req, e);

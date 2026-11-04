@@ -27,6 +27,10 @@ export const AI_LIMIT_KEYS = [
   'voiceMaxConcurrentSessions',
   'imageMonthlyCreditCap',
   'videoMonthlyCreditCap',
+  'assistantMaxToolRounds',
+  'assistantMaxPlanSteps',
+  'guestRequestDailyLimit',
+  'assistantTurnCreditCeiling',
 ] as const;
 
 export type AiLimitKey = (typeof AI_LIMIT_KEYS)[number];
@@ -67,6 +71,10 @@ export const AI_LIMIT_CONSTANT_DEFAULTS: AiLimitValues = {
   voiceMaxConcurrentSessions: 3,
   imageMonthlyCreditCap: null,
   videoMonthlyCreditCap: null,
+  assistantMaxToolRounds: 8,
+  assistantMaxPlanSteps: 10,
+  guestRequestDailyLimit: 3,
+  assistantTurnCreditCeiling: 100,
 };
 
 /** Validation bounds shared by the profile/override writers. `min`/`max` inclusive. */
@@ -101,6 +109,19 @@ export const AI_LIMIT_BOUNDS: Record<
   },
   imageMonthlyCreditCap: { min: 1, integer: true, label: 'Image monthly credit cap' },
   videoMonthlyCreditCap: { min: 1, integer: true, label: 'Video monthly credit cap' },
+  assistantMaxToolRounds: {
+    min: 1,
+    max: 20,
+    integer: true,
+    label: 'Assistant max tool rounds',
+  },
+  assistantMaxPlanSteps: { min: 1, max: 30, integer: true, label: 'Assistant max plan steps' },
+  guestRequestDailyLimit: { min: 1, max: 20, integer: true, label: 'Guest request daily limit' },
+  assistantTurnCreditCeiling: {
+    min: 0.000001,
+    integer: false,
+    label: 'Assistant turn credit ceiling',
+  },
 };
 
 export function isAiLimitKey(value: string): value is AiLimitKey {
@@ -213,6 +234,10 @@ const PROFILE_COLUMNS: Record<AiLimitKey, string> = {
   voiceMaxConcurrentSessions: 'voice_max_concurrent_sessions',
   imageMonthlyCreditCap: 'image_monthly_credit_cap',
   videoMonthlyCreditCap: 'video_monthly_credit_cap',
+  assistantMaxToolRounds: 'assistant_max_tool_rounds',
+  assistantMaxPlanSteps: 'assistant_max_plan_steps',
+  guestRequestDailyLimit: 'guest_request_daily_limit',
+  assistantTurnCreditCeiling: 'assistant_turn_credit_ceiling',
 };
 
 export const AI_LIMIT_PROFILE_COLUMNS: Record<AiLimitKey, string> = PROFILE_COLUMNS;
@@ -262,6 +287,10 @@ export function orgOverrideValues(orgRow: Row, assistantRow: Row): AiLimitValues
     assistantDailyMessageLimit: num(assistantRow, 'daily_message_limit'),
     assistantMonthlyMessageLimit: num(assistantRow, 'monthly_message_limit'),
     assistantDailyWriteActionLimit: num(assistantRow, 'daily_write_action_limit'),
+    assistantMaxToolRounds: num(assistantRow, 'assistant_max_tool_rounds'),
+    assistantMaxPlanSteps: num(assistantRow, 'assistant_max_plan_steps'),
+    guestRequestDailyLimit: num(assistantRow, 'guest_request_daily_limit'),
+    assistantTurnCreditCeiling: num(assistantRow, 'assistant_turn_credit_ceiling'),
   };
 }
 
@@ -434,7 +463,9 @@ async function loadOrgInputs(
       .maybeSingle(),
     sb
       .from('ai_dashboard_assistant_org_settings')
-      .select('daily_message_limit, monthly_message_limit, daily_write_action_limit')
+      .select(
+        'daily_message_limit, monthly_message_limit, daily_write_action_limit, assistant_max_tool_rounds, assistant_max_plan_steps, guest_request_daily_limit, assistant_turn_credit_ceiling'
+      )
       .eq('organization_id', organizationId)
       .maybeSingle(),
     sb.from('ai_limit_profiles').select(PROFILE_SELECT).eq('is_default', true).maybeSingle(),
@@ -617,7 +648,7 @@ export async function resolveOrgAiLimitsBatch(
       sb
         .from('ai_dashboard_assistant_org_settings')
         .select(
-          'organization_id, daily_message_limit, monthly_message_limit, daily_write_action_limit'
+          'organization_id, daily_message_limit, monthly_message_limit, daily_write_action_limit, assistant_max_tool_rounds, assistant_max_plan_steps, guest_request_daily_limit, assistant_turn_credit_ceiling'
         )
         .in('organization_id', chunk),
       sb

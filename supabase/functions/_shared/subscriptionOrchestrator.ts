@@ -4,6 +4,7 @@
  */
 
 import { createClient } from './supabaseJs.ts';
+import { capturePostHogEvent } from './posthog.ts';
 
 import {
   changeOrgSubscription,
@@ -280,6 +281,31 @@ export async function fulfillOrgSubscriptionPayment(input: {
       .maybeSingle();
     if (txnUpdateError) throw new Error(txnUpdateError.message);
     if (!paidRow) return;
+
+    // The checkout completed on the server, so the browser's old event is deliberately not
+    // re-emitted: one outcome, one source (plan F-22).
+    await capturePostHogEvent('org_plan_checkout_completed', {
+      logPrefix: 'subscription-orchestrator',
+      distinctId: assignedBy ?? undefined,
+      groups: { organization: organizationId },
+      properties: {
+        plan_id: planId,
+        interval: 'monthly',
+        is_upgrade: !existingSub,
+      },
+    });
+    if (!existingSub || String(existingSub.plan_id) !== planId) {
+      await capturePostHogEvent('org_plan_changed', {
+        logPrefix: 'subscription-orchestrator',
+        distinctId: assignedBy ?? undefined,
+        groups: { organization: organizationId },
+        properties: {
+          from_plan: existingSub ? String(existingSub.plan_id) : 'free',
+          to_plan: planId,
+          cause: 'upgrade',
+        },
+      });
+    }
 
     try {
       const { data: planRow } = await sb

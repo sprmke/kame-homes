@@ -55,6 +55,7 @@ import {
   completeMarketingGenerationJob,
   failMarketingGenerationJob,
   insertMarketingGenerationJob,
+  readSampleId,
   recordMarketingGenerationJobUsage,
   toMarketingGenerationJobDto,
   touchGenerationReferences,
@@ -100,6 +101,7 @@ import { loadResolvedBrandColorByPropertyId } from '../_shared/propertyBranding.
 import { isMarketingThemeKey } from '../_shared/marketingTheme.ts';
 import { isUuid } from '../_shared/marketingTemplateLibrary.ts';
 import { refineParentError, sessionTitleFromPrompt } from '../_shared/marketingAiSessions.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const MAX_REFERENCE_IDS = 14;
 /** Video jobs run for up to ~6 minutes (Veo p99); expire the row if it never finishes. */
@@ -296,6 +298,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     body,
     plan,
   } = ctx;
+  const sampleId = readSampleId(body.sampleId);
 
   let options: ReturnType<typeof assertValidImageOptions>;
   try {
@@ -382,6 +385,7 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
     // regardless; this column is for host-facing transparency, not generation.
     enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
     promptEnhanced: enhancement.enhanced,
+    generationOptions: sampleId ? { sampleId } : {},
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,
@@ -492,6 +496,14 @@ async function handleImageGeneration(req: Request, ctx: GenerationRequestContext
       }),
     ]);
 
+    await capturePostHogEvent('marketing_asset_generated', {
+      logPrefix: 'generate-marketing-media',
+      request: req,
+      distinctId: user.id,
+      groups: { organization: organizationId, property: propertyId },
+      properties: { kind: mediaType },
+    });
+
     return jsonSuccess(req, {
       job: toMarketingGenerationJobDto({
         ...completed,
@@ -543,6 +555,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     body,
     plan,
   } = ctx;
+  const sampleId = readSampleId(body.sampleId);
 
   let options: ReturnType<typeof assertValidVideoOptions>;
   try {
@@ -653,7 +666,7 @@ async function handleVideoGeneration(req: Request, ctx: GenerationRequestContext
     negativePrompt,
     enhancedPrompt: enhancement.enhanced ? enhancement.prompt : null,
     promptEnhanced: enhancement.enhanced,
-    generationOptions: { cameraMove, sound },
+    generationOptions: { cameraMove, sound, ...(sampleId ? { sampleId } : {}) },
     model: options.config.model,
     qualityTier: options.tier,
     aspectRatio: options.aspectRatio,

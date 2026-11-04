@@ -7,7 +7,7 @@ updated: 2026-09-23
 
 # Testing index
 
-Sitewide pyramid for Kame Homes. Plan: [`docs/workflow/done/sitewide-automated-testing.md`](../../workflow/done/sitewide-automated-testing.md).
+Sitewide pyramid for Kame Space. Plan: [`docs/workflow/done/sitewide-automated-testing.md`](../../workflow/done/sitewide-automated-testing.md).
 
 ## Pyramid
 
@@ -92,6 +92,7 @@ interactive controls have an accessible name.
 | [`public-marketing-playwright.md`](./public-marketing-playwright.md)     | Landing, search, listings, legal    |
 | [`super-admin-manual.md`](./super-admin-manual.md)                       | Super admin OTP + payouts           |
 | [`cost-abuse-verification.md`](./cost-abuse-verification.md)             | Cost/abuse/security dev verify      |
+| [`local-google-setup.md`](./local-google-setup.md)                       | Local Maps key + OAuth client       |
 
 Manual-only (existing):
 

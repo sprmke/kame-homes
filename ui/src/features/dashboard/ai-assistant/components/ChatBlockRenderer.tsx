@@ -1,4 +1,5 @@
 import { ActionConfirmationBlock } from '@/features/dashboard/ai-assistant/components/blocks/ActionConfirmationBlock';
+import { ActionPlanBlock } from '@/features/dashboard/ai-assistant/components/blocks/ActionPlanBlock';
 import { ActivityTimelineBlock } from '@/features/dashboard/ai-assistant/components/blocks/ActivityTimelineBlock';
 import { BookingCardBlock } from '@/features/dashboard/ai-assistant/components/blocks/BookingCardBlock';
 import { CalendarBlock } from '@/features/dashboard/ai-assistant/components/blocks/CalendarBlock';
@@ -28,12 +29,18 @@ import { TimelineBlock } from '@/features/dashboard/ai-assistant/components/bloc
 import type {
   ChatBlock,
   ConfirmActionResponse,
+  ConfirmPlanResponse,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import { isCanvasWorthyBlock } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
 
 type Props = {
   blocks: ChatBlock[];
   onResolveAction: (actionId: string, confirm: boolean) => Promise<ConfirmActionResponse | null>;
+  onResolvePlan: (
+    planId: string,
+    confirm: boolean,
+    selectedStepIds?: string[]
+  ) => Promise<ConfirmPlanResponse | null>;
   onRunQuickAction?: (action: { label: string; prompt: string }) => void;
   quickActionsDisabled?: boolean;
   onOpenCanvas?: (block: ChatBlock) => void;
@@ -48,6 +55,7 @@ type Props = {
 export function ChatBlockRenderer({
   blocks,
   onResolveAction,
+  onResolvePlan,
   onRunQuickAction,
   quickActionsDisabled,
   onOpenCanvas,
@@ -109,6 +117,8 @@ export function ChatBlockRenderer({
             );
           case 'action_confirmation':
             return <ActionConfirmationBlock key={i} {...block} onResolve={onResolveAction} />;
+          case 'action_plan':
+            return <ActionPlanBlock key={i} {...block} onResolve={onResolvePlan} />;
           case 'chart':
             return <ChartBlock key={i} {...block} />;
           case 'calendar':

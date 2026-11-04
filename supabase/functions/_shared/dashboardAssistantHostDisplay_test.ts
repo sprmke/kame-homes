@@ -450,7 +450,7 @@ Deno.test('appendLeadChips fills open_page answers that have no chips', () => {
       type: 'open_page',
       routeKey: 'property.notifications',
       label: 'Notifications',
-      href: '/org/kame-home/property/monaco-2612/notifications',
+      href: '/org/sample-org/property/monaco-2612/notifications',
     },
   ]);
   assertEqual(
@@ -463,7 +463,7 @@ Deno.test('appendLeadChips fills open_page answers that have no chips', () => {
       type: 'open_page',
       routeKey: 'property.settings',
       label: 'Settings',
-      href: '/org/kame-home/property/monaco-2612/settings',
+      href: '/org/sample-org/property/monaco-2612/settings',
     },
   ]);
   const qa = blocks.find((block) => block.type === 'quick_actions');

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { toast } from 'sonner';
+
 import {
   useInfiniteQuery,
   useMutation,
@@ -21,6 +23,7 @@ import {
   listChatTemplates,
   markInboxConversationRead,
   patchInboxAutomationSettings,
+  resolveGuestRequest as resolveGuestRequestApi,
   resubscribeMetaInbox,
   saveInboxTemplate,
   deleteInboxTemplate,
@@ -55,10 +58,6 @@ import {
   mockSendReply,
   resetInboxMockStore,
 } from '@/features/dashboard/inbox/lib/inboxMockStore';
-import {
-  ensureInboxNotificationPermission,
-  notifyInboxNewMessage,
-} from '@/features/dashboard/inbox/lib/inboxNotifications';
 import {
   inboxFiltersBlockMetaScrollSync,
   inboxPageExhaustedInDb,
@@ -328,6 +327,7 @@ export function useInboxMutations(
       attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
       templateKey?: string;
       bookingId?: string | null;
+      aiDrafted?: boolean;
     }) => {
       if (mockMode) {
         await mockSendReply(opts.conversationId, opts.text, opts.templateKey);
@@ -356,6 +356,7 @@ export function useInboxMutations(
         attachments: opts.attachments,
         templateKey: opts.templateKey,
         bookingId: opts.bookingId,
+        aiDrafted: opts.aiDrafted,
         scope,
       });
     },
@@ -444,6 +445,28 @@ export function useInboxMutations(
     onError: onFeatureUnavailableError,
   });
 
+  const resolveGuestRequestMutation = useMutation({
+    mutationFn: (opts: {
+      conversationId: string;
+      requestId: string;
+      status: 'approved' | 'declined';
+    }) =>
+      mockMode
+        ? Promise.reject(new Error('Not available in preview mode'))
+        : resolveGuestRequestApi(
+            orgSlug,
+            orgId,
+            opts.conversationId,
+            opts.requestId,
+            opts.status,
+            scope
+          ),
+    onSuccess: (_, vars) => {
+      void qc.invalidateQueries({ queryKey: inboxMessagesQueryKey(vars.conversationId, scope) });
+    },
+    onError: onFeatureUnavailableError,
+  });
+
   return {
     connectMeta,
     disconnectMeta,
@@ -453,6 +476,7 @@ export function useInboxMutations(
     editMessage,
     unsendMessage,
     aiSuggest,
+    resolveGuestRequest: resolveGuestRequestMutation,
   };
 }
 
@@ -766,8 +790,6 @@ export function useInboxRealtime(orgId: string | null) {
   useEffect(() => {
     if (mockMode || !orgId) return;
 
-    void ensureInboxNotificationPermission();
-
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
@@ -792,12 +814,14 @@ export function useInboxRealtime(orgId: string | null) {
             scheduleInboxInvalidate(qc);
             const row = payload.new as { direction?: string; body_text?: string | null };
             if (row.direction === 'inbound') {
-              const preview = row.body_text?.trim().slice(0, 120) || 'New message';
-              notifyInboxNewMessage({
-                title: 'Guest Inbox',
-                body: preview,
-                tag: `inbox-${orgId}`,
-              });
+              // Foreground signal only. The OS notification comes from the push
+              // pipeline (`push-fanout` → service worker), so there is exactly one
+              // system notification per message (P1-6 / 6.6).
+              if (document.visibilityState === 'visible') {
+                toast.message('New guest message', {
+                  description: row.body_text?.trim().slice(0, 120) || 'New message',
+                });
+              }
             }
           }
         )

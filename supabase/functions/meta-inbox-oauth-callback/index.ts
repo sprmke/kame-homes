@@ -24,6 +24,7 @@ import {
 import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -101,6 +102,18 @@ serve(async (req) => {
       await connectMetaInboxPage(st.organization_id, pages[0]!, {
         propertyId: st.property_id,
         parkingId: st.parking_id,
+      });
+      await capturePostHogEvent('meta_inbox_connected', {
+        logPrefix: 'meta-inbox-oauth-callback',
+        groups: {
+          organization: st.organization_id,
+          ...(st.property_id ? { property: st.property_id } : {}),
+          ...(st.parking_id ? { parking: st.parking_id } : {}),
+        },
+        properties: {
+          channel: pages[0]!.instagram_business_account ? 'instagram' : 'messenger',
+        },
+        system: true,
       });
       await sb.from('meta_inbox_oauth_state').delete().eq('state', state);
       return Response.redirect(

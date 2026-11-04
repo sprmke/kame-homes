@@ -7,7 +7,7 @@
  * Not configurable per org in admin UI — set the env var per deployment.
  */
 
-export const DEFAULT_PUBLIC_GUEST_APP_ORIGIN = 'https://kamehomes.space';
+export const DEFAULT_PUBLIC_GUEST_APP_ORIGIN = 'https://kamespace.com';
 
 export function resolvePublicGuestAppOrigin(orgStoredOrigin?: string | null): string {
   const fromEnv = Deno.env.get('PUBLIC_GUEST_APP_ORIGIN')?.trim();

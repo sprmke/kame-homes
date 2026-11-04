@@ -95,6 +95,7 @@ export const COMPARE_EXPECTATIONS: CompareGroupExpectation[] = [
         label: 'Publish in Meta platforms',
         cells: ['off', 'off', 'off', 'Unlimited', 'Unlimited'],
       },
+      { label: 'Media library storage', cells: ['100 MB', '500 MB', '3 GB', '10 GB', '25 GB'] },
     ],
   },
   {
@@ -349,6 +350,7 @@ export const UNLOCKS: Record<string, string[]> = {
     'Telegram alerts',
     'Advanced template management',
     'Verified badge eligible',
+    '500 MB of media storage, 100 files, 60s video',
   ],
   'starter>growth': [
     'AI receipt and ID validation',
@@ -365,6 +367,7 @@ export const UNLOCKS: Record<string, string[]> = {
     'Recommended badge eligible',
     'Top 30 search placement',
     '5,000 AI credits per month',
+    '3 GB of media storage, 500 files, 60s video',
   ],
   'growth>pro': [
     'Up to 10 team members',
@@ -377,10 +380,12 @@ export const UNLOCKS: Record<string, string[]> = {
     'AI dashboard assistant',
     'AI receptionist',
     '25,000 AI credits per month',
+    '10 GB of media storage, 2,000 files, 60s video',
   ],
   'pro>managed': [
     'Unlimited team members',
     '60,000 AI credits per month',
+    '25 GB of media storage, 5,000 files, 60s video',
     "We'll manage everything, from bookings to operations, marketing, chat, reminders, etc",
   ],
 };
@@ -422,6 +427,7 @@ export const REMOVES: Record<string, string[]> = {
     'AI dashboard assistant',
     'AI receptionist',
     '25,000 AI credits per month',
+    '10 GB of media storage, 2,000 files, 60s video',
   ],
 };
 

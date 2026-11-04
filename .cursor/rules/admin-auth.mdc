@@ -44,7 +44,7 @@ Applies whenever a change touches the `/bookings` routes, the new admin-only edg
 
 ## 4. Guest form dev controls (`GuestForm.tsx`)
 
-- **Production (`VITE_NODE_ENV === 'production'`):** no dev checkbox panel; submits use full save + storage + calendar + sheet flags as wired in `submit-form`, and **New Booking Request** email runs by default (`sendEmail` omitted → treated as on server-side).
+- **Production (`import.meta.env.PROD`, i.e. `vite build`):** no dev checkbox panel, no auto sample data on load; submits use full save + storage + calendar + sheet flags as wired in `submit-form`, and **New Booking Request** email runs by default (`sendEmail` omitted → treated as on server-side).
 - **Non-production:** dev panel shows save/storage/calendar/sheet/**Send email** toggles (**all on by default**; uncheck to skip). Flags are sent as **FormData** fields (not URL query params). **`sendEmail=false`** skips the owner notify only.
 - **`?dev=true` is removed** — never gate or preserve this (or `testing` / submit-form control flags) on guest or calendar URLs. Legacy links that still include them are stripped on load.
 
