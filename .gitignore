@@ -28,6 +28,9 @@ backups/
 backup/
 .worktrees/
 
+# Read-only performance snapshots (Supabase metrics + advisors)
+.artifacts/
+
 # OAuth client credential / token files (Gmail, etc. — never commit real credentials)
 **/gmail-credentials.json
 **/credentials.json
