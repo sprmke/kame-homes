@@ -24,6 +24,7 @@ import {
   formatDateRange,
   formatGuestSummary,
   formatGuestSummaryCompact,
+  normalizeStayRange,
   parseDateParam,
   parseGuestBreakdown,
   readWhereParam,
@@ -945,7 +946,7 @@ export function HeroSearch({
                         <Calendar
                           mode="range"
                           selected={dateRange}
-                          onSelect={setDateRange}
+                          onSelect={(range) => setDateRange(normalizeStayRange(range))}
                           numberOfMonths={effectiveCalendarMonths}
                           showOutsideDays={false}
                           navLayout="around"

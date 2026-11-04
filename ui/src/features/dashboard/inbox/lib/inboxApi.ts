@@ -1,4 +1,3 @@
-import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
 import type {
   ChatTemplateListItem,
   GuestRequestDto,
@@ -19,8 +18,10 @@ import {
   useOrgSlugParam,
 } from '@/features/dashboard/org/lib/adminApiScope';
 import { throwIfAiQuota } from '@/features/dashboard/org/lib/aiQuotaToast';
-import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
 
+import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
+import { EdgeResponseError } from '@/lib/api/edgeError';
+import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
 import { supabase } from '@/lib/supabase/client';
 
 async function getJwt(): Promise<string> {
@@ -38,10 +39,10 @@ type EdgeJson = {
 };
 
 /** Edge functions return `{ success, data }`; unwrap for typed fields. */
-function unwrapEdgePayload(json: EdgeJson): Record<string, unknown> {
+function unwrapEdgePayload(json: EdgeJson, status: number): Record<string, unknown> {
   if (!json.success) {
     throwIfFeatureUnavailableBody(json);
-    throw new Error(json.error ?? 'Request failed');
+    throw new EdgeResponseError(json.error ?? 'Request failed', status);
   }
   const payload = json.data;
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
@@ -97,7 +98,7 @@ export async function fetchInboxConnections(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     connections: (payload.connections as InboxConnection[] | undefined) ?? [],
     metaConfigured: !!payload.metaConfigured,
@@ -131,7 +132,7 @@ export async function startMetaInboxOAuth(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   if (typeof payload.url !== 'string') {
     throw new Error('Failed to start Meta connection');
   }
@@ -155,7 +156,7 @@ export async function disconnectMetaInbox(
     body: JSON.stringify({ platform, deleteMessages, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function resubscribeMetaInbox(
@@ -176,7 +177,7 @@ export async function resubscribeMetaInbox(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     verified: payload.verified === true,
     resubscribed: payload.resubscribed === true,
@@ -194,7 +195,7 @@ export async function fetchMetaOAuthPages(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return (payload.pages as MetaPagePickerOption[] | undefined) ?? [];
 }
 
@@ -215,7 +216,7 @@ export async function completeMetaOAuthPage(
     body: JSON.stringify({ pickerState, pageId, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return { pageName: typeof payload.pageName === 'string' ? payload.pageName : '' };
 }
 
@@ -256,7 +257,7 @@ export async function runMetaInboxBackfillChunk(
     }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     done: !!payload.done,
     phase:
@@ -297,7 +298,7 @@ export async function fetchInboxThreads(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     conversations: (payload.conversations as InboxConversation[] | undefined) ?? [],
     nextCursor: (payload.nextCursor as string | null | undefined) ?? null,
@@ -325,7 +326,7 @@ export async function fetchInboxMessages(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     conversation: payload.conversation as InboxConversation,
     messages: (payload.messages as InboxMessage[] | undefined) ?? [],
@@ -350,7 +351,7 @@ export async function resolveGuestRequest(
     body: JSON.stringify({ action: 'resolve_guest_request', requestId, status }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return payload.request as GuestRequestDto;
 }
 
@@ -404,7 +405,7 @@ export async function sendInboxReply(
     }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 /** Property templates available in the Inbox composer (email templates excluded). */
@@ -418,7 +419,7 @@ export async function listChatTemplates(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return (payload.templates as ChatTemplateListItem[] | undefined) ?? [];
 }
 
@@ -437,7 +438,7 @@ export async function fetchChatTemplatePreview(
   if (opts?.bookingId) url.searchParams.set('booking_id', opts.bookingId);
   const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${jwt}` } });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   const snapshot = payload.snapshot as ChatTemplateSnapshot | undefined;
   if (!snapshot) throw new Error('Template preview failed');
   return snapshot;
@@ -493,7 +494,7 @@ export async function editInboxMessage(
     body: JSON.stringify({ messageId, text, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return payload.message as InboxMessage;
 }
 
@@ -516,7 +517,7 @@ export async function unsendInboxMessage(
     body: JSON.stringify({ action: 'unsend', messageId, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function fetchInboxTemplates(
@@ -532,7 +533,7 @@ export async function fetchInboxTemplates(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return (payload.templates as InboxTemplate[] | undefined) ?? [];
 }
 
@@ -556,7 +557,7 @@ export async function saveInboxTemplate(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const data = unwrapEdgePayload(json);
+  const data = unwrapEdgePayload(json, res.status);
   return data.template as InboxTemplate;
 }
 
@@ -573,7 +574,7 @@ export async function deleteInboxTemplate(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function suggestInboxAiReply(
@@ -596,7 +597,7 @@ export async function suggestInboxAiReply(
   );
   const json = (await res.json()) as EdgeJson;
   throwIfAiQuota(json, res);
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   if (typeof payload.suggestion !== 'string') {
     throw new Error('AI suggestion unavailable');
   }
@@ -633,7 +634,7 @@ export async function fetchInboxAutomationSettings(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  return parseAutomationSettings(unwrapEdgePayload(json));
+  return parseAutomationSettings(unwrapEdgePayload(json, res.status));
 }
 
 export async function patchInboxAutomationSettings(
@@ -653,7 +654,7 @@ export async function patchInboxAutomationSettings(
   });
   const json = (await res.json()) as EdgeJson;
   throwIfAiQuota(json, res);
-  return parseAutomationSettings(unwrapEdgePayload(json));
+  return parseAutomationSettings(unwrapEdgePayload(json, res.status));
 }
 
 export function useInboxOrgScope() {

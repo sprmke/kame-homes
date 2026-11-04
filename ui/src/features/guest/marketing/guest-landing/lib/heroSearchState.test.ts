@@ -5,6 +5,7 @@ import {
   formatDateRange,
   formatGuestSummary,
   formatGuestSummaryCompact,
+  normalizeStayRange,
   parseDateParam,
   parseGuestBreakdown,
   readWhereParam,
@@ -47,5 +48,20 @@ describe('heroSearchState', () => {
     expect(formatGuestSummaryCompact({ adults: 0, children: 0, infants: 0, pets: 2 })).toBe('2 pet');
     expect(formatDateRange(range)).toBe('Aug 5 – Aug 7');
     expect(formatDateRange(undefined)).toBe('');
+  });
+
+  it('turns a single-day pick into a one-night stay', () => {
+    const sameDay = { from: new Date(2026, 10, 12), to: new Date(2026, 10, 12) };
+    const counts = { adults: 2, children: 0, infants: 0, pets: 0 };
+
+    expect(normalizeStayRange(sameDay)).toEqual({
+      from: new Date(2026, 10, 12),
+      to: new Date(2026, 10, 13),
+    });
+    expect(buildSearchValues('Cebu', sameDay, counts).checkOut).toBe('2026-11-13');
+    // A first click (no end date yet) is left alone so the user can pick the end.
+    expect(normalizeStayRange({ from: new Date(2026, 10, 12) })).toEqual({
+      from: new Date(2026, 10, 12),
+    });
   });
 });

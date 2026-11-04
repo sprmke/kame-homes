@@ -134,6 +134,11 @@ Deno.test('requireHttpMethod reports 405, not 400', async () => {
   assertEquals(result.code, 'method_not_allowed');
 });
 
+Deno.test('requireHttpMethod accepts HEAD for a GET endpoint', () => {
+  // Uptime monitors probe read endpoints with HEAD; a 405 there reads as downtime.
+  requireHttpMethod(new Request('https://x.test/fn', { method: 'HEAD' }), 'GET');
+});
+
 /** Points the Sentry client at a stubbed transport and returns the captured calls. */
 function stubSentry(): { calls: string[]; restore: () => void } {
   const original = globalThis.fetch;

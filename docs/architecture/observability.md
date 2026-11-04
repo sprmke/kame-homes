@@ -30,6 +30,9 @@ Agent skill: **`sentry`**. OpenCode MCP: `opencode mcp auth sentry`.
 
 An expected result is never a Sentry issue: a validation failure, a blocked captcha, a
 heuristic anti-spam block, a 404 route, or a deliberate 4xx `EdgeError` is an outcome.
+Browser fetch helpers that unwrap an edge envelope keep the HTTP status on the thrown error
+(`EdgeResponseError`), because `reportQueryError` can only apply this rule when it can see
+the status.
 
 ## Shared ids
 

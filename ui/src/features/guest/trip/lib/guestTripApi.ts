@@ -93,11 +93,14 @@ export type GuestTripErrorCode = 'sign_in_required' | 'not_found' | 'unknown';
 
 export class GuestTripError extends Error {
   readonly code: GuestTripErrorCode;
+  /** HTTP status when the server answered; absent for a client-side failure. */
+  readonly status?: number;
 
-  constructor(code: GuestTripErrorCode, message: string) {
+  constructor(code: GuestTripErrorCode, message: string, status?: number) {
     super(message);
     this.name = 'GuestTripError';
     this.code = code;
+    this.status = status;
   }
 }
 
@@ -122,11 +125,12 @@ export async function fetchGuestTrip(bookingId: string, propertySlug: string): P
 
   if (!res.ok || !json.success || !json.data) {
     const message = json.message ?? "We couldn't load this booking.";
+    // Status lets `reportQueryError` treat a wrong/expired link as an outcome, not a fault.
     if (res.status === 401 || json.error === 'sign_in_required') {
-      throw new GuestTripError('sign_in_required', message);
+      throw new GuestTripError('sign_in_required', message, res.status);
     }
-    if (res.status === 404) throw new GuestTripError('not_found', message);
-    throw new GuestTripError('unknown', message);
+    if (res.status === 404) throw new GuestTripError('not_found', message, res.status);
+    throw new GuestTripError('unknown', message, res.status);
   }
 
   // Signed-in owners get a token so SD form / review / edit links work in this tab.
