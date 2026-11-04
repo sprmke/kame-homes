@@ -97,6 +97,9 @@ export function PwaProvider() {
     onRegisterError(error) {
       // eslint-disable-next-line no-console
       console.error('[pwa] service worker registration failed', error);
+      // Automated browsers (Playwright, Lighthouse) block service worker registration. That
+      // is the harness, not a dead worker for a real user, and it can never be fixed here.
+      if (typeof navigator !== 'undefined' && navigator.webdriver) return;
       // A dead service worker silently loses push notifications and offline reads for this
       // user until they clear site data. Nothing else reports it.
       captureError(error, {
