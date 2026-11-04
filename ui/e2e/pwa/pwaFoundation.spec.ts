@@ -124,9 +124,11 @@ test.describe('@pwa installability and lifecycle', () => {
 
     await context.setOffline(true);
     await page.goto('/properties/does-not-exist/form').catch(() => undefined);
-    const body = await page.locator('body').innerText();
-    expect(body.length).toBeGreaterThan(0);
-    expect(body).not.toContain('ERR_INTERNET_DISCONNECTED');
+    // The shell comes from the precache, but React paints after `load`; poll instead of
+    // reading innerText the instant the navigation resolves.
+    const body = page.locator('body');
+    await expect(body).not.toBeEmpty({ timeout: 15_000 });
+    expect(await body.innerText()).not.toContain('ERR_INTERNET_DISCONNECTED');
     await context.setOffline(false);
   });
 
