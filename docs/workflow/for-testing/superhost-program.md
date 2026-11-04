@@ -1,8 +1,8 @@
 ---
 title: 'Superhost program — earned-only (detailed plan)'
-status: active
+status: for-testing
 tags: [workflow, planned, superhost, trust]
-updated: 2026-09-01
+updated: 2026-11-04
 stage: for-testing
 kind: plan
 ---
@@ -223,7 +223,7 @@ Badge unchanged on property detail, search cards, showcase, host cards — label
 
 | Doc                                                     | Status                              |
 | ------------------------------------------------------- | ----------------------------------- |
-| `docs/workflow/planned/superhost-program.md`            | This file                           |
+| `docs/workflow/for-testing/superhost-program.md`        | This file                           |
 | `docs/guides/routes/org/property/settings.md`           | Updated — no Superhost settings     |
 | `docs/guides/routes/org/settings.md`                    | Updated — Trust section             |
 | `docs/architecture/edge-functions.md`                   | Updated — Superhost endpoints       |

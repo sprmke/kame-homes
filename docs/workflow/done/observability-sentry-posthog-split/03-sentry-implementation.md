@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 03 Sentry implementation (Phases S0–S6)'
-status: planned
+status: done
 tags: [workflow, planned, observability, sentry, error-tracking]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: plan
 ---
 

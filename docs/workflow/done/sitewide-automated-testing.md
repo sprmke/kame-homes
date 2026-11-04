@@ -1,8 +1,8 @@
 ---
 title: 'Sitewide automated testing (unit + Playwright + CI)'
-status: planned
+status: done
 tags: [planning, testing, vitest, playwright, deno, ci-cd]
-updated: 2026-09-11
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

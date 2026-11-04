@@ -1,8 +1,8 @@
 ---
 title: 'Parking ↔ property production parity'
 stage: for-testing
-status: in-progress
-updated: 2026-09-09
+status: for-testing
+updated: 2026-11-04
 tags: [workflow, in-progress, parking, property]
 ---
 

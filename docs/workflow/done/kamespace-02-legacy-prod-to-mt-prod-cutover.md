@@ -1,9 +1,9 @@
 ---
-stage: in-progress
+stage: done
 title: 'Legacy prod → multi-tenant prod cutover (data, storage, accounts, cleanup)'
-status: in-progress
+status: done
 tags: [planning, deployment, migration, supabase, storage, vercel, multi-tenancy, cutover]
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Legacy prod → multi-tenant prod cutover
@@ -14,7 +14,7 @@ updated: 2026-11-02
 - **In progress:** Phase 1 prod wiring (Auth URLs, Vercel/GitHub env), Phase 6 integrations, T0 freeze pair.
 - **Pending:** `kamespace.com` DNS + Resend inbound + prod Google OAuth (plan 04), T0 freeze + reload + DNS, Phases 7–10 decommission. `main → develop` merge landed 2026-11-02; re-merge at T0.
 
-**Series.** Plan 2 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](../in-progress/kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
+**Series.** Plan 2 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
 
 **Goal.** Move Kame Homes off the live legacy stack (`main` → Vercel `guest-form-management-app` on `sprmkes-projects` → Supabase `zfttdwtceyqszyeyhilc`) onto the new multi-tenant app (`develop` → Vercel `kame-homes` on `kame-works` → **`fwor…` reused as multi-tenant production**). Every legacy row, Auth user and Storage object lands in mt-prod under a proper **Kame Homes org → property** shape. Every booking already on the books (especially future stays) keeps working end to end: links in emails already sent, document approvals, SD refunds, calendar availability, Telegram summaries. After a stable hypercare period, retire the legacy repo branch, Vercel project, Supabase project, domain wiring and service accounts.
 
@@ -362,7 +362,7 @@ Ordered. Each step is reversible until the last one.
 
 ## 12. Open questions (answer in Phase 0)
 
-1. **Org brand and slug.** "Kame Homes" / `kame-homes`, or keep the backfill's `kame-home`? (Slug is in every admin URL.) **Owner-confirmed 2026-10-25: shape as "Kame Homes" / `kame-homes` NOW (this supersedes the rebrand plan's Q1 note; the Kame Space rename happens after cutover in [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md)), which owns the tenant rename then.**
+1. **Org brand and slug.** "Kame Homes" / `kame-homes`, or keep the backfill's `kame-home`? (Slug is in every admin URL.) **Owner-confirmed 2026-10-25: shape as "Kame Homes" / `kame-homes` NOW (this supersedes the rebrand plan's Q1 note; the Kame Space rename happens after cutover in [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md)), which owns the tenant rename then.**
 2. **Final domain (rebrand R2).** **Owner-confirmed 2026-10-25: prod = `https://kamespace.com` (apex), dev env = `dev.kamespace.com`.** OAuth/Resend/Meta origins get set up once for these. Legacy apex `kamehomes.space` + `www` keep redirecting into `kamespace.com` per D4. TODO: register/verify `kamespace.com` DNS at T-2d (registry/DNS provider TBD) and verify the domain is available before cutover — **if it is not, fall back to `app.kamehomes.space` and revisit**.
 3. **Accounts / mt-prod project.** **Owner decision 2026-10-27: REUSE the existing mt-dev Supabase project `fworvijbrwpyngycotbz` as production** (rename "Kame Homes - Dev" to a prod name in the dashboard) to avoid the extra project cost while there are no paying users; a separate dev project gets added later once the app has stable users/income. Consequences: `fwor`'s current dev data is wiped and restored from the legacy dump (backup kept per §10 retention), and `develop`-branch migrations now target live prod data — schema changes need freeze discipline at cutover. Resend/Google/PostHog remain per §7 at cutover.
 4. **Property list.** Is Monaco 2604 the only unit with legacy bookings, or did legacy serve several units? If several, which booking field identifies the unit?
@@ -377,11 +377,11 @@ Ordered. Each step is reversible until the last one.
 
 ## 12b. Revisit todos (owner-requested, do NOT apply during cutover)
 
-| Todo                                                                                                                                                                             | When                                                                                                                                                            |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Parking vertical** — decide whether Kame Homes needs a dedicated parking entity in the new model or parking stays a booking add-on for Azure North. Owner said: defer + track. | After cutover + hypercare; see also the Q7 answer in §12                                                                                                        |
-| **Kame Space rename** — tenant org name/slug, visible product strings, QR/asset filenames, socials                                                                               | After cutover verified on dev + prod, per [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) |
-| **Dev env origin** — `dev.kamespace.com` on the mt-dev project (`fwor`) + DNS                                                                                                    | Can land before or after cutover (independent)                                                                                                                  |
+| Todo                                                                                                                                                                             | When                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parking vertical** — decide whether Kame Homes needs a dedicated parking entity in the new model or parking stays a booking add-on for Azure North. Owner said: defer + track. | After cutover + hypercare; see also the Q7 answer in §12                                                                                           |
+| **Kame Space rename** — tenant org name/slug, visible product strings, QR/asset filenames, socials                                                                               | After cutover verified on dev + prod, per [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md) |
+| **Dev env origin** — `dev.kamespace.com` on the mt-dev project (`fwor`) + DNS                                                                                                    | Can land before or after cutover (independent)                                                                                                     |
 
 ---
 

@@ -111,3 +111,4 @@ docs/GLOSSARY.md  # documents the former name and stable identifiers
 docs/guides/routes/legal.md  # documents the rename disclosure and structured data
 ui/src/lib/platformBranding.test.ts  # asserts the rename disclosure copy and legacy-name detector
 ui/src/lib/platformBranding.test.ts  # tests the retired-name disclosure
+docs/workflow/in-progress/README.md:kamespace-03-rebrand  # links the rename plan filename

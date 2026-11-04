@@ -1,8 +1,8 @@
 ---
 title: 'Guest Inbox — Meta (Facebook/Instagram) production hardening'
-status: active
+status: done
 tags: [workflow, done, inbox, meta]
-updated: 2026-08-20
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

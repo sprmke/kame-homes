@@ -1,8 +1,8 @@
 ---
 title: 'AI dashboard assistant — universal per-module context pickers & rich response blocks'
-status: shipped
+status: done
 tags: [workflow, done, ai-assistant, dashboard]
-updated: 2026-08-19
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

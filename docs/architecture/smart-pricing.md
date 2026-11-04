@@ -8,7 +8,7 @@ updated: 2026-09-04
 # Smart Pricing — AI-assisted dynamic nightly rates
 
 Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split. Plan of record:
-[`../workflow/in-progress/smart-pricing-ai.md`](../workflow/in-progress/smart-pricing-ai.md).
+[`../workflow/for-testing/smart-pricing-ai.md`](../workflow/for-testing/smart-pricing-ai.md).
 
 > **Delivery status:** Phases 0–3 shipped (2026-09-04). Schema + `smartPricing` Pro+ plan key,
 > the deterministic engine + first-party history learning, the rate-resolution merge (server +

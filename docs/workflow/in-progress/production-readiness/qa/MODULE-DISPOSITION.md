@@ -2,7 +2,7 @@
 title: 'In-progress module disposition'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-09-15
+updated: 2026-11-04
 stage: in-progress
 kind: reference
 origin_stage: in-progress
@@ -55,11 +55,11 @@ Also in `for-testing/` (own checklists, not numbered): `smart-pricing-ai`, `host
 
 ## Planned (related, not in-progress)
 
-| Doc                                                                                                                                      | Notes                                              |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [`../planned/parking-e2e-phase6-ranking-trust-safety.md`](../../../planned/parking-e2e-phase6-ranking-trust-safety.md)                   | Parking E2E Phase 6                                |
-| [`../planned/parking-e2e-production-readiness.md`](../audits/parking-e2e-production-readiness.md)                                        | Parking prod checklist                             |
-| [`../planned/marketing-studio-mobile-and-dashboard-responsive.md`](../../../planned/marketing-studio-mobile-and-dashboard-responsive.md) | Marketing mobile (separate from Meta publish gaps) |
+| Doc                                                                                                                    | Notes                                              |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [`../planned/parking-e2e-phase6-ranking-trust-safety.md`](../../../planned/parking-e2e-phase6-ranking-trust-safety.md) | Parking E2E Phase 6                                |
+| [`../planned/parking-e2e-production-readiness.md`](../audits/parking-e2e-production-readiness.md)                      | Parking prod checklist                             |
+| [`../marketing-studio-mobile-and-dashboard-responsive.md`](../../marketing-studio-mobile-and-dashboard-responsive.md)  | Marketing mobile (separate from Meta publish gaps) |
 
 ---
 

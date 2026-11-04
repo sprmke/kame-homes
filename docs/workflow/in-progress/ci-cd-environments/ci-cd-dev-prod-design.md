@@ -4,7 +4,7 @@ status: active
 stage: in-progress
 kind: design
 tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, operations, multi-tenancy]
-updated: 2026-08-09
+updated: 2026-11-04
 ---
 
 # CI/CD to dev and production — Design
@@ -89,7 +89,7 @@ Your suggestion is directionally right (**long-lived develop + promote to main**
 
 ## Environment matrix (source of truth)
 
-Names used in docs and CI. **Project refs** (public in URLs) are listed in [`docs/architecture/deployment.md`](../../architecture/deployment.md); **keys** stay in gitignored env / GitHub secrets only.
+Names used in docs and CI. **Project refs** (public in URLs) are listed in [`docs/architecture/deployment.md`](../../../architecture/deployment.md); **keys** stay in gitignored env / GitHub secrets only.
 
 | Logical env                  | Git branch                        | Vercel target                                           | Supabase project                                                                                | Mutated by CI?                                                                             |
 | ---------------------------- | --------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -287,7 +287,7 @@ Later cutover:
 
 ### Phase 0 — Isolate & wire tracks (do first; zero user risk)
 
-1. Confirm LEGACY_PROD `zfttdwtceyqszyeyhilc` vs MULTI_TENANT_DEV `fworvijbrwpyngycotbz` — documented in [`deployment.md`](../../architecture/deployment.md).
+1. Confirm LEGACY_PROD `zfttdwtceyqszyeyhilc` vs MULTI_TENANT_DEV `fworvijbrwpyngycotbz` — documented in [`deployment.md`](../../../architecture/deployment.md).
 2. Git: merge multi-tenant feature → **`develop`**; keep **`main`** clean of multi-tenant ship.
 3. Vercel: **`guest-form-management-app`** stays `main`+LEGACY; **`kame-homes`** Production branch + env → MULTI_TENANT_DEV.
 4. Auth/OAuth: register staging origins on **mt-dev only**.

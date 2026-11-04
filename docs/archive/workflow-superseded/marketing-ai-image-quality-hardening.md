@@ -7,7 +7,7 @@ stage: in-progress
 kind: plan
 ---
 
-> **2026-09-28:** Postable, designed posts now come from **AI Post** ([`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)): real photos plus a deterministic poster compiler. This plan's image generation remains the **Photo & video** mode, meant for mood and B-roll shots rather than the listing itself.
+> **2026-09-28:** Postable, designed posts now come from **AI Post** ([`marketing-ai-poster-studio.md`](../../workflow/in-progress/marketing-ai-poster-studio.md)): real photos plus a deterministic poster compiler. This plan's image generation remains the **Photo & video** mode, meant for mood and B-roll shots rather than the listing itself.
 
 ## Implementation status (2026-09-23)
 

@@ -1,9 +1,9 @@
 ---
 title: 'Team permissions and plan coverage audit'
-status: for-testing
+status: done
 stage: done
 tags: [team, rbac, plans, entitlements, marketing, analytics]
-updated: 2026-09-27
+updated: 2026-11-04
 ---
 
 # Team permissions and plan coverage audit

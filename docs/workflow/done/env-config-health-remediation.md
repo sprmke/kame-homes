@@ -1,9 +1,9 @@
 ---
 title: 'Environment and configuration health remediation'
-status: planned
+status: done
 tags: [ops, env, health, production-readiness]
 updated: 2026-11-04
-stage: planned
+stage: done
 ---
 
 # Environment and configuration health remediation

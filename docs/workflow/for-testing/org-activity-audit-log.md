@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Org Activity & Audit Log — every team action across org, property, and parking'
-status: in-progress
+status: for-testing
 tags: [in-progress, audit-log, activity-log, org, property, parking, rbac, governance]
-updated: 2026-09-10
+updated: 2026-11-04
 ---
 
 # Org Activity & Audit Log

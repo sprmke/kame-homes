@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 05 operator setup (keys, accounts, settings)'
-status: planned
+status: done
 tags: [workflow, planned, observability, sentry, posthog, operator]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: checklist
 ---
 
@@ -43,40 +43,40 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
       (P1.5).
 
       **Where the toggle actually is.** PostHog has renamed this panel more than once, so
-                                                  try in order:
+                                                                      try in order:
 
-                                                  1. **Settings → Project → Error tracking** (most common location; the toggle is
-                                                     "Enable exception autocapture").
-                                                  2. **Settings → Data pipeline → Error tracking**.
-                                                  3. The settings search box, for `exception`.
+                                                                      1. **Settings → Project → Error tracking** (most common location; the toggle is
+                                                                         "Enable exception autocapture").
+                                                                      2. **Settings → Data pipeline → Error tracking**.
+                                                                      3. The settings search box, for `exception`.
 
-                                                  **If none of those exist, there is nothing to turn off.** PostHog only renders the
-                                                  panel once the feature has been used on that project, and error tracking may never
-                                                  have been enabled.
+                                                                      **If none of those exist, there is nothing to turn off.** PostHog only renders the
+                                                                      panel once the feature has been used on that project, and error tracking may never
+                                                                      have been enabled.
 
-                                                  **Do not stop here either way — verify behaviour instead**, because it is the stronger
-                                                  check and it does not depend on PostHog's menu:
+                                                                      **Do not stop here either way — verify behaviour instead**, because it is the stronger
+                                                                      check and it does not depend on PostHog's menu:
 
-                                                  - **Activity → Live events** → filter `event = $exception` → expect **zero**.
-                                                  - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
+                                                                      - **Activity → Live events** → filter `event = $exception` → expect **zero**.
+                                                                      - Click **Send test error** on `/admin/health`, then re-check. It must still be zero.
 
-                                                  The code already sets `capture_exceptions: false` and
-                                                  `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
-                                                  so this dashboard setting is defence in depth, not a blocker.
+                                                                      The code already sets `capture_exceptions: false` and
+                                                                      `scripts/dev/check-posthog-analytics-only.sh` fails CI if any exception call returns,
+                                                                      so this dashboard setting is defence in depth, not a blocker.
 
 - [x] Both projects → Settings → Product analytics: "Filter out internal and test users"
       **Done** — internal-user filter enabled on new and existing insights.
       on (A0.8).
 
       **The built-in filter may not know our flag.** Its chip reads "User not in Internal /
-                              Test users" and is cohort-based; the app marks us with a person property instead. So:
+                                                  Test users" and is cohort-based; the app marks us with a person property instead. So:
 
-                              1. Click **+ Filter** and add `is_internal` **is not** `true`.
-                              2. Turn on **"Enable this filter on all new insights"**.
-                              3. Click **"Turn on for existing insights"**.
+                                                  1. Click **+ Filter** and add `is_internal` **is not** `true`.
+                                                  2. Turn on **"Enable this filter on all new insights"**.
+                                                  3. Click **"Turn on for existing insights"**.
 
-                              Guests are safe: the property is only ever written as `true`, and an absent property
-                              is not `true`, so anonymous and guest events still count.
+                                                  Guests are safe: the property is only ever written as `true`, and an absent property
+                                                  is not `true`, so anonymous and guest events still count.
 
 - [x] **Turn off web-vitals / performance capture in the project** (Settings → Project →
       **Done** — done in the project and enforced in code, because the project setting overrides the client flag: `before_send` drops `$web_vitals`.
@@ -93,19 +93,19 @@ complete, token, otp, code, signature, password, authorization, cookie, apikey`.
 
       Careful, two similarly named things exist:
 
-                                          | What you will find                | Where                | Effect                              |
-                                          | --------------------------------- | -------------------- | ----------------------------------- |
-                                          | "IP data capture **default**"     | Organization settings | **New projects only.** Existing projects are explicitly not affected. |
-                                          | "Discard client IP data"          | **Project** settings  | The one that matters.               |
+                                                              | What you will find                | Where                | Effect                              |
+                                                              | --------------------------------- | -------------------- | ----------------------------------- |
+                                                              | "IP data capture **default**"     | Organization settings | **New projects only.** Existing projects are explicitly not affected. |
+                                                              | "Discard client IP data"          | **Project** settings  | The one that matters.               |
 
-                                  The client SDK cannot do this: the `ip` init option is deprecated and has no effect
-                                  (its own type says so, pointing at this project setting).
+                                                      The client SDK cannot do this: the `ip` init option is deprecated and has no effect
+                                                      (its own type says so, pointing at this project setting).
 
-                                  **Exact path: project settings → Privacy → "IP data capture configuration" →
-                                  "Discard client IP data" → on.** Its own copy confirms the scope: client IPs are not
-                                  stored with events, though GeoIP enrichment and bot detection may still read the IP
-                                  before it is discarded. The cookieless caveat in that paragraph does not apply here,
-                                  because the app uses `localStorage+cookie` persistence, not the server hash mode.
+                                                      **Exact path: project settings → Privacy → "IP data capture configuration" →
+                                                      "Discard client IP data" → on.** Its own copy confirms the scope: client IPs are not
+                                                      stored with events, though GeoIP enrichment and bot detection may still read the IP
+                                                      before it is discarded. The cookieless caveat in that paragraph does not apply here,
+                                                      because the app uses `localStorage+cookie` persistence, not the server hash mode.
 
 - [x] Data retention per your plan.
       **Closed** — the free Developer tier fixes retention at 30 days; there is no setting to choose until the plan changes.

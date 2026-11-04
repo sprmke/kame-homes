@@ -1,5 +1,5 @@
 /**
- * Two surfaces, one core (docs/workflow/in-progress/ai-chat-mode.md §3a). Vitest runs in Node
+ * Two surfaces, one core (docs/workflow/done/ai-chat-mode.md §3a). Vitest runs in Node
  * without a DOM, so this checks the source contract: both containers render the shared pieces and
  * neither owns chat state or behavior itself.
  */

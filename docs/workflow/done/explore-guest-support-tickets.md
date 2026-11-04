@@ -1,8 +1,8 @@
 ---
 title: 'Explore guest support tickets'
-status: active
+status: done
 tags: [workflow, done, guest, help-support]
-updated: 2026-08-27
+updated: 2026-11-04
 stage: done
 kind: reference
 ---

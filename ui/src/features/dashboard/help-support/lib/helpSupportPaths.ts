@@ -22,7 +22,7 @@ export function useHelpSupportAdminScope(): HelpSupportAdminScope {
 /**
  * Base `/help-support` path for whichever admin scope the page is mounted under
  * (org, property, or parking). Route registration itself is Phase 6 — see
- * docs/workflow/in-progress/help-support-center.md "Nav + routing wiring".
+ * docs/workflow/for-testing/help-support-center.md "Nav + routing wiring".
  */
 export function useHelpSupportBasePath(): string | null {
   const { orgSlug: routeOrgSlug } = useParams<{ orgSlug?: string }>();

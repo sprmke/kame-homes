@@ -1,8 +1,8 @@
 ---
 title: 'Host Plans & Pricing page — shipped'
-status: active
+status: done
 tags: [workflow, done, billing, pricing]
-updated: 2026-08-18
+updated: 2026-11-04
 stage: done
 kind: plan
 ---
@@ -19,7 +19,7 @@ Route: `/org/:orgSlug/property/:propertySlug/plans`
 - **Edge-function parity**: `property-plan` GET exposes `currentPeriodStart`, `currentPeriodEnd`, `gracePeriodEndsAt`, and `pendingCheckoutUrl`; `create-subscription-checkout` returns a PayMongo checkout link.
 - **Plan change flow**: Free → real `property-plan` POST; paid → `create-subscription-checkout` then redirect to PayMongo; review dialog shows gained/lost features and payment method.
 - **Accessibility**: sticky feature column, pinned group labels in the comparison matrix, touch targets ≥44px, reduced-motion-safe transitions, dark-mode compatible.
-- **Route guide**: [`docs/guides/routes/org/property/plans.md`](../guides/routes/org/property/plans.md).
+- **Route guide**: [`docs/guides/routes/org/property/plans.md`](../../guides/routes/org/plans.md).
 
 ## What changed from the original plan
 
@@ -43,6 +43,6 @@ Route: `/org/:orgSlug/property/:propertySlug/plans`
 
 ## Related
 
-- Tier catalog + entitlements: [`../in-progress/host-plans-and-pricing-tiers.md`](../in-progress/host-plans-and-pricing-tiers.md)
+- Tier catalog + entitlements: [`../in-progress/host-plans-and-pricing-tiers.md`](host-plans-and-pricing-tiers.md)
 - PayMongo billing: [`paymongo-subscription-billing.md`](./paymongo-subscription-billing.md)
 - Feature gating + upgrade modal: [`feature-gating-subscription-upgrade.md`](./feature-gating-subscription-upgrade.md)

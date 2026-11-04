@@ -16,7 +16,7 @@ import type { ChatSendInput } from '@/features/dashboard/ai-assistant/lib/chatAt
 /**
  * One assistant session per admin shell, shared by the sheet (Advanced mode) and the full-page
  * workspace (AI mode). Every behavior lives here so both surfaces stay identical; surfaces only
- * choose layout. Docs: docs/workflow/in-progress/ai-chat-mode.md §3a.
+ * choose layout. Docs: docs/workflow/done/ai-chat-mode.md §3a.
  */
 export type AiAssistantSessionValue = AiAssistantChatState & {
   pageContext: PageContext;

@@ -34,5 +34,5 @@ Make property admin on phone/tablet feel native: **brand color on the top third*
 
 ## Related
 
-- In-progress tracker: [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md)
+- In-progress tracker: [`../in-progress/mobile-native-redesign.md`](../for-testing/mobile-native-redesign.md)
 - Route guides: [`docs/guides/routes/org/property/dashboard.md`](../../guides/routes/org/property/dashboard.md), [`bookings.md`](../../guides/routes/org/property/bookings.md), [`finance.md`](../../guides/routes/org/property/finance.md)

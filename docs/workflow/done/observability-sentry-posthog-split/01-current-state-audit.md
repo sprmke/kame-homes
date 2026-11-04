@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 01 current-state audit'
-status: planned
+status: done
 tags: [workflow, planned, observability, sentry, posthog, audit]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: reference
 ---
 

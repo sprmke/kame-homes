@@ -10,7 +10,7 @@ followed_by: [kamespace-04-domain-move-kamespace-com, kamespace-05-google-servic
 
 # Rebrand: Kame Homes → Kame Space
 
-> **Archived 2026-11-01.** Superseded by [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../../workflow/in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md). Kept for history; use the numbered Kame Space plan.
+> **Archived 2026-11-01.** Superseded by [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../../workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md). Kept for history; use the numbered Kame Space plan.
 > **Goal.** After the legacy → mt-prod cutover is verified on dev and new prod, rename the product from **Kame Homes** to **Kame Space** everywhere a person or a third party can see it: UI copy, tab titles, PWA install name, emails, PDFs, AI replies, voice narration, social creative, SEO metadata, legal pages, third-party app listings, docs and agent tooling. Rename code identifiers that carry the old name, and add a CI guard so the old name cannot come back. Stable technical identifiers whose change would break data, links or guests' calendars are kept on purpose and listed in an allow-list (§5).
 
 **Not in this plan.** The domain move `kamehomes.space` → `kamespace.com` is the next intake item and gets its own plan (`kamespace-com-domain-move`). Google OAuth / API verification is the item after that. This plan only says which strings belong to those plans (§4, class D) and how the three are sequenced (§3).
@@ -80,7 +80,7 @@ Cutover status as of 2026-10-25 (from that plan's checkboxes):
 | 5 App changes | 5.2 booking-id property resolution (`resolve-booking-property`)                                                                     | 5.1 apex redirects, 5.3 legacy maintenance page, 5.4 PMO path, 5.5/5.6 cron guards, 5.7 verify list |
 | 6–10          | none                                                                                                                                | all                                                                                                 |
 
-Also still open in production readiness ([`HANDOFF.md`](../in-progress/production-readiness/HANDOFF.md)): restore drill PR-024, Turnstile PR-001, AI ceiling PR-003, PayMongo sandbox PR-030, CSP PR-012, issue #183 caching. None block the rename itself, but the rename's prod rollout should not share a deploy window with any of them.
+Also still open in production readiness ([`HANDOFF.md`](../../workflow/in-progress/production-readiness/HANDOFF.md)): restore drill PR-024, Turnstile PR-001, AI ceiling PR-003, PayMongo sandbox PR-030, CSP PR-012, issue #183 caching. None block the rename itself, but the rename's prod rollout should not share a deploy window with any of them.
 
 ---
 
@@ -393,6 +393,6 @@ Each phase is shippable alone and reversible until Phase 8. Local first, then ho
 ## 13. Follow-on plans (not part of this one)
 
 - **`kamespace-com-domain-move`**: everything class D (§4): DNS, Vercel domains, `cors.ts`, `publicAppOrigin.ts`, email logo URL, `telegramAdmin.ts` `APP_BASE_URL`, `seoMeta.ts`, PostHog/Sentry env detection, Resend sending + inbound domain (`inbound.*` MX, DKIM/SPF/DMARC), `RESEND_FROM_EMAIL`, Supabase Auth site/redirect URLs, Google OAuth origins, Maps and Turnstile hostnames, Meta return origins and webhook URLs, `ical-export` feed URLs given to channels, CI `PREVIEW_URL`, load-test prod refusal regex, Search Console property, redirects from `kamehomes.space` for at least 12 months, stored URLs in DB (reuse `30-rewrite-storage-urls.sql` pattern).
-- **`google-services-verification`**: refresh [`google-oauth-verification.md`](../wont-do/google-oauth-verification.md) (currently in wont-do) once name and domain are final: consent screen, scopes, privacy policy, homepage, domain ownership, demo video.
+- **`google-services-verification`**: refresh [`google-oauth-verification.md`](../../workflow/wont-do/google-oauth-verification.md) (currently in wont-do) once name and domain are final: consent screen, scopes, privacy policy, homepage, domain ownership, demo video.
 
 Back to [planned index](./README.md).
