@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
 import { RuntimeErrorFallback } from '@/components/error/RuntimeErrorFallback';
-import { isChunkLoadError, reloadForChunkError } from '@/lib/chunkReload';
+import { isChunkLoadError, reloadForChunkError, resetAppShellAndReload } from '@/lib/chunkReload';
 import { captureRenderError } from '@/lib/sentry/capture';
 
 function toError(error: unknown): Error {
@@ -39,7 +39,7 @@ export function RouteErrorFallback() {
     <RuntimeErrorFallback
       reference={reference}
       onReload={() => {
-        window.location.reload();
+        resetAppShellAndReload();
       }}
     />
   );

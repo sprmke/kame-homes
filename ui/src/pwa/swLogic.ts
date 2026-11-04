@@ -64,6 +64,8 @@ export function isForceUpdateRequired(
 export type PrecacheEntry = { url: string; revision: string | null };
 
 export type PrecacheTiers = {
+  /** Epoch-seconds build that wrote this list; `0` when the file predates the field. */
+  buildId: number;
   shell: PrecacheEntry[];
   host: PrecacheEntry[];
   onDemand: PrecacheEntry[];
@@ -91,17 +93,35 @@ function normalizeList(value: unknown): PrecacheEntry[] {
  */
 export function parsePrecacheTiers(raw: unknown): PrecacheTiers | null {
   if (!raw || typeof raw !== 'object') return null;
-  const value = raw as { shell?: unknown; host?: unknown; onDemand?: unknown };
+  const value = raw as { buildId?: unknown; shell?: unknown; host?: unknown; onDemand?: unknown };
   const shell = normalizeList(value.shell);
   if (shell.length === 0) return null;
   // The navigation fallback must always be precached, otherwise every offline
   // navigation falls through to the offline page even though the shell exists.
   if (!shell.some((entry) => entry.url === '/index.html')) return null;
+  const buildId =
+    typeof value.buildId === 'number' && Number.isFinite(value.buildId) ? value.buildId : 0;
   return {
+    buildId,
     shell,
     host: normalizeList(value.host),
     onDemand: normalizeList(value.onDemand),
   };
+}
+
+/**
+ * A tier manifest is only usable by the worker from the same build — its hashed
+ * asset names change on every deploy. When either side cannot be identified
+ * (dev worker, manifest written before `buildId` existed) the check is skipped
+ * rather than discarding a possibly-good list.
+ */
+export function isTiersManifestForBuild(
+  tiers: PrecacheTiers | null | undefined,
+  buildId: number
+): boolean {
+  if (!tiers) return false;
+  if (!buildId || !tiers.buildId) return true;
+  return tiers.buildId === buildId;
 }
 
 export type WarmDecision = { warm: true } | { warm: false; reason: string };

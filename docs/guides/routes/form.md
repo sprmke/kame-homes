@@ -68,7 +68,7 @@ The booking form walks a guest through their info, stay dates and guest list, an
 
 Airbnb bookings (`?source=airbnb`, or a booking with `booking_source = 'Airbnb'`) get **4 steps** — Payment is omitted entirely and `paymentReceipt` is not required. See `.cursor/rules/booking-workflow.mdc` § Airbnb source behavior for the full list of Airbnb-specific differences downstream of submission.
 
-Each step validates its own fields (via `getFieldsForGuestFormStep`) before **Next** advances; the guest cannot submit until the final step's validation passes.
+Each step validates its own fields (via `getFieldsForGuestFormStep`) before **Next** advances; the guest cannot submit until the final step's validation passes. **Continue** stays disabled until every required field on the current step is valid, file uploads included (`paymentReceipt`, `validId`, `guest2ValidId`…, pet record/photo): `isGuestFormStepComplete` reads the full schema issue list, and conditional rules (Valid ID for guests 18+, find-us details, pet fields, capacity, cleaning buffer) live in the schema's `superRefine`. Required file fields are declared `.optional()` in the base object and enforced in `superRefine` because Zod treats a failed `instanceof`/`custom` check as fatal and aborts the remaining checks — a required `paymentReceipt` there silently skipped every conditional rule on steps 1-4.
 
 Stepper labels and in-card section headings share the same **`title`** per step (`guestFormSteps.ts`); a one-line **`hint`** appears under the heading inside the card.
 

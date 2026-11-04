@@ -9,6 +9,7 @@ import { PostHogProvider } from '@posthog/react';
 import { AppErrorBoundary } from '@/components/error/AppErrorBoundary';
 import { RouteErrorFallback } from '@/components/error/RouteErrorFallback';
 import { AppShell } from '@/components/routing/AppShell';
+import { installChunkErrorRecovery } from '@/lib/chunkReload';
 import { bootstrapPostHogTelemetry } from '@/lib/posthog/bootstrapTelemetry';
 import { posthog } from '@/lib/posthog/client';
 import { reactRootErrorHandlers } from '@/lib/sentry/capture';
@@ -26,6 +27,7 @@ import './index.css';
 initSentry();
 
 bootstrapPostHogTelemetry();
+installChunkErrorRecovery();
 installServiceWorkerErrorBridge();
 installOrganizationJsonLd();
 
