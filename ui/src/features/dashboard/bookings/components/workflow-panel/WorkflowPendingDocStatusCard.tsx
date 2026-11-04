@@ -8,7 +8,7 @@
 
 import { useId } from 'react';
 
-import { FileClock, FileText, Mail } from 'lucide-react';
+import { FileClock, FileText, Mail, Upload } from 'lucide-react';
 
 import { WorkflowSubFormCard } from '@/features/dashboard/bookings/components/WorkflowSubFormCard';
 import type { BookingAssetPreviewHandler } from '@/features/dashboard/bookings/hooks/useBookingAssetPreview';
@@ -17,6 +17,7 @@ import {
   requirementApplies,
   type DocumentRequirement,
 } from '@/features/dashboard/bookings/lib/documentRequirements';
+import { pendingDocStepUsesApprovalModal } from '@/features/dashboard/bookings/lib/pendingDocApproval';
 import {
   buildPendingDocStatusGroups,
   freeOutboundNeedsManualSend,
@@ -95,6 +96,8 @@ export function PendingDocSubStatusCard({
   requirements,
   plain = false,
   automatedBookingFlow = true,
+  canUpload = false,
+  onUpload,
   onPreview,
 }: {
   booking: BookingRow;
@@ -102,6 +105,9 @@ export function PendingDocSubStatusCard({
   requirements: DocumentRequirement[];
   plain?: boolean;
   automatedBookingFlow?: boolean;
+  /** Host can mutate this booking and upload a replacement approval file. */
+  canUpload?: boolean;
+  onUpload?: (sub: PendingDocNestedKey) => void;
   onPreview: BookingAssetPreviewHandler;
 }) {
   const groupIdPrefix = useId();
@@ -117,6 +123,12 @@ export function PendingDocSubStatusCard({
     completed: byRequirementId[sub] ?? false,
     approvedUrl,
   });
+
+  const canUploadApproval =
+    canUpload &&
+    !beforeRequestSent &&
+    Boolean(onUpload) &&
+    pendingDocStepUsesApprovalModal(sub, requirements);
 
   const subStepCompleted = state === 'approved' || state === 'complete-without-file';
   const groups = applies
@@ -191,6 +203,14 @@ export function PendingDocSubStatusCard({
                         row={row}
                         statusUpdatedAt={booking.status_updated_at}
                         onPreview={onPreview}
+                        onUpload={
+                          canUploadApproval &&
+                          row.approvalRow &&
+                          !row.url?.trim() &&
+                          row.status === 'awaiting'
+                            ? () => onUpload?.(sub)
+                            : undefined
+                        }
                       />
                     ))}
                   </ul>
@@ -213,10 +233,13 @@ function DocLinkRow({
   row,
   statusUpdatedAt,
   onPreview,
+  onUpload,
 }: {
   row: PendingDocStatusRow;
   statusUpdatedAt?: string | null;
   onPreview: BookingAssetPreviewHandler;
+  /** Opens the approval upload sheet — only offered on an awaiting inbound row. */
+  onUpload?: () => void;
 }) {
   const stored = row.url?.trim() ?? '';
   const Icon = stored ? FileText : FileClock;
@@ -247,6 +270,19 @@ function DocLinkRow({
           )}
         >
           {actionLabel}
+        </button>
+      ) : onUpload ? (
+        <button
+          type="button"
+          onClick={onUpload}
+          aria-label={`Upload ${row.label}`}
+          className={cn(
+            'focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-1',
+            DOC_ROW_ACTION
+          )}
+        >
+          <Upload className="size-3.5 shrink-0" aria-hidden />
+          Upload
         </button>
       ) : (
         <span
