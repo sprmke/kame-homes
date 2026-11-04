@@ -248,6 +248,12 @@ rewrites, headers`). JSON parsers keep the last one, so the first redirect block
   This is a merge artifact, not branch clutter. Fix it separately.
 - `ci/pin-actions-sha` is the only branch with a real, still-relevant change that is not merged.
 
+## 2026-11-04 follow-up
+
+| Branch          | Tip SHA     | Checks                                                                                         | Action             |
+| --------------- | ----------- | ---------------------------------------------------------------------------------------------- | ------------------ |
+| `debug/pwa-e2e` | `6f2df4014` | ancestor of `develop`; `git cherry` empty; no unique files; no open PR; no worktree; no remote | Deleted local only |
+
 ## Re-running this audit
 
 ```bash
