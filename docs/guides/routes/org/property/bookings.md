@@ -159,7 +159,7 @@ New: `stage` (see above).
 
 ## API
 
-- `list-bookings` edge function — admin JWT; see [[PROJECT|Guest Form Management — Project Documentation]] API table.
+- `list-bookings` edge function — admin JWT; see [[PROJECT|Guest Form Management — Project Documentation]] API table. Filtering, sorting, and pagination run in Postgres via `list_bookings_page` (`supabase/migrations/20261318171000_list_bookings_page_rpc.sql`), so a tenant's full history never loads into the edge isolate. The legacy PostgREST paths remain as a fallback if the RPC is unavailable.
 - CSV import: `import-parse-file`, `import-ai-map-columns`, `import-save-mapping`, `import-preview`, `import-update-row`, `import-commit`, `import-cancel` — all require **`bookings.import:add`** (or org owner/admin) + `?property_id=`. Match / preview / commit paths also require plan **`bookingImport`** (Starter+).
 
 ---

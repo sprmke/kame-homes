@@ -54,33 +54,20 @@ export function useNotificationsRealtime(
 
       channel = supabase
         .channel(`notifications-${orgId}`)
+        // One binding for INSERT + UPDATE. Two separate bindings create two
+        // Realtime subscriptions, and every subscription is polled against
+        // Postgres WAL independently. Both handlers did the same work, so this
+        // halves the Realtime query load for notifications.
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `organization_id=eq.${orgId}`,
           },
           (payload) => {
-            scheduleNotificationsInvalidate(qc);
-            const row = payload.new as NotificationRealtimeRow;
-            if (!shouldToastRealtimeRow(row)) return;
-            showNotificationToast(row, {
-              onView: onNotificationRef.current,
-              isCancelled: () => cancelled,
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'notifications',
-            filter: `organization_id=eq.${orgId}`,
-          },
-          (payload) => {
+            if (payload.eventType !== 'INSERT' && payload.eventType !== 'UPDATE') return;
             scheduleNotificationsInvalidate(qc);
             const row = payload.new as NotificationRealtimeRow;
             if (!shouldToastRealtimeRow(row)) return;

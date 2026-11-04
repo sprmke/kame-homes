@@ -1,19 +1,39 @@
 ---
 title: 'Supabase capacity and operational readiness'
-status: planned
+status: in_progress
 tags: [supabase, capacity, performance, security, production-readiness, observability]
-updated: 2026-10-27
-stage: planned
+updated: 2026-11-04
+stage: in-progress
 kind: plan
-readiness: unverified
+readiness: partial
 launch_gate: A
-launch_blocker: tbd
-last_verified: none
+launch_blocker: compute-tier-and-alerting
+last_verified: 2026-11-04
 ---
 
 # Supabase Capacity and Operational Readiness Plan
 
-> **For agentic workers:** This is a plan only. Do not implement it without a new execution instruction. Production Supabase operations still require the unlock word `kamewave`.
+> **For agentic workers:** Production Supabase operations still require the unlock word `kamewave`.
+
+## Progress (2026-11-04)
+
+Implemented in `chore/supabase-capacity-readiness`:
+
+- Server-side `list_bookings_page` RPC replaces the in-memory org-wide and
+  `status_priority` list path.
+- Capacity-hardening migration: 2 duplicate indexes dropped, 57 RLS policies made
+  init-plan safe, nightly retention for internal logs and rate-limit counters.
+- Realtime binding merge: notifications 2 -> 1, inbox 3 -> 2, guest chat 3 -> 2.
+- Read-only capture scripts (`perf:supabase:metrics`, `perf:supabase:advisors`),
+  migration-drift gate, and authenticated/write load-test scenarios.
+
+Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
+Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-capacity.md).
+
+Still required: operator compute upgrade (Micro/Small), continuous Prometheus
+collection plus paged alerts, large-tenant seed, load-test execution, public Vercel
+cache, dashboard/finance SQL aggregates, booking transition RPC, and the product
+retention decisions.
 
 ## Goal
 

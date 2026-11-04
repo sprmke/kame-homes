@@ -800,6 +800,7 @@ export class DatabaseService {
     // update the guard alongside it, or a parking scope with pending broadcasts could
     // silently take the fast path and drop those broadcast-only rows from the list.
     let hasPendingParkingBroadcasts = false;
+    let pendingParkingBookingIds: string[] = [];
 
     if (parkingId) {
       // Broadcast pre-claim requests still have parking_id = null — surface this
@@ -810,6 +811,7 @@ export class DatabaseService {
         .eq('parking_id', parkingId)
         .eq('response', 'pending');
       const pendingBookingIds = (pendingBroadcasts ?? []).map((row) => String(row.booking_id));
+      pendingParkingBookingIds = pendingBookingIds;
       hasPendingParkingBroadcasts = pendingBookingIds.length > 0;
       const request = this.supabase.from('guest_submissions').select('*');
       baseRequests.push(
@@ -861,6 +863,35 @@ export class DatabaseService {
     if (baseRequests.length === 0) {
       return { rows: [], total: 0 };
     }
+
+    // Preferred path: one RPC performs filtering, sorting, and pagination in
+    // Postgres so a tenant's full history never materialises in the Edge
+    // Function isolate. Falls back to the PostgREST paths below when the
+    // function is missing (pre-migration environment) or errors, so a deploy
+    // order mismatch can never break the admin list.
+    const viaRpc = await this.listBookingsViaRpc({
+      propertyId,
+      parkingId,
+      orgId,
+      propertyIds,
+      parkingIds,
+      extraBookingIds: pendingParkingBookingIds,
+      includePropertyMeta,
+      includeParkingMeta,
+      bookingKind,
+      q,
+      status,
+      from,
+      to,
+      hasPets,
+      needParking,
+      sort,
+      page,
+      limit,
+      showCompletedBookings,
+      expandImportedBatch,
+    });
+    if (viaRpc) return viaRpc;
 
     // --- Filters (applied identically to every base request above) ---
     // Free-text search now spans the full guest record:
@@ -1056,6 +1087,114 @@ export class DatabaseService {
     }));
 
     return { rows: paged, total };
+  }
+
+  /**
+   * Single-round-trip list via `list_bookings_page` (migration
+   * 20261318171000). Returns `null` when the RPC is unavailable or fails so
+   * `listBookings` can fall back to the older PostgREST paths.
+   */
+  private static async listBookingsViaRpc(params: {
+    propertyId?: string;
+    parkingId?: string;
+    orgId?: string;
+    propertyIds?: string[];
+    parkingIds?: string[];
+    extraBookingIds?: string[];
+    includePropertyMeta?: boolean;
+    includeParkingMeta?: boolean;
+    bookingKind?: 'property' | 'parking' | null;
+    q?: string;
+    status?: string[];
+    from?: string | null;
+    to?: string | null;
+    hasPets?: boolean | null;
+    needParking?: boolean | null;
+    sort?:
+      | 'status_priority:asc'
+      | 'check_in_date:asc'
+      | 'check_in_date:desc'
+      | 'created_at:asc'
+      | 'created_at:desc';
+    page?: number;
+    limit?: number;
+    showCompletedBookings?: boolean;
+    expandImportedBatch?: boolean;
+  }): Promise<{ rows: any[]; total: number } | null> {
+    const {
+      propertyId,
+      parkingId,
+      orgId,
+      propertyIds,
+      parkingIds,
+      extraBookingIds,
+      includePropertyMeta = false,
+      includeParkingMeta = false,
+      bookingKind = null,
+      q = '',
+      status = [],
+      from = null,
+      to = null,
+      hasPets = null,
+      needParking = null,
+      sort = 'status_priority:asc',
+      page = 1,
+      limit = 31,
+      showCompletedBookings = false,
+      expandImportedBatch = false,
+    } = params;
+
+    const { data, error } = await this.supabase.rpc('list_bookings_page', {
+      p_org_id: orgId ?? null,
+      p_property_id: propertyId ?? null,
+      p_parking_id: parkingId ?? null,
+      p_property_ids: propertyIds && propertyIds.length > 0 ? propertyIds : null,
+      p_parking_ids: parkingIds && parkingIds.length > 0 ? parkingIds : null,
+      p_extra_booking_ids:
+        extraBookingIds && extraBookingIds.length > 0 ? extraBookingIds : null,
+      p_booking_kind: bookingKind,
+      p_q: q.trim() || null,
+      p_status: status.length > 0 ? status : null,
+      p_from: from || null,
+      p_to: to || null,
+      p_has_pets: hasPets,
+      p_need_parking: needParking,
+      p_sort: sort,
+      p_page: page,
+      p_limit: limit,
+      p_show_completed: showCompletedBookings,
+      p_expand_imported: expandImportedBatch,
+    });
+
+    if (error) {
+      // 42883 / PGRST202 = function not found (migration not applied yet).
+      // Anything else is logged once per request and also falls back.
+      console.warn('[DatabaseService] list_bookings_page RPC failed, using fallback:', error.message);
+      return null;
+    }
+
+    const payload = (Array.isArray(data) ? data[0] : data) as
+      | { rows?: unknown; total?: unknown }
+      | null
+      | undefined;
+    if (!payload || !Array.isArray(payload.rows)) {
+      console.warn('[DatabaseService] list_bookings_page returned an unexpected shape');
+      return null;
+    }
+
+    let paged = payload.rows as any[];
+    if (includePropertyMeta && paged.length > 0) {
+      paged = await this.enrichBookingsWithPropertyMeta(paged);
+    }
+    if (includeParkingMeta && paged.length > 0) {
+      paged = await this.enrichBookingsWithParkingMeta(paged, parkingId);
+    }
+    paged = paged.map((row) => ({
+      ...row,
+      booking_kind: row.parking_id || parkingId ? 'parking' : 'property',
+    }));
+
+    return { rows: paged, total: Number(payload.total ?? 0) };
   }
 
   /**

@@ -15,6 +15,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
+**Moved in 2026-11-04:** [`supabase-capacity-and-operational-readiness.md`](./supabase-capacity-and-operational-readiness.md) — first slice shipped (bookings-list RPC, RLS init-plan rewrite, duplicate index drop, retention, Realtime binding merge, capture scripts, drift gate). Remaining: compute upgrade, continuous alerts, large-tenant seed, load tests, public cache, dashboard/finance aggregates. Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
+
 **Moved out 2026-11-03:** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) and [`kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) → **done**. Legacy data, storage, auth, domains, email and repo are on the new stack; the secrets backup is closed with its optional tails deferred. Deferred in 02: Maps Embed API, property photos, PayMongo approval, 30-day decommission.
 
 **Moved out 2026-11-03:** [`kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) → **done**. Google sign-in brand verification approved and published. Remaining Maps/Gemini/Fonts/legacy items split to [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md), not pre-production blockers.
