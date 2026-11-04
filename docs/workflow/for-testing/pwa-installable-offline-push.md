@@ -16,7 +16,7 @@ updated: 2026-09-02
 
 Source intake: user request 2026-09-02 — "make our web app installable on iOS/Android, full PWA features, native push notifications on desktop/Android/iOS, offline access with online↔offline sync … production ready and optimized, support as many PWA features as possible, complete coverage." Follow-up: user delegated all open decisions — "choose the best approach … production-ready and standard PWA support."
 
-Related: [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md) deferred "PWA installability (manifest, service worker, offline shell) … a future phase." **This is that phase.** Its shipped mobile primitives (`ui/src/components/mobile/*`, bottom tab bar, safe-area handling, `useIsMobile`, `useMediaQuery`) are the UI substrate this builds on.
+Related: [`../in-progress/mobile-native-redesign.md`](mobile-native-redesign.md) deferred "PWA installability (manifest, service worker, offline shell) … a future phase." **This is that phase.** Its shipped mobile primitives (`ui/src/components/mobile/*`, bottom tab bar, safe-area handling, `useIsMobile`, `useMediaQuery`) are the UI substrate this builds on.
 
 ---
 

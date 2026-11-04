@@ -1,8 +1,8 @@
 ---
 title: 'Guest Inbox — share property/booking links & files from chat'
-status: active
+status: done
 tags: [workflow, planned, inbox]
-updated: 2026-08-22
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

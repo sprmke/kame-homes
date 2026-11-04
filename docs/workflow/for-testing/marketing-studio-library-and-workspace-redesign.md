@@ -1,15 +1,15 @@
 ---
 stage: for-testing
 title: 'Marketing Studio — library-first workspace, save model and AI Studio redesign'
-status: for testing
+status: for-testing
 tags: [workflow, planned, marketing, ux, performance, mobile-responsive]
-updated: 2026-10-20
+updated: 2026-11-04
 kind: plan
 ---
 
 # Marketing Studio — library-first workspace, save model and AI Studio redesign
 
-**Route:** `/org/:orgSlug/property/:propertySlug/marketing` · **Module:** `ui/src/features/dashboard/marketing/` · **Guide:** [`docs/guides/routes/org/property/marketing.md`](../../guides/routes/org/property/marketing.md) · **Related:** [`marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md), [`marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md), [`docs/architecture/marketing-themes.md`](../../architecture/marketing-themes.md)
+**Route:** `/org/:orgSlug/property/:propertySlug/marketing` · **Module:** `ui/src/features/dashboard/marketing/` · **Guide:** [`docs/guides/routes/org/property/marketing.md`](../../guides/routes/org/property/marketing.md) · **Related:** [`../in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md), [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md), [`docs/architecture/marketing-themes.md`](../../architecture/marketing-themes.md)
 
 ## 1. Why
 

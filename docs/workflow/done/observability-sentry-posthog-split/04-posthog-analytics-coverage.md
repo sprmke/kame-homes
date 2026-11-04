@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 04 PostHog analytics coverage (Phases A0–A6)'
-status: planned
+status: done
 tags: [workflow, planned, observability, posthog, analytics]
-updated: 2026-11-03
+updated: 2026-11-04
 kind: plan
 ---
 

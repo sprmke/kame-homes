@@ -95,7 +95,7 @@ New org-scoped billing emails in `_shared/subscriptionBillingEmail.ts` (`sendOrg
 ## Residual scope, documented not silently dropped
 
 - **No volume-discount-tier editor UI** in the super-admin `EditPricingPlanDialog` yet — the API (`pricing-plans` POST/PATCH) accepts `volumeDiscountTiers` and the GET response includes it, so a super-admin can tune breakpoints via a direct API call today; a JSON-array editor field in the dialog is a small, self-contained follow-up.
-- **Parking's entitlement resolution is unaffected** — see the note added to [`parking-property-parity.md`](../in-progress/parking-property-parity.md). The new `getActiveOrgSubscription(organizationId)` is a building block for a future property-independent parking entitlement lookup, but wiring that up was out of scope here (this migration was scoped to property billing).
+- **Parking's entitlement resolution is unaffected** — see the note added to [`parking-property-parity.md`](../for-testing/parking-property-parity.md). The new `getActiveOrgSubscription(organizationId)` is a building block for a future property-independent parking entitlement lookup, but wiring that up was out of scope here (this migration was scoped to property billing).
 - **`org-subscriptions-admin`'s manual-assign has no per-property picker** — it enrolls every property the org owns by default (or an explicit list via `propertyIds` if the caller passes one). The host-facing org Plans page has the full picker; the admin tool intentionally stayed minimal.
 - **Exact volume-discount breakpoints are placeholders** (`3+ properties: -10%`, `6+: -20%`, seeded uniformly across Starter/Growth/Pro/Managed) — a marketing/pricing call for the host to tune later, not a mechanism gap.
 

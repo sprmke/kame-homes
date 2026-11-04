@@ -1,8 +1,8 @@
 ---
 title: 'Host pricing tiers — foundation (catalog + entitlements)'
-status: in-progress
+status: done
 tags: [workflow, in-progress, billing, pricing]
-updated: 2026-08-19
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

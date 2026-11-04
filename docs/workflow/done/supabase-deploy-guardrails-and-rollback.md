@@ -1640,7 +1640,7 @@ bun run rollback:functions:prod -- main   # requires kamewave
 
 Both rollback scripts refuse to run if the currently linked project doesn't match the `<dev|prod>` argument, and both support `--dry-run` to preview the exact restore command without executing it. `rollback-supabase.sh` needs a Postgres connection string — `DEV_DB_URL` / `PROD_DB_URL` — supplied at runtime (same convention as `PROD_DB_URL` in `scripts/data/sync-prod-public-data-to-local.sh`); it is never committed.
 
-See [`production-deployment.md`](./production-deployment.md) §1 and §12 for the prod-specific checklist, and [`migration-runbook.md`](./migration-runbook.md) §6 for restore caveats.
+See [`production-deployment.md`](../../archive/operations/production-deployment.md) §1 and §12 for the prod-specific checklist, and [`migration-runbook.md`](../../archive/operations/migration-runbook.md) §6 for restore caveats.
 
 ````
 

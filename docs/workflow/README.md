@@ -2,7 +2,7 @@
 title: 'Workflow docs'
 status: active
 tags: [workflow, docs]
-updated: 2026-09-01
+updated: 2026-11-04
 kind: reference
 ---
 
@@ -23,6 +23,8 @@ kind: reference
 **Folder = stage.** Partial phases or v1 slices in `done/` do **not** close the parent plan — keep the parent in `in-progress/` until remaining scope is finished. Do not leave `stage: done` files in `intake/`. Update frontmatter **and** move the file when status changes.
 
 **No `YYYY-MM-DD-` filename prefixes** — use frontmatter `updated:` instead.
+
+**Superseded copies** are archived under [`../../archive/workflow-superseded/`](../archive/workflow-superseded/README.md), never left as a second live copy in a stage folder.
 
 **Commands:** `/workflow-start`, `/workflow-done`, `/workflow-wont-do`, `/workflow-sync-scratchpads`, `/superpowers-plan`, `/superpowers-brainstorm`
 

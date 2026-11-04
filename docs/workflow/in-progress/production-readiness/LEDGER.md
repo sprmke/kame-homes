@@ -2,7 +2,7 @@
 title: 'Production readiness ledger'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-11-02
+updated: 2026-11-04
 stage: in-progress
 kind: reference
 ---
@@ -65,7 +65,7 @@ Evidence: [`evidence/phase5-reverify-2026-11-01.md`](./evidence/phase5-reverify-
 | PR-158 | ✅ **Legacy stay dates repaired**: the 41 reversed rows were the negative-span subset of **65** Mar–May 2025 bookings whose check-in was rewritten by a later edit. Recovered from the upload filenames and repaired (65/65, check-out/nights/rate untouched); inconsistent rows 69 → 4, reversed 0. Constraint tightened with no grandfather clause | `evidence/legacy-stay-date-reconstruction.md`, `migrations/20261318120000_strict_valid_dates.sql` |
 | PR-159 | ✅ **Deploy pipeline unblocked**: production carried 16 migration versions whose files only existed in one session's local tree (13 unpushed, 3 never committed); restored them, so `db push` skips them and the next deploy applies only the pending migration                                                                                      | `migrations/20261316128*`, `migrations/20261317*`                                                 |
 | PR-160 | ✅ **Strict `valid_dates` live**: grandfather clause dropped and the constraint validated for all 450 rows; a fresh production dump restores into a scratch DB in 2 s with 0 check violations                                                                                                                                                        | `evidence/restore-drill-2026-11-03.md`                                                            |
-| PR-161 | ✅ **Legacy stay data fully consistent**: four 2-night rows had a stale `number_of_nights` (settlement dates + rate math confirm 2 nights) and the one ISO row was normalised. 450/450 rows pass the span check with canonical dates | `evidence/legacy-stay-date-reconstruction.md` |
+| PR-161 | ✅ **Legacy stay data fully consistent**: four 2-night rows had a stale `number_of_nights` (settlement dates + rate math confirm 2 nights) and the one ISO row was normalised. 450/450 rows pass the span check with canonical dates                                                                                                                 | `evidence/legacy-stay-date-reconstruction.md`                                                     |
 
 Fixed in this pass (product): the notifications hub feed never attached its load-more observer (`scrollRoot` was never passed), so the feed could not page past 20 rows. See `InAppNotificationsPanel.tsx`.
 

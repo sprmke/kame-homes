@@ -1,8 +1,8 @@
 ---
 title: 'Host public profile page (/hosts/:orgSlug)'
-status: active
+status: done
 tags: [workflow, done, marketing, public-ui]
-updated: 2026-08-27
+updated: 2026-11-04
 stage: done
 kind: reference
 ---

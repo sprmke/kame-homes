@@ -107,8 +107,8 @@ The switch animates smoothly between modes and keeps the conversation. The end g
 - **Bookings:** create booking (guide-only today), edit details or reschedule (`update-booking-details`, excluded), guest link tokens (`issue-guest-stay-guide-token`, `issue-guest-form-completion-token`, `issue-booking-document-share-token`), and the `booking-ai-review` trigger.
 - **Parking:** team tools (`parking-team-*`), non-payment `parking-settings`, parking date block/unblock, and parking-scoped finance.
 - **Org:** portfolio analytics, activity log read (`list-activity-log`), and create property or parking listing.
-- **Pricing:** smart pricing preview and apply (`smart-pricing-preview` / `smart-pricing-apply`). Bulk range edits are already planned in [`ai-assistant-bulk-pricing-chat.md`](./ai-assistant-bulk-pricing-chat.md).
-- **Settings:** payment methods, email automations, and doc requirements ([`ai-assistant-settings-validators.md`](./ai-assistant-settings-validators.md)), plus voice receptionist settings.
+- **Pricing:** smart pricing preview and apply (`smart-pricing-preview` / `smart-pricing-apply`). Bulk range edits are already planned in [`ai-assistant-bulk-pricing-chat.md`](../../workflow/planned/ai-assistant-bulk-pricing-chat.md).
+- **Settings:** payment methods, email automations, and doc requirements ([`ai-assistant-settings-validators.md`](../../workflow/planned/ai-assistant-settings-validators.md)), plus voice receptionist settings.
 - **Inbox:** quick-reply template CRUD, and Meta connect (OAuth, so this is a handoff).
 - **Team:** custom role CRUD at all scopes.
 - **Help:** ticket reply and reopen.

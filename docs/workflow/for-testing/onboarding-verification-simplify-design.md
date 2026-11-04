@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Onboarding verification simplify — design'
-status: approved
+status: for-testing
 tags: [onboarding, verification, design]
-updated: 2026-09-01
+updated: 2026-11-04
 related:
   - docs/workflow/for-testing/onboarding-verification-simplify.md
   - docs/workflow/for-testing/host-verification-tiers.md

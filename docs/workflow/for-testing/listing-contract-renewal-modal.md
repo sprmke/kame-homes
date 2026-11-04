@@ -6,7 +6,7 @@ updated: 2026-11-01
 tags: [verification, listing-authorization, contract-lifecycle, ux]
 related:
   - docs/workflow/intake/listing-contract-renewal-modal-design.md
-  - docs/workflow/in-progress/verification-scope-split.md
+  - docs/workflow/for-testing/verification-scope-split.md
 ---
 
 # Listing contract renewal modal — implementation plan

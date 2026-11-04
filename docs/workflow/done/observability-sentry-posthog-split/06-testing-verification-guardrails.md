@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 06 testing, verification, guardrails'
-status: planned
+status: done
 tags: [workflow, planned, observability, testing, ci]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: plan
 ---
 

@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Super Admin AI usage & cost dashboard'
-status: in-progress
+status: done
 tags: [planning, planned-modules, super-admin, admin, ai, cost]
-updated: 2026-09-06
+updated: 2026-11-04
 ---
 
 ## Status (2026-09-05)

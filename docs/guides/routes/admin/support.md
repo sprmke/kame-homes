@@ -135,7 +135,7 @@ First-class Platform nav item and overview card (label **FAQs**). Category-group
 - [Route index](../README.md)
 - [Property Help & Support](../org/property/help-support.md) (host-facing counterpart)
 - [`docs/PROJECT.md`](../../PROJECT.md)
-- [`docs/workflow/in-progress/help-support-center.md`](../../workflow/in-progress/help-support-center.md)
+- [`docs/workflow/in-progress/help-support-center.md`](../../../workflow/for-testing/help-support-center.md)
 
 ## Pending / follow-ups
 

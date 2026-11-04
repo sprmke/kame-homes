@@ -14,11 +14,11 @@ Required scope is complete and this plan is closed. B0 inventory, the B1–B2 lo
 
 The remaining checkboxes below (B-12 dashboard screenshots, B-16 off-machine archive copy, B-17 scratch restore drill, B-19 name mapping, B-22 revoke markers) are **deferred by operator decision on 2026-11-03**. They are optional tails that no longer gate cutover, rebrand or decommission. The legacy stack is paused, so its write-only values stay marked "replaced at cutover".
 
-**Series.** Plan 1 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](../in-progress/kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
+**Series.** Plan 1 of 5 in the Kame Space launch series: [01 secrets backup](./kamespace-01-legacy-prod-config-secrets-backup.md) → [02 cutover](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) → [03 rebrand](./kamespace-03-rebrand-kame-homes-to-kame-space.md) → [04 domain move](./kamespace-04-domain-move-kamespace-com.md) → [05 Google verification](./kamespace-05-google-services-verification.md).
 
 **Goal.** Before anything on the legacy stack is frozen, migrated, rotated or deleted, capture every environment variable, secret and piece of dashboard-only configuration from legacy prod (Supabase `zfttdwtceyqszyeyhilc`, Vercel `guest-form-management-app` on `sprmkes-projects`, and the third parties they talk to) into a backup we control. A teammate or agent can then reuse any value on mt-prod or the renamed app, and a rollback during cutover can re-create legacy exactly.
 
-**Order.** This was a **prerequisite** for both [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) (Phase 1 onward, and absolutely before its §10 decommission) and [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) (Phase 0). It expands cutover task 0.5 (integration inventory, names only) into a values backup.
+**Order.** This was a **prerequisite** for both [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md) (Phase 1 onward, and absolutely before its §10 decommission) and [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md) (Phase 0). It expands cutover task 0.5 (integration inventory, names only) into a values backup.
 
 **Status: closed (2026-11-03).** Sign-off for cutover prep landed 2026-11-01. Legacy env working copies filled (32/32 edge keys). The optional tails (B-12, B-16, B-17, B-19, B-22) are deferred.
 
@@ -200,7 +200,7 @@ Committed to the repo: **only** the names-only template `supabase/.env.legacy-pr
 ## 8. Docs to update
 
 - [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](./kamespace-02-legacy-prod-to-mt-prod-cutover.md): 0.5, 6.4, 6.5, 10.3, 10.4 links (B-20).
-- [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md): §2 gate (B-21).
+- [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](./kamespace-03-rebrand-kame-homes-to-kame-space.md): §2 gate (B-21).
 - `docs/archive/operations/secret-rotation.md`: where legacy values live now and how revoked ones are kept.
 - `docs/architecture/validation-and-env.md` + prod env matrix: legacy → mt-prod name mapping (B-19).
 - `scripts/README.md` and `scripts/migrate/legacy-to-mt-prod/README.md`: `verify-secret-hashes.ts`, liveness check, env file skip rules.

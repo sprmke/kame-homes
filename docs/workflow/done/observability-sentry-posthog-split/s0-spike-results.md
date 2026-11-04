@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — S0 spike results'
-status: in-progress
+status: done
 tags: [workflow, planned, observability, sentry, spike]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: reference
 ---
 

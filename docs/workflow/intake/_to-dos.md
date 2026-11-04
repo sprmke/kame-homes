@@ -1,49 +1,79 @@
-Priority todos:
+---
+title: 'Tasks To Do'
+status: active
+tags: [planning, intake, backlog]
+updated: 2026-11-04
+stage: intake
+kind: backlog
+---
 
-- 🚧 Migration from prod/live app to our new app:
-  let's prepare the migration and make sure that we successfully transfer all the data all the storage assets that we have from the current super base that we have in production to our new super base which is different account also I think we have different Versailles account as well so we need to make sure that we consider that. Next, I want you to make sure that we properly do the migration that we have on the main repo. If you will notice and check we have huge thousands or few thousands of new changes especially if you compare the broad applications that we have and the new dev and new applications that we have so our goal is to make sure that we restore and we properly do the data migrations to the new apps. that we have right now. Make sure that we consider everything from data from doing and creating a migration script to create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle everything especially in our new app we have this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new new application and data structure that we have. again I want you to be very careful on this and our goal is to properly migrate and use our new application to the new services new repo new Vercel account new super base account and new other services that you have so that we can properly use this new application and deploy them to production once everything is good and then once everything's good I want you to clean up the old repo the old domain and other things that we need to clean up. you to plan this carefully list on all the tasks that we need to do make sure we cover everything and what I want you to make sure as well is that future bookings that we have on our current and production app should still work and should be considered as well in our new app so that we have this seamless transition from the current app that we have on the production and the one that we have this new Kami Space application
-- 📄 Update "Kame Space" to "Kame Space"
-  Once we did the migration properly and check on the dev and new prod that everything is working properly, our next goal is to rename Kami Homes to be Kami Space I want you to carefully check every text every label every environment variables every dynamic text that is related to Kami Homes and make sure that we update them to Kami Space I want you to update all the docs all the usages and all the occurrence that we use the Kami Homes I want you to carefully check the different casing text casing and make sure that we will no longer use Kami Homes on the entire applications either code wise and text label or any text that is displayed in the application make sure to also check any back-end related services or back-end code changes that using this Kami Homes I want you to check the email templates and third-party usages that we use this Kami Homes and make sure to update everything I want you to review this carefully if you need to create a plan to make sure that we missed anything please do but I want you to make sure that we update all the Kami Homes text labels and code related changes that ties to homes so that we could have this transition of naming to Kami Space
-- 📄 Update domain, dns and other related configuration to use kamespace.com
-  another goal that we will need to do is to update the existing domain from using Kamehomes.space to use the KameSpace.com. this would be a necessary thing that we need to do especially this domain would be the right fit on our app and since we will rename the Kamehomes to KameSpace this would be the appropriate domain also I want you to carefully check if there are other configurations other third-party services that we need to update this domain change so that we made sure that we didn't miss anything and make sure that every features every functionality every third party that we are using is using the updated domain that we have again I want you to be very smart I want you to check other places that we have again I want you to be very smart I want you to check other places that we have again I want you to be very smart I want you to check other places and configurations and dependencies that we have that will require us to update this because of this domain change that we did
-- 📄 Get Google services approval
-  that we updated our domain and updated our app name and prepared the application for production release the next important thing that I would like you to do is to get approval from Google about the different Google related services that we are using in our app. I think we already have an existing plan or documentation for this but I think it's outdated because of these recent changes that we did so what I want you to do is to make sure that we update these docs review this carefully if you think we will need to create one from the scratch then please do but our goal is to make sure that we generate an updated guide on what are the things that we need to do what are the things that we need to configure set up so that we could do this Google API services approval so that our user can use our app especially the multi-tenant support and so that user will no longer see this not yet verified app when they sign in using Google. So the goal of this is to make sure that our app is fully ready for production and we consider any Google related service to be production ready as well.
-- Get paymongo approval
+**Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
 
-PRE-RELEASE ITEMS:
+## Priority todos
 
-- Update property settings & photos
-- Get Paymongo and Google approval
-- iCal sync to Airbnb?
-- Implement quick and live verification to simplify real identity verification for the safety of the clients/bookings
-- On booking detail page, display email sent status history and ability to quickly resend email? Also, ability to view email content sent to user?
-- Cleanup tasks
-  - Cleanup unused settings, email templates that's related to Parking
-  - Clean up unused env variables
-  - Store env variables and make sure it's updated and we save to different environment
-  - Update and clean CI/CD after legacy to mt migration
-  - List down all 3rd party services that we are using for this app. Create a monitoring & notif system so that when there's error or concern that needs to be addressed, we will be notified immediately. Also consider costing and limit of all the services that we have
-  - Able to sync data from dev to local
-- Support scheduling and help user to manage, schedule, strategies marketing using AI
-- Refine the archive and delete property functionality
-- Refine Cancellation policy settings and overall process
-- 🚧 Ability to on/off dashboard pages or certain section of a page or certain feature or modal, or certain button from super admin and pick a reason (ex. Maintenance, etc) and display reason on the UI for our users. For now, let's only scope for the following modules.
-  - Inbox - Fb & Ig chat
-  - Pricing - Channel Sync
-  - Marketing - AI studio
-  - Analytics - AI Review
-  - Notifications - Telegram
+- ✅ **Migration from the legacy prod app to the new app**
+  Data, storage, auth, domains, email and repo are on the new stack. Closed 2026-11-03.
+  → **Done:** [`../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md)
+- ✅ **Rename Kame Homes to Kame Space**
+  Every label, text, env value, email template and third-party surface uses Kame Space. Guard green in CI.
+  → **Done:** [`../done/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../done/kamespace-03-rebrand-kame-homes-to-kame-space.md)
+- ✅ **Move domain to kamespace.com**
+  DNS, Vercel, Resend, DMARC, Supabase Auth, Turnstile, Meta, PostHog, Sentry, PayMongo and Google Business verified.
+  → **Done:** [`../done/kamespace-04-domain-move-kamespace-com.md`](../done/kamespace-04-domain-move-kamespace-com.md)
+- ✅ **Get Google services approval**
+  Brand verification approved and published 2026-11-03. Remaining hardening is post-launch.
+  → **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) · hardening: [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md)
+- 🔵 **Get PayMongo approval**
+  Business account approval and split payouts are still with PayMongo.
 
-POST-RELEASE ITEMS:
+## Pre-release items
 
-- Add helpful info for sections, features that may require short description of what it is, what's the purpose and what it they can do here
-  - External Reviews
-- 🚧 Ability to add Templates (not email) to chat box that we have across the app (AI assistant, Inbox, etc)
-- ✅ AI Studio: add existing samples of image generated and prompt settings the user can reuse to achieve the same results. This will help our users to prompt and generate the thing that they want. Shipped 2026-11-02: `docs/workflow/done/ai-studio-example-gallery.md`. Post examples are live; photo/clip examples are fully built but need real assets generated (blocked on a paid Gemini/Veo key) — tracked separately in `docs/workflow/in-progress/ai-studio-sample-assets.md`.
-- Make the table Action columns be consistent on different page (ex. Maintenance)
-- Add timeline view similar to Kame-Lends (Bookings, Finance, Maintenance)
-- Add new view to display a calendar or custom view to view bookings per time to see if there's any overlapping bookings or see as well if the vacant time is within the minimum cleaning time
-- Refine public pages, their copy and open actions
-- Refine Reviews page
-- 🚧 Switching back to dashboard should open the last visited listing. It should respect the level as well. Meaning, if user visited the parking listing, then go back to it, we should redirect to parking level, not always on org level. We should respect both org and listing level selection. If no previous, default to 1st org level.
-- Use sentry for error monitoring. Analytics for posthog
+- 🔵 Update property settings and photos.
+- 🔵 iCal sync to Airbnb
+  → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
+- 📋 Live identity verification to simplify real identity checks
+  → **Planned:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
+- 🔵 Booking detail: email sent history, quick resend, and view sent email content.
+- 🔵 Cleanup tasks
+  - Cleanup unused settings and email templates related to Parking.
+  - Clean up unused env variables.
+  - Store env variables and keep a current backup per environment.
+  - Update and clean CI/CD after the legacy to multi-tenant migration.
+  - List every third-party service. Add monitoring and alerts for errors, plus cost and limit tracking.
+  - Able to sync data from hosting to local. → **Done:** `bun run sync:prod-data` (prod → local only).
+- 📋 AI-supported marketing scheduling and strategy
+  → **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md)
+- 🔵 Refine the archive and delete property flow.
+- 🔵 Refine cancellation policy settings and the overall cancellation process.
+- ✅ On/off dashboard pages, sections, features or buttons from super admin, with a visible reason
+  → **Done:** [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) · QA: [`../for-testing/feature-availability-controls.md`](../for-testing/feature-availability-controls.md)
+- Improve and refine default amenities and house rules
+- Refine and improve cancellation policy options
+- Fix issue where google map is not rendering properly on both dashboard and public page
+- Add warning message if user refresh the page when editing on a page (ex. Settings)
+- Cleanup usages of "—" on email templates and across the app
+- Refine templates
+- Improve activity modal from settings to be the same modal size or we have view and back UX
+- Fix super admin UI issue on this: https://kamespace.com/admin/orgs/kame-homes
+- Update super admin OTP from sprmke.dev@gmail.com to kameworks.tech@gmail.com
+- Doing switch should display a toast message (atleast for "Notifications on this device")
+- Why stay guide and showcase public page editor is not loading at all
+-
+
+## Post-release items
+
+- 🔵 Add short helpful info for sections and features that need it (start with External Reviews).
+- 🧪 Add templates (not email) to chat boxes across the app (AI assistant, Inbox)
+  → **For testing:** [`../for-testing/chat-templates.md`](../for-testing/chat-templates.md)
+- 🚧 AI Studio example photos and clips
+  → **In progress:** [`../in-progress/ai-studio-sample-assets.md`](../in-progress/ai-studio-sample-assets.md)
+- 🔵 Make table action columns consistent across pages (for example Maintenance).
+- 🔵 Add a timeline view similar to Kame-Lends (Bookings, Finance, Maintenance).
+- 🔵 Add a calendar or custom view to spot overlapping bookings and check the minimum cleaning window.
+- 🔵 Refine public pages, their copy and open actions.
+- 🔵 Refine the Reviews page.
+- ✅ Returning to the dashboard opens the last visited listing at the correct level (org, property or parking).
+- ✅ Use Sentry for error monitoring and PostHog for analytics
+  → **Done:** [`../done/observability-sentry-posthog-split/README.md`](../done/observability-sentry-posthog-split/README.md)
+
+Back to [intake index](./README.md).

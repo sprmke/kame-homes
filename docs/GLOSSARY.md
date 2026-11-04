@@ -38,5 +38,5 @@ These are technical names, not branding. Changing them breaks links, data or cal
 
 ## Related
 
-- Brand rules and the rename plan: [`workflow/in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md`](./workflow/in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md)
+- Brand rules and the rename plan: [`workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md`](./workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md)
 - Visual system: [`../DESIGN.md`](../DESIGN.md)

@@ -213,7 +213,7 @@ EOF
 ```yaml
 ---
 title: <human title>
-status: active | legacy | archived | draft
+status: done
 tags: [architecture, booking-workflow, ...]
 updated: YYYY-MM-DD
 ---

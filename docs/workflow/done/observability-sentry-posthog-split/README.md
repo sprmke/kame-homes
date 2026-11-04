@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split: Sentry for errors, PostHog for analytics'
-status: planned
-tags: [workflow, planned, observability, sentry, posthog, analytics, error-tracking]
-updated: 2026-11-03
+status: done
+tags: [workflow, done, observability, sentry, posthog, analytics, error-tracking]
+updated: 2026-11-04
 kind: plan
 ---
 

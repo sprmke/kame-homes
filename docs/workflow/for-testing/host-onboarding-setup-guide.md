@@ -1,9 +1,9 @@
 ---
 title: 'Host onboarding setup guide (post-registration overlay)'
 stage: for-testing
-status: for testing — Phases 0–10 implemented; manual QA remaining
+status: for-testing
 tags: [workflow, in-progress, onboarding, dashboard, ux]
-updated: 2026-09-06
+updated: 2026-11-04
 ---
 
 # Host onboarding setup guide (post-registration overlay)
