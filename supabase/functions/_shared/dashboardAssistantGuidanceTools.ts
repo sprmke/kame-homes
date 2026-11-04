@@ -252,16 +252,16 @@ export async function toolGetNotificationPreferences(
           activeDeviceCount,
           optedIn: activeDeviceCount > 0,
           perEventTypeMatrix: false,
-          note: 'Master per-device toggle only — no per-event-type preference API yet.',
+          note: 'Master per-device toggle only - no per-event-type preference API yet.',
         },
         telegramOutbound: {
           description:
-            'Telegram module toggles and credentials are separate — use get_telegram_notification_settings.',
+            'Telegram module toggles and credentials are separate - use get_telegram_notification_settings.',
           configurableViaChat: false,
         },
         settingsPath,
         hostHint:
-          'Open Notifications to manage Web Push on this device or configure Telegram modules. Chat cannot change push/Telegram credentials — finish in the UI.',
+          'Open Notifications to manage Web Push on this device or configure Telegram modules. Chat cannot change push/Telegram credentials - finish in the UI.',
       },
     };
   } catch (err) {
@@ -312,11 +312,11 @@ export async function toolGuideNotificationSettings(
         steps: [
           'Open Notifications from the dashboard (or use settingsPath).',
           'Web Push: toggle push on this device under In-app notifications.',
-          'Telegram: enable a module, connect bot token + chat ID, then verify — some payment changes still need email OTP in Settings.',
+          'Telegram: enable a module, connect bot token + chat ID, then verify - some payment changes still need email OTP in Settings.',
         ],
         notAvailableInChat: [
           'Per-event-type push matrix (not built yet).',
-          'Telegram bot token / chat ID writes (use Notifications UI — same OTP rules as dashboard).',
+          'Telegram bot token / chat ID writes (use Notifications UI - same OTP rules as dashboard).',
         ],
       },
     };
@@ -378,7 +378,7 @@ export async function toolGetTelegramNotificationSettings(
           modules,
           availability,
           writesRequireUi:
-            'Enable toggles, bot token, chat ID, and templates must be edited in Notifications — chat never bypasses OTP-gated payment settings.',
+            'Enable toggles, bot token, chat ID, and templates must be edited in Notifications - chat never bypasses OTP-gated payment settings.',
         },
       };
     }
@@ -425,7 +425,7 @@ export async function toolGetTelegramNotificationSettings(
         modules,
         availability,
         writesRequireUi:
-          'Telegram credential and enable changes require the Notifications UI — no assistant bypass.',
+          'Telegram credential and enable changes require the Notifications UI - no assistant bypass.',
       },
     };
   } catch (err) {
@@ -461,7 +461,7 @@ export async function toolGuideTelegramSettings(
         ]
       : [
           'Turn Enable on (requires telegramNotifications plan on property modules).',
-          'Set shared bot token if needed, then module chat ID — use Verify before saving.',
+          'Set shared bot token if needed, then module chat ID - use Verify before saving.',
         ]),
     ...(deliveryOff
       ? [
@@ -525,7 +525,7 @@ export async function toolGuideCreateBooking(
         bookingFieldEdits: {
           availableInChat: false,
           reason:
-            'Admin booking edits use BookingEditForm with workflow-sensitive revert rules and direct guest_submissions PATCH — no shared safe assistant write path. Edit on the booking detail page.',
+            'Admin booking edits use BookingEditForm with workflow-sensitive revert rules and direct guest_submissions PATCH - no shared safe assistant write path. Edit on the booking detail page.',
         },
       },
     };
@@ -560,14 +560,14 @@ export async function toolGuideImportBookings(
         wizardSteps: [
           'Upload CSV or Excel (≤2,000 rows, ≤15 MB)',
           'Map columns (AI assist available)',
-          'Preview — fix or exclude error rows',
-          'Confirm commit — past check-ins become IMPORTED; today/future → Pending Review',
+          'Preview - fix or exclude error rows',
+          'Confirm commit - past check-ins become IMPORTED; today/future → Pending Review',
         ],
         notAvailableInChat: [
           'Auto-upload or auto-commit CSV without preview confirm',
           'Skipping import-preview / import-commit pipeline',
         ],
-        hostHint: 'Chat can explain the flow but cannot import rows — finish in the Import modal.',
+        hostHint: 'Chat can explain the flow but cannot import rows - finish in the Import modal.',
       },
     };
   } catch (err) {
@@ -586,7 +586,7 @@ export const GET_NOTIFICATION_PREFERENCES_TOOL_DECLARATION = {
 export const GUIDE_NOTIFICATION_SETTINGS_TOOL_DECLARATION = {
   name: 'guide_notification_settings',
   description:
-    'Deep-link and steps for Notifications / Web Push / Telegram — writes stay in the UI (OTP rules unchanged).',
+    'Deep-link and steps for Notifications / Web Push / Telegram - writes stay in the UI (OTP rules unchanged).',
   parameters: {
     type: 'object',
     properties: {
@@ -616,7 +616,7 @@ export const GET_TELEGRAM_NOTIFICATION_SETTINGS_TOOL_DECLARATION = {
 export const GUIDE_TELEGRAM_SETTINGS_TOOL_DECLARATION = {
   name: 'guide_telegram_settings',
   description:
-    'Deep-link to configure Telegram notifications — credential writes require the Notifications UI, never chat.',
+    'Deep-link to configure Telegram notifications - credential writes require the Notifications UI, never chat.',
   parameters: {
     type: 'object',
     properties: {
@@ -643,7 +643,7 @@ export const GUIDE_CREATE_BOOKING_TOOL_DECLARATION = {
 export const GUIDE_IMPORT_BOOKINGS_TOOL_DECLARATION = {
   name: 'guide_import_bookings',
   description:
-    'Deep-link to the Import wizard on Bookings — parse/preview/commit stay in UI; chat cannot auto-commit CSV.',
+    'Deep-link to the Import wizard on Bookings - parse/preview/commit stay in UI; chat cannot auto-commit CSV.',
   parameters: {
     type: 'object',
     properties: { propertyId: { type: 'string' } },

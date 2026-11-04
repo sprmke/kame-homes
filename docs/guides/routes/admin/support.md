@@ -31,7 +31,7 @@ Platform super-admins triage every support ticket across all organizations **and
 
 ## Host-facing knowledge
 
-_(Platform operator, not a host — this page isn't visible to hosts.)_
+_(Platform operator, not a host. This page is not visible to hosts.)_
 
 The platform team reviews every ticket hosts file through their Help & Support page here, replies, and closes them out. Replying to a host sends them an email with a link back to the ticket.
 

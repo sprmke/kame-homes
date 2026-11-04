@@ -75,7 +75,7 @@ export function validatePropertySettingsPatch(
     incoming.cleaningBufferMinutes !== undefined &&
     !isValidCleaningBufferMinutes(incoming.cleaningBufferMinutes as number)
   ) {
-    return 'Minimum cleaning time is required — between 1 and 6 hours, in 30-minute steps';
+    return 'Minimum cleaning time is required - between 1 and 6 hours, in 30-minute steps';
   }
 
   if (incoming.cancellationPolicy !== undefined) {

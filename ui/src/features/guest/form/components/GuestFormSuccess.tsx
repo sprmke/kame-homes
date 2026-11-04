@@ -242,7 +242,7 @@ export function GuestFormSuccess() {
                     </div>
                   </div>
 
-                  {/* Parking interest (Phase 7) — self-serve marketplace, not part of this total */}
+                  {/* Parking interest (Phase 7) - self-serve marketplace, not part of this total */}
                   {bookingData.needParking && (
                     <div className="border-t pt-5">
                       <div className="border-primary/20 bg-primary/5 flex items-start gap-4 rounded-lg border p-4">

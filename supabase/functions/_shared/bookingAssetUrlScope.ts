@@ -2,8 +2,19 @@ import { BOOKING_ASSET_CONFIG } from './bookingAssetTypes.ts';
 import { parseStorageObjectUrl } from './storageSignedUrl.ts';
 import { formatPublicUrl } from './utils.ts';
 
+/**
+ * Orchestrator-generated request PDFs live in private buckets but are not
+ * uploadable via `upload-booking-asset`, so they are absent from
+ * BOOKING_ASSET_CONFIG. Still include them so `get-booking-asset-url` can mint
+ * signed URLs for View on booking detail.
+ */
+const REQUEST_PDF_URL_COLUMNS = ['gaf_request_pdf_url', 'pet_request_pdf_url'] as const;
+
 const ASSET_URL_COLUMNS = [
-  ...new Set(Object.values(BOOKING_ASSET_CONFIG).map((entry) => entry.column)),
+  ...new Set([
+    ...Object.values(BOOKING_ASSET_CONFIG).map((entry) => entry.column),
+    ...REQUEST_PDF_URL_COLUMNS,
+  ]),
 ];
 
 export function bookingAssetUrlColumnList(): string {

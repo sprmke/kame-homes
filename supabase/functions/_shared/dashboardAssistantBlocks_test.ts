@@ -45,7 +45,7 @@ function tableOf(blocks: ChatBlock[]) {
 }
 
 Deno.test(
-  'hydrateAssistantBlocksFromTools — links table rows to bookings, repeat guests by date',
+  'hydrateAssistantBlocksFromTools - links table rows to bookings, repeat guests by date',
   () => {
     const blocks = hydrateAssistantBlocksFromTools(
       [
@@ -72,7 +72,7 @@ Deno.test(
   }
 );
 
-Deno.test('hydrateAssistantBlocksFromTools — replaces model-written row targets', () => {
+Deno.test('hydrateAssistantBlocksFromTools - replaces model-written row targets', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [
       {
@@ -88,7 +88,7 @@ Deno.test('hydrateAssistantBlocksFromTools — replaces model-written row target
   assertEquals(tableOf(blocks).rowTargets, undefined);
 });
 
-Deno.test('hydrateAssistantBlocksFromTools — fallback bookings table carries row targets', () => {
+Deno.test('hydrateAssistantBlocksFromTools - fallback bookings table carries row targets', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [{ type: 'text', text: 'Here you go.' }],
     [LISTED]
@@ -99,7 +99,7 @@ Deno.test('hydrateAssistantBlocksFromTools — fallback bookings table carries r
   );
 });
 
-Deno.test('sanitizeAssistantChatBlocks — keeps row targets aligned when empty rows drop', () => {
+Deno.test('sanitizeAssistantChatBlocks - keeps row targets aligned when empty rows drop', () => {
   const [table] = sanitizeAssistantChatBlocks([
     {
       type: 'data_table',
@@ -117,7 +117,7 @@ Deno.test('sanitizeAssistantChatBlocks — keeps row targets aligned when empty 
   ]);
 });
 
-Deno.test('isSafeInternalHref — allows in-app paths', () => {
+Deno.test('isSafeInternalHref - allows in-app paths', () => {
   assertEquals(isSafeInternalHref('/org/acme/property/unit-1/bookings'), true);
   assertEquals(
     isSafeInternalHref('/org/acme/property/unit-1/bookings?status=PENDING_REVIEW'),
@@ -125,7 +125,7 @@ Deno.test('isSafeInternalHref — allows in-app paths', () => {
   );
 });
 
-Deno.test('isSafeInternalHref — rejects external, protocol-relative and script URLs', () => {
+Deno.test('isSafeInternalHref - rejects external, protocol-relative and script URLs', () => {
   for (const href of [
     'https://evil.example/login',
     '//evil.example/login',
@@ -139,7 +139,7 @@ Deno.test('isSafeInternalHref — rejects external, protocol-relative and script
   }
 });
 
-Deno.test('sanitizeAssistantChatBlocks — drops unsafe links and empty link lists', () => {
+Deno.test('sanitizeAssistantChatBlocks - drops unsafe links and empty link lists', () => {
   const blocks = sanitizeAssistantChatBlocks([
     {
       type: 'link_list',
@@ -159,7 +159,7 @@ Deno.test('sanitizeAssistantChatBlocks — drops unsafe links and empty link lis
   });
 });
 
-Deno.test('knowledgeSourceLinks — resolves route params and skips unresolvable routes', () => {
+Deno.test('knowledgeSourceLinks - resolves route params and skips unresolvable routes', () => {
   const block = knowledgeSourceLinks(
     [
       {
@@ -183,7 +183,7 @@ Deno.test('knowledgeSourceLinks — resolves route params and skips unresolvable
   });
 });
 
-Deno.test('knowledgeSourceLinks — returns null when nothing is linkable', () => {
+Deno.test('knowledgeSourceLinks - returns null when nothing is linkable', () => {
   assertEquals(
     knowledgeSourceLinks([{ question: 'Q', route_path: null }], { orgSlug: 'acme' }),
     null
@@ -191,7 +191,7 @@ Deno.test('knowledgeSourceLinks — returns null when nothing is linkable', () =
 });
 
 Deno.test(
-  'hydrateAssistantBlocksFromTools — ID or card asks refuse instead of a listing picker',
+  'hydrateAssistantBlocksFromTools - ID or card asks refuse instead of a listing picker',
   () => {
     const blocks = hydrateAssistantBlocksFromTools(
       [{ type: 'text', text: 'Looking that up.' }],
@@ -214,7 +214,7 @@ Deno.test(
   }
 );
 
-Deno.test('hydrateAssistantBlocksFromTools — holiday rates name amounts and blocked nights', () => {
+Deno.test('hydrateAssistantBlocksFromTools - holiday rates name amounts and blocked nights', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [{ type: 'text', text: 'Holiday rates.' }],
     [
@@ -234,7 +234,7 @@ Deno.test('hydrateAssistantBlocksFromTools — holiday rates name amounts and bl
   assertEquals(text.includes('Dec 27-28 are blocked'), true);
 });
 
-Deno.test('hydrateAssistantBlocksFromTools — show-me-this-booking uses a booking card', () => {
+Deno.test('hydrateAssistantBlocksFromTools - show-me-this-booking uses a booking card', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [{ type: 'text', text: 'Maria Santos is arriving 20 Dec.' }],
     [
@@ -262,7 +262,7 @@ Deno.test('hydrateAssistantBlocksFromTools — show-me-this-booking uses a booki
 });
 
 Deno.test(
-  'hydrateAssistantBlocksFromTools — balance questions get a booking card, not pending-task dump',
+  'hydrateAssistantBlocksFromTools - balance questions get a booking card, not pending-task dump',
   () => {
     const blocks = hydrateAssistantBlocksFromTools(
       [{ type: 'text', text: 'Maria still has a guest balance.' }],
@@ -297,7 +297,7 @@ Deno.test(
   }
 );
 
-Deno.test('hydrateAssistantBlocksFromTools — empty checkout range keeps next-step chips', () => {
+Deno.test('hydrateAssistantBlocksFromTools - empty checkout range keeps next-step chips', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [{ type: 'text', text: 'Looking at this weekend.' }],
     [{ bookings: [] }],
@@ -316,7 +316,7 @@ Deno.test('hydrateAssistantBlocksFromTools — empty checkout range keeps next-s
   ]);
 });
 
-Deno.test('hydrateAssistantBlocksFromTools — enough=false injects the tool note', () => {
+Deno.test('hydrateAssistantBlocksFromTools - enough=false injects the tool note', () => {
   const blocks = hydrateAssistantBlocksFromTools(
     [{ type: 'text', text: 'Shore Residences 2B occupancy is thin.' }],
     [

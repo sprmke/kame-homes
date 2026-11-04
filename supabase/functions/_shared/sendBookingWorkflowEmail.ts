@@ -213,7 +213,7 @@ export async function sendBookingWorkflowEmail(
       const pdfUrl = String(booking.gaf_request_pdf_url ?? '').trim();
       if (!pdfUrl) {
         throw new SendBookingWorkflowEmailError(
-          'GAF request PDF is missing — proceed from Pending Review first'
+          'GAF request PDF is missing - proceed from Pending Review first'
         );
       }
       if (status === 'PENDING_REVIEW' || status === 'CANCELLED') {
@@ -237,7 +237,7 @@ export async function sendBookingWorkflowEmail(
       const pdfUrl = String(booking.pet_request_pdf_url ?? '').trim();
       if (!pdfUrl) {
         throw new SendBookingWorkflowEmailError(
-          'Pet request PDF is missing — proceed from Pending Review first'
+          'Pet request PDF is missing - proceed from Pending Review first'
         );
       }
       if (status === 'PENDING_REVIEW' || status === 'CANCELLED') {

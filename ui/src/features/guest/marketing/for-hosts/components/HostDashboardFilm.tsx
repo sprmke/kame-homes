@@ -57,7 +57,7 @@ export function HostDashboardFilm({ narrationMuted }: HostDashboardFilmProps) {
                 premountFor={fps}
               >
                 {/* Delay the voice line until the incoming transition has finished and the
-                    previous chapter's line has ended — no two feature voices overlap. */}
+                    previous chapter's line has ended - no two feature voices overlap. */}
                 <Sequence from={HOST_TOUR_NARRATION_START_DELAY}>
                   <Audio src={chapter.audioSrc} muted={narrationMuted} />
                 </Sequence>

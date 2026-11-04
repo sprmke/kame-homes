@@ -31,7 +31,7 @@ Deno.test('requiredPermissionsForPatchColumns maps stay vs pricing leaves', () =
   );
 });
 
-Deno.test('requiredPermissionsForOperation — clear_asset uses asset leaf', () => {
+Deno.test('requiredPermissionsForOperation - clear_asset uses asset leaf', () => {
   assertEquals(
     requiredPermissionsForOperation('clear_asset', { assetType: 'valid_id' }),
     ['bookings.detail.guests:edit']
@@ -42,7 +42,7 @@ Deno.test('requiredPermissionsForOperation — clear_asset uses asset leaf', () 
   );
 });
 
-Deno.test('requiredPermissionsForOperation — reschedule requires stay edit', () => {
+Deno.test('requiredPermissionsForOperation - reschedule requires stay edit', () => {
   assertEquals(requiredPermissionsForOperation('reschedule', {}), [
     'bookings.detail.stay:edit',
   ]);
@@ -184,7 +184,7 @@ Deno.test('sanitizeBookingPatchPayload validates settlement line items', () => {
   );
 });
 
-Deno.test('assertStayDateOrder — same-day allowed, inverted rejected', () => {
+Deno.test('assertStayDateOrder - same-day allowed, inverted rejected', () => {
   assertStayDateOrder('2026-01-10', '2026-01-10');
   assertStayDateOrder('2026-01-10', '2026-01-12');
   assertStayDateOrder('01-10-2026', '01-10-2026');

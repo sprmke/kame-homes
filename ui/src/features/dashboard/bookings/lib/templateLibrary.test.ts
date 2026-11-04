@@ -137,7 +137,7 @@ describe('buildTemplateLibrary', () => {
   });
 });
 
-describe('buildTemplateLibrary — folders', () => {
+describe('buildTemplateLibrary - folders', () => {
   const customA = template({
     templateKey: 'custom-a',
     name: 'Arrival tips',

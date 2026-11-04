@@ -167,5 +167,5 @@ export function formatKnownFactsSection(refs: readonly EntityRef[]): string {
     const digestNote = ref.digest ? ` (${ref.digest})` : '';
     return `- ${ref.label}${digestNote} [${idKey}: ${ref.id}]`;
   });
-  return `\n\nKnown from earlier in this chat (reuse these ids directly — only re-look-up if the host asks for fresh data):\n${lines.join('\n')}`;
+  return `\n\nKnown from earlier in this chat (reuse these ids directly - only re-look-up if the host asks for fresh data):\n${lines.join('\n')}`;
 }

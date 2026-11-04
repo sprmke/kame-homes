@@ -75,7 +75,7 @@ const hostFaqs: MarketingPublicFaqItem[] = [
         <Link to="/for-hosts/pricing" className="text-brand-ink font-medium hover:underline">
           host pricing
         </Link>
-        —free for one property, with upgrades from the dashboard when you add listings, parking, or
+        -free for one property, with upgrades from the dashboard when you add listings, parking, or
         team members.
       </>
     ),

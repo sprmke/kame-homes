@@ -32,12 +32,12 @@ Platform-wide directory of **every property across every organization**, for the
 
 ## Host-facing knowledge
 
-This page is the platform team's master list of every property on the platform, across every host and organization — used to browse or investigate a property without needing to log in as its owner.
+This page is the platform team's master list of every property on the platform, across every host and organization - used to browse or investigate a property without needing to log in as its owner.
 
 **Common host questions**
 
 - Q: Does this page show my property's bookings or revenue to the platform team?
-  A: No — this list only shows profile details (name, type, location, which organization and development it belongs to), not booking or financial data.
+  A: No. This list only shows profile details (name, type, location, which organization and development it belongs to), not booking or financial data.
 - Q: How does the platform team know which development my property belongs to?
   A: It's matched automatically when your property's residence/building name matches a development the platform team has registered.
 

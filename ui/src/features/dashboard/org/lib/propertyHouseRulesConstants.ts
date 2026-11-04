@@ -45,6 +45,15 @@ export const HOUSE_RULE_CATEGORIES: HouseRuleCategory[] = [
       { id: 'no_parties', name: 'No parties or events', type: 'prohibited' },
       { id: 'no_shoes_inside', name: 'No shoes inside', type: 'prohibited' },
       { id: 'no_loud_music', name: 'No loud music', type: 'prohibited' },
+      { id: 'no_illegal_drugs', name: 'No illegal drugs', type: 'prohibited' },
+      { id: 'no_candles_open_flames', name: 'No candles or open flames', type: 'prohibited' },
+      { id: 'no_unregistered_guests', name: 'No unregistered guests', type: 'prohibited' },
+      { id: 'no_pets', name: 'No pets allowed', type: 'prohibited' },
+      {
+        id: 'no_visitors_without_approval',
+        name: 'No visitors without prior approval',
+        type: 'prohibited',
+      },
     ],
   },
   {
@@ -53,9 +62,9 @@ export const HOUSE_RULE_CATEGORIES: HouseRuleCategory[] = [
     icon: Users,
     rules: [
       { id: 'pets_allowed', name: 'Pets allowed (with approval)', type: 'allowed' },
-      { id: 'no_pets', name: 'No pets allowed', type: 'prohibited' },
       { id: 'suitable_for_children', name: 'Suitable for children', type: 'allowed' },
       { id: 'registered_guests_only', name: 'Registered guests only', type: 'info' },
+      { id: 'additional_guest_fee', name: 'Additional guest fee may apply', type: 'info' },
     ],
   },
   {
@@ -66,6 +75,10 @@ export const HOUSE_RULE_CATEGORIES: HouseRuleCategory[] = [
       { id: 'security_cameras', name: 'Security cameras on property', type: 'info' },
       { id: 'self_check_in', name: 'Self check-in', type: 'allowed' },
       { id: 'no_cooking_smelly_food', name: 'No cooking smelly food', type: 'prohibited' },
+      { id: 'comply_building_rules', name: 'Comply with condo/building rules', type: 'info' },
+      { id: 'valid_id_required', name: 'Valid ID required at lobby/security', type: 'info' },
+      { id: 'dispose_trash_properly', name: 'Dispose of trash properly', type: 'info' },
+      { id: 'report_damages', name: 'Report damages or issues immediately', type: 'info' },
     ],
   },
 ];

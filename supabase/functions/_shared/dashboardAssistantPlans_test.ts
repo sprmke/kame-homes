@@ -9,16 +9,16 @@ import {
   stepsToSkipForFailure,
 } from './dashboardAssistantPlans.ts';
 
-Deno.test('findStepDependencies — no placeholders means no dependencies', () => {
+Deno.test('findStepDependencies - no placeholders means no dependencies', () => {
   assertEquals(findStepDependencies({ bookingId: 'abc', toStatus: 'READY_FOR_CHECKIN' }), []);
 });
 
-Deno.test('findStepDependencies — finds a single top-level placeholder', () => {
+Deno.test('findStepDependencies - finds a single top-level placeholder', () => {
   assertEquals(findStepDependencies({ bookingId: '{{step1.bookingId}}' }), [1]);
 });
 
 Deno.test(
-  'findStepDependencies — finds nested placeholders in arrays/objects, deduped and sorted',
+  'findStepDependencies - finds nested placeholders in arrays/objects, deduped and sorted',
   () => {
     const payload = {
       bookingId: '{{step2.id}}',
@@ -30,7 +30,7 @@ Deno.test(
 );
 
 Deno.test(
-  'resolveStepPlaceholders — whole-string placeholder resolves to the real value type',
+  'resolveStepPlaceholders - whole-string placeholder resolves to the real value type',
   () => {
     const prior = new Map<number, unknown>([[1, { bookingId: 'book-123', amount: 500 }]]);
     const resolved = resolveStepPlaceholders(
@@ -42,14 +42,14 @@ Deno.test(
   }
 );
 
-Deno.test('resolveStepPlaceholders — nested path lookup', () => {
+Deno.test('resolveStepPlaceholders - nested path lookup', () => {
   const prior = new Map<number, unknown>([[0, { data: { booking: { id: 'nested-id' } } }]]);
   const resolved = resolveStepPlaceholders({ bookingId: '{{step0.data.booking.id}}' }, prior);
   assertEquals(resolved.bookingId, 'nested-id');
 });
 
 Deno.test(
-  'resolveStepPlaceholders — embedded placeholder in a larger string is stringified in place',
+  'resolveStepPlaceholders - embedded placeholder in a larger string is stringified in place',
   () => {
     const prior = new Map<number, unknown>([[1, { bookingId: 'XYZ' }]]);
     const resolved = resolveStepPlaceholders(
@@ -61,7 +61,7 @@ Deno.test(
 );
 
 Deno.test(
-  'resolveStepPlaceholders — missing step or missing path leaves the token untouched',
+  'resolveStepPlaceholders - missing step or missing path leaves the token untouched',
   () => {
     const prior = new Map<number, unknown>([[1, { bookingId: 'XYZ' }]]);
     const resolved = resolveStepPlaceholders(
@@ -73,7 +73,7 @@ Deno.test(
   }
 );
 
-Deno.test('resolveStepPlaceholders — resolves nested objects and arrays recursively', () => {
+Deno.test('resolveStepPlaceholders - resolves nested objects and arrays recursively', () => {
   const prior = new Map<number, unknown>([[0, { id: 'A1' }]]);
   const resolved = resolveStepPlaceholders(
     { payload: { bookingId: '{{step0.id}}' }, tags: ['{{step0.id}}', 'static'] },
@@ -82,14 +82,14 @@ Deno.test('resolveStepPlaceholders — resolves nested objects and arrays recurs
   assertEquals(resolved, { payload: { bookingId: 'A1' }, tags: ['A1', 'static'] });
 });
 
-Deno.test('capPlanSteps — keeps the list unmodified under the cap', () => {
+Deno.test('capPlanSteps - keeps the list unmodified under the cap', () => {
   const steps = [1, 2, 3];
   const { kept, overflow } = capPlanSteps(steps, 10);
   assertEquals(kept, steps);
   assertEquals(overflow, 0);
 });
 
-Deno.test('capPlanSteps — truncates at the cap and reports overflow', () => {
+Deno.test('capPlanSteps - truncates at the cap and reports overflow', () => {
   const steps = Array.from({ length: 15 }, (_, i) => i);
   const { kept, overflow } = capPlanSteps(steps, PLAN_STEP_CAP);
   assertEquals(kept.length, PLAN_STEP_CAP);
@@ -97,7 +97,7 @@ Deno.test('capPlanSteps — truncates at the cap and reports overflow', () => {
   assertEquals(kept[kept.length - 1], PLAN_STEP_CAP - 1);
 });
 
-Deno.test('stepsToSkipForFailure — a step depending on a failed step is skipped', () => {
+Deno.test('stepsToSkipForFailure - a step depending on a failed step is skipped', () => {
   const steps = [
     { stepIndex: 0, dependsOn: [] },
     { stepIndex: 1, dependsOn: [0] },
@@ -107,7 +107,7 @@ Deno.test('stepsToSkipForFailure — a step depending on a failed step is skippe
   assertEquals([...skip].sort(), [1]);
 });
 
-Deno.test('stepsToSkipForFailure — propagates transitively through a chain', () => {
+Deno.test('stepsToSkipForFailure - propagates transitively through a chain', () => {
   const steps = [
     { stepIndex: 0, dependsOn: [] },
     { stepIndex: 1, dependsOn: [0] },
@@ -118,7 +118,7 @@ Deno.test('stepsToSkipForFailure — propagates transitively through a chain', (
   assertEquals([...skip].sort(), [1, 2]);
 });
 
-Deno.test('stepsToSkipForFailure — an independent step is never skipped', () => {
+Deno.test('stepsToSkipForFailure - an independent step is never skipped', () => {
   const steps = [
     { stepIndex: 0, dependsOn: [] },
     { stepIndex: 1, dependsOn: [] },
@@ -127,11 +127,11 @@ Deno.test('stepsToSkipForFailure — an independent step is never skipped', () =
   assertEquals(skip.size, 0);
 });
 
-Deno.test('derivePlanStatus — cancelled when nothing was selected', () => {
+Deno.test('derivePlanStatus - cancelled when nothing was selected', () => {
   assertEquals(derivePlanStatus([{ selected: false, status: 'proposed' }]), 'cancelled');
 });
 
-Deno.test('derivePlanStatus — completed when every selected step executed', () => {
+Deno.test('derivePlanStatus - completed when every selected step executed', () => {
   assertEquals(
     derivePlanStatus([
       { selected: true, status: 'executed' },
@@ -142,7 +142,7 @@ Deno.test('derivePlanStatus — completed when every selected step executed', ()
   );
 });
 
-Deno.test('derivePlanStatus — partially_failed on a mixed outcome', () => {
+Deno.test('derivePlanStatus - partially_failed on a mixed outcome', () => {
   assertEquals(
     derivePlanStatus([
       { selected: true, status: 'executed' },
@@ -152,7 +152,7 @@ Deno.test('derivePlanStatus — partially_failed on a mixed outcome', () => {
   );
 });
 
-Deno.test('derivePlanStatus — partially_failed when every selected step failed', () => {
+Deno.test('derivePlanStatus - partially_failed when every selected step failed', () => {
   assertEquals(
     derivePlanStatus([
       { selected: true, status: 'failed' },

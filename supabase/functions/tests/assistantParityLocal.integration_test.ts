@@ -243,7 +243,7 @@ Deno.test({
   fn: async () => {
     const fixture = await loadFixture();
     if (!fixture)
-      throw new Error('Local fixture missing — run db:reset with seed-dashboard-demo-data');
+      throw new Error('Local fixture missing - run db:reset with seed-dashboard-demo-data');
     const ctx = await buildCtx(fixture);
     const result = await executeTool(
       'guide_import_bookings',
@@ -423,7 +423,7 @@ Deno.test({
       'propose_create_support_ticket',
       {
         subject: 'Assistant integration test',
-        description: 'Automated smoke — safe to ignore.',
+        description: 'Automated smoke - safe to ignore.',
         category: 'bug_report',
       },
       ctx
@@ -801,7 +801,7 @@ Deno.test({
     const result = await executeCreateSupportTicket(ctx, {
       category: 'bug_report',
       subject: 'Assistant parity attachment test',
-      description: 'Automated integration smoke — safe to ignore.',
+      description: 'Automated integration smoke - safe to ignore.',
       attachmentPaths: [attachmentPath],
     });
     if (!result.ok) {

@@ -7,25 +7,25 @@ import {
   parseCheckoutManila,
 } from './sdRefundCronLead.ts';
 
-Deno.test('parseCheckoutManila — MM-DD-YYYY + 12h time', () => {
+Deno.test('parseCheckoutManila - MM-DD-YYYY + 12h time', () => {
   const dt = parseCheckoutManila('09-15-2026', '11:00 AM');
   assert(dt);
   assertEquals(dt.toISOString(), '2026-09-15T03:00:00.000Z');
 });
 
-Deno.test('parseCheckoutManila — YYYY-MM-DD + 24h time', () => {
+Deno.test('parseCheckoutManila - YYYY-MM-DD + 24h time', () => {
   const dt = parseCheckoutManila('2026-09-15', '14:30');
   assert(dt);
   assertEquals(dt.toISOString(), '2026-09-15T06:30:00.000Z');
 });
 
-Deno.test('normalizeSdRefundLeadMinutes — invalid falls back to 180', () => {
+Deno.test('normalizeSdRefundLeadMinutes - invalid falls back to 180', () => {
   assertEquals(normalizeSdRefundLeadMinutes(Number.NaN), 180);
   assertEquals(normalizeSdRefundLeadMinutes(-5), 180);
   assertEquals(normalizeSdRefundLeadMinutes(120), 120);
 });
 
-Deno.test('evaluateSdRefundLeadWindow — not due before lead opens', () => {
+Deno.test('evaluateSdRefundLeadWindow - not due before lead opens', () => {
   const checkoutDt = parseCheckoutManila('09-15-2026', '11:00 AM')!;
   const eligibleAtMs = computeSdRefundLeadEligibleAtMs(checkoutDt, 120);
   const result = evaluateSdRefundLeadWindow({
@@ -40,7 +40,7 @@ Deno.test('evaluateSdRefundLeadWindow — not due before lead opens', () => {
   }
 });
 
-Deno.test('evaluateSdRefundLeadWindow — due on or after eligible time', () => {
+Deno.test('evaluateSdRefundLeadWindow - due on or after eligible time', () => {
   const checkoutDt = parseCheckoutManila('09-15-2026', '11:00 AM')!;
   const eligibleAtMs = computeSdRefundLeadEligibleAtMs(checkoutDt, 120);
   const result = evaluateSdRefundLeadWindow({
@@ -55,7 +55,7 @@ Deno.test('evaluateSdRefundLeadWindow — due on or after eligible time', () => 
   }
 });
 
-Deno.test('evaluateSdRefundLeadWindow — unparseable checkout', () => {
+Deno.test('evaluateSdRefundLeadWindow - unparseable checkout', () => {
   const result = evaluateSdRefundLeadWindow({
     checkOutDate: 'not-a-date',
     checkOutTime: '11:00 AM',

@@ -210,7 +210,7 @@ export function SuperAdminPlatformSettingsPage() {
 
       <SuperAdminSettingsCard
         title="Authenticated rate limiting"
-        description="Applies to every signed-in dashboard request by default. Off = observe only (console warning); on = the caller gets a 429. Flip off instantly if the limit misfires on real traffic — no deploy needed."
+        description="Applies to every signed-in dashboard request by default. Off = observe only (console warning); on = the caller gets a 429. Flip off instantly if the limit misfires on real traffic - no deploy needed."
         icon={<Gauge className="text-muted-foreground size-4" aria-hidden />}
         headerAction={
           <Button variant="outline" size="sm" className="min-h-[44px]" asChild>
@@ -226,7 +226,7 @@ export function SuperAdminPlatformSettingsPage() {
       >
         <SuperAdminSettingsRow
           label="Enforce (return 429)"
-          description="Off keeps the original log-only rollout — nothing is ever blocked."
+          description="Off keeps the original log-only rollout - nothing is ever blocked."
           htmlFor="auth-rate-limit-enforce"
         >
           <Switch
@@ -241,7 +241,7 @@ export function SuperAdminPlatformSettingsPage() {
           stacked
           label="Limit (requests / 60s per user)"
           htmlFor="auth-rate-limit"
-          description="No measured hosted-traffic baseline exists yet — 300 is a reasoned, deliberately loose starting point. Raise it here if a legitimate workflow (bulk pricing edits, multi-tab polling) trips it."
+          description="No measured hosted-traffic baseline exists yet - 300 is a reasoned, deliberately loose starting point. Raise it here if a legitimate workflow (bulk pricing edits, multi-tab polling) trips it."
         >
           <Input
             id="auth-rate-limit"

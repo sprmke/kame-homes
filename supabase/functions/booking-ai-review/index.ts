@@ -16,6 +16,8 @@
  * via GET polling while this POST is open.
  */
 
+import { bookingTargetLabel, logBookingDetailActivity } from '../_shared/bookingActivityLog.ts';
+import { DatabaseService } from '../_shared/databaseService.ts';
 import {
   executeBookingAiReview,
   getBookingAiReviewById,
@@ -25,7 +27,6 @@ import {
   staleAiReviewSections,
   withStaleAiReviewSections,
 } from '../_shared/bookingAiReviewService.ts';
-import { DatabaseService } from '../_shared/databaseService.ts';
 import {
   jsonSuccess,
   jsonUpgradeHook,
@@ -51,8 +52,9 @@ serveAuthenticated('booking-ai-review', async (req, user) => {
   });
   if (limited) return limited;
 
-  const { property, org } = await resolveScopedPropertyAccess(req, 'bookings.detail.stay:edit');
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.stay:edit');
+  const propertyId = propertyAccess.property.id;
+  const org = propertyAccess.org;
 
   try {
     await requirePropertyFeature(propertyId, 'aiValidations');
@@ -97,6 +99,15 @@ serveAuthenticated('booking-ai-review', async (req, user) => {
   console.log(`[booking-ai-review] ${bookingId}: running inline`);
   const row = await executeBookingAiReview(bookingId, propertyId, user.id, org.id);
   console.log(`[booking-ai-review] ${bookingId}: finished with ${row.job_status}`);
+
+  const bookingForLog = await DatabaseService.getBookingById(bookingId);
+  await logBookingDetailActivity({
+    action: 'booking.ai_review_run',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel: bookingForLog ? bookingTargetLabel(bookingForLog) : null,
+  });
 
   return jsonSuccess(req, await withStaleAiReviewSections(row, propertyId));
 });

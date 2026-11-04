@@ -13,7 +13,7 @@ import {
   voucherRedemptionTimeoutMs,
 } from '../shared/voucherRedemptionHarness';
 
-test.describe('guest — apply voucher on booking form', () => {
+test.describe('guest - apply voucher on booking form', () => {
   test('shows eligible voucher, discount estimate, and sends source booking on submit', async ({
     page,
   }) => {

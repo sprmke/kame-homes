@@ -10,8 +10,7 @@ import { guestGuestReviewPath } from './publicGuestPaths.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { escapeHtml, loadEmailTemplate, replacePlaceholders } from './renderEmailHtml.ts';
 import { createServiceClient } from './orgAuth.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 async function sendReviewNotice(opts: {
   to: string | null | undefined;
@@ -31,7 +30,7 @@ async function sendReviewNotice(opts: {
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!resendKey || !fromEmail) {
-    console.warn('[reviewEmails] RESEND missing — skip');
+    console.warn('[reviewEmails] RESEND missing - skip');
     return false;
   }
 
@@ -49,23 +48,14 @@ async function sendReviewNotice(opts: {
     brandColor: opts.brandColor,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [to],
-      subject: opts.subject,
-      html,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [to],
+    subject: opts.subject,
+    html,
+    errorLabel: 'email',
   });
-  if (!res.ok) {
-    console.error('[reviewEmails] Resend failed:', await res.text());
-    return false;
-  }
+
   return true;
 }
 

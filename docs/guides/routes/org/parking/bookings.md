@@ -53,25 +53,25 @@ Manage guests who booked **this parking slot only**. If a guest's parking is bun
 **Common host questions**
 
 - Q: How do bookings end up on this page?
-  A: Either you use **New booking** to submit one on the guest's behalf right from the dashboard, or a guest sends a broadcast request without picking a specific slot. Broadcast requests go to a small group of eligible slots at a time — the cheapest-priced eligible slots first — and whichever host accepts first gets the booking.
+  A: Either you use **New booking** to submit one on the guest's behalf right from the dashboard, or a guest sends a broadcast request without picking a specific slot. Broadcast requests go to a small group of eligible slots at a time - the cheapest-priced eligible slots first - and whichever host accepts first gets the booking.
 - Q: Why didn't I get notified about a broadcast request right away?
-  A: Requests aren't sent to every eligible slot at once. They go out in small rounds, cheapest-priced first. If your slot isn't among the cheapest eligible ones for that request, you'll only be notified in a later round — and only if nobody in an earlier round accepted in time.
+  A: Requests aren't sent to every eligible slot at once. They go out in small rounds, cheapest-priced first. If your slot isn't among the cheapest eligible ones for that request, you'll only be notified in a later round - and only if nobody in an earlier round accepted in time.
 - Q: What happens if I don't respond to a broadcast request in time?
   A: You'll have about 15 minutes to Accept or Decline if check-in is today, or an hour otherwise, and a live countdown shows how much time is left. If nobody in your round accepts in time, or everyone in it declines, the request either moves on to the next round of hosts or closes with no host found once every eligible slot has had a turn.
-- Q: I own more than one parking slot — could I get notified twice for the same request?
+- Q: I own more than one parking slot - could I get notified twice for the same request?
   A: No. Even if more than one of your slots would qualify, you'll only ever be offered your cheapest eligible one for a given request.
 - Q: Can I leave a note for the guest when I accept a request?
   A: Yes. Accepting lets you add a short access instructions note (up to 500 characters) that the guest sees once their payment goes through.
 - Q: What if another host claims a broadcast request before I do?
   A: You'll see "Already claimed" if you click Accept after someone else got there first, and the page updates automatically, so you're never left staring at a stuck button.
 - Q: Does Accept confirm the booking right away?
-  A: Not anymore. Accepting reserves the slot for that guest and sends them a "pay to confirm" prompt with a time limit. The booking only becomes confirmed once the guest actually pays — you'll see the status change to **Awaiting Payment** after you accept, then to **Pending Review** once they've paid.
+  A: Not anymore. Accepting reserves the slot for that guest and sends them a "pay to confirm" prompt with a time limit. The booking only becomes confirmed once the guest actually pays - you'll see the status change to **Awaiting Payment** after you accept, then to **Pending Review** once they've paid.
 - Q: What happens if the guest never pays?
-  A: If they don't pay within the window, the slot is automatically released and the request goes back to searching for another host (or closes if no one else is eligible) — you don't need to do anything.
+  A: If they don't pay within the window, the slot is automatically released and the request goes back to searching for another host (or closes if no one else is eligible) - you don't need to do anything.
 - Q: What happens once the guest pays?
-  A: The platform automatically sends an endorsement email to your development's PMO (CC'd to the guest) so the guest's vehicle is authorized for entry — you don't need to send anything yourself. Once that's sent, a **Message guest** button appears on the booking detail page linking to this parking's Inbox.
+  A: The platform automatically sends an endorsement email to your development's PMO (CC'd to the guest) so the guest's vehicle is authorized for entry - you don't need to send anything yourself. Once that's sent, a **Message guest** button appears on the booking detail page linking to this parking's Inbox.
 - Q: Is there a way to skip manually accepting requests?
-  A: Yes — an **Auto-accept top match** toggle in Settings → Booking Automation. When on, your slot claims the top-ranked request automatically instead of waiting for you to tap Accept; the guest still has to pay before the endorsement fires.
+  A: Yes. An **Auto-accept top match** toggle in Settings → Booking Automation. When on, your slot claims the top-ranked request automatically instead of waiting for you to tap Accept; the guest still has to pay before the endorsement fires.
 
 ---
 

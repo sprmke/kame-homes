@@ -52,7 +52,7 @@ function buildSignals(kpis: AnalyticsKpis): SignalBar[] {
       key: 'rating',
       label: 'Avg rating',
       metric: 'rating',
-      display: rating > 0 ? rating.toFixed(1) : '—',
+      display: rating > 0 ? rating.toFixed(1) : '-',
       fillPct: rating > 0 ? clampPct((rating / 5) * 100) : 0,
       color: CHART_INCOME_COLOR,
     },

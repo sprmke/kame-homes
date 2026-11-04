@@ -33,14 +33,14 @@ describe('reportQueryError', () => {
     expect(options?.fingerprint).toEqual(['query', 'bookings', '5xx']);
   });
 
-  it('does not report a 4xx — the handler answered correctly', () => {
+  it('does not report a 4xx - the handler answered correctly', () => {
     for (const status of [400, 404, 409, 429]) {
       reportQueryError(edgeError(status), 'query', ['bookings']);
     }
     expect(captureMock).not.toHaveBeenCalled();
   });
 
-  it('does not report a 401 — the auth flow owns it', () => {
+  it('does not report a 401 - the auth flow owns it', () => {
     reportQueryError(edgeError(401), 'mutation', ['bookings']);
     expect(captureMock).not.toHaveBeenCalled();
   });

@@ -98,7 +98,7 @@ export function AiIntegrationCard({
           </p>
           {!keysConfigured ? (
             <p className="mt-1.5 text-xs text-amber-800/90 sm:text-[12px] dark:text-amber-200">
-              No API keys configured — AI features are skipped when keys are missing.
+              No API keys configured - AI features are skipped when keys are missing.
             </p>
           ) : null}
           {keysConfigured && !tested ? (

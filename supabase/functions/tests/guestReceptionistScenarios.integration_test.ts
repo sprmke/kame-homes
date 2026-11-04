@@ -301,7 +301,7 @@ Deno.test({
       for (let i = 0; i < 3; i++) {
         const result = await executeGuestReceptionistTool({
           name: 'report_maintenance_issue',
-          args: { description: `Rate limit probe ${i} — a flickering hallway light.` },
+          args: { description: `Rate limit probe ${i} - a flickering hallway light.` },
           propertyId: fx.propertyId,
           guestUserId: fx.userId,
         });
@@ -312,7 +312,7 @@ Deno.test({
       }
       const fourth = await executeGuestReceptionistTool({
         name: 'report_maintenance_issue',
-        args: { description: 'Rate limit probe 3 — one too many.' },
+        args: { description: 'Rate limit probe 3 - one too many.' },
         propertyId: fx.propertyId,
         guestUserId: fx.userId,
       });

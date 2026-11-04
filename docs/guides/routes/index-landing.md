@@ -2,7 +2,7 @@
 title: 'Guest landing — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-09-11
+updated: 2026-11-04
 ---
 
 # Guest landing — operator guide

@@ -84,6 +84,19 @@ test.describe('@ci unsaved changes guard', () => {
     await expect(page).not.toHaveURL(SETTINGS_URL);
   });
 
+  test('refresh shortcut prompts with the app dialog', async ({ page }) => {
+    await openSettingsAndEdit(page);
+
+    await page.keyboard.press('ControlOrMeta+r');
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog.getByText('Save your changes?')).toBeVisible();
+    await expect(page).toHaveURL(SETTINGS_URL);
+
+    await dialog.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('#instagram-url')).toHaveValue('https://instagram.com/samplestays');
+  });
+
   test('tab close / refresh with unsaved edits is flagged via beforeunload', async ({ page }) => {
     const beforeUnloadPrevented = () =>
       page.evaluate(() => {

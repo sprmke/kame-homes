@@ -13,6 +13,7 @@
   "onDemandPrefixes": [
     "features/guest/marketing/pages/ForHosts",
     "features/guest/marketing/pages/ExplorePreviewPage",
+    "features/guest/marketing/pages/GuestLandingV2Page",
     "features/guest/marketing/shared/components/HostWorkspaceSidePanel",
     "features/dashboard/marketing/components/design-editor/",
     "features/dashboard/marketing/components/video-editor/",

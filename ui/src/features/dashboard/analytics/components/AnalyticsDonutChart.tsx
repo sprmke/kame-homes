@@ -132,7 +132,7 @@ export function AnalyticsDonutChart({
       {chartData.length > 0 ? (
         <>
           {/* The outer container's role="img" + aria-label already carries the full
-              per-slice summary to assistive tech — role="img" flattens descendant
+              per-slice summary to assistive tech - role="img" flattens descendant
               content out of the accessibility tree (same as <img>'s children), so a
               nested sr-only list here would never actually be announced. The SVG
               itself is aria-hidden since it's now purely decorative/visual. */}

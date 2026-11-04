@@ -8,8 +8,7 @@ import { loadAuthUserProfile } from './authUserProfile.ts';
 import { buildEmailCtaHtml, renderBrandedEmailShell } from './brandedEmailShell.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { escapeHtml, loadEmailTemplate, replacePlaceholders } from './renderEmailHtml.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 async function sendSuperhostEmail(opts: {
   supabase: SupabaseClient;
@@ -22,14 +21,14 @@ async function sendSuperhostEmail(opts: {
 }): Promise<void> {
   const owner = await loadAuthUserProfile(opts.supabase, opts.ownerId);
   if (!owner.email?.trim()) {
-    console.warn('[superhostNotifications] owner has no email — skip');
+    console.warn('[superhostNotifications] owner has no email - skip');
     return;
   }
 
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!resendKey || !fromEmail) {
-    console.warn('[superhostNotifications] RESEND missing — skip');
+    console.warn('[superhostNotifications] RESEND missing - skip');
     return;
   }
 
@@ -50,24 +49,13 @@ async function sendSuperhostEmail(opts: {
     bodyHtml,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [owner.email],
-      subject: opts.subject,
-      html: shellHtml,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [owner.email],
+    subject: opts.subject,
+    html: shellHtml,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.warn('[superhostNotifications] send failed:', res.status, text);
-  }
 }
 
 export async function sendSuperhostEarnedEmail(opts: {
@@ -78,7 +66,7 @@ export async function sendSuperhostEarnedEmail(opts: {
   await sendSuperhostEmail({
     ...opts,
     subject: 'You earned Superhost',
-    headline: 'Congratulations — you are a Superhost',
+    headline: 'Congratulations, you are a Superhost',
     body: 'Your organization met all Superhost criteria. The badge is now live on your public listings.',
     templateName: 'superhost-earned',
   });

@@ -1860,7 +1860,7 @@
 }
 
 /* Sonner toasts: light card, status as accent (not full bleed background).
-   Do not set position here — Sonner uses position:absolute + translateY offsets;
+   Do not set position here - Sonner uses position:absolute + translateY offsets;
    forcing relative breaks stacking and creates huge gaps between toasts. */
 [data-sonner-toast] {
   border-radius: 0.75rem !important;

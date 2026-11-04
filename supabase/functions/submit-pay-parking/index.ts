@@ -73,7 +73,7 @@ serve(async (req) => {
     const existing = await DatabaseService.getBookingById(bookingId);
     if (!existing) throw new Error('Booking not found');
     if (existing.status === 'CANCELLED') {
-      throw new Error('This booking was cancelled — parking cannot be added');
+      throw new Error('This booking was cancelled - parking cannot be added');
     }
 
     const accessToken = guestBookingAccessTokenFromRequest(req, body);

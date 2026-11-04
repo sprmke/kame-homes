@@ -39,7 +39,7 @@ Same as the property-level page: documentation, AI Assistant, and support ticket
 - Q: Should I file a ticket from the org page or a property page?
   A: Either works, so pick whichever you're already on. We can still see which property or parking listing (if any) a ticket was filed from.
 - Q: Why do the FAQs look different here than on a property?
-  A: Each Help & Support page shows short answers for that level — organization, property, or parking — so you see the questions that match where you are.
+  A: Each Help & Support page shows short answers for that level - organization, property, or parking - so you see the questions that match where you are.
 
 ## API reference · Implementation map
 

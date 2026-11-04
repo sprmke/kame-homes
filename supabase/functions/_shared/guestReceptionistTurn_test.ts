@@ -27,14 +27,14 @@ function baseInput(
   };
 }
 
-Deno.test('aggregateGuardFacts — pulls numbers from plain spokenText', () => {
+Deno.test('aggregateGuardFacts - pulls numbers from plain spokenText', () => {
   const { pricingValues } = aggregateGuardFacts([
     result({ spokenText: 'The total is 5600 pesos.' }),
   ]);
   assert(pricingValues.includes(5600));
 });
 
-Deno.test('aggregateGuardFacts — pulls numbers and text from a table card', () => {
+Deno.test('aggregateGuardFacts - pulls numbers and text from a table card', () => {
   const { pricingValues, factsText } = aggregateGuardFacts([
     result({
       spokenText: 'Here is the quote.',
@@ -51,7 +51,7 @@ Deno.test('aggregateGuardFacts — pulls numbers and text from a table card', ()
 });
 
 Deno.test(
-  'aggregateGuardFacts — a checklist item past the first is still grounded (regression)',
+  'aggregateGuardFacts - a checklist item past the first is still grounded (regression)',
   () => {
     // get_my_stay only puts the FIRST pending item in spokenText; a reply naming a later item's
     // amount must not be flagged as an ungrounded number.
@@ -73,7 +73,7 @@ Deno.test(
   }
 );
 
-Deno.test('aggregateGuardFacts — a map card contributes its href but not a stray number', () => {
+Deno.test('aggregateGuardFacts - a map card contributes its href but not a stray number', () => {
   const { factsText } = aggregateGuardFacts([
     result({
       spokenText: 'Here is the location.',
@@ -87,7 +87,7 @@ Deno.test('aggregateGuardFacts — a map card contributes its href but not a str
   assert(factsText.includes('https://maps.google.com/?q=14.1,121.0'));
 });
 
-Deno.test('toolsFor — a staff Suggest actor never sees handoff or guest-write tools', () => {
+Deno.test('toolsFor - a staff Suggest actor never sees handoff or guest-write tools', () => {
   const tools = toolsFor(baseInput('staff'));
   const names = tools.map((t) => t.name);
   assert(!names.includes('handoff_to_host'), 'staff must not see handoff_to_host');
@@ -98,7 +98,7 @@ Deno.test('toolsFor — a staff Suggest actor never sees handoff or guest-write 
   assert(names.includes('get_my_stay'), 'staff should still see read tools');
 });
 
-Deno.test('toolsFor — a guest (system / undefined actor) sees every declared tool', () => {
+Deno.test('toolsFor - a guest (system / undefined actor) sees every declared tool', () => {
   for (const actorType of [undefined, 'system' as const]) {
     const tools = toolsFor(baseInput(actorType));
     const names = tools.map((t) => t.name);
@@ -112,7 +112,7 @@ Deno.test('GUEST_HANDOFF_FALLBACK_REPLY is non-empty', () => {
 });
 
 Deno.test(
-  'toolsFor — guest_actions off strips write tools from a guest actor but keeps handoff and reads',
+  'toolsFor - guest_actions off strips write tools from a guest actor but keeps handoff and reads',
   () => {
     for (const actorType of [undefined, 'system' as const]) {
       const tools = toolsFor(baseInput(actorType), { guestActionsEnabled: false });
@@ -136,7 +136,7 @@ Deno.test(
 );
 
 Deno.test(
-  'toolsFor — guest_actions off has no further effect on a staff actor (already stripped)',
+  'toolsFor - guest_actions off has no further effect on a staff actor (already stripped)',
   () => {
     const tools = toolsFor(baseInput('staff'), { guestActionsEnabled: false });
     const names = tools.map((t) => t.name);
@@ -147,7 +147,7 @@ Deno.test(
 );
 
 Deno.test(
-  'toolsFor — guest_actions enabled (default) behaves exactly as before for every actor',
+  'toolsFor - guest_actions enabled (default) behaves exactly as before for every actor',
   () => {
     for (const actorType of [undefined, 'system' as const]) {
       const tools = toolsFor(baseInput(actorType), { guestActionsEnabled: true });

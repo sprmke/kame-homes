@@ -79,7 +79,7 @@ export function MarketingLayoutShell() {
       )}
     >
       {!isFormPage && <MarketingNav />}
-      {/* Footer committed together with the route content (not as an eager sibling) —
+      {/* Footer committed together with the route content (not as an eager sibling) -
           otherwise it paints at its "nothing loaded yet" position first and gets
           shoved down once the lazy page chunk resolves, which is a large,
           highly-visible layout shift (CLS) on first load. */}

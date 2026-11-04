@@ -9,8 +9,7 @@ import { parseInboxAttachmentPreviews } from './inboxAttachments.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { escapeHtml, loadEmailTemplate, replacePlaceholders } from './renderEmailHtml.ts';
 import { socialInboxDb } from './socialInboxDb.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 function previewFromMessage(bodyText: string | null, attachments: unknown): string {
   const trimmed = bodyText?.trim();
@@ -75,7 +74,7 @@ export async function maybeNotifyGuestOfHostWebReply(opts: {
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!resendKey || !fromEmail) {
-    console.warn('[guestChatEmail] RESEND_API_KEY or RESEND_FROM_EMAIL missing — skip notify');
+    console.warn('[guestChatEmail] RESEND_API_KEY or RESEND_FROM_EMAIL missing - skip notify');
     return;
   }
 
@@ -100,24 +99,13 @@ export async function maybeNotifyGuestOfHostWebReply(opts: {
     propertyId,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [guest.email],
-      subject: `New message — ${propertyName}`,
-      html,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [guest.email],
+    subject: `New message - ${propertyName}`,
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend failed (${res.status}): ${body.slice(0, 200)}`);
-  }
 
   const now = new Date().toISOString();
   await sb

@@ -40,7 +40,7 @@ const MAX_TOOL_CALLS_PER_ROUND = 4;
 
 /** Shown to the guest when `handoff_to_host` fires — always non-empty, never a bare tool result. */
 export const GUEST_HANDOFF_FALLBACK_REPLY =
-  "I'll get a member of our team to help you with that — they'll follow up with you shortly. You can also message them directly now.";
+  "I'll get a member of our team to help you with that - they'll follow up with you shortly. You can also message them directly now.";
 
 export type GuestReceptionistTurnResult = {
   suggestion: string;

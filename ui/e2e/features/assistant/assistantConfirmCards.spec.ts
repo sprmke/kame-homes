@@ -8,14 +8,14 @@ import {
   sendAssistantMessage,
 } from './shared/assistantConfirmHarness';
 
-test.describe('AI assistant confirm cards — §11–13 UI subset', () => {
+test.describe('AI assistant confirm cards - §11–13 UI subset', () => {
   test('§11.2 workflow email shows destructive Send confirm (external_send)', async ({ page }) => {
     queueAssistantChatBlocks([
       { type: 'text', text: 'I can send the booking acknowledgement for this stay.' },
       actionConfirmationBlock({
         actionId: 'action-workflow-email-001',
         toolName: 'propose_send_workflow_email',
-        summary: 'Send booking acknowledgement email for Maria Santos — Mar 12–15.',
+        summary: 'Send booking acknowledgement email for Maria Santos - Mar 12–15.',
         isExternalSend: true,
         details: [{ label: 'Kind', value: 'booking_acknowledgement' }],
       }),
@@ -36,7 +36,7 @@ test.describe('AI assistant confirm cards — §11–13 UI subset', () => {
         actionId: 'action-booking-attach-001',
         toolName: 'propose_apply_booking_attachment',
         summary:
-          'Apply chat file as Approved GAF on Maria Santos — Mar 12–15. This will replace the file already on the booking. Then mark GAF as complete.',
+          'Apply chat file as Approved GAF on Maria Santos - Mar 12–15. This will replace the file already on the booking. Then mark GAF as complete.',
         details: [
           { label: 'Asset', value: 'Approved GAF' },
           { label: 'File', value: 'approved-gaf.pdf' },
@@ -78,7 +78,7 @@ test.describe('AI assistant confirm cards — §11–13 UI subset', () => {
     queueAssistantChatBlocks([
       {
         type: 'text',
-        text: 'Attachments are only supported for website chat — send text only on Messenger or Instagram.',
+        text: 'Attachments are only supported for website chat - send text only on Messenger or Instagram.',
       },
     ]);
     await installAssistantConfirmMocks(page);
@@ -123,10 +123,10 @@ test.describe('AI assistant confirm cards — §11–13 UI subset', () => {
         actionId: 'action-gcash-qr-001',
         toolName: 'propose_stage_gcash_qr',
         summary:
-          'Stage “gcash-qr.png” as a property GCash QR image. This does not save payment settings — you must still open Payment settings and confirm with the email verification code (OTP).',
+          'Stage “gcash-qr.png” as a property GCash QR image. This does not save payment settings - you must still open Payment settings and confirm with the email verification code (OTP).',
         details: [
           { label: 'File', value: 'gcash-qr.png' },
-          { label: 'OTP required', value: 'Yes — Payment settings' },
+          { label: 'OTP required', value: 'Yes - Payment settings' },
         ],
       }),
     ]);
@@ -152,7 +152,7 @@ test.describe('AI assistant confirm cards — §11–13 UI subset', () => {
         actionId: 'action-meta-publish-001',
         toolName: 'propose_publish_to_meta',
         summary:
-          'Publish to instagram post: "Test from assistant" — media: chat file meta-publish.jpg',
+          'Publish to instagram post: "Test from assistant" - media: chat file meta-publish.jpg',
         isExternalSend: true,
         details: [
           { label: 'Type', value: 'instagram_post' },

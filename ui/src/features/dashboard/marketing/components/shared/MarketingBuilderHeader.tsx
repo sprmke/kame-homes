@@ -15,7 +15,7 @@ export function MarketingBuilderHeader({ leading, tabs, status, actions }: Props
       {leading ? <div className="flex min-w-0 max-sm:w-full">{leading}</div> : null}
       {tabs ? <div className="min-w-0 max-w-full shrink-0">{tabs}</div> : null}
       {/* On mobile the editor routes its Download/Publish into the bottom dock, so this
-          row is usually just autosave status — don't reserve a full 44px row for it. */}
+          row is usually just autosave status - don't reserve a full 44px row for it. */}
       <div className="ml-auto flex w-auto flex-wrap items-center justify-end gap-2 empty:hidden sm:min-h-[44px]">
         {status}
         {actions}

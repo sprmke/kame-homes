@@ -332,7 +332,7 @@ export function humanizeTransitionError(message: string): string {
     const to = match[2];
     const fromLabel = isBookingStatus(from) ? STATUS_HUMAN_LABEL[from] : from;
     const toLabel = isBookingStatus(to) ? STATUS_HUMAN_LABEL[to] : to;
-    return `This booking can't jump from ${fromLabel} to ${toLabel}. Work through each step in order — see the progress guide below.`;
+    return `This booking can't jump from ${fromLabel} to ${toLabel}. Work through each step in order - see the progress guide below.`;
   }
   return trimmed.replace(STATUS_CODE_RE, (code) => {
     if (isBookingStatus(code)) return STATUS_HUMAN_LABEL[code];
@@ -370,7 +370,7 @@ export function buildJourneyQuickActions(journey: Record<string, unknown>): Arra
   if (nextLabel) {
     actions.push({
       label: `Advance to ${nextLabel}`,
-      prompt: `Help me move this booking${guestRef} from ${currentLabel || 'its current status'} to ${nextLabel}. Only take the next valid step — do not jump to Completed.`,
+      prompt: `Help me move this booking${guestRef} from ${currentLabel || 'its current status'} to ${nextLabel}. Only take the next valid step - do not jump to Completed.`,
     });
   }
 
@@ -432,8 +432,8 @@ export function buildJourneyIntroText(journey: Record<string, unknown>): string 
   const currentLabel = asDisplay(journey.currentStatusLabel);
   if (!currentLabel) {
     return guestName
-      ? `${guestName}'s booking has several steps left — work through them in order.`
-      : 'This booking has several steps left — work through them in order.';
+      ? `${guestName}'s booking has several steps left - work through them in order.`
+      : 'This booking has several steps left - work through them in order.';
   }
   return guestName
     ? `${guestName}'s booking is at ${currentLabel}. Complete each step below before moving on.`

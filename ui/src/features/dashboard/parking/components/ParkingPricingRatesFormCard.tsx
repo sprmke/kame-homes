@@ -85,7 +85,7 @@ function MoneyInput({
       {overCap ? (
         <p className="text-destructive flex items-start gap-1.5 text-xs">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          Above max {formatPhp(cap)} — lower to save and offer to guests.
+          Above max {formatPhp(cap)} - lower to save and offer to guests.
         </p>
       ) : (
         <p className="text-muted-foreground text-xs">

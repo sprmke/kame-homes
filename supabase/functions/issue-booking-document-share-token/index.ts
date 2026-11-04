@@ -5,6 +5,7 @@
  * POST { bookingId }
  */
 
+import { bookingTargetLabel, logBookingDetailActivity } from '../_shared/bookingActivityLog.ts';
 import { ensureBookingDocumentShareToken } from '../_shared/bookingDocumentShareToken.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import {
@@ -22,8 +23,8 @@ import type { GuestSubmission } from '../_shared/types.ts';
 
 serveAuthenticated('issue-booking-document-share-token', async (req) => {
   requireHttpMethod(req, 'POST');
-  const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
+  const propertyId = propertyAccess.property.id;
   const body = await readJsonBody(req);
   const bookingId = body?.bookingId;
   if (!bookingId || typeof bookingId !== 'string') {
@@ -41,6 +42,14 @@ serveAuthenticated('issue-booking-document-share-token', async (req) => {
   if (!token) {
     return jsonError(req, 'Document share link is not available for this booking', 409);
   }
+
+  await logBookingDetailActivity({
+    action: 'booking.share_link_issued',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel: bookingTargetLabel(booking),
+  });
 
   return jsonSuccess(req, { bookingId, documentShareToken: token });
 });

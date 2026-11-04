@@ -66,7 +66,7 @@ const baseRequest: LlmRequest = {
   billing: { organizationId: null },
 };
 
-Deno.test('generateText — sends key in header, systemInstruction, router model', async () => {
+Deno.test('generateText - sends key in header, systemInstruction, router model', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1' }, async () => {
     const calls = stubFetch(() => geminiOk('Hello'));
     const result = await generateText(baseRequest);
@@ -82,7 +82,7 @@ Deno.test('generateText — sends key in header, systemInstruction, router model
   });
 });
 
-Deno.test('generateText — 403 on one key rotates to the next key without retrying it', async () => {
+Deno.test('generateText - 403 on one key rotates to the next key without retrying it', async () => {
   await withEnv({ GEMINI_API_KEYS: 'bad,good' }, async () => {
     const calls = stubFetch((call) =>
       call.headers['x-goog-api-key'] === 'bad'
@@ -95,7 +95,7 @@ Deno.test('generateText — 403 on one key rotates to the next key without retry
   });
 });
 
-Deno.test('generateText — 400 fails fast without trying other keys', async () => {
+Deno.test('generateText - 400 fails fast without trying other keys', async () => {
   await withEnv({ GEMINI_API_KEYS: 'a,b' }, async () => {
     const calls = stubFetch(() =>
       Response.json({ error: { message: 'Invalid JSON payload' } }, { status: 400 })
@@ -106,7 +106,7 @@ Deno.test('generateText — 400 fails fast without trying other keys', async () 
   });
 });
 
-Deno.test('generateText — 429 retries the same key honoring retry-after', async () => {
+Deno.test('generateText - 429 retries the same key honoring retry-after', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1' }, async () => {
     const calls = stubFetch((_c, n) =>
       n === 1
@@ -122,7 +122,7 @@ Deno.test('generateText — 429 retries the same key honoring retry-after', asyn
   });
 });
 
-Deno.test('generateText — per-attempt timeout surfaces as AiProviderError(timeout)', async () => {
+Deno.test('generateText - per-attempt timeout surfaces as AiProviderError(timeout)', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1' }, async () => {
     globalThis.fetch = ((_input: unknown, init?: RequestInit) =>
       new Promise((_resolve, reject) => {
@@ -136,7 +136,7 @@ Deno.test('generateText — per-attempt timeout surfaces as AiProviderError(time
   });
 });
 
-Deno.test('generateText — caller abort stops immediately (no fallback)', async () => {
+Deno.test('generateText - caller abort stops immediately (no fallback)', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1', GROQ_API_KEY: 'g' }, async () => {
     const controller = new AbortController();
     controller.abort();
@@ -149,7 +149,7 @@ Deno.test('generateText — caller abort stops immediately (no fallback)', async
   });
 });
 
-Deno.test('generateText — Gemini exhausted falls back to Groq and flags it', async () => {
+Deno.test('generateText - Gemini exhausted falls back to Groq and flags it', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1', GROQ_API_KEY: 'g1' }, async () => {
     const calls = stubFetch((call) =>
       call.url.includes('groq.com')
@@ -167,7 +167,7 @@ Deno.test('generateText — Gemini exhausted falls back to Groq and flags it', a
   });
 });
 
-Deno.test('generateText — Groq is skipped for PDFs (no vision support)', async () => {
+Deno.test('generateText - Groq is skipped for PDFs (no vision support)', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1', GROQ_API_KEY: 'g1' }, async () => {
     const calls = stubFetch(() => Response.json({ error: { message: 'down' } }, { status: 500 }));
     await assertRejects(() =>
@@ -181,7 +181,7 @@ Deno.test('generateText — Groq is skipped for PDFs (no vision support)', async
   });
 });
 
-Deno.test('generateStructured — validates JSON and repairs once on schema failure', async () => {
+Deno.test('generateStructured - validates JSON and repairs once on schema failure', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1' }, async () => {
     const calls = stubFetch((_c, n) =>
       n === 1 ? geminiOk('{"verdict":"maybe"}') : geminiOk('```json\n{"verdict":"valid"}\n```')
@@ -202,7 +202,7 @@ Deno.test('generateStructured — validates JSON and repairs once on schema fail
   });
 });
 
-Deno.test('generateStructured — throws AiOutputValidationError after a failed repair', async () => {
+Deno.test('generateStructured - throws AiOutputValidationError after a failed repair', async () => {
   await withEnv({ GEMINI_API_KEY: 'k1' }, async () => {
     stubFetch(() => geminiOk('not json at all'));
     await assertRejects(
@@ -217,14 +217,14 @@ Deno.test('generateStructured — throws AiOutputValidationError after a failed 
   });
 });
 
-Deno.test('parseModelJson — plain, fenced and embedded JSON', () => {
+Deno.test('parseModelJson - plain, fenced and embedded JSON', () => {
   assertEquals(parseModelJson('{"a":1}'), { a: 1 });
   assertEquals(parseModelJson('```json\n{"a":2}\n```'), { a: 2 });
   assertEquals(parseModelJson('Sure! {"a":3} hope that helps'), { a: 3 });
   assertEquals(parseModelJson('nope'), undefined);
 });
 
-Deno.test('backoffDelayMs — honors retry-after and caps the wait', () => {
+Deno.test('backoffDelayMs - honors retry-after and caps the wait', () => {
   assertEquals(backoffDelayMs(0, '2'), 2000);
   assertEquals(backoffDelayMs(0, '120'), 4000);
   const jittered = backoffDelayMs(1, null);

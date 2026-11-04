@@ -140,7 +140,7 @@ function formatChatContent(
 }
 
 function formatInquiryDate(raw: string | null | undefined): string {
-  if (!raw?.trim()) return '—';
+  if (!raw?.trim()) return '-';
   const ymd = raw.trim().slice(0, 10);
   const [y, m, d] = ymd.split('-');
   if (!y || !m || !d) return raw.trim();

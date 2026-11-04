@@ -39,20 +39,20 @@ then stacked sections (a two-column block from `lg`).
 After you approve a guest for check-in, they get a private link to a stay guide with your
 rules, check-in steps, parking notes, and contact details. You choose how it looks in
 **Public Pages → Stay Guide → Edit**: pick one of 6 templates, drag sections to reorder,
-hide the ones you don't need, and set colours / fonts / motion — the same controls as Showcase.
+hide the ones you don't need, and set colours / fonts / motion - the same controls as Showcase.
 
 **Common host questions**
 
 - Q: When does the guest get the link? A: When the booking reaches ready-for-check-in
   (in that email, and from the booking in your dashboard).
-- Q: Can anyone open it? A: No — each link uses a unique token tied to that booking and only
+- Q: Can anyone open it? A: No. Each link uses a unique token tied to that booking and only
   works during the stay window.
-- Q: How do I change the wording? A: **Public Pages → Stay Guide → Edit → Section details** —
+- Q: How do I change the wording? A: **Public Pages → Stay Guide → Edit → Section details** -
   expand a chapter to edit its text and section image (also editable under **Templates**).
-- Q: How do I change how it looks? A: Same editor — **Template**, **Sections** (reorder /
+- Q: How do I change how it looks? A: Same editor - **Template**, **Sections** (reorder /
   hide), and **Style** (palette / type / motion).
 - Q: Which plan? A: Editing is available on every plan; **saving** needs Pro
-  (`publicPagesAutosave`) — same as Showcase and the listing editor. Guests can only **open**
+  (`publicPagesAutosave`) - same as Showcase and the listing editor. Guests can only **open**
   the stay guide when the property is on Pro or above (`propertyShowcase`). Below Pro the
   link is not emailed, the booking menu and Inbox show it with a Pro label that opens the
   upgrade options instead of sharing it, and an old link shows

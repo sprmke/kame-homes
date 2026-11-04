@@ -27,7 +27,7 @@ async function signPaymongoPayload(
   return `t=${timestamp},${sigKey}=${hex}`;
 }
 
-Deno.test('verifyPaymongoWebhookSignature — valid live signature', async () => {
+Deno.test('verifyPaymongoWebhookSignature - valid live signature', async () => {
   const rawBody = '{"data":{"id":"evt_test"}}';
   const timestamp = String(Math.floor(Date.now() / 1000));
   const header = await signPaymongoPayload(rawBody, timestamp, TEST_SECRET, true);
@@ -39,7 +39,7 @@ Deno.test('verifyPaymongoWebhookSignature — valid live signature', async () =>
   assert(ok);
 });
 
-Deno.test('verifyPaymongoWebhookSignature — rejects tampered body', async () => {
+Deno.test('verifyPaymongoWebhookSignature - rejects tampered body', async () => {
   const rawBody = '{"data":{"id":"evt_test"}}';
   const timestamp = String(Math.floor(Date.now() / 1000));
   const header = await signPaymongoPayload(rawBody, timestamp, TEST_SECRET, true);
@@ -53,7 +53,7 @@ Deno.test('verifyPaymongoWebhookSignature — rejects tampered body', async () =
   assertEquals(ok, false);
 });
 
-Deno.test('verifyPaymongoWebhookSignature — rejects stale timestamp', async () => {
+Deno.test('verifyPaymongoWebhookSignature - rejects stale timestamp', async () => {
   const rawBody = '{"data":{"id":"evt_test"}}';
   const timestamp = String(Math.floor(Date.now() / 1000) - 600);
   const header = await signPaymongoPayload(rawBody, timestamp, TEST_SECRET, true);

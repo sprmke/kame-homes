@@ -277,7 +277,7 @@ export const superAdminRoutes: ReactNode = (
       path="orgs"
       element={superAdminRoute(<SuperAdminOrgsPage />, <SuperAdminListRouteSkeleton />)}
     />
-    {/* Single-page hub — sections are in-page anchors (`#section-x`), not routes. */}
+    {/* Single-page hub - sections are in-page anchors (`#section-x`), not routes. */}
     <Route
       path="orgs/:orgSlug"
       element={superAdminRoute(<SuperAdminOrgShell />, <SuperAdminOrgShellRouteSkeleton />)}

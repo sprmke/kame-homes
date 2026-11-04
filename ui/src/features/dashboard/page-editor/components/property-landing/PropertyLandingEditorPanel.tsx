@@ -108,7 +108,7 @@ export function PropertyLandingEditorPanel({
         </StyleSection>
       </PageEditorRevealTarget>
 
-      {/* Brand color is global — do not scroll the preview. */}
+      {/* Brand color is global - do not scroll the preview. */}
       <StyleSection title="Brand color" defaultOpen>
         <div className="px-4 py-3">
           <BrandColorField

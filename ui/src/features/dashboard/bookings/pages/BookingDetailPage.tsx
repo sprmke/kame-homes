@@ -427,7 +427,7 @@ export function BookingDetailPage() {
 
   return (
     <>
-      {/* Phone-only brand hero band — matches the rest of the dashboard shell.
+      {/* Phone-only brand hero band - matches the rest of the dashboard shell.
        * Tablet/desktop keep the existing layout + `AdminLayout` topbar untouched. */}
       <MobileBrandHero
         ref={heroRef}

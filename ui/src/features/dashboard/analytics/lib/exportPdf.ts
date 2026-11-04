@@ -110,7 +110,7 @@ function appendStateSection(doc: jsPDF, y: number, bundle: AnalyticsBundle): num
       `${BALANCE_STATE_LABEL[bundle.stateAssessment.balanceCollectionState]}: ${bundle.stateAssessment.unpaidBalanceUpcomingCount} upcoming booking(s) with ${pdfMoney(bundle.stateAssessment.unpaidBalanceUpcomingTotal)} outstanding in the next 14 days.`
     );
   } else {
-    lines.push('Balances: clear — no upcoming bookings with unpaid balances at risk.');
+    lines.push('Balances: clear - no upcoming bookings with unpaid balances at risk.');
   }
   return drawBulletNotes(doc, y, lines);
 }
@@ -139,7 +139,7 @@ function appendAiReviewSection(doc: jsPDF, y: number, review: AnalyticsAiReviewR
     y = drawBulletNotes(
       doc,
       y,
-      review.payload.strengths.map((s) => (s.evidence ? `${s.title} — ${s.evidence}` : s.title))
+      review.payload.strengths.map((s) => (s.evidence ? `${s.title} - ${s.evidence}` : s.title))
     );
   }
 
@@ -151,7 +151,7 @@ function appendAiReviewSection(doc: jsPDF, y: number, review: AnalyticsAiReviewR
       y,
       review.payload.improvements.map((item) => {
         const detail = item.action ?? item.why ?? item.evidence;
-        return detail ? `${item.title} — ${detail}` : item.title;
+        return detail ? `${item.title} - ${detail}` : item.title;
       })
     );
   }
@@ -162,7 +162,7 @@ function appendAiReviewSection(doc: jsPDF, y: number, review: AnalyticsAiReviewR
     y = drawBulletNotes(
       doc,
       y,
-      review.payload.avoid.map((item) => (item.why ? `${item.title} — ${item.why}` : item.title))
+      review.payload.avoid.map((item) => (item.why ? `${item.title} - ${item.why}` : item.title))
     );
   }
 
@@ -205,7 +205,7 @@ function appendDistributionsSection(doc: jsPDF, y: number, bundle: AnalyticsBund
     const origin = topOrigins[i];
     rows.push([
       ch ? `${ch.channel} (${ch.count})` : '',
-      origin ? `${origin.origin} — ${origin.pct}%` : '',
+      origin ? `${origin.origin} - ${origin.pct}%` : '',
     ]);
   }
 
@@ -261,11 +261,11 @@ async function buildAnalyticsReportPdf(payload: AnalyticsPdfPayload): Promise<js
     y = advanceSectionGap(y);
     y = drawSectionEyebrow(doc, y, 'Vs Kame median');
     const lines = [
-      `Occupancy: median ${bundle.benchmark.medianOccupancyRate}% across ${bundle.benchmark.sampleSize} other active Pro listings this period${bundle.benchmark.occupancyPercentile !== null ? ` — this property is at the ${bundle.benchmark.occupancyPercentile}th percentile` : ''}.`,
+      `Occupancy: median ${bundle.benchmark.medianOccupancyRate}% across ${bundle.benchmark.sampleSize} other active Pro listings this period${bundle.benchmark.occupancyPercentile !== null ? ` - this property is at the ${bundle.benchmark.occupancyPercentile}th percentile` : ''}.`,
     ];
     if (bundle.benchmark.medianAdr !== null) {
       lines.push(
-        `ADR: median ${pdfMoney(bundle.benchmark.medianAdr)}${bundle.benchmark.adrPercentile !== null ? ` — this property is at the ${bundle.benchmark.adrPercentile}th percentile` : ''}.`
+        `ADR: median ${pdfMoney(bundle.benchmark.medianAdr)}${bundle.benchmark.adrPercentile !== null ? ` - this property is at the ${bundle.benchmark.adrPercentile}th percentile` : ''}.`
       );
     }
     y = drawBulletNotes(doc, y, lines);

@@ -45,7 +45,7 @@ Guests message you from a property listing before they book. They start in a cha
 - Q: How are voice calls turned into captions? Is there an extra charge?
   A: The same AI that talks to the guest also writes the captions live, during the call. There is no separate transcription service and no extra charge per call for captions. Audio is never saved.
 - Q: What are the suggested questions guests see before they message me?
-  A: When a guest opens chat with no messages yet, they see five starter questions tailored to where they are in the conversation: browsing the listing (pre-booking), asking about specific dates (inquiry), or mid-stay follow-ups once messages exist (ongoing). Examples include check-in times, parking, pets, WiFi, pricing for selected dates, WiFi password, or late checkout — depending on phase. Tapping one sends that question like a normal message. There are no action buttons, only questions. The Stays inbox (existing threads) does not show these starters.
+  A: When a guest opens chat with no messages yet, they see five starter questions tailored to where they are in the conversation: browsing the listing (pre-booking), asking about specific dates (inquiry), or mid-stay follow-ups once messages exist (ongoing). Examples include check-in times, parking, pets, WiFi, pricing for selected dates, WiFi password, or late checkout - depending on phase. Tapping one sends that question like a normal message. There are no action buttons, only questions. The Stays inbox (existing threads) does not show these starters.
 
 ---
 

@@ -218,7 +218,7 @@ serveAuthenticated(
       .eq('id', conv.connection_id)
       .maybeSingle();
     if (conn?.status !== 'connected') {
-      return jsonError(req, 'This channel is disconnected — reconnect Meta to reply', 400);
+      return jsonError(req, 'This channel is disconnected - reconnect Meta to reply', 400);
     }
     if (!conn.encrypted_access_token || !conn.meta_page_id) {
       return jsonError(req, 'Channel not connected', 400);
@@ -232,7 +232,7 @@ serveAuthenticated(
         const withinStandardWindow = isWithinMessagingWindowFromInbound(conv.last_inbound_at);
         const withinHumanAgentWindow = isWithinHumanAgentWindowFromInbound(conv.last_inbound_at);
         if (!withinStandardWindow && !(useHumanAgentTag && withinHumanAgentWindow)) {
-          return jsonError(req, 'Reply window closed — guest must message again', 400);
+          return jsonError(req, 'Reply window closed - guest must message again', 400);
         }
 
         let replyFields: { reply_to_message_id?: string; reply_preview_text?: string } = {};

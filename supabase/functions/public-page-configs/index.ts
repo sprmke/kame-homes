@@ -81,7 +81,6 @@ serveAuthenticated('public-page-configs', async (req, user) => {
       throw err;
     }
 
-    const row = await upsertPublicPageConfig(property.id, pageType, body.config);
     const publishing = isPublishingShowcase(pageType, body.config);
     // Only the first publish counts, so read the prior state before writing. Done only when
     // this save is publishing, so an ordinary autosave pays no extra query.

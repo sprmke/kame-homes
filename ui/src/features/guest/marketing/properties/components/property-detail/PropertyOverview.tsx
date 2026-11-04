@@ -178,7 +178,7 @@ export function PropertyOverview({
         </motion.div>
       </div>
 
-      {/* Stats Grid — container-aware so narrow preview/content columns never crush cells */}
+      {/* Stats Grid - container-aware so narrow preview/content columns never crush cells */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

@@ -140,7 +140,7 @@ serveAuthenticated('import-parse-file', async (req) => {
   }
 
   console.log(
-    `[import-parse-file] batch ${batchId} — ${parsed.rows.length} rows (${parsedKind}) for property ${access.propertyId}`
+    `[import-parse-file] batch ${batchId} - ${parsed.rows.length} rows (${parsedKind}) for property ${access.propertyId}`
   );
 
   return jsonSuccess(req, {

@@ -71,6 +71,6 @@ export async function stageGcashQrFromBytes(input: StageGcashQrInput): Promise<S
     scope: input.scope,
     scopeId: input.scopeId,
     nextStep:
-      'QR staged only. Open Payment settings, attach this QR, and confirm with the email verification code — the assistant cannot skip OTP.',
+      'QR staged only. Open Payment settings, attach this QR, and confirm with the email verification code - the assistant cannot skip OTP.',
   };
 }

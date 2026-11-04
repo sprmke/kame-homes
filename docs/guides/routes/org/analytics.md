@@ -131,6 +131,6 @@ first, with a short reason.
   A: Attention flags booking or demand problems (gaps ahead, no bookings, soft fill). Outlook
   only describes how full the next 30 nights are.
 - Q: Where do unpaid guest balances show?
-  A: On Finance and booking detail — not on Analytics.
+  A: On Finance and booking detail, not on Analytics.
 - Q: Where do parking rows go when I tap them?
   A: Parking Dashboard for now. A full parking Analytics page is not on this screen yet.

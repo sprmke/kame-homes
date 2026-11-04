@@ -62,7 +62,7 @@ export function FontSelector({ label, value, onChange, showAdvanced = false }: F
         </Select>
       </div>
 
-      {/* Size + Weight — stacked so the slider isn't crushed in narrow panels */}
+      {/* Size + Weight - stacked so the slider isn't crushed in narrow panels */}
       <NumberSlider
         label="Size"
         value={value.size}

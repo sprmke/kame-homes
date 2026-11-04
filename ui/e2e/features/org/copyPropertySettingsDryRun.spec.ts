@@ -6,7 +6,7 @@ import {
   TEAM_E2E_ORG_SLUG,
 } from '../team/shared/propertyTeamRbacHarness';
 
-test.describe('@ci org properties — copy settings', () => {
+test.describe('@ci org properties - copy settings', () => {
   test('copy settings wizard shows dry-run preview', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access', {
       multiProperty: true,

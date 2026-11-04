@@ -9,7 +9,7 @@ import {
   sendAssistantMessage,
 } from './shared/assistantConfirmHarness';
 
-test.describe('AI assistant plan card — Phase 3 approve/untick/partial-failure', () => {
+test.describe('AI assistant plan card - Phase 3 approve/untick/partial-failure', () => {
   test('approving every step marks the plan Completed', async ({ page }) => {
     queueAssistantChatBlocks([
       { type: 'text', text: 'Here is the plan for your 2 asks.' },

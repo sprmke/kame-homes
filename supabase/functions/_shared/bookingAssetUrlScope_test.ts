@@ -48,3 +48,23 @@ Deno.test('bookingRowReferencesStorageObject finds guest2 valid id column', () =
   };
   assertEquals(bookingRowReferencesStorageObject(row, target), true);
 });
+
+Deno.test('bookingRowReferencesStorageObject finds gaf request PDF column', () => {
+  const target = { bucket: 'approved-gafs', path: 'prop/book/gaf-request.pdf' };
+  const row = {
+    approved_gaf_pdf_url: null,
+    gaf_request_pdf_url:
+      'https://x.supabase.co/storage/v1/object/public/approved-gafs/prop/book/gaf-request.pdf',
+  };
+  assertEquals(bookingRowReferencesStorageObject(row, target), true);
+});
+
+Deno.test('bookingRowReferencesStorageObject finds pet request PDF column', () => {
+  const target = { bucket: 'approved-pet-forms', path: 'prop/book/pet-request.pdf' };
+  const row = {
+    approved_pet_pdf_url: null,
+    pet_request_pdf_url:
+      'https://x.supabase.co/storage/v1/object/public/approved-pet-forms/prop/book/pet-request.pdf',
+  };
+  assertEquals(bookingRowReferencesStorageObject(row, target), true);
+});

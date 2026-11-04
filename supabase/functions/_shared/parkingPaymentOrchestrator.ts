@@ -223,7 +223,7 @@ export async function createParkingPaymentTransaction(
   try {
     const link = await createPaymongoPaymentLink({
       amountCentavos: phpToCentavos(amounts.guestChargeTotal),
-      description: `Parking reservation — ${String(parking.name)}`,
+      description: `Parking reservation - ${String(parking.name)}`,
       metadata: {
         kind: 'parking_booking',
         transaction_id: String(inserted.id),
@@ -490,7 +490,7 @@ export async function fulfillParkingPayment(input: {
           paid_at: paidAt,
           raw_webhook_payload: input.rawPayload ?? null,
           failure_reason:
-            'Payment succeeded but booking was no longer PENDING_PAYMENT (already released or confirmed) — needs manual review',
+            'Payment succeeded but booking was no longer PENDING_PAYMENT (already released or confirmed) - needs manual review',
         })
         .eq('id', input.transactionId);
       return;
@@ -596,7 +596,7 @@ export async function fulfillParkingPayment(input: {
   } catch (err) {
     await markParkingPaymentFailed(
       input.transactionId,
-      `Fulfillment error (payment was collected — needs manual review): ${(err as Error).message}`,
+      `Fulfillment error (payment was collected - needs manual review): ${(err as Error).message}`,
       input.rawPayload
     );
     throw err;
@@ -647,7 +647,7 @@ async function autoCompletePendingParkingRequest(propertyBookingId: string): Pro
         propertyId: propertyBooking.property_id,
         type: 'booking_parking_matched',
         title: 'Parking matched and paid',
-        body: 'A guest self-served parking for this stay through the marketplace — no action needed.',
+        body: 'A guest self-served parking for this stay through the marketplace - no action needed.',
         bookingId: propertyBookingId,
         dedupeKey: `parking-matched:${propertyBookingId}`,
       });

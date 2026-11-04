@@ -80,7 +80,7 @@ Deno.test('Part F.4 workflow email kinds match send helper', () => {
  * so this reads the file instead of importing it): every tool declared to the model has exactly
  * one execution handler in TOOL_HANDLERS, and no handler exists for an undeclared tool.
  */
-Deno.test('assistant tool registry — declarations and handlers stay in sync', async () => {
+Deno.test('assistant tool registry - declarations and handlers stay in sync', async () => {
   const source = await Deno.readTextFile(
     new URL('../_shared/dashboardAssistantTools.ts', import.meta.url)
   );

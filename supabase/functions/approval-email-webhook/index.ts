@@ -114,7 +114,7 @@ function resendAuthFailureMessage(status: number, apiMessage?: string): string {
   if (status === 401) {
     return (
       apiMessage ??
-      'Resend attachments API returned 401 — use a Full access API key (Sending-only keys cannot read inbound attachments)'
+      'Resend attachments API returned 401 - use a Full access API key (Sending-only keys cannot read inbound attachments)'
     );
   }
   return apiMessage ?? `Resend attachments request failed (${status})`;

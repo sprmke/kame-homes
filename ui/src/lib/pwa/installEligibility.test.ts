@@ -61,7 +61,7 @@ function makeInput(overrides: Partial<InstallEligibilityInput> = {}): InstallEli
   };
 }
 
-describe('evaluateInstallEligibility — hard blocks', () => {
+describe('evaluateInstallEligibility - hard blocks', () => {
   it.each([
     ['standalone', { standalone: true }],
     ['already-installed', { appInstalledSeen: true }],
@@ -125,7 +125,7 @@ describe('evaluateInstallEligibility — hard blocks', () => {
   });
 });
 
-describe('evaluateInstallEligibility — audiences', () => {
+describe('evaluateInstallEligibility - audiences', () => {
   it('never proactively offers to an anonymous guest', () => {
     const result = evaluateInstallEligibility(
       makeInput({ viewer: { role: 'anonymous', hasOrg: false, hasUpcomingTrip: false } })
@@ -200,7 +200,7 @@ describe('evaluateInstallEligibility — audiences', () => {
   });
 });
 
-describe('evaluateInstallEligibility — dismissal cooldown', () => {
+describe('evaluateInstallEligibility - dismissal cooldown', () => {
   it('respects 14 → 30 → 90 day steps', () => {
     expect(installCooldownRemainingMs(memory({ dismissCount: 1, lastDismissAt: NOW }), NOW)).toBe(
       14 * DAY

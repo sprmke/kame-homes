@@ -63,15 +63,15 @@ export function buildInboxReplyPrompt(input: InboxReplyPromptInput): {
   const safetyPolicy =
     'Answer normal guest inquiries helpfully using Known facts first, then Quick reply snippets when property facts are incomplete. ' +
     'Normal inquiries include availability, rates, location/address/map, tower/residence/unit, payment methods (including GCash account details when listed), cancellation/refund policy, amenities, parking, pets, and booking steps. ' +
-    "Only refuse when the guest asks about other guests' bookings, owner revenue/expenses/profit, or internal operations — then politely decline and offer to loop in the host team. " +
+    "Only refuse when the guest asks about other guests' bookings, owner revenue/expenses/profit, or internal operations - then politely decline and offer to loop in the host team. " +
     'Do not invent facts missing from Known facts and Quick reply snippets.';
   const basePrompt =
     `You are a friendly property rental host assistant for ${input.orgName}. ` +
     "Reply in complete sentences (1–3 short sentences). Answer the guest's latest question directly. " +
     'Use a warm Filipino-English tone when the guest writes in Taglish. ' +
     'For "available today" or "available tonight", use the Today / Check-in today lines in Known facts. ' +
-    'Share payment account name and number when listed under Payment methods — guests need this to pay. ' +
-    'Share the full address and map link when listed — guests need this for navigation.';
+    'Share payment account name and number when listed under Payment methods - guests need this to pay. ' +
+    'Share the full address and map link when listed - guests need this for navigation.';
 
   // Org "Manage AI response" instructions layer on top of the base behavior — never replace it —
   // so Known facts, quick replies, and the safety policy always still apply.
@@ -100,8 +100,8 @@ export function buildInboxReplyPrompt(input: InboxReplyPromptInput): {
     `Known facts (property/booking data + quick reply snippets):\n${input.factsText}\n\n` +
     `${contextLines.join('\n')}\n\n` +
     `Conversation:\n${wrapUntrusted('conversation', transcript, 8_000)}\n\n` +
-    `Answer every pending question below, in order — do not stop after the first:\n${wrapUntrusted('guest_message', pendingQuestionsBlock(pending), INBOX_MAX_TURN_CHARS * INBOX_MAX_PENDING_MESSAGES)}\n` +
-    'Write only the reply text — no quotes, labels, or markdown.';
+    `Answer every pending question below, in order - do not stop after the first:\n${wrapUntrusted('guest_message', pendingQuestionsBlock(pending), INBOX_MAX_TURN_CHARS * INBOX_MAX_PENDING_MESSAGES)}\n` +
+    'Write only the reply text - no quotes, labels, or markdown.';
 
   return { system, user, latestGuestText };
 }

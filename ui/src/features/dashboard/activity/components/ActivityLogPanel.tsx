@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ActivityDetailSheet } from '@/features/dashboard/activity/components/ActivityDetailSheet';
+import { ActivityDetailPanel } from '@/features/dashboard/activity/components/ActivityDetailView';
 import { ActivityEmptyState } from '@/features/dashboard/activity/components/ActivityEmptyState';
 import { ActivityFeedList } from '@/features/dashboard/activity/components/ActivityFeedList';
 import { ActivityFilters } from '@/features/dashboard/activity/components/ActivityFilters';
@@ -25,8 +25,8 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { captureAppEvent } from '@/lib/posthog/capture';
+import { cn } from '@/lib/utils';
 
 export type ActivityLogScope = 'org' | 'property' | 'parking';
 
@@ -70,6 +70,7 @@ export function ActivityLogPanel({ scope, className }: Props) {
     });
   }, [filters]);
   const [selected, setSelected] = useState<ActivityEvent | null>(null);
+  const closeDetail = useCallback(() => setSelected(null), []);
 
   const orgSlug = useOrgSlugParam();
   const orgId = useResolvedOrgId();
@@ -146,55 +147,66 @@ export function ActivityLogPanel({ scope, className }: Props) {
   );
 
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
-      <div className="border-border/60 shrink-0 space-y-2 border-b pb-3">
-        <ActivityFilters
-          filters={filters}
-          onChange={setFilters}
-          trailing={exportButton}
-          mobileTrailing={mobileExportButton}
-        />
-      </div>
-
+    <div className={cn('relative flex min-h-0 flex-1 flex-col overflow-hidden', className)}>
       <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-0 pb-4 pt-3"
-      >
-        {query.isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
-            ))}
-          </div>
-        ) : query.isError ? (
-          <ActivityEmptyState
-            message="Could not load activity."
-            onRetry={() => void query.refetch()}
-          />
-        ) : events.length === 0 ? (
-          <ActivityEmptyState
-            message={
-              filtersActive ? 'No activity matches these filters.' : 'No activity in this range.'
-            }
-            onClearFilters={
-              filtersActive ? () => setFilters(clearActivityFilters(filters)) : undefined
-            }
-          />
-        ) : (
-          <ActivityFeedList events={events} onSelect={setSelected} scrollParentRef={scrollRef} />
+        className={cn(
+          'flex min-h-0 flex-1 flex-col transition-[transform,opacity] ease-out motion-reduce:transition-none',
+          selected
+            ? 'pointer-events-none -translate-x-6 opacity-0 duration-300'
+            : 'translate-x-0 opacity-100 duration-200'
         )}
+        aria-hidden={Boolean(selected)}
+        inert={Boolean(selected)}
+      >
+        <div className="border-border/60 shrink-0 space-y-2 border-b pb-3">
+          <ActivityFilters
+            filters={filters}
+            onChange={setFilters}
+            trailing={exportButton}
+            mobileTrailing={mobileExportButton}
+          />
+        </div>
 
-        <div ref={sentinelRef} aria-hidden className="h-px" />
-        {query.isFetchingNextPage ? (
-          <div className="mt-2 space-y-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
-            ))}
-          </div>
-        ) : null}
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-0 pb-4 pt-3"
+        >
+          {query.isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : query.isError ? (
+            <ActivityEmptyState
+              message="Could not load activity."
+              onRetry={() => void query.refetch()}
+            />
+          ) : events.length === 0 ? (
+            <ActivityEmptyState
+              message={
+                filtersActive ? 'No activity matches these filters.' : 'No activity in this range.'
+              }
+              onClearFilters={
+                filtersActive ? () => setFilters(clearActivityFilters(filters)) : undefined
+              }
+            />
+          ) : (
+            <ActivityFeedList events={events} onSelect={setSelected} scrollParentRef={scrollRef} />
+          )}
+
+          <div ref={sentinelRef} aria-hidden className="h-px" />
+          {query.isFetchingNextPage ? (
+            <div className="mt-2 space-y-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-[4.5rem] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <ActivityDetailSheet event={selected} onOpenChange={(open) => !open && setSelected(null)} />
+      <ActivityDetailPanel event={selected} onBack={closeDetail} />
     </div>
   );
 }
