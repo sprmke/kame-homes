@@ -22,11 +22,11 @@ export function voicePreviewLine(propertyName?: string | null): string {
 }
 
 export const GEMINI_LIVE_VOICE_LABELS: Record<GeminiLiveVoice, string> = {
-  Puck: 'Puck — Upbeat',
-  Charon: 'Charon — Informative',
-  Kore: 'Kore — Firm',
-  Fenrir: 'Fenrir — Excitable',
-  Aoede: 'Aoede — Breezy',
+  Puck: 'Puck - Upbeat',
+  Charon: 'Charon - Informative',
+  Kore: 'Kore - Firm',
+  Fenrir: 'Fenrir - Excitable',
+  Aoede: 'Aoede - Breezy',
 };
 
 export type VoicePreviewResult = {

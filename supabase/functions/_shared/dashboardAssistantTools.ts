@@ -1404,7 +1404,7 @@ async function toolGetParkingAvailableTransitions(
         bookingId,
         currentStatus: status,
         options: [],
-        note: 'This request is still awaiting broadcast response — resolves only via claim, decline, or expiry, not a direct transition.',
+        note: 'This request is still awaiting broadcast response - resolves only via claim, decline, or expiry, not a direct transition.',
       },
     };
   }
@@ -2006,7 +2006,7 @@ async function toolProposeTransitionBooking(
     return {
       ok: false,
       error: nextLabel
-        ? `This booking is at ${fromLabel}. Complete each step in order — the next step is ${nextLabel}, not ${toLabel}.`
+        ? `This booking is at ${fromLabel}. Complete each step in order - the next step is ${nextLabel}, not ${toLabel}.`
         : `This booking is at ${fromLabel}. That move to ${toLabel} is not available from here.`,
       data: journey,
     };
@@ -2705,7 +2705,7 @@ async function toolProposeClaimParkingBooking(
       bookingId,
       parkingId,
       endorsementNote,
-      summary: 'Claim this parking request — commits this parking slot and notifies the guest.',
+      summary: 'Claim this parking request - commits this parking slot and notifies the guest.',
     },
   };
 }
@@ -2975,7 +2975,7 @@ async function toolProposeUnblockPropertyDates(
   if (days > MAX_UNBLOCK_DATE_RANGE_DAYS) {
     return {
       ok: false,
-      error: `Range too large — unblock at most ${MAX_UNBLOCK_DATE_RANGE_DAYS} days at a time`,
+      error: `Range too large - unblock at most ${MAX_UNBLOCK_DATE_RANGE_DAYS} days at a time`,
     };
   }
 
@@ -3241,7 +3241,7 @@ async function toolProposeSendInboxReply(
       return {
         ok: false,
         error:
-          'Attachments are only supported for website chat — send text only on Messenger or Instagram',
+          'Attachments are only supported for website chat - send text only on Messenger or Instagram',
       };
     }
   }
@@ -3337,7 +3337,7 @@ async function toolProposePublishToMeta(
       attachmentPath: attachmentPath ?? null,
       publishType: publishTypeArg,
       caption,
-      summary: `Publish to ${publishTypeArg.replace('_', ' ')}: "${caption.length > 80 ? `${caption.slice(0, 80)}…` : caption || '(no caption)'}" — media: ${mediaLabel}`,
+      summary: `Publish to ${publishTypeArg.replace('_', ' ')}: "${caption.length > 80 ? `${caption.slice(0, 80)}…` : caption || '(no caption)'}" - media: ${mediaLabel}`,
     },
   };
 }
@@ -4694,7 +4694,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'list_bookings',
     description:
-      'List bookings (guest name, human statusLabel, dates, hostLabel). Optionally filter by property, status, check-in date range, or guestName/q (free-text guest search). When the host names a guest, search with guestName/q first — do not claim the booking is missing until that search returns empty. Date-range queries include completed stays.',
+      'List bookings (guest name, human statusLabel, dates, hostLabel). Optionally filter by property, status, check-in date range, or guestName/q (free-text guest search). When the host names a guest, search with guestName/q first - do not claim the booking is missing until that search returns empty. Date-range queries include completed stays.',
     parameters: {
       type: 'object',
       properties: {
@@ -4758,7 +4758,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'get_finance_summary',
     description:
-      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for ONE property. Defaults to this calendar month and the current page property. With no property in scope, pass propertyId or use get_org_portfolio_analytics for org-wide revenue. Use display.* ₱ strings and netProfit for host answers — do not invent Grand Net.',
+      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for ONE property. Defaults to this calendar month and the current page property. With no property in scope, pass propertyId or use get_org_portfolio_analytics for org-wide revenue. Use display.* ₱ strings and netProfit for host answers - do not invent Grand Net.',
     parameters: {
       type: 'object',
       properties: {
@@ -4817,7 +4817,7 @@ export const TOOL_DECLARATIONS = [
     name: 'list_maintenance_items',
     description:
       'List maintenance items for a property. Only the 10 most recently scheduled are returned ' +
-      "when q is omitted — pass q with the host's wording when they named a specific item, so an " +
+      "when q is omitted - pass q with the host's wording when they named a specific item, so an " +
       'older item is still found instead of only searching the most recent 10.',
     parameters: {
       type: 'object',
@@ -4948,7 +4948,7 @@ export const TOOL_DECLARATIONS = [
         email: { type: 'string' },
         roleId: {
           type: 'string',
-          description: 'ADMIN or a permission-template UUID — defaults to ADMIN',
+          description: 'ADMIN or a permission-template UUID - defaults to ADMIN',
         },
       },
       required: ['email'],
@@ -5028,7 +5028,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_update_property_settings',
     description:
-      "Update a property's configurable settings — contact info, bedrooms/bathrooms/floors, max adults/children, description, custom house rules, custom amenities, or cancellation policy. Owner-only. Always requires host confirmation, even for small changes, since these are guest-facing terms.",
+      "Update a property's configurable settings - contact info, bedrooms/bathrooms/floors, max adults/children, description, custom house rules, custom amenities, or cancellation policy. Owner-only. Always requires host confirmation, even for small changes, since these are guest-facing terms.",
     parameters: {
       type: 'object',
       properties: {
@@ -5053,7 +5053,7 @@ export const TOOL_DECLARATIONS = [
         cancellationPolicy: {
           type: 'object',
           description:
-            'Cancellation policy settings object — read current value via get_property_settings first.',
+            'Cancellation policy settings object - read current value via get_property_settings first.',
         },
       },
     },
@@ -5151,7 +5151,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_claim_parking_booking',
     description:
-      'Accept/claim a broadcast parking request for this parking slot — commits the slot and emails the guest to pay and confirm (the guest still needs to complete payment before the booking is fully confirmed). Always requires host confirmation; first-Accept-wins, may fail if another host already claimed it.',
+      'Accept/claim a broadcast parking request for this parking slot - commits the slot and emails the guest to pay and confirm (the guest still needs to complete payment before the booking is fully confirmed). Always requires host confirmation; first-Accept-wins, may fail if another host already claimed it.',
     parameters: {
       type: 'object',
       properties: {
@@ -5178,7 +5178,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_transition_parking_booking',
     description:
-      'Move a parking booking to a new status (post-broadcast only — cannot be used while a request is still PENDING_HOST_ACCEPTANCE; use claim/decline for that). Always requires host confirmation.',
+      'Move a parking booking to a new status (post-broadcast only - cannot be used while a request is still PENDING_HOST_ACCEPTANCE; use claim/decline for that). Always requires host confirmation.',
     parameters: {
       type: 'object',
       properties: {
@@ -5239,7 +5239,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_add_property_holiday_rule',
     description:
-      'Add a holiday pricing rule for a property — a date range with a percentage rate increase (e.g. "add 50% for Christmas, Dec 24-26"). Always requires host confirmation.',
+      'Add a holiday pricing rule for a property - a date range with a percentage rate increase (e.g. "add 50% for Christmas, Dec 24-26"). Always requires host confirmation.',
     parameters: {
       type: 'object',
       properties: {
@@ -5360,7 +5360,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_mark_inbox_thread_read',
     description:
-      'Mark a Guest Inbox conversation as read. Internal only — does not notify the guest.',
+      'Mark a Guest Inbox conversation as read. Internal only - does not notify the guest.',
     parameters: {
       type: 'object',
       properties: {
@@ -5374,7 +5374,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_inbox_reply',
     description:
-      'Generate an AI-drafted reply suggestion for a Guest Inbox conversation for the host to review — does NOT send it. Use propose_send_inbox_reply to actually send.',
+      'Generate an AI-drafted reply suggestion for a Guest Inbox conversation for the host to review - does NOT send it. Use propose_send_inbox_reply to actually send.',
     parameters: {
       type: 'object',
       properties: {
@@ -5388,7 +5388,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_send_inbox_reply',
     description:
-      'Send a real reply to a guest in a Guest Inbox conversation (web chat, Messenger, or Instagram DM). Optional attachmentPath(s) from this assistant conversation work on website chat only — Meta DMs are text-only. This sends immediately once confirmed — always requires explicit host confirmation, no exceptions.',
+      'Send a real reply to a guest in a Guest Inbox conversation (web chat, Messenger, or Instagram DM). Optional attachmentPath(s) from this assistant conversation work on website chat only - Meta DMs are text-only. This sends immediately once confirmed - always requires explicit host confirmation, no exceptions.',
     parameters: {
       type: 'object',
       properties: {
@@ -5405,7 +5405,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'list_marketing_templates',
     description:
-      "List a property's saved Marketing Studio templates (calendar/design/video). Global-admin only — see note on Marketing Studio access.",
+      "List a property's saved Marketing Studio templates (calendar/design/video). Global-admin only - see note on Marketing Studio access.",
     parameters: {
       type: 'object',
       properties: { propertyId: { type: 'string' } },
@@ -5438,7 +5438,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_marketing_caption',
     description:
-      'Generate an AI-drafted social media caption for a property (Facebook or Instagram, post or story) — for host review, does not post anywhere. Global-admin only.',
+      'Generate an AI-drafted social media caption for a property (Facebook or Instagram, post or story) - for host review, does not post anywhere. Global-admin only.',
     parameters: {
       type: 'object',
       properties: {
@@ -5455,7 +5455,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_marketing_template',
     description:
-      'Generate AI design tokens for a Marketing Studio calendar/design/video template from a text prompt — for the host to review and refine in the visual editor. Does not save or publish. Global-admin only.',
+      'Generate AI design tokens for a Marketing Studio calendar/design/video template from a text prompt - for the host to review and refine in the visual editor. Does not save or publish. Global-admin only.',
     parameters: {
       type: 'object',
       properties: {

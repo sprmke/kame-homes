@@ -155,7 +155,7 @@ function EditorialReviewCard({ item }: { item: ShowcaseTestimonial }) {
       <ReviewStars rating={item.rating} className="mb-4" />
       <p className={cn('flex-1', tokens.testimonialQuote)}>&ldquo;{item.body}&rdquo;</p>
       <footer className={cn('mt-6 text-sm uppercase tracking-[0.12em]', tokens.testimonialFooter)}>
-        — {item.author}
+        {item.author}
       </footer>
     </blockquote>
   );

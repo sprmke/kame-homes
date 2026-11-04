@@ -128,7 +128,7 @@ export function GuestFormStepper({
         </div>
       </div>
 
-      {/* Desktop — one continuous track, nodes on top */}
+      {/* Desktop - one continuous track, nodes on top */}
       <ol
         className={cn(
           'relative mx-auto hidden w-full pb-0.5 sm:flex',

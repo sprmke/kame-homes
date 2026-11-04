@@ -75,7 +75,7 @@ Deno.test('guestCanReview: respects an open window and a closed/published one', 
 });
 
 Deno.test(
-  'hostCanReview matches guestCanReview — same gate, source-agnostic (Airbnb included)',
+  'hostCanReview matches guestCanReview - same gate, source-agnostic (Airbnb included)',
   () => {
     const airbnbRow = {
       status: 'COMPLETED',
@@ -89,7 +89,7 @@ Deno.test(
 );
 
 Deno.test(
-  'canClaimStayVoucher (D3): decoupled from review state — only checks check-out reached',
+  'canClaimStayVoucher (D3): decoupled from review state - only checks check-out reached',
   () => {
     assertEquals(canClaimStayVoucher({ status: 'COMPLETED', check_out_date: PAST_CHECKOUT }), true);
     assertEquals(

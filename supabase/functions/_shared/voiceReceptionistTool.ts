@@ -32,18 +32,18 @@ function mergedAmenities(
 async function renderAvailabilityAnswer(propertyId: string): Promise<string> {
   const availability = await loadGuestSafeAvailabilityContext(propertyId);
   if (availability.blockedRanges.length === 0) {
-    return `As of ${availability.asOfDate}, there are no blocked dates on record for the near term — check the booking calendar for exact availability.`;
+    return `As of ${availability.asOfDate}, there are no blocked dates on record for the near term. Check the booking calendar for exact availability.`;
   }
   const upcoming = availability.blockedRanges
     .slice(0, 5)
     .map((range) => `${range.checkIn} to ${range.checkOut}`)
     .join('; ');
-  return `As of ${availability.asOfDate}, these date ranges are already booked: ${upcoming}. Other dates are open — check the booking calendar to confirm.`;
+  return `As of ${availability.asOfDate}, these date ranges are already booked: ${upcoming}. Other dates are open. Check the booking calendar to confirm.`;
 }
 
 function renderPoolAnswer(development: DevelopmentGuestContextDto | null): string {
   if (!development) {
-    return 'Pool information is not listed for this property — ask the host team to confirm.';
+    return 'Pool information is not listed for this property. Ask the host team to confirm.';
   }
   const parts: string[] = [];
   if (development.poolFee != null) {
@@ -53,14 +53,14 @@ function renderPoolAnswer(development: DevelopmentGuestContextDto | null): strin
     parts.push(`Pool schedule: ${development.poolSchedule}`);
   }
   if (parts.length === 0) {
-    return 'Pool information is not listed for this development — ask the host team to confirm.';
+    return 'Pool information is not listed for this development. Ask the host team to confirm.';
   }
   return parts.join('. ') + '.';
 }
 
 function renderRequirementsAnswer(development: DevelopmentGuestContextDto | null): string {
   if (!development) {
-    return 'Building requirements are not listed — ask the host team to confirm.';
+    return 'Building requirements are not listed. Ask the host team to confirm.';
   }
   const parts: string[] = [];
   if (development.guestRequirements) {
@@ -79,7 +79,7 @@ function renderRequirementsAnswer(development: DevelopmentGuestContextDto | null
 
 function renderGuidesAnswer(development: DevelopmentGuestContextDto | null): string {
   if (!development || development.guestGuides.length === 0) {
-    return 'No development guides are listed — ask the host team to confirm.';
+    return 'No development guides are listed. Ask the host team to confirm.';
   }
   return development.guestGuides.map((guide) => `${guide.title}: ${guide.content}`).join(' ');
 }
@@ -118,18 +118,18 @@ export async function answerGuestSafeVoiceTopic(
       const wifiAmenity = findAmenityMatching(amenities, /wifi|internet/i);
       return wifiAmenity
         ? `Wifi is included: ${wifiAmenity}.`
-        : 'Wifi details are not listed — ask the host team to confirm.';
+        : 'Wifi details are not listed. Ask the host team to confirm.';
     }
     case 'pool':
       return renderPoolAnswer(development);
     case 'parking':
       return property.pricing.parkingRateGuest != null
-        ? `Guest parking is available for ${property.pricing.parkingRateGuest} pesos — ask the host team to arrange it.`
-        : 'Parking is not listed for this property — ask the host team to confirm.';
+        ? `Guest parking is available for ${property.pricing.parkingRateGuest} pesos. Ask the host team to arrange it.`
+        : 'Parking is not listed for this property. Ask the host team to confirm.';
     case 'pets':
       return property.pricing.petFee != null
         ? `Pets are welcome with a ${property.pricing.petFee} pesos pet fee.`
-        : 'Pet policy is not listed for this property — ask the host team to confirm.';
+        : 'Pet policy is not listed for this property. Ask the host team to confirm.';
     case 'pricing': {
       let answer =
         `Weekday rate is ${property.pricing.weekdayNightlyRate} pesos per night, weekend rate is ${property.pricing.weekendNightlyRate} pesos per night.` +

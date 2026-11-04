@@ -7,10 +7,10 @@
       "period": { "from": "2026-09-20", "to": "2026-10-19" },
       "state": {
         "forwardOccupancyState30d": "building",
-        "forwardOccupancyState30dLabel": "Building — occupancy is picking up, keep current approach",
+        "forwardOccupancyState30dLabel": "Building - occupancy is picking up, keep current approach",
         "forwardOccupancyState60d": "underbooked",
         "balanceCollectionState": "attention_needed",
-        "balanceCollectionStateLabel": "Attention needed — some upcoming bookings carry unpaid balances",
+        "balanceCollectionStateLabel": "Attention needed - some upcoming bookings carry unpaid balances",
         "unpaidBalanceUpcomingTotalDisplay": "₱7,000",
         "unpaidBalanceUpcomingCount": 2
       },
@@ -78,10 +78,10 @@
       "period": { "from": "2026-09-20", "to": "2026-10-19" },
       "state": {
         "forwardOccupancyState30d": "underbooked",
-        "forwardOccupancyState30dLabel": "Underbooked — worth a pricing and marketing check",
+        "forwardOccupancyState30dLabel": "Underbooked - worth a pricing and marketing check",
         "forwardOccupancyState60d": "underbooked",
         "balanceCollectionState": "clear",
-        "balanceCollectionStateLabel": "Clear — no upcoming balances at risk",
+        "balanceCollectionStateLabel": "Clear - no upcoming balances at risk",
         "unpaidBalanceUpcomingTotalDisplay": "₱0",
         "unpaidBalanceUpcomingCount": 0
       },

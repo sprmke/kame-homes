@@ -241,11 +241,11 @@ function rewriteNeedsReviewWording(text: string, label: string): string {
     needsReviewText('Downpayment receipt', 'unclear')
   );
   out = out.replace(
-    /^(.+?)\s+uploaded\s+—\s+needs review:\s+too unclear to verify\.?$/i,
+    /^(.+?)\s+uploaded\s+-\s+needs review:\s+too unclear to verify\.?$/i,
     (_m, subject: string) => needsReviewText(subject.trim(), 'unclear')
   );
   out = out.replace(
-    /^(.+?)\s+uploaded\s+—\s+needs review:\s+not a valid document\.?$/i,
+    /^(.+?)\s+uploaded\s+-\s+needs review:\s+not a valid document\.?$/i,
     (_m, subject: string) => needsReviewText(subject.trim(), 'invalid')
   );
   out = out.replace(

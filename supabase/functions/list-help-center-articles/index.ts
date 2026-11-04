@@ -44,6 +44,7 @@ function displayArticleTitle(rawTitle: string | null, routeGuidePath: string): s
     .replace(/\s*[—–-]\s*operator guide\s*/gi, '')
     .replace(/\s*\((?:`[^`]+`|[^)]*\/:[^)]+)\)\s*/g, '')
     .replace(/`[^`]+`/g, '')
+    .replace(/\s+—\s+/g, ' - ')
     .replace(/\s{2,}/g, ' ')
     .trim();
   if (!title || title.startsWith('docs/') || title.includes('/:')) {

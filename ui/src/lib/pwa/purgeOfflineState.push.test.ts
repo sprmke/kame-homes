@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
  * stale app-icon count. Kept in its own file so the fake IndexedDB connections
  * from the outbox test cannot block this purge's `deleteDatabase`.
  */
-describe('purgeOfflineState — device handles', () => {
+describe('purgeOfflineState - device handles', () => {
   it('unsubscribes push and clears the badge on sign-out', async () => {
     vi.stubGlobal('caches', {
       keys: async () => [],

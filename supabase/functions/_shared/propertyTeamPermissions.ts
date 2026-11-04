@@ -122,7 +122,7 @@ const TEAM_PERMISSION_ID_SET = new Set<string>(TEAM_PERMISSION_IDS);
 
 /** Invite email copy when role_id is ADMIN without a named template label at send time. */
 export const PROPERTY_ADMIN_EMAIL_DESCRIPTION =
-  'Admins have the permissions assigned on this property — use a template or customize access in Team settings.';
+  'Admins have the permissions assigned on this property - use a template or customize access in Team settings.';
 
 export type PropertyCustomRoleRow = {
   id: string;

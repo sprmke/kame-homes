@@ -443,7 +443,7 @@ export const EDGE_ENV_REGISTRY: EnvDef[] = [
     group: OBSERVABILITY,
     level: 'optional',
     features: ['Error grouping by deploy', 'Error and analytics correlation'],
-    hint: 'Set by the deploy scripts from the git SHA — do not set by hand.',
+    hint: 'Set by the deploy scripts from the git SHA - do not set by hand.',
   },
 
   {

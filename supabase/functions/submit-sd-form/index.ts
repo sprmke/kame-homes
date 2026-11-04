@@ -181,7 +181,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Thank you — we have received your security deposit refund information.',
+        message: 'Thank you. We have received your security deposit refund information.',
       }),
       { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
     );

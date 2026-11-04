@@ -66,7 +66,7 @@ export function BookingDetailMobileSummary({
             Editing
           </span>
         ) : null}
-        {/* h2 — the phone brand hero ("Booking") owns the page h1. */}
+        {/* h2 - the phone brand hero ("Booking") owns the page h1. */}
         <h2 className="text-foreground min-w-0 break-words text-base font-bold leading-tight">
           {heading}
         </h2>

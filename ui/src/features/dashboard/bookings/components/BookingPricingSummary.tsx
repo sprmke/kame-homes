@@ -101,7 +101,7 @@ export function BookingPricingSummary({
 
         {!isCompleted && showProjectedEstimate && fin.projectedNet != null ? (
           <p className="text-caption text-muted-foreground leading-relaxed">
-            Estimate — open booking for final details.
+            Estimate - open booking for final details.
           </p>
         ) : null}
       </div>
@@ -371,7 +371,7 @@ function HostNetBreakdownCard({
       <PricingMiniRow label="Net" bold value={formatMoney(breakdown.net)} valueClass={netClass} />
       {breakdown.isEstimate ? (
         <p className="text-caption text-muted-foreground px-4 pb-2.5 pt-0">
-          Estimate — security deposit pass-through is not included.
+          Estimate - security deposit pass-through is not included.
         </p>
       ) : null}
     </div>

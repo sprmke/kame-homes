@@ -16,9 +16,9 @@ const DEMO_STYLES: VoucherRevealStyle[] = ['reel', 'wheel', 'flip'];
 
 test.describe.configure({ mode: 'serial', timeout: 120_000 });
 
-test.describe('voucher reveal styles — visual demo @demo', () => {
+test.describe('voucher reveal styles - visual demo @demo', () => {
   for (const style of DEMO_STYLES) {
-    test(`${style} world — full animation on SD form`, async ({ page }) => {
+    test(`${style} world - full animation on SD form`, async ({ page }) => {
       const world = VOUCHER_REVEAL_WORLDS[style];
       const guest = createVoucherGuestState({ revealStyle: style });
       await installVoucherRevealGuestMocks(page, guest);

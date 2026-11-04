@@ -25,7 +25,7 @@ Deno.test('canSkipStructuredSynth is false only with nothing to hydrate', () => 
 });
 
 Deno.test(
-  'shapeCandidateBlocks — attached template answers instead of the generic fallback',
+  'shapeCandidateBlocks - attached template answers instead of the generic fallback',
   () => {
     const shaped = shapeCandidateBlocks({
       modelBlocks: [],
@@ -49,7 +49,7 @@ Deno.test(
   }
 );
 
-Deno.test('shapeCandidateBlocks — template tool result answers when the model is empty', () => {
+Deno.test('shapeCandidateBlocks - template tool result answers when the model is empty', () => {
   const shaped = shapeCandidateBlocks({
     modelBlocks: [],
     draftText: '',
@@ -70,7 +70,7 @@ Deno.test('shapeCandidateBlocks — template tool result answers when the model 
   assertEquals(texts.includes('Quiet hours start at 10 PM.'), true);
   assertEquals(texts.includes('Which listing or dates should I use?'), false);
 });
-Deno.test('shapeCandidateBlocks — replaces the model dead-end line with the attached template', () => {
+Deno.test('shapeCandidateBlocks - replaces the model dead-end line with the attached template', () => {
   const shaped = shapeCandidateBlocks({
     modelBlocks: [{ type: 'text', text: 'Which listing or dates should I use?' }],
     draftText: '',
@@ -91,7 +91,7 @@ Deno.test('shapeCandidateBlocks — replaces the model dead-end line with the at
   );
 });
 
-Deno.test('shapeCandidateBlocks — skip-synth with tools does not show a generate failure', () => {
+Deno.test('shapeCandidateBlocks - skip-synth with tools does not show a generate failure', () => {
   const shaped = shapeCandidateBlocks({
     modelBlocks: [],
     draftText: '',

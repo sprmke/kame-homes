@@ -22,7 +22,7 @@ import {
 
 test.describe.configure({ mode: 'default' });
 
-test.describe('@live AI assistant live local — §11–13 browser + Gemini', () => {
+test.describe('@live AI assistant live local - §11–13 browser + Gemini', () => {
   test.beforeEach(async ({ request }) => {
     test.skip(
       process.env.PLAYWRIGHT_ASSISTANT_LIVE !== '1',

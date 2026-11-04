@@ -144,7 +144,7 @@ function ReviewItem({
         {detail ? <p className="text-muted-foreground text-xs leading-relaxed">{detail}</p> : null}
       </div>
 
-      {/* Act: one quiet zone — recommendation, then primary page link, then playbook tip */}
+      {/* Act: one quiet zone - recommendation, then primary page link, then playbook tip */}
       {hasNext ? (
         <div className="border-border/50 flex flex-col items-start gap-1.5 border-t pt-2">
           {action ? <p className="text-foreground/80 text-xs leading-relaxed">{action}</p> : null}

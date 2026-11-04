@@ -155,7 +155,7 @@ serveAuthenticated('import-preview', async (req) => {
         .maybeSingle();
       const refreshedStatus = String(refreshed?.status ?? '');
       if (refreshedStatus !== 'previewing' && refreshedStatus !== 'previewed') {
-        return jsonError(req, 'Import batch status changed — retry preview');
+        return jsonError(req, 'Import batch status changed - retry preview');
       }
     }
   }
@@ -208,7 +208,7 @@ serveAuthenticated('import-preview', async (req) => {
   const summary = summarizeImportPreview(previewRows);
 
   console.log(
-    `[import-preview] batch ${batchId} — ${summary.valid} valid, ${summary.error} error, ${summary.skipped} skipped`
+    `[import-preview] batch ${batchId} - ${summary.valid} valid, ${summary.error} error, ${summary.skipped} skipped`
   );
 
   return jsonSuccess(req, {

@@ -342,7 +342,7 @@ export async function fulfillOrgSubscriptionPayment(input: {
     }
     await markOrgPaymentFailed(
       input.transactionId,
-      `Fulfillment error (payment was collected — needs manual review): ${(err as Error).message}`,
+      `Fulfillment error (payment was collected - needs manual review): ${(err as Error).message}`,
       input.rawPayload
     );
     throw err;

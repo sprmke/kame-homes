@@ -185,11 +185,11 @@ export async function reconcileMetaConnectionWebhook(
 
     const tokenInvalid =
       tokenDebug !== null && !tokenDebug.valid
-        ? 'Meta access token is no longer valid — reconnect Meta.'
+        ? 'Meta access token is no longer valid - reconnect Meta.'
         : null;
     const tokenExpiringSoon =
       tokenDebug !== null && tokenDebug.valid && tokenDebug.expiringSoon
-        ? 'Meta access token is expiring soon — reconnect Meta before replies start failing.'
+        ? 'Meta access token is expiring soon - reconnect Meta before replies start failing.'
         : null;
 
     if (!verification.isSubscribed) {

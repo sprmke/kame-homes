@@ -96,7 +96,7 @@ serve(async (req) => {
           success: false,
           error: gone
             ? 'This stay has already ended'
-            : 'This booking is already being processed — please contact your host',
+            : 'This booking is already being processed. Please contact your host.',
         },
         gone ? 410 : 409
       );

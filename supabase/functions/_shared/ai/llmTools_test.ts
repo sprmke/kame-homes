@@ -108,7 +108,7 @@ Deno.test('a good first answer costs a single call', async () => {
 });
 
 Deno.test(
-  'shouldTryFallbackModel — only a retryable error on a configured, different model',
+  'shouldTryFallbackModel - only a retryable error on a configured, different model',
   () => {
     const retryable = new AiProviderError('gemini', 'provider_error', 'boom', 503);
     const badRequest = new AiProviderError('gemini', 'bad_request', 'nope', 400);
@@ -168,9 +168,9 @@ Deno.test(
 
 Deno.test(
   'generateWithTools echoes a real thought_signature exactly and leaves a same-round ' +
-    'functionCall that Gemini returned without one bare — fabricating a signature next to a ' +
+    'functionCall that Gemini returned without one bare - fabricating a signature next to a ' +
     'real one is REJECTED on the next round (live: "Corrupted thought signature", ' +
-    'gemini-3.5-flash-lite — see docs/workflow/in-progress/agentic-ai-assistants.md)',
+    'gemini-3.5-flash-lite - see docs/workflow/in-progress/agentic-ai-assistants.md)',
   async () => {
     await withGemini(async () => {
       globalThis.fetch = (() =>

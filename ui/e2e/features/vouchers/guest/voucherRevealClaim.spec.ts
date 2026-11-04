@@ -10,9 +10,9 @@ import {
 
 const GUEST_WORLDS = Object.values(VOUCHER_REVEAL_WORLDS);
 
-test.describe('guest — SD form voucher reveal worlds', () => {
+test.describe('guest - SD form voucher reveal worlds', () => {
   for (const world of GUEST_WORLDS) {
-    test(`${world.style} world — claim shows style copy then won card`, async ({ page }) => {
+    test(`${world.style} world - claim shows style copy then won card`, async ({ page }) => {
       await useReducedMotionForVoucherClaim(page);
       const guest = createVoucherGuestState({ revealStyle: world.style });
       await installVoucherRevealGuestMocks(page, guest);
@@ -46,9 +46,9 @@ test.describe('guest — SD form voucher reveal worlds', () => {
   });
 });
 
-test.describe('guest — guest-review voucher reveal worlds', () => {
+test.describe('guest - guest-review voucher reveal worlds', () => {
   for (const world of GUEST_WORLDS) {
-    test(`${world.style} world — Airbnb path uses Done after reveal`, async ({ page }) => {
+    test(`${world.style} world - Airbnb path uses Done after reveal`, async ({ page }) => {
       await useReducedMotionForVoucherClaim(page);
       const guest = createVoucherGuestState({ revealStyle: world.style });
       await installVoucherRevealGuestMocks(page, guest);

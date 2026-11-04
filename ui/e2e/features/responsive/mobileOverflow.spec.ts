@@ -29,7 +29,7 @@ const VIEWPORTS = [
 ];
 
 for (const viewport of VIEWPORTS) {
-  test.describe(`no horizontal overflow — ${viewport.label} ${viewport.width}px @smoke`, () => {
+  test.describe(`no horizontal overflow - ${viewport.label} ${viewport.width}px @smoke`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
     for (const route of ROUTES) {

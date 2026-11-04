@@ -73,7 +73,7 @@ export const parkingGuestStatusLabels = {
   findingHost: 'Finding a host',
   searchingNearby: 'Searching for hosts nearby',
   payToConfirm: 'Pay to confirm',
-  payDetail: 'A host accepted — confirm before the timer ends.',
+  payDetail: 'A host accepted - confirm before the timer ends.',
   parkingConfirmed: 'Parking confirmed',
   requestCancelled: 'Request cancelled',
   noHostAvailable: 'No host available',
@@ -134,7 +134,7 @@ const MOCK_HOST_CONTACT = {
 };
 
 const MOCK_ENDORSEMENT_SNAPSHOT =
-  '<p>Endorsement for Jamie Park — vehicle ABC-1234 approved for Tower 1 B2 slot 12A.</p>';
+  '<p>Endorsement for Jamie Park - vehicle ABC-1234 approved for Tower 1 B2 slot 12A.</p>';
 
 export function createParkingFlowState(): ParkingFlowState {
   const expiresAt = new Date(Date.now() + 45 * 60_000).toISOString();

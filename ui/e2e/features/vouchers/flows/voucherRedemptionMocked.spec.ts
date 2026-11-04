@@ -23,7 +23,7 @@ import {
  * **Not covered:** sharing a voucher inside property messages — product has no
  * voucher attach action in chat yet; guests use `/account/vouchers` or the form picker.
  */
-test.describe('voucher redemption — mocked full journey', () => {
+test.describe('voucher redemption - mocked full journey', () => {
   test('returning guest books again with wallet voucher; host sees applied discount', async ({
     page,
   }) => {

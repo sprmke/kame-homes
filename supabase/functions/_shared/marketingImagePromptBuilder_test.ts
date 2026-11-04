@@ -201,7 +201,7 @@ Deno.test('enhanceMarketingImagePrompt: uses the model output on a clean respons
 );
 
 Deno.test(
-  'enhanceMarketingImagePrompt: fail-open on a network error — never throws, falls back to the structured prompt',
+  'enhanceMarketingImagePrompt: fail-open on a network error - never throws, falls back to the structured prompt',
   () =>
     withEnv(
       { GEMINI_API_KEY: 'test-key', GEMINI_API_KEYS: undefined, AI_RESPONSE_CACHE_DISABLED: '1' },

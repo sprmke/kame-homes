@@ -122,7 +122,7 @@ function resolveDuplicateSuggestedTargets(
       ...entry,
       suggestedTarget: null,
       status: 'ambiguous' as const,
-      reason: `Duplicate target — resolve manually (${target})`,
+      reason: `Duplicate target - resolve manually (${target})`,
     };
   });
 }
@@ -179,7 +179,7 @@ function buildDegradedMappings(headers: string[]): ImportColumnMappingEntry[] {
         rawHeader,
         suggestedTarget: null,
         status: 'unmatched' as const,
-        reason: 'AI mapping unavailable — map manually',
+        reason: 'AI mapping unavailable - map manually',
       };
     })
   );
@@ -360,7 +360,7 @@ export async function suggestImportColumnMappings(
     console.warn('[importColumnMappingAi] AI mapping failed:', (error as Error).message);
   }
 
-  console.warn('[importColumnMappingAi] All providers unavailable — degrading to unmatched');
+  console.warn('[importColumnMappingAi] All providers unavailable - degrading to unmatched');
   return {
     mappings: buildDegradedMappings(headers),
     provider: 'none',

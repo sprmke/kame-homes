@@ -158,7 +158,7 @@ function MessagesPreview({ propertyName }: { propertyName: string }) {
             Hi, is this available?
           </span>
           <span className="bg-primary-strong text-primary-foreground max-w-[68%] self-end rounded-2xl rounded-br-sm px-2 py-1.5 text-[9px] leading-snug">
-            Yes — send dates and we&apos;ll confirm.
+            Yes - send dates and we&apos;ll confirm.
           </span>
         </div>
         <div className="border-border/60 border-t p-1.5">

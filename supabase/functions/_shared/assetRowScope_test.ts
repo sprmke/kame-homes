@@ -30,20 +30,20 @@ async function assertNotFoundBeforeAnyQuery(
     throw new Error('expected assertAssetRowInScope to throw');
   } catch (err) {
     if (!(err instanceof EdgeError)) throw err;
-    assertEquals(err.status, 404, 'must be 404, never 403 — foreign ids must not be enumerable');
+    assertEquals(err.status, 404, 'must be 404, never 403 - foreign ids must not be enumerable');
     assertEquals(err.code, 'asset_row_not_found');
   }
 }
 
 Deno.test(
-  'assertAssetRowInScope — no propertyId and no parkingId is a 404 before any query',
+  'assertAssetRowInScope - no propertyId and no parkingId is a 404 before any query',
   async () => {
     await assertNotFoundBeforeAnyQuery({ table: 'finance_line_items', scope: {}, id: ID });
   }
 );
 
 Deno.test(
-  'assertAssetRowInScope — neither id nor recurrenceSeriesId is a 404 before any query',
+  'assertAssetRowInScope - neither id nor recurrenceSeriesId is a 404 before any query',
   async () => {
     await assertNotFoundBeforeAnyQuery({
       table: 'finance_line_items',
@@ -53,7 +53,7 @@ Deno.test(
 );
 
 Deno.test(
-  'assertAssetRowInScope — empty-string scope ids are treated as absent, not a valid scope',
+  'assertAssetRowInScope - empty-string scope ids are treated as absent, not a valid scope',
   async () => {
     await assertNotFoundBeforeAnyQuery({
       table: 'maintenance_items',

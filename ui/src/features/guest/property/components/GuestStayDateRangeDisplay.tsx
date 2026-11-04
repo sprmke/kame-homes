@@ -131,10 +131,10 @@ export function GuestStayDateRangeDisplay({
 
   return (
     <div className={shellClass}>
-      {/* Mobile — one compact row */}
+      {/* Mobile - one compact row */}
       {compactRow}
 
-      {/* sm+ — labeled columns */}
+      {/* sm+ - labeled columns */}
       <div className="hidden items-center gap-2.5 px-3.5 py-2.5 sm:flex">
         <div
           className={cn(

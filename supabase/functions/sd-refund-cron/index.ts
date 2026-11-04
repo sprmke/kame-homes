@@ -372,7 +372,7 @@ serve(async (req) => {
 
       if (suppressStaleEmail) {
         console.log(
-          `[sd-refund-cron] Booking ${bookingId}: check-out older than ${maxCheckoutAgeDays}d — ` +
+          `[sd-refund-cron] Booking ${bookingId}: check-out older than ${maxCheckoutAgeDays}d - ` +
             'transitioning without automated guest email'
         );
       }
@@ -384,7 +384,7 @@ serve(async (req) => {
         `[sd-refund-cron] Transitioning booking ${bookingId} (${booking.guest_facebook_name}) ` +
           `checkout ${checkOutDate} ${checkOutTime} → READY_FOR_CHECKOUT` +
           (!sendEmailOnTransition
-            ? ' (no SD form email on transition — already sent or stale)'
+            ? ' (no SD form email on transition - already sent or stale)'
             : '')
       );
 

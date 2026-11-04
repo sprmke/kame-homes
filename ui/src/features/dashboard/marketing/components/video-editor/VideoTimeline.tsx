@@ -116,7 +116,7 @@ export function VideoTimeline({
 
   return (
     <div className="border-border bg-background shrink-0 border-t">
-      {/* Redundant on mobile (format is in the sidebar, duration on the scrubber) —
+      {/* Redundant on mobile (format is in the sidebar, duration on the scrubber) -
           hidden so the video preview gets the vertical space instead. */}
       <div className="text-muted-foreground flex items-center justify-between gap-2 px-3 py-2 text-xs max-lg:hidden">
         <span className="font-medium">{formatLabel}</span>

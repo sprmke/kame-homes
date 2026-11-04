@@ -205,7 +205,7 @@ async function validateDocument(options: {
     return verdict;
   } catch (err) {
     if (err instanceof AiProviderError && err.code === 'not_configured') {
-      console.warn(`[${options.logTag}] No AI provider configured — skipping`);
+      console.warn(`[${options.logTag}] No AI provider configured - skipping`);
       return skipped();
     }
     if (isAiQuotaError(err)) return aiModelFailure('AI quota exceeded', err.message);
@@ -406,9 +406,9 @@ export function evaluateReceiptSanityWarnings(params: {
     const today = manilaTodayYmd();
     const daysAgo = daysBetween(extractedDate, today);
     if (daysAgo < -RECEIPT_DATE_FUTURE_GRACE_DAYS) {
-      warnings.push('Receipt date is in the future — please double-check.');
+      warnings.push('Receipt date is in the future. Please double-check.');
     } else if (daysAgo > RECEIPT_DATE_MAX_AGE_DAYS) {
-      warnings.push('Receipt date looks unusually old — please double-check.');
+      warnings.push('Receipt date looks unusually old. Please double-check.');
     }
   }
 

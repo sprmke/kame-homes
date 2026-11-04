@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { installGuestFavoritesMocks } from './shared/guestFavoritesHarness';
 
-test.describe('@ci guest account — favorites', () => {
+test.describe('@ci guest account - favorites', () => {
   test('favorites page lists saved property from mock API', async ({ page }) => {
     await installGuestFavoritesMocks(page);
 

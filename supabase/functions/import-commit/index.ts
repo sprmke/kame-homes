@@ -266,7 +266,7 @@ serveAuthenticated('import-commit', async (req) => {
   }
 
   console.log(
-    `[import-commit] batch ${batchId} — status=${finalStatus}, inserted=${inserted}, skipped=${skipped}, failed=${failed.length}`
+    `[import-commit] batch ${batchId} - status=${finalStatus}, inserted=${inserted}, skipped=${skipped}, failed=${failed.length}`
   );
 
   if (inserted > 0) {

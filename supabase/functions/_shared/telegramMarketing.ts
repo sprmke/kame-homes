@@ -165,7 +165,7 @@ async function resolveTemplatePlaceholderVars(
     const co = opts?.checkOutYmd?.trim();
     if (!ci || !co) {
       throw new TelegramTemplateError(
-        'Check-in and check-out are required for {{cancellation_dates}} — set them in the cancellation date fields above.'
+        'Check-in and check-out are required for {{cancellation_dates}}. Set them in the cancellation date fields above.'
       );
     }
     vars.cancellation_dates = formatCancellationDatesHuman(
@@ -688,11 +688,11 @@ export function serializeTelegramSettings(row: TelegramMarketingSettings) {
     newBookingTemplate: normalizeTelegramTemplateText(row.new_booking_template),
     cancellationTemplate: normalizeTelegramTemplateText(row.cancellation_template),
     placeholdersReference: [
-      '{{available_dates}} — free check-in dates from the live calendar',
-      '{{month_name}} — current month name from the booking calendar',
-      '{{dates_list}} — free check-in day numbers this month',
-      '{{cancellation_dates}} — freed dates from the cancelled stay window',
-      '{{urgency_text}} — daily urgency opener: "today," | "tomorrow," | "this" (nearest free check-in)',
+      '{{available_dates}}: free check-in dates from the live calendar',
+      '{{month_name}}: current month name from the booking calendar',
+      '{{dates_list}}: free check-in day numbers this month',
+      '{{cancellation_dates}}: freed dates from the cancelled stay window',
+      '{{urgency_text}}: daily urgency opener "today," | "tomorrow," | "this" (nearest free check-in)',
     ],
   };
 }

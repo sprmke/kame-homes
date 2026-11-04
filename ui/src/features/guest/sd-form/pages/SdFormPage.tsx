@@ -381,7 +381,7 @@ export function SdFormPage() {
           <div className="space-y-2">
             <p className="text-foreground text-sm font-semibold">Almost there</p>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              We emailed check-out details. Recording your balance—this page updates when your
+              We emailed check-out details. Recording your balance-this page updates when your
               surprise bonus opens.
             </p>
           </div>

@@ -10,7 +10,7 @@ import {
   type OwnerDefaultParkingSlot,
 } from './ownerDefaultParkingRank.ts';
 
-Deno.test('ownerDefaultDateToYmd — ISO passthrough and MM-DD-YYYY', () => {
+Deno.test('ownerDefaultDateToYmd - ISO passthrough and MM-DD-YYYY', () => {
   assertEquals(ownerDefaultDateToYmd('2026-09-01'), '2026-09-01');
   assertEquals(ownerDefaultDateToYmd('09-01-2026'), '2026-09-01');
   assertEquals(ownerDefaultDateToYmd('9-1-2026'), '2026-09-01');
@@ -18,7 +18,7 @@ Deno.test('ownerDefaultDateToYmd — ISO passthrough and MM-DD-YYYY', () => {
   assertEquals(ownerDefaultDateToYmd('bad'), '');
 });
 
-Deno.test('rankOwnerDefaultParkingSlots — residence match first, then created_at', () => {
+Deno.test('rankOwnerDefaultParkingSlots - residence match first, then created_at', () => {
   const slots: OwnerDefaultParkingSlot[] = [
     {
       id: 'b',
@@ -49,7 +49,7 @@ Deno.test('rankOwnerDefaultParkingSlots — residence match first, then created_
   );
 });
 
-Deno.test('rankOwnerDefaultParkingSlots — preferred id wins when available', () => {
+Deno.test('rankOwnerDefaultParkingSlots - preferred id wins when available', () => {
   const slots: OwnerDefaultParkingSlot[] = [
     {
       id: 'early',
@@ -73,7 +73,7 @@ Deno.test('rankOwnerDefaultParkingSlots — preferred id wins when available', (
   );
 });
 
-Deno.test('rankOwnerDefaultParkingSlots — no residence → created_at then name', () => {
+Deno.test('rankOwnerDefaultParkingSlots - no residence → created_at then name', () => {
   const slots: OwnerDefaultParkingSlot[] = [
     {
       id: 'z',
