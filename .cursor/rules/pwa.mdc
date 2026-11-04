@@ -35,7 +35,7 @@ Canonical detail: **`docs/architecture/pwa.md`**. Plan: `docs/workflow/for-testi
 - **No `setDefaultHandler`** — unmatched requests (POSTs, SSE like the dashboard assistant, auth) pass straight to the network.
 - Registered manually via `@/lib/pwa/useRegisterSW` (`workbox-window`) + `injectRegister: false` — never `virtual:pwa-register/*`.
 - `injectManifest`, not `generateSW`.
-- One `controllerchange` reload listener for the whole page, guarded by `canAutoReload` (max two automatic reloads per tab session). Never reload over a dirty guard.
+- One `controllerchange` reload listener for the whole page. Auto-apply is gated by `canAutoReload` (max two automatic reloads per tab session); the Update ready / Force update buttons are **not** — they always call `accept` as `user`. Never reload over a dirty guard.
 
 ## Precache tiers
 

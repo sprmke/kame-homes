@@ -75,12 +75,13 @@ export function parseUpdateBroadcast(raw: unknown): UpdateBroadcast | null {
   const value = raw as { type?: unknown; nonce?: unknown; surface?: unknown };
   if (typeof value.type !== 'string' || !BROADCAST_TYPES.has(value.type)) return null;
   if (value.type === 'surface-claim' || value.type === 'surface-release') {
-    return typeof value.surface === 'string'
-      ? { type: value.type, surface: value.surface }
-      : null;
+    return typeof value.surface === 'string' ? { type: value.type, surface: value.surface } : null;
   }
   if (typeof value.nonce !== 'string') return null;
-  return { type: value.type as 'update-ready' | 'update-applying' | 'update-applied', nonce: value.nonce };
+  return {
+    type: value.type as 'update-ready' | 'update-applying' | 'update-applied',
+    nonce: value.nonce,
+  };
 }
 
 /**
@@ -115,4 +116,21 @@ export function bumpAutoReloadCount(storage: Pick<Storage, 'getItem' | 'setItem'
 
 export function canAutoReload(storage: Pick<Storage, 'getItem'> | null): boolean {
   return readAutoReloadCount(storage) < MAX_AUTO_RELOADS;
+}
+
+/**
+ * Who requested the waiting worker to take over.
+ *
+ * - `auto` — route change / background / cold restore. Subject to the loop guard.
+ * - `user` — Reload or Force update. Must never be blocked by that guard: after
+ *   two automatic reloads we *show* the prompt, so tapping Reload has to work.
+ */
+export type UpdateApplySource = 'auto' | 'user';
+
+/** True when this apply attempt must refuse to reload (loop-guard only). */
+export function isUpdateApplyBlocked(
+  source: UpdateApplySource,
+  storage: Pick<Storage, 'getItem'> | null
+): boolean {
+  return source === 'auto' && !canAutoReload(storage);
 }
