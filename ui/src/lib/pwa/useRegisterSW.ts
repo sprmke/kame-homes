@@ -8,14 +8,15 @@ import {
   canApplyNow,
   canAutoReload,
   isSnoozed,
+  isUpdateApplyBlocked,
   nextSnoozeUntil,
   parseUpdateBroadcast,
+  type UpdateApplySource,
   type UpdateBroadcast,
   type UpdateGuardSnapshot,
 } from '@/lib/pwa/updateController';
 
 import { SW_MESSAGE } from '@/pwa/shared';
-
 
 export type RegisterSWOptions = {
   immediate?: boolean;
@@ -102,6 +103,9 @@ type Controller = {
   routeChanged: () => void;
   snooze: () => void;
 };
+
+/** If skipWaiting never yields `controllerchange`, still reload so Reload never no-ops. */
+const ACCEPT_RELOAD_FALLBACK_MS = 2_000;
 
 let pageController: Controller | null = null;
 let onSwActivated: (() => void) | null = null;
@@ -227,22 +231,31 @@ function createController(
     optionsRefStatic.current.onNeedRefresh?.();
   };
 
-  const accept = async (reloadPage = true): Promise<void> => {
+  const accept = async (reloadPage = true, source: UpdateApplySource = 'user'): Promise<void> => {
     if (accepting) return;
-    if (reloadPage && !canAutoReload(window.sessionStorage)) {
-      // Loop guard: never reload again automatically in this tab session.
+    // Loop guard only blocks automatic applies. The Update ready prompt is what
+    // we show after that guard trips — Reload / Force update must still work.
+    if (reloadPage && isUpdateApplyBlocked(source, window.sessionStorage)) {
       return;
     }
     accepting = true;
     post({ type: 'update-applying', nonce: String(Date.now()) });
     sendSkipWaiting?.();
-    if (!reloadPage) accepting = false;
+    if (!reloadPage) {
+      accepting = false;
+      return;
+    }
+    // Waiting worker may already be gone (cross-tab) or never claim; don't leave
+    // the toast stuck with `accepting` true and a dead Reload button.
+    window.setTimeout(() => {
+      if (accepting) reloadForActivation();
+    }, ACCEPT_RELOAD_FALLBACK_MS);
   };
 
   const autoApply = (_reason: string) => {
     if (!waiting || accepting) return;
     if (isSnoozed(readSnooze(), Date.now())) return;
-    if (!canAutoReload(window.sessionStorage)) {
+    if (isUpdateApplyBlocked('auto', window.sessionStorage)) {
       reveal();
       return;
     }
@@ -250,7 +263,7 @@ function createController(
       reveal();
       return;
     }
-    void accept(true);
+    void accept(true, 'auto');
   };
 
   const checkNow = async (): Promise<void> => {
@@ -300,7 +313,9 @@ function createController(
         }
       });
 
-      const registered = await wb.register({ immediate: optionsRefStatic.current.immediate ?? true });
+      const registered = await wb.register({
+        immediate: optionsRefStatic.current.immediate ?? true,
+      });
       registration = registered ?? null;
       optionsRefStatic.current.onRegisteredSW?.(url, registered);
       optionsRefStatic.current.onRegistered?.(registered);

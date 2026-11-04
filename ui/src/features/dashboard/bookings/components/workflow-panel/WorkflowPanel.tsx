@@ -830,6 +830,8 @@ function WorkflowPanelInner({
           persistPartialDrafts={persistPartialDrafts}
           activePendingDocSubStatus={workflowActions.activePendingDocSubStatus}
           documentRequirements={documentRequirements}
+          canUploadDocs={canMutate && !workflowActions.contentReadOnly}
+          onUploadApprovalDoc={setDocApprovalModalSub}
           pricingValues={subFormDrafts.pricingValues}
           onPricingChange={subFormDrafts.setPricingValues}
           propertyPricingLoaded={propertyPricingLoaded}
@@ -880,6 +882,8 @@ function WorkflowPanelInner({
               persistPartialDrafts={persistPartialDrafts}
               activePendingDocSubStatus={workflowActions.activePendingDocSubStatus}
               documentRequirements={documentRequirements}
+              canUploadDocs={canMutate && !workflowActions.contentReadOnly}
+              onUploadApprovalDoc={setDocApprovalModalSub}
               pricingValues={subFormDrafts.pricingValues}
               onPricingChange={subFormDrafts.setPricingValues}
               propertyPricingLoaded={propertyPricingLoaded}
