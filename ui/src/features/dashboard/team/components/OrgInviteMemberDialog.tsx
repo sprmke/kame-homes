@@ -139,7 +139,7 @@ export function OrgInviteMemberDialog({
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  placeholder="user@gmail.com"
+                  placeholder={FORM_PLACEHOLDERS.email}
                   value={form.email}
                   onChange={(e) => onFormChange({ email: e.target.value })}
                   className={cn('h-10', emailInvalid && 'border-destructive')}

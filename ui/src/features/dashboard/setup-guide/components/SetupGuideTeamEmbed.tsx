@@ -129,7 +129,7 @@ export function SetupGuideTeamEmbed() {
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="user@gmail.com"
+              placeholder={FORM_PLACEHOLDERS.email}
               value={form.email}
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))

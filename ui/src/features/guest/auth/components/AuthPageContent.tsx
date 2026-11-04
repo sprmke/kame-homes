@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { SpinnerIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { captureAppEvent } from '@/lib/posthog/capture';
 import { cn } from '@/lib/utils';
 
@@ -184,7 +185,7 @@ export function AuthPageContent({ config, mode, actions }: AuthPageContentProps)
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="Email"
+              placeholder={FORM_PLACEHOLDERS.email}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
