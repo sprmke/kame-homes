@@ -55,6 +55,9 @@ type Props = {
   persistPartialDrafts: boolean;
   activePendingDocSubStatus: PendingDocNestedKey;
   documentRequirements: DocumentRequirement[];
+  /** Host can upload a missing approval file from the pending-doc card. */
+  canUploadDocs?: boolean;
+  onUploadApprovalDoc?: (sub: PendingDocNestedKey) => void;
 
   // Pricing sub-form
   pricingValues: ReviewPricingFormValues | null;
@@ -98,6 +101,8 @@ export function WorkflowSubFormHost({
   persistPartialDrafts,
   activePendingDocSubStatus,
   documentRequirements,
+  canUploadDocs = false,
+  onUploadApprovalDoc,
   pricingValues,
   onPricingChange,
   propertyPricingLoaded,
@@ -222,6 +227,8 @@ export function WorkflowSubFormHost({
           requirements={documentRequirements}
           plain={isModal}
           automatedBookingFlow={automatedBookingFlow}
+          canUpload={canUploadDocs}
+          onUpload={onUploadApprovalDoc}
           onPreview={onPreview}
         />
       )}
