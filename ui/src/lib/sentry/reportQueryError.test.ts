@@ -77,6 +77,18 @@ describe('reportQueryError', () => {
     expect(captureMock).not.toHaveBeenCalled();
   });
 
+  it('keeps distinct mutation messages in separate issues when there is no key', () => {
+    reportQueryError(new Error('ids is not iterable'), 'mutation', undefined);
+    reportQueryError(new Error('booking_rate must be a number'), 'mutation', undefined);
+    reportQueryError(new Error('booking 04bc05fc-11e3-4770-bc1a-b5ef128e59b1 is locked'), 'mutation', undefined);
+
+    const fingerprints = captureMock.mock.calls.map(([, options]) => options?.fingerprint);
+    expect(fingerprints[0]).toEqual(['mutation', 'ids is not iterable', 'thrown']);
+    expect(fingerprints[1]).toEqual(['mutation', 'booking_rate must be a number', 'thrown']);
+    // Volatile ids are normalised so the same failure keeps grouping.
+    expect(fingerprints[2]).toEqual(['mutation', 'booking <id> is locked', 'thrown']);
+  });
+
   it('reports one error object once, even when two hooks see it', () => {
     const error = edgeError(500);
     reportQueryError(error, 'query', ['bookings']);

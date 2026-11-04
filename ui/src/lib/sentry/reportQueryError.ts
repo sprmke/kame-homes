@@ -94,6 +94,26 @@ function keyRoot(key: readonly unknown[] | undefined): string | undefined {
   return typeof first === 'string' && first ? first : undefined;
 }
 
+/**
+ * Grouping token for a mutation with no mutation key. Without one, every thrown mutation
+ * error shared the `unknown` bucket, so "booking_rate must be a number", "ids is not
+ * iterable" and any other validation message landed in a single issue. Volatile ids and
+ * numbers are replaced so repeat failures still group.
+ */
+function messageRoot(error: unknown): string {
+  const like = asErrorLike(error);
+  const message = typeof like?.message === 'string' ? like.message : '';
+  const normalized = message
+    .toLowerCase()
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, '<id>')
+    .replace(/\d+/g, '<n>')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  if (normalized) return normalized;
+  return like?.name === 'Error' || !like?.name ? 'unknown' : String(like.name);
+}
+
 export function reportQueryError(
   error: unknown,
   kind: QueryErrorKind,
@@ -124,6 +144,6 @@ export function reportQueryError(
       ...(root ? { query_key_root: root } : {}),
       ...(status !== null ? { http_status: status } : {}),
     },
-    fingerprint: [kind, root ?? 'unknown', statusBucket(status)],
+    fingerprint: [kind, root ?? messageRoot(error), statusBucket(status)],
   });
 }
