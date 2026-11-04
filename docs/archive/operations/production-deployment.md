@@ -271,8 +271,10 @@ covers both:
 PREVIEW_URL=https://kamespace.com bun run verify:deployed-preview
 ```
 
-`.github/workflows/web-probe.yml` runs it after every push to `main` (three attempts, two
-minutes apart, to let Vercel promote). Checks added for these failures:
+`.github/workflows/web-probe.yml` runs it after every push to `main` (eight attempts, one
+minute apart, so a probe never fails on the ~2 minute window right at promote where the new
+`index.html` is live but some of its chunks still 404 at the edge). Checks added for these
+failures:
 
 | Check           | Fails when                                                                       |
 | --------------- | -------------------------------------------------------------------------------- |

@@ -25,7 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # Vercel builds and promotes asynchronously; probing immediately hits the old build.
+      # Vercel builds and promotes asynchronously. A release takes ~6 minutes, and for a
+      # short window right at promote the new index.html is live while some of its chunks
+      # still 404 at the edge (observed 2026-11-04: 129/529 for ~2 min), which is exactly
+      # the stale-chunk crash. Keep retrying past that window instead of failing on it.
       - name: Wait for the production deploy
         run: sleep 180
 
@@ -33,12 +36,12 @@ jobs:
         env:
           PREVIEW_URL: https://kamespace.com
         run: |
-          for attempt in 1 2 3; do
+          for attempt in $(seq 1 8); do
             echo "probe attempt $attempt"
             if node scripts/performance/verify-deployed-preview.mjs; then
               exit 0
             fi
             sleep 60
           done
-          echo "web probe failed after 3 attempts" >&2
+          echo "web probe failed after 8 attempts" >&2
           exit 1
