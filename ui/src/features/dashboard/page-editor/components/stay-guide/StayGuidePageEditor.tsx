@@ -333,8 +333,8 @@ export function StayGuidePageEditor({
     (configQuery.isLoading && !configQuery.data) ||
     (previewQuery.isLoading && !previewQuery.data) ||
     (templatesQuery.isLoading && !templatesQuery.data) ||
-    !hydrated ||
-    !contentHydrated;
+    (!hydrated && !configQuery.isError) ||
+    (!contentHydrated && !templatesQuery.isError);
 
   if (isBootstrapping) {
     return (

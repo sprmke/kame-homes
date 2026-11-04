@@ -205,7 +205,11 @@ export function PropertyShowcasePageEditor({
   });
 
   const previewPending = previewJwt === null || previewQuery.isLoading;
-  if (configQuery.isLoading || previewPending || !hydrated) {
+  if (
+    (configQuery.isLoading && !configQuery.data) ||
+    previewPending ||
+    (!hydrated && !configQuery.isError)
+  ) {
     return (
       <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
         <PageEditorSkeleton />
@@ -213,7 +217,7 @@ export function PropertyShowcasePageEditor({
     );
   }
 
-  if (previewQuery.isError || !previewQuery.data) {
+  if (configQuery.isError || previewQuery.isError || !previewQuery.data) {
     return (
       <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
         <p className="text-muted-foreground px-4 py-16 text-center text-sm">
