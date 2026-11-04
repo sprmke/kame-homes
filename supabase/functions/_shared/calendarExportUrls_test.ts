@@ -9,13 +9,13 @@ import {
 Deno.test('buildCalendarExportUrls: path ends with .ics before query (Airbnb requirement)', () => {
   const urls = buildCalendarExportUrls(
     'https://fworvijbrwpyngycotbz.supabase.co',
-    'kame-home',
+    'demo-property',
     'tok_abc'
   );
   const pathAndQuery = urls.airbnb.replace('https://fworvijbrwpyngycotbz.supabase.co', '');
   assertStringIncludes(pathAndQuery, CALENDAR_EXPORT_ICS_PATH);
   assertEquals(pathAndQuery.includes('.ics?'), true);
-  assertEquals(urls.airbnb.includes('property=kame-home'), true);
+  assertEquals(urls.airbnb.includes('property=demo-property'), true);
   assertEquals(urls.airbnb.includes('token=tok_abc'), true);
   assertEquals(urls.airbnb.includes('as=airbnb'), true);
   assertEquals(urls.all.includes('as='), false);

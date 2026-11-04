@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearTemplatesSudoToken,
@@ -8,9 +8,30 @@ import {
   storeTemplatesSudoToken,
 } from '@/features/dashboard/org/lib/templatesSudoToken';
 
+class MemoryStorage {
+  private map = new Map<string, string>();
+  getItem(key: string) {
+    return this.map.get(key) ?? null;
+  }
+  setItem(key: string, value: string) {
+    this.map.set(key, value);
+  }
+  removeItem(key: string) {
+    this.map.delete(key);
+  }
+  clear() {
+    this.map.clear();
+  }
+}
+
 describe('templatesSudoToken', () => {
+  beforeEach(() => {
+    vi.stubGlobal('sessionStorage', new MemoryStorage());
+  });
+
   afterEach(() => {
     clearTemplatesSudoToken('prop-1');
+    vi.unstubAllGlobals();
   });
 
   it('exports the stable sudo fingerprint', () => {
