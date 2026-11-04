@@ -28,7 +28,7 @@ Signed-in guests see next-stay vouchers earned after a completed stay (review + 
 
 ## Host-facing knowledge
 
-Guests keep vouchers they earned from a previous stay in their account under **Vouchers**. They can apply one when booking the same property again. The discount lowers the stay rate you set at review — it does not change the guest’s downpayment amount.
+Guests keep vouchers they earned from a previous stay in their account under **Vouchers**. They can apply one when booking the same property again. The discount lowers the stay rate you set at review - it does not change the guest’s downpayment amount.
 
 **Common host questions**
 

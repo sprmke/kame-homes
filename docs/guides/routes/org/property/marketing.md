@@ -85,7 +85,7 @@ Marketing Content Studio is where you create promotional content for this proper
 - Q: What is **AI Studio** for?
   A: It is the first tab, where AI makes things for you. Pick **Post** (a finished design from your photos), **Photo** (a new picture of your place) or **Clip** (a short video). On a wider screen the form sits on the left and a live preview sits on the right, so you can see what you are setting up before you generate. Everything you make is kept as its own card, and you can open it later and keep improving it.
 - Q: What are the examples under **Start from an example**?
-  A: Finished posts, photos and clips made from stock property photos, so you can see what each style looks like before you try it. Tap one to see how it was made (the words, the settings, what it needs from you), then **Use this example** to drop those into the form — nothing is generated or charged until you tap Generate. Editing the words keeps the example as your starting point; **Clear** goes back to a blank form.
+  A: Finished posts, photos and clips made from stock property photos, so you can see what each style looks like before you try it. Tap one to see how it was made (the words, the settings, what it needs from you), then **Use this example** to drop those into the form - nothing is generated or charged until you tap Generate. Editing the words keeps the example as your starting point; **Clear** goes back to a blank form.
 - Q: Will my result look exactly like the example?
   A: No. The example shows the style and layout; your result uses your own photos, property name and details, so it will look like your place, not the example's stock photo.
 - Q: Do examples cost credits to look at?

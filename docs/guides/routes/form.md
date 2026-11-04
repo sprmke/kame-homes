@@ -47,8 +47,8 @@ The booking form walks a guest through their info, stay dates and guest list, an
   A: Airbnb bookings skip the downpayment step entirely, since Airbnb handles that payment on their platform, not through Kame Space.
 - **Q: How much downpayment does the guest see?**
   A: Your property's **Default down payment** from Pricing settings, as one amount per booking. It's the same number your review pricing starts from, so the guest's receipt and your booking record match.
-- Q: A guest checked "Yes, reserve paid parking" — where's their vehicle info / parking charge?
-  A: As of Phase 7, parking is a pure interest signal here — no vehicle info or charge is collected on this form anymore, and it's not part of the downpayment total. The guest reserves and pays for a specific spot separately through the parking marketplace (`/parkings`), either from a link on their booking-confirmation page/email, or a pre-arrival reminder email if they haven't by ~3 days before check-in. Once they self-serve and pay, it shows up automatically on this booking's detail page (Parking tab) — no manual entry needed from you.
+- Q: A guest checked "Yes, reserve paid parking" - where's their vehicle info / parking charge?
+  A: As of Phase 7, parking is a pure interest signal here - no vehicle info or charge is collected on this form anymore, and it's not part of the downpayment total. The guest reserves and pays for a specific spot separately through the parking marketplace (`/parkings`), either from a link on their booking-confirmation page/email, or a pre-arrival reminder email if they haven't by ~3 days before check-in. Once they self-serve and pay, it shows up automatically on this booking's detail page (Parking tab) - no manual entry needed from you.
 - Q: A guest tried to book dates that are already taken. What do they see?
   A: An "already booked" message telling them those dates aren't available, so they can pick different ones.
 - Q: A guest can't pick a check-in/check-out time that should be available. Why?

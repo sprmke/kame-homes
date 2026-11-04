@@ -133,11 +133,11 @@ Full design/rationale: [`docs/workflow/done/org-level-billing-migration.md`](../
 
 ## Host-facing knowledge
 
-- Pricing is **per property**, but billed and managed **once for the whole organization** — every listing in the org is included automatically.
+- Pricing is **per property**, but billed and managed **once for the whole organization** - every listing in the org is included automatically.
 - You can open **Plans & Billing** from the organization sidebar, or tap the **plan card** above AI mode (sidebar or More menu) to see everything your plan includes, then **Compare plans**, **Upgrade plan** (Free) or **Manage plan** (paid).
-- The more properties in your org, the lower the effective per-property rate — from 1→10 listings the rate steps down linearly to ₱500/property (when the tier's promo rate is higher), then volume discounts at 10+, 20+, 50+, and 100+ (with extra relief at 200+/300+ for very large portfolios).
+- The more properties in your org, the lower the effective per-property rate - from 1→10 listings the rate steps down linearly to ₱500/property (when the tier's promo rate is higher), then volume discounts at 10+, 20+, 50+, and 100+ (with extra relief at 200+/300+ for very large portfolios).
 - Adding a new property increases your subscription count on the next checkout or is auto-enrolled immediately when you already have an active plan.
 - Paid upgrades open PayMongo in the browser; the plan activates after payment clears (usually within seconds).
-- Downgrades (including back to Free) apply as soon as you confirm — no payment step while **active**, in **trial**, or **suspended** (Free only when suspended). **Past due** — pay from Billing first. Features above the new tier turn off right away; unused time is not refunded as cash.
-- Unpaid orgs become **past due**, then **suspended** after the grace period — pay from Plans & Billing to restore full dashboard access across every property.
-- Managed is hands-off, sales-assisted hosting — reach out via Help & Support to get a quote instead of self-serve checkout.
+- Downgrades (including back to Free) apply as soon as you confirm - no payment step while **active**, in **trial**, or **suspended** (Free only when suspended). **Past due** - pay from Billing first. Features above the new tier turn off right away; unused time is not refunded as cash.
+- Unpaid orgs become **past due**, then **suspended** after the grace period - pay from Plans & Billing to restore full dashboard access across every property.
+- Managed is hands-off, sales-assisted hosting - reach out via Help & Support to get a quote instead of self-serve checkout.

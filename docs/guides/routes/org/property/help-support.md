@@ -44,9 +44,9 @@ This is where you go if you're stuck, found something broken, or want to ask us 
 - Q: How do I know when someone replies to my ticket?
   A: You'll get an email. You can also open Tickets any time to see the latest status and read the conversation.
 - Q: Can I reply after my ticket is closed?
-  A: Closed tickets can't take new messages until you tap **Reopen ticket**. Resolved tickets still accept replies — that moves the ticket back to In progress.
+  A: Closed tickets can't take new messages until you tap **Reopen ticket**. Resolved tickets still accept replies - that moves the ticket back to In progress.
 - Q: Can I attach a video?
-  A: Yes. Tickets about something broken can include up to 3 files — images up to 10 MB (compressed automatically before upload) or short videos up to 50 MB. Trim or compress a longer clip first; videos aren't re-encoded for you.
+  A: Yes. Tickets about something broken can include up to 3 files - images up to 10 MB (compressed automatically before upload) or short videos up to 50 MB. Trim or compress a longer clip first; videos aren't re-encoded for you.
 - Q: What's the difference between Ask AI and a ticket?
   A: Ask AI answers questions about your bookings and data right away. A ticket goes to our support team. Use a ticket when something is broken, you have an idea, or the assistant can't help.
 - Q: What's the difference between FAQs and Guides?
@@ -54,7 +54,7 @@ This is where you go if you're stuck, found something broken, or want to ask us 
 - Q: Do I need a specific role to see Help & Support?
   A: No. Every team member can see it, the same as the Dashboard.
 - Q: Why do these FAQs differ from the organization Help page?
-  A: Each Help & Support page shows common answers for that level — organization, this property, or a parking listing.
+  A: Each Help & Support page shows common answers for that level - organization, this property, or a parking listing.
 
 ## FAQs
 
@@ -70,7 +70,7 @@ Ask AI does not navigate. It calls `openAiAssistant()`, which opens the existing
 
 ### Sections
 
-Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded.
+Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths, and any em dash left in a guide title becomes " - " so no article title renders one. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded.
 
 ## Tickets
 

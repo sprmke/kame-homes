@@ -47,17 +47,20 @@ kind: backlog
 - 🔵 Refine cancellation policy settings and the overall cancellation process.
 - ✅ On/off dashboard pages, sections, features or buttons from super admin, with a visible reason
   → **Done:** [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) · QA: [`../for-testing/feature-availability-controls.md`](../for-testing/feature-availability-controls.md)
-- Improve and refine default amenities and house rules
+- 🚧 Improve and refine default amenities and house rules
 - Refine and improve cancellation policy options
 - Fix issue where google map is not rendering properly on both dashboard and public page
-- Add warning message if user refresh the page when editing on a page (ex. Settings)
-- Cleanup usages of "—" on email templates and across the app
+- ✅ Display warning message if user refresh the page when editing on a page (ex. Settings). Right now, we only display the default browser warning and not our custom popup modal warning
+- ✅ Cleanup usages of "—" on email templates and across the app. If we need to use it, then please ensure that we use the normal "-". But please analyze carefully if it's good UX to use - at all. Then make sure to apply all usages across the entire app that it's still using it. From UI, email templates and other locations that we are using it from our app.
 - Refine templates
-- Improve activity modal from settings to be the same modal size or we have view and back UX
-- Fix super admin UI issue on this: https://kamespace.com/admin/orgs/kame-homes
-- Update super admin OTP from sprmke.dev@gmail.com to kameworks.tech@gmail.com
-- Doing switch should display a toast message (atleast for "Notifications on this device")
-- Why stay guide and showcase public page editor is not loading at all
+- ✅ Improve activity modal from settings to be the same modal size or I think it's better if we have navigation here to view the activity detail and we can back to it instead of opening it on a new modal
+- ✅ Fix super admin UI issue on this: https://kamespace.com/admin/orgs/kame-homes
+- ✅ Why stay guide and showcase public page editor is not loading at all (root cause: `public-page-configs` edge function boot error from a duplicate `const row`; also added error states so a failed config no longer leaves the skeleton up forever)
+- ✅ Why "Save Changes" button on settings page is showing when we have new changes but disabled
+- Improve marketing landing page to not use dynamic image on "What do you want to make?" and fix the accent color that looks ugly specially on dark mode
+- Refine and further improve the marketing default generated marketing materials/examples/templates. They all look very ugly!
+- Refine landing page
+- Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
 -
 
 ## Post-release items

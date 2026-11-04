@@ -32,14 +32,14 @@ Platform-wide directory of **hosts** — every distinct organization **owner** a
 
 ## Host-facing knowledge
 
-This page is the platform team's directory of every host account that owns at least one organization — one row per person, even if they own several organizations or properties. Hosts don't see this page themselves.
+This page is the platform team's directory of every host account that owns at least one organization - one row per person, even if they own several organizations or properties. Hosts don't see this page themselves.
 
 **Common host questions**
 
 - Q: If I own two organizations, do I show up twice in the platform team's host list?
-  A: No — you appear once, and the platform team can see all of your organizations and properties from your single host record.
+  A: No. You appear once, and the platform team can see all of your organizations and properties from your single host record.
 - Q: Does this page show my booking or revenue data?
-  A: No — it only shows counts (how many organizations, properties, and parking slots you have). Booking and financial detail lives in your own dashboard.
+  A: No. It only shows counts (how many organizations, properties, and parking slots you have). Booking and financial detail lives in your own dashboard.
 
 ---
 

@@ -52,9 +52,9 @@ Templates is where you customize the text guests and your team receive: stay gui
 - Q: Can I use these templates in chat?
   A: Yes. In Guest Inbox, open **Insert** (`+`) and pick a template under **Templates**. You see the full preview before sending. Web chat shows your template as a card the guest can open; Facebook and Instagram get the same words as plain text. In the AI Assistant, pin a template as context to rewrite or reuse it. Email templates stay email-only.
 - Q: Do custom templates get sent automatically?
-  A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand — the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
+  A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand - the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
 - Q: Why is Add Custom Template asking me to upgrade?
-  A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy — Save just prompts you to upgrade.
+  A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy - Save just prompts you to upgrade.
 
 ## Integration status
 
@@ -187,16 +187,16 @@ Table **`property_template_contents`**: `property_id`, `template_key`, `category
 
 Workflow emails resolve labels from the database via **`propertyEmailBranding.ts`**:
 
-| Field                                                           | Source                                                                                                                                                |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Organization name** (shell `{{brandName}}`, logo alt, footer) | `organizations.name`                                                                                                                                  |
-| **Property name** (`{{property_name}}` placeholder)             | `properties.name`                                                                                                                                     |
-| **Unit label** (shell subtitle, subjects, From display name)    | Booking/form `tower_and_unit_number` → **`app_settings.gaf_tower_and_unit_number`** → **`properties.tower_and_unit`** → property name                 |
-| **From email address**                                          | **`RESEND_FROM_EMAIL`** env, else **`app_settings.email_reply_to`**                                                                                   |
-| **From display name**                                           | e.g. `{unit} - GAF Request` or `{unit} - {org}` for guest mail                                                                                        |
-| **Logo**                                                        | **`org_settings.email_logo_url`** (via merged app settings)                                                                                           |
-| **Brand color**                                                 | Org/property `brandColor` (property override → org settings) — the picker hex, same as admin `--primary` / `bg-primary`. Email CTA labels stay white. |
-| **Body copy**                                                   | **`property_template_contents`** (Templates page)                                                                                                     |
+| Field                                                           | Source                                                                                                                                                                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Organization name** (shell `{{brandName}}`, logo alt, footer) | `organizations.name`                                                                                                                                                                                                                |
+| **Property name** (`{{property_name}}` placeholder)             | `properties.name`                                                                                                                                                                                                                   |
+| **Unit label** (shell subtitle, subjects, From display name)    | Booking/form `tower_and_unit_number` → **`app_settings.gaf_tower_and_unit_number`** → **`properties.tower_and_unit`** → property name                                                                                               |
+| **From email address**                                          | **`RESEND_FROM_EMAIL`** env, else **`app_settings.email_reply_to`**. Sends go through **`sendResendEmail`**, which CID-inlines off-domain images (e.g. org logos on Supabase Storage) so Resend deliverability insights stay clean. |
+| **From display name**                                           | e.g. `{unit} - GAF Request` or `{unit} - {org}` for guest mail                                                                                                                                                                      |
+| **Logo**                                                        | **`org_settings.email_logo_url`** (via merged app settings)                                                                                                                                                                         |
+| **Brand color**                                                 | Org/property `brandColor` (property override → org settings) — the picker hex, same as admin `--primary` / `bg-primary`. Email CTA labels stay white.                                                                               |
+| **Body copy**                                                   | **`property_template_contents`** (Templates page)                                                                                                                                                                                   |
 
 Platform defaults (not property-specific): **`DEFAULT_EMAIL_LOGO_URL`** when org has no logo; **`PUBLIC_GUEST_APP_ORIGIN`** for link absolutization; preview sample placeholders still use demo values in the UI catalog.
 

@@ -87,15 +87,15 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
 **Common host questions**
 
 - Q: How do I sign in to my dashboard?
-  A: Use "Continue with Google," or enter your email to get a one-time sign-in code — either way, no password is needed.
+  A: Use "Continue with Google," or enter your email to get a one-time sign-in code - either way, no password is needed.
 - Q: I can't find a password option. Is that normal?
-  A: Yes — signing in only works through a one-time email code or your Google account, by design.
+  A: Yes. Signing in only works through a one-time email code or your Google account, by design.
 - Q: Why does a guest get asked to sign in partway through booking, not at the start?
-  A: Guests can browse dates and start filling out the form freely. They're only asked to verify their identity right before the booking is actually submitted — though they can also sign in any time from the "Sign In" link.
+  A: Guests can browse dates and start filling out the form freely. They're only asked to verify their identity right before the booking is actually submitted, though they can also sign in any time from the "Sign In" link.
 - Q: What sign-in options do guests have?
   A: A one-time code sent to their email, or Google. Facebook is not offered.
 - Q: Can I edit my profile from the dashboard?
-  A: Yes — open the account menu at the bottom of the sidebar and choose **Profile**. It is the same info as the guest account profile on explore.
+  A: Yes. Open the account menu at the bottom of the sidebar and choose **Profile**. It is the same info as the guest account profile on explore.
 - Q: I already set up a host account with this email. Why am I not sent through setup again?
   A: Each email is one host account. Sign-in opens your existing workspace. You cannot create a second organization with the same email.
 - Q: I signed in with Google but the page says it could not load my workspace.

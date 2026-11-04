@@ -63,7 +63,7 @@ These public pages explain the company, how to reach support, common guest/host 
 - Q: Are my verification documents covered by the privacy policy?
   A: Yes. The policy describes host verification uploads and how they're stored privately.
 - Q: Where do guests go for help?
-  A: Support (`/support`) for FAQs, or Contact (`/contact`) — signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email kameworks.tech@gmail.com.
+  A: Support (`/support`) for FAQs, or Contact (`/contact`). Signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email kameworks.tech@gmail.com.
 
 ---
 

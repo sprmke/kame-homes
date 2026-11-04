@@ -41,14 +41,14 @@ Single-development settings page for a super admin to edit a development's publi
 
 ## Host-facing knowledge
 
-This page is where the platform team maintains the shared profile for a condo or subdivision project — its name, photos, amenities, location, and the property-management-office email that receives approval requests for every unit inside it. Hosts with a unit inside a registered development benefit from this shared information automatically; they don't edit it themselves.
+This page is where the platform team maintains the shared profile for a condo or subdivision project - its name, photos, amenities, location, and the property-management-office email that receives approval requests for every unit inside it. Hosts with a unit inside a registered development benefit from this shared information automatically; they don't edit it themselves.
 
 **Common host questions**
 
 - Q: Can I update my building's development photos or amenities myself?
-  A: No — development-level details are managed by the platform team, since they're shared across every unit in the project. Contact the platform team if something needs updating.
+  A: No. Development-level details are managed by the platform team, since they're shared across every unit in the project. Contact the platform team if something needs updating.
 - Q: What happens to my unit if the development profile is deleted?
-  A: The platform team can't delete a development while properties or parking slots are still linked to it — they'd need to reassign or remove those first, so this shouldn't affect an active unit unexpectedly.
+  A: The platform team can't delete a development while properties or parking slots are still linked to it - they'd need to reassign or remove those first, so this shouldn't affect an active unit unexpectedly.
 
 ---
 

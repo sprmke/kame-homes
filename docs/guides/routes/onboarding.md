@@ -51,7 +51,7 @@ First-time hosts complete this wizard right after signing in with Google: organi
 - Q: Why did a contract renewal popup appear when I logged in?
   A: One of your property or parking listings has a hosting contract ending soon, in grace, or past grace. The reminder shows the listing name and how many days you have left.
 - Q: Can I dismiss the renewal reminder and deal with it later?
-  A: Before the contract ends, yes — dismiss snoozes it until tomorrow (Manila time). During grace you can dismiss until you refresh the page. Once access is locked for that listing, submit a renewal from inside that listing's dashboard.
+  A: Before the contract ends, yes - dismiss snoozes it until tomorrow (Manila time). During grace you can dismiss until you refresh the page. Once access is locked for that listing, submit a renewal from inside that listing's dashboard.
 - Q: Where do I upload a renewed hosting contract?
   A: Tap **Submit renewal contract** in the reminder, or open **Verification** from the property or parking sidebar.
 - Q: What Facebook screenshot do I need on setup?
