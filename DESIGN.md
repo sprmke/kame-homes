@@ -74,6 +74,7 @@ Guest heroes may use larger tracking-tight headlines; admin stays tighter and qu
 - **Primitives:** shadcn/radix under `ui/src/components/ui/**` — extend, don’t fork.
 - **Buttons:** Primary = solid teal; secondary/ghost for quieter actions. Mobile CTAs use existing `mobile-*` utility classes in `index.css` where present.
 - **Inputs:** Border token, clear focus ring (`--ring` = primary). 44×44px touch targets on guest/mobile.
+- **Contact placeholders:** every name, email, and phone input uses `FORM_PLACEHOLDERS` (`ui/src/lib/constants/formPlaceholders.ts`): `Ex. Juan Dela Cruz`, `juan.delacruz@gmail.com`, `0917 123 4567`. Never a literal; `formPlaceholders.test.ts` fails on hardcoded ones. Organisation mailboxes (support, team, documents) keep the `@yourcompany.com` pattern.
 - **Cards:** Use only when they contain interaction or a clear grouped control. Prefer flat sections on marketing heroes.
 - **Feedback:** Sonner toasts; inline errors only on failure/validation.
 - **Brand mark:** teal gradient tile (`--primary` → 80% over the page surface) with a white Plus Jakarta Sans Bold **K**, corner radius 30%. Vector sources live in `ui/public/brand/`: `kame-space-mark.svg` (rounded), `kame-space-tile.svg` (full-bleed), `kame-space-mark-mono.svg` (silhouette). Never hand-edit the rasters; regenerate with `node scripts/pwa/generate-icons.mjs`. Google OAuth branding upload is `ui/public/brand/kame-space-mark-120.png`.

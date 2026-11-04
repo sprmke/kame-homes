@@ -17,6 +17,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { cn } from '@/lib/utils';
 
 type Step = 'email' | 'otp';
@@ -162,7 +163,7 @@ export function GuestAuthModal({
                 type="email"
                 inputMode="email"
                 autoComplete="email"
-                placeholder="Email"
+                placeholder={FORM_PLACEHOLDERS.email}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);

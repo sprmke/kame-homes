@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { cn } from '@/lib/utils';
 
 import type { FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form';
@@ -147,6 +148,7 @@ export function GuestIdentityTab({
               <Input
                 type="email"
                 autoComplete="email"
+                placeholder={FORM_PLACEHOLDERS.email}
                 {...register('guest_email', { required: 'Required' })}
                 {...fieldAriaProps(
                   'guest_email',
@@ -168,6 +170,8 @@ export function GuestIdentityTab({
               <Input
                 type="tel"
                 autoComplete="tel"
+                inputMode="tel"
+                placeholder={FORM_PLACEHOLDERS.phone}
                 {...register('guest_phone_number', { required: 'Required' })}
                 {...fieldAriaProps(
                   'guest_phone_number',
