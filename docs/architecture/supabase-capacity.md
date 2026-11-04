@@ -30,24 +30,28 @@ Compute sizes: Nano 0.5 GB, Micro 1 GB, Small 2 GB, Medium 4 GB, Large 8 GB (ded
 
 ## 2. Measured baseline (hosted dev, 2026-11-04)
 
-| Signal                         | Value                                                          | Reading                                                              |
-| ------------------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Compute                        | Nano-sized, ~0.5 GB RAM                                        | The project is on the free-tier footprint, not the Pro default Micro |
-| `Committed_AS` / `CommitLimit` | ~96%                                                           | Kernel promise, not resident usage. This is the Dashboard warning    |
-| OOM kills / Postgres restarts  | 0 / 0                                                          | Predictive warning, not an outage                                    |
-| Database size                  | 68 MB (tables 2.9 MB, indexes 8.6 MB, WAL 128 MB)              | Tiny                                                                 |
-| Cache hit rate                 | 1.00 table and index                                           | No IO pressure                                                       |
-| Postgres backends              | 7 active of 60                                                 | Not connection-bound                                                 |
-| Top DB time                    | `realtime.list_changes` 84% (1.36M calls / 2h47m over 92 days) | Background Realtime polling, not user traffic                        |
-| Next outlier                   | `net.http_post` 28% of outlier time (9,789 calls)              | Cron fan-out via pg_net                                              |
-| `request_rate_limits`          | 4,062 rows, 344 kB bloat, 20.5k writes                         | Opportunistic sweep only                                             |
-| Migration drift                | 0 before this change                                           | The earlier 9-migration drift is resolved                            |
+| Signal                         | Value                                                          | Reading                                                            |
+| ------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Compute                        | Micro, 1 GB RAM (upgraded from Nano on 2026-11-04)             | Pro compute credit covers it                                       |
+| `Committed_AS` / `CommitLimit` | 86.5% after upgrade (was ~96% on Nano)                         | Kernel promise. Above the 70% stretch target, but headroom doubled |
+| `MemAvailable`                 | 488 MB after upgrade (was ~194 MB)                             | 2.5x more free memory                                              |
+| Swap used                      | 14.9% after upgrade (was 31-32%)                               | Reclaim pressure roughly halved                                    |
+| OOM kills / Postgres restarts  | 0 / 0                                                          | Predictive warning, not an outage                                  |
+| Database size                  | 68 MB (tables 2.9 MB, indexes 8.6 MB, WAL 128 MB)              | Tiny                                                               |
+| Cache hit rate                 | 1.00 table and index                                           | No IO pressure                                                     |
+| Postgres backends              | 7 active of 60                                                 | Not connection-bound                                               |
+| Top DB time                    | `realtime.list_changes` 84% (1.36M calls / 2h47m over 92 days) | Background Realtime polling, not user traffic                      |
+| Next outlier                   | `net.http_post` 28% of outlier time (9,789 calls)              | Cron fan-out via pg_net                                            |
+| `request_rate_limits`          | 4,062 rows, 344 kB bloat, 20.5k writes                         | Opportunistic sweep only                                           |
+| Migration drift                | 0 before this change                                           | The earlier 9-migration drift is resolved                          |
 
 **Conclusion:** no user-facing limit is close to exhaustion. The memory chart is a
 baseline-compute problem: Supabase's own services plus Postgres backends already commit
 more memory than a Nano instance can comfortably back. Query tuning cannot fix that.
-Moving to **Micro** (Pro default) or **Small** removes the warning. Do that in the
-Dashboard; it is an operator action, not a repo change.
+**Micro was applied on 2026-11-04** and cut the commitment ratio from ~96% to 86.5%
+while doubling available memory. Micro keeps `max_connections` at 60; **Small** raises it
+to 90 and the pooler to 400, and is the next step only when load tests or real traffic
+show connection pressure.
 
 ## 3. What the repo now does to lower load
 

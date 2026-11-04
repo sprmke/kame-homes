@@ -2,7 +2,7 @@
 title: 'Supabase capacity and operational readiness'
 status: in_progress
 tags: [supabase, capacity, performance, security, production-readiness, observability]
-updated: 2026-11-04
+updated: 2026-11-05
 stage: in-progress
 kind: plan
 readiness: partial
@@ -17,7 +17,8 @@ last_verified: 2026-11-04
 
 ## Progress (2026-11-04)
 
-Implemented in `chore/supabase-capacity-readiness`:
+Implemented in `chore/supabase-capacity-readiness` and deployed to production on
+2026-11-04 (PR #283, 435/435 migrations, all functions, smoke + parity gates green):
 
 - Server-side `list_bookings_page` RPC replaces the in-memory org-wide and
   `status_priority` list path.
@@ -26,14 +27,19 @@ Implemented in `chore/supabase-capacity-readiness`:
 - Realtime binding merge: notifications 2 -> 1, inbox 3 -> 2, guest chat 3 -> 2.
 - Read-only capture scripts (`perf:supabase:metrics`, `perf:supabase:advisors`),
   migration-drift gate, and authenticated/write load-test scenarios.
+- Compute moved Nano -> **Micro** (Pro credit, no bill change). Commitment ratio
+  96% -> 86.5%, available memory 194 MB -> 488 MB, swap used 32% -> 15%, no OOM.
+  Advisor performance warnings 33 -> 0; `auth_rls_initplan` 31 -> 0 and
+  `duplicate_index` 2 -> 0.
 
 Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
 Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-capacity.md).
 
-Still required: operator compute upgrade (Micro/Small), continuous Prometheus
-collection plus paged alerts, large-tenant seed, load-test execution, public Vercel
-cache, dashboard/finance SQL aggregates, booking transition RPC, and the product
-retention decisions.
+Still required: continuous Prometheus collection plus paged alerts, large-tenant seed,
+load-test execution, public Vercel cache, dashboard/finance SQL aggregates, booking
+transition RPC, the remaining security WARNs (`function_search_path_mutable` 24,
+`authenticated_security_definer_function_executable` 10, leaked-password toggle,
+`pg_trgm` relocation), and the product retention decisions.
 
 ## Goal
 
