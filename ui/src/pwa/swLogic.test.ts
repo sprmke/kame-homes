@@ -4,6 +4,7 @@ import {
   cacheableFunctionName,
   isForceUpdateRequired,
   isKillSwitchTripped,
+  isTiersManifestForBuild,
   normalizeBadgeCount,
   parsePrecacheTiers,
   retirementTarget,
@@ -110,6 +111,35 @@ describe('parsePrecacheTiers', () => {
   it('rejects non-objects', () => {
     expect(parsePrecacheTiers(null)).toBeNull();
     expect(parsePrecacheTiers('nope')).toBeNull();
+  });
+
+  it('keeps the build id so a worker can refuse another build’s manifest', () => {
+    const tiers = parsePrecacheTiers({ buildId: 1_793_760_119, shell, host: [], onDemand: [] });
+    expect(tiers?.buildId).toBe(1_793_760_119);
+    expect(parsePrecacheTiers({ shell, host: [], onDemand: [] })?.buildId).toBe(0);
+  });
+});
+
+describe('isTiersManifestForBuild', () => {
+  const tiers = parsePrecacheTiers({
+    buildId: 200,
+    shell: [{ url: '/index.html', revision: 'abc' }],
+    host: [],
+    onDemand: [],
+  });
+
+  it('accepts the manifest written by the same build', () => {
+    expect(isTiersManifestForBuild(tiers, 200)).toBe(true);
+  });
+
+  it('rejects a manifest from a previous build', () => {
+    expect(isTiersManifestForBuild(tiers, 100)).toBe(false);
+  });
+
+  it('cannot verify dev/legacy manifests, so it accepts them', () => {
+    expect(isTiersManifestForBuild({ ...tiers!, buildId: 0 }, 200)).toBe(true);
+    expect(isTiersManifestForBuild(tiers, 0)).toBe(true);
+    expect(isTiersManifestForBuild(null, 200)).toBe(false);
   });
 });
 

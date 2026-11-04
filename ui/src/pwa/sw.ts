@@ -31,12 +31,14 @@ import {
   RUNTIME_CACHES,
   SW_CACHEABLE_FUNCTIONS,
   SW_MESSAGE,
+  precacheTiersCacheKey,
 } from './shared';
 import { installSwErrorRelay } from './swErrorRelay';
 import {
   cacheableFunctionName,
   isKillSwitchTripped,
   isForceUpdateRequired,
+  isTiersManifestForBuild,
   normalizeBadgeCount,
   parsePrecacheTiers,
   safeAppPath,
@@ -76,8 +78,11 @@ let precacheListLoaded = false;
 async function readTiersFromCache(): Promise<PrecacheTiers | null> {
   try {
     const cache = await caches.open(RUNTIME_CACHES.static);
-    const cached = await cache.match(PRECACHE_TIERS_PATH);
-    return cached ? parsePrecacheTiers(await cached.json()) : null;
+    const cached = await cache.match(precacheTiersCacheKey(BUILD_ID));
+    const parsed = cached ? parsePrecacheTiers(await cached.json()) : null;
+    // The list holds hashed asset names, so a manifest from another build would make
+    // this worker precache (and later serve) a build it does not belong to.
+    return isTiersManifestForBuild(parsed, BUILD_ID) ? parsed : null;
   } catch {
     return null;
   }
@@ -91,11 +96,27 @@ async function fetchTiersFromNetwork(): Promise<PrecacheTiers | null> {
     const parsed = parsePrecacheTiers(await res.json());
     if (parsed) {
       const cache = await caches.open(RUNTIME_CACHES.static);
-      await cache.put(PRECACHE_TIERS_PATH, copy);
+      await cache.put(precacheTiersCacheKey(BUILD_ID), copy);
+      await dropOldTierManifests(cache);
     }
     return parsed;
   } catch {
     return null;
+  }
+}
+
+/** Each build keeps its own manifest; older copies are dead weight in Cache Storage. */
+async function dropOldTierManifests(cache: Cache): Promise<void> {
+  const keep = new URL(precacheTiersCacheKey(BUILD_ID), self.location.origin).href;
+  try {
+    const requests = await cache.keys();
+    await Promise.all(
+      requests
+        .filter((request) => request.url.includes(PRECACHE_TIERS_PATH) && request.url !== keep)
+        .map((request) => cache.delete(request))
+    );
+  } catch {
+    // Cache cleanup is best-effort.
   }
 }
 
@@ -231,31 +252,65 @@ self.addEventListener('periodicsync', (event) => {
 
 // ─────────────────────── navigation ──────────────────────────────────────────
 
+/** Give up on the network and boot the cached shell after this long. */
+const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;
+
+async function cachedShellResponse(): Promise<Response> {
+  await precacheReady;
+  const shell = await precache.matchPrecache(NAVIGATION_FALLBACK);
+  if (shell) return shell;
+  const offline = (await caches.match(OFFLINE_URL)) ?? (await caches.match(NAVIGATION_FALLBACK));
+  return offline ?? Response.error();
+}
+
 /**
- * Every SPA navigation is answered from the precached shell. The precache list is
- * populated during `install`, so this must resolve at request time rather than
- * bind to a URL up front (`createHandlerBoundToURL` would throw if called before
- * the list existed).
+ * Network-first: while online a navigation always gets the **current** `index.html`
+ * and its current chunk names. Answering navigations from the precached shell first
+ * is what pinned a user to the build that was live when their worker installed — a
+ * normal refresh returned the same old HTML, so the new build could never load and a
+ * removed chunk turned into "Something went wrong" until a hard refresh.
+ *
+ * Offline (or a slow/dead network) still boots the precached shell, which is the
+ * whole offline contract; only the HTML is revalidated, assets stay cache-first.
+ */
+async function navigationResponse(request: Request): Promise<Response> {
+  if (self.navigator.onLine !== false) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), NAVIGATION_NETWORK_TIMEOUT_MS);
+    try {
+      const response = await fetch(request.url, {
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        redirect: 'follow',
+        signal: controller.signal,
+      });
+      const contentType = response.headers.get('content-type') ?? '';
+      if (response.ok && contentType.includes('text/html')) return response;
+    } catch {
+      // Offline / timeout / DNS — fall through to the precached shell.
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return cachedShellResponse();
+}
+
+/**
+ * Every SPA navigation is answered by [`navigationResponse`]. The precache list is
+ * populated during `install`, so the shell lookup must resolve at request time
+ * rather than bind to a URL up front (`createHandlerBoundToURL` would throw if
+ * called before the list existed).
  */
 registerRoute(
-  new NavigationRoute(
-    async () => {
-      await precacheReady;
-      const shell = await precache.matchPrecache(NAVIGATION_FALLBACK);
-      if (shell) return shell;
-      const offline = (await caches.match(OFFLINE_URL)) ?? (await caches.match(NAVIGATION_FALLBACK));
-      return offline ?? Response.error();
-    },
-    {
-      // Let the SW ignore these — they must always hit the network / other routes.
-      denylist: [
-        /^\/functions\//,
-        /^\/api\//,
-        /^\/auth\//,
-        /\/[^/?]+\.[^/]+(\?.*)?$/, // anything that looks like a file request
-      ],
-    }
-  )
+  new NavigationRoute(({ request }) => navigationResponse(request), {
+    // Let the SW ignore these — they must always hit the network / other routes.
+    denylist: [
+      /^\/functions\//,
+      /^\/api\//,
+      /^\/auth\//,
+      /\/[^/?]+\.[^/]+(\?.*)?$/, // anything that looks like a file request
+    ],
+  })
 );
 
 // ─────────────────────── runtime caching ─────────────────────────────────────
@@ -453,13 +508,7 @@ registerRoute(
 // No setDefaultHandler: unmatched requests (POSTs, SSE streams like the dashboard
 // assistant, auth) pass straight to the network with no SW involvement.
 setCatchHandler(async ({ request }) => {
-  if (request.destination === 'document') {
-    await precacheReady;
-    const shell = await precache.matchPrecache(NAVIGATION_FALLBACK);
-    if (shell) return shell;
-    const offline = await caches.match(OFFLINE_URL);
-    if (offline) return offline;
-  }
+  if (request.destination === 'document') return cachedShellResponse();
   return Response.error();
 });
 
