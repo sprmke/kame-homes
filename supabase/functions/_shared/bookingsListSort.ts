@@ -1,6 +1,9 @@
 /**
  * Shared list sort for admin `list-bookings`.
- * Keep in sync with `ui/src/features/dashboard/bookings/lib/bookingsListSort.ts`.
+ * Keep in sync with `ui/src/features/dashboard/bookings/lib/bookingsListSort.ts`
+ * and the SQL mirror in `supabase/migrations/20261318171000_list_bookings_page_rpc.sql`
+ * (`list_bookings_page`). The RPC is the production path; this module is the
+ * fallback and the source of the expected order.
  */
 
 export type BookingsListSort =
