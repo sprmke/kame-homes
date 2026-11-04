@@ -35,7 +35,9 @@ function appendDefaultFaviconLinks() {
     link.rel = attrs.rel;
     link.href = attrs.href;
     if (attrs.type) link.type = attrs.type;
-    if (attrs.sizes) link.sizes = attrs.sizes;
+    // `sizes` is a read-only DOMTokenList on HTMLLinkElement; assigning it throws in
+    // strict-mode ESM and takes the whole route down. The attribute is the API.
+    if (attrs.sizes) link.setAttribute('sizes', attrs.sizes);
     head.appendChild(link);
   });
 }

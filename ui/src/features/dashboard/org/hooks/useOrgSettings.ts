@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { scopedOrgFunctionsUrl, useOrgScopeKey } from '@/features/dashboard/org/lib/adminApiScope';
 
-import { supabase } from '@/lib/supabase/client';
+import { EdgeResponseError } from '@/lib/api/edgeError';
 import { captureAppEvent } from '@/lib/posthog/capture';
+import { supabase } from '@/lib/supabase/client';
 
 export type OrgSettingsFieldSource = 'db' | 'default';
 
@@ -74,7 +75,10 @@ export function useOrgSettings() {
         data?: OrgSettingsDto;
       };
       if (!json.success || !json.data) {
-        throw new Error(json.error ?? 'Failed to load organization settings');
+        throw new EdgeResponseError(
+          json.error ?? 'Failed to load organization settings',
+          res.status
+        );
       }
       return json.data;
     },
