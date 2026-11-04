@@ -11,23 +11,68 @@ import {
   readJsonBody,
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
-import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import {
+  resolvePropertyAccessContext,
+  resolveScopedPropertyAccess,
+} from '../_shared/propertyScope.ts';
 import { resolveScopedParkingAccess } from '../_shared/parkingScope.ts';
+import {
+  hasPropertyPermission,
+  type TeamPermissionId,
+} from '../_shared/propertyTeamPermissions.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import {
   assertSettingsVerificationRateLimit,
   createSettingsVerificationChallenge,
+  isSettingsVerificationAction,
   maskOwnerEmail,
   OTP_TTL_MS,
+  PROPERTY_TEMPLATES_SUDO_FINGERPRINT,
+  PROPERTY_TEMPLATES_VERIFICATION_ACTION,
   SETTINGS_VERIFICATION_ACTION,
   SENSITIVE_SETTINGS_ACTIONS,
   signSettingsVerificationToken,
+  TEMPLATES_SUDO_TOKEN_TTL_MS,
+  TOKEN_TTL_MS,
   verifySettingsVerificationChallenge,
+  type SettingsVerificationAction,
 } from '../_shared/settingsVerification.ts';
 import { sendSettingsVerificationOtpEmail } from '../_shared/settingsVerificationOtpEmail.ts';
 
+const TEMPLATE_OTP_PERMISSIONS: TeamPermissionId[] = [
+  'templates.standard:edit',
+  'templates.email:edit',
+  'templates.custom:edit',
+  'templates.custom:add',
+];
+
 function readString(body: Record<string, unknown>, key: string): string {
   return typeof body[key] === 'string' ? (body[key] as string).trim() : '';
+}
+
+async function assertTemplatesOtpAccess(
+  req: Request,
+  propertyId: string
+): Promise<{
+  organizationId: string;
+  ownerId: string;
+  listingName: string;
+  propertyId: string;
+}> {
+  const { property, org, permissions } = await resolvePropertyAccessContext(req, propertyId);
+  const allowed = TEMPLATE_OTP_PERMISSIONS.some((leaf) => hasPropertyPermission(permissions, leaf));
+  if (!allowed) {
+    throw new Response(JSON.stringify({ success: false, error: 'Access restricted' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  return {
+    organizationId: org.id,
+    ownerId: org.owner_id,
+    listingName: property.name,
+    propertyId: property.id,
+  };
 }
 
 serveAuthenticated('settings-verification', async (req, user) => {
@@ -39,18 +84,29 @@ serveAuthenticated('settings-verification', async (req, user) => {
   const parkingIdParam = url.searchParams.get('parking_id')?.trim() ?? '';
 
   if (action === 'send_otp') {
-    const verificationAction =
+    const verificationActionRaw =
       readString(body, 'verificationAction') || SETTINGS_VERIFICATION_ACTION;
-    if (verificationAction !== SETTINGS_VERIFICATION_ACTION) {
+    if (!isSettingsVerificationAction(verificationActionRaw)) {
       return jsonError(req, 'Unsupported verification action');
     }
+    const verificationAction: SettingsVerificationAction = verificationActionRaw;
 
     const patchFingerprint = readString(body, 'patchFingerprint');
     if (!patchFingerprint) {
       return jsonError(req, 'patchFingerprint is required');
     }
+    if (
+      verificationAction === PROPERTY_TEMPLATES_VERIFICATION_ACTION &&
+      patchFingerprint !== PROPERTY_TEMPLATES_SUDO_FINGERPRINT
+    ) {
+      return jsonError(req, 'Invalid template verification fingerprint');
+    }
 
-    if (Boolean(propertyIdParam) === Boolean(parkingIdParam)) {
+    if (verificationAction === PROPERTY_TEMPLATES_VERIFICATION_ACTION) {
+      if (!propertyIdParam || parkingIdParam) {
+        return jsonError(req, 'property_id is required for template verification');
+      }
+    } else if (Boolean(propertyIdParam) === Boolean(parkingIdParam)) {
       return jsonError(req, 'Provide exactly one of property_id or parking_id query param');
     }
 
@@ -61,7 +117,13 @@ serveAuthenticated('settings-verification', async (req, user) => {
     let propertyId: string | null = null;
     let parkingId: string | null = null;
 
-    if (propertyIdParam) {
+    if (verificationAction === PROPERTY_TEMPLATES_VERIFICATION_ACTION) {
+      const access = await assertTemplatesOtpAccess(req, propertyIdParam);
+      organizationId = access.organizationId;
+      ownerId = access.ownerId;
+      listingName = access.listingName;
+      propertyId = access.propertyId;
+    } else if (propertyIdParam) {
       const { property, org } = await resolveScopedPropertyAccess(req, 'settings.payment:edit');
       organizationId = org.id;
       ownerId = org.owner_id;
@@ -81,7 +143,7 @@ serveAuthenticated('settings-verification', async (req, user) => {
       organizationId,
       propertyId,
       parkingId,
-      action: SETTINGS_VERIFICATION_ACTION,
+      action: verificationAction,
       patchFingerprint,
       requestedBy: user.id,
     });
@@ -94,7 +156,7 @@ serveAuthenticated('settings-verification', async (req, user) => {
       ownerId,
       actorUserId: user.id,
       listingName,
-      settingLabel: SENSITIVE_SETTINGS_ACTIONS[SETTINGS_VERIFICATION_ACTION].label,
+      settingLabel: SENSITIVE_SETTINGS_ACTIONS[verificationAction].label,
       code: challenge.code,
       expiresMinutes: Math.round(OTP_TTL_MS / 60_000),
       propertyId,
@@ -128,11 +190,21 @@ serveAuthenticated('settings-verification', async (req, user) => {
       return jsonError(req, msg, 403);
     }
 
-    if (verified.propertyId) {
+    if (verified.action === PROPERTY_TEMPLATES_VERIFICATION_ACTION) {
+      if (!verified.propertyId) {
+        return jsonError(req, 'Invalid template verification challenge', 403);
+      }
+      await assertTemplatesOtpAccess(req, verified.propertyId);
+    } else if (verified.propertyId) {
       await resolveScopedPropertyAccess(req, 'settings.payment:edit');
     } else if (verified.parkingId) {
       await resolveScopedParkingAccess(req, 'org.parkings:manage');
     }
+
+    const expiresAt =
+      verified.action === PROPERTY_TEMPLATES_VERIFICATION_ACTION
+        ? Date.now() + TEMPLATES_SUDO_TOKEN_TTL_MS
+        : Date.now() + TOKEN_TTL_MS;
 
     const verificationToken = await signSettingsVerificationToken({
       challengeId,
@@ -141,9 +213,10 @@ serveAuthenticated('settings-verification', async (req, user) => {
       propertyId: verified.propertyId ?? undefined,
       parkingId: verified.parkingId ?? undefined,
       patchFingerprint: verified.patchFingerprint,
+      exp: expiresAt,
     });
 
-    return jsonSuccess(req, { verificationToken });
+    return jsonSuccess(req, { verificationToken, expiresAt });
   }
 
   return jsonError(req, 'Unknown action. Use send_otp or verify_otp');

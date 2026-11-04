@@ -1087,6 +1087,8 @@ export type OrgTeamAccessContext = {
   user: AuthenticatedUser;
   org: OrgRow;
   accessKind: OrgTeamAccessKind;
+  /** Org hub leaf permissions — required by org-team mutation helpers. */
+  permissions: OrgPermissionId[];
   memberId?: string;
   canManage: boolean;
 };
@@ -1168,6 +1170,7 @@ export async function verifyOrgTeamAccess(
     user: ctx.user,
     org: ctx.org,
     accessKind: ctx.accessKind as OrgTeamAccessKind,
+    permissions: ctx.permissions,
     memberId: ctx.memberId,
     canManage: hasOrgTeamManagePermission(ctx.permissions),
   };

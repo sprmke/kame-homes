@@ -2,7 +2,11 @@
  * ical-export — public, token-guarded outbound calendar feed for OTAs to import.
  * Plan: docs/workflow/done/airbnb-calendar-sync.md §8 / §10
  *
- *   GET /functions/v1/ical-export?property=<slug>&token=<t>[&as=<provider>]
+ *   GET /functions/v1/ical-export/calendar.ics?property=<slug>&token=<t>[&as=<provider>]
+ *   GET /functions/v1/ical-export?property=<slug>&token=<t>[&as=<provider>]   (legacy; still works)
+ *
+ * The `/calendar.ics` path is required for Airbnb import: Airbnb rejects URLs whose path does
+ * not end in `.ics`. Query params after `.ics` are fine (same pattern as Airbnb's own export).
  *
  * Returns `text/calendar` listing this property's busy nights (direct bookings + manual owner
  * blocks) as opaque `Booked` / `Blocked` events — ZERO guest PII. `as` sets the "exclude this

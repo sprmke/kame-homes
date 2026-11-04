@@ -321,29 +321,60 @@ async function findConflicts(
   return partners;
 }
 
-async function emitConflictNotification(
+type ConflictHit = {
+  externalUid: string;
+  startDate: string;
+  endDate: string;
+  partner: ConflictPartner;
+};
+
+/** Stable short fingerprint so the same overlap set does not re-notify on force re-sync. */
+async function conflictSetFingerprint(hits: ConflictHit[]): Promise<string> {
+  const parts = hits.map((h) => `${h.externalUid}:${h.partner.id}`).sort();
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(parts.join('|')));
+  return Array.from(new Uint8Array(digest).subarray(0, 8))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * One bell / push row per distinct conflict set for a feed (not one per overlap).
+ * Per-overlap detail stays in `calendar_sync_events` (`conflict_detected`).
+ */
+async function emitConflictSummaryNotification(
   propertyId: string,
+  feedId: string,
   feedLabel: string,
-  event: ParsedCalendarEvent,
-  partner: ConflictPartner
+  hits: ConflictHit[]
 ): Promise<void> {
+  if (hits.length === 0) return;
   try {
     const organizationId = await resolveOrganizationIdForProperty(propertyId);
     if (!organizationId) return;
+    const fingerprint = await conflictSetFingerprint(hits);
+    const first = hits[0]!;
+    const count = hits.length;
+    const title = count === 1 ? 'Calendar conflict' : 'Calendar conflicts';
+    const body =
+      count === 1
+        ? `${feedLabel}: an imported reservation (${first.startDate} → ${first.endDate}) overlaps ${first.partner.label} (${first.partner.startDate} → ${first.partner.endDate}). Both are kept. Resolve on the platform that should not have it.`
+        : `${feedLabel}: ${count} imported reservations overlap existing bookings or blocks. Both are kept. Check Channel sync → Recent activity, then resolve on the platform that should not have them.`;
     await createNotification({
       organizationId,
       propertyId,
       type: 'calendar_conflict',
-      title: 'Calendar conflict',
-      body: `${feedLabel}: an imported reservation (${event.startDate} → ${event.endDate}) overlaps ${partner.label} (${partner.startDate} → ${partner.endDate}). Both are kept - resolve on the platform that shouldn't have it.`,
-      dedupeKey: `conflict:${event.uid}:${partner.id}`,
+      title,
+      body,
+      dedupeKey: `conflict:${feedId}:${fingerprint}`,
       metadata: {
         feed_label: feedLabel,
-        external_uid: event.uid,
-        conflict_kind: partner.kind,
-        conflict_partner_id: partner.id,
-        check_in_date: event.startDate,
-        check_out_date: event.endDate,
+        feed_id: feedId,
+        conflict_count: count,
+        external_uid: first.externalUid,
+        conflict_kind: first.partner.kind,
+        conflict_partner_id: first.partner.id,
+        check_in_date: first.startDate,
+        check_out_date: first.endDate,
       },
     });
   } catch (err) {
@@ -545,6 +576,7 @@ export async function runFeedSync(
   const current = await loadFeedBlocks(supabase, feed.id);
   const diff = diffFeed(parsed.events, current);
   const result = { ...base, status: 'synced' as const };
+  const conflictHits: ConflictHit[] = [];
 
   // 5a. Creates
   for (const ev of diff.creates) {
@@ -587,7 +619,7 @@ export async function runFeedSync(
       summary: ev.summary,
       blockedDateId: (data?.id as string | undefined) ?? null,
     });
-    await runConflictPass(supabase, feed, runId, ev, result);
+    await runConflictPass(supabase, feed, runId, ev, result, conflictHits);
   }
 
   // 5b. Reschedules (in-place update — keeps the row id + FK links)
@@ -627,7 +659,7 @@ export async function runFeedSync(
         to: { start: ev.startDate, end: ev.endDate },
       },
     });
-    await runConflictPass(supabase, feed, runId, ev, result);
+    await runConflictPass(supabase, feed, runId, ev, result, conflictHits);
   }
 
   // 5c. Touches (refresh last_seen_at / summary only)
@@ -668,6 +700,10 @@ export async function runFeedSync(
       startDate: row.startDate,
       endDate: row.endDate,
     });
+  }
+
+  if (conflictHits.length > 0) {
+    await emitConflictSummaryNotification(feed.property_id, feed.id, feedLabel, conflictHits);
   }
 
   // 5e. Phase 2 — promote reservation VEVENTs to real guest_submissions rows.
@@ -982,7 +1018,8 @@ async function runConflictPass(
   feed: CalendarFeedRow,
   runId: string,
   ev: ParsedCalendarEvent,
-  result: RunFeedResult
+  result: RunFeedResult,
+  hits: ConflictHit[]
 ): Promise<void> {
   const partners = await findConflicts(
     supabase,
@@ -993,6 +1030,12 @@ async function runConflictPass(
   );
   for (const partner of partners) {
     result.conflicts++;
+    hits.push({
+      externalUid: ev.uid,
+      startDate: ev.startDate,
+      endDate: ev.endDate,
+      partner,
+    });
     await writeEvent(supabase, {
       feedId: feed.id,
       runId,
@@ -1003,6 +1046,5 @@ async function runConflictPass(
       summary: ev.summary,
       detail: { partner },
     });
-    await emitConflictNotification(feed.property_id, feed.label ?? feed.provider, ev, partner);
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Payment settings fingerprint — mirrors `supabase/functions/_shared/settingsVerification.ts`.
+ * Sensitive-settings fingerprints — mirrors `supabase/functions/_shared/settingsVerification.ts`.
  */
 
 import type { PropertyPaymentMethod } from '@/features/dashboard/org/lib/paymentMethods';
@@ -7,6 +7,11 @@ import {
   formatPaymentAccountNumberDisplay,
   normalizePaymentProvider,
 } from '@/features/dashboard/org/lib/paymentProviders';
+
+async function sha256Hex(json: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 function canonicalizePaymentMethodsForFingerprint(methods: PropertyPaymentMethod[]): Array<{
   id: string;
@@ -38,7 +43,5 @@ export async function computePaymentSettingsFingerprint(
   methods: PropertyPaymentMethod[]
 ): Promise<string> {
   const canonical = canonicalizePaymentMethodsForFingerprint(methods);
-  const json = JSON.stringify({ paymentMethods: canonical });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  return sha256Hex(JSON.stringify({ paymentMethods: canonical }));
 }

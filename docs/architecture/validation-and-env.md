@@ -147,13 +147,13 @@ When invoking `supabase functions serve` manually, `./dev.sh` / `bun run dev:api
 
 #### Email (Resend)
 
-| Variable                         | Notes                                                                                                                                                                                                |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RESEND_API_KEY`                 | Outbound + inbound attachment fetch                                                                                                                                                                  |
-| `RESEND_FROM_EMAIL`              | Verified From (today `mail@kamespace.com` on the apex). Prefer a dedicated sending subdomain once DNS + Resend verify it; outbound HTML images off that domain are CID-inlined via `sendResendEmail` |
-| `RESEND_INBOUND_WEBHOOK_SECRET`  | Svix secret for `approval-email-webhook`                                                                                                                                                             |
-| `RESEND_APPROVAL_INBOUND_DOMAIN` | Plus-address domain, e.g. `inbound.kamespace.com`                                                                                                                                                    |
-| `SUPPORT_TEAM_EMAIL`             | Help & Support ticket notify inbox                                                                                                                                                                   |
+| Variable                         | Notes                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`                 | Outbound + inbound attachment fetch                                                                                                                                  |
+| `RESEND_FROM_EMAIL`              | Verified From: `mail@notify.kamespace.com` (Resend domain `notify.kamespace.com`, Tokyo). Outbound HTML images off that domain are CID-inlined via `sendResendEmail` |
+| `RESEND_INBOUND_WEBHOOK_SECRET`  | Svix secret for `approval-email-webhook`                                                                                                                             |
+| `RESEND_APPROVAL_INBOUND_DOMAIN` | Plus-address domain, e.g. `inbound.kamespace.com`                                                                                                                    |
+| `SUPPORT_TEAM_EMAIL`             | Help & Support ticket notify inbox                                                                                                                                   |
 
 **Email routing (`EMAIL_TO`, `EMAIL_REPLY_TO`, parking BCC):** **`app_settings`** / **`org_settings`** — not env.
 

@@ -135,6 +135,7 @@ export function usePropertyTemplateMutations() {
       sectionImageUrl?: string | null;
       silent?: boolean;
       publicPagesAutosaveGate?: boolean;
+      settingsVerificationToken?: string;
     }) => {
       const headers = await authHeaders();
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
@@ -146,6 +147,9 @@ export function usePropertyTemplateMutations() {
           name: input.name,
           sectionImageUrl: input.sectionImageUrl,
           ...(input.publicPagesAutosaveGate ? { publicPagesAutosaveGate: true } : {}),
+          ...(input.settingsVerificationToken
+            ? { settingsVerificationToken: input.settingsVerificationToken }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -171,12 +175,18 @@ export function usePropertyTemplateMutations() {
   });
 
   const resetTemplate = useMutation({
-    mutationFn: async (templateKey: string) => {
+    mutationFn: async (input: { templateKey: string; settingsVerificationToken?: string }) => {
       const headers = await authHeaders();
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ action: 'reset', templateKey }),
+        body: JSON.stringify({
+          action: 'reset',
+          templateKey: input.templateKey,
+          ...(input.settingsVerificationToken
+            ? { settingsVerificationToken: input.settingsVerificationToken }
+            : {}),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -200,14 +210,20 @@ export function usePropertyTemplateMutations() {
       category?: PropertyTemplateCategory;
       /** Custom category only; omit for Stay guide / Emails. */
       folderId?: string | null;
+      settingsVerificationToken?: string;
     }): Promise<{
       templateKey: string | null;
     }> => {
       const headers = await authHeaders();
+      const { settingsVerificationToken, ...createBody } = input;
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ action: 'create', ...input }),
+        body: JSON.stringify({
+          action: 'create',
+          ...createBody,
+          ...(settingsVerificationToken ? { settingsVerificationToken } : {}),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

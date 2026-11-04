@@ -117,25 +117,29 @@ dates that should not be available to guests.
 ### To Airbnb (export)
 
 - Modal width ~**36rem** (was ~28rem) for room for help + long URLs.
-- **Share with Airbnb** switch (+ **?** help) — **off by default** (opt-in). Enables the token-guarded iCal URL (`?as=airbnb`) so Kame bookings + manual blocks appear on Airbnb without echoing Airbnb’s own imports. Turning **on** below Pro opens the upgrade modal; turning **off** is always allowed.
-- **Paste into Airbnb** (+ **?** help: Calendar → Availability → Connect calendars → Import calendar) — one URL + **Copy**.
+- **Share with Airbnb** switch (+ **?** help) — **off by default** (opt-in). Enables the token-guarded iCal URL (`…/ical-export/calendar.ics?property=…&token=…&as=airbnb`, always `https://` on hosted) so Kame bookings + manual blocks appear on Airbnb without echoing Airbnb’s own imports. The path ends in `.ics` because Airbnb rejects import URLs that do not. Turning **on** below Pro opens the upgrade modal; turning **off** is always allowed.
+- **Paste into Airbnb** (+ **?** help: Calendar → Availability → Connect calendars → Import calendar) — one URL + **Copy**. Paste the full link into Airbnb’s “Other website link” field.
 
 ### Conflicts
 
-If Airbnb reports a night that already has a live Kame booking or manual block, the sync records a `conflict_detected` event and raises a `calendar_conflict` notification — it never overwrites the existing Kame reservation.
+If Airbnb reports a night that already has a live Kame booking or manual block, the sync still imports the Airbnb busy night, records one `conflict_detected` audit event per overlap, and raises **one** `calendar_conflict` notification for that sync’s conflict set (not one toast per overlap). Connect / Sync now shows a single warning toast with the conflict count; the matching realtime toast is suppressed briefly so it does not double up. Background cron still surfaces one in-app toast when a new conflict set appears. Detail lives under **Recent activity** and the Notifications bell. Kame never overwrites the existing booking or manual block.
 
 **Host Q&A**
 
 - Q: Where do I connect my Airbnb calendar?
   A: Pricing → **Channel sync** → **From Airbnb** → paste Airbnb’s Export calendar URL. Hover **?** for steps. You need Pro or higher.
 - Q: How do I block Airbnb when someone books here?
-  A: Channel sync → **To Airbnb** → turn on Share with Airbnb → copy the link into Airbnb’s import calendar field.
+  A: Channel sync → **To Airbnb** → turn on Share with Airbnb → copy the link into Airbnb’s import calendar field. The link must end with `.ics` before the `?` (Kame’s copy button already does that). Use HTTPS; do not shorten the URL.
+- Q: Airbnb says something went wrong when I paste our link.
+  A: Re-copy from Channel sync after Share with Airbnb is on. Confirm the address looks like `…/ical-export/calendar.ics?property=…&token=…&as=airbnb`. Older links without `.ics` or that start with `http://` fail Airbnb’s check.
 - Q: Does changing a nightly rate here change Airbnb’s price?
   A: No. Channel Sync shares **availability** only. List prices on this page are for Kame guest booking / admin pricing review.
 - Q: Can I edit or unblock a date that came from Airbnb?
   A: No. Synced nights are read-only on the calendar. They clear when Airbnb drops the date or you remove the feed.
 - Q: Can I sync Booking.com or VRBO?
   A: Not yet — Channel sync is Airbnb-only for now.
+- Q: I got a conflict warning after connecting Airbnb. What do I do?
+  A: Both calendars kept their nights. Open Notifications or Channel sync → Recent activity for the dates, then remove the booking or block on the side that should not have it.
 
 ---
 

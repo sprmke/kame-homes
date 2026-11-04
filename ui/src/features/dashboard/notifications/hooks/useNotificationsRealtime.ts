@@ -5,8 +5,14 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { NOTIFICATIONS_KEY } from '@/features/dashboard/notifications/hooks/useNotifications';
 import type { NotificationRealtimeRow } from '@/features/dashboard/notifications/lib/notificationsApi';
 import { showNotificationToast } from '@/features/dashboard/notifications/lib/notificationToast';
+import { shouldShowCalendarConflictRealtimeToast } from '@/features/dashboard/pricing/lib/calendarConflictToastGate';
 
 import { supabase } from '@/lib/supabase/client';
+
+function shouldToastRealtimeRow(row: NotificationRealtimeRow): boolean {
+  if (row.type === 'calendar_conflict') return shouldShowCalendarConflictRealtimeToast();
+  return true;
+}
 
 const REALTIME_INVALIDATE_MS = 400;
 
@@ -59,6 +65,7 @@ export function useNotificationsRealtime(
           (payload) => {
             scheduleNotificationsInvalidate(qc);
             const row = payload.new as NotificationRealtimeRow;
+            if (!shouldToastRealtimeRow(row)) return;
             showNotificationToast(row, {
               onView: onNotificationRef.current,
               isCancelled: () => cancelled,
@@ -76,6 +83,7 @@ export function useNotificationsRealtime(
           (payload) => {
             scheduleNotificationsInvalidate(qc);
             const row = payload.new as NotificationRealtimeRow;
+            if (!shouldToastRealtimeRow(row)) return;
             showNotificationToast(row, {
               onView: onNotificationRef.current,
               isCancelled: () => cancelled,

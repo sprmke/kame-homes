@@ -19,6 +19,10 @@ import {
   type CalendarFeedProvider,
 } from '../_shared/calendarSyncService.ts';
 import { loadCalendarFeed, runFeedSync } from '../_shared/calendarSyncRun.ts';
+import {
+  buildCalendarExportUrls,
+  resolvePublicExportOrigin,
+} from '../_shared/calendarExportUrls.ts';
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '../_shared/secretsCrypto.ts';
@@ -81,14 +85,7 @@ async function ensureExportRow(
 }
 
 function exportUrls(req: Request, propertySlug: string, token: string): Record<string, string> {
-  const origin = new URL(req.url).origin;
-  const base = `${origin}/functions/v1/ical-export?property=${encodeURIComponent(propertySlug)}&token=${token}`;
-  return {
-    all: base,
-    airbnb: `${base}&as=airbnb`,
-    booking_com: `${base}&as=booking_com`,
-    vrbo: `${base}&as=vrbo`,
-  };
+  return buildCalendarExportUrls(resolvePublicExportOrigin(req), propertySlug, token);
 }
 
 serveAuthenticated('calendar-sync-settings', async (req) => {
