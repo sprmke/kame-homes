@@ -23,10 +23,7 @@ import {
   type DocApprovalAssetType,
 } from '@/features/dashboard/bookings/lib/pendingDocApproval';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
-import {
-  nestedKeyLabel,
-  type PendingDocNestedKey,
-} from '@/features/dashboard/bookings/lib/workflow';
+import type { PendingDocNestedKey } from '@/features/dashboard/bookings/lib/workflow';
 
 import {
   ResponsiveModal,
@@ -64,7 +61,6 @@ export function WorkflowDocApprovalModal({
   isConfirming,
 }: Props) {
   const assetType = pendingDocStepApprovalAsset(sub, requirements);
-  const label = nestedKeyLabel(sub, requirements);
   const uploadLabel = assetType ? approvedPdfUploadLabel(assetType) : 'Approved document';
 
   const [currentUrl, setCurrentUrl] = useState(
@@ -151,7 +147,7 @@ export function WorkflowDocApprovalModal({
             </div>
             <div className="min-w-0 pt-0.5">
               <ResponsiveModalTitle className="text-base font-semibold leading-snug sm:text-lg">
-                {hasApprovedFile ? label : `Upload ${label}`}
+                {hasApprovedFile ? uploadLabel : `Upload ${uploadLabel}`}
               </ResponsiveModalTitle>
               <ResponsiveModalDescription className="text-muted-foreground mt-1 text-sm leading-relaxed">
                 {description}
