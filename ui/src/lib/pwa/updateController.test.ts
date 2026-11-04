@@ -7,6 +7,7 @@ import {
   canApplyNow,
   canAutoReload,
   isSnoozed,
+  isUpdateApplyBlocked,
   nextSnoozeUntil,
   parseUpdateBroadcast,
   readAutoReloadCount,
@@ -47,7 +48,12 @@ describe('canApplyNow', () => {
 
   it('reports every blocker at once', () => {
     expect(
-      updateBlockers({ dirtyGuards: 2, overlayOpen: true, outboxDraining: true, taskInFlight: true })
+      updateBlockers({
+        dirtyGuards: 2,
+        overlayOpen: true,
+        outboxDraining: true,
+        taskInFlight: true,
+      })
     ).toEqual(['dirty-form', 'overlay-open', 'outbox-draining', 'task-in-flight']);
   });
 });
@@ -83,6 +89,17 @@ describe('auto-reload loop guard', () => {
     const storage = memoryStorage();
     storage.setItem('gfm:pwa:auto-reloads', 'not-a-number');
     expect(readAutoReloadCount(storage)).toBe(0);
+  });
+
+  it('blocks automatic applies after the limit, but never blocks a user Reload', () => {
+    const storage = memoryStorage();
+    bumpAutoReloadCount(storage);
+    bumpAutoReloadCount(storage);
+    expect(canAutoReload(storage)).toBe(false);
+    // This is the bug we fixed: the Update ready prompt is what we show after the
+    // loop guard trips — tapping Reload must still apply the waiting worker.
+    expect(isUpdateApplyBlocked('auto', storage)).toBe(true);
+    expect(isUpdateApplyBlocked('user', storage)).toBe(false);
   });
 });
 
