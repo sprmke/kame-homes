@@ -195,3 +195,5 @@ EXCEPTION WHEN others THEN
   RETURN COALESCE(NEW, OLD);
 END;
 $fn$;
+
+REVOKE ALL ON FUNCTION public.activity_log_guest_submissions() FROM PUBLIC;
