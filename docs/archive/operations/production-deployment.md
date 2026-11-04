@@ -261,6 +261,47 @@ Migration history repair / **`--include-all`**: **§5.1** ibid., **§3** above t
 
 ---
 
+## Post-deploy web probe
+
+Vercel deploys the UI outside GitHub Actions, so nothing in CI saw the live site. Two
+production-only failures slipped through that gap, and the existing readiness probe now
+covers both:
+
+```bash
+PREVIEW_URL=https://kamespace.com bun run verify:deployed-preview
+```
+
+`.github/workflows/web-probe.yml` runs it after every push to `main` (three attempts, two
+minutes apart, to let Vercel promote). Checks added for these failures:
+
+| Check           | Fails when                                                                       |
+| --------------- | -------------------------------------------------------------------------------- |
+| Assets          | Any `/assets/*.js` or `/assets/*.css` reachable from the shell returns non-200   |
+| Analytics proxy | `POST /ingest/i/v0/e/` returns 405/404, i.e. the rewrite fell through to the SPA |
+
+Plus the original readiness checks (compression, immutable cache headers, no public source
+maps, CSP report-only, `pwa-version.json` shape).
+
+**Stale chunk crash.** Every deploy changes chunk hashes and the production domain only
+serves the current deployment's assets, so a tab (or a service-worker shell) from a previous
+release requests `/assets/X.js` and gets 404: `Failed to fetch dynamically imported module`.
+That is not a broken build; the probe proves the current build is self-consistent. Two things
+keep it from becoming an error page:
+
+- The service worker answers navigations from its precached shell, so a plain reload serves
+  the same stale `index.html`. `reloadForChunkError` now unregisters the worker before
+  reloading, and the app registers a fresh one on load.
+- The update controller applies the waiting build on the next route change; a four-hour snooze
+  widens the window.
+
+**Analytics proxy.** `posthog-js` posts to `/ingest/i/v0/e/` with a trailing slash. The old
+`/ingest/:path*` rewrite did not match trailing-slash paths, so the request fell through to
+`index.html` and Vercel answered **405** for the POST, silently dropping every capture. The
+rewrites now use a regex capture (`/ingest/(.*)`) that keeps the trailing slash. If captures
+break again, `verify:deployed-preview` fails with that exact symptom.
+
+---
+
 ## Quick command reference
 
 From repo root you can run the bundled deploy script (runs **`db push`** then **`functions deploy`** on the linked project):

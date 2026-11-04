@@ -32,6 +32,8 @@ type ReloadDeps = {
   storage?: Pick<Storage, 'getItem' | 'setItem'> | null;
   now?: number;
   reload?: () => void;
+  /** Injectable for tests; defaults to dropping a stale PWA shell, then reloading. */
+  recover?: (reload: () => void) => void;
 };
 
 function sessionStorageOrNull(): Pick<Storage, 'getItem' | 'setItem'> | null {
@@ -40,6 +42,25 @@ function sessionStorageOrNull(): Pick<Storage, 'getItem' | 'setItem'> | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * A controlled service worker answers every navigation from its precached shell, so a plain
+ * `location.reload()` serves the same stale `index.html` and the missing chunk fails again.
+ * Unregistering first makes the reload fetch the current build; the app registers a fresh
+ * worker on load. Pages without a worker reload immediately.
+ */
+function recoverStaleShell(reload: () => void): void {
+  const container = typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
+  if (!container?.controller) {
+    reload();
+    return;
+  }
+  void container
+    .getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((entry) => entry.unregister())))
+    .catch(() => undefined)
+    .finally(reload);
 }
 
 /** Reloads once per window. Returns false when a reload just happened (caller shows its error UI). */
@@ -72,6 +93,6 @@ export function reloadForChunkError(deps: ReloadDeps = {}): boolean {
     fingerprint: ['chunk_load', 'first_failure'],
   });
 
-  (deps.reload ?? (() => window.location.reload()))();
+  (deps.recover ?? recoverStaleShell)(deps.reload ?? (() => window.location.reload()));
   return true;
 }

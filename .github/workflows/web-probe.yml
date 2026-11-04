@@ -1,0 +1,44 @@
+name: Web deploy probe
+
+# Vercel deploys the UI from its own Git integration, so no Actions job ever saw the
+# deployed site. This probe runs after each production release and fails when:
+#   - the live build references chunks it does not serve (a stale client then crashes on
+#     any lazy route with "Failed to fetch dynamically imported module"), or
+#   - the PostHog `/ingest/*` proxy falls through to the SPA, which makes every analytics
+#     capture fail with a 405 while the page itself looks healthy.
+#
+# Manual run: Actions → Web deploy probe → Run workflow.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: web-probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Vercel builds and promotes asynchronously; probing immediately hits the old build.
+      - name: Wait for the production deploy
+        run: sleep 180
+
+      - name: Probe kamespace.com
+        env:
+          PREVIEW_URL: https://kamespace.com
+        run: |
+          for attempt in 1 2 3; do
+            echo "probe attempt $attempt"
+            if node scripts/performance/verify-deployed-preview.mjs; then
+              exit 0
+            fi
+            sleep 60
+          done
+          echo "web probe failed after 3 attempts" >&2
+          exit 1
