@@ -8,7 +8,7 @@ updated: 2026-08-30
 
 # Phase 4 — Split Payout & Admin Config
 
-Part of [Parking E2E Phase 2+ overview](./parking-e2e-later-phases.md). Depends on Phase 3 (payment must exist before there's anything to pay out).
+Part of [Parking E2E Phase 2+ overview](../planned/parking-e2e-later-phases.md). Depends on Phase 3 (payment must exist before there's anything to pay out).
 
 ## Problem
 

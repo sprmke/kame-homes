@@ -43,7 +43,7 @@ Ship Guest Inbox at **property** and **parking** scopes (nav + pages), while kee
 
 ## Current state (verified)
 
-- Org-only UI: [`OrgInboxPage.tsx`](../../../ui/src/features/dashboard/inbox/pages/OrgInboxPage.tsx), nav in [`adminSidebarNav.ts`](../../../ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts) (`buildOrgNavSections` only).
+- Org-only UI: [`InboxPage.tsx`](../../../ui/src/features/dashboard/inbox/pages/InboxPage.tsx), nav in [`adminSidebarNav.ts`](../../../ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts) (`buildOrgNavSections` only).
 - Web threads already have `social_conversations.property_id`; list API does **not** filter by it ([`social-inbox-threads`](../../../supabase/functions/social-inbox-threads/index.ts)).
 - Meta is org-only on [`social_channel_connections`](../../../supabase/migrations/20260910120000_social_inbox.sql) — no `property_id`/`parking_id`; OAuth state is org-only; webhook resolves by `meta_page_id` + `.maybeSingle()`.
 - Org reconnect (`prepareOrgMetaInboxConnect`) **wipes all org Meta data** — must not run that path for property/parking overrides.

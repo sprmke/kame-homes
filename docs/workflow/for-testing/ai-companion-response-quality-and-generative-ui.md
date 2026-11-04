@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'AI companion: response quality, speed, and generative UI (dashboard assistant + guest receptionist)'
-status: active
+status: for-testing
 tags: [planning, for-testing, ai, dashboard, guest-chat, voice, ux, generative-ui]
-updated: 2026-10-20
+updated: 2026-11-04
 kind: plan
 ---
 

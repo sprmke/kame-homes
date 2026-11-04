@@ -1,8 +1,8 @@
 ---
 title: 'Public pages: native element sizing'
-status: active
+status: for-testing
 tags: [workflow, ui, mobile, marketing, guest]
-updated: 2026-10-21
+updated: 2026-11-04
 stage: for-testing
 kind: plan
 ---

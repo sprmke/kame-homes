@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Feature availability controls — manual QA'
-status: active
+status: for-testing
 tags: [qa, super-admin, feature-gating]
-updated: 2026-10-29
+updated: 2026-11-04
 plan: ../done/feature-availability-controls.md
 ---
 

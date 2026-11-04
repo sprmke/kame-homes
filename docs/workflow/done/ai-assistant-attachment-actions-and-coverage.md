@@ -1,8 +1,8 @@
 ---
 title: 'AI Assistant — Full Dashboard Parity + Attachment Actions'
-status: for testing
+status: done
 tags: [workflow, planned, ai, safety]
-updated: 2026-09-03
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

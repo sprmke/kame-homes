@@ -11,7 +11,7 @@ related:
 
 # Listing contract renewal modal — implementation plan
 
-> **For agentic workers:** Design: [`../intake/listing-contract-renewal-modal-design.md`](../intake/listing-contract-renewal-modal-design.md).
+> **For agentic workers:** Design: [`../../workflow/done/listing-contract-renewal-modal-design.md`](../../workflow/done/listing-contract-renewal-modal-design.md).
 
 **Goal:** Replace the non-dismissible listing contract strip/lock UI with a **listing-scoped** renewal reminder modal, with distinct pre-expiry vs grace/locked copy, daily dismiss until lock, and a working renew → Listing Verification submit path.
 

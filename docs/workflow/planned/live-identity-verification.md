@@ -28,7 +28,7 @@ This plan delivers a free, in-house **Track A** that ships end to end, plus a pr
 
 ## Current state (verified against code, 2026-11-02)
 
-Mapped by [Guest verification surfaces](8c036ec1-dbb9-4349-9172-62aaabed3866) and [Host verification surfaces](c279e987-099e-449d-aed8-6c967949141e).
+Mapped by **Guest verification surfaces** and **Host verification surfaces** below.
 
 ### Guest side
 

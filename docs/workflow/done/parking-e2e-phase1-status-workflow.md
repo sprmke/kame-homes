@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Parking E2E — Phase 1c: Status Workflow'
-status: implemented
+status: done
 tags: [planning, planned-modules, parking, booking-workflow]
-updated: 2026-08-17
+updated: 2026-11-04
 ---
 
 # Parking E2E — Phase 1c: Parking Status Machine (Backend Spine)

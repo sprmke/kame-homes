@@ -4,14 +4,14 @@ title: 'Listing-scoped authorization — superseded'
 status: superseded
 updated: 2026-08-10
 tags: [verification, listing-authorization, superseded]
-superseded_by: docs/workflow/planned/verification-scope-split.md
+superseded_by: docs/workflow/for-testing/verification-scope-split.md
 ---
 
 # Listing-scoped authorization — superseded
 
 Cancelled **2026-08-10**. No implementation was started — every phase was still unchecked, the doc was never added to the in-progress index, and its companion spec (`intake/listing-authorization-design.md`) no longer exists.
 
-**Superseded by:** [`../done/verification-scope-split.md`](../done/verification-scope-split.md)
+**Superseded by:** [`../done/verification-scope-split.md`](../for-testing/verification-scope-split.md)
 
 ## Why
 

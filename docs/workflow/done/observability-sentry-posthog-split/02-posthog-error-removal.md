@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: done
 title: 'Observability split — 02 remove error capture from PostHog (Phase P1)'
-status: planned
+status: done
 tags: [workflow, planned, observability, posthog, cleanup]
-updated: 2026-11-01
+updated: 2026-11-04
 kind: plan
 ---
 

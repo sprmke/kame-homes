@@ -8,7 +8,7 @@ updated: 2026-08-26
 
 # Phase 2 — Match Engine
 
-Part of [Parking E2E Phase 2+ overview](./parking-e2e-later-phases.md). Depends on Phase 0/1 (done).
+Part of [Parking E2E Phase 2+ overview](../planned/parking-e2e-later-phases.md). Depends on Phase 0/1 (done).
 
 ## Problem
 

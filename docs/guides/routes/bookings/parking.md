@@ -91,5 +91,5 @@ The retired `POST submit-pay-parking` endpoint still exists for backward-compati
 - [Route index](../README.md)
 - [`parkings.md`](../parkings.md) — `linkStay` behavior
 - [`org/property/bookings-detail.md`](../org/property/bookings-detail.md) — Find parking actions
-- [`docs/workflow/done/parking-owner-owned-default.md`](../../workflow/done/parking-owner-owned-default.md)
-- [`docs/workflow/done/parking-pay-parking-marketplace-connect.md`](../../workflow/done/parking-pay-parking-marketplace-connect.md)
+- [`docs/workflow/done/parking-owner-owned-default.md`](../../../workflow/done/parking-owner-owned-default.md)
+- [`docs/workflow/done/parking-pay-parking-marketplace-connect.md`](../../../workflow/done/parking-pay-parking-marketplace-connect.md)

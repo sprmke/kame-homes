@@ -11,7 +11,7 @@ kind: plan
 
 Goal: Generate tab videos a host can post to Reels / Stories without editing, at the bar set by
 Higgsfield-style apps, with the same guardrails as the image hardening
-([`marketing-ai-image-quality-hardening.md`](../in-progress/marketing-ai-image-quality-hardening.md)).
+([`marketing-ai-image-quality-hardening.md`](marketing-ai-image-quality-hardening.md)).
 
 Route guide: [`org/property/marketing.md`](../../guides/routes/org/property/marketing.md) (Generate tab, **Video direction**, **Video output validation**).
 

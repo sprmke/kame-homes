@@ -312,7 +312,7 @@ Platform defaults (all presets on): 5%→25, 10%→34, 15%→20, 20%→12, 25%�
 
 Host UI: compact summary (`Next-stay vouchers · {prize summary|Off}` · optional style label when not Reel) + **Manage** modal — enable toggle, **Style** picker with **animated preview thumbnails** (**Reel** / **Wheel** / **Flip**), full preset catalog (checkbox per discount), **Weight** steppers + live **Odds**, rate select, **Reset defaults**. Previews loop subtly in the modal (static when OS reduce motion is on). Save with page **Save Changes** (header actions when dirty) → `app-settings` PATCH (`vouchersEnabled`, `voucherPrizes`, `voucherRevealStyle`). Style-only edits in this section count as savable changes (not “No changes to save”). Guest `/sd-form` and guest-review animate with the chosen style (reel / wheel / flip). Claim rolls via `claim-sd-voucher`; awarded `next_stay_voucher_amount` stores the **percent** (1–100). Legacy peso `KAME-*` awards still display as ₱.
 
-**Superhost** is not configured per property — hosts earn it automatically org-wide (see [`docs/workflow/planned/superhost-program.md`](../../../../workflow/planned/superhost-program.md); progress lives under **Org settings → Trust**).
+**Superhost** is not configured per property — hosts earn it automatically org-wide (see [`docs/workflow/planned/superhost-program.md`](../../../../workflow/for-testing/superhost-program.md); progress lives under **Org settings → Trust**).
 
 ---
 

@@ -1,8 +1,9 @@
 ---
 title: 'Env variables cleanup (UI + Supabase)'
 status: done
+stage: done
 tags: [workflow, done, devops]
-updated: 2026-08-27
+updated: 2026-11-04
 ---
 
 # Env variables cleanup (UI + Supabase)

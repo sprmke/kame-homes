@@ -1,9 +1,9 @@
 ---
 title: 'Marketing Studio mobile parity + dashboard responsive polish'
 stage: in-progress
-status: in progress
+status: in-progress
 tags: [mobile-responsive, marketing, pricing, dashboard]
-updated: 2026-10-22
+updated: 2026-11-04
 kind: plan
 ---
 

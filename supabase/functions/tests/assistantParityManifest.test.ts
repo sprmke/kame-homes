@@ -1,5 +1,5 @@
 /**
- * Phase 7 parity guard (docs/workflow/in-progress/ai-chat-mode.md): every edge function is either
+ * Phase 7 parity guard (docs/workflow/done/ai-chat-mode.md): every edge function is either
  * classified by its serve wrapper (super-admin / cron / public) or listed in the parity manifest,
  * every listed tool is really declared, and every handoff route is allowlisted.
  */

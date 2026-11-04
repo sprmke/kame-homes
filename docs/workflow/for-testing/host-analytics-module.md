@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Host Analytics module — performance insights + AI coaching'
-status: in-progress
+status: for-testing
 tags: [planning, planned-modules, analytics, ai, plans, rbac, dashboard]
-updated: 2026-09-15
+updated: 2026-11-04
 ---
 
 # Host Analytics module — performance insights + AI coaching

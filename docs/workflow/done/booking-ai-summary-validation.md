@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Remove guest-submit AI validation + admin AI Summary & Validation panel'
-status: planned
+status: done
 tags: [planning, planned-modules, ai, bookings]
-updated: 2026-08-12
+updated: 2026-11-04
 ---
 
 # Remove guest-submit AI validation + add admin "AI Summary & Validation" panel

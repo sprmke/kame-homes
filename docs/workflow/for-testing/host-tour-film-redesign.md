@@ -1,8 +1,8 @@
 ---
 title: 'Host tour film redesign'
-status: active
+status: for-testing
 tags: [workflow, for-testing, marketing, for-hosts]
-updated: 2026-10-03
+updated: 2026-11-04
 stage: for-testing
 kind: plan
 ---

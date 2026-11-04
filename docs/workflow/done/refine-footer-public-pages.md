@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Refine Footer & Create Public Pages — Implementation Plan'
-status: complete
+status: done
 tags: [planning, planned-modules]
-updated: 2026-08-06
+updated: 2026-11-04
 ---
 
 # Refine Footer & Create Public Pages — Implementation Plan

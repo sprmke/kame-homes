@@ -138,7 +138,7 @@ Mirror the FAQ CRUD split exactly (`supabase/functions/{list,create,update,delet
 
 Reads for the _consuming_ surfaces (host dashboard, guest chat) go **directly through supabase-js with the RLS policy above** — no new public edge function needed, same as how `help_center_faqs` reads work today. One shared TanStack Query hook fetches the full list once and every gate component reads from that cache (see Client architecture).
 
-Each mutation should call `logSuperAdminAction` (shipped — see [`../done/super-admin-audit-log.md`](../done/super-admin-audit-log.md)).
+Each mutation should call `logSuperAdminAction` (shipped — see [`../../workflow/done/super-admin-audit-log.md`](../../workflow/done/super-admin-audit-log.md)).
 
 ## Super Admin UI
 
@@ -237,4 +237,4 @@ Seed the table (via a data migration or a one-time Super Admin session) with:
 - **Public Pages editor**: is a non-`live` status meant to gate entry entirely (bigger change, reverses its current open-explore design), or only specific sub-features within it? Confirm before wiring #5.
 - **Marketing Studio**: same question — confirm this means a temporary rollback/soft-launch decision, not something narrower (e.g., just the AI-generation or Meta-publishing sub-features inside it).
 - **Maintenance depth**: v1 treats `maintenance` as a full block, identical in mechanism to `coming_soon` (different copy/tone only). If a future need is "keep the screen visible and read-only during maintenance" instead of fully blocking it, that's a distinct gate mode (`FeatureGate`'s `watermark`/`disable` split is the precedent) — worth a follow-up plan once a real maintenance scenario shows up, not speculative work now.
-- `logSuperAdminAction` audit-logging is shipped — wire it when implementing mutations (see [`../done/super-admin-audit-log.md`](../done/super-admin-audit-log.md)).
+- `logSuperAdminAction` audit-logging is shipped — wire it when implementing mutations (see [`../../workflow/done/super-admin-audit-log.md`](../../workflow/done/super-admin-audit-log.md)).

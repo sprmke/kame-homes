@@ -159,7 +159,7 @@ Empty and load-error states stay inside the list pane under **My Tickets** (icon
 - [Parking Help & Support](../parking/help-support.md)
 - [Super-admin ticket management](../../admin/support.md)
 - [`docs/PROJECT.md`](../../../PROJECT.md)
-- [`docs/workflow/in-progress/help-support-center.md`](../../../workflow/in-progress/help-support-center.md)
+- [`docs/workflow/in-progress/help-support-center.md`](../../../../workflow/for-testing/help-support-center.md)
 
 ## Pending / follow-ups
 

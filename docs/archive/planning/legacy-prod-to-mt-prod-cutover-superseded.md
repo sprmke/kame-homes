@@ -11,7 +11,7 @@ updated: 2026-11-01
 > **Archived 2026-11-01.** Superseded by [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../../workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md). Kept for history; use the numbered Kame Space plan.
 > **Goal.** Move Kame Homes off the live legacy stack (`main` → Vercel `guest-form-management-app` on `sprmkes-projects` → Supabase `zfttdwtceyqszyeyhilc`) onto the new multi-tenant app (`develop` → Vercel `kame-homes` on `kame-works` → a new **mt-prod** Supabase project under the new Supabase account). Every legacy row, Auth user and Storage object lands in mt-prod under a proper **Kame Homes org → property** shape. Every booking already on the books (especially future stays) keeps working end to end: links in emails already sent, document approvals, SD refunds, calendar availability, Telegram summaries. After a stable hypercare period, retire the legacy repo branch, Vercel project, Supabase project, domain wiring and service accounts.
 
-This plan supersedes the stub task list in [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md) and fills in Phase B of [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md).
+This plan supersedes the stub task list in [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md) and fills in Phase B of [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md).
 
 ---
 
@@ -344,7 +344,7 @@ Ordered. Each step is reversible until the last one.
 
 ## 12. Open questions (answer in Phase 0)
 
-1. **Org brand and slug.** "Kame Homes" / `kame-homes`, or keep the backfill's `kame-home`? (Slug is in every admin URL.) **Update 2026-10-25:** the product is being renamed to Kame Space ([`rebrand-kame-homes-to-kame-space.md`](../../workflow/in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) R1). Shape the org once, to its final name and slug, and do not shape it as "Kame Homes" / `kame-homes`.
+1. **Org brand and slug.** "Kame Homes" / `kame-homes`, or keep the backfill's `kame-home`? (Slug is in every admin URL.) **Update 2026-10-25:** the product is being renamed to Kame Space ([`rebrand-kame-homes-to-kame-space.md`](../../workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md) R1). Shape the org once, to its final name and slug, and do not shape it as "Kame Homes" / `kame-homes`.
 2. **Final domain (rebrand R2).** Cut over onto `app.kamehomes.space`, or straight onto `app.kamespace.com` if that domain is ready? Decide before 1.4 / 6.1 / 6.2 so OAuth, Auth URLs, Resend and Meta origins are set up once.
 3. **Property list.** Is Monaco 2604 the only unit with legacy bookings, or did legacy serve several units? If several, which booking field identifies the unit?
 4. **Repo.** Stay on `sprmke/kame-homes` (recommended), or transfer to a `kame-works` GitHub org as part of "new repo"?
@@ -361,7 +361,7 @@ Ordered. Each step is reversible until the last one.
 
 - [`legacy-to-mt-prod-migration.md`](../../archive/operations/legacy-to-mt-prod-migration.md): becomes the operational runbook (commands, stage order, timings). Points here for rationale.
 - [`scripts/migrate/legacy-to-mt-prod/README.md`](../../../scripts/migrate/legacy-to-mt-prod/README.md) and [`scripts/README.md`](../../../scripts/README.md): new scripts and `bun run` aliases.
-- [`deployment.md`](../../architecture/deployment.md), [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md), [`multi-tenant-dev-prod-setup.md`](../../archive/operations/multi-tenant-dev-prod-setup.md), [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md): mt-prod ref, Phase B ticked, dual-track ended.
+- [`deployment.md`](../../architecture/deployment.md), [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md), [`multi-tenant-dev-prod-setup.md`](../../archive/operations/multi-tenant-dev-prod-setup.md), [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md): mt-prod ref, Phase B ticked, dual-track ended.
 - [`production-deployment.md`](../../archive/operations/production-deployment.md): apex cutover done, new prod deploy path.
 - [`migration-runbook.md`](../../archive/operations/migration-runbook.md): one-time `--include-all` upgrade note, plus the new guard migrations.
 - [`docs/architecture/overview.md`](../../architecture/overview.md) + [`docs/PROJECT.md`](../../PROJECT.md): env vars, legacy-link redirect behavior, `migration_cutover_at`.

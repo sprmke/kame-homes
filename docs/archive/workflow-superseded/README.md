@@ -1,0 +1,25 @@
+---
+title: 'Workflow docs — superseded copies'
+status: archived
+tags: [archive, workflow, superseded]
+updated: 2026-11-04
+kind: reference
+---
+
+# Superseded workflow copies
+
+Stale duplicate copies removed from `docs/workflow/` on 2026-11-04 during the workflow status audit. Each one is an older revision of a doc that still has an active, newer copy in its lifecycle folder. Kept only so old links and history resolve.
+
+| Archived copy                                                                                                  | Kept instead                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`ai-chat-mode.md`](./ai-chat-mode.md)                                                                         | [`../../workflow/done/ai-chat-mode.md`](../../workflow/done/ai-chat-mode.md)                                                                                       |
+| [`chat-templates.md`](./chat-templates.md)                                                                     | [`../../workflow/for-testing/chat-templates.md`](../../workflow/for-testing/chat-templates.md)                                                                     |
+| [`help-support-center.md`](./help-support-center.md)                                                           | [`../../workflow/for-testing/help-support-center.md`](../../workflow/for-testing/help-support-center.md)                                                           |
+| [`listing-contract-renewal-modal.md`](./listing-contract-renewal-modal.md)                                     | [`../../workflow/for-testing/listing-contract-renewal-modal.md`](../../workflow/for-testing/listing-contract-renewal-modal.md)                                     |
+| [`marketing-ai-image-quality-hardening.md`](./marketing-ai-image-quality-hardening.md)                         | [`../../workflow/for-testing/marketing-ai-image-quality-hardening.md`](../../workflow/for-testing/marketing-ai-image-quality-hardening.md)                         |
+| [`marketing-studio-mobile-and-dashboard-responsive.md`](./marketing-studio-mobile-and-dashboard-responsive.md) | [`../../workflow/in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../../workflow/in-progress/marketing-studio-mobile-and-dashboard-responsive.md) |
+| [`module-status-management.md`](./module-status-management.md)                                                 | [`../../workflow/wont-do/module-status-management.md`](../../workflow/wont-do/module-status-management.md)                                                         |
+| [`unified-ai-settings-card.md`](./unified-ai-settings-card.md)                                                 | [`../../workflow/done/unified-ai-settings-card.md`](../../workflow/done/unified-ai-settings-card.md)                                                               |
+| [`verification-scope-split.md`](./verification-scope-split.md)                                                 | [`../../workflow/for-testing/verification-scope-split.md`](../../workflow/for-testing/verification-scope-split.md)                                                 |
+
+Back to [docs index](../README.md).

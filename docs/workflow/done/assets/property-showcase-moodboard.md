@@ -1,9 +1,9 @@
 ---
 title: 'Property Showcase — Moodboard'
-status: in-progress
+status: done
 tags: [workflow, showcase, design]
-updated: 2026-08-28
-stage: in-progress
+updated: 2026-11-04
+stage: done
 kind: reference
 ---
 

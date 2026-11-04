@@ -96,7 +96,7 @@ The admin dashboard (`ui/`, Vite + React 18 SPA) is broadly mobile‑mature: org
 pages route through one shared `AdminLayout` shell with a floating `BottomTabBar`, and nearly every
 list/settings page already uses the project's mobile primitives (`AdminMobilePage`, `FloatingToolbar`,
 `AdminSectionNavLayout`, `AdminListRefineSheet`, `ResponsiveModal`, `MobileChoiceSheet`). This plan
-extends [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md) (admin
+extends [`../../workflow/for-testing/mobile-native-redesign.md`](../../workflow/for-testing/mobile-native-redesign.md) (admin
 shell = done) into the two surfaces that still break on a 375px viewport, plus the leftover polish.
 
 Two areas do **not** hold up at 375px:
