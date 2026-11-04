@@ -124,6 +124,12 @@ test.describe('@pwa installability and lifecycle', () => {
 
     await context.setOffline(true);
     await page.goto('/properties/does-not-exist/form').catch(() => undefined);
+    // The shell HTML arrives from the precache; the app still has to mount before body has
+    // text. Offline that mount waits out the navigation network timeout, so poll instead of
+    // reading innerText once — in CI the single read landed before React painted.
+    await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, {
+      timeout: 30_000,
+    });
     const body = await page.locator('body').innerText();
     expect(body.length).toBeGreaterThan(0);
     expect(body).not.toContain('ERR_INTERNET_DISCONNECTED');
