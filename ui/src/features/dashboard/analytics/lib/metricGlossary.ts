@@ -21,7 +21,7 @@ export type AnalyticsMetricKey =
 
 export const ANALYTICS_METRIC_GLOSSARY: Record<AnalyticsMetricKey, string> = {
   forwardOccupancy:
-    "How full the next 30 days look compared with this property's own trailing 90-day baseline — not a fixed global threshold.",
+    "How full the next 30 days look compared with this property's own trailing 90-day baseline - not a fixed global threshold.",
   occupancy: 'Nights booked divided by nights available in the selected period.',
   adr: 'Average nightly rate. Lodging revenue divided by nights booked, before fees.',
   revpar:

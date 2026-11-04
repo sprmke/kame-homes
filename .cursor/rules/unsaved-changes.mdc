@@ -10,7 +10,7 @@ alwaysApply: true
 
 **Non-negotiable:** a new or changed UI in `ui/src/**` where the user edits
 fields and must press Save / Apply / Update must prompt before those edits are
-lost (route change, back button, tab close, modal close).
+lost (route change, back button, refresh, tab close, modal close).
 
 Full spec and recipes: **`unsaved-changes-guard`** skill
 (`.agent/skills/unsaved-changes-guard/SKILL.md`). Claude Code / OpenCode: invoke

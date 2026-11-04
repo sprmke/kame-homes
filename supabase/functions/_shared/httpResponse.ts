@@ -482,7 +482,10 @@ export async function readJsonBody(req: Request): Promise<Record<string, unknown
 }
 
 export function requireHttpMethod(req: Request, method: string): void {
-  if (req.method !== method) {
+  // HEAD is GET without a body: uptime monitors probe public read endpoints with it, and a
+  // 405 there reads as downtime. The runtime drops the body for a HEAD response.
+  const accepted = req.method === method || (method === 'GET' && req.method === 'HEAD');
+  if (!accepted) {
     // An EdgeError, not a bare Error: a caller using the wrong verb is a client mistake with
     // a well-defined status, not a runtime fault. A bare Error would resolve to 400 and, until
     // the capture rule below changed, page Sentry on every uptime probe and misconfigured client.

@@ -188,6 +188,65 @@ test.describe('@ci dashboard module shells', () => {
     await expect(page.locator('[data-tier-badge]').first()).toBeVisible();
   });
 
+  test('activity row opens the in-place detail and Back returns to the feed', async ({ page }) => {
+    await installPropertyTeamRbacMocks(page, 'full_access');
+    await page.route('**/functions/v1/list-activity-log*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            nextCursor: null,
+            events: [
+              {
+                id: 'evt-inline-detail',
+                createdAt: '2026-11-04T03:00:00.000Z',
+                organizationId: 'org-team-e2e-001',
+                propertyId: 'property-team-e2e-001',
+                parkingId: null,
+                scope: 'property',
+                actorType: 'org_owner',
+                actorUserId: null,
+                actorEmail: 'owner@example.com',
+                actorDisplayName: 'Property Owner',
+                actorRole: 'owner',
+                actorMemberId: null,
+                action: 'property.settings.updated',
+                category: 'settings',
+                severity: 'info',
+                targetType: null,
+                targetId: null,
+                targetLabel: null,
+                summary: 'Updated property settings',
+                changes: null,
+                metadata: {},
+                ipPrefix: null,
+                userAgent: null,
+                source: 'dashboard',
+                requestId: null,
+              },
+            ],
+          },
+        }),
+      })
+    );
+
+    await page.goto(teamRbacPaths.activity);
+    await expect(page.getByRole('heading', { name: 'Activity', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await page.getByRole('button', { name: /Updated property settings/ }).click();
+    const detailHeading = page.getByRole('heading', { name: 'Updated property settings' });
+    await expect(detailHeading).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Back' })).toBeInViewport();
+
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(detailHeading).not.toBeInViewport();
+    await expect(page.getByRole('searchbox', { name: 'Search activity' })).toBeInViewport();
+  });
+
   test('property activity log loads', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
     const activityReady = page.waitForResponse(

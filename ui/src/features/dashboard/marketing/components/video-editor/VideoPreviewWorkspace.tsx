@@ -335,7 +335,7 @@ export const VideoPreviewWorkspace = forwardRef<VideoPreviewWorkspaceHandle, Pro
           isFullscreen && 'h-dvh w-dvw'
         )}
       >
-        {/* Scrollable workspace — pan via drag; scrollbars hidden. */}
+        {/* Scrollable workspace - pan via drag; scrollbars hidden. */}
         <div
           ref={previewAreaRef}
           className={cn(

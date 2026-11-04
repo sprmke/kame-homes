@@ -23,7 +23,7 @@ async function signMetaPayload(rawBody: string, secret: string): Promise<string>
   return `sha256=${bytesToHex(new Uint8Array(sig))}`;
 }
 
-Deno.test('verifyMetaWebhookSignatureAsync — valid signature', async () => {
+Deno.test('verifyMetaWebhookSignatureAsync - valid signature', async () => {
   Deno.env.set('META_APP_ID', 'test_app_id');
   Deno.env.set('META_APP_SECRET', TEST_APP_SECRET);
 
@@ -34,7 +34,7 @@ Deno.test('verifyMetaWebhookSignatureAsync — valid signature', async () => {
   assert(ok);
 });
 
-Deno.test('verifyMetaWebhookSignatureAsync — rejects tampered body', async () => {
+Deno.test('verifyMetaWebhookSignatureAsync - rejects tampered body', async () => {
   Deno.env.set('META_APP_ID', 'test_app_id');
   Deno.env.set('META_APP_SECRET', TEST_APP_SECRET);
 
@@ -45,7 +45,7 @@ Deno.test('verifyMetaWebhookSignatureAsync — rejects tampered body', async () 
   assertEquals(ok, false);
 });
 
-Deno.test('verifyMetaWebhookSignatureAsync — rejects missing header', async () => {
+Deno.test('verifyMetaWebhookSignatureAsync - rejects missing header', async () => {
   Deno.env.set('META_APP_ID', 'test_app_id');
   Deno.env.set('META_APP_SECRET', TEST_APP_SECRET);
 

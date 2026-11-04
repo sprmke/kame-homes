@@ -91,7 +91,7 @@ export function PlaybookList({ articles, openSlug, onOpenSlugChange, className }
         </ul>
       ) : (
         <p className="text-muted-foreground text-sm">
-          Nothing matched right now — check back as your numbers change.
+          Nothing matched right now - check back as your numbers change.
         </p>
       )}
     </section>

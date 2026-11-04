@@ -417,7 +417,9 @@ function WorkflowPanelInner({
   });
 
   useEffect(() => {
-    if (!liveProgressAutosave || !subFormDrafts.progressDirty) return;
+    // After a quiet failure, stop retrying — Save reappears via liveAutosaveFailed.
+    // Retries on isPending flip would spam toasts (e.g. validation errors).
+    if (!liveProgressAutosave || liveAutosaveFailed || !subFormDrafts.progressDirty) return;
     if (!isEditableWorkflowProgressContent(workflowActions.viewedContent)) return;
     if (updateMut.isPending || transitionMut.isPending || cancelMut.isPending) return;
 
@@ -427,6 +429,7 @@ function WorkflowPanelInner({
     return () => window.clearTimeout(timer);
   }, [
     liveProgressAutosave,
+    liveAutosaveFailed,
     subFormDrafts.progressDirty,
     subFormDrafts.pricingValues,
     subFormDrafts.parkingValues,

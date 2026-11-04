@@ -36,6 +36,7 @@ const FIELD_SECTIONS: Record<string, PropertySettingsSectionId> = {
   'property-residence': 'basic',
   'property-tower': 'basic',
   'property-unit': 'basic',
+  'property-description': 'basic',
   'property-contact-name': 'basic',
   'property-contact-role': 'basic',
   'property-contact-phone': 'basic',
@@ -55,10 +56,12 @@ const FIELD_SECTIONS: Record<string, PropertySettingsSectionId> = {
   'property-unit-type': 'details',
   'property-check-in': 'details',
   'property-check-out': 'details',
+  'property-self-check-in': 'details',
   'property-address': 'location',
   'property-city': 'location',
   'property-province': 'location',
   'property-country': 'location',
+  'property-zip-code': 'location',
   'property-location-map': 'location',
   'payment-provider': 'payment',
   'payment-account-name': 'payment',
@@ -79,6 +82,8 @@ const FIELD_SECTIONS: Record<string, PropertySettingsSectionId> = {
   'guest-form-allow-surprise-decor': 'guest-form',
   'guest-form-preferred-owner-parking': 'guest-form',
   'guest-form-complimentary-owner-parking': 'guest-form',
+  'guest-form-cleaning-buffer': 'guest-form',
+  'cancellation-policy': 'cancellation',
   'cancellation-custom-title': 'cancellation',
   'cancellation-custom-description': 'cancellation',
 };
@@ -300,6 +305,7 @@ function dirtyFieldIdsInSection(
       }
       if (profileDraft.tower !== profileBaseline.tower) ids.push('property-tower');
       if (profileDraft.unitNumber !== profileBaseline.unitNumber) ids.push('property-unit');
+      if (descriptionDirty(profileDraft, profileBaseline)) ids.push('property-description');
       if (profileDraft.contactName.trim() !== profileBaseline.contactName.trim()) {
         ids.push('property-contact-name');
       }
@@ -387,20 +393,46 @@ function dirtyFieldIdsInSection(
       if (profileDraft.checkOutTime !== profileBaseline.checkOutTime) {
         ids.push('property-check-out');
       }
+      if (profileDraft.selfCheckIn !== profileBaseline.selfCheckIn) {
+        ids.push('property-self-check-in');
+      }
       break;
     case 'cancellation': {
       const draftPolicy = profileDraft.cancellationPolicy;
       const baselinePolicy = profileBaseline.cancellationPolicy;
-      if (draftPolicy.type === 'custom') {
-        if ((draftPolicy.customTitle ?? '') !== (baselinePolicy.customTitle ?? '')) {
-          ids.push('cancellation-custom-title');
-        }
-        if ((draftPolicy.customDescription ?? '') !== (baselinePolicy.customDescription ?? '')) {
-          ids.push('cancellation-custom-description');
+      if (!cancellationPolicySettingsEqual(draftPolicy, baselinePolicy)) {
+        ids.push('cancellation-policy');
+        if (draftPolicy.type === 'custom') {
+          if ((draftPolicy.customTitle ?? '') !== (baselinePolicy.customTitle ?? '')) {
+            ids.push('cancellation-custom-title');
+          }
+          if ((draftPolicy.customDescription ?? '') !== (baselinePolicy.customDescription ?? '')) {
+            ids.push('cancellation-custom-description');
+          }
         }
       }
       break;
     }
+    case 'guest-form':
+      if (profileDraft.allowPets !== profileBaseline.allowPets) {
+        ids.push('guest-form-allow-pets');
+      }
+      if (profileDraft.allowParking !== profileBaseline.allowParking) {
+        ids.push('guest-form-allow-parking');
+      }
+      if (profileDraft.allowSurpriseDecor !== profileBaseline.allowSurpriseDecor) {
+        ids.push('guest-form-allow-surprise-decor');
+      }
+      if (profileDraft.preferredOwnerParkingId !== profileBaseline.preferredOwnerParkingId) {
+        ids.push('guest-form-preferred-owner-parking');
+      }
+      if (profileDraft.complimentaryOwnerParking !== profileBaseline.complimentaryOwnerParking) {
+        ids.push('guest-form-complimentary-owner-parking');
+      }
+      if (profileDraft.cleaningBufferMinutes !== profileBaseline.cleaningBufferMinutes) {
+        ids.push('guest-form-cleaning-buffer');
+      }
+      break;
     case 'location':
       if (profileDraft.address.trim() !== profileBaseline.address.trim()) {
         ids.push('property-address');
@@ -411,6 +443,9 @@ function dirtyFieldIdsInSection(
       }
       if (profileDraft.country.trim() !== profileBaseline.country.trim()) {
         ids.push('property-country');
+      }
+      if (profileDraft.zipCode.trim() !== profileBaseline.zipCode.trim()) {
+        ids.push('property-zip-code');
       }
       if (
         profileDraft.latitude !== profileBaseline.latitude ||

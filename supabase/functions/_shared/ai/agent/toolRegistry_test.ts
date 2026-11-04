@@ -10,7 +10,7 @@ function declFor(name: string): ToolDeclaration {
 
 const ALL_DECLARATIONS: ToolDeclaration[] = Object.keys(ASSISTANT_TOOL_MODULES).map(declFor);
 
-Deno.test('widenToolsForModules — adds every tool for a requested module not already held', () => {
+Deno.test('widenToolsForModules - adds every tool for a requested module not already held', () => {
   const current = [declFor('search_knowledge_base')];
   const outcome = widenToolsForModules(current, ALL_DECLARATIONS, ['pricing']);
   assertEquals(outcome.addedModules, ['pricing']);
@@ -21,7 +21,7 @@ Deno.test('widenToolsForModules — adds every tool for a requested module not a
   assert(addedNames.includes('search_knowledge_base'), 'keeps what it already had');
 });
 
-Deno.test('widenToolsForModules — never duplicates a tool already in the current set', () => {
+Deno.test('widenToolsForModules - never duplicates a tool already in the current set', () => {
   const current = ALL_DECLARATIONS.filter((d) => ASSISTANT_TOOL_MODULES[d.name] === 'pricing');
   const outcome = widenToolsForModules(current, ALL_DECLARATIONS, ['pricing']);
   assertEquals(outcome.alreadyHadAll, true);
@@ -29,7 +29,7 @@ Deno.test('widenToolsForModules — never duplicates a tool already in the curre
 });
 
 Deno.test(
-  'widenToolsForModules — reports an unknown module instead of silently dropping it',
+  'widenToolsForModules - reports an unknown module instead of silently dropping it',
   () => {
     const outcome = widenToolsForModules([], ALL_DECLARATIONS, ['not_a_real_module']);
     assertEquals(outcome.addedModules, []);
@@ -39,7 +39,7 @@ Deno.test(
 );
 
 Deno.test(
-  'widenToolsForModules — a mix of known and unknown modules only widens the known one',
+  'widenToolsForModules - a mix of known and unknown modules only widens the known one',
   () => {
     const outcome = widenToolsForModules([], ALL_DECLARATIONS, ['finance', 'nonsense']);
     assertEquals(outcome.addedModules, ['finance']);
@@ -49,7 +49,7 @@ Deno.test(
   }
 );
 
-Deno.test('widenToolsForModules — requesting two modules at once adds both', () => {
+Deno.test('widenToolsForModules - requesting two modules at once adds both', () => {
   const outcome = widenToolsForModules([], ALL_DECLARATIONS, ['finance', 'maintenance']);
   const modulesSeen = new Set(outcome.tools.map((t) => ASSISTANT_TOOL_MODULES[t.name]));
   assertEquals(modulesSeen.size, 2);
@@ -57,7 +57,7 @@ Deno.test('widenToolsForModules — requesting two modules at once adds both', (
   assert(modulesSeen.has('maintenance'));
 });
 
-Deno.test('REQUEST_TOOLS_DECLARATION — every module in its enum is a real routed module', () => {
+Deno.test('REQUEST_TOOLS_DECLARATION - every module in its enum is a real routed module', () => {
   const enumValues = (
     REQUEST_TOOLS_DECLARATION.parameters.properties as {
       modules: { items: { enum: string[] } };

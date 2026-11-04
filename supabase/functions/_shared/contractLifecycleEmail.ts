@@ -9,8 +9,7 @@ import { loadAuthUserProfile } from './authUserProfile.ts';
 import type { ContractLeg, ContractNoticeMilestone } from './contractLifecycle.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { escapeHtml, loadEmailTemplate, replacePlaceholders } from './renderEmailHtml.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 const MILESTONE_COPY: Record<
   Extract<
@@ -41,7 +40,7 @@ const MILESTONE_COPY: Record<
     body: 'Tomorrow this listing will be taken offline. Renew your contract or use Request consideration during the grace window.',
   },
   t_plus_0_archived: {
-    subject: 'Listing offline — contract ended',
+    subject: 'Listing offline - contract ended',
     headline: 'Your listing is now offline',
     body: 'The contract end date has passed. You have a short grace period to renew or request consideration.',
   },
@@ -74,14 +73,14 @@ export async function sendContractLifecycleNoticeEmail(opts: {
 }): Promise<void> {
   const owner = await loadAuthUserProfile(opts.supabase, opts.ownerId);
   if (!owner.email?.trim()) {
-    console.warn('[contractLifecycleEmail] owner has no email — skip');
+    console.warn('[contractLifecycleEmail] owner has no email - skip');
     return;
   }
 
   const resendKey = Deno.env.get('RESEND_API_KEY')?.trim();
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!resendKey || !fromEmail) {
-    console.warn('[contractLifecycleEmail] RESEND missing — skip');
+    console.warn('[contractLifecycleEmail] RESEND missing - skip');
     return;
   }
 
@@ -107,22 +106,11 @@ export async function sendContractLifecycleNoticeEmail(opts: {
     brandColor: null,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [owner.email],
-      subject: `${copy.subject} — ${opts.organizationName} (${legLabel})`,
-      html,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [owner.email],
+    subject: `${copy.subject} - ${opts.organizationName} (${legLabel})`,
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend failed (${res.status}): ${body.slice(0, 200)}`);
-  }
 }

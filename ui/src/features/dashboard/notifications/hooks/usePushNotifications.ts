@@ -43,7 +43,15 @@ export function usePushNotifications() {
   const enable = useCallback(async () => {
     setBusy(true);
     try {
-      setState(await enablePush());
+      const next = await enablePush();
+      setState(next);
+      if (next.subscribed) {
+        toast.success('Notifications on for this device');
+      } else if (next.permission === 'denied') {
+        toast.error('Notifications are blocked. Allow them in your browser settings.');
+      } else {
+        toast.error('Permission not granted. Notifications stayed off.');
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't turn on notifications.");
       setState(await getPushState());
@@ -55,7 +63,9 @@ export function usePushNotifications() {
   const disable = useCallback(async () => {
     setBusy(true);
     try {
-      setState(await disablePush());
+      const next = await disablePush();
+      setState(next);
+      if (!next.subscribed) toast.success('Notifications off for this device');
     } catch {
       setState(await getPushState());
     } finally {

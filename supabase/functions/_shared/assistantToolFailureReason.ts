@@ -85,16 +85,16 @@ export function hostFacingToolFailureReason(error: string | null | undefined): s
 }
 
 const MODEL_FACING_HINT: Record<ToolFailureClass, string> = {
-  scope_missing: 'Do not retry as-is — call it again with the specific property or parking scope.',
+  scope_missing: 'Do not retry as-is - call it again with the specific property or parking scope.',
   permission_denied:
-    "Do not retry — the host's role cannot access this. Tell them plainly and move on.",
+    "Do not retry - the host's role cannot access this. Tell them plainly and move on.",
   plan_denied:
-    "Do not retry — this is not included in the host's current plan. Tell them plainly and move on.",
-  not_found: 'Do not retry with the same id — confirm the target exists first, or tell the host.',
+    "Do not retry - this is not included in the host's current plan. Tell them plainly and move on.",
+  not_found: 'Do not retry with the same id - confirm the target exists first, or tell the host.',
   retryable:
-    'This looks temporary — retry once with the same arguments, then tell the host if it fails again.',
+    'This looks temporary - retry once with the same arguments, then tell the host if it fails again.',
   invalid_arguments:
-    'Do not retry as-is — fix the arguments (likely missing or malformed) and try again.',
+    'Do not retry as-is - fix the arguments (likely missing or malformed) and try again.',
   unknown: 'Do not retry more than once. If it fails again, tell the host plainly and move on.',
 };
 

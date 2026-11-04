@@ -52,7 +52,7 @@ Deno.test('unfoldIcsLines merges folded continuation lines', () => {
   assertEquals(lines[1], 'SUMMARY:two');
 });
 
-Deno.test('parseIcsDateToKey — VALUE=DATE and datetime forms', () => {
+Deno.test('parseIcsDateToKey - VALUE=DATE and datetime forms', () => {
   assertEquals(parseIcsDateToKey('20260112', 'VALUE=DATE'), '2026-01-12');
   assertEquals(parseIcsDateToKey('20260230', 'VALUE=DATE'), null); // Feb 30 invalid
   // 2026-01-11 23:00 UTC → 2026-01-12 07:00 Manila
@@ -61,7 +61,7 @@ Deno.test('parseIcsDateToKey — VALUE=DATE and datetime forms', () => {
   assertEquals(parseIcsDateToKey('20260111T230000', ''), '2026-01-11');
 });
 
-Deno.test('parseIcsCalendar — Airbnb reservations + blocks, DTEND exclusive', () => {
+Deno.test('parseIcsCalendar - Airbnb reservations + blocks, DTEND exclusive', () => {
   const parsed = parseIcsCalendar(AIRBNB_RESERVATIONS, 'airbnb', true);
   assert(parsed.valid);
   assert(!parsed.empty);
@@ -80,13 +80,13 @@ Deno.test('parseIcsCalendar — Airbnb reservations + blocks, DTEND exclusive', 
   assertEquals(block.confirmationCode, null);
 });
 
-Deno.test('parseIcsCalendar — non-calendar body is invalid, not empty', () => {
+Deno.test('parseIcsCalendar - non-calendar body is invalid, not empty', () => {
   const html = parseIcsCalendar('<html><body>maintenance</body></html>', 'airbnb', false);
   assertEquals(html.valid, false);
   assertEquals(html.empty, false);
 });
 
-Deno.test('parseIcsCalendar — valid but empty VCALENDAR', () => {
+Deno.test('parseIcsCalendar - valid but empty VCALENDAR', () => {
   const body = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n';
   const parsed = parseIcsCalendar(body, 'airbnb', false);
   assertEquals(parsed.valid, true);
@@ -94,7 +94,7 @@ Deno.test('parseIcsCalendar — valid but empty VCALENDAR', () => {
   assertEquals(parsed.events.length, 0);
 });
 
-Deno.test('parseIcsCalendar — bad single VEVENT is skipped, run continues', () => {
+Deno.test('parseIcsCalendar - bad single VEVENT is skipped, run continues', () => {
   const body = [
     'BEGIN:VCALENDAR',
     'BEGIN:VEVENT',
@@ -117,7 +117,7 @@ Deno.test('parseIcsCalendar — bad single VEVENT is skipped, run continues', ()
   assert(parsed.warnings.some((w) => w.includes('bad@x')));
 });
 
-Deno.test('parseIcsCalendar — duplicate UID keeps the last', () => {
+Deno.test('parseIcsCalendar - duplicate UID keeps the last', () => {
   const body = [
     'BEGIN:VCALENDAR',
     'BEGIN:VEVENT',
@@ -159,7 +159,7 @@ Deno.test('description parsers', () => {
   assertEquals(phoneLast4FromDescription('Phone Number (Last 4 Digits): 4321'), '4321');
 });
 
-Deno.test('diffFeed — create / reschedule / touch / remove', () => {
+Deno.test('diffFeed - create / reschedule / touch / remove', () => {
   const events = parseIcsCalendar(AIRBNB_RESERVATIONS, 'airbnb', true).events;
   const current: CurrentBlockRow[] = [
     // same UID, different dates → reschedule
@@ -193,7 +193,7 @@ Deno.test('diffFeed — create / reschedule / touch / remove', () => {
   assertEquals(diff.touches.length, 0);
 });
 
-Deno.test('diffFeed — unchanged dates → touch, summaryChanged flag', () => {
+Deno.test('diffFeed - unchanged dates → touch, summaryChanged flag', () => {
   const events = parseIcsCalendar(AIRBNB_RESERVATIONS, 'airbnb', true).events;
   const current: CurrentBlockRow[] = [
     {
@@ -210,14 +210,14 @@ Deno.test('diffFeed — unchanged dates → touch, summaryChanged flag', () => {
   assertEquals(diff.touches[0].summaryChanged, true);
 });
 
-Deno.test('dateRangesOverlap — half-open, turnover day is free', () => {
+Deno.test('dateRangesOverlap - half-open, turnover day is free', () => {
   assert(dateRangesOverlap('2026-01-10', '2026-01-15', '2026-01-14', '2026-01-16'));
   assert(!dateRangesOverlap('2026-01-10', '2026-01-15', '2026-01-15', '2026-01-18')); // checkout == checkin
   assert(!dateRangesOverlap('2026-01-10', '2026-01-15', '2026-01-05', '2026-01-10'));
 });
 
 Deno.test(
-  'buildExportCalendar — sorted, PII-free, folds long lines, excludes nothing given',
+  'buildExportCalendar - sorted, PII-free, folds long lines, excludes nothing given',
   () => {
     const ics = buildExportCalendar({
       calendarName: 'Monaco 2604 (GFM)',
@@ -256,13 +256,13 @@ Deno.test('ymdToMmDdYyyy / nightsBetween', () => {
   assertEquals(nightsBetween('2026-01-15', '2026-01-15'), 0);
 });
 
-Deno.test('hashFeedBody — CRLF-insensitive, stable', async () => {
+Deno.test('hashFeedBody - CRLF-insensitive, stable', async () => {
   const a = await hashFeedBody('BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n');
   const b = await hashFeedBody('BEGIN:VCALENDAR\nEND:VCALENDAR\n');
   assertEquals(a, b);
 });
 
-Deno.test('normalizeExternalIcsUrl — webcal to https', () => {
+Deno.test('normalizeExternalIcsUrl - webcal to https', () => {
   assertEquals(
     normalizeExternalIcsUrl('webcal://www.airbnb.com/calendar/ical/abc123.ics'),
     'https://www.airbnb.com/calendar/ical/abc123.ics'
@@ -273,7 +273,7 @@ Deno.test('normalizeExternalIcsUrl — webcal to https', () => {
   );
 });
 
-Deno.test('fetchExternalIcs — SSRF guard rejects non-https and private targets', async () => {
+Deno.test('fetchExternalIcs - SSRF guard rejects non-https and private targets', async () => {
   for (const [url, provider] of [
     ['http://www.airbnb.com/x.ics', 'airbnb'],
     ['https://169.254.169.254/latest/meta-data', 'other'],

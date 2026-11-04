@@ -2293,7 +2293,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                     {form.watch('needParking') && (
                       <div className="border-primary/20 bg-primary/5 space-y-2 rounded-lg border p-4 pt-4">
                         <p className="text-foreground text-sm font-medium">
-                          Good news — you don't need to add vehicle or date details here.
+                          Good news: you don't need to add vehicle or date details here.
                         </p>
                         <p className="text-muted-foreground text-sm">
                           Once your booking is confirmed, we'll send you a link to reserve and pay
@@ -2720,7 +2720,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                   </div>
                 )}
 
-                {/* Developer API Controls (non-production only) — shown on the last step */}
+                {/* Developer API Controls (non-production only) - shown on the last step */}
                 {showDevControls && currentStep === guestFormStepCount && (
                   <div className="border-border/80 bg-muted/20 space-y-4 rounded-xl border border-dashed px-4 py-4">
                     <div className="border-separator flex items-center gap-3 border-b pb-3">

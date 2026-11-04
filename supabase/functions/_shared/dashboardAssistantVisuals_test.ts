@@ -428,7 +428,7 @@ Deno.test('entityCardsFromListResult maps inbox threads', () => {
   assertEquals(cards[0]?.entityType, 'inbox_thread');
 });
 
-Deno.test('hydrateVisualBlocks — need-a-reply uses inbox entity cards', () => {
+Deno.test('hydrateVisualBlocks - need-a-reply uses inbox entity cards', () => {
   const out = hydrateVisualBlocks(
     [{ type: 'text', text: 'Two threads are waiting.' }],
     [

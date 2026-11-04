@@ -2,7 +2,7 @@
 title: 'Unsaved-changes guard — leave / close confirmation for every editable surface'
 status: active
 tags: [architecture, ui, forms, router, ux]
-updated: 2026-09-27
+updated: 2026-11-04
 ---
 
 # Unsaved-changes guard
@@ -26,8 +26,11 @@ or closing a modal/sheet (X, Esc, backdrop, Cancel) opens a confirmation:
 If validation blocks the save (or the request fails) the user stays, sees the
 field errors / toast, and nothing is lost. If a surface cannot save from where it
 is, only **Keep editing** and **Discard** are shown ("Discard your changes?").
-Tab close / refresh uses the browser's native `beforeunload` prompt (custom text
-is not allowed by browsers).
+
+Refreshing with the keyboard (**F5**, **Cmd/Ctrl+R**) opens the same app dialog,
+with **Save & leave** / **Discard** reloading the page. Browsers do not allow
+custom UI inside `beforeunload`, so the toolbar reload button, tab close, and
+browser menu reload still show the native browser prompt as a last resort.
 
 ## Architecture
 
@@ -42,16 +45,17 @@ main.tsx  createBrowserRouter([{ path: '*', element: <AppShell/> }])
    useGuardedClose(...)          modals / sheets / inline editors (also registers globally)
 ```
 
-| Piece                                          | Path                                                   |
-| ---------------------------------------------- | ------------------------------------------------------ |
-| Router (data router, required by `useBlocker`) | `ui/src/main.tsx`                                      |
-| Provider (blocker, `beforeunload`, dialog)     | `ui/src/components/forms/UnsavedChangesProvider.tsx`   |
-| Context + `useUnsavedChangesContext`           | `ui/src/components/forms/unsavedChangesContext.ts`     |
-| Confirm dialog (`AlertDialog`)                 | `ui/src/components/forms/UnsavedChangesDialog.tsx`     |
-| Page/card hook + `useRunUnguarded`             | `ui/src/hooks/useUnsavedChangesGuard.ts`               |
-| Modal hook                                     | `ui/src/hooks/useGuardedClose.ts`                      |
-| Registry (dirty getters, save-all, discard)    | `ui/src/lib/unsavedChanges/registry.ts` (+ `.test.ts`) |
-| E2E                                            | `ui/e2e/features/org/unsavedChangesGuard.spec.ts`      |
+| Piece                                                   | Path                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------ |
+| Router (data router, required by `useBlocker`)          | `ui/src/main.tsx`                                            |
+| Provider (blocker, `beforeunload`, reload keys, dialog) | `ui/src/components/forms/UnsavedChangesProvider.tsx`         |
+| Context + `useUnsavedChangesContext`                    | `ui/src/components/forms/unsavedChangesContext.ts`           |
+| Confirm dialog (`AlertDialog`)                          | `ui/src/components/forms/UnsavedChangesDialog.tsx`           |
+| Page/card hook + `useRunUnguarded`                      | `ui/src/hooks/useUnsavedChangesGuard.ts`                     |
+| Modal hook                                              | `ui/src/hooks/useGuardedClose.ts`                            |
+| Registry (dirty getters, save-all, discard)             | `ui/src/lib/unsavedChanges/registry.ts` (+ `.test.ts`)       |
+| Refresh shortcut predicate                              | `ui/src/lib/unsavedChanges/reloadShortcut.ts` (+ `.test.ts`) |
+| E2E                                                     | `ui/e2e/features/org/unsavedChangesGuard.spec.ts`            |
 
 ### Design decisions
 
@@ -70,6 +74,10 @@ main.tsx  createBrowserRouter([{ path: '*', element: <AppShell/> }])
   commit and proceeds silently if everything is clean. Redirects that cannot rely
   on that (slug rename, create-then-open) use `useRunUnguarded()`.
 - **No provider, no-op.** Outside the provider (isolated tests) the hooks do nothing.
+- **Custom refresh dialog, native fallback.** The provider intercepts `F5` and
+  `Cmd/Ctrl+R` while a guard is dirty and shows the app dialog (Discard reloads;
+  Save & leave saves first). The toolbar reload button and tab close cannot be
+  intercepted, so `beforeunload` keeps the browser's native prompt there.
 
 ## Adding a guard
 

@@ -509,7 +509,7 @@ export function BookingCard({
             Reserve
           </Button>
 
-          {/* Price Breakdown — shows once dates are selected */}
+          {/* Price Breakdown - shows once dates are selected */}
           <div className="space-y-3 pt-4">
             {hasDates && nightsCount && staySubtotal != null && grandTotal != null && (
               <>
@@ -556,7 +556,7 @@ export function BookingCard({
         </div>
       </div>
 
-      {/* Calendar Modal — parent renders when dates are controlled externally */}
+      {/* Calendar Modal - parent renders when dates are controlled externally */}
       {!calendarControlled ? (
         <BookingCalendarModal
           open={calendarOpen}

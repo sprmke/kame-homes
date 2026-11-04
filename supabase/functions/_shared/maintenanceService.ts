@@ -262,7 +262,7 @@ function summarizeMaintenanceItems(
     if (item.completed_at) completed += 1;
     else pending += 1;
 
-    const key = item.category?.trim() || '—';
+    const key = item.category?.trim() || '-';
     categoryCounts.set(key, (categoryCounts.get(key) ?? 0) + 1);
   }
 

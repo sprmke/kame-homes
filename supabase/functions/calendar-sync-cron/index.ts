@@ -169,7 +169,7 @@ serve(async (req) => {
 
     for (const feed of feeds) {
       if (Date.now() - startedAt > TIME_BUDGET_MS) {
-        console.log('[calendar-sync-cron] time budget hit — remaining feeds pick up next tick');
+        console.log('[calendar-sync-cron] time budget hit - remaining feeds pick up next tick');
         break;
       }
 

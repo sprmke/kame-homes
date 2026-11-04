@@ -27,6 +27,9 @@ targets=(
   get-sd-form/index.ts
   list-public-properties/index.ts
   update-booking-details/index.ts
+  # Public page editors — added after the 2026-11-04 boot error (duplicate `const row`)
+  # left Stay Guide / Showcase stuck on the skeleton.
+  public-page-configs/index.ts
   _shared/bookingAssetTypes.ts
   _shared/bookingDetailsPatch.ts
   _shared/cors.ts

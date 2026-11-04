@@ -36,7 +36,7 @@ way to add or edit Playbook content — the 17 launch articles came from a seed 
 
 ## Host-facing knowledge
 
-_(Platform operator, not a host — this page isn't visible to hosts.)_
+_(Platform operator, not a host. This page is not visible to hosts.)_
 
 **Common host questions**
 
@@ -45,7 +45,7 @@ _(Platform operator, not a host — this page isn't visible to hosts.)_
   active/inactive, or delete from there.
 - Q: What does "Applies when" control?
   A: A JSON condition (`{"metric": "...", "op": "...", "value": ...}`) evaluated against a
-  property's analytics bundle — it decides which properties see this article on their Analytics
+  property's analytics bundle - it decides which properties see this article on their Analytics
   page and whether the AI review can cite it. Leave it as `{}` to always match.
 - Q: What happens to hosts' pages if I delete an article the AI review already cited?
   A: The citation chip simply won't resolve to anything on that already-generated review; new

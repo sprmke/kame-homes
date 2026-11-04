@@ -2,7 +2,7 @@
 title: 'Super Admin — Organizations & Organization hub — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-10 (Activity tab: platform-actions / org-activity toggle)
+updated: 2026-11-04 (header aligned with AdminPageHeader; slug/owner moved to Settings → Details)
 ---
 
 # Super Admin — Organizations & Organization hub
@@ -61,11 +61,10 @@ doing it from the dedicated `/admin/pricing/subscriptions` or `/admin/approvals`
 - **Hub shell** (`SuperAdminOrgShell`): loads `get-organization-admin?slug=` once and provides it
   to every section via `SuperAdminOrgContext` (`useSuperAdminOrgContext`) — plain React context,
   not router outlet context, since sections are no longer separate routes. Header uses the shared
-  `SuperAdminDetailHeader` (same component as the Host detail page): a colored icon tile identifies
-  the entity as an organization, the plan badge + a total "open" count (pending approvals + open
-  tickets) sit next to the title, and a `details` row below shows the org's dashboard link
-  (`/:slug`, opens `orgDashboardPath` in a new tab) and the owner name — each its own labelled,
-  icon-prefixed item instead of one squished subtitle string. The whole page is one
+  `AdminPageHeader` compact variant (same as the Development detail page and other `/admin/*`
+  pages): back link, org name, plan badge, a one-line subtitle, and an **Open dashboard** button
+  that opens `orgDashboardPath` in a new tab. Slug, owner, and created date live in Settings →
+  Details, so the header stays consistent with the rest of the console. The whole page is one
   `AdminSectionNavLayout` (same component as Property/Org/Development Settings): a sticky left nav
   card with a sliding active-pill highlight at `lg+`, content in a single scrollable column,
   `AdminSection` anchors keyed `overview`/`subscription`/`listings`/`approvals`/`ai`/`support`/

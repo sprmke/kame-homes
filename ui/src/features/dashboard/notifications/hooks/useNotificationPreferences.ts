@@ -25,30 +25,32 @@ export function useNotificationPreferences() {
   });
 
   const save = useMutation({
-    mutationFn: saveNotificationPreferences,
-    onMutate: async (next) => {
+    mutationFn: ({ next }: { next: NotificationPreferences; successMessage?: string }) =>
+      saveNotificationPreferences(next),
+    onMutate: async ({ next }) => {
       await qc.cancelQueries({ queryKey: NOTIFICATION_PREFERENCES_QUERY_KEY });
       const previous = qc.getQueryData<NotificationPreferences>(NOTIFICATION_PREFERENCES_QUERY_KEY);
       qc.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, next);
       return { previous };
     },
-    onError: (err, _next, ctx) => {
+    onError: (err, _vars, ctx) => {
       if (ctx?.previous) {
         qc.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, ctx.previous);
       }
       toast.error(err instanceof Error ? err.message : "Couldn't save preferences.");
     },
-    onSuccess: (saved) => {
+    onSuccess: (saved, vars) => {
       qc.setQueryData(NOTIFICATION_PREFERENCES_QUERY_KEY, saved);
+      if (vars.successMessage) toast.success(vars.successMessage);
     },
   });
 
   const update = useCallback(
-    (patch: Partial<NotificationPreferences>) => {
+    (patch: Partial<NotificationPreferences>, successMessage?: string) => {
       const current =
         qc.getQueryData<NotificationPreferences>(NOTIFICATION_PREFERENCES_QUERY_KEY) ??
         DEFAULT_NOTIFICATION_PREFERENCES;
-      save.mutate({ ...current, ...patch });
+      save.mutate({ next: { ...current, ...patch }, successMessage });
     },
     [qc, save]
   );

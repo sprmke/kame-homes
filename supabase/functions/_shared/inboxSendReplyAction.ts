@@ -72,7 +72,7 @@ export async function sendInboxReply(
 
   if (attachments.length > 0 && conv.platform !== 'web') {
     throw new InboxSendReplyError(
-      'Attachments are only supported for website chat — send text only on Messenger or Instagram'
+      'Attachments are only supported for website chat - send text only on Messenger or Instagram'
     );
   }
 
@@ -124,7 +124,7 @@ export async function sendInboxReply(
     .eq('id', conv.connection_id)
     .maybeSingle();
   if (conn?.status !== 'connected') {
-    throw new InboxSendReplyError('This channel is disconnected — reconnect Meta to reply');
+    throw new InboxSendReplyError('This channel is disconnected - reconnect Meta to reply');
   }
   if (!conn?.encrypted_access_token || !conn.meta_page_id) {
     throw new InboxSendReplyError('Channel not connected');
@@ -146,7 +146,7 @@ export async function sendInboxReply(
       const withinStandardWindow = isWithinMessagingWindowFromInbound(conv.last_inbound_at);
       const withinHumanAgentWindow = isWithinHumanAgentWindowFromInbound(conv.last_inbound_at);
       if (!withinStandardWindow && !(opts.useHumanAgentTag === true && withinHumanAgentWindow)) {
-        throw new InboxSendReplyError('Reply window closed — guest must message again');
+        throw new InboxSendReplyError('Reply window closed - guest must message again');
       }
       const result = await sendMetaMessage({
         pageId: connection.meta_page_id,

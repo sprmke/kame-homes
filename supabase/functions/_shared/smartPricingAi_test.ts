@@ -115,7 +115,7 @@ Deno.test('parseSmartPricingAiJson: bare, fenced, and embedded JSON', () => {
 Deno.test('shapeSmartPricingAiOutput: clamps counts + lengths, drops malformed entries', () => {
   const raw = {
     seasonRationales: [
-      { label: 'Christmas', text: 'Peak demand — priced up.' },
+      { label: 'Christmas', text: 'Peak demand - priced up.' },
       { label: '', text: 'no label' },
       { label: 'x', text: '' },
       { label: 'L'.repeat(80), text: 'T'.repeat(300) },
@@ -129,7 +129,7 @@ Deno.test('shapeSmartPricingAiOutput: clamps counts + lengths, drops malformed e
   };
   const out = shapeSmartPricingAiOutput(raw, false, false);
   assertEquals(out.seasonRationales.length, 5); // capped at 5 (malformed entries dropped first)
-  assertEquals(out.seasonRationales[0], { label: 'Christmas', text: 'Peak demand — priced up.' });
+  assertEquals(out.seasonRationales[0], { label: 'Christmas', text: 'Peak demand - priced up.' });
   assertEquals(out.seasonRationales[1].label.length, 60); // over-long label sliced
   assertEquals(out.seasonRationales[1].text.length, 240); // over-long text sliced
   assertEquals(out.warnings, ['w1', 'w2', 'w3', 'w4']); // non-strings + empty dropped, capped at 4

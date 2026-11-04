@@ -128,7 +128,6 @@ export function ReviewPricingForm({
     watch,
     setValue,
     formState: { errors, isValid },
-    getValues,
     trigger,
   } = useForm<ReviewPricingFormValues>({
     resolver: zodResolver(schema),
@@ -172,6 +171,40 @@ export function ReviewPricingForm({
   const [revealErrors, setRevealErrors] = useState(false);
   const shownErrors = revealErrors ? errors : {};
 
+  // `watch()` / `getValues()` often yield strings from <input type="number">.
+  // Coerce before math and before emitting drafts — update-booking-details rejects
+  // non-number money fields (`booking_rate must be a number`), and string math
+  // concatenates (e.g. 3499 + "700" → "3499700").
+  const bookingRate = toNullableNumber(watch('booking_rate')) ?? 0;
+  const downPayment = toNullableNumber(watch('down_payment')) ?? 0;
+  const securityDeposit = toNullableNumber(watch('security_deposit')) ?? 0;
+  const petFee = hasPets ? (toNullableNumber(watch('pet_fee')) ?? 0) : 0;
+  const parkingRateGuest = needParking ? (toNullableNumber(watch('parking_rate_guest')) ?? 0) : 0;
+  const additionalFee = toNullableNumber(watch('guest_additional_fee')) ?? 0;
+  const appliedVoucherDiscount = toNullableNumber(watch('applied_voucher_discount_php')) ?? null;
+
+  const emitPricingDraft = useCallback((): ReviewPricingFormValues => {
+    return {
+      booking_rate: bookingRate,
+      down_payment: downPayment,
+      security_deposit: securityDeposit,
+      pet_fee: petFee,
+      parking_rate_guest: parkingRateGuest,
+      guest_additional_fee: additionalFee,
+      ...(appliedVoucherDiscount != null
+        ? { applied_voucher_discount_php: appliedVoucherDiscount }
+        : {}),
+    };
+  }, [
+    bookingRate,
+    downPayment,
+    securityDeposit,
+    petFee,
+    parkingRateGuest,
+    additionalFee,
+    appliedVoucherDiscount,
+  ]);
+
   const validateForProceed = useCallback(async () => {
     if (readOnly) return true;
     const ok = await trigger();
@@ -180,20 +213,13 @@ export function ReviewPricingForm({
       focusFirstWorkflowFieldError();
       return false;
     }
-    // Emit values immediately — parent draft must be ready before confirm opens.
-    onChange(getValues() as ReviewPricingFormValues);
+    // Emit coerced numbers — parent draft must be ready before confirm opens.
+    onChange(emitPricingDraft());
     return true;
-  }, [readOnly, trigger, onChange, getValues]);
+  }, [readOnly, trigger, onChange, emitPricingDraft]);
 
   useRegisterWorkflowProceedValidator('pricing', validateForProceed, !readOnly);
 
-  // `watch()` often yields strings from <input type="number"> — coerce before math
-  // or `n + "700"` becomes string concat (e.g. 3499 + "700" → "3499700").
-  const bookingRate = toNullableNumber(watch('booking_rate')) ?? 0;
-  const downPayment = toNullableNumber(watch('down_payment')) ?? 0;
-  const securityDeposit = toNullableNumber(watch('security_deposit')) ?? 0;
-  const petFee = hasPets ? (toNullableNumber(watch('pet_fee')) ?? 0) : 0;
-  const additionalFee = toNullableNumber(watch('guest_additional_fee')) ?? 0;
   const totalGuestBalance =
     computeTotalGuestBalance({
       ...booking,
@@ -207,22 +233,11 @@ export function ReviewPricingForm({
   useEffect(() => {
     if (readOnly) return;
     if (editMode || isValid) {
-      onChange(getValues() as ReviewPricingFormValues);
+      onChange(emitPricingDraft());
     } else {
       onChange(null);
     }
-  }, [
-    readOnly,
-    editMode,
-    bookingRate,
-    downPayment,
-    securityDeposit,
-    petFee,
-    additionalFee,
-    isValid,
-    getValues,
-    onChange,
-  ]);
+  }, [readOnly, editMode, isValid, emitPricingDraft, onChange]);
 
   const cardTitle = variant === 'edit' ? workflowFormEditTitle('Review pricing') : 'Review pricing';
 

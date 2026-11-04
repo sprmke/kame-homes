@@ -630,7 +630,7 @@ export async function assertActionSafeToExecute(input: ActionSafetyCheckInput): 
   // whose recomputed tier is Tier 1 (it was escalated for bulk / untrusted content) is safe.
   if (!isTierSufficient(input.expectedTier, recomputedTier)) {
     throw new Error(
-      `Action-safety guard: risk tier mismatch for "${input.toolName}" — expected "${input.expectedTier}", recomputed "${recomputedTier}" from current DB state. Execution blocked.`
+      `Action-safety guard: risk tier mismatch for "${input.toolName}" - expected "${input.expectedTier}", recomputed "${recomputedTier}" from current DB state. Execution blocked.`
     );
   }
 }

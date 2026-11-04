@@ -118,7 +118,7 @@ function notifySectionTitle(
 }
 
 function formatPeso(amount: number | null | undefined): string {
-  if (amount == null || !Number.isFinite(Number(amount))) return '—';
+  if (amount == null || !Number.isFinite(Number(amount))) return '-';
   return `₱${Number(amount).toLocaleString('en-PH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -195,7 +195,7 @@ export function buildGuestTripCtaHtml(
 export function buildStayGuideCtaHtml(stayGuideUrl: string, brandColor: string): string {
   if (!stayGuideUrl.trim()) return '';
   const ctaStyle = withEmailShellStyleVars({}, brandColor).emailShellCtaBtnStyle;
-  return `${notifySectionTitle('Your stay guide', brandColor)}<p style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#333333;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Everything for check-in through check-out — house rules, parking, and unit instructions — in one place on your phone.</p><div class="cta-wrap" style="margin:8px 0 24px 0;text-align:center;"><a class="cta-btn" style="${ctaStyle}" href="${escapeHtml(stayGuideUrl)}" target="_blank" rel="noopener">Open Stay Guide</a></div>`;
+  return `${notifySectionTitle('Your stay guide', brandColor)}<p style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#333333;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">Everything for check-in through check-out in one place on your phone: house rules, parking, and unit instructions.</p><div class="cta-wrap" style="margin:8px 0 24px 0;text-align:center;"><a class="cta-btn" style="${ctaStyle}" href="${escapeHtml(stayGuideUrl)}" target="_blank" rel="noopener">Open Stay Guide</a></div>`;
 }
 
 export function buildGafUpdateNoticeHtml(unitLabel: string): string {
@@ -387,7 +387,7 @@ function buildParkingSelfServeCalloutHtml(parkingUrl: string | null | undefined)
   const titleStyle =
     "display:block;margin-bottom:6px;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#7a5a32;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;";
   const strongStyle = 'color:#5c4428;font-weight:700;';
-  return `<table role="presentation" class="callout-outer callout-parking" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 0 0;width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="${tdStyle}"><strong class="callout-title" style="${titleStyle}">Need parking?</strong>You mentioned you'd like paid parking for your stay. Reserve and pay for a spot separately — <a href="${escapeHtml(url)}" class="callout-strong" style="${strongStyle}text-decoration:underline;">find parking near your stay</a>.</td></tr></table>`;
+  return `<table role="presentation" class="callout-outer callout-parking" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 0 0;width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="${tdStyle}"><strong class="callout-title" style="${titleStyle}">Need parking?</strong>You mentioned you'd like paid parking for your stay. Reserve and pay for a spot separately, or <a href="${escapeHtml(url)}" class="callout-strong" style="${strongStyle}text-decoration:underline;">find parking near your stay</a>.</td></tr></table>`;
 }
 
 export function buildReadyForCheckinBookingSummarySectionHtml(input: {
@@ -532,16 +532,16 @@ export function buildDocumentRemindersSectionFromBooking(
   const docReminderCardStyle = `padding:18px 20px;background-color:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${accent};border-radius:16px;color:#334155;font-size:14px;line-height:1.55;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;`;
 
   const documentReminderBodies: string[] = [
-    '<strong style="color:#1e293b;font-weight:700;">Guest Advise Form (GAF)</strong> — Your GAF has been approved. No need to print it! Simply present it at the guard house upon arrival and to the lobby receptionist during registration.',
+    '<strong style="color:#1e293b;font-weight:700;">Guest Advise Form (GAF):</strong> Your GAF has been approved. No need to print it! Simply present it at the guard house upon arrival and to the lobby receptionist during registration.',
   ];
   if (booking.need_parking) {
     documentReminderBodies.push(
-      '<strong style="color:#1e293b;font-weight:700;">Parking</strong> — Your parking slot is confirmed. The guest parking fee is <strong style="color:#1e293b;font-weight:700;">non-refundable</strong>, and once confirmed your parking dates <strong style="color:#1e293b;font-weight:700;">cannot be rescheduled</strong>.'
+      '<strong style="color:#1e293b;font-weight:700;">Parking:</strong> Your parking slot is confirmed. The guest parking fee is <strong style="color:#1e293b;font-weight:700;">non-refundable</strong>, and once confirmed your parking dates <strong style="color:#1e293b;font-weight:700;">cannot be rescheduled</strong>.'
     );
   }
   if (booking.has_pets) {
     documentReminderBodies.push(
-      '<strong style="color:#1e293b;font-weight:700;">Pet</strong> — Your pet has been approved for this stay.'
+      '<strong style="color:#1e293b;font-weight:700;">Pet:</strong> Your pet has been approved for this stay.'
     );
   }
 
@@ -667,7 +667,7 @@ export function buildGcashPaymentSectionHtml(
     const hasQr = Boolean(rawQr);
     const paymentCopy = paymentEmailCopy(paymentProvider, hasQr);
     const qrAlt = escapeHtml(paymentQrAltText(paymentProvider));
-    const titleSuffix = methods.length > 1 ? ` — ${escapeHtml(paymentProvider)}` : '';
+    const titleSuffix = methods.length > 1 ? ` (${escapeHtml(paymentProvider)})` : '';
     const accountCell = `<td align="left" valign="middle" style="padding:0;vertical-align:middle">
           <p class="gcash-payment-label">Account name</p>
           <p class="gcash-payment-value gcash-payment-value-spaced">${escapeHtml(method.accountName)}</p>

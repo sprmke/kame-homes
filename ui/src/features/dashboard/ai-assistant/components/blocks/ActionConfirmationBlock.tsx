@@ -73,7 +73,7 @@ export function ActionConfirmationBlock({
 
       {externalSendPending && (
         <p className="text-destructive pl-6 text-xs font-medium">
-          This sends or publishes for real, right now — this can&apos;t be undone.
+          This sends or publishes for real, right now - this can&apos;t be undone.
         </p>
       )}
 

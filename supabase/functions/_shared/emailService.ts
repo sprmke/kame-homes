@@ -52,6 +52,7 @@ import { PLATFORM_BRAND_NAME } from './platformBrand.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import { buildSupportTicketThreadUrl } from './supportTicketStatus.ts';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 /** Resolve property scope for operator settings (email routing, GCash, logos, etc.). */
 
@@ -478,31 +479,19 @@ export async function sendEmail(
   // Never CC the guest — per booking-workflow.mdc §3.
   const cc = inboundReplyTo !== EMAIL_REPLY_TO && EMAIL_REPLY_TO ? [EMAIL_REPLY_TO] : undefined;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(`${unitLabel} - GAF Request`, branding.fromEmail),
-      to: [EMAIL_TO],
-      reply_to: inboundReplyTo,
-      ...(cc ? { cc } : {}),
-      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - GAF Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html: emailContent,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(`${unitLabel} - GAF Request`, branding.fromEmail),
+    to: [EMAIL_TO],
+    reply_to: inboundReplyTo,
+    ...(cc ? { cc } : {}),
+    subject: `${urgentPrefix}${updatePrefix}${unitLabel} - GAF Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html: emailContent,
+    ...(attachments.length > 0 ? { attachments } : {}),
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const error = await res.json();
-    console.error('Failed to send email:', error);
-    throw new Error(`Failed to send email: ${JSON.stringify(error)}`);
-  }
-
   console.log('Email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 export async function sendPetEmail(
@@ -626,31 +615,19 @@ export async function sendPetEmail(
     (propertySlug ? buildApprovalInboundAddress(propertySlug) : null) ?? EMAIL_REPLY_TO;
   const cc = inboundReplyTo !== EMAIL_REPLY_TO && EMAIL_REPLY_TO ? [EMAIL_REPLY_TO] : undefined;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(`${unitLabel} - Pet Request`, branding.fromEmail),
-      to: [EMAIL_TO],
-      reply_to: inboundReplyTo,
-      ...(cc ? { cc } : {}),
-      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Pet Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html: emailContent,
-      attachments: attachments,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(`${unitLabel} - Pet Request`, branding.fromEmail),
+    to: [EMAIL_TO],
+    reply_to: inboundReplyTo,
+    ...(cc ? { cc } : {}),
+    subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Pet Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html: emailContent,
+    attachments: attachments,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const error = await res.json();
-    console.error('Failed to send pet email:', error);
-    throw new Error(`Failed to send pet email: ${JSON.stringify(error)}`);
-  }
-
   console.log('Pet email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 // ─── New Phase 3 emails ──────────────────────────────────────────────────────
@@ -671,7 +648,7 @@ async function getResendCredentials(propertyId?: string | null) {
 }
 
 function pesoFormat(amount: number | null | undefined): string {
-  if (amount == null) return '—';
+  if (amount == null) return '-';
   return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -714,15 +691,14 @@ export async function sendNewBookingRequestNotify(booking: GuestSubmission) {
   console.log('Sending new booking request notify email to EMAIL_REPLY_TO...');
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } =
-    await getResendNewBookingNotifyCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendNewBookingNotifyCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
     await loadBookingEmailDisplayContext(propertyId, booking);
 
   const isUrgent = isUrgentBooking(booking.check_in_date);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
   if (isUrgent) {
-    console.log('🚨 URGENT same-day check-in — new booking request notify');
+    console.log('🚨 URGENT same-day check-in - new booking request notify');
   }
 
   const appOrigin = settings.publicGuestAppOrigin.replace(/\/+$/, '');
@@ -754,30 +730,19 @@ export async function sendNewBookingRequestNotify(booking: GuestSubmission) {
     branding,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(
-        `${unitLabel} - ${branding.organizationName}`,
-        branding.fromEmail
-      ),
-      to: [EMAIL_REPLY_TO],
-      reply_to: booking.guest_email,
-      subject: `${urgentPrefix}${unitLabel} - New Booking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(
+      `${unitLabel} - ${branding.organizationName}`,
+      branding.fromEmail
+    ),
+    to: [EMAIL_REPLY_TO],
+    reply_to: booking.guest_email,
+    subject: `${urgentPrefix}${unitLabel} - New Booking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send new booking request notify: ${JSON.stringify(err)}`);
-  }
-
-  const body = (await res.json()) as { id?: string };
+  const body = sent;
   console.log(
     '[new-booking-notify] Resend accepted message; id:',
     body?.id ?? '(no id in response)',
@@ -794,12 +759,12 @@ export async function sendBookingAcknowledgement(booking: GuestSubmission) {
   console.log('Sending booking acknowledgement email to guest...');
 
   if (await isEmailSuppressed(booking.guest_email)) {
-    console.warn('[emailService] Skipping booking acknowledgement — guest email is suppressed');
+    console.warn('[emailService] Skipping booking acknowledgement - guest email is suppressed');
     return { skipped: true, reason: 'suppressed' };
   }
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
     await loadBookingEmailDisplayContext(propertyId, booking);
 
@@ -841,31 +806,20 @@ export async function sendBookingAcknowledgement(booking: GuestSubmission) {
     branding,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(
-        `${unitLabel} - ${branding.organizationName}`,
-        branding.fromEmail
-      ),
-      to: [booking.guest_email],
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${unitLabel} - Booking Acknowledgement ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(
+      `${unitLabel} - ${branding.organizationName}`,
+      branding.fromEmail
+    ),
+    to: [booking.guest_email],
+    reply_to: EMAIL_REPLY_TO,
+    subject: `${unitLabel} - Booking Acknowledgement ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send booking acknowledgement: ${JSON.stringify(err)}`);
-  }
-
   console.log('Booking acknowledgement email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 /**
@@ -879,12 +833,12 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
   console.log('Sending ready-for-check-in email to guest...');
 
   if (await isEmailSuppressed(booking.guest_email)) {
-    console.warn('[emailService] Skipping ready-for-check-in — guest email is suppressed');
+    console.warn('[emailService] Skipping ready-for-check-in - guest email is suppressed');
     return { skipped: true, reason: 'suppressed' };
   }
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
     await loadBookingEmailDisplayContext(propertyId, booking);
 
@@ -1027,32 +981,21 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
 
   console.log(`[readyForCheckin] Sending email with ${attachments.length} attachment(s)...`);
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(
-        `${unitLabel} - ${branding.organizationName}`,
-        branding.fromEmail
-      ),
-      to: [booking.guest_email],
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${unitLabel} - Check-in Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(
+      `${unitLabel} - ${branding.organizationName}`,
+      branding.fromEmail
+    ),
+    to: [booking.guest_email],
+    reply_to: EMAIL_REPLY_TO,
+    subject: `${unitLabel} - Check-in Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    ...(attachments.length > 0 ? { attachments } : {}),
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send ready-for-check-in email: ${JSON.stringify(err)}`);
-  }
-
   console.log('Ready-for-check-in email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 /**
@@ -1067,7 +1010,7 @@ export async function sendParkingBroadcast(
   console.log('Sending parking broadcast email...');
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel } = await loadBookingEmailDisplayContext(propertyId, booking);
 
   const singleTo = (options?.to ?? '').trim();
@@ -1085,7 +1028,7 @@ export async function sendParkingBroadcast(
   } else {
     if (bccEmails.length === 0) {
       console.warn(
-        'parking_owner_emails empty in property app_settings — skipping parking broadcast'
+        'parking_owner_emails empty in property app_settings - skipping parking broadcast'
       );
       return null;
     }
@@ -1102,7 +1045,7 @@ export async function sendParkingBroadcast(
   const isUrgent = isUrgentBooking(parkingCheckIn);
   const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
   if (isUrgent) {
-    console.log('🚨 URGENT same-day check-in — parking broadcast');
+    console.log('🚨 URGENT same-day check-in - parking broadcast');
   }
 
   const guestName = String(booking.primary_guest_name ?? '').trim() || 'N/A';
@@ -1146,29 +1089,18 @@ export async function sendParkingBroadcast(
     branding,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(`${unitLabel} - Parking Request`, branding.fromEmail),
-      to: toRecipients,
-      ...(bccRecipients && bccRecipients.length > 0 ? { bcc: bccRecipients } : {}),
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Parking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(`${unitLabel} - Parking Request`, branding.fromEmail),
+    to: toRecipients,
+    ...(bccRecipients && bccRecipients.length > 0 ? { bcc: bccRecipients } : {}),
+    reply_to: EMAIL_REPLY_TO,
+    subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Parking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send parking broadcast: ${JSON.stringify(err)}`);
-  }
-
   console.log('Parking broadcast email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 /**
@@ -1180,12 +1112,12 @@ export async function sendSdRefundFormRequest(booking: GuestSubmission) {
   console.log('Sending SD refund form request email to guest...');
 
   if (await isEmailSuppressed(booking.guest_email)) {
-    console.warn('[emailService] Skipping SD refund form request — guest email is suppressed');
+    console.warn('[emailService] Skipping SD refund form request - guest email is suppressed');
     return { skipped: true, reason: 'suppressed' };
   }
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
     await loadBookingEmailDisplayContext(propertyId, booking);
   const securityDepositFormatted = pesoFormat(booking.security_deposit as number | null);
@@ -1234,31 +1166,20 @@ export async function sendSdRefundFormRequest(booking: GuestSubmission) {
     branding,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(
-        `${unitLabel} - ${branding.organizationName}`,
-        branding.fromEmail
-      ),
-      to: [booking.guest_email],
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${unitLabel} - Check-out & SD Refund Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(
+      `${unitLabel} - ${branding.organizationName}`,
+      branding.fromEmail
+    ),
+    to: [booking.guest_email],
+    reply_to: EMAIL_REPLY_TO,
+    subject: `${unitLabel} - Check-out & SD Refund Details ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send SD refund form request: ${JSON.stringify(err)}`);
-  }
-
   console.log('SD refund form request email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 /**
@@ -1275,12 +1196,12 @@ export async function sendPropertyCustomTemplateEmail(
   console.log(`Sending custom template "${templateKey}" to guest...`);
 
   if (await isEmailSuppressed(booking.guest_email)) {
-    console.warn('[emailService] Skipping custom template send — guest email is suppressed');
+    console.warn('[emailService] Skipping custom template send - guest email is suppressed');
     return { skipped: true, reason: 'suppressed' };
   }
 
   const propertyId = resolveEmailPropertyId(booking);
-  const { RESEND_API_KEY, EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
   const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
     await loadBookingEmailDisplayContext(propertyId, booking);
 
@@ -1305,31 +1226,20 @@ export async function sendPropertyCustomTemplateEmail(
     contentOverride: content,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(
-        `${unitLabel} - ${branding.organizationName}`,
-        branding.fromEmail
-      ),
-      to: [booking.guest_email],
-      reply_to: EMAIL_REPLY_TO,
-      subject: `${unitLabel} - ${templateName} ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(
+      `${unitLabel} - ${branding.organizationName}`,
+      branding.fromEmail
+    ),
+    to: [booking.guest_email],
+    reply_to: EMAIL_REPLY_TO,
+    subject: `${unitLabel} - ${templateName} ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Failed to send custom template email: ${JSON.stringify(err)}`);
-  }
-
   console.log('Custom template email sent successfully');
-  return await res.json();
+  return sent;
 }
 
 // ─── Help & Support — ticket notify (Module 3) ───────────────────────────────
@@ -1361,9 +1271,9 @@ export async function sendSupportTicketNotify(ticket: {
   if (!SUPPORT_TEAM_EMAIL) throw new Error('Missing SUPPORT_TEAM_EMAIL environment variable');
 
   const scopeLabel = ticket.parkingName
-    ? `Parking — ${ticket.parkingName}`
+    ? `Parking - ${ticket.parkingName}`
     : ticket.propertyName
-      ? `Property — ${ticket.propertyName}`
+      ? `Property - ${ticket.propertyName}`
       : ticket.organizationName === 'Explore guest'
         ? 'Explore (guest)'
         : 'Organization-level';
@@ -1386,29 +1296,16 @@ export async function sendSupportTicketNotify(ticket: {
     brandColor: null,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
-      to: [SUPPORT_TEAM_EMAIL],
-      reply_to: ticket.submittedByEmail,
-      subject: `[${categoryLabel}] ${ticket.subject}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
+    to: [SUPPORT_TEAM_EMAIL],
+    reply_to: ticket.submittedByEmail,
+    subject: `[${categoryLabel}] ${ticket.subject}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send support ticket notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
-
-  return await res.json();
+  return sent;
 }
 
 /** Admin reply on a ticket → notifies the submitter (host or explore guest). */
@@ -1425,13 +1322,13 @@ export async function sendSupportTicketReplyNotify(ticket: {
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!RESEND_API_KEY || !fromEmail) {
     console.warn(
-      '[sendSupportTicketReplyNotify] RESEND_API_KEY or RESEND_FROM_EMAIL missing — skip'
+      '[sendSupportTicketReplyNotify] RESEND_API_KEY or RESEND_FROM_EMAIL missing - skip'
     );
     return;
   }
 
   if (await isEmailSuppressed(ticket.submittedByEmail)) {
-    console.warn('[sendSupportTicketReplyNotify] Skipping — submitter email is suppressed');
+    console.warn('[sendSupportTicketReplyNotify] Skipping - submitter email is suppressed');
     return;
   }
 
@@ -1455,28 +1352,15 @@ ${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`;
     brandColor: null,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${supportBrand} <${fromEmail}>`,
-      to: [ticket.submittedByEmail],
-      subject: `Re: ${ticket.subject}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: `${supportBrand} <${fromEmail}>`,
+    to: [ticket.submittedByEmail],
+    subject: `Re: ${ticket.subject}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send support ticket reply notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
-
-  return await res.json();
+  return sent;
 }
 
 /** Submitter follow-up reply → notifies the support team inbox. */
@@ -1497,9 +1381,9 @@ export async function sendSupportTicketSubmitterReplyNotify(ticket: {
   if (!SUPPORT_TEAM_EMAIL) throw new Error('Missing SUPPORT_TEAM_EMAIL environment variable');
 
   const scopeLabel = ticket.parkingName
-    ? `Parking — ${ticket.parkingName}`
+    ? `Parking - ${ticket.parkingName}`
     : ticket.propertyName
-      ? `Property — ${ticket.propertyName}`
+      ? `Property - ${ticket.propertyName}`
       : ticket.organizationName === 'Explore guest'
         ? 'Explore (guest)'
         : 'Organization-level';
@@ -1517,29 +1401,16 @@ export async function sendSupportTicketSubmitterReplyNotify(ticket: {
     brandColor: null,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
-      to: [SUPPORT_TEAM_EMAIL],
-      reply_to: ticket.submittedByEmail,
-      subject: `Re: [${categoryLabel}] ${ticket.subject}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: `${supportBrand} <${(Deno.env.get('RESEND_FROM_EMAIL') ?? SUPPORT_TEAM_EMAIL).trim()}>`,
+    to: [SUPPORT_TEAM_EMAIL],
+    reply_to: ticket.submittedByEmail,
+    subject: `Re: [${categoryLabel}] ${ticket.subject}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send submitter reply notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
-
-  return await res.json();
+  return sent;
 }
 
 /** Status set to resolved or closed → notifies the submitter. */
@@ -1556,12 +1427,12 @@ export async function sendSupportTicketStatusNotify(ticket: {
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL')?.trim();
   if (!RESEND_API_KEY || !fromEmail) {
-    console.warn('[sendSupportTicketStatusNotify] email env missing — skip');
+    console.warn('[sendSupportTicketStatusNotify] email env missing - skip');
     return;
   }
 
   if (await isEmailSuppressed(ticket.submittedByEmail)) {
-    console.warn('[sendSupportTicketStatusNotify] Skipping — submitter email is suppressed');
+    console.warn('[sendSupportTicketStatusNotify] Skipping - submitter email is suppressed');
     return;
   }
 
@@ -1590,26 +1461,13 @@ ${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`;
     brandColor: null,
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${supportBrand} <${fromEmail}>`,
-      to: [ticket.submittedByEmail],
-      subject: `[${statusLabel}] ${ticket.subject}`,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: `${supportBrand} <${fromEmail}>`,
+    to: [ticket.submittedByEmail],
+    subject: `[${statusLabel}] ${ticket.subject}`,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send support ticket status notify (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
-
-  return await res.json();
+  return sent;
 }

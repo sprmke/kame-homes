@@ -68,7 +68,7 @@
   "propose_add_finance_line_item": {
     "ok": true,
     "proposed": true,
-    "data": { "hostLabel": "Add expense: Pool maintenance — ₱1,200" }
+    "data": { "hostLabel": "Add expense: Pool maintenance - ₱1,200" }
   },
   "propose_update_finance_line_item": {
     "ok": true,

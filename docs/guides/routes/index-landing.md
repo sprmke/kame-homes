@@ -2,7 +2,7 @@
 title: 'Guest landing — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-09-11
+updated: 2026-11-04
 ---
 
 # Guest landing — operator guide
@@ -43,7 +43,7 @@ Inspired by Airbnb/Agoda search-first patterns, but avoids common pain points:
 - **Search is primary** — no promo banners blocking the hero
 - **Progressive disclosure** — fewer sections; no long how-it-works / testimonial carousel on home
 - **Visual hierarchy** — photography-led cards, horizontal scroll for stays (scan-friendly)
-- **Optional dates** — guests can search by destination only
+- **Optional dates** — guests can search by destination only. Picking a single day counts as a one-night stay, so the calendar never submits a range the edge rejects.
 - **Light + dark** — semantic tokens + theme-aware hero canvas
 
 ---

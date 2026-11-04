@@ -45,7 +45,7 @@ async function enforceOrLogRateCheck(
 
   try {
     if (await isIdentityBlocked(identity)) {
-      console.warn(`[rateLimit:blocked] ${logPrefix} — identity ${identity} is on the block list`);
+      console.warn(`[rateLimit:blocked] ${logPrefix} - identity ${identity} is on the block list`);
       return jsonError(req, 'Access temporarily restricted. Contact support.', 403);
     }
 
@@ -60,14 +60,14 @@ async function enforceOrLogRateCheck(
 
     if (!settings.authenticatedRateLimitEnforce) {
       console.warn(
-        `[rateLimit:log-only] ${logPrefix} would have been limited — user ${userId}, ` +
+        `[rateLimit:log-only] ${logPrefix} would have been limited - user ${userId}, ` +
           `${decision.count}/${decision.limit} in ${DEFAULT_AUTHENTICATED_WRAPPER_WINDOW_SEC}s`
       );
       return null;
     }
 
     console.warn(
-      `[rateLimit:enforced] ${logPrefix} blocked — user ${userId}, ` +
+      `[rateLimit:enforced] ${logPrefix} blocked - user ${userId}, ` +
         `${decision.count}/${decision.limit} in ${DEFAULT_AUTHENTICATED_WRAPPER_WINDOW_SEC}s`
     );
     // Built directly (not via `jsonError`) so `rateLimited` / `retryAfterSec` and

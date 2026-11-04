@@ -18,6 +18,7 @@ import { renderPropertyTemplateSendEmail } from './propertyTemplateEmail.ts';
 import { resolveAppSettings } from './appSettings.ts';
 import { formatResendFromAddress, loadPropertyEmailBranding } from './propertyEmailBranding.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 export function verifyParkingReminderCronSecret(req: Request): boolean {
   return verifyCronSecret(req, {
@@ -26,7 +27,7 @@ export function verifyParkingReminderCronSecret(req: Request): boolean {
   });
 }
 
-const REMINDER_BODY_TEMPLATE = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Hi {{guest_name}}, your stay at <strong>{{unit_label}}</strong> starts on {{check_in_date}} — you mentioned you'd like paid parking.</p>
+const REMINDER_BODY_TEMPLATE = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Hi {{guest_name}}, your stay at <strong>{{unit_label}}</strong> starts on {{check_in_date}} - you mentioned you'd like paid parking.</p>
 <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">Reserve and pay for a spot separately through our parking marketplace: <a href="{{parking_url}}" style="color:#5c4428;font-weight:700;text-decoration:underline;">find parking near your stay</a>.</p>`;
 
 type ReminderCandidateRow = {
@@ -101,24 +102,14 @@ async function sendReminderEmail(row: ReminderCandidateRow): Promise<void> {
     },
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY') ?? ''}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
-      to: [guestEmail],
-      reply_to: settings.emailReplyTo,
-      subject: `${branding.organizationName} - Parking reminder for your upcoming stay`,
-      html,
-    }),
+  await sendResendEmail({
+    from: formatResendFromAddress(branding.organizationName, branding.fromEmail),
+    to: [guestEmail],
+    reply_to: settings.emailReplyTo,
+    subject: `${branding.organizationName} - Parking reminder for your upcoming stay`,
+    html,
+    errorLabel: 'email',
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Failed to send parking reminder: ${JSON.stringify(err)}`);
-  }
 
   const supabase = createServiceClient();
   await supabase

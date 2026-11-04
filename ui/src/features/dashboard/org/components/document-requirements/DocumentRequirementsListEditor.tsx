@@ -243,7 +243,7 @@ export function DocumentRequirementsListEditor({
     <div className="space-y-2">
       {list.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-center text-sm">
-          No documents required — bookings skip straight to Ready for check-in.
+          No documents required - bookings skip straight to Ready for check-in.
         </p>
       ) : (
         list.map((requirement, index) => (

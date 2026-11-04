@@ -288,7 +288,7 @@ function formatBookingSourceLabel(raw: unknown): string {
 function buildUrgentNotice(checkInDate: unknown): string {
   const ciYmd = normalizeBookingDateToYmd(String(checkInDate ?? ''));
   if (ciYmd !== manilaTodayYmd()) return '';
-  return '🚨 URGENT — Same-day check-in!\nThis request requires immediate attention.\n\n';
+  return '🚨 URGENT - Same-day check-in!\nThis request requires immediate attention.\n\n';
 }
 
 function formatCurrency(amount: number | null): string {
@@ -306,7 +306,7 @@ function formatSdRefundMethod(method: unknown): string {
 
 function sdRefundFieldOrDash(value: unknown): string {
   const v = String(value ?? '').trim();
-  return v || '—';
+  return v || '-';
 }
 
 /** Method-aware payout lines for admin Telegram copy (GCash phone, bank transfer, or cash). */
@@ -327,27 +327,27 @@ function buildSdRefundDetailsBlock(booking: BookingRow): string {
   if (method === 'cash') {
     return 'Cash pickup at check-out';
   }
-  return '—';
+  return '-';
 }
 
 function buildSdRefundPlaceholderFields(booking: BookingRow): Record<string, string> {
   const method = String(booking.sd_refund_method ?? '').trim();
   const guestPhone = String(booking.guest_phone_number ?? '').trim();
 
-  let bank = '—';
-  let accountName = '—';
-  let accountNumber = '—';
-  let payoutPhone = '—';
+  let bank = '-';
+  let accountName = '-';
+  let accountNumber = '-';
+  let payoutPhone = '-';
 
   if (method === 'same_phone') {
     bank = 'GCash';
-    payoutPhone = guestPhone || '—';
-    accountNumber = guestPhone || '—';
+    payoutPhone = guestPhone || '-';
+    accountNumber = guestPhone || '-';
   } else if (method === 'other_bank') {
     bank = sdRefundFieldOrDash(booking.sd_refund_bank);
     accountName = sdRefundFieldOrDash(booking.sd_refund_account_name);
     accountNumber = sdRefundFieldOrDash(booking.sd_refund_account_number);
-    if (bank === 'GCash' && accountNumber !== '—') {
+    if (bank === 'GCash' && accountNumber !== '-') {
       payoutPhone = accountNumber;
     }
   } else if (method === 'cash') {
@@ -658,7 +658,7 @@ async function recordNotificationLog(
   if (error?.code === '23505') return { ok: true };
   if (error?.code === '23514') {
     console.error(
-      '[telegram-admin] notification_type rejected by DB check — deploy migration ' +
+      '[telegram-admin] notification_type rejected by DB check - deploy migration ' +
         '20260705120000_telegram_admin_new_booking_hourly.sql and ' +
         '20260721140000_telegram_admin_balance_receipt_hourly_fix.sql',
       error

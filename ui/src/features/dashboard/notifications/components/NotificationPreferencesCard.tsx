@@ -24,7 +24,8 @@ export function NotificationPreferencesCard() {
     const next = enabled
       ? preferences.mutedGroups.filter((g) => g !== group)
       : [...preferences.mutedGroups, group];
-    update({ mutedGroups: next });
+    const label = NOTIFICATION_PREFERENCE_GROUP_LABELS[group].label;
+    update({ mutedGroups: next }, `${label} notifications ${enabled ? 'on' : 'off'}`);
   };
 
   const invalidQuietWindow =
@@ -78,7 +79,9 @@ export function NotificationPreferencesCard() {
             aria-label="Quiet hours"
             checked={preferences.quietHoursEnabled}
             disabled={disabled}
-            onCheckedChange={(enabled) => update({ quietHoursEnabled: enabled })}
+            onCheckedChange={(enabled) =>
+              update({ quietHoursEnabled: enabled }, enabled ? 'Quiet hours on' : 'Quiet hours off')
+            }
           />
         </div>
 

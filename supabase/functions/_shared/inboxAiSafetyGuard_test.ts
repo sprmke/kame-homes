@@ -6,18 +6,18 @@ import {
   classifyGuestInquiryIntent,
 } from './inboxAiSafetyGuard.ts';
 
-Deno.test('classifyGuestInquiryIntent — sensitive guest list request', () => {
+Deno.test('classifyGuestInquiryIntent - sensitive guest list request', () => {
   assertEquals(
     classifyGuestInquiryIntent('Who else is staying at the property this week?'),
     'sensitive'
   );
 });
 
-Deno.test('classifyGuestInquiryIntent — normal pricing question', () => {
+Deno.test('classifyGuestInquiryIntent - normal pricing question', () => {
   assertEquals(classifyGuestInquiryIntent('What is the rate for tonight?'), 'normal');
 });
 
-Deno.test('assertSafeGuestReply — blocks other guest names', () => {
+Deno.test('assertSafeGuestReply - blocks other guest names', () => {
   const result = assertSafeGuestReply({
     draftText: 'James Lim is also checked in on your dates.',
     guestMessage: 'Is parking included?',
@@ -32,7 +32,7 @@ Deno.test('assertSafeGuestReply — blocks other guest names', () => {
 });
 
 Deno.test(
-  'assertSafeGuestReply — a guest surname that is also a word fragment does not false-flag ' +
+  'assertSafeGuestReply - a guest surname that is also a word fragment does not false-flag ' +
     '(reproduced live: "King" matched inside "parking")',
   () => {
     const result = assertSafeGuestReply({
@@ -47,7 +47,7 @@ Deno.test(
 );
 
 Deno.test(
-  'assertSafeGuestReply — a number-word name token never flags an ordinary count/time reply ' +
+  'assertSafeGuestReply - a number-word name token never flags an ordinary count/time reply ' +
     '(reproduced live: "One" / "Two" name tokens from the seeded guest list)',
   () => {
     const result = assertSafeGuestReply({
@@ -62,7 +62,7 @@ Deno.test(
 );
 
 Deno.test(
-  'assertSafeGuestReply — a surname that is a whole word elsewhere in the draft still blocks',
+  'assertSafeGuestReply - a surname that is a whole word elsewhere in the draft still blocks',
   () => {
     const result = assertSafeGuestReply({
       draftText: 'King is also staying this week in the room next door.',
@@ -75,7 +75,7 @@ Deno.test(
   }
 );
 
-Deno.test('assertSafeGuestReply — allows grounded pricing amount', () => {
+Deno.test('assertSafeGuestReply - allows grounded pricing amount', () => {
   const result = assertSafeGuestReply({
     draftText: 'The nightly rate is ₱3,500.',
     guestMessage: 'How much per night?',
@@ -84,7 +84,7 @@ Deno.test('assertSafeGuestReply — allows grounded pricing amount', () => {
   assertEquals(result.safe, true);
 });
 
-Deno.test('assertSafeGuestReply — blocks ungrounded pricing', () => {
+Deno.test('assertSafeGuestReply - blocks ungrounded pricing', () => {
   const result = assertSafeGuestReply({
     draftText: 'The nightly rate is ₱9,999.',
     guestMessage: 'How much per night?',
@@ -93,7 +93,7 @@ Deno.test('assertSafeGuestReply — blocks ungrounded pricing', () => {
   assertEquals(result.safe, false);
 });
 
-Deno.test('assertSafeGuestReply — sensitive inquiry with refusal is safe', () => {
+Deno.test('assertSafeGuestReply - sensitive inquiry with refusal is safe', () => {
   const result = assertSafeGuestReply({
     draftText: "I can't share other guest details for privacy. I'll check with the host team.",
     guestMessage: 'Who else booked this weekend?',
@@ -106,7 +106,7 @@ Deno.test('AI_SUGGEST_FALLBACK_REPLY is non-empty', () => {
   assert(AI_SUGGEST_FALLBACK_REPLY.trim().length > 0);
 });
 
-Deno.test('assertSafeGuestReply — blocks an invented GCash / bank number', () => {
+Deno.test('assertSafeGuestReply - blocks an invented GCash / bank number', () => {
   const result = assertSafeGuestReply({
     draftText: 'Please send the down payment to GCash 0917 123 4567.',
     guestMessage: 'How do I pay?',
@@ -115,7 +115,7 @@ Deno.test('assertSafeGuestReply — blocks an invented GCash / bank number', () 
   assertEquals(result.safe, false);
 });
 
-Deno.test('assertSafeGuestReply — allows the configured payment account number', () => {
+Deno.test('assertSafeGuestReply - allows the configured payment account number', () => {
   const result = assertSafeGuestReply({
     draftText: 'You can pay via GCash 0999-888-7777 (Juan D.).',
     guestMessage: 'How do I pay?',
@@ -125,7 +125,7 @@ Deno.test('assertSafeGuestReply — allows the configured payment account number
 });
 
 Deno.test(
-  'assertSafeGuestReply — allows numbers present in the grounded facts (host phone)',
+  'assertSafeGuestReply - allows numbers present in the grounded facts (host phone)',
   () => {
     const result = assertSafeGuestReply({
       draftText: 'You can reach the host at +63 917 555 0101.',
@@ -136,7 +136,7 @@ Deno.test(
   }
 );
 
-Deno.test('assertSafeGuestReply — checks amounts written without a currency sign', () => {
+Deno.test('assertSafeGuestReply - checks amounts written without a currency sign', () => {
   const ungrounded = assertSafeGuestReply({
     draftText: 'The rate is 9,999 per night.',
     guestMessage: 'What is the rate?',

@@ -56,7 +56,7 @@ describe('formatManilaLongDate', () => {
 });
 
 
-describe('booked-date matchers — same-day stays', () => {
+describe('booked-date matchers - same-day stays', () => {
   const sameDay = [{ id: 'b1', checkInDate: '2026-01-15', checkOutDate: '2026-01-15' }];
   const normal = [{ id: 'b2', checkInDate: '2026-01-15', checkOutDate: '2026-01-17' }];
 

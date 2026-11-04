@@ -56,8 +56,8 @@ dates that should not be available to guests.
   A: No. Booked nights show the guest stay, not a list price. Open the stay to see the
   booking amount; change pricing on the booking itself if needed.
 - Q: Why do some days have no price?
-  A: Booked nights hide the list price and show the guest stay instead. Open nights —
-  including past ones — still show the nightly amount.
+  A: Booked nights hide the list price and show the guest stay instead. Open nights -
+  including past ones - still show the nightly amount.
 - Q: Can I close dates without creating a booking?
   A: Yes. Select future available nights and choose Block. Guests cannot select or submit
   those nights.

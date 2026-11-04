@@ -86,7 +86,7 @@ export function buildSmartPricingAiPrompt(comp: SmartPricingComputation): {
     '  notable month/season, explaining why that period is priced up or down.',
     '- warnings: 0-4 short flags where the recommended curve looks off vs. the realised history',
     "  (e.g. a known peak month barely moved, or a discount below the host's realised median).",
-    '- suggestedMinPrice / suggestedMaxPrice: ONLY when the host has not set them — a sensible',
+    '- suggestedMinPrice / suggestedMaxPrice: ONLY when the host has not set them - a sensible',
     '  floor (~0.6-0.75x base) and ceiling (~2.5-3.5x base) in PHP. Omit when already set.',
     '- Never invent facts. Never tell the host to leave the platform. Keep a professional tone.',
   ].join('\n');

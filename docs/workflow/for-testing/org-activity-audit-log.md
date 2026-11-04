@@ -302,19 +302,23 @@ Every mutating surface, grouped by module. `logActivity` is called from the edge
 
 ### Bookings & workflow (`category: booking`)
 
-| Surface                                                       | Actions                                                                                                                              |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `workflowOrchestrator.transition()` (single emit point)       | `booking.status_changed` (per edge, with from/to + payload summary), `booking.cancelled` **D**, `booking.document_substep_completed` |
-| `transition-booking` / `transition-parking-booking`           | actor context only (orchestrator emits)                                                                                              |
-| `cancel-booking`                                              | `booking.cancelled` **D**                                                                                                            |
-| `submit-form` (public)                                        | `booking.created` (`actor_type: guest`)                                                                                              |
-| `submit-form-completion`                                      | `booking.guest_completed_form`                                                                                                       |
-| `import-commit` / `import-revert`                             | `booking.bulk_imported` (batch, count), `booking.import_reverted` **D**                                                              |
-| `calendar-sync-cron`                                          | `booking.imported_from_ota` (`actor_type: cron`), `calendar.sync_failed` (warning)                                                   |
-| `upload-booking-asset` / `issue-booking-document-share-token` | `booking.document_uploaded`, `booking.share_link_issued`                                                                             |
-| `validate-booking-receipts` / `booking-ai-review`             | `booking.receipt_validated`, `booking.ai_review_run` (`notice`)                                                                      |
-| `send-booking-workflow-email` / `send-sd-refund-form-email`   | `booking.workflow_email_sent` (`notice`)                                                                                             |
-| `dashboard-assistant-confirm` (booking tools)                 | orchestrator emits with `actor_type: ai_assistant` + `metadata.assistant_conversation_id`                                            |
+| Surface                                                              | Actions                                                                                                                                                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflowOrchestrator.transition()` (single emit point)              | `booking.status_changed` (per edge, with from/to + payload summary), `booking.cancelled` **D**, `booking.document_substep_completed`                                |
+| `transition-booking` / `transition-parking-booking`                  | actor context only (orchestrator emits)                                                                                                                             |
+| `cancel-booking`                                                     | `booking.cancelled` **D**                                                                                                                                           |
+| `submit-form` (public)                                               | `booking.created` (`actor_type: guest`)                                                                                                                             |
+| `submit-form-completion`                                             | `booking.guest_completed_form`                                                                                                                                      |
+| `import-commit` / `import-revert`                                    | `booking.bulk_imported` (batch, count), `booking.import_reverted` **D**                                                                                             |
+| `calendar-sync-cron`                                                 | `booking.imported_from_ota` (`actor_type: cron`), `calendar.sync_failed` (warning)                                                                                  |
+| `upload-booking-asset` / assistant `applyBookingAssetFromBytes`      | `booking.document_uploaded`; when inline AI persists a verdict, also `booking.receipt_validated` (`metadata.source: upload`; assistant: `actor_type: ai_assistant`) |
+| `issue-booking-document-share-token`                                 | `booking.share_link_issued`                                                                                                                                         |
+| `issue-guest-stay-guide-token` / `issue-guest-form-completion-token` | `booking.stay_guide_link_issued`, `booking.guest_form_link_issued`                                                                                                  |
+| `issue-guest-trip-link`                                              | `booking.trip_link_issued` (`notice`)                                                                                                                               |
+| `validate-booking-receipts` / `booking-ai-review`                    | `booking.receipt_validated` (`source: backfill` on batch backfill; upload path above), `booking.ai_review_run` (`notice`, only after inline job runs)               |
+| `send-booking-workflow-email` / `send-sd-refund-form-email`          | `booking.workflow_email_sent`; assistant `executeSendWorkflowEmail` also emits with `actor_type: ai_assistant`                                                      |
+| `send-property-custom-template-email`                                | `booking.custom_template_sent` (unchanged)                                                                                                                          |
+| `dashboard-assistant-confirm` (booking tools)                        | orchestrator + attachment apply, workflow email, receipt-on-upload as above (`actor_type: ai_assistant`)                                                            |
 
 ### Team & RBAC (`category: team`)
 

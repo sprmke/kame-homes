@@ -38,7 +38,7 @@ export async function loadMockToolFixtures(file: string): Promise<Record<string,
 const UNMAPPED_TOOL_RESULT: MockToolResult = {
   ok: false,
   error:
-    'This tool has no mocked result in the eval harness. Answer with what you already have, or ask a clarifying question — do not retry this tool.',
+    'This tool has no mocked result in the eval harness. Answer with what you already have, or ask a clarifying question - do not retry this tool.',
 };
 
 /** Booking ids the mocked fixtures actually know about (see trajectory_tools.json / guest_trajectory_tools.json). */

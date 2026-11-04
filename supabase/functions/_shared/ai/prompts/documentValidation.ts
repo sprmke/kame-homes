@@ -34,15 +34,15 @@ Analyze the image and return ONLY valid JSON (no markdown) with this exact shape
 }
 
 Accept TWO forms of payment proof:
-1) Digital — GCash, Maya, InstaPay, bank transfer, or similar e-wallet/bank app screenshots showing money sent (amount plus date or reference when visible).
-2) Cash — a photo clearly showing Philippine peso (PHP) banknotes as payment proof (e.g. bills held in hand, fanned out, or on a table). Recognizable PHP denominations (₱20–₱1000) count as valid proof even without a transaction reference or date.
+1) Digital - GCash, Maya, InstaPay, bank transfer, or similar e-wallet/bank app screenshots showing money sent (amount plus date or reference when visible).
+2) Cash - a photo clearly showing Philippine peso (PHP) banknotes as payment proof (e.g. bills held in hand, fanned out, or on a table). Recognizable PHP denominations (₱20–₱1000) count as valid proof even without a transaction reference or date.
 
 Rules:
 - "valid": clear digital transfer receipt/screenshot with transaction details, OR a clear photo of PHP cash bills as payment proof.
 - "likely_valid": payment screenshot or cash photo that is partly blurry/cropped but still recognizable as payment proof.
 - "unclear": too blurry or ambiguous to tell if it is digital payment proof or PHP cash payment proof.
 - "invalid": clearly NOT payment proof (random photo, scenery, meme, blank, ID only, chat without payment proof, unrelated objects with no visible transfer details or PHP cash).
-- For cash photos: set has_amount true when bill denominations are visible; has_date and has_reference are usually false — that is OK.
+- For cash photos: set has_amount true when bill denominations are visible; has_date and has_reference are usually false - that is OK.
 - extracted_amount: the numeric Philippine peso amount actually sent/paid (ignore fees, balances, or unrelated numbers). Null when not legible.
 - extracted_date: the transaction date shown on the screenshot (bank/e-wallet apps always show one), normalized to YYYY-MM-DD. If only a partial date is visible (e.g. no year), infer the most recent plausible year. Null for cash photos or when no date is visible at all.
 - summary must be plain English, max 120 characters, no line breaks.
@@ -68,7 +68,7 @@ Accept common Philippine and travel IDs, including:
 
 Rules:
 - "valid": clear government-issued photo ID with recognizable ID document layout (name and/or photo visible; rotation is OK).
-- "likely_valid": ID appears genuine but is blurry, cropped, glare-heavy, or rotated — still recognizable as an ID document.
+- "likely_valid": ID appears genuine but is blurry, cropped, glare-heavy, or rotated - still recognizable as an ID document.
 - "unclear": too blurry or ambiguous to tell if it is a government ID.
 - "invalid": clearly NOT an ID (selfie only, payment receipt, scenery, meme, blank image, random object, chat screenshot without ID).
 - Set has_amount false. Set has_date true when a birth date or expiry is visible. Set has_reference true when an ID number is visible.

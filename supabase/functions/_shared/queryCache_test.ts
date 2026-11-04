@@ -12,7 +12,7 @@ import { assert, assertEquals, assertNotEquals } from 'https://deno.land/std@0.2
 
 import { buildCacheKey, QUERY_CACHE_SCHEMA_VERSION } from './queryCache.ts';
 
-Deno.test('buildCacheKey — same scope, different permission scope → different key', () => {
+Deno.test('buildCacheKey - same scope, different permission scope → different key', () => {
   const base = {
     namespace: 'dashboard-stats',
     scope: { orgId: 'org-1' },
@@ -38,7 +38,7 @@ Deno.test('buildCacheKey — same scope, different permission scope → differen
   assertNotEquals(scopedAdminA, scopedAdminB);
 });
 
-Deno.test('buildCacheKey — permission scope order does not change the key', () => {
+Deno.test('buildCacheKey - permission scope order does not change the key', () => {
   const base = {
     namespace: 'dashboard-stats',
     scope: { orgId: 'org-1' },
@@ -54,7 +54,7 @@ Deno.test('buildCacheKey — permission scope order does not change the key', ()
   assertEquals(a, b);
 });
 
-Deno.test('buildCacheKey — different scope ids never collide', () => {
+Deno.test('buildCacheKey - different scope ids never collide', () => {
   const keyFor = (orgId: string) =>
     buildCacheKey({
       namespace: 'dashboard-stats',
@@ -65,7 +65,7 @@ Deno.test('buildCacheKey — different scope ids never collide', () => {
 });
 
 Deno.test(
-  'buildCacheKey — different namespace never collides even with identical scope/params',
+  'buildCacheKey - different namespace never collides even with identical scope/params',
   () => {
     const scope = { propertyId: 'prop-1' };
     const a = buildCacheKey({ namespace: 'dashboard-stats', scope, permissionScope: null });
@@ -74,7 +74,7 @@ Deno.test(
   }
 );
 
-Deno.test('buildCacheKey — different params (filters/date range) never collide', () => {
+Deno.test('buildCacheKey - different params (filters/date range) never collide', () => {
   const scope = { propertyId: 'prop-1' };
   const jan = buildCacheKey({
     namespace: 'dashboard-stats',
@@ -91,7 +91,7 @@ Deno.test('buildCacheKey — different params (filters/date range) never collide
   assertNotEquals(jan, feb);
 });
 
-Deno.test('buildCacheKey — is deterministic for identical input', () => {
+Deno.test('buildCacheKey - is deterministic for identical input', () => {
   const args = {
     namespace: 'dashboard-stats',
     scope: { orgId: 'org-1', propertyId: 'prop-1' },
@@ -101,7 +101,7 @@ Deno.test('buildCacheKey — is deterministic for identical input', () => {
   assertEquals(buildCacheKey(args), buildCacheKey(args));
 });
 
-Deno.test('buildCacheKey — embeds the schema version so a deploy invalidates all keys', () => {
+Deno.test('buildCacheKey - embeds the schema version so a deploy invalidates all keys', () => {
   const key = buildCacheKey({
     namespace: 'dashboard-stats',
     scope: { propertyId: 'prop-1' },

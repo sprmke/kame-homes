@@ -193,7 +193,7 @@ export async function createOrgSubscriptionCheckoutLink(input: {
         pendingExisting.id as string
       );
       if (reconcileResult === 'fulfilled') {
-        throw new Error('Payment already received — refresh Plans & Billing');
+        throw new Error('Payment already received - refresh Plans & Billing');
       }
       if (reconcileResult === 'expired') {
         pendingExisting.checkout_url = null;
@@ -251,7 +251,7 @@ export async function createOrgSubscriptionCheckoutLink(input: {
 
   const transactionId = txnRow.id as string;
   const descriptionSuffix =
-    purpose === 'renewal' ? ' renewal' : proration ? ' — mid-cycle change' : '';
+    purpose === 'renewal' ? ' renewal' : proration ? ' - mid-cycle change' : '';
 
   try {
     const paymentSettings = await getPlatformPaymentSettings();
@@ -259,7 +259,7 @@ export async function createOrgSubscriptionCheckoutLink(input: {
     const session = await createPaymongoCheckoutSession({
       amountCentavos: phpToCentavos(amountPhp),
       lineItemName,
-      description: `${orgName} — ${lineItemName}${descriptionSuffix}`,
+      description: `${orgName} - ${lineItemName}${descriptionSuffix}`,
       successUrl: orgPlansBillingCheckoutUrl(orgSlug, 'success'),
       cancelUrl: orgPlansBillingCheckoutUrl(orgSlug, 'cancelled'),
       paymentMethodTypes: paymentSettings.enabledPaymentMethods,

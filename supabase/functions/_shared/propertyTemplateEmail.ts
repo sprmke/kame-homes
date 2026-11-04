@@ -47,7 +47,7 @@ export const PROPERTY_EMAIL_TEMPLATE_KEYS = [
 export type PropertyEmailTemplateKey = (typeof PROPERTY_EMAIL_TEMPLATE_KEYS)[number];
 
 function formatPeso(amount: number | null | undefined): string {
-  if (amount == null || !Number.isFinite(Number(amount))) return '—';
+  if (amount == null || !Number.isFinite(Number(amount))) return '-';
   return `₱${Number(amount).toLocaleString('en-PH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

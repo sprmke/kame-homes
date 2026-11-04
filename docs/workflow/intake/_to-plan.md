@@ -675,6 +675,16 @@ Once we did the migration properly and check on the dev and new prod that everyt
 
 ===
 
+✅ Review implementation on the following modules
+
+Review the implementation on the following modules and make sure we simplify, recode, improve and make sure it's production ready and does not contain trash code or changes, poor implemented features caused by AI vibe coding. Be a 10x senior software engineering and review the following modules and make sure it met our standards and they are all production ready and will not cause any performance issue or security and lastly, make sure everything is still working properly
+
+- Marketing — partial: [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps split to a planned follow-up)
+- Inbox (Meta chats) — **done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md)
+- Real-time web chat app (host & guest side)
+
+===
+
 ✅ Review, refine and improve e2e of booking flow/page
 
 Overlaps booking multi-tenancy — config closed; remaining UX polish deferred (see done doc).
@@ -715,13 +725,9 @@ Spin the wheel, slot scroll/reel (current), flip card — property setting under
 
 ===
 
-✅ Review implementation on the following modules
+🧪 AI companion: response quality, speed, and generative UI
 
-Review the implementation on the following modules and make sure we simplify, recode, improve and make sure it's production ready and does not contain trash code or changes, poor implemented features caused by AI vibe coding. Be a 10x senior software engineering and review the following modules and make sure it met our standards and they are all production ready and will not cause any performance issue or security and lastly, make sure everything is still working properly
-
-- Marketing — partial: [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps split to a planned follow-up)
-- Inbox (Meta chats) — **done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md)
-- Real-time web chat app (host & guest side)
+→ **For testing:** [`../for-testing/ai-companion-response-quality-and-generative-ui.md`](../for-testing/ai-companion-response-quality-and-generative-ui.md) — Dashboard assistant and guest receptionist tone, speed and generative UI. Live screenshot QA pending.
 
 ===
 
@@ -852,6 +858,12 @@ v1 parity and org-native entitlements shipped.
 
 ===
 
+🧪 Public pages: native element sizing
+
+→ **For testing:** [`../for-testing/public-native-density.md`](../for-testing/public-native-density.md) — Native type scale, spacing and touch targets across public pages at 375px and up.
+
+===
+
 🧪 PWA v2: native app experience, smart install, smooth updates, full coverage
 
 → **For testing:** [`../for-testing/pwa-v2-native-app-experience.md`](../for-testing/pwa-v2-native-app-experience.md) — Launch resolver, tiered precache, install eligibility, safe updates, offline drafts and Sync Center, guest offline messages, push preferences.
@@ -896,18 +908,6 @@ Earned-only org Superhost badge — metrics, cron, Trust UI shipped; manual QA p
 
 ===
 
-🧪 AI companion: response quality, speed, and generative UI
-
-→ **For testing:** [`../for-testing/ai-companion-response-quality-and-generative-ui.md`](../for-testing/ai-companion-response-quality-and-generative-ui.md) — Dashboard assistant and guest receptionist tone, speed and generative UI. Live screenshot QA pending.
-
-===
-
-🧪 Public pages: native element sizing
-
-→ **For testing:** [`../for-testing/public-native-density.md`](../for-testing/public-native-density.md) — Native type scale, spacing and touch targets across public pages at 375px and up.
-
-===
-
 📋 AI Assistant — bulk/range pricing with diff preview
 
 → **Planned:** [`../planned/ai-assistant-bulk-pricing-chat.md`](../planned/ai-assistant-bulk-pricing-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + architecture §5.
@@ -917,6 +917,12 @@ Earned-only org Superhost badge — metrics, cron, Trust UI shipped; manual QA p
 📋 AI Assistant — parking broadcast fan-out
 
 → **Planned:** [`../planned/ai-assistant-parking-broadcast-chat.md`](../planned/ai-assistant-parking-broadcast-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + Part E matrix.
+
+===
+
+📋 AI Assistant — settings validators
+
+→ **Planned:** [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md) — Shared validators plus OTP-safe assistant writes for payment methods, email automations and document requirements.
 
 ===
 
@@ -1022,9 +1028,9 @@ Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc sup
 
 ===
 
-📋 AI Assistant — settings validators
+🚧 Agentic AI: dashboard assistant + guest receptionist
 
-→ **Planned:** [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md) — Shared validators plus OTP-safe assistant writes for payment methods, email automations and document requirements.
+→ **In progress:** [`../in-progress/agentic-ai-assistants.md`](../in-progress/agentic-ai-assistants.md) — Plan, chain tools, recover from tool errors, and verify before replying, with existing RBAC and safety guardrails.
 
 ===
 
@@ -1175,6 +1181,12 @@ Phase 4: Manual & Physical on site tasks:
 
 ===
 
+🚧 Guest trip hub (one page per booking)
+
+→ **In progress:** [`../in-progress/guest-trip-hub.md`](../in-progress/guest-trip-hub.md) — One page per booking for the whole stay, from form submit through check-out and deposit refund.
+
+===
+
 🚧 Improve onboarding flow
 
 Refine the full host onboarding flow end to end — not just the left showcase panel.
@@ -1258,18 +1270,6 @@ After we refine the roles & permissions that we have on both org and property le
 🚧 Super Admin: System health module
 
 → **In progress:** [`../in-progress/super-admin-system-health.md`](../in-progress/super-admin-system-health.md) — Give platform operators one place under /admin/health that answers "is every part of the app configured and working right now, and if not, what do I fix?". It checks UI and edge environment variables, third-party credentials (expired,...
-
-===
-
-🚧 Agentic AI: dashboard assistant + guest receptionist
-
-→ **In progress:** [`../in-progress/agentic-ai-assistants.md`](../in-progress/agentic-ai-assistants.md) — Plan, chain tools, recover from tool errors, and verify before replying, with existing RBAC and safety guardrails.
-
-===
-
-🚧 Guest trip hub (one page per booking)
-
-→ **In progress:** [`../in-progress/guest-trip-hub.md`](../in-progress/guest-trip-hub.md) — One page per booking for the whole stay, from form submit through check-out and deposit refund.
 
 ===
 

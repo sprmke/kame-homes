@@ -71,6 +71,11 @@ const GuestLandingPage = lazy(() =>
     default: m.GuestLandingPage,
   }))
 );
+const GuestLandingV2Page = lazy(() =>
+  import('@/features/guest/marketing/pages/GuestLandingV2Page').then((m) => ({
+    default: m.GuestLandingV2Page,
+  }))
+);
 const HostPublicPage = lazy(() =>
   import('@/features/guest/marketing/pages/HostPublicPage').then((m) => ({
     default: m.HostPublicPage,
@@ -152,18 +157,19 @@ export const marketingRoutes = [
     <Route index element={<GuestLandingPage />} />
     <Route path="search" element={<SearchResultsPage />} />
     <Route path="for-hosts/pricing" element={<ForHostsPricingPage />} />
-    {/* v2 redesign — swap into `for-hosts` below once approved. */}
+    {/* v2 redesign - swap into `for-hosts` below once approved. */}
     <Route path="for-hosts/v2" element={<ForHostsPreviewPage />} />
     <Route path="for-hosts/preview" element={<Navigate to="/for-hosts/v2" replace />} />
-    {/* Third redesign direction — manual review, not linked from nav. */}
+    {/* Third redesign direction - manual review, not linked from nav. */}
     <Route path="for-hosts/v3" element={<ForHostsV3Page />} />
-    {/* Guest landing redesign preview — manual review, not linked from nav. */}
+    {/* Guest landing redesign previews - manual review, not linked from nav. */}
     <Route path="explore-preview" element={<ExplorePreviewPage />} />
+    <Route path="v2" element={<GuestLandingV2Page />} />
     <Route path="for-hosts" element={<ForHostsPage />} />
     <Route path="services" element={<ServicesPage />} />
     <Route path="hosts/:orgSlug" element={<HostPublicPage />} />
     <Route path="properties" element={<PropertiesListPage />} />
-    {/* Location browse — must be before `:propertySlug` so `in` is not treated as a property slug */}
+    {/* Location browse - must be before `:propertySlug` so `in` is not treated as a property slug */}
     <Route path="properties/in/:location" element={<PropertiesLocationPage />} />
     <Route path="parkings" element={<ParkingsListPage />} />
     <Route path="parkings/in/:location" element={<ParkingsLocationPage />} />
@@ -172,7 +178,7 @@ export const marketingRoutes = [
     <Route path="parkings/:parkingSlug" element={<ParkingDetailPage />} />
     <Route path="properties/:propertySlug" element={<PropertyDetailPage />} />
     <Route path="developments" element={<DevelopmentsListPage />} />
-    {/* Location browse — must be before `:slug` so `in` is not treated as a development slug */}
+    {/* Location browse - must be before `:slug` so `in` is not treated as a development slug */}
     <Route path="developments/in/:location" element={<DevelopmentsLocationPage />} />
     <Route path="developments/:slug" element={<DevelopmentDetailPage />} />
     <Route path="developments/:slug/properties" element={<DevelopmentPropertiesPage />} />

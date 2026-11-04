@@ -709,7 +709,7 @@ for (const r of results) {
       `        pending (not gated): ${pendingPassed}/${pendingCases.length} already pass`
     );
     for (const c of pendingCases.filter((c) => c.pass)) {
-      console.log(`        ~ ${c.id} (${c.pending}) passes — consider removing its pending flag`);
+      console.log(`        ~ ${c.id} (${c.pending}) passes - consider removing its pending flag`);
     }
   }
   if (r.suite === 'assistant') {

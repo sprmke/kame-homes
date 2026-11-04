@@ -91,6 +91,6 @@ Deno.test('truncateReviewQuote respects word boundary', () => {
 });
 
 Deno.test('formatReviewAttribution', () => {
-  assertEquals(formatReviewAttribution('Maria', 'August 2026'), '— Maria · August 2026');
-  assertEquals(formatReviewAttribution('  ', ''), '— Guest');
+  assertEquals(formatReviewAttribution('Maria', 'August 2026'), '- Maria · August 2026');
+  assertEquals(formatReviewAttribution('  ', ''), '- Guest');
 });

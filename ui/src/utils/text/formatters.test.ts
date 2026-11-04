@@ -14,7 +14,7 @@ describe('transformFieldValues', () => {
   });
 });
 
-describe('transformFieldValues — nights for a same-day stay', () => {
+describe('transformFieldValues - nights for a same-day stay', () => {
   it('reports one night for a day-use stay instead of zero', () => {
     const values = {
       checkInDate: '2026-01-15',

@@ -31,10 +31,28 @@ export function readServerRequestId(res: Response, body?: unknown): string | nul
   return null;
 }
 
-/** `/submit-form?x=1` → `submit-form`. Used as the Sentry `fn` tag and in fingerprints. */
+const FUNCTIONS_PATH = '/functions/v1/';
+
+/**
+ * `/submit-form?x=1` → `submit-form`. Used as the Sentry `fn` tag and in fingerprints.
+ *
+ * Callers may also pass the absolute URL they fetch (the guest form builds one from its
+ * `apiUrl`). Reading the first path segment of that shape yielded `https:`, which created a
+ * junk Sentry issue instead of naming the function that failed.
+ */
 export function edgeFunctionName(path: string): string {
   const withoutQuery = path.split('?')[0] ?? path;
-  const trimmed = withoutQuery.replace(/^\/+/, '').replace(/\/+$/, '');
-  const first = trimmed.split('/')[0] ?? '';
-  return first;
+  let pathname = withoutQuery;
+  if (/^https?:\/\//i.test(withoutQuery)) {
+    try {
+      pathname = new URL(withoutQuery).pathname;
+    } catch {
+      // Not a parseable URL after all — fall through with the raw string.
+    }
+  }
+
+  const marker = pathname.indexOf(FUNCTIONS_PATH);
+  const tail = marker >= 0 ? pathname.slice(marker + FUNCTIONS_PATH.length) : pathname;
+  const trimmed = tail.replace(/^\/+/, '').replace(/\/+$/, '');
+  return trimmed.split('/')[0] ?? '';
 }

@@ -196,7 +196,7 @@ export async function toolProposeApplyOrgVerificationAttachment(
         },
         details: [
           { label: 'File', value: meta.fileName },
-          { label: 'Target', value: `Org verification — ${label}` },
+          { label: 'Target', value: `Org verification - ${label}` },
         ],
       },
     };
@@ -351,7 +351,7 @@ export async function toolProposeSubmitOrgVerification(
       riskTier,
       auditPropertyId: null,
       data: {
-        summary: `Submit org ${tierLabel} verification for review. This notifies the platform team — you cannot undo submit from chat.`,
+        summary: `Submit org ${tierLabel} verification for review. This notifies the platform team - you cannot undo submit from chat.`,
         payload: {
           tier,
           ...(tier === 'enhanced' && platformRaw ? { platformAdminPlatform: platformRaw } : {}),
@@ -930,7 +930,7 @@ export async function toolProposeStageGcashQr(
       riskTier,
       auditPropertyId: scope === 'property' ? propertyId : null,
       data: {
-        summary: `Stage “${meta.fileName}” as a ${scope} GCash QR image. This does not save payment settings — you must still open Payment settings and confirm with the email verification code (OTP).`,
+        summary: `Stage “${meta.fileName}” as a ${scope} GCash QR image. This does not save payment settings - you must still open Payment settings and confirm with the email verification code (OTP).`,
         payload: {
           attachmentPath,
           scope,
@@ -943,7 +943,7 @@ export async function toolProposeStageGcashQr(
         details: [
           { label: 'File', value: meta.fileName },
           { label: 'Scope', value: scope },
-          { label: 'OTP required', value: 'Yes — Payment settings' },
+          { label: 'OTP required', value: 'Yes - Payment settings' },
         ],
       },
     };
@@ -1098,7 +1098,7 @@ export const SUBMIT_LISTING_AUTHORIZATION_TOOL_DECLARATION = {
       contractEndDate: {
         type: 'string',
         description:
-          'YYYY-MM-DD — required for sublessee / authorized representative / property_admin',
+          'YYYY-MM-DD - required for sublessee / authorized representative / property_admin',
       },
     },
     required: ['listingKind', 'listingId', 'relationship'],
@@ -1108,7 +1108,7 @@ export const SUBMIT_LISTING_AUTHORIZATION_TOOL_DECLARATION = {
 export const STAGE_GCASH_QR_TOOL_DECLARATION = {
   name: 'propose_stage_gcash_qr',
   description:
-    'Stage a chat image as a GCash QR for property or parking payment settings. Does NOT commit payment_methods — host must complete OTP verification in Payment settings afterward.',
+    'Stage a chat image as a GCash QR for property or parking payment settings. Does NOT commit payment_methods - host must complete OTP verification in Payment settings afterward.',
   parameters: {
     type: 'object',
     properties: {

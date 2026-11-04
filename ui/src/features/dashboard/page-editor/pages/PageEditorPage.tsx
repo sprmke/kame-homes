@@ -468,7 +468,7 @@ function PropertyLandingPageEditor({
     (configQuery.isLoading && !configQuery.data) ||
     previewJwt === null ||
     (previewQuery.isLoading && !previewQuery.data) ||
-    !hydrated ||
+    (!hydrated && !configQuery.isError) ||
     !brandHydrated ||
     !contentHydrated ||
     !appSettings;

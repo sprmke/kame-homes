@@ -49,7 +49,7 @@ export function PropertyChatEmbedPreview({ checkInDate, checkOutDate }: Props) {
               Hi, is this available?
             </p>
             <p className="bg-primary-strong text-primary-foreground max-w-[72%] self-end rounded-2xl rounded-br-sm px-3 py-2 text-sm leading-snug">
-              Yes — send dates and we&apos;ll confirm.
+              Yes - send dates and we&apos;ll confirm.
             </p>
           </div>
 

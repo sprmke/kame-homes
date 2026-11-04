@@ -568,7 +568,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           </FloatingPanel>
         ) : null}
 
-        {/* Pagination — hidden in calendar view (range already filters scope) */}
+        {/* Pagination - hidden in calendar view (range already filters scope) */}
         {showPagination ? (
           <AdminListPagination
             ariaLabel="Bookings pagination"

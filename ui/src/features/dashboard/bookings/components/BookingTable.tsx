@@ -197,7 +197,7 @@ function BookingTableRow({
         <span className={adminTableBodyText.secondary}>{pax}</span>
       </td>
 
-      {/* Flags — bigger, more legible icons */}
+      {/* Flags - bigger, more legible icons */}
       <td className={cn('hidden sm:table-cell', adminTableCell.body)}>
         <AdminTableFlagsCell
           need_parking={row.need_parking}
@@ -218,7 +218,7 @@ function BookingTableRow({
         </span>
       </td>
 
-      {/* Action — chevron only, click is handled by the whole row */}
+      {/* Action - chevron only, click is handled by the whole row */}
       <td className={adminTableCell.action}>
         <AdminTableRowAffordance />
       </td>

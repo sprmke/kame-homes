@@ -335,7 +335,7 @@ export function isTechnicalEntityLabel(label: string): boolean {
 
 function preserveActionPrefix(original: string, hostLabel: string): string {
   const match = original.match(/^(mark|complete|advance|open|view|show|select)\s+/i);
-  if (match) return `${match[0].trim()} — ${hostLabel}`;
+  if (match) return `${match[0].trim()} - ${hostLabel}`;
   return hostLabel;
 }
 
@@ -403,7 +403,7 @@ export function humanizeQuickActions(
         label: ref.label,
         prompt:
           `Help me complete ${guest}'s booking. If Completed is not allowed yet, explain why, ` +
-          `what is still pending, and the next valid step — do not say the booking is missing.`,
+          `what is still pending, and the next valid step - do not say the booking is missing.`,
       };
     });
   }
@@ -543,7 +543,7 @@ function bookingSuggestionActions(
       prompt:
         `Help me complete ${guest}'s booking` +
         (statusPart ? ` (currently ${statusPart})` : '') +
-        `. If Completed is not allowed yet, explain why, what is still pending, and the next valid step — do not say the booking is missing.`,
+        `. If Completed is not allowed yet, explain why, what is still pending, and the next valid step - do not say the booking is missing.`,
     };
   });
 }
@@ -691,7 +691,7 @@ export function finalizeAssistantBlocksForHost(
         type: 'quick_actions',
         actions: refs.slice(0, 4).map((ref) => ({
           label: ref.label,
-          prompt: `Continue with ${ref.label}. Look it up with the right list/get tool for this module and take the next useful step — do not say it is missing if tools already returned it.`,
+          prompt: `Continue with ${ref.label}. Look it up with the right list/get tool for this module and take the next useful step - do not say it is missing if tools already returned it.`,
         })),
       });
     } else {

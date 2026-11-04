@@ -365,7 +365,7 @@ export function InboxPage({
             className="shrink-0 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-950 dark:text-amber-100"
             role="status"
           >
-            Preview data — not connected to live platforms. Remove{' '}
+            Preview data - not connected to live platforms. Remove{' '}
             <code className="bg-background/60 rounded px-1">VITE_INBOX_MOCK_DATA</code> or{' '}
             <code className="bg-background/60 rounded px-1">?mock=true</code>.
           </div>

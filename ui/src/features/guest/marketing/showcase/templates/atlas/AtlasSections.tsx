@@ -217,7 +217,7 @@ function AtlasHero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          Field report — {data.heroEyebrow}
+          Field report - {data.heroEyebrow}
         </motion.p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">

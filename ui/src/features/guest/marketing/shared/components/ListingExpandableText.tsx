@@ -57,7 +57,7 @@ export function ListingExpandableText({
 
   return (
     <div className="relative">
-      {/* Full-height mirror for measurement — line-clamp breaks with whitespace-pre-line. */}
+      {/* Full-height mirror for measurement - line-clamp breaks with whitespace-pre-line. */}
       <p
         ref={measureRef}
         aria-hidden

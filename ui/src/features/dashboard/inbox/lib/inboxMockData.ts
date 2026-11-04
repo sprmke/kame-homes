@@ -160,7 +160,7 @@ export const MOCK_CONVERSATIONS: InboxConversation[] = [
     linked_post_id: null,
     linked_post_url: null,
     ai_handoff_at: minutesAgo(2),
-    ai_handoff_reason: 'Guest asked to waive a fee — outside what the AI can approve.',
+    ai_handoff_reason: 'Guest asked to waive a fee - outside what the AI can approve.',
   },
 ];
 

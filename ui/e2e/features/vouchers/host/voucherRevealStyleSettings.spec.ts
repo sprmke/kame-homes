@@ -20,7 +20,7 @@ const HOST_STYLE_CASES: Array<{
   { style: 'reel', label: 'Reel', initial: 'flip' },
 ];
 
-test.describe('host — voucher reveal style settings', () => {
+test.describe('host - voucher reveal style settings', () => {
   for (const { style, label, initial } of HOST_STYLE_CASES) {
     test(`saves ${label} reveal style from Reviews & vouchers`, async ({ page }) => {
       const host = createVoucherHostState({ voucherRevealStyle: initial });

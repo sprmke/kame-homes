@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 import {
   HERO_SEARCH_SINGLE_MONTH_PANEL_WIDTH,
@@ -79,16 +79,27 @@ export function readWhereParam(sp: URLSearchParams, fallback = ''): string {
   return (sp.get('where') ?? sp.get('location') ?? fallback).trim() || fallback;
 }
 
+/**
+ * The range calendar lets one day stand for both ends. Search requires `checkIn < checkOut`
+ * (the edge answers 400 otherwise), so a single-day pick means a one-night stay.
+ */
+export function normalizeStayRange(range: DateRange | undefined): DateRange | undefined {
+  if (!range?.from || !range.to) return range;
+  if (range.to.getTime() > range.from.getTime()) return range;
+  return { from: range.from, to: addDays(range.from, 1) };
+}
+
 export function buildSearchValues(
   location: string,
   dateRange: DateRange | undefined,
   guests: GuestCounts
 ): HeroSearchValues {
   const guestTotal = guests.adults + guests.children;
+  const range = normalizeStayRange(dateRange);
   return {
     location: location.trim(),
-    checkIn: toIsoDate(dateRange?.from),
-    checkOut: toIsoDate(dateRange?.to),
+    checkIn: toIsoDate(range?.from),
+    checkOut: toIsoDate(range?.to),
     guests: guestTotal > 0 ? String(guestTotal) : '',
   };
 }

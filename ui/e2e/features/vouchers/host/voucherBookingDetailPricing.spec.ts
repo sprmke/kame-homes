@@ -11,7 +11,7 @@ import {
   voucherRedemptionTimeoutMs,
 } from '../shared/voucherRedemptionHarness';
 
-test.describe('host — booking with applied guest voucher', () => {
+test.describe('host - booking with applied guest voucher', () => {
   test('PENDING_REVIEW workflow shows voucher discount in pricing review', async ({ page }) => {
     test.setTimeout(voucherRedemptionTimeoutMs());
     const host = createVoucherRedemptionHostState({

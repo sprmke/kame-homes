@@ -18,7 +18,7 @@ export const PLAN_TASK_DECLARATION: ToolDeclaration = {
     'Call this FIRST, before any other tool, when the request has 2 or more distinct asks or a ' +
     'multi-step write (e.g. "block these dates, raise weekend rates, and message the Garcia ' +
     'booking"). List each sub-goal in short host-facing language, in the order you\'ll do them. ' +
-    "Skip this for a single simple ask — it's only for turns worth tracking as a checklist. " +
+    "Skip this for a single simple ask - it's only for turns worth tracking as a checklist. " +
     'Does not run anything itself.',
   parameters: {
     type: 'object',

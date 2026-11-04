@@ -123,7 +123,7 @@ serve(async (req) => {
     );
     console.log('  Send workflow emails: ❌ (GAF / ack / pet / parking only on admin transitions)');
     console.log(
-      `  New Booking Request email (EMAIL_REPLY_TO): ${isSendEmailEnabled ? '✅' : '❌'} (FormData/sendEmail, default on — only sent after a DB save with an id; not this flag alone)`
+      `  New Booking Request email (EMAIL_REPLY_TO): ${isSendEmailEnabled ? '✅' : '❌'} (FormData/sendEmail, default on - only sent after a DB save with an id; not this flag alone)`
     );
     console.log('---');
 

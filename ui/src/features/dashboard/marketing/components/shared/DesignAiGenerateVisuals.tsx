@@ -32,7 +32,7 @@ export function DesignSuggestionPreview({
       }}
       aria-hidden
     >
-      {/* Soft photo-wash texture (no real image — still reads as a stay promo) */}
+      {/* Soft photo-wash texture (no real image - still reads as a stay promo) */}
       <div
         className="absolute inset-0 opacity-30"
         style={{
@@ -40,7 +40,7 @@ export function DesignSuggestionPreview({
             'radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.55), transparent 55%), radial-gradient(ellipse at 20% 80%, rgba(0,0,0,0.12), transparent 50%)',
         }}
       />
-      {/* Bottom scrim for type legibility — same device as real Quiet Coast presets */}
+      {/* Bottom scrim for type legibility - same device as real Quiet Coast presets */}
       <div
         className="absolute inset-x-0 bottom-0 h-[62%]"
         style={{

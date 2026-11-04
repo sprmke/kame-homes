@@ -71,7 +71,7 @@ export function SuperAdminRateLimitsPage() {
           <p className="text-sm font-medium">
             Enforcement is{' '}
             <Badge variant={data?.enforceEnabled ? 'success' : 'secondary'}>
-              {data?.enforceEnabled ? 'ON — 429 on limit' : 'OFF — log-only'}
+              {data?.enforceEnabled ? 'ON - 429 on limit' : 'OFF - log-only'}
             </Badge>
             {typeof data?.limit === 'number' ? (
               <span className="text-muted-foreground ml-2 text-xs">
