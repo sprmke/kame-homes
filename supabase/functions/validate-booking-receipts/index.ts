@@ -11,6 +11,7 @@
  * Auth:    verifyAdminJwt(req)
  */
 
+import { bookingTargetLabel, logBookingDetailActivity } from '../_shared/bookingActivityLog.ts';
 import { syncPricingReviewBalanceReceipt } from '../_shared/bookingAiReviewService.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import {
@@ -37,11 +38,9 @@ serveAuthenticated('validate-booking-receipts', async (req, authUser) => {
   });
   if (limited) return limited;
 
-  const { user, property, org } = await resolveScopedPropertyAccess(
-    req,
-    'bookings.detail.pricing:edit'
-  );
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.pricing:edit');
+  const propertyId = propertyAccess.property.id;
+  const { user, org } = propertyAccess;
 
   try {
     await requirePropertyFeature(propertyId, 'aiValidations');
@@ -67,6 +66,14 @@ serveAuthenticated('validate-booking-receipts', async (req, authUser) => {
 
   if (validated.length > 0) {
     await DatabaseService.setWorkflowFields(bookingId, dbPatchFromReceiptBackfillItems(validated));
+    await logBookingDetailActivity({
+      action: 'booking.receipt_validated',
+      propertyAccess,
+      req,
+      bookingId,
+      targetLabel: bookingTargetLabel(booking),
+      metadata: { count: validated.length, source: 'backfill' },
+    });
     console.log(
       `[validate-booking-receipts] ${bookingId}: validated ${validated.length} receipt(s)`
     );

@@ -6,6 +6,11 @@
  * Does not change status; updates sd_refund_form_emailed_at (+ Free-tier manual-send map).
  */
 
+import {
+  bookingTargetLabel,
+  logBookingDetailActivity,
+  workflowEmailActivityMetadata,
+} from '../_shared/bookingActivityLog.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { sendSdRefundFormRequest } from '../_shared/emailService.ts';
 import { rawPropertyAutomationEnabled } from '../_shared/propertyAutomationToggles.ts';
@@ -33,8 +38,8 @@ const SD_KIND = 'sd_refund_form_request';
 
 serveAuthenticated('send-sd-refund-form-email', async (req) => {
   requireHttpMethod(req, 'POST');
-  const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
+  const propertyId = propertyAccess.property.id;
   const body = await readJsonBody(req);
   const bookingId = body?.bookingId;
   if (!bookingId || typeof bookingId !== 'string') {
@@ -89,6 +94,15 @@ serveAuthenticated('send-sd-refund-form-email', async (req) => {
       SD_KIND,
       sentAtIso
     ),
+  });
+
+  await logBookingDetailActivity({
+    action: 'booking.workflow_email_sent',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel: bookingTargetLabel(booking),
+    metadata: workflowEmailActivityMetadata(SD_KIND),
   });
 
   return jsonResponse(req, { success: true, bookingId });

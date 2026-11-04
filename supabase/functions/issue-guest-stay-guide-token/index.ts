@@ -6,6 +6,7 @@
  * Booking must be READY_FOR_CHECKIN, READY_FOR_CHECKOUT, PENDING_SD_REFUND, or COMPLETED.
  */
 
+import { bookingTargetLabel, logBookingDetailActivity } from '../_shared/bookingActivityLog.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { issueGuestStayGuideAccess } from '../_shared/guestStayGuide.ts';
 import {
@@ -24,8 +25,8 @@ import type { GuestSubmission } from '../_shared/types.ts';
 
 serveAuthenticated('issue-guest-stay-guide-token', async (req) => {
   requireHttpMethod(req, 'POST');
-  const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
-  const propertyId = property.id;
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
+  const propertyId = propertyAccess.property.id;
   try {
     await requirePropertyFeature(propertyId, 'propertyShowcase');
   } catch (err) {
@@ -50,6 +51,14 @@ serveAuthenticated('issue-guest-stay-guide-token', async (req) => {
   if (!issued) {
     return jsonError(req, `Stay guide link is not available for status ${booking.status}`, 409);
   }
+
+  await logBookingDetailActivity({
+    action: 'booking.stay_guide_link_issued',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel: bookingTargetLabel(booking),
+  });
 
   return jsonSuccess(req, {
     bookingId,

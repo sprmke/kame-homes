@@ -1,6 +1,13 @@
 import { formatDistanceToNowStrict } from 'date-fns';
 
-import type { ActivityChange } from '@/features/dashboard/activity/lib/activityCatalog';
+import type {
+  ActivityChange,
+  ActivityEvent,
+} from '@/features/dashboard/activity/lib/activityCatalog';
+import {
+  ACTIVITY_SEVERITY_META,
+  activityActorLabel,
+} from '@/features/dashboard/activity/lib/activityCatalog';
 
 /** "3 min ago" style — for the row timestamp. */
 export function activityRelativeTime(iso: string): string {
@@ -234,4 +241,34 @@ export function friendlyMetadataFacts(
     facts.push({ label, value: text });
   }
   return facts;
+}
+
+/** Everything the Activity detail view needs from one event, pre-normalized. */
+export function buildActivityDetail(event: ActivityEvent) {
+  const summary = (() => {
+    const friendly = friendlyActivitySummary(event.summary, event.metadata);
+    const actorPrimary =
+      event.actorDisplayName?.trim() ||
+      event.actorEmail?.trim() ||
+      activityActorLabel(event.actorType);
+    return friendly.toLowerCase().startsWith(actorPrimary.toLowerCase())
+      ? activitySummaryWithoutLeadingActor(friendly, actorPrimary)
+      : friendly;
+  })();
+
+  return {
+    summary,
+    meta: ACTIVITY_SEVERITY_META[event.severity],
+    actorParts: formatActivityActorParts({
+      displayName: event.actorDisplayName,
+      email: event.actorEmail,
+      typeLabel: activityActorLabel(event.actorType),
+      role: event.actorRole,
+    }),
+    device: friendlyDeviceLabel(event.userAgent),
+    facts: friendlyMetadataFacts(event.metadata),
+    target:
+      event.targetLabel?.trim() ||
+      (event.targetId && !/^[0-9a-f-]{36}$/i.test(event.targetId) ? event.targetId : null),
+  };
 }

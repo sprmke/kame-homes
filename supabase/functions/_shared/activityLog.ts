@@ -207,6 +207,66 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} sent ${str(c.metadata, 'template_name') ?? 'a custom template'} to ${label(c, 'a booking')}'s guest`,
   },
+  'booking.workflow_email_sent': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} sent ${str(c.metadata, 'email_kind_label') ?? 'a workflow email'} for ${label(
+        c,
+        'a booking'
+      )}`,
+  },
+  'booking.document_uploaded': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} uploaded ${str(c.metadata, 'asset_label') ?? str(c.metadata, 'asset_type') ?? 'a document'} for ${label(
+        c,
+        'a booking'
+      )}`,
+  },
+  'booking.share_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a GAF/pet share link for ${label(c, 'a booking')}`,
+  },
+  'booking.stay_guide_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a stay guide link for ${label(c, 'a booking')}`,
+  },
+  'booking.guest_form_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a guest form link for ${label(c, 'a booking')}`,
+  },
+  'booking.trip_link_issued': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} copied a guest trip link for ${label(c, 'a booking')}`,
+  },
+  'booking.ai_review_run': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} ran AI summary for ${label(c, 'a booking')}`,
+  },
+  'booking.receipt_validated': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => {
+      const count = num(c.metadata, 'count');
+      const noun = count === 1 ? 'receipt' : 'receipts';
+      return `${c.actorName} validated ${count > 0 ? count : 'a'} ${noun} for ${label(c, 'a booking')}`;
+    },
+  },
   'booking.document_substep_completed': {
     category: 'booking',
     severity: 'info',
@@ -923,7 +983,7 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'conversation',
     summary: (c) =>
       `${c.actorName} handed off ${label(c, 'a conversation')} to the host team` +
-      (str(c.metadata, 'reason') ? ` — ${str(c.metadata, 'reason')}` : ''),
+      (str(c.metadata, 'reason') ? ` - ${str(c.metadata, 'reason')}` : ''),
   },
   'guest_request.booking_inquiry_created': {
     category: 'inbox',
