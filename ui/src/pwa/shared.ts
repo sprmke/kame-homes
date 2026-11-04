@@ -38,6 +38,18 @@ export const DRAFTS_DB_NAME = `${CACHE_PREFIX}drafts`;
 /** Build-time tier manifest written by `scripts/pwa/generate-precache-tiers.mjs`. */
 export const PRECACHE_TIERS_PATH = '/precache-tiers.json';
 
+/**
+ * Cache key for the tier manifest, scoped to the build that wrote it.
+ *
+ * The manifest lists hashed asset names, so it is only valid for one build. Cached
+ * under the bare path it was read back by *every* later worker, which then
+ * precached (and served the shell of) the build that happened to be live at the
+ * user's first install — and a normal refresh could never move off it.
+ */
+export function precacheTiersCacheKey(buildId: number | string): string {
+  return `${PRECACHE_TIERS_PATH}?b=${buildId}`;
+}
+
 /** `postMessage` contract between app ⇄ SW. */
 export const SW_MESSAGE = {
   /** app → SW: activate the waiting worker now (user accepted the update prompt). */

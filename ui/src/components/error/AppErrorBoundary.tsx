@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { RuntimeErrorFallback } from '@/components/error/RuntimeErrorFallback';
-import { isChunkLoadError, reloadForChunkError } from '@/lib/chunkReload';
+import { isChunkLoadError, reloadForChunkError, resetAppShellAndReload } from '@/lib/chunkReload';
 import { captureRenderError } from '@/lib/sentry/capture';
 
 type Props = { children: ReactNode };
@@ -33,7 +33,7 @@ export class AppErrorBoundary extends Component<Props, State> {
         reference={this.state.reference}
         onReload={() => {
           this.setState({ error: null, reference: undefined });
-          window.location.reload();
+          resetAppShellAndReload();
         }}
       />
     );
