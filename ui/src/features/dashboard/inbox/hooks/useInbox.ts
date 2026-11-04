@@ -802,38 +802,34 @@ export function useInboxRealtime(orgId: string | null) {
 
       channel = supabase
         .channel(`inbox-${orgId}`)
+        // One binding for INSERT + UPDATE on social_messages: each
+        // `postgres_changes` binding becomes its own Realtime subscription and
+        // is polled against WAL separately. Branch on eventType instead.
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'social_messages',
             filter: `organization_id=eq.${orgId}`,
           },
           (payload) => {
-            scheduleInboxInvalidate(qc);
-            const row = payload.new as { direction?: string; body_text?: string | null };
-            if (row.direction === 'inbound') {
-              // Foreground signal only. The OS notification comes from the push
-              // pipeline (`push-fanout` → service worker), so there is exactly one
-              // system notification per message (P1-6 / 6.6).
-              if (document.visibilityState === 'visible') {
-                toast.message('New guest message', {
-                  description: row.body_text?.trim().slice(0, 120) || 'New message',
-                });
+            if (payload.eventType === 'INSERT') {
+              scheduleInboxInvalidate(qc);
+              const row = payload.new as { direction?: string; body_text?: string | null };
+              if (row.direction === 'inbound') {
+                // Foreground signal only. The OS notification comes from the push
+                // pipeline (`push-fanout` → service worker), so there is exactly one
+                // system notification per message (P1-6 / 6.6).
+                if (document.visibilityState === 'visible') {
+                  toast.message('New guest message', {
+                    description: row.body_text?.trim().slice(0, 120) || 'New message',
+                  });
+                }
               }
+              return;
             }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'social_messages',
-            filter: `organization_id=eq.${orgId}`,
-          },
-          (payload) => {
+            if (payload.eventType !== 'UPDATE') return;
             const row = payload.new as SocialMessageRealtimeRow;
             if (!row?.id || !row.conversation_id) {
               scheduleInboxInvalidate(qc);

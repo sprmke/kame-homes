@@ -467,34 +467,31 @@ function useGuestChatRealtime(
 
       channel = supabase
         .channel(`guest-chat-${conversationId}`)
+        // INSERT + UPDATE share one binding. Every `postgres_changes` binding is
+        // its own Realtime subscription polled against WAL, so merging them
+        // cuts guest-chat Realtime load by a third.
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'social_messages',
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            const row = payload.new as { direction?: string };
-            if (row.direction === 'outbound') {
-              patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'replied');
-              void onPeerMessageReceivedRef.current?.();
-            } else if (row.direction === 'inbound') {
-              patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'pending');
+            if (payload.eventType === 'INSERT') {
+              const row = payload.new as { direction?: string };
+              if (row.direction === 'outbound') {
+                patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'replied');
+                void onPeerMessageReceivedRef.current?.();
+              } else if (row.direction === 'inbound') {
+                patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'pending');
+              }
+              invalidate();
+              return;
             }
-            invalidate();
+            if (payload.eventType === 'UPDATE') patchFromUpdate(payload);
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'social_messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          patchFromUpdate
         )
         .on(
           'postgres_changes',
