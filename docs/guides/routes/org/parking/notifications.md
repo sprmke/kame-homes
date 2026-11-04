@@ -34,7 +34,7 @@ Deep links:
 
 Hub for **in-app activity** (same org-wide feed as the bell) and **Telegram** alerts for this parking slot.
 
-**Plan gating:** **Telegram Chat enable** and the **AI dashboard assistant** gate on the org's own live subscription (or Free default) — `requireOrgFeature`/`resolveOrgEntitlements` server-side, `useFeatureGate`/`useOrgPlan` client-side — same as any org-only page, no property involved. Closed 2026-09-09; see [`parking-property-parity.md`](../../../workflow/in-progress/parking-property-parity.md).
+**Plan gating:** **Telegram Chat enable** and the **AI dashboard assistant** gate on the org's own live subscription (or Free default) — `requireOrgFeature`/`resolveOrgEntitlements` server-side, `useFeatureGate`/`useOrgPlan` client-side — same as any org-only page, no property involved. Closed 2026-09-09; see [`parking-property-parity.md`](../../../../workflow/for-testing/parking-property-parity.md).
 
 **Feature availability (super-admin):** Same Telegram keys as property notifications (`notifications.telegram`, `.settings`, `.delivery`). Shared bot token and module cards use `TelegramNotificationsTelegramSection`; PATCH/POST on `telegram-*-settings` return 503 when settings are off.
 

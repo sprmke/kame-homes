@@ -32,7 +32,7 @@ Ticked boxes in the phases below are implemented and verified (`bun run test`, `
 
 **Builds on:** [`./pwa-installable-offline-push.md`](./pwa-installable-offline-push.md) (v1, Phases 0 to 7 shipped 2026-09-02, never fully device-QA'd). Canonical reference: [`../../architecture/pwa.md`](../../architecture/pwa.md). Rule: `.cursor/rules/pwa.mdc`.
 
-**Coordinates with:** [`../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) (W-01 to W-05: manifest name, icons, version bump), [`../in-progress/kamespace-04-domain-move-kamespace-com.md`](../in-progress/kamespace-04-domain-move-kamespace-com.md) (origin change breaks installed apps, see P0-3), [`../in-progress/dashboard-mobile-native-v2.md`](../in-progress/dashboard-mobile-native-v2.md) (phone layouts; this plan owns the standalone-mode behavior, that plan owns screen layouts).
+**Coordinates with:** [`../done/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../done/kamespace-03-rebrand-kame-homes-to-kame-space.md) (W-01 to W-05: manifest name, icons, version bump), [`../done/kamespace-04-domain-move-kamespace-com.md`](../done/kamespace-04-domain-move-kamespace-com.md) (origin change breaks installed apps, see P0-3), [`../planned/dashboard-mobile-native-v2.md`](../planned/dashboard-mobile-native-v2.md) (phone layouts; this plan owns the standalone-mode behavior, that plan owns screen layouts).
 
 **Source intake:** user request 2026-11-01. Goals in the user's words: make sure the app "acts and behaves beautifully like a full PWA app", covers every page and section, offers install only when the device and user make it sensible, and keeps syncing and reloading smooth. Plan only, no code yet.
 

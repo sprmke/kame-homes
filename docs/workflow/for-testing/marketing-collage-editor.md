@@ -1,9 +1,9 @@
 ---
 title: 'Marketing Studio: collage editor + module restructure'
 stage: for-testing
-status: implemented — manual QA pending
+status: for-testing
 tags: [marketing, design-editor, polotno, collage, media, performance]
-updated: 2026-09-15
+updated: 2026-11-04
 kind: plan
 ---
 
@@ -368,7 +368,7 @@ Manual, in the Studio:
 
 - [`../done/marketing-design-templates.md`](../done/marketing-design-templates.md)
 - [`../done/marketing-video-templates.md`](../done/marketing-video-templates.md)
-- [`../planned/marketing-studio-mobile-and-dashboard-responsive.md`](../planned/marketing-studio-mobile-and-dashboard-responsive.md)
+- [`../in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md)
 - [`../../architecture/plans-feature-matrix.md`](../../architecture/plans-feature-matrix.md)
 
 ---

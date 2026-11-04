@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Org Granular Team Permissions — Org Catalog + Listing Assignment'
-status: in-progress
+status: for-testing
 tags: [planning, planned, team, rbac, permissions, org]
-updated: 2026-09-09
+updated: 2026-11-04
 ---
 
 # Org Granular Team Permissions — Org Catalog + Listing Assignment

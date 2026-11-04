@@ -196,7 +196,7 @@ Also added `_shared/listingAuthorizationService.ts` — listing row + org resolu
 - [ ] Host page shows host Recommended; listing pages show listing Recommended
 - [ ] Backfilled legacy orgs still load and preview their old documents
 
-**Follow-up (in progress):** listing renewal reminder modal replacing strip/lock UI — [`listing-contract-renewal-modal.md`](./listing-contract-renewal-modal.md) · design [`../intake/listing-contract-renewal-modal-design.md`](../intake/listing-contract-renewal-modal-design.md).
+**Follow-up (in progress):** listing renewal reminder modal replacing strip/lock UI — [`listing-contract-renewal-modal.md`](./listing-contract-renewal-modal.md) · design [`../../workflow/done/listing-contract-renewal-modal-design.md`](../../workflow/done/listing-contract-renewal-modal-design.md).
 
 ---
 

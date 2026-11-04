@@ -1,5 +1,5 @@
 /**
- * AI chat mode vs Advanced mode (docs/workflow/in-progress/ai-chat-mode.md §5).
+ * AI chat mode vs Advanced mode (docs/workflow/done/ai-chat-mode.md §5).
  * Mocked edge functions via the property-team RBAC harness; no live model calls.
  */
 import { expect, test, type Page } from '@playwright/test';

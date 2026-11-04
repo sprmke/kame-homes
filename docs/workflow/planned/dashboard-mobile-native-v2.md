@@ -1,9 +1,9 @@
 ---
 title: 'Dashboard mobile native v2 (ground-up phone redesign)'
 stage: planned
-status: not started
+status: planned
 tags: [mobile-responsive, mobile-native, dashboard, design-system, gestures]
-updated: 2026-10-04
+updated: 2026-11-04
 kind: plan
 ---
 
@@ -60,16 +60,16 @@ Reference screens (all authored at 393×852 iPhone points in `marketing/social/s
 
 ### Needs a call before Phase 1 (recommendation first)
 
-| #   | Question                                                                                    | Recommendation                                                                                                                                                                                                                                                                    |
-| --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Retire the teal `MobileBrandHero` on phone?                                                 | **Yes.** Replace with `LargeTitleHeader` on paper (matches every shot). Keep the `AdminMobilePage` prop API so pages migrate without rewrites. This reverses phases 4e, 4p, 4w, 4ao, 4ap (hero arc/collapse work).                                                                |
-| D2  | Port marketing palette v3 (emerald `162 80% 30%` + graphite darks) into `ui/src/index.css`? | **Yes, app-wide, as Phase 0b**, so app and marketing match. It touches desktop colors too (only colors, not layout). If you'd rather keep desktop as-is, scope the new tokens to `max-lg` and accept two greens for a while.                                                      |
-| D3  | Reverse the "native density" type scale (phases 4af, 4aj, 4m) on phone?                     | **Yes.** Adopt the shot scale: page title 28 to 30px, row title 15px, sub 12.5 to 13px, section label 13px. Update `mobile-responsive.mdc` §4, which currently forbids larger phone titles.                                                                                       |
-| D4  | Where does the tenant (org / property / parking) switcher go once the hero is gone?         | Small tappable eyebrow above the large title on **root tab pages only** ("Skyline Suite 2604 ⌄"), opening the existing switcher as a sheet. Detail pages show a back link instead.                                                                                                |
-| D5  | Custom pull-to-refresh in a normal browser tab?                                             | **Standalone PWA only** (`display-mode: standalone`). In a browser tab the browser's own pull-to-reload stays.                                                                                                                                                                    |
-| D6  | Gesture library                                                                             | **No new dependency.** `framer-motion` (already installed) for drag/swipe/springs; pointer events for long-press; the existing `sheetDrag.ts` approach for thresholds. Revisit only if a spike fails.                                                                             |
-| D7  | Super-admin console (`/admin/*`) in scope?                                                  | **Native-lite only** (Phase 9): shared header, grouped lists, sheets. No per-page bespoke redesign; it is an internal tool.                                                                                                                                                       |
-| D8  | Marketing Studio editors (Polotno design, Remotion video)                                   | Keep [`marketing-studio-mobile-and-dashboard-responsive.md`](./marketing-studio-mobile-and-dashboard-responsive.md) as the owner of editor internals. This plan only redesigns the Studio **landing/composer** (Content Studio shot) and the editor chrome (header, bottom bars). |
+| #   | Question                                                                                    | Recommendation                                                                                                                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Retire the teal `MobileBrandHero` on phone?                                                 | **Yes.** Replace with `LargeTitleHeader` on paper (matches every shot). Keep the `AdminMobilePage` prop API so pages migrate without rewrites. This reverses phases 4e, 4p, 4w, 4ao, 4ap (hero arc/collapse work).                                                                             |
+| D2  | Port marketing palette v3 (emerald `162 80% 30%` + graphite darks) into `ui/src/index.css`? | **Yes, app-wide, as Phase 0b**, so app and marketing match. It touches desktop colors too (only colors, not layout). If you'd rather keep desktop as-is, scope the new tokens to `max-lg` and accept two greens for a while.                                                                   |
+| D3  | Reverse the "native density" type scale (phases 4af, 4aj, 4m) on phone?                     | **Yes.** Adopt the shot scale: page title 28 to 30px, row title 15px, sub 12.5 to 13px, section label 13px. Update `mobile-responsive.mdc` §4, which currently forbids larger phone titles.                                                                                                    |
+| D4  | Where does the tenant (org / property / parking) switcher go once the hero is gone?         | Small tappable eyebrow above the large title on **root tab pages only** ("Skyline Suite 2604 ⌄"), opening the existing switcher as a sheet. Detail pages show a back link instead.                                                                                                             |
+| D5  | Custom pull-to-refresh in a normal browser tab?                                             | **Standalone PWA only** (`display-mode: standalone`). In a browser tab the browser's own pull-to-reload stays.                                                                                                                                                                                 |
+| D6  | Gesture library                                                                             | **No new dependency.** `framer-motion` (already installed) for drag/swipe/springs; pointer events for long-press; the existing `sheetDrag.ts` approach for thresholds. Revisit only if a spike fails.                                                                                          |
+| D7  | Super-admin console (`/admin/*`) in scope?                                                  | **Native-lite only** (Phase 9): shared header, grouped lists, sheets. No per-page bespoke redesign; it is an internal tool.                                                                                                                                                                    |
+| D8  | Marketing Studio editors (Polotno design, Remotion video)                                   | Keep [`marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md) as the owner of editor internals. This plan only redesigns the Studio **landing/composer** (Content Studio shot) and the editor chrome (header, bottom bars). |
 
 ## 3. Design language: "Native v2" spec
 
@@ -349,7 +349,7 @@ Paths below are relative to `/org/:orgSlug/property/:propertySlug/`.
 ### P20. AI assistant (bottom sheet + AI mode)
 
 - Sheet = Ask Kame shot: header "Ask Kame" + AI mode pill, user bubbles dark, answer cards with source eyebrow ("From your Finance and Bookings"), inline mini chart, action chips ("Open Finance", "Export report"), entity rows for lists (bookings with status pills).
-- Composer above keyboard; context picker as sheet. AI mode full page uses the same composition on phone. Coordinate with [`ai-chat-mode.md`](../in-progress/ai-chat-mode.md) so phone layout lands in its shared chat core, not a fork.
+- Composer above keyboard; context picker as sheet. AI mode full page uses the same composition on phone. Coordinate with [`ai-chat-mode.md`](../done/ai-chat-mode.md) so phone layout lands in its shared chat core, not a fork.
 
 ## 7. Org-level and parking pages
 
@@ -473,4 +473,4 @@ Create `docs/workflow/planned/public-mobile-native-v2.md` when dashboard Phase 6
 - Tokens: `ui/src/index.css`, `ui/tailwind.config.*`, `ui/src/lib/statusToneColors.ts`
 - Hooks: `ui/src/hooks/useMediaQuery.ts`, `useMobileHeroCollapseProgress.ts`, `useMobileStickyChrome.ts`
 - Reference shots: `marketing/social/src/features/{kit,opsScreens,growthScreens,bookingScreens,guestScreens}.tsx`, `marketing/social/src/theme.ts`
-- Prior work: [`../for-testing/mobile-native-redesign.md`](../for-testing/mobile-native-redesign.md), [`./marketing-studio-mobile-and-dashboard-responsive.md`](./marketing-studio-mobile-and-dashboard-responsive.md)
+- Prior work: [`../for-testing/mobile-native-redesign.md`](../for-testing/mobile-native-redesign.md), [`../in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md)

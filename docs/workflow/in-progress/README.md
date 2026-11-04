@@ -19,11 +19,13 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved out 2026-11-03:** [`kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) → **done**. Google sign-in brand verification approved and published. Remaining Maps/Gemini/Fonts/legacy items split to [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md), not pre-production blockers.
 
-**Updated 2026-11-04:** **03 rebrand is complete** (0 open items): production live on `Kame Space`, guard green in CI, narration audio regenerated, 539 social stills re-rendered, mobile overflow gate, legal disclosure, `ks-*` aliases, glossary. **04 domain move** has 19 operator/console items left (Namecheap DNS, Turnstile, Google Business/Postmaster, Meta, PayMongo, PostHog/Sentry, comms). Search Console sitemap is submitted and verified.
+**Updated 2026-11-04:** **04 domain move is complete** → [`../done/`](../done/kamespace-04-domain-move-kamespace-com.md). Production is on `kamespace.com`; Search Console sitemap submitted; Resend, DMARC, Supabase Auth, Cloudflare Turnstile, Meta, PostHog, Sentry, PayMongo and Google Business verified. The legacy domain is intentionally abandoned (not renewed).
 
-**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) is in this folder; the `planned/` copies are superseded. 01 is closed; 02 (legacy → mt-prod cutover) is closed. 03 rebrand and 04 domain move remain here. 04's DNS/Resend/Auth phases gate T0.
+**Moved out 2026-11-04:** [`kamespace-03-rebrand-kame-homes-to-kame-space.md`](../done/kamespace-03-rebrand-kame-homes-to-kame-space.md) → **done**. Production, emails, PDFs, AI replies, legal pages, PWA manifest, narration audio and all social stills/videos now use Kame Space; guard green in CI.
 
-**Moved in 2026-10-25:** [`chat-templates.md`](./chat-templates.md) ← [`../planned/`](../planned/) — property stay-guide/custom templates in Guest Inbox Insert → Templates and AI Assistant Pin context. Code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
+**Moved in 2026-11-02:** the Kame Space launch series (`kamespace-01`…`04`) was in this folder; the `planned/` copies are superseded. All five plans (01–05) are now closed.
+
+**Moved out 2026-11-03:** [`chat-templates.md`](../for-testing/chat-templates.md) → for-testing — code + tests complete; manual live-thread QA (web card, Meta flattening, assistant rewrite) left.
 
 **Moved out 2026-09-09:** `org-granular-team-permissions` + `super-admin-step-up-otp` → [`../for-testing/`](../for-testing/) (code shipped, QA-only — batches 6 & 7 in [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md)). `marketing-module-refinement` → [`../done/`](../done/); remaining Meta-publishing feature gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
 
@@ -33,7 +35,7 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Moved out 2026-09-15:** `pre-production-launch-audit` → [`../for-testing/`](../for-testing/) — every P0/P1/P2 item closed in repo; remaining QA is restore rehearsal on hosted **dev** + the mt-prod cutover gate.
 
-**Moved in 2026-09-23:** [`marketing-ai-image-quality-hardening.md`](./marketing-ai-image-quality-hardening.md) ← [`../planned/`](../planned/) — Phases 1–6 implemented. 2026-09-24: property context now reads real amenity settings and includes the listing name and brand color. Still open: the 20-prompt blind image score (user is the judge) before this can move to done.
+**Moved out 2026-11-03:** [`marketing-ai-image-quality-hardening.md`](../for-testing/marketing-ai-image-quality-hardening.md) → for-testing — Phases 1–6 implemented. Still open: the 20-prompt blind image score (user is the judge) before this can move to done.
 
 **Moved out 2026-09-27:** [`org-portfolio-analytics-redesign.md`](../for-testing/org-portfolio-analytics-redesign.md) → for-testing (`ci:quality` green; manual QA remaining).
 
@@ -48,8 +50,13 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 | [`activity-modal-ui-polish.md`](../for-testing/activity-modal-ui-polish.md) | Activity Manage modal UI/UX polish (org/property/parking)                                                                                                                                                                                                                      |
 | [`marketing-themes.md`](./marketing-themes.md)                              | Theme-first Marketing Studio: themes library + switcher + editor, per-property `marketing_themes`, calendar/posts/videos/AI follow the theme (re-theme engine, hand edits kept), live calendar cards; manual QA + follow-ups (AI theme creation, thumbnails in Storage) remain |
 | [`marketing-ai-poster-studio.md`](./marketing-ai-poster-studio.md)          | AI Post: poster design system (6 archetypes, 8 type systems, icons, audit), AI art director, Generate tab mode shipped locally; blind eval + later phases (brand kit, photo enhance, server render) remain                                                                     |
+| [`agentic-ai-assistants.md`](./agentic-ai-assistants.md)                    | Agentic behavior for the dashboard assistant and guest receptionist — plan, chain tools, recover from tool errors, verify before replying; existing RBAC and safety guardrails stay                                                                                            |
+| [`ai-studio-sample-assets.md`](./ai-studio-sample-assets.md)                | Generate the real photo and clip sample assets for the AI Studio example gallery; blocked on a paid Gemini/Veo key (all configured keys hit the free-tier hard cap)                                                                                                            |
+| [`super-admin-system-health.md`](./super-admin-system-health.md)            | `/admin/health` monitoring — env vars, third-party credentials, scheduled jobs, DB prerequisites, tenant integrations; OK / Warning / Error / Off / Unknown with fix hints                                                                                                     |
 | [`ci-cd-environments/`](./ci-cd-environments/README.md)                     | Phases A–C repo shipped; **operator checklist** + **Phase B prod cutover** at release                                                                                                                                                                                          |
 | See [`../done/`](../done/) for completed work.                              |
+
+**Audited 2026-11-04:** stale duplicate copies were moved to [`../../archive/workflow-superseded/`](../../archive/workflow-superseded/README.md); the live copy in each case is the newer one in its stage folder.
 
 **Super admin console:** Phases 0–7 **done** — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) (+ audit log, AI usage, platform settings, global search in `done/`). Remaining 6 modules: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md).
 

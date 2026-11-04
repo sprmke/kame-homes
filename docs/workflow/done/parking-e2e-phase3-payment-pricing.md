@@ -8,7 +8,7 @@ updated: 2026-08-30
 
 # Phase 3 — Payment & Pricing
 
-Part of [Parking E2E Phase 2+ overview](./parking-e2e-later-phases.md). Depends on Phase 2 (a match must exist before payment).
+Part of [Parking E2E Phase 2+ overview](../planned/parking-e2e-later-phases.md). Depends on Phase 2 (a match must exist before payment).
 
 ## Problem
 

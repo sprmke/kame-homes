@@ -1,8 +1,8 @@
 ---
 title: 'Finance & maintenance PDF export polish'
-status: active
+status: done
 tags: [workflow, done, finance, maintenance, pdf]
-updated: 2026-08-27
+updated: 2026-11-04
 stage: done
 kind: reference
 ---

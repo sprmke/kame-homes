@@ -6,7 +6,7 @@ updated: 2026-11-01
 tags: [help-support, documentation, ai-assistant, support-tickets, faqs, super-admin]
 related:
   - docs/workflow/done/ai-dashboard-assistant-features.md
-  - docs/workflow/planned/refine-footer-public-pages.md
+  - docs/workflow/done/refine-footer-public-pages.md
 ---
 
 # Help & Support (org + property + parking) — Documentation, AI Chat, Ticket Support, FAQs

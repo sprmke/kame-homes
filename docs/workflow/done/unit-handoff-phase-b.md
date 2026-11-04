@@ -1,3 +1,12 @@
+---
+title: 'Unit handoff — Phase B'
+status: done
+stage: done
+tags: [workflow, done, units, sublessee]
+updated: 2026-11-04
+kind: plan
+---
+
 # Unit handoff — Phase B
 
 > **For agentic workers:** Use superpowers:subagent-driven-development or executing-plans. Checkboxes track progress.  

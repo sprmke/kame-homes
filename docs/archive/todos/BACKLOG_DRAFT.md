@@ -286,7 +286,7 @@ Multi-users/multi-tenant todos:
 ### External reviews and moderation
 
 - [x] **Property settings — external review proof.** **Reviews & vouchers** → external reviews (up to 5; Facebook/Airbnb; screenshot + proof URL). Saved via `app-settings` PATCH; screenshots via `upload-app-settings-asset`.
-- [x] **Public Superhost badge (display).** `isSuperhost` on public property UI when org has earned Superhost (`organizations.settings.superhost.earned`). _(Earned engine not shipped — badge off until assessment cron lands; see [`docs/workflow/planned/superhost-program.md`](../workflow/planned/superhost-program.md).)_
+- [x] **Public Superhost badge (display).** `isSuperhost` on public property UI when org has earned Superhost (`organizations.settings.superhost.earned`). _(Earned engine not shipped — badge off until assessment cron lands; see [`docs/workflow/planned/superhost-program.md`](../../workflow/for-testing/superhost-program.md).)_
 - [x] **Removed imported Airbnb Superhost proof** (2026-08-31). Dropped `app_settings.superhost_*` columns and property settings UI — earned-only going forward.
 - [ ] **Super admin — external review moderation.** Approve/reject pending external reviews on `/admin/approvals` (Type = Reviews). _(Shipped for reviews; Superhost import moderation removed with earned-only pivot.)_
 
@@ -488,7 +488,7 @@ Random:
 - Set atleast 3 parking amenities (same validation with property amenities)
 - Save updated base rates pricing should only be applicable for all future unbooked dates
 - ✅ Let's support up to 9 images in property photos
-- [ ] **Earned Superhost program** — metrics, quarterly assessment cron, org Trust progress UI ([`superhost-program.md`](../workflow/planned/superhost-program.md))
+- [ ] **Earned Superhost program** — metrics, quarterly assessment cron, org Trust progress UI ([`superhost-program.md`](../../workflow/for-testing/superhost-program.md))
 - Able to block dates without booking?
 
 - UI to make consistent/improve:

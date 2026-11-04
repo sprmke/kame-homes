@@ -1,8 +1,8 @@
 ---
 title: 'Feature gating & subscription upgrade prompts'
-status: active
+status: done
 tags: [workflow, in-progress, billing, pricing, paywall]
-updated: 2026-08-19
+updated: 2026-11-04
 stage: done
 kind: plan
 ---
@@ -110,7 +110,7 @@ Add an optional `feature?: string` field to the 429 JSON envelope so the client 
 
 **Retire the AI-quota toast's stub "Upgrade" action**: give `toastAiQuotaExceeded` an optional `openUpgradeModal` callback param (smallest diff, keeps it a plain lib file with no React-context dependency) so its "Upgrade" branch opens `SubscriptionUpgradeModal` instead of a second stub toast. Leave the "Buy credits" branch (`isCreditMessage`) untouched — credit top-up isn't part of `PlanFeatures`/this plan.
 
-**Modal CTA target**: routes to `/org/:orgSlug/property/:propertySlug/plans` (**shipped** — see [`host-plans-pricing-page.md`](../in-progress/host-plans-pricing-page.md)).
+**Modal CTA target**: routes to `/org/:orgSlug/property/:propertySlug/plans` (**shipped** — see [`host-plans-pricing-page.md`](host-plans-pricing-page.md)).
 
 ## Per-feature gating map
 
@@ -198,11 +198,11 @@ One batch at a time, in this order (cheapest/most isolated first): custom pages 
 | [`docs/guides/routes/org/property/inbox.md`](../../guides/routes/org/property/inbox.md)                     | Auto-send gating                                                 |
 | [`docs/guides/routes/org/property/bookings-detail.md`](../../guides/routes/org/property/bookings-detail.md) | AI Summary gating                                                |
 | [`docs/guides/routes/org/property/settings.md`](../../guides/routes/org/property/settings.md)               | Voice receptionist + listing verification plan notes             |
-| [`docs/guides/routes/org/property/plans.md`](../../guides/routes/org/property/plans.md)                     | Upgrade modal CTA target                                         |
+| [`docs/guides/routes/org/property/plans.md`](../../guides/routes/org/plans.md)                              | Upgrade modal CTA target                                         |
 | [`docs/guides/routes/onboarding.md`](../../guides/routes/onboarding.md)                                     | Get Verified / Recommended submit gating                         |
 | [`docs/README.md`](../../README.md)                                                                         | Workflow index — feature gating in-progress link                 |
 | [`docs/workflow/in-progress/README.md`](../README.md)                                                       | Shipped summary                                                  |
-| [`host-plans-pricing-page.md`](../host-plans-pricing-page.md)                                               | Modal CTA cross-link                                             |
+| [`host-plans-pricing-page.md`](host-plans-pricing-page.md)                                                  | Modal CTA cross-link                                             |
 
 **Shared UI (implementation map):** `ui/src/features/dashboard/plans/` — `useFeatureGate`, `usePropertyEntitlements`, `UpgradeModalProvider`, `SubscriptionUpgradeModal`, `PlanGateWatermarkOverlay`, `entitlementsApi.ts`, `featureGateCopy.ts`.
 

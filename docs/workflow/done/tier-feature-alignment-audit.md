@@ -1,8 +1,8 @@
 ---
 title: 'Tier/feature alignment audit — gate every page to the current plan'
-status: in-progress
+status: done
 tags: [workflow, plans, billing, entitlements, security]
-updated: 2026-08-24
+updated: 2026-11-04
 stage: done
 kind: plan
 ---

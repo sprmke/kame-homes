@@ -5,7 +5,7 @@
  *
  * The caller must own the conversation the message belongs to, and the message must be an
  * assistant row. One rating per user and message (upsert). Read on the super-admin AI usage tab.
- * Docs: docs/workflow/in-progress/ai-chat-mode.md (Phase 5).
+ * Docs: docs/workflow/done/ai-chat-mode.md (Phase 5).
  *
  * activity-log: N/A — private quality signal about an AI reply, no org / property / parking state.
  */

@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Super Admin Console Overhaul — IA, design consistency, Overview dashboard, Org hub'
-status: in-progress
+status: done
 tags: [planning, planned-modules, super-admin, admin, ui, dashboard, ia]
-updated: 2026-09-06
+updated: 2026-11-04
 ---
 
 # Super Admin Console Overhaul

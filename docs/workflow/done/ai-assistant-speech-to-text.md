@@ -1,8 +1,8 @@
 ---
 title: 'AI dashboard assistant — speech-to-text'
-status: active
+status: done
 tags: [workflow, done, ai, dashboard]
-updated: 2026-08-27
+updated: 2026-11-04
 stage: done
 kind: reference
 ---

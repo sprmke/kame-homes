@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Parking E2E — Phase 1a (Guest Side): Request Submission & Realtime Status'
-status: implemented (polling, not Realtime — see note below)
+status: done
 tags: [planning, planned-modules, parking, realtime]
-updated: 2026-08-17
+updated: 2026-11-04
 ---
 
 # Parking E2E — Phase 1a (Guest Side): Request Submission & Realtime Status

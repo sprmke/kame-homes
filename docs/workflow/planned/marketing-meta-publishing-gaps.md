@@ -33,7 +33,7 @@ kind: plan
 
 ## Out of scope
 
-- Marketing Studio mobile-editing parity — [`./marketing-studio-mobile-and-dashboard-responsive.md`](./marketing-studio-mobile-and-dashboard-responsive.md).
+- Marketing Studio mobile-editing parity — [`../in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md).
 - Generate-modal suggestion-thumbnail polish (tracked in `intake/_to-prompt.md`).
 - Any change to the AI generation pipeline — that work is done.
 

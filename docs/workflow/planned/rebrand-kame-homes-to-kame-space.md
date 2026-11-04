@@ -7,6 +7,6 @@ updated: 2026-11-03
 
 # Rebrand: Kame Space to Kame Space
 
-This planned copy is superseded. Use [kamespace-03-rebrand-kame-homes-to-kame-space.md](../in-progress/kamespace-03-rebrand-kame-homes-to-kame-space.md) (the live rebrand plan) instead.
+This planned copy is superseded. Use [kamespace-03-rebrand-kame-homes-to-kame-space.md](../done/kamespace-03-rebrand-kame-homes-to-kame-space.md) (the live rebrand plan) instead.
 
 Redirect stub, kept so older links and script headers still resolve.

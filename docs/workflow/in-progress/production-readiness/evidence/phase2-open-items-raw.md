@@ -50,10 +50,10 @@
 
 ## docs/workflow/done/ai-assistant-attachment-actions-and-coverage.md
 
-- L310 (box, Phase 5 — Remaining dashboard writes (P1/P2)): Property/parking settings fields currently blocked — **deferred** → [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md)
-- L311 (box, Phase 5 — Remaining dashboard writes (P1/P2)): Email automation toggles / doc requirements — **deferred** → [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md)
-- L320 (box, Phase 6 — Hard wizards (P2)): Bulk pricing with explicit diff preview — **deferred** → [`../planned/ai-assistant-bulk-pricing-chat.md`](../planned/ai-assistant-bulk-pricing-chat.md)
-- L321 (box, Phase 6 — Hard wizards (P2)): Parking broadcast fan-out — **deferred** → [`../planned/ai-assistant-parking-broadcast-chat.md`](../planned/ai-assistant-parking-broadcast-chat.md)
+- L310 (box, Phase 5 — Remaining dashboard writes (P1/P2)): Property/parking settings fields currently blocked — **deferred** → [`../planned/ai-assistant-settings-validators.md`](../../../planned/ai-assistant-settings-validators.md)
+- L311 (box, Phase 5 — Remaining dashboard writes (P1/P2)): Email automation toggles / doc requirements — **deferred** → [`../planned/ai-assistant-settings-validators.md`](../../../planned/ai-assistant-settings-validators.md)
+- L320 (box, Phase 6 — Hard wizards (P2)): Bulk pricing with explicit diff preview — **deferred** → [`../planned/ai-assistant-bulk-pricing-chat.md`](../../../planned/ai-assistant-bulk-pricing-chat.md)
+- L321 (box, Phase 6 — Hard wizards (P2)): Parking broadcast fan-out — **deferred** → [`../planned/ai-assistant-parking-broadcast-chat.md`](../../../planned/ai-assistant-parking-broadcast-chat.md)
 
 ## docs/workflow/done/ai-assistant-turn-progress-ux.md
 
@@ -870,10 +870,10 @@
 
 ## docs/workflow/for-testing/org-activity-audit-log.md
 
-- L20 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)): dedicated `org.activity:view` / `:export` + `property.activity:view` / `:export` RBAC leaves + seeded-template data migration. v1 `l...
-- L46 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)) **(low-value `notice` tier):** `upload-app-settings-asset` / `upload-org-settings-asset` / `upload-parking-settings-asset` (`settings...
-- L54 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)): per-run `system.cron_run` summary rows (every cron-driven transition already lands a `booking.status_changed` row per Q7 — nothing m...
-- L77 (box, Implementation status (2026-09-06)): **Monthly range partitioning — deferred to backlog** ([`../planned/activity-log-followups.md`](../planned/activity-log-followups.md)). The composite `PRIMARY KEY (id, created_at)` was chosen so this is not a table rewrite. Migration path...
+- L20 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../../../planned/activity-log-followups.md)): dedicated `org.activity:view` / `:export` + `property.activity:view` / `:export` RBAC leaves + seeded-template data migration. v1 `l...
+- L46 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../../../planned/activity-log-followups.md)) **(low-value `notice` tier):** `upload-app-settings-asset` / `upload-org-settings-asset` / `upload-parking-settings-asset` (`settings...
+- L54 (box, Implementation status (2026-09-06)): **Deferred → backlog** ([`../planned/activity-log-followups.md`](../../../planned/activity-log-followups.md)): per-run `system.cron_run` summary rows (every cron-driven transition already lands a `booking.status_changed` row per Q7 — nothing m...
+- L77 (box, Implementation status (2026-09-06)): **Monthly range partitioning — deferred to backlog** ([`../planned/activity-log-followups.md`](../../../planned/activity-log-followups.md)). The composite `PRIMARY KEY (id, created_at)` was chosen so this is not a table rewrite. Migration path...
 - L445 (box, Phase 0 — Foundation + governance (must land before emitters)): Migration `supabase/migrations/20261305130200_activity_log.sql` (follow the repo's synthetic timestamp sequence — next after `..130100_platform_settings.sql`; **not** a real date) — table with `PRIMARY KEY (id, created_at)`, indexes, `EN...
 - L446 (box, Phase 0 — Foundation + governance (must land before emitters)): `supabase/functions/_shared/activityLog.ts` — `logActivity`, `logActivityBatch`, `buildActorContext`, `diffRecord` (independent of `compareFormData`), redaction, `ACTIVITY_ACTION_CATALOG`, `ActivityAction` / `ActivityCategory` unions.
 - L447 (box, Phase 0 — Foundation + governance (must land before emitters)): `ui/src/features/dashboard/activity/lib/activityCatalog.ts` + `activityIcons.ts` — client mirrors (exhaustive `Record<ActivityCategory, LucideIcon>`).
