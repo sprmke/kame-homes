@@ -53,6 +53,52 @@ change moves that number. **Micro (Pro default) or Small removes the warning.**
 | Migration drift gate                | `scripts/deploy/check-migration-drift.sh`, `.github/workflows/cd-prod.yml`                    | Post-deploy parity check                                                          |
 | Load-test scenarios                 | `scripts/performance/load-test/authenticated-api.js`, `write-path.js`                         | Host reads and opt-in synthetic writes                                            |
 
+### Post-upgrade verification (Micro, 2026-11-04 23:24 UTC)
+
+The operator applied the free Nano -> Micro upgrade after the deploy. Values are from a
+read-only Prometheus scrape of the privileged metrics endpoint; the compute add-on API
+reports `ci_micro` (2 shared vCPU, 1 GB RAM, 60 direct connections, 200 pooler clients).
+
+| Metric               | Nano (2026-10-27) | Micro (2026-11-04) | Change         |
+| -------------------- | ----------------: | -----------------: | -------------- |
+| `MemTotal`           |           ~457 MB |   978 MB (933 MiB) | ~2x            |
+| `MemAvailable`       |           ~194 MB |   512 MB (488 MiB) | +152%          |
+| `MemFree`            |       under 10 MB |   108 MB (103 MiB) | ~10x           |
+| Cached               |           ~172 MB |   431 MB (411 MiB) | +151%          |
+| `Committed_AS`       |     ~1.24-1.25 GB |           1.352 GB | +~8%           |
+| `CommitLimit`        |          ~1.30 GB |           1.563 GB | +20%           |
+| Commitment ratio     |              ~96% |          **86.5%** | -9.5 points    |
+| Swap used            |            31-32% | **14.9%** (152 MB) | roughly halved |
+| OOM kills / restarts |             0 / 0 |              0 / 0 | unchanged      |
+| Load1                |      0.05 (load5) |               0.13 | idle           |
+
+The absolute OOM risk is gone: available memory and swap headroom both improved
+substantially. The 70% stretch target is not met at idle because Supabase's baseline
+services still commit a fixed amount, and `Committed_AS` includes untouched Postgres
+copy-on-write mappings. Micro is the right size for the current zero-user stage. Small
+(2 GB, ~$5/month after the Pro credit) raises `max_connections` from 60 to 90 and the
+pooler from 200 to 400, and is the next step only when load tests or real traffic show
+connection pressure.
+
+### Advisor delta after deploy
+
+| Advisor category         |              Before (2026-10-27) |               After (2026-11-04) |
+| ------------------------ | -------------------------------: | -------------------------------: |
+| Security findings        | 142 (0 error, 36 warn, 106 info) | 147 (0 error, 36 warn, 111 info) |
+| Performance findings     |          282 (33 warn, 249 info) |       **217 (0 warn, 217 info)** |
+| `auth_rls_initplan`      |                               31 |                            **0** |
+| `duplicate_index`        |                                2 |                            **0** |
+| `unused_index`           |                              175 |                              126 |
+| `unindexed_foreign_keys` |                               73 |                               90 |
+| `rls_enabled_no_policy`  |                              106 |                              111 |
+
+Performance warnings are now zero. The remaining security WARNs are
+`function_search_path_mutable` (24), `authenticated_security_definer_function_executable`
+(10), `auth_leaked_password_protection` (1), and `extension_in_public` (1). The first two
+need a targeted follow-up, the leaked-password toggle is a Dashboard setting, and
+`pg_trgm` relocation is its own change. Informational `unindexed_foreign_keys` and
+`unused_index` findings stay accepted until production-like traffic exists.
+
 ## 3. After / expected effect
 
 The only runtime change with a directly measurable local result is the bookings RPC.
