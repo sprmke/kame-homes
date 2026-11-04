@@ -71,6 +71,16 @@ const GuestLandingPage = lazy(() =>
     default: m.GuestLandingPage,
   }))
 );
+const GuestLandingV2Page = lazy(() =>
+  import('@/features/guest/marketing/pages/GuestLandingV2Page').then((m) => ({
+    default: m.GuestLandingV2Page,
+  }))
+);
+const GuestLandingV3Page = lazy(() =>
+  import('@/features/guest/marketing/pages/GuestLandingV3Page').then((m) => ({
+    default: m.GuestLandingV3Page,
+  }))
+);
 const HostPublicPage = lazy(() =>
   import('@/features/guest/marketing/pages/HostPublicPage').then((m) => ({
     default: m.HostPublicPage,
@@ -157,8 +167,10 @@ export const marketingRoutes = [
     <Route path="for-hosts/preview" element={<Navigate to="/for-hosts/v2" replace />} />
     {/* Third redesign direction — manual review, not linked from nav. */}
     <Route path="for-hosts/v3" element={<ForHostsV3Page />} />
-    {/* Guest landing redesign preview — manual review, not linked from nav. */}
+    {/* Guest landing redesign previews — manual review, not linked from nav. */}
     <Route path="explore-preview" element={<ExplorePreviewPage />} />
+    <Route path="v2" element={<GuestLandingV2Page />} />
+    <Route path="v3" element={<GuestLandingV3Page />} />
     <Route path="for-hosts" element={<ForHostsPage />} />
     <Route path="services" element={<ServicesPage />} />
     <Route path="hosts/:orgSlug" element={<HostPublicPage />} />
