@@ -16,6 +16,7 @@ import { TemplateWorkbench } from '@/features/dashboard/bookings/components/prop
 import {
   usePropertyTemplateMutations,
   usePropertyTemplates,
+  type PropertyTemplateCategory,
   type PropertyTemplateDto,
 } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import {
@@ -27,6 +28,15 @@ import {
   type TemplateLibraryGroup,
   type TemplatePlacement,
 } from '@/features/dashboard/bookings/lib/templateLibrary';
+import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
+import {
+  clearTemplatesSudoToken,
+  isTemplatesVerificationError,
+  PROPERTY_TEMPLATES_SUDO_FINGERPRINT,
+  readTemplatesSudoToken,
+  storeTemplatesSudoToken,
+} from '@/features/dashboard/org/lib/templatesSudoToken';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
@@ -41,6 +51,7 @@ import {
 import { TemplateWorkbenchSkeleton } from '@/components/skeletons/TemplateWorkbenchSkeleton';
 import { Button } from '@/components/ui/button';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { platformLegalSubject } from '@/lib/platformBranding';
 
 const TEMPLATE_PARAM = 'template';
 
@@ -59,6 +70,12 @@ type OrganiseTarget =
   | { kind: 'create-folder' }
   | { kind: 'rename-folder'; group: TemplateLibraryGroup }
   | { kind: 'delete-folder'; group: TemplateLibraryGroup };
+
+type PendingVerifiedWrite = {
+  run: (verificationToken: string) => Promise<void>;
+  resolve: () => void;
+  reject: (error: unknown) => void;
+};
 
 /** Centered panel message for the states where there is no editor to show. */
 function TemplatePaneMessage({
@@ -85,6 +102,7 @@ function TemplatePaneMessage({
 }
 
 export function TemplatesPage() {
+  const propertyId = usePropertyIdParam();
   const { data, isLoading, error, refetch } = usePropertyTemplates();
   const {
     saveTemplate,
@@ -106,6 +124,9 @@ export function TemplatesPage() {
   const [addTemplateOpen, setAddTemplateOpen] = React.useState(false);
   const [addTemplateInitialPlacement, setAddTemplateInitialPlacement] =
     React.useState<TemplatePlacement | null>(null);
+  const [otpOpen, setOtpOpen] = React.useState(false);
+  const otpSucceededRef = React.useRef(false);
+  const pendingVerifiedWriteRef = React.useRef<PendingVerifiedWrite | null>(null);
   const { canUse: canUseCustomTemplates, isLoading: customTemplatesLoading } =
     useFeatureGate('customTemplates');
   const { open: openUpgradeModal } = useUpgradeModal();
@@ -150,15 +171,100 @@ export function TemplatesPage() {
     [setSearchParams]
   );
 
+  const requestVerifiedWrite = React.useCallback(
+    async (run: (verificationToken: string) => Promise<void>) => {
+      if (!propertyId) throw new Error('Missing property');
+
+      const existing = readTemplatesSudoToken(propertyId);
+      if (existing) {
+        try {
+          await run(existing);
+          return;
+        } catch (error) {
+          if (!isTemplatesVerificationError(error)) throw error;
+          clearTemplatesSudoToken(propertyId);
+        }
+      }
+
+      otpSucceededRef.current = false;
+      setOtpOpen(true);
+      return new Promise<void>((resolve, reject) => {
+        pendingVerifiedWriteRef.current = { run, resolve, reject };
+      });
+    },
+    [propertyId]
+  );
+
   const handleSave = async (
     templateKey: string,
     input: { content: string; sectionImageUrl?: string | null }
   ) => {
-    await saveTemplate.mutateAsync({ templateKey, ...input });
+    await requestVerifiedWrite(async (settingsVerificationToken) => {
+      await saveTemplate.mutateAsync({
+        templateKey,
+        ...input,
+        settingsVerificationToken,
+      });
+    });
   };
 
   const handleReset = async (template: PropertyTemplateDto) => {
-    await resetTemplate.mutateAsync(template.templateKey);
+    await requestVerifiedWrite(async (settingsVerificationToken) => {
+      await resetTemplate.mutateAsync({
+        templateKey: template.templateKey,
+        settingsVerificationToken,
+      });
+    });
+  };
+
+  const handleCreate = async (input: {
+    name: string;
+    content: string;
+    category: PropertyTemplateCategory;
+    folderId: string | null;
+  }) => {
+    let createdKey: string | null = null;
+    await requestVerifiedWrite(async (settingsVerificationToken) => {
+      const result = await createCustomTemplate.mutateAsync({
+        ...input,
+        settingsVerificationToken,
+      });
+      createdKey = result.templateKey;
+    });
+    if (createdKey) selectTemplate(createdKey);
+  };
+
+  const handleOtpOpenChange = (open: boolean) => {
+    if (!open && !otpSucceededRef.current) {
+      const pending = pendingVerifiedWriteRef.current;
+      pendingVerifiedWriteRef.current = null;
+      pending?.reject(new DOMException('Verification cancelled', 'AbortError'));
+    }
+    if (!open) otpSucceededRef.current = false;
+    setOtpOpen(open);
+  };
+
+  const handleOtpVerified = (verificationToken: string, meta: { expiresAt: number }) => {
+    otpSucceededRef.current = true;
+    if (propertyId && meta.expiresAt) {
+      storeTemplatesSudoToken(propertyId, verificationToken, meta.expiresAt);
+    }
+    const pending = pendingVerifiedWriteRef.current;
+    pendingVerifiedWriteRef.current = null;
+    void (async () => {
+      try {
+        await pending?.run(verificationToken);
+        pending?.resolve();
+      } catch (error) {
+        if (propertyId && isTemplatesVerificationError(error)) {
+          clearTemplatesSudoToken(propertyId);
+        }
+        pending?.reject(error);
+      } finally {
+        setOtpOpen(false);
+        otpSucceededRef.current = false;
+      }
+    })();
   };
 
   const handleDelete = async (templateKey: string) => {
@@ -315,9 +421,7 @@ export function TemplatesPage() {
           isCustom && canEditCustom ? () => handlers.onRenameTemplate(activeEntry) : undefined
         }
         onMove={isCustom && canEditCustom ? () => handlers.onMoveTemplate(activeEntry) : undefined}
-        onReset={
-          !isCustom && canEditActive ? () => void handleReset(activeEntry.template) : undefined
-        }
+        onReset={!isCustom && canEditActive ? () => handleReset(activeEntry.template) : undefined}
         onDelete={
           isCustom && canDeleteCustom ? () => void handleDelete(activeEntry.templateKey) : undefined
         }
@@ -425,12 +529,22 @@ export function TemplatesPage() {
           folders={data?.folders}
           initialPlacement={addTemplateInitialPlacement}
           onRequestNewGroup={openNewGroup}
-          onAdd={async (input) => {
-            const { templateKey } = await createCustomTemplate.mutateAsync(input);
-            if (templateKey) selectTemplate(templateKey);
-          }}
+          onAdd={handleCreate}
         />
       ) : null}
+
+      <SensitiveSettingsOtpDialog
+        open={otpOpen}
+        onOpenChange={handleOtpOpenChange}
+        scope="property"
+        verificationAction="property_templates"
+        patchFingerprint={PROPERTY_TEMPLATES_SUDO_FINGERPRINT}
+        onVerified={handleOtpVerified}
+        busy={saveTemplate.isPending || resetTemplate.isPending || createCustomTemplate.isPending}
+        title="Verify template changes"
+        fingerprintMissingMessage="Missing template verification key"
+        disclaimer={`By saving, you confirm this template content is accurate and safe to send. ${platformLegalSubject()} is not liable for losses from incorrect or misleading template content.`}
+      />
 
       <TemplateNamePromptDialog
         open={organise?.kind === 'create-folder'}

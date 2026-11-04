@@ -10,6 +10,7 @@ import { expandLegacyPropertyPermissionIds } from './legacyPermissionExpansion.t
 import { expandOpsPhase4PermissionIds } from './opsPermissionExpansion.ts';
 import { expandSettingsPhase5PermissionIds } from './settingsPermissionExpansion.ts';
 import { expandLegacyOrgPermissionIds } from './orgLegacyPermissionExpansion.ts';
+import { normalizeOrgPermissionIds } from './orgTeamPermissions.ts';
 
 Deno.test('expandAccessPhase6 expands team:manage to member + custom-role leaves', () => {
   const out = expandAccessPhase6PermissionIds(['team:manage']);
@@ -68,4 +69,11 @@ Deno.test('expandLegacyOrgPermissionIds expands org:team:manage', () => {
       'org.team.members:edit',
     ].sort()
   );
+});
+
+Deno.test('normalizeOrgPermissionIds returns [] for non-arrays (no throw)', () => {
+  assertEquals(normalizeOrgPermissionIds(null), []);
+  assertEquals(normalizeOrgPermissionIds(undefined), []);
+  assertEquals(normalizeOrgPermissionIds({}), []);
+  assertEquals(normalizeOrgPermissionIds('org.dashboard:view'), []);
 });

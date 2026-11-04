@@ -533,9 +533,19 @@ Deno.test(
         ev.some((e) => e.action === 'conflict_detected'),
         'conflict_detected event written'
       );
+      const { data: conflictNotes } = await sb
+        .from('notifications')
+        .select('id, dedupe_key, metadata')
+        .eq('type', 'calendar_conflict')
+        .like('dedupe_key', `conflict:${feed.id}:%`);
+      assertEquals(conflictNotes?.length ?? 0, 1, 'one summary calendar_conflict notification');
+      assertEquals(
+        (conflictNotes?.[0]?.metadata as { conflict_count?: number } | null)?.conflict_count,
+        r.conflicts
+      );
     } finally {
       await sb.from('property_blocked_dates').delete().eq('id', manual?.id);
-      await sb.from('notifications').delete().like('dedupe_key', 'conflict:ov@abnb:%');
+      await sb.from('notifications').delete().like('dedupe_key', `conflict:${feed.id}:%`);
       await cleanupFeed(feed.id);
     }
   }

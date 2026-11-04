@@ -133,8 +133,11 @@ export function allOrgPermissions(): OrgPermissionId[] {
   return [...ORG_PERMISSION_IDS];
 }
 
-export function normalizeOrgPermissionIds(ids: readonly string[]): OrgPermissionId[] {
-  const expanded = expandLegacyOrgPermissionIds(ids);
+export function normalizeOrgPermissionIds(ids: unknown): OrgPermissionId[] {
+  if (!Array.isArray(ids)) return [];
+  const expanded = expandLegacyOrgPermissionIds(
+    ids.filter((item): item is string => typeof item === 'string')
+  );
   return expanded.filter((id): id is OrgPermissionId => ORG_PERMISSION_ID_SET.has(id));
 }
 

@@ -25,19 +25,26 @@ import {
   useRestoreAiSessions,
 } from '@/features/dashboard/marketing/hooks/useMarketingAiSessions';
 import { useMarketingPermissions } from '@/features/dashboard/marketing/hooks/useMarketingPermissions';
-import type { AiStudioSample } from '@/features/dashboard/marketing/lib/aiStudioSamples';
+import {
+  showcasePhotoUrl,
+  type AiStudioSample,
+} from '@/features/dashboard/marketing/lib/aiStudioSamples';
 import type { AiSessionSummary } from '@/features/dashboard/marketing/lib/aiStudioSessions';
 import {
   isAiStudioOutput,
   type AiStudioOutput,
 } from '@/features/dashboard/marketing/lib/marketingStudioRoute';
 import type { ResolvedMarketingTheme } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
-import { mixTowardWhite } from '@/features/dashboard/marketing/lib/theme/marketingThemeColor';
+import {
+  mixTowardBlack,
+  mixTowardWhite,
+} from '@/features/dashboard/marketing/lib/theme/marketingThemeColor';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { MarketingLibraryGridSkeleton } from '@/components/skeletons/AdminSkeletons';
+import { useTheme } from '@/components/theme/ThemeProvider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +58,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+
+/**
+ * Fixed stock previews for the empty-home start cards. Never the live listing
+ * cover — hosts should see a stable product demo, not whatever photo is first
+ * in their media library.
+ */
+const START_CARD_PHOTO: Record<AiStudioOutput, string> = {
+  post: showcasePhotoUrl('3209045'),
+  image: showcasePhotoUrl('6782567'),
+  video: showcasePhotoUrl('261102'),
+};
 
 export const AI_OUTPUT_START: Array<{
   value: AiStudioOutput;
@@ -94,7 +112,7 @@ export function useAiOutputAccess(): Record<AiStudioOutput, boolean> {
  * it; every refinement is a new version inside it.
  */
 export function AiStudioHome() {
-  const { startAiSession, openItem, resolved, coverPhotoUrl } = useMarketingTheme();
+  const { startAiSession, openItem, resolved } = useMarketingTheme();
   const { property } = useOrgContext();
   const access = useAiOutputAccess();
   const { canEditContent, canPublish } = useMarketingPermissions();
@@ -209,7 +227,7 @@ export function AiStudioHome() {
                 option={option}
                 theme={resolved}
                 propertyName={property.name}
-                photoUrl={coverPhotoUrl}
+                photoUrl={START_CARD_PHOTO[option.value]}
                 disabled={!access[option.value]}
                 onSelect={() => startAiSession(option.value)}
               />
@@ -476,28 +494,32 @@ const PREVIEW_FRAME: Record<AiStudioOutput, string> = {
   video: 'aspect-[9/16]',
 };
 
+/** Soft property-tinted wash behind the preview frame (pastel in light, deep in dark). */
+function startCardBackdrop(theme: ResolvedMarketingTheme, dark: boolean): string {
+  if (dark) {
+    return `linear-gradient(135deg, ${mixTowardBlack(theme.primary, 0.72)} 0%, ${mixTowardBlack(theme.accent, 0.78)} 100%)`;
+  }
+  return `linear-gradient(135deg, ${mixTowardWhite(theme.primary, 0.8)} 0%, ${mixTowardWhite(theme.accent, 0.86)} 100%)`;
+}
+
 /** Showcase art for a start card, styled like a theme card: a frame on a tinted backdrop. */
 function OutputPreview({
   output,
   theme,
   propertyName,
   photoUrl,
+  dark,
 }: {
   output: AiStudioOutput;
   theme: ResolvedMarketingTheme | null;
   propertyName: string;
-  photoUrl?: string;
+  photoUrl: string;
+  dark: boolean;
 }) {
   return (
     <div
       className="relative flex aspect-[16/9] items-center justify-center overflow-hidden"
-      style={
-        theme
-          ? {
-              background: `linear-gradient(135deg, ${mixTowardWhite(theme.primary, 0.8)} 0%, ${mixTowardWhite(theme.accent, 0.86)} 100%)`,
-            }
-          : undefined
-      }
+      style={theme ? { background: startCardBackdrop(theme, dark) } : undefined}
       aria-hidden
     >
       {theme ? (
@@ -539,11 +561,20 @@ export function OutputStartCard({
   option: (typeof AI_OUTPUT_START)[number];
   theme: ResolvedMarketingTheme | null;
   propertyName: string;
-  photoUrl?: string;
+  photoUrl: string;
   disabled?: boolean;
   onSelect: () => void;
 }) {
   const Icon = AI_OUTPUT_ICON[option.value];
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
+  const iconStyle = theme
+    ? {
+        backgroundColor: dark ? mixTowardBlack(theme.primary, 0.55) : theme.primaryLight,
+        color: dark ? mixTowardWhite(theme.primary, 0.35) : theme.primary,
+      }
+    : undefined;
+
   return (
     <button
       type="button"
@@ -551,18 +582,26 @@ export function OutputStartCard({
       disabled={disabled}
       className={cn(
         'border-border bg-card group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-[border-color,box-shadow,transform] duration-200',
-        'hover:border-primary/50 focus-visible:ring-ring native-press hover:shadow-md focus-visible:outline-none focus-visible:ring-2',
+        'hover:border-foreground/25 native-press hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50'
       )}
+      style={theme ? { ['--tw-ring-color' as string]: theme.primary } : undefined}
     >
       <OutputPreview
         output={option.value}
         theme={theme}
         propertyName={propertyName}
         photoUrl={photoUrl}
+        dark={dark}
       />
       <span className="flex items-start gap-3 p-4">
-        <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <span
+          className={cn(
+            'flex size-9 shrink-0 items-center justify-center rounded-lg',
+            !theme && 'bg-muted text-foreground'
+          )}
+          style={iconStyle}
+        >
           <Icon className="size-4.5" aria-hidden />
         </span>
         <span className="min-w-0">

@@ -90,7 +90,7 @@ const editorChromeActionClassName = cn(
 type Props = {
   entry: TemplateLibraryEntry;
   onSave: (input: { content: string; sectionImageUrl?: string | null }) => Promise<void>;
-  onReset?: () => void;
+  onReset?: () => Promise<void> | void;
   onDelete?: () => void;
   /** Custom templates only — opens the rename prompt the page owns. */
   onRename?: () => void;
@@ -434,7 +434,7 @@ export function PropertyTemplateEditorPane({
                     disabled={saving}
                     onClick={() => {
                       if (openStarterUpgradeIfNeeded()) return;
-                      void onSave({ content, sectionImageUrl });
+                      void onSave({ content, sectionImageUrl }).catch(() => undefined);
                     }}
                     aria-label={saving ? 'Saving' : 'Save'}
                     title={saving ? 'Saving…' : 'Save'}
@@ -576,11 +576,18 @@ export function PropertyTemplateEditorPane({
             </Button>
             <Button
               type="button"
+              disabled={saving}
               onClick={() => {
                 setResetOpen(false);
-                setContent(template.defaultContent);
-                handleSectionImageUrlChange(null);
-                void onReset?.();
+                void (async () => {
+                  try {
+                    await onReset?.();
+                    setContent(template.defaultContent);
+                    handleSectionImageUrlChange(null);
+                  } catch {
+                    /* OTP cancelled or save failed — keep the draft. */
+                  }
+                })();
               }}
             >
               Reset

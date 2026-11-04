@@ -53,6 +53,8 @@ Templates is where you customize the text guests and your team receive: stay gui
   A: Yes. In Guest Inbox, open **Insert** (`+`) and pick a template under **Templates**. You see the full preview before sending. Web chat shows your template as a card the guest can open; Facebook and Instagram get the same words as plain text. In the AI Assistant, pin a template as context to rewrite or reuse it. Email templates stay email-only.
 - Q: Do custom templates get sent automatically?
   A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand - the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
+- Q: Why do I need a code to save a template?
+  A: Template text can reach guests and building admins, so saving, resetting, or creating a template asks the org owner for a one-time email code first - same idea as changing payment details. Renaming, moving, or deleting does not.
 - Q: Why is Add Custom Template asking me to upgrade?
   A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy - Save just prompts you to upgrade.
 
@@ -109,18 +111,21 @@ Built-in defaults ship in `propertyTemplates.ts` on the server. Rows in `propert
 
 ## Save paths
 
-| Action                                                                                          | API                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Load all                                                                                        | `GET property-templates-settings?property_id=`                                                                                      |
-| Save standard content                                                                           | `PATCH property-templates-settings` `{ templateKey, content, sectionImageUrl? }` — free on every tier                               |
-| Save email content                                                                              | same PATCH shape — requires **`customTemplates`** (429 + `upgradeHook` when not entitled); Free UI opens upgrade modal on Save      |
-| Reset built-in to default                                                                       | `PATCH` `{ action: "reset", templateKey }` — free on every tier (including email); restores shipped default content                 |
-| Upload section / inline image                                                                   | `POST upload-property-template-asset` multipart `assetType`, `file`, `templateKey` (section only)                                   |
-| Create custom                                                                                   | `PATCH` `{ action: "create", name, content }` — requires plan feature **`customTemplates`** (429 + `upgradeHook` when not entitled) |
-| Save custom content                                                                             | `PATCH` `{ templateKey: "custom-…", content, name? }` — same **`customTemplates`** gate as create                                   |
-| Delete custom                                                                                   | `PATCH` `{ action: "delete", templateKey }`                                                                                         |
-| Preview (email shell)                                                                           | `POST property-templates-preview` `{ templateKey, category, content, name? }`                                                       |
-| Auth: `verifyAdminJwt` + property scope via `property_id` query (same as other admin settings). |                                                                                                                                     |
+| Action                                                                                          | API                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Load all                                                                                        | `GET property-templates-settings?property_id=`                                                                                                                                                |
+| Save standard content                                                                           | `PATCH property-templates-settings` `{ templateKey, content, sectionImageUrl?, settingsVerificationToken }` — free on every tier; **org-owner OTP** required (same modal as Payment settings) |
+| Save email content                                                                              | same PATCH shape — requires **`customTemplates`** (429 + `upgradeHook` when not entitled); Free UI opens upgrade modal on Save; OTP after upgrade check                                       |
+| Reset built-in to default                                                                       | `PATCH` `{ action: "reset", templateKey, settingsVerificationToken }` — free on every tier (including email); OTP required                                                                    |
+| Upload section / inline image                                                                   | `POST upload-property-template-asset` multipart `assetType`, `file`, `templateKey` (section only) — stages only; content save still OTP-gated                                                 |
+| Create custom                                                                                   | `PATCH` `{ action: "create", name, content, settingsVerificationToken }` — **`customTemplates`** + OTP                                                                                        |
+| Save custom content                                                                             | `PATCH` `{ templateKey: "custom-…", content, name?, settingsVerificationToken }` — same **`customTemplates`** + OTP as create                                                                 |
+| Delete custom                                                                                   | `PATCH` `{ action: "delete", templateKey }` — no OTP (organise / remove only)                                                                                                                 |
+| Rename / move / folders                                                                         | organise PATCHes — no OTP                                                                                                                                                                     |
+| Preview (email shell)                                                                           | `POST property-templates-preview` `{ templateKey, category, content, name? }`                                                                                                                 |
+| Auth: `verifyAdminJwt` + property scope via `property_id` query (same as other admin settings). |                                                                                                                                                                                               |
+
+**OTP (org owner).** Saving template content, resetting a built-in template, or creating a custom template opens **Verify template changes** (same **Send OTP** → code → **Verify and save** flow as [Property Settings → Payment](settings.md)) on the **first** content write (or after the window expires). Code goes to the **org owner** email only. After a successful verify, the tab keeps a **15-minute fixed sudo token** (sessionStorage, per property) so further Save / Reset / Create in that window skip the modal. Payment settings stay fingerprint-bound per save. Server rejects content writes without a valid `settingsVerificationToken` for action `property_templates` (stable fingerprint `property_templates`, not content-hash). **Exception:** Stay Guide / Page Editor autosave (`publicPagesAutosaveGate: true`) stays ungated so typing there is not interrupted. Rename, move, folder CRUD, and delete do not require OTP.
 
 ## Preview
 
@@ -253,9 +258,15 @@ Implementation: **`guestContactInfo.ts`** (contact resolution), **`propertyTempl
 
 ## Testing
 
-| Layer | Path / spec                                                                                                   | Manual                                                                             |
-| ----- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Unit  | Template placeholder normalization when pure helpers change                                                   | —                                                                                  |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`)                             | WYSIWYG save, email send; asserts no console "duplicate" TipTap extension warnings |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "custom template sends to a picked booking" (`@ci`) | Send to guest: picker, POST `send-property-custom-template-email`, success toast   |
-| N/A   | —                                                                                                             | —                                                                                  |
+| Layer  | Path / spec                                                                                                   | Manual                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Unit   | `ui/src/features/dashboard/org/lib/templatesSudoToken.test.ts` (15m sudo sessionStorage)                      | —                                                                                       |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`)                             | WYSIWYG save, email send; asserts no console "duplicate" TipTap extension warnings      |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "custom template sends to a picked booking" (`@ci`) | Send to guest: picker, POST `send-property-custom-template-email`, success toast        |
+| Manual | —                                                                                                             | First Save → OTP → persists; second Save within 15m skips modal; after expiry OTP again |
+
+plans: N/A — reuses existing `customTemplates` + templates.* leaves; OTP is additive safety like payment.
+permissions: N/A — OTP is in addition to existing `templates.*:edit` / `:add` leaves (same pattern as payment OTP + `settings.payment:edit`).
+activity-log: N/A — existing `settings.template_saved` / delete / folder events unchanged; sudo reuse is the same write path.
+sentry: N/A — faults still go through existing edge / client seams.
+analytics: N/A — no new host outcome beyond existing template save toasts.
