@@ -56,6 +56,15 @@ describe('reloadForChunkError', () => {
     expect(reloadForChunkError({ storage: throwing, now: 2, reload })).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
   });
+
+  it('recovers through the injectable path instead of a bare reload', () => {
+    const storage = memoryStorage();
+    const reload = vi.fn();
+    const recover = vi.fn();
+    expect(reloadForChunkError({ storage, now: 5_000, reload, recover })).toBe(true);
+    expect(recover).toHaveBeenCalledWith(reload);
+    expect(reload).not.toHaveBeenCalled();
+  });
 });
 
 describe('chunk-load reporting', () => {
