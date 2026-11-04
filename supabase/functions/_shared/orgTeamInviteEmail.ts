@@ -7,6 +7,7 @@ import { formatResendFromAddress, loadPropertyEmailBranding } from './propertyEm
 import { renderPropertyTemplateSendEmail } from './propertyTemplateEmail.ts';
 import { escapeHtml, withEmailShellStyleVars } from './renderEmailHtml.ts';
 import { createServiceClient } from './orgAuth.ts';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 const ORG_ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Full Access',
@@ -104,29 +105,15 @@ export async function sendOrgTeamInviteEmail(input: {
     },
   });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: formatResendFromAddress(branding.organizationName || orgName, branding.fromEmail),
-      to: [input.inviteEmail],
-      reply_to: settings.emailReplyTo,
-      subject: emailSubject,
-      html,
-    }),
+  const sent = await sendResendEmail({
+    from: formatResendFromAddress(branding.organizationName || orgName, branding.fromEmail),
+    to: [input.inviteEmail],
+    reply_to: settings.emailReplyTo,
+    subject: emailSubject,
+    html,
+    errorLabel: 'email',
   });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send invitation email (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
-
-  const sent = (await res.json().catch(() => ({}))) as { id?: string };
   console.log('[orgTeamInviteEmail] sent', {
     to: input.inviteEmail,
     organizationId: input.organizationId,
