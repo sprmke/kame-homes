@@ -39,6 +39,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 function formatPhp(value: number): string {
@@ -311,7 +312,7 @@ function ParkingSettingsCard() {
             <Input
               id="support-escalation-phone"
               type="tel"
-              placeholder="e.g. +63 900 000 0000"
+              placeholder={FORM_PLACEHOLDERS.phone}
               value={escalationPhone}
               onChange={(event) => setEscalationPhone(event.target.value)}
             />

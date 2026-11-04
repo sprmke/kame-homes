@@ -687,7 +687,7 @@ function StepTwo({
                   ? 'border-destructive ring-destructive/30 ring-1'
                   : 'border-input'
               )}
-              placeholder={FORM_PLACEHOLDERS.phone}
+              placeholder={FORM_PLACEHOLDERS.bankAccountNumber}
               inputMode="numeric"
               autoComplete="off"
               aria-invalid={showOtherBankFieldError('accountNumber')}
