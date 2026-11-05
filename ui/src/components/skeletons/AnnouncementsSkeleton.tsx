@@ -4,10 +4,10 @@ import { StatCardSkeleton } from '@/components/shared/StatCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ANNOUNCEMENT_METRICS = [
-  { title: 'Active', icon: Megaphone },
-  { title: 'Action required', icon: ShieldAlert },
-  { title: 'Attention', icon: AlertTriangle },
-  { title: 'Updates', icon: Info },
+  { title: 'Active', icon: Megaphone, hasHint: false },
+  { title: 'Action required', icon: ShieldAlert, hasHint: true },
+  { title: 'Attention', icon: AlertTriangle, hasHint: true },
+  { title: 'Updates', icon: Info, hasHint: true },
 ] as const;
 
 /** Host announcements: stat cards, then the feed card (or one detail card). */
@@ -21,7 +21,14 @@ export function HostAnnouncementsBodySkeleton({ detail = false }: { detail?: boo
     >
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4" aria-hidden>
         {ANNOUNCEMENT_METRICS.map((metric) => (
-          <StatCardSkeleton key={metric.title} title={metric.title} icon={metric.icon} />
+          <StatCardSkeleton
+            key={metric.title}
+            title={metric.title}
+            icon={metric.icon}
+            titleAdornment={
+              metric.hasHint ? <span aria-hidden className="-my-1 size-6 shrink-0" /> : undefined
+            }
+          />
         ))}
       </div>
       <div className="surface-card overflow-hidden" aria-hidden>

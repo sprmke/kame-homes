@@ -30,6 +30,8 @@ export type StatCardProps = {
   className?: string;
   change?: number;
   changeLabel?: string;
+  /** Optional control after the change caption (e.g. a comparison-period hint). */
+  changeAdornment?: ReactNode;
   /** When true, `change` is shown as percentage points (e.g. occupancy). */
   changeIsPoints?: boolean;
   footer?: ReactNode;
@@ -47,6 +49,13 @@ function formatChange(change: number, isPoints: boolean): string {
   return `${sign}${change.toFixed(1)}%`;
 }
 
+const OVERLAY_CLASS =
+  'absolute inset-0 z-10 rounded-[inherit] focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none';
+
+/**
+ * Some cards navigate as a whole. A stretched overlay keeps the card a real
+ * link/button without nesting the title hint (or any other control) inside it.
+ */
 export function StatCard({
   title,
   titleAdornment,
@@ -58,6 +67,7 @@ export function StatCard({
   className,
   change,
   changeLabel = 'vs last period',
+  changeAdornment,
   changeIsPoints = false,
   footer,
   onClick,
@@ -78,11 +88,29 @@ export function StatCard({
     interactive && 'native-press',
     'sm:hover:shadow-elevated-lg sm:hover:-translate-y-0.5',
     interactive &&
-      'focus-visible:ring-primary/40 text-left focus-visible:outline-none focus-visible:ring-2',
+      'focus-within:ring-primary/40 text-left focus-within:outline-none focus-within:ring-2',
     active &&
       'border-primary/50 bg-primary/[0.06] shadow-card-hover ring-primary/40 ring-2 ring-inset sm:hover:translate-y-0',
     className
   );
+
+  const overlay = to ? (
+    <Link
+      to={to}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : null;
 
   const body = (
     <>
@@ -104,7 +132,9 @@ export function StatCard({
               >
                 {title}
               </p>
-              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
+              {titleAdornment ? (
+                <span className="relative z-20 shrink-0">{titleAdornment}</span>
+              ) : null}
             </div>
             <p
               className={cn(
@@ -141,6 +171,9 @@ export function StatCard({
                 <span className="text-muted-foreground hidden text-xs lg:inline">
                   {changeLabel}
                 </span>
+                {changeAdornment ? (
+                  <span className="relative z-20 shrink-0">{changeAdornment}</span>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -165,28 +198,12 @@ export function StatCard({
     </>
   );
 
-  if (to) {
-    return (
-      <Link
-        to={to}
-        onClick={onClick}
-        aria-current={active ? 'page' : undefined}
-        className={shellClassName}
-      >
-        {body}
-      </Link>
-    );
-  }
-
-  if (interactive) {
-    return (
-      <button type="button" onClick={onClick} aria-pressed={active} className={shellClassName}>
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={shellClassName}>{body}</div>;
+  return (
+    <div className={shellClassName}>
+      {body}
+      {overlay}
+    </div>
+  );
 }
 
 type StatCardSkeletonProps = {
@@ -203,6 +220,8 @@ type StatCardSkeletonProps = {
   iconBgClassName?: string;
   /** Fixed trend caption, e.g. "vs last period". */
   changeLabel?: string;
+  /** Fixed adornment after the trend caption (e.g. a comparison hint slot). */
+  changeAdornment?: ReactNode;
   /** Fixed footer content (status chips, helper copy). */
   footer?: ReactNode;
   className?: string;
@@ -218,6 +237,7 @@ export function StatCardSkeleton({
   iconClassName = STAT_CARD_ICON_MUTED.iconClassName,
   iconBgClassName = STAT_CARD_ICON_MUTED.iconBgClassName,
   changeLabel,
+  changeAdornment,
   footer,
   className,
   style,
@@ -248,6 +268,7 @@ export function StatCardSkeleton({
                 ) : (
                   <Skeleton className="hidden h-3 w-20 lg:block" />
                 )}
+                {changeAdornment ? <span className="shrink-0">{changeAdornment}</span> : null}
               </div>
             ) : null}
           </div>

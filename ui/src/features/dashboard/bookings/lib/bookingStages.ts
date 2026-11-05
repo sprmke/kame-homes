@@ -63,6 +63,8 @@ type StageMeta = {
   label: string;
   color: 'red' | 'amber' | 'green' | 'gray';
   icon: LucideIcon;
+  /** One-line meaning and next action for the summary card hint. */
+  hint: string;
 };
 
 export const STAGE_META: Record<Exclude<BookingStage, 'all'>, StageMeta> = {
@@ -70,21 +72,25 @@ export const STAGE_META: Record<Exclude<BookingStage, 'all'>, StageMeta> = {
     label: 'Action Required',
     color: 'red',
     icon: AlertCircle,
+    hint: 'Needs you now: review a request, confirm check-out, or finish a security deposit refund.',
   },
   pending_docs: {
     label: 'Pending Docs',
     color: 'amber',
     icon: Hourglass,
+    hint: 'Waiting on the guest to send documents or approve a request. Follow up if it stays here.',
   },
   confirmed: {
     label: 'Confirmed Stays',
     color: 'green',
     icon: CalendarCheck,
+    hint: 'Paid and ready for check-in. Nothing to do until the stay starts.',
   },
   history: {
     label: 'History',
     color: 'gray',
     icon: History,
+    hint: 'Completed, cancelled, or imported stays. Kept for records.',
   },
 };
 

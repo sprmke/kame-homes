@@ -67,6 +67,23 @@ At most one `IntroCard` per page. Blocking banners (plan limit, announcement) wi
 `<ol>`, so the count and order are announced. Use `hero` on `HowItWorksButton` inside the mobile
 brand hero row; use the default variant in `AdminPageHeader` actions.
 
+## Stat cards
+
+`StatCard` never wraps its content in a `<Link>` or `<button>`. When `to` or `onClick` is set, it
+renders the card as a `relative` div plus an absolutely positioned overlay control
+(`aria-label="{title}: {value}"`). The title hint sits at `relative z-20`, so it is never a nested
+interactive element. `focus-within` draws the card ring, and `aria-current` stays on the overlay.
+
+Rules:
+
+- Pass `to` / `onClick` to `StatCard` or `DashboardTrendStatCard`. Do not wrap the card in your own
+  `<Link>`; that puts the hint back inside the link.
+- `titleAdornment` is for the metric hint. `changeAdornment` is for a "vs last period" hint.
+- `StatCardSkeleton` accepts the same `titleAdornment` / `changeAdornment` slots. Render an empty
+  `-my-1 size-6` span to reserve the hint space while data loads.
+- Shared formulas live in `ui/src/lib/help/metricDefinitions.ts` as `{ text, source }`. The
+  `metricDefinitions.test.ts` guard fails when the cited file or symbol disappears.
+
 ## Copy
 
 Every help string lives in a feature module's `*HelpCopy.ts` file, typed by
@@ -129,21 +146,25 @@ dismissal synchronously before painting, so there is no flash.
 
 ## Testing
 
-| Layer           | File                                                                            |
-| --------------- | ------------------------------------------------------------------------------- |
-| Copy rules      | `ui/src/lib/help/helpCopy.test.ts`                                              |
-| Dismissal state | `ui/src/lib/help/introDismissal.test.ts`                                        |
-| UI behavior     | `ui/e2e/features/dashboard/contextualHelp.spec.ts` (hover, tap, Esc, no submit) |
-| Accessibility   | `ui/e2e/features/a11y/axeSweep.spec.ts` covers the dashboard routes             |
+| Layer            | File                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Copy rules       | `ui/src/lib/help/helpCopy.test.ts`                                                         |
+| Metric formulas  | `ui/src/lib/help/metricDefinitions.test.ts`                                                |
+| Dismissal state  | `ui/src/lib/help/introDismissal.test.ts`                                                   |
+| Booking stages   | `ui/src/features/dashboard/bookings/lib/bookingStages.test.ts`                             |
+| Analytics parity | `ui/src/features/dashboard/analytics/lib/metricGlossary.test.ts`                           |
+| UI behavior      | `ui/e2e/features/dashboard/contextualHelp.spec.ts` (hover, tap, Esc, no submit)            |
+| Stat card links  | `ui/e2e/features/dashboard/statCardHelp.spec.ts` (no nested control, card still navigates) |
+| Accessibility    | `ui/e2e/features/a11y/axeSweep.spec.ts` covers the dashboard routes                        |
 
 ## Known limits
 
 - No guided tours or step overlays.
 - Intro card dismissal does not follow the host across devices (decision D3).
-- A `MetricInfoDot` inside an interactive stat card must wait for the stretched-link restructure
-  (plan P1.2). Until then, do not put a hint inside a card that is itself an `<a>` or `<button>`.
+- `NotificationsHubShell` and `DashboardOccupancyRingCard` have hints but no mounted route today.
+  Add E2E when they are mounted.
 - Editing a `helpCopy` string does not automatically update the Help Center. The support-content
-  sync is a separate step (plan P10.4).
+  export is a separate step (plan P10.11).
 
 ## Related
 

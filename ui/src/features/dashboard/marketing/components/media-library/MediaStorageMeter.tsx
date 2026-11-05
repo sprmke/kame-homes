@@ -1,3 +1,4 @@
+import { MARKETING_HELP_COPY } from '@/features/dashboard/marketing/lib/marketingHelpCopy';
 import {
   formatBytes,
   formatMb,
@@ -6,6 +7,7 @@ import {
 } from '@/features/dashboard/marketing/lib/media/marketingMediaRules';
 import type { MarketingMediaUsage } from '@/features/dashboard/marketing/lib/media/marketingMediaTypes';
 
+import { InfoHint } from '@/components/help/InfoHint';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -22,8 +24,13 @@ export function MediaStorageMeter({ usage, onUpgrade, className }: Props) {
   return (
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-foreground font-medium">
+        <span className="text-foreground inline-flex items-center gap-1 font-medium">
           {formatBytes(usage.usedBytes)} of {formatMb(usage.limits.storageMb)} used
+          <InfoHint
+            label="Media storage"
+            text={MARKETING_HELP_COPY.mediaStorage.hint}
+            variant="metric"
+          />
         </span>
         <span className="text-muted-foreground">
           {usage.files} of {usage.limits.maxFiles} files

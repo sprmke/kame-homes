@@ -13,7 +13,10 @@ import {
   kanbanDropIntentNestedKey,
   shortStatusLabel,
   countBookingsByStage,
+  STAGE_META,
 } from '@/features/dashboard/bookings/lib/bookingStages';
+
+import { collectHelpCopyViolations } from '@/lib/help/helpCopyRules';
 
 describe('parseBookingStage', () => {
   it('parseBookingStage is exported', () => {
@@ -84,5 +87,18 @@ describe('shortStatusLabel', () => {
 describe('countBookingsByStage', () => {
   it('countBookingsByStage is exported', () => {
     expect(typeof countBookingsByStage).toBe('function');
+  });
+});
+
+describe('booking stage summary hints', () => {
+  for (const [stage, meta] of Object.entries(STAGE_META)) {
+    it(`${stage} hint follows the copy rules`, () => {
+      expect(collectHelpCopyViolations(meta.hint, `STAGE_META.${stage}.hint`)).toEqual([]);
+    });
+  }
+
+  it('uses a distinct hint per stage', () => {
+    const hints = Object.values(STAGE_META).map((meta) => meta.hint);
+    expect(new Set(hints).size).toBe(hints.length);
   });
 });

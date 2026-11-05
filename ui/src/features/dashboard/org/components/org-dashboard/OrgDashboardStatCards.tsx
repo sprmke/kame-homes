@@ -3,6 +3,7 @@ import { Building2, Calendar, DollarSign, Layers, Percent } from 'lucide-react';
 import { DashboardTrendStatCard } from '@/features/dashboard/property/components/DashboardTrendStatCard';
 import type { DashboardStats } from '@/features/dashboard/property/lib/types';
 
+import { MetricHint } from '@/components/help/MetricHint';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/format/currency';
 
@@ -20,6 +21,7 @@ export function OrgDashboardStatCards({ stats }: Props) {
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
         <DashboardTrendStatCard
           title="Total Revenue"
+          titleAdornment={<MetricHint metric="orgNetIncome" label="Total Revenue" />}
           value={formatMoney(kpis.netProfit.value)}
           change={kpis.netProfit.changePercent}
           icon={DollarSign}
@@ -31,12 +33,14 @@ export function OrgDashboardStatCards({ stats }: Props) {
         />
         <DashboardTrendStatCard
           title="Total Bookings"
+          titleAdornment={<MetricHint metric="orgBookings" label="Total Bookings" />}
           value={String(kpis.checkInsInPeriod.value)}
           change={kpis.checkInsInPeriod.changePercent}
           icon={Calendar}
         />
         <DashboardTrendStatCard
           title="Occupancy Rate"
+          titleAdornment={<MetricHint metric="orgOccupancyRate" label="Occupancy Rate" />}
           value={`${kpis.occupancyRate.value}%`}
           change={kpis.occupancyRate.changePoints}
           changeIsPoints
