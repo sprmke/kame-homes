@@ -50,6 +50,8 @@ export type PropertyGuestPublicPage = {
   group: GuestPublicPageGroup;
   /** Host can open the Page Editor for this guest URL. */
   editable: boolean;
+  /** Guest-usable link that can be forwarded. Preview-only cards are false. */
+  guestShareable: boolean;
   /** Copy uses a different URL than open (e.g. booking-scoped pages). */
   copyPath?: string;
   /** Open in new tab uses `?embed=1` so hosts see a preview instead of a missing-booking error. */
@@ -72,6 +74,7 @@ export function buildPropertyGuestPublicPages(
       icon: Sparkles,
       group: 'design',
       editable: true,
+      guestShareable: true,
       // Live public URL (no embed) so Free/Starter hit the plan-lock overlay; gallery iframe still uses embed preview.
       openUsesEmbed: false,
     },
@@ -83,6 +86,7 @@ export function buildPropertyGuestPublicPages(
       icon: BookOpen,
       group: 'design',
       editable: true,
+      guestShareable: false,
     },
     {
       id: 'listing',
@@ -92,6 +96,7 @@ export function buildPropertyGuestPublicPages(
       icon: Home,
       group: 'design',
       editable: true,
+      guestShareable: true,
     },
     {
       id: 'calendar',
@@ -101,6 +106,7 @@ export function buildPropertyGuestPublicPages(
       icon: Calendar,
       group: 'share',
       editable: false,
+      guestShareable: true,
       copyPicker: 'stay-dates',
     },
     {
@@ -111,6 +117,7 @@ export function buildPropertyGuestPublicPages(
       icon: FileText,
       group: 'share',
       editable: false,
+      guestShareable: true,
     },
     {
       id: 'pay-parking',
@@ -120,6 +127,7 @@ export function buildPropertyGuestPublicPages(
       icon: Car,
       group: 'share',
       editable: false,
+      guestShareable: true,
       openUsesEmbed: false,
     },
     {
@@ -130,6 +138,7 @@ export function buildPropertyGuestPublicPages(
       icon: MessageCircle,
       group: 'booking',
       editable: false,
+      guestShareable: true,
       copyPicker: 'stay-dates',
     },
     {
@@ -140,6 +149,7 @@ export function buildPropertyGuestPublicPages(
       icon: Wallet,
       group: 'booking',
       editable: false,
+      guestShareable: true,
       openUsesEmbed: true,
       copyPicker: 'sd-refund',
     },
@@ -151,6 +161,7 @@ export function buildPropertyGuestPublicPages(
       icon: Star,
       group: 'booking',
       editable: false,
+      guestShareable: true,
       openUsesEmbed: true,
       copyPicker: 'guest-review',
     },
