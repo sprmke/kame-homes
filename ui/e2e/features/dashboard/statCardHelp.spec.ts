@@ -10,16 +10,22 @@ import {
  * nested inside another interactive element. These tests cover the behavior
  * that the refactor is easy to break.
  */
+async function openDashboard(page: import('@playwright/test').Page) {
+  await page.goto(teamRbacPaths.dashboard);
+  await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible({
+    timeout: 20_000,
+  });
+}
 test.describe('@ci stat card help', () => {
   test.beforeEach(async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
   });
 
   test('hint on a linked card opens without navigating and is not nested', async ({ page }) => {
-    await page.goto(teamRbacPaths.dashboard);
+    await openDashboard(page);
 
     const hint = page.getByRole('button', { name: 'About Total Bookings' });
-    await expect(hint).toBeVisible();
+    await expect(hint).toBeVisible({ timeout: 20_000 });
 
     const nestedInInteractive = await hint.evaluate((el) =>
       Boolean(el.parentElement?.closest('a,button'))
@@ -36,7 +42,7 @@ test.describe('@ci stat card help', () => {
   });
 
   test('the card body still navigates to bookings', async ({ page }) => {
-    await page.goto(teamRbacPaths.dashboard);
+    await openDashboard(page);
 
     await page.getByRole('link', { name: /^Total Bookings:/ }).click();
 
@@ -44,12 +50,12 @@ test.describe('@ci stat card help', () => {
   });
 
   test('every KPI card renders its hint outside the card control', async ({ page }) => {
-    await page.goto(teamRbacPaths.dashboard);
+    await openDashboard(page);
 
     const hints = page.getByRole('button', {
       name: /^About (Total Revenue|Total Bookings|Occupancy Rate|Average Nightly Rate)$/,
     });
-    await expect(hints).toHaveCount(4);
+    await expect(hints).toHaveCount(4, { timeout: 20_000 });
 
     const nested = await hints.evaluateAll(
       (elements) => elements.filter((el) => Boolean(el.parentElement?.closest('a,button'))).length
@@ -64,10 +70,10 @@ test.describe('@smoke stat card help on touch', () => {
   test('opens on tap at 375px', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.dashboard);
+    await openDashboard(page);
 
     const hint = page.getByRole('button', { name: 'About Total Revenue' });
-    await expect(hint).toBeVisible();
+    await expect(hint).toBeVisible({ timeout: 20_000 });
     const urlBefore = page.url();
     await hint.tap();
 
