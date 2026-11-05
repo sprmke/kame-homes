@@ -3,7 +3,7 @@ import type { PropertySection } from '@/features/dashboard/team/lib/propertyPerm
 
 /**
  * Server `dashboard-stats` attention hrefs are legacy flat paths (`/bookings?…`,
- * `/finance?…`). Rewrite them to the current property (or keep absolute/org paths).
+ * `/finance?…`, `/analytics?…`). Rewrite them to the current property (or keep absolute/org paths).
  */
 export function resolvePropertyDashboardHref(
   href: string,
@@ -23,6 +23,7 @@ export function resolvePropertyDashboardHref(
     '/maintenance': 'maintenance',
     '/pricing': 'pricing',
     '/settings': 'settings',
+    '/analytics': 'analytics',
   };
 
   const section = sectionByPath[path];

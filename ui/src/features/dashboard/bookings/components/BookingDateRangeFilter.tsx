@@ -12,6 +12,7 @@ import {
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ui/button-group';
 import { Calendar } from '@/components/ui/calendar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { useIsBelowLg, useIsBelowMd } from '@/hooks/useMediaQuery';
 import {
@@ -31,6 +32,11 @@ type Props = DateNavigationState & {
   onClear: () => void;
   /** Stretch trigger across available width (mobile filter card). */
   fullWidth?: boolean;
+  /**
+   * First load of the default month, before a range is applied.
+   * The trigger keeps its icon and chevron; the "Date" label is a skeleton.
+   */
+  labelPending?: boolean;
 };
 
 const PRESET_OPTIONS: {
@@ -59,6 +65,7 @@ export function BookingDateRangeFilter({
   isActive,
   onClear,
   fullWidth = false,
+  labelPending = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -118,6 +125,7 @@ export function BookingDateRangeFilter({
         compact: compactChrome,
       })
     : 'Date';
+  const showLabelSkeleton = labelPending && !isActive;
 
   const triggerActive = isActive || open || calendarOpen;
   const showNav = canNavigate;
@@ -255,6 +263,8 @@ export function BookingDateRangeFilter({
       onClick={() => (isCustomMode && isActive ? setCalendarOpen((v) => !v) : setOpen((v) => !v))}
       aria-expanded={open || calendarOpen}
       aria-haspopup="dialog"
+      aria-busy={showLabelSkeleton || undefined}
+      aria-label={showLabelSkeleton ? 'Loading dates' : undefined}
       title={
         compactChrome && isActive
           ? formatDateRangeDisplay(dateRange.from, dateRange.to, datePreset)
@@ -276,20 +286,24 @@ export function BookingDateRangeFilter({
           aria-hidden
         />
       )}
-      <span
-        className={cn(
-          'truncate',
-          compactChrome
-            ? fullWidth
-              ? 'max-w-[min(100%,11rem)]'
-              : 'max-w-[11rem]'
-            : fullWidth
-              ? 'max-w-[min(100%,14rem)]'
-              : 'max-w-[180px]'
-        )}
-      >
-        {triggerLabel}
-      </span>
+      {showLabelSkeleton ? (
+        <Skeleton className="h-3.5 w-12 rounded-md" />
+      ) : (
+        <span
+          className={cn(
+            'truncate',
+            compactChrome
+              ? fullWidth
+                ? 'max-w-[min(100%,11rem)]'
+                : 'max-w-[11rem]'
+              : fullWidth
+                ? 'max-w-[min(100%,14rem)]'
+                : 'max-w-[180px]'
+          )}
+        >
+          {triggerLabel}
+        </span>
+      )}
       <ChevronDown
         className={cn(
           'size-3.5 shrink-0 transition-transform duration-150',

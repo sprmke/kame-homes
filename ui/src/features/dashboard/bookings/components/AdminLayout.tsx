@@ -864,7 +864,12 @@ function AdminMobileTopBar({ superAdmin }: { superAdmin: boolean }) {
 /** Middle-section placeholder while the AI mode chunk loads (header and footer stay mounted). */
 function AiRailBodyFallback() {
   return (
-    <div role="status" className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-busy="true" aria-label="Loading">
+    <div
+      role="status"
+      className="flex min-h-0 flex-1 flex-col gap-2 p-3"
+      aria-busy="true"
+      aria-label="Loading"
+    >
       <Skeleton className="h-11 w-full rounded-xl" />
       {[0, 1, 2, 3, 4].map((i) => (
         <Skeleton key={i} className="h-8 w-full rounded-lg" />
@@ -875,7 +880,12 @@ function AiRailBodyFallback() {
 
 function AiChatFallback() {
   return (
-    <div role="status" className="flex min-h-0 flex-1 flex-col" aria-busy="true" aria-label="Loading assistant">
+    <div
+      role="status"
+      className="flex min-h-0 flex-1 flex-col"
+      aria-busy="true"
+      aria-label="Loading assistant"
+    >
       <AiAssistantPanelSkeleton />
     </div>
   );
@@ -1053,7 +1063,10 @@ function AdminSidebarNav({
       >
         <div ref={containerRef} className="relative space-y-1.5">
           {navPillBounds ? (
-            <SlidingActivePill bounds={navPillBounds} className="bg-primary-strong rounded-xl shadow-sm" />
+            <SlidingActivePill
+              bounds={navPillBounds}
+              className="bg-primary-strong rounded-xl shadow-sm"
+            />
           ) : null}
           {navSections.map((section) => {
             const showHeading =

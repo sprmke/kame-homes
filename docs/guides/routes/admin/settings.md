@@ -135,6 +135,7 @@ Independent of Platform AI. Org-level opt-in still lives on organization Setting
 | Concern    | Path                                                                                                                                                                          |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page       | `ui/src/features/dashboard/super-admin/pages/SuperAdminSettingsPage.tsx`                                                                                                      |
+| Loading    | `SuperAdminSettingsRouteSkeleton` → `SuperAdminSettingsBodySkeleton` (`SuperAdminSkeletons.tsx`)                                                                              |
 | Cards      | `AiPlatformKillSwitchCard.tsx`, `AiCreditWalletCard.tsx`, `AiDashboardAssistantKillSwitchCard.tsx`                                                                            |
 | Hooks      | `useAiPlatformGlobalSettings.ts`, `useAiCreditWallet.ts`, `useAiDashboardAssistantSettings.ts`                                                                                |
 | Edge       | `supabase/functions/ai-platform-global-settings/`, `ai-platform-credit-wallet/`, `dashboard-assistant-global-settings/`                                                       |

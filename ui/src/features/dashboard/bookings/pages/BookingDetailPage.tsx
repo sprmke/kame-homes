@@ -549,16 +549,6 @@ export function BookingDetailPage() {
                             canEdit={canReviewGuest}
                           />
                           <OtherInfoPanel booking={booking} />
-                          <BookingMetaCard
-                            booking={booking}
-                            onCopyBookingId={() => void copyBookingIdToClipboard()}
-                          />
-                          <BookingAiAssistantAuditCard bookingId={booking.id} />
-                          <EntityActivityHistory
-                            targetType="booking"
-                            targetId={booking.id}
-                            className="bg-card rounded-xl border p-4"
-                          />
                         </div>
                       )}
                       {viewTab === 'guests' && (
@@ -575,6 +565,20 @@ export function BookingDetailPage() {
                       )}
                       {viewTab === 'files' && (
                         <DocumentsPanel booking={booking} onPreview={handlePreview} />
+                      )}
+                      {viewTab === 'activity' && (
+                        <div className="space-y-4">
+                          <BookingMetaCard
+                            booking={booking}
+                            onCopyBookingId={() => void copyBookingIdToClipboard()}
+                          />
+                          <BookingAiAssistantAuditCard bookingId={booking.id} />
+                          <EntityActivityHistory
+                            targetType="booking"
+                            targetId={booking.id}
+                            className="bg-card rounded-xl border p-4"
+                          />
+                        </div>
                       )}
                     </BookingDetailShellBody>
                   </BookingDetailShell>

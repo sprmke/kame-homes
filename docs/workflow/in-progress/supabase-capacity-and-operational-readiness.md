@@ -1,19 +1,50 @@
 ---
 title: 'Supabase capacity and operational readiness'
-status: planned
+status: in_progress
 tags: [supabase, capacity, performance, security, production-readiness, observability]
-updated: 2026-10-27
-stage: planned
+updated: 2026-11-05
+stage: in-progress
 kind: plan
-readiness: unverified
+readiness: partial
 launch_gate: A
-launch_blocker: tbd
-last_verified: none
+launch_blocker: compute-tier-and-alerting
+last_verified: 2026-11-04
 ---
 
 # Supabase Capacity and Operational Readiness Plan
 
-> **For agentic workers:** This is a plan only. Do not implement it without a new execution instruction. Production Supabase operations still require the unlock word `kamewave`.
+> **For agentic workers:** Production Supabase operations still require the unlock word `kamewave`.
+
+## Progress (2026-11-04)
+
+Implemented in `chore/supabase-capacity-readiness` and deployed to production on
+2026-11-04 (PR #283, 435/435 migrations, all functions, smoke + parity gates green):
+
+- Server-side `list_bookings_page` RPC replaces the in-memory org-wide and
+  `status_priority` list path.
+- Capacity-hardening migration: 2 duplicate indexes dropped, 57 RLS policies made
+  init-plan safe, nightly retention for internal logs and rate-limit counters.
+- Realtime binding merge: notifications 2 -> 1, inbox 3 -> 2, guest chat 3 -> 2.
+- Read-only capture scripts (`perf:supabase:metrics`, `perf:supabase:advisors`),
+  migration-drift gate, and authenticated/write load-test scenarios.
+- Compute moved Nano -> **Micro** (Pro credit, no bill change). Commitment ratio
+  96% -> 86.5%, available memory 194 MB -> 488 MB, swap used 32% -> 15%, no OOM.
+  Advisor performance warnings 33 -> 0; `auth_rls_initplan` 31 -> 0 and
+  `duplicate_index` 2 -> 0.
+- Follow-up deploy (2026-11-05, PR #285): search_path pinned on 24 functions, 10 RLS
+  helpers moved to a non-exposed `private` schema, `pg_trgm` moved to `extensions`,
+  and leaked-password protection enabled. Security warnings 36 -> **0**; only 111
+  informational `rls_enabled_no_policy` findings remain.
+
+Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
+Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-capacity.md).
+
+Still required: continuous Prometheus collection plus paged alerts, run the load matrix
+with the new local large-tenant seed, public Vercel cache, dashboard/finance SQL
+aggregates, booking transition RPC, and the product retention decisions. The weekly
+operations report (`/admin/ops-reports`) now covers the recurring summary and email
+reminder; a daily critical-only alert can reuse the same findings. The code-level
+security WARNs are cleared as of 2026-11-05.
 
 ## Goal
 
@@ -207,12 +238,12 @@ Tier changes cause brief downtime, usually under two minutes. A completed backup
 
 - [ ] Commit the advisor snapshot as the baseline.
 - [ ] Build the accepted-risk table for intentional findings.
-- [ ] Write one new migration for init-plan-safe RLS policies. Each policy must preserve behavior.
-- [ ] Write one new migration for pinned function search paths. Functions must be schema-qualified.
-- [ ] Investigate duplicate index definitions and write a concurrent-drop migration only if they are truly identical.
+- [x] Write one new migration for init-plan-safe RLS policies. Each policy must preserve behavior.
+- [x] Write one new migration for pinned function search paths. Functions must be schema-qualified.
+- [x] Investigate duplicate index definitions and write a concurrent-drop migration only if they are truly identical.
 - [ ] Triage foreign keys into three buckets and add indexes only where a real query or delete path needs them.
-- [ ] Enable leaked-password protection through the Auth Dashboard and verify with a known compromised password in a test account.
-- [ ] Plan `pg_trgm` relocation as its own change because indexes and generated search functions must be revalidated.
+- [x] Enable leaked-password protection through the Auth Dashboard (`password_hibp_enabled = true`, verified read-only).
+- [x] Plan `pg_trgm` relocation as its own change because indexes and generated search functions must be revalidated.
 - [ ] Add tests:
   - Local RLS regression probe as `anon`, `authenticated`, owner, unrelated member, and inactive member
   - Public listing search parity test
@@ -326,7 +357,7 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 
 ### 5.1 Auth and identity
 
-- [ ] Enable leaked-password protection.
+- [x] Enable leaked-password protection.
 - [ ] Verify Auth attack-protection settings and captcha enforcement.
 - [ ] Confirm Auth database connections use percentage allocation after the compute upgrade.
 - [ ] Verify sign-in, refresh, logout, and OAuth rate limits.
@@ -530,9 +561,9 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 
 **Steps:**
 
-- [ ] Resolve the 9-migration drift between local and hosted dev. Do not deploy until the intended set is known.
+- [x] Resolve the 9-migration drift between local and hosted dev. Do not deploy until the intended set is known.
 - [ ] Confirm the concurrent-session work in the current dirty tree is committed or explicitly excluded before any environment change.
-- [ ] Add an automated migration drift check to CD dev.
+- [x] Add an automated migration drift check to CD dev.
 - [ ] Keep dev deploys on `fworvijbrwpyngycotbz` only.
 - [ ] Keep legacy prod untouched.
 - [ ] When mt-prod is created:

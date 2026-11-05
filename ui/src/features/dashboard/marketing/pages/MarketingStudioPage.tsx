@@ -32,12 +32,14 @@ import {
 
 import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
-import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import {
+  MarketingAiStudioConversationSkeleton,
+  MarketingAiStudioHomeSkeleton,
   MarketingEditorSkeleton,
   MarketingLibraryBodySkeleton,
 } from '@/components/skeletons/AdminSkeletons';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 
 // Lazy-loaded: Polotno (posts), Remotion (videos) and the calendar builder are heavy and
 // only load when a design is opened, never for the Library. Same specifiers as
@@ -100,7 +102,29 @@ function MarketingStudioWorkspace() {
 
   const content = (() => {
     if (showThemes) return <ThemesHome />;
-    if (!active || !tabReady) return <MarketingLibraryBodySkeleton />;
+    if (!active || !tabReady) {
+      if (tab === 'generate') {
+        return item.mode === 'library' ? (
+          <MarketingAiStudioHomeSkeleton />
+        ) : (
+          <MarketingAiStudioConversationSkeleton />
+        );
+      }
+      if (item.mode !== 'library') {
+        return (
+          <MarketingEditorSkeleton
+            variant={tab === 'video' ? 'video' : tab === 'calendar' ? 'calendar' : 'design'}
+          />
+        );
+      }
+      return (
+        <MarketingLibraryBodySkeleton
+          title={
+            tab === 'video' ? 'Your videos' : tab === 'calendar' ? 'Your calendars' : 'Your posts'
+          }
+        />
+      );
+    }
 
     if (tab === 'generate') {
       const studioOff = !aiStudioAvailability.available && !aiStudioAvailability.isLoading;
@@ -118,7 +142,11 @@ function MarketingStudioWorkspace() {
       return (
         <Suspense
           fallback={
-            item.mode === 'library' ? <MarketingLibraryBodySkeleton /> : <MarketingEditorSkeleton />
+            item.mode === 'library' ? (
+              <MarketingAiStudioHomeSkeleton />
+            ) : (
+              <MarketingAiStudioConversationSkeleton />
+            )
           }
         >
           {item.mode === 'library' ? (
@@ -141,7 +169,7 @@ function MarketingStudioWorkspace() {
     }
 
     return (
-      <Suspense fallback={<MarketingEditorSkeleton />}>
+      <Suspense fallback={<MarketingEditorSkeleton variant={tab} />}>
         <MarketingEditorHost key={`${tab}:${active.key}`} contentType={tab}>
           {(document, nav) =>
             tab === 'design' ? (

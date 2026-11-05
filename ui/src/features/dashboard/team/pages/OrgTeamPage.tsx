@@ -319,7 +319,7 @@ export function OrgTeamPage() {
         desktopActions={inviteAction}
         desktopActionsClassName="w-full sm:w-auto"
       >
-        {pageLoading ? <TeamPageSkeleton /> : null}
+        {pageLoading ? <TeamPageSkeleton variant="org" /> : null}
 
         {error ? (
           <Card>

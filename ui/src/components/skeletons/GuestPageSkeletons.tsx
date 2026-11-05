@@ -1,3 +1,8 @@
+import {
+  GUEST_REVIEW_CATEGORY_IDS,
+  GUEST_REVIEW_CATEGORY_LABELS,
+} from '@/features/reviews/lib/reviewCatalog';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -32,34 +37,56 @@ function stepperSkeletonWidthClass(stepCount: number): string {
  * Mirrors `GuestFormStepper`'s real markup — a bare `<nav>` (no card chrome), a
  * mobile progress bar, and a desktop step track using the same `trackInset` math.
  */
-function GuestFormStepperSkeleton({ stepCount = 4 }: { stepCount?: number }) {
-  const inset = `calc(100% / ${stepCount * 2})`;
+function GuestFormStepperSkeleton({
+  stepCount = 4,
+  stepTitles,
+  activeStep = 1,
+}: {
+  stepCount?: number;
+  stepTitles?: string[];
+  activeStep?: number;
+}) {
+  const count = stepTitles?.length ?? stepCount;
+  const inset = `calc(100% / ${count * 2})`;
+  const currentTitle = stepTitles?.[activeStep - 1];
   return (
     <nav className="w-full" aria-hidden>
       <div className="space-y-2.5 sm:hidden">
         <div className="flex items-baseline justify-between gap-3">
-          <Skeleton className="h-3.5 w-16" />
-          <Skeleton className="h-3 w-10" />
+          {currentTitle ? (
+            <p className="text-foreground text-sm font-semibold tracking-tight">{currentTitle}</p>
+          ) : (
+            <Skeleton className="h-3.5 w-16" />
+          )}
+          <p className="text-muted-foreground text-xs tabular-nums">
+            {activeStep} / {count}
+          </p>
         </div>
         <Skeleton className="h-1 w-full rounded-full" />
       </div>
       <div
         className={cn(
           'relative mx-auto hidden w-full pb-0.5 sm:flex',
-          stepperSkeletonWidthClass(stepCount)
+          stepperSkeletonWidthClass(count)
         )}
       >
-        {stepCount > 1 ? (
+        {count > 1 ? (
           <div
             className="bg-border pointer-events-none absolute top-[1.125rem] h-0.5 -translate-y-1/2 rounded-full"
             style={{ left: inset, right: inset }}
             aria-hidden
           />
         ) : null}
-        {Array.from({ length: stepCount }).map((_, i) => (
+        {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="relative z-10 flex min-w-0 flex-1 flex-col items-center gap-1">
             <Skeleton className="size-9 rounded-full" />
-            <Skeleton className="h-2.5 w-10" />
+            {stepTitles?.[i] ? (
+              <p className="text-muted-foreground mt-1.5 max-w-full truncate px-0.5 text-center text-xs leading-tight">
+                {stepTitles[i]}
+              </p>
+            ) : (
+              <Skeleton className="h-2.5 w-10" />
+            )}
           </div>
         ))}
       </div>
@@ -79,17 +106,29 @@ function GuestFormFieldSkeleton({ className }: { className?: string }) {
 function GuestFormStepPanelSkeleton({
   fieldCount = 4,
   twoColumn = true,
+  title,
+  hint,
 }: {
   fieldCount?: number;
   twoColumn?: boolean;
+  title?: string;
+  hint?: string;
 }) {
   return (
     <div className="border-border/80 bg-card space-y-5 rounded-xl border px-4 py-5 shadow-sm sm:px-6 sm:py-6">
       <header className="border-separator flex items-center gap-3 border-b pb-4">
         <Skeleton className="size-10 shrink-0 rounded-lg" />
         <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-3 w-full max-w-md" />
+          {title ? (
+            <h2 className="text-foreground text-base font-semibold">{title}</h2>
+          ) : (
+            <Skeleton className="h-4 w-40" />
+          )}
+          {hint ? (
+            <p className="text-muted-foreground text-xs leading-snug">{hint}</p>
+          ) : (
+            <Skeleton className="h-3 w-full max-w-md" />
+          )}
         </div>
       </header>
       <div className={cn('grid gap-4', twoColumn && 'grid-cols-1 md:grid-cols-2 md:[&>*]:min-w-0')}>
@@ -108,35 +147,66 @@ function GuestFormStepPanelSkeleton({
 export function GuestFormPageSkeleton({
   title,
   embed = false,
+  stepTitles,
+  activeStep = 1,
+  stepTitle,
+  stepHint,
 }: {
   title?: string;
   /** Matches GuestForm's `embed?.compactChrome`: no brand header, tighter padding — for use inside GuestBookingFormModal. */
   embed?: boolean;
+  stepTitles?: string[];
+  activeStep?: number;
+  stepTitle?: string;
+  stepHint?: string;
 }) {
   return (
-    <div role="status"
+    <div
+      role="status"
       className={cn('relative', embed ? 'space-y-4 p-0 sm:p-1' : 'space-y-6 p-4 sm:p-6 lg:p-8')}
       aria-busy="true"
       aria-label="Loading form"
     >
       {embed ? null : <GuestFormBrandHeaderSkeleton title={title} />}
-      <GuestFormStepperSkeleton />
-      <GuestFormStepPanelSkeleton fieldCount={4} />
+      <GuestFormStepperSkeleton stepTitles={stepTitles} activeStep={activeStep} />
+      <GuestFormStepPanelSkeleton fieldCount={4} title={stepTitle} hint={stepHint} />
     </div>
   );
 }
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
 export function PropertyCalendarBodySkeleton({
-  dayCount = 35,
   gapClassName = 'gap-1.5',
 }: {
-  dayCount?: number;
   gapClassName?: string;
 }) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   return (
     <div role="status" className="w-full" aria-busy="true" aria-label="Loading calendar">
       <div className="mb-4 flex items-center justify-between">
-        <Skeleton className="h-6 w-36 rounded-md" />
+        <h2 className="font-bold tracking-tight">
+          {MONTH_NAMES[month]} {year}
+        </h2>
         <div className="flex gap-2">
           <Skeleton className="h-9 w-9 rounded-xl" />
           <Skeleton className="h-9 w-9 rounded-xl" />
@@ -144,17 +214,30 @@ export function PropertyCalendarBodySkeleton({
       </div>
 
       <div className="mb-1 grid grid-cols-7">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-center py-1.5">
-            <Skeleton className="h-2.5 w-6 rounded-full" />
+        {DAY_NAMES.map((name) => (
+          <div
+            key={name}
+            className="text-muted-foreground py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider"
+          >
+            {name}
           </div>
         ))}
       </div>
 
       <div className={cn('grid grid-cols-7', gapClassName)}>
-        {Array.from({ length: dayCount }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square w-full rounded-xl" />
+        {Array.from({ length: firstDay }).map((_, index) => (
+          <div key={`empty-${index}`} className="aspect-square w-full" />
         ))}
+        {Array.from({ length: daysInMonth }).map((_, index) => {
+          const day = index + 1;
+          return (
+            <div key={day} className="bg-muted/30 relative aspect-square w-full rounded-xl">
+              <span className="text-muted-foreground/60 absolute inset-0 flex items-center justify-center text-sm font-medium">
+                {day}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -162,7 +245,8 @@ export function PropertyCalendarBodySkeleton({
 
 export function CalendarPageSkeleton() {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="relative min-w-0 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading availability"
@@ -176,7 +260,7 @@ export function CalendarPageSkeleton() {
   );
 }
 
-/** Mirrors `SdFormReviewSection`'s real shape: star-rating card, feedback textarea, photo grid, submit button. */
+/** Mirrors `SdFormReviewSection`'s real shape: star-rating card, category rows, feedback, photos, submit. */
 function SdFormReviewSectionSkeleton() {
   return (
     <div className="space-y-6">
@@ -189,13 +273,34 @@ function SdFormReviewSectionSkeleton() {
         </div>
       </div>
 
+      <div className="space-y-4" role="group" aria-label="Category ratings">
+        {GUEST_REVIEW_CATEGORY_IDS.map((id) => (
+          <div
+            key={id}
+            className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-foreground text-sm">{GUEST_REVIEW_CATEGORY_LABELS[id]}</p>
+            <div className="flex gap-1.5">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Skeleton key={index} className="size-6 rounded-full" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="space-y-2">
-        <Skeleton className="h-3.5 w-16" />
+        <p className="text-sm font-medium leading-none">Feedback</p>
         <Skeleton className="h-[120px] w-full rounded-xl" />
       </div>
 
+      <div className="space-y-2">
+        <p className="text-sm font-medium leading-none">Private note to host</p>
+        <Skeleton className="h-[90px] w-full rounded-xl" />
+      </div>
+
       <div className="space-y-3">
-        <Skeleton className="h-3.5 w-14" />
+        <p className="text-sm font-medium leading-none">Photos</p>
         <div className="grid grid-cols-3 gap-2.5">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="aspect-square w-full rounded-xl" />
@@ -209,15 +314,22 @@ function SdFormReviewSectionSkeleton() {
 }
 
 /** Mirrors `SdFormPage`'s step-1 shape: 3-step stepper, bordered greeting header, review section. */
-export function SdFormPageSkeleton({ title }: { title: string }) {
+export function SdFormPageSkeleton({
+  title,
+  stepTitles,
+}: {
+  title: string;
+  stepTitles?: string[];
+}) {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="relative space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
     >
       <GuestFormBrandHeaderSkeleton title={title} />
-      <GuestFormStepperSkeleton stepCount={3} />
+      <GuestFormStepperSkeleton stepCount={3} stepTitles={stepTitles} />
 
       <div className="border-separator space-y-4 border-b px-5 pb-5">
         <Skeleton className="h-5 w-40" />
@@ -238,7 +350,8 @@ export function SdFormPageSkeleton({ title }: { title: string }) {
 /** Mirrors `GuestReviewPage`'s 'review' phase: no stepper, narrower max-w-xl shell, plain centered greeting. */
 export function GuestReviewPageSkeleton({ title }: { title: string }) {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="relative mx-auto w-full max-w-xl space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
@@ -269,7 +382,8 @@ function PayParkingSectionShellSkeleton({ children }: { children: React.ReactNod
 /** Mirrors `PayParkingPage`'s real stack: Booking Info, Parking Details, Vehicle Info cards. */
 export function PayParkingPageSkeleton({ title }: { title: string }) {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="relative space-y-6 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading form"
@@ -365,7 +479,8 @@ export function PublicFullBleedPageSkeleton({ label = 'Loading page' }: { label?
  */
 export function ParkingRequestStatusPageSkeleton() {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="relative space-y-5 p-4 sm:p-6 lg:p-8"
       aria-busy="true"
       aria-label="Loading parking request"

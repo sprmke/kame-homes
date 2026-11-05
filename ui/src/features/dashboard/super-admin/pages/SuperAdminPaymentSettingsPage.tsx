@@ -12,6 +12,7 @@ import {
   useUpdatePlatformPaymentSettings,
 } from '@/features/dashboard/super-admin/hooks/usePlatformPaymentSettings';
 
+import { SuperAdminSettingsBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -77,7 +78,7 @@ export function SuperAdminPaymentSettingsPage() {
       title="Payment settings"
       subtitle="Subscription checkout rails and renewal timing for host billing."
       isLoading={isLoading && !data}
-      loadingMetricCount={2}
+      loadingBody={<SuperAdminSettingsBodySkeleton cards={1} titles={['Enabled rails']} />}
       error={error}
       errorMessage="Could not load payment settings."
     >

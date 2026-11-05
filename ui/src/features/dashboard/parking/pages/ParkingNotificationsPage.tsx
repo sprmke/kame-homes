@@ -104,6 +104,7 @@ export function ParkingNotificationsPage() {
     <TelegramNotificationsGlobalBotProvider>
       <AdminMobilePage
         title="Notifications"
+        subtitle="Manage in-app notifications and Telegram alerts for this parking slot."
         titleId="parking-notifications-heading"
         className="flex min-h-0 flex-1 flex-col"
       >

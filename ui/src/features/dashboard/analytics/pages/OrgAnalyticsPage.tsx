@@ -146,6 +146,7 @@ export function OrgAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
+      subtitle="Track revenue, occupancy, and bookings across every listing."
       titleId="org-analytics-heading"
       heroTrailing={heroActions}
       overlap={overlapControls}

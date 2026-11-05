@@ -157,7 +157,7 @@ When a property or parking listing's hosting contract nears expiry, is in grace,
 - Modal title follows the active step: **Get Verified** / **Get Recommended**; **Changes requested** in forced resubmit (stepper hidden).
 - On phone/tablet the modal is a **bottom sheet** (`ResponsiveModal` `sheetLayout="split"`): sticky header + footer, middle section scrolls so long Verified uploads are not clipped.
 - Sidebar CTA uses a soft primary wash and “Earn your Recommended badge.” when Tier 2 is not yet approved. Stays visible as **Verification** when both tiers are approved (status view; contract renewals / reverification later). Shown on **org** admin routes only — property/parking sidebars use the listing verification CTA instead.
-- Public **Recommended** badge (`ListingRecommendedBadge`) has tooltip: identity, ownership, and Azure records checked by Kame Space; shown on host page hero and **`ListingHostCard`** on property/parking detail (not duplicated next to the type badge).
+- Public **Recommended** badge (`ListingRecommendedBadge`) has tooltip: identity, ownership, and Azure records checked by Kame Space. It sits beside the organization name on the host page hero and on **`ListingHostCard`** (property and parking detail). No extra "Recommended host" line.
 - Copy constants: `ui/.../lib/verificationCopy.ts`.
 
 ### Phase 2–3 roadmap

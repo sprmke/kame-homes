@@ -17,6 +17,8 @@ interface OtpCodeInputProps {
 }
 
 export function OtpCodeInput({
+  // Must match Supabase Auth `mailer_otp_length` (hosted: 6). Every call site
+  // relies on the default; changing one without the other breaks code entry.
   length = 6,
   value,
   onChange,

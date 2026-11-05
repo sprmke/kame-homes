@@ -368,16 +368,17 @@ double-booking-safe the moment it syncs in.
 
 ## Implementation map
 
-| UI                                                                             | Server                                                                     |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `ui/src/features/dashboard/pricing/pages/PropertyPricingPage.tsx`              | `supabase/functions/property-pricing/index.ts`                             |
-| `ui/src/features/dashboard/pricing/components/PricingCalendarGrid.tsx`         | `supabase/functions/_shared/propertyPricing.ts`                            |
-| `ui/src/features/dashboard/pricing/components/PricingCalendarBookingModal.tsx` | `supabase/functions/_shared/propertyBlockedDates.ts`                       |
-| `ui/src/features/dashboard/pricing/routes/index.tsx`                           | —                                                                          |
-| `ui/src/features/dashboard/pricing/components/ChannelSyncDialog.tsx`           | `supabase/functions/calendar-sync-settings/index.ts`                       |
-| `ui/src/features/dashboard/pricing/hooks/useCalendarSync.ts`                   | `supabase/functions/calendar-sync-cron/index.ts`                           |
-| `ui/src/features/dashboard/pricing/lib/calendarSyncApi.ts`                     | `supabase/functions/ical-export/index.ts`                                  |
-| —                                                                              | `supabase/functions/_shared/calendarSyncService.ts` / `calendarSyncRun.ts` |
+| UI                                                                             | Server                                                                                                                                                                              |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/src/features/dashboard/pricing/pages/PropertyPricingPage.tsx`              | `supabase/functions/property-pricing/index.ts`                                                                                                                                      |
+| `ui/src/features/dashboard/pricing/components/PricingCalendarGrid.tsx`         | `supabase/functions/_shared/propertyPricing.ts`                                                                                                                                     |
+| `ui/src/features/dashboard/pricing/components/PricingCalendarBookingModal.tsx` | `supabase/functions/_shared/propertyBlockedDates.ts`                                                                                                                                |
+| `ui/src/features/dashboard/pricing/routes/index.tsx`                           | —                                                                                                                                                                                   |
+| Loading skeleton (`PricingPageBodySkeleton`)                                   | `ui/src/components/skeletons/PricingSkeleton.tsx` — 4 stat cards, the live month's week rows (day + price cells, outside days blank), rates card with 5 fee rows (stacked on phone) |
+| `ui/src/features/dashboard/pricing/components/ChannelSyncDialog.tsx`           | `supabase/functions/calendar-sync-settings/index.ts`                                                                                                                                |
+| `ui/src/features/dashboard/pricing/hooks/useCalendarSync.ts`                   | `supabase/functions/calendar-sync-cron/index.ts`                                                                                                                                    |
+| `ui/src/features/dashboard/pricing/lib/calendarSyncApi.ts`                     | `supabase/functions/ical-export/index.ts`                                                                                                                                           |
+| —                                                                              | `supabase/functions/_shared/calendarSyncService.ts` / `calendarSyncRun.ts`                                                                                                          |
 
 Spanning pill layout reuses `calendarDateUtils` and `CalendarOccupancySpanTrack` from the
 bookings calendar module.

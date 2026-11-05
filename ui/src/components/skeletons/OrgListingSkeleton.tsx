@@ -1,3 +1,5 @@
+import { Building2, Calendar, Car, Coins, Percent } from 'lucide-react';
+
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
 import type { OrgListingViewMode } from '@/features/dashboard/org/lib/orgListingViewMode';
 
@@ -7,6 +9,8 @@ import {
 } from '@/components/skeletons/AdminSkeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+
+import type { LucideIcon } from 'lucide-react';
 
 /** Same as `orgListingGridClassName` / `orgListingStackClassName` in `OrgListingToolbar`. */
 const GRID_CLASS = 'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4';
@@ -194,19 +198,42 @@ export function OrgListingViewSkeleton({
   return <OrgInventoryListSkeleton label={label} />;
 }
 
+const PROPERTY_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+  { title: 'Total properties', icon: Building2 },
+  { title: 'Total revenue', icon: Coins },
+  { title: 'Avg monthly revenue', icon: Calendar },
+  { title: 'Avg occupancy', icon: Percent },
+];
+
+const PARKING_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+  { title: 'Total parkings', icon: Car },
+  { title: 'Total revenue', icon: Coins },
+  { title: 'Avg monthly revenue', icon: Calendar },
+  { title: 'Avg occupancy', icon: Percent },
+];
+
 /** Org Properties / Parkings page body: summary KPIs, list toolbar, listings in `view`. */
 export function OrgListingPageSkeleton({
   view,
   label,
+  kind = 'properties',
 }: {
   view: OrgListingViewMode;
   label: string;
+  kind?: 'properties' | 'parkings';
 }) {
+  const metrics = kind === 'parkings' ? PARKING_SUMMARY_METRICS : PROPERTY_SUMMARY_METRICS;
+
   return (
     <div className="flex flex-col gap-3 sm:gap-3.5 lg:gap-4">
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4" aria-hidden>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <AdminMetricCardSkeleton key={i} style={{ opacity: 1 - i * 0.05 }} />
+        {metrics.map((metric, i) => (
+          <AdminMetricCardSkeleton
+            key={metric.title}
+            title={metric.title}
+            icon={metric.icon}
+            style={{ opacity: 1 - i * 0.05 }}
+          />
         ))}
       </div>
       <AdminListToolbarSkeleton />

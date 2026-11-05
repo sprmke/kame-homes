@@ -2,7 +2,7 @@
 title: 'Notifications — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-11-02
+updated: 2026-11-05
 ---
 
 # Notifications — operator guide
@@ -35,6 +35,8 @@ Deep links:
 
 Single hub for **in-app activity** (booking workflow + inbox events in the bell) and **Telegram notification bots** on a property.
 
+Page subtitle: "Manage in-app notifications and Telegram alerts for this property."
+
 Telegram module settings (and optional credentials) are bulk-copyable via org **Properties → Copy settings**.
 
 ### This device (PWA)
@@ -46,7 +48,7 @@ Above the Activity feed (only when the app runs as an installed PWA and/or there
   - **iPhone/iPad**: only after you **Add to Home Screen** — the toggle shows "Add this app to your Home Screen, then turn on notifications from the installed app" until then.
   - If notifications were blocked in browser settings, the card says so and the toggle is disabled until you re-allow them.
 - **Push preferences** — below the device toggle. One switch per group (**Bookings**, **Messages**, **Reviews**, **Pricing**, **Finance**, **Maintenance**, **Analytics**, **System**) and a **Quiet hours** switch with a start/end time. Changes save instantly; there is no Save button. Each switch shows a short toast once the save lands. Preferences are **per account, on every device** (the device toggle above is the per-device switch). Muting a group only stops the phone buzz — the row still appears in **Activity**. Quiet hours use **Asia/Manila** time; if the start and end match, quiet hours are off. Calendar-sync failures still come through during quiet hours.
-- **Offline changes** (Sync Center) — appears only when you made changes while offline (currently: inbox text replies). Lists what is **waiting to sync** and anything that **failed**, with **Sync now**, **Retry**, and **Discard**. Queued changes replay automatically when you reconnect; a failed item shows the server's reason and the affected view refreshes to the real state. A thin top banner also shows "Offline — N changes will sync when you reconnect".
+- **Offline changes** (Sync Center) — appears only when you made changes while offline (currently: inbox text replies). Lists what is **waiting to sync** and anything that **failed**, with **Sync now**, **Retry**, and **Discard**. Queued changes replay automatically when you reconnect; a failed item shows the server's reason and the affected view refreshes to the real state. A bottom strip shows the same queue, or that you are offline. It stays hidden when nothing is waiting, including after you clear offline data. Tapping it opens this list.
 
 ### In-app activity
 
@@ -191,6 +193,7 @@ Credentials unlock logic: `telegramCredentialsReady()` — saved token **and** c
 | Concern                                            | Path                                                                                                                                                                                  |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                                               | `ui/src/features/dashboard/bookings/pages/NotificationsPage.tsx`                                                                                                                      |
+| Loading skeleton                                   | `NotificationsPageBodySkeleton` (`NotificationsSkeleton.tsx`) — section nav, in-app cards, activity feed, six Telegram module cards                                                   |
 | In-app list (bell + page)                          | `ui/src/features/dashboard/notifications/components/InAppNotificationsPanel.tsx`, `InAppNotificationsSection.tsx`                                                                     |
 | OS push opt-in card                                | `ui/src/features/dashboard/notifications/components/PushNotificationsCard.tsx` + `hooks/usePushNotifications.ts` + `ui/src/lib/pwa/push.ts` · pipeline: `docs/architecture/pwa.md` §5 |
 | Offline changes (Sync Center)                      | `ui/src/features/dashboard/offline/components/SyncCenterCard.tsx` + `store/offlineSyncStore.ts` · engine: `ui/src/lib/pwa/syncEngine.ts` · `docs/architecture/pwa.md` §6              |

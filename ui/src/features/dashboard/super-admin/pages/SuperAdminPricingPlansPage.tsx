@@ -118,7 +118,9 @@ export function SuperAdminPricingPlansPage() {
         subtitle="Subscription tier catalog for host Plans & Billing."
       />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total plans', 'Host tiers', 'Active plans', 'Default plan']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load pricing plans.</p>
       ) : (

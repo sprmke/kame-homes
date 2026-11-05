@@ -36,14 +36,20 @@ function HelpSupportModuleNavSkeleton() {
       )}
       aria-hidden
     >
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="surface-card h-full p-3 sm:p-3.5 md:p-4">
+      {[
+        { title: 'FAQs', value: 'Common Q&As' },
+        { title: 'Guides', value: 'How each page works' },
+        { title: 'Tickets', value: 'Write to our team' },
+        { title: 'Ask AI', value: 'Answers from your data' },
+      ].map((card) => (
+        <div key={card.title} className="surface-card h-full p-3 sm:p-3.5 md:p-4">
           <div className="flex items-start justify-between gap-2.5 sm:gap-3">
             <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
-              <Skeleton className="h-3 w-14 sm:h-4" />
-              <div className="min-h-[2.5rem] space-y-1.5 sm:min-h-[2.75rem]">
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-1/2" />
+              <p className="text-muted-foreground text-xs font-medium sm:text-sm">{card.title}</p>
+              <div className="min-h-[2.5rem] sm:min-h-[2.75rem]">
+                <p className="text-foreground truncate text-sm font-semibold sm:text-base">
+                  {card.value}
+                </p>
               </div>
             </div>
             <Skeleton className="hidden size-8 shrink-0 rounded-lg sm:size-10 sm:rounded-xl lg:block" />
@@ -58,7 +64,8 @@ function HelpSupportModuleNavSkeleton() {
 export function HelpSupportSectionSkeleton({ section }: { section: HelpSupportSection }) {
   if (section === 'tickets') {
     return (
-      <div role="status"
+      <div
+        role="status"
         className="border-border/80 bg-card flex min-h-[20rem] overflow-hidden rounded-xl border shadow-sm lg:min-h-[480px]"
         aria-busy="true"
         aria-label="Loading tickets"
@@ -94,15 +101,34 @@ export function HelpSupportSectionSkeleton({ section }: { section: HelpSupportSe
   );
 }
 
+const SECTION_INTRO = {
+  faqs: {
+    title: 'FAQs',
+    description: 'Short answers to the questions hosts ask most.',
+  },
+  guides: {
+    title: 'Guides',
+    description: 'Walkthroughs for each page in the dashboard.',
+  },
+  tickets: {
+    title: 'Tickets',
+    description: 'Send a request to our team and track replies here.',
+  },
+} as const;
+
 /** Help & Support body: module nav, centered section intro, then section content. */
 export function HelpSupportPageSkeleton({ section }: { section: HelpSupportSection }) {
+  const intro = SECTION_INTRO[section];
+
   return (
     <div className="flex min-w-0 flex-col gap-5 sm:gap-6">
       <HelpSupportModuleNavSkeleton />
       <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
         <div className="flex flex-col items-center gap-1.5 px-1" aria-hidden>
-          <Skeleton className="h-6 w-24 sm:h-7" />
-          <Skeleton className="h-4 w-64 max-w-full sm:h-5" />
+          <h2 className="text-section-title text-center">{intro.title}</h2>
+          <p className="text-muted-foreground max-w-full text-center text-sm sm:text-base">
+            {intro.description}
+          </p>
         </div>
         <HelpSupportSectionSkeleton section={section} />
       </div>

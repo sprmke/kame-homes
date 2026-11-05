@@ -145,7 +145,7 @@ function PropertyChatContent({
 
   const host = startQuery.data?.host;
   const propertyName = startQuery.data?.property?.name ?? 'Property';
-  const hostLabel = host?.ownerName?.trim() || 'Host';
+  const hostLabel = host?.organizationName?.trim() || 'Host';
   const hostAvatar = host?.ownerAvatarUrl ?? null;
 
   const hostAvatarNode = (

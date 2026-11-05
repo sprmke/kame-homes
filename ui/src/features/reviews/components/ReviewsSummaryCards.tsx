@@ -13,11 +13,18 @@ function formatResponseRate(summary: PropertyReviewSummary): string {
   return `${Math.round(summary.responseRate * 100)}%`;
 }
 
+const REVIEW_METRICS = [
+  { title: 'Average rating', icon: Star },
+  { title: 'Reviews', icon: Quote },
+  { title: 'Responded', icon: Reply },
+  { title: 'To write', icon: PencilLine },
+];
+
 export function ReviewsSummaryCardsSkeleton() {
   return (
     <StatCardGrid>
-      {Array.from({ length: 4 }).map((_, index) => (
-        <StatCardSkeleton key={index} />
+      {REVIEW_METRICS.map((metric) => (
+        <StatCardSkeleton key={metric.title} title={metric.title} icon={metric.icon} />
       ))}
     </StatCardGrid>
   );

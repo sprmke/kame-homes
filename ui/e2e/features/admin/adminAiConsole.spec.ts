@@ -46,7 +46,7 @@ test.describe('@ci super admin AI console', () => {
   test('profiles tab shows profiles, plans and developments', async ({ page }) => {
     await installConsoleMocks(page);
     await page.goto('/admin/ai?tab=profiles');
-    await expect(page.getByText('Platform default').first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: 'Profiles' })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('Growth').first()).toBeVisible();
     await expect(page.getByText('Azure North')).toBeVisible();
     await expectNoPageHorizontalOverflow(page);

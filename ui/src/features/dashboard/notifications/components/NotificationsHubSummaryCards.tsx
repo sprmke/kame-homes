@@ -18,11 +18,18 @@ type Props = {
   onFocusTelegram?: () => void;
 };
 
+const NOTIFICATIONS_METRICS = [
+  { title: 'Unread', icon: Bell },
+  { title: 'Messages', icon: MessageCircle },
+  { title: 'Telegram on', icon: Send },
+  { title: 'Connected', icon: Link2 },
+];
+
 export function NotificationsHubSummaryCardsSkeleton() {
   return (
     <StatCardGrid className="lg:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <StatCardSkeleton key={index} />
+      {NOTIFICATIONS_METRICS.map((metric) => (
+        <StatCardSkeleton key={metric.title} title={metric.title} icon={metric.icon} />
       ))}
     </StatCardGrid>
   );

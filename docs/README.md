@@ -45,6 +45,8 @@ See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive
 | [`architecture/validation-and-env.md`](./architecture/validation-and-env.md)         | Validation + env vars                                                         |
 | [`architecture/observability.md`](./architecture/observability.md)                   | Faults vs outcomes — Sentry errors, PostHog analytics, shared ids, scrub list |
 | [`architecture/deployment.md`](./architecture/deployment.md)                         | Deployment summary (links runbooks in archive)                                |
+| [`architecture/supabase-capacity.md`](./architecture/supabase-capacity.md)           | Pro-plan limits, measured baseline, capacity estimates, scaling triggers      |
+| [`architecture/ops-reports.md`](./architecture/ops-reports.md)                       | Weekly operations report: sources, schema, AI handoff, delivery, limits       |
 | [`architecture/roadmap.md`](./architecture/roadmap.md)                               | Roadmap / gaps                                                                |
 | [`architecture/ai-dashboard-assistant.md`](./architecture/ai-dashboard-assistant.md) | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions           |
 | [`architecture/plans-feature-matrix.md`](./architecture/plans-feature-matrix.md)     | Plan/tier feature × entitlement matrix, client/server gate inventory          |

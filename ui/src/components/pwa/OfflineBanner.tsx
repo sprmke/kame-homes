@@ -5,6 +5,7 @@ import { AlertTriangle, CloudOff, RefreshCw, SignalLow, UploadCloud } from 'luci
 import { SyncCenterCard } from '@/features/dashboard/offline/components/SyncCenterCard';
 import { useOfflineSync } from '@/features/dashboard/offline/hooks/useOfflineSync';
 
+import { offlineBannerModel } from '@/components/pwa/offlineBannerModel';
 import { FloatingBottomOverlay } from '@/components/pwa/FloatingBottomOverlay';
 import {
   ResponsiveModal,
@@ -24,7 +25,8 @@ import { cn } from '@/lib/utils';
  * never covers a header, and `aboveBottomTabBarOverlayClassName()` keeps it clear
  * of the single bottom nav layer.
  *
- * Tapping opens the Sync Center when there is anything queued or failed.
+ * Tapping opens the Sync Center only when a change is queued or failed.
+ * A sync with an empty outbox stays hidden, so the sheet is never an empty close button.
  */
 export function OfflineBanner() {
   const { status } = useConnectivity();
@@ -33,17 +35,20 @@ export function OfflineBanner() {
   const claim = usePwaSurfaceStore((s) => s.claim);
   const release = usePwaSurfaceStore((s) => s.release);
 
-  const hasQueue = pendingCount > 0 || failedCount > 0;
-  const visible = status !== 'online' || hasQueue || syncing;
+  const banner = offlineBannerModel({ status, pendingCount, failedCount, syncing });
+
+  useEffect(() => {
+    if (!banner.interactive) setSyncOpen(false);
+  }, [banner.interactive]);
 
   // Claim the floating-surface slot so a lower-priority update prompt waits.
   useEffect(() => {
-    if (!visible) return;
+    if (!banner.visible) return;
     claim('offline');
     return () => release('offline');
-  }, [visible, claim, release]);
+  }, [banner.visible, claim, release]);
 
-  if (!visible) return null;
+  if (!banner.visible) return null;
 
   const tone =
     status === 'offline'
@@ -52,17 +57,7 @@ export function OfflineBanner() {
         ? 'bg-warning/15 text-warning-foreground'
         : 'bg-primary/10 text-primary';
 
-  const label = (() => {
-    if (status === 'offline') {
-      return pendingCount > 0
-        ? `Offline. ${pendingCount} change${pendingCount === 1 ? '' : 's'} saved`
-        : 'Offline. Showing saved data';
-    }
-    if (status === 'degraded') return 'No internet. Retrying';
-    if (failedCount > 0) return `${failedCount} change${failedCount === 1 ? '' : 's'} failed`;
-    if (syncing) return `Syncing ${pendingCount || ''}`.trim();
-    return `${pendingCount} change${pendingCount === 1 ? '' : 's'} waiting to sync`;
-  })();
+  const label = banner.label;
 
   const Icon =
     status === 'offline'
@@ -75,7 +70,7 @@ export function OfflineBanner() {
             ? RefreshCw
             : UploadCloud;
 
-  const interactive = hasQueue || syncing;
+  const interactive = banner.interactive;
 
   return (
     <>
@@ -97,7 +92,7 @@ export function OfflineBanner() {
         </button>
       </FloatingBottomOverlay>
 
-      <ResponsiveModal open={syncOpen} onOpenChange={setSyncOpen}>
+      <ResponsiveModal open={syncOpen && interactive} onOpenChange={setSyncOpen}>
         <ResponsiveModalContent className="pb-[max(env(safe-area-inset-bottom),1rem)]">
           <ResponsiveModalTitle className="sr-only">Offline changes</ResponsiveModalTitle>
           <SyncCenterCard />

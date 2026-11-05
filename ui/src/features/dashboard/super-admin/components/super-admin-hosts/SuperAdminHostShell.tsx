@@ -155,7 +155,10 @@ export function SuperAdminHostShell() {
     <div className="space-y-3 sm:space-y-4">
       <SuperAdminDetailHeader
         title={host.name}
-        subtitle={host.email || undefined}
+        subtitle="Organizations and properties owned by this host."
+        details={
+          host.email ? <p className="text-muted-foreground text-sm">{host.email}</p> : undefined
+        }
         backTo={{ to: superAdminPaths.hosts, label: 'Hosts' }}
         leading={
           host.avatarUrl ? (

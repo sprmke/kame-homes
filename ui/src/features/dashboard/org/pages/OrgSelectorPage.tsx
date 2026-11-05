@@ -5,10 +5,7 @@ import { useMemo } from 'react';
 import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAdmin';
 import { useOrganizations, useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
-import {
-  pickLandingOrgSlug,
-  resolveOrgLandingPath,
-} from '@/features/dashboard/org/lib/orgLanding';
+import { pickLandingOrgSlug, resolveOrgLandingPath } from '@/features/dashboard/org/lib/orgLanding';
 import { getLastOrgSlug, getLastTenantKind } from '@/features/dashboard/org/lib/tenantPaths';
 
 import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
@@ -31,7 +28,8 @@ export function OrgSelectorPage() {
   const propsQuery = useProperties(orgSlug ?? undefined);
   const parkingsQuery = useParkings(orgSlug ?? undefined);
   const listingListsReady =
-    !needsListingValidation || (propsQuery.isPending === false && parkingsQuery.isPending === false);
+    !needsListingValidation ||
+    (propsQuery.isPending === false && parkingsQuery.isPending === false);
 
   const propertySlugs = propsQuery.data?.properties.map((property) => property.slug);
   const parkingSlugs = parkingsQuery.data?.parkings.map((parking) => parking.slug);
@@ -43,13 +41,7 @@ export function OrgSelectorPage() {
       propertySlugs,
       parkingSlugs,
     });
-  }, [
-    isError,
-    organizations,
-    listingListsReady,
-    propertySlugs,
-    parkingSlugs,
-  ]);
+  }, [isError, organizations, listingListsReady, propertySlugs, parkingSlugs]);
 
   return (
     <RequireAdmin>

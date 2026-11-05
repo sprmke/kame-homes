@@ -133,7 +133,7 @@ export function OrgParkingsPage() {
         dense
       >
         {isLoading ? (
-          <OrgListingPageSkeleton view={skeletonView} label="Loading parkings" />
+          <OrgListingPageSkeleton view={skeletonView} label="Loading parkings" kind="parkings" />
         ) : !org ? (
           <p className="text-muted-foreground text-sm">Organization not found.</p>
         ) : (
