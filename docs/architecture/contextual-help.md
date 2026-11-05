@@ -70,7 +70,8 @@ brand hero row; use the default variant in `AdminPageHeader` actions.
 ## Copy
 
 Every help string lives in a feature module's `*HelpCopy.ts` file, typed by
-`ui/src/lib/help/types.ts`:
+`ui/src/lib/help/types.ts`. Set `contentKey` when the same entry is exported to the Help Center,
+so the UI and the support answer share one source:
 
 ```ts
 // ui/src/features/dashboard/pricing/lib/pricingHelpCopy.ts

@@ -27,6 +27,11 @@ export type HowItWorksCopy = {
  * never inline in JSX, so the copy guard and the support-content sync can read it.
  */
 export type HelpCopyEntry = {
+  /**
+   * Stable key shared with the Help Center / AI knowledge base export. Set it
+   * when the entry is copied into host-facing support content.
+   */
+  contentKey?: string;
   hint?: string;
   howItWorks?: HowItWorksCopy;
 };
