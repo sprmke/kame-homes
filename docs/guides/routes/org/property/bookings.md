@@ -55,6 +55,12 @@ This page is your main dashboard for all bookings at this property. Summary card
   A: Use **New booking** in the page header. It opens the same guest booking form in a dialog, right in the dashboard - fill it out on the guest's behalf. After you submit, you can add another booking or jump straight to the new booking's detail page.
 - Q: Can I bulk-import bookings from a spreadsheet?
   A: Yes on **Starter and above**. Use **Import** beside **New booking** (property bookings only). You can open the wizard and upload a file on Free to try it, but continuing past the first step asks you to upgrade. On a paid plan, confirm column mapping, then review the rows. Select **Need fixing** to see problem rows; **Fix** opens the complete row so you can correct every invalid value together. **Skipped** rows stay openable the same way, so use **Restore** to bring them back, or **Fix** to correct them. Past stays commit as **Imported**; today and future stays show **Pending Review** but still appear when you filter by **Imported**. No new-booking emails or calendar events on import.
+- Q: How do Airbnb bookings appear here?
+  A: When **Create bookings** is on for your Airbnb feed, each reservation appears as a Pending Review booking with a placeholder name like `Airbnb HM…`. Blocked dates alone still work if you turn it off. Past Airbnb stays are not imported.
+- Q: Where do I get the form link for an Airbnb guest?
+  A: Open the imported booking and choose **Copy guest form link**, or open the stay on the Pricing calendar and copy it there. Send it through Airbnb. The guest sees their stay dates locked.
+- Q: I already entered an Airbnb booking by hand. Will it duplicate?
+  A: No. When the dates and Airbnb source match, the sync links your existing booking instead of creating a second one.
 - Q: How do I read the calendar view?
   A: Use **Month**, **Week**, or **Day** in the calendar toolbar. Month shows stays as colored pills across nights - click a pill to open that booking, or click a day for the side list. If a day has more stays than fit in the cell, you’ll see a **+N** chip - click the day to review them all. Week and Day show an hour grid so you can see checkout/check-in gaps; multi-night stays read as one continuous block. Hover uses a darker shade of that booking’s status color (not the brand primary). A pricing-style tip appears on hover. In week view, tap a day header to zoom into that day.
 - Q: Why don’t I see past / completed bookings in the table?
@@ -172,28 +178,30 @@ New: `stage` (see above).
 | New booking              | `bookings.create:add`           |
 | CSV import               | `bookings.import:add` (+ plan)  |
 | Kanban drag → transition | `bookings.detail.workflow:edit` |
+| Copy guest form link     | `bookings.detail.workflow:edit` |
 
 Kanban card open still works without workflow permission (Progress rail read-only). Org-wide bookings scope hides New / Import / workflow mutations.
 
 ## Implementation map
 
-| Concern               | Path                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| Page                  | `ui/src/features/dashboard/bookings/pages/BookingsListPage.tsx`                                       |
-| New booking modal     | `ui/src/features/dashboard/bookings/components/AdminNewBookingModal.tsx`                              |
-| Success summary       | `ui/src/features/dashboard/bookings/components/AdminBookingSuccessSummary.tsx`                        |
-| Guest form (embedded) | `ui/src/features/guest/form/components/GuestForm.tsx` (`embed.skipAuthGate`, `embed.onSubmitSuccess`) |
-| Import wizard modal   | `ui/src/features/dashboard/import/components/ImportWizardModal.tsx`                                   |
-| Shared modal chrome   | `ui/src/features/dashboard/import/components/ImportModalChrome.tsx`                                   |
-| Import hooks / types  | `ui/src/features/dashboard/import/hooks/`, `lib/`, `types/`                                           |
-| Stage mapping         | `ui/src/features/dashboard/bookings/lib/bookingStages.ts`                                             |
-| Summary cards         | `ui/src/features/dashboard/bookings/components/BookingsSummaryCards.tsx`                              |
-| Kanban board          | `ui/src/features/dashboard/bookings/components/BookingKanban.tsx`                                     |
-| Kanban workflow modal | `ui/src/features/dashboard/bookings/components/BookingKanbanWorkflowModal.tsx`                        |
-| Workflow (reused)     | `ui/src/features/dashboard/bookings/components/WorkflowPanel.tsx`                                     |
-| Filters               | `ui/src/features/dashboard/bookings/components/BookingFilters.tsx`                                    |
-| Mobile page shell     | `ui/src/components/mobile/MobileBrandHero.tsx` (`AdminMobilePage`)                                    |
-| Routes                | `ui/src/features/dashboard/routes/index.tsx`                                                          |
+| Concern               | Path                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Page                  | `ui/src/features/dashboard/bookings/pages/BookingsListPage.tsx`                                                |
+| New booking modal     | `ui/src/features/dashboard/bookings/components/AdminNewBookingModal.tsx`                                       |
+| Success summary       | `ui/src/features/dashboard/bookings/components/AdminBookingSuccessSummary.tsx`                                 |
+| Guest form (embedded) | `ui/src/features/guest/form/components/GuestForm.tsx` (`embed.skipAuthGate`, `embed.onSubmitSuccess`)          |
+| Import wizard modal   | `ui/src/features/dashboard/import/components/ImportWizardModal.tsx`                                            |
+| Shared modal chrome   | `ui/src/features/dashboard/import/components/ImportModalChrome.tsx`                                            |
+| Import hooks / types  | `ui/src/features/dashboard/import/hooks/`, `lib/`, `types/`                                                    |
+| Stage mapping         | `ui/src/features/dashboard/bookings/lib/bookingStages.ts`                                                      |
+| Copy guest form link  | `ui/src/features/dashboard/bookings/lib/bookingDetailActions.ts`, `hooks/useBookingGuestFormCompletionLink.ts` |
+| Summary cards         | `ui/src/features/dashboard/bookings/components/BookingsSummaryCards.tsx`                                       |
+| Kanban board          | `ui/src/features/dashboard/bookings/components/BookingKanban.tsx`                                              |
+| Kanban workflow modal | `ui/src/features/dashboard/bookings/components/BookingKanbanWorkflowModal.tsx`                                 |
+| Workflow (reused)     | `ui/src/features/dashboard/bookings/components/WorkflowPanel.tsx`                                              |
+| Filters               | `ui/src/features/dashboard/bookings/components/BookingFilters.tsx`                                             |
+| Mobile page shell     | `ui/src/components/mobile/MobileBrandHero.tsx` (`AdminMobilePage`)                                             |
+| Routes                | `ui/src/features/dashboard/routes/index.tsx`                                                                   |
 
 ---
 

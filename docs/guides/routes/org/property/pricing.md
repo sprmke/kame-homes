@@ -77,15 +77,16 @@ dates that should not be available to guests.
 
 ## Permissions
 
-| Capability                               | Required permission         |
-| ---------------------------------------- | --------------------------- |
-| Open Pricing route                       | `pricing:view`              |
-| Edit rates / fees / overrides            | `pricing.rates:edit`        |
-| Block dates                              | `pricing.blocks:add`        |
-| Unblock dates                            | `pricing.blocks:delete`     |
-| View Channel Sync                        | `pricing.channels:view`     |
-| Connect / edit / sync feeds              | `pricing.channels:edit`     |
-| Smart Pricing (settings, preview, apply) | `pricing.smartPricing:edit` |
+| Capability                               | Required permission             |
+| ---------------------------------------- | ------------------------------- |
+| Open Pricing route                       | `pricing:view`                  |
+| Edit rates / fees / overrides            | `pricing.rates:edit`            |
+| Block dates                              | `pricing.blocks:add`            |
+| Unblock dates                            | `pricing.blocks:delete`         |
+| View Channel Sync                        | `pricing.channels:view`         |
+| Connect / edit / sync feeds              | `pricing.channels:edit`         |
+| Copy guest form link (imported stay)     | `bookings.detail.workflow:edit` |
+| Smart Pricing (settings, preview, apply) | `pricing.smartPricing:edit`     |
 
 - Without rate/block leaves, the calendar and fee sidebar stay read-only for that action.
 - Server: GET → `pricing.channels:view` + `calendarSync` plan; PATCH → `pricing.channels:edit` + `calendarSync`. Legacy stored `pricing:edit` still expands to all three rate/block leaves.
@@ -109,7 +110,11 @@ dates that should not be available to guests.
 - **Connected list:** name, health badge, last sync time; icon actions for **Sync now** and **Remove**.
 - **Add another:** outline **Connect Airbnb** expands the same validated form.
 - **Polling:** `calendar-sync-cron` every 30 min imports busy nights as **synced blocks** (`source='ical_import'`).
-- **Create real bookings (Phase 2):** when `create_bookings` is on for a feed, Airbnb reservations become **Pending review** bookings (no guest emails until details exist). Host forwards **Copy guest form link** from the booking.
+- **Create bookings:** every connected Airbnb feed has a **Create bookings** switch, **on by default for new feeds**. When on, each `Reserved` event also becomes a real **Pending review** booking in Kame, with no guest email or guest-facing side effect until details exist. Turning it on runs a sync immediately. Existing feeds keep their stored value until the host flips it.
+- **No duplicates:** if the host already entered the same Airbnb stay by hand (same property, dates, and `Airbnb` source), the sync links the existing row instead of creating a second one. Reconnecting a removed feed also re-links the existing row by reservation UID.
+- **Past stays:** reservations whose checkout is already past are skipped, so enabling ingestion does not fill Bookings with old stays.
+- **Guest form link:** open an imported stay on the Pricing calendar, then **Copy guest form link**. The link opens the guest form with the stay dates locked. Requires `bookings.detail.workflow:edit`. **Open in Airbnb** is shown when the feed supplied a reservation URL.
+- **Feed info box:** the From Airbnb tab explains the three-step flow (dates block, bookings appear, copy the link).
 - **Health:** Synced / Retrying / Needs fix (4+ failures → `calendar_sync_failing` notification).
 - **Remove:** confirm dialog; optional **Also delete dates this calendar added**.
 - **Recent activity:** collapsed under From Airbnb when events exist (last ~8) — sync audit (imports, conflicts, errors). Keep it; hosts use it to diagnose sync issues.
@@ -140,6 +145,14 @@ If Airbnb reports a night that already has a live Kame booking or manual block, 
   A: Not yet — Channel sync is Airbnb-only for now.
 - Q: I got a conflict warning after connecting Airbnb. What do I do?
   A: Both calendars kept their nights. Open Notifications or Channel sync → Recent activity for the dates, then remove the booking or block on the side that should not have it.
+- Q: Does connecting Airbnb create bookings in Kame?
+  A: Yes, by default for a new feed. Each reservation appears as a Pending review booking. You can turn **Create bookings** off for a feed at any time. Dates still block either way.
+- Q: I already entered an Airbnb booking by hand. Will the sync duplicate it?
+  A: No. If the dates and Airbnb source match, Kame links your existing booking instead of creating a second one. Reconnecting a feed also re-links the existing booking.
+- Q: Where do I get the guest form link for an Airbnb guest?
+  A: Open the imported stay on the Pricing calendar, then tap **Copy guest form link** and paste it into the Airbnb message thread. The guest sees the stay dates locked.
+- Q: Why is an old Airbnb stay missing after I turned Create bookings on?
+  A: Stays whose checkout is already past are skipped on purpose. Only current and upcoming reservations are imported.
 
 ---
 
@@ -354,6 +367,8 @@ extra guest), and save flows for base-rate scope and fee-only updates.
 **GET** `property-pricing?month=YYYY-MM` returns defaults, overrides, `bookedDateKeys`,
 `blockedDateKeys` (all sources), `importedBlockedDateKeys` (the `ical_import` subset — read-only
 on the grid), and `calendarBookings` (stays overlapping that month, including cancelled).
+Calendar bookings also carry `external_source`, `booking_source`, and a host-only
+`reservation_url` parsed from the feed's reservation link (never sent to guests).
 
 **PATCH** accepts rate/fee fields, `dateOverrides`, `blockRange`, and `unblockDateKeys`
 (`unblockDateKeys` only frees `source='manual'` rows — synced nights are untouched).
@@ -378,6 +393,7 @@ double-booking-safe the moment it syncs in.
 | `ui/src/features/dashboard/pricing/components/ChannelSyncDialog.tsx`           | `supabase/functions/calendar-sync-settings/index.ts`                                                                                                                                |
 | `ui/src/features/dashboard/pricing/hooks/useCalendarSync.ts`                   | `supabase/functions/calendar-sync-cron/index.ts`                                                                                                                                    |
 | `ui/src/features/dashboard/pricing/lib/calendarSyncApi.ts`                     | `supabase/functions/ical-export/index.ts`                                                                                                                                           |
+| `ui/src/features/dashboard/pricing/lib/importedBooking.ts`                     | `supabase/functions/_shared/externalBookingIngest.ts`                                                                                                                               |
 | —                                                                              | `supabase/functions/_shared/calendarSyncService.ts` / `calendarSyncRun.ts`                                                                                                          |
 
 Spanning pill layout reuses `calendarDateUtils` and `CalendarOccupancySpanTrack` from the
@@ -397,6 +413,11 @@ bookings calendar module.
 - **Synced (OTA) nights:** read-only on the grid — the block/unblock selection skips them
   entirely. Removing a feed with "keep the dates" converts them to editable manual blocks;
   otherwise they disappear on the next sync once the OTA feed drops the date.
+- **Imported stays:** with **Create bookings** on, each reservation is a booking pill on the
+  grid. Opening it shows **Copy guest form link** (pending review + permission) and **Open in
+  Airbnb** (when the feed supplied a URL).
+- **Turning ingestion off:** stops new bookings. Existing imported bookings stay, and Airbnb
+  cancellations and date changes still reconcile.
 - **Feed failures:** after 4 consecutive failed pulls the dialog shows `Error` and a
   `calendar_sync_failing` notification fires once; syncing resumes automatically when the
   next pull succeeds.
@@ -405,8 +426,9 @@ bookings calendar module.
 
 ## Testing
 
-| Layer | Path / spec                                                                          | Manual                         |
-| ----- | ------------------------------------------------------------------------------------ | ------------------------------ |
-| Unit  | `supabase/functions/_shared/smartPricingEngine_test.ts`, calendar sync service tests | —                              |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` pricing shell (`@ci`)      | AI preview, channel sync OAuth |
-| N/A   | Polotno/canvas internals                                                             | Manual calendar sync guide     |
+| Layer       | Path / spec                                                                                                                                                           | Manual                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Unit        | `supabase/functions/_shared/smartPricingEngine_test.ts`, `calendarSyncService_test.ts`, `externalBookingIngest_test.ts`, `ui/.../pricing/lib/importedBooking.test.ts` | —                              |
+| Integration | `supabase/functions/_shared/calendarSyncRun_integration_test.ts` (local Postgres: create, adoption, relink, past skip)                                                | Local stack required           |
+| E2E         | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` pricing shell (`@ci`)                                                                                       | AI preview, channel sync OAuth |
+| N/A         | Polotno/canvas internals                                                                                                                                              | Manual calendar sync guide     |

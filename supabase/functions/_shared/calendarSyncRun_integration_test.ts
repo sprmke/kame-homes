@@ -550,3 +550,149 @@ Deno.test(
     }
   }
 );
+
+Deno.test('Phase 2: past reservations are skipped, not imported as ghost bookings', async () => {
+  const pid = await firstPropertyId();
+  const feed = await seedFeed(pid, true);
+  try {
+    const r = await runFeedSync(feed, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(ics([vevent('paststay@abnb', '20200101', '20200103', 'Reserved')])),
+    });
+    assertEquals(r.status, 'synced');
+    assertEquals(r.bookingsCreated, 0);
+    assertEquals(r.bookingsLinked, 0);
+    assertEquals((await bookings(feed.id)).length, 0);
+
+    const ev = await events(feed.id);
+    assert(
+      ev.some(
+        (e) =>
+          e.action === 'skipped' && (e.detail as { reason?: string } | null)?.reason === 'past_stay'
+      ),
+      'past_stay skip recorded'
+    );
+  } finally {
+    await cleanupFeed(feed.id);
+  }
+});
+
+Deno.test('Phase 2: a manually entered Airbnb stay is adopted, not duplicated', async () => {
+  const pid = await firstPropertyId();
+  const feed = await seedFeed(pid, true);
+  const body = ics([vevent('adopt@abnb', '20270810', '20270812', 'Reserved')]);
+  try {
+    let r = await runFeedSync(feed, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(body),
+    });
+    assertEquals(r.bookingsCreated, 1);
+    const created = (await bookings(feed.id))[0]!;
+
+    // Detach provenance: this is what a host-entered Airbnb stay looks like.
+    await sb
+      .from('guest_submissions')
+      .update({ external_source: null, external_uid: null, external_feed_id: null })
+      .eq('id', created.id);
+    await sb
+      .from('property_calendar_feeds')
+      .update({
+        last_feed_hash: null,
+        last_attempted_at: new Date(Date.now() - 60_000).toISOString(),
+      })
+      .eq('id', feed.id);
+
+    r = await runFeedSync(await refetch(feed), {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(body),
+    });
+    assertEquals(r.bookingsCreated, 0, 'no second row');
+    assertEquals(r.bookingsLinked, 1, 'existing row linked');
+
+    const rows = await bookings(feed.id);
+    assertEquals(rows.length, 1);
+    assertEquals(rows[0]!.id, created.id);
+    assertEquals(rows[0]!.external_uid, 'adopt@abnb');
+
+    const ev = await events(feed.id);
+    assert(
+      ev.some((e) => e.action === 'booking_linked'),
+      'booking_linked event written'
+    );
+  } finally {
+    await cleanupFeed(feed.id);
+  }
+});
+
+Deno.test('Phase 2: turning ingestion off still cancels an existing imported booking', async () => {
+  const pid = await firstPropertyId();
+  const feed = await seedFeed(pid, true);
+  try {
+    let r = await runFeedSync(feed, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(ics([vevent('offcancel@abnb', '20271010', '20271012', 'Reserved')])),
+    });
+    assertEquals(r.bookingsCreated, 1);
+
+    await sb.from('property_calendar_feeds').update({ create_bookings: false }).eq('id', feed.id);
+    const off = await refetch(feed);
+
+    // Reservation gone, but the feed is not empty (an unrelated block keeps it healthy).
+    r = await runFeedSync(off, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(ics([vevent('offblock@abnb', '20271101', '20271102', 'Blocked')])),
+    });
+    assertEquals(r.bookingsCancelled, 1, 'cancellation still reconciles with ingestion off');
+    assertEquals(r.bookingsCreated, 0, 'no new rows while ingestion is off');
+
+    const { data } = await sb
+      .from('guest_submissions')
+      .select('status')
+      .eq('external_feed_id', feed.id)
+      .maybeSingle();
+    assertEquals(data?.status, 'CANCELLED');
+  } finally {
+    await cleanupFeed(feed.id);
+  }
+});
+
+Deno.test('Phase 2: reconnecting the same feed relinks the existing booking', async () => {
+  const pid = await firstPropertyId();
+  const feedA = await seedFeed(pid, true);
+  const feedB = await seedFeed(pid, true);
+  const body = ics([vevent('relink@abnb', '20270910', '20270912', 'Reserved')]);
+  try {
+    await runFeedSync(feedA, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(body),
+    });
+    const created = (await bookings(feedA.id))[0]!;
+
+    // Feed removal clears external_feed_id but keeps the reservation UID.
+    await sb.from('guest_submissions').update({ external_feed_id: null }).eq('id', created.id);
+
+    const r = await runFeedSync(feedB, {
+      runId: crypto.randomUUID(),
+      force: true,
+      fetchIcs: stubFetch(body),
+    });
+    assertEquals(r.bookingsCreated, 0, 'no duplicate');
+    assertEquals(r.bookingsLinked, 1, 'orphaned row relinked');
+
+    const { data } = await sb
+      .from('guest_submissions')
+      .select('external_feed_id')
+      .eq('id', created.id)
+      .single();
+    assertEquals(data?.external_feed_id, feedB.id);
+  } finally {
+    await cleanupFeed(feedA.id);
+    await cleanupFeed(feedB.id);
+  }
+});

@@ -14,6 +14,7 @@ import {
   useCalendarSyncSettings,
   useRemoveCalendarFeed,
   useSetExportEnabled,
+  useSetCreateBookings,
   useSyncFeedNow,
 } from '@/features/dashboard/pricing/hooks/useCalendarSync';
 import {
@@ -130,6 +131,14 @@ function eventLine(e: CalendarSyncEvent): string {
       return `Reservation dates changed${range}`;
     case 'block_removed':
       return `Reservation removed${range}`;
+    case 'booking_created':
+      return `Booking added${range}`;
+    case 'booking_linked':
+      return `Existing booking linked${range}`;
+    case 'booking_rescheduled':
+      return `Booking dates changed${range}`;
+    case 'booking_cancelled':
+      return `Booking cancelled${range}`;
     case 'conflict_detected':
       return `Conflict: overlaps another booking${range}`;
     case 'error':
@@ -166,6 +175,7 @@ export function ChannelSyncDialog({
   const addFeed = useAddCalendarFeed();
   const removeFeed = useRemoveCalendarFeed();
   const setEnabled = useSetExportEnabled();
+  const setCreateBookings = useSetCreateBookings();
   const syncNow = useSyncFeedNow();
 
   const [tab, setTab] = useState<'import' | 'export'>('import');
@@ -430,6 +440,14 @@ export function ChannelSyncDialog({
                       tone={importAvailability.tone}
                     />
                   ) : null}
+                  <div className="border-primary/20 bg-primary/5 rounded-xl border p-3">
+                    <p className="text-foreground text-xs font-medium">How Airbnb sync works</p>
+                    <ol className="text-muted-foreground mt-1 list-decimal space-y-0.5 pl-4 text-xs">
+                      <li>Airbnb dates block here within 30 minutes.</li>
+                      <li>New reservations become bookings you can review.</li>
+                      <li>Open one on the calendar to copy its guest form link.</li>
+                    </ol>
+                  </div>
                   {feeds.length === 0 && readOnly ? (
                     <div className="flex flex-col items-center gap-3 py-8 text-center">
                       <div className="bg-muted/80 flex size-12 items-center justify-center rounded-full">
@@ -462,6 +480,27 @@ export function ChannelSyncDialog({
                                       ? ` · ${feed.lastError}`
                                       : ''}
                                   </p>
+                                  <div className="flex items-center justify-between gap-3 pt-1.5">
+                                    <span className="text-muted-foreground text-xs">
+                                      Create bookings
+                                    </span>
+                                    <Switch
+                                      checked={feed.createBookings}
+                                      disabled={
+                                        readOnly ||
+                                        (setCreateBookings.isPending &&
+                                          setCreateBookings.variables?.feedId === feed.id)
+                                      }
+                                      onCheckedChange={(checked) => {
+                                        if (!requireCalendarSyncPlan()) return;
+                                        setCreateBookings.mutate({
+                                          feedId: feed.id,
+                                          enabled: checked,
+                                        });
+                                      }}
+                                      aria-label={`Create bookings from ${name}`}
+                                    />
+                                  </div>
                                 </div>
                                 {!readOnly ? (
                                   <div className="flex shrink-0 items-center gap-0.5">
