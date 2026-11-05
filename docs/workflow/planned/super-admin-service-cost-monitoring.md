@@ -586,9 +586,9 @@ Vercel, Meta Graph API.
 **Checked, nothing to meter:** Supabase image transformations (not used — client-side
 `browser-image-compression` + custom optimizer); Telegram Bot API (free); Cloudflare
 Turnstile (free); Web Push / VAPID (free, self-served); pg_cron / pg_net (Supabase compute,
-covered under edge). Supabase Auth OTP / magic-link email: free on the built-in mailer;
-**counts under Resend** if custom SMTP is ever wired — add an `email_class: transactional`
-meter there when that happens.
+covered under edge). Supabase Auth OTP / magic-link email now sends through custom
+SMTP (Resend, wired 2026-11-05), so it **counts under Resend**; add an
+`email_class: transactional` meter when email metering is implemented.
 
 **Confirmed absent from the codebase:** Twilio / any SMS, SendGrid / Mailgun, Cloudinary /
 imgix, Mapbox, Algolia, Sentry, Datadog / LogRocket, OpenAI / Anthropic, ElevenLabs /

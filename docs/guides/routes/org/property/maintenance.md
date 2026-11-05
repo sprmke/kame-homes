@@ -98,6 +98,7 @@ Legacy stored `maintenance:edit` expands to all reminder + export leaves.
 | Concern                | Path                                                                                                                                                                    |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                   | `ui/src/features/dashboard/maintenance/pages/MaintenancePage.tsx`                                                                                                       |
+| Loading skeleton       | `MaintenancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — KPIs, toolbar, then reminders table (desktop) / cards (phone) or calendar from `?view=`                     |
 | Summary cards          | `ui/src/features/dashboard/maintenance/components/MaintenanceSummaryCards.tsx`                                                                                          |
 | Toolbar                | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersToolbar.tsx`                                                                                      |
 | Export menu + PDF      | `ui/src/features/dashboard/maintenance/components/MaintenanceExportMenu.tsx`, `ui/src/features/dashboard/maintenance/lib/exportPdf.ts`, shared PDF layout `@/lib/pdf/*` |

@@ -135,8 +135,8 @@ export function ContactHostSheet({
     isFetchingNextPage,
   } = useGuestChatMessages(conversationId);
 
-  const hostLabel = host.ownerName.trim() || 'Host';
-  const hostAvatar = host.ownerAvatarUrl || host.organizationLogoUrl || null;
+  const hostLabel = host.organizationName.trim() || 'Host';
+  const hostAvatar = host.organizationLogoUrl || host.ownerAvatarUrl || null;
 
   const displayCheckInDate = checkInDate || resumeCheckInDate;
   const displayCheckOutDate = checkOutDate || resumeCheckOutDate;

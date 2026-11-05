@@ -1072,7 +1072,9 @@ export function PropertySettingsCard() {
       ) : null}
 
       {appSettingsLoading ? (
-        <AppSettingsNavLayoutSkeleton />
+        <AppSettingsNavLayoutSkeleton
+          navLabels={SETTINGS_SECTIONS.map((section) => section.label)}
+        />
       ) : appSettings && operationalDraft ? (
         <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
           <PropertyProfileMainSections

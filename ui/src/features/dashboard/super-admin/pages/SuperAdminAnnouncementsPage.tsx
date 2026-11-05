@@ -213,7 +213,9 @@ export function SuperAdminAnnouncementsPage() {
         }
       />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total announcements', 'Active', 'Critical', 'Warning']}
+        />
       ) : (
         <>
           <SuperAdminAnnouncementSummaryCards announcements={allAnnouncements} />

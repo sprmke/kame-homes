@@ -121,7 +121,7 @@ export function DashboardPage() {
       className="min-w-0 max-w-full"
     >
       {isLoading && !data ? (
-        <DashboardSkeleton />
+        <DashboardSkeleton showFinance={canViewFinance} showMaintenance={canViewMaintenance} />
       ) : error ? (
         <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-16 text-center">
           <p className="text-foreground text-sm font-semibold">Could not load dashboard</p>

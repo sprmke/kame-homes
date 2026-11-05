@@ -95,20 +95,21 @@ Rows live on `guest_submissions` with `parking_id` set (or null while broadcast-
 
 ## Implementation map
 
-| Concern                                  | Path                                                                                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| List page                                | `ui/src/features/dashboard/parking/pages/ParkingBookingsPage.tsx`                                                                          |
-| New booking modal                        | `ui/src/features/dashboard/parking/components/AdminParkingNewBookingModal.tsx`                                                             |
-| Success summary (shared)                 | `ui/src/features/dashboard/bookings/components/AdminBookingSuccessSummary.tsx`                                                             |
-| Registration form (embedded)             | `ui/src/features/guest/marketing/parkings/components/ParkingRegistrationForm.tsx`                                                          |
-| Detail (Accept/Decline, countdown)       | `ui/src/features/dashboard/parking/pages/ParkingBookingDetailPage.tsx`                                                                     |
-| Shared status copy (guest/host/property) | `ui/src/lib/parking/parkingFlowCopy.ts`                                                                                                    |
-| Claim / decline / transition hooks       | `ui/src/features/dashboard/parking/hooks/useParkingBookingMutations.ts`                                                                    |
-| Countdown component                      | `ui/src/features/dashboard/bookings/components/ParkingBroadcastCountdown.tsx`                                                              |
-| Guest submit + status                    | `ui/src/features/guest/marketing/pages/ParkingFormPage.tsx`, `ui/src/features/guest/marketing/parkings/pages/ParkingRequestStatusPage.tsx` |
-| Ranking / batching (backend)             | `supabase/functions/_shared/parkingBroadcastRanking.ts`, `supabase/functions/_shared/parkingBroadcastExpireCron.ts`                        |
-| Payment orchestration (backend)          | `supabase/functions/_shared/parkingPaymentOrchestrator.ts`, `supabase/functions/_shared/parkingCancellation.ts`                            |
-| Backend spec                             | `.cursor/rules/parking-workflow.mdc`                                                                                                       |
+| Concern                                  | Path                                                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| List page                                | `ui/src/features/dashboard/parking/pages/ParkingBookingsPage.tsx`                                                                                      |
+| Loading skeleton                         | `ParkingBookingsRouteSkeleton` → `BookingsListBodySkeleton` (`RouteSkeletons.tsx`) — stage cards, toolbar, table (desktop) / cards (phone) or calendar |
+| New booking modal                        | `ui/src/features/dashboard/parking/components/AdminParkingNewBookingModal.tsx`                                                                         |
+| Success summary (shared)                 | `ui/src/features/dashboard/bookings/components/AdminBookingSuccessSummary.tsx`                                                                         |
+| Registration form (embedded)             | `ui/src/features/guest/marketing/parkings/components/ParkingRegistrationForm.tsx`                                                                      |
+| Detail (Accept/Decline, countdown)       | `ui/src/features/dashboard/parking/pages/ParkingBookingDetailPage.tsx`                                                                                 |
+| Shared status copy (guest/host/property) | `ui/src/lib/parking/parkingFlowCopy.ts`                                                                                                                |
+| Claim / decline / transition hooks       | `ui/src/features/dashboard/parking/hooks/useParkingBookingMutations.ts`                                                                                |
+| Countdown component                      | `ui/src/features/dashboard/bookings/components/ParkingBroadcastCountdown.tsx`                                                                          |
+| Guest submit + status                    | `ui/src/features/guest/marketing/pages/ParkingFormPage.tsx`, `ui/src/features/guest/marketing/parkings/pages/ParkingRequestStatusPage.tsx`             |
+| Ranking / batching (backend)             | `supabase/functions/_shared/parkingBroadcastRanking.ts`, `supabase/functions/_shared/parkingBroadcastExpireCron.ts`                                    |
+| Payment orchestration (backend)          | `supabase/functions/_shared/parkingPaymentOrchestrator.ts`, `supabase/functions/_shared/parkingCancellation.ts`                                        |
+| Backend spec                             | `.cursor/rules/parking-workflow.mdc`                                                                                                                   |
 
 ---
 

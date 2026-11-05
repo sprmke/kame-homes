@@ -148,6 +148,7 @@ Both Reviews endpoints share `_shared/reviewListParams.ts`, so the two pages acc
 | Concern       | Path                                                                                                                                                                                    |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page          | `ui/src/features/reviews/pages/OrgReviewsPage.tsx` → shared `ReviewsListPage.tsx` (`scope="org"`)                                                                                       |
+| Loading       | `OrgReviewsRouteSkeleton` → `ReviewsPageSkeleton` (`AdminSkeletons.tsx`) — summary cards, tab row, responsive review list                                                               |
 | By property   | `ui/src/features/reviews/components/OrgPropertyReviewsTable.tsx`                                                                                                                        |
 | Sheet scoping | `ui/src/features/reviews/lib/reviewPropertyScope.tsx` + `reviewPropertyScopeContext.ts`                                                                                                 |
 | List state    | `ui/src/features/reviews/lib/orgReviewsApi.ts`, `propertyReviewsApi.ts`                                                                                                                 |

@@ -925,7 +925,7 @@ export async function computeDashboardStats(
         id: 'low-occupancy',
         label: 'Low occupancy next 30 days',
         count: occupancyPct,
-        href: '/analytics',
+        href: `/analytics?from=${from}&to=${to}`,
         severity: 'warning',
       });
     }

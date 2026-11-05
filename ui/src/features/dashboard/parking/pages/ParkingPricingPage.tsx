@@ -342,7 +342,7 @@ export function ParkingPricingPage() {
         subtitle="Manage pricing and availability."
         titleId="parking-pricing-heading"
       >
-        <PricingPageBodySkeleton />
+        <PricingPageBodySkeleton statsCount={3} showDirectLinkCard />
       </AdminMobilePage>
     );
   }

@@ -2,7 +2,7 @@
 title: 'Analytics — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-27
+updated: 2026-11-05
 ---
 
 # Analytics — operator guide
@@ -41,6 +41,8 @@ Route: `/org/:orgSlug/property/:propertySlug/analytics`
 ---
 
 ## Overview
+
+Page subtitle: "Track revenue, occupancy, and guest trends for this property."
 
 Property-scoped performance dashboard. Deterministic metrics are computed on-read from
 `guest_submissions` (bookings), `guest_reviews`, `inbox_thread_metrics` (Guest Inbox

@@ -259,7 +259,9 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
       initialFromDate && initialToDate ? { from: initialFromDate, to: initialToDate } : null,
   });
 
-  const { data, isLoading, isFetching, dataUpdatedAt, error, refetch } = useBookings(listQuery, { scope });
+  const { data, isLoading, isFetching, dataUpdatedAt, error, refetch } = useBookings(listQuery, {
+    scope,
+  });
   const pullToRefresh = usePullToRefresh({
     onRefresh: () => Promise.all([refetch(), refetchSummary()]),
   });
@@ -404,6 +406,8 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
     [patch]
   );
 
+  const dateLabelPending = isLoading && !data && !query.from && !query.to;
+
   const bookingActions =
     scope === 'org' ? undefined : (
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
@@ -412,6 +416,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           isActive={Boolean(query.from || query.to)}
           onClear={handleClearDate}
           fullWidth={isMobileLayout}
+          labelPending={dateLabelPending}
         />
         {canImport ? (
           <TierBadgeAnchor feature="bookingImport">
@@ -475,6 +480,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           isActive={Boolean(query.from || query.to)}
           onClear={handleClearDate}
           fullWidth
+          labelPending={dateLabelPending}
         />
       </FloatingToolbar>
     ) : undefined;

@@ -1,5 +1,14 @@
+import { AlertTriangle, Info, Megaphone, ShieldAlert } from 'lucide-react';
+
 import { StatCardSkeleton } from '@/components/shared/StatCard';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const ANNOUNCEMENT_METRICS = [
+  { title: 'Active', icon: Megaphone },
+  { title: 'Action required', icon: ShieldAlert },
+  { title: 'Attention', icon: AlertTriangle },
+  { title: 'Updates', icon: Info },
+] as const;
 
 /** Host announcements: stat cards, then the feed card (or one detail card). */
 export function HostAnnouncementsBodySkeleton({ detail = false }: { detail?: boolean } = {}) {
@@ -11,8 +20,8 @@ export function HostAnnouncementsBodySkeleton({ detail = false }: { detail?: boo
       aria-label="Loading announcements"
     >
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4" aria-hidden>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <StatCardSkeleton key={i} />
+        {ANNOUNCEMENT_METRICS.map((metric) => (
+          <StatCardSkeleton key={metric.title} title={metric.title} icon={metric.icon} />
         ))}
       </div>
       <div className="surface-card overflow-hidden" aria-hidden>

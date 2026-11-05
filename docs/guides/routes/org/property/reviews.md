@@ -193,21 +193,22 @@ Guest names live on the stay, not on the review, so a name search first resolves
 
 ## Implementation map
 
-| Concern      | Path                                                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Page         | `ui/src/features/reviews/pages/PropertyReviewsPage.tsx` → shared `ReviewsListPage.tsx` (`scope="property"`)               |
-| KPI cards    | `ui/src/features/reviews/components/ReviewsSummaryCards.tsx`                                                              |
-| Breakdown    | `ui/src/features/reviews/components/ReviewsRatingSheet.tsx`                                                               |
-| Toolbar      | `ReviewsToolbar.tsx`, `ReviewsFilters.tsx`, `ReviewsViewToggle.tsx`                                                       |
-| Table / card | `ReviewsTable.tsx`, `ReviewsCardGrid.tsx`, shared `ReviewCardContent.tsx`                                                 |
-| Detail sheet | `ui/src/features/reviews/components/ReviewDetailSheet.tsx`                                                                |
-| List state   | `ui/src/features/reviews/lib/propertyReviewsApi.ts` (URL ⇄ query ⇄ API params)                                            |
-| Auto-review  | `ReviewAutomationSheet.tsx` (page header)                                                                                 |
-| Sheets       | `ui/src/features/reviews/components/`                                                                                     |
-| Hooks        | `ui/src/features/reviews/hooks/usePropertyReviews.ts`                                                                     |
-| List service | `supabase/functions/_shared/propertyReviewList.ts`, `reviewListParams.ts` (query vocabulary shared with the org rollup)   |
-| Edge         | `list-property-reviews`, `respond-to-guest-review`, `report-review`, `review-automation-settings`, `draft-review-with-ai` |
-| Super-admin  | `moderate-review-report`, `list-super-admin-approvals` (reported)                                                         |
+| Concern      | Path                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Page         | `ui/src/features/reviews/pages/PropertyReviewsPage.tsx` → shared `ReviewsListPage.tsx` (`scope="property"`)                    |
+| Loading      | `PropertyReviewsRouteSkeleton` → `ReviewsPageSkeleton` (`AdminSkeletons.tsx`) — summary cards, tab row, responsive review list |
+| KPI cards    | `ui/src/features/reviews/components/ReviewsSummaryCards.tsx`                                                                   |
+| Breakdown    | `ui/src/features/reviews/components/ReviewsRatingSheet.tsx`                                                                    |
+| Toolbar      | `ReviewsToolbar.tsx`, `ReviewsFilters.tsx`, `ReviewsViewToggle.tsx`                                                            |
+| Table / card | `ReviewsTable.tsx`, `ReviewsCardGrid.tsx`, shared `ReviewCardContent.tsx`                                                      |
+| Detail sheet | `ui/src/features/reviews/components/ReviewDetailSheet.tsx`                                                                     |
+| List state   | `ui/src/features/reviews/lib/propertyReviewsApi.ts` (URL ⇄ query ⇄ API params)                                                 |
+| Auto-review  | `ReviewAutomationSheet.tsx` (page header)                                                                                      |
+| Sheets       | `ui/src/features/reviews/components/`                                                                                          |
+| Hooks        | `ui/src/features/reviews/hooks/usePropertyReviews.ts`                                                                          |
+| List service | `supabase/functions/_shared/propertyReviewList.ts`, `reviewListParams.ts` (query vocabulary shared with the org rollup)        |
+| Edge         | `list-property-reviews`, `respond-to-guest-review`, `report-review`, `review-automation-settings`, `draft-review-with-ai`      |
+| Super-admin  | `moderate-review-report`, `list-super-admin-approvals` (reported)                                                              |
 
 ---
 

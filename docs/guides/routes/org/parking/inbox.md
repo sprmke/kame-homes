@@ -65,14 +65,15 @@ Parking **Guest Inbox** is for website chat with parking guests; Facebook and In
 
 ## Implementation map
 
-| Area                    | Path                                                                   |
-| ----------------------- | ---------------------------------------------------------------------- |
-| Page                    | `ui/src/features/dashboard/inbox/pages/ParkingInboxPage.tsx`           |
-| Shell                   | `ui/src/features/dashboard/inbox/pages/InboxPage.tsx`                  |
-| Manage menu/modals      | `ui/src/features/dashboard/inbox/components/InboxManageModals.tsx`     |
-| Scope                   | `supabase/functions/_shared/metaInboxScope.ts`, `inboxAccess.ts`       |
-| Default quick replies   | `supabase/functions/_shared/inboxDefaultQuickReplies.ts`               |
-| Templates/settings CRUD | `supabase/functions/social-inbox-templates/`, `social-inbox-settings/` |
+| Area                    | Path                                                                     |
+| ----------------------- | ------------------------------------------------------------------------ |
+| Page                    | `ui/src/features/dashboard/inbox/pages/ParkingInboxPage.tsx`             |
+| Loading                 | `ParkingInboxRouteSkeleton` → `InboxPageSkeleton` (`AdminSkeletons.tsx`) |
+| Shell                   | `ui/src/features/dashboard/inbox/pages/InboxPage.tsx`                    |
+| Manage menu/modals      | `ui/src/features/dashboard/inbox/components/InboxManageModals.tsx`       |
+| Scope                   | `supabase/functions/_shared/metaInboxScope.ts`, `inboxAccess.ts`         |
+| Default quick replies   | `supabase/functions/_shared/inboxDefaultQuickReplies.ts`                 |
+| Templates/settings CRUD | `supabase/functions/social-inbox-templates/`, `social-inbox-settings/`   |
 
 ---
 

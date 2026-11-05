@@ -16,6 +16,7 @@ import {
 } from '@/features/dashboard/super-admin/hooks/usePlatformSettings';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { SuperAdminSettingsBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -104,7 +105,12 @@ export function SuperAdminPlatformSettingsPage() {
       title="Platform settings"
       subtitle="Operational knobs for the whole platform. Changes take effect on the next request that reads them."
       isLoading={isLoading && !data}
-      loadingMetricCount={2}
+      loadingBody={
+        <SuperAdminSettingsBodySkeleton
+          cards={2}
+          titles={['Access', 'Authenticated rate limiting']}
+        />
+      }
       error={error}
       errorMessage="Could not load platform settings."
     >

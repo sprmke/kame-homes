@@ -166,7 +166,9 @@ export function SuperAdminOrgSubscriptionsPage() {
         }
       />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Organizations', 'Assigned', 'Unassigned', 'Properties']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load org subscriptions.</p>
       ) : (

@@ -295,6 +295,7 @@ export function PropertyAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
+      subtitle="Track revenue, occupancy, and guest trends for this property."
       heroTrailing={heroActions}
       overlap={overlapControls}
       desktopActions={desktopActions}

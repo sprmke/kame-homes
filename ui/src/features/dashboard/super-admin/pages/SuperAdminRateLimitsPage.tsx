@@ -13,6 +13,7 @@ import {
 } from '@/features/dashboard/super-admin/hooks/useSuperAdminRateLimits';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { SuperAdminCardListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +63,7 @@ export function SuperAdminRateLimitsPage() {
       title="Rate limits"
       subtitle="Who is close to or over the authenticated-wrapper limit right now, and the manual block list. Enforcement itself is a switch on Platform settings."
       isLoading={isLoading && !data}
+      loadingBody={<SuperAdminCardListBodySkeleton />}
       error={error}
       errorMessage="Could not load rate-limit activity."
     >

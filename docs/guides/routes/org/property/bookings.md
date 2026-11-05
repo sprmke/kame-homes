@@ -2,7 +2,7 @@
 title: 'Bookings List — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-11-02
+updated: 2026-11-05
 ---
 
 # Bookings List — operator guide
@@ -32,7 +32,7 @@ Paginated booking list with PMA-style **stage summary cards** and four view mode
 Layout (top → bottom):
 
 1. **Mobile (`max-lg`):** brand hero with tenant switcher + **Import** icon + **New booking** icon (property scope); overlapping floating toolbar with **date range** only (same as Finance / Maintenance); layout frosted header hidden on this route.
-2. **Desktop (`lg+`):** page header — **date range** (top right) + **Import** (outline) + **New booking** → opens `AdminNewBookingModal` (in-dashboard modal; see below)
+2. **Desktop (`lg+`):** page header — **date range** (top right) + **Import** (outline) + **New booking** → opens `AdminNewBookingModal` (in-dashboard modal; see below). On the first list load, before a range is in the URL, the date button keeps its icon and chevron and shows a skeleton in place of the **Date** label. The route skeleton mounts this same header (title, subtitle, and action placeholders) before the page chunk loads, so the summary cards do not drop when the header appears.
 3. **Summary cards** — Action Required, Pending Docs, Confirmed Stays, History (Finance-style `surface-card`; count + inline status hints; click toggles `?stage=` filter)
 4. **Toolbar** (`BookingFilters` in page body — always visible, matches Finance / Maintenance):
    - **Mobile (`max-lg`):** search + refine icon (opens sheet for status / more filters / sort / per-page) + view toggle (**Kanban** hidden below `md` / phone width)

@@ -504,7 +504,9 @@ export function OrgSettingsPage() {
           <OrgSettingsBrandColorPreview brandColor={profileDraft.brandColor} />
         ) : null}
         {isLoading ? (
-          <AppSettingsNavLayoutSkeleton />
+          <AppSettingsNavLayoutSkeleton
+            navLabels={SETTINGS_SECTIONS.map((section) => section.label)}
+          />
         ) : !org || !profileDraft || !operatorDraft || !operatorData ? (
           <p className="text-muted-foreground text-sm">Organization not found.</p>
         ) : (

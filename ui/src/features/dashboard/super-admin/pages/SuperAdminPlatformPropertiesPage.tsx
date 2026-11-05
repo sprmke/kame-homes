@@ -131,7 +131,9 @@ export function SuperAdminPlatformPropertiesPage() {
     <div className="space-y-3 sm:space-y-4">
       <AdminPageHeader title="Properties" subtitle="All properties across the platform." />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total properties', 'Active', 'Linked developments', 'Organizations']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load properties.</p>
       ) : (
