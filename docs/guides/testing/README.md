@@ -106,6 +106,7 @@ Manual-only (existing):
 | [`image-upload-optimization-manual.md`](./image-upload-optimization-manual.md) | Media OCR/perf         |
 | [`property-showcase-manual.md`](./property-showcase-manual.md)                 | Showcase templates     |
 | [`voice-receptionist-manual.md`](./voice-receptionist-manual.md)               | Gemini Live voice      |
+| [`cancellation-policy-manual.md`](./cancellation-policy-manual.md)             | Cancellation + refunds |
 
 ## Coverage inventory
 

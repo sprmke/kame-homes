@@ -705,7 +705,7 @@ Showcase is a shareable one-page landing link with animated templates. It is sep
 - source: docs/guides/routes/org/property/public-pages.md
 - order: 30
 
-Those URLs need a booking ID. Guests receive the full link by email, and hosts copy it from that booking in the workflow panel.
+Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays from check-out onward are listed.
 
 ### Is there a Save button in the page editor?
 
@@ -723,7 +723,16 @@ On Pro and above, changes save automatically and the header shows Unsaved, Savin
 - source: docs/guides/routes/org/property/public-pages.md
 - order: 50
 
-Stay guide, security-deposit refund, guest review, and find-parking links are per booking. The calendar, booking form, and listing links can be shared with any guest.
+Stay guide, security-deposit refund, and guest review links are per booking. Calendar, booking form, listing, and find-parking links can be shared with any guest. Messages links also need stay dates, which you pick when you copy the link.
+
+### Can I share a calendar link with dates already selected?
+
+- category: Public Pages
+- audience: host
+- source: docs/guides/routes/org/property/public-pages.md
+- order: 60
+
+Yes. On the Calendar card choose Copy link, select the check-in and check-out dates, then Copy link. The guest opens the calendar with that range selected. You can also copy the calendar without dates.
 
 ### How do I block dates for a property?
 
@@ -1003,3 +1012,53 @@ No. Each email is one host account, and signing in opens the existing workspace.
 - order: 60
 
 The public page shows published answers for guests and hosts. Signed-in hosts get the full Help and Support area, with guides, search, and tickets for their listings.
+
+---
+
+### How does a guest cancel a booking?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/trip.md
+
+Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. With an instant policy they cancel right away. With "Ask me first", custom or unset policies, they send a request you approve or decline from the booking. If the guest paid nothing yet, the refund is zero and nothing is owed.
+
+### Can I change my cancellation policy without changing existing bookings?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+
+Yes. The policy is copied onto each booking when the guest books, so a change only applies to new bookings. Property Settings shows how many upcoming bookings keep their current policy before you save. Guests on an existing booking keep the terms they agreed to.
+
+### How do I send a refund after a cancellation?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+
+Open the cancelled booking. The Cancellation card shows the refund amount and whether the guest has added payout details. Send the money yourself, then add the receipt link and tap Mark refund sent. The guest gets a confirmation email and the refund is marked done.
+
+### Why does the guest see a different cancellation policy than my listing?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/trip.md
+
+The trip page shows the policy the guest booked with, not your current listing policy. That is intentional: changing your policy should not rewrite an existing guest's terms. The booking detail shows "Policy changed" when the property policy has moved on.
+
+### What happens if a guest cancels after check-in?
+
+- category: Bookings
+- audience: guest
+- source: docs/guides/routes/trip.md
+
+Guests cannot self-cancel after check-in. The host handles early departures and any goodwill refund from the booking. Host-initiated cancellations still work at any live stage and always refund what the guest paid before check-in.
+
+### Can I cancel an Airbnb booking from Kame Space?
+
+- category: Bookings
+- audience: guest
+- source: docs/guides/routes/trip.md
+
+No. Calendar-synced Airbnb and other channel bookings are handled on the channel where they were made. The trip page says so and does not offer a cancel button.

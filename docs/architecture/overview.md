@@ -276,6 +276,8 @@ flowchart LR
 
 Canonical spec: `.cursor/rules/booking-workflow.mdc`. Host walkthrough: [`booking-flow-guide-for-admin.md`](../archive/reference/booking-flow-guide-for-admin.md).
 
+**Cancellation.** Every booking carries an immutable `cancellation_policy_snapshot` captured at booking time. Guests cancel (instant policies) or request to cancel (request-mode / custom / unset policies) from `/properties/:slug/trip`; hosts approve or decline, and can cancel with a reason and a refund preview. The refund is computed from the snapshot in Asia/Manila time, capped at cash actually paid, and tracked in `booking_refunds` until the host marks it sent. Guest and host cancellation emails are orchestrator side effects. Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
+
 ---
 
 ## 9. Integrations and jobs

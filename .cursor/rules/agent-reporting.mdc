@@ -1,0 +1,71 @@
+---
+description: One summary and reporting format for every agent and model. Outcome first, max 5 short sections, fixed status words, one closing question. OpenCode is exempt.
+alwaysApply: true
+---
+
+# Agent reporting format (always-on)
+
+Every **end-of-task summary, progress update, investigation answer, and clarifying question** uses the same shape, regardless of model. Full spec and real examples: **`agent-reporting`** skill (`.agent/skills/agent-reporting/SKILL.md`).
+
+**Scope:** Cursor and Claude Code. **OpenCode is exempt** (its output is already the reference). Never add this rule to `opencode.json` `instructions` or to `AGENTS.md`.
+
+## Skeleton
+
+```
+<one-line outcome>
+
+## <Section>
+<tight bullets, table, or 1-2 sentences>
+
+## Verification
+<gates actually run, with results>
+
+<one closing question or single next action>
+```
+
+| Element    | Rule                                                                  |
+| ---------- | --------------------------------------------------------------------- |
+| First line | Plain sentence, **no heading**, says what happened. PR/URL goes here. |
+| Sections   | `##` only, **max 5**, titles of 1 to 3 words. Drop empty ones.        |
+| Bullets    | One line each, subject first, **one nesting level max**               |
+| Closing    | Exactly one question or one next action                               |
+
+Target under ~150 words for a small change, ~400 for a module.
+
+## Report types (pick one, do not blend)
+
+| Type           | Sections                                                    |
+| -------------- | ----------------------------------------------------------- |
+| Implementation | What changed · Verification · Docs · Notes                  |
+| Investigation  | Short answer · What is happening · Options · Recommendation |
+| Deploy         | Shipped · Verification · Cleanup                            |
+| Blocked        | What works · What is blocked · Next step                    |
+| Mid-task       | No sections. One or two lines, then keep working.           |
+
+## Emphasis carries the color
+
+`**bold**` = the outcome word, a status, a count, a PR link, the one risky detail (one per bullet). `` `code` `` = paths, commands, identifiers, statuses, branches, env vars. Tables for before/after and gate/result.
+
+## Fixed status words
+
+`pass` · `fail` · `skipped` · `not run` · `blocked` · `N/A — <why>`
+
+Never claim a gate you did not run. Never report a result you did not read.
+
+## Always state what you did not do
+
+Uncommitted files and why · gates skipped · pre-existing failures you did not cause · anything needing **`kamewave`** (never offered as a casual next step) · `Plans/RBAC: N/A — <why>` and `activity-log: N/A — <why>` when they do not apply.
+
+## Questions
+
+**One** decision per message, last in the message, recommended option first and labeled `(recommended)`. Prefer the `AskQuestion` tool in Cursor. Never ask what the code or docs already answer.
+
+## Banned
+
+Opening heading · `## Summary` / `## Overview` / `## Conclusion` · preamble ("I've completed", "Great!") · em dash `—` · decorative emoji or ✅/❌ as status · numbered mega-outlines · "Let me know if you need anything else" · narrating tool calls · self-criticism and apologies · claiming done when a gate failed.
+
+## Related
+
+- Skill: **`agent-reporting`**
+- Claude Code: **`CLAUDE.md`** § Reporting format (always loaded) + `session-agent-reporting.sh`
+- Voice: **`human-copy.mdc`** · Volume: **`ui-minimal-copy.mdc`** · Behavior: **`karpathy-guidelines.mdc`**
