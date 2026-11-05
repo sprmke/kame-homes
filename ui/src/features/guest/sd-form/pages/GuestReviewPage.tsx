@@ -98,7 +98,7 @@ export function GuestReviewPage() {
 
   if (!bookingId) {
     return (
-      <div className="guest-inner-enter mx-auto max-w-lg px-4 py-16 text-center">
+      <div className="guest-inner-enter mx-auto max-w-lg px-4 py-12 text-center">
         <p className="text-muted-foreground text-sm">Missing booking link.</p>
       </div>
     );
@@ -110,7 +110,7 @@ export function GuestReviewPage() {
 
   if (query.isError || !query.data) {
     return (
-      <div className="guest-inner-enter mx-auto max-w-lg space-y-4 px-4 py-16 text-center">
+      <div className="guest-inner-enter mx-auto max-w-lg space-y-4 px-4 py-12 text-center">
         <p className="text-foreground text-base font-semibold">Review unavailable</p>
         <p className="text-muted-foreground text-sm leading-relaxed">
           {query.error instanceof Error ? query.error.message : 'This link is not valid.'}

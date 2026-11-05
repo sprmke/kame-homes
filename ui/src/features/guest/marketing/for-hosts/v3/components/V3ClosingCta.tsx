@@ -45,7 +45,7 @@ export function V3ClosingCta() {
           className="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-950/60 to-zinc-950/20"
         />
 
-        <Reveal className="relative px-6 py-16 sm:px-12 sm:py-20 lg:px-16 lg:py-28">
+        <Reveal className="relative px-4 py-10 sm:px-12 sm:py-20 lg:px-16 lg:py-28">
           <h2 className="max-w-xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl">
             {v3Closing.title}
           </h2>

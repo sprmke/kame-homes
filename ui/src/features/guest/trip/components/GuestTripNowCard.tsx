@@ -142,7 +142,7 @@ export function GuestTripNowCard({
       <GuestTripStatusPill label={headline.kicker} tone={headline.tone} />
       <h2
         id="trip-now-title"
-        className="mt-3 text-balance text-2xl font-bold leading-tight tracking-tight"
+        className="mt-2.5 text-balance text-xl font-bold leading-tight tracking-tight md:mt-3 md:text-2xl"
       >
         {headline.title}
       </h2>

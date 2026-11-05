@@ -25,10 +25,10 @@ import {
 import type { ListingSearchPreferType } from '@/features/guest/marketing/shared/lib/listingSearchPreferType';
 
 const MORPH_DISTANCE = 168;
-const HEADER_HEIGHT_MOBILE = 64;
-const HEADER_HEIGHT_DESKTOP = 80;
+/** Fallback when `--public-nav-h` (index.css) can't be read. */
+const HEADER_HEIGHT_FALLBACK = 56;
 /** Space reserved for logo icon when the wordmark collapses on mobile scroll morph. */
-const MOBILE_MORPH_LOGO_SLOT = 76;
+const MOBILE_MORPH_LOGO_SLOT = 68;
 const MOBILE_MORPH_MENU_SLOT = 72;
 const TABLET_MORPH_LOGO_SLOT = 84;
 const TABLET_MORPH_MENU_SLOT = 80;
@@ -43,6 +43,14 @@ const SEARCH_FLOATER_Z_CLASS = 'z-[55]';
 /** Hero placeholder — compact mobile; taller labeled bar on desktop hero. */
 export const LISTING_SEARCH_PLACEHOLDER_HEIGHT_MOBILE = 56;
 export const LISTING_SEARCH_PLACEHOLDER_HEIGHT_DESKTOP = 92;
+
+/** Current fixed-nav height in px (56 phone, 64 tablet, 80 desktop) from `--public-nav-h`. */
+function readPublicNavHeight(): number {
+  const root = document.documentElement;
+  const rem = parseFloat(getComputedStyle(root).getPropertyValue('--public-nav-h'));
+  const rootPx = parseFloat(getComputedStyle(root).fontSize) || 16;
+  return Number.isFinite(rem) && rem > 0 ? rem * rootPx : HEADER_HEIGHT_FALLBACK;
+}
 const NAV_EXIT_DISTANCE = 32;
 
 type MorphBounds = {
@@ -99,15 +107,21 @@ function useMorphBounds(
     }
 
     let raf = 0;
+    // Lazy route pages mount the hero anchor after this effect runs; keep polling a few frames
+    // so the bar shows on first paint instead of waiting for the first scroll.
+    let anchorWaitFrames = 120;
 
     const update = () => {
       const hero = heroAnchorRef.current;
       const header = headerAnchorRef.current;
-      if (!hero) return;
+      if (!hero) {
+        if (anchorWaitFrames-- > 0) raf = requestAnimationFrame(update);
+        return;
+      }
 
       const heroRect = hero.getBoundingClientRect();
       const isLg = window.matchMedia('(min-width: 1024px)').matches;
-      const headerHeight = isLg ? HEADER_HEIGHT_DESKTOP : HEADER_HEIGHT_MOBILE;
+      const headerHeight = readPublicNavHeight();
       const rawProgress = clamp01((headerHeight - heroRect.top) / MORPH_DISTANCE);
       const progress = rawProgress;
       const navProgress = smoothstep(0, 0.34, progress);

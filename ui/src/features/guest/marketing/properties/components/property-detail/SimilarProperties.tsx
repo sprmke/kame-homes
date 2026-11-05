@@ -49,7 +49,9 @@ export function SimilarProperties({ properties, currentPropertyId }: SimilarProp
       className="space-y-6"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-foreground text-xl font-semibold">Similar properties you may like</h2>
+        <h2 className="text-foreground @xl:text-xl text-lg font-semibold">
+          Similar properties you may like
+        </h2>
 
         {/* Navigation Buttons */}
         <div className="hidden gap-2 sm:flex">

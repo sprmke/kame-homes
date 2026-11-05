@@ -17,11 +17,13 @@ export function MarketingPublicFaqList({ title, items, className }: MarketingPub
   return (
     <section className={className}>
       <MarketingPublicSectionHeading title={title} />
-      <dl className="mt-8 space-y-8">
+      <dl className="mt-5 space-y-5 md:mt-8 md:space-y-7">
         {items.map(({ question, answer }) => (
           <div key={question}>
-            <dt className="text-foreground text-lg font-semibold">{question}</dt>
-            <dd className="text-muted-foreground mt-2 leading-relaxed">{answer}</dd>
+            <dt className="public-card-title text-foreground font-semibold">{question}</dt>
+            <dd className="text-muted-foreground mt-1.5 text-sm leading-relaxed md:mt-2 md:text-base">
+              {answer}
+            </dd>
           </div>
         ))}
       </dl>

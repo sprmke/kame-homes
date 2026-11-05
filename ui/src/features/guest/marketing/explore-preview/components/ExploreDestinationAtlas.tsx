@@ -54,7 +54,7 @@ export function ExploreDestinationAtlas() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-muted/40 py-16 lg:py-24">
+    <section className="bg-muted/40 public-section-y">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           variants={reduce ? undefined : rise}
@@ -63,7 +63,7 @@ export function ExploreDestinationAtlas() {
           viewport={inViewOnce}
           className="max-w-xl"
         >
-          <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+          <h2 className="text-foreground public-section-title font-bold">
             Where to next
           </h2>
           <p className="text-muted-foreground mt-3">

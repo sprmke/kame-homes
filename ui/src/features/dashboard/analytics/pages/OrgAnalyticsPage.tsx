@@ -148,7 +148,7 @@ export function OrgAnalyticsPage() {
       {isLoading && !data ? (
         <OrgAnalyticsSkeleton view={skeletonView} />
       ) : isError && !data ? (
-        <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-16 text-center">
+        <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-8 sm:py-12 text-center">
           <p className="text-foreground text-sm font-semibold">Could not load analytics</p>
           <p className="text-caption max-w-sm">Please try again.</p>
           <button

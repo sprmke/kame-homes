@@ -188,7 +188,7 @@ export function GuestProfileForm({
   );
 
   const pageGridClassName =
-    'grid grid-cols-1 gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:p-10';
+    'grid grid-cols-1 gap-6 p-4 md:gap-8 md:p-8 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:p-10';
   const modalBodyClassName = 'space-y-6';
 
   const avatarButton = (

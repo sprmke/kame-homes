@@ -15,7 +15,7 @@ export function V3TourSection() {
   const radius = useTransform(scrollYProgress, [0, 1], [40, 24]);
 
   return (
-    <section id="tour" className="bg-muted/40 scroll-mt-20 py-20 sm:py-24 lg:py-32">
+    <section id="tour" className="bg-muted/40 scroll-mt-20 py-10 sm:py-20 lg:py-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">

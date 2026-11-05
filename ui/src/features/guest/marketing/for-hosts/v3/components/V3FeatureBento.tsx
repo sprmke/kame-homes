@@ -168,7 +168,7 @@ function MoneyChart() {
 
 export function V3FeatureBento() {
   return (
-    <section id="features" className="scroll-mt-20 py-20 sm:py-24 lg:py-32">
+    <section id="features" className="scroll-mt-20 py-10 sm:py-20 lg:py-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal>
           <h2 className="text-foreground max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">

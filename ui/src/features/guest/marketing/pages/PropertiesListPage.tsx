@@ -9,6 +9,7 @@ import {
   PropertiesHero,
   PropertiesFilters,
   PropertiesToolbar,
+  ViewModeToggle,
   PropertiesByLocation,
   PropertyListItem,
   PropertiesMap,
@@ -207,15 +208,20 @@ export function PropertiesListPage() {
     <div className="bg-background min-h-screen">
       <PropertiesHero />
 
-      <div className="border-border bg-background/95 sticky top-16 z-30 border-b p-4 backdrop-blur-sm lg:hidden">
+      <div className="border-border bg-background/95 sticky top-[var(--public-nav-h)] z-30 flex items-center gap-2 border-b px-4 py-1.5 backdrop-blur-sm lg:hidden">
         <Button
           variant="outline"
           onClick={() => setMobileFiltersOpen(true)}
-          className="min-h-[44px] w-full gap-2"
+          className="h-9 min-h-0 gap-1.5 px-3 text-[13px]"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
           Filters & Sort
         </Button>
+        <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
+          <span className="text-foreground font-semibold tabular-nums">{totalResults}</span>{' '}
+          {totalResults === 1 ? 'property' : 'properties'}
+        </span>
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
       <div className="flex min-w-0">
@@ -270,7 +276,7 @@ export function PropertiesListPage() {
               retrying={isFetching}
             />
           ) : isLoading && !data ? (
-            <div className="min-w-0 p-4 sm:p-6">
+            <div className="min-w-0 px-4 py-3 sm:p-6">
               {viewMode === 'map' ? (
                 <ListingMapSkeleton />
               ) : viewMode === 'list' ? (
@@ -302,7 +308,7 @@ export function PropertiesListPage() {
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={reduceMotion ? undefined : { opacity: 0 }}
-                  className="min-w-0 p-4 sm:p-6"
+                  className="min-w-0 px-4 py-3 sm:p-6"
                 >
                   <PropertiesMap
                     properties={properties}
@@ -319,7 +325,7 @@ export function PropertiesListPage() {
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: isFetching ? 0.7 : 1 }}
                   exit={reduceMotion ? undefined : { opacity: 0 }}
-                  className="min-w-0 p-4 sm:p-6"
+                  className="min-w-0 px-4 py-3 sm:p-6"
                 >
                   {viewMode === 'grid' ? (
                     groupedBrowse && placeGroups.isLoading ? (

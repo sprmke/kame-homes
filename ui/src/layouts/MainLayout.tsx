@@ -80,7 +80,7 @@ export function MainLayout({
     >
       {/* Brand-color header band + minimal operational chrome */}
       <div
-        className="relative h-[180px] w-full overflow-hidden md:h-[260px]"
+        className="relative h-[132px] w-full overflow-hidden sm:h-[180px] md:h-[260px]"
         style={{ background: 'var(--brand-gradient)' }}
       >
         <div
@@ -100,7 +100,7 @@ export function MainLayout({
       </div>
 
       {/* Content card */}
-      <div className="relative -mt-16 px-0 pb-6 sm:px-6 sm:pb-8 lg:px-8">
+      <div className="relative -mt-12 px-0 pb-6 sm:-mt-16 sm:px-6 sm:pb-8 lg:px-8">
         <div className={cn('mx-auto w-full min-w-0', contentMaxWidth)}>
           <div
             key={animateOnNavigate ? `${location.pathname}${location.search}` : undefined}

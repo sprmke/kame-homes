@@ -50,7 +50,7 @@ export function GuestReviewFeedbackPills({
               disabled={disabled || atCap}
               onClick={() => toggleTag(tag.id)}
               className={cn(
-                'min-h-[44px] rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                'public-chip rounded-full border font-medium transition-colors',
                 'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 'disabled:cursor-not-allowed disabled:opacity-45',
                 selected

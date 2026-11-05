@@ -26,13 +26,13 @@ export function HostPublicHero({ host, className }: Props) {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8 lg:gap-10">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-8 lg:gap-10">
           <div className="relative shrink-0">
             <div
               className="absolute rounded-full bg-gradient-to-br from-[hsl(var(--gradient-primary-from)/0.35)] to-[hsl(var(--gradient-primary-to)/0.15)]"
               aria-hidden
             />
-            <div className="bg-muted relative h-28 w-28 overflow-hidden rounded-full shadow-md sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+            <div className="bg-muted relative h-20 w-20 overflow-hidden rounded-full shadow-md sm:h-32 sm:w-32 lg:h-36 lg:w-36">
               {logo ? (
                 <Image
                   src={logo}
@@ -49,8 +49,8 @@ export function HostPublicHero({ host, className }: Props) {
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-4 text-center sm:space-y-5 sm:pt-1 sm:text-left">
-            <div className="space-y-2.5">
+          <div className="min-w-0 flex-1 space-y-3 text-center sm:space-y-5 sm:pt-1 sm:text-left">
+            <div className="space-y-2 sm:space-y-2.5">
               <div className="flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-3">
                 <h1 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl lg:text-[2rem] lg:leading-tight">
                   {host.name}
@@ -99,7 +99,7 @@ export function HostPublicHero({ host, className }: Props) {
             </div>
 
             {host.description ? (
-              <p className="text-muted-foreground text-sm leading-relaxed sm:mx-0 sm:text-[15px] sm:leading-relaxed">
+              <p className="text-muted-foreground text-[13px] leading-snug sm:mx-0 sm:text-sm sm:text-[15px] sm:leading-relaxed">
                 {host.description}
               </p>
             ) : null}

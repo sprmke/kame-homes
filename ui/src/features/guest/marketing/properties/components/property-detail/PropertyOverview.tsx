@@ -120,7 +120,7 @@ export function PropertyOverview({
     : null;
 
   return (
-    <div className="@container min-w-0 space-y-6">
+    <div className="@container @xl:space-y-6 min-w-0 space-y-4">
       {/* Header */}
       <div className="min-w-0">
         <motion.div
@@ -128,12 +128,12 @@ export function PropertyOverview({
           animate={{ opacity: 1, y: 0 }}
           className="mb-2 flex flex-wrap items-center gap-2"
         >
-          <span className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium">
+          <span className="bg-primary/10 text-primary @xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
             <Home className="h-3.5 w-3.5" />
             {propertyTypeLabels[type] || type}
           </span>
           {isSuperhost ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+            <span className="@xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
               <Award className="h-3.5 w-3.5" />
               Superhost
             </span>
@@ -158,7 +158,7 @@ export function PropertyOverview({
         >
           {rating != null && reviews != null ? (
             <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm">
-              <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+              <Star className="size-4 fill-amber-400 text-amber-400" />
               <span className="text-foreground font-semibold">{rating}</span>
               <span>·</span>
               <span className="underline">{reviews} reviews</span>
@@ -183,7 +183,7 @@ export function PropertyOverview({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="border-border bg-card @md:gap-4 @md:px-4 @2xl:grid-cols-4 @2xl:px-6 grid grid-cols-2 gap-3 rounded-2xl border px-3 py-3"
+        className="border-border bg-card @md:gap-4 @md:px-4 @2xl:grid-cols-4 @2xl:px-6 grid grid-cols-2 gap-2 rounded-2xl border px-3 py-2.5 @md:py-3"
       >
         {stats.maxGuests ? (
           <ListingStatItem icon={Users} value={stats.maxGuests} label="guests" />
@@ -265,7 +265,7 @@ export function PropertyOverview({
           transition={{ delay: 0.35 }}
           className="space-y-4"
         >
-          <h2 className="text-foreground text-lg font-semibold sm:text-xl">About this place</h2>
+          <h2 className="text-foreground @xl:text-xl text-lg font-semibold">About this place</h2>
           <ListingExpandableText text={description} maxLines={8} />
         </motion.div>
       )}

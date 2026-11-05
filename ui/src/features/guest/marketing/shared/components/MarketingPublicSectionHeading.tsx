@@ -21,8 +21,8 @@ export function MarketingPublicSectionHeading({
     <header className={cn(align === 'center' && 'mx-auto max-w-2xl text-center', className)}>
       <h2
         className={cn(
-          'text-foreground text-xl font-bold tracking-tight sm:text-2xl md:text-3xl',
-          titleClassName
+          'text-foreground font-bold tracking-tight',
+          titleClassName ?? 'public-section-title'
         )}
       >
         {title}
@@ -30,7 +30,7 @@ export function MarketingPublicSectionHeading({
       {description ? (
         <div
           className={cn(
-            'text-muted-foreground mt-3 text-base leading-relaxed',
+            'text-muted-foreground mt-2 text-sm leading-relaxed md:mt-3 md:text-base',
             align === 'center' && 'mx-auto max-w-xl'
           )}
         >

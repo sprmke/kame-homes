@@ -216,7 +216,7 @@ export function PropertyShowcasePageEditor({
   if (previewQuery.isError || !previewQuery.data) {
     return (
       <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
-        <p className="text-muted-foreground px-4 py-16 text-center text-sm">
+        <p className="text-muted-foreground px-4 py-8 sm:py-12 text-center text-sm">
           Could not load this showcase.
         </p>
       </AdminMobilePage>

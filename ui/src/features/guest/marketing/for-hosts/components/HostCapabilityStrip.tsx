@@ -12,7 +12,7 @@ export function HostCapabilityStrip() {
         {capabilities.map((capability, index) => (
           <div
             key={capability.label}
-            className={`py-6 text-center sm:py-7 ${
+            className={`py-4 text-center md:py-7 ${
               index % 2 === 0
                 ? 'border-border border-r lg:border-r'
                 : index !== 3
@@ -20,10 +20,10 @@ export function HostCapabilityStrip() {
                   : ''
             }`}
           >
-            <p className="text-foreground text-2xl font-black tabular-nums tracking-tight sm:text-3xl">
+            <p className="text-foreground text-xl font-black tabular-nums tracking-tight md:text-3xl">
               {capability.value}
             </p>
-            <p className="text-muted-foreground mt-1 text-xs font-medium sm:text-sm">
+            <p className="text-muted-foreground mt-0.5 text-xs font-medium md:mt-1 md:text-sm">
               {capability.label}
             </p>
           </div>

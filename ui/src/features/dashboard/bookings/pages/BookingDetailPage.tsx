@@ -432,7 +432,7 @@ export function BookingDetailPage() {
       <div
         data-page-brand-hero
         data-booking-detail-page
-        className="!mt-0 space-y-4 max-md:px-3.5 max-md:pt-3"
+        className="!mt-0 space-y-4 max-md:px-4 max-md:pt-3"
       >
         {/* Back nav */}
         <Link

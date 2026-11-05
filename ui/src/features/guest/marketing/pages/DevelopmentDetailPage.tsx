@@ -52,7 +52,7 @@ export function DevelopmentDetailPage() {
 
   if (isError) {
     return (
-      <div className="bg-background min-h-screen pt-24">
+      <div className="bg-background public-page-top min-h-screen">
         <ListingLoadError
           noun="this development"
           retrying={developmentResult.isFetching}

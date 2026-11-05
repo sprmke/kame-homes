@@ -27,11 +27,11 @@ export function MarketingLocationCarouselShell({
   children,
 }: MarketingLocationCarouselShellProps) {
   return (
-    <section className="min-w-0 space-y-3 sm:space-y-4">
+    <section className="min-w-0 space-y-1.5 sm:space-y-4">
       <div className="flex items-center justify-between gap-3">
         <Link
           to={viewAllTo}
-          className="text-foreground group/title inline-flex min-h-[44px] items-center gap-1.5 text-lg font-semibold tracking-tight sm:text-xl"
+          className="text-foreground group/title inline-flex min-h-[36px] items-center gap-1 text-base font-semibold tracking-tight sm:min-h-[44px] sm:gap-1.5 sm:text-xl"
         >
           <span>{title}</span>
           <ChevronRight
@@ -71,7 +71,7 @@ export function MarketingLocationCarouselShell({
 
       <div
         ref={scrollRef}
-        className="scrollbar-hide flex min-w-0 gap-4 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="scrollbar-hide flex min-w-0 gap-3 overflow-x-auto sm:gap-4 overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
       >
         {children}

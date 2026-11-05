@@ -147,7 +147,7 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
                   if (error) setError(null);
                 }}
                 disabled={busy}
-                className="h-12 rounded-xl text-base"
+                className="rounded-xl text-base"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleContinueEmail();
                 }}
@@ -171,7 +171,7 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
                   if (error) setError(null);
                 }}
                 disabled={busy}
-                className="h-12 rounded-xl text-center text-base tracking-widest"
+                className="rounded-xl text-center text-base tracking-widest"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleVerifyCode();
                 }}
@@ -190,7 +190,7 @@ export function GuestAuthModal({ open, onOpenChange, oauthRedirectPath }: GuestA
 
           <Button
             type="button"
-            className="h-12 w-full rounded-xl text-base font-semibold"
+            className="h-12 w-full rounded-xl text-[15px] font-semibold sm:h-11 sm:text-sm"
             disabled={busy}
             onClick={() => void (step === 'email' ? handleContinueEmail() : handleVerifyCode())}
           >

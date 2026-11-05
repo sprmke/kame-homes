@@ -343,7 +343,7 @@ export function TeamMembersTab({
           })}
 
           {filteredMembers.length === 0 ? (
-            <div className="py-10 text-center sm:py-12">
+            <div className="py-8 text-center sm:py-12">
               <Users className="text-muted-foreground mx-auto size-11" aria-hidden />
               <h3 className="text-card-title mt-4">No members found</h3>
               {!searchQuery && canInvite ? (

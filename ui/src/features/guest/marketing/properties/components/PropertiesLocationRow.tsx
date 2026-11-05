@@ -35,7 +35,7 @@ export function PropertiesLocationRow({
         <div
           key={property.id}
           data-property-carousel-card
-          className="w-[240px] shrink-0 sm:w-[260px]"
+          className="w-[164px] shrink-0 sm:w-[260px]"
           style={{ scrollSnapAlign: 'start' }}
         >
           <PropertyCard property={property} index={index} variant="carousel" />

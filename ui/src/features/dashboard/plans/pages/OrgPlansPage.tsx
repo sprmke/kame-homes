@@ -246,7 +246,7 @@ export function OrgPlansPage() {
   if (!org || error) {
     return (
       <AdminMobilePage title="Plans & Billing" subtitle={PLANS_PAGE_SUBTITLE}>
-        <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-16 text-center">
+        <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-8 sm:py-12 text-center">
           <p className="text-foreground text-sm font-semibold">Could not load plans</p>
           <p className="text-caption max-w-sm">
             {error instanceof Error ? error.message : 'Please try again.'}
@@ -268,7 +268,7 @@ export function OrgPlansPage() {
       className="min-w-0 max-w-full"
     >
       {!hasPlans ? (
-        <FloatingPanel padding="lg" className="py-16 text-center">
+        <FloatingPanel padding="lg" className="py-8 sm:py-12 text-center">
           <p className="text-foreground text-sm font-semibold">No plans available</p>
           <p className="text-caption mx-auto mt-1 max-w-sm">
             Pricing tiers have not been published yet.

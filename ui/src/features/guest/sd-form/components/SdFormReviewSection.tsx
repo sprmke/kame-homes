@@ -127,7 +127,7 @@ export function SdFormReviewSection({
 
       <Button
         type="button"
-        className="shadow-primary/15 min-h-[48px] w-full shadow-md"
+        className="shadow-primary/15 min-h-[48px] w-full shadow-md sm:min-h-[44px]"
         disabled={starRating < 1 || submitMut.isPending}
         onClick={() => submitMut.mutate()}
       >

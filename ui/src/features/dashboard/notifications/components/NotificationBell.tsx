@@ -124,7 +124,7 @@ export function NotificationBell({
           <ListRowsSkeleton rows={5} />
         </div>
       ) : isError ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 sm:py-12 text-center">
           <p className="text-muted-foreground text-sm">Could not load notifications.</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
             Try again

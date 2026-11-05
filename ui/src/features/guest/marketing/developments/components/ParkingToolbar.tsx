@@ -35,15 +35,15 @@ export function ParkingToolbar({
     : PARKING_SORT_OPTIONS[0]!.value;
 
   return (
-    <div className="border-border bg-background/95 z-20 border-b backdrop-blur-sm lg:sticky lg:top-16">
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
-        <div className="flex items-center gap-4">
+    <div className="border-border bg-background/95 z-20 border-b backdrop-blur-sm lg:sticky lg:top-[var(--public-nav-h)]">
+      <div className="flex items-center justify-between gap-2 px-4 py-2 sm:gap-4 sm:px-6 sm:py-3">
+        <div className="flex shrink-0 items-center gap-4">
           <Button
             variant="outline"
             size="sm"
             onClick={onToggleFilters}
             className={cn(
-              'hidden min-h-[44px] gap-2 lg:flex',
+              'hidden h-9 gap-2 lg:flex',
               filtersOpen && 'border-primary bg-primary/10 text-primary hover:bg-primary/15'
             )}
           >
@@ -51,21 +51,21 @@ export function ParkingToolbar({
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
 
-          <span className="text-muted-foreground text-sm">
+          <span className="text-muted-foreground text-[13px] sm:text-sm">
             <span className="text-foreground font-semibold">{totalResults}</span>{' '}
             {totalResults === 1 ? 'slot' : 'slots'}
           </span>
         </div>
 
         {showSort ? (
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Select
               value={safeSort}
               onValueChange={(value) => onSortChange(value as ParkingSortKey)}
             >
               <SelectTrigger
                 aria-label="Sort parking slots"
-                className="h-11 min-h-[44px] w-auto gap-2 px-3 py-2 text-sm"
+                className="h-10 min-h-0 w-auto min-w-0 max-w-full gap-1.5 px-3 py-0 text-sm max-lg:h-9 max-lg:px-2.5 max-lg:text-[13px] sm:max-w-none [&>span]:truncate"
               >
                 <SelectValue />
               </SelectTrigger>

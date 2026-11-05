@@ -63,7 +63,7 @@ export function ExploreFeaturedStays() {
   const reduce = useReducedMotion();
 
   return (
-    <section className="bg-background py-16 lg:py-24">
+    <section className="bg-background public-section-y">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           variants={reduce ? undefined : rise}
@@ -72,7 +72,7 @@ export function ExploreFeaturedStays() {
           viewport={inViewOnce}
           className="flex items-end justify-between gap-4"
         >
-          <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+          <h2 className="text-foreground public-section-title font-bold">
             Stays guests are booking now
           </h2>
           <Link

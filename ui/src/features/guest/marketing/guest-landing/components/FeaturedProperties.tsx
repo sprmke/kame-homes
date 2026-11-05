@@ -73,39 +73,37 @@ export function FeaturedProperties() {
   };
 
   return (
-    <section ref={ref} className="bg-background py-14 lg:py-20">
+    <section ref={ref} className="bg-background public-section-y">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.45 }}
-          className="mb-6 flex items-end justify-between gap-4"
+          className="mb-4 flex items-end justify-between gap-4 md:mb-6"
         >
-          <h2 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-            Stays guests love
-          </h2>
-          <div className="flex items-center gap-2">
+          <h2 className="public-section-title text-foreground font-bold">Stays guests love</h2>
+          <div className="hidden items-center gap-2 md:flex">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="min-h-[44px] min-w-[44px] rounded-full"
+              className="size-10 rounded-full"
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
               aria-label="Previous stays"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="size-[18px]" />
             </Button>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="min-h-[44px] min-w-[44px] rounded-full"
+              className="size-10 rounded-full"
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
               aria-label="Next stays"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="size-[18px]" />
             </Button>
           </div>
         </motion.div>
@@ -129,7 +127,7 @@ export function FeaturedProperties() {
           <div
             ref={scrollRef}
             onScroll={updateScrollState}
-            className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-5 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden"
+            className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:scroll-px-6 sm:gap-5 sm:px-6 lg:scroll-px-8 lg:px-8 [&::-webkit-scrollbar]:hidden"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {featuredQuery.isLoading
@@ -183,8 +181,8 @@ export function FeaturedProperties() {
           </div>
         </div>
 
-        <div className="mt-8 text-center sm:text-left">
-          <Button variant="outline" className="min-h-[44px] rounded-full px-6" asChild>
+        <div className="mt-5 text-center sm:text-left md:mt-8">
+          <Button variant="outline" className="public-cta rounded-full" asChild>
             <Link to="/properties">Browse all properties</Link>
           </Button>
         </div>

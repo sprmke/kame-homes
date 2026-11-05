@@ -43,7 +43,7 @@ export function DevelopmentAvailableSection({ development }: DevelopmentAvailabl
   if (!listingsReady) {
     return (
       <section className="border-border border-t">
-        <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 py-6 sm:px-6 md:py-10 lg:px-8">
           <ListingLocationRowsSkeleton sectionCount={1} cardsPerSection={4} />
         </div>
       </section>
@@ -52,13 +52,13 @@ export function DevelopmentAvailableSection({ development }: DevelopmentAvailabl
 
   return (
     <section className="border-border border-t">
-      <div className="container mx-auto px-4 py-10 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 py-6 sm:px-6 md:py-10 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5 }}
-          className="min-w-0 space-y-10 sm:space-y-12"
+          className="min-w-0 space-y-7 md:space-y-12"
         >
           {properties.length > 0 && (
             <PropertiesLocationRow

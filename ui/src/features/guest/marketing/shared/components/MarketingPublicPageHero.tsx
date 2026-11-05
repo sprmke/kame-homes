@@ -43,20 +43,19 @@ export function MarketingPublicPageHero({
         )}
         aria-hidden
       />
-      <div className="container relative mx-auto px-4 pb-14 pt-28 sm:px-6 sm:pb-16 sm:pt-32 lg:px-8 lg:pb-20 lg:pt-36">
+      <div className="public-page-top container relative mx-auto px-4 pb-8 sm:px-6 md:pb-12 lg:px-8 lg:pb-16">
         <div
           className={cn(
+            'md:pt-4 lg:pt-8',
             narrow && MARKETING_PUBLIC_NARROW_CLASS,
             centered && !narrow && 'mx-auto max-w-3xl',
             centered && 'text-center'
           )}
         >
-          <span className="text-primary text-xs font-bold uppercase tracking-[0.28em]">
-            {eyebrow}
-          </span>
+          <span className="public-eyebrow text-primary">{eyebrow}</span>
           <h1
             className={cn(
-              'text-foreground mt-4 text-balance text-4xl font-bold tracking-tight sm:text-5xl',
+              'public-display text-foreground mt-3 text-balance font-bold md:mt-4',
               !narrow && !centered && 'max-w-3xl',
               titleClassName
             )}
@@ -66,7 +65,7 @@ export function MarketingPublicPageHero({
           {description ? (
             <div
               className={cn(
-                'text-muted-foreground mt-5 text-base leading-relaxed sm:text-lg',
+                'public-lead text-muted-foreground mt-3 md:mt-4',
                 centered ? 'mx-auto max-w-2xl' : !narrow && 'max-w-2xl',
                 descriptionClassName
               )}
@@ -75,7 +74,12 @@ export function MarketingPublicPageHero({
             </div>
           ) : null}
           {children ? (
-            <div className={cn('mt-8', centered && 'flex flex-col items-center justify-center')}>
+            <div
+              className={cn(
+                'mt-5 md:mt-7',
+                centered && 'flex flex-col items-center justify-center'
+              )}
+            >
               {children}
             </div>
           ) : null}

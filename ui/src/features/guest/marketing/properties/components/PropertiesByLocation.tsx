@@ -39,7 +39,7 @@ export function PropertiesByLocation({
   }
 
   return (
-    <div className="min-w-0 space-y-10 sm:space-y-12">
+    <div className="min-w-0 space-y-4 md:space-y-12">
       {groups.map((group) => (
         <PropertiesLocationRow
           key={group.place}

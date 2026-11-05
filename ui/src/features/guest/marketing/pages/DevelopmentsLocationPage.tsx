@@ -129,11 +129,11 @@ export function DevelopmentsLocationPage() {
     <div className="bg-background min-h-screen">
       <DevelopmentsHero />
 
-      <div className="border-border bg-background/95 sticky top-16 z-30 border-b p-4 backdrop-blur-sm lg:hidden">
+      <div className="border-border bg-background/95 sticky top-[var(--public-nav-h)] z-30 border-b px-4 py-2 backdrop-blur-sm lg:hidden">
         <Button
           variant="outline"
           onClick={() => setMobileFiltersOpen(true)}
-          className="min-h-[44px] w-full gap-2"
+          className="h-10 w-full gap-2"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Filters & Sort

@@ -128,7 +128,7 @@ export function V3Hero() {
       <div className="container mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 xl:gap-20">
           <div className="max-w-2xl">
-            <h1 className="text-foreground text-[clamp(2.4rem,4.4vw,4rem)] font-extrabold leading-[1.04] tracking-[-0.035em]">
+            <h1 className="text-foreground text-[clamp(1.875rem,4.4vw,4rem)] font-extrabold leading-[1.04] tracking-[-0.035em]">
               {v3Hero.headline.map((line, index) => (
                 <span key={line} className="block overflow-hidden pb-[0.08em]">
                   <motion.span

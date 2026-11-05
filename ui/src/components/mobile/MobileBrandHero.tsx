@@ -154,7 +154,7 @@ export function MobileHeroOverlap({
       className={cn(
         /* Must be a sibling above the hero in paint order — not inside a z-0 canvas. */
         'relative z-20 lg:hidden',
-        'max-lg:-mt-5 max-lg:mb-3 max-lg:px-3.5 sm:max-lg:px-4 md:max-lg:px-6',
+        'max-lg:-mt-5 max-lg:mb-3 max-lg:px-4 md:max-lg:px-6',
         className
       )}
     >
@@ -301,7 +301,7 @@ export function AdminMobilePage({
           dense={dense}
           className={cn(
             'min-h-0 flex-1',
-            isMobileLayout && cn('px-3.5 sm:px-4 md:px-6', overlap ? 'pt-1' : 'pt-3'),
+            isMobileLayout && cn('px-4 md:px-6', overlap ? 'pt-1' : 'pt-3'),
             'max-lg:mt-0',
             className
           )}

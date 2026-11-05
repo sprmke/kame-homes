@@ -201,7 +201,7 @@ export function SuperAdminDevelopmentsEmptyState({
   onAdd: () => void;
 }) {
   return (
-    <div className="border-border/50 bg-card flex flex-col items-center justify-center rounded-xl border px-4 py-12 text-center">
+    <div className="border-border/50 bg-card flex flex-col items-center justify-center rounded-xl border px-4 py-8 sm:py-12 text-center">
       <Landmark className="text-muted-foreground mb-3 size-10" aria-hidden />
       <p className="text-foreground font-medium">
         {filtered ? 'No developments match your filters' : 'No developments yet'}

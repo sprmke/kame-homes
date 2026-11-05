@@ -31,7 +31,7 @@ function GuestOperationalAccountControl({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          '[&_button]:border-white/25 [&_button]:bg-white/15 [&_button]:text-white [&_button]:shadow-sm [&_button]:backdrop-blur-sm [&_button]:hover:bg-white/25 [&_button]:hover:text-white',
+          '[&_button]:border-white/25 [&_button]:bg-white/15 [&_button]:text-white [&_button]:shadow-sm [&_button]:backdrop-blur-sm [&_button]:hover:bg-white/25 [&_button]:hover:text-white [&_button_span]:!text-white',
           className
         )}
       >

@@ -49,7 +49,7 @@ export function PayParkingPage() {
     return (
       <MainLayout homeHref="/parkings">
         <div
-          className="mx-auto w-full max-w-md space-y-3 p-6 sm:p-8"
+          className="public-card-pad mx-auto w-full max-w-md space-y-3"
           role="status"
           aria-live="polite"
           aria-label="Loading"
@@ -65,7 +65,7 @@ export function PayParkingPage() {
   if (query.isError || !query.data) {
     return (
       <MainLayout homeHref="/parkings">
-        <div className="mx-auto flex max-w-md flex-col items-center gap-4 p-8 text-center">
+        <div className="public-card-pad mx-auto flex max-w-md flex-col items-center gap-4 text-center">
           <p className="text-muted-foreground text-sm">
             {query.error instanceof Error
               ? query.error.message
