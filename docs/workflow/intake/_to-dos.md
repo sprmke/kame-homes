@@ -33,7 +33,7 @@ kind: backlog
   → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
 - 📋 Live identity verification to simplify real identity checks
   → **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
-- 🔵 Booking detail: email sent history, quick resend, and view sent email content.
+- 🚧 Booking detail: email sent history, quick resend, and view sent email content.
 - 🔵 Cleanup tasks
   - Cleanup unused settings and email templates related to Parking.
   - Clean up unused env variables.
@@ -51,7 +51,7 @@ kind: backlog
 - 🚧 Improve and refine default amenities and house rules
 - 🚧 Refine and improve cancellation policy options
   → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
-- Fix issue where google map is not rendering properly on both dashboard and public page
+- ✅ Fix issue where google map is not rendering properly on both dashboard and public page
 - ✅ Display warning message if user refresh the page when editing on a page (ex. Settings). Right now, we only display the default browser warning and not our custom popup modal warning
 - ✅ Cleanup usages of "—" on email templates and across the app. If we need to use it, then please ensure that we use the normal "-". But please analyze carefully if it's good UX to use - at all. Then make sure to apply all usages across the entire app that it's still using it. From UI, email templates and other locations that we are using it from our app.
 - Refine templates

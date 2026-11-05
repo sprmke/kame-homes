@@ -42,12 +42,12 @@ type Props = {
 const COPY: Record<BookingLinkKind, { title: string; description: string; toast: string }> = {
   'sd-refund': {
     title: 'Copy SD refund link',
-    description: 'Stays from check-out onward.',
+    description: 'Stays from check-out through SD refund.',
     toast: 'SD refund',
   },
   'guest-review': {
     title: 'Copy guest review link',
-    description: 'Stays from check-out onward.',
+    description: 'Stays from check-out through SD refund.',
     toast: 'Guest review',
   },
 };

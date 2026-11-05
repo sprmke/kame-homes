@@ -705,7 +705,7 @@ Showcase is a shareable one-page landing link with animated templates. It is sep
 - source: docs/guides/routes/org/property/public-pages.md
 - order: 30
 
-Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays from check-out onward are listed.
+Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays ready for check-out or pending SD refund are listed. Completed stays are hidden because the refund is already settled.
 
 ### Is there a Save button in the page editor?
 
