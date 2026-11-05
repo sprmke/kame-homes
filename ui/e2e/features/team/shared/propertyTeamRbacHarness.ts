@@ -575,7 +575,6 @@ function appSettingsPayload() {
   return {
     emailTo: 'host@example.com',
     emailReplyTo: '',
-    parkingOwnerEmails: [] as string[],
     sdRefundCronEmailLeadMinutes: 60,
     sdRefundCronMaxCheckoutAgeDays: 14,
     publicGuestAppOrigin: 'http://127.0.0.1:4173',
@@ -604,7 +603,6 @@ function appSettingsPayload() {
       emailGafRequest: true,
       emailBookingAcknowledgement: true,
       emailPetRequest: true,
-      emailParkingBroadcast: true,
       emailReadyForCheckin: true,
       emailSdRefundCheckout: true,
     },
@@ -612,7 +610,6 @@ function appSettingsPayload() {
     fieldSources: {
       emailTo: fieldDefault,
       emailReplyTo: fieldDefault,
-      parkingOwnerEmails: fieldDefault,
       sdRefundCronEmailLeadMinutes: fieldDefault,
       sdRefundCronMaxCheckoutAgeDays: fieldDefault,
       publicGuestAppOrigin: fieldDefault,

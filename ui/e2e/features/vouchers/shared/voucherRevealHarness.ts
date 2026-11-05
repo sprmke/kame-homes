@@ -144,7 +144,6 @@ function buildAppSettingsPayload(host: VoucherHostState) {
   return {
     emailTo: 'host@example.com',
     emailReplyTo: '',
-    parkingOwnerEmails: [] as string[],
     sdRefundCronEmailLeadMinutes: 60,
     sdRefundCronMaxCheckoutAgeDays: 14,
     publicGuestAppOrigin: 'http://127.0.0.1:4173',
@@ -173,7 +172,6 @@ function buildAppSettingsPayload(host: VoucherHostState) {
       emailGafRequest: true,
       emailBookingAcknowledgement: true,
       emailPetRequest: true,
-      emailParkingBroadcast: true,
       emailReadyForCheckin: true,
       emailSdRefundCheckout: true,
     },
@@ -181,7 +179,6 @@ function buildAppSettingsPayload(host: VoucherHostState) {
     fieldSources: {
       emailTo: fieldDefault,
       emailReplyTo: fieldDefault,
-      parkingOwnerEmails: fieldDefault,
       sdRefundCronEmailLeadMinutes: fieldDefault,
       sdRefundCronMaxCheckoutAgeDays: fieldDefault,
       publicGuestAppOrigin: fieldDefault,

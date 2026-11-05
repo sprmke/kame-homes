@@ -8,15 +8,12 @@ import type { GuestFormData, GuestSubmission } from './types.ts';
 import {
   buildBookingLinkCtaHtml,
   buildBookingAcknowledgementFlowSectionHtml,
-  buildBookingVehicleCopySectionHtml,
   buildDocumentRemindersSectionFromBooking,
   buildDownpaymentReceiptAiSectionFromBooking,
   buildEmailSignatureSectionHtml,
   buildGafUpdateNoticeHtml,
   buildGcashPaymentSectionHtml,
   buildNewBookingDetailTablesFromBooking,
-  buildParkingReplyCalloutSectionHtml,
-  buildParkingUpdateNoticeHtml,
   buildPaymentBreakdownSectionFromBooking,
   buildPetAttachmentsSectionHtml,
   buildPetDetailsSectionFromGuestForm,
@@ -995,111 +992,6 @@ export async function sendReadyForCheckin(booking: GuestSubmission) {
   });
 
   console.log('Ready-for-check-in email sent successfully');
-  return sent;
-}
-
-/**
- * Parking broadcast — BCC to all addresses in PARKING_OWNER_EMAILS env var.
- * When `options.to` is set, sends only to that address (no BCC list).
- * Sent when transitioning PENDING_REVIEW → PENDING_GAF and `need_parking` is true.
- */
-export async function sendParkingBroadcast(
-  booking: GuestSubmission,
-  options?: { to?: string; isUpdate?: boolean }
-) {
-  console.log('Sending parking broadcast email...');
-
-  const propertyId = resolveEmailPropertyId(booking);
-  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
-  const { branding, unitLabel } = await loadBookingEmailDisplayContext(propertyId, booking);
-
-  const singleTo = (options?.to ?? '').trim();
-  const bccEmails = settings.parkingOwnerEmails;
-
-  let toRecipients: string[];
-  let bccRecipients: string[] | undefined;
-
-  if (singleTo) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(singleTo)) {
-      throw new Error('Invalid parking owner email address');
-    }
-    toRecipients = [singleTo];
-    bccRecipients = undefined;
-  } else {
-    if (bccEmails.length === 0) {
-      console.warn(
-        'parking_owner_emails empty in property app_settings - skipping parking broadcast'
-      );
-      return null;
-    }
-    toRecipients = [bccEmails[0]!];
-    bccRecipients = bccEmails.slice(1);
-  }
-  const parkingCheckIn =
-    String(booking.parking_check_in_date ?? '').trim() || booking.check_in_date;
-  const parkingCheckOut =
-    String(booking.parking_check_out_date ?? '').trim() || booking.check_out_date;
-  const displayCheckInDate = formatDateForEmail(parkingCheckIn);
-  const displayCheckOutDate = formatDateForEmail(parkingCheckOut);
-
-  const isUrgent = isUrgentBooking(parkingCheckIn);
-  const urgentPrefix = urgentEmailSubjectPrefix(isUrgent);
-  if (isUrgent) {
-    console.log('🚨 URGENT same-day check-in - parking broadcast');
-  }
-
-  const guestName = String(booking.primary_guest_name ?? '').trim() || 'N/A';
-  const carBrandModel = String(booking.car_brand_model ?? '').trim() || 'N/A';
-  const carColor = String(booking.car_color ?? '').trim() || 'N/A';
-  const carPlate = String(booking.car_plate_number ?? '').trim() || 'N/A';
-  const bookingVehicleCopyHtml = buildBookingVehicleCopySectionHtml({
-    unitLabel,
-    checkInDate: displayCheckInDate,
-    checkOutDate: displayCheckOutDate,
-    guestName,
-    carBrandModel,
-    carColor,
-    carPlate,
-    brandColor: settings.brandColor,
-  });
-
-  const isUpdate = options?.isUpdate === true;
-  const updatePrefix = isUpdate ? 'UPDATED - ' : '';
-
-  const vars = buildBookingPlaceholderVars(
-    booking,
-    settings,
-    {
-      urgent_notice: buildUrgentSameDayCallout(isUrgent),
-      update_notice: isUpdate ? buildParkingUpdateNoticeHtml(unitLabel) : '',
-      booking_vehicle_copy: bookingVehicleCopyHtml,
-      parking_reply_callout_section: buildParkingReplyCalloutSectionHtml(),
-      email_signature_section: buildEmailSignatureSectionHtml(settings.gafUnitOwner, unitLabel),
-    },
-    branding
-  );
-
-  const html = await renderPropertyTemplateSendEmail({
-    propertyId,
-    templateKey: 'email-parking-request',
-    emailTitle: isUpdate
-      ? 'Parking Registration Request (Updated)'
-      : 'Parking Registration Request',
-    placeholderVars: vars,
-    branding,
-  });
-
-  const sent = await sendResendEmail({
-    from: formatResendFromAddress(`${unitLabel} - Parking Request`, branding.fromEmail),
-    to: toRecipients,
-    ...(bccRecipients && bccRecipients.length > 0 ? { bcc: bccRecipients } : {}),
-    reply_to: EMAIL_REPLY_TO,
-    subject: `${urgentPrefix}${updatePrefix}${unitLabel} - Parking Request ${formatEmailDateRange(displayCheckInDate, displayCheckOutDate)}`,
-    html,
-    errorLabel: 'email',
-  });
-
-  console.log('Parking broadcast email sent successfully');
   return sent;
 }
 
