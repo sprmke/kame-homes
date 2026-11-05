@@ -116,7 +116,7 @@ test.describe('@ci AI mode', () => {
     await expect(page).toHaveURL(/canvas=off/);
     await expect(canvas(page)).toHaveCount(0);
     await expect(page.getByTestId('assistant-briefing')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Pending review/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Pending review/ })).toBeVisible();
     await expect(page).toHaveTitle(/Assistant/);
 
     await page.getByRole('button', { name: 'Split View' }).click();
