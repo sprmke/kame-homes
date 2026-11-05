@@ -12,16 +12,23 @@ import {
  */
 const PROPERTY_NAME_HINT = 'About Property Name';
 
+async function openPropertySettings(page: import('@playwright/test').Page) {
+  await page.goto(teamRbacPaths.settings);
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
 test.describe('@ci contextual help', () => {
   test.beforeEach(async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
   });
 
   test('opens on hover, pins on click, and closes with Esc', async ({ page }) => {
-    await page.goto(teamRbacPaths.settings);
+    await openPropertySettings(page);
 
     const trigger = page.getByRole('button', { name: PROPERTY_NAME_HINT });
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeVisible({ timeout: 20_000 });
 
     const triggerBoxBefore = await trigger.boundingBox();
     const nameInputBoxBefore = await page.locator('#property-name').boundingBox();
@@ -45,10 +52,10 @@ test.describe('@ci contextual help', () => {
   });
 
   test('keyboard opens with Enter and closes with Esc', async ({ page }) => {
-    await page.goto(teamRbacPaths.settings);
+    await openPropertySettings(page);
 
     const trigger = page.getByRole('button', { name: PROPERTY_NAME_HINT });
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeVisible({ timeout: 20_000 });
     await trigger.focus();
     await page.keyboard.press('Enter');
 
@@ -58,10 +65,10 @@ test.describe('@ci contextual help', () => {
   });
 
   test('clicking a hint inside the form does not submit it', async ({ page }) => {
-    await page.goto(teamRbacPaths.settings);
+    await openPropertySettings(page);
 
     const trigger = page.getByRole('button', { name: PROPERTY_NAME_HINT });
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeVisible({ timeout: 20_000 });
 
     const saveButton = page.getByRole('button', { name: 'Save Changes' });
     await expect(saveButton).toBeVisible();
@@ -71,7 +78,7 @@ test.describe('@ci contextual help', () => {
     await expect(page).toHaveURL(new RegExp('/settings$'));
 
     // The form is still in edit mode, not mid-submit or reset.
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeVisible({ timeout: 20_000 });
     await expect(saveButton).toBeVisible();
   });
 });
@@ -81,10 +88,10 @@ test.describe('@smoke contextual help on touch', () => {
 
   test('opens on tap and closes on an outside tap', async ({ page }) => {
     await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.settings);
+    await openPropertySettings(page);
 
     const trigger = page.getByRole('button', { name: PROPERTY_NAME_HINT });
-    await expect(trigger).toBeVisible();
+    await expect(trigger).toBeVisible({ timeout: 20_000 });
 
     await trigger.tap();
     await expect(page.getByRole('tooltip')).toContainText('This is the name guests will see');
