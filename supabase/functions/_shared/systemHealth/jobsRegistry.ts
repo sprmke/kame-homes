@@ -154,6 +154,12 @@ export const SCHEDULED_JOBS: ScheduledJobDef[] = [
     secretEnv: 'REVIEW_LIFECYCLE_CRON_SECRET',
     features: ['Two-way reviews'],
   },
+  {
+    fn: 'ops-report-cron',
+    label: 'Weekly operations report',
+    secretEnv: 'OPS_REPORT_CRON_SECRET',
+    features: ['Operations reporting'],
+  },
 ];
 
 export function vaultSecretName(secretEnv: string): string {

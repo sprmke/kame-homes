@@ -71,15 +71,16 @@ Property finance uses `property_id` instead; never send both.
 
 ## Implementation map
 
-| Concern      | Path                                                                                           |
-| ------------ | ---------------------------------------------------------------------------------------------- |
-| Page         | `ui/src/features/dashboard/parking/pages/ParkingFinancePage.tsx`                               |
-| Shared UI    | `ui/src/features/dashboard/finance/components/*`                                               |
-| Hooks        | `useFinanceSummary`, `useFinanceLineItems` (asset scope via `useAdminAssetScope`)              |
-| API client   | `ui/src/features/dashboard/finance/hooks/useFinanceApi.ts`, `assetEdgeFetch`                   |
-| DB           | `finance_line_items.parking_id` — migration `20260919120000_finance_line_items_parking_id.sql` |
-| Server scope | `supabase/functions/_shared/financeAssetScope.ts`                                              |
-| Server CRUD  | `supabase/functions/finance-line-items/index.ts`                                               |
+| Concern      | Path                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| Page         | `ui/src/features/dashboard/parking/pages/ParkingFinancePage.tsx`                                      |
+| Loading      | `FinancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — same KPIs, charts, toolbar, responsive ledger |
+| Shared UI    | `ui/src/features/dashboard/finance/components/*`                                                      |
+| Hooks        | `useFinanceSummary`, `useFinanceLineItems` (asset scope via `useAdminAssetScope`)                     |
+| API client   | `ui/src/features/dashboard/finance/hooks/useFinanceApi.ts`, `assetEdgeFetch`                          |
+| DB           | `finance_line_items.parking_id` — migration `20260919120000_finance_line_items_parking_id.sql`        |
+| Server scope | `supabase/functions/_shared/financeAssetScope.ts`                                                     |
+| Server CRUD  | `supabase/functions/finance-line-items/index.ts`                                                      |
 
 ---
 

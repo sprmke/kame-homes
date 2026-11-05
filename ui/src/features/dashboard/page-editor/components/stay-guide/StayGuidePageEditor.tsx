@@ -63,7 +63,11 @@ function PageChrome({ children }: { children: React.ReactNode }) {
   useAdminLayoutFillMain(true);
 
   return (
-    <AdminMobilePage title="Stay Guide" titleId="stay-guide-editor-heading">
+    <AdminMobilePage
+      title="Stay Guide"
+      subtitle="Write the stay guide guests read before arrival."
+      titleId="stay-guide-editor-heading"
+    >
       {children}
     </AdminMobilePage>
   );

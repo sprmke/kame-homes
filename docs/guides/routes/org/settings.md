@@ -115,7 +115,7 @@ Organization settings control your brand identity and public presence: logo, nam
 
 Guest/operator **contact name, phone, and email** for templates and public surfaces are edited on **Org team** (`/org/:orgSlug/team` → **Contact** on the owner row) and **Property team** (member with `team:manage`). Legacy `organizations.settings.contact*` keys remain as read fallback only — not edited on this page.
 
-**Public host page (`/hosts/:orgSlug`):** Owner name and photo come from the **team owner** — OAuth profile (`auth.users` metadata) plus optional **display name** from **Org team** (`organization_members.display_name`). Tagline and description come from **Basic information** above. **Brand color** (`organizations.settings.brandColor`) tints the guest shell and hero accents. **Socials** below render as outbound icon links when URLs are set in **Socials**.
+**Public host page (`/hosts/:orgSlug`):** Guests see the organization name and logo. The team owner's display name is not shown in the hero. Tagline and description come from **Basic information** above. **Brand color** (`organizations.settings.brandColor`) tints the guest shell and hero accents. **Socials** below render as outbound icon links when URLs are set in **Socials**.
 
 ### Socials
 

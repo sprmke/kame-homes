@@ -121,7 +121,11 @@ export function NotificationsPage() {
 
   return (
     <TelegramNotificationsGlobalBotProvider>
-      <AdminMobilePage title="Notifications" titleId="notifications-heading">
+      <AdminMobilePage
+        title="Notifications"
+        subtitle="Manage in-app notifications and Telegram alerts for this property."
+        titleId="notifications-heading"
+      >
         <AdminSectionNavLayout
           className="min-h-0 flex-1"
           sectionGroups={NOTIFICATION_SECTION_GROUPS}

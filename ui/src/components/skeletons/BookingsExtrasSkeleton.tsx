@@ -1,17 +1,94 @@
 import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/components/AdminMetricCard';
+import {
+  KANBAN_STATUS_CONFIG,
+  STAGE_META,
+  STATUS_LEGEND_GROUPS,
+  type BookingStage,
+} from '@/features/dashboard/bookings/lib/bookingStages';
+import type { BookingStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 
 import { Skeleton } from '@/components/ui/skeleton';
-/** Matches `BookingsSummaryCards` four stage cards. */
-export function BookingsStageSummarySkeleton() {
+
+const CARD_STAGES = [
+  'action_required',
+  'pending_docs',
+  'confirmed',
+  'history',
+] as const satisfies readonly Exclude<BookingStage, 'all'>[];
+
+const STAGE_ICON_STYLES = {
+  action_required: {
+    iconClassName: 'text-red-600 dark:text-red-400',
+    iconBgClassName: 'bg-red-100 dark:bg-red-900/30',
+  },
+  pending_docs: {
+    iconClassName: 'text-amber-600 dark:text-amber-400',
+    iconBgClassName: 'bg-amber-100 dark:bg-amber-900/30',
+  },
+  confirmed: {
+    iconClassName: 'text-emerald-600 dark:text-emerald-400',
+    iconBgClassName: 'bg-emerald-100 dark:bg-emerald-900/30',
+  },
+  history: {
+    iconClassName: 'text-muted-foreground',
+    iconBgClassName: 'bg-muted/60 dark:bg-muted/40',
+  },
+} as const;
+
+function statusesForStage(stage: Exclude<BookingStage, 'all'>): readonly BookingStatus[] {
+  const group = STATUS_LEGEND_GROUPS.find((entry) => entry.stage === stage);
+  if (!group) return [];
+  return group.statuses.filter((status) => status !== 'PENDING_DOCUMENTS');
+}
+
+function StatusFooter({ statuses }: { statuses: readonly BookingStatus[] }) {
+  if (statuses.length === 0) return null;
   return (
-    <div role="status"
+    <div className="flex w-full flex-wrap content-start items-start gap-1 max-lg:hidden">
+      {statuses.map((status) => (
+        <span
+          key={status}
+          className="border-border/60 bg-muted/30 text-muted-foreground inline-flex shrink-0 items-center rounded-md border px-2 py-0.5 text-[11px] font-medium"
+        >
+          {KANBAN_STATUS_CONFIG[status].shortLabel}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Matches `BookingsSummaryCards` four stage cards. */
+export function BookingsStageSummarySkeleton({
+  stageLabels,
+  hideStatusFooter = false,
+}: {
+  stageLabels?: Partial<Record<Exclude<BookingStage, 'all'>, string>>;
+  hideStatusFooter?: boolean;
+} = {}) {
+  return (
+    <div
+      role="status"
       className="grid grid-cols-2 items-start gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4"
       aria-busy="true"
       aria-label="Loading summary"
     >
-      {Array.from({ length: 4 }).map((_, i) => (
-        <AdminMetricCardSkeleton key={i} style={{ opacity: 1 - i * 0.05 }} />
-      ))}
+      {CARD_STAGES.map((stage, index) => {
+        const meta = STAGE_META[stage];
+        const styles = STAGE_ICON_STYLES[stage];
+        return (
+          <AdminMetricCardSkeleton
+            key={stage}
+            title={stageLabels?.[stage] ?? meta.label}
+            icon={meta.icon}
+            iconClassName={styles.iconClassName}
+            iconBgClassName={styles.iconBgClassName}
+            footer={
+              hideStatusFooter ? undefined : <StatusFooter statuses={statusesForStage(stage)} />
+            }
+            style={{ opacity: 1 - index * 0.05 }}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -19,7 +96,8 @@ export function BookingsStageSummarySkeleton() {
 /** Horizontal kanban columns with card stacks (phone scrolls). */
 export function BookingsKanbanSkeleton() {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-busy="true"
       aria-label="Loading board"

@@ -4,7 +4,6 @@ import { Wallet } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
 import {
   SuperAdminSettingsCard,
   SuperAdminSettingsRow,
@@ -21,7 +20,10 @@ import {
 import { AdminDialogShell } from '@/components/AdminDialogShell';
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
+import {
+  SuperAdminAdminListBodySkeleton,
+  SuperAdminSettingsBodySkeleton,
+} from '@/components/skeletons/SuperAdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -228,7 +230,8 @@ function ParkingSettingsCard() {
 
   useUnsavedChangesGuard({ isDirty, onSave: saveSettings });
 
-  if (isLoading && !data) return <SuperAdminPageLoading metricCount={2} />;
+  if (isLoading && !data)
+    return <SuperAdminSettingsBodySkeleton cards={1} titles={['Commission & guest rate']} />;
   if (error) return <p className="text-destructive text-sm">Could not load parking settings.</p>;
 
   return (
@@ -343,7 +346,7 @@ function PayoutStatusBadge({ txn }: { txn: ParkingPayoutTransaction }) {
 function PayoutsLedger() {
   const { data, isLoading, error } = useParkingPayouts();
 
-  if (isLoading && !data) return <SuperAdminAdminListBodySkeleton metricCount={3} />;
+  if (isLoading && !data) return <SuperAdminAdminListBodySkeleton metricCount={0} />;
   if (error) return <p className="text-destructive text-sm">Could not load the payout ledger.</p>;
 
   const transactions = data ?? [];

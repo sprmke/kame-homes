@@ -129,7 +129,9 @@ export function SuperAdminSupportPage() {
         subtitle="Host bug reports, suggestions, and inquiries."
       />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total tickets', 'Open', 'In progress', 'Resolved']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load support tickets.</p>
       ) : (

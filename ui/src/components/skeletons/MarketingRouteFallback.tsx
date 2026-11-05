@@ -1,6 +1,5 @@
 import { useLocation } from 'react-router-dom';
 
-import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
 import {
   GuestProfileFormSkeleton,
   GuestReviewsPageSkeleton,
@@ -9,7 +8,10 @@ import {
 import {
   DevelopmentDetailPageSkeleton,
   GuestAccountGateSkeleton,
+  ParkingDetailPageSkeleton,
   PropertyChatPageSkeleton,
+  PropertyDetailPageSkeleton,
+  PublicLandingPageSkeleton,
 } from '@/components/skeletons/GuestMarketingSkeleton';
 import {
   GuestDevelopmentDetailRouteSkeleton,
@@ -45,8 +47,12 @@ export function MarketingRouteSuspenseFallback() {
     return <GuestMarketingListRouteSkeleton />;
   }
 
-  if (/^\/properties\/[^/]+\/?$/.test(pathname) || /^\/parkings\/[^/]+\/?$/.test(pathname)) {
-    return <DevelopmentDetailPageSkeleton />;
+  if (/^\/properties\/[^/]+\/?$/.test(pathname)) {
+    return <PropertyDetailPageSkeleton />;
+  }
+
+  if (/^\/parkings\/[^/]+\/?$/.test(pathname)) {
+    return <ParkingDetailPageSkeleton />;
   }
 
   if (
@@ -61,14 +67,14 @@ export function MarketingRouteSuspenseFallback() {
   }
 
   if (pathname.startsWith('/for-hosts')) {
-    return <SectionContentSkeleton rows={6} className="mx-auto max-w-6xl px-4 py-8 sm:px-6" />;
+    return <PublicLandingPageSkeleton />;
   }
 
   if (pathname === '/' || pathname.startsWith('/explore-preview')) {
-    return <SectionContentSkeleton rows={8} className="mx-auto max-w-6xl px-4 py-8 sm:px-6" />;
+    return <PublicLandingPageSkeleton />;
   }
 
-  return <SectionContentSkeleton rows={5} className="mx-auto max-w-6xl px-4 py-8 sm:px-6" />;
+  return <PublicLandingPageSkeleton />;
 }
 
 /** Suspense fallback inside guest account shell (sidebar stays mounted). */

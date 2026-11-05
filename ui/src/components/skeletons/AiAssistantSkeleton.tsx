@@ -3,7 +3,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** AI assistant slide-over while the panel chunk loads. */
 export function AiAssistantPanelSkeleton() {
   return (
-    <div role="status"
+    <div
+      role="status"
       className="flex h-full min-h-[20rem] flex-col gap-3 p-4"
       aria-busy="true"
       aria-label="Loading assistant"

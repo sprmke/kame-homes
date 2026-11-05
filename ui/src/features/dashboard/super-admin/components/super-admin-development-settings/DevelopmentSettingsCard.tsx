@@ -242,7 +242,9 @@ export function DevelopmentSettingsCard({ slug }: Props) {
         }
       >
         {isLoading || !draft || !development ? (
-          <AppSettingsNavLayoutSkeleton />
+          <AppSettingsNavLayoutSkeleton
+            navLabels={SETTINGS_SECTIONS.map((section) => section.label)}
+          />
         ) : (
           <DevelopmentProfileSections
             developmentId={development.id}

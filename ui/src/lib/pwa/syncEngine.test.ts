@@ -44,6 +44,25 @@ beforeEach(async () => {
 });
 
 describe('drainOutbox', () => {
+  it('does not enter a syncing state when nothing is queued', async () => {
+    const fetchMock = respondWith(200);
+    vi.stubGlobal('fetch', fetchMock);
+    const { useOfflineSyncStore } =
+      await import('@/features/dashboard/offline/store/offlineSyncStore');
+    useOfflineSyncStore.getState().reset();
+    const seen: boolean[] = [];
+    const unsubscribe = useOfflineSyncStore.subscribe((state) => {
+      seen.push(state.syncing);
+    });
+
+    await drainOutbox();
+    unsubscribe();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(seen).not.toContain(true);
+    expect(useOfflineSyncStore.getState().syncing).toBe(false);
+  });
+
   it('sends queued items with the idempotency key and clears them', async () => {
     const fetchMock = respondWith(200);
     vi.stubGlobal('fetch', fetchMock);

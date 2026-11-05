@@ -79,17 +79,18 @@ when the sidebar is collapsed.
 
 ## Implementation map
 
-| Concern       | Path                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| Page          | `ui/src/features/dashboard/super-admin/pages/SuperAdminOverviewPage.tsx`                   |
-| Components    | `ui/src/features/dashboard/super-admin/components/super-admin-overview/*`                  |
-| Hook          | `ui/src/features/dashboard/super-admin/hooks/useSuperAdminOverview.ts`                     |
-| Edge function | `supabase/functions/super-admin-overview/index.ts`                                         |
-| Shared nav    | `ui/src/features/dashboard/super-admin/lib/superAdminPlatformNav.ts`                       |
-| Sidebar       | `ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts` (`buildSuperAdminNavSections`) |
-| Shell / guard | `SuperAdminShell.tsx` / `RequireSuperAdmin.tsx`                                            |
-| Paths         | `ui/src/features/dashboard/super-admin/lib/superAdminPaths.ts`                             |
-| Routes        | `ui/src/features/dashboard/super-admin/routes/index.tsx`                                   |
+| Concern       | Path                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Page          | `ui/src/features/dashboard/super-admin/pages/SuperAdminOverviewPage.tsx`                                                                |
+| Loading       | `SuperAdminOverviewRouteSkeleton` → `SuperAdminOverviewBodySkeleton` (`SuperAdminSkeletons.tsx`) — 12 KPIs, chart rows, recent activity |
+| Components    | `ui/src/features/dashboard/super-admin/components/super-admin-overview/*`                                                               |
+| Hook          | `ui/src/features/dashboard/super-admin/hooks/useSuperAdminOverview.ts`                                                                  |
+| Edge function | `supabase/functions/super-admin-overview/index.ts`                                                                                      |
+| Shared nav    | `ui/src/features/dashboard/super-admin/lib/superAdminPlatformNav.ts`                                                                    |
+| Sidebar       | `ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts` (`buildSuperAdminNavSections`)                                              |
+| Shell / guard | `SuperAdminShell.tsx` / `RequireSuperAdmin.tsx`                                                                                         |
+| Paths         | `ui/src/features/dashboard/super-admin/lib/superAdminPaths.ts`                                                                          |
+| Routes        | `ui/src/features/dashboard/super-admin/routes/index.tsx`                                                                                |
 
 ---
 

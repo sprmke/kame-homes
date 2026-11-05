@@ -1,7 +1,7 @@
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
 export type BookingViewTab =
-  'ai_summary' | 'overview' | 'guests' | 'parking' | 'pets' | 'pricing' | 'files';
+  'ai_summary' | 'overview' | 'guests' | 'parking' | 'pets' | 'pricing' | 'files' | 'activity';
 
 type ResolveOpts = {
   /** Tab only exists after a finished AI Summary run. */

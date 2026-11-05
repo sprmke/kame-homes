@@ -863,7 +863,7 @@ export function ParkingSettingsCard() {
         }
       >
         {!settingsReady ? (
-          <AppSettingsNavLayoutSkeleton />
+          <AppSettingsNavLayoutSkeleton navLabels={SECTIONS.map((section) => section.label)} />
         ) : (
           <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
             <AdminSection

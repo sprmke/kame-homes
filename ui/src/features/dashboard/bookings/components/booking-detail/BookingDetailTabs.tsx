@@ -55,6 +55,7 @@ export function BookingDetailTabs({ value, onChange, booking }: Props) {
           ? [{ value: 'pricing' as const, label: 'Pricing' }]
           : []),
         { value: 'files', label: 'Files' },
+        { value: 'activity', label: 'Activity' },
       ]}
     />
   );

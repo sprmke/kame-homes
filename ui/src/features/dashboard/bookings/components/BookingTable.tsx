@@ -73,7 +73,7 @@ export function BookingTable({
 
   if (isLoading) {
     if (!showLoadingSkeleton) return null;
-    return <BookingsTableSkeleton />;
+    return <BookingsTableSkeleton showProperty={showProperty} />;
   }
 
   if (rows.length === 0) {

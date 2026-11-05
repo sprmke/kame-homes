@@ -43,6 +43,10 @@ ALLOWLIST=(
   '_shared/supportTicketSubmitterActions.ts'
   '_shared/inboxQuickReplyTemplates.ts'
   '_shared/systemHealth/probes.ts'
+  # Weekly ops report: single-row reads of ops_reports by id; the full row includes
+  # the JSON summary and Markdown body. The list query uses explicit columns.
+  'ops-report/index.ts'
+  '_shared/opsReportRunner.ts'
 
   # Two-way reviews: single-row reads of the full review/window row (status + notes).
   '_shared/guestReviewService.ts'
