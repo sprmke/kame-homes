@@ -801,3 +801,19 @@ SELECT count(*) FROM public.help_center_faqs WHERE content_key IS NULL AND origi
 ```
 
 Remote writes need `kamewave`. Never run the sync against production without a backup.
+
+### Settings cleanup contract (deferred, `settings-cleanup-and-clarity`)
+
+**Not written yet.** Phases 1 to 5 remove the UI and server reads. Apply this contract only after one release soak, and only with `kamewave`:
+
+```sql
+alter table app_settings drop column parking_owner_emails;
+update app_settings set automation_toggles = automation_toggles - 'emailParkingBroadcast';
+alter table org_settings drop column email_to, email_reply_to, parking_owner_emails,
+  sd_refund_cron_email_lead_minutes, sd_refund_cron_max_checkout_age_days,
+  default_parking_rate_guest, automation_toggles;
+delete from property_template_contents where template_key = 'email-parking-request';
+alter table parking_settings drop column payment_methods;
+```
+
+Pre-flight (read-only): count rows with a non-empty `parking_owner_emails`, `automation_toggles ? 'emailParkingBroadcast'`, stored `email-parking-request` rows, and non-empty `parking_settings.payment_methods`. Check edge logs for `submit-pay-parking`, `parking-broadcast-email`, and `upload-parking-settings-asset` before deleting those function dirs. Then drop the retired functions from `supabase/config.toml` and `_shared/dashboardAssistantParity.ts`. Back up first (`bun run backup:supabase:dev`). Verify: `select to_regclass('public.parking_settings');` still works, and no `column … does not exist` errors on Property or Parking Settings.

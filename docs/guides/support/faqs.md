@@ -210,7 +210,16 @@ No. These are standalone parking listings such as tower slots or motorcycle bays
 - source: docs/guides/routes/org/parking/settings.md
 - order: 30
 
-Everything in basic info, photos, location, amenities, and payment flows to your public parking page. Keep the cover photo, description, and GCash details accurate before sharing the link.
+Basic info, photos, location, and amenities flow to your public parking page. Keep the cover photo and description accurate before sharing the link. Guests pay through PayMongo at checkout, so there are no payment details to fill in.
+
+### Why is there no Payment section on parking settings?
+
+- category: Parking
+- audience: host
+- source: docs/guides/routes/org/parking/settings.md
+- order: 55
+
+Guests pay for parking through PayMongo when they book, so you do not enter payment methods for a slot. Anything saved there before is kept for history but is no longer used or shown.
 
 ### How do weekend parking rates work?
 
@@ -301,6 +310,33 @@ Open Public Pages, then Stay Guide, then Edit, then Content. Expand a section to
 - order: 60
 
 No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist.
+
+### Where do GAF and pet request emails go?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 70
+
+They go to the building admin email shown read-only in Email automations. It comes from your development's PMO email, which the platform team sets in Super Admin. If it is empty, GAF and pet emails cannot send, but it never blocks saving the rest of the page.
+
+### What does free parking on your own slots do?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 80
+
+When a guest from this property books one of your own parking slots, they skip payment. Slots owned by other hosts are still paid. The option only appears when Allow Parking is on and you have at least one active parking slot, and it does nothing while Allow Parking is off.
+
+### Why did the Parking owners field disappear?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 90
+
+Property parking broadcast emails were retired. Parking now uses Find parking and the shareable parking link, so there is no owner BCC list to maintain. Nothing you set there affects email today.
 
 ### Do I need a different Telegram bot for every notification module?
 

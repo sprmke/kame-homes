@@ -89,21 +89,20 @@ The four **standard** keys (`house-rules`, `check-in-instructions`, `check-out-i
 | ------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `email-gaf-request`             | `sendEmail`                   | `{{urgent_notice}}`, `{{update_notice}}`, `{{email_signature_section}}`                                                                                                                                                                         |
 | `email-pet-request`             | `sendPetEmail`                | `{{urgent_notice}}`, `{{update_notice}}`, `{{pet_details_section}}`, `{{pet_attachments_section}}`, `{{email_signature_section}}`                                                                                                               |
-| `email-parking-request`         | `sendParkingBroadcast`        | `{{urgent_notice}}`, `{{update_notice}}`, `{{booking_vehicle_copy}}`, `{{parking_reply_callout_section}}`, `{{email_signature_section}}`                                                                                                        |
 | `email-new-booking-request`     | `sendNewBookingRequestNotify` | `{{urgent_notice}}`, `{{new_booking_detail_tables}}`, `{{downpayment_receipt_ai_section}}`, `{{booking_link_cta}}`                                                                                                                              |
 | `email-booking-acknowledgement` | `sendBookingAcknowledgement`  | `{{booking_acknowledgement_flow_section}}`, `{{email_signature_section}}`                                                                                                                                                                       |
 | `email-ready-for-checkin`       | `sendReadyForCheckin`         | `{{ready_for_checkin_booking_summary_section}}`, payment/GCash sections (empty when total balance is 0), `{{document_reminders_section}}`, `{{stay_guide_cta_section}}`, `{{ready_for_checkin_contact_section}}`, `{{email_signature_section}}` |
 | `email-sd-refund-form-request`  | `sendSdRefundFormRequest`     | `{{sd_refund_checklist_section}}`, `{{sd_refund_details_section}}`                                                                                                                                                                              |
 
-Static files under `email-templates/*.html` remain for reference; live sends use the configurable body + send shell above.
+Static files under `email-templates/*.html` remain for reference; live sends use the configurable body + send shell above. The retired `email-parking-request` template is no longer listed or editable: property parking broadcast emails were removed and parking uses **Find parking** / `linkStay`. Any stored row for that key is ignored.
 
 ## Sections
 
-| Group    | Keys                                                                                                                                                                                       |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Standard | `house-rules`, `check-in-instructions`, `check-out-instructions`, `parking-reminders`                                                                                                      |
-| Email    | `email-gaf-request`, `email-pet-request`, `email-parking-request`, `email-new-booking-request`, `email-booking-acknowledgement`, `email-ready-for-checkin`, `email-sd-refund-form-request` |
-| Custom   | `custom-{uuid}` — operator-created; sent on demand to a picked booking's guest via **Send to guest**                                                                                       |
+| Group    | Keys                                                                                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard | `house-rules`, `check-in-instructions`, `check-out-instructions`, `parking-reminders`                                                                             |
+| Email    | `email-gaf-request`, `email-pet-request`, `email-new-booking-request`, `email-booking-acknowledgement`, `email-ready-for-checkin`, `email-sd-refund-form-request` |
+| Custom   | `custom-{uuid}` — operator-created; sent on demand to a picked booking's guest via **Send to guest**                                                              |
 
 Built-in defaults ship in `propertyTemplates.ts` on the server. Rows in `property_template_contents` override defaults per property.
 
