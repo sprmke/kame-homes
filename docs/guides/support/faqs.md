@@ -149,6 +149,15 @@ Yes. Use Import beside New booking on a property. Upload a CSV or Excel file, or
 
 Yes. Return to step at the bottom left moves the booking to a previous status. Existing fields and documents get reset, and no emails go out. It always names the step you are moving to and asks you to confirm first.
 
+### Does adding parking after review send the booking back to Pending Review?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+- order: 35
+
+No. The booking keeps its current status and Parking shows as an outstanding step under Pending Documents. Once the booking is Ready for Check-in, the same parking step stays available as late parking. Complete the parking step before you proceed to the next stage.
+
 ### Why can't I cancel this booking?
 
 - category: Bookings

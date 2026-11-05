@@ -8,6 +8,7 @@ import {
   assertStayDateOrder,
   canRescheduleBookingAtStatus,
   impliedBookingPatchColumns,
+  parkingEditResetPatch,
   requiredPermissionsForOperation,
   requiredPermissionsForPatchColumns,
   requestPdfClearPatchForAdminPayload,
@@ -89,6 +90,67 @@ Deno.test('bookingAssetClearPatch clears URL and AI columns', () => {
   assertEquals(patch.payment_receipt_url, null);
   assertEquals(patch.dp_receipt_ai_verdict, null);
   assertEquals(patch.dp_receipt_ai_summary, null);
+});
+
+Deno.test('parkingEditResetPatch re-opens parking when it is added', () => {
+  const patch = parkingEditResetPatch(
+    { need_parking: false },
+    { need_parking: true, car_plate_number: 'ABC 123' },
+    'PENDING_DOCUMENTS'
+  );
+  assertEquals(patch, { parking_completed_at: null });
+});
+
+Deno.test('parkingEditResetPatch re-opens parking when vehicle details change', () => {
+  const patch = parkingEditResetPatch(
+    {
+      need_parking: true,
+      car_plate_number: 'ABC 123',
+      car_brand_model: 'Toyota Vios',
+      car_color: 'White',
+    },
+    { need_parking: true, car_plate_number: 'XYZ 789' },
+    'READY_FOR_CHECKIN'
+  );
+  assertEquals(patch, { parking_completed_at: null });
+});
+
+Deno.test('parkingEditResetPatch clears settlement when parking is removed', () => {
+  const patch = parkingEditResetPatch(
+    {
+      need_parking: true,
+      parking_completed_at: '2026-11-01T00:00:00.000Z',
+      parking_owner: 'Owner',
+      parking_rate_paid: 500,
+      parking_endorsement_url: 'https://example.com/endorsement.png',
+    },
+    { need_parking: false },
+    'PENDING_DOCUMENTS'
+  );
+  assertEquals(patch.parking_completed_at, null);
+  assertEquals(patch.parking_owner, null);
+  assertEquals(patch.parking_rate_paid, null);
+  assertEquals(patch.parking_endorsement_url, null);
+  assertEquals(patch.parking_payment_receipt_url, null);
+});
+
+Deno.test('parkingEditResetPatch ignores non-parking edits and post-checkout statuses', () => {
+  assertEquals(
+    parkingEditResetPatch(
+      { need_parking: true, car_plate_number: 'ABC 123' },
+      { car_plate_number: 'ABC 123' },
+      'PENDING_DOCUMENTS'
+    ),
+    {}
+  );
+  assertEquals(
+    parkingEditResetPatch(
+      { need_parking: false },
+      { need_parking: true },
+      'READY_FOR_CHECKOUT'
+    ),
+    {}
+  );
 });
 
 Deno.test('requestPdfClearPatchForAdminPayload clears GAF URL on date change', () => {

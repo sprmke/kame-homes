@@ -127,9 +127,11 @@ Tabs with invalid fields show a small error-dot badge; submitting a failing form
 
 ### Workflow-sensitive revert
 
-When status is in the revert-eligible pipeline (`PENDING_DOCUMENTS` and its nested sub-statuses, or `READY_FOR_CHECKIN`) and the draft changes a **workflow-sensitive** field (names, email, phone, dates/times, parking/pet details, decor flag, guest docs, etc. — see `workflowSensitiveGuestDiff.ts`), a sensitive-fields notice appears and the save button reads **Save & Revert Status**. Saving sets status → `PENDING_REVIEW` and clears nested doc completion per `pendingDocumentsClearPatchForGuestEditRevert` (approved PDFs and completions — request PDFs are preserved unless PDF fill fields changed). Proceed to Pending Documents **always regenerates** request PDFs when the property has a GAF/pet template requirement (matched by `pdfTemplateId` or requirement `id`, not only id `gaf`/`pet`). Each upload stores a cache-bust `?v=` on the URL so previews reload after round-trips. Missing templates or generation failures **block** the transition with an error.
+When status is in the revert-eligible pipeline (`PENDING_DOCUMENTS` and its nested sub-statuses, or `READY_FOR_CHECKIN`) and the draft changes a **workflow-sensitive** field (names, email, phone, dates/times, pet details, decor flag, guest docs, etc. — see `workflowSensitiveGuestDiff.ts`), a sensitive-fields notice appears and saving asks whether to revert. Reverting sets status → `PENDING_REVIEW` and clears nested doc completion per `pendingDocumentsClearPatchForGuestEditRevert` (approved PDFs and completions — request PDFs are preserved unless PDF fill fields changed). Proceed to Pending Documents **always regenerates** request PDFs when the property has a GAF/pet template requirement (matched by `pdfTemplateId` or requirement `id`, not only id `gaf`/`pet`). Each upload stores a cache-bust `?v=` on the URL so previews reload after round-trips. Missing templates or generation failures **block** the transition with an error.
 
-Pet-detail fields (toggle, name, type, breed, age, vaccination date) are only workflow-sensitive when the property's resolved document requirements include a `has_pets`-triggered requirement (or the literal id `pet`) — properties without pet documentation configured never revert on pet-field edits alone. Parking-field sensitivity is unaffected (parking stays a hardcoded step outside `documentRequirements`).
+Pet-detail fields (toggle, name, type, breed, age, vaccination date) are only workflow-sensitive when the property's resolved document requirements include a `has_pets`-triggered requirement (or the literal id `pet`) — properties without pet documentation configured never revert on pet-field edits alone.
+
+**Parking is not a re-approval trigger.** A parking edit (toggle, plate, model, color) keeps the current status and re-opens the **Parking** nested step under Pending Documents, or the late-parking step at Ready for Check-in and later, by clearing `parking_completed_at` (`bookingDetailsPatch.ts#parkingEditResetPatch`). Turning parking off also clears the parking settlement fields. Adding parking from the `⋯` menu therefore stays on Pending Documents and shows Parking as an outstanding step on the Progress panel.
 
 Non-sensitive edits (e.g. special requests only) do not revert status.
 
@@ -332,6 +334,8 @@ This is the page a host opens to manage one specific booking end to end: guest d
   A: Automated workflow emails need Starter or higher. On Free, open **Automation Triggers** on the Progress panel and tap **Send** for each email you need (GAF, pet, acknowledgement, ready for check-in, or Check-out Instructions). The booking status still moves the same way on every plan. You can upgrade anytime to send those automatically. For parking, use **Find parking** or **Use your parking** from More actions - not Automation Triggers.
 - Q: Can I go back a step if I made a mistake?
   A: Yes. **Return to \<step\>** at the bottom left moves the booking to previous status. Existing fields and documents will be reset, and no emails will be sent. It always names the step you're moving to and asks you to confirm.
+- Q: I added parking after review. Does the booking go back to Pending Review?
+  A: No. The status stays where it is, and Parking appears as an outstanding step under Pending Documents (or as a late parking step once the booking is Ready for Check-in). Complete that parking step before you proceed.
 - Q: What do the dots under the step name mean?
   A: One dot per step, left to right. The bigger colored dot is where the booking actually is right now, shown in that status's own color, the same colors you see on the bookings list and calendar. Solid teal dots are steps already done, hollow ones haven't been reached. Hover any dot to see its name and state, and tap a done dot to jump straight to it.
 - Q: What do Auto and Manual mean on a step?
@@ -470,11 +474,11 @@ Endpoints: `cancel-booking` (host), `respond-cancellation-request` (approve/decl
 
 ## Testing
 
-| Layer | Path / spec                                                                                                                                                                  | Manual                         |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Unit  | `supabase/functions/_shared/statusMachine_test.ts`, `workflowOrchestrator_test.ts`, `bookingDetailsPatch_test.ts`; `ui/src/features/dashboard/bookings/lib/workflow.test.ts` | —                              |
-| E2E   | `ui/e2e/features/bookings/propertyBookingProceed.spec.ts` (`@smoke` proceed flow); parking free-manual workflow spec for plan skip                                           | Resend inbound GAF approval    |
-| N/A   | —                                                                                                                                                                            | Real email sends on transition |
+| Layer | Path / spec                                                                                                                                                                                                                                 | Manual                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Unit  | `supabase/functions/_shared/statusMachine_test.ts`, `workflowOrchestrator_test.ts`, `bookingDetailsPatch_test.ts` (parking sub-step reset); `ui/src/features/dashboard/bookings/lib/workflow.test.ts`, `workflowSensitiveGuestDiff.test.ts` | —                              |
+| E2E   | `ui/e2e/features/bookings/propertyBookingProceed.spec.ts` (`@smoke` proceed flow); parking free-manual workflow spec for plan skip                                                                                                          | Resend inbound GAF approval    |
+| N/A   | —                                                                                                                                                                                                                                           | Real email sends on transition |
 
 ---
 

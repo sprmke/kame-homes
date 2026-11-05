@@ -30,4 +30,37 @@ describe('workflowSensitiveGuestDiff', () => {
   it('ignores identical payloads', () => {
     expect(hasWorkflowSensitiveGuestFieldDiff(base, { ...base })).toBe(false);
   });
+
+  it('does not treat adding parking as a re-approval field', () => {
+    expect(
+      hasWorkflowSensitiveGuestFieldDiff(base, {
+        ...base,
+        need_parking: true,
+        car_plate_number: 'ABC 123',
+        car_brand_model: 'Toyota Vios',
+        car_color: 'White',
+      })
+    ).toBe(false);
+  });
+
+  it('does not treat vehicle detail edits as a re-approval field', () => {
+    expect(
+      hasWorkflowSensitiveGuestFieldDiff(
+        {
+          ...base,
+          need_parking: true,
+          car_plate_number: 'ABC 123',
+          car_brand_model: 'Toyota Vios',
+          car_color: 'White',
+        },
+        {
+          ...base,
+          need_parking: true,
+          car_plate_number: 'XYZ 789',
+          car_brand_model: 'Honda City',
+          car_color: 'Black',
+        }
+      )
+    ).toBe(false);
+  });
 });
