@@ -13,22 +13,7 @@ type Props = Omit<StatCardProps, 'value' | 'icon'> & {
 };
 
 export function DashboardTrendStatCard(props: Props) {
-  const { change, changeAdornment, ...rest } = props;
-  const comparisonHint = (
-    <InfoHint
-      label="Comparison period"
-      text={METRIC_DEFINITIONS.priorPeriod.text}
-      variant="metric"
-    />
-  );
-
-  return (
-    <StatCard
-      {...(rest as StatCardProps)}
-      change={change}
-      changeAdornment={changeAdornment ?? (change !== undefined ? comparisonHint : undefined)}
-    />
-  );
+  return <StatCard {...(props as StatCardProps)} />;
 }
 
 const RING_SIZE = 76;

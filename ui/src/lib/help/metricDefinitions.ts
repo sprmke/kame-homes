@@ -90,13 +90,6 @@ export const METRIC_DEFINITIONS = {
       symbol: 'occupiedNights / (currentKpis.periodDays',
     },
   },
-  priorPeriod: {
-    text: 'Compared with the same number of days right before this range.',
-    source: {
-      file: 'supabase/functions/_shared/dashboardService.ts',
-      symbol: 'function previousPeriodRange',
-    },
-  },
 } as const satisfies Record<string, MetricDefinition>;
 
 export type MetricDefinitionKey = keyof typeof METRIC_DEFINITIONS;

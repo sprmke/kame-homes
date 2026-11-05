@@ -56,8 +56,8 @@ At most one `IntroCard` per page. Blocking banners (plan limit, announcement) wi
 - **Inside a modal:** the panel portals into the active `[role="dialog"]` container so the modal's
   inert background and pointer-events lock do not swallow it, and uses that container as its
   collision boundary so the dialog/sheet overflow does not clip it.
-- **Layout:** the glyph box is `size-6` with `-my-1`, so a label row never grows. A 44px hit area
-  comes from a pseudo-element, not layout.
+- **Layout:** the trigger is `h-4 w-6` (16px tall) with a 44px hit area from a pseudo-element, so
+  it centers against a text line and never grows the row. Wrap it in a `flex` span in card titles.
 - **Long copy:** max width `min(100vw - 2rem, 18rem)`, scrolls vertically, collision-aware side
   selection (RTL aware).
 - **Screen readers:** trigger is `About <label>`; pass `describedById` to render the same copy in
@@ -78,9 +78,10 @@ Rules:
 
 - Pass `to` / `onClick` to `StatCard` or `DashboardTrendStatCard`. Do not wrap the card in your own
   `<Link>`; that puts the hint back inside the link.
-- `titleAdornment` is for the metric hint. `changeAdornment` is for a "vs last period" hint.
-- `StatCardSkeleton` accepts the same `titleAdornment` / `changeAdornment` slots. Render an empty
-  `-my-1 size-6` span to reserve the hint space while data loads.
+- `titleAdornment` is for the metric hint. Keep the wrapper a `flex` span so the 16px trigger
+  centers against the text line; do not wrap it in a line-height span or add `-my-1`.
+- `StatCardSkeleton` accepts the same `titleAdornment` slot. Render an empty `h-4 w-6` span to
+  reserve the hint space while data loads.
 - Shared formulas live in `ui/src/lib/help/metricDefinitions.ts` as `{ text, source }`. The
   `metricDefinitions.test.ts` guard fails when the cited file or symbol disappears.
 
