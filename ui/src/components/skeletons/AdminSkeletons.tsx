@@ -479,6 +479,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Net Profit',
     icon: Wallet,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-blue-600 dark:text-blue-400',
     iconBgClassName: 'bg-blue-100 dark:bg-blue-900/30',
   },
@@ -486,6 +487,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Total Income',
     icon: ArrowUpRight,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-emerald-600 dark:text-emerald-400',
     iconBgClassName: 'bg-emerald-100 dark:bg-emerald-900/30',
   },
@@ -493,6 +495,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Total Expenses',
     icon: ArrowDownRight,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-red-600 dark:text-red-400',
     iconBgClassName: 'bg-red-100 dark:bg-red-900/30',
   },
@@ -500,6 +503,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Pending Payments',
     icon: Clock,
     showTrend: false,
+    hasHint: true,
     iconClassName: 'text-amber-600 dark:text-amber-400',
     iconBgClassName: 'bg-amber-100 dark:bg-amber-900/30',
   },
@@ -517,6 +521,9 @@ function FinanceKpiGridSkeleton() {
           iconBgClassName={card.iconBgClassName}
           showTrend={card.showTrend}
           changeLabel="vs last period"
+          titleAdornment={
+            card.hasHint ? <span aria-hidden className="-my-1 size-6 shrink-0" /> : undefined
+          }
           style={{ opacity: 1 - i * 0.05 } as CSSProperties}
         />
       ))}
@@ -533,10 +540,10 @@ export function FinanceOverviewSkeleton() {
 }
 
 const MAINTENANCE_KPI_CARDS = [
-  { title: 'Total', icon: ListChecks },
-  { title: 'Telegram enabled', icon: Bell },
-  { title: 'Completed', icon: CheckCircle2 },
-  { title: 'Pending', icon: Clock3 },
+  { title: 'Total', icon: ListChecks, hasHint: false },
+  { title: 'Telegram enabled', icon: Bell, hasHint: true },
+  { title: 'Completed', icon: CheckCircle2, hasHint: false },
+  { title: 'Pending', icon: Clock3, hasHint: true },
 ] as const;
 
 export function MaintenanceOverviewSkeleton() {
@@ -552,6 +559,9 @@ export function MaintenanceOverviewSkeleton() {
           key={card.title}
           title={card.title}
           icon={card.icon}
+          titleAdornment={
+            card.hasHint ? <span aria-hidden className="-my-1 size-6 shrink-0" /> : undefined
+          }
           style={{ opacity: 1 - i * 0.05 } as CSSProperties}
         />
       ))}
@@ -909,7 +919,14 @@ function DashboardChartCardHeaderSkeleton({
 
 function DashboardTrendStatCardSkeleton({ title, icon }: { title: string; icon: LucideIcon }) {
   return (
-    <AdminMetricCardSkeleton title={title} icon={icon} showTrend changeLabel="vs last period" />
+    <AdminMetricCardSkeleton
+      title={title}
+      icon={icon}
+      showTrend
+      changeLabel="vs last period"
+      titleAdornment={<span aria-hidden className="-my-1 size-6 shrink-0" />}
+      changeAdornment={<span aria-hidden className="-my-1 size-6 shrink-0" />}
+    />
   );
 }
 
@@ -1410,18 +1427,18 @@ export function MediaPreviewSkeleton({ className }: { className?: string } = {})
 }
 
 /** Team page (org/parking/property) — stat card strip + tab row + member list card. */
-const DEFAULT_TEAM_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const DEFAULT_TEAM_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total Members', icon: Users },
-  { title: 'Team access', icon: ShieldCheck },
+  { title: 'Team access', icon: ShieldCheck, hasHint: true },
   { title: 'Pending Invites', icon: Mail },
-  { title: 'From Organization', icon: Building2 },
+  { title: 'From Organization', icon: Building2, hasHint: true },
 ];
 
-const ORG_TEAM_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const ORG_TEAM_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total Members', icon: Users },
-  { title: 'Full Access', icon: ShieldCheck },
-  { title: 'Operations', icon: ShieldCheck },
-  { title: 'Read Only', icon: ShieldCheck },
+  { title: 'Full Access', icon: ShieldCheck, hasHint: true },
+  { title: 'Operations', icon: ShieldCheck, hasHint: true },
+  { title: 'Read Only', icon: ShieldCheck, hasHint: true },
   { title: 'Pending Invites', icon: Mail },
 ];
 
@@ -1449,6 +1466,9 @@ export function TeamPageSkeleton({
             key={metric.title}
             title={metric.title}
             icon={metric.icon}
+            titleAdornment={
+              metric.hasHint ? <span aria-hidden className="-my-1 size-6 shrink-0" /> : undefined
+            }
             style={{ opacity: 1 - i * 0.05 } as CSSProperties}
           />
         ))}
