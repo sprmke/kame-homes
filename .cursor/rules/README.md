@@ -21,6 +21,7 @@ Keep this list **small**. Heavy domain specs use globs.
 | `route-guides.mdc`              | Page behavior docs must stay in sync                                                |
 | `plans-and-permissions.mdc`     | New features must decide Plans + Team RBAC (or N/A)                                 |
 | `audit-logging.mdc`             | Mutating changes must emit an `activity_log` event (or N/A)                         |
+| `support-content.mdc`           | Route guides, Host-facing knowledge, and curated FAQs must ship with the change     |
 | `unsaved-changes.mdc`           | Editable surfaces with a manual Save must warn before edits are lost (shared guard) |
 | `mobile-native-ui.mdc`          | Always-on gate: native mobile look/feel for any UI change in `ui/src/**`            |
 | `branch-lifecycle.mdc`          | Finished work lands on `develop`: PR, report, merge when green, delete the branch   |
@@ -113,6 +114,7 @@ Run **`bun run check:ai-tooling-sync`** after changing hooks, commands, agents, 
 | `documentation-maintenance` | Same-change docs writes — Claude Code equivalent of always-on rule    |
 | `plans-and-permissions`     | New features: Plans entitlements + Team RBAC checklist (or N/A)       |
 | `audit-logging`             | Mutating changes emit an `activity_log` event (or mark N/A)           |
+| `support-content`           | Route guide + Host-facing Q&A + curated FAQ sync checklist            |
 | `unsaved-changes-guard`     | Editable surface with a manual Save prompts before edits are lost     |
 | `supabase-stack`            | Postgres, Storage, edge platform                                      |
 | `fix-migration-issues`      | Local `db:migrate` when schema drifts — never default to reset/deploy |

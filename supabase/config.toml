@@ -739,6 +739,9 @@ verify_jwt = false
 [functions.list-public-pricing-plans]
 verify_jwt = false
 
+[functions.list-public-support-faqs]
+verify_jwt = false
+
 [functions.property-templates-settings]
 verify_jwt = false
 

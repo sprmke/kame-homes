@@ -2,7 +2,7 @@
 title: 'Tasks To Plan'
 status: active
 tags: [planning, intake, backlog]
-updated: 2026-11-04
+updated: 2026-11-05
 stage: intake
 kind: backlog
 ---
@@ -756,7 +756,7 @@ Apply to all pages including both public and dashboard pages
 
 Now that we have the AI assistant in the dashboard, build a Help & Support page for hosts at both org and property level: Documentation (from docs/guides Host-facing knowledge, filtered to never expose sensitive/internal info), AI Chat (opens the existing dashboard assistant sidebar), Ticket/App Support (dynamic per-category fields — bug/inquiry/suggestion/business — replied to from a new super-admin page), and FAQs (20-50 items generated from the docs). Every docs/guides change should stay synced to whatever powers this automatically.
 
-→ **Done:** [`../for-testing/help-support-center.md`](../for-testing/help-support-center.md)
+→ **Planned:** [`../planned/support-content-and-faq-sync.md`](../planned/support-content-and-faq-sync.md) · shipped baseline: [`../for-testing/help-support-center.md`](../for-testing/help-support-center.md)
 
 ===
 

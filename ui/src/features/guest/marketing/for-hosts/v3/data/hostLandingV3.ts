@@ -393,7 +393,7 @@ export const v3Faq = {
     {
       question: 'Does it work with Airbnb?',
       answer:
-        'Yes. Airbnb reservations come in for review, and your booked and blocked nights go back out.',
+        'Yes, on Pro and above. Airbnb reservations come in for review, and your booked and blocked nights go back out.',
     },
     {
       question: 'Can I bring my existing bookings?',

@@ -34,6 +34,7 @@ cd "$ROOT"
 # not every public* endpoint needs offline runtime caching).
 PUBLIC_CACHE_FILES=(
   'list-public-pricing-plans/index.ts'
+  'list-public-support-faqs/index.ts'
   'get-residence-unit-types/index.ts'
   'get-public-property/index.ts'
   'get-public-parking/index.ts'

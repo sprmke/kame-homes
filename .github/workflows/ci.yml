@@ -30,6 +30,15 @@ jobs:
       - name: Brand guard (retired product name)
         run: bun scripts/brand/check-brand.ts --check
 
+      - name: AI knowledge coverage (Host-facing knowledge Q&A minimums)
+        run: bun scripts/check-ai-knowledge-coverage.ts
+
+      - name: Support content format (curated FAQ doc + source paths)
+        run: bun scripts/check-support-content.ts
+
+      - name: Support content parser tests
+        run: bun test scripts/supportContent.test.ts
+
       - name: Migration conventions
         run: |
           bash scripts/dev/check-migration-versions.sh

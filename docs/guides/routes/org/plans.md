@@ -133,11 +133,23 @@ Full design/rationale: [`docs/workflow/done/org-level-billing-migration.md`](../
 
 ## Host-facing knowledge
 
-- Pricing is **per property**, but billed and managed **once for the whole organization** - every listing in the org is included automatically.
-- You can open **Plans & Billing** from the organization sidebar, or tap the **plan card** above AI mode (sidebar or More menu) to see everything your plan includes, then **Compare plans**, **Upgrade plan** (Free) or **Manage plan** (paid).
-- The more properties in your org, the lower the effective per-property rate - from 1→10 listings the rate steps down linearly to ₱500/property (when the tier's promo rate is higher), then volume discounts at 10+, 20+, 50+, and 100+ (with extra relief at 200+/300+ for very large portfolios).
-- Adding a new property increases your subscription count on the next checkout or is auto-enrolled immediately when you already have an active plan.
-- Paid upgrades open PayMongo in the browser; the plan activates after payment clears (usually within seconds).
-- Downgrades (including back to Free) apply as soon as you confirm - no payment step while **active**, in **trial**, or **suspended** (Free only when suspended). **Past due** - pay from Billing first. Features above the new tier turn off right away; unused time is not refunded as cash.
-- Unpaid orgs become **past due**, then **suspended** after the grace period - pay from Plans & Billing to restore full dashboard access across every property.
-- Managed is hands-off, sales-assisted hosting - reach out via Help & Support to get a quote instead of self-serve checkout.
+Plans & Billing is where the organization owner picks the tier and pays for it. Billing is per property but managed once for the whole organization, and the plan card in the sidebar shows what the current tier includes.
+
+**Common host questions**
+
+- Q: Is billing per property or per organization?
+  A: Pricing is per property, but you pay once for the whole organization. Every listing in the org is included automatically.
+- Q: What are the plan names I should expect to see?
+  A: Free, Starter, Pro, Business, and Managed. Pro is the tier with Marketing Content Studio, Airbnb calendar sync, and Smart Pricing. Business adds Meta publishing and the full AI toolkit.
+- Q: Where do I see what my current plan includes?
+  A: Open **Plans & Billing** from the org sidebar, or tap the plan card above AI mode. The plan sheet lists every included feature, with **Compare plans**, **Upgrade plan** on Free, or **Manage plan** on paid tiers.
+- Q: Will I pay less per property as I add listings?
+  A: Yes. From 1 to 10 listings the rate steps down toward ₱500 per property when the tier's promo rate is higher, then volume discounts apply at 10+, 20+, 50+, and 100+.
+- Q: What happens when I add a property on a paid plan?
+  A: A new property is added to your subscription at the next checkout, or enrolled right away when you already have an active plan.
+- Q: How do upgrades and downgrades take effect?
+  A: Paid upgrades open PayMongo and activate after payment clears, usually within seconds. Downgrades apply as soon as you confirm, with no payment step while active or in trial. Features above the new tier turn off right away, and unused time is not refunded as cash.
+- Q: What happens if I miss a payment?
+  A: The organization becomes past due and keeps full access during the grace period. After that it is suspended until you pay, and only Plans & Billing and Help & Support stay reachable.
+- Q: How do I get the Managed plan?
+  A: Managed is sales-assisted. Choose **Contact sales** on the Managed card, or file a ticket from Help & Support, and our team will confirm onboarding and pricing.

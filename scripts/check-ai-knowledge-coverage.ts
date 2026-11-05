@@ -1,31 +1,80 @@
 #!/usr/bin/env bun
 /**
  * Fails when a Documented route guide lacks a Host-facing knowledge section
- * with at least 3 Q&A rows, or when a previously synced guide would drop out
- * of `bun run sync:ai-knowledge-base`.
+ * with enough Q&A rows, or when a previously synced guide would drop out of
+ * `bun run sync:support-content`.
+ *
+ * Tiered minimums:
+ *   - MAJOR_GUIDES: 5 Q&A
+ *   - every other documented guide: 3 Q&A
  *
  * Super-admin (`docs/guides/routes/admin/**`) and README indexes are exempt.
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const GUIDES_DIR = join(ROOT, 'docs/guides/routes');
+import { countHostFacingQa, findMarkdownFiles, GUIDES_DIR, ROOT } from './lib/supportContent.ts';
+
 const SNAPSHOT_PATH = join(ROOT, 'scripts/ai-knowledge-synced-guides.txt');
-const MIN_QA = 3;
+const DEFAULT_MIN_QA = 3;
+const MAJOR_MIN_QA = 5;
 
-function findMarkdownFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    const stat = statSync(full);
-    if (stat.isDirectory()) out.push(...findMarkdownFiles(full));
-    else if (entry.endsWith('.md')) out.push(full);
-  }
-  return out;
-}
+/** High-traffic module pages that need a fuller answer set. */
+export const MAJOR_GUIDES = new Set([
+  // Org scope
+  'docs/guides/routes/org/selector.md',
+  'docs/guides/routes/org/dashboard.md',
+  'docs/guides/routes/org/settings.md',
+  'docs/guides/routes/org/team.md',
+  'docs/guides/routes/org/properties.md',
+  'docs/guides/routes/org/parkings.md',
+  'docs/guides/routes/org/bookings.md',
+  'docs/guides/routes/org/plans.md',
+  'docs/guides/routes/org/activity.md',
+  'docs/guides/routes/org/announcements.md',
+  'docs/guides/routes/org/analytics.md',
+  'docs/guides/routes/org/reviews.md',
+  'docs/guides/routes/org/help-support.md',
+  // Property scope
+  'docs/guides/routes/org/property/dashboard.md',
+  'docs/guides/routes/org/property/bookings.md',
+  'docs/guides/routes/org/property/bookings-detail.md',
+  'docs/guides/routes/org/property/operations.md',
+  'docs/guides/routes/org/property/maintenance.md',
+  'docs/guides/routes/org/property/finance.md',
+  'docs/guides/routes/org/property/activity.md',
+  'docs/guides/routes/org/property/marketing.md',
+  'docs/guides/routes/org/property/analytics.md',
+  'docs/guides/routes/org/property/reviews.md',
+  'docs/guides/routes/org/property/public-pages.md',
+  'docs/guides/routes/org/property/pricing.md',
+  'docs/guides/routes/org/property/templates.md',
+  'docs/guides/routes/org/property/announcements.md',
+  'docs/guides/routes/org/property/settings.md',
+  'docs/guides/routes/org/property/team.md',
+  'docs/guides/routes/org/property/staff.md',
+  'docs/guides/routes/org/property/notifications.md',
+  'docs/guides/routes/org/property/inbox.md',
+  'docs/guides/routes/org/property/help-support.md',
+  // Parking scope
+  'docs/guides/routes/org/parking/bookings.md',
+  'docs/guides/routes/org/parking/dashboard.md',
+  'docs/guides/routes/org/parking/finance.md',
+  'docs/guides/routes/org/parking/pricing.md',
+  'docs/guides/routes/org/parking/settings.md',
+  'docs/guides/routes/org/parking/team.md',
+  'docs/guides/routes/org/parking/inbox.md',
+  'docs/guides/routes/org/parking/notifications.md',
+  'docs/guides/routes/org/parking/announcements.md',
+  'docs/guides/routes/org/parking/activity.md',
+  'docs/guides/routes/org/parking/help-support.md',
+  // Guest portal
+  'docs/guides/routes/account/trips.md',
+  'docs/guides/routes/account/stays.md',
+  'docs/guides/routes/account/vouchers.md',
+  'docs/guides/routes/account/tickets.md',
+]);
 
 function isExempt(relPath: string): boolean {
   if (relPath === 'docs/guides/routes/README.md') return true;
@@ -37,16 +86,6 @@ function isDocumented(content: string): boolean {
   return (
     /\*\*Status:\*\*\s*Documented\b/i.test(content) || /^status:\s*documented\b/im.test(content)
   );
-}
-
-function extractQaCount(content: string): number {
-  const headingMatch = content.match(/^## Host-facing knowledge\n/m);
-  if (!headingMatch || headingMatch.index === undefined) return 0;
-  const rest = content.slice(headingMatch.index + headingMatch[0].length);
-  const endMatch = rest.match(/\n## |\n---\n/);
-  const section = endMatch && endMatch.index !== undefined ? rest.slice(0, endMatch.index) : rest;
-  const matches = section.match(/^- Q:\s*.+$/gm);
-  return matches?.length ?? 0;
 }
 
 function loadSnapshot(): string[] {
@@ -63,13 +102,13 @@ const missing: string[] = [];
 
 for (const file of files) {
   const rel = relative(ROOT, file);
+  if (!statSync(file).isFile()) continue;
   const content = readFileSync(file, 'utf8');
-  const count = extractQaCount(content);
+  const count = countHostFacingQa(content);
   qaByPath.set(rel, count);
   if (isExempt(rel) || !isDocumented(content)) continue;
-  if (count < MIN_QA) {
-    missing.push(`${rel} (${count} Q&A, need ${MIN_QA})`);
-  }
+  const min = MAJOR_GUIDES.has(rel) ? MAJOR_MIN_QA : DEFAULT_MIN_QA;
+  if (count < min) missing.push(`${rel} (${count} Q&A, need ${min})`);
 }
 
 const dropped: string[] = [];
@@ -80,7 +119,7 @@ for (const path of loadSnapshot()) {
 
 if (missing.length > 0 || dropped.length > 0) {
   if (missing.length > 0) {
-    console.error('Documented route guides missing Host-facing knowledge (≥3 Q&A):');
+    console.error('Documented route guides missing Host-facing knowledge:');
     for (const row of missing) console.error(`  - ${row}`);
   }
   if (dropped.length > 0) {
@@ -95,4 +134,7 @@ const documented = [...qaByPath.keys()].filter((path) => {
   const content = readFileSync(join(ROOT, path), 'utf8');
   return isDocumented(content);
 }).length;
-console.log(`OK — ${documented} documented host guides have ≥${MIN_QA} Host-facing knowledge Q&A.`);
+
+console.log(
+  `OK — ${documented} documented host guides meet their Q&A minimum (${MAJOR_MIN_QA} for major modules, ${DEFAULT_MIN_QA} otherwise).`
+);

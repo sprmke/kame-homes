@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-04
+updated: 2026-11-05
 stage: in-progress
 kind: reference
 ---
@@ -14,6 +14,8 @@ Implementation **started** — plan not fully complete. Partial phases or v1 sli
 Plans with **implementation complete** and only manual QA left live in [`../for-testing/`](../for-testing/) (**🧪**). **Start QA:** [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md).
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
+
+**Moved in 2026-11-05:** [`support-content-and-faq-sync.md`](./support-content-and-faq-sync.md) — started. Makes `docs/guides/` the enforced source behind the Help Center Guides tab, `help_center_faqs`, public `/support`, and guest help. Phases: coverage gate, content sweep, provenance-safe sync, FAQ search/browse, public endpoint, support-content rule.
 
 **Moved in 2026-11-04:** [`supabase-capacity-and-operational-readiness.md`](./supabase-capacity-and-operational-readiness.md) — first slice shipped (bookings-list RPC, RLS init-plan rewrite, duplicate index drop, retention, Realtime binding merge, capture scripts, drift gate). Remaining: compute upgrade, continuous alerts, large-tenant seed, load tests, public cache, dashboard/finance aggregates. Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
 

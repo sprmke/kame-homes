@@ -145,7 +145,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'list-bookings': read,
   'list-developments': read,
   'list-help-center-articles': tool('search_help_center'),
-  'list-help-center-faqs': read,
+  'list-help-center-faqs': tool('search_help_center'),
   'list-host-announcements': read,
   'list-host-organizations': read,
   'list-host-properties': read,

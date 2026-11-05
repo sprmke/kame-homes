@@ -41,6 +41,8 @@ Parking **Guest Inbox** is for website chat with parking guests; Facebook and In
   A: Open this parking's Guest Inbox → **Manage** → Quick replies or Automation. These settings are specific to this parking listing.
 - Q: Are the quick replies the same as my property's?
   A: No. Parking quick replies are a separate list pre-seeded with parking-relevant answers (rates, vehicle details, entry/exit, payment, etc.), independent of any property's quick replies.
+- Q: Do quick reply changes apply to every parking slot?
+  A: No. Quick replies and automation are stored for this parking listing only. Other slots keep their own setup.
 
 ---
 

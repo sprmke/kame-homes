@@ -64,6 +64,10 @@ These public pages explain the company, how to reach support, common guest/host 
   A: Yes. The policy describes host verification uploads and how they're stored privately.
 - Q: Where do guests go for help?
   A: Support (`/support`) for FAQs, or Contact (`/contact`). Signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email kameworks.tech@gmail.com.
+- Q: Does the public Support page show the same answers as Help & Support in the dashboard?
+  A: The public page shows published answers for guests and hosts. Signed-in hosts get the full Help & Support area, with guides, search, and tickets for their listings.
+- Q: Can someone contact us without creating an account?
+  A: Yes. They can email us or use the Contact page. Filing a ticket needs a sign-in so we can reply in the same thread.
 
 ---
 
@@ -72,6 +76,7 @@ These public pages explain the company, how to reach support, common guest/host 
 - All routes render inside **`MarketingLayoutShell`** (nav + footer).
 - Shared hero band: **`MarketingPublicPageHero`** (centered eyebrow / title / description by default) + body via **`MarketingPublicPageContent`**. Company pages reuse **`MarketingPublicSectionHeading`**, **`MarketingPublicIconCard`**, **`MarketingPublicCallout`**, and **`MarketingPublicFaqList`** for consistent spacing and typography. Legal / Support / Pricing use **`narrow`** on both hero and content so title and body share one **centered** reading column (`mx-auto max-w-3xl`). Legal pages use **`LegalSimplePage`** (divided sections, left hero blob).
 - Content is hard-coded in page components; no CMS.
+- **Support** (`/support`) — reads published FAQs from **`list-public-support-faqs`** and splits them into **Guests** (`guest` + `public`) and **Hosts** (`host` + `public`), eight per section with a **Show all** toggle. While the request is loading it shows layout-matched skeleton rows; on error or an empty response it falls back to the trimmed static arrays so the page never renders empty. Content source: `docs/guides/support/faqs.md`.
 - **Contact** (`/contact`) — four ticket categories (**Broken**, **Idea**, **Question**, **Business**) matching Help & Support. Clicking a category runs **`requireGuestAuth`** → **`GuestAuthModal`** (same as Reserve / Contact host on listings), then opens the same **`NewTicketModal`**. OAuth return uses `?category=` (+ optional `?subject=`). Deep links: Managed plan from **`/for-hosts/pricing`**. After submit → **`/account/tickets/:ticketId`**. Org-scoped host tickets remain under dashboard Help & Support. Guests also see Support + mailto fallback below the categories.
 - Privacy states that Gemini processes live microphone audio, the platform does not store raw
   audio, unverified captions default to 30-day retention (configurable from 1 to 90 days), and the

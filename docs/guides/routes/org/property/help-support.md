@@ -15,13 +15,13 @@ Announcements moved to dedicated sidebar route: [Announcements](./announcements.
 
 ## Progress overview
 
-| Section | E2E | Validation | Docs | Notes                                                    |
-| ------- | --- | ---------- | ---- | -------------------------------------------------------- |
-| FAQs    | Yes | N/A        | Yes  | Default view; up to eight property-scoped published FAQs |
-| Guides  | Yes | N/A        | Yes  | Topic tiles, then articles for the chosen topic          |
-| Tickets | Yes | Yes        | Yes  | Fill-height inbox: 400px list, docked composer           |
-| Ask AI  | Yes | N/A        | Yes  | Opens the existing assistant panel, no new UI            |
-| App     | No  | N/A        | Yes  | App version, Check for updates, Install app entry        |
+| Section | E2E | Validation | Docs | Notes                                                       |
+| ------- | --- | ---------- | ---- | ----------------------------------------------------------- |
+| FAQs    | Yes | N/A        | Yes  | Up to ten common property FAQs + search and category browse |
+| Guides  | Yes | N/A        | Yes  | Topic tiles, then articles for the chosen topic             |
+| Tickets | Yes | Yes        | Yes  | Fill-height inbox: 400px list, docked composer              |
+| Ask AI  | Yes | N/A        | Yes  | Opens the existing assistant panel, no new UI               |
+| App     | No  | N/A        | Yes  | App version, Check for updates, Install app entry           |
 
 ## Overview
 
@@ -60,7 +60,7 @@ This is where you go if you're stuck, found something broken, or want to ask us 
 
 ### Sections
 
-Persistent **Help & Support** title and subtitle. Four clickable summary cards stay at the top: **FAQs**, **Guides**, **Tickets**, **Ask AI**. On desktop (`xl+`) they sit in one four-column row; below that they wrap as two columns (centered). The selected card uses a primary inset ring and tint. A centered title and one-line description sit under the cards for the active module. FAQs is selected on the default route. Content is up to eight published FAQs scoped to this **property** mount — one from each of bookings, property settings, property team, notifications, guest communication, finance, maintenance, and AI Assistant (in that order). Matched via category plus `source_route_guide_path` under `org/property/…` for team/finance. Org portfolio and parking-slot FAQs are omitted. No search. Guides and Tickets swap only the content below the cards. Clicking the already-selected Guides or Tickets card returns to FAQs. Accordion items are exclusive (one open at a time) with comfortable spacing.
+Persistent **Help & Support** title and subtitle. Four clickable summary cards stay at the top: **FAQs**, **Guides**, **Tickets**, **Ask AI**. On desktop (`xl+`) they sit in one four-column row; below that they wrap as two columns (centered). The selected card uses a primary inset ring and tint. A centered title and one-line description sit under the cards for the active module. FAQs is selected on the default route. The default view shows up to ten common FAQs scoped to this **property** mount, then a category list. A search field covers every host FAQ on this mount, and opening a category shows its full set, newest-first by order. Guest-only categories are excluded. Matched via category plus `source_route_guide_path` under `org/property/…` for team, finance, and activity. Org portfolio and parking-slot FAQs are omitted from this mount. Guides and Tickets swap only the content below the cards. Clicking the already-selected Guides or Tickets card returns to FAQs. Accordion items are exclusive (one open at a time) with comfortable spacing.
 
 ### Behavior / edge cases
 
@@ -70,7 +70,7 @@ Ask AI does not navigate. It calls `openAiAssistant()`, which opens the existing
 
 ### Sections
 
-Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths, and any em dash left in a guide title becomes " - " so no article title renders one. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded.
+Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths, and any em dash left in a guide title becomes " - " so no article title renders one. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded. The curated FAQ layer comes from `docs/guides/support/faqs.md`; synced rows are read-only in the super-admin editor, while manual rows stay editable.
 
 ## Tickets
 

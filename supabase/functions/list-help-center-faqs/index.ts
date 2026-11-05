@@ -13,8 +13,9 @@ serveAuthenticated('list-help-center-faqs', async (req) => {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('help_center_faqs')
-    .select('id, category, question, answer, sort_order, source_route_guide_path')
+    .select('id, category, question, answer, sort_order, source_route_guide_path, audience')
     .eq('is_published', true)
+    .neq('audience', 'guest')
     .order('category', { ascending: true })
     .order('sort_order', { ascending: true });
 

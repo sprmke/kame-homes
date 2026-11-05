@@ -34,6 +34,10 @@ This is the guest's favorites list: properties they tapped the heart icon on whi
 
 - Q: A guest asks why a property disappeared from their favorites.
   A: They likely un-hearted it (there's a confirm step before it's removed), or the listing itself may no longer be public. Favoriting doesn't reserve a stay or hold dates.
+- Q: Does the host get notified when a guest favorites a property?
+  A: No. Favorites are private to the guest and do not send a notification or reveal the guest to you.
+- Q: Are favorites shared across a guest's devices?
+  A: Yes. Favorites are saved to the guest's account, so they appear anywhere the guest signs in.
 
 ---
 
