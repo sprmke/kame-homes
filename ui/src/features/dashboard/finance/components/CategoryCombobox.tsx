@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { Check, ChevronDown, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, Pencil, Plus, X } from 'lucide-react';
 
 import {
   filterCategorySuggestions,
@@ -10,6 +10,12 @@ import {
 } from '@/components/forms/categoryComboboxModel';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+
+const OTHER_CATEGORY = 'other';
+
+function isOtherCategory(value: string): boolean {
+  return value.trim().toLowerCase() === OTHER_CATEGORY;
+}
 
 type Props = {
   value: string;
@@ -34,11 +40,13 @@ export function CategoryCombobox({
 }: Props) {
   const listboxId = useId();
   const anchorRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const valueAtOpenRef = useRef(value);
   const skipCloseCommitRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [customMode, setCustomMode] = useState(false);
   const [panelWidth, setPanelWidth] = useState<number | undefined>();
 
   useEffect(() => {
@@ -61,6 +69,7 @@ export function CategoryCombobox({
 
   const trimmedDraft = normalizeCategoryValue(draft);
   const normalizedValue = value.trim().toLowerCase();
+  const placeholderText = customMode ? 'Type your custom category' : placeholder;
 
   const filtered = useMemo(
     () => filterCategorySuggestions(suggestions, trimmedDraft),
@@ -88,12 +97,26 @@ export function CategoryCombobox({
     onChange(normalized);
     setDraft(normalized);
     setActiveIndex(-1);
+    setCustomMode(false);
     setOpen(false);
   }
 
   function commitDraft() {
     if (!trimmedDraft) return;
     commit(trimmedDraft);
+  }
+
+  /**
+   * "Other" is an entry point for a custom category, not a one-click value:
+   * clear the field and prompt for a name instead of saving the literal "Other".
+   */
+  function startCustomEntry() {
+    onChange('');
+    setDraft('');
+    setActiveIndex(-1);
+    setCustomMode(true);
+    setOpen(false);
+    inputRef.current?.focus();
   }
 
   /** Keep typed text when leaving the field, using preset casing when it matches. */
@@ -107,6 +130,7 @@ export function CategoryCombobox({
     onChange('');
     setDraft('');
     setActiveIndex(-1);
+    setCustomMode(false);
     setOpen(false);
   }
 
@@ -115,6 +139,7 @@ export function CategoryCombobox({
       if (!skipCloseCommitRef.current) normalizeDraft();
       skipCloseCommitRef.current = false;
       setActiveIndex(-1);
+      setCustomMode(false);
     } else {
       setActiveIndex(-1);
     }
@@ -127,6 +152,7 @@ export function CategoryCombobox({
         <div ref={anchorRef} className="relative w-full">
           <input
             id={id}
+            ref={inputRef}
             type="text"
             role="combobox"
             aria-label={ariaLabel}
@@ -138,7 +164,7 @@ export function CategoryCombobox({
             maxLength={maxLength}
             disabled={disabled}
             value={draft}
-            placeholder={placeholder}
+            placeholder={placeholderText}
             className={cn(
               'border-input bg-card text-foreground field-focus h-10 min-h-[44px] w-full rounded-lg border py-2 pl-3 pr-[5.5rem] text-sm transition-colors',
               'placeholder:text-muted-foreground',
@@ -150,6 +176,9 @@ export function CategoryCombobox({
               setOpen(true);
             }}
             onFocus={() => {
+              valueAtOpenRef.current = value;
+            }}
+            onClick={() => {
               if (!open) {
                 valueAtOpenRef.current = value;
                 setOpen(true);
@@ -182,9 +211,14 @@ export function CategoryCombobox({
                 if (!open) return;
                 e.preventDefault();
                 const active = filtered[activeIndex];
-                if (active) commit(active);
-                else if (showCustomOption && activeIndex === filtered.length) commit(trimmedDraft);
-                else commitDraft();
+                if (active) {
+                  if (isOtherCategory(active)) startCustomEntry();
+                  else commit(active);
+                } else if (showCustomOption && activeIndex === filtered.length) {
+                  commit(trimmedDraft);
+                } else {
+                  commitDraft();
+                }
                 return;
               }
 
@@ -195,6 +229,7 @@ export function CategoryCombobox({
                 setDraft(valueAtOpenRef.current);
                 onChange(valueAtOpenRef.current);
                 setActiveIndex(-1);
+                setCustomMode(false);
                 setOpen(false);
               }
             }}
@@ -252,8 +287,10 @@ export function CategoryCombobox({
         >
           <ul id={listboxId} role="listbox" aria-label={ariaLabel} className="space-y-0.5">
             {filtered.map((item, index) => {
-              const selected = normalizedValue === item.toLowerCase();
+              const other = isOtherCategory(item);
+              const selected = !other && normalizedValue === item.toLowerCase();
               const active = activeIndex === index;
+              const pinnedOther = other && !trimmedDraft;
               return (
                 <li
                   key={item}
@@ -261,20 +298,25 @@ export function CategoryCombobox({
                   role="option"
                   aria-selected={selected}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => commit(item)}
+                  onClick={() => (other ? startCustomEntry() : commit(item))}
                   className={cn(
                     'flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors',
                     active
                       ? 'bg-muted text-foreground'
                       : selected
                         ? 'bg-primary/10 text-primary'
-                        : 'text-foreground hover:bg-muted/60'
+                        : 'text-foreground hover:bg-muted/60',
+                    pinnedOther && 'bg-popover border-border/60 sticky bottom-0 z-10 mt-1 border-t'
                   )}
                 >
                   <span className="flex size-4 shrink-0 items-center justify-center">
-                    {selected ? <Check className="text-primary size-4" aria-hidden /> : null}
+                    {other ? (
+                      <Pencil className="text-muted-foreground size-4" aria-hidden />
+                    ) : selected ? (
+                      <Check className="text-primary size-4" aria-hidden />
+                    ) : null}
                   </span>
-                  <span className="min-w-0 truncate">{item}</span>
+                  <span className="min-w-0 truncate">{other ? 'Other (type your own)' : item}</span>
                 </li>
               );
             })}

@@ -435,7 +435,7 @@ Yes. The summary cards, charts, and transaction list all use the selected range.
 - source: docs/guides/routes/org/property/finance.md
 - order: 60
 
-Yes. In the Category field, type the category you want and choose Use "...". It saves with the transaction and works in filters, charts, and reports like the built-in categories.
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the transaction and works in filters, charts, and reports like the built-in categories.
 
 ### How do I get Telegram reminders for maintenance tasks?
 
@@ -480,7 +480,7 @@ Viewing reminders is included on every plan. PDF export needs the reporting feat
 - source: docs/guides/routes/org/property/maintenance.md
 - order: 50
 
-Yes. In the Category field, type the category you want and choose Use "...". It saves with the reminder and works in filters, cards, and reports like the built-in categories.
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the reminder and works in filters, cards, and reports like the built-in categories.
 
 ### What can I ask the AI assistant?
 

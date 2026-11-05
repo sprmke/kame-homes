@@ -61,7 +61,7 @@ Finance gives hosts one place to see how much money is coming in and going out f
 - Q: Do the charts and totals follow the date range I pick?
   A: Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
 - Q: My expense does not fit any category. Can I add my own?
-  A: Yes. Pick the closest preset or type your own category in the Category field, then choose **Use "…"**. Custom categories work in filters, charts, and exports like any other category.
+  A: Yes. Pick **Other (type your own)**, then type the category name and press Enter (or choose **Use "…"**). Custom categories work in filters, charts, and exports like any other category.
 
 ---
 
@@ -135,7 +135,7 @@ Charts (`FinanceTransactionsChart`) plot the same underlying data as cash-flow (
 
 ### Behavior / edge cases
 
-- **Category picker** (`CategoryCombobox`): presets are ordered by common use, typing filters them, and the pinned **Use "…"** row saves a custom category. Enter picks the highlighted preset (or the typed custom value); Escape restores the value from before the dropdown opened. Matching a preset case-insensitively restores its canonical casing (`rent` → `Rent`) so filters and charts stay grouped. Presets live in `financeCategories.ts`.
+- **Category picker** (`CategoryCombobox`): presets are ordered by common use, typing filters them, and the pinned **Use "…"** row saves a custom category. Choosing **Other (type your own)** clears the field, focuses it, and switches the placeholder to **Type your custom category**, so the next keystrokes name a real category instead of saving `Other`. Enter picks the highlighted preset (or the typed custom value); Escape restores the value from before the dropdown opened. Matching a preset case-insensitively restores its canonical casing (`rent` → `Rent`) so filters and charts stay grouped. Presets live in `financeCategories.ts`.
 - Telegram due-date reminders are sent via the property's Finance Telegram integration, configured under **Notifications → Finance** (not on this page).
 - `paid_at` on a line item stops future reminders for that item across every reminder interval.
 

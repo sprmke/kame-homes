@@ -38,7 +38,7 @@ Status, category, and Telegram filters apply **client-side** on items already lo
 
 **Reminders list:** table / card / calendar (`?view=table|card|calendar`). CRUD via a **3-step** modal (Details → Reminders → Preview); recurring series and mark-as-done supported. On phone, card rows match Bookings density: title + **⋯** on the first line; status badge · date · category · recurrence on the second; edit / delete / series open from the **⋯** sheet (not inline icon buttons). Notes stay hidden until edit. `sm+` keeps the taller stacked card with notes and a footer action bar.
 
-**Category picker** (`CategoryCombobox`, shared with Finance): presets are ordered by trade and frequency (plumbing, electrical, aircon, appliance, cleaning, pest control, repairs, painting, structural, landscaping, pool, safety, amenities, supplies, utilities, other). Typing filters the list; the pinned **Use "…"** row saves a custom category. Enter picks the highlighted preset or the typed value, Escape restores the value from before opening. Presets live in `maintenanceCategories.ts`.
+**Category picker** (`CategoryCombobox`, shared with Finance): presets are ordered by trade and frequency (plumbing, electrical, aircon, appliance, cleaning, pest control, repairs, painting, structural, landscaping, pool, safety, amenities, supplies, utilities, other). Typing filters the list; the pinned **Use "…"** row saves a custom category. Choosing **Other (type your own)** clears the field and prompts for a custom name. Enter picks the highlighted preset or the typed value, Escape restores the value from before opening. Presets live in `maintenanceCategories.ts`.
 
 Maintenance Telegram defaults: **Notifications → Maintenance**.
 
@@ -65,7 +65,7 @@ This page helps you track upkeep for your property: cleaning schedules, applianc
 - Q: Is exporting a maintenance report included on my plan?
   A: Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
 - Q: None of the categories match my task. Can I create one?
-  A: Yes. Type your own category in the Category field and choose **Use "…"**. It saves with the reminder and appears in filters, cards, and reports like the built-in categories.
+  A: Yes. Pick **Other (type your own)**, then type the category name and press Enter (or choose **Use "…"**). It saves with the reminder and appears in filters, cards, and reports like the built-in categories.
 
 ---
 
