@@ -92,12 +92,14 @@ connection pressure.
 | `unindexed_foreign_keys` |                               73 |                               90 |
 | `rls_enabled_no_policy`  |                              106 |                              111 |
 
-Performance warnings are now zero. The remaining security WARNs are
+Performance warnings are now zero. The remaining security WARNs were
 `function_search_path_mutable` (24), `authenticated_security_definer_function_executable`
-(10), `auth_leaked_password_protection` (1), and `extension_in_public` (1). The first two
-need a targeted follow-up, the leaked-password toggle is a Dashboard setting, and
-`pg_trgm` relocation is its own change. Informational `unindexed_foreign_keys` and
-`unused_index` findings stay accepted until production-like traffic exists.
+(10), `auth_leaked_password_protection` (1), and `extension_in_public` (1). The
+leaked-password toggle is enabled. The other three are addressed by
+`20261318180000_pin_function_search_paths.sql`,
+`20261318181000_move_rls_helpers_to_private.sql`, and
+`20261318182000_move_pg_trgm_to_extensions.sql`; their advisor delta will be recorded
+after the follow-up deploy.
 
 ## 3. After / expected effect
 
