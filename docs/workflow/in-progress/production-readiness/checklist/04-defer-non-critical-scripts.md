@@ -2,7 +2,7 @@
 title: 'Defer non-critical scripts'
 status: active
 tags: [workflow, planned, production-readiness, performance, third-party]
-updated: 2026-09-21
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

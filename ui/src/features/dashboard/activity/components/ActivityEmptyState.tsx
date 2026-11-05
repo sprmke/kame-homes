@@ -14,7 +14,7 @@ export function ActivityEmptyState({ message, onClearFilters, onRetry, className
   return (
     <div
       className={cn(
-        'surface-card flex flex-col items-center gap-3 px-6 py-12 text-center sm:py-14',
+        'surface-card flex flex-col items-center gap-3 px-4 sm:px-6 py-8 text-center sm:py-14',
         className
       )}
     >

@@ -2,7 +2,7 @@
 title: 'CI/CD and version control'
 status: active
 tags: [workflow, planned, production-readiness, ci-cd, git]
-updated: 2026-09-21
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

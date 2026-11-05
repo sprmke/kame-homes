@@ -3,7 +3,7 @@ stage: in-progress
 title: 'CAPTCHA & Anti-Spam Hardening — bot defense across auth + public write surfaces'
 status: active
 tags: [planning, planned-modules, security, anti-spam, captcha, auth, edge-functions]
-updated: 2026-09-02
+updated: 2026-11-06
 origin_stage: for-testing
 readiness: unverified
 launch_gate: B

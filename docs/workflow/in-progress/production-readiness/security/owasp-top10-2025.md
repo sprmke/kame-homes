@@ -1,7 +1,7 @@
 ---
 title: 'OWASP Top 10:2025'
 status: active
-updated: 2026-11-02
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 readiness: unverified

@@ -1,7 +1,7 @@
 ---
 title: 'ASVS 5.0 L2 (selected)'
 status: active
-updated: 2026-10-19
+updated: 2026-11-06
 launch_gate: B
 readiness: unverified
 ---

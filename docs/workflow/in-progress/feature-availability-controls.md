@@ -3,7 +3,7 @@ stage: done
 title: 'Feature availability controls (redirect)'
 status: done
 tags: [redirect]
-updated: 2026-10-30
+updated: 2026-11-06
 ---
 
 # Moved

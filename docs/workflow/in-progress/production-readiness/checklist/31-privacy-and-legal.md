@@ -2,7 +2,7 @@
 title: 'Privacy and legal'
 status: active
 tags: [workflow, in-progress, production-readiness]
-updated: 2026-11-02
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: untracked

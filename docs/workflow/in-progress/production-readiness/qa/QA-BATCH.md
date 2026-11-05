@@ -2,7 +2,7 @@
 title: 'QA batch — for-testing modules'
 status: active
 tags: [workflow, for-testing, qa]
-updated: 2026-09-15
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 origin_stage: for-testing

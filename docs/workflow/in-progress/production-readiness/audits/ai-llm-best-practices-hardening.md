@@ -3,7 +3,7 @@ stage: in-progress
 title: 'AI / LLM best-practices hardening'
 status: for-testing
 tags: [planning, ai, gemini, security, evals, assistant, inbox]
-updated: 2026-09-24
+updated: 2026-11-06
 origin_stage: for-testing
 readiness: unverified
 launch_gate: D

@@ -4,7 +4,7 @@ stage: in-progress
 status: planned
 tags:
   [help-support, faqs, documentation, route-guides, ai-knowledge-base, public-pages, skills, guest]
-updated: 2026-11-05
+updated: 2026-11-06
 kind: plan
 ---
 

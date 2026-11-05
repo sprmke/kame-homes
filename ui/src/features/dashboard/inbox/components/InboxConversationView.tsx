@@ -976,7 +976,7 @@ export function InboxConversationView({
                 }}
               />
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+              <div className="flex flex-1 flex-col items-center justify-center py-8 sm:py-12 text-center">
                 <MessageSquare className="text-muted-foreground/50 mb-3 size-8" aria-hidden />
                 <p className="text-muted-foreground text-sm">No messages yet</p>
               </div>

@@ -26,13 +26,13 @@ export function GuestFormBrandHeader({
   const eyebrowText = eyebrow?.trim();
 
   return (
-    <div className="space-y-6 pt-10 md:pt-14">
-      <div className="absolute left-0 right-0 top-[-3.25rem] mx-auto flex justify-center md:top-[-4.25rem]">
+    <div className="space-y-3 pt-9 sm:space-y-6 sm:pt-10 md:pt-14">
+      <div className="absolute left-0 right-0 top-[-2.75rem] mx-auto flex justify-center sm:top-[-3.25rem] md:top-[-4.25rem]">
         <div className="bg-card shadow-elevated ring-card rounded-full p-1 ring-4">
           <img
             src={logoUrl}
             alt={logoAlt?.trim() || 'Property'}
-            className="h-[88px] w-[88px] rounded-full object-cover md:h-[120px] md:w-[120px]"
+            className="h-[72px] w-[72px] rounded-full object-cover sm:h-[88px] sm:w-[88px] md:h-[120px] md:w-[120px]"
           />
         </div>
       </div>

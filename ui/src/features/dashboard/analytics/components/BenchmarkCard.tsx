@@ -47,7 +47,7 @@ export function BenchmarkCard({ benchmark, ownOccupancyRatePct, className }: Pro
         <div className="grid flex-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="text-muted-foreground text-xs font-medium">Occupancy</p>
-            <p className="text-foreground mt-1 text-2xl font-bold tabular-nums">
+            <p className="text-foreground mt-1 text-xl font-bold tabular-nums sm:text-2xl">
               {Math.round(ownOccupancyRatePct)}%
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
@@ -62,7 +62,7 @@ export function BenchmarkCard({ benchmark, ownOccupancyRatePct, className }: Pro
           {benchmark.medianAdr !== null ? (
             <div>
               <p className="text-muted-foreground text-xs font-medium">ADR</p>
-              <p className="text-foreground mt-1 text-2xl font-bold tabular-nums">
+              <p className="text-foreground mt-1 text-xl font-bold tabular-nums sm:text-2xl">
                 {formatMoney(benchmark.medianAdr)}
               </p>
               <p className="text-muted-foreground mt-1 text-xs">

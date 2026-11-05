@@ -2,7 +2,7 @@
 title: 'Production readiness checklist'
 status: active
 tags: [workflow, planned, production-readiness, performance, security, reliability]
-updated: 2026-11-03
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 origin_stage: planned

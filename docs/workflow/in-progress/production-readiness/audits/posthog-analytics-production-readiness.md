@@ -2,7 +2,7 @@
 title: 'PostHog analytics and error tracking — production readiness'
 status: for-testing
 tags: [workflow, for-testing, posthog, analytics, observability, privacy]
-updated: 2026-09-12
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: for-testing

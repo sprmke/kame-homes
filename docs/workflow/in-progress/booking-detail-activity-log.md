@@ -2,7 +2,7 @@
 title: Booking detail activity log coverage
 status: in-progress
 tags: [workflow, activity-log, bookings]
-updated: 2026-11-04
+updated: 2026-11-06
 stage: in-progress
 kind: feature
 ---

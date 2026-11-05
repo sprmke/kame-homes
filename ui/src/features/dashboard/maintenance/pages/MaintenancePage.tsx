@@ -206,7 +206,7 @@ export function MaintenancePage() {
           pending={summary.pending}
         />
       ) : (
-        <div className="surface-card flex flex-col items-center justify-center gap-3 px-4 py-12 text-center sm:py-20">
+        <div className="surface-card flex flex-col items-center justify-center gap-3 px-4 py-8 text-center sm:py-20">
           <div className="icon-well-sm bg-muted/80 inline-flex items-center justify-center">
             <Wrench className="text-muted-foreground size-[18px]" aria-hidden />
           </div>

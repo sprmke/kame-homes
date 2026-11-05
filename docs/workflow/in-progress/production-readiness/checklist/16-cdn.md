@@ -2,7 +2,7 @@
 title: 'Add CDN'
 status: active
 tags: [workflow, planned, production-readiness, cdn, caching, hosting]
-updated: 2026-09-21
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

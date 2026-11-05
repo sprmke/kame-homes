@@ -293,7 +293,7 @@ export function ParkingFinancePage() {
         pagedEntries.rows.length === 0 && !isLedgerLoading ? (
           <FloatingPanel
             padding="lg"
-            className="flex flex-col items-center justify-center py-14 text-center"
+            className="flex flex-col items-center justify-center py-8 sm:py-12 text-center"
           >
             <p className="text-foreground text-sm font-semibold">No transactions in this period</p>
           </FloatingPanel>

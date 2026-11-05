@@ -2,7 +2,7 @@
 title: 'Index the database'
 status: active
 tags: [workflow, planned, production-readiness, database, postgres]
-updated: 2026-09-16
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned
