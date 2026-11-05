@@ -44,12 +44,12 @@ test.describe('AI assistant plan card - Phase 3 approve/untick/partial-failure',
       panel.getByText('Raise the weekend rate 10% to ₱4,620.', { exact: false })
     ).toBeVisible();
 
-    const approve = panel.getByRole('button', { name: /Approve selected/ });
+    const approve = panel.getByRole('button', { name: /^Approve selected/ });
     await expect(approve).toBeEnabled();
     await approve.click();
 
     await expect(panel.getByText('Completed')).toBeVisible({ timeout: 15_000 });
-    await expect(panel.getByRole('button', { name: /Approve selected/ })).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: /^Approve selected/ })).toHaveCount(0);
   });
 
   test('unticking a step excludes it and Approve selected count drops', async ({ page }) => {
@@ -154,6 +154,6 @@ test.describe('AI assistant plan card - Phase 3 approve/untick/partial-failure',
     await panel.getByRole('button', { name: 'Cancel' }).click();
 
     await expect(panel.getByText('Cancelled')).toBeVisible({ timeout: 15_000 });
-    await expect(panel.getByRole('button', { name: /Approve selected/ })).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: /^Approve selected/ })).toHaveCount(0);
   });
 });
