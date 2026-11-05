@@ -212,6 +212,9 @@ nights / period days`. The same label means different things per dashboard.
 - **Analytics keeps its own glossary.** ADR and RevPAR use different formulas from the dashboard
   Average Nightly Rate, so they stay in `metricGlossary.ts`. The new parity test guards key drift
   against `METRIC_EXPLANATIONS`; it does not force identical wording.
+- **Reviews was missing from the original P1 table.** The Reviews KPI row has non-obvious
+  "Responded" (share of reviews with a host response) and "To write" (reviews still due), so both
+  now have hints. Added as a late P1 item.
 
 - [x] **P1.1** For each card below, read the server computation, write the definition, and put
       the source file in a comment next to the copy. If a label and its value do not match, record it
