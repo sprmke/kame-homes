@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   parkingProfileDraftFromParking,
-  parkingOperationalDraftFromSettings,
   parkingProfileDraftIsDirty,
-  parkingOperationalDraftIsDirty,
   parkingCoverImageFromSettings,
   parkingSlugPreview,
   parkingProfileSettingsPatch,
@@ -24,21 +22,9 @@ describe('parkingProfileDraftFromParking', () => {
   });
 });
 
-describe('parkingOperationalDraftFromSettings', () => {
-  it('parkingOperationalDraftFromSettings is exported', () => {
-    expect(typeof parkingOperationalDraftFromSettings).toBe('function');
-  });
-});
-
 describe('parkingProfileDraftIsDirty', () => {
   it('parkingProfileDraftIsDirty is exported', () => {
     expect(typeof parkingProfileDraftIsDirty).toBe('function');
-  });
-});
-
-describe('parkingOperationalDraftIsDirty', () => {
-  it('parkingOperationalDraftIsDirty is exported', () => {
-    expect(typeof parkingOperationalDraftIsDirty).toBe('function');
   });
 });
 

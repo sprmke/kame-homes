@@ -1,27 +1,18 @@
 import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { isValidParkingSlotNumber } from '@/features/dashboard/org/lib/parkingSlotDisplay';
-import { MAX_PROPERTY_PAYMENT_METHODS } from '@/features/dashboard/org/lib/paymentMethods';
-import {
-  validatePaymentAccountName,
-  validatePaymentAccountNumber,
-  validatePaymentProvider,
-} from '@/features/dashboard/org/lib/paymentProviders';
 import type { ParkingFeaturesDraft } from '@/features/dashboard/parking/components/ParkingFeaturesSection';
 import type {
   ParkingDetailsDraft,
   ParkingLocationDraft,
-  ParkingOperationalDraft,
   ParkingProfileDraft,
 } from '@/features/dashboard/parking/lib/parkingSettingsForm';
 
 export const MIN_PARKING_AMENITIES = 1;
 
-export type ParkingSettingsSectionId =
-  'basic' | 'media' | 'details' | 'features' | 'location' | 'payment';
+export type ParkingSettingsSectionId = 'basic' | 'media' | 'details' | 'features' | 'location';
 
 export type ParkingSettingsCompletionInput = {
   profile: ParkingProfileDraft;
-  operational: ParkingOperationalDraft | null;
   details: ParkingDetailsDraft;
   features: ParkingFeaturesDraft;
   location: ParkingLocationDraft;
@@ -42,7 +33,7 @@ export type ParkingSettingsCompletionResult = {
 export function computeParkingSettingsCompletion(
   input: ParkingSettingsCompletionInput
 ): ParkingSettingsCompletionResult {
-  const { profile, operational, details, features, location, coverImage } = input;
+  const { profile, details, features, location, coverImage } = input;
   const fieldErrors: Record<string, string> = {};
   const sectionMessages: Partial<Record<ParkingSettingsSectionId, string>> = {};
   const issueSectionIds: ParkingSettingsSectionId[] = [];
@@ -112,43 +103,6 @@ export function computeParkingSettingsCompletion(
   }
   if (location.latitude == null || location.longitude == null) {
     addFieldError('property-location-map', 'Pin this parking slot on the map', 'location');
-  }
-
-  // ── Payment ──
-  if (operational) {
-    if (operational.paymentMethods.length === 0) {
-      addFieldError('payment-methods', 'Add at least one payment method', 'payment');
-    } else if (operational.paymentMethods.length > MAX_PROPERTY_PAYMENT_METHODS) {
-      addFieldError(
-        'payment-methods',
-        `You can add up to ${MAX_PROPERTY_PAYMENT_METHODS} payment methods`,
-        'payment'
-      );
-    } else if (operational.paymentMethods.filter((m) => m.isPrimary).length !== 1) {
-      addFieldError('payment-methods', 'Mark exactly one payment method as primary', 'payment');
-    }
-
-    for (const method of operational.paymentMethods) {
-      const prefix = `payment-method-${method.id}`;
-      const providerErr = validatePaymentProvider(method.provider);
-      if (providerErr) {
-        addFieldError(`${prefix}-provider`, providerErr, 'payment');
-      }
-
-      const accountNameErr = validatePaymentAccountName(method.accountName);
-      if (accountNameErr) {
-        addFieldError(`${prefix}-name`, accountNameErr, 'payment');
-      } else if (!method.accountName.trim()) {
-        addFieldError(`${prefix}-name`, 'Enter the account name', 'payment');
-      }
-
-      const accountNumberErr = validatePaymentAccountNumber(method.provider, method.accountNumber);
-      if (accountNumberErr) {
-        addFieldError(`${prefix}-number`, accountNumberErr, 'payment');
-      } else if (!method.accountNumber.trim()) {
-        addFieldError(`${prefix}-number`, 'Enter the account number', 'payment');
-      }
-    }
   }
 
   const firstIssueSectionId = issueSectionIds[0] ?? null;
