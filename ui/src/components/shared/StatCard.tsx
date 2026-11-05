@@ -30,8 +30,6 @@ export type StatCardProps = {
   className?: string;
   change?: number;
   changeLabel?: string;
-  /** Optional control after the change caption (e.g. a comparison-period hint). */
-  changeAdornment?: ReactNode;
   /** When true, `change` is shown as percentage points (e.g. occupancy). */
   changeIsPoints?: boolean;
   footer?: ReactNode;
@@ -67,7 +65,6 @@ export function StatCard({
   className,
   change,
   changeLabel = 'vs last period',
-  changeAdornment,
   changeIsPoints = false,
   footer,
   onClick,
@@ -123,7 +120,7 @@ export function StatCard({
       >
         <div className="flex w-full items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
-            <div className="flex items-start gap-0.5">
+            <div className="flex items-center gap-0.5">
               <p
                 className={cn(
                   'text-muted-foreground line-clamp-2 font-medium leading-snug',
@@ -133,7 +130,7 @@ export function StatCard({
                 {title}
               </p>
               {titleAdornment ? (
-                <span className="relative z-20 shrink-0">{titleAdornment}</span>
+                <span className="relative z-20 flex shrink-0">{titleAdornment}</span>
               ) : null}
             </div>
             <p
@@ -171,9 +168,6 @@ export function StatCard({
                 <span className="text-muted-foreground hidden text-xs lg:inline">
                   {changeLabel}
                 </span>
-                {changeAdornment ? (
-                  <span className="relative z-20 shrink-0">{changeAdornment}</span>
-                ) : null}
               </div>
             ) : null}
           </div>
@@ -220,8 +214,6 @@ type StatCardSkeletonProps = {
   iconBgClassName?: string;
   /** Fixed trend caption, e.g. "vs last period". */
   changeLabel?: string;
-  /** Fixed adornment after the trend caption (e.g. a comparison hint slot). */
-  changeAdornment?: ReactNode;
   /** Fixed footer content (status chips, helper copy). */
   footer?: ReactNode;
   className?: string;
@@ -237,7 +229,6 @@ export function StatCardSkeleton({
   iconClassName = STAT_CARD_ICON_MUTED.iconClassName,
   iconBgClassName = STAT_CARD_ICON_MUTED.iconBgClassName,
   changeLabel,
-  changeAdornment,
   footer,
   className,
   style,
@@ -247,7 +238,7 @@ export function StatCardSkeleton({
       <div className={cn('flex flex-col', (showStatusFooter || footer) && 'lg:gap-2.5')}>
         <div className="flex items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
-            <div className="flex items-start gap-0.5">
+            <div className="flex items-center gap-0.5">
               {title ? (
                 <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
                   {title}
@@ -255,7 +246,7 @@ export function StatCardSkeleton({
               ) : (
                 <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
               )}
-              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
+              {titleAdornment ? <span className="flex shrink-0">{titleAdornment}</span> : null}
             </div>
             <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
             {showTrend ? (
@@ -268,7 +259,6 @@ export function StatCardSkeleton({
                 ) : (
                   <Skeleton className="hidden h-3 w-20 lg:block" />
                 )}
-                {changeAdornment ? <span className="shrink-0">{changeAdornment}</span> : null}
               </div>
             ) : null}
           </div>

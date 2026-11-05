@@ -249,9 +249,9 @@ nights / period days`. The same label means different things per dashboard.
 - [x] **P1.4** Shared definitions: property, org and parking "Occupancy Rate" / "Average Nightly
       Rate" copy lives in one `ui/src/lib/help/metricDefinitions.ts` and is imported by all three
       dashboards plus Analytics, so wording cannot drift.
-- [x] **P1.5** Hint in the trend line: "vs last period" gets its own hint (or is included in each
-      card's hint): "Compared with the same number of days right before this range."
-      Confirm the prior-period logic in `dashboardService.ts` first.
+- [x] **P1.5** ~~Hint in the trend line.~~ **Removed after UI review (2026-11-06):** the extra
+      `i` beside "vs last period" was redundant and noisy. The prior-period window was verified as
+      the same number of days immediately before the range, but no hint ships for it.
 - [x] **P1.6** Refactor `StatCard` once for the stretched link (addendum A2) before adding hints to
       any card with `to` / `onClick`. Add a test proving there are no nested interactive elements
       and the hint stays keyboard reachable.
