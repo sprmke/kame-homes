@@ -7,15 +7,19 @@ describe('resolvePropertyDashboardHref', () => {
     expect(
       resolvePropertyDashboardHref(
         '/analytics?from=2026-11-01&to=2026-11-30',
-        'kame-homes',
-        'kame-home'
+        'example-org',
+        'example-property'
       )
-    ).toBe('/org/kame-homes/property/kame-home/analytics?from=2026-11-01&to=2026-11-30');
+    ).toBe('/org/example-org/property/example-property/analytics?from=2026-11-01&to=2026-11-30');
   });
 
   it('leaves an already scoped path alone', () => {
     expect(
-      resolvePropertyDashboardHref('/org/kame-homes/property/kame-home/bookings', 'other', 'other')
-    ).toBe('/org/kame-homes/property/kame-home/bookings');
+      resolvePropertyDashboardHref(
+        '/org/example-org/property/example-property/bookings',
+        'other',
+        'other'
+      )
+    ).toBe('/org/example-org/property/example-property/bookings');
   });
 });
