@@ -20,6 +20,7 @@ import {
   mergeListingAuthorizationIntoSettings,
   missingListingDocs,
   readListingAuthorizationFromSettings,
+  resolveListingActivationBlock,
   resolveListingAuthorization,
   type ListingAuthorizationState,
 } from './listingAuthorization.ts';
@@ -299,5 +300,53 @@ Deno.test('renew eligible when approved and in pre-expiry, grace, or locked', ()
       { ...approved, assets: { ...approved.assets, proofPath: null } },
       '2099-06-01'
     )
+  );
+});
+
+Deno.test('resolveListingActivationBlock allows only approved, unlocked listings', () => {
+  assertEquals(resolveListingActivationBlock(emptyListingAuthorizationState()), {
+    reason: 'listing_not_approved',
+    message: 'This listing is not verified yet. Submit the listing verification to go live.',
+  });
+
+  const pending = resolveListingActivationBlock({
+    ...ownerWithProof(),
+    baseStatus: 'pending',
+  });
+  assertEquals(pending?.reason, 'listing_not_approved');
+
+  const rejected = resolveListingActivationBlock({
+    ...ownerWithProof(),
+    baseStatus: 'rejected',
+    baseRejectionKind: 'changes',
+  });
+  assertEquals(rejected?.reason, 'listing_not_approved');
+
+  assertEquals(
+    resolveListingActivationBlock({ ...ownerWithProof(), baseStatus: 'approved' }),
+    null
+  );
+});
+
+Deno.test('resolveListingActivationBlock blocks a contract lock even when approved', () => {
+  const block = resolveListingActivationBlock({
+    ...ownerWithProof(),
+    baseStatus: 'approved',
+    lifecycle: {
+      ...emptyContractLegLifecycle(),
+      accessLockedAt: '2099-06-06T00:00:00.000Z',
+    },
+  });
+
+  assertEquals(block?.reason, 'contract_locked');
+});
+
+Deno.test('activation reads the listing block only, never the org-leg fallback', () => {
+  // A property created after the backfill has no listingAuthorization block. The org-leg
+  // fallback would call it approved; activation must not.
+  const settings = {} as Record<string, unknown>;
+  assertEquals(
+    resolveListingActivationBlock(readListingAuthorizationFromSettings(settings))?.reason,
+    'listing_not_approved'
   );
 });

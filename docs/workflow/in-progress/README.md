@@ -15,6 +15,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
+**Moved in 2026-11-06:** [`property-archive-and-delete-lifecycle.md`](./property-archive-and-delete-lifecycle.md) — P0 hotfix shipped: Restore no longer bypasses listing verification or a contract lock (server + hidden button with the reason), a property that is not `ACTIVE` refuses new bookings through the direct link, and booked guests keep their stay guide when the host archives. P1–P7 (reason column, one lifecycle service, automations matrix, host UI, guest closed screen, billing, parking parity) remain. All five open decisions are settled in §6.
+
 **Moved in 2026-11-05:** [`cancellation-policy-and-process.md`](./cancellation-policy-and-process.md) — started. Tiered policy engine + custom builder, immutable booking-time snapshot, Manila refund calculator, guest cancel/request from the trip page, host cancel sheet with reasons and overrides, refund tracking, cancellation emails, activity log, edge-case matrix. Phases 1–7 in the doc.
 
 **Moved in 2026-11-05:** [`support-content-and-faq-sync.md`](./support-content-and-faq-sync.md) — started. Makes `docs/guides/` the enforced source behind the Help Center Guides tab, `help_center_faqs`, public `/support`, and guest help. Phases: coverage gate, content sweep, provenance-safe sync, FAQ search/browse, public endpoint, support-content rule.

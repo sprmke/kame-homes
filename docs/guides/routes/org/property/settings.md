@@ -59,6 +59,10 @@ Property Settings is where you complete operational setup: basic info, capacity,
   A: No. **Save Changes** only saves the sections you've edited that pass validation, so you can finish contact details today and payment later. Incomplete required areas still show a warning dot until you get to them.
 - Q: What's the difference between Archive and Delete?
   A: Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it's blocked if any bookings exist, so use Archive instead for units with past stays.
+- Q: Why can't I restore my archived property?
+  A: Restore only appears when the listing is verified and the listing contract is current. A new listing has to be approved first, and an ended contract has to be renewed. The card under **Danger Zone** tells you which one applies.
+- Q: Can guests still book a property I archived?
+  A: No. The public page and its direct booking link stop taking new bookings. Guests who already have a booking keep their form, trip page, and stay guide.
 - Q: Where do guests see my cancellation policy and house rules?
   A: House rules and cancellation policy appear on your public property listing. The booking form also shows the policy with the exact deadline dates for the stay and asks the guest to agree to it. After booking, the trip page shows the policy that applied when they booked, plus their refund if they cancel. Automated email wording is edited separately on the Templates page.
 - Q: If I change my cancellation policy, do existing bookings change too?
@@ -117,12 +121,13 @@ Logic: `ui/src/features/dashboard/org/lib/propertySettingsCompletion.ts`, `ui/sr
 
 Both use the same column: `properties.status` (`ACTIVE` | `INACTIVE`).
 
-| Control                   | What it does                                                |
-| ------------------------- | ----------------------------------------------------------- |
-| **Archive** (Danger Zone) | Sets `status = INACTIVE` immediately via `update-property`. |
-| **Restore** (Danger Zone) | Sets `status = ACTIVE` when the property is archived.       |
+| Control                   | What it does                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Archive** (Danger Zone) | Sets `status = INACTIVE` immediately via `update-property`.                                                               |
+| **Restore** (Danger Zone) | Sets `status = ACTIVE` when the property is archived, but only if the listing is verified and the contract is not locked. |
 
 **Inactive** properties keep all bookings, settings, integrations, and media. Nothing is deleted.
+New bookings through the public `?property=` link are refused while the property is not `ACTIVE`.
 
 ---
 
@@ -431,9 +436,10 @@ Read-only. Summary: "Who did what on this property." **Manage** opens a large mo
 
 ### Restore
 
-- Shown when property is archived (Inactive)
+- Shown when property is archived (Inactive) **and** the listing is verified with no contract lock
+- When it is not allowed, the card shows the reason instead of the button (waiting for approval, or renew the contract)
 - Confirmation modal → `update-property` with `status: ACTIVE` (`settings.dangerZone:edit`)
-- **409** when another org already has an ACTIVE listing for the same tower+unit — toast shows the server message; property stays Inactive
+- **409** when the listing authorization is not approved, or `listingAuthorization.lifecycle.accessLockedAt` is set, or another org already has an ACTIVE listing for the same tower+unit — toast shows the server message; property stays Inactive
 
 ### Delete
 
@@ -449,16 +455,16 @@ Read-only. Summary: "Who did what on this property." **Manage** opens a large mo
 
 ## API reference (this page)
 
-| Action                                                            | Endpoint                                                                               |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Profile + settings                                                | `PATCH update-property`                                                                |
-| Payment + building forms + email automations + workflow documents | `PATCH app-settings?property_id=` (payment fields require `settingsVerificationToken`) |
-| Payment OTP (org owner)                                           | `POST settings-verification?property_id=` (`send_otp`, `verify_otp`)                   |
-| Media upload/delete                                               | `POST` / `DELETE upload-property-media?property_id=`                                   |
-| Payment QR / signature                                            | `POST upload-app-settings-asset?property_id=`                                          |
-| Archive                                                           | `PATCH update-property` `{ status: "INACTIVE" }`                                       |
-| Restore                                                           | `PATCH update-property` `{ status: "ACTIVE" }`                                         |
-| Delete                                                            | `DELETE delete-property` `{ propertyId }`                                              |
+| Action                                                            | Endpoint                                                                                      |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Profile + settings                                                | `PATCH update-property`                                                                       |
+| Payment + building forms + email automations + workflow documents | `PATCH app-settings?property_id=` (payment fields require `settingsVerificationToken`)        |
+| Payment OTP (org owner)                                           | `POST settings-verification?property_id=` (`send_otp`, `verify_otp`)                          |
+| Media upload/delete                                               | `POST` / `DELETE upload-property-media?property_id=`                                          |
+| Payment QR / signature                                            | `POST upload-app-settings-asset?property_id=`                                                 |
+| Archive                                                           | `PATCH update-property` `{ status: "INACTIVE" }`                                              |
+| Restore                                                           | `PATCH update-property` `{ status: "ACTIVE" }` (requires verified listing, unlocked contract) |
+| Delete                                                            | `DELETE delete-property` `{ propertyId }`                                                     |
 
 ---
 
