@@ -2,7 +2,7 @@
 title: 'Curated support FAQs'
 status: active
 tags: [guides, support, faqs, help-center]
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Curated support FAQs
@@ -428,6 +428,15 @@ Yes. When you edit or delete a recurring transaction, you choose whether the cha
 
 Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
 
+### Can I use my own category for an expense?
+
+- category: Billing & Finance
+- audience: host
+- source: docs/guides/routes/org/property/finance.md
+- order: 60
+
+Yes. In the Category field, type the category you want and choose Use "...". It saves with the transaction and works in filters, charts, and reports like the built-in categories.
+
 ### How do I get Telegram reminders for maintenance tasks?
 
 - category: Maintenance & Operations
@@ -463,6 +472,15 @@ Yes. When you add or edit a reminder, set it as a recurring series. One-off task
 - order: 40
 
 Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
+
+### Can I use my own category for a maintenance task?
+
+- category: Maintenance & Operations
+- audience: host
+- source: docs/guides/routes/org/property/maintenance.md
+- order: 50
+
+Yes. In the Category field, type the category you want and choose Use "...". It saves with the reminder and works in filters, cards, and reports like the built-in categories.
 
 ### What can I ask the AI assistant?
 
